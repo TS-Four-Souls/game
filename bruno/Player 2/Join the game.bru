@@ -1,0 +1,29 @@
+meta {
+  name: Join the game
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{BASE_URL}}/join
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "id": "slichau"
+  }
+}
+
+script:post-response {
+  if (res.body.secret) {
+    bru.setVar('p2Secret', res.body.secret);
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

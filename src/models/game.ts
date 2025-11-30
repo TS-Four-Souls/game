@@ -1,0 +1,263 @@
+import type { Monster } from "@/models/monster";
+import type { Player } from "@/models/player";
+import type { Issuer } from "@/types";
+import { rollDice } from "@/utils/random";
+
+export class Game {
+  private players: Player[] = [];
+  private monsters: Monster[] = [];
+  private turnIndex: number | null = null;
+  private ongoingAttack: { player: Player; monster: Monster } | null = null;
+
+  constructor() {}
+
+  get state(): string {
+    let result = "";
+    result += `Players:\n`;
+    result +=
+      this.players
+        .map(
+          (p) =>
+            ` |- ${p.id}: ${p.currentHealthPoints} HP, ${p.attackPoints} ATK, ${p.score} Souls\n`
+        )
+        .join("") + "\n";
+    result += `Monsters:\n`;
+    result +=
+      this.monsters
+        .map(
+          (m) =>
+            ` |- ${m.id}: ${m.currentHealthPoints} HP, ${m.attackPoints} ATK, ${m.evasionPoints}+ DC, +${m.rewardPoints} Souls`
+        )
+        .join("\n") + "\n\n";
+    result += this.turnIndex === null ? "Game not started\n" : "Game started\n";
+    if (this.turnIndex !== null) {
+      result += `It's ${this.players[this.turnIndex]!.id}'s turn\n`;
+    }
+
+    return result;
+  }
+
+  addPlayer(newPlayer: Player): void {
+    this.assertPlayerIdAvailable(newPlayer.id);
+    this.assertGameNotStarted();
+    this.players.push(newPlayer);
+  }
+
+  addMonster(monster: Monster): void {
+    this.assertMonsterIdAvailable(monster.id);
+    this.monsters.push(monster);
+  }
+
+  start(issuer: Issuer): void {
+    this.assertIssuerSecret(issuer);
+    this.assertGameNotStarted();
+    this.assertMinimumPlayerCount();
+    this.healEveryone();
+    this.turnIndex = 0;
+  }
+
+  reset(issuer: Issuer): void {
+    this.assertIssuerSecret(issuer);
+    this.turnIndex = null;
+    this.players = [];
+    this.monsters = [];
+  }
+
+  nextTurn(issuer: Issuer): string {
+    const turnIndex = this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+    this.assertCurrentTurnIsPlayerTurn(player);
+    this.assertNoOngoingAttack();
+    this.healEveryone();
+
+    const winningPlayer = this.findWinningPlayer();
+    if (winningPlayer) {
+      console.log(
+        "Game over",
+        winningPlayer.id,
+        "wins with",
+        winningPlayer.score,
+        "points"
+      );
+      this.turnIndex = null;
+      return `Game over, ${winningPlayer.id} wins with ${winningPlayer.score} points`;
+    } else {
+      console.log(turnIndex);
+      this.turnIndex = (turnIndex + 1) % this.players.length;
+      return `It's ${this.players[this.turnIndex]!.id}'s turn`;
+    }
+  }
+
+  attack(issuer: Issuer, monsterId: string): string {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+    this.assertCurrentTurnIsPlayerTurn(player);
+    this.assertPlayerIsAlive(player);
+    const monster = this.findMonsterById(monsterId);
+    this.assertMonsterIsAlive(monster);
+    this.assertNoOtherOngoingAttack(player, monster);
+
+    let result = "Starting stats:\n";
+
+    result += `You: ${player.currentHealthPoints} HP, ${player.attackPoints} ATK, ${player.score} Souls\n`;
+    result += `${monster.id}: ${monster.currentHealthPoints} HP, ${monster.attackPoints} ATK, ${monster.evasionPoints}+ DC, +${monster.rewardPoints} Souls\n\n`;
+
+    const attackRoll = rollDice();
+    if (attackRoll < monster.evasionPoints) {
+      player.receiveDamage(monster.attackPoints);
+      result += `You attack ${monster.id} with a roll of ${attackRoll}. You lose ${monster.attackPoints} HP\n`;
+    } else {
+      monster.receiveDamage(player.attackPoints);
+      result += `You attack ${monster.id} with a roll of ${attackRoll}. The monster loses ${player.attackPoints} HP\n`;
+    }
+
+    if (player.isDead) {
+      result += `You are dead\n`;
+      this.ongoingAttack = null;
+    } else if (monster.isDead) {
+      result += `${monster.id} is dead, ${player.id} gains ${monster.rewardPoints} Souls\n`;
+      player.addScore(monster.rewardPoints);
+      this.removeMonster(monster);
+      this.ongoingAttack = null;
+    } else {
+      result += `You can attack again\n`;
+      this.ongoingAttack = { player, monster };
+    }
+
+    result += "\nEnding stats:\n";
+    result += `You: ${player.currentHealthPoints} HP, ${player.attackPoints} ATK, ${player.score} Souls\n`;
+    result += `${monster.id}: ${monster.currentHealthPoints} HP, ${monster.attackPoints} ATK, ${monster.evasionPoints}+ DC, +${monster.rewardPoints} Souls\n\n`;
+
+    return result;
+  }
+
+  /* PRIVATE METHODS */
+
+  private removeMonster(monster: Monster): void {
+    const index = this.findMonsterIndex(monster.id);
+    this.monsters.splice(index, 1);
+  }
+
+  private healEveryone(): void {
+    this.players.forEach((p) => p.heal());
+    this.monsters.forEach((m) => m.heal());
+  }
+
+  /* ASSERTIONS AND UTILS */
+
+  private findPlayerById(id: string): Player {
+    const player = this.players.find((p) => p.id === id);
+    if (!player) {
+      throw new Error("Player not found");
+    }
+    return player;
+  }
+
+  private findMonsterById(id: string): Monster {
+    const monster = this.monsters.find((m) => m.id === id);
+    if (!monster) {
+      throw new Error("Monster not found");
+    }
+    return monster;
+  }
+
+  private findMonsterIndex(id: string): number {
+    const index = this.monsters.findIndex((m) => m.id === id);
+    if (index === -1) {
+      throw new Error("Monster not found");
+    }
+    return index;
+  }
+
+  private findPlayerIndex(id: string): number {
+    const index = this.players.findIndex((p) => p.id === id);
+    if (index === -1) {
+      throw new Error("Player not found");
+    }
+    return index;
+  }
+
+  private findWinningPlayer(): Player | null {
+    const playerWithMostPoints = this.players.reduce(
+      (max, p) => (p.score > max.score ? p : max),
+      this.players[0]!
+    );
+    if (this.monsters.length === 0 || playerWithMostPoints.score >= 4) {
+      return playerWithMostPoints;
+    }
+    return null;
+  }
+
+  private assertCurrentTurnIsPlayerTurn(player: Player): void {
+    if (this.turnIndex !== this.findPlayerIndex(player.id)) {
+      throw new Error("Not your turn");
+    }
+  }
+
+  private assertPlayerIdAvailable(id: string): void {
+    if (this.players.some((p) => p.id === id)) {
+      throw new Error(`Player ${id} already exists`);
+    }
+  }
+
+  private assertIssuerSecret(issuer: Issuer): Player {
+    const player = this.findPlayerById(issuer.id);
+    if (!player.verifySecret(issuer.secret)) {
+      throw new Error("Invalid player secret");
+    }
+    return player;
+  }
+
+  private assertGameNotStarted(): void {
+    if (this.turnIndex !== null) {
+      throw new Error("Game already started");
+    }
+  }
+
+  private assertGameStarted(): number {
+    if (this.turnIndex === null) {
+      throw new Error("Game not started");
+    }
+    return this.turnIndex;
+  }
+
+  private assertMonsterIdAvailable(id: string): void {
+    if (this.monsters.some((m) => m.id === id)) {
+      throw new Error(`Monster ${id} already exists`);
+    }
+  }
+
+  private assertMinimumPlayerCount(): void {
+    if (this.players.length < 2) {
+      throw new Error("At least 2 players are required to start the game");
+    }
+  }
+
+  private assertMonsterIsAlive(monster: Monster): void {
+    if (monster.isDead) {
+      throw new Error("Monster is already dead");
+    }
+  }
+
+  private assertPlayerIsAlive(player: Player): void {
+    if (player.isDead) {
+      throw new Error("Player is already dead");
+    }
+  }
+
+  private assertNoOngoingAttack(): void {
+    if (this.ongoingAttack !== null) {
+      throw new Error("An attack is already ongoing");
+    }
+  }
+
+  private assertNoOtherOngoingAttack(player: Player, monster: Monster): void {
+    if (this.ongoingAttack === null) return;
+    if (
+      this.ongoingAttack.player.id !== player.id ||
+      this.ongoingAttack.monster.id !== monster.id
+    ) {
+      throw new Error("An attack is already ongoing");
+    }
+  }
+}
