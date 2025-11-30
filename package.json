@@ -1,6 +1,9 @@
 {
   "name": "game",
   "private": true,
+  "scripts": {
+    "start": "bun run src/main.ts"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },

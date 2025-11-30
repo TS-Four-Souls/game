@@ -5,7 +5,6 @@ import { schemas } from "@/types";
 import { playerEndpointHandler } from "@/utils/endpoints";
 
 const game = new Game();
-
 const randomMonsters = [
   new Monster("Monster 1", 1, 2, 3, 1),
   new Monster("Monster 2", 2, 2, 3, 1),
@@ -15,12 +14,15 @@ const randomMonsters = [
   new Monster("Monster 6", 1, 2, 3, 1),
   new Monster("Monster 7", 1, 1, 5, 1),
 ];
-
 randomMonsters.forEach((monster) => game.addMonster(monster));
 
+const PORT = process.env.PORT || 3000;
+const HOSTNAME = process.env.HOSTNAME || "localhost";
+console.log(`Server is running on http://${HOSTNAME}:${PORT}`);
+
 Bun.serve({
-  port: 3000,
-  hostname: "localhost",
+  port: PORT,
+  hostname: HOSTNAME,
   routes: {
     "/join": async (request) => {
       let body;
@@ -104,7 +106,6 @@ Bun.serve({
             status: 400,
           });
         }
-        return new Response("Ok", { status: 200 });
       }),
   },
 });
