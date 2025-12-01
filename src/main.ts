@@ -51,7 +51,7 @@ Bun.serve({
           message: `Welcome ${name} to the game`,
           secret: player.secret,
         }),
-        { status: 200 }
+        { status: 200, headers: { "Content-Type": "application/json" } }
       );
     },
     "/start": async (request) =>
