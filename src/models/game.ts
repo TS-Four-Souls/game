@@ -1,12 +1,16 @@
 import type { Monster } from "@/models/monster";
 import type { Player } from "@/models/player";
 import type { Issuer } from "@/types";
-import { rollDice } from "@/utils/random";
+import { loadCards } from '@/utils/loadCards';
+import { Card, CardSet, Deck, Hand, LoadsCardSets, LoadDecks, randomCardFromSet, isSameSlug } from "@/models/cards";
 
+const cards = await loadCards();
+const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
 export class Game {
   private players: Player[] = [];
   private monsters: Monster[] = [];
   private turnIndex: number | null = null;
+  private decks: {[key: string]: any} = {};
   private ongoingAttack: { player: Player; monster: Monster } | null = null;
 
   constructor() {}
@@ -52,10 +56,34 @@ export class Game {
     this.assertIssuerSecret(issuer);
     this.assertGameNotStarted();
     this.assertMinimumPlayerCount();
+    this.decks = LoadDecks(cardSets);
+    this.assignCharactersToPlayers();
     this.healEveryone();
     this.turnIndex = 0;
   }
 
+  assignCharactersToPlayers(): void {
+    const characterDeck = this.decks["character"];
+    if (!characterDeck) {
+      throw new Error("No character deck found");
+    }
+    this.players.forEach((player) => {
+      const characterCard = characterDeck.draw();
+      console.log("Assigning character", characterCard._json.name, "to player", player.id);
+      player.addInPlay(characterCard);
+      if (characterCard._json.eternalCard){
+        const cardName = characterCard._json.eternalCard.slug;
+        const cards = this.decks["eternal"].getCards((card: Card) => isSameSlug(cardName, card));
+        if(cards.length > 1){
+          throw new Error("Multiple eternal cards with the same slug found");
+        }
+        if(cards.length == 0){
+          throw new Error("No eternal card with slug "+ cardName + " found");
+        }
+        player.addInPlay(cards[0]!);
+      }
+    });
+  }
   reset(issuer: Issuer): void {
     this.assertIssuerSecret(issuer);
     this.turnIndex = null;
@@ -99,6 +127,84 @@ export class Game {
     return `New amount of coins: ${player.getCoins()} coins.\n`;
   }
 
+  loot(issuer: Issuer): string {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+    this.assertPlayerIsAlive(player);
+    
+    const lootDeck: Deck = this.decks["loot"];
+    const drawnCard: Card = lootDeck.draw()!;
+    player.hand().addToHand(drawnCard);
+
+    return `You have drawn the loot card: ${drawnCard._json.name}.\nDescription: ${JSON.stringify(drawnCard._json)}\n`;
+
+  }
+
+  getHand(issuer: Issuer): string {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+
+    const cards = player.hand().getCards();
+    let result = 'Your hand contains the following cards:\n';
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i]!;
+      result += `Card ${i + 1}: ${JSON.stringify(card._json)}\n`;
+    }
+
+    return result;
+  }
+  
+  getInPlay(issuer: Issuer): string {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+
+    const cards = player.getInPlay();
+    let result = 'Your in-play area contains the following cards:\n';
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i]!;
+      result += `Card ${i + 1}: ${JSON.stringify(card._json)}\n`;
+    }
+
+    return result;
+  }
+
+  discardFromHand(issuer: Issuer, position: number): string {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+    this.assertPlayerIsAlive(player);
+    this.assertPositiveNumber(position);
+
+    const hand = player.hand();
+    if(position < 1 || position > hand.getCards().length) {
+      throw new Error("Invalid card position.");
+    }
+
+    const discardedCard: Card = hand.removeFromHand(position - 1);
+    const lootDeck: Deck = this.decks["loot"];
+    lootDeck.addDiscardTop(discardedCard);
+
+    return `You have discarded the card: ${discardedCard._json.name}.\n`;
+  }
+
+  getDiscard(issuer: Issuer, deckType: string): string {
+    this.assertGameStarted();
+    this.assertIssuerSecret(issuer);
+
+    const deck: Deck = this.decks[deckType];
+    if(!deck) {
+      throw new Error("Invalid deck type.");
+    }
+    
+    const discardCards = deck.getDiscard();
+    let result = `The discard pile for the ${deckType} deck contains the following cards:\n`;
+    for (let i = 0; i < discardCards.length; i++) {
+      const card = discardCards[i]!;
+      result += `Card ${i + 1}: ${JSON.stringify(card._json)}\n`;
+    }
+
+    return result;
+  }
+
   loseCoins(issuer: Issuer, coins: number, asMany: boolean): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -114,7 +220,7 @@ export class Game {
     }
     return `Fail.\nPlayer has now ${player.getCoins()} coins.`;
   }
-  
+
   rollDice(issuer: Issuer): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -137,7 +243,7 @@ export class Game {
     result += `You: ${player.currentHealthPoints} HP, ${player.attackPoints} ATK, ${player.score} Souls\n`;
     result += `${monster.id}: ${monster.currentHealthPoints} HP, ${monster.attackPoints} ATK, ${monster.evasionPoints}+ DC, +${monster.rewardPoints} Souls\n\n`;
 
-    const attackRoll = rollDice();
+    const attackRoll = player.rollDice();
     if (attackRoll < monster.evasionPoints) {
       player.receiveDamage(monster.attackPoints);
       result += `You attack ${monster.id} with a roll of ${attackRoll}. You lose ${monster.attackPoints} HP\n`;

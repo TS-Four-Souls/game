@@ -1,0 +1,25 @@
+meta {
+  name: Get discard loot cards
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{BASE_URL}}/getdiscard
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "issuer": {
+      "id": "DrMint",
+      "secret": "{{p1Secret}}"
+    }
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

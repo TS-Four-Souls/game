@@ -63,7 +63,7 @@ Bun.serve({
         }
         return new Response("Game started");
       }),
-    "/reset": async (request) =>
+      "/reset": async (request) =>
       playerEndpointHandler(request, (issuer) => {
         try {
           game.reset(issuer);
@@ -118,6 +118,79 @@ Bun.serve({
       playerEndpointHandler(request, (issuer, body) => {
         try {
           const result = game.rollDice(issuer);
+          return new Response(result, { status: 200 });
+        } catch (error) {
+          return new Response(`Something went wrong: ${error}`, {
+            status: 400,
+          });
+        }
+      }),
+    "/getdiscard": async (request) =>
+      playerEndpointHandler(request, (issuer, body) => {
+        try {
+          const result = game.getDiscard(issuer, "loot");
+          return new Response(result, { status: 200 });
+        } catch (error) {
+          return new Response(`Something went wrong: ${error}`, {
+            status: 400,
+          });
+        }
+      }),
+    "/gethand": async (request) =>
+      playerEndpointHandler(request, (issuer, body) => {
+        try {
+          const result = game.getHand(issuer);
+          return new Response(result, { status: 200 });
+        } catch (error) {
+          return new Response(`Something went wrong: ${error}`, {
+            status: 400,
+          });
+        }
+      }),
+    "/discardloot": async (request) =>
+      playerEndpointHandler(request, (issuer, body) => {
+        const parsedBody = schemas.discardLootRequest.safeParse(body);
+        if (!parsedBody.success) {
+          return new Response(
+            JSON.stringify({ error: parsedBody.error.message }),
+            { status: 400 }
+          );
+        }
+        try {
+          const result = game.discardFromHand(issuer, parsedBody.data.position);
+          return new Response(result, { status: 200 });
+        } catch (error) {
+          return new Response(`Something went wrong: ${error}`, {
+            status: 400,
+          });
+        }
+      }),
+    "/loot": async (request) =>
+      playerEndpointHandler(request, (issuer, body) => {
+        try {
+          const result = game.loot(issuer);
+          return new Response(result, { status: 200 });
+        } catch (error) {
+          return new Response(`Something went wrong: ${error}`, {
+            status: 400,
+          });
+        }
+      }),
+    "/hand": async (request) =>
+      playerEndpointHandler(request, (issuer, body) => {
+        try {
+          const result = game.getHand(issuer);
+          return new Response(result, { status: 200 });
+        } catch (error) {
+          return new Response(`Something went wrong: ${error}`, {
+            status: 400,
+          });
+        }
+      }),
+    "/inplay": async (request) =>
+      playerEndpointHandler(request, (issuer, body) => {
+        try {
+          const result = game.getInPlay(issuer);
           return new Response(result, { status: 200 });
         } catch (error) {
           return new Response(`Something went wrong: ${error}`, {

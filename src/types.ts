@@ -26,6 +26,10 @@ const loseCoinsSchema = UserProtectedRequestSchema.extend({
   asMany: z.boolean()
 });
 
+const discardLootSchema = UserProtectedRequestSchema.extend({
+  position: z.number(),
+});
+
 const NextTurnRequestSchema = UserProtectedRequestSchema.extend({});
 
 export const schemas = {
@@ -35,7 +39,7 @@ export const schemas = {
   nextTurnRequest: NextTurnRequestSchema,
   gainCoinsRequest: gainCoinsSchema,
   loseCoinsRequest: loseCoinsSchema,
-
+  discardLootRequest: discardLootSchema
 };
 
 export type Issuer = z.infer<typeof IssuerSchema>;
