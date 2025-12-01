@@ -18,9 +18,15 @@ export class Player extends Entity {
   getCoins(): number {
     return this._coin;
   }
+
   addCoins(coins: number): void {
     this._coin += coins;
   }
+
+  rollDice(): number {
+    return Math.floor(Math.random() * 6) + 1;
+  }
+  
   /* This methods tries to remove n coins to the player and return true if it does.
   * if the player have less than n coins and asMany is true, all his coins are removed.
   * */

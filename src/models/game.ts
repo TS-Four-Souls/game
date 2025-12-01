@@ -114,6 +114,14 @@ export class Game {
     }
     return `Fail.\nPlayer has now ${player.getCoins()} coins.`;
   }
+  
+  rollDice(issuer: Issuer): string {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+    this.assertPlayerIsAlive(player);
+    let diceRoll = player.rollDice();
+    return `You rolled a ${diceRoll}.`;
+  }
 
   attack(issuer: Issuer, monsterId: string): string {
     this.assertGameStarted();

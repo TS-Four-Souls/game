@@ -1,0 +1,25 @@
+meta {
+  name: Roll a dice
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{BASE_URL}}/rolldice
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "issuer": {
+      "id": "DrMint",
+      "secret": "{{p1Secret}}"
+    }
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -114,6 +114,17 @@ Bun.serve({
           });
         }
       }),
+    "/rolldice": async (request) =>
+      playerEndpointHandler(request, (issuer, body) => {
+        try {
+          const result = game.rollDice(issuer);
+          return new Response(result, { status: 200 });
+        } catch (error) {
+          return new Response(`Something went wrong: ${error}`, {
+            status: 400,
+          });
+        }
+      }),
     "/losecoins": async (request) =>
       playerEndpointHandler(request, (issuer, body) => {
         const parsedBody = schemas.loseCoinsRequest.safeParse(body);
