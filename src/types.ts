@@ -17,6 +17,15 @@ const AttackRequestSchema = UserProtectedRequestSchema.extend({
   monsterId: z.string(),
 });
 
+const gainCoinsSchema = UserProtectedRequestSchema.extend({
+  coins: z.number(),
+});
+
+const loseCoinsSchema = UserProtectedRequestSchema.extend({
+  coins: z.number(),
+  asMany: z.boolean()
+});
+
 const NextTurnRequestSchema = UserProtectedRequestSchema.extend({});
 
 export const schemas = {
@@ -24,6 +33,9 @@ export const schemas = {
   userProtectedRequest: UserProtectedRequestSchema,
   attackRequest: AttackRequestSchema,
   nextTurnRequest: NextTurnRequestSchema,
+  gainCoinsRequest: gainCoinsSchema,
+  loseCoinsRequest: loseCoinsSchema,
+
 };
 
 export type Issuer = z.infer<typeof IssuerSchema>;

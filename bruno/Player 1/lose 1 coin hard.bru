@@ -1,0 +1,22 @@
+meta {
+  name: Purchase
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{BASE_URL}}/losecoins
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "issuer": {
+      "id": "DrMint",
+      "secret": "{{p1Secret}}"
+    },
+    "coins": 1,
+    "asMany": false
+  }
+}

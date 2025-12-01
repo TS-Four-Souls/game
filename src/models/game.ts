@@ -88,6 +88,33 @@ export class Game {
     }
   }
 
+  gainCoins(issuer: Issuer, coins: number): string {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+    this.assertPlayerIsAlive(player);
+    this.assertPositiveNumber(coins);
+
+    player.addCoins(coins);
+    
+    return `New amount of coins: ${player.getCoins()} coins.\n`;
+  }
+
+  loseCoins(issuer: Issuer, coins: number, asMany: boolean): string {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+    this.assertPlayerIsAlive(player);
+    this.assertPositiveNumber(coins);
+
+    let success = player.loseCoins(coins, asMany);
+    if(success){
+      return `Success.\nNew amount of coins: ${player.getCoins()} coins.\n`;
+    }
+    else if(!asMany){
+      return `Fail.\nTransaction canceled.`;
+    }
+    return `Fail.\nPlayer has now ${player.getCoins()} coins.`;
+  }
+
   attack(issuer: Issuer, monsterId: string): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -242,6 +269,12 @@ export class Game {
   private assertPlayerIsAlive(player: Player): void {
     if (player.isDead) {
       throw new Error("Player is already dead");
+    }
+  }
+
+  private assertPositiveNumber(nb: number): void {
+    if(nb < 0) {
+      throw new Error("Number is negative.");
     }
   }
 

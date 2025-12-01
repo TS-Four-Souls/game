@@ -1,0 +1,26 @@
+meta {
+  name: Gain 1 coin
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{BASE_URL}}/gaincoins
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "issuer": {
+      "id": "DrMint",
+      "secret": "{{p1Secret}}"
+    },
+    "coins": 1
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

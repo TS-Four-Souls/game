@@ -38,7 +38,7 @@ Bun.serve({
         });
       }
       const { id: name } = result.data;
-      const player = new Player(name, 1, 2);
+      const player = new Player(name, 1, 2, 0);
       try {
         game.addPlayer(player);
       } catch (error) {
@@ -89,6 +89,42 @@ Bun.serve({
         }
         try {
           const result = game.attack(issuer, parsedBody.data.monsterId);
+          return new Response(result, { status: 200 });
+        } catch (error) {
+          return new Response(`Something went wrong: ${error}`, {
+            status: 400,
+          });
+        }
+      }),
+    "/gaincoins": async (request) =>
+      playerEndpointHandler(request, (issuer, body) => {
+        const parsedBody = schemas.gainCoinsRequest.safeParse(body);
+        if (!parsedBody.success) {
+          return new Response(
+            JSON.stringify({ error: parsedBody.error.message }),
+            { status: 400 }
+          );
+        }
+        try {
+          const result = game.gainCoins(issuer, parsedBody.data.coins);
+          return new Response(result, { status: 200 });
+        } catch (error) {
+          return new Response(`Something went wrong: ${error}`, {
+            status: 400,
+          });
+        }
+      }),
+    "/losecoins": async (request) =>
+      playerEndpointHandler(request, (issuer, body) => {
+        const parsedBody = schemas.loseCoinsRequest.safeParse(body);
+        if (!parsedBody.success) {
+          return new Response(
+            JSON.stringify({ error: parsedBody.error.message }),
+            { status: 400 }
+          );
+        }
+        try {
+          const result = game.loseCoins(issuer, parsedBody.data.coins, parsedBody.data.asMany);
           return new Response(result, { status: 200 });
         } catch (error) {
           return new Response(`Something went wrong: ${error}`, {
