@@ -124,9 +124,9 @@ class Deck {
         const result = []
         for (let i = this._discard.length - 1; i >= 0; i--) {
             const id = this._discard[i];
-            if(id){
-                result.push(this._set.get(id));
-            }
+                if (typeof id !== "undefined" && id !== null) {
+                    result.push(this._set.get(id));
+                }
                 
         }
         return result;
@@ -144,7 +144,7 @@ class Deck {
     getCardFromSlug(slug: string) : Card|undefined {
         for (let i = this._order.length - 1; i >= 0; i--) {
             const id = this._order[i];
-            if(id){
+            if (typeof id !== "undefined" && id !== null) {
                 const card = this._set.get(id);
                 if (card?._json.slug == slug) {
                     return card;
@@ -157,7 +157,7 @@ class Deck {
         const result: Card[] = [];
         for (let i = this._order.length - 1; i >= 0; i--) {
             const id = this._order[i];
-            if (id) {
+            if (typeof id !== "undefined" && id !== null) {
                 const card = this._set.get(id);
                 if (filter(card)) {
                     const positionFromTop = this._order.length - i;
@@ -166,6 +166,13 @@ class Deck {
             }
         }
         return result;
+    }
+    displayAllCards() {
+        this._order.forEach((id) => {
+            const card = this._set.get(id);
+            console.log(card?._json.slug);
+            // console.log(JSON.stringify(card?._json, null, 2));
+        });
     }
     ////// debug //////
     displayOrder() {
