@@ -3,15 +3,20 @@ import type { Player } from "@/models/player";
 import type { Issuer } from "@/types";
 import { loadCards } from '@/utils/loadCards';
 import { Card, CardSet, Deck, Hand, LoadsCardSets, LoadDecks, randomCardFromSet, isSameSlug } from "@/models/cards";
+import { Shop, Encounters } from "@/models/slots";
 
 const cards = await loadCards();
 const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
+
+const defaultParameters = {"nbItemsInShop": 2, "nbEncounters": 2};
 export class Game {
   private players: Player[] = [];
   private monsters: Monster[] = [];
   private turnIndex: number | null = null;
   private decks: {[key: string]: any} = {};
   private ongoingAttack: { player: Player; monster: Monster } | null = null;
+  private shop!: Shop;
+  private encounters!: Encounters;
 
   constructor() {}
 
@@ -22,17 +27,31 @@ export class Game {
       this.players
         .map(
           (p) =>
-            ` |- ${p.id}: ${p.currentHealthPoints} HP, ${p.attackPoints} ATK, ${p.score} Souls\n`
-        )
-        .join("") + "\n";
-    result += `Monsters:\n`;
-    result +=
-      this.monsters
-        .map(
-          (m) =>
-            ` |- ${m.id}: ${m.currentHealthPoints} HP, ${m.attackPoints} ATK, ${m.evasionPoints}+ DC, +${m.rewardPoints} Souls`
+            ` |- ${p.id}: ${p.currentHealthPoints} HP, ${p.attackPoints} ATK, ${p.getCoins()} Coins, ${p.score} Souls\n      ${p.getInPlay().map((c) => "-" + c._json.name).join("\n      ")}`
         )
         .join("\n") + "\n\n";
+    if(this.turnIndex !== null){
+    result += `Monsters:\n`;
+    let i:number = 0;
+    result += ` |- ${i++} top deck\n`;
+    result +=
+      this.encounters._slots
+        .map(
+          (m) =>
+            ` |- ${i++} ${m[m.length - 1]!._json.name}`
+        )
+        .join("\n") + "\n\n";
+    result += `Shop:\n`;
+    i = 0;
+    result += ` |- ${i++} top deck\n`;
+    result +=
+      this.shop._slots
+        .map(
+          (m) =>
+            ` |- ${i++} ${m!._json.name}`
+        )
+        .join("\n") + "\n\n";
+      }
     result += this.turnIndex === null ? "Game not started\n" : "Game started\n";
     if (this.turnIndex !== null) {
       result += `It's ${this.players[this.turnIndex]!.id}'s turn\n`;
@@ -59,6 +78,8 @@ export class Game {
     this.decks = LoadDecks(cardSets);
     this.assignCharactersToPlayers();
     this.healEveryone();
+    this.shop = new Shop(defaultParameters.nbItemsInShop, this.decks["treasure"]);
+    this.encounters = new Encounters(defaultParameters.nbEncounters, this.decks["monster"]);
     this.turnIndex = 0;
   }
 
@@ -77,7 +98,7 @@ export class Game {
         if(cards.length > 1){
           throw new Error("Multiple eternal cards with the same slug found");
         }
-        if(cards.length == 0){
+        if(cards.length === 0){
           throw new Error("No eternal card with slug "+ cardName + " found");
         }
         player.addInPlay(cards[0]!);
@@ -127,6 +148,28 @@ export class Game {
     return `New amount of coins: ${player.getCoins()} coins.\n`;
   }
 
+  gainTreasure(issuer: Issuer): string {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+    this.assertPlayerIsAlive(player);
+
+    const treasureDeck: Deck = this.decks["treasure"];
+    const drawnCard: Card = treasureDeck.draw()!;
+    player.addInPlay(drawnCard);
+    return `You have drawn the treasure card: ${drawnCard._json.name}.\nDescription: ${JSON.stringify(drawnCard._json)}\n`;
+  }
+  purchase(issuer: Issuer, index: number): string {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+    this.assertPlayerIsAlive(player);
+    this.assertPositiveNumber(index);
+
+    if(this.shop.purchase(player, index)) {
+      return `Purchase successful. You have now ${player.getCoins()} coins.\n`;
+    } else {
+      return `Purchase failed. You still have ${player.getCoins()} coins.\n`;
+    }
+  }
   loot(issuer: Issuer): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -167,7 +210,49 @@ export class Game {
 
     return result;
   }
+  discardMonster(issuer: Issuer, position: number): string {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+    this.assertPlayerIsAlive(player);
+    this.assertPositiveNumber(position);
 
+    if(position < 1 || position > this.encounters._slots.length) {
+      throw new Error("Invalid monster position.");
+    }
+
+    this.encounters.discardTop(position - 1);
+
+    return `You have discarded the monster at position ${position}.\n`;
+  }
+  drawMonster(issuer: Issuer, position: number): string {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+    this.assertPlayerIsAlive(player);
+    this.assertPositiveNumber(position);
+
+    if(position < 1 || position > this.encounters._slots.length) {
+      throw new Error("Invalid monster position.");
+    }
+
+    this.encounters.draw(position - 1);
+
+    return `You have drawn a new monster at position ${position}.\n`;
+  }
+  killMonster(issuer: Issuer, position: number): string {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+    this.assertPlayerIsAlive(player);
+    this.assertPositiveNumber(position);
+
+    if(position < 1 || position > this.encounters._slots.length) {
+      throw new Error("Invalid monster position.");
+    }
+    const monsterPosition = this.encounters._slots[position - 1]!;
+    const monsterCard: Card = monsterPosition[monsterPosition.length - 1]!;
+    this.encounters.discardTop(position - 1);
+
+    return `You have killed the monster at position ${position}.\n`;
+  }
   discardFromHand(issuer: Issuer, position: number): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);

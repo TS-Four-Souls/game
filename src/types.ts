@@ -30,6 +30,10 @@ const discardLootSchema = UserProtectedRequestSchema.extend({
   position: z.number(),
 });
 
+const indexSchema = UserProtectedRequestSchema.extend({
+  index: z.number(),
+});
+
 const NextTurnRequestSchema = UserProtectedRequestSchema.extend({});
 
 export const schemas = {
@@ -39,7 +43,11 @@ export const schemas = {
   nextTurnRequest: NextTurnRequestSchema,
   gainCoinsRequest: gainCoinsSchema,
   loseCoinsRequest: loseCoinsSchema,
-  discardLootRequest: discardLootSchema
+  discardLootRequest: discardLootSchema,
+  purchaseRequest: indexSchema,
+  discardMonsterRequest: indexSchema,
+  killMonsterRequest: indexSchema,
+  drawMonsterRequest: indexSchema
 };
 
 export type Issuer = z.infer<typeof IssuerSchema>;
