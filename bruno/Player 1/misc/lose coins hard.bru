@@ -1,11 +1,11 @@
 meta {
-  name: Gain 1 coin
+  name: Lose coins hard
   type: http
   seq: 2
 }
 
 post {
-  url: {{BASE_URL}}/gaincoins
+  url: {{BASE_URL}}/losecoins
   body: json
   auth: inherit
 }
@@ -16,11 +16,7 @@ body:json {
       "id": "DrMint",
       "secret": "{{p1Secret}}"
     },
-    "coins": 1
+    "coins": 1,
+    "asMany": false
   }
-}
-
-settings {
-  encodeUrl: true
-  timeout: 0
 }
