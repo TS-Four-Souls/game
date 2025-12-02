@@ -82,6 +82,10 @@ Bun.serve({
       return new Response(game.state);
     },
 
+    "/monsterslots": async (request) => {
+      return new Response(game.monsterSlots); 
+    },
+
     "/start": createPlayerRoute(null, (issuer) => {
       game.start(issuer);
       return "Game started";
@@ -145,7 +149,6 @@ Bun.serve({
     "/losecoins": createPlayerRoute(schemas.loseCoinsRequest, (issuer, data) =>
       game.loseCoins(issuer, data.coins, data.asMany)
     ),
-
     "/next": createPlayerRoute(null, (issuer) => game.nextTurn(issuer)),
   },
 });

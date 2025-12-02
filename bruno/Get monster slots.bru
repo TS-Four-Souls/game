@@ -1,0 +1,16 @@
+meta {
+  name: Get monster slots
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{BASE_URL}}/monsterslots
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

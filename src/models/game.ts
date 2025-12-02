@@ -251,7 +251,25 @@ export class Game {
 
     return result;
   }
-  
+  get monsterSlots(): string{
+    if(this.turnIndex === null) {
+      return "Game not started";
+    }
+
+    let result = "";
+    result += `Monsters slots:\n`;
+    for (let i = 0; i < this.encounters._slots.length; i++) {
+      const monsterStack = this.encounters._slots[i]!;
+      result += `  Slot ${i + 1}:\n`;
+      for(let j = monsterStack.length - 1; j >= 0; j--) {
+        const monsterCard: Card = monsterStack[j]!;
+        result += `      Card ${monsterStack.length - j} ${monsterCard}\n`;
+      }
+      result += `\n`;
+    }
+
+    return result;
+  }
   getInPlay(issuer: Issuer): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);

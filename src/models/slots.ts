@@ -126,5 +126,9 @@ class Encounters {
             return card;
         }
     }
+
+    get slots(): Card[][] {
+        return this._slots;
+    }
 }
 export { Shop, Encounters };
