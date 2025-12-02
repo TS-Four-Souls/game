@@ -47,7 +47,8 @@ export const schemas = {
   purchaseRequest: indexSchema,
   discardMonsterRequest: indexSchema,
   killMonsterRequest: indexSchema,
-  drawMonsterRequest: indexSchema
+  drawMonsterRequest: indexSchema,
+  discardInPlayRequest: indexSchema,
 };
 
 export type Issuer = z.infer<typeof IssuerSchema>;

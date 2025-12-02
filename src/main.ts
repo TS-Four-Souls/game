@@ -89,7 +89,6 @@ Bun.serve({
 
     "/reset": createPlayerRoute(null, (issuer) => {
       game.reset(issuer);
-      randomMonsters.forEach((monster) => game.addMonster(monster));
       return "Game reset successfully";
     }),
 
@@ -127,6 +126,14 @@ Bun.serve({
 
     "/drawmonster": createPlayerRoute(schemas.drawMonsterRequest, (issuer, data) =>
       game.drawMonster(issuer, data.index)
+    ),
+
+    "/discardinplay": createPlayerRoute(schemas.discardInPlayRequest, (issuer, data) =>
+      game.discardInPlay(issuer, data.index)
+    ),
+
+    "/detailedstate": createPlayerRoute(null, (issuer, data) =>
+      game.detailedState(issuer)
     ),
 
     "/loot": createPlayerRoute(null, (issuer) => game.loot(issuer)),

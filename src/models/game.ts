@@ -158,6 +158,54 @@ export class Game {
     player.addInPlay(drawnCard);
     return `You have drawn the treasure card: ${drawnCard._json.name}.\nDescription: ${JSON.stringify(drawnCard._json)}\n`;
   }
+
+  detailedState(issuer: Issuer): string {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+
+    let result = "";
+    result += `Your hand contains the following cards:\n`;
+    const handCards = player.hand().getCards();
+    for (let i = 0; i < handCards.length; i++) {
+      const card = handCards[i]!;
+      result += `Card ${i + 1}: ${JSON.stringify(card._json)}\n`;
+    }
+    result += `Players:\n`;
+    result +=
+      this.players
+        .map(
+          (p) =>
+            ` |- ${p.id}: ${p.currentHealthPoints} HP, ${p.attackPoints} ATK, ${p.getCoins()} Coins, ${p.score} Souls\n      ${p.getInPlay().map((c) => "-" + JSON.stringify(c._json)).join("\n      ")}`
+        )
+        .join("\n") + "\n\n";
+    if (this.turnIndex !== null) {
+      result += `Monsters:\n`;
+      let i: number = 0;
+      result += ` |- ${i++} top deck\n`;
+      result +=
+        this.encounters._slots
+          .map(
+            (m) =>
+              ` |- ${i++} ${JSON.stringify(m[m.length - 1]!._json)}`
+          )
+          .join("\n") + "\n\n";
+      result += `Shop:\n`;
+      i = 0;
+      result += ` |- ${i++} top deck\n`;
+      result +=
+        this.shop._slots
+          .map(
+            (m) =>
+              ` |- ${i++} ${JSON.stringify(m!._json)}`
+          )
+          .join("\n") + "\n\n";
+    }
+    if (this.turnIndex !== null) {
+      result += `It's ${this.players[this.turnIndex]!.id}'s turn\n`;
+    }
+    return result;
+  }
+
   purchase(issuer: Issuer, index: number): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -209,6 +257,24 @@ export class Game {
     }
 
     return result;
+  }
+
+  discardInPlay(issuer: Issuer, index: number): string {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+    this.assertPlayerIsAlive(player);
+    this.assertPositiveNumber(index);
+
+    const inPlayCards = player.getInPlay();
+    if(index < 1 || index > inPlayCards.length) {
+      throw new Error("Invalid card position.");
+    }
+    const discardedCard: Card = inPlayCards[index - 1]!;
+    if(player.discardInPlay(index - 1)) {
+      return `You have discarded the card: ${discardedCard._json.name} from your in-play area.\n`;
+    } else {
+      return `Cannot discard ${discardedCard._json.name} from in-play area as it is a ${discardedCard._json.type} card.\n`;
+    }
   }
   discardMonster(issuer: Issuer, position: number): string {
     this.assertGameStarted();

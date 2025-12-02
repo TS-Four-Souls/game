@@ -33,9 +33,11 @@ export class Player extends Entity {
   getInPlay(): Card[] {
     return this._inPlay;
   }
-  discardInPlay(cardId: number): boolean {
-    const index = this._inPlay.findIndex((card) => card.getId() === cardId);
-    if (index !== -1 && this._inPlay[index]?._json.type !== "eternal") {
+  discardInPlay(index: number): boolean {
+    const type = this._inPlay[index]?._json.type;
+    console.log(`Attempting to discard card at index ${index} of type ${type}`);
+    if (index >= 0 && type !== "eternal" && type !== "character"
+    ) {
       this._inPlay.splice(index, 1);
       return true;
     }
