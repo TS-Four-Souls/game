@@ -1,0 +1,21 @@
+meta {
+  name: Kill monster in pos 1.
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{BASE_URL}}/killmonster
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "issuer": {
+      "id": "DrMint",
+      "secret": "{{p1Secret}}"
+    },
+    "position": 1
+  }
+}
