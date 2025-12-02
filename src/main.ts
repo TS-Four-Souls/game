@@ -104,6 +104,10 @@ Bun.serve({
       game.gainCoins(issuer, data.coins)
     ),
 
+    "/playcard": createPlayerRoute(schemas.playCardRequest, (issuer, data) =>
+      game.playCard(issuer, data.index)
+    ),
+
     "/rolldice": createPlayerRoute(null, (issuer) => game.rollDice(issuer)),
 
     "/getdiscard": createPlayerRoute(null, (issuer) => game.getDiscard(issuer, "loot")),

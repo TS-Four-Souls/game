@@ -31,7 +31,7 @@ class Card {
         this._keywords = [];
         this._tags = {};
         // this._tags = json.tags || {};
-        this._minimumPlayers = json.minimumPlayers || 2;
+        this._minimumPlayers = json.minimumPlayers || 1;
         this._effectOutcomes = json.effectOutcome || [];
     }
     toString() : string {
@@ -440,6 +440,9 @@ class Hand {
     }
     get cards() : Card[] {
         return this._hand;
+    }
+    playCard(index: number) : Card {
+        return this.removeFromHand(index);
     }
 }
 

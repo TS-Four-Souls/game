@@ -74,10 +74,26 @@ export class Game {
     this.monsters.push(monster);
   }
 
+  // temporary method to play a card from hand to in-play area.
+  playCard(issuer: Issuer, index: number): string {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+    this.assertPlayerIsAlive(player);
+    this.assertPositiveNumber(index);
+    if (index < 1 || index > player.hand.cards.length) {
+      return "Invalid card position.";
+    }
+    const playedCard: Card = player.hand.playCard(index - 1);
+    player.addInPlay(playedCard);
+
+    return `You have played the card: ${playedCard.name} to your in-play area.\n`;
+  }
+
   start(issuer: Issuer): void {
     this.assertIssuerSecret(issuer);
     this.assertGameNotStarted();
     this.assertMinimumPlayerCount();
+
     this.decks = LoadDecks(cardSets, this.players.length);
     this.assignCharactersToPlayers();
     this.healEveryone();
@@ -112,7 +128,11 @@ export class Game {
     this.assertIssuerSecret(issuer);
     this.turnIndex = null;
     this.players = [];
-    this.monsters = [];
+    this.monsters = []; 
+    this.decks = {};
+    this.ongoingAttack = null;
+    this.shop = null!;
+    this.encounters = null!;
   }
 
   nextTurn(issuer: Issuer): string {

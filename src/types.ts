@@ -49,6 +49,7 @@ export const schemas = {
   killMonsterRequest: indexSchema,
   drawMonsterRequest: indexSchema,
   discardInPlayRequest: indexSchema,
+  playCardRequest: indexSchema,
 };
 
 export type Issuer = z.infer<typeof IssuerSchema>;
