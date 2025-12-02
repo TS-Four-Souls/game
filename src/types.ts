@@ -23,7 +23,7 @@ const gainCoinsSchema = UserProtectedRequestSchema.extend({
 
 const loseCoinsSchema = UserProtectedRequestSchema.extend({
   coins: z.number(),
-  asMany: z.boolean()
+  asMany: z.boolean(),
 });
 
 const discardLootSchema = UserProtectedRequestSchema.extend({
@@ -35,6 +35,10 @@ const indexSchema = UserProtectedRequestSchema.extend({
 });
 
 const NextTurnRequestSchema = UserProtectedRequestSchema.extend({});
+
+const ImageRequestSchema = UserProtectedRequestSchema.extend({
+  path: z.string(),
+});
 
 export const schemas = {
   joinRequest: JoinRequestSchema,
@@ -50,6 +54,27 @@ export const schemas = {
   drawMonsterRequest: indexSchema,
   discardInPlayRequest: indexSchema,
   playCardRequest: indexSchema,
+  imageRequest: ImageRequestSchema,
 };
 
 export type Issuer = z.infer<typeof IssuerSchema>;
+
+export type State = {
+  players: {
+    name: string;
+    inPlay: { slug: string }[];
+  }[];
+};
+
+export type DetailedState = {
+  me: {
+    name: string;
+    hand: { slug: string }[];
+    inPlay: { slug: string }[];
+  },
+  players: {
+    name: string;
+    hand: number;
+    inPlay: { slug: string }[];
+  }[];
+};

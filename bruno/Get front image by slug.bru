@@ -1,0 +1,16 @@
+meta {
+  name: Get front image by slug
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{BASE_URL}}/images/b2-box/front
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

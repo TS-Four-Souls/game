@@ -1,5 +1,4 @@
-import { Game } from "@/models/game";
-import { Monster } from "@/models/monster";
+import { cards, Game } from "@/models/game";
 import { Player } from "@/models/player";
 import { schemas, type Issuer } from "@/types";
 import { playerEndpointHandler } from "@/utils/endpoints";
@@ -14,8 +13,10 @@ console.log(`Server is running on http://${HOSTNAME}:${PORT}`);
 // should be a zod schema with `safeParse`. `handler` receives (issuer, data).
 // If `schema` is omitted, `data` will be the raw body.
 function createPlayerRoute(
-  schema: { safeParse: (b: unknown) => { success: boolean; error?: any; data?: any } } | null,
-  handler: (issuer: Issuer, data?: any) => string | Response
+  schema: {
+    safeParse: (b: unknown) => { success: boolean; error?: any; data?: any };
+  } | null,
+  handler: (params: { issuer: Issuer; data?: any; request: Request }) => string
 ) {
   return async (request: Request) =>
     playerEndpointHandler(request, (issuer, body) => {
@@ -24,20 +25,33 @@ function createPlayerRoute(
         if (!parsed.success) {
           return new Response(JSON.stringify({ error: parsed.error.message }), {
             status: 400,
+            headers: { "Access-Control-Allow-Origin": "*" },
           });
         }
         try {
-          const result = handler(issuer, parsed.data);
-          return result instanceof Response ? result : new Response(result, { status: 200 });
+          const result = handler({ issuer, data: parsed.data, request });
+          return new Response(result, {
+            status: 200,
+            headers: { "Access-Control-Allow-Origin": "*" },
+          });
         } catch (error) {
-          return new Response(`Something went wrong: ${error}`, { status: 400 });
+          return new Response(`Something went wrong: ${error}`, {
+            status: 400,
+            headers: { "Access-Control-Allow-Origin": "*" },
+          });
         }
       } else {
         try {
-          const result = handler(issuer, body);
-          return result instanceof Response ? result : new Response(result, { status: 200 });
+          const result = handler({ issuer, data: body, request });
+          return new Response(result, {
+            status: 200,
+            headers: { "Access-Control-Allow-Origin": "*" },
+          });
         } catch (error) {
-          return new Response(`Something went wrong: ${error}`, { status: 400 });
+          return new Response(`Something went wrong: ${error}`, {
+            status: 400,
+            headers: { "Access-Control-Allow-Origin": "*" },
+          });
         }
       }
     });
@@ -60,99 +74,168 @@ Bun.serve({
           status: 400,
         });
       }
-      const { id: name } = result.data;
-      const player = new Player(name, 1, 2, 0);
+      const { id } = result.data;
+      const player = new Player(id, 1, 2, 0);
       try {
         game.addPlayer(player);
       } catch (error) {
-        return new Response(`Player ${name} cannot join the game: ${error}`, {
+        return new Response(`Player ${id} cannot join the game: ${error}`, {
           status: 400,
         });
       }
       return new Response(
         JSON.stringify({
-          message: `Welcome ${name} to the game`,
+          message: `Welcome ${id} to the game`,
           secret: player.secret,
         }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
       );
     },
 
     "/state": async (request) => {
-      return new Response(game.state);
+      request.headers.get("Accept");
+      if (request.headers.get("Accept") === "application/json") {
+        return new Response(JSON.stringify(game.stateJson), {
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        });
+      } else {
+        return new Response(game.state, {
+          headers: {
+            "Content-Type": "text/plain",
+            "Access-Control-Allow-Origin": "*",
+          },
+        });
+      }
     },
 
     "/monsterslots": async (request) => {
-      return new Response(game.monsterSlots); 
+      return new Response(game.monsterSlots);
     },
 
-    "/start": createPlayerRoute(null, (issuer) => {
+    "/start": createPlayerRoute(null, ({ issuer }) => {
       game.start(issuer);
       return "Game started";
     }),
 
-    "/reset": createPlayerRoute(null, (issuer) => {
+    "/reset": createPlayerRoute(null, ({ issuer }) => {
       game.reset(issuer);
       return "Game reset successfully";
     }),
 
-    "/attack": createPlayerRoute(schemas.attackRequest, (issuer, data) =>
+    "/attack": createPlayerRoute(schemas.attackRequest, ({ issuer, data }) =>
       game.attack(issuer, data.monsterId)
     ),
 
-    "/gaincoins": createPlayerRoute(schemas.gainCoinsRequest, (issuer, data) =>
-      game.gainCoins(issuer, data.coins)
+    "/gaincoins": createPlayerRoute(
+      schemas.gainCoinsRequest,
+      ({ issuer, data }) => game.gainCoins(issuer, data.coins)
     ),
 
-    "/playcard": createPlayerRoute(schemas.playCardRequest, (issuer, data) =>
-      game.playCard(issuer, data.index)
+    "/playcard": createPlayerRoute(
+      schemas.playCardRequest,
+      ({ issuer, data }) => game.playCard(issuer, data.index)
     ),
 
-    "/rolldice": createPlayerRoute(null, (issuer) => game.rollDice(issuer)),
+    "/rolldice": createPlayerRoute(null, ({ issuer }) => game.rollDice(issuer)),
 
-    "/getdiscard": createPlayerRoute(null, (issuer) => game.getDiscard(issuer, "loot")),
-
-    "/gethand": createPlayerRoute(null, (issuer) => game.getHand(issuer)),
-
-    "/discardloot": createPlayerRoute(schemas.discardLootRequest, (issuer, data) =>
-      game.discardFromHand(issuer, data.position)
+    "/getdiscard": createPlayerRoute(null, ({ issuer }) =>
+      game.getDiscard(issuer, "loot")
     ),
 
-    "/gaintreasure": createPlayerRoute(null, (issuer) => game.gainTreasure(issuer)),
+    "/gethand": createPlayerRoute(null, ({ issuer }) => game.getHand(issuer)),
 
-    "/purchase": createPlayerRoute(schemas.purchaseRequest, (issuer, data) =>
-      game.purchase(issuer, data.index)
+    "/discardloot": createPlayerRoute(
+      schemas.discardLootRequest,
+      ({ issuer, data }) => game.discardFromHand(issuer, data.position)
     ),
 
-    "/discardmonster": createPlayerRoute(schemas.discardMonsterRequest, (issuer, data) =>
-      game.discardMonster(issuer, data.index)
+    "/gaintreasure": createPlayerRoute(null, ({ issuer }) =>
+      game.gainTreasure(issuer)
     ),
 
-    "/killmonster": createPlayerRoute(schemas.killMonsterRequest, (issuer, data) =>
-      game.killMonster(issuer, data.index)
+    "/purchase": createPlayerRoute(
+      schemas.purchaseRequest,
+      ({ issuer, data }) => game.purchase(issuer, data.index)
     ),
 
-    "/drawmonster": createPlayerRoute(schemas.drawMonsterRequest, (issuer, data) =>
-      game.drawMonster(issuer, data.index)
+    "/discardmonster": createPlayerRoute(
+      schemas.discardMonsterRequest,
+      ({ issuer, data }) => game.discardMonster(issuer, data.index)
     ),
 
-    "/discardinplay": createPlayerRoute(schemas.discardInPlayRequest, (issuer, data) =>
-      game.discardInPlay(issuer, data.index)
+    "/killmonster": createPlayerRoute(
+      schemas.killMonsterRequest,
+      ({ issuer, data }) => game.killMonster(issuer, data.index)
     ),
 
-    "/detailedstate": createPlayerRoute(null, (issuer, data) =>
-      game.detailedState(issuer)
+    "/drawmonster": createPlayerRoute(
+      schemas.drawMonsterRequest,
+      ({ issuer, data }) => game.drawMonster(issuer, data.index)
     ),
 
-    "/loot": createPlayerRoute(null, (issuer) => game.loot(issuer)),
-
-    "/hand": createPlayerRoute(null, (issuer) => game.getHand(issuer)),
-
-    "/inplay": createPlayerRoute(null, (issuer) => game.getInPlay(issuer)),
-
-    "/losecoins": createPlayerRoute(schemas.loseCoinsRequest, (issuer, data) =>
-      game.loseCoins(issuer, data.coins, data.asMany)
+    "/discardinplay": createPlayerRoute(
+      schemas.discardInPlayRequest,
+      ({ issuer, data }) => game.discardInPlay(issuer, data.index)
     ),
-    "/next": createPlayerRoute(null, (issuer) => game.nextTurn(issuer)),
+
+    "/detailedstate": createPlayerRoute(null, ({ issuer, request }) => {
+      const accept = request.headers.get("Accept");
+      if (accept === "application/json") {
+        return JSON.stringify(game.detailedStateJson(issuer));
+      } else {
+        return game.detailedState(issuer);
+      }
+    }),
+
+    "/loot": createPlayerRoute(null, ({ issuer }) => game.loot(issuer)),
+
+    "/hand": createPlayerRoute(null, ({ issuer }) => game.getHand(issuer)),
+
+    "/inplay": createPlayerRoute(null, ({ issuer }) => game.getInPlay(issuer)),
+
+    "/losecoins": createPlayerRoute(
+      schemas.loseCoinsRequest,
+      ({ issuer, data }) => game.loseCoins(issuer, data.coins, data.asMany)
+    ),
+    "/next": createPlayerRoute(null, ({ issuer }) => game.nextTurn(issuer)),
+    "/wp-content/*": (request) => {
+      const path = new URL(request.url).pathname;
+      return new Response(Bun.file(`./data/${path}`), {
+        headers: { "Access-Control-Allow-Origin": "*" },
+      });
+    },
+    "/images/:slug/front": (request) => {
+      const slug = request.params.slug;
+      const card = cards.find((card) => card.slug === slug);
+      if (!card) {
+        return new Response("Card not found", { status: 404 });
+      }
+
+      const path = card.front.replace("https://foursouls.com/", "./data/");
+      console.log(path);
+      return new Response(Bun.file(path), {
+        headers: { "Access-Control-Allow-Origin": "*" },
+      });
+    },
+    "/images/:slug/back": (request) => {
+      const slug = request.params.slug;
+      const card = cards.find((card) => card.slug === slug);
+      if (!card) {
+        return new Response("Card not found", { status: 404 });
+      }
+      const path = card.back.replace("https://foursouls.com/", "./data/");
+      return new Response(Bun.file(path), {
+        headers: { "Access-Control-Allow-Origin": "*" },
+      });
+    },
   },
 });
