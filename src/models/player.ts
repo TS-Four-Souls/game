@@ -6,7 +6,7 @@ export class Player extends Entity {
    * The player receives this token when they join the game
    */
   readonly secret: string;
-  private _score: number;
+  private _score: number; // Number of souls collected. Temporary. Will be replaeced by list of soul cards.
   private _coin: number;
   private _hand: Hand;
   private _inPlay: Card[];
@@ -20,22 +20,21 @@ export class Player extends Entity {
     this._inPlay = [];
   }
 
-  getCoins(): number {
+  get coins(): number {
     return this._coin;
   }
 
-  hand(): Hand {
+  get hand(): Hand {
     return this._hand;
   }
   addInPlay(card: Card): void {
     this._inPlay.push(card);
   }
-  getInPlay(): Card[] {
+  get inPlay(): Card[] {
     return this._inPlay;
   }
   discardInPlay(index: number): boolean {
-    const type = this._inPlay[index]?._json.type;
-    console.log(`Attempting to discard card at index ${index} of type ${type}`);
+    const type = this._inPlay[index]?.type;
     if (index >= 0 && type !== "eternal" && type !== "character"
     ) {
       this._inPlay.splice(index, 1);

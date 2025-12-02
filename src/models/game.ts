@@ -23,13 +23,16 @@ export class Game {
   get state(): string {
     let result = "";
     result += `Players:\n`;
-    result +=
-      this.players
-        .map(
-          (p) =>
-            ` |- ${p.id}: ${p.currentHealthPoints} HP, ${p.attackPoints} ATK, ${p.getCoins()} Coins, ${p.score} Souls\n      ${p.getInPlay().map((c) => "-" + c._json.name).join("\n      ")}`
-        )
-        .join("\n") + "\n\n";
+    for (const p of this.players) {
+      result += ` |- ${p.id}: ${p.currentHealthPoints} HP, ${p.attackPoints} ATK, ${p.coins} Coins, ${p.score} Souls\n`;
+      result += `      In-Play Cards:\n`;
+      const inPlayCards = p.inPlay;
+      for (let j = 0; j < inPlayCards.length; j++) {
+        const card = inPlayCards[j]!;
+        result += `       Card ${j + 1}: ${card.name}\n`;
+      }
+    }
+    result += "\n";
     if(this.turnIndex !== null){
     result += `Monsters:\n`;
     let i:number = 0;
@@ -38,7 +41,7 @@ export class Game {
       this.encounters._slots
         .map(
           (m) =>
-            ` |- ${i++} ${m[m.length - 1]!._json.name}`
+            ` |- ${i++} ${m[m.length - 1]!.name}`
         )
         .join("\n") + "\n\n";
     result += `Shop:\n`;
@@ -48,7 +51,7 @@ export class Game {
       this.shop._slots
         .map(
           (m) =>
-            ` |- ${i++} ${m!._json.name}`
+            ` |- ${i++} ${m!.name}`
         )
         .join("\n") + "\n\n";
       }
@@ -75,7 +78,7 @@ export class Game {
     this.assertIssuerSecret(issuer);
     this.assertGameNotStarted();
     this.assertMinimumPlayerCount();
-    this.decks = LoadDecks(cardSets);
+    this.decks = LoadDecks(cardSets, this.players.length);
     this.assignCharactersToPlayers();
     this.healEveryone();
     this.shop = new Shop(defaultParameters.nbItemsInShop, this.decks["treasure"]);
@@ -90,10 +93,10 @@ export class Game {
     }
     this.players.forEach((player) => {
       const characterCard = characterDeck.draw();
-      console.log("Assigning character", characterCard._json.name, "to player", player.id);
+      console.log("Assigning character", characterCard.name, "to player", player.id);
       player.addInPlay(characterCard);
-      if (characterCard._json.eternalCard){
-        const cardName = characterCard._json.eternalCard.slug;
+      if (characterCard.eternalCard){
+        const cardName = characterCard.eternalCard;
         const cards = this.decks["eternal"].getCards((card: Card) => isSameSlug(cardName, card));
         if(cards.length > 1){
           throw new Error("Multiple eternal cards with the same slug found");
@@ -145,7 +148,7 @@ export class Game {
 
     player.addCoins(coins);
     
-    return `New amount of coins: ${player.getCoins()} coins.\n`;
+    return `New amount of coins: ${player.coins} coins.\n`;
   }
 
   gainTreasure(issuer: Issuer): string {
@@ -156,7 +159,7 @@ export class Game {
     const treasureDeck: Deck = this.decks["treasure"];
     const drawnCard: Card = treasureDeck.draw()!;
     player.addInPlay(drawnCard);
-    return `You have drawn the treasure card: ${drawnCard._json.name}.\nDescription: ${JSON.stringify(drawnCard._json)}\n`;
+    return `You have drawn the treasure card: ${drawnCard.name}.\nDescription: ${drawnCard}\n`;
   }
 
   detailedState(issuer: Issuer): string {
@@ -165,28 +168,32 @@ export class Game {
 
     let result = "";
     result += `Your hand contains the following cards:\n`;
-    const handCards = player.hand().getCards();
+    const handCards = player.hand.cards;
     for (let i = 0; i < handCards.length; i++) {
       const card = handCards[i]!;
-      result += `Card ${i + 1}: ${JSON.stringify(card._json)}\n`;
+      result += `Card ${i + 1}: ${card}\n`;
     }
     result += `Players:\n`;
-    result +=
-      this.players
-        .map(
-          (p) =>
-            ` |- ${p.id}: ${p.currentHealthPoints} HP, ${p.attackPoints} ATK, ${p.getCoins()} Coins, ${p.score} Souls\n      ${p.getInPlay().map((c) => "-" + JSON.stringify(c._json)).join("\n      ")}`
-        )
-        .join("\n") + "\n\n";
+    let i: number = 0;
+    for (const p of this.players) {
+      result += ` |- ${p.id}: ${p.currentHealthPoints} HP, ${p.attackPoints} ATK, ${p.coins} Coins, ${p.score} Souls\n`;
+      result += `      In-Play Cards:\n`;
+      const inPlayCards = p.inPlay;
+      for (let j = 0; j < inPlayCards.length; j++) {
+        const card = inPlayCards[j]!;
+        result += `       Card ${j + 1} ${card}\n`;
+      }
+    }
+    result += "\n\n";
     if (this.turnIndex !== null) {
       result += `Monsters:\n`;
-      let i: number = 0;
+      i = 0;
       result += ` |- ${i++} top deck\n`;
       result +=
         this.encounters._slots
           .map(
             (m) =>
-              ` |- ${i++} ${JSON.stringify(m[m.length - 1]!._json)}`
+              ` |- ${i++} ${m[m.length - 1]!}`
           )
           .join("\n") + "\n\n";
       result += `Shop:\n`;
@@ -196,7 +203,7 @@ export class Game {
         this.shop._slots
           .map(
             (m) =>
-              ` |- ${i++} ${JSON.stringify(m!._json)}`
+              ` |- ${i++} ${m!}`
           )
           .join("\n") + "\n\n";
     }
@@ -213,9 +220,9 @@ export class Game {
     this.assertPositiveNumber(index);
 
     if(this.shop.purchase(player, index)) {
-      return `Purchase successful. You have now ${player.getCoins()} coins.\n`;
+      return `Purchase successful. You have now ${player.coins} coins.\n`;
     } else {
-      return `Purchase failed. You still have ${player.getCoins()} coins.\n`;
+      return `Purchase failed. You still have ${player.coins} coins.\n`;
     }
   }
   loot(issuer: Issuer): string {
@@ -225,9 +232,9 @@ export class Game {
     
     const lootDeck: Deck = this.decks["loot"];
     const drawnCard: Card = lootDeck.draw()!;
-    player.hand().addToHand(drawnCard);
+    player.hand.addToHand(drawnCard);
 
-    return `You have drawn the loot card: ${drawnCard._json.name}.\nDescription: ${JSON.stringify(drawnCard._json)}\n`;
+    return `You have drawn the loot card: ${drawnCard.name}.\nDescription: ${drawnCard}\n`;
 
   }
 
@@ -235,11 +242,11 @@ export class Game {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
 
-    const cards = player.hand().getCards();
+    const cards = player.hand.cards;
     let result = 'Your hand contains the following cards:\n';
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i]!;
-      result += `Card ${i + 1}: ${JSON.stringify(card._json)}\n`;
+      result += `Card ${i + 1}: ${card}\n`;
     }
 
     return result;
@@ -249,11 +256,11 @@ export class Game {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
 
-    const cards = player.getInPlay();
+    const cards = player.inPlay;
     let result = 'Your in-play area contains the following cards:\n';
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i]!;
-      result += `Card ${i + 1}: ${JSON.stringify(card._json)}\n`;
+      result += `Card ${i + 1}: ${card}\n`;
     }
 
     return result;
@@ -265,15 +272,15 @@ export class Game {
     this.assertPlayerIsAlive(player);
     this.assertPositiveNumber(index);
 
-    const inPlayCards = player.getInPlay();
+    const inPlayCards = player.inPlay;
     if(index < 1 || index > inPlayCards.length) {
       throw new Error("Invalid card position.");
     }
     const discardedCard: Card = inPlayCards[index - 1]!;
     if(player.discardInPlay(index - 1)) {
-      return `You have discarded the card: ${discardedCard._json.name} from your in-play area.\n`;
+      return `You have discarded the card: ${discardedCard.name} from your in-play area.\n`;
     } else {
-      return `Cannot discard ${discardedCard._json.name} from in-play area as it is a ${discardedCard._json.type} card.\n`;
+      return `Cannot discard ${discardedCard.name} from in-play area as it is a ${discardedCard.type} card.\n`;
     }
   }
   discardMonster(issuer: Issuer, position: number): string {
@@ -325,8 +332,8 @@ export class Game {
     this.assertPlayerIsAlive(player);
     this.assertPositiveNumber(position);
 
-    const hand = player.hand();
-    if(position < 1 || position > hand.getCards().length) {
+    const hand = player.hand;
+    if(position < 1 || position > hand.cards.length) {
       throw new Error("Invalid card position.");
     }
 
@@ -334,7 +341,7 @@ export class Game {
     const lootDeck: Deck = this.decks["loot"];
     lootDeck.addDiscardTop(discardedCard);
 
-    return `You have discarded the card: ${discardedCard._json.name}.\n`;
+    return `You have discarded the card: ${discardedCard.name}.\n`;
   }
 
   getDiscard(issuer: Issuer, deckType: string): string {
@@ -346,11 +353,11 @@ export class Game {
       throw new Error("Invalid deck type.");
     }
     
-    const discardCards = deck.getDiscard();
+    const discardCards = deck.discard;
     let result = `The discard pile for the ${deckType} deck contains the following cards:\n`;
     for (let i = 0; i < discardCards.length; i++) {
       const card = discardCards[i]!;
-      result += `Card ${i + 1}: ${JSON.stringify(card._json)}\n`;
+      result += `Card ${i + 1}: ${card}\n`;
     }
 
     return result;
@@ -364,12 +371,12 @@ export class Game {
 
     let success = player.loseCoins(coins, asMany);
     if(success){
-      return `Success.\nNew amount of coins: ${player.getCoins()} coins.\n`;
+      return `Success.\nNew amount of coins: ${player.coins} coins.\n`;
     }
     else if(!asMany){
       return `Fail.\nTransaction canceled.`;
     }
-    return `Fail.\nPlayer has now ${player.getCoins()} coins.`;
+    return `Fail.\nPlayer has now ${player.coins} coins.`;
   }
 
   rollDice(issuer: Issuer): string {

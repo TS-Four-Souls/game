@@ -1,4 +1,4 @@
-import type { Card, Deck } from "./cards";
+import { type Card, type lootCard, type eternalCard, type bsoulCard, type treasureCard, MonsterCard, type characterCard, MonsterType, type TreasureType, type Deck } from "./cards";
 import type { Player } from "./player";
 
 class Shop {
@@ -91,9 +91,13 @@ class Encounters {
             if (this._slots[i]!.length == 0) {
                 let card = this._deck.draw();
                 if (discardEvent) {
-                    while (card!._json.stats == undefined) {
+                    while (card instanceof MonsterCard && card!.encounterType === MonsterType.EVENT) {
                         this._deck.addDiscardTop(card!);
                         card = this._deck.draw();
+                    }
+                    if(!(card instanceof MonsterCard))
+                    {
+                        throw new Error("Non monster card in encounters deck");
                     }
                 }
                 this._slots[i]!.push(card!);
