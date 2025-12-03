@@ -1,0 +1,55 @@
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/game/Reset the game.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/game/Join the game.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 2/Join the game.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/game/Start the game.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/loot/loot.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/loot/loot.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/loot/loot.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/loot/loot.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/loot/loot.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/loot/loot.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/loot/loot.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/loot/loot.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/loot/loot.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/loot/loot.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/loot/discard loot card.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/loot/discard loot card.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/loot/discard loot card.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/loot/discard loot card.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/loot/discard loot card.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/loot/discard loot card.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Get discard.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/inplay/gain treasure.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/inplay/gain treasure.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/inplay/gain treasure.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/inplay/gain treasure.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/inplay/gain treasure.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/inplay/gain treasure.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/inplay/gain treasure.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/inplay/gain treasure.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/inplay/gain treasure.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/inplay/discard in play.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/inplay/discard in play.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/inplay/discard in play.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/inplay/discard in play.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/inplay/discard in play.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/misc/gain coins.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/misc/gain coins.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/misc/gain coins.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/misc/gain coins.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/monster/draw monster.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/monster/draw monster.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/monster/draw monster.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/monster/draw monster.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/monster/draw monster.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/monster/draw monster.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/monster/draw monster.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/monster/draw monster.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/monster/draw monster.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/monster/discard monster.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/monster/discard monster.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/monster/discard monster.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/monster/discard monster.bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Player 1/misc/Detailed state (JSON).bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/JSON requests/Get monster slots (JSON).bru
+/Users/sylvain/Documents/foursouls/four-souls-game/bruno/Get discard.bru
