@@ -1,4 +1,4 @@
-import { type Card, type lootCard, type eternalCard, type bsoulCard, type treasureCard, MonsterCard, type characterCard, MonsterType, type TreasureType, type Deck } from "./cards";
+import { type Card, type LootCard, type eternalCard, type bsoulCard, type treasureCard, MonsterCard, type CharacterCard, MonsterType, type Deck } from "./cards";
 import type { Player } from "./player";
 
 class Shop {

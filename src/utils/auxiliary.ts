@@ -1,4 +1,4 @@
-function shuffle(array: any[]) {
+function shuffle<T>(array: T[]): void {
     let currentIndex = array.length;
 
     // While there remain elements to shuffle...
@@ -9,13 +9,13 @@ function shuffle(array: any[]) {
         currentIndex--;
 
         // And swap it with the current element.
-        [array[currentIndex], array[randomIndex]] = [
-            array[randomIndex], array[currentIndex]];
+        [array[currentIndex]!, array[randomIndex]!] = [
+            array[randomIndex]!, array[currentIndex]!];
     }
 }
 
-function print(...args: any[]) {
-    console.log(...args)
+function print(...args: unknown[]): void {
+    console.log(...args);
 }
 
 export { shuffle, print };

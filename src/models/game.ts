@@ -11,10 +11,12 @@ import {
   LoadDecks,
   randomCardFromSet,
   isSameSlug,
+  CharacterCard,
 } from "@/models/cards";
 import { Shop, Encounters } from "@/models/slots";
+import type { GenericCardType } from "@/utils/cardTypes";
 
-export const cards = await loadCards();
+export const cards = await loadCards("data/cards");
 const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
 
 const defaultParameters = { nbItemsInShop: 2, nbEncounters: 2 };
@@ -22,7 +24,7 @@ export class Game {
   private players: Player[] = [];
   private monsters: Monster[] = [];
   private turnIndex: number | null = null;
-  private decks: { [key: string]: any } = {};
+  private decks: { [key: string]: Deck } = {};
   private ongoingAttack: { player: Player; monster: Monster } | null = null;
   private shop!: Shop;
   private encounters!: Encounters;
@@ -109,11 +111,11 @@ export class Game {
     this.healEveryone();
     this.shop = new Shop(
       defaultParameters.nbItemsInShop,
-      this.decks["treasure"]
+      this.decks["treasure"]!
     );
     this.encounters = new Encounters(
       defaultParameters.nbEncounters,
-      this.decks["monster"]
+      this.decks["monster"]!
     );
     this.turnIndex = 0;
   }
@@ -124,17 +126,21 @@ export class Game {
       throw new Error("No character deck found");
     }
     this.players.forEach((player) => {
-      const characterCard = characterDeck.draw();
+      const character: CharacterCard = characterDeck.draw() as CharacterCard;
       console.log(
         "Assigning character",
-        characterCard.name,
+        character.name,
         "to player",
         player.id
       );
-      player.addInPlay(characterCard);
-      if (characterCard.eternalCard) {
-        const cardName = characterCard.eternalCard;
-        const cards = this.decks["eternal"].getCards((card: Card) =>
+      player.addInPlay(character);
+      const eternalDeck = this.decks["eternal"];
+      if (!eternalDeck) {
+        throw new Error("No eternal deck found");
+      }
+      if (character.eternalCard) {
+        const cardName = character.eternalCard;
+        const cards = eternalDeck.getCards((card: Card) =>
           isSameSlug(cardName, card)
         );
         if (cards.length > 1) {
@@ -199,7 +205,7 @@ export class Game {
     const player = this.assertIssuerSecret(issuer);
     this.assertPlayerIsAlive(player);
 
-    const treasureDeck: Deck = this.decks["treasure"];
+    const treasureDeck: Deck = this.decks["treasure"]!;
     const drawnCard: Card = treasureDeck.draw()!;
     player.addInPlay(drawnCard);
     return `You have drawn the treasure card: ${drawnCard.name}.\nDescription: ${drawnCard}\n`;
@@ -282,7 +288,7 @@ export class Game {
     const player = this.assertIssuerSecret(issuer);
     this.assertPlayerIsAlive(player);
 
-    const lootDeck: Deck = this.decks["loot"];
+    const lootDeck: Deck = this.decks["loot"]!;
     const drawnCard: Card = lootDeck.draw()!;
     player.hand.addToHand(drawnCard);
 
@@ -407,7 +413,7 @@ export class Game {
     }
 
     const discardedCard: Card = hand.removeFromHand(position - 1);
-    const lootDeck: Deck = this.decks["loot"];
+    const lootDeck: Deck = this.decks["loot"]!;
     lootDeck.addDiscardTop(discardedCard);
 
     return `You have discarded the card: ${discardedCard.name}.\n`;
@@ -417,7 +423,7 @@ export class Game {
     this.assertGameStarted();
     this.assertIssuerSecret(issuer);
 
-    const deck: Deck = this.decks[deckType];
+    const deck: Deck = this.decks[deckType]!;
     if (!deck) {
       throw new Error("Invalid deck type.");
     }

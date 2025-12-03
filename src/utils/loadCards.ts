@@ -1,7 +1,8 @@
 import fs from "fs/promises";
 import path from "path";
+import { type GenericCardType } from "./cardTypes.ts";
 
-export async function loadCards(dirPath?: string): Promise<any[]> {
+export async function loadCards(dirPath: string | undefined): Promise<GenericCardType[]> {
   const dir = dirPath
     ? path.resolve(dirPath)
     : path.resolve(process.cwd(), "data/cards");
@@ -17,8 +18,10 @@ export async function loadCards(dirPath?: string): Promise<any[]> {
     throw err;
   }
 
-  const cards: any[] = [];
+  const cards: GenericCardType[] = [];
   for (const entry of entries) {
+    // only consider .json files
+    if (!entry.toLowerCase().endsWith(".json")) continue;
     const filePath = path.join(dir, entry);
     try {
       const stat = await fs.stat(filePath);
@@ -27,7 +30,7 @@ export async function loadCards(dirPath?: string): Promise<any[]> {
       const content = await fs.readFile(filePath, "utf8");
       if (!content.trim()) continue;
 
-      const parsed = JSON.parse(content);
+      const parsed: GenericCardType = JSON.parse(content);
       cards.push(parsed);
     } catch (err: any) {
       // Skip files that can't be read or parsed, but continue processing others
