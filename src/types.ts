@@ -72,11 +72,15 @@ export type DetailedState = {
     name: string;
     hand: GenericCardType[];
     inPlay: GenericCardType[];
+    souls: GenericCardType[];
+    coins: number;
   },
   players: {
     name: string;
-    hand: number;
+    handSize: number;
     inPlay: GenericCardType[];
+    souls: GenericCardType[];
+    coins: number
   }[];
   topDiscards: {
     loot?: GenericCardType;

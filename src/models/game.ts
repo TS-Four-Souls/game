@@ -263,11 +263,15 @@ export class Game {
         name: player.id,
         hand: player.hand.cards.map((c) => c.json),
         inPlay: player.inPlay.map((c) => c.json),
+        souls: player.souls.map((c) => c.json),
+        coins: player.coins
       }
     , players: this.players.map((p) => ({
         name: p.id,
-        hand: p.hand.cards.length,
+        handSize: p.hand.cards.length,
         inPlay: p.inPlay.map((c) => c.json),
+        souls: p.souls.map((c) => c.json),
+        coins: p.coins
       }))
       , topDiscards: {
         loot: this.decks["loot"]!.discard[0] ? this.decks["loot"]!.discard[0]!.json : undefined,
@@ -421,8 +425,10 @@ export class Game {
     }
     const monsterPosition = this.encounters._slots[position - 1]!;
     const monsterCard: Card = monsterPosition[monsterPosition.length - 1]!;
-    this.encounters.discardTop(position - 1);
-
+    if(monsterCard.soul > 0)
+      player.addSoul(monsterCard);
+    else
+      this.encounters.discardTop(position - 1);
     return `You have killed the monster at position ${position}.\n`;
   }
   discardFromHand(issuer: Issuer, position: number): string {

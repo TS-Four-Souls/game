@@ -10,6 +10,7 @@ export class Player extends Entity {
   private _coin: number;
   private _hand: Hand;
   private _inPlay: Card[];
+  private _souls: Card[];
 
   constructor(id: string, attackPoints: number, healthPoints: number, coins: number) {
     super(id, attackPoints, healthPoints);
@@ -18,6 +19,7 @@ export class Player extends Entity {
     this._hand = new Hand();
     this.secret = crypto.randomUUID();
     this._inPlay = [];
+    this._souls = [];
   }
 
   get coins(): number {
@@ -27,6 +29,11 @@ export class Player extends Entity {
   get hand(): Hand {
     return this._hand;
   }
+
+  get souls(): Card[] {
+    return this._souls;
+  }
+  
   addInPlay(card: Card): void {
     this._inPlay.push(card);
   }
@@ -43,6 +50,19 @@ export class Player extends Entity {
     return false;
   }
 
+  addSoul(card: Card){
+    if(card.soul < 0)
+    {
+      throw new Error("Cannot add a card with no soul as a soul card.");
+    }
+    this._souls.push(card);
+  }
+  removeSoul(idx:number): Card{
+    if(idx <= 0 || idx >= this._souls.length){
+      throw new Error(`Incorrect soul card idx ${idx} while number of souls is ${this._souls.length}.`);
+    }
+    return this._souls.splice(idx, 1)[0]!;
+  }
   addCoins(coins: number): void {
     this._coin += coins;
   }
