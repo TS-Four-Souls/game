@@ -1,0 +1,15 @@
+meta {
+  name: Get discard
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{BASE_URL}}/getdiscard/loot
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}
