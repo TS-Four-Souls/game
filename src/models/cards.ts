@@ -70,6 +70,9 @@ class Card {
     get tags() {
         return this._tags;
     }
+    get json() {
+        return this._json;
+    }
 }
 
 class LootCard extends Card {

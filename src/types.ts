@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { GenericCardType } from "./utils/cardTypes";
 
 const IssuerSchema = z.object({
   id: z.string(),
@@ -69,12 +70,28 @@ export type State = {
 export type DetailedState = {
   me: {
     name: string;
-    hand: { slug: string }[];
-    inPlay: { slug: string }[];
+    hand: GenericCardType[];
+    inPlay: GenericCardType[];
   },
   players: {
     name: string;
     hand: number;
-    inPlay: { slug: string }[];
+    inPlay: GenericCardType[];
   }[];
+  topDiscards: {
+    loot?: GenericCardType;
+    treasure?: GenericCardType;
+    monster?: GenericCardType;
+  };
+  monsters: GenericCardType[];
+  shop: GenericCardType[];
+  turn: string;
+};
+
+export type DiscardCards = {
+  cards: GenericCardType[];
+};
+
+export type MonsterPiles = {
+  cards: GenericCardType[][];
 };

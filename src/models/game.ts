@@ -1,6 +1,6 @@
 import type { Monster } from "@/models/monster";
 import type { Player } from "@/models/player";
-import type { DetailedState, Issuer, State } from "@/types";
+import type { DetailedState, DiscardCards, Issuer, MonsterPiles, State } from "@/types";
 import { loadCards } from "@/utils/loadCards";
 import {
   Card,
@@ -211,23 +211,6 @@ export class Game {
     return `You have drawn the treasure card: ${drawnCard.name}.\nDescription: ${drawnCard}\n`;
   }
 
-  detailedStateJson(issuer: Issuer): DetailedState {
-    this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
-    return {
-      me: {
-        name: player.id,
-        hand: player.hand.cards.map((c) => ({ slug: c.slug })),
-        inPlay: player.inPlay.map((c) => ({ slug: c.slug })),
-      },
-      players: this.players.filter((p) => p.id !== player.id).map((p) => ({
-        name: p.id,
-        hand: p.hand.cards.length,
-        inPlay: p.inPlay.map((c) => ({ slug: c.slug })),
-      })),
-    };
-  }
-
   detailedState(issuer: Issuer): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -271,6 +254,34 @@ export class Game {
     return result;
   }
 
+  detailedStateJSON(issuer: Issuer): string {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+
+    const res: DetailedState = {
+      me: {
+        name: player.id,
+        hand: player.hand.cards.map((c) => c.json),
+        inPlay: player.inPlay.map((c) => c.json),
+      }
+    , players: this.players.map((p) => ({
+        name: p.id,
+        hand: p.hand.cards.length,
+        inPlay: p.inPlay.map((c) => c.json),
+      }))
+      , topDiscards: {
+        loot: this.decks["loot"]!.discard[0] ? this.decks["loot"]!.discard[0]!.json : undefined,
+        treasure: this.decks["treasure"]!.discard[0] ? this.decks["treasure"]!.discard[0]!.json : undefined,
+        monster: this.decks["monster"]!.discard[0] ? this.decks["monster"]!.discard[0]!.json : undefined,
+      }
+    , monsters: this.encounters._slots.map((m) =>  m[m.length - 1]!.json),
+      shop: this.shop._slots.map((m) => m!.json),
+      turn: this.players[this.turnIndex!]!.id,
+    }
+
+    return JSON.stringify(res);
+  }
+
   purchase(issuer: Issuer, index: number): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -312,19 +323,31 @@ export class Game {
     if (this.turnIndex === null) {
       return "Game not started";
     }
-
-    let result = "";
-    result += `Monsters slots:\n`;
+    const res:MonsterPiles = {
+      cards: this.encounters._slots.map((m) => m.map((c) => c!.json)),
+    };
+    return JSON.stringify(res);
+    let result = "[";
     for (let i = 0; i < this.encounters._slots.length; i++) {
       const monsterStack = this.encounters._slots[i]!;
-      result += `  Slot ${i + 1}:\n`;
+      result += `[`;
       for (let j = monsterStack.length - 1; j >= 0; j--) {
         const monsterCard: Card = monsterStack[j]!;
-        result += `      Card ${monsterStack.length - j} ${monsterCard}\n`;
+        result += `      ${monsterCard.json}\n`;
       }
-      result += `\n`;
+      result += `],\n\n`;
     }
-
+    // result += `Monsters slots:\n`;
+    // for (let i = 0; i < this.encounters._slots.length; i++) {
+    //   const monsterStack = this.encounters._slots[i]!;
+    //   result += `  Slot ${i + 1}:\n`;
+    //   for (let j = monsterStack.length - 1; j >= 0; j--) {
+    //     const monsterCard: Card = monsterStack[j]!;
+    //     result += `      Card ${monsterStack.length - j} ${monsterCard}\n`;
+    //   }
+    //   result += `\n`;
+    // }
+    result += `]`;
     return result;
   }
   getInPlay(issuer: Issuer): string {
@@ -353,6 +376,7 @@ export class Game {
     }
     const discardedCard: Card = inPlayCards[index - 1]!;
     if (player.discardInPlay(index - 1)) {
+      this.decks[discardedCard.type]!.addDiscardTop(discardedCard);
       return `You have discarded the card: ${discardedCard.name} from your in-play area.\n`;
     } else {
       return `Cannot discard ${discardedCard.name} from in-play area as it is a ${discardedCard.type} card.\n`;
@@ -419,23 +443,19 @@ export class Game {
     return `You have discarded the card: ${discardedCard.name}.\n`;
   }
 
-  getDiscard(issuer: Issuer, deckType: string): string {
-    this.assertGameStarted();
-    this.assertIssuerSecret(issuer);
+  getDiscard(deckType: string): string {
+    try {
+      this.assertGameStarted();
+    } catch {
+      return "Game not started";
+    }
 
     const deck: Deck = this.decks[deckType]!;
     if (!deck) {
       throw new Error("Invalid deck type.");
     }
-
-    const discardCards = deck.discard;
-    let result = `The discard pile for the ${deckType} deck contains the following cards:\n`;
-    for (let i = 0; i < discardCards.length; i++) {
-      const card = discardCards[i]!;
-      result += `Card ${i + 1}: ${card}\n`;
-    }
-
-    return result;
+    const discardCards:DiscardCards = {cards: deck.discard.map((c) => c!.json)};
+    return JSON.stringify(discardCards);
   }
 
   loseCoins(issuer: Issuer, coins: number, asMany: boolean): string {

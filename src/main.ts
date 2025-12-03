@@ -147,10 +147,6 @@ Bun.serve({
 
     "/rolldice": createPlayerRoute(null, ({ issuer }) => game.rollDice(issuer)),
 
-    "/getdiscard": createPlayerRoute(null, ({ issuer }) =>
-      game.getDiscard(issuer, "loot")
-    ),
-
     "/gethand": createPlayerRoute(null, ({ issuer }) => game.getHand(issuer)),
 
     "/discardloot": createPlayerRoute(
@@ -189,8 +185,9 @@ Bun.serve({
 
     "/detailedstate": createPlayerRoute(null, ({ issuer, request }) => {
       const accept = request.headers.get("Accept");
+      return game.detailedStateJSON(issuer);
       if (accept === "application/json") {
-        return JSON.stringify(game.detailedStateJson(issuer));
+        return JSON.stringify(game.detailedStateJSON(issuer));
       } else {
         return game.detailedState(issuer);
       }
@@ -213,6 +210,14 @@ Bun.serve({
         headers: { "Access-Control-Allow-Origin": "*" },
       });
     },
+    "/getdiscard/:type": (request) => {
+      const type:string = request.params.type;
+
+      return new Response(game.getDiscard(type), {
+        headers: { "Access-Control-Allow-Origin": "*" },
+      });
+    },
+
     "/images/:slug/front": (request) => {
       const slug = request.params.slug;
       const card = cards.find((card) => card.slug === slug);
