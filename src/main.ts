@@ -118,7 +118,7 @@ Bun.serve({
     },
 
     "/monsterslots": async (request) => {
-      return new Response(game.monsterSlots);
+      return new Response(game.monsterSlotsJSON);
     },
 
     "/start": createPlayerRoute(null, ({ issuer }) => {
