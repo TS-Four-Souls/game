@@ -34,6 +34,15 @@ export class Player extends Entity {
     return this._souls;
   }
   
+  get totalSouls(): number {
+    let total = 0;
+    for (const soul of this._souls) {
+      total += soul.soul;
+    }
+    return total;
+  }
+
+////////// In play Methods /////////
   addInPlay(card: Card): void {
     this._inPlay.push(card);
   }
@@ -50,6 +59,22 @@ export class Player extends Entity {
     return false;
   }
 
+  removeCard(target: Card): boolean {
+    this._inPlay.forEach((card, index) => {
+      if (card === target) {
+        this._inPlay.splice(index, 1);
+        return true;
+      }
+    });
+    this._hand.cards.forEach((card, index) => {
+      if (card === target) {
+        this._hand.cards.splice(index, 1);
+        return true;
+      }
+    });
+    return false;
+  }
+
   addSoul(card: Card){
     if(card.soul < 0)
     {
@@ -57,13 +82,14 @@ export class Player extends Entity {
     }
     this._souls.push(card);
   }
-  removeSoul(idx:number): Card{
-    if(idx <= 0 || idx >= this._souls.length){
-      throw new Error(`Incorrect soul card idx ${idx} while number of souls is ${this._souls.length}.`);
+  removeSoul(card: Card): boolean{
+    const idx = this._souls.indexOf(card);
+    if(idx < 0 || idx >= this._souls.length){
+      return false;
     }
-    return this._souls.splice(idx, 1)[0]!;
+    return true;
   }
-  addCoins(coins: number): void {
+  gainCoins(coins: number): void {
     this._coin += coins;
   }
 
@@ -71,6 +97,8 @@ export class Player extends Entity {
     return Math.floor(Math.random() * 6) + 1;
   }
 
+  
+  die(): void { }
   /* This methods tries to remove n coins to the player and return true if it does.
   * if the player have less than n coins and asMany is true, all his coins are removed.
   * */
