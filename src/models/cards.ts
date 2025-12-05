@@ -450,6 +450,12 @@ class Hand {
     constructor() {
         this._hand = []
     }
+    get length(): number {
+        return this._hand.length;
+    }
+    get cards(): Card[] {
+        return this._hand;
+    }
     addToHand(card: Card) {
         if (card.type !== "loot") {
             print("Error, hand should only contain loot cards.")
@@ -461,16 +467,22 @@ class Hand {
         this._hand.splice(from, 1);
         this._hand.splice(to, 0, card);
     }
-    removeFromHand(pos: number) : Card {
+    removeFromHandByPos(pos: number) : Card {
         const card: Card = this._hand[pos]!;
         this._hand.splice(pos, 1);
         return card;
     }
-    get cards() : Card[] {
-        return this._hand;
+    removeCard(target: Card): boolean{
+        const index = this._hand.indexOf(target);
+        if(index >= 0)
+        {
+            this.removeFromHandByPos(index);
+            return true;
+        }
+        return false;
     }
     playCard(index: number) : Card {
-        return this.removeFromHand(index);
+        return this.removeFromHandByPos(index);
     }
 }
 

@@ -133,7 +133,7 @@ export class Game {
   }
 
   endTurn(): void {
-    const player = this.assertIssuerSecret(this.turnHandler.current);
+    const player = this.assertIssuerSecret(this.currentPlayer);
     this.assertCurrentTurnIsPlayerTurn(player);
     this.assertNoOngoingAttack();
     this.healEveryone();
@@ -229,7 +229,7 @@ this.stack.clear();
 
       console.log(roundIndex);
       this.endTurn();
-      return `It's ${this.turnHandler.current!.id}'s turn. Round ${roundIndex}.\n`;
+      return `It's ${this.currentPlayer!.id}'s turn. Round ${roundIndex}.\n`;
   }
 
   gainCoins(issuer: Issuer, coins: number): string {
@@ -238,20 +238,46 @@ this.stack.clear();
     this.assertPlayerIsAlive(player);
     this.assertPositiveNumber(coins);
 
-    player.addCoins(coins);
+    player.gainCoins(coins);
 
     return `New amount of coins: ${player.coins} coins.\n`;
   }
 
-  gainTreasure(issuer: Issuer): string {
+  getFirstCardsOfDeck(deckName: string, number: number): Card[]{
+    return this.decks[deckName]!.drawSeveral(number);
+  }
+  addTopPosition(deckName: string, card: Card): void{
+    this.decks[deckName]!.addTopPosition(card);
+  }
+  addBottomPosition(deckName: string, card: Card): void{
+    this.decks[deckName]!.addBottomPosition(card);
+  }
+
+  addExtraTurn(player: Player): void {
+    this.turnHandler.InsertPlayerAtNextTurn(player);
+  }
+
+  gainTreasure(issuer: Issuer, number: number=1): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.assertPlayerIsAlive(player);
+    this.assertPositiveNumber(number);
 
+    for(let i=0; i<number; i++){
     const treasureDeck: Deck = this.decks["treasure"]!;
     const drawnCard: Card = treasureDeck.draw()!;
     player.addInPlay(drawnCard);
-    return `You have drawn the treasure card: ${drawnCard.name}.\nDescription: ${drawnCard}\n`;
+    }
+
+    return `You have drawn ${number} treasure card(s).\n`;
+  }
+  destroyCards(cards: Card[]): void {
+    cards.forEach((card) => {
+      this.players.forEach((player) => {
+        player.removeInPlay(card);
+      });
+    });
+    this.destroyedCards.push(...cards);
   }
 
   detailedState(issuer: Issuer): string {
@@ -292,7 +318,7 @@ this.stack.clear();
         this.shop._slots.map((m) => ` |- ${i++} ${m!}`).join("\n") + "\n\n";
     }
     if (this.turnHandler.isInitialized) {
-      result += `It's ${this.turnHandler.current.id}'s turn\n`;
+      result += `It's ${this.currentPlayer.id}'s turn\n`;
     }
     return result;
   }
@@ -323,7 +349,7 @@ this.stack.clear();
       }
     , monsters: this.encounters._slots.map((m) =>  m[m.length - 1]!.json),
       shop: this.shop._slots.map((m) => m!.json),
-      turn: this.turnHandler.current.id,
+      turn: this.currentPlayer.id,
     }
 
     return JSON.stringify(res);
@@ -341,16 +367,19 @@ this.stack.clear();
       return `Purchase failed. You still have ${player.coins} coins.\n`;
     }
   }
-  loot(issuer: Issuer): string {
+  loot(issuer: Issuer, number: number=1): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.assertPlayerIsAlive(player);
+    this.assertPositiveNumber(number);
 
     const lootDeck: Deck = this.decks["loot"]!;
+    for(let i=0; i<number; i++){
     const drawnCard: Card = lootDeck.draw()!;
-    player.hand.addToHand(drawnCard);
+      player.hand.addToHand(drawnCard);
+    }
 
-    return `You have drawn the loot card: ${drawnCard.name}.\nDescription: ${drawnCard}\n`;
+    return `You have drawn ${number} loot card(s).\n`;
   }
 
   getHand(issuer: Issuer): string {
@@ -463,7 +492,7 @@ this.stack.clear();
       throw new Error("Invalid card position.");
     }
 
-    const discardedCard: Card = hand.removeFromHand(position - 1);
+    const discardedCard: Card = hand.removeFromHandByPos(position - 1);
     const lootDeck: Deck = this.decks["loot"]!;
     lootDeck.addDiscardTop(discardedCard);
 
@@ -609,7 +638,7 @@ this.stack.clear();
   }
 
   private assertCurrentTurnIsPlayerTurn(player: Player): void {
-    if (this.turnHandler.current !== player) {
+    if (this.currentPlayer !== player) {
       throw new Error("Not your turn");
     }
   }
