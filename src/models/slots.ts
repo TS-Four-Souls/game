@@ -32,7 +32,7 @@ class Shop {
     }
     purchaseTopDeck(player: Player) : boolean {
         const price = this.computePriceTopDeck(player);
-        if (player.loseCoins(price, false)) {
+        if (player.loseCoins(price, false) === price) {
             const card = this._deck.draw();
             if (card)
                 {
@@ -50,7 +50,7 @@ class Shop {
         if (index > 0) {
             index -= 1;
             const price = this.computePrice(player, this._slots[index]!);
-            if (player.loseCoins(price, false)) {
+            if (player.loseCoins(price, false) === price) {
                 player.addInPlay(this._slots[index]!);
                 this._slots[index] = undefined;
                 this.fillEmptySpots();

@@ -102,15 +102,17 @@ export class Player extends Entity {
   /* This methods tries to remove n coins to the player and return true if it does.
   * if the player have less than n coins and asMany is true, all his coins are removed.
   * */
-  loseCoins(coins: number, asMany: boolean): boolean {
+  loseCoins(coins: number, asMany: boolean): number {
     if (this._coin >= coins) {
       this._coin -= coins;
-      return true;
+      return coins;
     }
     else if(asMany) {
+const allCoins = this._coin;
       this._coin = 0;
+return allCoins;
     }
-    return false;
+    return 0;
   }
 
   verifySecret(secret: string): boolean {

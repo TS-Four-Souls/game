@@ -446,8 +446,8 @@ this.turnHandler.initialize(this.players);
     this.assertPlayerIsAlive(player);
     this.assertPositiveNumber(coins);
 
-    let success = player.loseCoins(coins, asMany);
-    if (success) {
+    let lostCoins = player.loseCoins(coins, asMany);
+    if (lostCoins === coins) {
       return `Success.\nNew amount of coins: ${player.coins} coins.\n`;
     } else if (!asMany) {
       return `Fail.\nTransaction canceled.`;
