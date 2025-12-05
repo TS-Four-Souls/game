@@ -30,6 +30,16 @@ class Shop {
     computePrice(player: Player, card: Card) : number {
         return 10;
     }
+
+    removeCard(target: Card): boolean{
+        this._slots.forEach((card, index) => {
+          if (card === target) {
+            this._slots[index] = undefined;
+            return true;
+          }
+        });
+        return false;
+      }
     purchaseTopDeck(player: Player) : boolean {
         const price = this.computePriceTopDeck(player);
         if (player.loseCoins(price, false) === price) {
@@ -116,6 +126,13 @@ class Encounters {
             this.fillEmptySpots(false);
             this._deck.addDiscardTop(card!);
         }
+    }
+
+    flush() : void {
+        for (let i = 0; i < this._slots.length; i++) {
+            this.discardTop(i);
+        }
+        this.fillEmptySpots(false);
     }
 
     killTop(index: number) : Card | undefined {
