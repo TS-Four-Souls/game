@@ -33,7 +33,7 @@ export class Player extends Entity {
   get souls(): Card[] {
     return this._souls;
   }
-  
+
   get totalSouls(): number {
     let total = 0;
     for (const soul of this._souls) {
@@ -49,7 +49,11 @@ export class Player extends Entity {
   get inPlay(): Card[] {
     return this._inPlay;
   }
-  discardInPlay(index: number): boolean {
+  removeInPlay(card: Card): boolean {
+    const index = this._inPlay.indexOf(card);
+    return this.removeInPlayByIndex(index);
+  }
+  removeInPlayByIndex(index: number): boolean {
     const type = this._inPlay[index]?.type;
     if (index >= 0 && type !== "eternal" && type !== "character"
     ) {
@@ -108,9 +112,9 @@ export class Player extends Entity {
       return coins;
     }
     else if(asMany) {
-const allCoins = this._coin;
+      const allCoins = this._coin;
       this._coin = 0;
-return allCoins;
+      return allCoins;
     }
     return 0;
   }

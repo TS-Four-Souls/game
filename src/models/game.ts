@@ -355,7 +355,7 @@ this.turnHandler.initialize(this.players);
       throw new Error("Invalid card position.");
     }
     const discardedCard: Card = inPlayCards[index - 1]!;
-    if (player.discardInPlay(index - 1)) {
+    if (player.removeInPlayByIndex(index - 1)) {
       this.decks[discardedCard.type]!.addDiscardTop(discardedCard);
       return `You have discarded the card: ${discardedCard.name} from your in-play area.\n`;
     } else {
