@@ -16,14 +16,16 @@ import {
 import { Shop, Encounters } from "@/models/slots";
 import type { GenericCardType } from "@/utils/cardTypes";
 
-export const cards = await loadCards("data/cards");
+import { TurnHandler } from "./turnHandler";
+
+export const cards = await loadCards(process.cwd() + "/data/cards");
 const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
 
 const defaultParameters = { nbItemsInShop: 2, nbEncounters: 2 };
 export class Game {
   private players: Player[] = [];
   private monsters: Monster[] = [];
-  private turnIndex: number | null = null;
+  private turnHandler: TurnHandler = new TurnHandler();
   private decks: { [key: string]: Deck } = {};
   private ongoingAttack: { player: Player; monster: Monster } | null = null;
   private shop!: Shop;
@@ -52,7 +54,7 @@ export class Game {
       }
     }
     result += "\n";
-    if (this.turnIndex !== null) {
+    if (this.turnHandler.isInitialized) {
       result += `Monsters:\n`;
       let i: number = 0;
       result += ` |- ${i++} top deck\n`;
@@ -67,9 +69,9 @@ export class Game {
         this.shop._slots.map((m) => ` |- ${i++} ${m!.name}`).join("\n") +
         "\n\n";
     }
-    result += this.turnIndex === null ? "Game not started\n" : "Game started\n";
-    if (this.turnIndex !== null) {
-      result += `It's ${this.players[this.turnIndex]!.id}'s turn\n`;
+    result += this.turnHandler.isInitialized ? "Game started\n" : "Game not started\n";
+    if (this.turnHandler.isInitialized) {
+      result += `It's ${this.turnHandler.current.id}'s turn\n`;
     }
 
     return result;
@@ -84,6 +86,15 @@ export class Game {
   addMonster(monster: Monster): void {
     this.assertMonsterIdAvailable(monster.id);
     this.monsters.push(monster);
+  }
+
+  endTurn(): void {
+    const player = this.assertIssuerSecret(this.turnHandler.current);
+    this.assertCurrentTurnIsPlayerTurn(player);
+    this.assertNoOngoingAttack();
+    this.healEveryone();
+
+    this.turnHandler.endTurn();
   }
 
   // temporary method to play a card from hand to in-play area.
@@ -106,6 +117,7 @@ export class Game {
     this.assertGameNotStarted();
     this.assertMinimumPlayerCount();
 
+this.turnHandler.initialize(this.players);
     this.decks = LoadDecks(cardSets, this.players.length);
     this.assignCharactersToPlayers();
     this.healEveryone();
@@ -117,7 +129,6 @@ export class Game {
       defaultParameters.nbEncounters,
       this.decks["monster"]!
     );
-    this.turnIndex = 0;
   }
 
   assignCharactersToPlayers(): void {
@@ -155,7 +166,7 @@ export class Game {
   }
   reset(issuer: Issuer): void {
     this.assertIssuerSecret(issuer);
-    this.turnIndex = null;
+    this.turnHandler.reset();
     this.players = [];
     this.monsters = [];
     this.decks = {};
@@ -165,28 +176,15 @@ export class Game {
   }
 
   nextTurn(issuer: Issuer): string {
-    const turnIndex = this.assertGameStarted();
+    const roundIndex = this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.assertCurrentTurnIsPlayerTurn(player);
     this.assertNoOngoingAttack();
     this.healEveryone();
 
-    const winningPlayer = this.findWinningPlayer();
-    if (winningPlayer) {
-      console.log(
-        "Game over",
-        winningPlayer.id,
-        "wins with",
-        winningPlayer.score,
-        "points"
-      );
-      this.turnIndex = null;
-      return `Game over, ${winningPlayer.id} wins with ${winningPlayer.score} points`;
-    } else {
-      console.log(turnIndex);
-      this.turnIndex = (turnIndex + 1) % this.players.length;
-      return `It's ${this.players[this.turnIndex]!.id}'s turn`;
-    }
+      console.log(roundIndex);
+      this.endTurn();
+      return `It's ${this.turnHandler.current!.id}'s turn. Round ${roundIndex}.\n`;
   }
 
   gainCoins(issuer: Issuer, coins: number): string {
@@ -234,7 +232,7 @@ export class Game {
       }
     }
     result += "\n\n";
-    if (this.turnIndex !== null) {
+    if (this.turnHandler.isInitialized) {
       result += `Monsters:\n`;
       i = 0;
       result += ` |- ${i++} top deck\n`;
@@ -248,8 +246,8 @@ export class Game {
       result +=
         this.shop._slots.map((m) => ` |- ${i++} ${m!}`).join("\n") + "\n\n";
     }
-    if (this.turnIndex !== null) {
-      result += `It's ${this.players[this.turnIndex]!.id}'s turn\n`;
+    if (this.turnHandler.isInitialized) {
+      result += `It's ${this.turnHandler.current.id}'s turn\n`;
     }
     return result;
   }
@@ -280,7 +278,7 @@ export class Game {
       }
     , monsters: this.encounters._slots.map((m) =>  m[m.length - 1]!.json),
       shop: this.shop._slots.map((m) => m!.json),
-      turn: this.players[this.turnIndex!]!.id,
+      turn: this.turnHandler.current.id,
     }
 
     return JSON.stringify(res);
@@ -324,7 +322,7 @@ export class Game {
     return result;
   }
   get monsterSlotsJSON(): string {
-    if (this.turnIndex === null) {
+    if (!this.turnHandler.isInitialized) {
       return "Game not started";
     }
     const res:MonsterPiles = {
@@ -566,7 +564,7 @@ export class Game {
   }
 
   private assertCurrentTurnIsPlayerTurn(player: Player): void {
-    if (this.turnIndex !== this.findPlayerIndex(player.id)) {
+    if (this.turnHandler.current !== player) {
       throw new Error("Not your turn");
     }
   }
@@ -586,16 +584,16 @@ export class Game {
   }
 
   private assertGameNotStarted(): void {
-    if (this.turnIndex !== null) {
+    if (this.turnHandler.isInitialized) {
       throw new Error("Game already started");
     }
   }
 
   private assertGameStarted(): number {
-    if (this.turnIndex === null) {
+    if (!this.turnHandler.isInitialized) {
       throw new Error("Game not started");
     }
-    return this.turnIndex;
+    return this.turnHandler.round;
   }
 
   private assertMonsterIdAvailable(id: string): void {
