@@ -1,17 +1,29 @@
-class Stack {
-    _stack: any[] = [];
+import type { Card } from "./cards";
+
+export type StackElement = Card | number;
+
+export class Stack {
+    _stack: StackElement[] = [];
     
     constructor() {}
 
-    push(item: any) {
+    push(item: StackElement) : void {
         this._stack.push(item);
     }
 
-    resolve(): any | undefined {
+    cancel() : void {
+        this._stack.pop();
+    }
+
+    clear() : void {
+        this._stack = [];
+    }
+
+    resolve(): StackElement | undefined {
         return this._stack.pop();
     }
 
-    get stack(): any[] {
+    get elements(): StackElement[] {
         return this._stack;
     }
 
@@ -21,5 +33,12 @@ class Stack {
 
     size(): number {
         return this._stack.length;
+    }
+    isTopElementNumber(): boolean {
+        if (this.isEmpty()) {
+            return false;
+        }
+        const topElement = this._stack[this._stack.length - 1];
+        return typeof topElement === "number";
     }
 }

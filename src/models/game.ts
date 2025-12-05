@@ -13,6 +13,7 @@ import {
   isSameSlug,
   CharacterCard,
 } from "@/models/cards";
+import { Stack, type StackElement } from "@/models/stack";
 import { Shop, Encounters } from "@/models/slots";
 import type { GenericCardType } from "@/utils/cardTypes";
 
@@ -30,6 +31,8 @@ export class Game {
   private ongoingAttack: { player: Player; monster: Monster } | null = null;
   private shop!: Shop;
   private encounters!: Encounters;
+  private stack: Stack = new Stack();
+  private destroyedCards: Card[] = [];
 
   constructor() {}
 
@@ -41,6 +44,11 @@ export class Game {
       })),
     };
   }
+
+  get playersList(): Player[] {
+    return this.players;
+  }
+
   get state(): string {
     let result = "";
     result += `Players:\n`;
@@ -81,6 +89,42 @@ export class Game {
     this.assertPlayerIdAvailable(newPlayer.id);
     this.assertGameNotStarted();
     this.players.push(newPlayer);
+  }
+
+  select(player: Player, n: number, Options: any[], anyNumber: boolean = false): { "selected": any[], "remaining": any[]} {
+// TODO: implement player choice
+    return { "selected": Options.slice(0, n), "remaining": Options.slice(n) };
+  }
+
+  get monsterSlots(): Encounters {
+    return this.encounters;
+  }
+  get playersWithMostSouls(): Player[] {
+    let maxSouls = Math.max(...this.players.map(player => player.totalSouls));
+    return this.players.filter(player => player.totalSouls === maxSouls);
+  }
+  addToStack(item: StackElement): void {
+    this.stack.push(item);
+  }
+
+  resolveStack(): StackElement | undefined {
+    return this.stack.resolve();
+  }
+
+  cancelStack(): void {
+    this.stack.cancel();
+  }
+
+  isTopStackNumber(): boolean {
+    return this.stack.isTopElementNumber();
+  }
+
+  resetStack(): void {
+    this.stack.clear();
+  }
+
+  allHands(): {player: Player, hand: Hand }[] {
+    return this.players.map((player) => ({ player, hand: player.hand }));
   }
 
   addMonster(monster: Monster): void {
@@ -173,6 +217,7 @@ this.turnHandler.initialize(this.players);
     this.ongoingAttack = null;
     this.shop = null!;
     this.encounters = null!;
+this.stack.clear();
   }
 
   nextTurn(issuer: Issuer): string {
