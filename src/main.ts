@@ -126,6 +126,11 @@ Bun.serve({
       return "Game started";
     }),
 
+    "/resolve": createPlayerRoute(null, ({ issuer }) => {
+      game.resolveStack();
+      return JSON.stringify(game.stack.elements.map(elem => elem.json));
+    }),
+
     "/reset": createPlayerRoute(null, ({ issuer }) => {
       game.reset(issuer);
       return "Game reset successfully";

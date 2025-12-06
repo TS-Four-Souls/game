@@ -97,8 +97,8 @@ export class Player extends Entity {
     this._coin += coins;
   }
 
-  rollDice(): number {
-    return Math.floor(Math.random() * 6) + 1;
+  rollDice(): DiceRoll {
+    return new DiceRoll(this);
   }
 
   
@@ -129,5 +129,41 @@ export class Player extends Entity {
 
   get score(): number {
     return this._score;
+  }
+}
+
+type DiceRollJSON = {
+  diceRoll: number;
+  issuer: string;
+};
+export class DiceRoll {
+  private _value: number;
+  private _issuer: Player;
+
+  constructor(issuer: Player) {
+    this._value = Math.floor(Math.random() * 6) + 1;
+    this._issuer = issuer;
+  }
+  get issuer(): Player {
+    return this._issuer;
+  }
+  get value(): number {
+    return this._value;
+  }
+  get json(): DiceRollJSON {
+    return {"diceRoll" : this.value, "issuer": this.issuer.id};
+  }
+  set value(v: number) {
+    if (v < 1 || v > 6) {
+      throw new Error("Dice value must be between 1 and 6.");
+    }
+    this._value = v;
+  }
+  roll(): number {
+    this._value = Math.floor(Math.random() * 6) + 1;
+    return this._value;
+  }
+  onResolve(): number {
+    return this.value;
   }
 }

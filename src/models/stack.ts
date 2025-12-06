@@ -1,7 +1,8 @@
-import type { Card } from "./cards";
+import type { Card, LootCard } from "./cards";
+import { DiceRoll } from "./player";
 
-export type StackElement = Card | number;
-
+export type StackElement = LootCard | DiceRoll;
+    
 export class Stack {
     _stack: StackElement[] = [];
     
@@ -17,6 +18,16 @@ export class Stack {
 
     clear() : void {
         this._stack = [];
+    }
+
+    cancelPreviousNonRoll() : void {
+        for (let i = this._stack.length - 2; i >= 0; i--) {
+            const element = this._stack[i];
+            this._stack.splice(i, 1);
+            if (!(element instanceof DiceRoll)) {
+                return;
+            }
+        }
     }
 
     resolve(): StackElement | undefined {

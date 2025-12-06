@@ -24,29 +24,50 @@ const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
 
 const defaultParameters = { nbItemsInShop: 2, nbEncounters: 2 };
 export class Game {
-  private players: Player[] = [];
-  private monsters: Monster[] = [];
-  private turnHandler: TurnHandler = new TurnHandler();
-  private decks: { [key: string]: Deck } = {};
-  private ongoingAttack: { player: Player; monster: Monster } | null = null;
-  private shop!: Shop;
-  private encounters!: Encounters;
-  private stack: Stack = new Stack();
-  private destroyedCards: Card[] = [];
+  private _players: Player[] = [];
+  private _monsters: Monster[] = [];
+  private _turnHandler: TurnHandler = new TurnHandler();
+  private _decks: { [key: string]: Deck } = {};
+  private _ongoingAttack: { player: Player; monster: Monster } | null = null;
+  private _shop!: Shop;
+  private _encounters!: Encounters;
+  private _stack: Stack = new Stack();
+  private _destroyedCards: Card[] = [];
 
   constructor() {}
 
   get stateJson(): State {
     return {
-      players: this.players.map((p) => ({
+      players: this._players.map((p) => ({
         name: p.id,
         inPlay: p.inPlay.map((c) => ({ slug: c.slug })),
       })),
     };
   }
 
-  get playersList(): Player[] {
-    return this.players;
+  get players(): Player[] {
+    return this._players;
+  }
+  get monsters(): Monster[] {
+    return this._monsters;
+  }
+  get turnHandler(): TurnHandler {
+    return this._turnHandler;
+  }
+  get decks(): { [key: string]: Deck } {
+    return this._decks;
+  }
+  get shop(): Shop {
+    return this._shop;
+  }
+  get encounters(): Encounters {
+    return this._encounters;
+  }
+  get destroyedCards(): Card[] {
+    return this._destroyedCards;
+  }
+  get stack() {
+    return this._stack;
   }
 
   get state(): string {
@@ -79,9 +100,31 @@ export class Game {
     }
     result += this.turnHandler.isInitialized ? "Game started\n" : "Game not started\n";
     if (this.turnHandler.isInitialized) {
-      result += `It's ${this.turnHandler.current.id}'s turn\n`;
+      result += `It's ${this.currentPlayer.id}'s turn\n`;
     }
 
+    return result;
+  }
+
+  get currentPlayer(): Player {
+    return this.currentPlayer;
+  }
+
+  get inPlayItems(): {player: Player, card: ItemCard}[] {
+    const items: {player: Player, card: ItemCard}[] = [];
+    for (const player of this.players) {
+      for (const card of player.inPlay) {
+        if (card instanceof ItemCard) {
+          items.push({ player, card });
+        }
+      }
+    }
+    return items;
+  }
+
+  get visibleItems(): ItemCard[] {
+    let result: ItemCard[] = this.inPlayItems.map(({ card }) => card);
+    result.push(...this.shop._slots.filter((c): c is ItemCard => c instanceof ItemCard));
     return result;
   }
 
@@ -107,8 +150,10 @@ export class Game {
     this.stack.push(item);
   }
 
-  resolveStack(): StackElement | undefined {
-    return this.stack.resolve();
+  resolveStack() {
+    let elem = this.stack.resolve();
+    if(elem !== undefined)
+      elem.onResolve();
   }
 
   cancelStack(): void {
@@ -150,8 +195,10 @@ export class Game {
     if (index < 1 || index > player.hand.cards.length) {
       return "Invalid card position.";
     }
-    const playedCard: Card = player.hand.playCard(index - 1);
-    player.addInPlay(playedCard);
+    const playedCard: LootCard = player.hand.playCard(index - 1) as LootCard;
+    playedCard.onPlay(player);
+    this.addToStack(playedCard);
+    // player.addInPlay(playedCard);
 
     return `You have played the card: ${playedCard.name} to your in-play area.\n`;
   }
@@ -162,14 +209,14 @@ export class Game {
     this.assertMinimumPlayerCount();
 
 this.turnHandler.initialize(this.players);
-    this.decks = LoadDecks(cardSets, this.players.length);
+    this._decks = LoadDecks(cardSets, this.players.length);
     this.assignCharactersToPlayers();
     this.healEveryone();
-    this.shop = new Shop(
+    this._shop = new Shop(
       defaultParameters.nbItemsInShop,
       this.decks["treasure"]!
     );
-    this.encounters = new Encounters(
+    this._encounters = new Encounters(
       defaultParameters.nbEncounters,
       this.decks["monster"]!
     );
@@ -211,13 +258,13 @@ this.turnHandler.initialize(this.players);
   reset(issuer: Issuer): void {
     this.assertIssuerSecret(issuer);
     this.turnHandler.reset();
-    this.players = [];
-    this.monsters = [];
-    this.decks = {};
-    this.ongoingAttack = null;
-    this.shop = null!;
-    this.encounters = null!;
-this.stack.clear();
+    this._players = [];
+    this._monsters = [];
+    this._decks = {};
+    this._ongoingAttack = null;
+    this._shop = null!;
+    this._encounters = null!;
+    this._stack.clear();
   }
 
   nextTurn(issuer: Issuer): string {
@@ -533,8 +580,10 @@ this.stack.clear();
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.assertPlayerIsAlive(player);
+
     let diceRoll = player.rollDice();
-    return `You rolled a ${diceRoll}.`;
+    this.stack.push(diceRoll);
+    return `You rolled a ${diceRoll.value}.`;
   }
 
   attack(issuer: Issuer, monsterId: string): string {
@@ -551,7 +600,7 @@ this.stack.clear();
     result += `You: ${player.currentHealthPoints} HP, ${player.attackPoints} ATK, ${player.score} Souls\n`;
     result += `${monster.id}: ${monster.currentHealthPoints} HP, ${monster.attackPoints} ATK, ${monster.evasionPoints}+ DC, +${monster.rewardPoints} Souls\n\n`;
 
-    const attackRoll = player.rollDice();
+    const attackRoll = player.rollDice().value;
     if (attackRoll < monster.evasionPoints) {
       player.receiveDamage(monster.attackPoints);
       result += `You attack ${monster.id} with a roll of ${attackRoll}. You lose ${monster.attackPoints} HP\n`;
@@ -562,15 +611,15 @@ this.stack.clear();
 
     if (player.isDead) {
       result += `You are dead\n`;
-      this.ongoingAttack = null;
+      this._ongoingAttack = null;
     } else if (monster.isDead) {
       result += `${monster.id} is dead, ${player.id} gains ${monster.rewardPoints} Souls\n`;
       player.addScore(monster.rewardPoints);
       this.removeMonster(monster);
-      this.ongoingAttack = null;
+      this._ongoingAttack = null;
     } else {
       result += `You can attack again\n`;
-      this.ongoingAttack = { player, monster };
+      this._ongoingAttack = { player, monster };
     }
 
     result += "\nEnding stats:\n";
@@ -701,16 +750,16 @@ this.stack.clear();
   }
 
   private assertNoOngoingAttack(): void {
-    if (this.ongoingAttack !== null) {
+    if (this._ongoingAttack !== null) {
       throw new Error("An attack is already ongoing");
     }
   }
 
   private assertNoOtherOngoingAttack(player: Player, monster: Monster): void {
-    if (this.ongoingAttack === null) return;
+    if (this._ongoingAttack === null) return;
     if (
-      this.ongoingAttack.player.id !== player.id ||
-      this.ongoingAttack.monster.id !== monster.id
+      this._ongoingAttack.player.id !== player.id ||
+      this._ongoingAttack.monster.id !== monster.id
     ) {
       throw new Error("An attack is already ongoing");
     }
