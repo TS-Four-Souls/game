@@ -108,7 +108,7 @@ export class Game {
   }
 
   get currentPlayer(): Player {
-    return this.currentPlayer;
+    return this.turnHandler.current;
   }
 
   get inPlayItems(): {player: Player, card: ItemCard}[] {
@@ -257,6 +257,10 @@ this.turnHandler.initialize(this.players);
   }
   reset(issuer: Issuer): void {
     this.assertIssuerSecret(issuer);
+    this.debugReset();
+  }
+  
+  debugReset(): void {
     this.turnHandler.reset();
     this._players = [];
     this._monsters = [];
@@ -382,7 +386,7 @@ this.turnHandler.initialize(this.players);
         souls: player.souls.map((c) => c.json),
         coins: player.coins
       }
-    , players: this.players.map((p) => ({
+    , players: this.players.filter((p) => p.id !== player.id).map((p) => ({
         name: p.id,
         handSize: p.hand.cards.length,
         inPlay: p.inPlay.map((c) => c.json),
