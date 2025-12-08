@@ -12,10 +12,11 @@ import {
   randomCardFromSet,
   isSameSlug,
   CharacterCard,
+  LootCard,
 } from "@/models/cards";
 import { Stack, type StackElement } from "@/models/stack";
 import { Shop, Encounters } from "@/models/slots";
-import type { GenericCardType } from "@/utils/cardTypes";
+import { ItemCard } from "@/models/cards";
 
 import { TurnHandler } from "./turnHandler";
 
@@ -151,9 +152,8 @@ export class Game {
   }
 
   resolveStack() {
-    let elem = this.stack.resolve();
-    if(elem !== undefined)
-      elem.onResolve();
+    // let elem = this.stack.resolve();
+    // if (elem !== undefined) elem.onResolve();
   }
 
   cancelStack(): void {
@@ -196,9 +196,9 @@ export class Game {
       return "Invalid card position.";
     }
     const playedCard: LootCard = player.hand.playCard(index - 1) as LootCard;
-    playedCard.onPlay(player);
-    this.addToStack(playedCard);
-    // player.addInPlay(playedCard);
+    // playedCard.onPlay(player);
+    // this.addToStack(playedCard);
+    player.addInPlay(playedCard);
 
     return `You have played the card: ${playedCard.name} to your in-play area.\n`;
   }

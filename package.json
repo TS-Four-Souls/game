@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "start": "bun run src/main.ts",
-    "dev": "bun run --hot src/main.ts"
+    "dev": "bun run --hot src/main.ts",
+    "ts": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/bun": "latest"

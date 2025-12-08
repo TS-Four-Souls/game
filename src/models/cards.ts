@@ -91,7 +91,7 @@ class LootCard extends Card {
     }
 }
 enum ItemType {CHARGED, UNCHARGED, PASSIVE, PAID}
-class ItemCard extends Card {
+export class ItemCard extends Card {
     protected _treasureType: ItemType;
     protected _eternal: boolean = false;
     protected _guppy: boolean = false;
