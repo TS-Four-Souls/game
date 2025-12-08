@@ -341,6 +341,17 @@ const app = new Elysia()
       status: 200,
     });
   })
+  .post("/debug", async () => {
+    game.debugReset();
+    const p1 = new Player("DrMint", 1, 2, 0, "");
+    const p2 = new Player("slichau", 1, 2, 0, "");
+    game.addPlayer(p1);
+    game.addPlayer(p2);
+    game.start(p1);
+    return new Response("Debug reset", {
+      status: 200,
+    });
+  })
   .listen(PORT);
 
 console.log(

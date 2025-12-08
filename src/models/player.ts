@@ -12,12 +12,18 @@ export class Player extends Entity {
   private _inPlay: Card[];
   private _souls: Card[];
 
-  constructor(id: string, attackPoints: number, healthPoints: number, coins: number) {
+  constructor(
+    id: string,
+    attackPoints: number,
+    healthPoints: number,
+    coins: number,
+    secret: string = crypto.randomUUID()
+  ) {
     super(id, attackPoints, healthPoints);
     this._score = 0;
     this._coin = coins;
     this._hand = new Hand();
-    this.secret = crypto.randomUUID();
+    this.secret = secret;
     this._inPlay = [];
     this._souls = [];
   }
@@ -42,7 +48,7 @@ export class Player extends Entity {
     return total;
   }
 
-////////// In play Methods /////////
+  ////////// In play Methods /////////
   addInPlay(card: Card): void {
     this._inPlay.push(card);
   }
@@ -55,8 +61,7 @@ export class Player extends Entity {
   }
   removeInPlayByIndex(index: number): boolean {
     const type = this._inPlay[index]?.type;
-    if (index >= 0 && type !== "eternal" && type !== "character"
-    ) {
+    if (index >= 0 && type !== "eternal" && type !== "character") {
       this._inPlay.splice(index, 1);
       return true;
     }
@@ -79,16 +84,15 @@ export class Player extends Entity {
     return false;
   }
 
-  addSoul(card: Card){
-    if(card.soul < 0)
-    {
+  addSoul(card: Card) {
+    if (card.soul < 0) {
       throw new Error("Cannot add a card with no soul as a soul card.");
     }
     this._souls.push(card);
   }
-  removeSoul(card: Card): boolean{
+  removeSoul(card: Card): boolean {
     const idx = this._souls.indexOf(card);
-    if(idx < 0 || idx >= this._souls.length){
+    if (idx < 0 || idx >= this._souls.length) {
       return false;
     }
     return true;
@@ -101,17 +105,15 @@ export class Player extends Entity {
     return new DiceRoll(this);
   }
 
-  
-  die(): void { }
+  die(): void {}
   /* This methods tries to remove n coins to the player and return true if it does.
-  * if the player have less than n coins and asMany is true, all his coins are removed.
-  * */
+   * if the player have less than n coins and asMany is true, all his coins are removed.
+   * */
   loseCoins(coins: number, asMany: boolean): number {
     if (this._coin >= coins) {
       this._coin -= coins;
       return coins;
-    }
-    else if(asMany) {
+    } else if (asMany) {
       const allCoins = this._coin;
       this._coin = 0;
       return allCoins;
@@ -151,7 +153,7 @@ export class DiceRoll {
     return this._value;
   }
   get json(): DiceRollJSON {
-    return {"diceRoll" : this.value, "issuer": this.issuer.id};
+    return { diceRoll: this.value, issuer: this.issuer.id };
   }
   set value(v: number) {
     if (v < 1 || v > 6) {
