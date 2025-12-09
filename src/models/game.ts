@@ -399,9 +399,9 @@ export class Game {
       return "Invalid card position.";
     }
     const playedCard: LootCard = player.hand.playCard(index - 1) as LootCard;
-    playedCard.onPlay(player);
-    this.addToStack(playedCard);
-    // this.addInPlay(player, playedCard);
+    // playedCard.onPlay(player);
+    // this.addToStack(playedCard);
+    this.addInPlay(player, playedCard);
 
     return `You have played the card: ${playedCard.name} to your in-play area.\n`;
   }
