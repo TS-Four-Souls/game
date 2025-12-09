@@ -4,6 +4,7 @@ import { DiceRoll, Player } from "../models/player";
 import { pl } from "zod/locales";
 import type { LootCard, ItemCard } from "@/models/cards";
 import { InplayType } from "@/models/cards";
+import { effectParser } from "@/models/effect";
 
 describe("Loot Card", () => {
     let game: Game;
@@ -1235,6 +1236,83 @@ describe("Loot Card", () => {
         expect(p2.totalSouls).toBe(1);
         expect(p3.totalSouls).toBe(0);
     });
+
+    it("b2-soul_heart: should prevent 1 damage to chosen player this turn", () => {
+        
+        const soulHeart = game.decks["loot"]!.getCardFromSlug("b2-soul_heart");
+        const dummyCard = { slug: "test", name: "Test" } as any;
+        player1.hand.addToHand(soulHeart!);
+
+        const initialHP = player2.currentHealthPoints;
+        game.playCard(player1, 1);
+        (soulHeart as LootCard).debugSetTargets([player2]);
+        game.resolveStack();
+
+        // p2 should have prevention shield now - deal 3 damage
+        game.dealDamage(player1, player2, dummyCard, 3);
+        expect(player2.currentHealthPoints).toBe(initialHP - 2); // 3 - 1 prevented = 2 damage taken
+    });
+
+    it("b2-soul_heart: shield is one-shot only", () => {
+        const soulHeart = game.decks["loot"]!.getCardFromSlug("b2-soul_heart");
+        const dummyCard = { slug: "test", name: "Test" } as any;
+        player1.hand.addToHand(soulHeart!);
+
+        player2.addHealthPoints(10); // Ensure p2 has enough HP to take damage
+        const initialHP = player2.currentHealthPoints;
+        // const effect = effectParser(soulHeart!.effectOutcomes[0]!, game);
+        // effect(soulHeart!, player1, []);
+        game.playCard(player1, 1);
+        (soulHeart as LootCard).debugSetTargets([player2]);
+        game.resolveStack();
+        // First damage: 1 prevented, take 2 damage
+        game.dealDamage(player1, player2, dummyCard, 3);
+        expect(player2.currentHealthPoints).toBe(initialHP - 2);
+
+        // Second damage: not prevented, take full damage
+        game.dealDamage(player1, player2, dummyCard, 5);
+        expect(player2.currentHealthPoints).toBe(initialHP - 7);
+    });
+
+    it("b2-soul_heart: prevents all damage if damage is 1 or less", () => {
+        
+        const soulHeart = game.decks["loot"]!.getCardFromSlug("b2-soul_heart");
+        const dummyCard = { slug: "test", name: "Test" } as any;
+        player1.hand.addToHand(soulHeart!);
+
+
+        const initialHP = player2.currentHealthPoints;
+        game.playCard(player1, 1);
+        (soulHeart as LootCard).debugSetTargets([player2]);
+        game.resolveStack();
+
+        // Deal only 1 damage - should be fully prevented
+        game.dealDamage(player1, player2, dummyCard, 1);
+        expect(player2.currentHealthPoints).toBe(initialHP); // No damage taken
+    });
+
+    it("b2-soul_heart: only prevents damage to chosen player, not issuer", () => {
+        
+        const soulHeart = game.decks["loot"]!.getCardFromSlug("b2-soul_heart");
+        const dummyCard = { slug: "test", name: "Test" } as any;
+        player1.hand.addToHand(soulHeart!);
+
+
+        game.playCard(player1, 1);
+        (soulHeart as LootCard).debugSetTargets([player2]);
+        game.resolveStack();
+
+        // p1 takes damage - should NOT be prevented (shield is on p2)
+        const initialP1HP = player1.currentHealthPoints;
+        game.dealDamage(player2, player1, dummyCard, 2);
+        expect(player1.currentHealthPoints).toBe(initialP1HP - 2); // Full damage taken
+
+        game.dealDamage(player2, player2, dummyCard, 2);
+        expect(player2.currentHealthPoints).toBe(initialP1HP - 1); // Full damage taken
+    });
+
+
+    
 
 
 

@@ -5,6 +5,7 @@ import type { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
 import { it } from "zod/locales";
+import { preventNextDamageUpToEffect } from "./abilities";
 
 function prepareEffectString(s: string): string {
     s.replace("[Tap Effect]", ""); // remove tap effect marker
@@ -711,6 +712,10 @@ export function effectParser(s:string, game: Game): EffectFunction {
             game.dealDamage(issuer, target, it, damageToDeal);
             return true;
         };
+    // Match patterns like "prevent next instance of up to 2 damage this turn"
+    const preventMatch = s.match(/^choose a player. prevent (?:the )?next instance of up to (\d+) damage(?: you would take)? this turn\.?$/u);
+    if (s === "choose a player. prevent the next 1 damage they would take this turn.")
+        return preventNextDamageUpToEffect(1, game);
     switch (s) {
         case "choose a player or monster":
             return (it: Card, issuer: Player, targets: any[]) => { return true; };
@@ -914,10 +919,8 @@ export function targetSelectorParser(s:string, game: Game): TargetsSelector {
         coinStolen !== null) {
         return anotherPlayerSelector(undefined, game);
     }
-    if (s === "choose a player. recharge each item they control." ||
-        s === "choose a player. they reroll each item they control." ||
-        s === "kill a player." ||
-        s === "choose a player. loot and gain ¢ until you have the same number of each as they do." ) {
+    if (s.startsWith("choose a player.") ||
+        s === "kill a player.") {
         return playerSelector(undefined, game);
     }
     if (s === "choose the player with the most souls or tied for the most. that player destroys a soul they control.")

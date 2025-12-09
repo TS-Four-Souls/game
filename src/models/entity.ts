@@ -43,4 +43,8 @@ export abstract class Entity {
   get currentHealthPoints(): number {
     return this._currentHealthPoints;
   }
+
+  addHealthPoints(amount: number): void {
+    this._currentHealthPoints += amount;
+  }
 }

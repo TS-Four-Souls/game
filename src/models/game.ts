@@ -18,6 +18,7 @@ import {
   InplayType,
   treasureCard,
 } from "@/models/cards";
+import { type Ability } from "./abilityRegistry";
 import { Stack, type StackElement } from "@/models/stack";
 import { effectParser, getAttackRollEffect, targetSelectorParser } from "@/models/effect";
 import { Shop, Encounters } from "@/models/slots";
@@ -26,6 +27,8 @@ import { TurnHandler } from "./turnHandler";
 import { type ReadableSignal, Signal } from "micro-signals";
 import { GameEventEmitter } from "./eventEmmitter";
 import { AbilityRegistry } from "./abilityRegistry";
+import { preventNextDamageUpToEffect } from "@/models/abilities";
+
 const LOG_GAME = false;
 // export const cards = await loadCards(process.cwd() + "/data/cards");
 export const cards = await loadCards("/Users/sylvain/Documents/foursouls/four-souls-game/data/cards");
@@ -263,12 +266,14 @@ export class Game {
   dealDamage(dealer: Entity, receiver: Entity, usingAbilityFrom: Card, damage: number): void {
     if (damage <= 0 || receiver.isDead) return;
 
-    this.emitter.emit("on:damage:would-take", { issuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damage });
+    const damageArray = [damage];
+    this.emitter.emit("on:damage:would-take", { issuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damageArray: damageArray });
+    const dmg = damageArray[0]!;
+    
+    receiver.receiveDamage(dmg);
 
-    receiver.receiveDamage(damage);
-
-    this.emitter.emit("on:damage:taken", { issuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damage });
-    this.emitter.emit("on:damage:taken:first-time-each-turn", { issuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damage });
+    this.emitter.emit("on:damage:taken", { issuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damage: dmg });
+    this.emitter.emit("on:damage:taken:first-time-each-turn", { issuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damage: dmg });
 
     if (receiver.currentHealthPoints <= 0) {
       this.death(receiver, dealer, usingAbilityFrom);
@@ -323,6 +328,8 @@ export class Game {
       elem.onResolve();
     else if (elem instanceof DiceRoll)
       this.resolveDiceRoll(elem);
+    else if (elem === undefined)
+      return;
   }
 
   cancelStack(): void {
@@ -392,9 +399,9 @@ export class Game {
       return "Invalid card position.";
     }
     const playedCard: LootCard = player.hand.playCard(index - 1) as LootCard;
-    // playedCard.onPlay(player);
-    // this.addToStack(playedCard);
-    this.addInPlay(player, playedCard);
+    playedCard.onPlay(player);
+    this.addToStack(playedCard);
+    // this.addInPlay(player, playedCard);
 
     return `You have played the card: ${playedCard.name} to your in-play area.\n`;
   }
@@ -419,6 +426,7 @@ export class Game {
     this.emitter.emit("on:game:start:before", {});
     this.emitter.emit("on:game:start", {});
     this.healEveryone();
+    // this.startTurn();
   }
 
   assignCharactersToPlayers(): void {
