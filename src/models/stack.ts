@@ -20,6 +20,18 @@ export class Stack {
         this._stack = [];
     }
 
+    removeAt(index: number) : void {
+        this._stack.splice(index, 1);
+    }
+    cancelElement(element: StackElement) : void {
+        for (let i = this._stack.length - 1; i >= 0; i--) {
+            const el = this._stack[i];
+            if (el === element) {
+                this._stack.splice(i, 1);
+                return;
+            }
+        }
+    }
     cancelPreviousNonRoll() : void {
         for (let i = this._stack.length - 2; i >= 0; i--) {
             const element = this._stack[i];
@@ -44,12 +56,5 @@ export class Stack {
 
     size(): number {
         return this._stack.length;
-    }
-    isTopElementNumber(): boolean {
-        if (this.isEmpty()) {
-            return false;
-        }
-        const topElement = this._stack[this._stack.length - 1];
-        return typeof topElement === "number";
     }
 }

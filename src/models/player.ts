@@ -1,5 +1,6 @@
 import { Entity } from "@/models/entity";
-import { Hand, type Card } from "./cards";
+import { Hand, type Card, type EffectFunction } from "./cards";
+import type { Game } from "./game";
 
 export class Player extends Entity {
   /** This is the token the player uses to issue commands to the game
@@ -11,12 +12,13 @@ export class Player extends Entity {
   private _hand: Hand;
   private _inPlay: Card[];
   private _souls: Card[];
+  private _remainingLootPlay: number;
 
   constructor(
-    id: string,
-    attackPoints: number,
-    healthPoints: number,
-    coins: number,
+    id: string, 
+    attackPoints: number=1, 
+    healthPoints: number=2, 
+    coins: number=0,
     secret: string = crypto.randomUUID()
   ) {
     super(id, attackPoints, healthPoints);
@@ -26,6 +28,7 @@ export class Player extends Entity {
     this.secret = secret;
     this._inPlay = [];
     this._souls = [];
+    this._remainingLootPlay = 0;
   }
 
   get coins(): number {
@@ -48,7 +51,15 @@ export class Player extends Entity {
     return total;
   }
 
-  ////////// In play Methods /////////
+  get remainingLooktPlay(): number {
+    return this._remainingLootPlay;
+  }
+
+  set remainingLootPlay(value: number) {
+    this._remainingLootPlay = value;
+  }
+
+////////// In play Methods /////////
   addInPlay(card: Card): void {
     this._inPlay.push(card);
   }
@@ -59,6 +70,19 @@ export class Player extends Entity {
     const index = this._inPlay.indexOf(card);
     return this.removeInPlayByIndex(index);
   }
+  playLootCard(index: number): Card | null {
+    if (index < 0 || index >= this._hand.cards.length) {
+      throw new Error("Index out of bounds");
+    }
+    const card = this._hand.cards[index]!;
+    if (card.type !== "loot") {
+      throw new Error("Card at index is not a loot card");
+    }
+    this._hand.cards.splice(index, 1);
+    this._remainingLootPlay -= 1;
+    this._inPlay.push(card);
+    return card;
+  }
   removeInPlayByIndex(index: number): boolean {
     const type = this._inPlay[index]?.type;
     if (index >= 0 && type !== "eternal" && type !== "character") {
@@ -68,24 +92,33 @@ export class Player extends Entity {
     return false;
   }
 
+  setHand(hand: Hand): Hand {
+    const previousHand = this._hand;
+    this._hand = hand;
+    return previousHand;
+  }
+
   removeCard(target: Card): boolean {
-    this._inPlay.forEach((card, index) => {
+    for (let i = 0; i < this.inPlay.length; i++) {
+      const card = this.inPlay[i];
       if (card === target) {
-        this._inPlay.splice(index, 1);
+        this._inPlay.splice(i, 1);
         return true;
       }
-    });
-    this._hand.cards.forEach((card, index) => {
+    }
+    for (let i = 0; i < this._hand.cards.length; i++) {
+      const card = this._hand.cards[i];
       if (card === target) {
-        this._hand.cards.splice(index, 1);
+        this._hand.cards.splice(i, 1);
         return true;
       }
-    });
+    }
     return false;
   }
 
-  addSoul(card: Card) {
-    if (card.soul < 0) {
+  addSoul(card: Card){
+    if(card.soul < 1)
+    {
       throw new Error("Cannot add a card with no soul as a soul card.");
     }
     this._souls.push(card);
@@ -95,6 +128,7 @@ export class Player extends Entity {
     if (idx < 0 || idx >= this._souls.length) {
       return false;
     }
+    this._souls.splice(idx, 1);
     return true;
   }
   gainCoins(coins: number): void {
@@ -105,7 +139,6 @@ export class Player extends Entity {
     return new DiceRoll(this);
   }
 
-  die(): void {}
   /* This methods tries to remove n coins to the player and return true if it does.
    * if the player have less than n coins and asMany is true, all his coins are removed.
    * */
@@ -125,6 +158,7 @@ export class Player extends Entity {
     return this.secret === secret;
   }
 
+ 
   addScore(score: number): void {
     this._score += score;
   }
@@ -141,10 +175,19 @@ type DiceRollJSON = {
 export class DiceRoll {
   private _value: number;
   private _issuer: Player;
+  private _attackRoll;
+  private _effect: EffectFunction[] | null = null;
+  private _card: Card | null = null;
+  private _targets: any[] = [];
 
-  constructor(issuer: Player) {
+  constructor(issuer: Player, attackRoll: boolean = false) {
     this._value = Math.floor(Math.random() * 6) + 1;
     this._issuer = issuer;
+    this._attackRoll = attackRoll;
+  }
+  
+  get attackRoll(): boolean {
+    return this._attackRoll;
   }
   get issuer(): Player {
     return this._issuer;
@@ -152,20 +195,39 @@ export class DiceRoll {
   get value(): number {
     return this._value;
   }
+
+  add(modifier: number): void {
+    if(modifier < 0){
+      throw new Error("Modifier must be positive");
+    }
+    this.value = this.value + modifier;
+  }
+  substract(modifier: number): void {
+    if (modifier < 0) {
+      throw new Error("Modifier must be positive");
+    }
+    this.value = this.value - modifier;
+  }
   get json(): DiceRollJSON {
     return { diceRoll: this.value, issuer: this.issuer.id };
   }
   set value(v: number) {
-    if (v < 1 || v > 6) {
-      throw new Error("Dice value must be between 1 and 6.");
-    }
-    this._value = v;
+    this._value = Math.max(1, Math.min(6, v));
   }
   roll(): number {
     this._value = Math.floor(Math.random() * 6) + 1;
     return this._value;
   }
-  onResolve(): number {
-    return this.value;
+  attachEffect(effect: EffectFunction[], card: Card, targets: any[]=[]): void {
+    if(effect.length != 6)
+      throw new Error("Effect must have 6 outcomes, one for each dice face.");
+    this._effect = effect;
+    this._card = card;
+    this._targets = targets;
+  }
+  onResolve(): void {
+    if (this._effect?.length === 6) {
+      this._effect[this._value - 1]!(this._card!, this._issuer, this._targets);
+    }
   }
 }

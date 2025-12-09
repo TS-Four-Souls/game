@@ -1,9 +1,9 @@
 import { cards, Game } from "@/models/game";
 import { Player } from "@/models/player";
-import { schemas } from "@/types";
+import { schemas, type Issuer } from "@/types/types";
+import { playerEndpointHandler } from "@/utils/endpoints";
 import { Elysia, sse } from "elysia";
 import { cors } from "@elysiajs/cors";
-
 const game = new Game();
 
 const PORT = process.env.PORT || 3000;
@@ -95,20 +95,6 @@ const app = new Elysia()
     },
     {
       body: schemas.userProtectedRequest,
-    }
-  )
-  .post(
-    "/attack",
-    async (request) => {
-      return new Response(
-        game.attack(request.body.issuer, request.body.monsterId),
-        {
-          status: 200,
-        }
-      );
-    },
-    {
-      body: schemas.attackRequest,
     }
   )
   .post(
@@ -310,7 +296,7 @@ const app = new Elysia()
     "/losecoins",
     async (request) => {
       return new Response(
-        game.loseCoins(
+        ""+game.loseCoins(
           request.body.issuer,
           request.body.coins,
           request.body.asMany

@@ -1,11 +1,11 @@
 import fs from "fs/promises";
 import path from "path";
-import { type GenericCardType } from "./cardTypes.ts";
+import { type GenericCardType } from "../types/cardTypes.ts";
 
 export async function loadCards(dirPath: string | undefined): Promise<GenericCardType[]> {
   const dir = dirPath
     ? path.resolve(dirPath)
-    : path.resolve(process.cwd(), "data/cards");
+    : path.resolve(process.cwd(), "/four-souls-game/data/cards");
 
   let entries: string[];
   try {

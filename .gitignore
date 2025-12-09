@@ -35,3 +35,8 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .cursor
 
 data/
+bruno_runners/
+package-lock.json
+bruno/bruno.json
+collection.bru
+src/models/test.ts

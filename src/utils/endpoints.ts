@@ -1,4 +1,4 @@
-import { schemas, type Issuer } from "@/types";
+import { schemas, type Issuer } from "@/types/types";
 
 export const playerEndpointHandler = async (
   request: Request,

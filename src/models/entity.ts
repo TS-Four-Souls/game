@@ -21,6 +21,10 @@ export abstract class Entity {
     this._currentHealthPoints = this.healthPoints;
   }
 
+  die(): void {
+    this._currentHealthPoints = 0;
+  }
+  
   get isDead(): boolean {
     return this._currentHealthPoints <= 0;
   }

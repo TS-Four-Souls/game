@@ -1,4 +1,5 @@
 import { type Card, type LootCard, type eternalCard, type bsoulCard, type treasureCard, MonsterCard, type CharacterCard, MonsterType, type Deck } from "./cards";
+import { Monster } from "./monster";
 import type { Player } from "./player";
 
 class Shop {
@@ -24,6 +25,16 @@ class Shop {
         this._slots.push(undefined);
         this.fillEmptySpots();
     }
+    obtainCard(slug: string): Card | undefined{
+        const index = this._slots.findIndex(card => card?.slug === slug);
+        if (index >= 0) {
+            const card = this._slots[index];
+            this._slots[index] = undefined;
+            this.fillEmptySpots();
+            return card;
+        }
+        return this._deck.getCardFromSlug(slug);
+    }
     computePriceTopDeck(player: Player) : number {
         return 10;
     }
@@ -32,12 +43,13 @@ class Shop {
     }
 
     removeCard(target: Card): boolean{
-        this._slots.forEach((card, index) => {
-          if (card === target) {
-            this._slots[index] = undefined;
-            return true;
+        for (let i = 0; i < this._slots.length; i++) {
+            if (this._slots[i] === target) {
+                this._slots[i] = undefined;
+                this.fillEmptySpots();
+                return true;
           }
-        });
+        }
         return false;
       }
     purchaseTopDeck(player: Player) : boolean {
@@ -77,9 +89,23 @@ class Shop {
             this.fillEmptySpots();
         }
     }
-    flush() : void {
+    flush(): void {
         for (let i = 0; i < this._slots.length; i++) {
             this.discard(i + 1);
+        }
+        this.fillEmptySpots();
+    }
+    moveToBottom(index: number) : void {
+        if (index > 0) {
+            index -= 1;
+            this._deck.addBottomPosition(this._slots[index]!);
+            this._slots[index] = undefined;
+            this.fillEmptySpots();
+        }
+    }
+    flushToBottom(): void {
+        for (let i = 0; i < this._slots.length; i++) {
+            this.moveToBottom(i);
         }
         this.fillEmptySpots();
     }
@@ -87,9 +113,11 @@ class Shop {
 
 class Encounters {
     _slots: Card[][];
+    _monstersInPlay: (Monster | undefined)[];
     _deck: Deck;
     constructor(nbEncounterSlots: number, deck: Deck) {
         this._slots = new Array(nbEncounterSlots);
+        this._monstersInPlay = new Array(nbEncounterSlots);
         for (let i = 0; i < nbEncounterSlots; i++) {
             this._slots[i] = [];
         }
@@ -99,11 +127,11 @@ class Encounters {
     fillEmptySpots(discardEvent = false) : void {
         for (let i = 0; i < this._slots.length; i++) {
             if (this._slots[i]!.length == 0) {
-                let card = this._deck.draw();
+                let card = this._deck.draw() as MonsterCard;
                 if (discardEvent) {
-                    while (card instanceof MonsterCard && card!.encounterType === MonsterType.EVENT) {
+                    while (card!.encounterType === MonsterType.EVENT) {
                         this._deck.addDiscardTop(card!);
-                        card = this._deck.draw();
+                        card = this._deck.draw() as MonsterCard;
                     }
                     if(!(card instanceof MonsterCard))
                     {
@@ -111,6 +139,12 @@ class Encounters {
                     }
                 }
                 this._slots[i]!.push(card!);
+                if (card.encounterType !== MonsterType.EVENT) {
+                    const monster = new Monster(card);
+                    this._monstersInPlay[i] = monster;
+                }else {
+                    this._monstersInPlay[i] = undefined!;
+                }
             }
         }
     }
@@ -118,6 +152,12 @@ class Encounters {
     draw(position: number) : void {
         const card = this._deck.draw();
         this._slots[position]!.push(card!);
+        if ((card as MonsterCard).encounterType !== MonsterType.EVENT) {
+            const monster = new Monster((card as MonsterCard));
+            this._monstersInPlay[position] = monster;
+        } else {
+            this._monstersInPlay[position] = undefined!;
+        }
     }
 
     discardTop(index: number) : void {
@@ -127,10 +167,22 @@ class Encounters {
             this._deck.addDiscardTop(card!);
         }
     }
-
+    moveToBottom(index: number) : void {
+        if (index >= 0) {
+            const card = this._slots[index]!.pop();
+            this.fillEmptySpots(false);
+            this._deck.addBottomPosition(card!);
+        }
+    }
     flush() : void {
         for (let i = 0; i < this._slots.length; i++) {
             this.discardTop(i);
+        }
+        this.fillEmptySpots(false);
+    }
+    flushToBottom(): void {
+        for (let i = 0; i < this._slots.length; i++) {
+            this.moveToBottom(i);
         }
         this.fillEmptySpots(false);
     }
@@ -144,8 +196,19 @@ class Encounters {
         }
     }
 
+    monsterIn(index: number) : Monster | undefined {
+        if (index >= 0 && index < this._monstersInPlay.length) {
+            return this._monstersInPlay[index];
+        }
+        return undefined;
+    }
+
     get slots(): Card[][] {
         return this._slots;
+    }
+
+    get monsters(): Monster[] {
+        return this._monstersInPlay.filter((m): m is Monster => m !== undefined);
     }
 }
 export { Shop, Encounters };

@@ -1,12 +1,15 @@
 import { shuffle, print } from '@/utils/auxiliary';
-import type { CardRewards, EternalCardType, GenericCardType, LootCardType, ItemCardType, TreasureCardType, CharacterCardType, MonsterCardType, BonusSoulCardType } from '@/utils/cardTypes';
-
+import { effectParser, targetSelectorParser } from '@/models/effect';
+import type { CardRewards, EternalCardType, GenericCardType, LootCardType, InPlayCardType, TreasureCardType, CharacterCardType, MonsterCardType, BonusSoulCardType } from '@/types/cardTypes';
+import type { Player } from './player';
+import { assert } from 'console';
 class Card {
     protected _json: GenericCardType;
     protected _id: number;
     protected _slug: string;
     protected _name: string;
     protected _type: string;
+    protected _subtype: string;
     protected _origin: string;
     protected _quote: string | undefined;
     protected _front: string;
@@ -16,6 +19,8 @@ class Card {
     protected _minimumPlayers: number;
     protected _effectOutcomes: string[];
     protected _souls: number = 0;
+    protected _eternal: boolean = false;
+    protected _position: Deck | null | Hand | Card[];
     constructor(id: number, 
         json: GenericCardType) {
         this._json = json;
@@ -23,12 +28,14 @@ class Card {
         this._slug = json.slug;
         this._name = json.name;
         this._type = json.type;
+        this._subtype = json.type;
         this._origin = json.origin;
         this._quote = json.quote;
         this._front = json.front;
         this._back = json.back;
         this._keywords = [];
         this._tags = {};
+        this._position = null;
         // this._tags = json.tags || {};
         this._minimumPlayers = json.minimumPlayers || 1;
         this._effectOutcomes = json.effectOutcome || [];
@@ -45,6 +52,9 @@ class Card {
     }
     get soul(): number {
         return this._souls;
+    }
+    set soul(value: number) {
+        this._souls = value;
     }
     get slug() : string {
         return this._slug;
@@ -73,57 +83,59 @@ class Card {
     get json() {
         return this._json;
     }
-}
-
-class LootCard extends Card {
-    protected _reward: CardRewards | undefined;
-    protected _trinket: boolean = false;
-    constructor(id: number, json: LootCardType) {
-        super(id, json);
-        this._reward = json.rewards;
-        if (json.trinket) {
-            this._trinket = json.trinket;
-        }
+    get subtype(): string {
+        return this._subtype;
     }
-
-    isTrinket(): boolean {
-        return this._trinket;
+    get eternal(): boolean {
+        return this._eternal;
     }
 }
-enum ItemType {CHARGED, UNCHARGED, PASSIVE, PAID}
+
+export type TargetsSelector = (issuer: Player) => any[];
+export type EffectFunction = (it:Card, issuer: Player, targets: any[]) => boolean;
+
+enum InplayType { CHARGED, UNCHARGED, PASSIVE, PAID, PLAYABLE }
 export class ItemCard extends Card {
-    protected _treasureType: ItemType;
-    protected _eternal: boolean = false;
+    protected _inplayType: InplayType;
     protected _guppy: boolean = false;
 
     protected _cost: string;
-    constructor(id: number, json: ItemCardType) {
+    constructor(id: number, json: InPlayCardType) {
         super(id, json);
         this._cost = "";
-        this._treasureType = ItemType.PASSIVE;
+        this._inplayType = InplayType.PASSIVE;
         if (json.effectOutcome !== undefined) {
-            if (json.effectOutcome.join(", ").includes("[Tap effect]")) {
-                this._treasureType = ItemType.UNCHARGED;
-            } else if (json.effectOutcome.join(", ").includes("[Paid effect]")) {
-                this._treasureType = ItemType.PAID;
+            if (json.effectOutcome.join(", ").includes("[Tap Effect]")) {
+                this._inplayType = InplayType.UNCHARGED;
+            } else if (json.effectOutcome.join(", ").includes("[Paid Effect]")) {
+                this._inplayType = InplayType.PAID;
             }
         }
     }
 
+    get inPlayType(): InplayType {
+        return this._inplayType;
+    }
+    isActiveItem(): boolean {
+        return this._inplayType === InplayType.CHARGED || this._inplayType === InplayType.UNCHARGED;
+    }
+    isCurse(): boolean {
+        return this.subtype === "curse";
+    }
     recharge(): boolean {
-        if (this._treasureType === ItemType.UNCHARGED) {
-            this._treasureType = ItemType.CHARGED;
+        if (this._inplayType === InplayType.UNCHARGED) {
+            this._inplayType = InplayType.CHARGED;
             return true;
         }
         return false;
     }
 
     activate(): boolean {
-        if (this._treasureType === ItemType.CHARGED) {
-            this._treasureType = ItemType.UNCHARGED;
+        if (this._inplayType === InplayType.CHARGED) {
+            this._inplayType = InplayType.UNCHARGED;
             return true;
         }
-        if (this._treasureType === ItemType.PAID) {
+        if (this._inplayType === InplayType.PAID) {
             return true;
         }
         return false;
@@ -137,20 +149,87 @@ export class ItemCard extends Card {
     isGuppy(): boolean {
         return this._guppy;
     }
+    onTap(): void {
+        if(this._inplayType === InplayType.CHARGED) {
+            this._inplayType = InplayType.UNCHARGED;
+        }
+        else {
+            throw new Error("Cannot tap an uncharged item.");
+        }
+    }
     setEternal(eternal: boolean): void {
         this._eternal = eternal;
     }
 }
 
+class LootCard extends ItemCard {
+    protected _reward: CardRewards | undefined;
+    protected _trinket: boolean = false;
+    protected _issuer!: Player;
+    protected _targetsSelector: TargetsSelector;
+    protected _selectedTargets: any[] = [];
+    protected _effect: EffectFunction;
+    constructor(id: number, json: LootCardType, 
+        selectTargets: TargetsSelector = (issuer: Player) => [],
+        effect: EffectFunction = (it, issuer: Player, targets: any[]) => 
+            { issuer.addInPlay(this); return true; }
+    ) {
+        super(id, json);
+        this._inplayType = InplayType.PLAYABLE;
+        this._reward = json.rewards;
+        this._targetsSelector = selectTargets;
+        this._effect = effect;
+        if (json.trinket) {
+            this._trinket = json.trinket;
+            this._inplayType = InplayType.PASSIVE;
+        }
+    }
+    get trinket(): boolean {
+        return this._trinket;
+    }
+
+    set effect(effect: EffectFunction) {
+        this._effect = effect;
+    }
+
+    set targetSelector(selector: TargetsSelector) {
+        this._targetsSelector = selector;
+    }
+
+    private targetStillValid(): boolean {
+        if(this._selectedTargets.length > 0)
+            {
+            const admissibleTargets = this._targetsSelector(this._issuer);
+            for(const target of this._selectedTargets) {
+                if(!admissibleTargets.includes(target)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    onPlay(issuer: Player): void {
+        this._selectedTargets = this._targetsSelector(issuer);
+        this._issuer = issuer!;
+    }
+    onResolve(): void {
+        if(this.targetStillValid()) {
+            this._effect(this, this._issuer, this._selectedTargets);
+        } else {
+            console.log("LootCard.onResolve: targetStillValid() returned false for", (this as any).name);
+        }
+    }
+
+    debugSetTargets(targets: any[]): void {
+        this._selectedTargets = targets;
+    }
+}
+
 class treasureCard extends ItemCard {
-    protected _subtype: string;
 
     constructor(id: number, json: TreasureCardType) {
         super(id, json);
         this._subtype = json.subtype;
-    }
-    get subtype(): string {
-        return this._subtype;
     }
 }
 
@@ -163,26 +242,27 @@ class eternalCard extends ItemCard {
 
 class CharacterCard extends Card {
     protected _eternalCard: string | null = null;
-    protected _life: number = 0;
-    protected _damage: number = 0;
+    protected _healthPoints: number = 0;
+    protected _attackPoints: number = 0;
     constructor(id: number, json: CharacterCardType) {
         super(id, json);
         if(json.eternalCard) {
             this._eternalCard = json.eternalCard.slug;
         }
         if(json.stats) {
-            this._life = json.stats.healthPoints || 0;
-            this._damage = json.stats.attackPoints || 0;
+            this._healthPoints = json.stats.healthPoints || 0;
+            this._attackPoints = json.stats.attackPoints || 0;
         }
+        this._eternal = true;
     }
     get eternalCard(): string | null {
         return this._eternalCard;
     }
-    get life(): number {
-        return this._life;
+    get healthPoints(): number {
+        return this._healthPoints;
     }
-    get damage(): number {
-        return this._damage;
+    get attackPoints(): number {
+        return this._attackPoints;
     }
 }
 /*
@@ -193,18 +273,19 @@ class CharacterCard extends Card {
 enum MonsterType {MONSTER, BOSS, EVENT}
 class MonsterCard extends Card {
     protected _monsterType:MonsterType;
-    protected _life:number = 0;
-    protected _subtype: string;
-    protected _damage:number = 0;
-    protected _evasion:number = 0;
+    protected _healthPoints:number = 0;
+    protected _attackPoints:number = 0;
+    protected _evasion: number = 0;
+    protected _reward: CardRewards;
 
     constructor(id: number, json: MonsterCardType) {
         super(id, json);
         this._monsterType = MonsterType.EVENT;
         this._subtype = json.subtype;
+        this._reward = json.rewards || {soul: 0, coin: 0, loot: 0, treasure: 0};
         if(json.stats) {
-            this._life = json.stats.healthPoints || 0;
-            this._damage = json.stats.attackPoints || 0;
+            this._healthPoints = json.stats.healthPoints || 0;
+            this._attackPoints = json.stats.attackPoints || 0;
             this._evasion = json.stats.evasionPoints || 0;
 
             if (json.rewards && json.rewards.soul) {
@@ -221,14 +302,17 @@ class MonsterCard extends Card {
         return this._monsterType;
     }
 
-    get life(): number {
-        return this._life;
+    get healthPoints(): number {
+        return this._healthPoints;
     }
-    get damage(): number {
-        return this._damage;
+    get attackPoints(): number {
+        return this._attackPoints;
     }
     get evasion(): number {
         return this._evasion;
+    }
+    get rewards(): CardRewards | undefined {
+        return this._json.rewards;
     }
 }
 
@@ -254,7 +338,7 @@ class CardSet {
     }
     addCard(json: GenericCardType) : void{
         if(json.type === "loot") {
-            this._set.push(new LootCard(this._set.length, json ));
+            this._set.push(new LootCard(this._set.length, json));
         }
         else if(json.type === "treasure") {
             this._set.push(new treasureCard(this._set.length, json ));
@@ -278,19 +362,32 @@ class CardSet {
         return;
     }
     get(id: number) : Card {
+        if(this._set === undefined) {
+            throw new Error(`Card set of type ${this._type} is undefined.`);
+        }
         if (id < 0 || id >= this._set.length) {
             throw new Error(`Card id ${id} is out of bounds for card set of length ${this._set.length}`);
         }
         if(typeof this._set[id] === "undefined" || this._set[id] === null) {
-            throw new Error(`Card id ${id} is undefined or null in card set.`);
+            throw new Error(`Card lllll id ${id} is undefined or null in card set of type ${this._type}.`);
         }
         return this._set[id];
+    }
+
+    id(card: Card) : number {
+        const index = this._set.indexOf(card);
+        if (index === -1) {
+            throw new Error(`Card not found in card set.`);
+        }
+        return index;
     }
     get type() : string{ 
         return this._type; }
     get length() : number{ 
         return this._set.length; }
-
+    get cards() : Card[] { 
+        return this._set; 
+    }
     showAllCards() : void {
         this._set.forEach((card) => {
             console.log(card);
@@ -306,7 +403,7 @@ function LoadsCardSets(json_array: GenericCardType[]) : {[key: string]: CardSet}
     for(let index:number = 0; index < json_array.length; index++) {
         const card_json = json_array[index];
         if (typeof card_json === "undefined" || card_json === null) {
-            throw new Error(`Card id ${index} is undefined or null in card set.`);
+            throw new Error(`Card id ${card_json} is undefined or null in card set.`);
         }
         const type: string = String(card_json.type);
         let set = sets[type];
@@ -333,21 +430,53 @@ class Deck {
         this._order = order.reverse();
         // Set of discarded cards of the deck.
         this._discard = [];
+
+        order.forEach((id) => {
+            const card = this._set.get(id);
+        });
     }
 
-    shuffle() {
+    get length(): number {
+        return this._order.length;
+    }
+
+    shuffle(): void {
         shuffle<number>(this._order)
     }
 
-    draw() {
-        if (this._order.length == 0) {
-            this.resetDiscard();
+    remove(card:Card)
+    {
+        const cardId = card.id;
+        const setCardId = this._set.id(card);
+        if(cardId !== setCardId)
+        {
+            throw new Error("Card to remove does not belong to this deck's card set.");
         }
-        const id: number = this._order.pop()!;
-        return this._set.get(id);
+        const index = this._order.indexOf(cardId);
+        if(index >= 0)
+        {
+            this._order.splice(index, 1);
+        }
+        else{
+            const discardIndex = this._discard.indexOf(cardId);
+            if(discardIndex >= 0)
+            {
+                this._discard.splice(discardIndex, 1);
+            }
+            else{
+                throw new Error("Card to remove not found in deck or discard pile.");
+            }
+        }
     }
 
-    drawSeveral(n: number) {
+    draw(): Card {
+        // console.log(`Drawing card from deck of type ${this._type}.`);
+        return this.drawCardAt(0);
+    }
+    get cards(): Card[] {
+        return this._order.map((id) => this._set.get(id));
+    }
+    drawSeveral(n: number): Card[] {
         const cards = Array(n)
         for (let i = 0; i < n; i++) {
             if (this._order.length == 0) {
@@ -358,34 +487,48 @@ class Deck {
         return cards;
     }
 
-    drawCardAt(positionFromTop: number) {
-        const posFromEnd: number = this._order.length - positionFromTop;
+    drawCardAt(positionFromTop: number): Card {
+        if (this._order.length < positionFromTop + 1) {
+            this.resetDiscard();
+        }
+        const posFromEnd: number = this._order.length - 1 - positionFromTop;
+        if (posFromEnd < 0 || posFromEnd >= this._order.length) {
+            throw new Error(`Cannot draw card at position ${positionFromTop} from top, deck of type ${this._type} has only ${this._order.length} cards.`);
+        }
         const id: number = this._order[posFromEnd]!;
+        if(id === undefined || id === null) {
+            throw new Error(`Card id at position ${positionFromTop} from top is undefined or null in deck of type ${this._type}.`);
+        }
+        if(this._set === undefined) {
+            throw new Error(`Card set of type ${this._type} is undefined.`);
+        }
+        // console.log(`Drawing card id ${id} from deck of type ${this._type} at position from top ${positionFromTop}.`);
         const result = this._set.get(id);
         this._order.splice(posFromEnd, 1);
         return result;
     }
-    addTopPosition(card: Card) {
-        this._order.push(card.id);
+
+    addTopPosition(card: Card): void {
+        this.addCardAtPosFromTop(card, 0);
     }
 
-    addBottomPosition(card: Card) {
-        this._order.unshift(card.id);
+    addBottomPosition(card: Card): void {
+        this.addCardAtPosFromTop(card, this._order.length);
     }
-    addCardAtPosFromTop(card: Card, positionFromTop: number) {
+    addCardAtPosFromTop(card: Card, positionFromTop: number): void {
         const posFromEnd = Math.max(this._order.length - positionFromTop, 0);
         this._order.splice(posFromEnd, 0, card.id);
     }
-    addRandomPosition(card: Card) {
+    addRandomPosition(card: Card): void {
         const randomIdx = Math.floor(Math.random() * this._order.length);
         this.addCardAtPosFromTop(card, randomIdx);
     }
 
-    addDiscardTop(card: Card) {
+    addDiscardTop(card: Card): void {
         this._discard.push(card.id);
     }
 
-    get discard() {
+    get discard(): Card[] {
         const result = []
         for (let i = this._discard.length - 1; i >= 0; i--) {
             const id = this._discard[i];
@@ -397,49 +540,48 @@ class Deck {
         return result;
     }
 
-    shuffleDiscard() {
+    shuffleDiscard(): void {
         shuffle<number>(this._discard);
     }
 
-    resetDiscard() {
+    resetDiscard(): void {
         this.shuffleDiscard();
         this._order = this._discard.concat(this._order);
         this._discard = [];
     }
     getCardFromSlug(slug: string) : Card|undefined {
-        for (let i = this._order.length - 1; i >= 0; i--) {
-            const id = this._order[i];
-            if (typeof id !== "undefined" && id !== null) {
-                const card = this._set.get(id);
-                if (card?.slug == slug) {
-                    return card;
-                }
-            }
+        const res = this.getCards((card) => card.slug === slug);
+        if( res.length > 1 ) {
+            throw new Error(`Multiple cards with slug ${slug} found in deck of type ${this._type}.`);
         }
-        return undefined;
+        if( res.length === 0 ) {
+            throw new Error(`No card with slug ${slug} found in deck of type ${this._type}.`);
+        }
+        return  res[0];
     }
     getCards(filter: (card: Card) => boolean) : Card[] {
         const result: Card[] = [];
-        for (let i = this._order.length - 1; i >= 0; i--) {
+        for (let i = 0; i < this._order.length; i++) {
             const id = this._order[i];
             if (typeof id !== "undefined" && id !== null) {
                 const card = this._set.get(id);
                 if (filter(card)) {
-                    const positionFromTop = this._order.length - i;
+                    const positionFromTop = this._order.length - 1 - i;
+                    // console.log(`Found card ${card.slug} at position from top ${positionFromTop}.`);
                     result.push(this.drawCardAt(positionFromTop)!);
                 }
             }
         }
         return result;
     }
-    displayAllCards() {
+    ////// debug //////
+    displayAllCards(): void {
         this._order.forEach((id) => {
             const card = this._set.get(id);
             console.log(card?.slug);
         });
     }
-    ////// debug //////
-    displayOrder() {
+    displayOrder(): void {
         console.log(this._order.reverse());
         this._order.reverse();
     }
@@ -503,6 +645,7 @@ function LoadDecks(card_sets: {[key: string]: CardSet}, numPlayers: number) : {[
         }
         shuffle<number>(range);
         const firstCard = set.get(0)!;
+        assert(range.length === set.length, `LoadDecks: range length ${range.length} does not match set length ${set.length} for deck type ${type}.`);
         decks[type] = new Deck(set, firstCard.type, range);
     }
     return decks;
@@ -522,4 +665,4 @@ function randomCardFromSet(set: CardSet) : Card {
     return card;
 }
 
-export { Card, LootCard, treasureCard, MonsterCard, bsoulCard, CharacterCard, eternalCard, MonsterType, ItemType, CardSet, Deck, Hand, LoadsCardSets, LoadDecks, randomCardFromSet, isSameSlug };
+export { Card, LootCard, treasureCard, MonsterCard, bsoulCard, CharacterCard, eternalCard, MonsterType, InplayType, CardSet, Deck, Hand, LoadsCardSets, LoadDecks, randomCardFromSet, isSameSlug };
