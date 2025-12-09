@@ -226,8 +226,9 @@ export class Game {
   }
 
   resolveStack() {
-    // let elem = this.stack.resolve();
-    // if (elem !== undefined) elem.onResolve();
+    let elem = this.stack.resolve();
+    if (elem !== undefined) 
+      elem.onResolve();
   }
 
   cancelStack(): void {
