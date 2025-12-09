@@ -56,6 +56,7 @@ export const schemas = {
   discardInPlayRequest: indexSchema,
   playCardRequest: indexSchema,
   imageRequest: ImageRequestSchema,
+  issuerSchema: IssuerSchema,
 };
 
 export type Issuer = z.infer<typeof IssuerSchema>;

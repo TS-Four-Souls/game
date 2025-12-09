@@ -1,7 +1,7 @@
 import { cards, Game } from "@/models/game";
 import { Player } from "@/models/player";
 import { schemas } from "@/types";
-import { Elysia } from "elysia";
+import { Elysia, sse } from "elysia";
 import { cors } from "@elysiajs/cors";
 
 const game = new Game();
@@ -352,6 +352,45 @@ const app = new Elysia()
       status: 200,
     });
   })
+  .get(
+    "/sse",
+    async (request) => {
+      const issuer = request.query;
+
+      let listener: () => void; // defined outside so cancel() can reference it
+
+      const stream = new ReadableStream({
+        start(controller) {
+          listener = () => {
+            controller.enqueue(
+              `event: stateChange\ndata: ${game.detailedStateJSON(issuer)}\n\n`
+            );
+          };
+
+          game.onStateChange.add(listener);
+
+          // send initial state immediately
+          listener();
+        },
+
+        cancel() {
+          console.log("SSE stream canceled — cleaning up");
+          game.onStateChange.remove(listener);
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
+    },
+    {
+      query: schemas.issuerSchema,
+    }
+  )
   .listen(PORT);
 
 console.log(

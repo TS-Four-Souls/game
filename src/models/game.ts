@@ -1,6 +1,12 @@
 import type { Monster } from "@/models/monster";
 import type { Player } from "@/models/player";
-import type { DetailedState, DiscardCards, Issuer, MonsterPiles, State } from "@/types";
+import type {
+  DetailedState,
+  DiscardCards,
+  Issuer,
+  MonsterPiles,
+  State,
+} from "@/types";
 import { loadCards } from "@/utils/loadCards";
 import {
   Card,
@@ -17,6 +23,7 @@ import {
 import { Stack, type StackElement } from "@/models/stack";
 import { Shop, Encounters } from "@/models/slots";
 import { ItemCard } from "@/models/cards";
+import { Signal, type ReadableSignal } from "micro-signals";
 
 import { TurnHandler } from "./turnHandler";
 
@@ -34,6 +41,9 @@ export class Game {
   private _encounters!: Encounters;
   private _stack: Stack = new Stack();
   private _destroyedCards: Card[] = [];
+
+  private _onStateChange: Signal<void> = new Signal();
+  onStateChange: ReadableSignal<void> = this._onStateChange.readOnly();
 
   constructor() {}
 
@@ -99,7 +109,9 @@ export class Game {
         this.shop._slots.map((m) => ` |- ${i++} ${m!.name}`).join("\n") +
         "\n\n";
     }
-    result += this.turnHandler.isInitialized ? "Game started\n" : "Game not started\n";
+    result += this.turnHandler.isInitialized
+      ? "Game started\n"
+      : "Game not started\n";
     if (this.turnHandler.isInitialized) {
       result += `It's ${this.currentPlayer.id}'s turn\n`;
     }
@@ -111,8 +123,8 @@ export class Game {
     return this.turnHandler.current;
   }
 
-  get inPlayItems(): {player: Player, card: ItemCard}[] {
-    const items: {player: Player, card: ItemCard}[] = [];
+  get inPlayItems(): { player: Player; card: ItemCard }[] {
+    const items: { player: Player; card: ItemCard }[] = [];
     for (const player of this.players) {
       for (const card of player.inPlay) {
         if (card instanceof ItemCard) {
@@ -125,7 +137,9 @@ export class Game {
 
   get visibleItems(): ItemCard[] {
     let result: ItemCard[] = this.inPlayItems.map(({ card }) => card);
-    result.push(...this.shop._slots.filter((c): c is ItemCard => c instanceof ItemCard));
+    result.push(
+      ...this.shop._slots.filter((c): c is ItemCard => c instanceof ItemCard)
+    );
     return result;
   }
 
@@ -135,17 +149,22 @@ export class Game {
     this.players.push(newPlayer);
   }
 
-  select(player: Player, n: number, Options: any[], anyNumber: boolean = false): { "selected": any[], "remaining": any[]} {
-// TODO: implement player choice
-    return { "selected": Options.slice(0, n), "remaining": Options.slice(n) };
+  select(
+    player: Player,
+    n: number,
+    Options: any[],
+    anyNumber: boolean = false
+  ): { selected: any[]; remaining: any[] } {
+    // TODO: implement player choice
+    return { selected: Options.slice(0, n), remaining: Options.slice(n) };
   }
 
   get monsterSlots(): Encounters {
     return this.encounters;
   }
   get playersWithMostSouls(): Player[] {
-    let maxSouls = Math.max(...this.players.map(player => player.totalSouls));
-    return this.players.filter(player => player.totalSouls === maxSouls);
+    let maxSouls = Math.max(...this.players.map((player) => player.totalSouls));
+    return this.players.filter((player) => player.totalSouls === maxSouls);
   }
   addToStack(item: StackElement): void {
     this.stack.push(item);
@@ -168,7 +187,7 @@ export class Game {
     this.stack.clear();
   }
 
-  allHands(): {player: Player, hand: Hand }[] {
+  allHands(): { player: Player; hand: Hand }[] {
     return this.players.map((player) => ({ player, hand: player.hand }));
   }
 
@@ -208,7 +227,7 @@ export class Game {
     this.assertGameNotStarted();
     this.assertMinimumPlayerCount();
 
-this.turnHandler.initialize(this.players);
+    this.turnHandler.initialize(this.players);
     this._decks = LoadDecks(cardSets, this.players.length);
     this.assignCharactersToPlayers();
     this.healEveryone();
@@ -259,7 +278,7 @@ this.turnHandler.initialize(this.players);
     this.assertIssuerSecret(issuer);
     this.debugReset();
   }
-  
+
   debugReset(): void {
     this.turnHandler.reset();
     this._players = [];
@@ -278,9 +297,9 @@ this.turnHandler.initialize(this.players);
     this.assertNoOngoingAttack();
     this.healEveryone();
 
-      console.log(roundIndex);
-      this.endTurn();
-      return `It's ${this.currentPlayer!.id}'s turn. Round ${roundIndex}.\n`;
+    console.log(roundIndex);
+    this.endTurn();
+    return `It's ${this.currentPlayer!.id}'s turn. Round ${roundIndex}.\n`;
   }
 
   gainCoins(issuer: Issuer, coins: number): string {
@@ -294,13 +313,13 @@ this.turnHandler.initialize(this.players);
     return `New amount of coins: ${player.coins} coins.\n`;
   }
 
-  getFirstCardsOfDeck(deckName: string, number: number): Card[]{
+  getFirstCardsOfDeck(deckName: string, number: number): Card[] {
     return this.decks[deckName]!.drawSeveral(number);
   }
-  addTopPosition(deckName: string, card: Card): void{
+  addTopPosition(deckName: string, card: Card): void {
     this.decks[deckName]!.addTopPosition(card);
   }
-  addBottomPosition(deckName: string, card: Card): void{
+  addBottomPosition(deckName: string, card: Card): void {
     this.decks[deckName]!.addBottomPosition(card);
   }
 
@@ -308,16 +327,16 @@ this.turnHandler.initialize(this.players);
     this.turnHandler.InsertPlayerAtNextTurn(player);
   }
 
-  gainTreasure(issuer: Issuer, number: number=1): string {
+  gainTreasure(issuer: Issuer, number: number = 1): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.assertPlayerIsAlive(player);
     this.assertPositiveNumber(number);
 
-    for(let i=0; i<number; i++){
-    const treasureDeck: Deck = this.decks["treasure"]!;
-    const drawnCard: Card = treasureDeck.draw()!;
-    player.addInPlay(drawnCard);
+    for (let i = 0; i < number; i++) {
+      const treasureDeck: Deck = this.decks["treasure"]!;
+      const drawnCard: Card = treasureDeck.draw()!;
+      player.addInPlay(drawnCard);
     }
 
     return `You have drawn ${number} treasure card(s).\n`;
@@ -384,24 +403,32 @@ this.turnHandler.initialize(this.players);
         hand: player.hand.cards.map((c) => c.json),
         inPlay: player.inPlay.map((c) => c.json),
         souls: player.souls.map((c) => c.json),
-        coins: player.coins
-      }
-    , players: this.players.filter((p) => p.id !== player.id).map((p) => ({
-        name: p.id,
-        handSize: p.hand.cards.length,
-        inPlay: p.inPlay.map((c) => c.json),
-        souls: p.souls.map((c) => c.json),
-        coins: p.coins
-      }))
-      , topDiscards: {
-        loot: this.decks["loot"]!.discard[0] ? this.decks["loot"]!.discard[0]!.json : undefined,
-        treasure: this.decks["treasure"]!.discard[0] ? this.decks["treasure"]!.discard[0]!.json : undefined,
-        monster: this.decks["monster"]!.discard[0] ? this.decks["monster"]!.discard[0]!.json : undefined,
-      }
-    , monsters: this.encounters._slots.map((m) =>  m[m.length - 1]!.json),
+        coins: player.coins,
+      },
+      players: this.players
+        .filter((p) => p.id !== player.id)
+        .map((p) => ({
+          name: p.id,
+          handSize: p.hand.cards.length,
+          inPlay: p.inPlay.map((c) => c.json),
+          souls: p.souls.map((c) => c.json),
+          coins: p.coins,
+        })),
+      topDiscards: {
+        loot: this.decks["loot"]!.discard[0]
+          ? this.decks["loot"]!.discard[0]!.json
+          : undefined,
+        treasure: this.decks["treasure"]!.discard[0]
+          ? this.decks["treasure"]!.discard[0]!.json
+          : undefined,
+        monster: this.decks["monster"]!.discard[0]
+          ? this.decks["monster"]!.discard[0]!.json
+          : undefined,
+      },
+      monsters: this.encounters._slots.map((m) => m[m.length - 1]!.json),
       shop: this.shop._slots.map((m) => m!.json),
       turn: this.currentPlayer.id,
-    }
+    };
 
     return JSON.stringify(res);
   }
@@ -418,17 +445,19 @@ this.turnHandler.initialize(this.players);
       return `Purchase failed. You still have ${player.coins} coins.\n`;
     }
   }
-  loot(issuer: Issuer, number: number=1): string {
+  loot(issuer: Issuer, number: number = 1): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.assertPlayerIsAlive(player);
     this.assertPositiveNumber(number);
 
     const lootDeck: Deck = this.decks["loot"]!;
-    for(let i=0; i<number; i++){
-    const drawnCard: Card = lootDeck.draw()!;
+    for (let i = 0; i < number; i++) {
+      const drawnCard: Card = lootDeck.draw()!;
       player.hand.addToHand(drawnCard);
     }
+
+    this._onStateChange.dispatch();
 
     return `You have drawn ${number} loot card(s).\n`;
   }
@@ -450,7 +479,7 @@ this.turnHandler.initialize(this.players);
     if (!this.turnHandler.isInitialized) {
       return "Game not started";
     }
-    const res:MonsterPiles = {
+    const res: MonsterPiles = {
       cards: this.encounters._slots.map((m) => m.map((c) => c!.json)),
     };
     return JSON.stringify(res);
@@ -526,10 +555,8 @@ this.turnHandler.initialize(this.players);
     }
     const monsterPosition = this.encounters._slots[position - 1]!;
     const monsterCard: Card = monsterPosition[monsterPosition.length - 1]!;
-    if(monsterCard.soul > 0)
-      player.addSoul(monsterCard);
-    else
-      this.encounters.discardTop(position - 1);
+    if (monsterCard.soul > 0) player.addSoul(monsterCard);
+    else this.encounters.discardTop(position - 1);
     return `You have killed the monster at position ${position}.\n`;
   }
   discardFromHand(issuer: Issuer, position: number): string {
@@ -561,7 +588,9 @@ this.turnHandler.initialize(this.players);
     if (!deck) {
       throw new Error("Invalid deck type.");
     }
-    const discardCards:DiscardCards = {cards: deck.discard.map((c) => c!.json)};
+    const discardCards: DiscardCards = {
+      cards: deck.discard.map((c) => c!.json),
+    };
     return JSON.stringify(discardCards);
   }
 

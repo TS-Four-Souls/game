@@ -1,0 +1,15 @@
+meta {
+  name: Join SSE
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{BASE_URL}}/sse
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}
