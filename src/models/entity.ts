@@ -1,5 +1,7 @@
 export abstract class Entity {
   private _currentHealthPoints: number;
+  // Either attacking or being attacked.
+  private _engagedInCombat: number;
 
   constructor(
     readonly id: string,
@@ -8,6 +10,7 @@ export abstract class Entity {
   ) {
     this.id = id;
     this._currentHealthPoints = healthPoints;
+    this._engagedInCombat = 0;
   }
 
   receiveDamage(damage: number): void {
@@ -15,6 +18,14 @@ export abstract class Entity {
     if (this._currentHealthPoints <= 0) {
       this._currentHealthPoints = 0;
     }
+  }
+
+  get isEngagedInCombat(): boolean {
+    return this._engagedInCombat > 0;
+  }
+
+  engageInCombat(): void {
+    this._engagedInCombat += 1;
   }
 
   heal(): void {

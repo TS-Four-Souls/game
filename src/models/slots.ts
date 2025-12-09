@@ -186,7 +186,12 @@ class Encounters {
         }
         this.fillEmptySpots(false);
     }
-
+    kill(monster: Monster) : void {
+        const index = this._monstersInPlay.indexOf(monster);
+        if (index >= 0) {
+            this.killTop(index);
+        }
+    }
     killTop(index: number) : Card | undefined {
         if (index >= 0) {
             const card = this._slots[index]!.pop();

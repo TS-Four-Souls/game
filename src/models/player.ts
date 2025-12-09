@@ -1,5 +1,5 @@
 import { Entity } from "@/models/entity";
-import { Hand, type Card, type EffectFunction } from "./cards";
+import { Hand, InplayType, treasureCard, type Card, type EffectFunction } from "./cards";
 import type { Game } from "./game";
 
 export class Player extends Entity {
@@ -13,6 +13,7 @@ export class Player extends Entity {
   private _inPlay: Card[];
   private _souls: Card[];
   private _remainingLootPlay: number;
+  private _attackThisTurn: number = 0;
 
   constructor(
     id: string, 
@@ -59,6 +60,13 @@ export class Player extends Entity {
     this._remainingLootPlay = value;
   }
 
+  get attackThisTurn(): number {
+    return this._attackThisTurn;
+  }
+  
+  set attackThisTurn(value: number) {
+    this._attackThisTurn = value;
+  }
 ////////// In play Methods /////////
   addInPlay(card: Card): void {
     this._inPlay.push(card);
@@ -131,12 +139,23 @@ export class Player extends Entity {
     this._souls.splice(idx, 1);
     return true;
   }
+  activateItem(item: treasureCard): boolean {
+    const index = this._inPlay.indexOf(item);
+    if (index === -1) {
+      throw new Error("Item not in play.");
+    }
+    if (item.inPlayType !== InplayType.CHARGED) {
+      return false;
+    }
+    item.activate();
+    return true;
+  }
   gainCoins(coins: number): void {
     this._coin += coins;
   }
 
-  rollDice(): DiceRoll {
-    return new DiceRoll(this);
+  rollDice(attackRoll: boolean = false): DiceRoll {
+    return new DiceRoll(this, attackRoll);
   }
 
   /* This methods tries to remove n coins to the player and return true if it does.

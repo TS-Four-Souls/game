@@ -372,6 +372,22 @@ export function changeRollTo1Or6Effect(game: Game): EffectFunction {
     };
 }
 
+export function getAttackRollEffect(damageDealt: number, damageReceived: number, evasion: number, game: Game): EffectFunction[] {
+    const effects: EffectFunction[] = [];
+    for (let i = 0; i < 6; i++) {
+        effects.push((it: Card, issuer: Player, targets: any[]) => {
+            const target = targets[0] as Entity;
+            if (i + 1 >= evasion) {
+                game.dealDamage(issuer, target, it, damageDealt);
+            } else {
+                game.dealDamage(target, issuer, it, damageReceived);
+            }
+            return true;
+        });
+    }
+    return effects;
+}
+
 export function loot1PutCardOnTopEffect(game: Game): EffectFunction {
     return (it: Card, issuer: Player, targets: any[]) => {
         game.loot(issuer, 1);
@@ -460,9 +476,9 @@ export function becomesSoulAndGainEffect(game: Game): EffectFunction {
     };
 }
 
-export function addInPlayEffect(): EffectFunction {
+export function addInPlayEffect(game: Game): EffectFunction {
     return (it: Card, issuer: Player, targets: any[]) => {
-        issuer.addInPlay(it);
+        game.addInPlay(issuer, it);
         return true;
     };
 }
@@ -880,7 +896,7 @@ export function effectParser(s:string, game: Game): EffectFunction {
             }
 
         default:
-            return (it: Card, issuer: Player, targets: any[]) => { issuer.addInPlay(it); return true; };
+            return (it: Card, issuer: Player, targets: any[]) => { game.addInPlay(issuer, it); return true; };
     }
 }
 
