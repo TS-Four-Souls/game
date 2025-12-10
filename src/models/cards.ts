@@ -1,5 +1,5 @@
 import { shuffle, print } from '@/utils/auxiliary';
-import { effectParser, targetSelectorParser } from '@/models/effect';
+import { chooseOneTargetSelector, effectParser, targetSelectorParser, isChooseOneResult, type ChooseOneOptions, type ChooseOneResult, isChooseOneOptions } from '@/models/effect';
 import type { CardRewards, EternalCardType, GenericCardType, LootCardType, InPlayCardType, TreasureCardType, CharacterCardType, MonsterCardType, BonusSoulCardType } from '@/types/cardTypes';
 import type { Player } from './player';
 import { assert } from 'console';
@@ -119,9 +119,7 @@ export class ItemCard extends Card {
     isActiveItem(): boolean {
         return this._inplayType === InplayType.CHARGED || this._inplayType === InplayType.UNCHARGED;
     }
-    isCurse(): boolean {
-        return this.subtype === "curse";
-    }
+
     recharge(): boolean {
         if (this._inplayType === InplayType.UNCHARGED) {
             this._inplayType = InplayType.CHARGED;
@@ -188,6 +186,10 @@ class LootCard extends ItemCard {
         return this._trinket;
     }
 
+    get targets(): any[] {
+        return this._selectedTargets;
+    }
+
     set effect(effect: EffectFunction) {
         this._effect = effect;
     }
@@ -196,20 +198,65 @@ class LootCard extends ItemCard {
         this._targetsSelector = selector;
     }
 
+    private chooseOneTargetStillValid(): boolean {
+        if(this._selectedTargets.length > 1)
+            throw new Error("chooseOne target should have length at most 1.");
+        for (const chooseOneTarget of this._selectedTargets)
+            {
+            const descr = chooseOneTarget.description;
+            const targets = chooseOneTarget.chosenOptions;
+            if(targets.length > 0)
+                for (const admissibleTarget of this._targetsSelector(this._issuer))
+                {
+                    if(admissibleTarget.description === descr)
+                    {
+                        for(const t of targets){
+                            if (!admissibleTarget.admissibleTargets.includes(t))
+                            {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+                }
+        }
+        return true;
+    }
+
     private targetStillValid(): boolean {
         if(this._selectedTargets.length > 0)
             {
-            const admissibleTargets = this._targetsSelector(this._issuer);
-            for(const target of this._selectedTargets) {
-                if(!admissibleTargets.includes(target)) {
-                    return false;
+                const admissibleTargets = this._targetsSelector(this._issuer);
+            if (isChooseOneResult(this._selectedTargets[0])) {
+                return this.chooseOneTargetStillValid()
+            } else {
+                for(const target of this._selectedTargets) {
+                    if(!admissibleTargets.includes(target)) {
+                        return false;
+                    }
                 }
             }
         }
         return true;
     }
+    
     onPlay(issuer: Player): void {
-        this._selectedTargets = this._targetsSelector(issuer);
+        // temporary selection target selection: take the first valid target.
+        //  Note that for choose one-, the first effect is choosen and the first target selected.
+        if(this._targetsSelector(issuer).length === 0) 
+            this._selectedTargets = [];
+        else if (isChooseOneOptions(this._targetsSelector(issuer)[0]))
+        {
+            const options: ChooseOneOptions[] = this._targetsSelector(issuer) as ChooseOneOptions[];
+            const chooseOne = this._targetsSelector(issuer)[0].description;
+            const targets = this._targetsSelector(issuer)[0].admissibleTargets[0] !== undefined ?
+                this._targetsSelector(issuer)[0].admissibleTargets :
+                [];
+            const resultTargets: ChooseOneResult[] = [{ description: chooseOne, chosenOptions: targets }];
+            this._selectedTargets = resultTargets;
+        }
+        else
+            this._selectedTargets = [this._targetsSelector(issuer)[0]];
         this._issuer = issuer!;
     }
     onResolve(): void {
@@ -301,7 +348,9 @@ class MonsterCard extends Card {
     get encounterType(): MonsterType {
         return this._monsterType;
     }
-
+    get isCurse(): boolean {
+        return this.subtype === "curse";
+    }
     get healthPoints(): number {
         return this._healthPoints;
     }

@@ -3,9 +3,9 @@ import { Game } from "../models/game";
 import { DiceRoll, Player } from "../models/player";
 import { pl } from "zod/locales";
 import type { LootCard, ItemCard } from "@/models/cards";
-import { InplayType } from "@/models/cards";
-import { effectParser } from "@/models/effect";
-
+import { InplayType, MonsterCard } from "@/models/cards";
+import { effectParser, inplayCurseSelector, type ChooseOneOptions, type ChooseOneResult } from "@/models/effect";
+import { chooseOneEffect } from "@/models/effect";
 describe("Loot Card", () => {
     let game: Game;
     let player1: Player;
@@ -803,7 +803,74 @@ describe("Loot Card", () => {
         expect(player1.coins).toBe(0);
     });
 
-    "Look at the top card of each deck. You may put any of those cards on the bottom of their deck, then loot 2."
+    // "Roll-\n1-2: You gain +1 [ATK] till the end of turn.\n3-4: You gain +1 [HP] till the end of turn.\n5-6: Take 1 damage."
+    it("b2-pills_3: gain 1 atk till end of turn", () => {
+        const pills = game.decks["loot"]!.getCardFromSlug("b2-pills_3");
+        player1.hand.addToHand(pills!);
+
+        game.playCard(player1, 1);
+
+        const initialAtk = player1.attackPoints;
+
+        // (pills as LootCard).debugSetTargets([player1]);
+        game.resolveStack();
+        expect(game.stack.size()).toBe(1); // Dice roll should be on stack
+        const dice = game.stack.elements[0] as DiceRoll;
+        dice.value = 1; // Force roll to 1 for testing
+        game.resolveStack();
+
+        expect(player1.attackPoints).toBe(initialAtk + 1);
+        game.endTurn();
+
+        expect(player1.attackPoints).toBe(initialAtk);
+        game.endTurn();
+
+        expect(player1.attackPoints).toBe(initialAtk);
+    });
+
+    it("b2-pills_3: gain 1 hp till end of turn", () => {
+        const pills = game.decks["loot"]!.getCardFromSlug("b2-pills_3");
+        player1.hand.addToHand(pills!);
+
+        game.playCard(player1, 1);
+
+        const initialHp = player1.currentHealthPoints;
+
+        // (pills as LootCard).debugSetTargets([player1]);
+        game.resolveStack();
+        expect(game.stack.size()).toBe(1); // Dice roll should be on stack
+        const dice = game.stack.elements[0] as DiceRoll;
+        dice.value = 3; // Force roll to 3 for testing
+        game.resolveStack();
+
+        expect(player1.currentHealthPoints).toBe(initialHp + 1);
+        game.endTurn();
+
+        expect(player1.currentHealthPoints).toBe(initialHp);
+        game.endTurn();
+
+        expect(player1.currentHealthPoints).toBe(initialHp);
+    });
+
+    it("b2-pills_3: take 1 damage", () => {
+        const pills = game.decks["loot"]!.getCardFromSlug("b2-pills_3");
+        player1.hand.addToHand(pills!);
+
+        game.playCard(player1, 1);
+
+        const initialHp = player1.currentHealthPoints;
+
+        // (pills as LootCard).debugSetTargets([player1]);
+        game.resolveStack();
+        expect(game.stack.size()).toBe(1); // Dice roll should be on stack
+        const dice = game.stack.elements[0] as DiceRoll;
+        dice.value = 6; // Force roll to 6 for testing
+        game.resolveStack();
+
+        expect(player1.currentHealthPoints).toBe(initialHp - 1);
+    });
+
+    // "Look at the top card of each deck. You may put any of those cards on the bottom of their deck, then loot 2."
     it("b2-xii_the_hanged_man: should move top cards to bottom and loot 2", () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-xii_the_hanged_man");
         player1.hand.addToHand(card!);
@@ -980,15 +1047,14 @@ describe("Loot Card", () => {
 
         const originalSelect = game.select;
         // Stub select to choose the first option
-        game.select = (_issuer, _n, opts) => ({ 
-            selected: [opts[0]], 
-            remaining: opts.slice(1) 
-        });
 
         const beforeHp = player1.currentHealthPoints;
         const beforeCoins = player1.coins;
 
         game.playCard(player1, 1);
+        const debugTarget: ChooseOneResult[] = [{ description: "take 1 damage and gain 4¢.", chosenOptions: [] }];
+
+        (card as LootCard).debugSetTargets(debugTarget);
         game.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(beforeHp - 1);
@@ -1311,9 +1377,393 @@ describe("Loot Card", () => {
         expect(player2.currentHealthPoints).toBe(initialP1HP - 1); // Full damage taken
     });
 
+    it("b2-v_the_hierophant: should prevent 2 damage to chosen player this turn", () => {
+        
+        const hierophant = game.decks["loot"]!.getCardFromSlug("b2-v_the_hierophant");
+        const dummyCard = { slug: "test", name: "Test" } as any;
+        expect(hierophant).toBeDefined();
+        player1.hand.addToHand(hierophant!);
+        player2.addHealthPoints(10); // Ensure p2 has enough HP to take damage
 
+        const initialHP = player2.currentHealthPoints;
+        game.playCard(player1, 1);
+        (hierophant as LootCard).debugSetTargets([player2]);
+        game.resolveStack();
+
+        // p2 should have prevention shield now - deal 5 damage
+        game.dealDamage(player1, player2, dummyCard, 5);
+        expect(player2.currentHealthPoints).toBe(initialHP - 3); // 5 - 2 prevented = 3 damage taken
+    });
+
+    it("b2-v_the_hierophant: should prevent 2 damage to chosen monster this turn", () => {
+
+        const hierophant = game.decks["loot"]!.getCardFromSlug("b2-v_the_hierophant");
+        const dummyCard = { slug: "test", name: "Test" } as any;
+
+        const monster = game.monsterSlots.monsterIn(0)!;
+        expect(hierophant).toBeDefined();
+        player1.hand.addToHand(hierophant!);
+
+        const initialHP = monster.currentHealthPoints;
+        game.playCard(player1, 1);
+        (hierophant as LootCard).debugSetTargets([monster]);
+        game.resolveStack();
+
+        // p2 should have prevention shield now - deal 3 damage
+        game.dealDamage(player1, monster, dummyCard, 3);
+        expect(monster.currentHealthPoints).toBe(initialHP - 1); // 3 - 2 prevented = 1 damage taken
+    });
+
+    it("b2-v_the_hierophant: shield is one-shot only", () => {
+        const hierophant = game.decks["loot"]!.getCardFromSlug("b2-v_the_hierophant");
+        const dummyCard = { slug: "test", name: "Test" } as any;
+        player1.hand.addToHand(hierophant!);
+
+        player2.addHealthPoints(10); // Ensure p2 has enough HP to take damage
+        const initialHP = player2.currentHealthPoints;
+        game.playCard(player1, 1);
+        (hierophant as LootCard).debugSetTargets([player2]);
+        game.resolveStack();
+        // First damage: 2 prevented, take 3 damage
+        game.dealDamage(player1, player2, dummyCard, 5);
+        expect(player2.currentHealthPoints).toBe(initialHP - 3);
+
+        // Second damage: not prevented, take full damage
+        game.dealDamage(player1, player2, dummyCard, 5);
+        expect(player2.currentHealthPoints).toBe(initialHP - 8);
+    });
+
+    it("b2-v_the_hierophant: prevents all damage if damage is 2 or less", () => {
+        
+        const hierophant = game.decks["loot"]!.getCardFromSlug("b2-v_the_hierophant");
+        const dummyCard = { slug: "test", name: "Test" } as any;
+        player1.hand.addToHand(hierophant!);
+
+
+        const initialHP = player2.currentHealthPoints;
+        game.playCard(player1, 1);
+        (hierophant as LootCard).debugSetTargets([player2]);
+        game.resolveStack();
+
+        // Deal only 2 damage - should be fully prevented
+        game.dealDamage(player1, player2, dummyCard, 2);
+        expect(player2.currentHealthPoints).toBe(initialHP); // No damage taken
+    });
+
+    it("b2-v_the_hierophant: only prevents damage to chosen player, not issuer", () => {
+        
+        const hierophant = game.decks["loot"]!.getCardFromSlug("b2-v_the_hierophant");
+        const dummyCard = { slug: "test", name: "Test" } as any;
+        player1.hand.addToHand(hierophant!);
+        player1.addHealthPoints(10); // Ensure p2 has enough HP to take damage
+        player2.addHealthPoints(10); // Ensure p2 has enough HP to take damage
+
+
+        game.playCard(player1, 1);
+        (hierophant as LootCard).debugSetTargets([player2]);
+        game.resolveStack();
+
+        // p1 takes damage - should NOT be prevented (shield is on p2)
+        const initialP1HP = player1.currentHealthPoints;
+        game.dealDamage(player2, player1, dummyCard, 3);
+        expect(player1.currentHealthPoints).toBe(initialP1HP - 3); // Full damage taken
+
+        game.dealDamage(player2, player2, dummyCard, 3);
+        expect(player2.currentHealthPoints).toBe(initialP1HP - 1); //Shilded damage taken
+    });
+
+    it("b2-dagaz: destroys a chosen curse when that option is selected", () => {
+        const dagaz = game.decks["loot"]!.getCardFromSlug("b2-dagaz");
+        const curses = game.decks["monster"]!.cards.filter((c) => c instanceof MonsterCard && c.isCurse);
+        expect(curses.length).toBeGreaterThan(0);
+        player1.inPlay.push(curses[0]!);
+        // console.log("Player1 curses before: ", inplayCurseSelector((player, card) => true, game)(player1));
+        // console.log("Player1 in play before: ", player1.inPlay);
+        player1.hand.addToHand(dagaz!);
+        
+        const debugTarget: ChooseOneResult[] = [{ description: "destroy a curse.", chosenOptions: [curses[0]!] }];
+        // console.log("debugTarget: ", debugTarget);
+        // console.log("curse: ", curses[0]!);
+        game.playCard(player1, 1);
+        (dagaz as LootCard).debugSetTargets(debugTarget);
+        game.resolveStack();
+
+        expect(player1.inPlay).not.toContain(curses[0]!);
+        expect(game.destroyedCards).toContain(curses[0]!);
+    });
+
+    it("b2-dagaz: destroys a chosen curse when that option is selected", () => {
+        const dagaz = game.decks["loot"]!.getCardFromSlug("b2-dagaz");
+        const curses = game.decks["monster"]!.cards.filter((c) => c instanceof MonsterCard && c.isCurse);
+        expect(curses.length).toBeGreaterThan(3);
+        player1.inPlay.push(curses[0]!);
+        player1.inPlay.push(curses[1]!);
+        player1.inPlay.push(curses[2]!);
+        player1.inPlay.push(curses[3]!);
+        // console.log("Player1 curses before: ", inplayCurseSelector((player, card) => true, game)(player1));
+        // console.log("Player1 in play before: ", player1.inPlay);
+        player1.hand.addToHand(dagaz!);
+
+        const debugTarget: ChooseOneResult[] = [{ description: "destroy a curse.", chosenOptions: [curses[2]!] }];
+        // console.log("debugTarget: ", debugTarget);
+        // console.log("curse: ", curses[0]!);
+        game.playCard(player1, 1);
+        (dagaz as LootCard).debugSetTargets(debugTarget);
+        player1.removeInPlay(curses[2]!); // Simulate curse being removed before resolution
+        player2.inPlay.push(curses[2]!); // Simulate curse being removed before resolution
+        game.resolveStack();
+
+        expect(player1.inPlay).not.toContain(curses[2]!);
+        expect(player1.inPlay).toContain(curses[0]!);
+        expect(player1.inPlay).toContain(curses[1]!);
+        expect(player1.inPlay).toContain(curses[3]!);
+        expect(player2.inPlay).not.toContain(curses[2]!);
+        expect(game.destroyedCards).toContain(curses[2]!);
+    });
+
+    it("b2-dagaz: destroys nothing when the curse is not available anymore.", () => {
+        const dagaz = game.decks["loot"]!.getCardFromSlug("b2-dagaz");
+        const curses = game.decks["monster"]!.cards.filter((c) => c instanceof MonsterCard && c.isCurse);
+        expect(curses.length).toBeGreaterThan(2);
+        player1.inPlay.push(curses[0]!);
+        player1.inPlay.push(curses[1]!);
+        player1.hand.addToHand(dagaz!);
+
+        const debugTarget: ChooseOneResult[] = [{ description: "destroy a curse.", chosenOptions: [curses[2]!] }];
+        // console.log("debugTarget: ", debugTarget);
+        // console.log("curse: ", curses[0]!);
+        game.playCard(player1, 1);
+        (dagaz as LootCard).debugSetTargets(debugTarget);
+
+        game.resolveStack();
+
+        expect(player1.inPlay).toContain(curses[0]!);
+        expect(player1.inPlay).toContain(curses[1]!);
+    });
+
+    it("b2-dagaz: prevents the next 1 damage to the chosen player when that option is selected", () => {
+        const dagaz = game.decks["loot"]!.getCardFromSlug("b2-dagaz");
+        const dummyCard = { slug: "test", name: "Test" } as any;
+        
+        player1.hand.addToHand(dagaz!);
+
+        const initialHP = player2.currentHealthPoints;
+        const debugTarget: ChooseOneResult[] = [{ description: "choose a player. prevent the next 1 damage they would take this turn.", chosenOptions: [player2] }];
+        game.playCard(player1, 1);
+        (dagaz as LootCard).debugSetTargets(debugTarget);
+        game.resolveStack();
+
+        // p2 should have prevention shield now - deal 2 damage
+        game.dealDamage(player1, player2, dummyCard, 2);
+        expect(player2.currentHealthPoints).toBe(initialHP - 1); // 2 - 1 prevented = 1 damage taken
+    });
+
+    it("b2-vi_the_lovers: gain 2 hp till end of turn", () => {
+        const pills = game.decks["loot"]!.getCardFromSlug("b2-vi_the_lovers");
+        player1.hand.addToHand(pills!);
+
+        game.playCard(player1, 1);
+
+        const initialHp = player1.currentHealthPoints;
+
+        // (pills as LootCard).debugSetTargets([player1]);
+        game.resolveStack();
+
+        expect(player1.currentHealthPoints).toBe(initialHp + 2);
+        expect(player1.healthPoints).toBe(initialHp);
+        game.endTurn();
+
+        expect(player1.currentHealthPoints).toBe(initialHp);
+        game.endTurn();
+
+        expect(player1.currentHealthPoints).toBe(initialHp);
+    });
     
+    it("b2-vi_the_lovers: give to other player 2 hp till end of turn", () => {
+        const card = game.decks["loot"]!.getCardFromSlug("b2-vi_the_lovers");
+        player1.hand.addToHand(card!);
+
+        game.playCard(player1, 1);
+
+        const initialHp1 = player1.currentHealthPoints;
+        const initialHp = player2.currentHealthPoints;
+        
+        (card as LootCard).debugSetTargets([player2]);
+        game.resolveStack();
+
+        expect(player1.currentHealthPoints).toBe(initialHp1);
+        expect(player2.currentHealthPoints).toBe(initialHp + 2);
+        expect(player2.healthPoints).toBe(initialHp);
+        game.endTurn();
+
+        expect(player2.currentHealthPoints).toBe(initialHp);
+        game.endTurn();
+
+        expect(player2.currentHealthPoints).toBe(initialHp);
+    });
+
+    it("b2-iii_the_empress: They gain +1 [ATK] and +1 to dice rolls till end of turn.", () => {
+        const card = game.decks["loot"]!.getCardFromSlug("b2-iii_the_empress");
+        player1.hand.addToHand(card!);
+
+        game.playCard(player1, 1);
+
+        const initialAtk = player1.attackPoints;
+        const initialDiceMod = player1.attackDiceModifier;
+
+        // (pills as LootCard).debugSetTargets([player1]);
+        game.resolveStack();
+
+        expect(player1.attackPoints).toBe(initialAtk + 1);
+        expect(player1.attackDiceModifier).toBe(initialDiceMod + 1);
+        game.endTurn();
+
+        expect(player1.attackPoints).toBe(initialAtk);
+        expect(player1.attackDiceModifier).toBe(initialDiceMod);
+        game.endTurn();
+
+        expect(player1.attackPoints).toBe(initialAtk);
+        expect(player1.attackDiceModifier).toBe(initialDiceMod);
+    });
+
+    it("b2-iii_the_empress: give to other player +1 [ATK] and +1 to dice rolls till end of turn", () => {
+        const card = game.decks["loot"]!.getCardFromSlug("b2-iii_the_empress");
+        player1.hand.addToHand(card!);
+
+        game.playCard(player1, 1);
+
+        const initialAtk1 = player1.attackPoints;
+        const initialAtk = player2.attackPoints;
+        const initialDiceMod1 = player1.attackDiceModifier;
+        const initialDiceMod = player2.attackDiceModifier;
+
+        (card as LootCard).debugSetTargets([player2]);
+
+        game.resolveStack();
+
+        expect(player2.attackPoints).toBe(initialAtk + 1);
+        expect(player1.attackPoints).toBe(initialAtk1);
+        expect(player2.attackDiceModifier).toBe(initialDiceMod + 1);
+        expect(player1.attackDiceModifier).toBe(initialDiceMod1);
+        game.endTurn();
+
+        expect(player2.attackPoints).toBe(initialAtk);
+        expect(player2.attackDiceModifier).toBe(initialDiceMod);
+        game.endTurn();
+
+        expect(player2.attackPoints).toBe(initialAtk);
+        expect(player2.attackDiceModifier).toBe(initialDiceMod);
+    });
+
+    it("b2-vii_the_chariot: They gain +1 [ATK] and +1 [HP] till end of turn.", () => {
+        const card = game.decks["loot"]!.getCardFromSlug("b2-vii_the_chariot");
+        player1.hand.addToHand(card!);
+
+        game.playCard(player1, 1);
+
+        const initialAtk = player1.attackPoints;
+        const initialHP = player1.healthPoints;
+
+        // (pills as LootCard).debugSetTargets([player1]);
+        game.resolveStack();
+
+        expect(player1.attackPoints).toBe(initialAtk + 1);
+        expect(player1.healthPoints).toBe(initialHP);
+        expect(player1.currentHealthPoints).toBe(initialHP + 1);
+        game.endTurn();
+
+        expect(player1.attackPoints).toBe(initialAtk);
+        expect(player1.currentHealthPoints).toBe(initialHP);
+        game.endTurn();
+
+        expect(player1.attackPoints).toBe(initialAtk);
+        expect(player1.currentHealthPoints).toBe(initialHP);
+    });
+
+    it("b2-vii_the_chariot: give to other player +1 [ATK] and +1 [HP] till end of turn", () => {
+        const card = game.decks["loot"]!.getCardFromSlug("b2-vii_the_chariot");
+        player1.hand.addToHand(card!);
+
+        game.playCard(player1, 1);
+
+        const initialAtk1 = player1.attackPoints;
+        const initialAtk = player2.attackPoints;
+        const initialHP1 = player1.currentHealthPoints;
+        const initialHP = player2.currentHealthPoints;
+
+        (card as LootCard).debugSetTargets([player2]);
+
+        game.resolveStack();
+
+        expect(player2.attackPoints).toBe(initialAtk + 1);
+        expect(player1.attackPoints).toBe(initialAtk1);
+        expect(player2.currentHealthPoints).toBe(initialHP+1);
+        expect(player2.healthPoints).toBe(initialHP);
+        expect(player1.currentHealthPoints).toBe(initialHP1);
+        game.endTurn();
+
+        expect(player2.attackPoints).toBe(initialAtk);
+        expect(player2.currentHealthPoints).toBe(initialHP);
+        game.endTurn();
+
+        expect(player2.attackPoints).toBe(initialAtk);
+        expect(player2.currentHealthPoints).toBe(initialHP);
+    });
 
 
+
+    it("b2-xi_strength: They gain +1 [ATK] and +1 [ATK this turn] till end of turn.", () => {
+        const card = game.decks["loot"]!.getCardFromSlug("b2-xi_strength");
+        player1.hand.addToHand(card!);
+
+        game.playCard(player1, 1);
+
+        const initialAtk = player1.attackPoints;
+        const initialAtkThisTurn = player1.attackThisTurn;
+
+        // (pills as LootCard).debugSetTargets([player1]);
+        game.resolveStack();
+
+        expect(player1.attackPoints).toBe(initialAtk + 1);
+        expect(player1.attackThisTurn).toBe(initialAtkThisTurn + 1);
+        game.endTurn();
+
+        expect(player1.attackPoints).toBe(initialAtk);
+        expect(player1.attackThisTurn).toBe(initialAtkThisTurn);
+        game.endTurn();
+
+        expect(player1.attackPoints).toBe(initialAtk);
+        expect(player1.attackThisTurn).toBe(initialAtkThisTurn);
+    });
+
+    it("b2-xi_strength: give to other player +1 [ATK] and +1 [ATK this turn] till end of turn", () => {
+        const card = game.decks["loot"]!.getCardFromSlug("b2-xi_strength");
+        player1.hand.addToHand(card!);
+
+        game.playCard(player1, 1);
+
+        const initialAtk1 = player1.attackPoints;
+        const initialAtk = player2.attackPoints;
+        const initialAtkThisTurn1 = player1.attackThisTurn;
+        const initialAtkThisTurn = player2.attackThisTurn;
+
+        (card as LootCard).debugSetTargets([player2]);
+
+        game.resolveStack();
+
+        expect(player2.attackPoints).toBe(initialAtk + 1);
+        expect(player1.attackPoints).toBe(initialAtk1);
+        expect(player2.attackThisTurn).toBe(initialAtkThisTurn + 1);
+        expect(player2.attackThisTurn).toBe(initialAtkThisTurn + 1);
+        expect(player1.attackThisTurn).toBe(initialAtkThisTurn1);
+        game.endTurn();
+
+        expect(player2.attackPoints).toBe(initialAtk);
+        expect(player2.attackThisTurn).toBe(initialAtkThisTurn);
+        game.endTurn();
+
+        expect(player2.attackPoints).toBe(initialAtk);
+        expect(player2.attackThisTurn).toBe(initialAtkThisTurn);
+    });
 
 });

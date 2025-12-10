@@ -2,10 +2,11 @@ export abstract class Entity {
   private _currentHealthPoints: number;
   // Either attacking or being attacked.
   private _engagedInCombat: number;
+  private _attackDiceModifier: number = 0;
 
   constructor(
     readonly id: string,
-    readonly attackPoints: number,
+    private _attackPoints: number,
     readonly healthPoints: number
   ) {
     this.id = id;
@@ -46,5 +47,28 @@ export abstract class Entity {
 
   addHealthPoints(amount: number): void {
     this._currentHealthPoints += amount;
+    if (this._currentHealthPoints < this.healthPoints) {
+      this._currentHealthPoints = this.healthPoints;
+    }
+  }
+  
+  addAttackPoints(amount: number): void {
+    // Attack points cannot be negative.
+    if (this._attackPoints + amount < 1) {
+      throw new Error("Attack points cannot be negative.");
+    }
+    this._attackPoints += amount;
+  }
+
+  addDiceModifier(amount: number): void {
+    this._attackDiceModifier += amount;
+  }
+
+  get attackPoints(): number {
+    return this._attackPoints;
+  }
+
+  get attackDiceModifier(): number {
+    return this._attackDiceModifier;
   }
 }

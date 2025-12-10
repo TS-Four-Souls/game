@@ -1,11 +1,11 @@
 import { DiceRoll, Player } from "./player";
-import { type Card, type LootCard, type EffectFunction, type TargetsSelector, ItemCard, InplayType } from "./cards";
+import { type Card, type LootCard, type EffectFunction, type TargetsSelector, ItemCard, MonsterCard, InplayType } from "./cards";
 import { Game } from "./game";
 import type { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
 import { it } from "zod/locales";
-import { preventNextDamageUpToEffect } from "./abilities";
+import { preventNextDamageUpToEffect, temporaryStatModifierEffect } from "./abilities";
 
 function prepareEffectString(s: string): string {
     s.replace("[Tap Effect]", ""); // remove tap effect marker
@@ -83,7 +83,7 @@ export function look5Put1TopRestBottomEffect(deckName: string, game: Game): Effe
     };
 }
 
-export function look1EachDeckThenLoot2Effect(game: Game): EffectFunction {
+export function look1EachDeckEffect(game: Game): EffectFunction {
     return (it: Card, issuer: Player, targets: any[]) => {
         let topCards: Card[] = [];
         for (const deckName of ["loot", "treasure", "monster"]) {
@@ -95,10 +95,17 @@ export function look1EachDeckThenLoot2Effect(game: Game): EffectFunction {
             game.getFirstCardsOfDeck(card.type, 1)[0];
             game.addBottomPosition(card.type, card);
         }
-        game.loot(issuer, 2);
         return true;
     };
 }
+export type ChooseOneResult = {
+    description: string;
+    chosenOptions: any[];
+};
+
+export const isChooseOneResult = (x: any): x is ChooseOneResult => {
+    return typeof x === 'object' && x !== null && 'description' in x && 'chosenOptions' in x;
+};
 
 export function chooseOneEffect(s: string, game: Game): EffectFunction {
     const lines = s.split("\n");
@@ -108,11 +115,17 @@ export function chooseOneEffect(s: string, game: Game): EffectFunction {
     const Effect1: EffectFunction = effectParser(lines[1]!, game);
     const Effect2: EffectFunction = effectParser(lines[2]!, game);
     return (it: Card, issuer: Player, targets: any[]) => {
-        const selectionResult = game.select(issuer, 1, [lines[1], lines[2]]);
-        if (selectionResult.selected[0] === lines[1]) {
-            return Effect1(it, issuer, targets);
-        } else {
-            return Effect2(it, issuer, targets);
+        const targetsChooseOne = targets[0] as ChooseOneResult;
+        const description = targetsChooseOne.description;
+        const options = targetsChooseOne.chosenOptions;
+        if (description === lines[1]) {
+            return Effect1(it, issuer, options);
+        } else if (description === lines[2]) {
+            return Effect2(it, issuer, options);
+        }
+        else {
+            console.log("\n", lines[1], "\n", lines[2], "\n", " CHOICE ", "\n", description);
+            throw new Error("invalid choice made in 'choose one' effect.");
         }
     }
 }
@@ -548,8 +561,8 @@ function takeDamageGainCoinsEffect(s: string, damage: number, coins:number, game
 
 export function effectParser(s:string, game: Game): EffectFunction {
     const originalS = s;
-    if (s === "Destroy an item you control. If you do, steal a non-eternal item from a player or from the shop.")
-        console.log("parsing special roll effect:", originalS);
+    // if (s === "Destroy an item you control. If you do, steal a non-eternal item from a player or from the shop.")
+    //     console.log("parsing special roll effect:", originalS);
     s = s.toLowerCase();
     if(s.includes(", then")){
         const parts = s.split(", then");
@@ -714,9 +727,25 @@ export function effectParser(s:string, game: Game): EffectFunction {
         };
     // Match patterns like "prevent next instance of up to 2 damage this turn"
     const preventMatch = s.match(/^choose a player. prevent (?:the )?next instance of up to (\d+) damage(?: you would take)? this turn\.?$/u);
-    if (s === "choose a player. prevent the next 1 damage they would take this turn.")
-        return preventNextDamageUpToEffect(1, game);
     switch (s) {
+        // passive effects
+        case "choose a player. prevent the next 1 damage they would take this turn.":
+            return preventNextDamageUpToEffect(1, game);
+        case "choose a player or monster. prevent the next instance of up to 2 damage they would take this turn.":
+            return preventNextDamageUpToEffect(2, game);
+        case "you gain +1 [atk] till the end of turn.":
+            return temporaryStatModifierEffect([game.addAttack], 1, game);
+        case "you gain +1 [hp] till the end of turn.":
+            return temporaryStatModifierEffect([game.addHealth], 1, game);
+        case "choose a player.\nthey gain +2 [hp] till end of turn.":
+            return temporaryStatModifierEffect([game.addHealth], 2, game);
+        case "choose a player.\nthey gain +1 [atk] and +1 [hp] till end of turn.":
+            return temporaryStatModifierEffect([game.addAttack, game.addHealth], 1, game);
+        case "choose a player.\nthey gain +1 [atk] and +1 to dice rolls till end of turn.":
+            return temporaryStatModifierEffect([game.addAttack, game.addAttackDiceModifier], 1, game);
+        case "choose a player.\nthey gain +1 [atk] till end of turn and may attack an additional time this turn.":
+            return temporaryStatModifierEffect([game.addAttack, game.addAttackThisTurn], 1, game);
+        // active effects
         case "choose a player or monster":
             return (it: Card, issuer: Player, targets: any[]) => { return true; };
         case "recharge an item.":
@@ -795,8 +824,8 @@ export function effectParser(s:string, game: Game): EffectFunction {
         case "steal a non-eternal item from a player or from the shop.":
             return stealNonEternalItemFromAnywhereEffect(game);
         
-        case "look at the top card of each deck. you may put any of those cards on the bottom of their deck, then loot 2.":
-            return look1EachDeckThenLoot2Effect(game);
+        case "look at the top card of each deck. you may put any of those cards on the bottom of their deck":
+            return look1EachDeckEffect(game);
         case "put this on the bottom of the loot deck.":
             return (it: Card, issuer: Player, targets: any[]) => {
                 game.addBottomPosition("loot", it);
@@ -912,9 +941,10 @@ export function targetSelectorParser(s:string, game: Game): TargetsSelector {
     //     console.log("parsing target selector for:", s);
     // }
     const coinStolen = parseNumber(s, /^steal\s+(\d+)\u00A2 from a player\.?$/u);
-
+    // if (s.startsWith("you gain"))
+    if (s.startsWith("choose one-"))
+        return chooseOneTargetSelector(s, game);
     if (s === "give another non-eternal item you control to another player:" ||
-        s === "choose another player. steal a loot card from them at random." ||
         s === "choose another player. steal a loot card from them at random." ||
         coinStolen !== null) {
         return anotherPlayerSelector(undefined, game);
@@ -934,10 +964,13 @@ export function targetSelectorParser(s:string, game: Game): TargetsSelector {
     }
     if (s === "choose a player or monster, then roll- deal damage to them equal to the result." ||
         s === "choose a player or monster, then roll-\ndeal damage to them equal to the result." ||
+        s === "choose a player or monster. prevent the next instance of up to 2 damage they would take this turn." ||
         s.match(/^deal \d+ damage to a monster or player\.?$/u)
     ) {
         return activeEntitySelector(undefined, game);
     }
+    if (s === "destroy a curse.")
+        return inplayCurseSelector((player, card) => true, game);
     if (s === "recharge an item.")
     {
         return inplayUnchargedItemSelector(game);
@@ -950,8 +983,10 @@ export function inplayUnchargedItemSelector(game: Game): TargetsSelector {
     return (inplayItemSelector((player: Player, card: ItemCard) => card.isActiveItem(), game));
 }
 
-export function inplayCurseSelector(game: Game): TargetsSelector {
-    return (inplayItemSelector((player: Player, card: ItemCard) => card.isCurse(), game));
+export function inplayCurseSelector(filter: (player: Player, card: MonsterCard) => boolean, game: Game): TargetsSelector {
+    return (issuer: Player) => {
+        return game.inPlayCurses.filter(({ player, card }) => filter(player, card)).map(({ card }) => card);
+    };
 }
 export function inplayItemSelector(filter: (player: Player, card: ItemCard) => boolean, game: Game): TargetsSelector {
     return (issuer: Player) => {
@@ -975,7 +1010,22 @@ export function activeEntitySelector(filter: (player: Entity) => boolean = () =>
         return game.Entities.filter((entity) => filter(entity));
     }
 }
+export type ChooseOneOptions = {
+    description: string;
+    admissibleTargets: any[];
+}
 
+export const isChooseOneOptions = (x: any): x is ChooseOneOptions => {
+    return typeof x === 'object' && x !== null && 'description' in x && 'admissibleTargets' in x;
+};
+
+export function chooseOneTargetSelector(s:string, game:Game): TargetsSelector {
+    const options = s.substring("choose one-".length).trim().split("\n").map((option) => option.trim()).filter((option) => option.length > 0);
+    return (issuer: Player) => {
+        const selectors: ChooseOneOptions[] = options.map((option) => ({ description: option, admissibleTargets: targetSelectorParser(option, game)(issuer)}));
+        return selectors;
+    };
+}
 export function deckSelector(filter: (deckName: string) => boolean = () => true, game: Game): TargetsSelector {
     return (issuer: Player) => {
         return Object.keys(game.decks).filter((deckName) => filter(deckName));

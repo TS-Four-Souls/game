@@ -31,3 +31,28 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): EffectF
         return true;
     };
 }
+
+// Temporary stat modifier: adds value to a stat until end of turn
+export function temporaryStatModifierEffect(
+    adders: ((player: Player, value: number) => void)[],
+    amount: number,
+    game: Game
+): EffectFunction {
+    return (it: Card, issuer: Player, targets: any[]) => {
+        if(amount < 0)
+            throw new Error("temporaryStatModifierEffect amount must be non-negative.");
+        // Apply the stat modification
+        const target = targets[0] === undefined ? issuer : targets[0];
+        for(const adder of adders)
+            adder(target, amount);
+        
+        // Register cleanup to reverse at end of turn
+        let offTurn = game.emitter.on("on:turn:end", () => {
+            for(const adder of adders)
+                adder(target, -amount);
+            offTurn();
+        });
+
+        return true;
+    };
+}

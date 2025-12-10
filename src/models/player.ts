@@ -67,6 +67,10 @@ export class Player extends Entity {
   set attackThisTurn(value: number) {
     this._attackThisTurn = value;
   }
+
+  addAttackThisTurn(value: number): void {
+    this._attackThisTurn += value;
+  }
 ////////// In play Methods /////////
   addInPlay(card: Card): void {
     this._inPlay.push(card);

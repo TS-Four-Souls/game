@@ -164,6 +164,18 @@ export class Game {
     return items;
   }
 
+  get inPlayCurses(): { player: Player; card: MonsterCard }[] {
+    const curses: { player: Player; card: MonsterCard }[] = [];
+    for (const player of this.players) {
+      for (const card of player.inPlay) {
+        if (card instanceof MonsterCard && card.isCurse) {
+          curses.push({ player, card });
+        }
+      }
+    }
+    return curses;
+  }
+
   get visibleItems(): ItemCard[] {
     let result: ItemCard[] = this.inPlayItems.map(({ card }) => card);
     result.push(
@@ -526,6 +538,24 @@ export class Game {
         lootCard.targetSelector = targetSelectorParser(lootCard.effectOutcomes[0]!, this);
       }
     });
+  }
+
+  addAttack(e:Entity, value:number):void {
+    e.addAttackPoints(value);
+  }
+
+  addAttackThisTurn(e:Entity, value:number):void {
+    if(e instanceof Player){
+      e.addAttackThisTurn(value);
+    }
+  }
+
+  addHealth(e:Entity, value:number):void {
+    e.addHealthPoints(value);
+  }
+  
+  addAttackDiceModifier(e:Entity, value:number):void {
+    e.addDiceModifier(value);
   }
 
   gainCoins(issuer: Issuer, coins: number): string {
