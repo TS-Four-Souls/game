@@ -27,7 +27,7 @@ describe("Loot Card", () => {
         player1.hand.addToHand(lootCard!);
         game.playCard(player1, 1);
         game.resolveStack();
-        
+
         expect(player1.coins).toBe(initialCoins + 2);
     });
 
@@ -52,12 +52,12 @@ describe("Loot Card", () => {
         expect(player1.coins).toBe(initialCoins + 10);
     });
 
-    
+
     it("b2-xvii_the_stars: should gain 1 treasure", () => {
         const nbItems = player1.inPlay.length;
         const treasureDeck = game.decks["treasure"]!;
-        const topTreasureCard = treasureDeck.cards[treasureDeck.cards.length - 1];
-        
+        const topTreasureCard = treasureDeck.cards[0];
+
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-xvii_the_stars");
         player1.hand.addToHand(lootCard!);
         game.playCard(player1, 1);
@@ -69,7 +69,7 @@ describe("Loot Card", () => {
 
     it("b2-viii_justice: should gain 7 coins and 3 loot cards", () => {
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-viii_justice");
-        
+
         player1.gainCoins(7);
         game.loot(player1, 3);
 
@@ -80,7 +80,7 @@ describe("Loot Card", () => {
         game.playCard(player2, 1);
         game.resolveStack();
 
-        expect(player2.coins).toBe(nbCoinsTarget);``
+        expect(player2.coins).toBe(nbCoinsTarget); ``
         expect(player2.hand.cards.length).toBe(nbLootCardsTarget);
     });
 
@@ -90,24 +90,24 @@ describe("Loot Card", () => {
 
         player1.gainCoins(7);
         game.loot(player1, 3);
-        
+
         player2.gainCoins(2);
         game.loot(player2, 2);
-        
-        
+
+
         const nbCoinsTarget = player1.coins;
         const nbLootCardsTarget = player1.hand.cards.length;
-        
+
         game.playCard(player2, 1);
-        
+
         const nbCoins = player2.coins;
         const nbLootCards = player2.hand.cards.length;
-        
+
         game.resolveStack();
-        
+
         const gainedCoins = player1.coins - nbCoins;
         const gainedLootCards = player1.hand.cards.length - nbLootCards;
-        expect(player2.coins).toBe(nbCoinsTarget); 
+        expect(player2.coins).toBe(nbCoinsTarget);
         expect(player2.hand.cards.length).toBe(nbLootCardsTarget);
         expect(gainedCoins).toBe(5);
         expect(gainedLootCards).toBe(1);
@@ -118,14 +118,14 @@ describe("Loot Card", () => {
         player2.hand.addToHand(lootCard!);
         const player1InitialCoins = player1.coins;
         const player2InitialCoins = player2.coins;
-        
+
         game.playCard(player2, 1);
         game.resolveStack();
-        
+
         const roll = game.stack.elements[0] as DiceRoll;
         roll.value = 1;
         game.resolveStack();
-        
+
         expect(player1.coins).toBe(player1InitialCoins + 1);
         expect(player2.coins).toBe(player2InitialCoins + 1);
     });
@@ -136,14 +136,14 @@ describe("Loot Card", () => {
 
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-blank_rune");
         player2.hand.addToHand(lootCard!);
-        
+
         game.playCard(player2, 1);
         game.resolveStack();
-        
+
         const roll = game.stack.elements[0] as DiceRoll;
         roll.value = 2;
         game.resolveStack();
-        
+
         expect(player1.hand.cards.length).toBe(player1InitialLoot + 2);
         expect(player2.hand.cards.length).toBe(player2InitialLoot + 2);
     });
@@ -151,14 +151,14 @@ describe("Loot Card", () => {
     it("b2-blank_rune: roll 3 - each player takes 3 damage", () => {
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-blank_rune");
         player2.hand.addToHand(lootCard!);
-        
+
         game.playCard(player2, 1);
         game.resolveStack();
-        
+
         const roll = game.stack.elements[0] as DiceRoll;
         roll.value = 3;
         game.resolveStack();
-        
+
         expect(player1.currentHealthPoints).toBe(0);
         expect(player2.currentHealthPoints).toBe(0);
     });
@@ -168,14 +168,14 @@ describe("Loot Card", () => {
         player2.hand.addToHand(lootCard!);
         const player1InitialCoins = player1.coins;
         const player2InitialCoins = player2.coins;
-        
+
         game.playCard(player2, 1);
         game.resolveStack();
-        
+
         const roll = game.stack.elements[0] as DiceRoll;
         roll.value = 4;
         game.resolveStack();
-        
+
         expect(player1.coins).toBe(player1InitialCoins + 4);
         expect(player2.coins).toBe(player2InitialCoins + 4);
     });
@@ -203,14 +203,14 @@ describe("Loot Card", () => {
         player2.hand.addToHand(lootCard!);
         const player1InitialCoins = player1.coins;
         const player2InitialCoins = player2.coins;
-        
+
         game.playCard(player2, 1);
         game.resolveStack();
-        
+
         const roll = game.stack.elements[0] as DiceRoll;
         roll.value = 6;
         game.resolveStack();
-        
+
         expect(player1.coins).toBe(player1InitialCoins + 6);
         expect(player2.coins).toBe(player2InitialCoins + 6);
     });
@@ -218,13 +218,13 @@ describe("Loot Card", () => {
     it("b2-bomb: should deal 1 damage to a player", () => {
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-bomb");
         player1.hand.addToHand(lootCard!);
-        
+
         const player2InitialHP = player2.currentHealthPoints;
-        
+
         game.playCard(player1, 1);
         (lootCard as LootCard).debugSetTargets([player2]);
         game.resolveStack();
-        
+
         expect(player2.currentHealthPoints).toBe(player2InitialHP - 1);
     });
 
@@ -232,14 +232,14 @@ describe("Loot Card", () => {
         // Get the monster that's already in slot 0 from game setup
         const monster = game.monsterSlots.monsterIn(0)!;
         const monsterInitialHP = monster.currentHealthPoints;
-        
+
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-bomb");
         player1.hand.addToHand(lootCard!);
-        
+
         game.playCard(player1, 1);
         (lootCard as LootCard).debugSetTargets([monster]);
         game.resolveStack();
-        
+
         expect(monster.currentHealthPoints).toBe(monsterInitialHP - 1);
     });
 
@@ -251,27 +251,27 @@ describe("Loot Card", () => {
         const dime = game.decks["loot"]!.getCardFromSlug("b2-a_dime");
         const butterBean = game.decks["loot"]!.getCardFromSlug("b2-butter_bean");
         player1.hand.addToHand(butterBean!);
-        
+
         // Play butter_bean and verify it cancels the previous effect
         game.playCard(player1, 1);
         game.playCard(player1, 1);
         game.resolveStack();
-        
+
         // If the stack was properly canceled, we should have no elements left
-        expect(game.stack.size()).toBe(0);
+        expect(game.stack.size).toBe(0);
     });
 
     it("b2-butter_bean: should work as a reactive card", () => {
         const butterBean = game.decks["loot"]!.getCardFromSlug("b2-butter_bean");
         player2.hand.addToHand(butterBean!);
-        
-        const initialStackSize = game.stack.size();
-        
+
+        const initialStackSize = game.stack.size;
+
         game.playCard(player2, 1);
         game.resolveStack();
-        
+
         // Verify butter_bean was played and resolved
-        expect(game.stack.size()).toBe(0);
+        expect(game.stack.size).toBe(0);
         expect(player2.hand.cards.length).toBe(0);
     });
 
@@ -305,13 +305,13 @@ describe("Loot Card", () => {
 
     it("b2-dice_shard: reroll a dice roll on stack", () => {
         const diceShard = game.decks["loot"]!.getCardFromSlug("b2-dice_shard");
-        
+
         // Place a dice roll on the stack
         const roll = player1.rollDice();
         game.stack.push(roll);
-        
+
         const initialRollValue = roll.value;
-        
+
         for (let attempt = 0; attempt < 1000; attempt++) {
             player1.hand.addToHand(diceShard!);
             // Play dice_shard to reroll the dice
@@ -322,29 +322,29 @@ describe("Loot Card", () => {
                 break;
             }
         }
-            
-            // The roll should have changed (with high probability)
-            // Note: There's a small chance it rolls the same number, but probability is low
-            expect(roll.value).toBeOneOf(  [1, 2, 3, 4, 5, 6]);
-            expect(roll.value).not.toBe(initialRollValue);
+
+        // The roll should have changed (with high probability)
+        // Note: There's a small chance it rolls the same number, but probability is low
+        expect(roll.value).toBeOneOf([1, 2, 3, 4, 5, 6]);
+        expect(roll.value).not.toBe(initialRollValue);
     });
 
     it("b2-ehwaz: should flush unattacked monsters", () => {
         const ehwaz = game.decks["loot"]!.getCardFromSlug("b2-ehwaz");
         player1.hand.addToHand(ehwaz!);
-        
+
         // Get initial monsters
         const initialMonster0 = game.monsterSlots.monsterIn(0)!;
         const initialMonster1 = game.monsterSlots.monsterIn(1)!;
-        
+
         // Play ehwaz to flush monsters
         game.playCard(player1, 1);
         game.resolveStack();
-        
+
         // Get new monsters
         const newMonster0 = game.monsterSlots.monsterIn(0)!;
         const newMonster1 = game.monsterSlots.monsterIn(1)!;
-        
+
         // Verify monsters were replaced
         expect(newMonster0).not.toBe(initialMonster0);
         expect(newMonster1).not.toBe(initialMonster1);
@@ -353,13 +353,13 @@ describe("Loot Card", () => {
     it("b2-ehwaz: should replace old monsters with new deck cards", () => {
         const ehwaz = game.decks["loot"]!.getCardFromSlug("b2-ehwaz");
         player1.hand.addToHand(ehwaz!);
-        
+
         const monsterDeckInitialSize = game.decks["monster"]!.cards.length;
-        
+
         // Play ehwaz to flush monsters
         game.playCard(player1, 1);
         game.resolveStack();
-        
+
         // Verify new monsters were drawn from deck
         expect(game.monsterSlots._slots[0]).toBeDefined();
         expect(game.monsterSlots._slots[1]).toBeDefined();
@@ -368,7 +368,7 @@ describe("Loot Card", () => {
     it("b2-i_the_magician: should change a dice roll to chosen number", () => {
         const magician = game.decks["loot"]!.getCardFromSlug("b2-i_the_magician");
         player1.hand.addToHand(magician!);
-        
+
         // Place a dice roll on the stack
         const roll = player1.rollDice();
         game.stack.push(roll);
@@ -376,26 +376,26 @@ describe("Loot Card", () => {
         // Play magician to change the roll
         game.playCard(player1, 1);
         game.resolveStack();
-        
+
         expect(roll.value).toBe(1);
     });
 
     it("b2-i_the_magician: should allow choosing specific roll value", () => {
         const magician = game.decks["loot"]!.getCardFromSlug("b2-i_the_magician");
         player1.hand.addToHand(magician!);
-        
+
         // Place a dice roll on the stack
         const roll = player2.rollDice();
         game.stack.push(roll);
-        
+
         // Force the roll to be different from what we want
         roll.value = 5;
-        
+
         // Play magician to change roll to 6
         game.playCard(player1, 1);
         (magician as LootCard).debugSetTargets([roll]);
         game.resolveStack();
-        
+
         // Should be able to choose any value 1-6
         expect(typeof roll.value).toBe("number");
         expect(roll.value).toBe(1);
@@ -404,18 +404,18 @@ describe("Loot Card", () => {
     it("b2-ii_the_high_priestess: should roll and deal damage to a player", () => {
         const highPriestess = game.decks["loot"]!.getCardFromSlug("b2-ii_the_high_priestess");
         player1.hand.addToHand(highPriestess!);
-        
+
         const player2InitialHP = player2.currentHealthPoints;
-        
+
         // Play high priestess
         game.playCard(player1, 1);
         (highPriestess as LootCard).debugSetTargets([player2]);
         game.resolveStack();
-        expect(game.stack.size()).toBe(1); // Dice roll should be on stack
+        expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
         game.resolveStack();
-        
+
         // Should have dealt damage between 1-6
         const damageTaken = player2InitialHP - player2.currentHealthPoints;
         expect(damageTaken).toBe(1);
@@ -424,10 +424,10 @@ describe("Loot Card", () => {
     it("b2-ii_the_high_priestess: should roll and deal damage to a monster", () => {
         const highPriestess = game.decks["loot"]!.getCardFromSlug("b2-ii_the_high_priestess");
         player1.hand.addToHand(highPriestess!);
-        
+
         const monster = game.monsterSlots.monsterIn(0)!;
         const monsterInitialHP = monster.currentHealthPoints;
-        
+
         // Play high priestess
         game.playCard(player1, 1);
         (highPriestess as LootCard).debugSetTargets([monster]);
@@ -435,7 +435,7 @@ describe("Loot Card", () => {
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
         game.resolveStack();
-        
+
         // Should have dealt damage between 1-6
         const damageTaken = monsterInitialHP - monster.currentHealthPoints;
         expect(damageTaken).toBe(1);
@@ -456,7 +456,7 @@ describe("Loot Card", () => {
 
         const newTop5 = game.getFirstCardsOfDeck("monster", 5);
         const monsterDeck = game.decks["monster"]!;
-        const bottomCards = monsterDeck.cards.slice(0, 4); // Last 4 cards in deck
+        const bottomCards = monsterDeck.cards.slice(monsterDeck.cards.length - 4); // Last 4 cards in deck
 
         // Selected card should be the previous top card (selection picks first)
         expect(newTop5[0]).toBe(initialTop5[0]);
@@ -486,7 +486,7 @@ describe("Loot Card", () => {
 
         const newTop5 = game.getFirstCardsOfDeck("treasure", 5);
         const treasureDeck = game.decks["treasure"]!;
-        const bottomCards = treasureDeck.cards.slice(0, 4); // Last 4 cards in deck
+        const bottomCards = treasureDeck.cards.slice( treasureDeck.cards.length - 4); // Last 4 cards in deck
 
         // Selected card should be the previous top card (selection picks first)
         expect(newTop5[0]).toBe(initialTop5[0]);
@@ -517,7 +517,7 @@ describe("Loot Card", () => {
 
         const newTop5 = game.getFirstCardsOfDeck("loot", 5);
         const lootDeck = game.decks["loot"]!;
-        const bottomCards = lootDeck.cards.slice(0, 4); // Last 4 cards in deck
+        const bottomCards = lootDeck.cards.slice(lootDeck.cards.length - 4); // Last 4 cards in deck
 
         // Selected card should be the previous top card (selection picks first)
         expect(newTop5[0]).toBe(initialTop5[0]);
@@ -536,21 +536,21 @@ describe("Loot Card", () => {
     it("b2-lil_battery: should recharge a tapped item", () => {
         const lilBattery = game.decks["loot"]!.getCardFromSlug("b2-lil_battery");
         player1.hand.addToHand(lilBattery!);
-        
+
         // Get a treasure item from the deck and give it to player1
         const item = game.shop.obtainCard("b2-blank_card") as ItemCard;
         player1.addInPlay(item);
-        
+
         // Recharge and tap the item (simulate using it)
         item.recharge();
         item.onTap();
         expect(item.inPlayType).toBe(InplayType.UNCHARGED);
-        
+
         // Play lil battery
         game.playCard(player1, 1);
         (lilBattery as LootCard).debugSetTargets([item]);
         game.resolveStack();
-        
+
         // Item should be recharged
         expect(item.inPlayType).toBe(InplayType.CHARGED);
     });
@@ -558,9 +558,9 @@ describe("Loot Card", () => {
     it("b2-lil_battery: should only recharge one item", () => {
         const lilBattery = game.decks["loot"]!.getCardFromSlug("b2-lil_battery");
         player1.hand.addToHand(lilBattery!);
-        
+
         // Give player two items and tap both
-        
+
         const card1 = game.shop.obtainCard("b2-blank_card");
         const card2 = game.shop.obtainCard("b2-crystal_ball");
 
@@ -572,12 +572,12 @@ describe("Loot Card", () => {
         item1.onTap();
         item2.recharge();
         item2.onTap();
-        
+
         // Play lil battery targeting item1
         game.playCard(player1, 1);
         (lilBattery as LootCard).debugSetTargets([item1]);
         game.resolveStack();
-        
+
         // Only item1 should be recharged
         expect(item1.inPlayType).toBe(InplayType.CHARGED);
         expect(item2.inPlayType).toBe(InplayType.UNCHARGED);
@@ -586,7 +586,7 @@ describe("Loot Card", () => {
     it("b2-mega_battery: should recharge all items controlled by target player", () => {
         const megaBattery = game.decks["loot"]!.getCardFromSlug("b2-mega_battery");
         player1.hand.addToHand(megaBattery!);
-        
+
         // Give player2 multiple items and tap them all
         const item1 = game.shop.obtainCard("b2-blank_card") as ItemCard;
         const item2 = game.shop.obtainCard("b2-crystal_ball") as ItemCard;
@@ -598,12 +598,12 @@ describe("Loot Card", () => {
         item2.onTap();
         item3.recharge();
         item3.onTap();
-        
+
         // Play mega battery targeting player2
         game.playCard(player1, 1);
         (megaBattery as LootCard).debugSetTargets([player2]);
         game.resolveStack();
-        
+
         // All of player2's items should be recharged
         expect(item1.inPlayType).toBe(InplayType.CHARGED);
         expect(item2.inPlayType).toBe(InplayType.CHARGED);
@@ -613,7 +613,7 @@ describe("Loot Card", () => {
     it("b2-mega_battery: should only affect target player's items", () => {
         const megaBattery = game.decks["loot"]!.getCardFromSlug("b2-mega_battery");
         player1.hand.addToHand(megaBattery!);
-        
+
         // Give both players items and tap them
         const player1Item = game.shop.obtainCard("b2-blank_card") as ItemCard;
         const player2Item = game.shop.obtainCard("b2-the_shovel") as ItemCard;
@@ -621,14 +621,14 @@ describe("Loot Card", () => {
         player2.inPlay.push(player2Item);
         player1Item.recharge();
         player1Item.onTap();
-        player2Item.recharge(); 
+        player2Item.recharge();
         player2Item.onTap();
-        
+
         // Play mega battery targeting player2
         game.playCard(player1, 1);
         (megaBattery as LootCard).debugSetTargets([player2]);
         game.resolveStack();
-        
+
         // Only player2's item should be recharged
         expect(player1Item.inPlayType).toBe(InplayType.UNCHARGED);
         expect(player2Item.inPlayType).toBe(InplayType.CHARGED);
@@ -644,10 +644,10 @@ describe("Loot Card", () => {
 
         const initialStackSize = game.stack.elements.length;
         const initialPlayer = game.turnHandler.current;
-        
+
         game.playCard(player1, 2); // Play dime
         game.playCard(player1, 1); // Play fool
-        
+
         const stackSizeBeforeFool = game.stack.elements.length;
         expect(stackSizeBeforeFool).toBeGreaterThan(initialStackSize);
 
@@ -663,11 +663,11 @@ describe("Loot Card", () => {
         player1.hand.addToHand(pills!);
 
         game.playCard(player1, 1);
-        
+
         const initialHandSize = player1.hand.cards.length;
-        
+
         game.resolveStack();
-        expect(game.stack.size()).toBe(1); // Dice roll should be on stack
+        expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1; // Force roll to 1 for testing
         game.resolveStack();
@@ -692,7 +692,7 @@ describe("Loot Card", () => {
         const initialHandSize = player1.hand.cards.length;
 
         game.resolveStack();
-        expect(game.stack.size()).toBe(1); // Dice roll should be on stack
+        expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4; // Force roll to 4 for testing
         game.resolveStack();
@@ -709,7 +709,7 @@ describe("Loot Card", () => {
         const initialHandSize = player1.hand.cards.length;
 
         game.resolveStack();
-        expect(game.stack.size()).toBe(1); // Dice roll should be on stack
+        expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5; // Force roll to 5 for testing
         game.resolveStack();
@@ -726,7 +726,7 @@ describe("Loot Card", () => {
         const initialHandSize = player1.hand.cards.length;
 
         game.resolveStack();
-        expect(game.stack.size()).toBe(1); // Dice roll should be on stack
+        expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6; // Force roll to 6 for testing
         game.resolveStack();
@@ -744,7 +744,7 @@ describe("Loot Card", () => {
         const initialCoins = player1.coins;
 
         game.resolveStack();
-        expect(game.stack.size()).toBe(1); // Dice roll should be on stack
+        expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1; // Force roll to 1 for testing
         game.resolveStack();
@@ -761,7 +761,7 @@ describe("Loot Card", () => {
         const initialCoins = player1.coins;
 
         game.resolveStack();
-        expect(game.stack.size()).toBe(1); // Dice roll should be on stack
+        expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3; // Force roll to 3 for testing
         game.resolveStack();
@@ -778,7 +778,7 @@ describe("Loot Card", () => {
         const initialCoins = player1.coins;
 
         game.resolveStack();
-        expect(game.stack.size()).toBe(1); // Dice roll should be on stack
+        expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5; // Force roll to 5 for testing
         game.resolveStack();
@@ -791,11 +791,11 @@ describe("Loot Card", () => {
         player1.hand.addToHand(pills!);
 
         game.playCard(player1, 1);
-        game.gainCoins(player1, 3); 
+        game.gainCoins(player1, 3);
         const initialCoins = player1.coins;
 
         game.resolveStack();
-        expect(game.stack.size()).toBe(1); // Dice roll should be on stack
+        expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6; // Force roll to 6 for testing
         game.resolveStack();
@@ -814,7 +814,7 @@ describe("Loot Card", () => {
 
         // (pills as LootCard).debugSetTargets([player1]);
         game.resolveStack();
-        expect(game.stack.size()).toBe(1); // Dice roll should be on stack
+        expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1; // Force roll to 1 for testing
         game.resolveStack();
@@ -838,7 +838,7 @@ describe("Loot Card", () => {
 
         // (pills as LootCard).debugSetTargets([player1]);
         game.resolveStack();
-        expect(game.stack.size()).toBe(1); // Dice roll should be on stack
+        expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3; // Force roll to 3 for testing
         game.resolveStack();
@@ -862,7 +862,7 @@ describe("Loot Card", () => {
 
         // (pills as LootCard).debugSetTargets([player1]);
         game.resolveStack();
-        expect(game.stack.size()).toBe(1); // Dice roll should be on stack
+        expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6; // Force roll to 6 for testing
         game.resolveStack();
@@ -908,7 +908,7 @@ describe("Loot Card", () => {
         player1.hand.addToHand(card!);
 
         const originalSelect = game.select;
-        
+
         game.playCard(player1, 1);
         (card as LootCard).debugSetTargets([player2]);
         game.resolveStack();
@@ -931,7 +931,7 @@ describe("Loot Card", () => {
 
         // Card placed on bottom of loot deck
         // expect(lootDeck.length).toBe(beforeSize + 1);
-        expect(lootDeck.cards[0]).toBe(sun);
+        expect(lootDeck.cards[lootDeck.cards.length - 1]).toBe(sun);
 
         // Extra turn should be scheduled (player1 gets immediate next turn again)
         game.turnHandler.endTurn();
@@ -949,7 +949,7 @@ describe("Loot Card", () => {
         const beforeCoins = player1.coins;
 
         game.resolveStack();
-        expect(game.stack.size()).toBe(1);
+        expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
         game.resolveStack();
@@ -965,7 +965,7 @@ describe("Loot Card", () => {
         const beforeHp = player1.currentHealthPoints;
 
         game.resolveStack();
-        expect(game.stack.size()).toBe(1);
+        expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
         game.resolveStack();
@@ -981,7 +981,7 @@ describe("Loot Card", () => {
         const initialHand = player1.hand.cards.length;
 
         game.resolveStack();
-        expect(game.stack.size()).toBe(1);
+        expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3;
         game.resolveStack();
@@ -998,7 +998,7 @@ describe("Loot Card", () => {
         const beforeCoins = player1.coins;
 
         game.resolveStack();
-        expect(game.stack.size()).toBe(1);
+        expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4;
         game.resolveStack();
@@ -1014,7 +1014,7 @@ describe("Loot Card", () => {
         const beforeCoins = player1.coins;
 
         game.resolveStack();
-        expect(game.stack.size()).toBe(1);
+        expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5;
         game.resolveStack();
@@ -1028,11 +1028,11 @@ describe("Loot Card", () => {
 
         game.playCard(player1, 1);
         const treasureDeck = game.decks["treasure"]!;
-        const topTreasure = treasureDeck.cards[treasureDeck.cards.length - 1];
+        const topTreasure = treasureDeck.cards[0];
         const beforeInPlay = player1.inPlay.length;
 
         game.resolveStack();
-        expect(game.stack.size()).toBe(1);
+        expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
         game.resolveStack();
@@ -1175,7 +1175,7 @@ describe("Loot Card", () => {
 
         game.playCard(player1, 1);
         game.resolveStack();
-        expect(game.stack.size()).toBe(1);
+        expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
         game.resolveStack();
@@ -1193,7 +1193,7 @@ describe("Loot Card", () => {
 
         game.playCard(player1, 1);
         game.resolveStack();
-        expect(game.stack.size()).toBe(1);
+        expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3;
         game.resolveStack();
@@ -1212,7 +1212,7 @@ describe("Loot Card", () => {
 
         game.playCard(player1, 1);
         game.resolveStack();
-        expect(game.stack.size()).toBe(1);
+        expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5;
         game.resolveStack();
@@ -1239,7 +1239,7 @@ describe("Loot Card", () => {
         const soul2 = g.decks["loot"]!.cards[1]!; soul2.soul = 1; g.addSoul(p2, soul2);
         const soul3 = g.decks["loot"]!.cards[2]!; soul3.soul = 1; g.addSoul(p3, soul3);
 
-        
+
         g.playCard(p1, 1);
         // Choose player2 among the tied leaders
         (judgement as LootCard).debugSetTargets([p2]);
@@ -1304,7 +1304,7 @@ describe("Loot Card", () => {
     });
 
     it("b2-soul_heart: should prevent 1 damage to chosen player this turn", () => {
-        
+
         const soulHeart = game.decks["loot"]!.getCardFromSlug("b2-soul_heart");
         const dummyCard = { slug: "test", name: "Test" } as any;
         player1.hand.addToHand(soulHeart!);
@@ -1341,7 +1341,7 @@ describe("Loot Card", () => {
     });
 
     it("b2-soul_heart: prevents all damage if damage is 1 or less", () => {
-        
+
         const soulHeart = game.decks["loot"]!.getCardFromSlug("b2-soul_heart");
         const dummyCard = { slug: "test", name: "Test" } as any;
         player1.hand.addToHand(soulHeart!);
@@ -1358,7 +1358,7 @@ describe("Loot Card", () => {
     });
 
     it("b2-soul_heart: only prevents damage to chosen player, not issuer", () => {
-        
+
         const soulHeart = game.decks["loot"]!.getCardFromSlug("b2-soul_heart");
         const dummyCard = { slug: "test", name: "Test" } as any;
         player1.hand.addToHand(soulHeart!);
@@ -1378,7 +1378,7 @@ describe("Loot Card", () => {
     });
 
     it("b2-v_the_hierophant: should prevent 2 damage to chosen player this turn", () => {
-        
+
         const hierophant = game.decks["loot"]!.getCardFromSlug("b2-v_the_hierophant");
         const dummyCard = { slug: "test", name: "Test" } as any;
         expect(hierophant).toBeDefined();
@@ -1434,7 +1434,7 @@ describe("Loot Card", () => {
     });
 
     it("b2-v_the_hierophant: prevents all damage if damage is 2 or less", () => {
-        
+
         const hierophant = game.decks["loot"]!.getCardFromSlug("b2-v_the_hierophant");
         const dummyCard = { slug: "test", name: "Test" } as any;
         player1.hand.addToHand(hierophant!);
@@ -1451,7 +1451,7 @@ describe("Loot Card", () => {
     });
 
     it("b2-v_the_hierophant: only prevents damage to chosen player, not issuer", () => {
-        
+
         const hierophant = game.decks["loot"]!.getCardFromSlug("b2-v_the_hierophant");
         const dummyCard = { slug: "test", name: "Test" } as any;
         player1.hand.addToHand(hierophant!);
@@ -1480,7 +1480,7 @@ describe("Loot Card", () => {
         // console.log("Player1 curses before: ", inplayCurseSelector((player, card) => true, game)(player1));
         // console.log("Player1 in play before: ", player1.inPlay);
         player1.hand.addToHand(dagaz!);
-        
+
         const debugTarget: ChooseOneResult[] = [{ description: "destroy a curse.", chosenOptions: [curses[0]!] }];
         // console.log("debugTarget: ", debugTarget);
         // console.log("curse: ", curses[0]!);
@@ -1544,7 +1544,7 @@ describe("Loot Card", () => {
     it("b2-dagaz: prevents the next 1 damage to the chosen player when that option is selected", () => {
         const dagaz = game.decks["loot"]!.getCardFromSlug("b2-dagaz");
         const dummyCard = { slug: "test", name: "Test" } as any;
-        
+
         player1.hand.addToHand(dagaz!);
 
         const initialHP = player2.currentHealthPoints;
@@ -1578,7 +1578,7 @@ describe("Loot Card", () => {
 
         expect(player1.currentHealthPoints).toBe(initialHp);
     });
-    
+
     it("b2-vi_the_lovers: give to other player 2 hp till end of turn", () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-vi_the_lovers");
         player1.hand.addToHand(card!);
@@ -1587,7 +1587,7 @@ describe("Loot Card", () => {
 
         const initialHp1 = player1.currentHealthPoints;
         const initialHp = player2.currentHealthPoints;
-        
+
         (card as LootCard).debugSetTargets([player2]);
         game.resolveStack();
 
@@ -1697,7 +1697,7 @@ describe("Loot Card", () => {
 
         expect(player2.attackPoints).toBe(initialAtk + 1);
         expect(player1.attackPoints).toBe(initialAtk1);
-        expect(player2.currentHealthPoints).toBe(initialHP+1);
+        expect(player2.currentHealthPoints).toBe(initialHP + 1);
         expect(player2.healthPoints).toBe(initialHP);
         expect(player1.currentHealthPoints).toBe(initialHP1);
         game.endTurn();
