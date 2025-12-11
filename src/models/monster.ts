@@ -29,6 +29,6 @@ export class Monster extends Entity {
     return this._card;
   }
   get evasion(): number {
-    return this.evasion;
+    return this._evasion;
   }
 }

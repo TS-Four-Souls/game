@@ -14,6 +14,7 @@ export class Player extends Entity {
   private _souls: Card[];
   private _remainingLootPlay: number;
   private _attackThisTurn: number = 0;
+  private _attackRollThisTurn: number = 0;
 
   constructor(
     id: string, 
@@ -66,6 +67,13 @@ export class Player extends Entity {
   
   set attackThisTurn(value: number) {
     this._attackThisTurn = value;
+  }
+
+  get attackRollThisTurn(): number {
+    return this._attackRollThisTurn;
+  }  
+  set attackRollThisTurn(value: number) {
+    this._attackRollThisTurn = value;
   }
 
   addAttackThisTurn(value: number): void {
@@ -127,7 +135,10 @@ export class Player extends Entity {
     }
     return false;
   }
-
+  resetTurnFlags() : void {
+    this._attackThisTurn = 0;
+    this._attackRollThisTurn = 0;
+  }
   addSoul(card: Card){
     if(card.soul < 1)
     {
@@ -159,6 +170,8 @@ export class Player extends Entity {
   }
 
   rollDice(attackRoll: boolean = false): DiceRoll {
+    if(attackRoll)
+      this._attackRollThisTurn += 1;
     return new DiceRoll(this, attackRoll);
   }
 
@@ -255,6 +268,43 @@ export class DiceRoll {
   }
 }
 
+export class DamageOnStack {
+
+  from: Entity;
+  receiver: Entity;
+  damage: number;
+  _card: Card;
+  _targets: any[] = [];
+  _effect: EffectFunction | null = null;
+  game: Game;
+
+  constructor(
+    from: Entity,
+    receiver: Entity,
+    damage: number,
+    usingAbilityFrom: Card,
+    game: Game
+  ) {
+    this.receiver = receiver;
+    this.from = from;
+    this.damage = damage;
+    this._card = usingAbilityFrom;
+    this.game = game;
+  }
+
+  attachEffect(effect: EffectFunction, card: Card, targets: any[] = []): void {
+    this._effect = effect;
+    this._card = card;
+    this._targets = targets;
+  }
+
+  onResolve(): void {
+    this.game.resolveDamage(this.from, this.receiver, this._card, this.damage);
+    if(this._effect) {
+      this._effect(this._card, this.from as Player, [this, this._targets]);
+    }
+  }
+};
 
 export class DeathOnStack {
 
@@ -276,6 +326,6 @@ export class DeathOnStack {
   }
 
   onResolve(): void {
-    this.game.death(this.receiver, this.from, this.usingAbilityFrom);
+    this.game.resolveDeath(this.receiver, this.from, this.usingAbilityFrom);
   }
 };

@@ -157,7 +157,10 @@ describe("Loot Card", () => {
 
         const roll = game.stack.elements[0] as DiceRoll;
         roll.value = 3;
-        game.resolveStack();
+        game.resolveStack(); // Dice 
+        game.resolveStack(); // Damage to player1
+        game.resolveStack(); // Death player 1
+        game.resolveStack(); // Damage to player2
 
         expect(player1.currentHealthPoints).toBe(0);
         expect(player2.currentHealthPoints).toBe(0);
@@ -175,6 +178,7 @@ describe("Loot Card", () => {
         const roll = game.stack.elements[0] as DiceRoll;
         roll.value = 4;
         game.resolveStack();
+        console.log("blank rune roll 4 test - stack size after resolve:", game.stack.elements);
 
         expect(player1.coins).toBe(player1InitialCoins + 4);
         expect(player2.coins).toBe(player2InitialCoins + 4);
@@ -224,6 +228,7 @@ describe("Loot Card", () => {
         game.playCard(player1, 1);
         (lootCard as LootCard).debugSetTargets([player2]);
         game.resolveStack();
+        game.resolveStack();
 
         expect(player2.currentHealthPoints).toBe(player2InitialHP - 1);
     });
@@ -238,6 +243,7 @@ describe("Loot Card", () => {
 
         game.playCard(player1, 1);
         (lootCard as LootCard).debugSetTargets([monster]);
+        game.resolveStack();
         game.resolveStack();
 
         expect(monster.currentHealthPoints).toBe(monsterInitialHP - 1);
@@ -284,6 +290,7 @@ describe("Loot Card", () => {
         game.playCard(player1, 1);
         (lootCard as LootCard).debugSetTargets([player2]);
         game.resolveStack();
+        game.resolveStack();
 
         expect(player2.currentHealthPoints).toBe(Math.max(0, player2InitialHP - 3));
     });
@@ -298,6 +305,7 @@ describe("Loot Card", () => {
 
         game.playCard(player1, 1);
         (lootCard as LootCard).debugSetTargets([monster]);
+        game.resolveStack();
         game.resolveStack();
 
         expect(monster.currentHealthPoints).toBe(Math.max(0, monsterInitialHP - 3));
@@ -415,6 +423,7 @@ describe("Loot Card", () => {
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
         game.resolveStack();
+        game.resolveStack();
 
         // Should have dealt damage between 1-6
         const damageTaken = player2InitialHP - player2.currentHealthPoints;
@@ -434,6 +443,7 @@ describe("Loot Card", () => {
         game.resolveStack();
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
+        game.resolveStack();
         game.resolveStack();
 
         // Should have dealt damage between 1-6
@@ -866,6 +876,7 @@ describe("Loot Card", () => {
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6; // Force roll to 6 for testing
         game.resolveStack();
+        game.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(initialHp - 1);
     });
@@ -969,6 +980,7 @@ describe("Loot Card", () => {
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
         game.resolveStack();
+        game.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(Math.max(0, beforeHp - 2));
     });
@@ -1056,6 +1068,8 @@ describe("Loot Card", () => {
 
         (card as LootCard).debugSetTargets(debugTarget);
         game.resolveStack();
+        game.resolveStack();
+        game.stack.displayStack();
 
         expect(player1.currentHealthPoints).toBe(beforeHp - 1);
         expect(player1.coins).toBe(beforeCoins + 4);
@@ -1179,6 +1193,8 @@ describe("Loot Card", () => {
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
         game.resolveStack();
+        game.resolveStack();
+        game.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(p1Hp - 1);
         expect(player2.currentHealthPoints).toBe(p2Hp - 1);
@@ -1196,8 +1212,10 @@ describe("Loot Card", () => {
         expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3;
-        game.resolveStack();
-
+        game.resolveStack(); // dice resolve
+        game.resolveStack(); // damage monster 1
+        game.resolveStack(); // damage monster 2
+        
         monsters.forEach((m, idx) => {
             expect(m.currentHealthPoints).toBe(initialHps[idx]! - 1);
         });
@@ -1215,7 +1233,10 @@ describe("Loot Card", () => {
         expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5;
-        game.resolveStack();
+        game.resolveStack();// dice resolve
+        game.resolveStack();// damage player 1
+        game.resolveStack();// death player 1
+        game.resolveStack();// damage player 2
 
         expect(player1.currentHealthPoints).toBe(p1Hp - 2);
         expect(player2.currentHealthPoints).toBe(p2Hp - 2);
@@ -1316,6 +1337,7 @@ describe("Loot Card", () => {
 
         // p2 should have prevention shield now - deal 3 damage
         game.dealDamage(player1, player2, dummyCard, 3);
+        game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 2); // 3 - 1 prevented = 2 damage taken
     });
 
@@ -1333,10 +1355,12 @@ describe("Loot Card", () => {
         game.resolveStack();
         // First damage: 1 prevented, take 2 damage
         game.dealDamage(player1, player2, dummyCard, 3);
+        game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 2);
 
         // Second damage: not prevented, take full damage
         game.dealDamage(player1, player2, dummyCard, 5);
+        game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 7);
     });
 
@@ -1354,6 +1378,7 @@ describe("Loot Card", () => {
 
         // Deal only 1 damage - should be fully prevented
         game.dealDamage(player1, player2, dummyCard, 1);
+        game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP); // No damage taken
     });
 
@@ -1371,9 +1396,11 @@ describe("Loot Card", () => {
         // p1 takes damage - should NOT be prevented (shield is on p2)
         const initialP1HP = player1.currentHealthPoints;
         game.dealDamage(player2, player1, dummyCard, 2);
+game.resolveStack();
         expect(player1.currentHealthPoints).toBe(initialP1HP - 2); // Full damage taken
 
         game.dealDamage(player2, player2, dummyCard, 2);
+game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialP1HP - 1); // Full damage taken
     });
 
@@ -1392,6 +1419,7 @@ describe("Loot Card", () => {
 
         // p2 should have prevention shield now - deal 5 damage
         game.dealDamage(player1, player2, dummyCard, 5);
+        game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 3); // 5 - 2 prevented = 3 damage taken
     });
 
@@ -1411,6 +1439,7 @@ describe("Loot Card", () => {
 
         // p2 should have prevention shield now - deal 3 damage
         game.dealDamage(player1, monster, dummyCard, 3);
+        game.resolveStack();
         expect(monster.currentHealthPoints).toBe(initialHP - 1); // 3 - 2 prevented = 1 damage taken
     });
 
@@ -1426,10 +1455,12 @@ describe("Loot Card", () => {
         game.resolveStack();
         // First damage: 2 prevented, take 3 damage
         game.dealDamage(player1, player2, dummyCard, 5);
+        game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 3);
 
         // Second damage: not prevented, take full damage
         game.dealDamage(player1, player2, dummyCard, 5);
+        game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 8);
     });
 
@@ -1447,6 +1478,7 @@ describe("Loot Card", () => {
 
         // Deal only 2 damage - should be fully prevented
         game.dealDamage(player1, player2, dummyCard, 2);
+        game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP); // No damage taken
     });
 
@@ -1466,9 +1498,11 @@ describe("Loot Card", () => {
         // p1 takes damage - should NOT be prevented (shield is on p2)
         const initialP1HP = player1.currentHealthPoints;
         game.dealDamage(player2, player1, dummyCard, 3);
+        game.resolveStack();
         expect(player1.currentHealthPoints).toBe(initialP1HP - 3); // Full damage taken
 
         game.dealDamage(player2, player2, dummyCard, 3);
+        game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialP1HP - 1); //Shilded damage taken
     });
 
@@ -1555,6 +1589,7 @@ describe("Loot Card", () => {
 
         // p2 should have prevention shield now - deal 2 damage
         game.dealDamage(player1, player2, dummyCard, 2);
+        game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 1); // 2 - 1 prevented = 1 damage taken
     });
 

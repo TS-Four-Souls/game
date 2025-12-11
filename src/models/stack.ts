@@ -1,8 +1,8 @@
 import type { Card, LootCard } from "./cards";
 import type { Entity } from "./entity";
-import { DeathOnStack, DiceRoll } from "./player";
+import { DamageOnStack, DeathOnStack, DiceRoll } from "./player";
 
-export type StackElement = LootCard | DiceRoll | DeathOnStack;
+export type StackElement = LootCard | DiceRoll | DeathOnStack | DamageOnStack;
     
 export class Stack {
     _stack: StackElement[] = [];
@@ -66,5 +66,13 @@ export class Stack {
 
    get size(): number {
         return this._stack.length;
+    }
+
+    displayStack(): void {
+        console.log("Current Stack:");
+        for (let i = this._stack.length - 1; i >= 0; i--) {
+            const element = this._stack[i]!;
+            console.log(`  [${i}]: ${element.constructor.name}`);
+        }
     }
 }

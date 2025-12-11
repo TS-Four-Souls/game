@@ -5,6 +5,7 @@ import type { Entity } from "./entity";
 import { effect, type Effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";// One-shot shield: prevent up to `amount` damage on the next instance to issuer this turn
 import type { TriggerEvent } from "@/types/triggers";
+import { is } from "zod/locales";
 export function preventNextDamageUpToEffect(amount: number, game: Game): EffectFunction {
     return (it: Card, issuer: Player, targets: any[]) => {
         let offDamage: (() => void) | null = null;
@@ -33,7 +34,7 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): EffectF
     };
 }
 
-// Temporary stat modifier: adds value to a stat until end of turn
+// 1 turn stat modifier: adds value to a stat until end of turn
 export function temporaryStatModifierEffect(
     adders: ((player: Player, value: number) => void)[],
     amount: number,
@@ -58,6 +59,35 @@ export function temporaryStatModifierEffect(
     };
 }
 
+// First attack roll stat modifier: adds value to a stat until end of turn
+export function firstAttackRollStatModifierEffect(
+    damageDealtModifier: number=0,
+    damageReceivedModifier: number=0,
+    evasionModifier: number=0,
+    game: Game
+): EffectFunction {
+    return (it: Card, issuer: Player, targets: any[]) => {
+        let offAttack: (() => void) | null = null;
+
+        const cleanup = () => {
+            offAttack?.();
+            offAttack = null;
+        };
+        // Register cleanup to reverse at end of turn
+        offAttack = game.emitter.on("on:attack:roll:first-time-each-turn", ({ eventIssuer, target, damageDealt, damageReceived, evasion } ) => {
+            if (issuer !== eventIssuer) return;
+            damageDealt[0]! += damageDealtModifier;
+            damageReceived[0]! += damageReceivedModifier;
+            evasion[0]! += evasionModifier;
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        it.cleanup = () => {
+            cleanup();
+        }
+        return true;
+    };
+}
 
 // gain coins on damage taken.
 export function gainCoinsOnDamageEffect(
@@ -198,7 +228,7 @@ export function rollDiceOnTriggerEffect(
         };
 
         // Listen for the next damage event on this player
-        offEffect = game.emitter.on(triggerEvent, ({ eventIssuer, coinGained }) => {
+        offEffect = game.emitter.on(triggerEvent, ({ eventIssuer }) => {
             // if(_eventIssuer !== null && eventIssuer !== _eventIssuer) return;
             if(issuer !== eventIssuer) return;
             diceRollEffect(it, issuer, targets);
@@ -212,4 +242,3 @@ export function rollDiceOnTriggerEffect(
         return true;
     };
 }
-

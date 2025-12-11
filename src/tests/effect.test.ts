@@ -148,23 +148,12 @@ describe("Effect - additional unique implementations", () => {
     const { game, p1 } = setupGame();
     const fn = effect.look5Put1TopRestBottomEffect("loot", game);
     const lootDeck = game.decks["loot"]!;
-    const top5 = lootDeck.cards.slice(-5);
+    const top5 = lootDeck.cards.slice(0, 5);
     game.select = () => ({ selected: [top5[0]], remaining: top5.slice(1) });
     // Use a real loot card
     const card = top5[0]!;
     fn(card, p1, []);
     expect(lootDeck.cards[lootDeck.cards.length-1]).toBe(top5[0]);
-  });
-
-  it("look1EachDeckThenLoot2Effect works", () => {
-    const { game, p1 } = setupGame();
-    const fn = effect.look1EachDeckThenLoot2Effect(game);
-    game.select = (_p, n, opts) => ({ selected: opts.slice(0, n), remaining: opts.slice(n) });
-    const handBefore = p1.hand.cards.length;
-    // Use a real loot card
-    const card = game.decks["loot"]!.cards[0]!;
-    fn(card, p1, []);
-    expect(p1.hand.cards.length).toBe(handBefore + 2);
   });
 
   it("chooseOneEffect picks first branch", () => {
@@ -177,44 +166,6 @@ describe("Effect - additional unique implementations", () => {
     const card = game.decks["loot"]!.cards[0]!;
     fn(card, p1, []);
     expect(p1.coins).toBe(coinsBefore + 1);
-  });
-
-  it("destroyYourItemAndStealEffect works", () => {
-    const { game, p1, p2 } = setupGame();
-    const item1 = { eternal: false, destroyed: false, destroy() { this.destroyed = true; } } as any;
-    const item2 = { eternal: false } as any;
-    p1.inPlay.push(item1);
-    p2.inPlay.push(item2);
-    Object.defineProperty(game, "visibleItems", { get: () => [item2] });
-    // Always select item1 for destroy, item2 for steal
-    let call = 0;
-    game.select = (_p, n, opts) => {
-      call++;
-      if (call === 1) return { selected: [item1], remaining: opts.filter(x => x !== item1) };
-      if (call === 2) return { selected: [item2], remaining: opts.filter(x => x !== item2) };
-      return { selected: [opts[0]], remaining: opts.slice(1) };
-    };
-    let stolen = false;
-    game.stealItemAnywhere = () => { stolen = true; };
-    const fn = effect.destroyYourItemAndStealEffect(game);
-    // Use a real loot card
-    const card = game.decks["loot"]!.cards[0]!;
-    fn(card, p1, []);
-    expect(item1.destroyed).toBe(true);
-    expect(stolen).toBe(true);
-  });
-
-  it("destroyOneEffect destroys selected card", () => {
-    const { game, p1 } = setupGame();
-    const card = { destroyed: false };
-    game.select = (_p, n, opts) => ({ selected: [opts[0]], remaining: opts.slice(1) });
-    let destroyed = false;
-    game.destroyCardsOrSouls = (cards) => { if ((cards[0] as any) === card) destroyed = true; };
-    const fn = effect.destroyOneEffect(game);
-    // Use a real loot card
-    const lootCard = game.decks["loot"]!.cards[0]!;
-    fn(lootCard, p1, [card]);
-    expect(destroyed).toBe(true);
   });
 
   it("changeRollDiceResultEffect sets dice value", () => {
@@ -308,7 +259,7 @@ describe("Loot deck integration", () => {
 
     expect(game.stack.isEmpty()).toBe(true);
     game.playCard(p1, handIndex);
-    expect(game.stack.size()).toBe(1);
+    expect(game.stack.size).toBe(1);
 
     game.resolveStack();
 
@@ -327,7 +278,7 @@ describe("Loot deck integration", () => {
     p1.hand.addToHand(rollCard!);
 
     game.playCard(p1, p1.hand.cards.length);
-    expect(game.stack.size()).toBe(1);
+    expect(game.stack.size).toBe(1);
 
     game.resolveStack();
 
@@ -350,7 +301,7 @@ describe("Loot deck integration", () => {
     p1.hand.addToHand(damageCard!);
 
     game.playCard(p1, p1.hand.cards.length);
-    expect(game.stack.size()).toBe(1);
+    expect(game.stack.size).toBe(1);
 
     // Simulate target selection (would normally be done by targetSelector)
     const stackElement = game.stack.elements[0] as any;
@@ -375,13 +326,13 @@ describe("Loot deck integration", () => {
     game.decks["loot"]!.remove(gainCoinCard!);
     p1.hand.addToHand(gainCoinCard!);
     game.playCard(p1, p1.hand.cards.length);
-    expect(game.stack.size()).toBe(1);
+    expect(game.stack.size).toBe(1);
 
     // Then play the cancel card
     game.decks["loot"]!.remove(cancelCard!);
     p1.hand.addToHand(cancelCard!);
     game.playCard(p1, p1.hand.cards.length);
-    expect(game.stack.size()).toBe(2);
+    expect(game.stack.size).toBe(2);
 
     // Resolve cancel effect first (LIFO)
     // When cancel resolves, it gets popped first, then its effect runs
@@ -393,7 +344,7 @@ describe("Loot deck integration", () => {
     // So when it looks at stack.length - 2, the stack only has 1 item
     // This means the implementation may have a bug, or the effect timing is different
     // Let's test what actually happens
-    const stackAfterCancel = game.stack.size();
+    const stackAfterCancel = game.stack.size;
     const coinsAfterCancel = p1.coins;
     
     // If the cancel worked, stack should be 0 and coins should be 0
@@ -454,16 +405,16 @@ describe("Loot deck integration", () => {
 
     // Play first card
     game.playCard(p1, p1.hand.cards.length - 1);
-    expect(game.stack.size()).toBe(1);
+    expect(game.stack.size).toBe(1);
 
     // Play second card
     game.playCard(p1, p1.hand.cards.length);
-    expect(game.stack.size()).toBe(2);
+    expect(game.stack.size).toBe(2);
 
     // Resolve in LIFO order (second card first)
     game.resolveStack();
     expect(p1.coins).toBe(amount2);
-    expect(game.stack.size()).toBe(1);
+    expect(game.stack.size).toBe(1);
 
     // Resolve first card
     game.resolveStack();

@@ -1,11 +1,11 @@
-import { DiceRoll, Player } from "./player";
+import { DamageOnStack, DiceRoll, Player } from "./player";
 import { type Card, type LootCard, type EffectFunction, type TargetsSelector, ItemCard, MonsterCard, InplayType } from "./cards";
 import { Game } from "./game";
 import type { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
 import { it } from "zod/locales";
-import { gainCoinsOnDamageEffect, gainPlusCoinsEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, temporaryStatModifierEffect } from "./abilities";
+import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, temporaryStatModifierEffect } from "./abilities";
 
 function prepareEffectString(s: string): string {
     s.replace("[Tap Effect]", ""); // remove tap effect marker
@@ -550,10 +550,17 @@ function dealRollDamageEffect(s: string, game: Game): EffectFunction {
 function takeDamageGainCoinsEffect(s: string, damage: number, coins:number, game: Game) : EffectFunction {
     return (it: Card, issuer: Player, targets: any[]) => {
         const life_before = issuer.currentHealthPoints;
-        game.dealDamage(issuer, issuer, it, damage);
-        // todo: check that the damage was actually taken.
-        if (issuer.currentHealthPoints <= life_before - damage!)
-            game.gainCoins(issuer, coins!);
+
+        const callback = (it: Card, issuer: Player, targets: any[]) => {
+            const damageInstance: DamageOnStack = targets[0];
+            targets = targets.slice(1);
+            if (damageInstance.damage >= damage!) {
+                game.gainCoins(issuer, coins!);
+                return true;
+            }
+            return false;
+        }
+        game.dealDamage(issuer, issuer, it, damage, callback);
         return true;
     };
 }
@@ -760,6 +767,8 @@ export function effectParser(s:string, game: Game): EffectFunction {
             return rollDiceOnTriggerEffect(roll, "on:death:would-death", game);
         case "at the start of your turn, look at the top card of the treasure deck, you may put it on the bottom.":
             return LookAndPutBottomEffect("treasure", game);
+        case "gain +1 [atk] for your first attack roll each turn.":
+            return firstAttackRollStatModifierEffect(1, 0, 0, game);
         // active effects
         case "choose a player or monster":
             return (it: Card, issuer: Player, targets: any[]) => { return true; };

@@ -28,6 +28,7 @@ describe("Loot Card", () => {
         const initialCoins = player1.coins;
         const initialCoins2 = player2.coins;
         game.dealDamage(player2, player1, loot, 1); // No effect yet, not in play
+        game.resolveStack();
         expect(player1.coins).toBe(initialCoins);
 
         player1.hand.addToHand(loot);
@@ -35,10 +36,12 @@ describe("Loot Card", () => {
         game.resolveStack();
 
         game.dealDamage(player2, player1, loot, 1);
+        game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 1);
         expect(player1.currentHealthPoints).toBe(initialHealth - 2);
 
         game.dealDamage(player1, player2, loot, 1);
+        game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 1);
         expect(player1.currentHealthPoints).toBe(initialHealth - 2);
         expect(player2.coins).toBe(initialCoins2); // No effect for other players
@@ -47,10 +50,12 @@ describe("Loot Card", () => {
         player1.addHealthPoints(10); // Heal back for clarity
 
         game.dealDamage(player2, player1, loot, 2);
+        game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 2);
         expect(player1.currentHealthPoints).toBe(initialHealth - 2);
 
         game.dealDamage(player1, player2, loot, 1);
+        game.resolveStack();
         expect(player2.coins).toBe(initialCoins2); // No effect for other players
     });
 
@@ -62,6 +67,7 @@ describe("Loot Card", () => {
         const initialCoins = player1.coins;
         const initialCoins2 = player2.coins;
         game.dealDamage(player2, player1, loot, 1); // No effect yet, not in play
+        game.resolveStack();
         expect(player1.coins).toBe(initialCoins);
 
         player1.hand.addToHand(loot);
@@ -69,10 +75,12 @@ describe("Loot Card", () => {
         game.resolveStack();
 
         game.dealDamage(player2, player1, loot, 1);
+        game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 1);
         expect(player1.currentHealthPoints).toBe(initialHealth - 2);
 
         game.dealDamage(player1, player2, loot, 1);
+        game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 1);
         expect(player1.currentHealthPoints).toBe(initialHealth - 2);
         expect(player2.coins).toBe(initialCoins2); // No effect for other players
@@ -80,10 +88,12 @@ describe("Loot Card", () => {
         game.removeInPlay(player1, loot);
 
         game.dealDamage(player2, player1, loot, 2);
+        game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 1);
         expect(player1.currentHealthPoints).toBe(initialHealth - 4);
 
         game.dealDamage(player1, player2, loot, 1);
+        game.resolveStack();
         expect(player2.coins).toBe(initialCoins2); // No effect for other players
     });
 
@@ -99,6 +109,7 @@ describe("Loot Card", () => {
 
         game.dealDamage(player1, player2, loot, player2.currentHealthPoints); // Kill player 2
         game.resolveStack();
+        game.resolveStack();
         expect(player1.hand.cards.length).toBe(initialHandSize + 1); // Looted 1
         expect(player2.isDead).toBe(true);
         
@@ -106,10 +117,12 @@ describe("Loot Card", () => {
         expect(player2.isDead).toBe(false); // Revived at turn end
         game.dealDamage(player1, player2, loot, player2.currentHealthPoints); // Kill player 2 again
         game.resolveStack();
+        game.resolveStack();
         expect(player1.hand.cards.length).toBe(initialHandSize + 2); // Looted 1
         expect(player2.isDead).toBe(true);
 
         game.dealDamage(player2, player1, loot, player1.currentHealthPoints); // Kill player 1
+        game.resolveStack();
         game.resolveStack();
         expect(player1.hand.cards.length).toBe(initialHandSize + 2); // Looted 1 but discarded on death.
         expect(player1.isDead).toBe(true);
@@ -120,6 +133,7 @@ describe("Loot Card", () => {
         expect(player2.isDead).toBe(false); // Revived at turn end
         game.resolveStack();
         game.dealDamage(player1, player2, loot, player2.currentHealthPoints); // Kill player 2 again
+        game.resolveStack();
         expect(player1.hand.cards.length).toBe(handSizeTurn3); // Looted 1
         expect(player2.isDead).toBe(true);
     });
@@ -134,6 +148,7 @@ describe("Loot Card", () => {
         game.resolveStack();
 
         game.dealDamage(player1, monster, loot, monster.currentHealthPoints); // Kill monster
+        game.resolveStack();
         expect(player1.hand.cards.length).toBe(initialHandSize); // Looted 1
     });
 
@@ -487,6 +502,7 @@ describe("Loot Card", () => {
         // Take fatal damage - should trigger Broken Ankh effect
         const beforeStack = game.stack.size;
         game.dealDamage(player2, player1, damageSource, initialHealth);
+        game.resolveStack();
         
         // Damage should be on the stack but death is pending
         expect(game.stack.size).toBeGreaterThan(beforeStack+1); // At least DeathOnStack and DiceRoll
@@ -509,6 +525,7 @@ describe("Loot Card", () => {
 
         // Take fatal damage on player1's turn
         game.dealDamage(player2, player1, damageSource, initialHealth);
+        game.resolveStack();
         const roll = game.stack._stack[1] as DiceRoll | undefined;
         expect(roll).toBeDefined();
         if (roll) {
@@ -533,6 +550,7 @@ describe("Loot Card", () => {
 
         // Take fatal damage
         game.dealDamage(player2, player1, damageSource, initialHealth);
+        game.resolveStack();
         const roll = game.stack._stack[1] as DiceRoll | undefined;
         expect(roll).toBeDefined();
         if (roll) {
@@ -556,6 +574,7 @@ describe("Loot Card", () => {
 
         // Take fatal damage
         game.dealDamage(player1, player2, damageSource, initialHealth);
+        game.resolveStack();
         expect(game.stack.size).toBe(1);
         game.resolveStack();
 
@@ -563,4 +582,91 @@ describe("Loot Card", () => {
         expect(player2.currentHealthPoints).toBeLessThanOrEqual(0);
     });
 
+    it("Curved Horn: should add +1 [ATK] to first attack roll each turn and not to subsequent attack rolls", () => {
+        const curvedHorn = game.decks["loot"]!.getCardFromSlug("b2-curved_horn")!;
+        const baseAttack = player1.attackPoints;
+        player1.hand.addToHand(curvedHorn);
+        game.playCard(player1, 1);
+        game.resolveStack(); // add curvedHorn to in play
+
+        const monster = game.monsters[0]!;
+        monster.addHealthPoints(10);
+        const initialMonsterHealth = monster.currentHealthPoints;
+
+        // Attack monster
+        game.attackRoll(player1, monster)
+        const attackRoll = game.stack._stack[0] as DiceRoll | undefined;
+        expect(attackRoll).toBeDefined();
+        if (attackRoll) {
+            // The roll should have +1 ATK from Curved Horn
+            attackRoll.value = 6; // Mock roll
+        }
+        game.resolveStack();
+        game.resolveStack();
+
+        expect(monster.currentHealthPoints).toBe(initialMonsterHealth - baseAttack - 1);
+
+        // Second attack monster
+        game.attackRoll(player1, monster)
+        const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
+        expect(attackRoll2).toBeDefined();
+        if (attackRoll2) {
+            // The roll should have +1 ATK from Curved Horn
+            attackRoll2.value = 6; // Mock roll
+        }
+        game.resolveStack();
+        game.resolveStack();
+
+        expect(monster.currentHealthPoints).toBe(initialMonsterHealth - baseAttack - baseAttack - 1);
+    });
+
+    it("Curved Horn: should ONLY add +1 [ATK] to issuer", () => {
+        const curvedHorn = game.decks["loot"]!.getCardFromSlug("b2-curved_horn")!;
+        const baseAttack = player1.attackPoints;
+        player2.hand.addToHand(curvedHorn);
+        game.playCard(player2, 1);
+        game.resolveStack(); // add curvedHorn to in play
+
+        const monster = game.monsters[0]!;
+        monster.addHealthPoints(10);
+        const initialMonsterHealth = monster.currentHealthPoints;
+
+        // Attack monster
+        game.attackRoll(player1, monster)
+        const attackRoll = game.stack._stack[0] as DiceRoll | undefined;
+        expect(attackRoll).toBeDefined();
+        if (attackRoll) {
+            attackRoll.value = 6; // Mock roll
+        }
+        game.resolveStack();
+        game.resolveStack();
+
+        expect(monster.currentHealthPoints).toBe(initialMonsterHealth - baseAttack);
+    });
+
+
+    it("b2-xiv_temperance: should choose option 1 (take 1 damage, gain 4 coins)", () => {
+            const card = game.decks["loot"]!.getCardFromSlug("b2-xiv_temperance");
+            player1.hand.addToHand(card!);
+    
+            const originalSelect = game.select;
+            // Stub select to choose the first option
+    
+            const beforeHp = player1.currentHealthPoints;
+            const beforeCoins = player1.coins;
+    
+            game.playCard(player1, 1);
+            const debugTarget: ChooseOneResult[] = [{ description: "take 1 damage and gain 4¢.", chosenOptions: [] }];
+    
+            (card as LootCard).debugSetTargets(debugTarget);
+            game.resolveStack();
+            game.resolveStack();
+            game.stack.displayStack();
+    
+            expect(player1.currentHealthPoints).toBe(beforeHp - 1);
+            expect(player1.coins).toBe(beforeCoins + 4);
+    
+            game.select = originalSelect;
+        });
+    
 });

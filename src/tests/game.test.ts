@@ -612,26 +612,26 @@ describe("Game - Stack Operations", () => {
   });
 
   it("should have an empty stack initially", () => {
-    expect(game.stack.size()).toBe(0);
+    expect(game.stack.size).toBe(0);
   });
 
   it("should reset the stack", () => {
     game.resetStack();
-    expect(game.stack.size()).toBe(0);
+    expect(game.stack.size).toBe(0);
   });
 
   it("should cancel stack", () => {
     game.cancelStack();
-    expect(game.stack.size()).toBe(0);
+    expect(game.stack.size).toBe(0);
   });
 
   it("should add to stack and resolve dice roll", () => {
     const dice = player1.rollDice();
     game.addToStack(dice);
-    expect(game.stack.size()).toBe(1);
+    expect(game.stack.size).toBe(1);
 
     game.resolveStack();
-    expect(game.stack.size()).toBe(0);
+    expect(game.stack.size).toBe(0);
   });
 
   it("should get destroyed cards", () => {
@@ -653,7 +653,7 @@ describe("Stack - Behavior", () => {
     stack.push(dice2);
 
     stack.cancelPreviousNonRoll();
-    expect(stack.size()).toBe(1);
+    expect(stack.size).toBe(1);
     expect(stack.elements[0]).toBe(dice2);
   });
 
@@ -667,7 +667,7 @@ describe("Stack - Behavior", () => {
 
     const resolved = stack.resolve();
     expect(resolved).toBe(dice);
-    expect(stack.size()).toBe(1);
+    expect(stack.size).toBe(1);
   });
 
   it("should remove element at index", () => {
@@ -681,7 +681,7 @@ describe("Stack - Behavior", () => {
     stack.push(c as any);
 
     stack.removeAt(1);
-    expect(stack.size()).toBe(2);
+    expect(stack.size).toBe(2);
     expect(stack.elements[0]).toBe(a);
     expect(stack.elements[1]).toBe(c);
   });

@@ -1,5 +1,5 @@
 import { Monster } from "@/models/monster";
-import { DeathOnStack, DiceRoll, Player } from "@/models/player";
+import { DamageOnStack, DeathOnStack, DiceRoll, Player } from "@/models/player";
 import type { DetailedState, DiscardCards, Issuer, MonsterPiles, State } from "@/types/types";
 import { loadCards } from "@/utils/loadCards";
 import {
@@ -223,13 +223,14 @@ export class Game {
     }
   }
 
-  putDeathOnStack(receiver: Entity, from: Entity, usingAbilityFrom: Card): void {
+  death(receiver: Entity, from: Entity, usingAbilityFrom: Card): void {
     const deathOnStack = new DeathOnStack(receiver, from, usingAbilityFrom, this);
     this.addToStack(deathOnStack);
     this.emitter.emit("on:death:would-death", { eventIssuer: receiver, target: from, abilityCard: usingAbilityFrom });
   }
 
-  death(receiver: Entity, from: Entity, usingAbilityFrom: Card): void {
+  // Should only be called by DeathOnStack objects.
+  resolveDeath(receiver: Entity, from: Entity, usingAbilityFrom: Card): void {
     this.emitter.emit("on:death:before-penalty", { eventIssuer: receiver, target: from, abilityCard: usingAbilityFrom });
     receiver.die();
     if(receiver instanceof Player){
@@ -260,14 +261,15 @@ export class Game {
   }
 
   attackRoll(player: Player, monster: Monster): void {
-    this.emitter.emit("on:attack:roll", { eventIssuer: player, target: monster });
-    this.emitter.emit("on:attack:roll:first-time-each-turn", { eventIssuer: player, target: monster });
+    const damageDealt = [player.attackPoints];
+    const damageReceived = [monster.attackPoints];
+    const evasion = [monster.evasion];
+    this.emitter.emit("on:attack:roll", { eventIssuer: player, target: monster, damageDealt, damageReceived, evasion });
+    if(player.attackRollThisTurn === 0)
+      this.emitter.emit("on:attack:roll:first-time-each-turn", { eventIssuer: player, target: monster, damageDealt, damageReceived, evasion });
 
     const dice = this.rollDice(player, true);
-    const damageDealt = player.attackPoints;
-    const damageReceived = monster.attackPoints;
-    const evasion = monster.evasion;
-    dice.attachEffect(getAttackRollEffect(damageDealt, damageReceived, evasion, this), monster.card, [monster]);
+    dice.attachEffect(getAttackRollEffect(damageDealt[0]!, damageReceived[0]!, evasion[0]!, this), monster.card, [monster]);
   }
 
   dealCombatDamage(dealer: Entity, receiver: Entity, usingAbilityFrom: Card, damage: number): void {
@@ -279,21 +281,29 @@ export class Game {
     }
   }
 
-  dealDamage(dealer: Entity, receiver: Entity, usingAbilityFrom: Card, damage: number): void {
+  resolveDamage(dealer: Entity, receiver: Entity, usingAbilityFrom: Card, damage: number): void {
+    receiver.receiveDamage(damage);
+
+    this.emitter.emit("on:damage:taken", { eventIssuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damage: damage });
+    this.emitter.emit("on:damage:taken:first-time-each-turn", { eventIssuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damage: damage });
+
+    if (receiver.currentHealthPoints <= 0) {
+      this.death(receiver, dealer, usingAbilityFrom);
+    }
+  }
+
+  dealDamage(dealer: Entity, receiver: Entity, usingAbilityFrom: Card, damage: number, callback?: (it: Card, issuer: Player, targets: any[]) => boolean): void {
     if (damage <= 0 || receiver.isDead) return;
 
     const damageArray = [damage];
     this.emitter.emit("on:damage:would-take", { eventIssuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damageArray: damageArray });
     const dmg = damageArray[0]!;
     
-    receiver.receiveDamage(dmg);
-
-    this.emitter.emit("on:damage:taken", { eventIssuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damage: dmg });
-    this.emitter.emit("on:damage:taken:first-time-each-turn", { eventIssuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damage: dmg });
-
-    if (receiver.currentHealthPoints <= 0) {
-      this.putDeathOnStack(receiver, dealer, usingAbilityFrom);
+    const damageOnStack = new DamageOnStack(dealer, receiver, dmg, usingAbilityFrom, this);
+    if(callback){
+      damageOnStack.attachEffect(callback, usingAbilityFrom, []);
     }
+    this.addToStack(damageOnStack);
   }
 
   swapItems(item1: ItemCard, item2: ItemCard): void {
@@ -345,6 +355,8 @@ export class Game {
     else if (elem instanceof DiceRoll)
       this.resolveDiceRoll(elem);
     else if (elem instanceof DeathOnStack)
+      elem.onResolve();
+    else if (elem instanceof DamageOnStack)
       elem.onResolve();
     else if (elem === undefined)
       return;
@@ -402,7 +414,9 @@ export class Game {
     this.assertNoOngoingAttack();
     this.healEveryone();
     this.emitter.emit("on:turn:end", { eventIssuer: player });
-
+    for(const player of this.players){
+      player.resetTurnFlags();
+    }
     this.turnHandler.endTurn();
     this.startTurn();
   }
@@ -976,7 +990,8 @@ export class Game {
   rollDice(issuer: Issuer, attackRoll: boolean): DiceRoll {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
-    this.assertPlayerIsAlive(player);
+    if(attackRoll)
+      this.assertPlayerIsAlive(player);
 
     let diceRoll = player.rollDice(attackRoll);
     this.stack.push(diceRoll);
