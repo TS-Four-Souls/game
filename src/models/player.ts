@@ -304,6 +304,9 @@ export class DamageOnStack {
       this._effect(this._card, this.from as Player, [this, this._targets]);
     }
   }
+  get json(): string {
+    return JSON.stringify({from: this.from.id, receiver: this.receiver.id, damage: this.damage, card: this._card.name});
+  }
 };
 
 export class DeathOnStack {
@@ -327,5 +330,9 @@ export class DeathOnStack {
 
   onResolve(): void {
     this.game.resolveDeath(this.receiver, this.from, this.usingAbilityFrom);
+  }
+
+  get json(): string {
+    return JSON.stringify({receiver: this.receiver.id, from: this.from.id, card: this.usingAbilityFrom.name});
   }
 };
