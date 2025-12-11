@@ -2,8 +2,9 @@ import { DiceRoll, Player } from "./player";
 import { type Card, type LootCard, type EffectFunction, type TargetsSelector, ItemCard, InplayType } from "./cards";
 import { Game } from "./game";
 import type { Entity } from "./entity";
-import { effect } from "zod/v3";
+import { effect, type Effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";// One-shot shield: prevent up to `amount` damage on the next instance to issuer this turn
+import type { TriggerEvent } from "@/types/triggers";
 export function preventNextDamageUpToEffect(amount: number, game: Game): EffectFunction {
     return (it: Card, issuer: Player, targets: any[]) => {
         let offDamage: (() => void) | null = null;
@@ -121,20 +122,20 @@ export function gainPlusCoinsEffect(
     game: Game
 ): EffectFunction {
     return (it: Card, issuer: Player, targets: any[]) => {
-        let onCainCoin: (() => void) | null = null;
+        let offGainCoin: (() => void) | null = null;
 
         const cleanup = () => {
-            onCainCoin?.();
-            onCainCoin = null;
+            offGainCoin?.();
+            offGainCoin = null;
         };
 
         // Listen for the next damage event on this player
-        onCainCoin = game.emitter.on("on:coin:gained", ({ eventIssuer, coinGained }) => {
+        offGainCoin = game.emitter.on("on:coin:gained", ({ eventIssuer, coinGained }) => {
             if (issuer !== eventIssuer) return;
             const current = coinGained[0] ?? 0;
             coinGained[0] = current + amount;
         });
-        
+
         // Store cleanup function on the card for when it's removed/destroyed
         it.cleanup = () => {
             cleanup();
@@ -143,3 +144,72 @@ export function gainPlusCoinsEffect(
         return true;
     };
 }
+
+// Look at the top card of a deck. You may put it back.
+export function LookAndPutBottomEffect(
+    deckName: string,
+    game: Game
+): EffectFunction {
+    return (it: Card, issuer: Player, targets: any[]) => {
+        let offEffect: (() => void) | null = null;
+
+        const cleanup = () => {
+            offEffect?.();
+            offEffect = null;
+        };
+
+        // Listen for the next damage event on this player
+        offEffect = game.emitter.on("on:turn:start", ({ eventIssuer, coinGained }) => {
+            if (issuer !== eventIssuer) return;
+            const deck = game.decks[deckName];
+            if (!deck) {
+                throw new Error(`Deck ${deckName} does not exist.`);
+            }
+            const topCard = deck.draw();
+            const res = game.select(issuer, 1, [topCard], true);
+            if (res.selected.length > 0) {
+                deck.addBottomPosition(topCard);
+            } else {
+                deck.addTopPosition(topCard);
+            }   
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        it.cleanup = () => {
+            cleanup();
+        }
+
+        return true;
+    };
+}
+
+// Roll dice on trigger
+export function rollDiceOnTriggerEffect(
+    diceRollEffect: EffectFunction,
+    triggerEvent: TriggerEvent,
+    game: Game
+): EffectFunction {
+    return (it: Card, issuer: Player, targets: any[]) => {
+        let offEffect: (() => void) | null = null;
+
+        const cleanup = () => {
+            offEffect?.();
+            offEffect = null;
+        };
+
+        // Listen for the next damage event on this player
+        offEffect = game.emitter.on(triggerEvent, ({ eventIssuer, coinGained }) => {
+            // if(_eventIssuer !== null && eventIssuer !== _eventIssuer) return;
+            if(issuer !== eventIssuer) return;
+            diceRollEffect(it, issuer, targets);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        it.cleanup = () => {
+            cleanup();
+        }
+
+        return true;
+    };
+}
+

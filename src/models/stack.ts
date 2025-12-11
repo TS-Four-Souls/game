@@ -1,7 +1,8 @@
 import type { Card, LootCard } from "./cards";
-import { DiceRoll } from "./player";
+import type { Entity } from "./entity";
+import { DeathOnStack, DiceRoll } from "./player";
 
-export type StackElement = LootCard | DiceRoll;
+export type StackElement = LootCard | DiceRoll | DeathOnStack;
     
 export class Stack {
     _stack: StackElement[] = [];
@@ -41,6 +42,15 @@ export class Stack {
             }
         }
     }
+    cancelPreviousDeath(entity: Entity): void {
+        for (let i = this._stack.length - 1; i >= 0; i--) {
+            const element = this._stack[i];
+            if ((element instanceof DeathOnStack)) {
+                this._stack.splice(i, 1);
+                return;
+            }
+        }
+    }
 
     resolve(): StackElement | undefined {
         return this._stack.pop();
@@ -54,7 +64,7 @@ export class Stack {
         return this._stack.length === 0;
     }
 
-    size(): number {
+   get size(): number {
         return this._stack.length;
     }
 }

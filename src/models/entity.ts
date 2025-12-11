@@ -47,7 +47,7 @@ export abstract class Entity {
 
   addHealthPoints(amount: number): void {
     this._currentHealthPoints += amount;
-    if (this._currentHealthPoints < this.healthPoints) {
+  if (amount < 0 && this._currentHealthPoints < this.healthPoints) {
       this._currentHealthPoints = this.healthPoints;
     }
   }

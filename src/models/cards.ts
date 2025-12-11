@@ -526,7 +526,7 @@ class Deck {
         return this.drawCardAt(0);
     }
     get cards(): Card[] {
-        return this._order.map((id) => this._set.get(id));
+        return this._order.map((id) => this._set.get(id)).reverse();
     }
     drawSeveral(n: number): Card[] {
         const cards = Array(n)

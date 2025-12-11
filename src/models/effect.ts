@@ -5,7 +5,7 @@ import type { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
 import { it } from "zod/locales";
-import { gainCoinsOnDamageEffect, gainPlusCoinsEffect, lootOnPlayerDeathEffect, preventNextDamageUpToEffect, temporaryStatModifierEffect } from "./abilities";
+import { gainCoinsOnDamageEffect, gainPlusCoinsEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, temporaryStatModifierEffect } from "./abilities";
 
 function prepareEffectString(s: string): string {
     s.replace("[Tap Effect]", ""); // remove tap effect marker
@@ -500,7 +500,7 @@ export function addInPlayEffect(game: Game): EffectFunction {
 function obtainRollResults(s: string): string[] {
     s = s.split("roll-")[1]!.trim();
     const lines:string[] = s.split("\n");
-    let results: string[] = new Array<string>(6);
+    let results: string[] = new Array<string>(6).fill("");
     for (let line of lines){
         line = line.trim();
         if (line.length > 0){
@@ -751,9 +751,27 @@ export function effectParser(s:string, game: Game): EffectFunction {
             return lootOnPlayerDeathEffect(1, game);
         case "if you would gain any number of \u00A2, gain that much +1\u00A2 instead.":
             return gainPlusCoinsEffect(1, game);
+        case "at the start of your turn, look at the top card of the loot deck. you may put it on the bottom.":
+            return LookAndPutBottomEffect("loot", game);
+        case "at the start of your turn, look at the top card of the monster deck. you may put it on the bottom.":
+            return LookAndPutBottomEffect("monster", game);
+        case "when you would die, roll-\n6: prevent death. if it's your turn, cancel everything that hasn't resolved and end it.":
+            const roll = rollEffect("roll-\n6: prevent death. if it's your turn, cancel everything that hasn't resolved and end it.", game)
+            return rollDiceOnTriggerEffect(roll, "on:death:would-death", game);
+        case "at the start of your turn, look at the top card of the treasure deck, you may put it on the bottom.":
+            return LookAndPutBottomEffect("treasure", game);
         // active effects
         case "choose a player or monster":
             return (it: Card, issuer: Player, targets: any[]) => { return true; };
+        case "prevent death. if it's your turn, cancel everything that hasn't resolved and end it.":
+            return (it: Card, issuer: Player, targets: any[]) => {
+                game.preventDeath(issuer);
+                if (game.currentPlayer === issuer) {
+                    game.resetStack();
+                    game.endTurn();
+                }
+                return true;
+            };
         case "recharge an item.":
             return rechargeItemsEffect();
         case "recharge another item.":

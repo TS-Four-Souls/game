@@ -254,3 +254,28 @@ export class DiceRoll {
     }
   }
 }
+
+
+export class DeathOnStack {
+
+  receiver: Entity;
+  from: Entity;
+  usingAbilityFrom: Card; 
+  game: Game;
+
+  constructor(
+    receiver: Entity,
+    from: Entity,
+    usingAbilityFrom: Card,
+    game: Game
+  ) {
+    this.receiver = receiver;
+    this.from = from;
+    this.usingAbilityFrom = usingAbilityFrom;
+    this.game = game;
+  }
+
+  onResolve(): void {
+    this.game.death(this.receiver, this.from, this.usingAbilityFrom);
+  }
+};

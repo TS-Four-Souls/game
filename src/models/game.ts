@@ -1,5 +1,5 @@
 import { Monster } from "@/models/monster";
-import { DiceRoll, Player } from "@/models/player";
+import { DeathOnStack, DiceRoll, Player } from "@/models/player";
 import type { DetailedState, DiscardCards, Issuer, MonsterPiles, State } from "@/types/types";
 import { loadCards } from "@/utils/loadCards";
 import {
@@ -223,19 +223,22 @@ export class Game {
     }
   }
 
-  death(receiver: Entity, from: Entity, usingAbilityFrom: Card): void {
+  putDeathOnStack(receiver: Entity, from: Entity, usingAbilityFrom: Card): void {
+    const deathOnStack = new DeathOnStack(receiver, from, usingAbilityFrom, this);
+    this.addToStack(deathOnStack);
     this.emitter.emit("on:death:would-death", { eventIssuer: receiver, target: from, abilityCard: usingAbilityFrom });
-    if (receiver.currentHealthPoints <= 0) {
-      this.emitter.emit("on:death:before-penalty", { eventIssuer: receiver, target: from, abilityCard: usingAbilityFrom });
-      receiver.die();
-      if(receiver instanceof Player){
-        this.deathPenalty(receiver);
-      }else if(receiver instanceof Monster){
-        this.encounters.kill(receiver);
-        this.emitter.emit("on:monster:died", { eventIssuer: receiver, target: from, abilityCard: usingAbilityFrom });
-      }
-      this.emitter.emit("on:death:after-penalty", { eventIssuer: receiver, target: from, abilityCard: usingAbilityFrom });
+  }
+
+  death(receiver: Entity, from: Entity, usingAbilityFrom: Card): void {
+    this.emitter.emit("on:death:before-penalty", { eventIssuer: receiver, target: from, abilityCard: usingAbilityFrom });
+    receiver.die();
+    if(receiver instanceof Player){
+      this.deathPenalty(receiver);
+    }else if(receiver instanceof Monster){
+      this.encounters.kill(receiver);
+      this.emitter.emit("on:monster:died", { eventIssuer: receiver, target: from, abilityCard: usingAbilityFrom });
     }
+    this.emitter.emit("on:death:after-penalty", { eventIssuer: receiver, target: from, abilityCard: usingAbilityFrom });
   }
 
   declareAttack(player: Player): void {
@@ -289,7 +292,7 @@ export class Game {
     this.emitter.emit("on:damage:taken:first-time-each-turn", { eventIssuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damage: dmg });
 
     if (receiver.currentHealthPoints <= 0) {
-      this.death(receiver, dealer, usingAbilityFrom);
+      this.putDeathOnStack(receiver, dealer, usingAbilityFrom);
     }
   }
 
@@ -341,6 +344,8 @@ export class Game {
       elem.onResolve();
     else if (elem instanceof DiceRoll)
       this.resolveDiceRoll(elem);
+    else if (elem instanceof DeathOnStack)
+      elem.onResolve();
     else if (elem === undefined)
       return;
   }
@@ -587,6 +592,11 @@ export class Game {
   }
   setHand(player: Player, hand: Hand): Hand {
     return player.setHand(hand);
+  }
+  preventDeath(player: Player): void {
+    this.stack.cancelPreviousDeath(player);
+    if(player.currentHealthPoints === 0)
+      player.addHealthPoints(1);
   }
   gainTreasure(issuer: Issuer, number: number=1): string {
     this.assertGameStarted();
