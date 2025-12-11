@@ -819,6 +819,7 @@ export function effectParser(s:string, game: Game): EffectFunction {
             return lootAndGainAsPlayerEffect(game);
         case "when this enters play, it becomes a soul.\n(it's no longer an item.)":
             return (it: Card, issuer: Player, targets: any[]) => {
+                game.removeInPlay(issuer, it);      
                 it.soul = 1;
                 game.addSoul(issuer, it);
                 return true;
