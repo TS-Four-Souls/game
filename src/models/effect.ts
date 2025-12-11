@@ -5,7 +5,7 @@ import type { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
 import { it } from "zod/locales";
-import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, temporaryStatModifierEffect } from "./abilities";
+import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, temporaryStatModifierEffect } from "./abilities";
 
 function prepareEffectString(s: string): string {
     s.replace("[Tap Effect]", ""); // remove tap effect marker
@@ -769,6 +769,8 @@ export function effectParser(s:string, game: Game): EffectFunction {
             return LookAndPutBottomEffect("treasure", game);
         case "gain +1 [atk] for your first attack roll each turn.":
             return firstAttackRollStatModifierEffect(1, 0, 0, game);
+        case "each time you would take damage, roll-\n6: prevent 1 of that damage.":
+            return preventDamageOnRollEffect([6], 1, game);
         // active effects
         case "choose a player or monster":
             return (it: Card, issuer: Player, targets: any[]) => { return true; };
@@ -785,7 +787,6 @@ export function effectParser(s:string, game: Game): EffectFunction {
             return rechargeItemsEffect();
         case "recharge another item.":
             return rechargeItemsEffect();
-
         case "destroy a curse.":
             return destroyOneEffect(game);
         case "destroy an item or soul.":
@@ -816,8 +817,12 @@ export function effectParser(s:string, game: Game): EffectFunction {
             return add1ToRollEffect();
         case "choose a player. loot and gain \u00A2 until you have the same number of each as they do.":
             return lootAndGainAsPlayerEffect(game);
-
-
+        case "when this enters play, it becomes a soul.\n(it's no longer an item.)":
+            return (it: Card, issuer: Player, targets: any[]) => {
+                it.soul = 1;
+                game.addSoul(issuer, it);
+                return true;
+            }
         case "cancel the ↷ or $ ability of an item or a loot being played.":
             return cancelPreviousNonRollEffect(game);
 

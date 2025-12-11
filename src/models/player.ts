@@ -272,7 +272,7 @@ export class DamageOnStack {
 
   from: Entity;
   receiver: Entity;
-  damage: number;
+  damage: number[];
   _card: Card;
   _targets: any[] = [];
   _effect: EffectFunction | null = null;
@@ -281,7 +281,7 @@ export class DamageOnStack {
   constructor(
     from: Entity,
     receiver: Entity,
-    damage: number,
+    damage: number[],
     usingAbilityFrom: Card,
     game: Game
   ) {
@@ -299,7 +299,7 @@ export class DamageOnStack {
   }
 
   onResolve(): void {
-    this.game.resolveDamage(this.from, this.receiver, this._card, this.damage);
+    this.game.resolveDamage(this.from, this.receiver, this._card, this.damage[0]!);
     if(this._effect) {
       this._effect(this._card, this.from as Player, [this, this._targets]);
     }

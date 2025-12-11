@@ -6,6 +6,7 @@ import { effect, type Effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";// One-shot shield: prevent up to `amount` damage on the next instance to issuer this turn
 import type { TriggerEvent } from "@/types/triggers";
 import { is } from "zod/locales";
+import { array } from "zod";
 export function preventNextDamageUpToEffect(amount: number, game: Game): EffectFunction {
     return (it: Card, issuer: Player, targets: any[]) => {
         let offDamage: (() => void) | null = null;
@@ -238,7 +239,42 @@ export function rollDiceOnTriggerEffect(
         it.cleanup = () => {
             cleanup();
         }
+        return true;
+    };
+}
 
+// Roll dice on trigger
+export function preventDamageOnRollEffect(
+    diceValues: number[],
+    damagePrevented: number,
+    game: Game
+): EffectFunction {
+    return (it: Card, issuer: Player, targets: any[]) => {
+        let offEffect: (() => void) | null = null;
+
+        const cleanup = () => {
+            offEffect?.();
+            offEffect = null;
+        };
+
+        // Listen for the next damage event on this player
+        offEffect = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
+            if (issuer !== eventIssuer) return;
+            const roll:DiceRoll = game.rollDice(issuer, false);
+            const effects: EffectFunction[] = new Array<EffectFunction>(6).fill((it: Card, issuer: Player, targets: any[]) => { return true; });
+            for (const val of diceValues) {
+                effects[val - 1] = (it: Card, issuer: Player, targets: any[]) => { 
+                    damageArray[0]! -= damagePrevented; 
+                    return true; 
+                };
+            }
+            roll.attachEffect(effects, it, []);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        it.cleanup = () => {
+            cleanup();
+        }
         return true;
     };
 }

@@ -35,7 +35,7 @@ export const cards = await loadCards("/Users/sylvain/Documents/foursouls/four-so
 const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
 
 // for(const card of cardSets["loot"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug))){
-//   if(!(card as LootCard).trinket)
+//   if((card as LootCard).trinket)
 //     console.log(card.slug);
 // }
 const defaultParameters = { nbItemsInShop: 2, nbEncounters: 2 };
@@ -296,14 +296,14 @@ export class Game {
     if (damage <= 0 || receiver.isDead) return;
 
     const damageArray = [damage];
-    this.emitter.emit("on:damage:would-take", { eventIssuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damageArray: damageArray });
-    const dmg = damageArray[0]!;
     
-    const damageOnStack = new DamageOnStack(dealer, receiver, dmg, usingAbilityFrom, this);
+    const damageOnStack = new DamageOnStack(dealer, receiver, damageArray, usingAbilityFrom, this);
     if(callback){
       damageOnStack.attachEffect(callback, usingAbilityFrom, []);
     }
     this.addToStack(damageOnStack);
+    
+    this.emitter.emit("on:damage:would-take", { eventIssuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damageArray: damageArray });
   }
 
   swapItems(item1: ItemCard, item2: ItemCard): void {

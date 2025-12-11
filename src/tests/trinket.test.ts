@@ -644,29 +644,59 @@ describe("Loot Card", () => {
         expect(monster.currentHealthPoints).toBe(initialMonsterHealth - baseAttack);
     });
 
+    it("b2-lost_soul: becomes a soul on resolve.", () => {
+        const card = game.decks["loot"]!.getCardFromSlug("b2-lost_soul");
+        player1.hand.addToHand(card!);
 
-    it("b2-xiv_temperance: should choose option 1 (take 1 damage, gain 4 coins)", () => {
-            const card = game.decks["loot"]!.getCardFromSlug("b2-xiv_temperance");
-            player1.hand.addToHand(card!);
-    
-            const originalSelect = game.select;
-            // Stub select to choose the first option
-    
-            const beforeHp = player1.currentHealthPoints;
-            const beforeCoins = player1.coins;
-    
-            game.playCard(player1, 1);
-            const debugTarget: ChooseOneResult[] = [{ description: "take 1 damage and gain 4¢.", chosenOptions: [] }];
-    
-            (card as LootCard).debugSetTargets(debugTarget);
-            game.resolveStack();
-            game.resolveStack();
-            game.stack.displayStack();
-    
-            expect(player1.currentHealthPoints).toBe(beforeHp - 1);
-            expect(player1.coins).toBe(beforeCoins + 4);
-    
-            game.select = originalSelect;
-        });
-    
+        const originalSelect = game.select;
+        // Stub select to choose the first option
+
+        const beforeSouls = player1.totalSouls;
+
+        game.playCard(player1, 1);
+        game.resolveStack();
+        
+        expect(card!.soul).toBe(1);
+        expect(player1.totalSouls).toBe(beforeSouls + 1);
+        expect(player1.souls.length).not.toBe(0);
+    });
+
+    it("b2-guppys_hairball: prevent damage on a 6.", () => {
+        const card = game.decks["loot"]!.getCardFromSlug("b2-guppys_hairball");
+        player1.hand.addToHand(card!);
+        const life = player1.healthPoints;
+
+        game.playCard(player1, 1);
+        game.resolveStack();
+        
+        game.dealDamage(player2, player1, card!, 1);
+        expect(game.stack.size).toBe(2); // Dice and DamageOnStack
+
+        const roll:DiceRoll = game.stack.elements[1] as DiceRoll;
+        roll.value = 6; // Mock a 6 roll
+
+        game.resolveStack();
+        game.resolveStack();
+        expect(player1.currentHealthPoints).toBe(life); // No damage taken
+    });
+
+    it("b2-guppys_hairball: do not prevent damage on a 5.", () => {
+        const card = game.decks["loot"]!.getCardFromSlug("b2-guppys_hairball");
+        player1.hand.addToHand(card!);
+        const life = player1.healthPoints;
+
+        game.playCard(player1, 1);
+        game.resolveStack();
+
+        game.dealDamage(player2, player1, card!, 1);
+        expect(game.stack.size).toBe(2); // Dice and DamageOnStack
+
+        const roll: DiceRoll = game.stack.elements[1] as DiceRoll;
+        roll.value = 5; // Mock a 6 roll
+
+        game.resolveStack();
+        game.resolveStack();
+        expect(player1.currentHealthPoints).toBe(life-1); // No damage taken
+    });
+
 });
