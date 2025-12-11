@@ -1214,6 +1214,7 @@ describe("Loot Card", () => {
         dice.value = 3;
         game.resolveStack(); // dice resolve
         game.resolveStack(); // damage monster 1
+        game.resolveStack(); // death monster 1 ?
         game.resolveStack(); // damage monster 2
         
         monsters.forEach((m, idx) => {

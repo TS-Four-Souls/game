@@ -554,7 +554,7 @@ function takeDamageGainCoinsEffect(s: string, damage: number, coins:number, game
         const callback = (it: Card, issuer: Player, targets: any[]) => {
             const damageInstance: DamageOnStack = targets[0];
             targets = targets.slice(1);
-            if (damageInstance.damage >= damage!) {
+            if (damageInstance.damage[0]! >= damage!) {
                 game.gainCoins(issuer, coins!);
                 return true;
             }
