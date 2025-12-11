@@ -128,12 +128,15 @@ const app = new Elysia()
   .post(
     "/rolldice",
     async (request) => {
-      return new Response(game.rollDice(request.body.issuer), {
-        status: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-        },
-      });
+      return new Response(
+        game.rollDice(request.body.issuer, false).json.toString(),
+        {
+          status: 200,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
     },
     {
       body: schemas.userProtectedRequest,
@@ -296,11 +299,12 @@ const app = new Elysia()
     "/losecoins",
     async (request) => {
       return new Response(
-        ""+game.loseCoins(
-          request.body.issuer,
-          request.body.coins,
-          request.body.asMany
-        ),
+        "" +
+          game.loseCoins(
+            request.body.issuer,
+            request.body.coins,
+            request.body.asMany
+          ),
         {
           status: 200,
         }

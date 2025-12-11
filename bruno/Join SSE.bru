@@ -5,11 +5,17 @@ meta {
 }
 
 get {
-  url: {{BASE_URL}}/sse
+  url: {{BASE_URL}}/sse?id=DrMint&secret
   body: none
   auth: inherit
 }
 
+params:query {
+  id: DrMint
+  secret: 
+}
+
 settings {
   encodeUrl: true
+  timeout: 0
 }

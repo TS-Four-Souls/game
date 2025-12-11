@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { GenericCardType } from "./utils/cardTypes";
+import type { GenericCardType } from "@/types/cardTypes";
 
 const IssuerSchema = z.object({
   id: z.string(),
