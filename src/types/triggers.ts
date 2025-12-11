@@ -4,7 +4,7 @@ import { Card, type EffectFunction } from "@/models/cards";
 
 export type TriggerEvent =
     | "on:death:would-death"
-    | "on:death:before-penalty"
+    | "on:death:before-penalty" // default trigger for death effects
     | "on:death:after-penalty"
     | "on:damage:taken"
     | "on:damage:taken:first-time-each-turn"

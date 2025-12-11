@@ -5,7 +5,7 @@ import type { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
 import { it } from "zod/locales";
-import { preventNextDamageUpToEffect, temporaryStatModifierEffect } from "./abilities";
+import { gainCoinsOnDamageEffect, gainPlusCoinsEffect, lootOnPlayerDeathEffect, preventNextDamageUpToEffect, temporaryStatModifierEffect } from "./abilities";
 
 function prepareEffectString(s: string): string {
     s.replace("[Tap Effect]", ""); // remove tap effect marker
@@ -745,6 +745,12 @@ export function effectParser(s:string, game: Game): EffectFunction {
             return temporaryStatModifierEffect([game.addAttack, game.addAttackDiceModifier], 1, game);
         case "choose a player.\nthey gain +1 [atk] till end of turn and may attack an additional time this turn.":
             return temporaryStatModifierEffect([game.addAttack, game.addAttackThisTurn], 1, game);
+        case "each time you take damage, gain 1\u00A2.":
+            return gainCoinsOnDamageEffect( 1, game);
+        case "each time a player dies, before paying penalties, loot 1.":
+            return lootOnPlayerDeathEffect(1, game);
+        case "if you would gain any number of \u00A2, gain that much +1\u00A2 instead.":
+            return gainPlusCoinsEffect(1, game);
         // active effects
         case "choose a player or monster":
             return (it: Card, issuer: Player, targets: any[]) => { return true; };
@@ -781,7 +787,7 @@ export function effectParser(s:string, game: Game): EffectFunction {
             return addUpTo2ToRollEffect(game);
         case "add 1 to a roll.":
             return add1ToRollEffect();
-        case "choose a player. loot and gain ¢ until you have the same number of each as they do.":
+        case "choose a player. loot and gain \u00A2 until you have the same number of each as they do.":
             return lootAndGainAsPlayerEffect(game);
 
 

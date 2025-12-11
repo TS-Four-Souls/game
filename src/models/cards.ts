@@ -21,6 +21,7 @@ class Card {
     protected _souls: number = 0;
     protected _eternal: boolean = false;
     protected _position: Deck | null | Hand | Card[];
+    cleanup: () => void = () => {};
     constructor(id: number, 
         json: GenericCardType) {
         this._json = json;
@@ -261,6 +262,8 @@ class LootCard extends ItemCard {
     }
     onResolve(): void {
         if(this.targetStillValid()) {
+            if(this._inplayType === InplayType.PASSIVE)
+                this._issuer.addInPlay(this);
             this._effect(this, this._issuer, this._selectedTargets);
         } else {
             console.log("LootCard.onResolve: targetStillValid() returned false for", (this as any).name);
