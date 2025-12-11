@@ -12,6 +12,9 @@ console.log(`Server is running on http://${HOSTNAME}:${PORT}`);
 
 const app = new Elysia()
   .use(cors())
+  .onBeforeHandle(({ request }) => {
+    console.log("Incoming request:", request.url);
+  })
   .get("/", () => "Hello Elysia")
   .post(
     "/join",

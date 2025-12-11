@@ -75,6 +75,8 @@ export type DetailedState = {
     inPlay: GenericCardType[];
     souls: GenericCardType[];
     coins: number;
+    currentHealthPoints: number;
+    currentAttackPoints: number;
   },
   players: {
     name: string;
@@ -82,6 +84,8 @@ export type DetailedState = {
     inPlay: GenericCardType[];
     souls: GenericCardType[];
     coins: number
+    currentHealthPoints: number;
+    currentAttackPoints: number;
   }[];
   topDiscards: {
     loot?: GenericCardType;
@@ -91,6 +95,7 @@ export type DetailedState = {
   monsters: GenericCardType[];
   shop: GenericCardType[];
   turn: string;
+  stack: string[];
 };
 
 export type DiscardCards = {

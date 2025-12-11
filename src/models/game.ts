@@ -1,6 +1,12 @@
 import { Monster } from "@/models/monster";
 import { DamageOnStack, DeathOnStack, DiceRoll, Player } from "@/models/player";
-import type { DetailedState, DiscardCards, Issuer, MonsterPiles, State } from "@/types/types";
+import type {
+  DetailedState,
+  DiscardCards,
+  Issuer,
+  MonsterPiles,
+  State,
+} from "@/types/types";
 import { loadCards } from "@/utils/loadCards";
 import {
   Card,
@@ -20,7 +26,11 @@ import {
 } from "@/models/cards";
 import { type Ability } from "./abilityRegistry";
 import { Stack, type StackElement } from "@/models/stack";
-import { effectParser, getAttackRollEffect, targetSelectorParser } from "@/models/effect";
+import {
+  effectParser,
+  getAttackRollEffect,
+  targetSelectorParser,
+} from "@/models/effect";
 import { Shop, Encounters } from "@/models/slots";
 import { Entity } from "@/models/entity";
 import { TurnHandler } from "./turnHandler";
@@ -30,8 +40,7 @@ import { AbilityRegistry } from "./abilityRegistry";
 import { preventNextDamageUpToEffect } from "@/models/abilities";
 
 const LOG_GAME = false;
-// export const cards = await loadCards(process.cwd() + "/data/cards");
-export const cards = await loadCards("/Users/sylvain/Documents/foursouls/four-souls-game/data/cards");
+export const cards = await loadCards(process.cwd() + "/data/cards");
 const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
 
 // for(const card of cardSets["loot"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug))){
@@ -107,7 +116,10 @@ export class Game {
     return souls;
   }
   get Entities(): Entity[] {
-    return [...this.players, ...this.monsters.filter((m): m is Monster => m !== undefined)];
+    return [
+      ...this.players,
+      ...this.monsters.filter((m): m is Monster => m !== undefined),
+    ];
   }
 
   get state(): string {
@@ -183,7 +195,7 @@ export class Game {
     );
     return result;
   }
-  
+
   getOwner(item: ItemCard): Player | null {
     for (const player of this.players) {
       if (player.inPlay.includes(item)) {
@@ -210,7 +222,11 @@ export class Game {
   }
   deathPenalty(p: Player): void {
     p.loseCoins(2, true);
-    const itemToLose = this.select(p, 1, p.inPlay.filter((c) => c.eternal === false)).selected[0];
+    const itemToLose = this.select(
+      p,
+      1,
+      p.inPlay.filter((c) => c.eternal === false)
+    ).selected[0];
     if (itemToLose) {
       this.removeInPlay(p, itemToLose);
       this.decks[itemToLose.type]!.addDiscardTop(itemToLose);
@@ -224,86 +240,171 @@ export class Game {
   }
 
   death(receiver: Entity, from: Entity, usingAbilityFrom: Card): void {
-    const deathOnStack = new DeathOnStack(receiver, from, usingAbilityFrom, this);
+    const deathOnStack = new DeathOnStack(
+      receiver,
+      from,
+      usingAbilityFrom,
+      this
+    );
     this.addToStack(deathOnStack);
-    this.emitter.emit("on:death:would-death", { eventIssuer: receiver, target: from, abilityCard: usingAbilityFrom });
+    this.emitter.emit("on:death:would-death", {
+      eventIssuer: receiver,
+      target: from,
+      abilityCard: usingAbilityFrom,
+    });
   }
 
   // Should only be called by DeathOnStack objects.
   resolveDeath(receiver: Entity, from: Entity, usingAbilityFrom: Card): void {
-    this.emitter.emit("on:death:before-penalty", { eventIssuer: receiver, target: from, abilityCard: usingAbilityFrom });
+    this.emitter.emit("on:death:before-penalty", {
+      eventIssuer: receiver,
+      target: from,
+      abilityCard: usingAbilityFrom,
+    });
     receiver.die();
-    if(receiver instanceof Player){
+    if (receiver instanceof Player) {
       this.deathPenalty(receiver);
-    }else if(receiver instanceof Monster){
+    } else if (receiver instanceof Monster) {
       this.encounters.kill(receiver);
-      this.emitter.emit("on:monster:died", { eventIssuer: receiver, target: from, abilityCard: usingAbilityFrom });
+      this.emitter.emit("on:monster:died", {
+        eventIssuer: receiver,
+        target: from,
+        abilityCard: usingAbilityFrom,
+      });
     }
-    this.emitter.emit("on:death:after-penalty", { eventIssuer: receiver, target: from, abilityCard: usingAbilityFrom });
+    this.emitter.emit("on:death:after-penalty", {
+      eventIssuer: receiver,
+      target: from,
+      abilityCard: usingAbilityFrom,
+    });
   }
 
   declareAttack(player: Player): void {
-    if(player.isEngagedInCombat
-       || player.attackThisTurn === 0
-      ){
-        player.attackThisTurn -= 1;
-        player.engageInCombat();
+    if (player.isEngagedInCombat || player.attackThisTurn === 0) {
+      player.attackThisTurn -= 1;
+      player.engageInCombat();
       this.emitter.emit("on:attack:declared", { eventIssuer: player });
-      }
+    }
   }
 
   declareAttackOnMonster(player: Player, monster: Monster): void {
-    if(player.isEngagedInCombat)
-    {
+    if (player.isEngagedInCombat) {
       monster.engageInCombat();
     }
-
   }
 
   attackRoll(player: Player, monster: Monster): void {
     const damageDealt = [player.attackPoints];
     const damageReceived = [monster.attackPoints];
     const evasion = [monster.evasion];
-    this.emitter.emit("on:attack:roll", { eventIssuer: player, target: monster, damageDealt, damageReceived, evasion });
-    if(player.attackRollThisTurn === 0)
-      this.emitter.emit("on:attack:roll:first-time-each-turn", { eventIssuer: player, target: monster, damageDealt, damageReceived, evasion });
+    this.emitter.emit("on:attack:roll", {
+      eventIssuer: player,
+      target: monster,
+      damageDealt,
+      damageReceived,
+      evasion,
+    });
+    if (player.attackRollThisTurn === 0)
+      this.emitter.emit("on:attack:roll:first-time-each-turn", {
+        eventIssuer: player,
+        target: monster,
+        damageDealt,
+        damageReceived,
+        evasion,
+      });
 
     const dice = this.rollDice(player, true);
-    dice.attachEffect(getAttackRollEffect(damageDealt[0]!, damageReceived[0]!, evasion[0]!, this), monster.card, [monster]);
+    dice.attachEffect(
+      getAttackRollEffect(
+        damageDealt[0]!,
+        damageReceived[0]!,
+        evasion[0]!,
+        this
+      ),
+      monster.card,
+      [monster]
+    );
   }
 
-  dealCombatDamage(dealer: Entity, receiver: Entity, usingAbilityFrom: Card, damage: number): void {
+  dealCombatDamage(
+    dealer: Entity,
+    receiver: Entity,
+    usingAbilityFrom: Card,
+    damage: number
+  ): void {
     if (damage <= 0 || receiver.isDead) return;
     if (receiver instanceof Player) {
-      this.emitter.emit("on:combatdamage:dealt:to-player", { eventIssuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damage });
+      this.emitter.emit("on:combatdamage:dealt:to-player", {
+        eventIssuer: receiver,
+        target: dealer,
+        abilityCard: usingAbilityFrom,
+        damage,
+      });
     } else if (receiver instanceof Monster) {
-      this.emitter.emit("on:combatdamage:dealt:to-monster", { eventIssuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damage });
+      this.emitter.emit("on:combatdamage:dealt:to-monster", {
+        eventIssuer: receiver,
+        target: dealer,
+        abilityCard: usingAbilityFrom,
+        damage,
+      });
     }
   }
 
-  resolveDamage(dealer: Entity, receiver: Entity, usingAbilityFrom: Card, damage: number): void {
+  resolveDamage(
+    dealer: Entity,
+    receiver: Entity,
+    usingAbilityFrom: Card,
+    damage: number
+  ): void {
     receiver.receiveDamage(damage);
 
-    this.emitter.emit("on:damage:taken", { eventIssuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damage: damage });
-    this.emitter.emit("on:damage:taken:first-time-each-turn", { eventIssuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damage: damage });
+    this.emitter.emit("on:damage:taken", {
+      eventIssuer: receiver,
+      target: dealer,
+      abilityCard: usingAbilityFrom,
+      damage: damage,
+    });
+    this.emitter.emit("on:damage:taken:first-time-each-turn", {
+      eventIssuer: receiver,
+      target: dealer,
+      abilityCard: usingAbilityFrom,
+      damage: damage,
+    });
 
     if (receiver.currentHealthPoints <= 0) {
       this.death(receiver, dealer, usingAbilityFrom);
     }
   }
 
-  dealDamage(dealer: Entity, receiver: Entity, usingAbilityFrom: Card, damage: number, callback?: (it: Card, issuer: Player, targets: any[]) => boolean): void {
+  dealDamage(
+    dealer: Entity,
+    receiver: Entity,
+    usingAbilityFrom: Card,
+    damage: number,
+    callback?: (it: Card, issuer: Player, targets: any[]) => boolean
+  ): void {
     if (damage <= 0 || receiver.isDead) return;
 
     const damageArray = [damage];
-    
-    const damageOnStack = new DamageOnStack(dealer, receiver, damageArray, usingAbilityFrom, this);
-    if(callback){
+
+    const damageOnStack = new DamageOnStack(
+      dealer,
+      receiver,
+      damageArray,
+      usingAbilityFrom,
+      this
+    );
+    if (callback) {
       damageOnStack.attachEffect(callback, usingAbilityFrom, []);
     }
     this.addToStack(damageOnStack);
-    
-    this.emitter.emit("on:damage:would-take", { eventIssuer: receiver, target: dealer, abilityCard: usingAbilityFrom, damageArray: damageArray });
+
+    this.emitter.emit("on:damage:would-take", {
+      eventIssuer: receiver,
+      target: dealer,
+      abilityCard: usingAbilityFrom,
+      damageArray: damageArray,
+    });
   }
 
   swapItems(item1: ItemCard, item2: ItemCard): void {
@@ -314,9 +415,9 @@ export class Game {
       owner2.removeInPlay(item2);
       owner1.addInPlay(item2);
       owner2.addInPlay(item1);
-    } 
+    }
   }
-  
+
   addPlayer(newPlayer: Player): void {
     this.assertPlayerIdAvailable(newPlayer.id);
     this.assertGameNotStarted();
@@ -350,22 +451,17 @@ export class Game {
 
   resolveStack() {
     let elem = this.stack.resolve();
-    if (elem instanceof LootCard) 
-      elem.onResolve();
-    else if (elem instanceof DiceRoll)
-      this.resolveDiceRoll(elem);
-    else if (elem instanceof DeathOnStack)
-      elem.onResolve();
-    else if (elem instanceof DamageOnStack)
-      elem.onResolve();
-    else if (elem === undefined)
-      return;
+    if (elem instanceof LootCard) elem.onResolve();
+    else if (elem instanceof DiceRoll) this.resolveDiceRoll(elem);
+    else if (elem instanceof DeathOnStack) elem.onResolve();
+    else if (elem instanceof DamageOnStack) elem.onResolve();
+    this._onStateChange.dispatch();
   }
 
   cancelStack(): void {
     this.stack.cancel();
   }
-  
+
   cancelPreviousNonRoll(): void {
     this.stack.cancelPreviousNonRoll();
   }
@@ -394,7 +490,6 @@ export class Game {
     this.loot(player, 1);
   }
 
-
   startTurn(): void {
     this.players.forEach((p) => {
       p.remainingLootPlay = 0;
@@ -414,7 +509,7 @@ export class Game {
     this.assertNoOngoingAttack();
     this.healEveryone();
     this.emitter.emit("on:turn:end", { eventIssuer: player });
-    for(const player of this.players){
+    for (const player of this.players) {
       player.resetTurnFlags();
     }
     this.turnHandler.endTurn();
@@ -435,6 +530,8 @@ export class Game {
     this.addToStack(playedCard);
     // this.addInPlay(player, playedCard);
 
+    this._onStateChange.dispatch();
+
     return `You have played the card: ${playedCard.name} to your in-play area.\n`;
   }
 
@@ -442,7 +539,7 @@ export class Game {
     this.assertIssuerSecret(issuer);
     this.assertGameNotStarted();
     this.assertMinimumPlayerCount();
-    
+
     this.turnHandler.initialize(this.players);
     this._decks = LoadDecks(cardSets, this.players.length);
     this.joinEffectsToCards();
@@ -495,8 +592,13 @@ export class Game {
           });
           throw new Error("No eternal card with slug " + cardName + " found");
         }
-        if(cards[0]?.slug !== cardName) {
-          throw new Error("Eternal card slug mismatch: expected " + cardName + ", got " + cards[0]?.slug);
+        if (cards[0]?.slug !== cardName) {
+          throw new Error(
+            "Eternal card slug mismatch: expected " +
+              cardName +
+              ", got " +
+              cards[0]?.slug
+          );
         }
         this.addInPlay(player, cards[0]!);
       }
@@ -513,11 +615,13 @@ export class Game {
   }
 
   activateItem(player: Player, item: ItemCard): boolean {
-    if (player.activateItem(item))
-      {
-      this.emitter.emit("on:item:activated", { eventIssuer: player, item: item });
-        return true;
-      }
+    if (player.activateItem(item)) {
+      this.emitter.emit("on:item:activated", {
+        eventIssuer: player,
+        item: item,
+      });
+      return true;
+    }
     return false;
   }
 
@@ -548,33 +652,38 @@ export class Game {
 
   private joinEffectsToCards(): void {
     const deck = this.decks["loot"]!;
-    deck.cards.forEach((card: Card) => { 
+    deck.cards.forEach((card: Card) => {
       const lootCard = card as LootCard;
-      if(!lootCard.effectOutcomes || lootCard.effectOutcomes.length === 0){
-        console.log("WARNING: No effect outcomes for loot card:", lootCard.name);
-      }else
-      {
-        lootCard.effect = effectParser(lootCard.effectOutcomes[0]!, this); 
-        lootCard.targetSelector = targetSelectorParser(lootCard.effectOutcomes[0]!, this);
+      if (!lootCard.effectOutcomes || lootCard.effectOutcomes.length === 0) {
+        console.log(
+          "WARNING: No effect outcomes for loot card:",
+          lootCard.name
+        );
+      } else {
+        lootCard.effect = effectParser(lootCard.effectOutcomes[0]!, this);
+        lootCard.targetSelector = targetSelectorParser(
+          lootCard.effectOutcomes[0]!,
+          this
+        );
       }
     });
   }
 
-  addAttack(e:Entity, value:number):void {
+  addAttack(e: Entity, value: number): void {
     e.addAttackPoints(value);
   }
 
-  addAttackThisTurn(e:Entity, value:number):void {
-    if(e instanceof Player){
+  addAttackThisTurn(e: Entity, value: number): void {
+    if (e instanceof Player) {
       e.addAttackThisTurn(value);
     }
   }
 
-  addHealth(e:Entity, value:number):void {
+  addHealth(e: Entity, value: number): void {
     e.addHealthPoints(value);
   }
-  
-  addAttackDiceModifier(e:Entity, value:number):void {
+
+  addAttackDiceModifier(e: Entity, value: number): void {
     e.addDiceModifier(value);
   }
 
@@ -582,9 +691,12 @@ export class Game {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.assertPositiveNumber(coins);
-    if(coins > 0){
+    if (coins > 0) {
       const amount = [coins];
-      this.emitter.emit("on:coin:gained", { eventIssuer: player, coinGained: amount });
+      this.emitter.emit("on:coin:gained", {
+        eventIssuer: player,
+        coinGained: amount,
+      });
       player.gainCoins(amount[0]!);
     }
 
@@ -609,16 +721,15 @@ export class Game {
   }
   preventDeath(player: Player): void {
     this.stack.cancelPreviousDeath(player);
-    if(player.currentHealthPoints === 0)
-      player.addHealthPoints(1);
+    if (player.currentHealthPoints === 0) player.addHealthPoints(1);
   }
-  gainTreasure(issuer: Issuer, number: number=1): string {
+  gainTreasure(issuer: Issuer, number: number = 1): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.assertPlayerIsAlive(player);
     this.assertPositiveNumber(number);
 
-    for(let i=0; i<number; i++){
+    for (let i = 0; i < number; i++) {
       const treasureDeck: Deck = this.decks["treasure"]!;
       const drawnCard: Card = treasureDeck.draw()!;
       this.addInPlay(player, drawnCard);
@@ -628,7 +739,7 @@ export class Game {
   }
 
   destroyCardsOrSouls(cards: Card[]): boolean {
-    if(cards.length === 0 || cards.every(card => card === undefined))
+    if (cards.length === 0 || cards.every((card) => card === undefined))
       return false;
     cards.forEach((card) => {
       this.players.forEach((player) => {
@@ -645,7 +756,7 @@ export class Game {
     this.emitter.emit("on:item:destroyed", { issuer: null, cards: cards });
     return true;
   }
-  
+
   detailedState(issuer: Issuer): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -693,6 +804,8 @@ export class Game {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
 
+    console.log(player.attackPoints);
+
     const res: DetailedState = {
       me: {
         name: player.id,
@@ -700,6 +813,8 @@ export class Game {
         inPlay: player.inPlay.map((c) => c.json),
         souls: player.souls.map((c) => c.json),
         coins: player.coins,
+        currentAttackPoints: player.attackPoints,
+        currentHealthPoints: player.currentHealthPoints,
       },
       players: this.players
         .filter((p) => p.id !== player.id)
@@ -709,6 +824,8 @@ export class Game {
           inPlay: p.inPlay.map((c) => c.json),
           souls: p.souls.map((c) => c.json),
           coins: p.coins,
+          currentAttackPoints: p.attackPoints,
+          currentHealthPoints: p.currentHealthPoints,
         })),
       topDiscards: {
         loot: this.decks["loot"]!.discard[0]
@@ -724,6 +841,17 @@ export class Game {
       monsters: this.encounters._slots.map((m) => m[m.length - 1]!.json),
       shop: this.shop._slots.map((m) => m!.json),
       turn: this.currentPlayer.id,
+      stack: this.stack.elements.map((el) => {
+        if (el instanceof LootCard) {
+          return el.slug;
+        } else {
+          const json = el.json;
+          if (typeof json === "object") {
+            return JSON.stringify(json);
+          }
+          return json;
+        }
+      }),
     };
 
     return JSON.stringify(res);
@@ -817,8 +945,8 @@ export class Game {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.assertPlayerIsAlive(player);
-    
-    if(this.shop.removeCard(target)){
+
+    if (this.shop.removeCard(target)) {
       this.addInPlay(player, target);
       return true;
     }
@@ -863,10 +991,10 @@ export class Game {
   }
 
   reroll(owner: Player, card: Card): void {
-    if(!(card instanceof ItemCard)){
+    if (!(card instanceof ItemCard)) {
       throw new Error("Can only reroll with an item card.");
     }
-    if(!owner.inPlay.includes(card)){
+    if (!owner.inPlay.includes(card)) {
       throw new Error("Owner does not have the specified card in play.");
     }
     const treasureDeck: Deck = this.decks["treasure"]!;
@@ -889,7 +1017,7 @@ export class Game {
 
     return `You have discarded the monster at position ${position}.\n`;
   }
-  kill(issuer: Issuer, entity: Entity): void{
+  kill(issuer: Issuer, entity: Entity): void {
     entity.die();
   }
 
@@ -990,8 +1118,7 @@ export class Game {
   rollDice(issuer: Issuer, attackRoll: boolean): DiceRoll {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
-    if(attackRoll)
-      this.assertPlayerIsAlive(player);
+    if (attackRoll) this.assertPlayerIsAlive(player);
 
     let diceRoll = player.rollDice(attackRoll);
     this.stack.push(diceRoll);
@@ -1005,9 +1132,14 @@ export class Game {
   }
 
   inPlayTargetableCards(target: Player): ItemCard[] {
-    return target.inPlay.filter(card => card.type !== "eternal" && card.type !== "character" && card instanceof ItemCard) as ItemCard[];
+    return target.inPlay.filter(
+      (card) =>
+        card.type !== "eternal" &&
+        card.type !== "character" &&
+        card instanceof ItemCard
+    ) as ItemCard[];
   }
-  removeInPlay(player: Player, card:Card): boolean{
+  removeInPlay(player: Player, card: Card): boolean {
     card.cleanup();
     return player.removeInPlay(card);
   }
