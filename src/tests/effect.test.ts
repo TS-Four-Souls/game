@@ -63,6 +63,7 @@ describe("Effect - gainCoins", () => {
 
 // Additional tests for non-tested effects from effect.ts
 import * as effect from "@/models/effect";
+import type { LootCard } from "@/models/cards";
 
 describe("Effect - additional unique implementations", () => {
   it("changeRollDiceResultEffect sets dice value", () => {
@@ -149,7 +150,7 @@ describe("Loot deck integration", () => {
 
   it("plays a deal damage card through the stack", () => {
     const { game, p1, p2 } = setupGame();
-    const damageCard = findCardByEffect(game, /^Deal\s+\d+\s+damage/);
+    const damageCard = game.decks["loot"]!.getCardFromSlug("b2-bomb");
     expect(damageCard).toBeTruthy();
 
     const amountMatch = /Deal\s+(\d+)\s+damage/u.exec(damageCard!.effectOutcomes[0]!);
@@ -157,15 +158,13 @@ describe("Loot deck integration", () => {
 
     const initialHP = p2.currentHealthPoints;
 
-    game.decks["loot"]!.remove(damageCard!);
-    p1.hand.addToHand(damageCard!);
+   p1.hand.addToHand(damageCard!);
 
     game.playCard(p1, p1.hand.cards.length);
     expect(game.stack.size).toBe(1);
 
     // Simulate target selection (would normally be done by targetSelector)
-    const stackElement = game.stack.elements[0] as any;
-    stackElement._selectedTargets = [p2];
+    (damageCard as LootCard)!.targets = [p2];
 
     game.resolveStack();
     game.resolveStack();
@@ -280,7 +279,7 @@ describe("Loot deck integration", () => {
 
   it("recharge item effect works correctly", () => {
     const { game, p1 } = setupGame();
-    const rechargeCard = findCardByEffect(game, /^Recharge/);
+    const rechargeCard = game.decks["loot"]!.getCardFromSlug("b2-lil_battery_4");
     
     if (!rechargeCard) {
       // Skip if no such card exists
@@ -307,13 +306,11 @@ describe("Loot deck integration", () => {
     expect(item._inplayType).not.toBe(0); // Not CHARGED
 
     // Play recharge card
-    game.decks["loot"]!.remove(rechargeCard);
     p1.hand.addToHand(rechargeCard);
     game.playCard(p1, p1.hand.cards.length);
 
     // Set target to the discharged item
-    const stackElement = game.stack.elements[0] as any;
-    stackElement._selectedTargets = [chargedItem];
+    (rechargeCard as LootCard).targets = [chargedItem];
 
     game.resolveStack();
 

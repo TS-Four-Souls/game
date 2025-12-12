@@ -24,6 +24,7 @@ import {
   InplayType,
   treasureCard,
   BsoulCard,
+  Effect,
   type EffectData,
 } from "@/models/cards";
 import { type Ability } from "./abilityRegistry";
@@ -694,11 +695,18 @@ export class Game {
             lootCard.name
           );
         } else {
-          lootCard.effect = effectParser(lootCard.effectOutcomes[0]!, this);
-          lootCard.targetSelector = targetSelectorParser(
-            lootCard.effectOutcomes[0]!,
-            this
-          );
+          const effect: Effect = new Effect(lootCard.effectOutcomes[0]!,
+            effectParser(lootCard.effectOutcomes[0]!, this),
+            targetSelectorParser(
+              lootCard.effectOutcomes[0]!,
+              this
+            ));
+            lootCard.effect = effect;
+          //   lootCard.effect = effectParser(lootCard.effectOutcomes[0]!, this);
+          // lootCard.targetSelector = targetSelectorParser(
+          //   lootCard.effectOutcomes[0]!,
+          //   this
+          // );
         }
       });
     }

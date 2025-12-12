@@ -173,13 +173,47 @@ export class ItemCard extends Card {
     }
 }
 
+export class Effect {
+    protected _description: string;
+    protected _effectFunction: EffectFunction;
+    protected _targetsSelector: TargetsSelector[];
+    protected _selectedTargets: any[] = [];
+
+    constructor(description: string, effectFunction: EffectFunction, targetsSelector: TargetsSelector[]) {
+        this._description = description;
+        this._effectFunction = effectFunction;
+        this._targetsSelector = targetsSelector;
+    }
+
+    get description(): string {
+        return this._description;
+    }
+    get targets(): any[] {
+        return this._selectedTargets;
+    }
+    get targetsSelector(): TargetsSelector[] {
+        return this._targetsSelector;
+    }
+    set effectFunction(effectFunction: EffectFunction) {
+        this._effectFunction = effectFunction;
+    }
+    get effectFunction(): EffectFunction {
+        return this._effectFunction;
+    }
+
+    set targets(targets: any[]) {
+        this._selectedTargets = targets;
+    }
+}
+
 class LootCard extends ItemCard {
     protected _reward: CardRewards | undefined;
     protected _trinket: boolean = false;
     protected _issuer!: Player;
-    protected _targetsSelector: TargetsSelector[];
-    protected _selectedTargets: any[] = [];
-    protected _effect: EffectFunction;
+    // protected _targetsSelector: TargetsSelector[];
+    // protected _selectedTargets: any[] = [];
+    // protected _effect: EffectFunction;
+    protected _effect:Effect;
     constructor(id: number, json: LootCardType, 
         selectTargets: TargetsSelector[] = [{description: "", selector: (issuer: Player) => []}],
         effect: EffectFunction = (data: EffectData) => 
@@ -188,8 +222,10 @@ class LootCard extends ItemCard {
         super(id, json);
         this._inplayType = InplayType.PLAYABLE;
         this._reward = json.rewards;
-        this._targetsSelector = selectTargets;
-        this._effect = effect;
+        
+        // this._targetsSelector = selectTargets;
+        // this._effect = effect;
+        this._effect = new Effect(this.name, effect, selectTargets);
         if (json.trinket) {
             this._trinket = json.trinket;
             this._inplayType = InplayType.PASSIVE;
@@ -200,26 +236,36 @@ class LootCard extends ItemCard {
     }
 
     get targets(): any[] {
-        return this._selectedTargets;
+        return this._effect.targets;
+    }
+    get targetsSelector(): TargetsSelector[] {
+        return this._effect.targetsSelector;
+    }
+    get effectFunction(): EffectFunction {
+        return this._effect.effectFunction;
     }
 
-    set effect(effect: EffectFunction) {
+    set effect(effect: Effect) {
         this._effect = effect;
     }
 
-    set targetSelector(selector: TargetsSelector[]) {
-        this._targetsSelector = selector;
+    set targets(targets: any[]) {
+        this._effect.targets = targets;
     }
 
+    // set targetSelector(selector: TargetsSelector[]) {
+    //     this._effect.targetsSelector = selector;
+    // }
+
     private chooseOneTargetStillValid(): boolean {
-        if(this._selectedTargets.length > 1)
+        if(this.targets.length > 1)
             throw new Error("chooseOne target should have length at most 1.");
-        for (const chooseOneTarget of this._selectedTargets)
+        for (const chooseOneTarget of this.targets)
             {
             const descr = chooseOneTarget.description;
             const targets = chooseOneTarget.chosenOptions;
             if(targets.length > 0)
-                for (const admissibleTarget of this._targetsSelector[0]!.selector(this._issuer))
+                for (const admissibleTarget of this.targets[0]!.selector(this._issuer))
                 {
                     if(admissibleTarget.description === descr)
                     {
@@ -237,17 +283,17 @@ class LootCard extends ItemCard {
     }
 
     private targetStillValid(): boolean {
-        if (this._selectedTargets.length > 0){
-        for(const i in this._targetsSelector)
+        if (this.targets.length > 0){
+        for(const i in this.targetsSelector)
         {
-            if(this._selectedTargets[i].length > 0)
+            if (this.targets[i].length > 0)
             {
-                const admissibleTargets = this._targetsSelector[i]!.selector(this._issuer);
-                if (isChooseOneResult(this._selectedTargets[i][0])) {
+                const admissibleTargets = this.targetsSelector[i]!.selector(this._issuer);
+                if (isChooseOneResult(this.targets[i][0])) {
                     return this.chooseOneTargetStillValid()
                 } else {
-                    for(const targetId in this._selectedTargets) {
-                        if(!admissibleTargets[targetId].includes(this._selectedTargets[targetId][0])) {
+                    for (const targetId in this.targets) {
+                        if (!admissibleTargets[targetId].includes(this.targets[targetId][0])) {
                             return false;
                         }
                     }
@@ -260,9 +306,9 @@ class LootCard extends ItemCard {
     onPlay(issuer: Player): void {
         // temporary selection target selection: take the first valid target.
         //  Note that for choose one-, the first effect is choosen and the first target selected.
-        for(const targetSelector of this._targetsSelector) {
+        for(const targetSelector of this.targetsSelector) {
             if(targetSelector.selector(issuer).length === 0) 
-                this._selectedTargets = [];
+                this.targets = [];
             else if (isChooseOneOptions(targetSelector.selector(issuer)[0]))
             {
                 const options: ChooseOneOptions[] = targetSelector.selector(issuer) as ChooseOneOptions[];
@@ -271,25 +317,25 @@ class LootCard extends ItemCard {
                     targetSelector.selector(issuer)[0].admissibleTargets :
                     [];
                 const resultTargets: ChooseOneResult[] = [{ description: chooseOne, chosenOptions: targets }];
-                this._selectedTargets = resultTargets;
+                this.targets = resultTargets;
             }
             else
-                this._selectedTargets = [targetSelector.selector(issuer)[0]];
+                this.targets = [targetSelector.selector(issuer)[0]];
             this._issuer = issuer!;
         }
     }
     onResolve(): void {
         if(this.targetStillValid()) {
-            if(this._inplayType === InplayType.PASSIVE)
+            if(this.trinket)
                 this._issuer.addInPlay(this);
-            this._effect({ it: this, issuer: this._issuer, targets: this._selectedTargets });
+            this.effectFunction({ it: this, issuer: this._issuer, targets: this.targets });
         } else {
             console.log("LootCard.onResolve: targetStillValid() returned false for", (this as any).name);
         }
     }
 
     debugSetTargets(targets: any[]): void {
-        this._selectedTargets = targets;
+        this.targets = targets;
     }
 }
 
