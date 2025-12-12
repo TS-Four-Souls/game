@@ -43,10 +43,10 @@ const LOG_GAME = false;
 export const cards = await loadCards(process.cwd() + "/data/cards");
 const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
 
-// for(const card of cardSets["loot"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug))){
-//   if((card as LootCard).trinket)
-//     console.log(card.slug);
-// }
+for(const card of cardSets["character"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug))){
+  // if((card as LootCard).trinket)
+    console.log(card.effectOutcomes);
+}
 const defaultParameters = { nbItemsInShop: 2, nbEncounters: 2 };
 export class Game {
   private _players: Player[] = [];
@@ -60,6 +60,7 @@ export class Game {
   private _destroyedCards: Card[] = [];
   private _emitter: GameEventEmitter;
   private _abilityRegistry: AbilityRegistry;
+  private _bonusSouls: 
 
   private _onStateChange: Signal<void> = new Signal();
   onStateChange: ReadableSignal<void> = this._onStateChange.readOnly();
@@ -535,15 +536,26 @@ export class Game {
     return `You have played the card: ${playedCard.name} to your in-play area.\n`;
   }
 
-  start(issuer: Issuer): void {
+  setupGame(): void {
+    this._decks = LoadDecks(cardSets, this.players.length);
+    this.joinEffectsToCards();
+  }
+  start(issuer: Issuer, characters: CharacterCard[] | null = null): void {
     this.assertIssuerSecret(issuer);
     this.assertGameNotStarted();
     this.assertMinimumPlayerCount();
+    
+    if(this._decks["character"] === undefined){
+      this.setupGame();
+    }
 
     this.turnHandler.initialize(this.players);
-    this._decks = LoadDecks(cardSets, this.players.length);
-    this.joinEffectsToCards();
-    this.assignCharactersToPlayers();
+    if (characters && characters.length > 0) {
+      this.assignCharactersToPlayers(characters);
+    } else
+    {
+      this.assignRandomCharacterToPlayers();
+    }
     this._shop = new Shop(
       defaultParameters.nbItemsInShop,
       this.decks["treasure"]!
@@ -558,13 +570,23 @@ export class Game {
     // this.startTurn();
   }
 
-  assignCharactersToPlayers(): void {
+  assignRandomCharacterToPlayers(): void {
     const characterDeck = this.decks["character"];
     if (!characterDeck) {
       throw new Error("No character deck found");
     }
-    this.players.forEach((player) => {
-      const character: CharacterCard = characterDeck.draw() as CharacterCard;
+    const character: CharacterCard = characterDeck.draw() as CharacterCard;
+  }
+  assignCharactersToPlayers(characters: CharacterCard[]): void {
+    const characterDeck = this.decks["character"];
+    if (!characterDeck) {
+      throw new Error("No character deck found");
+    }
+    if(characters.length !== this.players.length){
+      throw new Error("Number of characters does not match number of players");
+    }
+    this.players.forEach((player, index) => {
+      const character = characters[index]!;
       if (LOG_GAME) {
         console.log(
           "Assigning character",
@@ -612,6 +634,7 @@ export class Game {
   addInPlay(player: Player, card: Card): void {
     this.emitter.emit("on:enter:play", { eventIssuer: player, card: card });
     player.addInPlay(card);
+    this.emitter.emit("on:enter:play:after", { eventIssuer: player, card: card });
   }
 
   activateItem(player: Player, item: ItemCard): boolean {
@@ -698,6 +721,8 @@ export class Game {
         coinGained: amount,
       });
       player.gainCoins(amount[0]!);
+      this.emitter.emit("on:coin:gained:after", { eventIssuer: player, coinGained: amount });
+
     }
 
     return `New amount of coins: ${player.coins} coins.\n`;
@@ -880,7 +905,7 @@ export class Game {
       const drawnCard: Card = lootDeck.draw()!;
       player.hand.addToHand(drawnCard);
     }
-
+    this.emitter.emit("on:loot:after", { eventIssuer: player, numberOfCards: number });
     this._onStateChange.dispatch();
 
     return `You have drawn ${number} loot card(s).\n`;

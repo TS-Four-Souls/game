@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../models/game";
 import { DiceRoll, Player } from "../models/player";
 import { pl } from "zod/locales";
-import type { LootCard, ItemCard } from "@/models/cards";
+import type { LootCard, ItemCard, CharacterCard } from "@/models/cards";
 import { InplayType, MonsterCard } from "@/models/cards";
 import { effectParser, inplayCurseSelector, type ChooseOneOptions, type ChooseOneResult } from "@/models/effect";
 import { chooseOneEffect } from "@/models/effect";
@@ -698,5 +698,30 @@ describe("Loot Card", () => {
         game.resolveStack();
         expect(player1.currentHealthPoints).toBe(life-1); // No damage taken
     });
+
+});
+
+
+describe("Before start effects", () => {
+    let game: Game;
+    let player1: Player;
+    let player2: Player;
+
+    beforeEach(() => {
+        game = new Game();
+        player1 = new Player("Player 1");
+        player2 = new Player("Player 2");
+        game.addPlayer(player1);
+        game.addPlayer(player2);
+        game.setupGame();
+    });
+
+    // Hard to test because cain card has a passive and an active effect
+    // it("Cain plays first", () => {
+    //     const cain = game.decks["character"]!.getCardFromSlug("b2-cain")! as CharacterCard;
+    //     const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+    //     game.start(player1, [isaac, cain]);
+    //     expect(game.currentPlayer).toBe(player2);
+    // });
 
 });

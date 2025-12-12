@@ -38,6 +38,14 @@ export class TurnHandler {
         this._remainingTurnsInRound.splice(1, 0, player);
     }
 
+    setFirstPlayer(player: Player) : void {
+        const idx = this._remainingTurnsInRound.findIndex(p => p.id === player.id);
+        if (idx === -1) {
+            throw new Error("Player not found in remaining turns");
+        }
+        this._baseOrder = this._baseOrder.splice(idx).concat(this._baseOrder.slice(0, idx));
+        this._remainingTurnsInRound = [...this._baseOrder];
+    }
     reset() : void {
         this._isInitialized = false;
         this._roundIndex = 0;

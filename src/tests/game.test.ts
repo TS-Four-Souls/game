@@ -835,9 +835,9 @@ describe("Game - Damage System", () => {
     const initialHealth = player2.currentHealthPoints;
     const mockCard = { name: "Test Card" } as any;
     
-    game.dealDamage(player1, player2, mockCard, 3);
-    
-    expect(player2.currentHealthPoints).toBe(initialHealth - 3);
+    game.dealDamage(player1, player2, mockCard, 1);
+    game.resolveStack();
+    expect(player2.currentHealthPoints).toBe(initialHealth - 1);
   });
 
   it("should handle zero damage", () => {
@@ -853,7 +853,9 @@ describe("Game - Damage System", () => {
     const mockCard = { name: "Test Card" } as any;
     
     game.dealDamage(player1, player2, mockCard, 10);
-    
+    game.resolveStack();
+    game.resolveStack();
+
     expect(player2.isDead).toBe(true);
     expect(player2.currentHealthPoints).toBe(0);
   });

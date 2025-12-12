@@ -5,7 +5,7 @@ import type { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
 import { it } from "zod/locales";
-import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, temporaryStatModifierEffect } from "./abilities";
+import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, goFirstInTurnOrderEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, temporaryStatModifierEffect } from "./abilities";
 
 function prepareEffectString(s: string): string {
     s.replace("[Tap Effect]", ""); // remove tap effect marker
@@ -736,6 +736,8 @@ export function effectParser(s:string, game: Game): EffectFunction {
     const preventMatch = s.match(/^choose a player. prevent (?:the )?next instance of up to (\d+) damage(?: you would take)? this turn\.?$/u);
     switch (s) {
         // passive effects
+        case "If you control this as the game starts, you go first.":
+            return goFirstInTurnOrderEffect(game);
         case "choose a player. prevent the next 1 damage they would take this turn.":
             return preventNextDamageUpToEffect(1, game);
         case "choose a player or monster. prevent the next instance of up to 2 damage they would take this turn.":

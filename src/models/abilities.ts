@@ -278,3 +278,21 @@ export function preventDamageOnRollEffect(
         return true;
     };
 }
+
+export function goFirstInTurnOrderEffect(game: Game): EffectFunction {
+    return (it: Card, issuer: Player, targets: any[]) => {
+        let offEffect: (() => void) | null = null;
+
+        const cleanup = () => {
+            offEffect?.();
+            offEffect = null;
+        };
+
+        // Listen for the next damage event on this player
+        offEffect = game.emitter.on("on:game:start:before", () => {
+            game.turnHandler.setFirstPlayer(issuer);
+            cleanup();
+        });
+        return true;
+    };
+}
