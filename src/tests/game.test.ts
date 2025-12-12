@@ -642,20 +642,6 @@ describe("Game - Stack Operations", () => {
 });
 
 describe("Stack - Behavior", () => {
-  it("should cancel previous non-roll and keep top roll", () => {
-    const stack = new Stack();
-    const loot = { id: "loot", type: "loot" } as any;
-    const dice1 = new Player("p1", 1, 1, 0).rollDice();
-    const dice2 = new Player("p2", 1, 1, 0).rollDice();
-
-    stack.push(loot as any);
-    stack.push(dice1);
-    stack.push(dice2);
-
-    stack.cancelPreviousNonRoll();
-    expect(stack.size).toBe(1);
-    expect(stack.elements[0]).toBe(dice2);
-  });
 
   it("should resolve and remove the top element", () => {
     const stack = new Stack();

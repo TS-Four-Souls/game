@@ -1,4 +1,4 @@
-import type { Card, LootCard } from "./cards";
+import { type Card, LootCard } from "./cards";
 import type { Entity } from "./entity";
 import { DamageOnStack, DeathOnStack, DiceRoll } from "./player";
 
@@ -29,15 +29,6 @@ export class Stack {
             const el = this._stack[i];
             if (el === element) {
                 this._stack.splice(i, 1);
-                return;
-            }
-        }
-    }
-    cancelPreviousNonRoll() : void {
-        for (let i = this._stack.length - 2; i >= 0; i--) {
-            const element = this._stack[i];
-            this._stack.splice(i, 1);
-            if (!(element instanceof DiceRoll)) {
                 return;
             }
         }

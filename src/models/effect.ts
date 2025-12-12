@@ -1,11 +1,12 @@
 import { DamageOnStack, DiceRoll, Player } from "./player";
-import { type Card, type LootCard, type EffectFunction, type TargetsSelector, ItemCard, MonsterCard, InplayType } from "./cards";
+import { type Card, LootCard, type EffectFunction, type TargetsSelector, ItemCard, MonsterCard, InplayType, BsoulCard } from "./cards";
 import { Game } from "./game";
 import type { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
 import { it } from "zod/locales";
 import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, goFirstInTurnOrderEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, temporaryStatModifierEffect } from "./abilities";
+import type { BonusSoulCardType } from "@/types/cardTypes";
 
 function prepareEffectString(s: string): string {
     s.replace("[Tap Effect]", ""); // remove tap effect marker
@@ -250,7 +251,7 @@ export function lootAndGainAsPlayerEffect(game: Game): EffectFunction {
 
 export function cancelPreviousNonRollEffect(game: Game): EffectFunction {
     return (it: Card, issuer: Player, targets: any[]) => {
-        game.cancelPreviousNonRoll();
+        game.cancelStackElement(targets[0] as StackElement);
         return true;
     };
 }
@@ -492,6 +493,7 @@ export function becomesSoulAndGainEffect(game: Game): EffectFunction {
 
 export function addInPlayEffect(game: Game): EffectFunction {
     return (it: Card, issuer: Player, targets: any[]) => {
+        console.log("adding in play loot card from effect:", it.name);
         game.addInPlay(issuer, it);
         return true;
     };
@@ -665,7 +667,7 @@ export function effectParser(s:string, game: Game): EffectFunction {
             return game.destroyCardsOrSouls(itemsToDestroy);
         };
     if (s.startsWith("kill "))
-        return (it: Card, issuer: Player, targets: any[]) => { game.kill(issuer, targets[0] as Entity); return true; };
+        return (it: Card, issuer: Player, targets: any[]) => { game.kill(issuer, targets[0] as Entity, it); return true; };
     if (s.startsWith("destroy this."))
         return (it: Card, issuer: Player, targets: any[]) => { 
             game.destroyCardsOrSouls([it]); 
@@ -971,7 +973,7 @@ export function effectParser(s:string, game: Game): EffectFunction {
             }
 
         default:
-            return (it: Card, issuer: Player, targets: any[]) => { game.addInPlay(issuer, it); return true; };
+            return addInPlayEffect(game);
     }
 }
 
@@ -990,6 +992,8 @@ export function targetSelectorParser(s:string, game: Game): TargetsSelector {
         coinStolen !== null) {
         return anotherPlayerSelector(undefined, game);
     }
+    if (s === "cancel the ↷ or $ ability of an item or a loot being played.")
+        return stackElementSelector((element) => element instanceof LootCard, game);
     if (s.startsWith("choose a player.") ||
         s === "kill a player.") {
         return playerSelector(undefined, game);

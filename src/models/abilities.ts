@@ -1,12 +1,8 @@
 import { DiceRoll, Player } from "./player";
 import { type Card, type LootCard, type EffectFunction, type TargetsSelector, ItemCard, InplayType } from "./cards";
 import { Game } from "./game";
-import type { Entity } from "./entity";
-import { effect, type Effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";// One-shot shield: prevent up to `amount` damage on the next instance to issuer this turn
 import type { TriggerEvent } from "@/types/triggers";
-import { is } from "zod/locales";
-import { array } from "zod";
 export function preventNextDamageUpToEffect(amount: number, game: Game): EffectFunction {
     return (it: Card, issuer: Player, targets: any[]) => {
         let offDamage: (() => void) | null = null;

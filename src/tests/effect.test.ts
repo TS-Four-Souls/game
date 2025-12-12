@@ -202,7 +202,7 @@ describe("Loot deck integration", () => {
     game.resolveStack();
     
     // After cancel resolves and removes the gain coin card
-    // But actually, cancelPreviousNonRoll is called AFTER the cancel card is popped
+    // But actually, cancelPreviousAbility is called AFTER the cancel card is popped
     // So when it looks at stack.length - 2, the stack only has 1 item
     // This means the implementation may have a bug, or the effect timing is different
     // Let's test what actually happens

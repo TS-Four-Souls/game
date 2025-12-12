@@ -23,13 +23,14 @@ import {
   LootCard,
   InplayType,
   treasureCard,
+  BsoulCard,
 } from "@/models/cards";
 import { type Ability } from "./abilityRegistry";
 import { Stack, type StackElement } from "@/models/stack";
 import {
   effectParser,
   getAttackRollEffect,
-  targetSelectorParser,
+  targetSelectorParser
 } from "@/models/effect";
 import { Shop, Encounters } from "@/models/slots";
 import { Entity } from "@/models/entity";
@@ -38,15 +39,12 @@ import { type ReadableSignal, Signal } from "micro-signals";
 import { GameEventEmitter } from "./eventEmmitter";
 import { AbilityRegistry } from "./abilityRegistry";
 import { preventNextDamageUpToEffect } from "@/models/abilities";
+import { bSoulEffectParser } from "@/models/bonusSoulHandling";
 
 const LOG_GAME = false;
 export const cards = await loadCards(process.cwd() + "/data/cards");
 const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
 
-for(const card of cardSets["character"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug))){
-  // if((card as LootCard).trinket)
-    console.log(card.effectOutcomes);
-}
 for(const card of cardSets["character"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug))){
   // if((card as LootCard).trinket)
     console.log(card.effectOutcomes);
@@ -64,7 +62,7 @@ export class Game {
   private _destroyedCards: Card[] = [];
   private _emitter: GameEventEmitter;
   private _abilityRegistry: AbilityRegistry;
-  private _bonusSouls: 
+  private _bonusSouls: BsoulCard[] = [];
 
   private _onStateChange: Signal<void> = new Signal();
   onStateChange: ReadableSignal<void> = this._onStateChange.readOnly();
@@ -467,10 +465,6 @@ export class Game {
     this.stack.cancel();
   }
 
-  cancelPreviousNonRoll(): void {
-    this.stack.cancelPreviousNonRoll();
-  }
-
   cancelAt(index: number): void {
     this.stack.removeAt(index);
   }
@@ -540,15 +534,17 @@ export class Game {
     return `You have played the card: ${playedCard.name} to your in-play area.\n`;
   }
 
+  initializeBonusSouls(): void {
+    this._bonusSouls = this.decks["bsoul"]!.drawSeveral(3) as BsoulCard[];
+    for (const soul of this._bonusSouls) {
+        soul.cleanup = bSoulEffectParser(soul, this);
+    }
+  }
   setupGame(): void {
     this._decks = LoadDecks(cardSets, this.players.length);
     this.joinEffectsToCards();
   }
-  start(issuer: Issuer, characters: CharacterCard[] | null = null): void {
-  setupGame(): void {
-    this._decks = LoadDecks(cardSets, this.players.length);
-    this.joinEffectsToCards();
-  }
+  
   start(issuer: Issuer, characters: CharacterCard[] | null = null): void {
     this.assertIssuerSecret(issuer);
     this.assertGameNotStarted();
@@ -557,12 +553,6 @@ export class Game {
     if(this._decks["character"] === undefined){
       this.setupGame();
     }
-
-    
-    if(this._decks["character"] === undefined){
-      this.setupGame();
-    }
-
     this.turnHandler.initialize(this.players);
     if (characters && characters.length > 0) {
       this.assignCharactersToPlayers(characters);
@@ -570,12 +560,7 @@ export class Game {
     {
       this.assignRandomCharacterToPlayers();
     }
-    if (characters && characters.length > 0) {
-      this.assignCharactersToPlayers(characters);
-    } else
-    {
-      this.assignRandomCharacterToPlayers();
-    }
+    this.initializeBonusSouls();
     this._shop = new Shop(
       defaultParameters.nbItemsInShop,
       this.decks["treasure"]!
@@ -589,27 +574,15 @@ export class Game {
     this.healEveryone();
     // this.startTurn();
   }
+  assignRandomCharacterToPlayers(): void {
+    const characterDeck = this.decks["character"];
+    if (!characterDeck) {
+      throw new Error("No character deck found");
+    }
+    const characters: CharacterCard[] = characterDeck.drawSeveral(this.players.length) as CharacterCard[];
+    this.assignCharactersToPlayers(characters);
+  }
 
-  assignRandomCharacterToPlayers(): void {
-  assignRandomCharacterToPlayers(): void {
-    const characterDeck = this.decks["character"];
-    if (!characterDeck) {
-      throw new Error("No character deck found");
-    }
-    const character: CharacterCard = characterDeck.draw() as CharacterCard;
-  }
-  assignCharactersToPlayers(characters: CharacterCard[]): void {
-    const characterDeck = this.decks["character"];
-    if (!characterDeck) {
-      throw new Error("No character deck found");
-    }
-    if(characters.length !== this.players.length){
-      throw new Error("Number of characters does not match number of players");
-    }
-    this.players.forEach((player, index) => {
-      const character = characters[index]!;
-    const character: CharacterCard = characterDeck.draw() as CharacterCard;
-  }
   assignCharactersToPlayers(characters: CharacterCard[]): void {
     const characterDeck = this.decks["character"];
     if (!characterDeck) {
@@ -668,7 +641,6 @@ export class Game {
     this.emitter.emit("on:enter:play", { eventIssuer: player, card: card });
     player.addInPlay(card);
     this.emitter.emit("on:enter:play:after", { eventIssuer: player, card: card });
-    this.emitter.emit("on:enter:play:after", { eventIssuer: player, card: card });
   }
 
   activateItem(player: Player, item: ItemCard): boolean {
@@ -708,22 +680,25 @@ export class Game {
   }
 
   private joinEffectsToCards(): void {
-    const deck = this.decks["loot"]!;
-    deck.cards.forEach((card: Card) => {
-      const lootCard = card as LootCard;
-      if (!lootCard.effectOutcomes || lootCard.effectOutcomes.length === 0) {
-        console.log(
-          "WARNING: No effect outcomes for loot card:",
-          lootCard.name
-        );
-      } else {
-        lootCard.effect = effectParser(lootCard.effectOutcomes[0]!, this);
-        lootCard.targetSelector = targetSelectorParser(
-          lootCard.effectOutcomes[0]!,
-          this
-        );
-      }
-    });
+    for(const deckName of ["loot", "bsoul"])
+    {
+      const deck = this.decks[deckName]!;
+      deck.cards.forEach((card: Card) => {
+        const lootCard = card as LootCard;
+        if (!lootCard.effectOutcomes || lootCard.effectOutcomes.length === 0) {
+          console.log(
+            "WARNING: No effect outcomes for loot card:",
+            lootCard.name
+          );
+        } else {
+          lootCard.effect = effectParser(lootCard.effectOutcomes[0]!, this);
+          lootCard.targetSelector = targetSelectorParser(
+            lootCard.effectOutcomes[0]!,
+            this
+          );
+        }
+      });
+    }
   }
 
   addAttack(e: Entity, value: number): void {
@@ -1076,8 +1051,10 @@ export class Game {
 
     return `You have discarded the monster at position ${position}.\n`;
   }
-  kill(issuer: Issuer, entity: Entity): void {
-    entity.die();
+  kill(issuer: Issuer, entity: Entity, usingCard: Card): void {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+    this.death(entity, player, usingCard);
   }
 
   discardInPlayByCard(player: Player, card: Card): void {

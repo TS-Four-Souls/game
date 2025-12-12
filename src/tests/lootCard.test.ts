@@ -803,6 +803,7 @@ describe("Loot Card", () => {
         game.playCard(player1, 1);
         game.gainCoins(player1, 3);
         const initialCoins = player1.coins;
+        const initialInPlay = player1.inPlay.length;
 
         game.resolveStack();
         expect(game.stack.size).toBe(1); // Dice roll should be on stack
@@ -811,13 +812,14 @@ describe("Loot Card", () => {
         game.resolveStack();
 
         expect(player1.coins).toBe(0);
+        expect(player1.inPlay.length).toBe(initialInPlay); // Discard a card to make up the difference
     });
 
     // "Roll-\n1-2: You gain +1 [ATK] till the end of turn.\n3-4: You gain +1 [HP] till the end of turn.\n5-6: Take 1 damage."
     it("b2-pills_3: gain 1 atk till end of turn", () => {
         const pills = game.decks["loot"]!.getCardFromSlug("b2-pills_3");
         player1.hand.addToHand(pills!);
-
+        const initialInPlay = player1.inPlay.length;
         game.playCard(player1, 1);
 
         const initialAtk = player1.attackPoints;
@@ -836,6 +838,8 @@ describe("Loot Card", () => {
         game.endTurn();
 
         expect(player1.attackPoints).toBe(initialAtk);
+        expect(player1.inPlay.length).toBe(initialInPlay); // Discard a card to make up the difference
+
     });
 
     it("b2-pills_3: gain 1 hp till end of turn", () => {
@@ -922,6 +926,7 @@ describe("Loot Card", () => {
 
         game.playCard(player1, 1);
         (card as LootCard).debugSetTargets([player2]);
+        game.resolveStack();
         game.resolveStack();
 
         expect(player2.currentHealthPoints).toBe(0);

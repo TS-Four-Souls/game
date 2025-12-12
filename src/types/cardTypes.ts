@@ -59,7 +59,7 @@ export type CardRewards = {
   treasure?: number | "roll" | "?";
 };
 
-type GuppyCard = {
+export type GuppyCard = {
   guppy?: true;
 };
 

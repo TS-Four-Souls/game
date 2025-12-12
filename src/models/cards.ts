@@ -1,6 +1,6 @@
 import { shuffle, print } from '@/utils/auxiliary';
 import { chooseOneTargetSelector, effectParser, targetSelectorParser, isChooseOneResult, type ChooseOneOptions, type ChooseOneResult, isChooseOneOptions } from '@/models/effect';
-import type { CardRewards, EternalCardType, GenericCardType, LootCardType, InPlayCardType, TreasureCardType, CharacterCardType, MonsterCardType, BonusSoulCardType } from '@/types/cardTypes';
+import type { CardRewards, EternalCardType, GenericCardType, LootCardType, InPlayCardType, TreasureCardType, CharacterCardType, MonsterCardType, BonusSoulCardType, GuppyCard } from '@/types/cardTypes';
 import type { Player } from './player';
 import { assert } from 'console';
 class Card {
@@ -103,6 +103,7 @@ export class ItemCard extends Card {
     protected _cost: string;
     constructor(id: number, json: InPlayCardType) {
         super(id, json);
+        this._guppy = (json as GuppyCard).guppy === true;
         this._cost = "";
         this._inplayType = InplayType.PASSIVE;
         if (json.effectOutcome !== undefined) {
@@ -112,6 +113,7 @@ export class ItemCard extends Card {
                 this._inplayType = InplayType.PAID;
             }
         }
+
     }
 
     get inPlayType(): InplayType {
@@ -368,14 +370,13 @@ class MonsterCard extends Card {
     }
 }
 
-class bsoulCard extends Card {
-    protected _soul:number = 0;
+class BsoulCard extends Card {
     constructor(id: number, json: BonusSoulCardType) {
         super(id, json);
         if (json.rewards && json.rewards.soul) {
             if(typeof json.rewards.soul === "number")
             {
-                this._soul = json.rewards.soul;
+                this._souls = json.rewards.soul;
             }
         }
     }
@@ -405,7 +406,7 @@ class CardSet {
             this._set.push(new MonsterCard(this._set.length, json ));
         }
         else if(json.type === "bsoul") {
-            this._set.push(new bsoulCard(this._set.length, json ));
+            this._set.push(new BsoulCard(this._set.length, json ));
         }
         else{
             console.log(`Unknown card: ${json}, adding as generic Card.`);
@@ -717,4 +718,4 @@ function randomCardFromSet(set: CardSet) : Card {
     return card;
 }
 
-export { Card, LootCard, treasureCard, MonsterCard, bsoulCard, CharacterCard, eternalCard, MonsterType, InplayType, CardSet, Deck, Hand, LoadsCardSets, LoadDecks, randomCardFromSet, isSameSlug };
+export { Card, LootCard, treasureCard, MonsterCard, BsoulCard, CharacterCard, eternalCard, MonsterType, InplayType, CardSet, Deck, Hand, LoadsCardSets, LoadDecks, randomCardFromSet, isSameSlug };
