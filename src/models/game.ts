@@ -47,6 +47,10 @@ for(const card of cardSets["character"]!.cards.toSorted((a, b) => a.slug.localeC
   // if((card as LootCard).trinket)
     console.log(card.effectOutcomes);
 }
+for(const card of cardSets["character"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug))){
+  // if((card as LootCard).trinket)
+    console.log(card.effectOutcomes);
+}
 const defaultParameters = { nbItemsInShop: 2, nbEncounters: 2 };
 export class Game {
   private _players: Player[] = [];
@@ -541,6 +545,11 @@ export class Game {
     this.joinEffectsToCards();
   }
   start(issuer: Issuer, characters: CharacterCard[] | null = null): void {
+  setupGame(): void {
+    this._decks = LoadDecks(cardSets, this.players.length);
+    this.joinEffectsToCards();
+  }
+  start(issuer: Issuer, characters: CharacterCard[] | null = null): void {
     this.assertIssuerSecret(issuer);
     this.assertGameNotStarted();
     this.assertMinimumPlayerCount();
@@ -549,7 +558,18 @@ export class Game {
       this.setupGame();
     }
 
+    
+    if(this._decks["character"] === undefined){
+      this.setupGame();
+    }
+
     this.turnHandler.initialize(this.players);
+    if (characters && characters.length > 0) {
+      this.assignCharactersToPlayers(characters);
+    } else
+    {
+      this.assignRandomCharacterToPlayers();
+    }
     if (characters && characters.length > 0) {
       this.assignCharactersToPlayers(characters);
     } else
@@ -571,10 +591,23 @@ export class Game {
   }
 
   assignRandomCharacterToPlayers(): void {
+  assignRandomCharacterToPlayers(): void {
     const characterDeck = this.decks["character"];
     if (!characterDeck) {
       throw new Error("No character deck found");
     }
+    const character: CharacterCard = characterDeck.draw() as CharacterCard;
+  }
+  assignCharactersToPlayers(characters: CharacterCard[]): void {
+    const characterDeck = this.decks["character"];
+    if (!characterDeck) {
+      throw new Error("No character deck found");
+    }
+    if(characters.length !== this.players.length){
+      throw new Error("Number of characters does not match number of players");
+    }
+    this.players.forEach((player, index) => {
+      const character = characters[index]!;
     const character: CharacterCard = characterDeck.draw() as CharacterCard;
   }
   assignCharactersToPlayers(characters: CharacterCard[]): void {
@@ -634,6 +667,7 @@ export class Game {
   addInPlay(player: Player, card: Card): void {
     this.emitter.emit("on:enter:play", { eventIssuer: player, card: card });
     player.addInPlay(card);
+    this.emitter.emit("on:enter:play:after", { eventIssuer: player, card: card });
     this.emitter.emit("on:enter:play:after", { eventIssuer: player, card: card });
   }
 
