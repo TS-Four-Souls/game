@@ -1,10 +1,11 @@
 import { DiceRoll, Player } from "./player";
-import { type Card, type LootCard, type EffectFunction, type TargetsSelector, ItemCard, InplayType } from "./cards";
+import { type Card, type EffectData, type LootCard, type EffectFunction, type TargetsSelector, ItemCard, InplayType } from "./cards";
 import { Game } from "./game";
 import type { Stack, StackElement } from "./stack";// One-shot shield: prevent up to `amount` damage on the next instance to issuer this turn
 import type { TriggerEvent } from "@/types/triggers";
+
 export function preventNextDamageUpToEffect(amount: number, game: Game): EffectFunction {
-    return (it: Card, issuer: Player, targets: any[]) => {
+    return (data:EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
 
@@ -17,7 +18,7 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): EffectF
 
         // Listen for the next damage event on this player
         offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
-            if (targets[0] !== eventIssuer) return;
+            if (data.targets[0] !== eventIssuer) return;
             const current = damageArray[0] ?? 0;
             const prevented = Math.min(current, amount);
             damageArray[0] = current - prevented;
@@ -37,11 +38,11 @@ export function temporaryStatModifierEffect(
     amount: number,
     game: Game
 ): EffectFunction {
-    return (it: Card, issuer: Player, targets: any[]) => {
+    return (data:EffectData) => {
         if(amount < 0)
             throw new Error("temporaryStatModifierEffect amount must be non-negative.");
         // Apply the stat modification
-        const target = targets[0] === undefined ? issuer : targets[0];
+        const target = data.targets[0] === undefined ? data.issuer : data.targets[0];
         for(const adder of adders)
             adder(target, amount);
         
@@ -63,7 +64,7 @@ export function firstAttackRollStatModifierEffect(
     evasionModifier: number=0,
     game: Game
 ): EffectFunction {
-    return (it: Card, issuer: Player, targets: any[]) => {
+    return (data:EffectData) => {
         let offAttack: (() => void) | null = null;
 
         const cleanup = () => {
@@ -72,14 +73,14 @@ export function firstAttackRollStatModifierEffect(
         };
         // Register cleanup to reverse at end of turn
         offAttack = game.emitter.on("on:attack:roll:first-time-each-turn", ({ eventIssuer, target, damageDealt, damageReceived, evasion } ) => {
-            if (issuer !== eventIssuer) return;
+            if (data.issuer !== eventIssuer) return;
             damageDealt[0]! += damageDealtModifier;
             damageReceived[0]! += damageReceivedModifier;
             evasion[0]! += evasionModifier;
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
-        it.cleanup = () => {
+        data.it.cleanup = () => {
             cleanup();
         }
         return true;
@@ -91,7 +92,7 @@ export function gainCoinsOnDamageEffect(
     amount: number,
     game: Game
 ): EffectFunction {
-    return (it: Card, issuer: Player, targets: any[]) => {
+    return (data:EffectData) => {
         let offDamage: (() => void) | null = null;
 
         const cleanup = () => {
@@ -101,13 +102,13 @@ export function gainCoinsOnDamageEffect(
 
         // Listen for damage events on this player
         offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target: dealer, abilityCard: usingAbilityFrom, damage: dmg }) => {
-            if (issuer !== eventIssuer) return;
+            if (data.issuer !== eventIssuer) return;
             if (dmg <= 0) return;
-            game.gainCoins(issuer, amount);
+            game.gainCoins(data.issuer, amount);
         }); 
 
         // Store cleanup function on the card for when it's removed/destroyed
-        it.cleanup = () => {
+        data.it.cleanup = () => {
             cleanup();
         }
 
@@ -120,7 +121,7 @@ export function lootOnPlayerDeathEffect(
     amount: number,
     game: Game
 ): EffectFunction {
-    return (it: Card, issuer: Player, targets: any[]) => {
+    return (data:EffectData) => {
         let offDeath: (() => void) | null = null;
 
         const cleanup = () => {
@@ -131,12 +132,12 @@ export function lootOnPlayerDeathEffect(
         // Listen for damage events on this player
         offDeath = game.emitter.on("on:death:before-penalty", ({ eventIssuer, target: from, abilityCard: usingAbilityFrom, damage: dmg }) => {
             if (eventIssuer instanceof Player) {
-                game.loot(issuer, amount);
+                game.loot(data.issuer, amount);
             }
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
-        it.cleanup = () => {
+        data.it.cleanup = () => {
             cleanup();
         }
 
@@ -148,7 +149,7 @@ export function gainPlusCoinsEffect(
     amount: number,
     game: Game
 ): EffectFunction {
-    return (it: Card, issuer: Player, targets: any[]) => {
+    return (data:EffectData) => {
         let offGainCoin: (() => void) | null = null;
 
         const cleanup = () => {
@@ -158,13 +159,13 @@ export function gainPlusCoinsEffect(
 
         // Listen for the next damage event on this player
         offGainCoin = game.emitter.on("on:coin:gained", ({ eventIssuer, coinGained }) => {
-            if (issuer !== eventIssuer) return;
+            if (data.issuer !== eventIssuer) return;
             const current = coinGained[0] ?? 0;
             coinGained[0] = current + amount;
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
-        it.cleanup = () => {
+        data.it.cleanup = () => {
             cleanup();
         }
 
@@ -177,7 +178,7 @@ export function LookAndPutBottomEffect(
     deckName: string,
     game: Game
 ): EffectFunction {
-    return (it: Card, issuer: Player, targets: any[]) => {
+    return (data:EffectData) => {
         let offEffect: (() => void) | null = null;
 
         const cleanup = () => {
@@ -187,13 +188,13 @@ export function LookAndPutBottomEffect(
 
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:turn:start", ({ eventIssuer, coinGained }) => {
-            if (issuer !== eventIssuer) return;
+            if (data.issuer !== eventIssuer) return;
             const deck = game.decks[deckName];
             if (!deck) {
                 throw new Error(`Deck ${deckName} does not exist.`);
             }
             const topCard = deck.draw();
-            const res = game.select(issuer, 1, [topCard], true);
+            const res = game.select(data.issuer, 1, [topCard], true);
             if (res.selected.length > 0) {
                 deck.addBottomPosition(topCard);
             } else {
@@ -202,7 +203,7 @@ export function LookAndPutBottomEffect(
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
-        it.cleanup = () => {
+        data.it.cleanup = () => {
             cleanup();
         }
 
@@ -216,7 +217,7 @@ export function rollDiceOnTriggerEffect(
     triggerEvent: TriggerEvent,
     game: Game
 ): EffectFunction {
-    return (it: Card, issuer: Player, targets: any[]) => {
+    return (data:EffectData) => {
         let offEffect: (() => void) | null = null;
 
         const cleanup = () => {
@@ -227,12 +228,12 @@ export function rollDiceOnTriggerEffect(
         // Listen for the next damage event on this player
         offEffect = game.emitter.on(triggerEvent, ({ eventIssuer }) => {
             // if(_eventIssuer !== null && eventIssuer !== _eventIssuer) return;
-            if(issuer !== eventIssuer) return;
-            diceRollEffect(it, issuer, targets);
+            if (data.issuer !== eventIssuer) return;
+            diceRollEffect(data);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
-        it.cleanup = () => {
+        data.it.cleanup = () => {
             cleanup();
         }
         return true;
@@ -245,7 +246,7 @@ export function preventDamageOnRollEffect(
     damagePrevented: number,
     game: Game
 ): EffectFunction {
-    return (it: Card, issuer: Player, targets: any[]) => {
+    return (data:EffectData) => {
         let offEffect: (() => void) | null = null;
 
         const cleanup = () => {
@@ -255,28 +256,28 @@ export function preventDamageOnRollEffect(
 
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
-            if (issuer !== eventIssuer) return;
-            const roll:DiceRoll = game.rollDice(issuer, false);
-            const effects: EffectFunction[] = new Array<EffectFunction>(6).fill((it: Card, issuer: Player, targets: any[]) => { return true; });
+            if (data.issuer !== eventIssuer) return;
+            const roll:DiceRoll = game.rollDice(data.issuer, false);
+            const effects: EffectFunction[] = new Array<EffectFunction>(6).fill((data:EffectData) => { return true; });
             for (const val of diceValues) {
-                effects[val - 1] = (it: Card, issuer: Player, targets: any[]) => { 
+                effects[val - 1] = (data:EffectData) => { 
                     damageArray[0]! -= damagePrevented; 
                     return true; 
                 };
             }
-            roll.attachEffect(effects, it, []);
+            roll.attachEffect(effects, data.it, []);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
-        it.cleanup = () => {
+        data.it.cleanup = () => {
             cleanup();
         }
         return true;
-    };
+    };  
 }
 
 export function goFirstInTurnOrderEffect(game: Game): EffectFunction {
-    return (it: Card, issuer: Player, targets: any[]) => {
+    return (data:EffectData) => {
         let offEffect: (() => void) | null = null;
 
         const cleanup = () => {
@@ -286,7 +287,7 @@ export function goFirstInTurnOrderEffect(game: Game): EffectFunction {
 
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:game:start:before", () => {
-            game.turnHandler.setFirstPlayer(issuer);
+            game.turnHandler.setFirstPlayer(data.issuer);
             cleanup();
         });
         return true;

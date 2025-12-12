@@ -93,7 +93,12 @@ class Card {
 }
 
 export type TargetsSelector = (issuer: Player) => any[];
-export type EffectFunction = (it:Card, issuer: Player, targets: any[]) => boolean;
+export type EffectData = {
+    it: Card,
+    issuer: Player,
+    targets: any[]
+}
+export type EffectFunction = (data: EffectData) => boolean;
 
 enum InplayType { CHARGED, UNCHARGED, PASSIVE, PAID, PLAYABLE }
 export class ItemCard extends Card {
@@ -172,8 +177,8 @@ class LootCard extends ItemCard {
     protected _effect: EffectFunction;
     constructor(id: number, json: LootCardType, 
         selectTargets: TargetsSelector = (issuer: Player) => [],
-        effect: EffectFunction = (it, issuer: Player, targets: any[]) => 
-            { issuer.addInPlay(this); return true; }
+        effect: EffectFunction = (data: EffectData) => 
+            { data.issuer.addInPlay(data.it); return true; }
     ) {
         super(id, json);
         this._inplayType = InplayType.PLAYABLE;
@@ -266,7 +271,7 @@ class LootCard extends ItemCard {
         if(this.targetStillValid()) {
             if(this._inplayType === InplayType.PASSIVE)
                 this._issuer.addInPlay(this);
-            this._effect(this, this._issuer, this._selectedTargets);
+            this._effect({ it: this, issuer: this._issuer, targets: this._selectedTargets });
         } else {
             console.log("LootCard.onResolve: targetStillValid() returned false for", (this as any).name);
         }

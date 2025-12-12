@@ -28,20 +28,20 @@ describe("Effect - gainCoins", () => {
   });
 
   it("should give coins to issuer when game started", () => {
-    effectFn(dummyLoot, p1, []);
+    effectFn({it: dummyLoot, issuer: p1, targets: []});
     expect(p1.coins).toBe(5);
     expect(p2.coins).toBe(0);
   });
 
   it("should accumulate across multiple triggers", () => {
-    effectFn(dummyLoot, p1, []);
-    effectFn(dummyLoot, p1, []);
+    effectFn({it: dummyLoot, issuer: p1, targets: []});
+    effectFn({it: dummyLoot, issuer: p1, targets: []});
     expect(p1.coins).toBe(10);
   });
 
   it("should respect issuer secret (wrong secret fails)", () => {
     const badIssuer = { id: p1.id, secret: "wrong" } as any;
-    const fn = () => effectFn(dummyLoot, badIssuer, []);
+    const fn = () => effectFn({it: dummyLoot, issuer: badIssuer, targets: []});
     expect(fn).toThrow("Invalid player secret");
   });
 
@@ -52,12 +52,12 @@ describe("Effect - gainCoins", () => {
     freshGame.addPlayer(a);
     freshGame.addPlayer(b);
     const fn = gainCoinsEffect(freshGame, 3);
-    expect(() => fn(dummyLoot, a, [])).toThrow("Game not started");
+    expect(() => fn({it: dummyLoot, issuer: a, targets: []})).toThrow("Game not started");
   });
 
   it("should reject negative coin amount", () => {
     const negEffect = gainCoinsEffect(game, -2 as any);
-    expect(() => negEffect(dummyLoot, p1, [])).toThrow("Number is negative.");
+    expect(() => negEffect({it: dummyLoot, issuer: p1, targets: []})).toThrow("Number is negative.");
   });
 });
 
@@ -72,7 +72,7 @@ describe("Effect - additional unique implementations", () => {
     const fn = effect.changeRollDiceResultEffect(game);
     // Use a real loot card
     const card = game.decks["loot"]!.cards[0]!;
-    fn(card, p1, [dice]);
+    fn({it: card, issuer: p1, targets: [dice]});
     expect(dice.value).toBe(6);
   });
 
@@ -96,7 +96,7 @@ describe("Effect - additional unique implementations", () => {
     const fn = effect.effectParser("Put this on the bottom of the loot deck. If you do, take an extra turn after this one if it's your turn.", game);
     // Use a real loot card
     const card = game.decks["loot"]!.cards[0]!;
-    fn(card, p1, []);
+    fn({it: card, issuer: p1, targets: []});
     expect(added).toBe(true);
     expect(extra).toBe(true);
   });

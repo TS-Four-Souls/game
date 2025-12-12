@@ -24,6 +24,7 @@ import {
   InplayType,
   treasureCard,
   BsoulCard,
+  type EffectData,
 } from "@/models/cards";
 import { type Ability } from "./abilityRegistry";
 import { Stack, type StackElement } from "@/models/stack";
@@ -228,7 +229,8 @@ export class Game {
     const itemToLose = this.select(
       p,
       1,
-      p.inPlay.filter((c) => c.eternal === false)
+      p.inPlay.filter((c) => (c instanceof treasureCard || (c instanceof LootCard && c.trinket)) 
+                            && c.eternal === false)
     ).selected[0];
     if (itemToLose) {
       this.removeInPlay(p, itemToLose);
@@ -384,7 +386,7 @@ export class Game {
     receiver: Entity,
     usingAbilityFrom: Card,
     damage: number,
-    callback?: (it: Card, issuer: Player, targets: any[]) => boolean
+    callback?: (data:EffectData) => boolean
   ): void {
     if (damage <= 0 || receiver.isDead) return;
 
@@ -768,7 +770,7 @@ export class Game {
       const drawnCard: Card = treasureDeck.draw()!;
       this.addInPlay(player, drawnCard);
     }
-
+    this._onStateChange.dispatch();
     return `You have drawn ${number} treasure card(s).\n`;
   }
 
