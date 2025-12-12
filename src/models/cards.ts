@@ -92,7 +92,12 @@ class Card {
     }
 }
 
-export type TargetsSelector = (issuer: Player) => any[];
+export type TargetsSelector = 
+{
+    description: string;
+    selector: (issuer: Player) => any[];
+};
+
 export type EffectData = {
     it: Card,
     issuer: Player,
@@ -172,11 +177,11 @@ class LootCard extends ItemCard {
     protected _reward: CardRewards | undefined;
     protected _trinket: boolean = false;
     protected _issuer!: Player;
-    protected _targetsSelector: TargetsSelector;
+    protected _targetsSelector: TargetsSelector[];
     protected _selectedTargets: any[] = [];
     protected _effect: EffectFunction;
     constructor(id: number, json: LootCardType, 
-        selectTargets: TargetsSelector = (issuer: Player) => [],
+        selectTargets: TargetsSelector[] = [{description: "", selector: (issuer: Player) => []}],
         effect: EffectFunction = (data: EffectData) => 
             { data.issuer.addInPlay(data.it); return true; }
     ) {
@@ -202,7 +207,7 @@ class LootCard extends ItemCard {
         this._effect = effect;
     }
 
-    set targetSelector(selector: TargetsSelector) {
+    set targetSelector(selector: TargetsSelector[]) {
         this._targetsSelector = selector;
     }
 
@@ -214,7 +219,7 @@ class LootCard extends ItemCard {
             const descr = chooseOneTarget.description;
             const targets = chooseOneTarget.chosenOptions;
             if(targets.length > 0)
-                for (const admissibleTarget of this._targetsSelector(this._issuer))
+                for (const admissibleTarget of this._targetsSelector[0]!.selector(this._issuer))
                 {
                     if(admissibleTarget.description === descr)
                     {
@@ -232,18 +237,22 @@ class LootCard extends ItemCard {
     }
 
     private targetStillValid(): boolean {
-        if(this._selectedTargets.length > 0)
+        if (this._selectedTargets.length > 0){
+        for(const i in this._targetsSelector)
+        {
+            if(this._selectedTargets[i].length > 0)
             {
-                const admissibleTargets = this._targetsSelector(this._issuer);
-            if (isChooseOneResult(this._selectedTargets[0])) {
-                return this.chooseOneTargetStillValid()
-            } else {
-                for(const target of this._selectedTargets) {
-                    if(!admissibleTargets.includes(target)) {
-                        return false;
+                const admissibleTargets = this._targetsSelector[i]!.selector(this._issuer);
+                if (isChooseOneResult(this._selectedTargets[i][0])) {
+                    return this.chooseOneTargetStillValid()
+                } else {
+                    for(const targetId in this._selectedTargets) {
+                        if(!admissibleTargets[targetId].includes(this._selectedTargets[targetId][0])) {
+                            return false;
+                        }
                     }
                 }
-            }
+            }}
         }
         return true;
     }
@@ -251,21 +260,23 @@ class LootCard extends ItemCard {
     onPlay(issuer: Player): void {
         // temporary selection target selection: take the first valid target.
         //  Note that for choose one-, the first effect is choosen and the first target selected.
-        if(this._targetsSelector(issuer).length === 0) 
-            this._selectedTargets = [];
-        else if (isChooseOneOptions(this._targetsSelector(issuer)[0]))
-        {
-            const options: ChooseOneOptions[] = this._targetsSelector(issuer) as ChooseOneOptions[];
-            const chooseOne = this._targetsSelector(issuer)[0].description;
-            const targets = this._targetsSelector(issuer)[0].admissibleTargets[0] !== undefined ?
-                this._targetsSelector(issuer)[0].admissibleTargets :
-                [];
-            const resultTargets: ChooseOneResult[] = [{ description: chooseOne, chosenOptions: targets }];
-            this._selectedTargets = resultTargets;
+        for(const targetSelector of this._targetsSelector) {
+            if(targetSelector.selector(issuer).length === 0) 
+                this._selectedTargets = [];
+            else if (isChooseOneOptions(targetSelector.selector(issuer)[0]))
+            {
+                const options: ChooseOneOptions[] = targetSelector.selector(issuer) as ChooseOneOptions[];
+                const chooseOne = targetSelector.selector(issuer)[0].description;
+                const targets = targetSelector.selector(issuer)[0].admissibleTargets[0] !== undefined ?
+                    targetSelector.selector(issuer)[0].admissibleTargets :
+                    [];
+                const resultTargets: ChooseOneResult[] = [{ description: chooseOne, chosenOptions: targets }];
+                this._selectedTargets = resultTargets;
+            }
+            else
+                this._selectedTargets = [targetSelector.selector(issuer)[0]];
+            this._issuer = issuer!;
         }
-        else
-            this._selectedTargets = [this._targetsSelector(issuer)[0]];
-        this._issuer = issuer!;
     }
     onResolve(): void {
         if(this.targetStillValid()) {

@@ -41,6 +41,7 @@ import { GameEventEmitter } from "./eventEmmitter";
 import { AbilityRegistry } from "./abilityRegistry";
 import { preventNextDamageUpToEffect } from "@/models/abilities";
 import { bSoulEffectParser } from "@/models/bonusSoulHandling";
+import { pl } from "zod/locales";
 
 const LOG_GAME = false;
 export const cards = await loadCards(process.cwd() + "/data/cards");
@@ -675,9 +676,9 @@ export class Game {
     this.assertCurrentTurnIsPlayerTurn(player);
     this.assertNoOngoingAttack();
     this.healEveryone();
-
-    console.log(roundIndex);
-    this.endTurn();
+    if(player === this.currentPlayer){
+      this.endTurn();
+    }
     return `It's ${this.currentPlayer!.id}'s turn. Round ${roundIndex}.\n`;
   }
 
@@ -782,7 +783,6 @@ export class Game {
         player.removeInPlay(card);
       });
     });
-    this.destroyedCards.push(...cards);
     cards.forEach((card) => {
       this.players.forEach((player) => {
         player.removeSoul(card);
@@ -986,7 +986,8 @@ export class Game {
       this.addInPlay(player, target);
       return true;
     }
-    this.players.forEach((p) => {
+    for (const p of this.players)
+    {
       if (p !== player) {
         if (p.inPlay.includes(target)) {
           p.inPlay.splice(p.inPlay.indexOf(target), 1);
@@ -994,7 +995,7 @@ export class Game {
           return true;
         }
       }
-    });
+    }
     return false;
   }
   stealCoins(issuer: Issuer, target: Player, amount: number): string {

@@ -318,7 +318,7 @@ const app = new Elysia()
     }
   )
   .post(
-    "/next",
+    "/endturn",
     async (request) => {
       return new Response(game.nextTurn(request.body.issuer), {
         status: 200,
@@ -328,6 +328,20 @@ const app = new Elysia()
       body: schemas.userProtectedRequest,
     }
   )
+
+  // .post(
+  //   "/endturn", 
+  //   async (request) => {
+  //     if(request.body.issuer !== game.currentPlayer?.name) {
+  //     game.endTurn();
+  //   return new Response("Turn ended", {
+  //     status: 200,
+  //   });
+  //   },
+  //   {
+  //     body: schemas.userProtectedRequest,
+  //   }
+  // )
   .get("/getdiscard/:type", async (request) => {
     const type: string = request.params.type;
     return new Response(game.getDiscard(type), {
@@ -345,6 +359,7 @@ const app = new Elysia()
       status: 200,
     });
   })
+
   .get(
     "/sse",
     async (request) => {

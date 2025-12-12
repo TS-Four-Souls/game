@@ -24,7 +24,7 @@ export class AbilityRegistry {
         const off = this.emitter.on(ability.trigger, (data) => {
             if (!ability.isActive) return;
             // data should include issuer/targets; you can shape it as you like
-            ability.effect(ability.card, data.issuer as Player, data.targets ?? []);
+            ability.effect({it: ability.card, issuer: data.issuer as Player, targets: data.targets ?? []});
         });
         this.unsubscribers.set(ability.id, off);
         this.abilities.set(ability.id, ability);

@@ -145,7 +145,8 @@ export function destroyYourItemAndStealEffect(game: Game): EffectFunction {
 
 export function destroyOneEffect(game: Game): EffectFunction {
     return (data:EffectData) => {
-        const toDestroy = game.select(data.issuer, 1, data.targets).selected[0] as Card;
+        const toDestroy = data.targets[0] as Card;
+        // game.select(data.issuer, 1, data.targets).selected[0] as Card;
         return game.destroyCardsOrSouls([toDestroy]);
     };
 }
@@ -210,7 +211,9 @@ export function stealNonEternalItemEffect(game: Game): EffectFunction {
 
 export function stealNonEternalItemFromAnywhereEffect(game: Game): EffectFunction {
     return (data:EffectData) => {
-        const itemToSteal = game.select(data.issuer, 1, game.visibleItems.filter((card) => card instanceof ItemCard && card.eternal === false)).selected[0]!;
+
+        const itemToSteal = data.targets[0] as ItemCard;
+        // game.select(data.issuer, 1, game.visibleItems.filter((card) => card instanceof ItemCard && card.eternal === false)).selected[0]!;
         return game.stealItemAnywhere(data.issuer, itemToSteal);
     };
 }
@@ -596,8 +599,8 @@ export function effectParser(s:string, game: Game): EffectFunction {
         const secondEffect = effectParser(parts[1]!.trim(), game);
         return (data:EffectData) => {
             // todo verify that the first effect was successful.
-            if(firstEffect({it: data.it, issuer: data.issuer, targets: data.targets}))
-                secondEffect({it: data.it, issuer: data.issuer, targets: data.targets});
+            if(firstEffect({it: data.it, issuer: data.issuer, targets: data.targets[0]}))
+                secondEffect({it: data.it, issuer: data.issuer, targets: data.targets[1]});
             return true;
         };
     }
@@ -977,7 +980,7 @@ export function effectParser(s:string, game: Game): EffectFunction {
     }
 }
 
-export function targetSelectorParser(s:string, game: Game): TargetsSelector {
+export function targetSelectorParser(s:string, game: Game): TargetsSelector[] {
     s = s.toLowerCase();
     // if (s === "kill a player.")
     // {
@@ -985,75 +988,88 @@ export function targetSelectorParser(s:string, game: Game): TargetsSelector {
     // }
     const coinStolen = parseNumber(s, /^steal\s+(\d+)\u00A2 from a player\.?$/u);
     // if (s.startsWith("you gain"))
+    if (s.includes(" if you do, ")) 
+        return [{description: "If you do,", selector: IfYouDoTargetSelector(s, game)}];
     if (s.startsWith("choose one-"))
-        return chooseOneTargetSelector(s, game);
+        return [{description: "Choose one-", selector: chooseOneTargetSelector(s, game)}];
     if (s === "give another non-eternal item you control to another player:" ||
         s === "choose another player. steal a loot card from them at random." ||
         coinStolen !== null) {
-        return anotherPlayerSelector(undefined, game);
+        return [{description: "Choose another player", selector: anotherPlayerSelector(undefined, game)}];
     }
     if (s === "cancel the ↷ or $ ability of an item or a loot being played.")
-        return stackElementSelector((element) => element instanceof LootCard, game);
+        return [{description: "Select a loot card on the stack.", selector: stackElementSelector((element) => element instanceof LootCard, game)}];
     if (s.startsWith("choose a player.") ||
         s === "kill a player.") {
-        return playerSelector(undefined, game);
+        return [{description: "Choose a player", selector: playerSelector(undefined, game)}];
     }
     if (s === "choose the player with the most souls or tied for the most. that player destroys a soul they control.")
     {
-        return playerSelector((p) => p.souls.length === Math.max(...game.players.map(p => p.souls.length)), game);
+        return [{description: "Choose a player with the most souls or tied for the most.", selector: playerSelector((p) => p.souls.length === Math.max(...game.players.map(p => p.souls.length)), game)}];
     }
     if (s === "choose a dice roll. its controller rerolls it." ||
         s === "change the result of a dice roll to a 1 or 6." ||
         s === "change the result of a dice roll to a number of your choosing.") {
-        return rollSelector(undefined, game);
+        return [{description: "Choose a dice roll", selector: rollSelector(undefined, game)}];
     }
     if (s === "choose a player or monster, then roll- deal damage to them equal to the result." ||
         s === "choose a player or monster, then roll-\ndeal damage to them equal to the result." ||
         s === "choose a player or monster. prevent the next instance of up to 2 damage they would take this turn." ||
         s.match(/^deal \d+ damage to a monster or player\.?$/u)
     ) {
-        return activeEntitySelector(undefined, game);
+        return [{description: "Choose a player or monster", selector: activeEntitySelector(undefined, game)}];
     }
-    if (s === "Destroy an item you control."){
-        return inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false && player == game.getOwner(card), game);
+    if (s === "destroy an item you control."){
+        return [{description: "Destroy an item you control", selector: inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false && player == game.getOwner(card), game)}];
     }
     if (s === "destroy a curse.")
-        return inplayCurseSelector((player, card) => true, game);
+        return [{description: "Select a curse.", selector: inplayCurseSelector((player, card) => true, game)}];
     if (s === "recharge an item.")
     {
-        return inplayUnchargedItemSelector(game);
+        return [{description: "Select a rechargeable item", selector: inplayUnchargedItemSelector(game)}];
     }
-    return (issuer: Player) => [];
+    if (s === "steal a non-eternal item from a player or from the shop.")
+    {
+        return [{ description: "Select a non-eternal item from a player or from the shop", selector: visibleItemSelector((card: ItemCard) => card.eternal === false, game)}];
+    }
+    return [{description: "", selector: (issuer: Player) => []}];
 }
 // export function eachPlayerSelector(game: Game): TargetsSelector {
 // }
-export function inplayUnchargedItemSelector(game: Game): TargetsSelector {
+export function inplayUnchargedItemSelector(game: Game): (issuer: Player) => any[] {
     return (inplayItemSelector((player: Player, card: ItemCard) => card.isActiveItem(), game));
 }
 
-export function inplayCurseSelector(filter: (player: Player, card: MonsterCard) => boolean, game: Game): TargetsSelector {
+export function inplayCurseSelector(filter: (player: Player, card: MonsterCard) => boolean, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
         return game.inPlayCurses.filter(({ player, card }) => filter(player, card)).map(({ card }) => card);
     };
 }
-export function inplayItemSelector(filter: (player: Player, card: ItemCard) => boolean, game: Game): TargetsSelector {
+export function inplayItemSelector(filter: (player: Player, card: ItemCard) => boolean, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
         return game.inPlayItems.filter(({ player, card }) => filter(player, card)).map(({ card }) => card);
     };
 }
-export function playerSelector(filter: (player: Player) => boolean = () => true, game: Game): TargetsSelector {
+
+export function visibleItemSelector(filter: (card: ItemCard) => boolean, game: Game): (issuer: Player) => any[] {
+    return (issuer: Player) => {
+        return game.visibleItems.filter((card ) => filter(card));
+    };
+}
+
+export function playerSelector(filter: (player: Player) => boolean = () => true, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
         return game.players.filter((player) => filter(player));
     };
 }
 
-export function anotherPlayerSelector(filter: (player: Player) => boolean = () => true, game: Game): TargetsSelector {
+export function anotherPlayerSelector(filter: (player: Player) => boolean = () => true, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
         return playerSelector((player) => player !== issuer && filter(player), game)(issuer);
     };
 }
 
-export function activeEntitySelector(filter: (player: Entity) => boolean = () => true, game: Game): TargetsSelector {
+export function activeEntitySelector(filter: (player: Entity) => boolean = () => true, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
         return game.Entities.filter((entity) => filter(entity));
     }
@@ -1066,34 +1082,40 @@ export type ChooseOneOptions = {
 export const isChooseOneOptions = (x: any): x is ChooseOneOptions => {
     return typeof x === 'object' && x !== null && 'description' in x && 'admissibleTargets' in x;
 };
-
-export function chooseOneTargetSelector(s:string, game:Game): TargetsSelector {
-    const options = s.substring("choose one-".length).trim().split("\n").map((option) => option.trim()).filter((option) => option.length > 0);
+export function IfYouDoTargetSelector(s: string, game: Game): (issuer: Player) => any[] {
+    const options = s.split(" if you do, ").map((option) => option.trim()).filter((option) => option.length > 0);
     return (issuer: Player) => {
-        const selectors: ChooseOneOptions[] = options.map((option) => ({ description: option, admissibleTargets: targetSelectorParser(option, game)(issuer)}));
+        const selectors = options.map((option) =>  targetSelectorParser(option, game)[0]!.selector(issuer));
         return selectors;
     };
 }
-export function deckSelector(filter: (deckName: string) => boolean = () => true, game: Game): TargetsSelector {
+export function chooseOneTargetSelector(s: string, game: Game): (issuer: Player) => any[] {
+    const options = s.substring("choose one-".length).trim().split("\n").map((option) => option.trim()).filter((option) => option.length > 0);
+    return (issuer: Player) => {
+        const selectors: ChooseOneOptions[] = options.map((option) => ({ description: option, admissibleTargets: targetSelectorParser(option, game)[0]!.selector(issuer)}));
+        return selectors;
+    };
+}
+export function deckSelector(filter: (deckName: string) => boolean = () => true, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
         return Object.keys(game.decks).filter((deckName) => filter(deckName));
     }
 }
 
-export function stackElementSelector(filter: (element: StackElement) => boolean = () => true, game: Game): TargetsSelector {
+export function stackElementSelector(filter: (element: StackElement) => boolean = () => true, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
         return game.stack.elements.filter((element) => filter(element));
     }
 }
 
-export function rollSelector(filter: (roll: DiceRoll) => boolean = () => true, game: Game): TargetsSelector {
+export function rollSelector(filter: (roll: DiceRoll) => boolean = () => true, game: Game): (issuer: Player) => any[] {
     return stackElementSelector((element) => element instanceof DiceRoll && filter(element), game);
 }
 
-export function attackRollSelector(game: Game): TargetsSelector {
+export function attackRollSelector(game: Game): (issuer: Player) => any[] {
     return rollSelector((roll) => roll.attackRoll, game);
 }
 
-export function nonAttackRollSelector(game: Game): TargetsSelector {
+export function nonAttackRollSelector(game: Game): (issuer: Player) => any[] {
     return rollSelector((roll) => !roll.attackRoll, game);
 }

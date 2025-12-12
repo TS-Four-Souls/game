@@ -1095,23 +1095,13 @@ describe("Loot Card", () => {
         player2.inPlay.push(itemToSteal);
 
         const originalSelect = game.select;
-        let selectCallCount = 0;
-        game.select = (_issuer, _n, opts) => {
-            selectCallCount++;
-            if (selectCallCount === 1) {
-                // First select: choose item to destroy
-                return { selected: [itemToDestroy], remaining: opts.filter(x => x !== itemToDestroy) };
-            } else {
-                // Second select: choose item to steal
-                return { selected: [itemToSteal], remaining: opts.filter(x => x !== itemToSteal) };
-            }
-        };
-
+        
         expect(player1.inPlay).toContain(itemToDestroy);
         expect(player2.inPlay).toContain(itemToSteal);
         expect(player1.inPlay).not.toContain(itemToSteal);
 
         game.playCard(player1, 1);
+        (devil as LootCard)!.debugSetTargets([[itemToDestroy], [itemToSteal]]);
         game.resolveStack();
 
         // Item should be destroyed from player1
@@ -1138,21 +1128,12 @@ describe("Loot Card", () => {
 
         const originalSelect = game.select;
         let selectCallCount = 0;
-        game.select = (_issuer, _n, opts) => {
-            selectCallCount++;
-            if (selectCallCount === 1) {
-                // First select: choose item to destroy
-                return { selected: [itemToDestroy], remaining: opts.filter(x => x !== itemToDestroy) };
-            } else {
-                // Second select: choose item from shop
-                return { selected: [shopItem], remaining: opts.filter(x => x !== shopItem) };
-            }
-        };
-
+        
         expect(player1.inPlay).toContain(itemToDestroy);
         expect(game.shop._slots).toContain(shopItem);
 
         game.playCard(player1, 1);
+        (devil as LootCard)!.debugSetTargets([[itemToDestroy], [shopItem]]);
         game.resolveStack();
 
         // Item should be destroyed from player1
@@ -1177,6 +1158,7 @@ describe("Loot Card", () => {
         expect(initialInPlayCount).toBe(0);
 
         game.playCard(player1, 1);
+        (devil as LootCard)!.debugSetTargets([[], [itemTargetToSteal]]);
         game.resolveStack();
 
         const afterInPlayCount = player1.inPlay.filter((card) => card.eternal === false).length;
