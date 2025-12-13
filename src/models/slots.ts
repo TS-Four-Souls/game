@@ -13,8 +13,8 @@ class Shop {
 
     fillEmptySpots() : void {
         for (let i = 0; i < this._slots.length; i++) {
-            if (this._slots[i] == undefined) { }
-            this._slots[i] = this._deck.draw();
+            if (this._slots[i] == undefined)
+                this._slots[i] = this._deck.draw();
         }
     }
     reduce() : void{
