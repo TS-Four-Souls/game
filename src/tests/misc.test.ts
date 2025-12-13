@@ -43,9 +43,11 @@ describe("Before start effects", () => {
     });
 
     it("Character card activation gives a loot play (random characters)", () => {
-        const eden = game.decks["character"]!.getCardFromSlug("b2-eden")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        // const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
+        // const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        expect(game.players.length).toBe(2);
         game.start(player1);
+        expect(game.players.length).toBe(2);
         const character1 = player1.inPlay[0] as CharacterCard;
         const character2 = player2.inPlay[0] as CharacterCard;
         if(!character1 || !character2)
@@ -64,9 +66,9 @@ describe("Before start effects", () => {
         game.endTurn();
         
         // Ensure the loot play resets at the start of the turn
-        expect(player1.remainingLootPlay).toBe(0);
-        expect(player2.remainingLootPlay).toBe(1);
-    });
+        expect(game.players.filter(p => p.id !== game.currentPlayer.id)[0]!.remainingLootPlay).toBe(0);
+        expect(game.currentPlayer.remainingLootPlay).toBe(1);
+    }, {repeats:500});
 
 });
 

@@ -39,11 +39,11 @@ export class TurnHandler {
     }
 
     setFirstPlayer(player: Player) : void {
-        const idx = this._remainingTurnsInRound.findIndex(p => p.id === player.id);
+        const idx = this._baseOrder.findIndex(p => p.id === player.id);
         if (idx === -1) {
-            throw new Error("Player not found in remaining turns");
+            throw new Error("Player not found in base order");
         }
-        this._baseOrder = this._baseOrder.splice(idx).concat(this._baseOrder.slice(0, idx));
+        this._baseOrder = this._baseOrder.slice(idx).concat(this._baseOrder.slice(0, idx));
         this._remainingTurnsInRound = [...this._baseOrder];
     }
     reset() : void {
