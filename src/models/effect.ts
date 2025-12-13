@@ -5,7 +5,7 @@ import type { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
 import { it } from "zod/locales";
-import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, goFirstInTurnOrderEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, temporaryStatModifierEffect } from "./abilities";
+import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, goFirstInTurnOrderEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, startingItemEffect, temporaryStatModifierEffect } from "./abilities";
 import type { BonusSoulCardType } from "@/types/cardTypes";
 
 function prepareEffectString(s: string): string {
@@ -742,17 +742,9 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     switch (s) {
         // passive effects
         case "if you control this as the game starts, you go first.":
-            {
-                console.log("parsing go first effect");
-                return goFirstInTurnOrderEffect(game);
-            }
-
+            return goFirstInTurnOrderEffect(game);
         case "when you start the game, look at the top 3 cards of the treasure deck and choose one. it becomes your starting item and gains eternal. put the rest on the bottom of the treasure deck.":
-            {
-                console.log("parsing starting item effect");
-                return (data:EffectData) => {return true;};
-                // return startingItemEffect(game);
-            }
+                return startingItemEffect(game);
         case "choose a player. prevent the next 1 damage they would take this turn.":
             return preventNextDamageUpToEffect(1, game);
         case "choose a player or monster. prevent the next instance of up to 2 damage they would take this turn.":

@@ -52,7 +52,14 @@ for(const card of cardSets["character"]!.cards.toSorted((a, b) => a.slug.localeC
   // if((card as LootCard).trinket)
     console.log(card.effectOutcomes);
 }
-const defaultParameters = { nbItemsInShop: 2, nbEncounters: 2 };
+const gameParameters = { 
+  nbItemsInShop: 2, 
+  nbEncounters: 2,
+  deathPenaltyCoins: 2,
+  deathPenaltyItem: 1,
+  deathPenaltyLoot: 1,
+  treasuresOnStart: 0
+};
 export class Game {
   private _players: Player[] = [];
   private _monsters: Monster[] = [];
@@ -227,22 +234,26 @@ export class Game {
     player.addSoul(soul);
   }
   deathPenalty(p: Player): void {
-    p.loseCoins(2, true);
-    const itemToLose = this.select(
-      p,
-      1,
-      p.inPlay.filter((c) => (c instanceof treasureCard || (c instanceof LootCard && c.trinket)) 
-                            && c.eternal === false)
-    ).selected[0];
-    if (itemToLose) {
-      this.removeInPlay(p, itemToLose);
-      this.decks[itemToLose.type]!.addDiscardTop(itemToLose);
+    p.loseCoins(gameParameters.deathPenaltyCoins, true);
+    if (gameParameters.deathPenaltyItem > 0) {
+      const itemToLose = this.select(
+        p,
+        gameParameters.deathPenaltyItem,
+        p.inPlay.filter((c) => (c instanceof treasureCard || (c instanceof LootCard && c.trinket)) 
+                              && c.eternal === false)
+      ).selected[0];
+      if (itemToLose) {
+        this.removeInPlay(p, itemToLose);
+        this.decks[itemToLose.type]!.addDiscardTop(itemToLose);
+      }
     }
-    const lootToLose = this.select(p, 1, p.hand.cards).selected[0];
-    if (lootToLose) {
-      this.discardFromHand(p, p.hand._hand.indexOf(lootToLose));
-      p.hand.removeCard(lootToLose);
-      this.decks[lootToLose.type]!.addDiscardTop(lootToLose);
+    if(gameParameters.deathPenaltyLoot > 0) {
+      const lootToLose = this.select(p, gameParameters.deathPenaltyLoot, p.hand.cards).selected[0];
+      if (lootToLose) {
+        this.discardFromHand(p, p.hand._hand.indexOf(lootToLose));
+        p.hand.removeCard(lootToLose);
+        this.decks[lootToLose.type]!.addDiscardTop(lootToLose);
+      }
     }
   }
 
@@ -431,6 +442,15 @@ export class Game {
     this.players.push(newPlayer);
   }
 
+  gainTreasureAmongs(player: Player, amount: number, treasures: treasureCard[]): { selected: treasureCard[]; remaining: treasureCard[] } {
+      const selection = this.select(player, amount, treasures)
+      for(const card of selection.selected){
+        this.addInPlay(player, card);
+      }
+      this._onStateChange.dispatch();
+      return selection;
+  }
+
   select(
     player: Player,
     n: number,
@@ -566,11 +586,11 @@ export class Game {
     }
     this.initializeBonusSouls();
     this._shop = new Shop(
-      defaultParameters.nbItemsInShop,
+      gameParameters.nbItemsInShop,
       this.decks["treasure"]!
     );
     this._encounters = new Encounters(
-      defaultParameters.nbEncounters,
+      gameParameters.nbEncounters,
       this.decks["monster"]!
     );
     this.emitter.emit("on:game:start:before", {});

@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../models/game";
 import { Player } from "../models/player";
-import type { ItemCard, LootCard, CharacterCard } from "@/models/cards";
+import { type ItemCard, type LootCard, type CharacterCard, treasureCard } from "@/models/cards";
 
 
 
@@ -24,12 +24,22 @@ describe("Before start effects", () => {
         game.setupGame();
     });
 
-    // Hard to test because cain card has a passive and an active effect
     it("Cain plays first", () => {
         const cain = game.decks["character"]!.getCardFromSlug("b2-cain")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [isaac, cain]);
         expect(game.currentPlayer).toBe(player2);
+    });
+
+    it("Eden gets a treasure and set it eternal", () => {
+        const eden = game.decks["character"]!.getCardFromSlug("b2-eden")! as CharacterCard;
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        game.start(player1, [isaac, eden]);
+        expect(player2.inPlay[0]!.slug).toBe("b2-eden");
+        expect(player2.inPlay.length).toBe(2);
+        expect(player2.inPlay[0]!.eternal).toBe(true);
+        expect(player2.inPlay[1]!.eternal).toBe(true);
+        expect(player2.inPlay[1]! instanceof treasureCard).toBe(true);
     });
 
 });

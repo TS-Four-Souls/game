@@ -1,5 +1,5 @@
 import { DiceRoll, Player } from "./player";
-import { type Card, type EffectData, type LootCard, type EffectFunction, type TargetsSelector, ItemCard, InplayType } from "./cards";
+import { type Card, type EffectData, type LootCard, type EffectFunction, type TargetsSelector, ItemCard, InplayType, treasureCard } from "./cards";
 import { Game } from "./game";
 import type { Stack, StackElement } from "./stack";// One-shot shield: prevent up to `amount` damage on the next instance to issuer this turn
 import type { TriggerEvent } from "@/types/triggers";
@@ -278,17 +278,23 @@ export function preventDamageOnRollEffect(
 
 export function goFirstInTurnOrderEffect(game: Game): EffectFunction {
     return (data:EffectData) => {
-        let offEffect: (() => void) | null = null;
-
-        const cleanup = () => {
+        let offEffect: (() => void) | null = game.emitter.on("on:game:start:before", () => {
+            game.turnHandler.setFirstPlayer(data.issuer);
             offEffect?.();
             offEffect = null;
-        };
+        });
+        return true;
+    };
+}
 
-        // Listen for the next damage event on this player
-        offEffect = game.emitter.on("on:game:start:before", () => {
-            game.turnHandler.setFirstPlayer(data.issuer);
-            cleanup();
+export function startingItemEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offEffect: (() => void) | null = game.emitter.on("on:game:start:before", () => {
+            const options: treasureCard[] = game.decks["treasure"]!.drawSeveral(3) as treasureCard[];
+            const selection = game.gainTreasureAmongs(data.issuer, 1, options);
+            selection.selected[0]?.setEternal(true);
+            offEffect?.();
+            offEffect = null;
         });
         return true;
     };
