@@ -140,4 +140,4 @@ export type BonusSoulCardType = Card & {
 };
 
 export type GenericCardType = LootCardType | BonusSoulCardType | EternalCardType | TreasureCardType | MonsterCardType | CharacterCardType;
-export type InPlayCardType = EternalCardType | TreasureCardType | LootCardType;
+export type InPlayCardType = EternalCardType | TreasureCardType | LootCardType | CharacterCardType;

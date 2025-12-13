@@ -26,6 +26,7 @@ import {
   BsoulCard,
   Effect,
   type EffectData,
+  type EffectType,
 } from "@/models/cards";
 import { type Ability } from "./abilityRegistry";
 import { Stack, type StackElement } from "@/models/stack";
@@ -45,14 +46,13 @@ import { bSoulEffectParser } from "@/models/bonusSoulHandling";
 import { pl } from "zod/locales";
 
 const LOG_GAME = false;
-let EFFECTJOINED = false;
 export const cards = await loadCards(process.cwd() + "/data/cards");
 const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
 
-// for(const card of cardSets["character"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug))){
-//   // if((card as LootCard).trinket)
-//     console.log(card.effectOutcomes);
-// }
+for(const card of cardSets["eternal"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug))){
+  // if((card as LootCard).trinket)
+    console.log(card.slug, card.effectOutcomes);
+}
 const gameParameters = { 
   nbItemsInShop: 2, 
   nbEncounters: 2,
@@ -521,10 +521,26 @@ export class Game {
         p.remainingLootPlay = 1;
       }
     });
+    this.rechargeEachItem(this.currentPlayer);
     const player = this.currentPlayer;
     this.emitter.emit("on:turn:start", { eventIssuer: player });
     this.lootStep();
     this.emitter.emit("on:your:turn", { eventIssuer: player });
+    this._onStateChange.dispatch();
+  }
+
+  rechargeEachItem(player: Player): void {
+    console.log("recharge each items for player", player.id);
+    for (const card of player.inPlay) {
+      if (card instanceof CharacterCard) {
+        this.recharge(card);
+      }
+    }
+  }
+
+  recharge(item: ItemCard): void {
+    if (item instanceof CharacterCard)
+      (item as CharacterCard).rechargeChara();
   }
 
   endTurn(): void {
@@ -537,6 +553,7 @@ export class Game {
       player.resetTurnFlags();
     }
     this.turnHandler.endTurn();
+    this._onStateChange.dispatch();
     this.startTurn();
   }
 
@@ -605,8 +622,7 @@ export class Game {
       throw new Error("No character deck found");
     }
     // const characters: CharacterCard[] = characterDeck.drawSeveral(this.players.length) as CharacterCard[];
-    const characters: CharacterCard[] = characterDeck.drawSeveral(this.players.length-1) as CharacterCard[];
-    characters.push(characterDeck.getCardFromSlug("b2-eden")! as CharacterCard);
+    const characters: CharacterCard[] = characterDeck.drawSeveral(this.players.length) as CharacterCard[];
     this.assignCharactersToPlayers(characters);
   }
 
@@ -673,6 +689,13 @@ export class Game {
     this.emitter.emit("on:enter:play:after", { eventIssuer: player, card: card });
   }
 
+  activateItemAtIndex(player: Player, index: number): boolean {
+    const item = player.inPlay[index-1];
+    if(!item || !(item instanceof ItemCard)) {
+      return false;
+    }
+    return this.activateItem(player, item);
+  }
   activateItem(player: Player, item: ItemCard): boolean {
     if (player.activateItem(item)) {
       this.emitter.emit("on:item:activated", {
@@ -712,8 +735,6 @@ export class Game {
   }
 
   private joinEffectsToCards(): void {
-    if(EFFECTJOINED) return;
-    EFFECTJOINED = true;
     for(const deckName of ["loot", "bsoul"])
     {
       const deck = this.decks[deckName]!;
@@ -726,6 +747,7 @@ export class Game {
           );
         } else {
           const effect: Effect = new Effect(lootCard.effectOutcomes[0]!,
+            "passive",
             effectParser(lootCard.effectOutcomes[0]!, this),
             targetSelectorParser(
               lootCard.effectOutcomes[0]!,
@@ -750,15 +772,18 @@ export class Game {
         );
       } else {
         for (const outcome of characterCard.effectOutcomes) {
-          const effect: Effect = new Effect(outcome,
+          let type:EffectType = "passive";
+          if(outcome.startsWith("[Tap Effect]"))
+            type = "active";
+          else if (outcome.startsWith("[Paid Effect]"))
+            type = "paid";
+          const effect: Effect = new Effect(outcome, type,
             effectParser(outcome, this, (data:EffectData) => {return true;}),
             targetSelectorParser(
               outcome,
               this
             ));
-          if(outcome.startsWith("[Tap Effect]"))
-            characterCard.setActiveEffect(effect);
-          else if (outcome.startsWith("[Paid Effect]"))
+          if(type === "active" || type === "paid")
             characterCard.setActiveEffect(effect);
           else
             characterCard.addPassiveEffect(effect);
@@ -918,6 +943,7 @@ export class Game {
         coins: player.coins,
         currentAttackPoints: player.attackPoints,
         currentHealthPoints: player.currentHealthPoints,
+        remainingLootPlay: player.remainingLootPlay,
       },
       players: this.players
         .filter((p) => p.id !== player.id)
@@ -929,6 +955,7 @@ export class Game {
           coins: p.coins,
           currentAttackPoints: p.attackPoints,
           currentHealthPoints: p.currentHealthPoints,
+          remainingLootPlay: p.remainingLootPlay,
         })),
       topDiscards: {
         loot: this.decks["loot"]!.discard[0]

@@ -55,6 +55,7 @@ export const schemas = {
   drawMonsterRequest: indexSchema,
   discardInPlayRequest: indexSchema,
   playCardRequest: indexSchema,
+  activateRequest: indexSchema,
   imageRequest: ImageRequestSchema,
   issuerSchema: IssuerSchema,
 };
@@ -77,6 +78,8 @@ export type DetailedState = {
     coins: number;
     currentHealthPoints: number;
     currentAttackPoints: number;
+    remainingLootPlay: number;
+
   },
   players: {
     name: string;
@@ -86,6 +89,7 @@ export type DetailedState = {
     coins: number
     currentHealthPoints: number;
     currentAttackPoints: number;
+    remainingLootPlay: number;
   }[];
   topDiscards: {
     loot?: GenericCardType;

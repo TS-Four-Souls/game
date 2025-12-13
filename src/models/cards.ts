@@ -1,8 +1,95 @@
 import { shuffle, print } from '@/utils/auxiliary';
 import { chooseOneTargetSelector, effectParser, targetSelectorParser, isChooseOneResult, type ChooseOneOptions, type ChooseOneResult, isChooseOneOptions } from '@/models/effect';
 import type { CardRewards, EternalCardType, GenericCardType, LootCardType, InPlayCardType, TreasureCardType, CharacterCardType, MonsterCardType, BonusSoulCardType, GuppyCard } from '@/types/cardTypes';
-import type { Player } from './player';
+import { Player } from './player';
 import { assert } from 'console';
+import type { Entity } from './entity';
+import type { Game } from './game';
+
+// Effect handler manages multiple effects of the same type of a card.
+class EffectHandler{
+    protected _effects: Effect[] = [];
+    protected cleaners: (() => void)[] = [];
+    protected it: Card;
+
+    constructor(it:Card) {
+        this.it = it;
+    }
+    
+    cleanupAll(): void {
+        for (const cleaner of this.cleaners) {
+            cleaner();
+        }
+        this.cleaners = [];
+    }
+}
+
+class PassiveEffectHandler extends EffectHandler {
+    protected _type: "passive" = "passive";
+    constructor(it: Card) {super(it);}
+
+    addEffect(effect: Effect): void {
+        if (effect.type === "passive")
+            this._effects.push(effect);
+        else throw new Error("Cannot put a non-passive effect in a PassiveEffectHandler.");
+    }
+    subscribeAll(owner: Entity) {
+        for (const effect of this._effects) {
+            effect.effectFunction({ it: this.it, issuer: owner as Player, targets: effect.targets });
+        }
+    }
+}
+
+class ActiveEffectHandler extends EffectHandler {
+    protected _type: "active" = "active";
+    constructor(it: Card) {super(it);}
+
+
+    addEffect(effect: Effect): void {
+        if (effect.type !== "passive")
+            this._effects.push(effect);
+        else throw new Error("Cannot put a passive effect in an ActiveEffectHandler.");
+    }
+
+    activeEffect(issuer: Entity, game: Game): void {
+        if (this._type !== "active" && this._effects.length > 0)
+            throw new Error("activeEffect can only be called for active effects.");
+
+        const selection = game.select(issuer as Player, 1, this._effects.map(e => e.description), true);
+        const effect = this._effects.find(e => e.description === selection.selected[0]);
+        if (effect) {
+            if (effect.type === "active") {
+                if (this.it.activate()) {
+                    effect.effectFunction({ it: this.it, issuer: issuer as Player, targets: effect.targets });
+                }
+            }
+        }
+    }
+}
+
+class EffectInterface {
+    protected activeEffects: ActiveEffectHandler;
+    protected passiveEffects: PassiveEffectHandler;
+
+    constructor(it: Card) {
+        this.activeEffects = new ActiveEffectHandler(it);
+        this.passiveEffects = new PassiveEffectHandler(it);
+    }
+    addEffect(effect: Effect): void {
+        if(effect.type === "passive") {
+            this.passiveEffects.addEffect(effect);
+        } else {
+            this.activeEffects.addEffect(effect);
+        }
+    }
+    subscribeAll(owner: Entity): void {
+        this.passiveEffects.subscribeAll(owner);
+    }
+    activeEffect(issuer: Entity, game: Game): void {
+        this.activeEffects.activeEffect(issuer, game);
+    }
+}
+
 class Card {
     protected _json: GenericCardType;
     protected _id: number;
@@ -19,6 +106,7 @@ class Card {
     protected _minimumPlayers: number;
     protected _effectOutcomes: string[];
     protected _souls: number = 0;
+    protected _charged: boolean = false;
     protected _eternal: boolean = false;
     protected _position: Deck | null | Hand | Card[];
     cleanup: () => void = () => {};
@@ -50,6 +138,12 @@ class Card {
             toAdd = " " + JSON.stringify(this._tags);
         }
         return this._name + ": " + this._effectOutcomes.join(", ") + toAdd;
+    }
+    get charged(): boolean {
+        return this._charged;
+    }
+    set charged(value: boolean) {
+        this._charged = value;
     }
     get soul(): number {
         return this._souls;
@@ -90,6 +184,22 @@ class Card {
     get eternal(): boolean {
         return this._eternal;
     }
+
+    recharge(): boolean {
+        if (this._charged === false) {
+            this._charged = true;
+            return true;
+        }
+        return false;
+    }
+
+    activate(): boolean {
+        if (this._charged === true) {
+            this._charged = false;
+            return true;
+        }
+        return false;
+    }
 }
 
 export type TargetsSelector = 
@@ -123,7 +233,6 @@ export class ItemCard extends Card {
                 this._inplayType = InplayType.PAID;
             }
         }
-
     }
 
     get inPlayType(): InplayType {
@@ -133,24 +242,24 @@ export class ItemCard extends Card {
         return this._inplayType === InplayType.CHARGED || this._inplayType === InplayType.UNCHARGED;
     }
 
-    recharge(): boolean {
-        if (this._inplayType === InplayType.UNCHARGED) {
-            this._inplayType = InplayType.CHARGED;
-            return true;
-        }
-        return false;
-    }
+    // recharge(): boolean {
+    //     if (this._inplayType === InplayType.UNCHARGED) {
+    //         this._inplayType = InplayType.CHARGED;
+    //         return true;
+    //     }
+    //     return false;
+    // }
 
-    activate(): boolean {
-        if (this._inplayType === InplayType.CHARGED) {
-            this._inplayType = InplayType.UNCHARGED;
-            return true;
-        }
-        if (this._inplayType === InplayType.PAID) {
-            return true;
-        }
-        return false;
-    }
+    // activate(): boolean {
+    //     if (this._inplayType === InplayType.CHARGED) {
+    //         this._inplayType = InplayType.UNCHARGED;
+    //         return true;
+    //     }
+    //     if (this._inplayType === InplayType.PAID) {
+    //         return true;
+    //     }
+    //     return false;
+    // }
     get cost(): string {
         return this._cost;
     }
@@ -161,26 +270,27 @@ export class ItemCard extends Card {
         return this._guppy;
     }
     onTap(): void {
-        if(this._inplayType === InplayType.CHARGED) {
-            this._inplayType = InplayType.UNCHARGED;
-        }
-        else {
-            throw new Error("Cannot tap an uncharged item.");
-        }
+        this.activate();
     }
     setEternal(eternal: boolean): void {
         this._eternal = eternal;
     }
 }
+export type EffectType =
+    | "passive"
+    | "active"
+    | "paid";
 
 export class Effect {
     protected _description: string;
     protected _effectFunction: EffectFunction;
     protected _targetsSelector: TargetsSelector[];
     protected _selectedTargets: any[] = [];
+    protected _type: EffectType; 
     // protected _cleanup: () => void = () => {};
 
     constructor(description: string, 
+        type: EffectType,
         effectFunction: EffectFunction 
         = (data: EffectData) => { return true; }, 
         targetsSelector: TargetsSelector[] 
@@ -188,6 +298,7 @@ export class Effect {
         ) 
     {
         this._description = description;
+        this._type = type;
         this._effectFunction = effectFunction;
         this._targetsSelector = targetsSelector;
     }
@@ -206,6 +317,10 @@ export class Effect {
     }
     get effectFunction(): EffectFunction {
         return this._effectFunction;
+    }
+
+    get type(): EffectType {
+        return this._type;
     }
 
     set targets(targets: any[]) {
@@ -231,7 +346,7 @@ class LootCard extends ItemCard {
         super(id, json);
         this._inplayType = InplayType.PLAYABLE;
         this._reward = json.rewards;
-        this._effect = new Effect(this.name + " add in play default effect.");
+        this._effect = new Effect(this.name + " add in play default effect.", "passive");
         if (json.trinket) {
             this._trinket = json.trinket;
             this._inplayType = InplayType.PASSIVE;
@@ -360,15 +475,14 @@ class eternalCard extends ItemCard {
     }
 }
 
-class CharacterCard extends Card {
+class CharacterCard extends ItemCard {
     protected _eternalCard: string | null = null;
     protected _healthPoints: number = 0;
-    protected _attackPoints: number = 0;
-    protected _activeEffect: Effect;
-    protected _paidEffects: Effect[];
-    protected _passiveEffects: Effect[];
-    protected _charged: boolean = false;
+    protected _activeEffect: Effect; // effect that can be activated by tapping the card
+    protected _paidEffects: Effect[]; // effects that can be activated by paying a cost
+    protected _passiveEffects: Effect[]; // effects that trigger when added to play
     protected _owner!: Player;
+    protected _attackPoints: number = 0;
 
     constructor(id: number, json: CharacterCardType) {
         super(id, json);
@@ -380,7 +494,7 @@ class CharacterCard extends Card {
             this._attackPoints = json.stats.attackPoints || 0;
         }
         this._eternal = true;
-        this._activeEffect = new Effect(this.name + " add in play default effect.");
+        this._activeEffect = new Effect(this.name + " add in play default effect.", "active");
         this._passiveEffects = [];
         this._paidEffects = [];
 
@@ -401,11 +515,12 @@ class CharacterCard extends Card {
         this._activeEffect = effect;
     }
 
-    recharge(): void {
+    rechargeChara(): void {
         this._charged = true;
     }
     
-    onTap(): void {
+    onTapChara(): void {
+        console.log(`Tapping character card ${this.name}.`);
         if(this._owner === undefined) {
             throw new Error("CharacterCard has no owner assigned.");
         }
@@ -424,12 +539,6 @@ class CharacterCard extends Card {
 
     onRemoveFromPlay(): void {
 
-    }
-    get charged(): boolean {
-        return this._charged;
-    }
-    set charged(value: boolean) {
-        this._charged = value;
     }
     get eternalCard(): string | null {
         return this._eternalCard;

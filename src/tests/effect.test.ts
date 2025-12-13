@@ -318,7 +318,7 @@ describe("Loot deck integration", () => {
 
     game.resolveStack();
 
-    expect(item._inplayType).toBe(0); // CHARGED
+    expect(item.charged).toBe(true); // CHARGED
   });
 
   it("steal coins effect works correctly", () => {

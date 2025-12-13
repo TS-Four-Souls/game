@@ -559,7 +559,7 @@ describe("Loot Card", () => {
         // Recharge and tap the item (simulate using it)
         item.recharge();
         item.onTap();
-        expect(item.inPlayType).toBe(InplayType.UNCHARGED);
+        expect(item.charged).toBe(false);
 
         // Play lil battery
         game.playCard(player1, 1);
@@ -567,7 +567,7 @@ describe("Loot Card", () => {
         game.resolveStack();
 
         // Item should be recharged
-        expect(item.inPlayType).toBe(InplayType.CHARGED);
+        expect(item.charged).toBe(true);
     });
 
     it("b2-lil_battery: should only recharge one item", () => {
@@ -594,8 +594,8 @@ describe("Loot Card", () => {
         game.resolveStack();
 
         // Only item1 should be recharged
-        expect(item1.inPlayType).toBe(InplayType.CHARGED);
-        expect(item2.inPlayType).toBe(InplayType.UNCHARGED);
+        expect(item1.charged).toBe(true);
+        expect(item2.charged).toBe(false);
     });
 
     it("b2-mega_battery: should recharge all items controlled by target player", () => {
@@ -620,9 +620,9 @@ describe("Loot Card", () => {
         game.resolveStack();
 
         // All of player2's items should be recharged
-        expect(item1.inPlayType).toBe(InplayType.CHARGED);
-        expect(item2.inPlayType).toBe(InplayType.CHARGED);
-        expect(item3.inPlayType).toBe(InplayType.CHARGED);
+        expect(item1.charged).toBe(true);
+        expect(item2.charged).toBe(true);
+        expect(item3.charged).toBe(true);
     });
 
     it("b2-mega_battery: should only affect target player's items", () => {
@@ -645,8 +645,8 @@ describe("Loot Card", () => {
         game.resolveStack();
 
         // Only player2's item should be recharged
-        expect(player1Item.inPlayType).toBe(InplayType.UNCHARGED);
-        expect(player2Item.inPlayType).toBe(InplayType.CHARGED);
+        expect(player1Item.charged).toBe(false);
+        expect(player2Item.charged).toBe(true);
     });
 
     it("b2-o_the_fool: should end turn and cancel stack", () => {

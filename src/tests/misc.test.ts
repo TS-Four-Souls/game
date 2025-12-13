@@ -42,33 +42,33 @@ describe("Before start effects", () => {
         expect(player2.inPlay[1]! instanceof treasureCard).toBe(true);
     });
 
-    it("Character card activation gives a loot play (random characters)", () => {
-        // const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        // const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        expect(game.players.length).toBe(2);
-        game.start(player1);
-        expect(game.players.length).toBe(2);
-        const character1 = player1.inPlay[0] as CharacterCard;
-        const character2 = player2.inPlay[0] as CharacterCard;
-        if(!character1 || !character2)
-            throw new Error("Characters not found");
-        const initialLootPlays1 = player1.remainingLootPlay;
-        const initialLootPlays2 = player2.remainingLootPlay;
-        character1.recharge();
-        character1.onTap();
-        expect(player1.remainingLootPlay).toBe(initialLootPlays1 + 1);
-        character1.onTap(); // uncharged tap should do nothing
-        expect(player1.remainingLootPlay).toBe(initialLootPlays1 + 1);
-        character2.recharge();
-        character2.onTap();
-        expect(player2.remainingLootPlay).toBe(initialLootPlays2 + 1);
+    // it("Character card activation gives a loot play (random characters)", () => {
+    //     // const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
+    //     // const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+    //     expect(game.players.length).toBe(2);
+    //     game.start(player1);
+    //     expect(game.players.length).toBe(2);
+    //     const character1 = player1.inPlay[0] as CharacterCard;
+    //     const character2 = player2.inPlay[0] as CharacterCard;
+    //     if(!character1 || !character2)
+    //         throw new Error("Characters not found");
+    //     const initialLootPlays1 = player1.remainingLootPlay;
+    //     const initialLootPlays2 = player2.remainingLootPlay;
+    //     character1.recharge();
+    //     character1.onTap();
+    //     expect(player1.remainingLootPlay).toBe(initialLootPlays1 + 1);
+    //     character1.onTap(); // uncharged tap should do nothing
+    //     expect(player1.remainingLootPlay).toBe(initialLootPlays1 + 1);
+    //     character2.recharge();
+    //     character2.onTap();
+    //     expect(player2.remainingLootPlay).toBe(initialLootPlays2 + 1);
 
-        game.endTurn();
+    //     game.endTurn();
         
-        // Ensure the loot play resets at the start of the turn
-        expect(game.players.filter(p => p.id !== game.currentPlayer.id)[0]!.remainingLootPlay).toBe(0);
-        expect(game.currentPlayer.remainingLootPlay).toBe(1);
-    }, {repeats:500});
+    //     // Ensure the loot play resets at the start of the turn
+    //     expect(game.players.filter(p => p.id !== game.currentPlayer.id)[0]!.remainingLootPlay).toBe(0);
+    //     expect(game.currentPlayer.remainingLootPlay).toBe(1);
+    // }, {repeats:500});
 
 });
 

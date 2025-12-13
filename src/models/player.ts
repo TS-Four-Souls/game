@@ -1,5 +1,5 @@
 import { Entity } from "@/models/entity";
-import { Hand, InplayType, treasureCard, type Card, type EffectFunction } from "./cards";
+import { CharacterCard, Hand, InplayType, ItemCard, treasureCard, type Card, type EffectFunction } from "./cards";
 import type { Game } from "./game";
 
 export class Player extends Entity {
@@ -158,15 +158,17 @@ export class Player extends Entity {
     this._souls.splice(idx, 1);
     return true;
   }
-  activateItem(item: treasureCard): boolean {
+  activateItem(item: ItemCard): boolean {
     const index = this._inPlay.indexOf(item);
+    console.log("Activating item:", item.name, "at index", index);
     if (index === -1) {
       throw new Error("Item not in play.");
     }
-    if (item.inPlayType !== InplayType.CHARGED) {
-      return false;
-    }
-    item.activate();
+    // if (item.inPlayType !== InplayType.CHARGED) {
+    //   return false;
+    // }
+    if(item instanceof CharacterCard)
+      (item as CharacterCard).onTapChara();
     return true;
   }
   gainCoins(coins: number): void {

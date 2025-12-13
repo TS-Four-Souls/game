@@ -129,6 +129,21 @@ const app = new Elysia()
     }
   )
   .post(
+    "/activate",
+    async (request) => {
+      const player = game.getPlayerById(request.body.issuer.id);
+      game.activateItemAtIndex(player, request.body.index);
+      return new Response("",
+        {
+          status: 200,
+        }
+      );
+    },
+    {
+      body: schemas.activateRequest,
+    }
+  )
+  .post(
     "/rolldice",
     async (request) => {
       return new Response(
