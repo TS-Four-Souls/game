@@ -45,13 +45,14 @@ import { bSoulEffectParser } from "@/models/bonusSoulHandling";
 import { pl } from "zod/locales";
 
 const LOG_GAME = false;
+let EFFECTJOINED = false;
 export const cards = await loadCards(process.cwd() + "/data/cards");
 const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
 
-for(const card of cardSets["character"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug))){
-  // if((card as LootCard).trinket)
-    console.log(card.effectOutcomes);
-}
+// for(const card of cardSets["character"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug))){
+//   // if((card as LootCard).trinket)
+//     console.log(card.effectOutcomes);
+// }
 const gameParameters = { 
   nbItemsInShop: 2, 
   nbEncounters: 2,
@@ -603,7 +604,9 @@ export class Game {
     if (!characterDeck) {
       throw new Error("No character deck found");
     }
-    const characters: CharacterCard[] = characterDeck.drawSeveral(this.players.length) as CharacterCard[];
+    // const characters: CharacterCard[] = characterDeck.drawSeveral(this.players.length) as CharacterCard[];
+    const characters: CharacterCard[] = characterDeck.drawSeveral(this.players.length-1) as CharacterCard[];
+    characters.push(characterDeck.getCardFromSlug("b2-eden")! as CharacterCard);
     this.assignCharactersToPlayers(characters);
   }
 
@@ -681,7 +684,7 @@ export class Game {
     return false;
   }
 
-  debugReset(): void {
+    debugReset(): void {
     this.turnHandler.reset();
     this._players = [];
     this._monsters = [];
@@ -692,6 +695,8 @@ export class Game {
     this._stack.clear();
     this._emitter = new GameEventEmitter();
     this._abilityRegistry = new AbilityRegistry(this._emitter);
+    this._bonusSouls = [];
+    this._destroyedCards = [];
   }
 
   nextTurn(issuer: Issuer): string {
@@ -707,6 +712,8 @@ export class Game {
   }
 
   private joinEffectsToCards(): void {
+    if(EFFECTJOINED) return;
+    EFFECTJOINED = true;
     for(const deckName of ["loot", "bsoul"])
     {
       const deck = this.decks[deckName]!;

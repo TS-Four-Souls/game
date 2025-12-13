@@ -386,7 +386,9 @@ class CharacterCard extends Card {
 
 
     }
-
+    get passiveEffects(): Effect[] {
+        return this._passiveEffects;
+    }
     addPassiveEffect(effect: Effect): void {
         this._passiveEffects.push(effect);
     }
