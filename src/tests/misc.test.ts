@@ -6,7 +6,33 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../models/game";
 import { Player } from "../models/player";
-import type { ItemCard, LootCard } from "@/models/cards";
+import type { ItemCard, LootCard, CharacterCard } from "@/models/cards";
+
+
+
+describe("Before start effects", () => {
+    let game: Game;
+    let player1: Player;
+    let player2: Player;
+
+    beforeEach(() => {
+        game = new Game();
+        player1 = new Player("Player 1");
+        player2 = new Player("Player 2");
+        game.addPlayer(player1);
+        game.addPlayer(player2);
+        game.setupGame();
+    });
+
+    // Hard to test because cain card has a passive and an active effect
+    it("Cain plays first", () => {
+        const cain = game.decks["character"]!.getCardFromSlug("b2-cain")! as CharacterCard;
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        game.start(player1, [isaac, cain]);
+        expect(game.currentPlayer).toBe(player2);
+    });
+
+});
 
 describe("Bonus Soul effects", () => {
     let game: Game;
@@ -19,7 +45,10 @@ describe("Bonus Soul effects", () => {
         player2 = new Player("Player 2");
         game.addPlayer(player1);
         game.addPlayer(player2);
-        game.start(player1);
+        game.setupGame();
+        const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        game.start(player1, [isaac, eve]);
     });
 
     it("Greed", () => {
@@ -59,328 +88,6 @@ describe("Bonus Soul effects", () => {
         const guppyItem1 = game.shop.obtainCard("b2-guppys_head");
         const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
         if(!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        game.addInPlay(player1, guppyItem1);
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-
-        // only one player gets the soul bonus
-        const player2souls = player2.totalSouls;
-        game.addInPlay(player2, guppyItem1);
-        expect(player2.totalSouls).toBe(player2souls);
-        game.addInPlay(player2, guppyItem2);
-        expect(player2.totalSouls).toBe(player2souls);
-
-    });
-
-    it("Guppy combination 2", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.shop.obtainCard("b2-guppys_paw")
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        game.addInPlay(player1, guppyItem1);
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-    });
-
-    it("Guppy combination 3", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.decks["loot"]!.getCardFromSlug("b2-guppys_hairball");
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        player1.hand.addToHand(guppyItem1);
-        game.playCard(player1, 1); // Play guppy's hairball
-        game.resolveStack();
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-    });
-
-    it("Guppy combination 1", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.shop.obtainCard("b2-guppys_head");
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        game.addInPlay(player1, guppyItem1);
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-
-        // only one player gets the soul bonus
-        const player2souls = player2.totalSouls;
-        game.addInPlay(player2, guppyItem1);
-        expect(player2.totalSouls).toBe(player2souls);
-        game.addInPlay(player2, guppyItem2);
-        expect(player2.totalSouls).toBe(player2souls);
-
-    });
-
-    it("Guppy combination 2", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.shop.obtainCard("b2-guppys_paw")
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        game.addInPlay(player1, guppyItem1);
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-    });
-
-    it("Guppy combination 3", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.decks["loot"]!.getCardFromSlug("b2-guppys_hairball");
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        player1.hand.addToHand(guppyItem1);
-        game.playCard(player1, 1); // Play guppy's hairball
-        game.resolveStack();
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-    });
-
-    it("Guppy combination 1", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.shop.obtainCard("b2-guppys_head");
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        game.addInPlay(player1, guppyItem1);
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-
-        // only one player gets the soul bonus
-        const player2souls = player2.totalSouls;
-        game.addInPlay(player2, guppyItem1);
-        expect(player2.totalSouls).toBe(player2souls);
-        game.addInPlay(player2, guppyItem2);
-        expect(player2.totalSouls).toBe(player2souls);
-
-    });
-
-    it("Guppy combination 2", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.shop.obtainCard("b2-guppys_paw")
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        game.addInPlay(player1, guppyItem1);
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-    });
-
-    it("Guppy combination 3", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.decks["loot"]!.getCardFromSlug("b2-guppys_hairball");
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        player1.hand.addToHand(guppyItem1);
-        game.playCard(player1, 1); // Play guppy's hairball
-        game.resolveStack();
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-    });
-
-    it("Guppy combination 1", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.shop.obtainCard("b2-guppys_head");
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        game.addInPlay(player1, guppyItem1);
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-
-        // only one player gets the soul bonus
-        const player2souls = player2.totalSouls;
-        game.addInPlay(player2, guppyItem1);
-        expect(player2.totalSouls).toBe(player2souls);
-        game.addInPlay(player2, guppyItem2);
-        expect(player2.totalSouls).toBe(player2souls);
-
-    });
-
-    it("Guppy combination 2", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.shop.obtainCard("b2-guppys_paw")
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        game.addInPlay(player1, guppyItem1);
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-    });
-
-    it("Guppy combination 3", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.decks["loot"]!.getCardFromSlug("b2-guppys_hairball");
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        player1.hand.addToHand(guppyItem1);
-        game.playCard(player1, 1); // Play guppy's hairball
-        game.resolveStack();
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-    });
-
-    it("Guppy combination 1", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.shop.obtainCard("b2-guppys_head");
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        game.addInPlay(player1, guppyItem1);
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-
-        // only one player gets the soul bonus
-        const player2souls = player2.totalSouls;
-        game.addInPlay(player2, guppyItem1);
-        expect(player2.totalSouls).toBe(player2souls);
-        game.addInPlay(player2, guppyItem2);
-        expect(player2.totalSouls).toBe(player2souls);
-
-    });
-
-    it("Guppy combination 2", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.shop.obtainCard("b2-guppys_paw")
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        game.addInPlay(player1, guppyItem1);
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-    });
-
-    it("Guppy combination 3", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.decks["loot"]!.getCardFromSlug("b2-guppys_hairball");
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        player1.hand.addToHand(guppyItem1);
-        game.playCard(player1, 1); // Play guppy's hairball
-        game.resolveStack();
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-    });
-
-    it("Guppy combination 1", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.shop.obtainCard("b2-guppys_head");
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        game.addInPlay(player1, guppyItem1);
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-
-        // only one player gets the soul bonus
-        const player2souls = player2.totalSouls;
-        game.addInPlay(player2, guppyItem1);
-        expect(player2.totalSouls).toBe(player2souls);
-        game.addInPlay(player2, guppyItem2);
-        expect(player2.totalSouls).toBe(player2souls);
-
-    });
-
-    it("Guppy combination 2", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.shop.obtainCard("b2-guppys_paw")
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        game.addInPlay(player1, guppyItem1);
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-    });
-
-    it("Guppy combination 3", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.decks["loot"]!.getCardFromSlug("b2-guppys_hairball");
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        player1.hand.addToHand(guppyItem1);
-        game.playCard(player1, 1); // Play guppy's hairball
-        game.resolveStack();
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-    });
-
-    it("Guppy combination 1", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.shop.obtainCard("b2-guppys_head");
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        game.addInPlay(player1, guppyItem1);
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-
-        // only one player gets the soul bonus
-        const player2souls = player2.totalSouls;
-        game.addInPlay(player2, guppyItem1);
-        expect(player2.totalSouls).toBe(player2souls);
-        game.addInPlay(player2, guppyItem2);
-        expect(player2.totalSouls).toBe(player2souls);
-
-    });
-
-    it("Guppy combination 2", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.shop.obtainCard("b2-guppys_paw")
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        game.addInPlay(player1, guppyItem1);
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-    });
-
-    it("Guppy combination 3", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.decks["loot"]!.getCardFromSlug("b2-guppys_hairball");
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
-        player1.hand.addToHand(guppyItem1);
-        game.playCard(player1, 1); // Play guppy's hairball
-        game.resolveStack();
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
-        expect(player1.totalSouls).toBe(initSoul + 1);
-    });
-
-    it("Guppy combination 1", () => {
-        const initSoul = player1.totalSouls;
-        const guppyItem1 = game.shop.obtainCard("b2-guppys_head");
-        const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
-        if (!guppyItem1 || !guppyItem2)
             throw new Error("Guppy items not found in treasure deck");
         game.addInPlay(player1, guppyItem1);
         expect(player1.totalSouls).toBe(initSoul);

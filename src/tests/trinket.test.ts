@@ -17,8 +17,12 @@ describe("Loot Card", () => {
         player2 = new Player("Player 2");
         game.addPlayer(player1);
         game.addPlayer(player2);
-        game.start(player1);
+        game.setupGame();
+        const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        game.start(player1, [isaac, eve]);
     });
+
 
     it("Swallowed Penny: should give one coin on player takes damage if player is issuer.", () => {
         const loot = game.decks["loot"]!.getCardFromSlug("b2-swallowed_penny")!;
@@ -698,30 +702,5 @@ describe("Loot Card", () => {
         game.resolveStack();
         expect(player1.currentHealthPoints).toBe(life-1); // No damage taken
     });
-
-});
-
-
-describe("Before start effects", () => {
-    let game: Game;
-    let player1: Player;
-    let player2: Player;
-
-    beforeEach(() => {
-        game = new Game();
-        player1 = new Player("Player 1");
-        player2 = new Player("Player 2");
-        game.addPlayer(player1);
-        game.addPlayer(player2);
-        game.setupGame();
-    });
-
-    // Hard to test because cain card has a passive and an active effect
-    // it("Cain plays first", () => {
-    //     const cain = game.decks["character"]!.getCardFromSlug("b2-cain")! as CharacterCard;
-    //     const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-    //     game.start(player1, [isaac, cain]);
-    //     expect(game.currentPlayer).toBe(player2);
-    // });
 
 });

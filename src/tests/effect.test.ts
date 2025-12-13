@@ -2,17 +2,21 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "@/models/game";
 import { Player } from "@/models/player";
 import { gainCoinsEffect } from "@/models/effect";
+import { CharacterCard } from "@/models/cards";
 
 // Minimal loot card stub
 const dummyLoot = { slug: "dummy-loot", name: "Dummy", type: "loot" } as any;
 
 function setupGame() {
-  const game = new Game();
-  const p1 = new Player("p1", 1, 1, 0);
-  const p2 = new Player("p2", 1, 1, 0);
-  game.addPlayer(p1);
-  game.addPlayer(p2);
-  game.start(p1);
+    const game = new Game();
+    const p1 = new Player("Player 1");
+    const p2 = new Player("Player 2");
+    game.addPlayer(p1);
+    game.addPlayer(p2);
+    game.setupGame();
+    const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
+    const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+    game.start(p1, [isaac, eve]);
   return { game, p1, p2 };
 }
 

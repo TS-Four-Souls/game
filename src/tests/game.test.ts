@@ -13,6 +13,7 @@ describe("Game", () => {
     game = new Game();
     player1 = new Player("player1", 1, 2, 0);
     player2 = new Player("player2", 1, 2, 0);
+    
   });
 
   it("should create a new game instance", () => {

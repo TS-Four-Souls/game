@@ -643,6 +643,9 @@ export class Game {
 
   addInPlay(player: Player, card: Card): void {
     this.emitter.emit("on:enter:play", { eventIssuer: player, card: card });
+    if(card instanceof CharacterCard){
+      card.onAddInPlay(player);
+    }
     player.addInPlay(card);
     this.emitter.emit("on:enter:play:after", { eventIssuer: player, card: card });
   }
@@ -710,6 +713,31 @@ export class Game {
         }
       });
     }
+    const deck = this.decks["character"]!;
+    deck.cards.forEach((card: Card) => {
+      const characterCard = card as CharacterCard;
+      if (!characterCard.effectOutcomes || characterCard.effectOutcomes.length === 0) {
+        console.log(
+          "WARNING: No effect outcomes for loot card:",
+          characterCard.name
+        );
+      } else {
+        for (const outcome of characterCard.effectOutcomes) {
+          const effect: Effect = new Effect(outcome,
+            effectParser(outcome, this, (data:EffectData) => {return true;}),
+            targetSelectorParser(
+              outcome,
+              this
+            ));
+          if(outcome.startsWith("[Tap Effect]"))
+            characterCard.setActiveEffect(effect);
+          else if (outcome.startsWith("[Paid Effect]"))
+            characterCard.setActiveEffect(effect);
+          else
+            characterCard.addPassiveEffect(effect);
+        }
+      }
+    });
   }
 
   addAttack(e: Entity, value: number): void {

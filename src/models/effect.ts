@@ -496,7 +496,7 @@ export function becomesSoulAndGainEffect(game: Game): EffectFunction {
 
 export function addInPlayEffect(game: Game): EffectFunction {
     return (data:EffectData) => {
-        console.log("adding in play loot card from effect:", data.it.name);
+        // console.log("adding in play loot card from effect:", data.it.name);
         game.addInPlay(data.issuer, data.it);
         return true;
     };
@@ -571,7 +571,7 @@ function takeDamageGainCoinsEffect(s: string, damage: number, coins:number, game
 }
 
 
-export function effectParser(s:string, game: Game): EffectFunction {
+export function effectParser(s: string, game: Game, defaultEffect: EffectFunction = addInPlayEffect(game)): EffectFunction {
     const originalS = s;
     // if (s === "Destroy an item you control. If you do, steal a non-eternal item from a player or from the shop.")
     //     console.log("parsing special roll effect:", originalS);
@@ -741,8 +741,18 @@ export function effectParser(s:string, game: Game): EffectFunction {
     const preventMatch = s.match(/^choose a player. prevent (?:the )?next instance of up to (\d+) damage(?: you would take)? this turn\.?$/u);
     switch (s) {
         // passive effects
-        case "If you control this as the game starts, you go first.":
-            return goFirstInTurnOrderEffect(game);
+        case "if you control this as the game starts, you go first.":
+            {
+                console.log("parsing go first effect");
+                return goFirstInTurnOrderEffect(game);
+            }
+
+        case "when you start the game, look at the top 3 cards of the treasure deck and choose one. it becomes your starting item and gains eternal. put the rest on the bottom of the treasure deck.":
+            {
+                console.log("parsing starting item effect");
+                return (data:EffectData) => {return true;};
+                // return startingItemEffect(game);
+            }
         case "choose a player. prevent the next 1 damage they would take this turn.":
             return preventNextDamageUpToEffect(1, game);
         case "choose a player or monster. prevent the next instance of up to 2 damage they would take this turn.":
@@ -976,7 +986,7 @@ export function effectParser(s:string, game: Game): EffectFunction {
             }
 
         default:
-            return addInPlayEffect(game);
+            return defaultEffect;
     }
 }
 

@@ -178,8 +178,15 @@ export class Effect {
     protected _effectFunction: EffectFunction;
     protected _targetsSelector: TargetsSelector[];
     protected _selectedTargets: any[] = [];
+    // protected _cleanup: () => void = () => {};
 
-    constructor(description: string, effectFunction: EffectFunction, targetsSelector: TargetsSelector[]) {
+    constructor(description: string, 
+        effectFunction: EffectFunction 
+        = (data: EffectData) => { return true; }, 
+        targetsSelector: TargetsSelector[] 
+        = [{ description: "", selector: (issuer: Player) => [] }]
+        ) 
+    {
         this._description = description;
         this._effectFunction = effectFunction;
         this._targetsSelector = targetsSelector;
@@ -204,28 +211,27 @@ export class Effect {
     set targets(targets: any[]) {
         this._selectedTargets = targets;
     }
+
+    // set cleanup(cleanup: () => void) {
+    //     this._cleanup = cleanup;
+    // }
+    // get cleanup(): () => void {
+    //     return this._cleanup;
+    // }
+
 }
 
 class LootCard extends ItemCard {
     protected _reward: CardRewards | undefined;
     protected _trinket: boolean = false;
     protected _issuer!: Player;
-    // protected _targetsSelector: TargetsSelector[];
-    // protected _selectedTargets: any[] = [];
-    // protected _effect: EffectFunction;
     protected _effect:Effect;
     constructor(id: number, json: LootCardType, 
-        selectTargets: TargetsSelector[] = [{description: "", selector: (issuer: Player) => []}],
-        effect: EffectFunction = (data: EffectData) => 
-            { data.issuer.addInPlay(data.it); return true; }
     ) {
         super(id, json);
         this._inplayType = InplayType.PLAYABLE;
         this._reward = json.rewards;
-        
-        // this._targetsSelector = selectTargets;
-        // this._effect = effect;
-        this._effect = new Effect(this.name, effect, selectTargets);
+        this._effect = new Effect(this.name + " add in play default effect.");
         if (json.trinket) {
             this._trinket = json.trinket;
             this._inplayType = InplayType.PASSIVE;
@@ -358,6 +364,12 @@ class CharacterCard extends Card {
     protected _eternalCard: string | null = null;
     protected _healthPoints: number = 0;
     protected _attackPoints: number = 0;
+    protected _activeEffect: Effect;
+    protected _paidEffects: Effect[];
+    protected _passiveEffects: Effect[];
+    protected _charged: boolean = false;
+    protected _owner!: Player;
+
     constructor(id: number, json: CharacterCardType) {
         super(id, json);
         if(json.eternalCard) {
@@ -368,6 +380,53 @@ class CharacterCard extends Card {
             this._attackPoints = json.stats.attackPoints || 0;
         }
         this._eternal = true;
+        this._activeEffect = new Effect(this.name + " add in play default effect.");
+        this._passiveEffects = [];
+        this._paidEffects = [];
+
+
+    }
+
+    addPassiveEffect(effect: Effect): void {
+        this._passiveEffects.push(effect);
+    }
+
+    addPaidEffect(effect: Effect): void {
+        this._paidEffects.push(effect);
+    }
+
+    setActiveEffect(effect: Effect) {
+        this._activeEffect = effect;
+    }
+    
+    onTap(): void {
+        if(this._owner === undefined) {
+            throw new Error("CharacterCard has no owner assigned.");
+        }
+        if (this.charged) {
+            this.charged = false;
+            this._activeEffect.effectFunction({ it: this, issuer: this._owner, targets: this._activeEffect.targets });
+        }
+        else {
+            throw new Error("Cannot tap an uncharged item.");
+        }
+    }
+
+    onAddInPlay(owner: Player): void {
+        this._owner = owner;
+        for (const passiveEffect of this._passiveEffects) {
+            passiveEffect.effectFunction({ it: this, issuer: this._owner, targets: passiveEffect.targets });
+        }
+    }
+
+    onRemoveFromPlay(): void {
+
+    }
+    get charged(): boolean {
+        return this._charged;
+    }
+    set charged(value: boolean) {
+        this._charged = value;
     }
     get eternalCard(): string | null {
         return this._eternalCard;
