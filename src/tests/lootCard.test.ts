@@ -33,7 +33,8 @@ describe("Loot Card", () => {
         game.resolveStack();
 
         expect(player1.coins).toBe(initialCoins + 2);
-    });
+    }
+    , { repeats: 100 });
 
     it("b2-a_nickel: should increase player coins by 5", () => {
         player1.gainCoins(3);
@@ -1117,6 +1118,7 @@ describe("Loot Card", () => {
         expect(player1.inPlay).toContain(itemToSteal);
 
         game.select = originalSelect;
+        
     });
 
     it("b2-xv_the_devil: should destroy own item and steal from shop", () => {

@@ -398,6 +398,10 @@ class CharacterCard extends Card {
     setActiveEffect(effect: Effect) {
         this._activeEffect = effect;
     }
+
+    recharge(): void {
+        this._charged = true;
+    }
     
     onTap(): void {
         if(this._owner === undefined) {
@@ -406,9 +410,6 @@ class CharacterCard extends Card {
         if (this.charged) {
             this.charged = false;
             this._activeEffect.effectFunction({ it: this, issuer: this._owner, targets: this._activeEffect.targets });
-        }
-        else {
-            throw new Error("Cannot tap an uncharged item.");
         }
     }
 

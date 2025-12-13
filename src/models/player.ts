@@ -53,7 +53,7 @@ export class Player extends Entity {
     return total;
   }
 
-  get remainingLooktPlay(): number {
+  get remainingLootPlay(): number {
     return this._remainingLootPlay;
   }
 
@@ -78,6 +78,10 @@ export class Player extends Entity {
 
   addAttackThisTurn(value: number): void {
     this._attackThisTurn += value;
+  }
+
+  addLootPlay(value: number): void {
+    this._remainingLootPlay += value;
   }
 ////////// In play Methods /////////
   addInPlay(card: Card): void {

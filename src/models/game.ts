@@ -774,6 +774,10 @@ export class Game {
     e.addHealthPoints(value);
   }
 
+  addLootPlay(e: Player, value: number): void {
+    e.addLootPlay(value);
+  }
+
   addAttackDiceModifier(e: Entity, value: number): void {
     e.addDiceModifier(value);
   }

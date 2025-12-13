@@ -42,6 +42,32 @@ describe("Before start effects", () => {
         expect(player2.inPlay[1]! instanceof treasureCard).toBe(true);
     });
 
+    it("Character card activation gives a loot play (random characters)", () => {
+        const eden = game.decks["character"]!.getCardFromSlug("b2-eden")! as CharacterCard;
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        game.start(player1);
+        const character1 = player1.inPlay[0] as CharacterCard;
+        const character2 = player2.inPlay[0] as CharacterCard;
+        if(!character1 || !character2)
+            throw new Error("Characters not found");
+        const initialLootPlays1 = player1.remainingLootPlay;
+        const initialLootPlays2 = player2.remainingLootPlay;
+        character1.recharge();
+        character1.onTap();
+        expect(player1.remainingLootPlay).toBe(initialLootPlays1 + 1);
+        character1.onTap(); // uncharged tap should do nothing
+        expect(player1.remainingLootPlay).toBe(initialLootPlays1 + 1);
+        character2.recharge();
+        character2.onTap();
+        expect(player2.remainingLootPlay).toBe(initialLootPlays2 + 1);
+
+        game.endTurn();
+        
+        // Ensure the loot play resets at the start of the turn
+        expect(player1.remainingLootPlay).toBe(0);
+        expect(player2.remainingLootPlay).toBe(1);
+    });
+
 });
 
 describe("Bonus Soul effects", () => {
@@ -138,5 +164,4 @@ describe("Bonus Soul effects", () => {
         game.addInPlay(player1, guppyItem2);
         expect(player1.totalSouls).toBe(initSoul + 1);
     });
-
 });

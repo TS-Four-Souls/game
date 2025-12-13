@@ -761,6 +761,10 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             return temporaryStatModifierEffect([game.addAttack, game.addAttackDiceModifier], 1, game);
         case "choose a player.\nthey gain +1 [atk] till end of turn and may attack an additional time this turn.":
             return temporaryStatModifierEffect([game.addAttack, game.addAttackThisTurn], 1, game);
+        case "[tap effect] play an additional loot card this turn.":
+            {
+                return temporaryStatModifierEffect([game.addLootPlay], 1, game);
+            }
         case "each time you take damage, gain 1\u00A2.":
             return gainCoinsOnDamageEffect( 1, game);
         case "each time a player dies, before paying penalties, loot 1.":
@@ -835,7 +839,6 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             }
         case "cancel the ↷ or $ ability of an item or a loot being played.":
             return cancelPreviousNonRollEffect(game);
-
         case "put each monster not being attacked into discard and replace each with the top card of the monster deck.":
             return flushMonsterSlotsEffect(game);
         case "put each monster not being attacked on the bottom of the monster deck.":
