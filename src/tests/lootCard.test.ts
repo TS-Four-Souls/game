@@ -18,9 +18,9 @@ describe("Loot Card", () => {
         game.addPlayer(player1);
         game.addPlayer(player2);
         game.setupGame();
-        const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
+        const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [isaac, eve]);
+        game.start(player1, [isaac, judas]);
     });
 
 
@@ -1730,10 +1730,10 @@ describe("Loot Cards - 3 players tests", () => {
         game.addPlayer(player2);
         game.addPlayer(player3);
         game.setupGame();
-        const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
+        const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        game.start(player1, [isaac, eve, samson]);
+        game.start(player1, [isaac, judas, samson]);
     });
 
     it("b2-xx_judgement: tie for most souls chooses target to destroy soul", () => {

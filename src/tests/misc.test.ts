@@ -84,9 +84,9 @@ describe("Bonus Soul effects", () => {
         game.addPlayer(player1);
         game.addPlayer(player2);
         game.setupGame();
-        const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
+        const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [isaac, eve]);
+        game.start(player1, [isaac, judas]);
     });
 
     it("Greed", () => {

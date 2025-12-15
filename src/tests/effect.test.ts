@@ -14,9 +14,9 @@ function setupGame() {
     game.addPlayer(p1);
     game.addPlayer(p2);
     game.setupGame();
-    const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
+    const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
     const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-    game.start(p1, [isaac, eve]);
+    game.start(p1, [isaac, samson]);
   return { game, p1, p2 };
 }
 

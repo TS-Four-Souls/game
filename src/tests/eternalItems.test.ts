@@ -147,8 +147,8 @@ describe("Eternal Items - 3 players tests", () => {
     it("Blood Lust - recharge on end turn", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
-        game.start(player1, [isaac, samson, eve]);
+        const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
+        game.start(player1, [isaac, samson, judas]);
         expect(player1.inPlay[0]!.slug).toBe("b2-isaac");
         expect(player2.inPlay[0]!.slug).toBe("b2-samson");
         expect(player2.inPlay[0]!.eternal).toBe(true);
