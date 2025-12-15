@@ -10,39 +10,37 @@ import type { Game } from './game';
 class EffectHandler{
     protected _effects: Effect[] = [];
     protected cleaners: (() => void)[] = [];
-    protected it: Card;
 
-    constructor(it:Card) {
-        this.it = it;
-    }
+    constructor() {}
     
     cleanupAll(): void {
         for (const cleaner of this.cleaners) {
             cleaner();
         }
         this.cleaners = [];
+        this._effects = [];
     }
 }
 
 class PassiveEffectHandler extends EffectHandler {
     protected _type: "passive" = "passive";
-    constructor(it: Card) {super(it);}
+    constructor() {super();}
 
     addEffect(effect: Effect): void {
         if (effect.type === "passive")
             this._effects.push(effect);
         else throw new Error("Cannot put a non-passive effect in a PassiveEffectHandler.");
     }
-    subscribeAll(owner: Entity) {
+    subscribeAll(owner: Entity, it: Card) {
         for (const effect of this._effects) {
-            effect.effectFunction({ it: this.it, issuer: owner as Player, targets: effect.targets });
+            effect.effectFunction({ it, issuer: owner as Player, targets: effect.targets });
         }
     }
 }
 
 class ActiveEffectHandler extends EffectHandler {
     protected _type: "active" = "active";
-    constructor(it: Card) {super(it);}
+    constructor() {super();}
 
 
     addEffect(effect: Effect): void {
@@ -51,7 +49,11 @@ class ActiveEffectHandler extends EffectHandler {
         else throw new Error("Cannot put a passive effect in an ActiveEffectHandler.");
     }
 
-    activeEffect(issuer: Entity, game: Game): void {
+    getEffect(index: number = 0): Effect | undefined {
+        return this._effects.length > index ? this._effects[index] : undefined;
+    }
+
+    activeEffect(issuer: Entity, game: Game, it: Card): void {
         if (this._type !== "active" && this._effects.length > 0)
             throw new Error("activeEffect can only be called for active effects.");
 
@@ -59,8 +61,8 @@ class ActiveEffectHandler extends EffectHandler {
         const effect = this._effects.find(e => e.description === selection.selected[0]);
         if (effect) {
             if (effect.type === "active") {
-                if (this.it.activate()) {
-                    effect.effectFunction({ it: this.it, issuer: issuer as Player, targets: effect.targets });
+                if (it.activate()) {
+                    effect.effectFunction({ it, issuer: issuer as Player, targets: effect.targets });
                 }
             }
         }
@@ -68,13 +70,17 @@ class ActiveEffectHandler extends EffectHandler {
 }
 
 class EffectInterface {
-    protected activeEffects: ActiveEffectHandler;
-    protected passiveEffects: PassiveEffectHandler;
+    private activeEffects: ActiveEffectHandler;
+    private passiveEffects: PassiveEffectHandler;
+    protected _issuer: Player | undefined;
+    protected it: Card;
 
     constructor(it: Card) {
-        this.activeEffects = new ActiveEffectHandler(it);
-        this.passiveEffects = new PassiveEffectHandler(it);
+        this.activeEffects = new ActiveEffectHandler();
+        this.passiveEffects = new PassiveEffectHandler();
+        this.it = it;
     }
+
     addEffect(effect: Effect): void {
         if(effect.type === "passive") {
             this.passiveEffects.addEffect(effect);
@@ -82,11 +88,62 @@ class EffectInterface {
             this.activeEffects.addEffect(effect);
         }
     }
+    
     subscribeAll(owner: Entity): void {
-        this.passiveEffects.subscribeAll(owner);
+        this.passiveEffects.subscribeAll(owner, this.it);
     }
+    
     activeEffect(issuer: Entity, game: Game): void {
-        this.activeEffects.activeEffect(issuer, game);
+        this.activeEffects.activeEffect(issuer, game, this.it);
+    }
+
+    // Get the first active effect (for cards that have a single effect)
+    getActiveEffect(index: number = 0): Effect | undefined {
+        return this.activeEffects.getEffect(index);
+    }
+
+    // Lifecycle methods for loot cards - onPlay sets up targets and returns a resolve function
+    onPlay(issuer: Player): (() => void) {
+        this._issuer = issuer;
+        const effect = this.activeEffects.getEffect(0);
+        if (!effect) {
+            return () => {};
+        }
+        
+        for(const targetSelector of effect.targetsSelector) {
+            if(targetSelector.selector(issuer).length === 0) {
+                effect.targets = [];
+            } else if (isChooseOneOptions(targetSelector.selector(issuer)[0])) {
+                const options: ChooseOneOptions[] = targetSelector.selector(issuer) as ChooseOneOptions[];
+                const chooseOne = targetSelector.selector(issuer)[0].description;
+                const targets = targetSelector.selector(issuer)[0].admissibleTargets[0] !== undefined ?
+                    targetSelector.selector(issuer)[0].admissibleTargets :
+                    [];
+                const resultTargets: ChooseOneResult[] = [{ description: chooseOne, chosenOptions: targets }];
+                effect.targets = resultTargets;
+            } else {
+                effect.targets = [targetSelector.selector(issuer)[0]];
+            }
+        }
+
+        // Return a resolve function to be called later
+        return (trinket: boolean = false) => {
+            if(effect.targetStillValid(this._issuer!)) {
+                if(trinket && this._issuer) {
+                    this._issuer.addInPlay(this.it);
+                }
+                effect.effectFunction({ it: this.it, issuer: this._issuer!, targets: effect.targets });
+            } else {
+                console.log("EffectInterface.onPlay resolve: targetStillValid() returned false for", (this.it as any).name);
+            }
+        };
+    }
+
+    debugSetTargets(targets: any[]): void {
+        const effect = this.activeEffects.getEffect(0);
+        if (effect) {
+            effect.targets = targets;
+        }
     }
 }
 
@@ -105,6 +162,7 @@ class Card {
     protected _tags: { [key: string]: any };
     protected _minimumPlayers: number;
     protected _effectOutcomes: string[];
+    protected _effectInterface: EffectInterface;
     protected _souls: number = 0;
     protected _charged: boolean = false;
     protected _eternal: boolean = false;
@@ -124,6 +182,7 @@ class Card {
         this._back = json.back;
         this._keywords = [];
         this._tags = {};
+        this._effectInterface = new EffectInterface(this);
         this._position = null;
         // this._tags = json.tags || {};
         this._minimumPlayers = json.minimumPlayers || 1;
@@ -199,6 +258,10 @@ class Card {
             return true;
         }
         return false;
+    }
+
+    addEffect(effect: Effect) {
+        this._effectInterface.addEffect(effect);
     }
 }
 
@@ -327,6 +390,49 @@ export class Effect {
         this._selectedTargets = targets;
     }
 
+    // Target validation methods
+    private chooseOneTargetStillValid(issuer: Player): boolean {
+        if(this._selectedTargets.length > 1)
+            throw new Error("chooseOne target should have length at most 1.");
+        for (const chooseOneTarget of this._selectedTargets) {
+            const descr = chooseOneTarget.description;
+            const targets = chooseOneTarget.chosenOptions;
+            if(targets.length > 0) {
+                for (const admissibleTarget of this._targetsSelector[0]!.selector(issuer)) {
+                    if(admissibleTarget.description === descr) {
+                        for(const t of targets) {
+                            if (!admissibleTarget.admissibleTargets.includes(t)) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    targetStillValid(issuer: Player): boolean {
+        if (this._selectedTargets.length > 0) {
+            for(const i in this._targetsSelector) {
+                if (this._selectedTargets[i]?.length > 0) {
+                    const admissibleTargets = this._targetsSelector[i]!.selector(issuer);
+                    if (isChooseOneResult(this._selectedTargets[i][0])) {
+                        return this.chooseOneTargetStillValid(issuer);
+                    } else {
+                        for (const targetId in this._selectedTargets) {
+                            if (!admissibleTargets[targetId]?.includes(this._selectedTargets[targetId][0])) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
     // set cleanup(cleanup: () => void) {
     //     this._cleanup = cleanup;
     // }
@@ -339,124 +445,51 @@ export class Effect {
 class LootCard extends ItemCard {
     protected _reward: CardRewards | undefined;
     protected _trinket: boolean = false;
-    protected _issuer!: Player;
-    protected _effect:Effect;
-    constructor(id: number, json: LootCardType, 
-    ) {
+
+    constructor(id: number, json: LootCardType) {
         super(id, json);
         this._inplayType = InplayType.PLAYABLE;
         this._reward = json.rewards;
-        this._effect = new Effect(this.name + " add in play default effect.", "passive");
+        this._effectInterface = new EffectInterface(this);
         if (json.trinket) {
             this._trinket = json.trinket;
             this._inplayType = InplayType.PASSIVE;
         }
     }
+
     get trinket(): boolean {
         return this._trinket;
     }
 
-    get targets(): any[] {
-        return this._effect.targets;
-    }
-    get targetsSelector(): TargetsSelector[] {
-        return this._effect.targetsSelector;
-    }
-    get effectFunction(): EffectFunction {
-        return this._effect.effectFunction;
-    }
-
-    set effect(effect: Effect) {
-        this._effect = effect;
-    }
-
-    set targets(targets: any[]) {
-        this._effect.targets = targets;
-    }
-
-    // set targetSelector(selector: TargetsSelector[]) {
-    //     this._effect.targetsSelector = selector;
-    // }
-
-    private chooseOneTargetStillValid(): boolean {
-        if(this.targets.length > 1)
-            throw new Error("chooseOne target should have length at most 1.");
-        for (const chooseOneTarget of this.targets)
-            {
-            const descr = chooseOneTarget.description;
-            const targets = chooseOneTarget.chosenOptions;
-            if(targets.length > 0)
-                for (const admissibleTarget of this.targets[0]!.selector(this._issuer))
-                {
-                    if(admissibleTarget.description === descr)
-                    {
-                        for(const t of targets){
-                            if (!admissibleTarget.admissibleTargets.includes(t))
-                            {
-                                return false;
-                            }
-                        }
-                        return true;
-                    }
-                }
-        }
-        return true;
-    }
-
-    private targetStillValid(): boolean {
-        if (this.targets.length > 0){
-        for(const i in this.targetsSelector)
-        {
-            if (this.targets[i].length > 0)
-            {
-                const admissibleTargets = this.targetsSelector[i]!.selector(this._issuer);
-                if (isChooseOneResult(this.targets[i][0])) {
-                    return this.chooseOneTargetStillValid()
-                } else {
-                    for (const targetId in this.targets) {
-                        if (!admissibleTargets[targetId].includes(this.targets[targetId][0])) {
-                            return false;
-                        }
-                    }
-                }
-            }}
-        }
-        return true;
-    }
-    
-    onPlay(issuer: Player): void {
-        // temporary selection target selection: take the first valid target.
-        //  Note that for choose one-, the first effect is choosen and the first target selected.
-        for(const targetSelector of this.targetsSelector) {
-            if(targetSelector.selector(issuer).length === 0) 
-                this.targets = [];
-            else if (isChooseOneOptions(targetSelector.selector(issuer)[0]))
-            {
-                const options: ChooseOneOptions[] = targetSelector.selector(issuer) as ChooseOneOptions[];
-                const chooseOne = targetSelector.selector(issuer)[0].description;
-                const targets = targetSelector.selector(issuer)[0].admissibleTargets[0] !== undefined ?
-                    targetSelector.selector(issuer)[0].admissibleTargets :
-                    [];
-                const resultTargets: ChooseOneResult[] = [{ description: chooseOne, chosenOptions: targets }];
-                this.targets = resultTargets;
-            }
-            else
-                this.targets = [targetSelector.selector(issuer)[0]];
-            this._issuer = issuer!;
-        }
-    }
-    onResolve(): void {
-        if(this.targetStillValid()) {
-            if(this.trinket)
-                this._issuer.addInPlay(this);
-            this.effectFunction({ it: this, issuer: this._issuer, targets: this.targets });
-        } else {
-            console.log("LootCard.onResolve: targetStillValid() returned false for", (this as any).name);
-        }
+    onPlay(issuer: Player): () => void {
+        // Return a resolve function that captures trinket state
+        const resolveFunction = this._effectInterface.onPlay(issuer);
+        return () => {
+            resolveFunction(this._trinket);
+        };
     }
 
     debugSetTargets(targets: any[]): void {
-        this.targets = targets;
+        this._effectInterface.debugSetTargets(targets);
+    }
+}
+
+// Wrapper class to hold loot card effect resolution on the stack
+export class LootCardEffect {
+    private card: LootCard;
+    private resolve: () => void;
+
+    constructor(card: LootCard, resolveFunction: () => void) {
+        this.card = card;
+        this.resolve = resolveFunction;
+    }
+
+    onResolve(): void {
+        this.resolve();
+    }
+
+    get json() {
+        return this.card.json;
     }
 }
 
@@ -478,9 +511,6 @@ class eternalCard extends ItemCard {
 class CharacterCard extends ItemCard {
     protected _eternalCard: string | null = null;
     protected _healthPoints: number = 0;
-    protected _activeEffect: Effect; // effect that can be activated by tapping the card
-    protected _paidEffects: Effect[]; // effects that can be activated by paying a cost
-    protected _passiveEffects: Effect[]; // effects that trigger when added to play
     protected _owner!: Player;
     protected _attackPoints: number = 0;
 
@@ -494,25 +524,10 @@ class CharacterCard extends ItemCard {
             this._attackPoints = json.stats.attackPoints || 0;
         }
         this._eternal = true;
-        this._activeEffect = new Effect(this.name + " add in play default effect.", "active");
-        this._passiveEffects = [];
-        this._paidEffects = [];
-
-
-    }
-    get passiveEffects(): Effect[] {
-        return this._passiveEffects;
-    }
-    addPassiveEffect(effect: Effect): void {
-        this._passiveEffects.push(effect);
     }
 
-    addPaidEffect(effect: Effect): void {
-        this._paidEffects.push(effect);
-    }
-
-    setActiveEffect(effect: Effect) {
-        this._activeEffect = effect;
+    addEffect(effect: Effect): void {
+        this._effectInterface.addEffect(effect);
     }
 
     rechargeChara(): void {
@@ -526,15 +541,17 @@ class CharacterCard extends ItemCard {
         }
         if (this.charged) {
             this.charged = false;
-            this._activeEffect.effectFunction({ it: this, issuer: this._owner, targets: this._activeEffect.targets });
+            // Get the active effect and execute it directly
+            const activeEffect = this._effectInterface.getActiveEffect(0);
+            if (activeEffect) {
+                activeEffect.effectFunction({ it: this, issuer: this._owner, targets: activeEffect.targets });
+            }
         }
     }
 
     onAddInPlay(owner: Player): void {
         this._owner = owner;
-        for (const passiveEffect of this._passiveEffects) {
-            passiveEffect.effectFunction({ it: this, issuer: this._owner, targets: passiveEffect.targets });
-        }
+        this._effectInterface.subscribeAll(owner);
     }
 
     onRemoveFromPlay(): void {
@@ -914,10 +931,13 @@ class Hand {
     }
 }
 
-function LoadDecks(card_sets: {[key: string]: CardSet}, numPlayers: number) : {[key: string]: Deck} {
+function LoadDecks(json_array: GenericCardType[], numPlayers: number) : {[key: string]: Deck} {
+    // Create fresh CardSets from JSON to ensure independent card instances
+    const decks_cardSets = LoadsCardSets(json_array);
+    
     const decks: {[key: string]: Deck} = {};
-    for (const type of Object.keys(card_sets)) {
-        const set = card_sets[type];
+    for (const type of Object.keys(decks_cardSets)) {
+        const set = decks_cardSets[type];
         if (!set || set.length === 0) {
             continue;
         }

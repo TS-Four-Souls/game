@@ -1,8 +1,8 @@
-import { type Card, LootCard } from "./cards";
+import { type Card, LootCard, LootCardEffect } from "./cards";
 import type { Entity } from "./entity";
 import { DamageOnStack, DeathOnStack, DiceRoll } from "./player";
 
-export type StackElement = LootCard | DiceRoll | DeathOnStack | DamageOnStack;
+export type StackElement = LootCardEffect | DiceRoll | DeathOnStack | DamageOnStack;
     
 export class Stack {
     _stack: StackElement[] = [];

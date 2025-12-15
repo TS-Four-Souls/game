@@ -21,6 +21,7 @@ import {
   MonsterCard,
   ItemCard,
   LootCard,
+  LootCardEffect,
   InplayType,
   treasureCard,
   BsoulCard,
@@ -28,7 +29,6 @@ import {
   type EffectData,
   type EffectType,
 } from "@/models/cards";
-import { type Ability } from "./abilityRegistry";
 import { Stack, type StackElement } from "@/models/stack";
 import {
   effectParser,
@@ -40,7 +40,6 @@ import { Entity } from "@/models/entity";
 import { TurnHandler } from "./turnHandler";
 import { type ReadableSignal, Signal } from "micro-signals";
 import { GameEventEmitter } from "./eventEmmitter";
-import { AbilityRegistry } from "./abilityRegistry";
 import { preventNextDamageUpToEffect } from "@/models/abilities";
 import { bSoulEffectParser } from "@/models/bonusSoulHandling";
 import { pl } from "zod/locales";
@@ -72,7 +71,6 @@ export class Game {
   private _stack: Stack = new Stack();
   private _destroyedCards: Card[] = [];
   private _emitter: GameEventEmitter;
-  private _abilityRegistry: AbilityRegistry;
   private _bonusSouls: BsoulCard[] = [];
 
   private _onStateChange: Signal<void> = new Signal();
@@ -80,7 +78,6 @@ export class Game {
 
   constructor() {
     this._emitter = new GameEventEmitter();
-    this._abilityRegistry = new AbilityRegistry(this._emitter);
   }
 
   get stateJson(): State {
@@ -97,9 +94,6 @@ export class Game {
   }
   get emitter(): GameEventEmitter {
     return this._emitter;
-  }
-  get abilityRegistry(): AbilityRegistry {
-    return this._abilityRegistry;
   }
   get monsters(): Monster[] {
     return this._encounters.monsters;
@@ -479,7 +473,7 @@ export class Game {
 
   resolveStack() {
     let elem = this.stack.resolve();
-    if (elem instanceof LootCard) elem.onResolve();
+    if (elem instanceof LootCardEffect) elem.onResolve();
     else if (elem instanceof DiceRoll) this.resolveDiceRoll(elem);
     else if (elem instanceof DeathOnStack) elem.onResolve();
     else if (elem instanceof DamageOnStack) elem.onResolve();
@@ -567,9 +561,9 @@ export class Game {
       return "Invalid card position.";
     }
     const playedCard: LootCard = player.hand.playCard(index - 1) as LootCard;
-    playedCard.onPlay(player);
-    this.addToStack(playedCard);
-    // this.addInPlay(player, playedCard);
+    const resolveFunction = playedCard.onPlay(player);
+    const lootCardEffect = new LootCardEffect(playedCard, resolveFunction);
+    this.addToStack(lootCardEffect);
 
     this._onStateChange.dispatch();
 
@@ -583,7 +577,7 @@ export class Game {
     }
   }
   setupGame(): void {
-    this._decks = LoadDecks(cardSets, this.players.length);
+    this._decks = LoadDecks(cards, this.players.length);
     this.joinEffectsToCards();
   }
   
@@ -717,7 +711,6 @@ export class Game {
     this._encounters = null!;
     this._stack.clear();
     this._emitter = new GameEventEmitter();
-    this._abilityRegistry = new AbilityRegistry(this._emitter);
     this._bonusSouls = [];
     this._destroyedCards = [];
   }
@@ -734,62 +727,40 @@ export class Game {
     return `It's ${this.currentPlayer!.id}'s turn. Round ${roundIndex}.\n`;
   }
 
+  private getEffectTypeFromOutcome(outcome: string, card:Card): EffectType {
+    let type:EffectType = "passive";
+    if(outcome.startsWith("[Tap Effect]") || card.type === "loot")
+            type = "active";
+    else if (outcome.startsWith("[Paid Effect]"))
+      type = "paid";
+    return type;
+  }
+
   private joinEffectsToCards(): void {
-    for(const deckName of ["loot", "bsoul"])
+    for(const deckName of ["loot", "bsoul", "character"])
     {
       const deck = this.decks[deckName]!;
       deck.cards.forEach((card: Card) => {
-        const lootCard = card as LootCard;
-        if (!lootCard.effectOutcomes || lootCard.effectOutcomes.length === 0) {
+        if (!card.effectOutcomes || card.effectOutcomes.length === 0) {
           console.log(
             "WARNING: No effect outcomes for loot card:",
-            lootCard.name
+            card.name
           );
-        } else {
-          const effect: Effect = new Effect(lootCard.effectOutcomes[0]!,
-            "passive",
-            effectParser(lootCard.effectOutcomes[0]!, this),
-            targetSelectorParser(
-              lootCard.effectOutcomes[0]!,
-              this
-            ));
-            lootCard.effect = effect;
-          //   lootCard.effect = effectParser(lootCard.effectOutcomes[0]!, this);
-          // lootCard.targetSelector = targetSelectorParser(
-          //   lootCard.effectOutcomes[0]!,
-          //   this
-          // );
+        }
+        for(const outcome of card.effectOutcomes)
+        {
+        const effectType = this.getEffectTypeFromOutcome(outcome, card);
+        const effect: Effect = new Effect(outcome,
+          effectType,
+          effectParser(outcome, this),
+          targetSelectorParser(
+            outcome,
+            this
+          ));
+          card.addEffect(effect);
         }
       });
     }
-    const deck = this.decks["character"]!;
-    deck.cards.forEach((card: Card) => {
-      const characterCard = card as CharacterCard;
-      if (!characterCard.effectOutcomes || characterCard.effectOutcomes.length === 0) {
-        console.log(
-          "WARNING: No effect outcomes for loot card:",
-          characterCard.name
-        );
-      } else {
-        for (const outcome of characterCard.effectOutcomes) {
-          let type:EffectType = "passive";
-          if(outcome.startsWith("[Tap Effect]"))
-            type = "active";
-          else if (outcome.startsWith("[Paid Effect]"))
-            type = "paid";
-          const effect: Effect = new Effect(outcome, type,
-            effectParser(outcome, this, (data:EffectData) => {return true;}),
-            targetSelectorParser(
-              outcome,
-              this
-            ));
-          if(type === "active" || type === "paid")
-            characterCard.setActiveEffect(effect);
-          else
-            characterCard.addPassiveEffect(effect);
-        }
-      }
-    });
   }
 
   addAttack(e: Entity, value: number): void {

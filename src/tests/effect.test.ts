@@ -168,7 +168,7 @@ describe("Loot deck integration", () => {
     expect(game.stack.size).toBe(1);
 
     // Simulate target selection (would normally be done by targetSelector)
-    (damageCard as LootCard)!.targets = [p2];
+    (damageCard as LootCard)!.debugSetTargets([p2]);
 
     game.resolveStack();
     game.resolveStack();
@@ -314,7 +314,7 @@ describe("Loot deck integration", () => {
     game.playCard(p1, p1.hand.cards.length);
 
     // Set target to the discharged item
-    (rechargeCard as LootCard).targets = [chargedItem];
+    (rechargeCard as LootCard).debugSetTargets([chargedItem]);
 
     game.resolveStack();
 
