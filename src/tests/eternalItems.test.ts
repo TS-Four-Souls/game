@@ -20,7 +20,30 @@ describe("Eternal Items", () => {
         game.addPlayer(player2);
         game.setupGame();
     });
-    
+
+    // "[Tap Effect] Look at the top 5 cards of a deck. Put them back in any order."
+    // it("Sleight of Hand ", () => {
+    //     const cain = game.decks["character"]!.getCardFromSlug("b2-cain")! as CharacterCard;
+    //     const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+    //     game.start(player1, [cain, isaac]);
+    //     expect(player1.inPlay[0]!.slug).toBe("b2-cain");
+    //     expect(player1.inPlay[0]!.eternal).toBe(true);
+    //     expect(player1.inPlay[1]!.slug).toBe("b2-sleight_of_hand");
+    //     expect(player1.inPlay[1]!.eternal).toBe(true);
+    //     expect(player2.inPlay[0]!.slug).toBe("b2-isaac");
+
+    //     const sleightOfHand = player1.inPlay[1]! as ItemCard;
+    //     game.recharge(sleightOfHand);
+    //     expect(sleightOfHand.charged).toBe(true);
+
+    //     const top5reverse = game.decks["loot"]!.cards.slice(0, 5).map(c => c.slug).reverse();
+    //     sleightOfHand.onTap();
+    //     game.resolveStack(); // resolve sleight of hand effect
+    //     const top5After = game.getFirstCardsOfDeck("loot", 5).map(c => c.slug);
+    //     expect(top5After).toEqual(top5reverse); // order should be different
+
+    // });
+
     // "[Tap Effect] Choose a player or monster. Prevent the next instance of damage they would take this turn.",
     it("Yum Heart", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
@@ -174,8 +197,10 @@ describe("Eternal Items - 3 players tests", () => {
         expect(bloodlust.charged).toBe(false);
 
         game.endTurn(); // eve turn
-        expect(bloodlust.charged).toBe(true);
-        bloodlust.onTap();
+        expect(bloodlust.charged).toBe(true);;
+        expect(player1.attackPoints).toBe(1);
+        bloodlust.onTap([player1]);
+        expect(player1.attackPoints).toBe(2);
         expect(bloodlust.charged).toBe(false);
 
         game.endTurn(); // isaac turn

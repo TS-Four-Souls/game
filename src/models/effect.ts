@@ -800,6 +800,16 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
                 }
                 return true;
             };
+        case "[tap effect] look at the top 5 cards of a deck. put them back in any order.":
+            return (data:EffectData) => {
+                const deckName = data.targets[0] as string;
+                const top5Cards = game.getFirstCardsOfDeck(deckName, 5);
+                const selectionResult = game.select(data.issuer, 5, top5Cards, false);
+                for (let i = selectionResult.selected.length - 1; i >= 0; i--) {
+                    game.addTopPosition(deckName, selectionResult.selected[i]!);
+                }
+                return true;
+            };
         case "recharge an item.":
             return rechargeItemsEffect(game);
         case "recharge another item.":
@@ -1042,6 +1052,8 @@ export function targetSelectorParser(s:string, game: Game): TargetsSelector[] {
     {
         return [{ description: "Select a non-eternal item from a player or from the shop", selector: visibleItemSelector((card: ItemCard) => card.eternal === false, game)}];
     }
+    if (s === "[tap effect] look at the top 5 cards of a deck. put them back in any order.")
+        return [{description: "Select a deck", selector: deckSelector(undefined, game)}];
     return [{description: "", selector: (issuer: Player) => []}];
 }
 // export function eachPlayerSelector(game: Game): TargetsSelector {
@@ -1108,7 +1120,11 @@ export function chooseOneTargetSelector(s: string, game: Game): (issuer: Player)
 }
 export function deckSelector(filter: (deckName: string) => boolean = () => true, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
-        return Object.keys(game.decks).filter((deckName) => filter(deckName));
+        return Object.keys(game.decks).filter((deckName) => filter(deckName) 
+            && deckName !== "character"
+            && deckName !== "eternal"
+            && deckName !== "bsoul"
+    );
     }
 }
 

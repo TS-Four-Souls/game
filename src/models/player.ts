@@ -158,7 +158,7 @@ export class Player extends Entity {
     this._souls.splice(idx, 1);
     return true;
   }
-  activateItem(item: ItemCard): boolean {
+  activateItem(item: ItemCard, targets: any[] = []): boolean {
     const index = this._inPlay.indexOf(item);
     console.log("Activating item:", item.name, "at index", index);
     if (index === -1) {
@@ -168,7 +168,7 @@ export class Player extends Entity {
     //   return false;
     // }
     if(item instanceof CharacterCard)
-      (item as CharacterCard).onTapChara();
+      (item as CharacterCard).onTapChara(targets);
     return true;
   }
   gainCoins(coins: number): void {

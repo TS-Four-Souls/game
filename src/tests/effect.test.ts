@@ -164,11 +164,8 @@ describe("Loot deck integration", () => {
 
    p1.hand.addToHand(damageCard!);
 
-    game.playCard(p1, p1.hand.cards.length);
+    game.playCard(p1, p1.hand.cards.length, [p2]);
     expect(game.stack.size).toBe(1);
-
-    // Simulate target selection (would normally be done by targetSelector)
-    (damageCard as LootCard)!.debugSetTargets([p2]);
 
     game.resolveStack();
     game.resolveStack();
@@ -311,10 +308,10 @@ describe("Loot deck integration", () => {
 
     // Play recharge card
     p1.hand.addToHand(rechargeCard);
-    game.playCard(p1, p1.hand.cards.length);
+    game.playCard(p1, p1.hand.cards.length, [item]);
 
     // Set target to the discharged item
-    (rechargeCard as LootCard).debugSetTargets([chargedItem]);
+    // Game now selects targets deterministically
 
     game.resolveStack();
 
@@ -340,11 +337,15 @@ describe("Loot deck integration", () => {
     game.decks["loot"]!.remove(stealCard!);
     p1.hand.addToHand(stealCard!);
 
-    game.playCard(p1, p1.hand.cards.length);
-    
-    // Set target to p2
-    const stackElement = game.stack.elements[0] as any;
-    stackElement._selectedTargets = [p2];
+    // Get the selectors and select target
+    const selectors = game.getSelectors(p1, stealCard! as any);
+    const targets: any[] = [];
+    for (const selector of selectors) {
+      const admissible = selector.selector(p1);
+      targets.push(admissible[0]); // Pick first admissible target
+    }
+
+    game.playCard(p1, p1.hand.cards.length, targets);
 
     game.resolveStack();
 

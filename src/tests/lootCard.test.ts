@@ -82,7 +82,7 @@ describe("Loot Card", () => {
         const nbLootCardsTarget = player1.hand.cards.length;
 
         player2.hand.addToHand(lootCard!);
-        game.playCard(player2, 1);
+        game.playCard(player2, 1, [player1]);
         game.resolveStack();
 
         expect(player2.coins).toBe(nbCoinsTarget); ``
@@ -103,7 +103,7 @@ describe("Loot Card", () => {
         const nbCoinsTarget = player1.coins;
         const nbLootCardsTarget = player1.hand.cards.length;
 
-        game.playCard(player2, 1);
+        game.playCard(player2, 1, [player1]);
 
         const nbCoins = player2.coins;
         const nbLootCards = player2.hand.cards.length;
@@ -230,8 +230,7 @@ describe("Loot Card", () => {
 
         const player2InitialHP = player2.currentHealthPoints;
 
-        game.playCard(player1, 1);
-        (lootCard as LootCard).debugSetTargets([player2]);
+        game.playCard(player1, 1, [player2]);
         game.resolveStack();
         game.resolveStack();
 
@@ -246,8 +245,7 @@ describe("Loot Card", () => {
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-bomb");
         player1.hand.addToHand(lootCard!);
 
-        game.playCard(player1, 1);
-        (lootCard as LootCard).debugSetTargets([monster]);
+        game.playCard(player1, 1, [monster]);
         game.resolveStack();
         game.resolveStack();
 
@@ -292,8 +290,7 @@ describe("Loot Card", () => {
 
         const player2InitialHP = player2.currentHealthPoints;
 
-        game.playCard(player1, 1);
-        (lootCard as LootCard).debugSetTargets([player2]);
+        game.playCard(player1, 1, [player2]);
         game.resolveStack();
         game.resolveStack();
 
@@ -308,8 +305,7 @@ describe("Loot Card", () => {
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-gold_bomb");
         player1.hand.addToHand(lootCard!);
 
-        game.playCard(player1, 1);
-        (lootCard as LootCard).debugSetTargets([monster]);
+        game.playCard(player1, 1, [monster]);
         game.resolveStack();
         game.resolveStack();
 
@@ -328,8 +324,7 @@ describe("Loot Card", () => {
         for (let attempt = 0; attempt < 1000; attempt++) {
             player1.hand.addToHand(diceShard!);
             // Play dice_shard to reroll the dice
-            game.playCard(player1, 1);
-            // (diceShard as LootCard).debugSetTargets([roll]);
+            game.playCard(player1, 1, [roll]);
             game.resolveStack();
             if (initialRollValue !== roll.value) {
                 break;
@@ -387,7 +382,7 @@ describe("Loot Card", () => {
         game.stack.push(roll);
         roll.value = 6; // initial value
         // Play magician to change the roll
-        game.playCard(player1, 1);
+        game.playCard(player1, 1, [game.stack.elements[0]]);
         game.resolveStack();
 
         expect(roll.value).toBe(1);
@@ -405,8 +400,7 @@ describe("Loot Card", () => {
         roll.value = 5;
 
         // Play magician to change roll to 6
-        game.playCard(player1, 1);
-        (magician as LootCard).debugSetTargets([roll]);
+        game.playCard(player1, 1, [roll]);
         game.resolveStack();
 
         // Should be able to choose any value 1-6
@@ -421,8 +415,7 @@ describe("Loot Card", () => {
         const player2InitialHP = player2.currentHealthPoints;
 
         // Play high priestess
-        game.playCard(player1, 1);
-        (highPriestess as LootCard).debugSetTargets([player2]);
+        game.playCard(player1, 1, [player2]);
         game.resolveStack();
         expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
@@ -443,8 +436,7 @@ describe("Loot Card", () => {
         const monsterInitialHP = monster.currentHealthPoints;
 
         // Play high priestess
-        game.playCard(player1, 1);
-        (highPriestess as LootCard).debugSetTargets([monster]);
+        game.playCard(player1, 1, [monster]);
         game.resolveStack();
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
@@ -562,8 +554,7 @@ describe("Loot Card", () => {
         expect(item.charged).toBe(false);
 
         // Play lil battery
-        game.playCard(player1, 1);
-        (lilBattery as LootCard).debugSetTargets([item]);
+        game.playCard(player1, 1, [item]);
         game.resolveStack();
 
         // Item should be recharged
@@ -589,8 +580,7 @@ describe("Loot Card", () => {
         item2.onTap();
 
         // Play lil battery targeting item1
-        game.playCard(player1, 1);
-        (lilBattery as LootCard).debugSetTargets([item1]);
+        game.playCard(player1, 1, [item1]);
         game.resolveStack();
 
         // Only item1 should be recharged
@@ -615,8 +605,7 @@ describe("Loot Card", () => {
         item3.onTap();
 
         // Play mega battery targeting player2
-        game.playCard(player1, 1);
-        (megaBattery as LootCard).debugSetTargets([player2]);
+        game.playCard(player1, 1, [player2]);
         game.resolveStack();
 
         // All of player2's items should be recharged
@@ -640,8 +629,7 @@ describe("Loot Card", () => {
         player2Item.onTap();
 
         // Play mega battery targeting player2
-        game.playCard(player1, 1);
-        (megaBattery as LootCard).debugSetTargets([player2]);
+        game.playCard(player1, 1, [player2]);
         game.resolveStack();
 
         // Only player2's item should be recharged
@@ -929,8 +917,7 @@ describe("Loot Card", () => {
 
         const originalSelect = game.select;
 
-        game.playCard(player1, 1);
-        (card as LootCard).debugSetTargets([player2]);
+        game.playCard(player1, 1, [player2]);
         game.resolveStack();
         game.resolveStack();
 
@@ -1073,10 +1060,8 @@ describe("Loot Card", () => {
         const beforeHp = player1.currentHealthPoints;
         const beforeCoins = player1.coins;
 
-        game.playCard(player1, 1);
         const debugTarget: ChooseOneResult[] = [{ description: "take 1 damage and gain 4¢.", chosenOptions: [] }];
-
-        (card as LootCard).debugSetTargets(debugTarget);
+        game.playCard(player1, 1, debugTarget);
         game.resolveStack();
         game.resolveStack();
         game.stack.displayStack();
@@ -1105,8 +1090,7 @@ describe("Loot Card", () => {
         expect(player2.inPlay).toContain(itemToSteal);
         expect(player1.inPlay).not.toContain(itemToSteal);
 
-        game.playCard(player1, 1);
-        (devil as LootCard)!.debugSetTargets([[itemToDestroy], [itemToSteal]]);
+        game.playCard(player1, 1, [[itemToDestroy], [itemToSteal]]);
         game.resolveStack();
 
         // Item should be destroyed from player1
@@ -1138,8 +1122,7 @@ describe("Loot Card", () => {
         expect(player1.inPlay).toContain(itemToDestroy);
         expect(game.shop._slots).toContain(shopItem);
 
-        game.playCard(player1, 1);
-        (devil as LootCard)!.debugSetTargets([[itemToDestroy], [shopItem]]);
+        game.playCard(player1, 1, [[itemToDestroy], [shopItem]]);
         game.resolveStack();
 
         // Item should be destroyed from player1
@@ -1163,8 +1146,7 @@ describe("Loot Card", () => {
         const initialInPlayCount = player1.inPlay.filter((card) => card.eternal === false).length;
         expect(initialInPlayCount).toBe(0);
 
-        game.playCard(player1, 1);
-        (devil as LootCard)!.debugSetTargets([[], [itemTargetToSteal]]);
+        game.playCard(player1, 1, [[], [itemTargetToSteal]]);
         game.resolveStack();
 
         const afterInPlayCount = player1.inPlay.filter((card) => card.eternal === false).length;
@@ -1243,8 +1225,7 @@ describe("Loot Card", () => {
         player1.hand.addToHand(soulHeart!);
 
         const initialHP = player2.currentHealthPoints;
-        game.playCard(player1, 1);
-        (soulHeart as LootCard).debugSetTargets([player2]);
+        game.playCard(player1, 1, [player2]);
         game.resolveStack();
 
         // player2 should have prevention shield now - deal 3 damage
@@ -1262,8 +1243,7 @@ describe("Loot Card", () => {
         const initialHP = player2.currentHealthPoints;
         // const effect = effectParser(soulHeart!.effectOutcomes[0]!, game);
         // effect(soulHeart!, player1, []);
-        game.playCard(player1, 1);
-        (soulHeart as LootCard).debugSetTargets([player2]);
+        game.playCard(player1, 1, [player2]);
         game.resolveStack();
         // First damage: 1 prevented, take 2 damage
         game.dealDamage(player1, player2, dummyCard, 3);
@@ -1284,8 +1264,7 @@ describe("Loot Card", () => {
 
 
         const initialHP = player2.currentHealthPoints;
-        game.playCard(player1, 1);
-        (soulHeart as LootCard).debugSetTargets([player2]);
+        game.playCard(player1, 1, [player2]);
         game.resolveStack();
 
         // Deal only 1 damage - should be fully prevented
@@ -1301,8 +1280,7 @@ describe("Loot Card", () => {
         player1.hand.addToHand(soulHeart!);
 
 
-        game.playCard(player1, 1);
-        (soulHeart as LootCard).debugSetTargets([player2]);
+        game.playCard(player1, 1, [player2]);
         game.resolveStack();
 
         // player1 takes damage - should NOT be prevented (shield is on player2)
@@ -1325,8 +1303,7 @@ game.resolveStack();
         player2.addHealthPoints(10); // Ensure player2 has enough HP to take damage
 
         const initialHP = player2.currentHealthPoints;
-        game.playCard(player1, 1);
-        (hierophant as LootCard).debugSetTargets([player2]);
+        game.playCard(player1, 1, [player2]);
         game.resolveStack();
 
         // player2 should have prevention shield now - deal 5 damage
@@ -1345,8 +1322,7 @@ game.resolveStack();
         player1.hand.addToHand(hierophant!);
 
         const initialHP = monster.currentHealthPoints;
-        game.playCard(player1, 1);
-        (hierophant as LootCard).debugSetTargets([monster]);
+        game.playCard(player1, 1, [monster]);
         game.resolveStack();
 
         // player2 should have prevention shield now - deal 3 damage
@@ -1362,8 +1338,7 @@ game.resolveStack();
 
         player2.addHealthPoints(10); // Ensure player2 has enough HP to take damage
         const initialHP = player2.currentHealthPoints;
-        game.playCard(player1, 1);
-        (hierophant as LootCard).debugSetTargets([player2]);
+        game.playCard(player1, 1, [player2]);
         game.resolveStack();
         // First damage: 2 prevented, take 3 damage
         game.dealDamage(player1, player2, dummyCard, 5);
@@ -1384,8 +1359,7 @@ game.resolveStack();
 
 
         const initialHP = player2.currentHealthPoints;
-        game.playCard(player1, 1);
-        (hierophant as LootCard).debugSetTargets([player2]);
+        game.playCard(player1, 1, [player2]);
         game.resolveStack();
 
         // Deal only 2 damage - should be fully prevented
@@ -1403,8 +1377,7 @@ game.resolveStack();
         player2.addHealthPoints(10); // Ensure player2 has enough HP to take damage
 
 
-        game.playCard(player1, 1);
-        (hierophant as LootCard).debugSetTargets([player2]);
+        game.playCard(player1, 1, [player2]);
         game.resolveStack();
 
         // player1 takes damage - should NOT be prevented (shield is on player2)
@@ -1430,8 +1403,7 @@ game.resolveStack();
         const debugTarget: ChooseOneResult[] = [{ description: "destroy a curse.", chosenOptions: [curses[0]!] }];
         // console.log("debugTarget: ", debugTarget);
         // console.log("curse: ", curses[0]!);
-        game.playCard(player1, 1);
-        (dagaz as LootCard).debugSetTargets(debugTarget);
+        game.playCard(player1, 1, debugTarget);
         game.resolveStack();
 
         expect(player1.inPlay).not.toContain(curses[0]!);
@@ -1453,8 +1425,7 @@ game.resolveStack();
         const debugTarget: ChooseOneResult[] = [{ description: "destroy a curse.", chosenOptions: [curses[2]!] }];
         // console.log("debugTarget: ", debugTarget);
         // console.log("curse: ", curses[0]!);
-        game.playCard(player1, 1);
-        (dagaz as LootCard).debugSetTargets(debugTarget);
+        game.playCard(player1, 1, debugTarget);
         player1.removeInPlay(curses[2]!); // Simulate curse being removed before resolution
         player2.inPlay.push(curses[2]!); // Simulate curse being removed before resolution
         game.resolveStack();
@@ -1478,8 +1449,7 @@ game.resolveStack();
         const debugTarget: ChooseOneResult[] = [{ description: "destroy a curse.", chosenOptions: [curses[2]!] }];
         // console.log("debugTarget: ", debugTarget);
         // console.log("curse: ", curses[0]!);
-        game.playCard(player1, 1);
-        (dagaz as LootCard).debugSetTargets(debugTarget);
+        game.playCard(player1, 1, debugTarget);
 
         game.resolveStack();
 
@@ -1495,8 +1465,7 @@ game.resolveStack();
 
         const initialHP = player2.currentHealthPoints;
         const debugTarget: ChooseOneResult[] = [{ description: "choose a player. prevent the next 1 damage they would take this turn.", chosenOptions: [player2] }];
-        game.playCard(player1, 1);
-        (dagaz as LootCard).debugSetTargets(debugTarget);
+        game.playCard(player1, 1, debugTarget);
         game.resolveStack();
 
         // player2 should have prevention shield now - deal 2 damage
@@ -1530,12 +1499,11 @@ game.resolveStack();
         const card = game.decks["loot"]!.getCardFromSlug("b2-vi_the_lovers");
         player1.hand.addToHand(card!);
 
-        game.playCard(player1, 1);
+        game.playCard(player1, 1, [player2]);
 
         const initialHplayer1 = player1.currentHealthPoints;
         const initialHp = player2.currentHealthPoints;
 
-        (card as LootCard).debugSetTargets([player2]);
         game.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(initialHplayer1);
@@ -1577,14 +1545,12 @@ game.resolveStack();
         const card = game.decks["loot"]!.getCardFromSlug("b2-iii_the_empress");
         player1.hand.addToHand(card!);
 
-        game.playCard(player1, 1);
+        game.playCard(player1, 1, [player2]);
 
         const initialAtk1 = player1.attackPoints;
         const initialAtk = player2.attackPoints;
         const initialDiceMod1 = player1.attackDiceModifier;
         const initialDiceMod = player2.attackDiceModifier;
-
-        (card as LootCard).debugSetTargets([player2]);
 
         game.resolveStack();
 
@@ -1631,14 +1597,12 @@ game.resolveStack();
         const card = game.decks["loot"]!.getCardFromSlug("b2-vii_the_chariot");
         player1.hand.addToHand(card!);
 
-        game.playCard(player1, 1);
+        game.playCard(player1, 1, [player2]);
 
         const initialAtk1 = player1.attackPoints;
         const initialAtk = player2.attackPoints;
         const initialHP1 = player1.currentHealthPoints;
         const initialHP = player2.currentHealthPoints;
-
-        (card as LootCard).debugSetTargets([player2]);
 
         game.resolveStack();
 
@@ -1687,14 +1651,12 @@ game.resolveStack();
         const card = game.decks["loot"]!.getCardFromSlug("b2-xi_strength");
         player1.hand.addToHand(card!);
 
-        game.playCard(player1, 1);
+        game.playCard(player1, 1, [player2]);
 
         const initialAtk1 = player1.attackPoints;
         const initialAtk = player2.attackPoints;
         const initialAtkThisTurn1 = player1.attackThisTurn;
         const initialAtkThisTurn = player2.attackThisTurn;
-
-        (card as LootCard).debugSetTargets([player2]);
 
         game.resolveStack();
 
@@ -1747,9 +1709,9 @@ describe("Loot Cards - 3 players tests", () => {
         const soul3 = game.decks["loot"]!.cards[2]!; soul3.soul = 1; game.addSoul(player3, soul3);
 
 
-        game.playCard(player1, 1);
+        game.playCard(player1, 1, [player2]);
         // Choose player2 among the tied leaders
-        (judgement as LootCard).debugSetTargets([player2]);
+        // (judgement as LootCard).debugSetTargets([player2]);
         game.resolveStack();
 
         expect(player2.totalSouls).toBe(0);
@@ -1767,7 +1729,7 @@ describe("Loot Cards - 3 players tests", () => {
         const s2 = game.decks["loot"]!.cards[1]!; s2.soul = 1; game.addSoul(player1, s2);
         const s3 = game.decks["loot"]!.cards[2]!; s3.soul = 1; game.addSoul(player2, s3);
 
-        game.playCard(player1, 1);
+        game.playCard(player1, 1, [player1]);
         game.resolveStack();
 
         expect(player1.totalSouls).toBe(1);

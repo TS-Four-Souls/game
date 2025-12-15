@@ -28,6 +28,7 @@ import {
   Effect,
   type EffectData,
   type EffectType,
+  type TargetsSelector,
   eternalCard,
 } from "@/models/cards";
 import { Stack, type StackElement } from "@/models/stack";
@@ -49,10 +50,10 @@ const LOG_GAME = false;
 export const cards = await loadCards(process.cwd() + "/data/cards");
 const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
 
-for(const card of cardSets["eternal"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug))){
-  // if((card as LootCard).trinket)
-    console.log(card.slug, card.effectOutcomes);
-}
+// for(const card of cardSets["eternal"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug))){
+//   // if((card as LootCard).trinket)
+//     console.log(card.slug, card.effectOutcomes);
+// }
 const gameParameters = { 
   nbItemsInShop: 2, 
   nbEncounters: 2,
@@ -548,8 +549,14 @@ export class Game {
     this.startTurn();
   }
 
+  // Get target selectors for a card that a player wants to play
+  getSelectors(player: Player, card: LootCard): TargetsSelector[] {
+    return card.getTargetSelectors();
+  }
+
   // temporary method to play a card from hand to in-play area.
-  playCard(issuer: Issuer, index: number): string {
+  // targets must be explicitly provided by the caller using getSelectors()
+  playCard(issuer: Issuer, index: number, targets: any[] = []): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.assertPlayerIsAlive(player);
@@ -558,7 +565,8 @@ export class Game {
       return "Invalid card position.";
     }
     const playedCard: LootCard = player.hand.playCard(index - 1) as LootCard;
-    const resolveFunction = playedCard.onPlay(player);
+    
+    const resolveFunction = playedCard.onPlay(player, targets);
     const lootCardEffect = new LootCardEffect(playedCard, resolveFunction);
     this.addToStack(lootCardEffect);
 
@@ -680,15 +688,15 @@ export class Game {
     this.emitter.emit("on:enter:play:after", { eventIssuer: player, card: card });
   }
 
-  activateItemAtIndex(player: Player, index: number): boolean {
+  activateItemAtIndex(player: Player, index: number, targets: any[] = []): boolean {
     const item = player.inPlay[index-1];
     if(!item || !(item instanceof ItemCard)) {
       return false;
     }
-    return this.activateItem(player, item);
+    return this.activateItem(player, item, targets);
   }
-  activateItem(player: Player, item: ItemCard): boolean {
-    if (player.activateItem(item)) {
+  activateItem(player: Player, item: ItemCard, targets: any[] = []): boolean {
+    if (player.activateItem(item, targets)) {
       this.emitter.emit("on:item:activated", {
         eventIssuer: player,
         item: item,
