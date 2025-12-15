@@ -53,17 +53,14 @@ class ActiveEffectHandler extends EffectHandler {
         return this._effects.length > index ? this._effects[index] : undefined;
     }
 
-    activeEffect(issuer: Entity, game: Game, it: Card): void {
+    activeEffect(issuer: Entity, it: Card, effectId: number): void {
         if (this._type !== "active" && this._effects.length > 0)
             throw new Error("activeEffect can only be called for active effects.");
 
-        const selection = game.select(issuer as Player, 1, this._effects.map(e => e.description), true);
-        const effect = this._effects.find(e => e.description === selection.selected[0]);
+        const effect = this._effects[effectId];
         if (effect) {
             if (effect.type === "active") {
-                if (it.activate()) {
                     effect.effectFunction({ it, issuer: issuer as Player, targets: effect.targets });
-                }
             }
         }
     }
@@ -93,8 +90,8 @@ class EffectInterface {
         this.passiveEffects.subscribeAll(owner, this.it);
     }
     
-    activeEffect(issuer: Entity, game: Game): void {
-        this.activeEffects.activeEffect(issuer, game, this.it);
+    activeEffect(issuer: Entity): void {
+        this.activeEffects.activeEffect(issuer, this.it, 0);
     }
 
     // Get the first active effect (for cards that have a single effect)
@@ -127,7 +124,8 @@ class EffectInterface {
         }
 
         // Return a resolve function to be called later
-        return (trinket: boolean = false) => {
+        return () => {
+            const trinket = (this.it as LootCard).trinket
             if(effect.targetStillValid(this._issuer!)) {
                 if(trinket && this._issuer) {
                     this._issuer.addInPlay(this.it);
@@ -165,6 +163,7 @@ class Card {
     protected _effectInterface: EffectInterface;
     protected _souls: number = 0;
     protected _charged: boolean = false;
+    protected _owner!: Player;
     protected _eternal: boolean = false;
     protected _position: Deck | null | Hand | Card[];
     cleanup: () => void = () => {};
@@ -254,12 +253,16 @@ class Card {
 
     activate(): boolean {
         if (this._charged === true) {
+            this._effectInterface.activeEffect(this._owner);
             this._charged = false;
             return true;
         }
         return false;
     }
-
+    onAddInPlay(owner: Player): void {
+        this._owner = owner;
+        this._effectInterface.subscribeAll(owner);
+    }
     addEffect(effect: Effect) {
         this._effectInterface.addEffect(effect);
     }
@@ -465,7 +468,7 @@ class LootCard extends ItemCard {
         // Return a resolve function that captures trinket state
         const resolveFunction = this._effectInterface.onPlay(issuer);
         return () => {
-            resolveFunction(this._trinket);
+            resolveFunction();
         };
     }
 
@@ -511,7 +514,6 @@ class eternalCard extends ItemCard {
 class CharacterCard extends ItemCard {
     protected _eternalCard: string | null = null;
     protected _healthPoints: number = 0;
-    protected _owner!: Player;
     protected _attackPoints: number = 0;
 
     constructor(id: number, json: CharacterCardType) {
@@ -526,14 +528,6 @@ class CharacterCard extends ItemCard {
         this._eternal = true;
     }
 
-    addEffect(effect: Effect): void {
-        this._effectInterface.addEffect(effect);
-    }
-
-    rechargeChara(): void {
-        this._charged = true;
-    }
-    
     onTapChara(): void {
         console.log(`Tapping character card ${this.name}.`);
         if(this._owner === undefined) {
@@ -547,11 +541,6 @@ class CharacterCard extends ItemCard {
                 activeEffect.effectFunction({ it: this, issuer: this._owner, targets: activeEffect.targets });
             }
         }
-    }
-
-    onAddInPlay(owner: Player): void {
-        this._owner = owner;
-        this._effectInterface.subscribeAll(owner);
     }
 
     onRemoveFromPlay(): void {

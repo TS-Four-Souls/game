@@ -18,7 +18,8 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): EffectF
 
         // Listen for the next damage event on this player
         offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
-            if (data.targets[0] !== eventIssuer) return;
+            const target = data.targets[0] === undefined ? data.issuer : data.targets[0];
+            if (target !== eventIssuer) return;
             const current = damageArray[0] ?? 0;
             const prevented = Math.min(current, amount);
             damageArray[0] = current - prevented;
@@ -296,6 +297,62 @@ export function startingItemEffect(game: Game): EffectFunction {
             offEffect?.();
             offEffect = null;
         });
+        return true;
+    };
+}
+// Each time you die, after paying penalties, gain +1 treasure.
+export function gainTreasureOnDeathEffect(
+    amount: number,
+    game: Game
+): EffectFunction {
+    return (data:EffectData) => {
+        let offDeath: (() => void) | null = null;
+
+        const cleanup = () => {
+            offDeath?.();
+            offDeath = null;
+        };
+
+        // Listen for damage events on this player
+        offDeath = game.emitter.on("on:death:after-penalty", ({ eventIssuer, target: from, abilityCard: usingAbilityFrom}) => {
+            if (eventIssuer === data.issuer) {
+                game.gainTreasure(data.issuer, amount);
+            }
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleanup = () => {
+            cleanup();
+        }
+
+        return true;
+    };
+}
+
+export function rechargeThisOnEvent(
+    event: TriggerEvent,
+    game: Game
+): EffectFunction {
+    return (data: EffectData) => {
+        let offEvent: (() => void) | null = null;
+
+        const cleanup = () => {
+            offEvent?.();
+            offEvent = null;
+        };
+
+        // Listen for damage events on this player
+        offEvent = game.emitter.on(event, ({ eventIssuer, ...remaining}) => {
+            if (eventIssuer === data.issuer) {
+                game.recharge(data.it);
+            }
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleanup = () => {
+            cleanup();
+        }
+
         return true;
     };
 }

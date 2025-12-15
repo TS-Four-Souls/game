@@ -28,6 +28,7 @@ import {
   Effect,
   type EffectData,
   type EffectType,
+  eternalCard,
 } from "@/models/cards";
 import { Stack, type StackElement } from "@/models/stack";
 import {
@@ -410,7 +411,7 @@ export class Game {
     if (callback) {
       damageOnStack.attachEffect(callback, usingAbilityFrom, []);
     }
-    this.addToStack(damageOnStack);
+      this.addToStack(damageOnStack);
 
     this.emitter.emit("on:damage:would-take", {
       eventIssuer: receiver,
@@ -524,17 +525,13 @@ export class Game {
   }
 
   rechargeEachItem(player: Player): void {
-    console.log("recharge each items for player", player.id);
     for (const card of player.inPlay) {
-      if (card instanceof CharacterCard) {
         this.recharge(card);
-      }
     }
   }
 
-  recharge(item: ItemCard): void {
-    if (item instanceof CharacterCard)
-      (item as CharacterCard).rechargeChara();
+  recharge(item: Card): void {
+    item.recharge();
   }
 
   endTurn(): void {
@@ -676,7 +673,7 @@ export class Game {
 
   addInPlay(player: Player, card: Card): void {
     this.emitter.emit("on:enter:play", { eventIssuer: player, card: card });
-    if(card instanceof CharacterCard){
+    if(card instanceof CharacterCard || card instanceof eternalCard){
       card.onAddInPlay(player);
     }
     player.addInPlay(card);
@@ -737,7 +734,7 @@ export class Game {
   }
 
   private joinEffectsToCards(): void {
-    for(const deckName of ["loot", "bsoul", "character"])
+    for(const deckName of ["loot", "bsoul", "character", "eternal"])
     {
       const deck = this.decks[deckName]!;
       deck.cards.forEach((card: Card) => {
@@ -747,6 +744,8 @@ export class Game {
             card.name
           );
         }
+        // if(card.slug === "b2-lazarus_rags")
+        //   console.log("Processing effects for", card.slug);
         for(const outcome of card.effectOutcomes)
         {
         const effectType = this.getEffectTypeFromOutcome(outcome, card);
@@ -826,7 +825,6 @@ export class Game {
   gainTreasure(issuer: Issuer, number: number = 1): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
-    this.assertPlayerIsAlive(player);
     this.assertPositiveNumber(number);
 
     for (let i = 0; i < number; i++) {

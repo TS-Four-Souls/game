@@ -5,7 +5,8 @@ import type { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
 import { it } from "zod/locales";
-import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, goFirstInTurnOrderEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, startingItemEffect, temporaryStatModifierEffect } from "./abilities";
+// import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, goFirstInTurnOrderEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, startingItemEffect, temporaryStatModifierEffect, gainTreasureOnDeathEffect } from "./abilities";
+import *  as passive from "./abilities";
 import type { BonusSoulCardType } from "@/types/cardTypes";
 
 function prepareEffectString(s: string): string {
@@ -42,22 +43,19 @@ export function loseCoinsEffect(game: Game, amount: number): EffectFunction {
     };
 }
 
-export function rechargeItemsEffect(): EffectFunction {
+export function rechargeItemsEffect(game: Game): EffectFunction {
     return (data:EffectData) => {
         for (const card of data.targets as ItemCard[]){
-            card.recharge();
+            game.recharge(card);
         }
         return true;
     };
 }
 
-export function rechargeEachItemsOfTargetEffect(): EffectFunction {
+export function rechargeEachItemsOfTargetEffect(game: Game): EffectFunction {
     return (data:EffectData) => {
         const player = data.targets[0] as Player;
-        const inplayItems = player.inPlay.filter((card) => card instanceof ItemCard) as ItemCard[];
-        for (const card of inplayItems) {
-            card.recharge();
-        }
+        game.rechargeEachItem(player);
         return true;
     };
 }
@@ -497,7 +495,7 @@ export function becomesSoulAndGainEffect(game: Game): EffectFunction {
 export function addInPlayEffect(game: Game): EffectFunction {
     return (data:EffectData) => {
         // console.log("adding in play loot card from effect:", data.it.name);
-        game.addInPlay(data.issuer, data.it);
+        // game.addInPlay(data.issuer, data.it);
         return true;
     };
 }
@@ -742,48 +740,54 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     switch (s) {
         // passive effects
         case "if you control this as the game starts, you go first.":
-            return goFirstInTurnOrderEffect(game);
+            return passive.goFirstInTurnOrderEffect(game);
         case "when you start the game, look at the top 3 cards of the treasure deck and choose one. it becomes your starting item and gains eternal. put the rest on the bottom of the treasure deck.":
-                return startingItemEffect(game);
+                return passive.startingItemEffect(game);
         case "choose a player. prevent the next 1 damage they would take this turn.":
-            return preventNextDamageUpToEffect(1, game);
+            return passive.preventNextDamageUpToEffect(1, game);
+        case "[tap effect] choose a player or monster. prevent the next instance of damage they would take this turn.":
+            return passive.preventNextDamageUpToEffect(Infinity, game);
         case "choose a player or monster. prevent the next instance of up to 2 damage they would take this turn.":
-            return preventNextDamageUpToEffect(2, game);
+            return passive.preventNextDamageUpToEffect(2, game);
         case "you gain +1 [atk] till the end of turn.":
-            return temporaryStatModifierEffect([game.addAttack], 1, game);
+            return passive.temporaryStatModifierEffect([game.addAttack], 1, game);
+        case "[tap effect] choose a player or monster. they gain +1 [atk] till end of turn.":
+            return passive.temporaryStatModifierEffect([game.addAttack], 1, game);
         case "you gain +1 [hp] till the end of turn.":
-            return temporaryStatModifierEffect([game.addHealth], 1, game);
+            return passive.temporaryStatModifierEffect([game.addHealth], 1, game);
         case "choose a player.\nthey gain +2 [hp] till end of turn.":
-            return temporaryStatModifierEffect([game.addHealth], 2, game);
+            return passive.temporaryStatModifierEffect([game.addHealth], 2, game);
         case "choose a player.\nthey gain +1 [atk] and +1 [hp] till end of turn.":
-            return temporaryStatModifierEffect([game.addAttack, game.addHealth], 1, game);
+            return passive.temporaryStatModifierEffect([game.addAttack, game.addHealth], 1, game);
         case "choose a player.\nthey gain +1 [atk] and +1 to dice rolls till end of turn.":
-            return temporaryStatModifierEffect([game.addAttack, game.addAttackDiceModifier], 1, game);
+            return passive.temporaryStatModifierEffect([game.addAttack, game.addAttackDiceModifier], 1, game);
         case "choose a player.\nthey gain +1 [atk] till end of turn and may attack an additional time this turn.":
-            return temporaryStatModifierEffect([game.addAttack, game.addAttackThisTurn], 1, game);
+            return passive.temporaryStatModifierEffect([game.addAttack, game.addAttackThisTurn], 1, game);
         case "[tap effect] play an additional loot card this turn.":
-            {
-                return temporaryStatModifierEffect([game.addLootPlay], 1, game);
-            }
+                return passive.temporaryStatModifierEffect([game.addLootPlay], 1, game);
+        case "each time you die, after paying penalties, gain +1 treasure.":
+            return passive.gainTreasureOnDeathEffect(1, game);
         case "each time you take damage, gain 1\u00A2.":
-            return gainCoinsOnDamageEffect( 1, game);
+            return passive.gainCoinsOnDamageEffect( 1, game);
         case "each time a player dies, before paying penalties, loot 1.":
-            return lootOnPlayerDeathEffect(1, game);
+            return passive.lootOnPlayerDeathEffect(1, game);
+        case "at the end of your turn, recharge this.":
+            return passive.rechargeThisOnEvent("on:turn:end", game);
         case "if you would gain any number of \u00A2, gain that much +1\u00A2 instead.":
-            return gainPlusCoinsEffect(1, game);
+            return passive.gainPlusCoinsEffect(1, game);
         case "at the start of your turn, look at the top card of the loot deck. you may put it on the bottom.":
-            return LookAndPutBottomEffect("loot", game);
+            return passive.LookAndPutBottomEffect("loot", game);
         case "at the start of your turn, look at the top card of the monster deck. you may put it on the bottom.":
-            return LookAndPutBottomEffect("monster", game);
+            return passive.LookAndPutBottomEffect("monster", game);
         case "when you would die, roll-\n6: prevent death. if it's your turn, cancel everything that hasn't resolved and end it.":
             const roll = rollEffect("roll-\n6: prevent death. if it's your turn, cancel everything that hasn't resolved and end it.", game)
-            return rollDiceOnTriggerEffect(roll, "on:death:would-death", game);
+            return passive.rollDiceOnTriggerEffect(roll, "on:death:would-death", game);
         case "at the start of your turn, look at the top card of the treasure deck, you may put it on the bottom.":
-            return LookAndPutBottomEffect("treasure", game);
+            return passive.LookAndPutBottomEffect("treasure", game);
         case "gain +1 [atk] for your first attack roll each turn.":
-            return firstAttackRollStatModifierEffect(1, 0, 0, game);
+            return passive.firstAttackRollStatModifierEffect(1, 0, 0, game);
         case "each time you would take damage, roll-\n6: prevent 1 of that damage.":
-            return preventDamageOnRollEffect([6], 1, game);
+            return passive.preventDamageOnRollEffect([6], 1, game);
         // active effects
         case "choose a player or monster":
             return (data:EffectData) => { return true; };
@@ -797,9 +801,9 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
                 return true;
             };
         case "recharge an item.":
-            return rechargeItemsEffect();
+            return rechargeItemsEffect(game);
         case "recharge another item.":
-            return rechargeItemsEffect();
+            return rechargeItemsEffect(game);
         case "destroy a curse.":
             return destroyOneEffect(game);
         case "destroy an item or soul.":
@@ -853,7 +857,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             return stealRandomLootCardEffect(game);
 
         case "choose a player. recharge each item they control.":
-            return rechargeEachItemsOfTargetEffect();
+            return rechargeEachItemsOfTargetEffect(game);
         case "destroy this and loot 2.":
             return destroyThisAndLoot2Effect(game);
         
@@ -1020,6 +1024,7 @@ export function targetSelectorParser(s:string, game: Game): TargetsSelector[] {
     if (s === "choose a player or monster, then roll- deal damage to them equal to the result." ||
         s === "choose a player or monster, then roll-\ndeal damage to them equal to the result." ||
         s === "choose a player or monster. prevent the next instance of up to 2 damage they would take this turn." ||
+        s === "[tap effect] choose a player or monster. they gain +1 [atk] till end of turn." ||
         s.match(/^deal \d+ damage to a monster or player\.?$/u)
     ) {
         return [{description: "Choose a player or monster", selector: activeEntitySelector(undefined, game)}];
