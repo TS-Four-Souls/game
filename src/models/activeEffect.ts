@@ -85,24 +85,20 @@ export function look1EachDeckEffect(game: Game): EffectFunction {
 
 export function chooseOneEffect(s: string, game: Game): EffectFunction {
     const lines = s.split("\n");
-    if (lines.length !== 3) {
-        throw new Error("invalid 'choose one' effect format.");
+    if (lines.length < 3) {
+        throw new Error(`invalid 'choose one' effect format. s=${s}$ lines=${lines}$`);
     }
-    const Effect1: EffectFunction = effectParser(lines[1]!, game);
-    const Effect2: EffectFunction = effectParser(lines[2]!, game);
+    const effects: EffectFunction[] = lines.slice(1).map(line => effectParser(line, game));
     return (data: EffectData) => {
         const targetsChooseOne = data.targets[0] as ChooseOneResult;
         const description = targetsChooseOne.description;
         const options = targetsChooseOne.chosenOptions;
-        if (description === lines[1]) {
-            return Effect1({ it: data.it, issuer: data.issuer, targets: options });
-        } else if (description === lines[2]) {
-            return Effect2({ it: data.it, issuer: data.issuer, targets: options });
+        for(let i = 0; i < effects.length; i++) {
+            if (description === lines[i+1]) {
+                return effects[i]!({ it: data.it, issuer: data.issuer, targets: options });
+            }
         }
-        else {
-            console.log("\n", lines[1], "\n", lines[2], "\n", " CHOICE ", "\n", description);
-            throw new Error("invalid choice made in 'choose one' effect.");
-        }
+        throw new Error(`choose one effect description not found: ${description}`);
     }
 }
 
@@ -318,6 +314,20 @@ export function discard1LootCardEffect(game: Game): EffectFunction {
         const toDiscard = game.select(data.issuer, 1, data.issuer.hand.cards).selected[0] as LootCard;
         const index = data.issuer.hand.cards.indexOf(toDiscard);
         game.discardFromHand(data.issuer, index + 1);
+        return true;
+    };
+}
+
+export function lookAtPlayerHandAndSwapEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const otherPlayer = game.select(data.issuer, 1, game.players.filter((p) => p !== data.issuer)).selected[0] as Player;
+        const canSwap = otherPlayer.hand.length > 0 && data.issuer.hand.length > 0;
+        const selection = game.select(data.issuer, canSwap ? 1 : 0, otherPlayer.hand.cards, true);
+        if (selection.selected.length === 0)
+            return true;
+        const toGive = game.select(data.issuer, 1, data.issuer.hand.cards).selected[0] as LootCard;
+        if (game.give(data.issuer, otherPlayer, toGive))
+            game.give(otherPlayer, data.issuer, selection.selected[0] as LootCard);
         return true;
     };
 }

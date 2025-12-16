@@ -46,7 +46,7 @@ describe("Eternal Items", () => {
         expect(theD6.charged).toBe(true);
     }, {retry: 50}); // retry cause can roll randomly fail due to shuffling
     // [Tap Effect] Put the top card of any discard on top of its deck.
-    it("The Curse", () => {
+    it("The Curse - active", () => {
         const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [eve, isaac]);
@@ -71,6 +71,25 @@ describe("Eternal Items", () => {
         game.resolveStack(); // resolve the curse effect
         expect(game.decks["loot"]!.discard.length).toBe(4); // top of loot deck should be the previous top of discard
         expect(game.decks["loot"]!.cards[0]).toBe(topDiscardCard); // top of loot deck should be the previous top of discard
+    });
+
+    it("The Curse - passive", () => {
+        const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        game.start(player1, [eve, isaac]);
+        expect(player1.inPlay[0]!.slug).toBe("b2-eve");
+        expect(player1.inPlay[0]!.eternal).toBe(true);
+        expect(player1.inPlay[1]!.slug).toBe("b2-the_curse");
+        expect(player1.inPlay[1]!.eternal).toBe(true);
+        expect(player2.inPlay[0]!.slug).toBe("b2-isaac");
+
+        game.endTurn(); // Isaac's turn
+        const theCurse = player1.inPlay[1]! as ItemCard;
+        const shouldBeDiscarded = game.decks["treasure"]!.cards[0];
+        game.endTurn(); // back to Eve's turn
+        // treasure by default.
+        expect(game.decks["treasure"]!.discard[0]).toBe(shouldBeDiscarded);
+        expect(game.decks["treasure"]!.cards[0]).not.toBe(shouldBeDiscarded);
     });
 
     // "[Tap Effect] Put a counter on this.",
@@ -288,154 +307,264 @@ describe("Eternal Items", () => {
 
     // "[Tap Effect] Choose one-\nSteal 1¢ from another player.\nLook at the top card of a deck.\nDiscard a loot card, then loot 1."
     // "Each time you take damage, recharge this."
-//     it("Forever Alone - Option 1: Steal 1¢ from another player", () => {
-//         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-//         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
-//         game.start(player1, [isaac, blueBaby]);
+    it("Forever Alone - Option 1: Steal 1¢ from another player", () => {
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
+        game.start(player1, [isaac, blueBaby]);
         
-//         expect(player2.inPlay[0]!.slug).toBe("b2-blue_baby");
-//         expect(player2.inPlay[0]!.eternal).toBe(true);
-//         expect(player2.inPlay[1]!.slug).toBe("b2-forever_alone");
-//         expect(player2.inPlay[1]!.eternal).toBe(true);
+        expect(player2.inPlay[0]!.slug).toBe("b2-blue_baby");
+        expect(player2.inPlay[0]!.eternal).toBe(true);
+        expect(player2.inPlay[1]!.slug).toBe("b2-forever_alone");
+        expect(player2.inPlay[1]!.eternal).toBe(true);
         
-//         const foreverAlone = player2.inPlay[1]! as ItemCard;
-//         game.recharge(foreverAlone);
-//         expect(foreverAlone.charged).toBe(true);
+        const foreverAlone = player2.inPlay[1]! as ItemCard;
+        game.recharge(foreverAlone);
+        expect(foreverAlone.charged).toBe(true);
         
-//         // Give player1 some coins
-//         player1.gainCoins(5);
-//         expect(player1.coins).toBe(5);
-//         expect(player2.coins).toBe(0);
+        // Give player1 some coins
+        player1.gainCoins(5);
+        expect(player1.coins).toBe(5);
+        expect(player2.coins).toBe(0);
         
-//         foreverAlone.onTap([{
-//             description: "steal 1¢ from another player.",
-//             chosenOptions: [player1]}]);
-//         game.resolveStack();
+        foreverAlone.onTap([{
+            description: "steal 1¢ from another player.",
+            chosenOptions: [player1]}]);
+        game.resolveStack();
         
-//         expect(player1.coins).toBe(4); // Lost 1 coin
-//         expect(player2.coins).toBe(1); // Gained 1 coin
-//         expect(foreverAlone.charged).toBe(false);
-//     });
+        expect(player1.coins).toBe(4); // Lost 1 coin
+        expect(player2.coins).toBe(1); // Gained 1 coin
+        expect(foreverAlone.charged).toBe(false);
+    });
 
-//     it("Forever Alone - Option 2: Look at the top card of a deck", () => {
-//         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-//         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
-//         game.start(player1, [isaac, blueBaby]);
+    it("Forever Alone - Option 2: Look at the top card of a deck", () => {
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
+        game.start(player1, [isaac, blueBaby]);
         
-//         const foreverAlone = player2.inPlay[1]! as ItemCard;
-//         game.recharge(foreverAlone);
+        const foreverAlone = player2.inPlay[1]! as ItemCard;
+        game.recharge(foreverAlone);
         
-//         const topLootCard = game.getFirstCardsOfDeck("loot", 1)[0]!;
+        const topLootCard = game.getFirstCardsOfDeck("loot", 1)[0]!;
         
-//         let peekCalled = false;
-//         // Mock game.select to choose option 2 (look at top card)
-//         foreverAlone.onTap();
-//         game.resolveStack();
+        let peekCalled = false;
+        // Mock game.select to choose option 2 (look at top card)
+        foreverAlone.onTap([{
+            description: "look at the top card of a deck.",
+            chosenOptions: ["treasure"]
+        }]);
+        game.resolveStack();
         
-//         expect(peekCalled).toBe(true);
-//         expect(foreverAlone.charged).toBe(false);
-//     });
+        expect(foreverAlone.charged).toBe(false);
+    });
 
-//     it("Forever Alone - Option 3: Discard a loot card, then loot 1", () => {
-//         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-//         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
-//         game.start(player1, [isaac, blueBaby]);
+    it("Forever Alone - Option 3: Discard a loot card, then loot 1", () => {
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
+        game.start(player1, [isaac, blueBaby]);
         
-//         const foreverAlone = player2.inPlay[1]! as ItemCard;
-//         game.recharge(foreverAlone);
-        
-//         // Give player2 a loot card to discard
-//         const lootCard = game.decks["loot"]!.draw() as LootCard;
-//         player2.hand.addToHand(lootCard);
-//         const initialHandSize = player2.hand.length;
-        
-//         // Mock game.select to choose option 3 (discard & loot)
-//         game.select = (_issuer, _n, opts, _optional) => {
-//             // First call is for choose-one options
-//             if (Array.isArray(opts) && opts.length === 3) {
-//                 return { selected: [2], remaining: [] }; // Choose option 3
-//             }
-//             // Second call is for selecting card to discard
-//             return { selected: [lootCard], remaining: [] };
-//         };
-        
-//         foreverAlone.onTap();
-//         game.resolveStack();
-        
-//         // Should discard 1 card and loot 1 card (net 0 change)
-//         expect(player2.hand.length).toBe(initialHandSize);
-//         expect(foreverAlone.charged).toBe(false);
-//     });
+        const foreverAlone = player2.inPlay[1]! as ItemCard;
+        game.recharge(foreverAlone);
 
-//     it("Forever Alone - Recharges when taking damage", () => {
-//         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-//         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
-//         game.start(player1, [isaac, blueBaby]);
-        
-//         const foreverAlone = player2.inPlay[1]! as ItemCard;
-//         const dummyLoot = game.decks["loot"]!.draw() as LootCard;
-        
-//         game.recharge(foreverAlone);
-//         expect(foreverAlone.charged).toBe(true);
-        
-//         // Use the item
-//         game.select = (_issuer, _n, opts, _optional) => {
-//             if (Array.isArray(opts) && opts.length === 3) {
-//                 return { selected: [1], remaining: [] }; // Choose option 2 (peek)
-//             }
-//             return { selected: ["loot"], remaining: [] };
-//         };
-        
-//         foreverAlone.onTap();
-//         game.resolveStack();
-//         expect(foreverAlone.charged).toBe(false);
-        
-//         // Deal damage to player2 (Blue Baby)
-//         game.dealDamage(player1, player2, dummyLoot, 1);
-//         game.resolveStack();
-        
-//         // Forever Alone should recharge after taking damage
-//         expect(foreverAlone.charged).toBe(true);
-//         expect(player2.currentHealthPoints).toBe(1);
-//     });
+        // Give player2 a loot card to discard
+        const initialHandSizeT1 = player2.hand.length;
+        // The discarded card is chosen on resolve stack, so no need to specify here
+        foreverAlone.onTap([{
+            description: "discard a loot card, then loot 1.",
+            chosenOptions: []
+        }]);
+        game.resolveStack();
+        expect(player2.hand.length).toBe(initialHandSizeT1 + 1); // discard nothing, loot 1
+        expect(foreverAlone.charged).toBe(false);
 
-//     it("Forever Alone - Multiple damage instances recharge each time", () => {
-//         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-//         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
-//         game.start(player1, [isaac, blueBaby]);
+        // Recharge and test again
         
-//         const foreverAlone = player2.inPlay[1]! as ItemCard;
-//         const dummyLoot = game.decks["loot"]!.draw() as LootCard;
+        game.recharge(foreverAlone);
+
+        // Give player2 a loot card to discard
+        const lootCard = player2.hand.cards[0] as LootCard;
+        const initialHandSizeT2 = player2.hand.length;
+        // The discarded card is chosen on resolve stack, so no need to specify here
+        foreverAlone.onTap([{
+            description: "discard a loot card, then loot 1.",
+            chosenOptions: []
+        }]);
+        game.resolveStack();
         
-//         // Discharge the item
-//         foreverAlone.charged = false;
-//         expect(foreverAlone.charged).toBe(false);
+        // Should discard 1 card and loot 1 card (net 0 change)
+        expect(player2.hand.length).toBe(initialHandSizeT2);
+        expect(player2.hand.cards.map((c) => c.slug)).not.toContain(lootCard.slug);
+        expect(foreverAlone.charged).toBe(false);
+    });
+
+    it("Forever Alone - Recharges when taking damage", () => {
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
+        game.start(player1, [isaac, blueBaby]);
         
-//         // Deal damage
-//         game.dealDamage(player1, player2, dummyLoot, 1);
-//         game.resolveStack();
-//         expect(foreverAlone.charged).toBe(true);
+        const foreverAlone = player2.inPlay[1]! as ItemCard;
+        const dummyLoot = game.decks["loot"]!.draw() as LootCard;
         
-//         // Heal player2
-//         player2.heal();
+        game.recharge(foreverAlone);
+        expect(foreverAlone.charged).toBe(true);
         
-//         // Use the item again
-//         game.select = (_issuer, _n, opts, _optional) => {
-//             if (Array.isArray(opts) && opts.length === 3) {
-//                 return { selected: [1], remaining: [] };
-//             }
-//             return { selected: ["loot"], remaining: [] };
-//         };
+        foreverAlone.onTap([{
+            description: "steal 1¢ from another player.",
+            chosenOptions: [player1]
+        }]);
+        game.resolveStack();
+        expect(foreverAlone.charged).toBe(false);
         
-//         foreverAlone.onTap();
-//         game.resolveStack();
-//         expect(foreverAlone.charged).toBe(false);
+        // Deal damage to player2 (Blue Baby)
+        game.dealDamage(player1, player2, dummyLoot, 1);
+        game.resolveStack();
         
-//         // Deal damage again
-//         game.dealDamage(player1, player2, dummyLoot, 1);
-//         game.resolveStack();
-//         expect(foreverAlone.charged).toBe(true);
-//     });
+        // Forever Alone should recharge after taking damage
+        expect(foreverAlone.charged).toBe(true);
+        expect(player2.currentHealthPoints).toBe(1);
+    });
+
+    it("Forever Alone - Multiple damage instances recharge each time", () => {
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
+        game.start(player1, [isaac, blueBaby]);
+        
+        const foreverAlone = player2.inPlay[1]! as ItemCard;
+        const dummyLoot = game.decks["loot"]!.draw() as LootCard;
+        
+        // Discharge the item
+        foreverAlone.charged = false;
+        expect(foreverAlone.charged).toBe(false);
+        
+        // Deal damage
+        game.dealDamage(player1, player2, dummyLoot, 1);
+        game.resolveStack();
+        expect(foreverAlone.charged).toBe(true);
+        
+        // Heal player2
+        player2.heal();
+    
+        foreverAlone.onTap([{
+            description: "steal 1¢ from another player.",
+            chosenOptions: [player1]
+        }]);
+        game.resolveStack();
+        expect(foreverAlone.charged).toBe(false);
+        
+        // Deal damage again
+        game.dealDamage(player1, player2, dummyLoot, 1);
+        game.resolveStack();
+        expect(foreverAlone.charged).toBe(true);
+    });
+
+    // "[Tap Effect] Choose one-\nLook at a player's hand. You may swap a card from your hand with one of theirs.\nLoot 1, then put a card from your hand on top of the loot deck."
+    it("Incubus - Option 1: Look at a player's hand and swap a card", () => {
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
+        game.start(player1, [isaac, lilith]);
+        
+        expect(player2.inPlay[0]!.slug).toBe("b2-lilith");
+        expect(player2.inPlay[0]!.eternal).toBe(true);
+        expect(player2.inPlay[1]!.slug).toBe("b2-incubus");
+        expect(player2.inPlay[1]!.eternal).toBe(true);
+        
+        const incubus = player2.inPlay[1]! as ItemCard;
+        game.recharge(incubus);
+        expect(incubus.charged).toBe(true);
+        
+        // Give both players some loot cards
+        const cardForPlayer1 = game.decks["loot"]!.getCardFromSlug("b2-a_penny")!;
+        const cardForPlayer2 = game.decks["loot"]!.getCardFromSlug("b2-a_nickel")!;
+        player1.hand.addToHand(cardForPlayer1);
+        player2.hand.addToHand(cardForPlayer2);
+        
+        const player1InitialHand = player1.hand.cards.slice();
+        const player2InitialHand = player2.hand.cards.slice();
+        
+        incubus.onTap([{
+            description: "look at a player's hand. you may swap a card from your hand with one of theirs.",
+            chosenOptions: []
+        }]);
+        game.resolveStack();
+        
+        // The swap should have occurred - player1 should have player2's card and vice versa
+        expect(player1.hand.cards).toContain(cardForPlayer2);
+        expect(player2.hand.cards).toContain(cardForPlayer1);
+        expect(player1.hand.cards).not.toContain(cardForPlayer1);
+        expect(player2.hand.cards).not.toContain(cardForPlayer2);
+        expect(incubus.charged).toBe(false);
+    });
+
+    it("Incubus - Option 2: Loot 1, then put a card from your hand on top of the loot deck", () => {
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
+        game.start(player1, [isaac, lilith]);
+
+        const incubus = player2.inPlay[1]! as ItemCard;
+        game.recharge(incubus);
+
+        const dummyCard = game.decks["loot"]!.draw() as LootCard;
+        player2.hand.addToHand(dummyCard);
+
+        const initialHandSize = player2.hand.length;
+        const topLootCardBefore = game.decks["loot"]!.cards[0]!;
+
+        incubus.onTap([{
+            description: "loot 1, then put a card from your hand on top of the loot deck.",
+            chosenOptions: []
+        }]);
+        game.resolveStack();
+
+        // After looting 1 and putting 1 back, hand size should be the same
+        expect(player2.hand.length).toBe(initialHandSize);
+
+        // The top card of loot deck should be different (the card put back)
+        const topLootCardAfter = game.decks["loot"]!.cards[0]!;
+        expect(topLootCardAfter).not.toBe(topLootCardBefore);
+        expect(topLootCardAfter).toBe(dummyCard);
+
+        expect(incubus.charged).toBe(false);
+    });
+
+    it("Incubus - Option 2: Does nothing with empty hand", () => {
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
+        game.start(player1, [isaac, lilith]);
+        
+        const incubus = player2.inPlay[1]! as ItemCard;
+        game.recharge(incubus);
+        
+        // Empty player2's hand
+        while (player2.hand.length > 0) {
+            game.discardFromHand(player2, 1);
+        }
+        
+        expect(player2.hand.length).toBe(0);
+        
+        incubus.onTap([{
+            description: "loot 1, then put a card from your hand on top of the loot deck.",
+            chosenOptions: []
+        }]);
+        game.resolveStack();
+        
+        // Should have 1 card after looting (can't put back if hand was empty)
+        expect(player2.hand.length).toBe(0);
+        expect(incubus.charged).toBe(false);
+    });
+
+    it("Incubus - Charges at start of turn", () => {
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
+        game.start(player1, [isaac, lilith]);
+        
+        const incubus = player2.inPlay[1]! as ItemCard;
+        
+        // Start with incubus discharged
+        incubus.charged = false;
+        
+        game.endTurn(); // Isaac's turn ends
+        expect(incubus.charged).toBe(true);
+        
+    });
 });
 
 describe("Eternal Items - 3 players tests", () => {
@@ -506,3 +635,4 @@ describe("Eternal Items - 3 players tests", () => {
         expect(bloodlust.charged).toBe(false);
     });
 });
+

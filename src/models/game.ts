@@ -621,6 +621,24 @@ export class Game {
     this.healEveryone();
     // this.startTurn();
   }
+
+  give(from: Player, to: Player, card: Card): boolean {
+    if(card instanceof LootCard){
+      return this.giveCard(from, to, card);
+    }
+    return false;
+  }
+
+
+  giveCard(from: Player, to: Player, card: LootCard): boolean {
+    if(!from.hand.cards.includes(card)){
+      return false
+    }
+    from.hand.removeCard(card);
+    to.hand.addToHand(card);
+    return true;
+  }
+
   assignRandomCharacterToPlayers(): void {
     const characterDeck = this.decks["character"];
     if (!characterDeck) {
@@ -1185,7 +1203,7 @@ export class Game {
       throw new Error("Invalid card position.");
     }
 
-    return player.hand.removeFromHandByPos(position - 1);
+    return player.hand.removeFromHandByPos(position);
   }
 
   discardFromHand(issuer: Issuer, position: number): string {
