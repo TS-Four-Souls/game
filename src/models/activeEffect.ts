@@ -83,6 +83,54 @@ export function look1EachDeckEffect(game: Game): EffectFunction {
     };
 }
 
+export function paidEffect(s: string, game: Game): EffectFunction {
+    const s2 = s.replace("[paid effect] ", "").trim();
+    const idx = s2.indexOf(":");
+    const lines = [s2.substring(0, idx), s2.substring(idx + 1)].map(line => line.trim());
+    if (lines.length < 2) {
+        throw new Error(`invalid 'paid' effect format. s=${s}$ lines=${lines}$`);
+    }
+    const paiement = effectParser(lines[0]!, game);
+    const effect = effectParser(lines[1]!, game);
+
+    return (data: EffectData) => {
+        if(paiement(data)) {
+            return effect(data);
+        }
+        return false;
+    };
+}
+
+export function removeCountersEffect(game: Game, amount: number): EffectFunction {
+    return (data: EffectData) => {
+        if ((data.it as ItemCard).tags.counters! >= amount) {
+            (data.it as ItemCard).tags.counters -= amount;
+            return true;
+        }
+        return false;
+    };
+}
+
+// This becomes a soul and loses all abilities.
+export function BecomesSoulEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        
+        (data.it as ItemCard).setEternal(false);
+        game.removeInPlay(data.issuer, data.it);
+        data.it.soul = 1;
+        game.addSoul(data.issuer, data.it);
+        return true;
+    };
+}
+
+export function addToDiceRollEffect(game: Game, toAdd: number): EffectFunction {
+    return (data: EffectData) => {
+        const choosenDiceRoll: DiceRoll = data.targets[0] as DiceRoll;
+        choosenDiceRoll.add(toAdd);
+        return true;
+    };
+}
+
 export function chooseOneEffect(s: string, game: Game): EffectFunction {
     const lines = s.split("\n");
     if (lines.length < 3) {

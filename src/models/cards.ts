@@ -57,10 +57,13 @@ class ActiveEffectHandler extends EffectHandler {
     activeEffect(issuer: Entity, it: Card, effectId: number, targets: any[]): void {
         if (this._type !== "active" && this._effects.length > 0)
             throw new Error("activeEffect can only be called for active effects.");
-
+        // Implement shovel and blank card before uncommenting this
+        // if( effectId < 0 || effectId >= this._effects.length) { 
+        //     throw new Error(`Effect id ${effectId} is out of bounds for active effects of length ${this._effects.length}.`);
+        // }
         const effect = this._effects[effectId];
         if (effect) {
-            if (effect.type === "active") {
+            if (effect.type !== "passive") {
                 effect.effectFunction({ it, issuer: issuer as Player, targets: targets });
             }
         }
@@ -107,13 +110,21 @@ class EffectInterface {
         this.passiveEffects.subscribeAll(owner, this.it);
     }
     
-    activeEffect(issuer: Entity, targets: any[]): void {
-        this.activeEffects.activeEffect(issuer, this.it, 0, targets);
+    activeEffect(issuer: Entity, targets: any[], effectId: number): void {
+        this.activeEffects.activeEffect(issuer, this.it, effectId, targets);
     }
 
     // Get the first active effect (for cards that have a single effect)
     getActiveEffect(index: number = 0): Effect | undefined {
         return this.activeEffects.getEffect(index);
+    }
+
+    getEffectType(index: number = 0): EffectType {
+        const effect = this.activeEffects.getEffect(index);
+        if (!effect) {
+            throw new Error(`Effect at index ${index} not found.`);
+        }
+        return effect.type;
     }
 
     getTargetSelectors(index: number): TargetsSelector[] {
@@ -256,10 +267,28 @@ class Card {
         return false;
     }
 
-    activate(targets: any[]): boolean {
-        if (this._charged === true) {
-            this._effectInterface.activeEffect(this._owner, targets);
+    activate(targets: any[], effectId: number): boolean {
+        // Implement shovel and blank card before uncommenting this
+        // switch (this._effectInterface.getEffectType(effectId)) {
+        //     case "active":
+        //         this._effectInterface.activeEffect(this._owner, targets, effectId);
+        //         this._charged = false;
+        //         return true;
+        //     case "paid":
+        //         this._effectInterface.activeEffect(this._owner, targets, effectId);
+        //         return true;
+        //     default:
+        //         break;
+        // }
+        // return false;
+        // Temporary implementation until shovel and blank card are done, assuming effectId 0 is active effect.
+        if (this._charged === true && effectId === 0) {
+            this._effectInterface.activeEffect(this._owner, targets, effectId);
             this._charged = false;
+            return true;
+        }
+        else if (effectId > 0) {
+            this._effectInterface.activeEffect(this._owner, targets, effectId);
             return true;
         }
         return false;
@@ -340,8 +369,8 @@ export class ItemCard extends Card {
     isGuppy(): boolean {
         return this._guppy;
     }
-    onTap(targets: any[] = []): void {
-        this.activate(targets);
+    onTap(targets: any[] = [], effectId: number =0): void {
+        this.activate(targets, effectId);
     }
     setEternal(eternal: boolean): void {
         this._eternal = eternal;

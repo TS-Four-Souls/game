@@ -5,7 +5,7 @@ import { pl } from "zod/locales";
 import type { LootCard, ItemCard } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
 import { effectParser, inplayCurseSelector, type ChooseOneOptions, type ChooseOneResult } from "@/models/effectParser";
-import { chooseOneEffect } from "@/models/effectParser";
+
 describe("Loot Card", () => {
     let game: Game;
     let player1: Player;

@@ -92,6 +92,8 @@ export class Player extends Entity {
   }
   removeInPlay(card: Card): boolean {
     const index = this._inPlay.indexOf(card);
+    if(card.eternal)
+      throw new Error("Cannot remove eternal card from in play.");
     return this.removeInPlayByIndex(index);
   }
   playLootCard(index: number): Card | null {
@@ -108,8 +110,8 @@ export class Player extends Entity {
     return card;
   }
   removeInPlayByIndex(index: number): boolean {
-    const type = this._inPlay[index]?.type;
-    if (index >= 0 && type !== "eternal" && type !== "character") {
+    const canBeRemoved = this._inPlay[index]?.eternal !== true;
+    if (index >= 0 && canBeRemoved) {
       this._inPlay.splice(index, 1);
       return true;
     }

@@ -114,6 +114,169 @@ describe("Eternal Items", () => {
 
     });
 
+
+
+
+
+
+
+
+
+
+    // "[Paid Effect] Remove 1 counter from this: Add +1 to a dice roll."
+    it("The Bone: paid effect 1 (remove 1 counter to add +1 to dice roll)", () => {
+        const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        game.start(player1, [theForgotten, isaac]);
+        
+        const theBone = player1.inPlay[1]! as ItemCard;
+        
+        // Add 2 counters to the bone
+        game.recharge(theBone);
+        theBone.onTap();
+        game.recharge(theBone);
+        theBone.onTap();
+        expect(theBone.tags.counters).toBe(2);
+        
+        // Create a dice roll scenario
+        const card = game.decks["loot"]!.getCardFromSlug("b2-pills") as LootCard;
+        player1.hand.addToHand(card);
+        game.playCard(player1, 1, []); // play pills
+        game.resolveStack(); // resolve pills play
+        expect(game.stack.size).toBe(1); // Dice roll should be on stack
+
+        const dice = game.stack.elements[0] as DiceRoll;
+        dice.value = 4; // Force roll to 4 for testing
+        
+        // Use paid effect to add +1 to the roll
+        theBone.onTap([dice], 1); // Index 1 for first paid effect
+        expect(dice.value).toBe(5); // Should be 4 + 1
+        expect(theBone.tags.counters).toBe(1); // Should have 1 counter left
+        
+        game.resolveStack(); // resolve the modified dice roll
+    });
+
+    // "[Paid Effect] Remove 2 counters from this: Deal 1 damage to a monster or player."
+    it("The Bone: paid effect 2 (remove 2 counters to deal 1 damage to player)", () => {
+        const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        game.start(player1, [theForgotten, isaac]);
+        
+        const theBone = player1.inPlay[1]! as ItemCard;
+        
+        // Add 3 counters to the bone
+        for (let i = 0; i < 3; i++) {
+            game.recharge(theBone);
+            theBone.onTap();
+        }
+        expect(theBone.tags.counters).toBe(3);
+        
+        const initialHP = player2.currentHealthPoints;
+        
+        // Use paid effect to deal damage to player2
+        theBone.onTap([player2], 2); // Index 2 for second paid effect
+        game.resolveStack(); // resolve damage
+        
+        expect(player2.currentHealthPoints).toBe(initialHP - 1);
+        expect(theBone.tags.counters).toBe(1); // Should have 1 counter left
+    });
+
+    it("The Bone: paid effect 2 (remove 2 counters to deal 1 damage to monster)", () => {
+        const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        game.start(player1, [theForgotten, isaac]);
+        
+        const theBone = player1.inPlay[1]! as ItemCard;
+        
+        // Add 2 counters to the bone
+        game.recharge(theBone);
+        theBone.onTap();
+        game.recharge(theBone);
+        theBone.onTap();
+        expect(theBone.tags.counters).toBe(2);
+        
+        // Add a monster to the board
+        const monster = game.monsters[0]!;
+        const initialMonsterHP = monster.currentHealthPoints;
+        
+        // Use paid effect to deal damage to monster
+        theBone.onTap([monster], 2); // Index 2 for second paid effect
+        game.resolveStack(); // resolve damage
+        
+        expect(monster.currentHealthPoints).toBe(initialMonsterHP - 1);
+        expect(theBone.tags.counters).toBe(0); // Should have 0 counters left
+    });
+
+    // "[Paid Effect] Remove 5 counters from this: This becomes a soul and loses all abilities."
+    it("The Bone: paid effect 3 (remove 5 counters to become a soul)", () => {
+        const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        game.start(player1, [theForgotten, isaac]);
+        
+        const theBone = player1.inPlay[1]! as ItemCard;
+        
+        // Add 5 counters to the bone
+        for (let i = 0; i < 5; i++) {
+            game.recharge(theBone);
+            theBone.onTap();
+        }
+        expect(theBone.tags.counters).toBe(5);
+        expect(theBone.eternal).toBe(true);
+        
+        const initialSouls = player1.totalSouls;
+        
+        // Use paid effect to convert to soul
+        theBone.onTap([], 3); // Index 3 for third paid effect
+        game.resolveStack(); // resolve soul conversion
+        
+        expect(theBone.tags.counters).toBe(0); // Counters should be removed
+        expect(player1.totalSouls).toBe(initialSouls + 1); // Should gain a soul
+        // The bone should lose its eternal status and abilities
+        expect(theBone.eternal).toBe(false);
+        expect(player1.inPlay.map(card => card.slug)).not.toContain(theBone.slug);
+        expect(player1.souls.map(card => card.slug)).toContain(theBone.slug);
+    });
+
+    it("The Bone: paid effect 3 cannot be used with less than 5 counters", () => {
+        const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
+        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+        game.start(player1, [theForgotten, isaac]);
+        
+        const theBone = player1.inPlay[1]! as ItemCard;
+        
+        // Add only 4 counters to the bone
+        for (let i = 0; i < 4; i++) {
+            game.recharge(theBone);
+            theBone.onTap();
+        }
+        expect(theBone.tags.counters).toBe(4);
+        
+        const initialSouls = player1.souls;
+        
+        // Attempt to use paid effect with insufficient counters
+        theBone.onTap([], 3)
+        expect(theBone.tags.counters).toBe(4); // Counters should remain unchanged
+        expect(player1.souls).toBe(initialSouls); // Souls should remain unchanged
+    });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     // "[Tap Effect] Add or subtract 1 from a roll."
     it("Book of Belial: add ", () => {
         const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;

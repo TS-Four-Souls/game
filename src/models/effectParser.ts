@@ -41,11 +41,13 @@ export const isChooseOneResult = (x: any): x is ChooseOneResult => {
 
 export function effectParser(s: string, game: Game, defaultEffect: EffectFunction = active.addInPlayEffect(game)): EffectFunction {
     const originalS = s;
-    // if (s === "[Tap Effect] Choose one-\nSteal 1¢ from another player.\nLook at the top card of a deck.\nDiscard a loot card, then loot 1."){
+    // if (s === "[Paid Effect] Remove 1 counter from this:\nAdd +1 to a dice roll."){
     //     console.log("parsing special roll effect:", originalS);
     // }
     s = s.replace("[Tap Effect] ", ""); // remove tap effect marker
     s = s.toLowerCase();
+    if (s.startsWith("[paid effect] "))
+        return active.paidEffect(s, game);
     if (s.startsWith("choose one-"))
         return active.chooseOneEffect(s, game);
     if (s.startsWith("roll-"))
@@ -203,6 +205,14 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             game.dealDamage(data.issuer, target, data.it, damageToDeal);
             return true;
         };
+    let countersToRemove = parseNumber(s, /^remove (\d+) counters? from this\.?$/u);
+    if (countersToRemove === null)
+        countersToRemove = s === "remove a counter from this." ? 1 : null;
+    if( countersToRemove !== null)
+        return active.removeCountersEffect(game, countersToRemove);
+    const toAdd = parseNumber(s, /^add \+? ?(\d+) to a dice roll\.?$/u);
+    if( toAdd !== null)
+        return active.addToDiceRollEffect(game, toAdd);
     // Match patterns like "prevent next instance of up to 2 damage this turn"
     const preventMatch = s.match(/^choose a player. prevent (?:the )?next instance of up to (\d+) damage(?: you would take)? this turn\.?$/u);
     switch (s) {
@@ -382,6 +392,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         
         case "look at the top card of each deck. you may put any of those cards on the bottom of their deck":
             return active.look1EachDeckEffect(game);
+        case "this becomes a soul and loses all abilities.":
+            return active.BecomesSoulEffect(game);
         case "put this on the bottom of the loot deck.":
             return (data:EffectData) => {
                 game.addBottomPosition("loot", data.it);
@@ -460,23 +472,6 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
                 game.cancelAt(data.targets[0] as number);
                 return true;
             }
-        case "remove a counter from this:":
-            return (data:EffectData) => {
-                if ((data.it as ItemCard).tags.counters! > 0)
-                {
-                    (data.it as ItemCard).tags.counters -= 1;
-                    return effectParser(s.substring(24).trim(), game)(data);
-                }
-                return false;
-            };
-        case "remove 3 counters from this:":
-            return (data:EffectData) => {
-                if ((data.it as ItemCard).tags.counters! >= 3) {
-                    (data.it as ItemCard).tags.counters -= 3;
-                    return effectParser(s.substring(24).trim(), game)(data);
-                }
-                return false;
-            };
         case "this becomes a soul. gain it.":
             return (data:EffectData) => { 
                 game.removeInPlay(data.issuer, data.it);

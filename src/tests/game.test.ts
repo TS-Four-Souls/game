@@ -192,8 +192,8 @@ describe("Player - In-Play Cards", () => {
   });
 
   it("should not remove eternal or character cards by index", () => {
-    const eternalCard = { id: "et1", name: "Eternal", type: "eternal" } as any;
-    const characterCard = { id: "ch1", name: "Char", type: "character" } as any;
+    const eternalCard = { id: "et1", name: "Eternal", type: "eternal", eternal: true } as any;
+    const characterCard = { id: "ch1", name: "Char", type: "character", eternal: true } as any;
     const itemCard = { id: "it1", name: "Item", type: "item" } as any;
 
     player.addInPlay(eternalCard);
