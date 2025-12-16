@@ -82,9 +82,9 @@ export function firstAttackRollStatModifierEffect(
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleanup = () => {
+        data.it.cleaners.push( () => {
             cleanup();
-        }
+        });
         return true;
     };
 }
@@ -110,9 +110,9 @@ export function gainCoinsOnDamageEffect(
         }); 
 
         // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleanup = () => {
+        data.it.cleaners.push(() => {
             cleanup();
-        }
+        });
 
         return true;
     };
@@ -139,9 +139,9 @@ export function lootOnPlayerDeathEffect(
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleanup = () => {
+        data.it.cleaners.push(() => {
             cleanup();
-        }
+        });
 
         return true;
     };
@@ -167,9 +167,9 @@ export function gainPlusCoinsEffect(
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleanup = () => {
+        data.it.cleaners.push(() => {
             cleanup();
-        }
+        });
 
         return true;
     };
@@ -205,9 +205,9 @@ export function LookAndPutBottomEffect(
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleanup = () => {
+        data.it.cleaners.push(() => {
             cleanup();
-        }
+        });
 
         return true;
     };
@@ -235,9 +235,9 @@ export function rollDiceOnTriggerEffect(
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleanup = () => {
+        data.it.cleaners.push(() => {
             cleanup();
-        }
+        });
         return true;
     };
 }
@@ -271,9 +271,9 @@ export function preventDamageOnRollEffect(
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleanup = () => {
+        data.it.cleaners.push(() => {
             cleanup();
-        }
+        });
         return true;
     };  
 }
@@ -322,9 +322,9 @@ export function gainTreasureOnDeathEffect(
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleanup = () => {
+        data.it.cleaners.push(() => {
             cleanup();
-        }
+        });
 
         return true;
     };
@@ -350,9 +350,9 @@ export function rechargeThisOnEvent(
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleanup = () => {
+        data.it.cleaners.push(() => {
             cleanup();
-        }
+        });
 
         return true;
     };
@@ -383,9 +383,9 @@ export function discardTopOfDeckAtTurnStartEffect(
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleanup = () => {
+        data.it.cleaners.push(() => {
             cleanup();
-        }
+        });
 
         return true;
     };

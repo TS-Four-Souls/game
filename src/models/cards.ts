@@ -6,6 +6,100 @@ import { assert } from 'console';
 import type { Entity } from './entity';
 import type { Game } from './game';
 
+export type EffectType =
+    | "passive"
+    | "active"
+    | "paid";
+
+export class Effect {
+    protected _description: string;
+    protected _effectFunction: EffectFunction;
+    protected _targetsSelector: TargetsSelector[];
+    protected _cleanup: () => void = () => {};
+    protected _type: EffectType;
+    // protected _cleanup: () => void = () => {};
+
+    constructor(description: string,
+        type: EffectType,
+        effectFunction: EffectFunction
+            = (data: EffectData) => { return true; },
+        targetsSelector: TargetsSelector[]
+            = [{ description: "", selector: (issuer: Player) => [] }]
+    ) {
+        this._description = description;
+        this._type = type;
+        this._effectFunction = effectFunction;
+        this._targetsSelector = targetsSelector;
+    }
+
+    get description(): string {
+        return this._description;
+    }
+    get targetsSelector(): TargetsSelector[] {
+        return this._targetsSelector;
+    }
+    set effectFunction(effectFunction: EffectFunction) {
+        this._effectFunction = effectFunction;
+    }
+    get effectFunction(): EffectFunction {
+        return this._effectFunction;
+    }
+
+    get type(): EffectType {
+        return this._type;
+    }
+
+    // Target validation methods
+    private chooseOneTargetStillValid(issuer: Player, targets: any[]): boolean {
+        if (targets.length > 1)
+            throw new Error("chooseOne target should have length at most 1.");
+        for (const chooseOneTarget of targets) {
+            const descr = chooseOneTarget.description;
+            const targetsList = chooseOneTarget.chosenOptions;
+            if (targetsList.length > 0) {
+                for (const admissibleTarget of this._targetsSelector[0]!.selector(issuer)) {
+                    if (admissibleTarget.description === descr) {
+                        for (const t of targetsList) {
+                            if (!admissibleTarget.admissibleTargets.includes(t)) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    targetStillValid(issuer: Player, targets: any[]): boolean {
+        if (targets.length > 0) {
+            for (const i in this._targetsSelector) {
+                if (targets[i]?.length > 0) {
+                    const admissibleTargets = this._targetsSelector[i]!.selector(issuer);
+                    if (isChooseOneResult(targets[i][0])) {
+                        return this.chooseOneTargetStillValid(issuer, [targets[i][0]]);
+                    } else {
+                        for (const targetId in targets) {
+                            if (!admissibleTargets[targetId]?.includes(targets[targetId][0])) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    // set cleanup(cleanup: () => void) {
+    //     this._cleanup = cleanup;
+    // }
+    // get cleanup(): () => void {
+    //     return this._cleanup;
+    // }
+
+}
 // Effect handler manages multiple effects of the same type of a card.
 class EffectHandler{
     protected _effects: Effect[] = [];
@@ -182,7 +276,7 @@ class Card {
     protected _owner!: Player;
     protected _eternal: boolean = false;
     protected _position: Deck | null | Hand | Card[];
-    cleanup: () => void = () => {};
+    protected _cleanup: (() => void)[] = [];
     constructor(id: number, 
         json: GenericCardType) {
         this._json = json;
@@ -257,6 +351,14 @@ class Card {
     }
     get eternal(): boolean {
         return this._eternal;
+    }
+    get cleaners(): (() => void)[] {
+        return this._cleanup;
+    }
+    cleanup(): void {
+        for (const cleaner of this._cleanup) {
+            cleaner();
+        }
     }
 
     recharge(): boolean {
@@ -375,100 +477,6 @@ export class ItemCard extends Card {
     setEternal(eternal: boolean): void {
         this._eternal = eternal;
     }
-}
-export type EffectType =
-    | "passive"
-    | "active"
-    | "paid";
-
-export class Effect {
-    protected _description: string;
-    protected _effectFunction: EffectFunction;
-    protected _targetsSelector: TargetsSelector[];
-    protected _type: EffectType; 
-    // protected _cleanup: () => void = () => {};
-
-    constructor(description: string, 
-        type: EffectType,
-        effectFunction: EffectFunction 
-        = (data: EffectData) => { return true; }, 
-        targetsSelector: TargetsSelector[] 
-        = [{ description: "", selector: (issuer: Player) => [] }]
-        ) 
-    {
-        this._description = description;
-        this._type = type;
-        this._effectFunction = effectFunction;
-        this._targetsSelector = targetsSelector;
-    }
-
-    get description(): string {
-        return this._description;
-    }
-    get targetsSelector(): TargetsSelector[] {
-        return this._targetsSelector;
-    }
-    set effectFunction(effectFunction: EffectFunction) {
-        this._effectFunction = effectFunction;
-    }
-    get effectFunction(): EffectFunction {
-        return this._effectFunction;
-    }
-
-    get type(): EffectType {
-        return this._type;
-    }
-
-            // Target validation methods
-            private chooseOneTargetStillValid(issuer: Player, targets: any[]): boolean {
-                if(targets.length > 1)
-                    throw new Error("chooseOne target should have length at most 1.");
-                for (const chooseOneTarget of targets) {
-                    const descr = chooseOneTarget.description;
-                    const targetsList = chooseOneTarget.chosenOptions;
-                    if(targetsList.length > 0) {
-                        for (const admissibleTarget of this._targetsSelector[0]!.selector(issuer)) {
-                            if(admissibleTarget.description === descr) {
-                                for(const t of targetsList) {
-                                    if (!admissibleTarget.admissibleTargets.includes(t)) {
-                                        return false;
-                                    }
-                                }
-                                return true;
-                            }
-                        }
-                    }
-                }
-                return true;
-            }
-
-            targetStillValid(issuer: Player, targets: any[]): boolean {
-                if (targets.length > 0) {
-                    for(const i in this._targetsSelector) {
-                        if (targets[i]?.length > 0) {
-                            const admissibleTargets = this._targetsSelector[i]!.selector(issuer);
-                            if (isChooseOneResult(targets[i][0])) {
-                                return this.chooseOneTargetStillValid(issuer, [targets[i][0]]);
-                            } else {
-                                for (const targetId in targets) {
-                                    if (!admissibleTargets[targetId]?.includes(targets[targetId][0])) {
-                                        return false;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                return true;
-            }
-    
-    // set cleanup(cleanup: () => void) {
-    //     this._cleanup = cleanup;
-    // }
-    // get cleanup(): () => void {
-    //     return this._cleanup;
-    // }
-
 }
 
 class LootCard extends ItemCard {
