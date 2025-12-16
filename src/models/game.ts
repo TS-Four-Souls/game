@@ -34,15 +34,15 @@ import {
 import { Stack, type StackElement } from "@/models/stack";
 import {
   effectParser,
-  getAttackRollEffect,
   targetSelectorParser
-} from "@/models/effect";
+} from "@/models/effectParser";
+import { getAttackRollEffect } from "@/models/activeEffect"
 import { Shop, Encounters } from "@/models/slots";
 import { Entity } from "@/models/entity";
 import { TurnHandler } from "./turnHandler";
 import { type ReadableSignal, Signal } from "micro-signals";
 import { GameEventEmitter } from "./eventEmmitter";
-import { preventNextDamageUpToEffect } from "@/models/abilities";
+import { preventNextDamageUpToEffect } from "@/models/passiveEffect";
 import { bSoulEffectParser } from "@/models/bonusSoulHandling";
 import { pl } from "zod/locales";
 
@@ -566,6 +566,12 @@ export class Game {
     }
     const playedCard: LootCard = player.hand.playCard(index - 1) as LootCard;
     
+    if(targets.length === 0)
+    {
+      if(playedCard.getTargetSelectors().length === 1)
+        if (playedCard.getTargetSelectors()[0]?.selector(player).length === 1)
+          targets = playedCard.getTargetSelectors()[0]!.selector(player)[0];
+    }
     const resolveFunction = playedCard.onPlay(player, targets);
     const lootCardEffect = new LootCardEffect(playedCard, resolveFunction);
     this.addToStack(lootCardEffect);
@@ -752,7 +758,7 @@ export class Game {
             card.name
           );
         }
-        // if(card.slug === "b2-lazarus_rags")
+        // if(card.slug === "b2-forever_alone")
         //   console.log("Processing effects for", card.slug);
         for(const outcome of card.effectOutcomes)
         {

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "@/models/game";
 import { Player } from "@/models/player";
-import { gainCoinsEffect } from "@/models/effect";
+import { gainCoinsEffect } from "@/models/activeEffect";
 import { CharacterCard } from "@/models/cards";
 
 // Minimal loot card stub
@@ -66,7 +66,8 @@ describe("Effect - gainCoins", () => {
 });
 
 // Additional tests for non-tested effects from effect.ts
-import * as effect from "@/models/effect";
+import * as effect from "@/models/effectParser";
+import * as active from "@/models/activeEffect";
 import type { LootCard } from "@/models/cards";
 
 describe("Effect - additional unique implementations", () => {
@@ -74,7 +75,7 @@ describe("Effect - additional unique implementations", () => {
     const { game, p1 } = setupGame();
     const dice = { value: 3 };
     game.select = (_p, n, opts) => ({ selected: [6], remaining: [] });
-    const fn = effect.changeRollDiceResultEffect(game);
+    const fn = active.changeRollDiceResultEffect(game);
     // Use a real loot card
     const card = game.decks["loot"]!.cards[0]!;
     fn({it: card, issuer: p1, targets: [dice]});
@@ -87,7 +88,7 @@ describe("Effect - additional unique implementations", () => {
     p2.gainCoins(5);
     // Use a real loot card
     const card = game.decks["loot"]!.cards[0];
-    effect.drawAndGainCoinsAsAPlayerEffect(p1, p2, game);
+    active.drawAndGainCoinsAsAPlayerEffect(p1, p2, game);
     expect(p1.hand.cards.length).toBe(1);
     expect(p1.coins).toBe(5);
   });

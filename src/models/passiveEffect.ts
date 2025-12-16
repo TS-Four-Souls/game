@@ -3,6 +3,7 @@ import { type Card, type EffectData, type LootCard, type EffectFunction, type Ta
 import { Game } from "./game";
 import type { Stack, StackElement } from "./stack";// One-shot shield: prevent up to `amount` damage on the next instance to issuer this turn
 import type { TriggerEvent } from "@/types/triggers";
+import { deckSelector } from "./effectParser";
 
 export function preventNextDamageUpToEffect(amount: number, game: Game): EffectFunction {
     return (data:EffectData) => {
@@ -346,6 +347,39 @@ export function rechargeThisOnEvent(
             if (eventIssuer === data.issuer) {
                 game.recharge(data.it);
             }
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleanup = () => {
+            cleanup();
+        }
+
+        return true;
+    };
+}
+
+// "At the start of your turn, put the top card of a deck into discard.",
+export function discardTopOfDeckAtTurnStartEffect(
+    game: Game
+): EffectFunction {
+    return (data:EffectData) => {
+        let offEffect: (() => void) | null = null;
+
+        const cleanup = () => {
+            offEffect?.();
+            offEffect = null;
+        };
+
+        // Listen for the next damage event on this player
+        offEffect = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
+            if (data.issuer !== eventIssuer) return;
+            const deckName = game.select(data.issuer, 1, deckSelector(undefined, game)(data.issuer), false).selected[0];
+            const deck = game.decks[deckName];
+            if (!deck) {
+                throw new Error(`Deck ${deckName} does not exist.`);
+            }
+            const topCard = deck.draw();
+            deck.addDiscardTop(topCard);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed

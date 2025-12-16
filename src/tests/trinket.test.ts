@@ -4,8 +4,8 @@ import { DiceRoll, Player } from "../models/player";
 import { pl } from "zod/locales";
 import type { LootCard, ItemCard, CharacterCard } from "@/models/cards";
 import { InplayType, MonsterCard } from "@/models/cards";
-import { effectParser, inplayCurseSelector, type ChooseOneOptions, type ChooseOneResult } from "@/models/effect";
-import { chooseOneEffect } from "@/models/effect";
+import { effectParser, inplayCurseSelector, type ChooseOneOptions, type ChooseOneResult } from "@/models/effectParser";
+import { chooseOneEffect } from "@/models/effectParser";
 describe("Loot Card", () => {
     let game: Game;
     let player1: Player;

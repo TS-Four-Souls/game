@@ -6,7 +6,8 @@ import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
 import { it } from "zod/locales";
 // import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, goFirstInTurnOrderEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, startingItemEffect, temporaryStatModifierEffect, gainTreasureOnDeathEffect } from "./abilities";
-import *  as passive from "./abilities";
+import *  as passive from "./passiveEffect";
+import * as active from "./activeEffect";
 import type { BonusSoulCardType } from "@/types/cardTypes";
 
 function prepareEffectString(s: string): string {
@@ -29,74 +30,6 @@ function parseText(text: string, re: RegExp): string {
     return m ? m[1]! : "";
 }
 
-export function gainCoinsEffect(game: Game, amount: number): EffectFunction {
-    return (data:EffectData) => {
-        game.gainCoins(data.issuer, amount);
-        return true;
-    };
-}
-
-export function loseCoinsEffect(game: Game, amount: number): EffectFunction {
-    return (data:EffectData) => {
-        const nb = game.loseCoins(data.issuer, amount, true);
-        return nb === amount;
-    };
-}
-
-export function rechargeItemsEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        for (const card of data.targets as ItemCard[]){
-            game.recharge(card);
-        }
-        return true;
-    };
-}
-
-export function rechargeEachItemsOfTargetEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const player = data.targets[0] as Player;
-        game.rechargeEachItem(player);
-        return true;
-    };
-}
-
-export function makeAPlayerWithMostSoulsDestroyASoulEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const target = data.targets[0] as Player;
-        if (game.playersWithMostSouls.includes(target)) {
-            const card = game.select(target, 1, target.souls).selected[0]!;
-            return game.destroyCardsOrSouls([card]);
-        }
-        return false;
-    };
-}
-export function look5Put1TopRestBottomEffect(deckName: string, game: Game): EffectFunction {
-    return (data:EffectData) => {
-        let cards = game.getFirstCardsOfDeck(deckName, 5);
-        let selectionResult = game.select(data.issuer, 1, cards);
-        game.addTopPosition(deckName, selectionResult.selected[0]);
-        selectionResult.remaining.forEach((c) => {
-            game.addBottomPosition(deckName, c);
-        });
-        return true;
-    };
-}
-
-export function look1EachDeckEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        let topCards: Card[] = [];
-        for (const deckName of ["loot", "treasure", "monster"]) {
-            const topCard = game.getFirstCardsOfDeck(deckName, 1)[0];
-            topCards.push(topCard!);
-        }
-        const selectResult = game.select(data.issuer, 3, topCards, true);
-        for (const card of selectResult.selected as Card[]) {
-            game.getFirstCardsOfDeck(card.type, 1)[0];
-            game.addBottomPosition(card.type, card);
-        }
-        return true;
-    };
-}
 export type ChooseOneResult = {
     description: string;
     chosenOptions: any[];
@@ -106,473 +39,11 @@ export const isChooseOneResult = (x: any): x is ChooseOneResult => {
     return typeof x === 'object' && x !== null && 'description' in x && 'chosenOptions' in x;
 };
 
-export function chooseOneEffect(s: string, game: Game): EffectFunction {
-    const lines = s.split("\n");
-    if (lines.length !== 3) {
-        throw new Error("invalid 'choose one' effect format.");
-    }
-    const Effect1: EffectFunction = effectParser(lines[1]!, game);
-    const Effect2: EffectFunction = effectParser(lines[2]!, game);
-    return (data:EffectData) => {
-        const targetsChooseOne = data.targets[0] as ChooseOneResult;
-        const description = targetsChooseOne.description;
-        const options = targetsChooseOne.chosenOptions;
-        if (description === lines[1]) {
-            return Effect1({it: data.it, issuer: data.issuer, targets: options});
-        } else if (description === lines[2]) {
-            return Effect2({it: data.it, issuer: data.issuer, targets: options});
-        }
-        else {
-            console.log("\n", lines[1], "\n", lines[2], "\n", " CHOICE ", "\n", description);
-            throw new Error("invalid choice made in 'choose one' effect.");
-        }
-    }
-}
-
-export function destroyYourItemAndStealEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        if (data.issuer.inPlay.filter((card) => card.eternal === false).length > 0) {
-            const itemToDestroy = game.select(data.issuer, 1, data.issuer.inPlay.filter((card) => card.eternal === false)).selected[0]!;
-            itemToDestroy.destroy();
-            const itemToSteal = game.select(data.issuer, 1, game.visibleItems.filter((card) => card.eternal === false)).selected[0]!;
-            return game.stealItemAnywhere(data.issuer, itemToSteal);
-        }
-        return false;
-    };
-}
-
-export function destroyOneEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const toDestroy = data.targets[0] as Card;
-        // game.select(data.issuer, 1, data.targets).selected[0] as Card;
-        return game.destroyCardsOrSouls([toDestroy]);
-    };
-}
-
-export function changeRollDiceResultEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const choosenDiceRoll: DiceRoll = data.targets[0] as DiceRoll;
-        const selectionResult = game.select(data.issuer, 1, [1, 2, 3, 4, 5, 6]);
-        const newValue = selectionResult.selected[0] as number;
-        choosenDiceRoll.value = newValue;
-        return true;
-    };
-}
-
-export function drawAndGainCoinsAsAPlayerEffect(issuer: Player, target: Player, game: Game): boolean {
-
-    const nbCardsToDraw = Math.max(0, target.hand.length - issuer.hand.length);
-    const lootCards = game.loot(issuer, nbCardsToDraw);
-    const nbCoinsToGain = Math.max(0, target.coins - issuer.coins);
-    issuer.gainCoins(nbCoinsToGain);
-    return true;
-}
-
-export function swapWithNonEternalItemEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const itemToSwap = game.select(data.issuer, 1, game.inPlayItems.filter((card) => card instanceof ItemCard && card.eternal === false)).selected[0]!;
-        game.swapItems(data.it as ItemCard, itemToSwap);
-        return true;
-    };
-}
-
-export function copyTapAbilityEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const itemToCopy = game.select(data.issuer, 1, game.inPlayItems.filter((card) => card instanceof ItemCard && card.eternal === false)).selected[0]! as ItemCard;
-        const effectToCopy = itemToCopy.onTap();
-        return true;
-    };
-}
-
-export function cancelStackElementEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        game.cancelStackElement(data.targets[0] as StackElement);
-        return true;
-    };
-}
-
-export function stealSoulEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const soulToSteal = game.select(data.issuer, 1, game.soulsOwned).selected[0]!;
-        const target = game.getOwner(soulToSteal);
-        game.stealSoul(data.issuer, target!, soulToSteal);
-        return true;
-    };
-}
-
-export function stealNonEternalItemEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const itemToSteal = game.select(data.issuer, 1, game.inPlayItems.filter((card) => card instanceof ItemCard && card.eternal === false)).selected[0]!;
-        return game.stealItemAnywhere(data.issuer, itemToSteal);
-    };
-}
-
-export function stealNonEternalItemFromAnywhereEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-
-        const itemToSteal = data.targets[0] as ItemCard;
-        // game.select(data.issuer, 1, game.visibleItems.filter((card) => card instanceof ItemCard && card.eternal === false)).selected[0]!;
-        return game.stealItemAnywhere(data.issuer, itemToSteal);
-    };
-}
-
-export function subtractUpTo2FromRollEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const choosenDiceRoll: DiceRoll = data.targets[0] as DiceRoll;
-        const selectionResult = game.select(data.issuer, 1, [0, 1, 2]);
-        const subtractValue = selectionResult.selected[0] as number;
-        choosenDiceRoll.substract(subtractValue);
-        return true;
-    };
-}
-
-export function addUpTo2ToRollEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const choosenDiceRoll: DiceRoll = data.targets[0] as DiceRoll;
-        const selectionResult = game.select(data.issuer, 1, [0, 1, 2]);
-        const addValue = selectionResult.selected[0] as number;
-        choosenDiceRoll.add(addValue);
-        return true;
-    };
-}
-
-export function add1ToRollEffect(): EffectFunction {
-    return (data:EffectData) => {
-        const choosenDiceRoll: DiceRoll = data.targets[0] as DiceRoll;
-        choosenDiceRoll.add(1);
-        return true;
-    };
-}
-
-export function lootAndGainAsPlayerEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        return drawAndGainCoinsAsAPlayerEffect(data.issuer, data.targets[0] as Player, game);
-    };
-}
-
-export function cancelPreviousNonRollEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        game.cancelStackElement(data.targets[0] as StackElement);
-        return true;
-    };
-}
-
-export function flushMonsterSlotsEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        game.monsterSlots.flush();
-        return true;
-    };
-}
-
-export function flushMonsterSlotsToBottomEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        game.monsterSlots.flushToBottom();
-        return true;
-    };
-}
-
-export function lookAtHands(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        game.select(data.issuer, 0, game.allHands());
-        return true;
-    };
-}
-
-export function lookAtTopCardOfDeckEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const deckName = data.targets[0] as string;
-        const topCard = game.getFirstCardsOfDeck(deckName, 1)[0];
-        const selectionResult = game.select(data.issuer, 1, [topCard!], true);
-        if (selectionResult.selected[0] === topCard) {
-            game.addBottomPosition(deckName, topCard!);
-        } else {
-            game.addTopPosition(deckName, topCard!);
-        }
-        return true;
-    };
-}
-
-export function rerollEachItemEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const player = data.targets[0] as Player;
-        const inplayItems = player.inPlay.filter((card) => card instanceof ItemCard) as ItemCard[];
-        for (const card of inplayItems) {
-            game.reroll(player, card);
-        }
-        return true;
-    };
-}
-
-export function stealRandomLootCardEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const targetPlayer = data.targets[0] as Player;
-        if (targetPlayer.hand.length > 0) {
-            const randomIndex = Math.floor(Math.random() * targetPlayer.hand.length);
-            const cardToSteal = targetPlayer.hand.cards[randomIndex]!;
-            game.stealLootCard(data.issuer, targetPlayer, cardToSteal as LootCard);
-        }
-        return true;
-    };
-}
-
-export function destroyThisAndLoot2Effect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        game.destroyCardsOrSouls([data.it]);
-        game.loot(data.issuer, 2);
-        return true;
-    };
-}
-
-export function discard1LootCardEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const toDiscard = game.select(data.issuer, 1, data.issuer.hand.cards).selected[0] as LootCard;
-        const index = data.issuer.hand.cards.indexOf(toDiscard);
-        game.discardFromHand(data.issuer, index + 1);
-        return true;
-    };
-}
-
-export function endTurnAndResetStackEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        game.resetStack();
-        game.endTurn();
-        return true;
-    };
-}
-
-export function putTopCardOfEachDeckIntoDiscardEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        for (const deckName of ["loot", "treasure", "monster"]) {
-            const topCard = game.getFirstCardsOfDeck(deckName, 1)[0];
-            game.decks[deckName]!.addDiscardTop(topCard!);
-        }
-        return true;
-    };
-}
-
-export function passHandsLeftEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        let tempHand = game.players[0]!.hand;
-        for (let i = 0; i < game.players.length; i++) {
-            const nextPlayer = game.players[(i + 1) % game.players.length]!;
-            tempHand = game.setHand(nextPlayer, tempHand);
-        }
-        return true;
-    };
-}
-
-export function rerollDiceEffect(): EffectFunction {
-    return (data:EffectData) => {
-        const choosenDiceRoll: DiceRoll = data.targets[0] as DiceRoll;
-        choosenDiceRoll.roll();
-        return true;
-    };
-}
-
-export function rollAndDealDamageEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const target = data.targets[0] as Entity;
-        const roll = data.issuer.rollDice();
-        game.dealDamage(data.issuer, target, data.it, roll.value);
-        return true;
-    };
-}
-
-export function changeRollTo1Or6Effect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const choosenDiceRoll: DiceRoll = data.targets[0] as DiceRoll;
-        const selectionResult = game.select(data.issuer, 1, [1, 6]);
-        const newValue = selectionResult.selected[0] as number;
-        choosenDiceRoll.value = newValue;
-        return true;
-    };
-}
-
-export function getAttackRollEffect(damageDealt: number, damageReceived: number, evasion: number, game: Game): EffectFunction[] {
-    const effects: EffectFunction[] = [];
-    for (let i = 0; i < 6; i++) {
-        effects.push((data:EffectData) => {
-            const target = data.targets[0] as Entity;
-            if (i + 1 >= evasion) {
-                game.dealDamage(data.issuer, target, data.it, damageDealt);
-            } else {
-                game.dealDamage(target, data.issuer, data.it, damageReceived);
-            }
-            return true;
-        });
-    }
-    return effects;
-}
-
-export function loot1PutCardOnTopEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        game.loot(data.issuer, 1);
-        const cardToPutBack = game.select(data.issuer, 1, data.issuer.hand.cards).selected[0] as LootCard;
-        const card = game.getCardFromHand(data.issuer, cardToPutBack);
-        game.decks["loot"]!.addTopPosition(card);
-        return true;
-    };
-}
-
-export function rerollItemEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const p: Player = game.getPlayerById(data.targets[0].player)!;
-        game.reroll(p, data.targets[0].card);
-        return true;
-    };
-}
-
-export function flushShopToBottomEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        game.shop.flushToBottom();
-        return true;
-    };
-}
-
-export function playerGivesLootCardEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const targetPlayer = data.targets[0] as Player;
-        if (targetPlayer.hand.length > 0) {
-            const cardToSteal = game.select(targetPlayer, 1, targetPlayer.hand.cards).selected[0] as LootCard;
-            game.stealLootCard(data.issuer, targetPlayer, cardToSteal);
-        }
-        return true;
-    };
-}
-
-export function putMonsterFromDiscardOnTopEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const monsterToPutBack = game.select(data.issuer, 1, game.decks["monster"]!.discard.filter((card) => card.type !== "event")).selected[0] as Card;
-        game.decks["monster"]!.remove(monsterToPutBack);
-        game.decks["monster"]!.addTopPosition(monsterToPutBack);
-        return true;
-    };
-}
-
-export function rechargeThisEffect(): EffectFunction {
-    return (data:EffectData) => {
-        (data.it as ItemCard).recharge();
-        return true;
-    };
-}
-
-export function cancelAtIndexEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        game.cancelAt(data.targets[0] as number);
-        return true;
-    };
-}
-
-export function removeCounterAndDoEffect(s: string, game: Game): EffectFunction {
-    return (data:EffectData) => {
-        if ((data.it as ItemCard).tags.counters! > 0) {
-            (data.it as ItemCard).tags.counters -= 1;
-            effectParser(s.substring(24).trim(), game)(data);
-        }
-        return true;
-    };
-}
-
-export function remove3CountersAndDoEffect(s: string, game: Game): EffectFunction {
-    return (data:EffectData) => {
-        if ((data.it as ItemCard).tags.counters! >= 3) {
-            (data.it as ItemCard).tags.counters -= 3;
-            effectParser(s.substring(24).trim(), game)(data);
-        }
-        return true;
-    };
-}
-
-export function becomesSoulAndGainEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        game.removeInPlay(data.issuer, data.it);
-        data.it.soul = 1;
-        game.addSoul(data.issuer, data.it);
-        return true;
-    };
-}
-
-export function addInPlayEffect(game: Game): EffectFunction {
-    return (data:EffectData) => {
-        // console.log("adding in play loot card from effect:", data.it.name);
-        // game.addInPlay(data.issuer, data.it);
-        return true;
-    };
-}
-
-function obtainRollResults(s: string): string[] {
-    s = s.split("roll-")[1]!.trim();
-    const lines:string[] = s.split("\n");
-    let results: string[] = new Array<string>(6).fill("");
-    for (let line of lines){
-        line = line.trim();
-        if (line.length > 0){
-            switch (line[1]){
-                case '-':
-                    for (let i = Number(line[0]); i <= Number(line[2]); i++){
-                        results[i-1] = line.substring(4).trim();
-                    }
-                break;
-                default:
-                    results[Number(line[0]) - 1] = line.substring(3).trim();
-                break;
-            }
-        }
-    }
-    return results;
-}
-
-function rollEffect(s:string, game: Game): EffectFunction {
-    if (s == "roll-\ndeal damage to them equal to the result.")
-        return dealRollDamageEffect(s, game);
-    const rollResults = obtainRollResults(s);
-    const effects: EffectFunction[] = rollResults.map(effectText => effectParser(effectText, game));
-    return (data:EffectData) => {
-        const result = data.issuer.rollDice();
-        result.attachEffect(effects, data.it, data.targets);
-        game.addToStack(result);
-        return true;
-    };
-}
-
-function dealRollDamageEffect(s: string, game: Game): EffectFunction {
-    return (data:EffectData) => {
-        const target = data.targets[0] as Entity;
-        const roll = data.issuer.rollDice();
-        roll.attachEffect([...Array(6).keys()].map((i) =>
-            (data:EffectData) => {
-                game.dealDamage(data.issuer, data.targets[0] as Entity, data.it, i + 1);
-                return true;
-            }), data.it, data.targets);
-        game.addToStack(roll);
-        return true;
-    };
-}
-
-
-function takeDamageGainCoinsEffect(s: string, damage: number, coins:number, game: Game) : EffectFunction {
-    return (data:EffectData) => {
-        const life_before = data.issuer.currentHealthPoints;
-
-        const callback = (data:EffectData) => {
-            const damageInstance: DamageOnStack = data.targets[0];
-            data.targets = data.targets.slice(1);
-            if (damageInstance.damage[0]! >= damage!) {
-                game.gainCoins(data.issuer, coins!);
-                return true;
-            }
-            return false;
-        }
-        game.dealDamage(data.issuer, data.issuer, data.it, damage, callback);
-        return true;
-    };
-}
-
-
-export function effectParser(s: string, game: Game, defaultEffect: EffectFunction = addInPlayEffect(game)): EffectFunction {
+export function effectParser(s: string, game: Game, defaultEffect: EffectFunction = active.addInPlayEffect(game)): EffectFunction {
     const originalS = s;
-    // if (s === "Destroy an item you control. If you do, steal a non-eternal item from a player or from the shop.")
+    // if (s === "[Tap Effect] Choose one-\nSteal 1¢ from another player.\nLook at the top card of a deck.\nDiscard a loot card, then loot 1."){
     //     console.log("parsing special roll effect:", originalS);
+    // }
     s = s.toLowerCase();
     if(s.includes(", then")){
         const parts = s.split(", then");
@@ -605,7 +76,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
 
     const gainAmount = parseNumber(s, /^gain\s+(\d+)\u00A2\.?,?$/u);
     if (gainAmount !== null)
-        return gainCoinsEffect(game, gainAmount); 
+        return active.gainCoinsEffect(game, gainAmount); 
     const coinStolen = parseNumber(s, /^steal\s+(\d+)\u00A2 from a player\.?$/u);
     if (coinStolen !== null)
         return (data:EffectData) => {
@@ -617,7 +88,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     const deckName = parseText(s, /look at the top 5 cards of the (\w+) deck\. put 1 on top and the rest on the bottom\./u);
     if (deckName !== "")
     {
-        return look5Put1TopRestBottomEffect(deckName, game);
+        return active.look5Put1TopRestBottomEffect(deckName, game);
     }
 
     const treasureAmount = parseNumber(s, /^gain \+(\d+) treasures?\.?$/u);
@@ -626,7 +97,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
 
     const loseAmount = parseNumber(s, /^lose\s+(\d+)\u00A2\.?$/u);
     if (loseAmount !== null)
-        return loseCoinsEffect(game, loseAmount);
+        return active.loseCoinsEffect(game, loseAmount);
     
     const nbToLoot = parseNumber(s, /^loot\s+(\d+)\.?$/u);
     if (nbToLoot !== null)
@@ -640,9 +111,9 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             return false;
         };
     if (s.startsWith("choose one-"))
-        return chooseOneEffect(s, game);
+        return active.chooseOneEffect(s, game);
     if (s.startsWith("roll-"))
-        return rollEffect(s, game);
+        return active.rollEffect(s, game);
     if (s.startsWith("give another non-eternal item you control to another player:")){
         return (data:EffectData) => {
             const itemToGive = game.select(data.issuer, 1, data.issuer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false)).selected[0] as ItemCard;
@@ -674,7 +145,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             game.destroyCardsOrSouls([data.it]); 
             return effectParser(s.substring(12).trim(), game)(data);
         };
-    if (s.startsWith("put a counter on this."))
+    if (s.startsWith("put a counter on this.") || s.startsWith("[tap effect] put a counter on this."))
     {
         return (data:EffectData) => {
             data.it.tags.counters = (data.it.tags.counters ?? 0) + 1;
@@ -723,7 +194,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     const damageToTake2 = parseNumber(s, /^take (\d+) damage and gain \d+\u00A2\.?$/u);
     const coins = parseNumber(s, /^take \d+ damage and gain (\d+)\u00A2\.?$/u);
     if (damageToTake2 !== null && coins !== null)
-        return takeDamageGainCoinsEffect(s, damageToTake2, coins, game);
+        return active.takeDamageGainCoinsEffect(s, damageToTake2, coins, game);
     let damageToDeal = parseNumber(s, /^deal (\d+) damage to a monster or player\.?$/u);
     if( damageToDeal === null )
       damageToDeal = parseNumber(s, /^deal (\d+) damage to a player\.?$/u);
@@ -773,6 +244,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             return passive.lootOnPlayerDeathEffect(1, game);
         case "at the end of your turn, recharge this.":
             return passive.rechargeThisOnEvent("on:turn:end", game);
+        case "each time you take damage, recharge this.":
+            return passive.rechargeThisOnEvent("on:damage:taken", game);
         case "if you would gain any number of \u00A2, gain that much +1\u00A2 instead.":
             return passive.gainPlusCoinsEffect(1, game);
         case "at the start of your turn, look at the top card of the loot deck. you may put it on the bottom.":
@@ -780,7 +253,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         case "at the start of your turn, look at the top card of the monster deck. you may put it on the bottom.":
             return passive.LookAndPutBottomEffect("monster", game);
         case "when you would die, roll-\n6: prevent death. if it's your turn, cancel everything that hasn't resolved and end it.":
-            const roll = rollEffect("roll-\n6: prevent death. if it's your turn, cancel everything that hasn't resolved and end it.", game)
+            const roll = active.rollEffect("roll-\n6: prevent death. if it's your turn, cancel everything that hasn't resolved and end it.", game)
             return passive.rollDiceOnTriggerEffect(roll, "on:death:would-death", game);
         case "at the start of your turn, look at the top card of the treasure deck, you may put it on the bottom.":
             return passive.LookAndPutBottomEffect("treasure", game);
@@ -810,40 +283,58 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
                 }
                 return true;
             };
+        case "[tap effect] put the top card of any discard on top of its deck.":
+            return active.putTopCardFromDiscardOnTopEffect(game);
+        case "[tap effect] choose a dice roll. its controller rerolls it.":
+            return active.rerollDiceEffect();
+        case "[tap effect] add or subtract 1 from a roll.":
+            return (data:EffectData) => {
+                const choosenDiceRoll: DiceRoll = data.targets[0] as DiceRoll;
+                const value = data.targets[1] as number;
+                if (value === 1) 
+                    choosenDiceRoll.add(1);
+                else if (value === -1)
+                    choosenDiceRoll.subtract(1);
+                return true;
+            };
+        case "put a card from your hand on top of the loot deck.":
+            return active.putCardFromHandOnTopOfDeckEffect(game);
         case "recharge an item.":
-            return rechargeItemsEffect(game);
+            return active.rechargeItemsEffect(game);
         case "recharge another item.":
-            return rechargeItemsEffect(game);
+            return active.rechargeItemsEffect(game);
         case "destroy a curse.":
-            return destroyOneEffect(game);
+            return active.destroyOneEffect(game);
         case "destroy an item or soul.":
-            return destroyOneEffect(game);
+            return active.destroyOneEffect(game);
         case "destroy another item":
-            return destroyOneEffect(game);
+            return active.destroyOneEffect(game);
         case "destroy an item you control.":
-            return destroyOneEffect(game);
+            return active.destroyOneEffect(game);
         case "each player votes on an item in play. destroy the item with the most votes. if there is a tie, nothing happens.":
-            return destroyOneEffect(game);
+            return active.destroyOneEffect(game);
         case "swap this with a non-eternal item another player controls.":
-            return swapWithNonEternalItemEffect(game);
+            return active.swapWithNonEternalItemEffect(game);
         case "this copies a ↷ ability of a non-eternal item.":
-            return copyTapAbilityEffect(game);
+            return active.copyTapAbilityEffect(game);
         case "cancel the ↷ or $ ability of an item.":
-            return cancelStackElementEffect(game);
+            return active.cancelStackElementEffect(game);
+        case "steal 1¢ from another player.":
+            return active.stealCoinsEffect(game, 1);
         case "steal a soul from another player.":
-            return stealSoulEffect(game);
+            return active.stealSoulEffect(game);
         case "steal a non-eternal item from a player.":
-            return stealNonEternalItemEffect(game);
+            return active.stealNonEternalItemEffect(game);
         case "steal a non-eternal item a player controls.":
-            return stealNonEternalItemEffect(game);
+            return active.stealNonEternalItemEffect(game);
         case "subtract up to 2 from a roll.":
-            return subtractUpTo2FromRollEffect(game);
+            return active.subtractUpTo2FromRollEffect(game);
         case "add up to 2 to a non-attack roll.":
-            return addUpTo2ToRollEffect(game);
+            return active.addUpTo2ToRollEffect(game);
         case "add 1 to a roll.":
-            return add1ToRollEffect();
+            return active.add1ToRollEffect();
         case "choose a player. loot and gain \u00A2 until you have the same number of each as they do.":
-            return lootAndGainAsPlayerEffect(game);
+            return active.lootAndGainAsPlayerEffect(game);
         case "when this enters play, it becomes a soul.\n(it's no longer an item.)":
             return (data:EffectData) => {
                 game.removeInPlay(data.issuer, data.it);      
@@ -852,45 +343,44 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
                 return true;
             }
         case "cancel the ↷ or $ ability of an item or a loot being played.":
-            return cancelPreviousNonRollEffect(game);
+            return active.cancelPreviousNonRollEffect(game);
         case "put each monster not being attacked into discard and replace each with the top card of the monster deck.":
-            return flushMonsterSlotsEffect(game);
+            return active.flushMonsterSlotsEffect(game);
         case "put each monster not being attacked on the bottom of the monster deck.":
-            return flushMonsterSlotsToBottomEffect(game);
+            return active.flushMonsterSlotsToBottomEffect(game);
         case "look at each player's hand":
-            return lookAtHands(game);
+            return active.lookAtHands(game);
         case "look at the top card of a deck. you may put that card on the bottom of that deck.":
-            return lookAtTopCardOfDeckEffect(game);
+            return active.lookAtTopCardOfDeckEffect(game, true);
         case 'choose a player. they reroll each item they control.':
-            return rerollEachItemEffect(game);
+            return active.rerollEachItemEffect(game);
         case "choose another player. steal a loot card from them at random.":
-            return stealRandomLootCardEffect(game);
+            return active.stealRandomLootCardEffect(game);
 
         case "choose a player. recharge each item they control.":
-            return rechargeEachItemsOfTargetEffect(game);
+            return active.rechargeEachItemsOfTargetEffect(game);
         case "destroy this and loot 2.":
-            return destroyThisAndLoot2Effect(game);
+            return active.destroyThisAndLoot2Effect(game);
         
         case "discard 1 loot card.":
-            return discard1LootCardEffect(game);
-        
+            return active.discard1LootCardEffect(game);
+        case "look at the top card of a deck.":
+            return active.lookAtTopCardOfDeckEffect(game, false);
         case "end the turn. cancel everything that hasn't resolved.":
-            return endTurnAndResetStackEffect(game);
+            return active.endTurnAndResetStackEffect(game);
         
         case "choose the player with the most souls or tied for the most. that player destroys a soul they control.":
-        {
-            return makeAPlayerWithMostSoulsDestroyASoulEffect(game);
-        }
+            return active.makeAPlayerWithMostSoulsDestroyASoulEffect(game);
 
         case "put the top card of each deck into discard.":
-            return putTopCardOfEachDeckIntoDiscardEffect(game);
+            return active.putTopCardOfEachDeckIntoDiscardEffect(game);
         case "each player gives their hand to the player to their left.":
-            return passHandsLeftEffect(game);
+            return active.passHandsLeftEffect(game);
         case "steal a non-eternal item from a player or from the shop.":
-            return stealNonEternalItemFromAnywhereEffect(game);
+            return active.stealNonEternalItemFromAnywhereEffect(game);
         
         case "look at the top card of each deck. you may put any of those cards on the bottom of their deck":
-            return look1EachDeckEffect(game);
+            return active.look1EachDeckEffect(game);
         case "put this on the bottom of the loot deck.":
             return (data:EffectData) => {
                 game.addBottomPosition("loot", data.it);
@@ -913,7 +403,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             };
 
         case "change the result of a dice roll to a number of your choosing.":
-                return changeRollDiceResultEffect(game);
+            return active.changeRollDiceResultEffect(game);
 
         case "change the result of a dice roll to a 1 or 6.":
             return (data:EffectData) => {
@@ -1028,8 +518,14 @@ export function targetSelectorParser(s:string, game: Game): TargetsSelector[] {
     }
     if (s === "choose a dice roll. its controller rerolls it." ||
         s === "change the result of a dice roll to a 1 or 6." ||
-        s === "change the result of a dice roll to a number of your choosing.") {
+        s === "change the result of a dice roll to a number of your choosing." ||
+        s === "[tap effect] choose a dice roll. its controller rerolls it.") {
         return [{description: "Choose a dice roll", selector: rollSelector(undefined, game)}];
+    }
+    if (s === "[tap effect] add or subtract 1 from a roll.") {
+        return [{description: "Choose a dice roll", selector: rollSelector(undefined, game)},
+            {description: "Choose to add or subtract 1", selector: (issuer: Player) => [1, -1]}
+        ];
     }
     if (s === "choose a player or monster, then roll- deal damage to them equal to the result." ||
         s === "choose a player or monster, then roll-\ndeal damage to them equal to the result." ||
@@ -1052,12 +548,21 @@ export function targetSelectorParser(s:string, game: Game): TargetsSelector[] {
     {
         return [{ description: "Select a non-eternal item from a player or from the shop", selector: visibleItemSelector((card: ItemCard) => card.eternal === false, game)}];
     }
-    if (s === "[tap effect] look at the top 5 cards of a deck. put them back in any order.")
+    if (s === "[tap effect] look at the top 5 cards of a deck. put them back in any order." 
+        || s === "[tap effect] put the top card of any discard on top of its deck."
+    )
         return [{description: "Select a deck", selector: deckSelector(undefined, game)}];
+    // if (s === "[tap effect] put the top card of any discard on top of its deck.")
+    //     return [{description: "Select a discard top card", selector: 
+    //         (issuer: Player) => {
+    //             return deckSelector((deckName: string) => game.decks[deckName]!.discard.length > 0, game)(issuer).map(({ deckName }) => game.decks[deckName]!.discard[0]);
+    //         }}];
     return [{description: "", selector: (issuer: Player) => []}];
 }
 // export function eachPlayerSelector(game: Game): TargetsSelector {
 // }
+
+
 export function inplayUnchargedItemSelector(game: Game): (issuer: Player) => any[] {
     return (inplayItemSelector((player: Player, card: ItemCard) => card.isActiveItem(), game));
 }

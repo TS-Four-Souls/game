@@ -244,7 +244,7 @@ export class DiceRoll {
     }
     this.value = this.value + modifier;
   }
-  substract(modifier: number): void {
+  subtract(modifier: number): void {
     if (modifier < 0) {
       throw new Error("Modifier must be positive");
     }
