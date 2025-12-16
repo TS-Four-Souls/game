@@ -183,7 +183,6 @@ describe("Loot Card", () => {
         const roll = game.stack.elements[0] as DiceRoll;
         roll.value = 4;
         game.resolveStack();
-        console.log("blank rune roll 4 test - stack size after resolve:", game.stack.elements);
 
         expect(player1.coins).toBe(player1InitialCoins + 4);
         expect(player2.coins).toBe(player2InitialCoins + 4);
@@ -597,13 +596,10 @@ describe("Loot Card", () => {
         const item2 = game.shop.obtainCard("b2-crystal_ball") as ItemCard;
         const item3 = game.shop.obtainCard("b2-the_shovel") as ItemCard;
         player2.inPlay.push(item1, item2, item3);
-        item1.recharge();
-        item1.onTap();
-        item2.recharge();
-        item2.onTap();
-        item3.recharge();
-        item3.onTap();
-
+        item1.charged = false;
+        item2.charged = false;
+        item3.charged = false;
+        
         // Play mega battery targeting player2
         game.playCard(player1, 1, [player2]);
         game.resolveStack();
@@ -623,10 +619,8 @@ describe("Loot Card", () => {
         const player2Item = game.shop.obtainCard("b2-the_shovel") as ItemCard;
         player1.inPlay.push(player1Item);
         player2.inPlay.push(player2Item);
-        player1Item.recharge();
-        player1Item.onTap();
-        player2Item.recharge();
-        player2Item.onTap();
+        player1Item.charged = false;
+        player2Item.charged = false;
 
         // Play mega battery targeting player2
         game.playCard(player1, 1, [player2]);
@@ -1640,11 +1634,11 @@ game.resolveStack();
         game.endTurn();
 
         expect(player1.attackPoints).toBe(initialAtk);
-        expect(player1.attackThisTurn).toBe(initialAtkThisTurn);
+        expect(player1.attackThisTurn).toBe(0 ); // not his turn
         game.endTurn();
 
         expect(player1.attackPoints).toBe(initialAtk);
-        expect(player1.attackThisTurn).toBe(initialAtkThisTurn);
+        expect(player1.attackThisTurn).toBe(1); // his turn
     });
 
     it("b2-xi_strength: give to other player +1 [ATK] and +1 [ATK this turn] till end of turn", () => {
@@ -1668,7 +1662,7 @@ game.resolveStack();
         game.endTurn();
 
         expect(player2.attackPoints).toBe(initialAtk);
-        expect(player2.attackThisTurn).toBe(initialAtkThisTurn);
+        expect(player2.attackThisTurn).toBe(initialAtkThisTurn + 1); // his turn
         game.endTurn();
 
         expect(player2.attackPoints).toBe(initialAtk);

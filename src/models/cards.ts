@@ -932,6 +932,7 @@ class Hand {
     addToHand(card: Card) {
         if (card.type !== "loot") {
             print("Error, hand should only contain loot cards.")
+            throw new Error("Hand can only contain loot cards.");
         }
         this._hand.push(card);
     }

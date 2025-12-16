@@ -268,8 +268,26 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             return passive.LookAndPutBottomEffect("treasure", game);
         case "gain +1 [atk] for your first attack roll each turn.":
             return passive.firstAttackRollStatModifierEffect(1, 0, 0, game);
+        case "you have +1 [atk] for your first attack roll each turn.":
+            return passive.firstAttackRollStatModifierEffect(1, 0, 0, game);
         case "each time you would take damage, roll-\n6: prevent 1 of that damage.":
             return passive.preventDamageOnRollEffect([6], 1, game);
+        case "+1 [hp]":
+            return passive.permanentStatModifierEffect([game.addHealth], 1, game);
+        case "+1 [atk]":
+            return passive.permanentStatModifierEffect([game.addAttack], 1, game);
+        case "you have +1 to attack rolls.":
+            return passive.permanentStatModifierEffect([game.addAttackDiceModifier], 1, game);
+        case "you may attack an additional time on your turn.":
+            return passive.onYourTurnModifier([game.addAttackThisTurn], 1, game);
+        case "you may play an additional loot card on your turn.":
+            return passive.onYourTurnModifier([game.addLootPlay], 1, game);
+        case "each time you take damage, you may recharge your character.":
+            return passive.rechargeCharaOnDamageEffect(1, game);
+        case "each time you roll an attack roll of 6, deal 1 damage to each other player.":
+            return passive.onAttackRollEffect([6],active.dealDamageToEachOtherPlayerEffect(game, 1), game);
+        case "each time you deal combat damage to a monster, deal 1 damage to another player.":
+            return passive.onDealCombatDamageToMonsterEffect(active.dealDamageToAnotherPlayerEffect(game, 1), game);
         // active effects
         case "choose a player or monster":
             return (data:EffectData) => { return true; };

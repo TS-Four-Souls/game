@@ -84,7 +84,8 @@ describe("Effect - additional unique implementations", () => {
 
   it("drawAndGainCoinsAsAPlayerEffect works", () => {
     const { game, p1, p2 } = setupGame();
-    p2.hand.addToHand({} as any); // p2 has more cards
+    const c = game.decks["loot"]!.draw();
+    p2.hand.addToHand(c); // p2 has more cards
     p2.gainCoins(5);
     // Use a real loot card
     const card = game.decks["loot"]!.cards[0];

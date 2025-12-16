@@ -59,6 +59,75 @@ export function temporaryStatModifierEffect(
     };
 }
 
+export function permanentStatModifierEffect(
+    adders: ((player: Player, value: number) => void)[],
+    amount: number,
+    game: Game
+): EffectFunction {
+    return (data: EffectData) => {
+        if (amount < 0)
+            throw new Error("permanentStatModifierEffect amount must be non-negative.");
+        // Apply the stat modification
+        const target = data.targets[0] === undefined ? data.issuer : data.targets[0];
+        for (const adder of adders)
+            adder(target, amount);
+
+        data.it.cleaners.push(() => {
+            for (const adder of adders)
+                adder(target, -amount);
+        });
+
+        return true;
+    };
+}
+
+
+export function onYourTurnModifier(
+    adders: ((player: Player, value: number) => void)[],
+    amount: number,
+    game: Game
+): EffectFunction {
+    return (data: EffectData) => {
+        if (amount < 0)
+            throw new Error("permanentStatModifierEffect amount must be non-negative.");
+
+        if(game.currentPlayer === data.issuer) {
+            // Apply the stat modification
+            const target = data.targets[0] === undefined ? data.issuer : data.targets[0];
+            for (const adder of adders)
+                adder(target, amount);
+        }
+
+        let offTurn = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
+            if (eventIssuer !== data.issuer) return;
+            const target = data.targets[0] === undefined ? data.issuer : data.targets[0];
+            for (const adder of adders)
+                adder(target, amount);
+        });
+
+        let offTurnEnd = game.emitter.on("on:turn:end", ({ eventIssuer }) => {
+            if (eventIssuer !== data.issuer) return;
+            const target = data.targets[0] === undefined ? data.issuer : data.targets[0];
+            for (const adder of adders)
+                adder(target, -amount);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+
+        data.it.cleaners.push(() => {            
+            if (game.currentPlayer === data.issuer) {
+                const target = data.targets[0] === undefined ? data.issuer : data.targets[0];
+                for (const adder of adders)
+                    adder(target, -amount);
+            }
+            offTurn();
+            offTurnEnd();
+        });
+
+        return true;
+    };
+}
+
 // First attack roll stat modifier: adds value to a stat until end of turn
 export function firstAttackRollStatModifierEffect(
     damageDealtModifier: number=0,
@@ -74,7 +143,7 @@ export function firstAttackRollStatModifierEffect(
             offAttack = null;
         };
         // Register cleanup to reverse at end of turn
-        offAttack = game.emitter.on("on:attack:roll:first-time-each-turn", ({ eventIssuer, target, damageDealt, damageReceived, evasion } ) => {
+        offAttack = game.emitter.on("on:attack:roll:first-time-each-turn", ({ eventIssuer, target, dice, damageDealt, damageReceived, evasion } ) => {
             if (data.issuer !== eventIssuer) return;
             damageDealt[0]! += damageDealtModifier;
             damageReceived[0]! += damageReceivedModifier;
@@ -89,34 +158,64 @@ export function firstAttackRollStatModifierEffect(
     };
 }
 
-// gain coins on damage taken.
+export function onDamageTakenEffect(
+    callbacks: ((player: Player, dmg: number) => void)[],
+    amount: number,
+    game: Game
+): EffectFunction {
+    return (data: EffectData) => {
+        if (amount < 0)
+            throw new Error("permanentStatModifierEffect amount must be non-negative.");
+        let offDamage: (() => void) | null = null;
+
+        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target: dealer, abilityCard: usingAbilityFrom, damage: dmg }) => {
+            if (data.issuer !== eventIssuer) return;
+            for (const callback of callbacks)
+                callback(data.issuer, amount);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
 export function gainCoinsOnDamageEffect(
     amount: number,
     game: Game
 ): EffectFunction {
-    return (data:EffectData) => {
-        let offDamage: (() => void) | null = null;
-
-        const cleanup = () => {
-            offDamage?.();
-            offDamage = null;
-        };
-
-        // Listen for damage events on this player
-        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target: dealer, abilityCard: usingAbilityFrom, damage: dmg }) => {
-            if (data.issuer !== eventIssuer) return;
-            if (dmg <= 0) return;
-            game.gainCoins(data.issuer, amount);
-        }); 
-
-        // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleaners.push(() => {
-            cleanup();
-        });
-
-        return true;
-    };
+    return onDamageTakenEffect(
+        [(player: Player, dmg: number) => {
+            if (dmg > 0)
+                game.gainCoins(player, amount);
+        }],
+        amount,
+        game
+    );
 }
+
+export function rechargeCharaOnDamageEffect(
+    amount: number,
+    game: Game
+): EffectFunction {
+    return onDamageTakenEffect(
+        [(player: Player, dmg: number) => {
+            if (dmg > 0)
+                if(player.character.charged === false)
+                {
+                    const selection = game.select(player, 1, [player.character], true);
+                    if(selection.selected.length > 0)
+                        game.recharge(player.character);
+                }
+        }],
+        amount,
+        game
+    );
+}
+
 
 // "Each time a player dies, before paying penalties, loot 1."
 export function lootOnPlayerDeathEffect(
@@ -237,6 +336,51 @@ export function rollDiceOnTriggerEffect(
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
             cleanup();
+        });
+        return true;
+    };
+}
+
+// Each time you roll an attack roll, 
+export function onAttackRollEffect(
+    rollValues: number[],
+    effect: EffectFunction,
+    game: Game
+): EffectFunction {
+    return (data:EffectData) => {
+        let offEffect: (() => void) | null = null;
+        // Listen for the next damage event on this player
+        offEffect = game.emitter.on("on:attack:roll", ({ eventIssuer, target, dice, damageDealt, damageReceived, evasion }) => {
+            if (data.issuer !== eventIssuer) return;
+            if (rollValues.includes((dice as DiceRoll).value))
+                effect(data);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offEffect?.();
+            offEffect = null;
+        });
+        return true;
+    };
+}
+
+export function onDealCombatDamageToMonsterEffect(
+    effect: EffectFunction,
+    game: Game
+): EffectFunction {
+    return (data:EffectData) => {
+        let offEffect: (() => void) | null = null;
+        // Listen for the next damage event on this player
+        offEffect = game.emitter.on("on:combatdamage:dealt:to-monster", ({ eventIssuer, target: monster, usingAbilityFrom, damage }) => {
+            if (data.issuer !== eventIssuer) return;
+            effect(data);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offEffect?.();
+            offEffect = null;
         });
         return true;
     };

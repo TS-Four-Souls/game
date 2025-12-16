@@ -72,6 +72,14 @@ export class Player extends Entity {
   get attackRollThisTurn(): number {
     return this._attackRollThisTurn;
   }  
+  get character(): CharacterCard {
+    for (const card of this._inPlay) {
+      if (card.type === "character") {
+        return card as CharacterCard;
+      }
+    }
+    throw new Error("No character card in play for this player.");
+  }
   set attackRollThisTurn(value: number) {
     this._attackRollThisTurn = value;
   }

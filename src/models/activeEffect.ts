@@ -442,9 +442,9 @@ export function getAttackRollEffect(damageDealt: number, damageReceived: number,
         effects.push((data: EffectData) => {
             const target = data.targets[0] as Entity;
             if (i + 1 >= evasion) {
-                game.dealDamage(data.issuer, target, data.it, damageDealt);
+                game.dealCombatDamage(data.issuer, target, data.it, damageDealt);
             } else {
-                game.dealDamage(target, data.issuer, data.it, damageReceived);
+                game.dealCombatDamage(target, data.issuer, data.it, damageReceived);
             }
             return true;
         });
@@ -560,6 +560,26 @@ export function becomesSoulAndGainEffect(game: Game): EffectFunction {
         game.removeInPlay(data.issuer, data.it);
         data.it.soul = 1;
         game.addSoul(data.issuer, data.it);
+        return true;
+    };
+}
+
+// deal 1 damage to each other player.
+export function dealDamageToEachOtherPlayerEffect(game: Game, dmg: number): EffectFunction {
+    return (data: EffectData) => {
+        for (const player of game.players) {
+            if (player !== data.issuer) {
+                game.dealDamage(data.issuer, player, data.it, dmg);
+            }
+        }
+        return true;
+    };
+}
+
+export function dealDamageToAnotherPlayerEffect(game: Game, dmg: number): EffectFunction {
+    return (data: EffectData) => {
+        const target = game.select(data.issuer, 1, game.players.filter((p) => p !== data.issuer)).selected[0] as Player;
+        game.dealDamage(data.issuer, target, data.it, dmg);
         return true;
     };
 }

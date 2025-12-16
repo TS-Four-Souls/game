@@ -50,9 +50,10 @@ const LOG_GAME = false;
 export const cards = await loadCards(process.cwd() + "/data/cards");
 const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
 
-// for(const card of cardSets["eternal"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug))){
+// for(const card of cardSets["treasure"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug))){
 //   // if((card as LootCard).trinket)
-//     console.log(card.slug, card.effectOutcomes);
+//   for (const cardEffect of card.effectOutcomes)
+//     console.log(card.slug, [cardEffect]);
 // }
 const gameParameters = { 
   nbItemsInShop: 2, 
@@ -312,23 +313,26 @@ export class Game {
     const damageDealt = [player.attackPoints];
     const damageReceived = [monster.attackPoints];
     const evasion = [monster.evasion];
+    const dice = this.rollDice(player, true);
+
     this.emitter.emit("on:attack:roll", {
       eventIssuer: player,
       target: monster,
+      dice,
       damageDealt,
       damageReceived,
       evasion,
     });
-    if (player.attackRollThisTurn === 0)
+    if (player.attackRollThisTurn === 1)
       this.emitter.emit("on:attack:roll:first-time-each-turn", {
         eventIssuer: player,
         target: monster,
+        dice,
         damageDealt,
         damageReceived,
         evasion,
       });
 
-    const dice = this.rollDice(player, true);
     dice.attachEffect(
       getAttackRollEffect(
         damageDealt[0]!,
@@ -350,19 +354,20 @@ export class Game {
     if (damage <= 0 || receiver.isDead) return;
     if (receiver instanceof Player) {
       this.emitter.emit("on:combatdamage:dealt:to-player", {
-        eventIssuer: receiver,
-        target: dealer,
+        eventIssuer: dealer,  // The dealer is the one dealing combat damage
+        target: receiver,
         abilityCard: usingAbilityFrom,
         damage,
       });
     } else if (receiver instanceof Monster) {
       this.emitter.emit("on:combatdamage:dealt:to-monster", {
-        eventIssuer: receiver,
-        target: dealer,
+        eventIssuer: dealer,  // The dealer is the one dealing combat damage
+        target: receiver,
         abilityCard: usingAbilityFrom,
         damage,
       });
     }
+    this.dealDamage(dealer, receiver, usingAbilityFrom, damage);
   }
 
   resolveDamage(
@@ -513,8 +518,10 @@ export class Game {
   startTurn(): void {
     this.players.forEach((p) => {
       p.remainingLootPlay = 0;
+      p.attackThisTurn = 0;
       if (p === this.currentPlayer) {
         p.remainingLootPlay = 1;
+        p.attackThisTurn = 1;
       }
     });
     this.rechargeEachItem(this.currentPlayer);
@@ -705,7 +712,7 @@ export class Game {
 
   addInPlay(player: Player, card: Card): void {
     this.emitter.emit("on:enter:play", { eventIssuer: player, card: card });
-    if(card instanceof CharacterCard || card instanceof eternalCard){
+    if(card instanceof CharacterCard || card instanceof eternalCard || card instanceof treasureCard){
       card.onAddInPlay(player);
     }
     player.addInPlay(card);
@@ -766,7 +773,7 @@ export class Game {
   }
 
   private joinEffectsToCards(): void {
-    for(const deckName of ["loot", "bsoul", "character", "eternal"])
+    for(const deckName of ["loot", "bsoul", "character", "eternal", "treasure"])
     {
       const deck = this.decks[deckName]!;
       deck.cards.forEach((card: Card) => {
@@ -1273,6 +1280,7 @@ export class Game {
         card instanceof ItemCard
     ) as ItemCard[];
   }
+
   removeInPlay(player: Player, card: Card): boolean {
     card.cleanup();
     return player.removeInPlay(card);
