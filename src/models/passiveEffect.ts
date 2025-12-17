@@ -245,7 +245,7 @@ export function lootOnPlayerDeathEffect(
         return true;
     };
 }
-// If you would gain any number of ¢, gain that much + amount¢ instead.
+// If you would gain any number of \u00A2, gain that much + amount\u00A2 instead.
 export function gainPlusCoinsEffect(
     amount: number,
     game: Game
@@ -364,6 +364,33 @@ export function onAttackRollEffect(
         return true;
     };
 }
+
+// Each time you roll an attack roll, 
+export function onRollEffect(
+    rollValues: number[],
+    effect: EffectFunction,
+    game: Game
+): EffectFunction {
+    return (data: EffectData) => {
+        let offEffect: (() => void) | null = null;
+        // Listen for the next damage event on this player
+        offEffect = game.emitter.on("on:dice:rolled", ({ diceRoll }) => {
+            if (rollValues.includes((diceRoll as DiceRoll).value))
+            {
+                data.targets = [diceRoll._issuer];
+                effect(data);
+            }
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offEffect?.();
+            offEffect = null;
+        });
+        return true;
+    };
+}
+
 
 export function onDealCombatDamageToMonsterEffect(
     effect: EffectFunction,

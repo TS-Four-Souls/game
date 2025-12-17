@@ -21,6 +21,10 @@ describe("Loot Card", () => {
         const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [isaac, judas]);
+        game.decks["treasure"]?.addTopPosition(game.shop.obtainCard("b2-blank_card")!);
+        game.decks["treasure"]?.addTopPosition(game.shop.obtainCard("b2-boomerang")!);
+        game.decks["treasure"]?.addTopPosition(game.shop.obtainCard("b2-decoy")!);
+        game.decks["treasure"]?.addTopPosition(game.shop.obtainCard("b2-crystal_ball")!);
     });
 
 
@@ -118,7 +122,7 @@ describe("Loot Card", () => {
         expect(gainedLootCards).toBe(1);
     });
 
-    it("b2-blank_rune: roll 1 - each player gains 1¢", () => {
+    it("b2-blank_rune: roll 1 - each player gains 1\u00A2", () => {
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-blank_rune");
         player2.hand.addToHand(lootCard!);
         const player1InitialCoins = player1.coins;
@@ -171,7 +175,7 @@ describe("Loot Card", () => {
         expect(player2.currentHealthPoints).toBe(0);
     });
 
-    it("b2-blank_rune: roll 4 - each player gains 4¢", () => {
+    it("b2-blank_rune: roll 4 - each player gains 4\u00A2", () => {
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-blank_rune");
         player2.hand.addToHand(lootCard!);
         const player1InitialCoins = player1.coins;
@@ -206,7 +210,7 @@ describe("Loot Card", () => {
         expect(player2.hand.cards.length).toBe(player2InitialLoot + 5);
     });
 
-    it("b2-blank_rune: roll 6 - each player gains 6¢", () => {
+    it("b2-blank_rune: roll 6 - each player gains 6\u00A2", () => {
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-blank_rune");
         player2.hand.addToHand(lootCard!);
         const player1InitialCoins = player1.coins;
@@ -731,7 +735,7 @@ describe("Loot Card", () => {
         expect(player1.hand.cards.length).toBe(0);
     });
 
-    // "Roll-\n1-2: Gain 4¢.\n3-4: Gain 7¢.\n5-6: Lose 4¢."
+    // "Roll-\n1-2: Gain 4\u00A2.\n3-4: Gain 7\u00A2.\n5-6: Lose 4\u00A2."
     it("b2-pills_2: should gain 4 coins", () => {
         const pills = game.decks["loot"]!.getCardFromSlug("b2-pills_2");
         player1.hand.addToHand(pills!);
@@ -942,7 +946,7 @@ describe("Loot Card", () => {
         expect(game.turnHandler.current).toBe(player2);
     });
 
-    // "Roll-\n1: Gain 1¢.\n2: Take 2 damage.\n3. Loot 3.\n4. Lose 4¢.\n5: Gain 5¢.\n6: Gain +1 treasure."
+    // "Roll-\n1: Gain 1\u00A2.\n2: Take 2 damage.\n3. Loot 3.\n4. Lose 4\u00A2.\n5: Gain 5\u00A2.\n6: Gain +1 treasure."
     it("b2-x_wheel_of_fortune: roll 1 should gain 1 coin", () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-x_wheel_of_fortune");
         player1.hand.addToHand(card!);
@@ -1054,11 +1058,10 @@ describe("Loot Card", () => {
         const beforeHp = player1.currentHealthPoints;
         const beforeCoins = player1.coins;
 
-        const debugTarget: ChooseOneResult[] = [{ description: "take 1 damage and gain 4¢.", chosenOptions: [] }];
+        const debugTarget: ChooseOneResult[] = [{ description: "take 1 damage and gain 4\u00A2.", chosenOptions: [] }];
         game.playCard(player1, 1, debugTarget);
         game.resolveStack();
         game.resolveStack();
-        game.stack.displayStack();
 
         expect(player1.currentHealthPoints).toBe(beforeHp - 1);
         expect(player1.coins).toBe(beforeCoins + 4);

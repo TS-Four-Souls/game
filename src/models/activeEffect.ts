@@ -9,7 +9,7 @@ import type { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
 import { it } from "zod/locales";
-import { effectParser, type ChooseOneResult } from "./effectParser";
+import { effectParser, inplayUnchargedItemSelector, type ChooseOneResult } from "./effectParser";
 // import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, goFirstInTurnOrderEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, startingItemEffect, temporaryStatModifierEffect, gainTreasureOnDeathEffect } from "./abilities";
 import *  as passive from "./passiveEffect";
 import type { BonusSoulCardType } from "@/types/cardTypes";
@@ -28,12 +28,31 @@ export function loseCoinsEffect(game: Game, amount: number): EffectFunction {
     };
 }
 
-export function rechargeItemsEffect(game: Game): EffectFunction {
+export function rechargeItemsEffect(game: Game, selectionOnResolve: boolean = false): EffectFunction {
     return (data: EffectData) => {
-        for (const card of data.targets as ItemCard[]) {
-            game.recharge(card);
+        if(selectionOnResolve) {
+            const selectionResult = game.select(data.issuer, 1, inplayUnchargedItemSelector(game)(data.issuer), true);
+            if (selectionResult.selected.length > 0) {
+                game.recharge(selectionResult.selected[0] as ItemCard);
+            }
         }
+        else
+            for (const card of data.targets as ItemCard[]) {
+                game.recharge(card);
+            }
         return true;
+    };
+}
+
+export function makePlayerGiveLootCardEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const targetPlayer = data.targets[0] as Player;
+        if(targetPlayer === data.issuer) return true;
+        if (targetPlayer.hand.length > 0) {
+            const cardToGive = game.select(targetPlayer, 1, targetPlayer.hand.cards).selected[0] as LootCard;
+            return game.give(targetPlayer, data.issuer, cardToGive);
+        }
+        return false;
     };
 }
 
@@ -380,6 +399,18 @@ export function lookAtPlayerHandAndSwapEffect(game: Game): EffectFunction {
     };
 }
 
+export function lookAtHandAndStealLootEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const otherPlayer = game.select(data.issuer, 1, game.players.filter((p) => p !== data.issuer)).selected[0] as Player;
+        const canSteal = otherPlayer.hand.length > 0;
+        const selection = game.select(data.issuer, canSteal ? 1 : 0, otherPlayer.hand.cards, true);
+        if (selection.selected.length === 0)
+            return true;
+        game.give(otherPlayer, data.issuer, selection.selected[0] as LootCard);
+        return true;
+    };
+}
+
 export function endTurnAndResetStackEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         game.resetStack();
@@ -432,6 +463,26 @@ export function changeRollTo1Or6Effect(game: Game): EffectFunction {
         const selectionResult = game.select(data.issuer, 1, [1, 6]);
         const newValue = selectionResult.selected[0] as number;
         choosenDiceRoll.value = newValue;
+        return true;
+    };
+}
+
+export function youMayRechargeThisEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const selectionResult = game.select(data.issuer, 1, [data.it], true);
+        if (selectionResult.selected.length > 0) {
+            game.recharge(data.it as ItemCard);
+        }
+        return true;
+    };
+}
+
+export function youMayRechargeAnItemEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const selectionResult = game.select(data.issuer, 1, inplayUnchargedItemSelector(game)(data.issuer), true);
+        if (selectionResult.selected.length > 0) {
+            game.recharge(selectionResult.selected[0] as ItemCard);
+        }
         return true;
     };
 }

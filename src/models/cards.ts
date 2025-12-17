@@ -563,7 +563,6 @@ class CharacterCard extends ItemCard {
     }
 
     onTapChara(targets: any[] = []): void {
-        console.log(`Tapping character card ${this.name}.`);
         if(this._owner === undefined) {
             throw new Error("CharacterCard has no owner assigned.");
         }

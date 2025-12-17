@@ -170,7 +170,6 @@ export class Player extends Entity {
   }
   activateItem(item: ItemCard, targets: any[] = []): boolean {
     const index = this._inPlay.indexOf(item);
-    console.log("Activating item:", item.name, "at index", index);
     if (index === -1) {
       throw new Error("Item not in play.");
     }

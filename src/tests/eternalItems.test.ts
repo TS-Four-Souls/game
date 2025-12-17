@@ -468,9 +468,9 @@ describe("Eternal Items", () => {
         expect(bloodlust.charged).toBe(true);
     });
 
-    // "[Tap Effect] Choose one-\nSteal 1¢ from another player.\nLook at the top card of a deck.\nDiscard a loot card, then loot 1."
+    // "[Tap Effect] Choose one-\nSteal 1\u00A2 from another player.\nLook at the top card of a deck.\nDiscard a loot card, then loot 1."
     // "Each time you take damage, recharge this."
-    it("Forever Alone - Option 1: Steal 1¢ from another player", () => {
+    it("Forever Alone - Option 1: Steal 1\u00A2 from another player", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
         game.start(player1, [isaac, blueBaby]);
@@ -490,7 +490,7 @@ describe("Eternal Items", () => {
         expect(player2.coins).toBe(0);
         
         foreverAlone.onTap([{
-            description: "steal 1¢ from another player.",
+            description: "steal 1\u00A2 from another player.",
             chosenOptions: [player1]}]);
         game.resolveStack();
         
@@ -571,7 +571,7 @@ describe("Eternal Items", () => {
         expect(foreverAlone.charged).toBe(true);
         
         foreverAlone.onTap([{
-            description: "steal 1¢ from another player.",
+            description: "steal 1\u00A2 from another player.",
             chosenOptions: [player1]
         }]);
         game.resolveStack();
@@ -607,7 +607,7 @@ describe("Eternal Items", () => {
         player2.heal();
     
         foreverAlone.onTap([{
-            description: "steal 1¢ from another player.",
+            description: "steal 1\u00A2 from another player.",
             chosenOptions: [player1]
         }]);
         game.resolveStack();

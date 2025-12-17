@@ -246,17 +246,14 @@ describe("Treasure - Permanent Modifiers", () => {
         expect(totalOtherPlayersDamage).toBe(1);
     });
 
-    // NOTE: This test demonstrates a bug in the game implementation
-    // The on:attack:roll event is emitted BEFORE the dice is rolled, so the roll
-    // object is undefined. The event should be emitted AFTER the dice is created
-    // and added to the stack with the actual roll value available.
-    it("b2-ipecac: Each time you roll an attack roll of 6, deal 1 damage to each other player [BUG: roll not available in attack:roll event]", () => {
+    it("b2-ipecac: Each time you roll an attack roll of 6, deal 1 damage to each other player", () => {
         const ipecac = game.shop.obtainCard("b2-ipecac") as treasureCard;
         
         game.addInPlay(player1, ipecac);
         
         const monster = game.monsters[0]!;
         monster.addHealthPoints(10);
+        player2.addHealthPoints(10);
         
         const initialP2HP = player2.currentHealthPoints;
         
@@ -264,8 +261,8 @@ describe("Treasure - Permanent Modifiers", () => {
         game.attackRoll(player1, monster);
         const attackRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll).toBeDefined();
-        if (attackRoll?.value) {
-            attackRoll.value = 6; // Roll a 6
+        if (attackRoll?.value != 6) {
+            attackRoll!.value = 6; // Roll a 6
             game.emitter.emit("on:attack:roll", {
                 eventIssuer: player1,
                 target: monster,
@@ -277,7 +274,9 @@ describe("Treasure - Permanent Modifiers", () => {
         }
         game.resolveStack();
         game.resolveStack();
-        
+        game.resolveStack();
+
+        expect(game.stack.size).toBe(0);
         // Player2 should have taken 1 damage from ipecac effect
         expect(player2.currentHealthPoints).toBe(initialP2HP - 1);
         

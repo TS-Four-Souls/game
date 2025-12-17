@@ -19,6 +19,16 @@ function prepareEffectString(s: string): string {
     return s;
 }
 
+function replaceDiceSymbols(s: string): string {
+    return s
+        .replace(/❶/g, "1")
+        .replace(/❷/g, "2")
+        .replace(/❸/g, "3")
+        .replace(/❹/g, "4")
+        .replace(/❺/g, "5")
+        .replace(/❻/g, "6");
+}
+
 // Returns the numeric amount if matched, otherwise null
 function parseNumber(text: string, re: RegExp): number | null {
     const m = text.trim().match(re);
@@ -39,13 +49,55 @@ export const isChooseOneResult = (x: any): x is ChooseOneResult => {
     return typeof x === 'object' && x !== null && 'description' in x && 'chosenOptions' in x;
 };
 
-export function effectParser(s: string, game: Game, defaultEffect: EffectFunction = active.addInPlayEffect(game)): EffectFunction {
+export function parseEachTimeRollEffect(s: string, game: Game): EffectFunction {
+    const rollMatch = s.match(/^each time a player rolls a (\d),?/u);
+    if (rollMatch) {
+
+        const rollValue = Number(rollMatch[1]);
+        const restOfEffect = s.substring(rollMatch[0]!.length).trim();
+        const restEffectFunction = effectParser(restOfEffect, game);
+        return (data:EffectData) => { passive.onRollEffect([rollValue], restEffectFunction, game)(data); return true; };
+    }
+    throw new Error(`Could not parse 'Each time a player rolls a X' effect: ${s}`);
+}
+
+export function parseYouMayEffect(s: string, game: Game): EffectFunction {
+    const restOfEffect = s.substring("you may".length).trim();
+    const restEffectFunction = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
+    return (data:EffectData) => {
+        const choice = game.select(data.issuer, 1, [data.it], true).selected.length > 0;
+        if (choice) {
+            return restEffectFunction(data);
+        }
+        return false;
+    }
+}
+
+// b2 - tarot_cloth    "Each time a player rolls a ❹, they must give you a loot card."
+// b2 - cheese_grater    "Each time a player rolls a ❻, reveal the top card of any deck. Put it back or put it into discard."
+// b2 - dead_bird    "Each time a player rolls a ❸, you may look at their hand and steal a loot card from them."
+// b2 - moms_razor    "Each time a player rolls a ❻, you may deal 1 damage to them."
+
+// b2 - finger    "Each time a player rolls a ❷, you may swap a non-eternal item you control with a non-eternal item they control."
+// b2 - spider_mod    "Each time a player rolls a ❺, you may put a monster not being attacked into discard and replace it with the top card of the monster deck."
+// b2 - the_d10    "Each time a player rolls a ❸, you may put the top card of the Monster Deck in a monster slot not being attacked."
+
+export function effectParser(s: string, game: Game, defaultEffect: EffectFunction = active.addInPlayEffect(game), selectionOnResolve = false): EffectFunction {
     const originalS = s;
     // if (s === "[Paid Effect] Remove 1 counter from this:\nAdd +1 to a dice roll."){
     //     console.log("parsing special roll effect:", originalS);
     // }
     s = s.replace("[Tap Effect] ", ""); // remove tap effect marker
     s = s.toLowerCase();
+    s = replaceDiceSymbols(s);
+    if (s.startsWith("each time a player rolls a"))
+        return parseEachTimeRollEffect(s, game);
+    if (s.startsWith("you may") &&
+        // exceptions where "you may" is not a choice, but an extra action
+        s !== "you may play an additional loot card on your turn." &&
+        s !== "you may attack an additional time on your turn."
+        )
+        return parseYouMayEffect(s, game);
     if (s.startsWith("[paid effect] "))
         return active.paidEffect(s, game);
     if (s.startsWith("choose one-"))
@@ -199,6 +251,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
       damageToDeal = parseNumber(s, /^deal (\d+) damage to a player\.?$/u);
     if (damageToDeal === null)
       damageToDeal = parseNumber(s, /^deal (\d+) damage to a monster\.?$/u);
+    if(s === "you may deal 1 damage to them.")
+        damageToDeal = 1;
     if (damageToDeal !== null)
         return (data:EffectData) => {
             const target = data.targets[0] as Entity;
@@ -288,6 +342,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             return passive.onAttackRollEffect([6],active.dealDamageToEachOtherPlayerEffect(game, 1), game);
         case "each time you deal combat damage to a monster, deal 1 damage to another player.":
             return passive.onDealCombatDamageToMonsterEffect(active.dealDamageToAnotherPlayerEffect(game, 1), game);
+
+            
         // active effects
         case "choose a player or monster":
             return (data:EffectData) => { return true; };
@@ -314,6 +370,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             return active.putTopCardFromDiscardOnTopEffect(game);
         case "choose a dice roll. its controller rerolls it.":
             return active.rerollDiceEffect();
+        case "they must give you a loot card.":
+            return active.makePlayerGiveLootCardEffect(game);
         case "add or subtract 1 from a roll.":
             return (data:EffectData) => {
                 const choosenDiceRoll: DiceRoll = data.targets[0] as DiceRoll;
@@ -327,11 +385,13 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         case "put a card from your hand on top of the loot deck.":
             return active.putCardFromHandOnTopOfDeckEffect(game);
         case "recharge an item.":
-            return active.rechargeItemsEffect(game);
+            return active.rechargeItemsEffect(game, selectionOnResolve);
         case "recharge another item.":
-            return active.rechargeItemsEffect(game);
+            return active.rechargeItemsEffect(game, selectionOnResolve);
         case "look at a player's hand. you may swap a card from your hand with one of theirs.":
             return active.lookAtPlayerHandAndSwapEffect(game);
+        case "look at their hand and steal a loot card from them.":
+            return active.lookAtHandAndStealLootEffect(game);
         case "destroy a curse.":
             return active.destroyOneEffect(game);
         case "destroy an item or soul.":
@@ -379,6 +439,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             return active.lookAtHands(game);
         case "look at the top card of a deck. you may put that card on the bottom of that deck.":
             return active.lookAtTopCardOfDeckEffect(game, true);
+        case "reveal the top card of any deck. put it back or put it into discard.":
+            return active.lookAtTopCardOfDeckEffect(game, true);
         case 'choose a player. they reroll each item they control.':
             return active.rerollEachItemEffect(game);
         case "choose another player. steal a loot card from them at random.":
@@ -389,9 +451,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         case "destroy this and loot 2.":
             return active.destroyThisAndLoot2Effect(game);
         
-        case "discard 1 loot card.":
+        case /discard [1a] loot card.?/.test(s) ? s : "":
             return active.discard1LootCardEffect(game);
-        case "discard a loot card":
             return active.discard1LootCardEffect(game);
         case "look at the top card of a deck.":
             return active.lookAtTopCardOfDeckEffect(game, false);
