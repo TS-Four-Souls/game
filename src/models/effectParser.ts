@@ -251,7 +251,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
       damageToDeal = parseNumber(s, /^deal (\d+) damage to a player\.?$/u);
     if (damageToDeal === null)
       damageToDeal = parseNumber(s, /^deal (\d+) damage to a monster\.?$/u);
-    if(s === "you may deal 1 damage to them.")
+    if(s === "deal 1 damage to them.")
         damageToDeal = 1;
     if (damageToDeal !== null)
         return (data:EffectData) => {
@@ -420,8 +420,14 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             return active.addUpTo2ToRollEffect(game);
         case "add 1 to a roll.":
             return active.add1ToRollEffect();
+        case "swap a non-eternal item you control with a non-eternal item they control.":
+            return active.swapNonEternalItemsEffect(game);
         case "choose a player. loot and gain \u00A2 until you have the same number of each as they do.":
             return active.lootAndGainAsPlayerEffect(game);
+        case "put a monster not being attacked into discard and replace it with the top card of the monster deck.":
+            return active.flushOneMonsterSlotEffect(game);
+        case "put the top card of the monster deck in a monster slot not being attacked.":
+            return active.putTopMonsterInValidSlotEffect(game);
         case "when this enters play, it becomes a soul.\n(it's no longer an item.)":
             return (data:EffectData) => {
                 game.removeInPlay(data.issuer, data.it);      
@@ -438,9 +444,9 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         case "look at each player's hand":
             return active.lookAtHands(game);
         case "look at the top card of a deck. you may put that card on the bottom of that deck.":
-            return active.lookAtTopCardOfDeckEffect(game, true);
+            return active.lookAtTopCardOfDeckEffect(game, "bottom");
         case "reveal the top card of any deck. put it back or put it into discard.":
-            return active.lookAtTopCardOfDeckEffect(game, true);
+            return active.lookAtTopCardOfDeckEffect(game, "discard", true);
         case 'choose a player. they reroll each item they control.':
             return active.rerollEachItemEffect(game);
         case "choose another player. steal a loot card from them at random.":
@@ -455,7 +461,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             return active.discard1LootCardEffect(game);
             return active.discard1LootCardEffect(game);
         case "look at the top card of a deck.":
-            return active.lookAtTopCardOfDeckEffect(game, false);
+            return active.lookAtTopCardOfDeckEffect(game, "just_watch");
         case "end the turn. cancel everything that hasn't resolved.":
             return active.endTurnAndResetStackEffect(game);
         

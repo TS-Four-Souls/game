@@ -355,6 +355,7 @@ class Card {
     get cleaners(): (() => void)[] {
         return this._cleanup;
     }
+
     cleanup(): void {
         for (const cleaner of this._cleanup) {
             cleaner();

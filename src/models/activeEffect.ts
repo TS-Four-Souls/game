@@ -9,10 +9,11 @@ import type { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
 import { it } from "zod/locales";
-import { effectParser, inplayUnchargedItemSelector, type ChooseOneResult } from "./effectParser";
+import { deckSelector, effectParser, inplayUnchargedItemSelector, type ChooseOneResult } from "./effectParser";
 // import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, goFirstInTurnOrderEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, startingItemEffect, temporaryStatModifierEffect, gainTreasureOnDeathEffect } from "./abilities";
 import *  as passive from "./passiveEffect";
 import type { BonusSoulCardType } from "@/types/cardTypes";
+import type { Monster } from "./monster";
 
 export function gainCoinsEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
@@ -326,23 +327,73 @@ export function lookAtHands(game: Game): EffectFunction {
     };
 }
 
-export function lookAtTopCardOfDeckEffect(game: Game, putBottom: boolean): EffectFunction {
+export function swapNonEternalItemsEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
-        const deckName = data.targets[0] as string;
+        const otherPlayer = data.targets[0] as Player;
+        if(otherPlayer === data.issuer) return true;
+        const itemToSwapFromIssuer = game.select(data.issuer, 1, data.issuer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false)).selected[0] as ItemCard;
+        const itemToSwapFromOtherPlayer = game.select(data.issuer, 1, otherPlayer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false)).selected[0] as ItemCard;
+        return game.swapItems(itemToSwapFromIssuer, itemToSwapFromOtherPlayer);
+    }
+}
+export function flushOneMonsterSlotEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const monsterToFlush = game.select(data.issuer, 1, game.monsters.filter((m) => m !== null && !m.isEngagedInCombat)).selected[0] as Monster;
+        game.monsterSlots.flushMonster(monsterToFlush);
+        return true;
+    };
+}
+
+export function putTopMonsterInValidSlotEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const nonAttackedSlots = game.monsterSlots.nonAttackedSlots;
+        const index = game.select(data.issuer, 1, nonAttackedSlots).selected[0];
+        game.monsterSlots.draw(index);
+        return true;
+    };
+}
+
+export type cardDestination =
+    | "just_watch"
+    | "bottom"
+    | "discard";
+    
+export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestination, selectionOnResolve = false): EffectFunction {
+    return (data: EffectData) => {
+        const deckName = selectionOnResolve 
+            ? game.select(data.issuer, 1, deckSelector(undefined, game)(data.issuer)).selected[0] as string
+            : data.targets[0] as string;
         const deck = game.decks[deckName];
         if (!deck)
             throw new Error(`Deck ${deckName} not found`);
         const topCard = deck.cards[0];
         // getFirstCardsOfDeck(deckName, 1)[0];
-        const selectionResult = game.select(data.issuer, putBottom ? 1 : 0, [topCard!], true);
-        if (selectionResult.selected[0] === topCard && putBottom) {
-            const topCard2 = deck.draw();
-            if (topCard2 !== topCard)
-                throw new Error("Top card mismatch");
-            game.addBottomPosition(deckName, topCard!);
-        }
+        const justWatch = canPutWhere === "just_watch";
+        const selectionResult = game.select(data.issuer, justWatch ? 0 : 1, [topCard!], true);
+        if (selectionResult.selected[0] === topCard) {
+        switch (canPutWhere) {
+            case "just_watch":
+                return true;
+            case "bottom":
+            {
+                const topCard2 = deck.draw();
+                if (topCard2 !== topCard)
+                    throw new Error("Top card mismatch");
+                game.addBottomPosition(deckName, topCard!);
+                break;
+            }
+            case "discard":
+                {
+                    const topCard2 = deck.draw();
+                    if (topCard2 !== topCard)
+                        throw new Error("Top card mismatch");
+                    game.discard(topCard);
+                    break;
+                }
+            }
+        };
         return true;
-    };
+    }
 }
 
 export function rerollEachItemEffect(game: Game): EffectFunction {

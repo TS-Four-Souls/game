@@ -149,6 +149,10 @@ class Encounters {
         }
     }
 
+    get nonAttackedSlots() : number[] {
+        return this._slots.map((slot, index) => slot.length === 0 || (!this.monsterIn(index)?.isEngagedInCombat) ? index : -1).filter(index => index !== -1);
+    }
+
     draw(position: number) : void {
         const card = this._deck.draw();
         this._slots[position]!.push(card!);
@@ -180,6 +184,16 @@ class Encounters {
         }
         this.fillEmptySpots(false);
     }
+    flushMonster(monster: Monster): void {
+        const idx = this._slots.findIndex(slot => slot.includes(monster.card));
+        if (idx >= 0) {
+            this.discardTop(idx);
+            this.fillEmptySpots(false);
+        }
+        else
+            throw new Error("Monster not found in encounters");
+    }
+
     flushToBottom(): void {
         for (let i = 0; i < this._slots.length; i++) {
             this.moveToBottom(i);

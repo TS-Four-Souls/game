@@ -427,7 +427,7 @@ export class Game {
     });
   }
 
-  swapItems(item1: ItemCard, item2: ItemCard): void {
+  swapItems(item1: ItemCard, item2: ItemCard): boolean {
     const owner1 = this.getOwner(item1);
     const owner2 = this.getOwner(item2);
     if (owner1 && owner2) {
@@ -435,7 +435,9 @@ export class Game {
       owner2.removeInPlay(item2);
       owner1.addInPlay(item2);
       owner2.addInPlay(item1);
+      return true;
     }
+    return false;
   }
 
   addPlayer(newPlayer: Player): void {
@@ -1279,6 +1281,14 @@ export class Game {
         card.type !== "character" &&
         card instanceof ItemCard
     ) as ItemCard[];
+  }
+
+  discard(card: Card): void {
+    const deck = this.decks[card.type];
+    if (!deck) {
+      throw new Error("No deck found for card type: " + card.type);
+    }
+    deck.addDiscardTop(card);
   }
 
   removeInPlay(player: Player, card: Card): boolean {

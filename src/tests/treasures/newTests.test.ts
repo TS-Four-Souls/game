@@ -6,7 +6,7 @@ import type { LootCard, ItemCard, treasureCard, Card } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
 import { effectParser, inplayCurseSelector, inplayUnchargedItemSelector, type ChooseOneOptions, type ChooseOneResult } from "@/models/effectParser";
 
-describe("Treasure - Permanent Modifiers", () => {
+describe("Treasure - \"Each time a player rolls a\" effect", () => {
     let game: Game;
     let player1: Player;
     let player2: Player;
@@ -281,11 +281,6 @@ describe("Treasure - Permanent Modifiers", () => {
         expect(game.decks["loot"]!.discard).toContain(cardToDiscard);
     });
 
-    // b2 - tarot_cloth    "Each time a player rolls a ❹, they must give you a loot card."
-    // b2 - cheese_grater    "Each time a player rolls a ❻, reveal the top card of any deck. Put it back or put it into discard."
-    // b2 - dead_bird    "Each time a player rolls a ❸, you may look at their hand and steal a loot card from them."
-    // b2 - moms_razor    "Each time a player rolls a ❻, you may deal 1 damage to them."
-
     // "Each time a player rolls a ❹, they must give you a loot card."
     it("tarot_cloth", () => {
 
@@ -342,8 +337,336 @@ describe("Treasure - Permanent Modifiers", () => {
         }
         game.resolveStack();
         expect(game.stack.size).toBe(0);
-        expect(player1.hand.length).toBe(initialHandSize + 2); // stolen 2, pill trigger loot 3.
+        expect(player1.hand.length).toBe(initialHandSize + 2); // stolen 2
         expect(player1.hand.cards.map(card => card.slug)).toContain(cardToSteal.slug);
         expect(player2.hand.cards.map(card => card.slug)).not.toContain(cardToSteal.slug);
     });
+
+    // Each time a player rolls a ❻, you may deal 1 damage to them.
+    it("moms_razor", () => {
+
+        const correctValue = 6;
+        const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
+        const item = game.shop.obtainCard("b2-moms_razor")! as treasureCard;
+        game.addInPlay(player1, item);
+        const monster = game.monsters[0]!;
+        game.addHealth(monster, 10);
+        game.addHealth(player2, 10);
+        const initHP = player2.currentHealthPoints;
+
+        // First attack roll - should not trigger the effect
+        game.attackRoll(player2, monster);
+        const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
+        expect(attackRoll1).toBeDefined();
+        if (attackRoll1) {
+            attackRoll1.value = 5; // Non-triggering roll
+        }
+        game.resolveStack(); // roll resolution
+        game.resolveStack(); // dmg resolution
+        game.resolveStack(); // dies ?
+
+        expect(player2.currentHealthPoints).toBe(initHP);
+        expect(game.stack.size).toBe(0);
+
+        // Second attack roll - should trigger the effect
+        game.attackRoll(player2, monster);
+        const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
+        expect(attackRoll2).toBeDefined();
+        if (attackRoll2) {
+            attackRoll2.value = correctValue; // Triggering roll
+        }
+        game.resolveStack(); // roll resolution
+        game.resolveStack(); // damage resolution player 2 should take 1 damage
+        game.resolveStack(); // damage resolution
+        game.resolveStack(); // dies ?
+        expect(game.stack.size).toBe(0);
+        expect(player2.currentHealthPoints).toBe(initHP - 1);
+
+        // card roll
+        player2.hand.addToHand(card);
+        expect(game.stack.size).toBe(0);
+        const playCard = game.playCard(player2, 1);
+        game.resolveStack();
+        const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
+        expect(cardRoll).toBeDefined();
+        if (cardRoll) {
+            cardRoll.value = correctValue; // Triggering roll
+        }
+        game.resolveStack();
+        game.resolveStack(); // damage resolution player 2 should take 1 damage
+        expect(game.stack.size).toBe(0);
+        expect(player2.currentHealthPoints).toBe(initHP - 2);
+    });
+
+    // "Each time a player rolls a ❻, reveal the top card of any deck. Put it back or put it into discard."
+    it("cheese_grater", () => {
+
+        const correctValue = 6;
+        const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
+        const item = game.shop.obtainCard("b2-cheese_grater")! as treasureCard;
+        game.addInPlay(player1, item);
+        const monster = game.monsters[0]!;
+        game.addHealth(monster, 10);
+        game.addHealth(player2, 10);
+        let topTreasure = game.decks["treasure"]!.cards[0]!;
+
+        // First attack roll - should not trigger the effect
+        game.attackRoll(player2, monster);
+        const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
+        expect(attackRoll1).toBeDefined();
+        if (attackRoll1) {
+            attackRoll1.value = 5; // Non-triggering roll
+        }
+        game.resolveStack(); // roll resolution
+        game.resolveStack(); // dmg resolution
+        game.resolveStack(); // dies ?
+
+        expect(topTreasure).toBe(game.decks["treasure"]!.cards[0]!);
+        expect(game.stack.size).toBe(0);
+
+        // Second attack roll - should trigger the effect
+        game.attackRoll(player2, monster);
+        const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
+        expect(attackRoll2).toBeDefined();
+        if (attackRoll2) {
+            attackRoll2.value = correctValue; // Triggering roll
+        }
+        game.resolveStack(); // roll resolution
+        game.resolveStack(); // damage resolution player 2 should take 1 damage
+        game.resolveStack(); // damage resolution
+        game.resolveStack(); // dies ?
+        expect(game.stack.size).toBe(0);
+        expect(game.decks["treasure"]!.cards[0]!).not.toBe(topTreasure);
+        expect(game.decks["treasure"]!.discard).toContain(topTreasure);
+        topTreasure = game.decks["treasure"]!.cards[0]!;
+        
+        // card roll
+        player2.hand.addToHand(card);
+        expect(game.stack.size).toBe(0);
+        const playCard = game.playCard(player2, 1);
+        game.resolveStack();
+        const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
+        expect(cardRoll).toBeDefined();
+        if (cardRoll) {
+            cardRoll.value = correctValue; // Triggering roll
+        }
+        game.resolveStack();
+        game.resolveStack(); // damage resolution player 2 should take 1 damage
+        expect(game.stack.size).toBe(0);
+        expect(topTreasure).not.toBe(game.decks["treasure"]!.cards[0]!);
+    });
+
+    // "Each time a player rolls a ❸, you may look at their hand and steal a loot card from them."
+    it("dead_bird", () => {
+
+        const correctValue = 3;
+        const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
+        const item = game.shop.obtainCard("b2-dead_bird")! as treasureCard;
+        game.loot(player2, 1);
+        game.addInPlay(player1, item);
+        const monster = game.monsters[0]!;
+        game.addHealth(monster, 10);
+        game.addHealth(player2, 10);
+        const initialHandSize = player1.hand.length;
+
+        // First attack roll - should not trigger the effect
+        game.attackRoll(player2, monster);
+        const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
+        expect(attackRoll1).toBeDefined();
+        if (attackRoll1) {
+            attackRoll1.value = 6; // Non-triggering roll
+        }
+        game.resolveStack(); // roll resolution
+        game.resolveStack(); // damage resolution
+        game.resolveStack(); // dies ?
+        expect(player1.hand.length).toBe(initialHandSize);
+
+        let cardToSteal = player2.hand.cards[0]!;
+        // Second attack roll - should trigger the effect
+        game.attackRoll(player2, monster);
+        const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
+        expect(attackRoll2).toBeDefined();
+        if (attackRoll2) {
+            attackRoll2.value = correctValue; // Triggering roll
+        }
+        game.resolveStack(); // roll resolution
+        game.resolveStack(); // damage resolution
+        game.resolveStack(); // dies ?
+        expect(game.stack.size).toBe(0);
+        expect(player1.hand.length).toBe(initialHandSize + 1); // steal 1
+        expect(player1.hand.cards).toContain(cardToSteal);
+        expect(player2.hand.cards).not.toContain(cardToSteal);
+
+
+        // card roll
+        game.loot(player2, 1);
+        player2.hand.addToHand(card);
+        cardToSteal = player2.hand.cards[0]!;
+        expect(game.stack.size).toBe(0);
+        const playCard = game.playCard(player2, 2);
+        game.resolveStack();
+        const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
+        expect(cardRoll).toBeDefined();
+        if (cardRoll) {
+            cardRoll.value = correctValue; // Triggering roll
+        }
+        game.resolveStack();
+        expect(game.stack.size).toBe(0);
+        expect(player1.hand.length).toBe(initialHandSize + 2); // stolen 2
+        expect(player1.hand.cards.map(card => card.slug)).toContain(cardToSteal.slug);
+        expect(player2.hand.cards.map(card => card.slug)).not.toContain(cardToSteal.slug);
+    });
+
+    // "Each time a player rolls a ❷, you may swap a non-eternal item you control with a non-eternal item they control."
+    it("finger", () => {
+
+        const correctValue = 2;
+        const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
+        const item1 = game.shop.obtainCard("b2-blank_card")! as treasureCard;
+        const item2 = game.shop.obtainCard("b2-dry_baby")! as treasureCard;
+        const item = game.shop.obtainCard("b2-finger")! as treasureCard;
+
+        game.addInPlay(player1, item1);
+        game.addInPlay(player1, item);
+        game.addInPlay(player2, item2);
+
+        // card roll
+        player2.hand.addToHand(card);
+        const playCard = game.playCard(player2, 1);
+        game.resolveStack();
+        const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
+        expect(cardRoll).toBeDefined();
+        if (cardRoll) {
+            cardRoll.value = correctValue; // Triggering roll
+        }
+        game.resolveStack();
+        expect(game.stack.size).toBe(0);
+        expect(player1.inPlay).toContain(item2);
+        expect(player1.inPlay).not.toContain(item1);
+        expect(player2.inPlay).toContain(item1);
+        expect(player2.inPlay).not.toContain(item2);
+    });
+
+    // "Each time a player rolls a ❺, you may put a monster not being attacked into discard and replace it with the top card of the monster deck."
+    it("spider_mod", () => {
+        const correctValue = 5;
+        const spiderMod = game.shop.obtainCard("b2-spider_mod")! as treasureCard;
+        game.addInPlay(player1, spiderMod);
+        
+        // Store references to current monsters
+        const monster0 = game.monsters[0]!;
+        const monster1 = game.monsters[1]!;
+        game.addHealth(monster0, 10);
+        game.addHealth(player2, 10);
+
+        game.declareAttack(player2);
+        game.declareAttackOnMonster(player2, monster0);
+        // First attack roll - should not trigger the effect
+        game.attackRoll(player2, monster0);
+        const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
+        expect(attackRoll1).toBeDefined();
+        if (attackRoll1) {
+            attackRoll1.value = 6; // Non-triggering roll
+        }
+        game.resolveStack(); // roll resolution
+        game.resolveStack(); // damage resolution
+        expect(game.monsters[1]).toBe(monster1); // Monster slot 1 unchanged
+
+        // Second attack roll - should trigger the effect (monster being attacked)
+        game.attackRoll(player2, monster0);
+        const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
+        expect(attackRoll2).toBeDefined();
+        if (attackRoll2) {
+            attackRoll2.value = correctValue; // Triggering roll
+        }
+        game.resolveStack(); // roll resolution
+        
+        // The effect should trigger and replace a monster NOT being attacked (monster1 or monster2)
+        // Store the top card of monster deck before resolving
+        const topMonsterCard = game.decks["monster"]!.cards[0];
+        
+        game.resolveStack(); // damage resolution
+        
+        // Check that one of the non-attacked monsters was replaced
+        const monstersChanged = game.monsters[1] !== monster1;
+        expect(monstersChanged).toBe(true);
+
+        // card roll
+        const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
+        player2.hand.addToHand(card);
+        const playCard = game.playCard(player2, 1);
+        game.resolveStack();
+        
+        const initialMonster1 = game.monsters[1];
+        const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
+        expect(cardRoll).toBeDefined();
+        if (cardRoll) {
+            cardRoll.value = correctValue; // Triggering roll
+        }
+        game.resolveStack();
+        
+        // Check that a monster was replaced (at least one slot changed)
+        const anyMonsterChanged = game.monsters[1] !== initialMonster1;
+        expect(anyMonsterChanged).toBe(true);
+    });
+
+    // "Each time a player rolls a ❸, you may put the top card of the Monster Deck in a monster slot not being attacked."
+    it("the_d10", () => {
+        const correctValue = 3;
+        const theD10 = game.shop.obtainCard("b2-the_d10")! as treasureCard;
+        game.addInPlay(player1, theD10);
+        
+        const monster0 = game.monsters[0]!;
+        const monster1 = game.monsters[1]!;
+        game.addHealth(monster0, 10);
+        game.addHealth(player2, 10);
+
+        game.declareAttack(player2);
+        game.declareAttackOnMonster(player2, monster0);
+        // First attack roll - should not trigger the effect
+        game.attackRoll(player2, monster0);
+        const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
+        expect(attackRoll1).toBeDefined();
+        if (attackRoll1) {
+            attackRoll1.value = 6; // Non-triggering roll
+        }
+        game.resolveStack(); // roll resolution
+        game.resolveStack(); // damage resolution
+        expect(game.monsters[1]).toBe(monster1); // Monster slot 1 unchanged
+
+        // Second attack roll - should trigger the effect
+        game.attackRoll(player2, monster0);
+        const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
+        expect(attackRoll2).toBeDefined();
+        if (attackRoll2) {
+            attackRoll2.value = correctValue; // Triggering roll
+        }
+        
+        const topMonsterCard = game.decks["monster"]!.cards[0];
+        game.resolveStack(); // roll resolution
+        game.resolveStack(); // damage resolution
+        
+        // Check that the top card was placed in a non-attacked slot
+        const foundTopCard = game.monsterSlots._slots[1]![1] === topMonsterCard;
+        expect(foundTopCard).toBe(true);
+
+        // card roll
+        const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
+        player2.hand.addToHand(card);
+        const playCard = game.playCard(player2, 1);
+        game.resolveStack();
+        
+        const topMonsterCard2 = game.decks["monster"]!.cards[0];
+        const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
+        expect(cardRoll).toBeDefined();
+        if (cardRoll) {
+            cardRoll.value = correctValue; // Triggering roll
+        }
+        game.resolveStack();
+        
+        // Check that the new top card was placed somewhere
+        const foundNewTopCard = game.monsterSlots._slots[1]![2] === topMonsterCard2
+        expect(foundNewTopCard).toBe(true);
+    });
+
 });
