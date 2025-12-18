@@ -35,12 +35,6 @@ class Shop {
         }
         return this._deck.getCardFromSlug(slug);
     }
-    computePriceTopDeck(player: Player) : number {
-        return 10;
-    }
-    computePrice(player: Player, card: Card) : number {
-        return 10;
-    }
 
     removeCard(target: Card): boolean{
         for (let i = 0; i < this._slots.length; i++) {
@@ -52,8 +46,7 @@ class Shop {
         }
         return false;
       }
-    purchaseTopDeck(player: Player) : boolean {
-        const price = this.computePriceTopDeck(player);
+    purchaseTopDeck(player: Player, price: number) : boolean {
         if (player.loseCoins(price, false) === price) {
             const card = this._deck.draw();
             if (card)
@@ -64,14 +57,13 @@ class Shop {
         }
         return false;
     }
-    purchase(player: Player, index: number): boolean {
+    purchase(player: Player, index: number, price: number): boolean {
         if(index === 0)
         {
-            return this.purchaseTopDeck(player);
+            return this.purchaseTopDeck(player, price);
         }
         if (index > 0) {
             index -= 1;
-            const price = this.computePrice(player, this._slots[index]!);
             if (player.loseCoins(price, false) === price) {
                 player.addInPlay(this._slots[index]!);
                 this._slots[index] = undefined;

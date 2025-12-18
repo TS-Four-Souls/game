@@ -280,6 +280,20 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         // passive effects
         case "if you control this as the game starts, you go first.":
             return passive.goFirstInTurnOrderEffect(game);
+        case "damage you would take is reduced to 1.":
+            return passive.reduceDamageToOneEffect(game);
+        case "this enters play deactivated.":
+            return passive.enterPlayDeactivatedEffect(game);
+        case "shop items you purchase cost 5¢ less.":
+            return passive.shopItemsCostLessEffect(5, game);
+        case "when you would roll a 1, you may change the result to a 6.":
+            return passive.changeRollOneToSixEffect(game);
+        case "when you die, before paying penalties, give this to another player.":
+            return passive.giveThisToAnotherPlayerOnDeathEffect(game);
+        case "if this would be destroyed, it becomes a soul instead.":
+            return passive.becomeSoulInsteadOfDestructionEffect(game);
+        case "the first time you take damage each turn, you may recharge an item.":
+            return passive.onFirstDamageEachTurnEffect([active.rechargeItemsEffect(game, true)], game);
         case "if you have 0¢, gain 6¢.":
             return active.gainXCoinsIfYEffect(0, 6, game);
         case "if you have 8 or more loot cards in your hand, loot 2.":
@@ -288,6 +302,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             return active.lootXIfYEffect(0, false, 2, game);
         case "when you start the game, look at the top 3 cards of the treasure deck and choose one. it becomes your starting item and gains eternal. put the rest on the bottom of the treasure deck.":
                 return passive.startingItemEffect(game);
+        case "loot +1 during your loot step.":
+            return passive.lootStepEffect([(data: EffectData) => { game.loot(data.issuer, 1); return true; }], game);
         case "prevent the next 1 damage you would take this turn.":
             return passive.preventNextDamageUpToEffect(1, game);
         case "choose a player. prevent the next 1 damage they would take this turn.":

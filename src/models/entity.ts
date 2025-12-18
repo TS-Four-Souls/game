@@ -1,8 +1,18 @@
+import type { Card } from "./cards";
+import type { DamageOnStack } from "./player";
+
+type DamageObj = {
+  dealer: Entity | null;
+  abilityCard: Card | null;
+  damage: number;
+};
+
 export abstract class Entity {
   private _currentHealthPoints: number;
   // Either attacking or being attacked.
   private _engagedInCombat: number;
   private _attackDiceModifier: number = 0;
+  private _damageTakenThisTurn: DamageObj[] = [];
 
   constructor(
     readonly id: string,
@@ -14,11 +24,17 @@ export abstract class Entity {
     this._engagedInCombat = 0;
   }
 
-  receiveDamage(damage: number): void {
+  receiveDamage(damage: number, dealer: Entity | null = null, abilityCard: Card | null = null): void {
+    if(damage <= 0) return;
+    this._damageTakenThisTurn.push({dealer: dealer!, abilityCard: abilityCard!, damage: damage});
     this._currentHealthPoints -= damage;
     if (this._currentHealthPoints <= 0) {
       this._currentHealthPoints = 0;
     }
+  }
+
+  get damageTakenThisTurn(): DamageObj[] {
+    return this._damageTakenThisTurn;
   }
 
   get isEngagedInCombat(): boolean {

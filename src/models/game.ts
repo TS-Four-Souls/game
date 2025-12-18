@@ -61,7 +61,8 @@ const gameParameters = {
   deathPenaltyCoins: 2,
   deathPenaltyItem: 1,
   deathPenaltyLoot: 1,
-  treasuresOnStart: 0
+  treasuresOnStart: 0,
+  shopPrice: 10
 };
 export class Game {
   private _players: Player[] = [];
@@ -233,12 +234,13 @@ export class Game {
   }
   deathPenalty(p: Player): void {
     p.loseCoins(gameParameters.deathPenaltyCoins, true);
+    const setOfLosableItems = (p.inPlay).filter((c) => (c instanceof treasureCard || (c instanceof LootCard && c.trinket))
+      && c.eternal === false)
     if (gameParameters.deathPenaltyItem > 0) {
       const itemToLose = this.select(
         p,
         gameParameters.deathPenaltyItem,
-        p.inPlay.filter((c) => (c instanceof treasureCard || (c instanceof LootCard && c.trinket)) 
-                              && c.eternal === false)
+        setOfLosableItems
       ).selected[0];
       if (itemToLose) {
         this.removeInPlay(p, itemToLose);
@@ -376,15 +378,17 @@ export class Game {
     usingAbilityFrom: Card,
     damage: number
   ): void {
-    receiver.receiveDamage(damage);
+    receiver.receiveDamage(damage, dealer, usingAbilityFrom);
+    
+    if(receiver.damageTakenThisTurn.length === 1)
+      this.emitter.emit("on:damage:taken:first-time-each-turn", {
+        eventIssuer: receiver,
+        target: dealer,
+        abilityCard: usingAbilityFrom,
+        damage: damage,
+      });
 
     this.emitter.emit("on:damage:taken", {
-      eventIssuer: receiver,
-      target: dealer,
-      abilityCard: usingAbilityFrom,
-      damage: damage,
-    });
-    this.emitter.emit("on:damage:taken:first-time-each-turn", {
       eventIssuer: receiver,
       target: dealer,
       abilityCard: usingAbilityFrom,
@@ -638,6 +642,11 @@ export class Game {
   give(from: Player, to: Player, card: Card): boolean {
     if(card instanceof LootCard){
       return this.giveCard(from, to, card);
+    }
+    if(from.inPlay.includes(card) && !(card.eternal)){
+      from.removeInPlay(card);
+      to.addInPlay(card);
+      return true;
     }
     return false;
   }
@@ -895,7 +904,7 @@ export class Game {
       });
     });
     this.destroyedCards.push(...cards);
-    this.emitter.emit("on:item:destroyed", { issuer: null, cards: cards });
+    this.emitter.emit("on:item:destroyed", { eventIssuer: null, cards: cards });
     return true;
   }
 
@@ -1006,9 +1015,10 @@ export class Game {
     const player = this.assertIssuerSecret(issuer);
     this.assertPlayerIsAlive(player);
     this.assertPositiveNumber(index);
-    this.emitter.emit("on:item:purchase", { eventIssuer: player });
+    const price = [gameParameters.shopPrice];
+    this.emitter.emit("on:item:purchase", { eventIssuer: player, cost: price });
 
-    if (this.shop.purchase(player, index)) {
+    if (this.shop.purchase(player, index, price[0]!)) {
       return `Purchase successful. You have now ${player.coins} coins.\n`;
     } else {
       return `Purchase failed. You still have ${player.coins} coins.\n`;
