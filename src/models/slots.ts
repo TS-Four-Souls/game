@@ -82,8 +82,7 @@ class Shop {
         return false;
     }
     discard(index: number) : void {
-        if (index > 0) {
-            index -= 1;
+        if (index >= 0) {
             this._deck.addDiscardTop(this._slots[index]!);
             this._slots[index] = undefined;
             this.fillEmptySpots();
@@ -91,7 +90,7 @@ class Shop {
     }
     flush(): void {
         for (let i = 0; i < this._slots.length; i++) {
-            this.discard(i + 1);
+            this.discard(i);
         }
         this.fillEmptySpots();
     }
@@ -184,6 +183,14 @@ class Encounters {
         }
         this.fillEmptySpots(false);
     }
+    
+    forceSetMonsterAtSlot(index: number, monsterCard: MonsterCard): void {
+        const previousCard = this._slots[index]![0]!;
+        this._slots[index] = [monsterCard];
+        this._monstersInPlay[index] = new Monster(monsterCard);
+        this._deck.addRandomPosition(previousCard);
+    }
+
     flushMonster(monster: Monster): void {
         const idx = this._slots.findIndex(slot => slot.includes(monster.card));
         if (idx >= 0) {

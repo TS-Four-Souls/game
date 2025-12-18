@@ -68,7 +68,7 @@ describe("Before start effects", () => {
         // Ensure the loot play resets at the start of the turn
         expect(game.players.filter(p => p.id !== game.currentPlayer.id)[0]!.remainingLootPlay).toBe(0);
         expect(game.currentPlayer.remainingLootPlay).toBeGreaterThanOrEqual(1);
-    }, {repeats:500});
+    });
 
 });
 

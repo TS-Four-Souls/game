@@ -385,14 +385,20 @@ class Card {
         // }
         // return false;
         // Temporary implementation until shovel and blank card are done, assuming effectId 0 is active effect.
-        if (this._charged === true && effectId === 0) {
-            this._effectInterface.activeEffect(this._owner, targets, effectId);
-            this._charged = false;
-            return true;
-        }
-        else if (effectId > 0) {
-            this._effectInterface.activeEffect(this._owner, targets, effectId);
-            return true;
+        const type = this._effectInterface.getEffectType(effectId);
+        switch (type) {
+            case "active":
+                if (this._charged === true) {
+                    this._effectInterface.activeEffect(this._owner, targets, effectId);
+                    this._charged = false;
+                    return true;
+                }
+                break;
+            case "paid":
+                this._effectInterface.activeEffect(this._owner, targets, effectId);
+                return true;
+            default:
+                return false;
         }
         return false;
     }

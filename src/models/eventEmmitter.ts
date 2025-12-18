@@ -25,6 +25,10 @@ export class GameEventEmitter {
     // console.log(`Event emitted: ${event}`
     //   , data.card ? `for ${data.card.name}` : '');
     const cbs = this.listeners.get(event) || [];
-    for (const cb of cbs) cb(data);
+    // Create a shallow copy to avoid issues if callbacks modify listeners during iteration
+    const cbsCopy = cbs.slice();
+    for (const cb of cbsCopy) {
+      cb(data);
+    }
   }
 }

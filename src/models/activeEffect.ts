@@ -339,6 +339,7 @@ export function swapNonEternalItemsEffect(game: Game): EffectFunction {
 export function flushOneMonsterSlotEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         const monsterToFlush = game.select(data.issuer, 1, game.monsters.filter((m) => m !== null && !m.isEngagedInCombat)).selected[0] as Monster;
+        if(monsterToFlush === undefined) return true;
         game.monsterSlots.flushMonster(monsterToFlush);
         return true;
     };
@@ -349,6 +350,123 @@ export function putTopMonsterInValidSlotEffect(game: Game): EffectFunction {
         const nonAttackedSlots = game.monsterSlots.nonAttackedSlots;
         const index = game.select(data.issuer, 1, nonAttackedSlots).selected[0];
         game.monsterSlots.draw(index);
+        return true;
+    };
+}
+// if you have 0¢, gain 6¢.
+export function gainXCoinsIfYEffect(coinsToHave: number, coinsToGain: number, game: Game): EffectFunction {
+    return (data: EffectData) => {
+        if (data.issuer.coins === coinsToHave) {
+            game.gainCoins(data.issuer, coinsToGain);
+        }
+        return true;
+    };
+}
+
+export function lootXIfYEffect(cardsToHave: number, atLeast: boolean, cardsToLoot: number, game: Game): EffectFunction {
+    return (data: EffectData) => {
+        if (atLeast ? data.issuer.hand.length >= cardsToHave : data.issuer.hand.length === cardsToHave) {
+            game.loot(data.issuer, cardsToLoot);
+        }
+        return true;
+    };
+}
+
+export function discardAnyNumberOfLootCardsEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const player = data.issuer;
+        const maxToDiscard = player.hand.length;
+        const selectionResult = game.select(player, maxToDiscard, player.hand.cards, true);
+        const nbDiscarded = selectionResult.selected.length;
+        for (const card of selectionResult.selected) {
+            const index = player.hand.cards.indexOf(card);
+            game.discardFromHand(player, index + 1);
+        }
+        data.targets[0] = nbDiscarded;
+        return true;
+    };
+}
+
+export function lootEqualToCardsDiscardedEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const nbToLoot = data.targets[0] as number;
+        game.loot(data.issuer, nbToLoot);
+        return true;
+    };
+}
+
+export function discardTopOfDeckEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const deckName = game.select(data.issuer, 1, deckSelector(undefined, game)(data.issuer), false).selected[0];
+        const deck = game.decks[deckName];
+        if (!deck) {
+            throw new Error(`Deck ${deckName} does not exist.`);
+        }
+        const topCard = deck.draw();
+        deck.addDiscardTop(topCard);
+        return true;
+    };
+}
+
+// Look at the top card of a deck. You may put it back.
+export function LookAndPutBottomEffect(
+    deckName: string,
+    game: Game
+): EffectFunction {
+    return (data:EffectData) => {
+        const deck = game.decks[deckName];
+        if (!deck) {
+            throw new Error(`Deck ${deckName} does not exist.`);
+        }
+        const topCard = deck.draw();
+        const res = game.select(data.issuer, 1, [topCard], true);
+        if (res.selected.length > 0) {
+            deck.addBottomPosition(topCard);
+        } else {
+            deck.addTopPosition(topCard);
+        }   
+        return true;
+    };
+}
+// choose a player at random. That player destroys an item they control.
+export function destroyItemOfRandomPlayerEffect(game: Game): EffectFunction {
+
+    return (data: EffectData) => {
+        const players = game.players;
+        const randomIndex = Math.floor(Math.random() * players.length);
+        const targetPlayer = players[randomIndex]!;
+        const item = game.select(targetPlayer, 1, targetPlayer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false)).selected[0]!;
+        return game.destroyCardsOrSouls([item]);
+    };
+}
+
+export function discardAnyNumberOfShopItemsEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const shop = game.shop;
+        const maxToDiscard = shop._slots.filter((slot) => slot !== undefined).length;
+        const selectionResult = game.select(data.issuer, maxToDiscard, shop._slots.filter((slot) => slot !== undefined) as ItemCard[], true);
+        for (const card of selectionResult.selected) {
+            const index = shop._slots.indexOf(card);
+            game.discardFromShop(index);
+        }
+        data.targets[0] = selectionResult.selected.length;
+        return true;
+    };
+}
+
+export function lookAndOrderEffect(deckName: string, numberOfCards: number, game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let cards = game.getFirstCardsOfDeck(deckName, numberOfCards);
+        let selectionResult = game.select(data.issuer, numberOfCards, cards);
+        for (let i = 0; i < selectionResult.selected.length; i++) {
+            game.addTopPosition(deckName, selectionResult.selected[numberOfCards - 1 - i]!);
+        }
+        return true;
+    };
+}
+export function putCountersOnItemEffect(amount: number, game: Game): EffectFunction {   
+    return (data: EffectData) => {
+        data.it.tags.counters = (data.it.tags.counters ?? 0) + amount;
         return true;
     };
 }

@@ -534,6 +534,10 @@ export class Game {
     this._onStateChange.dispatch();
   }
 
+  discardFromShop(index: number): void {
+    return this.shop.discard(index);
+  }
+
   rechargeEachItem(player: Player): void {
     for (const card of player.inPlay) {
         this.recharge(card);

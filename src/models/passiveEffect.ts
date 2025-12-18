@@ -59,6 +59,45 @@ export function temporaryStatModifierEffect(
     };
 }
 
+export function lvlXaddListenerEffect(
+    functions: EffectFunction[],
+    lvl: number,
+    game: Game): EffectFunction {
+
+    return (data: EffectData) => {
+        let offTurn = game.emitter.on("on:coin:gained:after", ({ eventIssuer }) => {
+            if (data.issuer !== eventIssuer) return;
+            if (data.it.tags.levels === undefined || data.it.tags.levels < lvl) return;
+
+            for (const func of functions)
+                func(data);
+            offTurn();
+        });
+        return true;
+    };
+}
+
+export function countersOnDamageGainTreasureEffect(amountToRemove: number, treasureAmount: number, game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        // Listen for the next damage event on this player
+        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, damage: dmg }) => {
+            if (data.issuer !== eventIssuer) return;
+            data.it.tags.counters = (data.it.tags.counters ?? 0) + dmg;
+            if (data.it.tags.counters >= amountToRemove) {
+                data.it.tags.counters -= amountToRemove;
+                game.gainTreasure(data.issuer, treasureAmount);
+            }
+        });
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
 export function permanentStatModifierEffect(
     adders: ((player: Player, value: number) => void)[],
     amount: number,
@@ -160,6 +199,7 @@ export function firstAttackRollStatModifierEffect(
 
 export function onDamageTakenEffect(
     callbacks: ((player: Player, dmg: number) => void)[],
+    effectFunctions: EffectFunction[],
     amount: number,
     game: Game
 ): EffectFunction {
@@ -172,6 +212,8 @@ export function onDamageTakenEffect(
             if (data.issuer !== eventIssuer) return;
             for (const callback of callbacks)
                 callback(data.issuer, amount);
+            for (const func of effectFunctions)
+                func(data);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -183,6 +225,50 @@ export function onDamageTakenEffect(
     };
 }
 
+
+export function atTheStartOfYourTurnEffect(
+    effectFunctions: EffectFunction[],
+    game: Game
+): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+
+        offDamage = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
+            if (data.issuer !== eventIssuer) return;
+            for (const func of effectFunctions)
+                func(data);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
+export function atTheEndOfYourTurnEffect(
+    effectFunctions: EffectFunction[],
+    game: Game
+): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+
+        offDamage = game.emitter.on("on:turn:end", ({ eventIssuer }) => {
+            if (data.issuer !== eventIssuer) return;
+            for (const func of effectFunctions)
+                func(data);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
 export function gainCoinsOnDamageEffect(
     amount: number,
     game: Game
@@ -191,7 +277,7 @@ export function gainCoinsOnDamageEffect(
         [(player: Player, dmg: number) => {
             if (dmg > 0)
                 game.gainCoins(player, amount);
-        }],
+        }], [],
         amount,
         game
     );
@@ -210,7 +296,7 @@ export function rechargeCharaOnDamageEffect(
                     if(selection.selected.length > 0)
                         game.recharge(player.character);
                 }
-        }],
+        }], [],
         amount,
         game
     );
@@ -263,44 +349,6 @@ export function gainPlusCoinsEffect(
             if (data.issuer !== eventIssuer) return;
             const current = coinGained[0] ?? 0;
             coinGained[0] = current + amount;
-        });
-
-        // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleaners.push(() => {
-            cleanup();
-        });
-
-        return true;
-    };
-}
-
-// Look at the top card of a deck. You may put it back.
-export function LookAndPutBottomEffect(
-    deckName: string,
-    game: Game
-): EffectFunction {
-    return (data:EffectData) => {
-        let offEffect: (() => void) | null = null;
-
-        const cleanup = () => {
-            offEffect?.();
-            offEffect = null;
-        };
-
-        // Listen for the next damage event on this player
-        offEffect = game.emitter.on("on:turn:start", ({ eventIssuer, coinGained }) => {
-            if (data.issuer !== eventIssuer) return;
-            const deck = game.decks[deckName];
-            if (!deck) {
-                throw new Error(`Deck ${deckName} does not exist.`);
-            }
-            const topCard = deck.draw();
-            const res = game.select(data.issuer, 1, [topCard], true);
-            if (res.selected.length > 0) {
-                deck.addBottomPosition(topCard);
-            } else {
-                deck.addTopPosition(topCard);
-            }   
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -391,6 +439,50 @@ export function onRollEffect(
     };
 }
 
+export function startWithNCountersEffect(
+    n: number,
+    game: Game
+): EffectFunction {
+    return (data: EffectData) => {
+        if(data.it.tags.counters === undefined)
+            data.it.tags.counters = n;
+        return true;
+    };
+}
+
+export function preventDamageByRemovingCountersEffect(
+    game: Game
+): EffectFunction {
+    return (data: EffectData) => {
+        let offEffect: (() => void) | null = null;
+
+        const cleanup = () => {
+            offEffect?.();
+            offEffect = null;
+        };
+
+        // Listen for the next damage event on this player
+        offEffect = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
+            if (data.issuer !== eventIssuer) return;
+            const counters = data.it.tags.counters ?? 0;
+            if(counters < 0) 
+                throw new Error("preventDamageByRemovingCountersEffect: counters cannot be negative.");
+            const current = damageArray[0] ?? 0;
+            const prevented = Math.min(current, counters);
+            damageArray[0] = current - prevented;
+            data.it.tags.counters -= prevented;
+            if(counters <= 0) 
+                data.it.cleanup();
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            cleanup();
+        });
+
+        return true;
+    };
+}
 
 export function onDealCombatDamageToMonsterEffect(
     effect: EffectFunction,
@@ -409,6 +501,35 @@ export function onDealCombatDamageToMonsterEffect(
             offEffect?.();
             offEffect = null;
         });
+        return true;
+    };
+}
+
+export function gainCoinsLevelUpEffect(
+    game: Game
+): EffectFunction {
+    return (data: EffectData) => {
+        let offEffect: (() => void) | null = null;
+
+        const cleanup = () => {
+            offEffect?.();
+            offEffect = null;
+        };
+        data.it.tags.levels = data.it.tags.levels ?? 1; // At least level 1.
+
+        // Listen for the next damage event on this player
+        offEffect = game.emitter.on("on:coin:gained", ({ eventIssuer, coinGained }) => {
+            if (data.issuer !== eventIssuer) return;
+            const current = coinGained[0] ?? 0;
+            data.it.tags.levels += current;
+            coinGained[0] = 0;
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            cleanup();
+        });
+
         return true;
     };
 }
@@ -518,39 +639,6 @@ export function rechargeThisOnEvent(
             if (eventIssuer === data.issuer) {
                 game.recharge(data.it);
             }
-        });
-
-        // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleaners.push(() => {
-            cleanup();
-        });
-
-        return true;
-    };
-}
-
-// "At the start of your turn, put the top card of a deck into discard.",
-export function discardTopOfDeckAtTurnStartEffect(
-    game: Game
-): EffectFunction {
-    return (data:EffectData) => {
-        let offEffect: (() => void) | null = null;
-
-        const cleanup = () => {
-            offEffect?.();
-            offEffect = null;
-        };
-
-        // Listen for the next damage event on this player
-        offEffect = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
-            if (data.issuer !== eventIssuer) return;
-            const deckName = game.select(data.issuer, 1, deckSelector(undefined, game)(data.issuer), false).selected[0];
-            const deck = game.decks[deckName];
-            if (!deck) {
-                throw new Error(`Deck ${deckName} does not exist.`);
-            }
-            const topCard = deck.draw();
-            deck.addDiscardTop(topCard);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed

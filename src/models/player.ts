@@ -34,7 +34,7 @@ export class Player extends Entity {
   }
 
   get coins(): number {
-    return this._coin;
+      return this._coin;
   }
 
   get hand(): Hand {
