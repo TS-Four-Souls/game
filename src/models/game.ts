@@ -748,8 +748,8 @@ export class Game {
     }
     return this.activateItem(player, item, targets, effectId);
   }
-  activateItem(player: Player, item: ItemCard, targets: any[] = [], effectId: number = 0): boolean {
-    if (player.activateItem(item, targets, effectId)) {
+  activateItem(player: Player, item: ItemCard, targets: any[] = [], effectId: number | "tap" = "tap" ): boolean {
+    if (player.activateItem(item, targets, effectId) && effectId === "tap") {
       this.emitter.emit("on:item:activated", {
         eventIssuer: player,
         item: item,
@@ -1166,8 +1166,7 @@ export class Game {
     if (!owner.inPlay.includes(card)) {
       throw new Error("Owner does not have the specified card in play.");
     }
-    const treasureDeck: Deck = this.decks["treasure"]!;
-    treasureDeck.addDiscardTop(card);
+    this.destroyedCards.push(card);
     owner.removeInPlay(card);
     this.gainTreasure(owner);
   }

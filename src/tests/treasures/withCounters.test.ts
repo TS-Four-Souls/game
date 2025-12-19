@@ -195,20 +195,20 @@ describe("Treasure - with counters effect", () => {
         expect(techX.charged).toBe(true);
 
         // Test: Tap effect - put a counter on this
-        techX.onTap();
+        techX.tryActivateEffect();
         game.resolveStack();
         expect(techX.tags.counters).toBe(1);
         expect(techX.charged).toBe(false); // Should now be tapped
 
         // Recharge and tap again
         techX.recharge();
-        techX.onTap();
+        techX.tryActivateEffect();
         game.resolveStack();
         expect(techX.tags.counters).toBe(2);
 
         // Tap a third time
         techX.recharge();
-        techX.onTap();
+        techX.tryActivateEffect();
         game.resolveStack();
         expect(techX.tags.counters).toBe(3);
 
@@ -218,7 +218,7 @@ describe("Treasure - with counters effect", () => {
         const initialMonsterHP = monster.currentHealthPoints;
 
         // Use paid effect to kill the monster
-        techX.onTap([monster], 1);
+        techX.tryActivateEffect([monster], 0);
         game.resolveStack();
 
         expect(techX.tags.counters).toBe(0); // 3 counters removed
@@ -226,7 +226,7 @@ describe("Treasure - with counters effect", () => {
 
         // Test: Cannot use paid effect without 3 counters
         techX.recharge();
-        techX.onTap();
+        techX.tryActivateEffect();
         game.resolveStack();
         expect(techX.tags.counters).toBe(1); // Only 1 counter
 
@@ -235,20 +235,20 @@ describe("Treasure - with counters effect", () => {
 
         // Add 2 more counters to test killing a player
         techX.recharge();
-        techX.onTap();
+        techX.tryActivateEffect();
 
         game.resolveStack();
         techX.recharge();
-        techX.onTap();
+        techX.tryActivateEffect();
         techX.recharge();
-        techX.onTap();
+        techX.tryActivateEffect();
         game.resolveStack();
         expect(techX.tags.counters).toBe(4);
 
         // Kill player2
         game.addHealth(player2, 10);
         const player2HP = player2.currentHealthPoints;
-        techX.onTap([player2], 1);
+        techX.tryActivateEffect([player2], 0);
         game.resolveStack();
 
         expect(techX.tags.counters).toBe(1); // 3 counters removed
@@ -281,7 +281,7 @@ describe("Treasure - with counters effect", () => {
 
         // Test: Paid effect - remove a counter to prevent next 1 damage
         // Use paid effect
-        thePoop.onTap([], 0); // Activate paid effect
+        thePoop.tryActivateEffect([], 0); // Activate paid effect
         game.resolveStack();
         expect(thePoop.tags.counters).toBe(1); // 1 counter removed
 
@@ -299,8 +299,8 @@ describe("Treasure - with counters effect", () => {
         expect(player1.currentHealthPoints).toBe(hpBeforePrevent - 2);
 
         // Test: Paid effect prevents only 1 damage from larger damage
-        thePoop.onTap([], 0); // Use paid effect again
-        thePoop.onTap([], 0); // Use paid effect again
+        thePoop.tryActivateEffect([], 0); // Use paid effect again
+        thePoop.tryActivateEffect([], 0); // Use paid effect again
         game.resolveStack();
         game.resolveStack();
         expect(thePoop.tags.counters).toBe(1);

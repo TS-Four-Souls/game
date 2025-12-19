@@ -87,8 +87,7 @@ class Shop {
         this.fillEmptySpots();
     }
     moveToBottom(index: number) : void {
-        if (index > 0) {
-            index -= 1;
+        if (index >= 0) {
             this._deck.addBottomPosition(this._slots[index]!);
             this._slots[index] = undefined;
             this.fillEmptySpots();
@@ -98,7 +97,6 @@ class Shop {
         for (let i = 0; i < this._slots.length; i++) {
             this.moveToBottom(i);
         }
-        this.fillEmptySpots();
     }
 }
 

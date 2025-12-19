@@ -552,7 +552,7 @@ describe("Loot Card", () => {
 
         // Recharge and tap the item (simulate using it)
         item.recharge();
-        item.onTap();
+        item.tryActivateEffect();
         expect(item.charged).toBe(false);
 
         // Play lil battery
@@ -577,9 +577,9 @@ describe("Loot Card", () => {
 
         player1.inPlay.push(item1, item2);
         item1.recharge();
-        item1.onTap();
+        item1.tryActivateEffect();
         item2.recharge();
-        item2.onTap();
+        item2.tryActivateEffect();
 
         // Play lil battery targeting item1
         game.playCard(player1, 1, [item1]);

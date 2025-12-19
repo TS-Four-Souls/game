@@ -68,7 +68,7 @@ describe("Effect - gainCoins", () => {
 // Additional tests for non-tested effects from effect.ts
 import * as effect from "@/models/effectParser";
 import * as active from "@/models/activeEffect";
-import type { LootCard } from "@/models/cards";
+import type { ItemCard, LootCard } from "@/models/cards";
 
 describe("Effect - additional unique implementations", () => {
   it("changeRollDiceResultEffect sets dice value", () => {
@@ -304,9 +304,9 @@ describe("Loot deck integration", () => {
     p1.addInPlay(chargedItem);
 
     // Activate (discharge) the item
-    const item = chargedItem as any;
-    item.activate();
-    expect(item._inplayType).not.toBe(0); // Not CHARGED
+    const item = chargedItem as ItemCard;
+    item.tryActivateEffect();
+    expect(item.charged).not.toBe(0); // Not CHARGED
 
     // Play recharge card
     p1.hand.addToHand(rechargeCard);

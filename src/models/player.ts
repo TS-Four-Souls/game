@@ -180,7 +180,7 @@ export class Player extends Entity {
     this._souls.splice(idx, 1);
     return true;
   }
-  activateItem(item: ItemCard, targets: any[] = [], effectId: number = 0): boolean {
+  activateItem(item: ItemCard, targets: any[] = [], effectId: number | "tap" = "tap"): boolean {
     const index = this._inPlay.indexOf(item);
     if (index === -1) {
       throw new Error("Item not in play.");
@@ -188,7 +188,7 @@ export class Player extends Entity {
     // if (item.inPlayType !== InplayType.CHARGED) {
     //   return false;
     // }
-    return item.onTap(targets, effectId);
+    return item.tryActivateEffect(targets, effectId);
   }
   gainCoins(coins: number): void {
     this._coin += coins;

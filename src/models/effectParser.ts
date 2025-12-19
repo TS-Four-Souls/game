@@ -5,7 +5,6 @@ import type { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
 import { it } from "zod/locales";
-// import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, goFirstInTurnOrderEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, startingItemEffect, temporaryStatModifierEffect, gainTreasureOnDeathEffect } from "./abilities";
 import *  as passive from "./passiveEffect";
 import * as active from "./activeEffect";
 import type { BonusSoulCardType } from "@/types/cardTypes";
@@ -113,6 +112,10 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     s = s.replace("[Tap Effect] ", ""); // remove tap effect marker
     s = s.toLowerCase();
     s = replaceDiceSymbols(s);
+    if (s.startsWith("each time you deal combat damage to a monster,"))
+        return passive.onYourEventEffect("on:combatdamage:dealt:to-monster", [effectParser(s.substring(s.indexOf(",") + 1).trim(), game)], game);
+    if (s.startsWith("each time you die, after paying penalties, "))
+        return passive.onYourEventEffect("on:death:after-penalty", [effectParser(s.substring(s.indexOf(",", s.indexOf(",")+1) + 1).trim(), game)], game);
     if (s.startsWith("at the start of your turn, "))
         return parseAtTheStartOfYourTurnEffect(s, game);
     if (s.startsWith("each time you activate an item, "))
@@ -233,10 +236,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     const coinsToPay = parseNumber(s, /^pay\s+(\d+)\u00A2:?$/u);
     if (coinsToPay !== null)
         return (data:EffectData) => { 
-            if(game.loseCoins(data.issuer, coinsToPay, false) === coinsToPay) {
-                return effectParser(s.substring(s.indexOf(":") + 1).trim(), game)(data);
-            }
-            return false;
+            return game.loseCoins(data.issuer, coinsToPay, false) === coinsToPay;
         };
     const eachPlayerGains = parseNumber(s, /^each player gains\s+(\d+)\u00A2\.?$/u);
     if (eachPlayerGains !== null)
@@ -305,8 +305,6 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     const toAdd = parseNumber(s, /^add \+? ?(\d+) to a dice roll\.?$/u);
     if( toAdd !== null)
         return active.addToDiceRollEffect(game, toAdd);
-    // Match patterns like "prevent next instance of up to 2 damage this turn"
-    // const preventMatch = s.match(/^choose a player. prevent (?:the )?next instance of up to (\d+) damage(?: you would take)? this turn\.?$/u);
     switch (s) {
         // passive effects
         case "if you control this as the game starts, you go first.":
@@ -329,14 +327,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             return passive.becomeSoulInsteadOfDestructionEffect(game);
         case "the first time you take damage each turn, you may recharge an item.":
             return passive.onFirstDamageEachTurnEffect([active.rechargeItemsEffect(game, true)], game);
-        case "if you have 0¢, gain 6¢.":
-            return active.gainXCoinsIfYEffect(0, 6, game);
-        case "if you have 8 or more loot cards in your hand, loot 2.":
-            return active.lootXIfYEffect(8, true, 2, game);
-        case "if you have 0 loot cards in your hand, loot 2.":
-            return active.lootXIfYEffect(0, false, 2, game);
         case "when you start the game, look at the top 3 cards of the treasure deck and choose one. it becomes your starting item and gains eternal. put the rest on the bottom of the treasure deck.":
-                return passive.startingItemEffect(game);
+            return passive.startingItemEffect(game);
         case "loot +1 during your loot step.":
             return passive.lootStepEffect([active.lootCardsEffect(game, 1)], game);
         case "prevent the next 1 damage you would take this turn.":
@@ -350,8 +342,10 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         case "you gain +1 [atk] till the end of turn.":
             return passive.temporaryStatModifierEffect([game.addAttack], 1, game);
         case "choose a player or monster. they gain +1 [atk] till end of turn.":
+        case "gain +1 [atk] till end of turn.":
             return passive.temporaryStatModifierEffect([game.addAttack], 1, game);
         case "you gain +1 [hp] till the end of turn.":
+        case "gain +1 [hp] till end of turn.":
             return passive.temporaryStatModifierEffect([game.addHealth], 1, game);
         case "choose a player.\nthey gain +2 [hp] till end of turn.":
             return passive.temporaryStatModifierEffect([game.addHealth], 2, game);
@@ -362,11 +356,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         case "choose a player.\nthey gain +1 [atk] till end of turn and may attack an additional time this turn.":
             return passive.temporaryStatModifierEffect([game.addAttack, game.addAttackThisTurn], 1, game);
         case "play an additional loot card this turn.":
-                return passive.temporaryStatModifierEffect([game.addLootPlay], 1, game);
-        case "each time you die, after paying penalties, gain +1 treasure.":
-            return passive.gainTreasureOnDeathEffect(1, game);
-        case "put counters on this equal to the amount of damage taken. then, if this has 6+ counters, remove 6 counters from this and gain +1 treasure.":
-            return active.addCountersAndGainTreasureEffect(6, 1, game);
+            return passive.temporaryStatModifierEffect([game.addLootPlay], 1, game);
         case "each time a player dies, before paying penalties, loot 1.":
             return passive.lootOnPlayerDeathEffect(1, game);
         case "if you would gain any number of \u00A2, gain that much +1\u00A2 instead.":
@@ -405,9 +395,17 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             return passive.onYourTurnModifier([game.addLootPlay], 1, game);
         case "each time you roll an attack roll of 6, deal 1 damage to each other player.":
             return passive.onAttackRollEffect([6],active.dealDamageToEachOtherPlayerEffect(game, 1), game);
-        case "each time you deal combat damage to a monster, deal 1 damage to another player.":
-            return passive.onDealCombatDamageToMonsterEffect(active.dealDamageToAnotherPlayerEffect(game, 1), game);
         // active effects
+        case "deal 1 damage to another player.":
+            return active.dealDamageToAnotherPlayerEffect(game, 1);
+        case "put counters on this equal to the amount of damage taken. then, if this has 6+ counters, remove 6 counters from this and gain +1 treasure.":
+            return active.addCountersAndGainTreasureEffect(6, 1, game);
+        case "if you have 0¢, gain 6¢.":
+            return active.gainXCoinsIfYEffect(0, 6, game);
+        case "if you have 8 or more loot cards in your hand, loot 2.":
+            return active.lootXIfYEffect(8, true, 2, game);
+        case "if you have 0 loot cards in your hand, loot 2.":
+            return active.lootXIfYEffect(0, false, 2, game);
         case "choose a player or monster":
             return (data:EffectData) => { return true; };
         case "each other player takes 1 damage.":
@@ -599,6 +597,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
                 return true;
             };
         case "reroll an item. (destroy that item and replace it with the top card of the treasure deck.)":
+        case "reroll an item.\n(destroy that item and replace it with the top card of the treasure deck.)":
             return (data:EffectData) => {
                 const p: Player = game.getPlayerById(data.targets[0].player)!;
                 game.reroll(p, data.targets[0].card);

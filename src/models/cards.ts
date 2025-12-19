@@ -5,6 +5,7 @@ import { Player } from './player';
 import { assert } from 'console';
 import type { Entity } from './entity';
 import type { Game } from './game';
+import { t } from 'elysia';
 
 export type EffectType =
     | "passive"
@@ -135,43 +136,84 @@ class PassiveEffectHandler extends EffectHandler {
 
 class ActiveEffectHandler extends EffectHandler {
     protected _type: "active" = "active";
+    protected _activeEffect: Effect | null = null;
     constructor() {super();}
 
 
     addEffect(effect: Effect): void {
-        if (effect.type !== "passive")
-            this._effects.push(effect);
-        else throw new Error("Cannot put a passive effect in an ActiveEffectHandler.");
-    }
-
-    getEffect(index: number = 0): Effect | undefined {
-        return this._effects.length > index ? this._effects[index] : undefined;
-    }
-
-    activeEffect(issuer: Entity, it: Card, effectId: number, targets: any[]): void {
-        if (this._type !== "active" && this._effects.length > 0)
-            throw new Error("activeEffect can only be called for active effects.");
-        // Implement shovel and blank card before uncommenting this
-        // if( effectId < 0 || effectId >= this._effects.length) { 
-        //     throw new Error(`Effect id ${effectId} is out of bounds for active effects of length ${this._effects.length}.`);
-        // }
-        const effect = this._effects[effectId];
-        if (effect) {
-            if (effect.type !== "passive") {
-                effect.effectFunction({ it, issuer: issuer as Player, targets: targets });
-            }
+        switch (effect.type){
+            case "active":
+                if (this._activeEffect !== null)
+                    throw new Error("Cannot have multiple active effects in an ActiveEffectHandler.");
+                this._activeEffect = effect;
+                break;
+            case "paid":
+                this._effects.push(effect);
+                break;
+            default:
+                throw new Error("Cannot put a passive effect in an ActiveEffectHandler.");
         }
     }
 
-    getTargetSelectors(index: number): TargetsSelector[] {
-        return this._effects[index]?.targetsSelector || [];
+    getActiveEffect(): Effect {
+        if (this._activeEffect === null) {
+            throw new Error("No active effect found in ActiveEffectHandler.");
+        }
+        return this._activeEffect;
+    }
+
+    activate(issuer: Entity, it: Card, targets: any[]): boolean {
+        if (this._activeEffect === null) {
+            throw new Error("No active effect found in ActiveEffectHandler.");
+        }
+        return this._activeEffect.effectFunction({ it, issuer: issuer as Player, targets: targets });
+    }
+
+    pay(issuer: Entity, it: Card, targets: any[], effectId: number): boolean {
+        const effect = this.getPaidEffect(effectId);
+        return effect.effectFunction({ it, issuer: issuer as Player, targets: targets });
+    }
+
+
+    getPaidEffect(index: number): Effect {
+        const paidEffects = this._effects[index];
+        if (!paidEffects) {
+            throw new Error(`Paid effect at index ${index} not found.`);
+        }
+        return paidEffects;
+    }
+
+    // getEffect(index: number = 0): Effect | undefined {
+    //     return this._effects.length > index ? this._effects[index] : undefined;
+    // }
+
+    // activeEffect(issuer: Entity, it: Card, effectId: number, targets: any[]): void {
+    //     if (this._type !== "active" && this._effects.length > 0)
+    //         throw new Error("activeEffect can only be called for active effects.");
+    //     // Implement shovel and blank card before uncommenting this
+        // if( effectId < 0 || effectId >= this._effects.length) { 
+        //     throw new Error(`Effect id ${effectId} is out of bounds for active effects of length ${this._effects.length}.`);
+        // }
+    //     const effect = this._effects[effectId];
+    //     if (effect) {
+    //         if (effect.type !== "passive") {
+    //             effect.effectFunction({ it, issuer: issuer as Player, targets: targets });
+    //         }
+    //     }
+    // }
+
+    getTargetSelectors(index: number | "tap"): TargetsSelector[] {
+        if (index === "tap")
+            return this.getActiveEffect().targetsSelector || [];
+        else
+            return this._effects[index]?.targetsSelector || [];
     }
 
     get effectNames(): string[] {
         return this._effects.map(e => e.description);
     }
 
-    getEffectId(description: string): number {
+    getPaidEffectId(description: string): number {
         const idx = this._effects.findIndex((effect) => effect.description === description);
         if (idx === -1) {
             throw new Error(`Effect with description "${description}" not found in effect list ${this._effects.map(e => e.description).join(", ")}.`);
@@ -203,31 +245,33 @@ class EffectInterface {
     subscribeAll(owner: Entity): void {
         this.passiveEffects.subscribeAll(owner, this.it);
     }
-    
-    activeEffect(issuer: Entity, targets: any[], effectId: number): void {
-        this.activeEffects.activeEffect(issuer, this.it, effectId, targets);
+
+    paidEffect(issuer: Entity, targets: any[], effectId: number): boolean {
+        const effect = this.activeEffects.getPaidEffect(effectId);
+        return effect.effectFunction({ it: this.it, issuer: issuer as Player, targets: targets });
     }
+    
+    tapEffect(issuer: Entity, targets: any[]): boolean {
+        return this.activeEffects.activate(issuer, this.it, targets);
+    }
+    // activeEffect(issuer: Entity, targets: any[], effectId: number): void {
+    //     this.activeEffects.pay(issuer, this.it, targets, effectId);
+    // }
+
+    
 
     // Get the first active effect (for cards that have a single effect)
     getActiveEffect(index: number = 0): Effect | undefined {
-        return this.activeEffects.getEffect(index);
+        return this.activeEffects.getActiveEffect();
     }
 
-    getEffectType(index: number = 0): EffectType {
-        const effect = this.activeEffects.getEffect(index);
-        if (!effect) {
-            throw new Error(`Effect at index ${index} not found.`);
-        }
-        return effect.type;
-    }
-
-    getTargetSelectors(index: number): TargetsSelector[] {
+    getTargetSelectors(index: number | "tap"): TargetsSelector[] {
         return this.activeEffects.getTargetSelectors(index);
     }
     // Lifecycle methods for loot cards - onPlay takes targets as parameter and returns a resolve function
     onPlay(issuer: Player, targets: any[]): (() => void) {
         this._issuer = issuer;
-        const effect = this.activeEffects.getEffect(0);
+        const effect = this.activeEffects.getActiveEffect();
         if (!effect) {
             return () => {};
         }
@@ -370,7 +414,7 @@ class Card {
         return false;
     }
 
-    activate(targets: any[], effectId: number): boolean {
+    activate(targets: any[], effectId: number | "tap"): boolean {
         // Implement shovel and blank card before uncommenting this
         // switch (this._effectInterface.getEffectType(effectId)) {
         //     case "active":
@@ -385,20 +429,16 @@ class Card {
         // }
         // return false;
         // Temporary implementation until shovel and blank card are done, assuming effectId 0 is active effect.
-        const type = this._effectInterface.getEffectType(effectId);
-        switch (type) {
-            case "active":
+        switch (effectId) {
+            case "tap":
                 if (this._charged === true) {
-                    this._effectInterface.activeEffect(this._owner, targets, effectId);
+                    this._effectInterface.tapEffect(this._owner, targets);
                     this._charged = false;
                     return true;
                 }
                 break;
-            case "paid":
-                this._effectInterface.activeEffect(this._owner, targets, effectId);
-                return true;
             default:
-                return false;
+                return this._effectInterface.paidEffect(this._owner, targets, effectId);
         }
         return false;
     }
@@ -478,7 +518,7 @@ export class ItemCard extends Card {
     isGuppy(): boolean {
         return this._guppy;
     }
-    onTap(targets: any[] = [], effectId: number =0): boolean {
+    tryActivateEffect(targets: any[] = [], effectId: number | "tap" = "tap" ): boolean {
         return this.activate(targets, effectId);
     }
     setEternal(eternal: boolean): void {
@@ -569,24 +609,24 @@ class CharacterCard extends ItemCard {
         this._eternal = true;
     }
 
-    onTapChara(targets: any[] = []): void {
-        if(this._owner === undefined) {
-            throw new Error("CharacterCard has no owner assigned.");
-        }
-        if (this.charged) {
-            this.charged = false;
-            // Get the active effect and execute it directly
-            const activeEffect = this._effectInterface.getActiveEffect(0);
-            if (activeEffect) {
-                // Validate targets before calling effect function
-                if (activeEffect.targetStillValid(this._owner, targets)) {
-                    activeEffect.effectFunction({ it: this, issuer: this._owner, targets: targets });
-                } else {
-                    console.log("CharacterCard.onTapChara: targetStillValid() returned false for", this.name);
-                }
-            }
-        }
-    }
+    // onTapChara(targets: any[] = []): void {
+    //     if(this._owner === undefined) {
+    //         throw new Error("CharacterCard has no owner assigned.");
+    //     }
+    //     if (this.charged) {
+    //         this.charged = false;
+    //         // Get the active effect and execute it directly
+    //         const activeEffect = this._effectInterface.getActiveEffect(0);
+    //         if (activeEffect) {
+    //             // Validate targets before calling effect function
+    //             if (activeEffect.targetStillValid(this._owner, targets)) {
+    //                 activeEffect.effectFunction({ it: this, issuer: this._owner, targets: targets });
+    //             } else {
+    //                 console.log("CharacterCard.onTapChara: targetStillValid() returned false for", this.name);
+    //             }
+    //         }
+    //     }
+    // }
 
     onRemoveFromPlay(): void {
 

@@ -220,7 +220,7 @@ export function swapWithNonEternalItemEffect(game: Game): EffectFunction {
 export function copyTapAbilityEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         const itemToCopy = game.select(data.issuer, 1, game.inPlayItems.filter((card) => card instanceof ItemCard && card.eternal === false)).selected[0]! as ItemCard;
-        const effectToCopy = itemToCopy.onTap();
+        const effectToCopy = itemToCopy.tryActivateEffect();
         return true;
     };
 }
@@ -251,7 +251,9 @@ export function stealCoinsEffect(game: Game, amount: number): EffectFunction {
 
 export function stealNonEternalItemEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
-        const itemToSteal = game.select(data.issuer, 1, game.inPlayItems.filter((card) => card instanceof ItemCard && card.eternal === false)).selected[0]!;
+
+        const itemToSteal = data.targets[0] as ItemCard;
+        // game.select(data.issuer, 1, game.inPlayItems.filter(({player, card}) => card instanceof ItemCard && card.eternal === false)).selected[0]!;
         return game.stealItemAnywhere(data.issuer, itemToSteal);
     };
 }
