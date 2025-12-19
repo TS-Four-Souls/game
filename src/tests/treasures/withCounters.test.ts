@@ -218,7 +218,7 @@ describe("Treasure - with counters effect", () => {
         const initialMonsterHP = monster.currentHealthPoints;
 
         // Use paid effect to kill the monster
-        techX.tryActivateEffect([monster], 0);
+        techX.tryActivateEffect([[], [monster]], 0);
         game.resolveStack();
 
         expect(techX.tags.counters).toBe(0); // 3 counters removed
@@ -248,7 +248,7 @@ describe("Treasure - with counters effect", () => {
         // Kill player2
         game.addHealth(player2, 10);
         const player2HP = player2.currentHealthPoints;
-        techX.tryActivateEffect([player2], 0);
+        techX.tryActivateEffect([[], [player2]], 0);
         game.resolveStack();
 
         expect(techX.tags.counters).toBe(1); // 3 counters removed
@@ -281,7 +281,7 @@ describe("Treasure - with counters effect", () => {
 
         // Test: Paid effect - remove a counter to prevent next 1 damage
         // Use paid effect
-        thePoop.tryActivateEffect([], 0); // Activate paid effect
+        thePoop.tryActivateEffect([[],[]], 0); // Activate paid effect
         game.resolveStack();
         expect(thePoop.tags.counters).toBe(1); // 1 counter removed
 
@@ -299,8 +299,8 @@ describe("Treasure - with counters effect", () => {
         expect(player1.currentHealthPoints).toBe(hpBeforePrevent - 2);
 
         // Test: Paid effect prevents only 1 damage from larger damage
-        thePoop.tryActivateEffect([], 0); // Use paid effect again
-        thePoop.tryActivateEffect([], 0); // Use paid effect again
+        thePoop.tryActivateEffect([[], []], 0); // Use paid effect again
+        thePoop.tryActivateEffect([[], []], 0); // Use paid effect again
         game.resolveStack();
         game.resolveStack();
         expect(thePoop.tags.counters).toBe(1);

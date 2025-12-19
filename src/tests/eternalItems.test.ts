@@ -149,7 +149,7 @@ describe("Eternal Items", () => {
         dice.value = 4; // Force roll to 4 for testing
         
         // Use paid effect to add +1 to the roll
-        theBone.tryActivateEffect([dice], 0); // Index 0 for first paid effect
+        theBone.tryActivateEffect([[],[dice]], 0); // Index 0 for first paid effect
         expect(dice.value).toBe(5); // Should be 4 + 1
         expect(theBone.tags.counters).toBe(1); // Should have 1 counter left
         
@@ -174,7 +174,7 @@ describe("Eternal Items", () => {
         const initialHP = player2.currentHealthPoints;
         
         // Use paid effect to deal damage to player2
-        theBone.tryActivateEffect([player2], 1); // Index 1 for second paid effect
+        theBone.tryActivateEffect([[], [player2]], 1); // Index 1 for second paid effect
         game.resolveStack(); // resolve damage
         
         expect(player2.currentHealthPoints).toBe(initialHP - 1);
@@ -200,7 +200,7 @@ describe("Eternal Items", () => {
         const initialMonsterHP = monster.currentHealthPoints;
         
         // Use paid effect to deal damage to monster
-        theBone.tryActivateEffect([monster], 1); // Index 2 for second paid effect
+        theBone.tryActivateEffect([[], [monster]], 1); // Index 2 for second paid effect
         game.resolveStack(); // resolve damage
         
         expect(monster.currentHealthPoints).toBe(initialMonsterHP - 1);

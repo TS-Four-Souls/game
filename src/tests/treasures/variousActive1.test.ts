@@ -98,7 +98,7 @@ describe("Tap/Paid effects 1", () => {
         const initialCoins = player1.coins;
 
         // Activate battery_bum (paid effect with effectId 0)
-        game.activateItem(player1, batteryBum, [battery], 0);
+        game.activateItem(player1, batteryBum, [[], [battery]], 0);
         game.resolveStack();
 
         // Battery should be recharged and player should lose 4¢
@@ -232,7 +232,7 @@ describe("Tap/Paid effects 1", () => {
         const initialMonsterHP = monster.currentHealthPoints;
 
         // Activate golden_razor_blade (paid effect with effectId 0) with monster as target
-        game.activateItem(player1, goldenRazor, [monster], 0);
+        game.activateItem(player1, goldenRazor, [[], [monster]], 0);
         game.resolveStack();
 
         // Monster should take 1 damage and player should lose 5¢
@@ -251,7 +251,7 @@ describe("Tap/Paid effects 1", () => {
         const initialHP = player2.currentHealthPoints;
 
         // Activate golden_razor_blade (paid effect with effectId 0) with player2 as target
-        game.activateItem(player1, goldenRazor, [player2], 0);
+        game.activateItem(player1, goldenRazor, [[],[player2]], 0);
         game.resolveStack();
 
         // Player2 should take 1 damage and player1 should lose 5¢
@@ -370,7 +370,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Get a monster from the deck
         const monster = game.decks["monster"]!.getCardFromSlug("b2-clotty")! as MonsterCard;
-        game.monsters[0] = new Monster(monster);
+        game.monsters[0] = new Monster(monster, game.encounters);
         const initialHp = game.monsters[0]!.currentHealthPoints;
 
         // Recharge and activate the item with the monster as target
@@ -458,7 +458,7 @@ describe("Tap/Paid effects 1", () => {
         const initialCoins = player1.coins;
 
         // Activate pay_to_play (paid effect with effectId 0)
-        game.activateItem(player1, payToPlay, [targetItem], 0);
+        game.activateItem(player1, payToPlay, [[],[targetItem]], 0);
         game.resolveStack();
 
         // Item should be stolen and player should lose 10¢

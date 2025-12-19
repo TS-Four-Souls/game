@@ -1,5 +1,6 @@
 import { Entity } from "@/models/entity";
 import type { MonsterCard } from "./cards";
+import type { Encounters } from "./slots";
 
 // export class Monster extends Entity {
 //   constructor(
@@ -16,7 +17,8 @@ import type { MonsterCard } from "./cards";
 export class Monster extends Entity {
   private _evasion: number;
   private _card: MonsterCard;
-  constructor(card: MonsterCard) {
+  private _encounters: Encounters;
+  constructor(card: MonsterCard, encouters: Encounters) {
     super(
       card.slug,
       card.attackPoints,
@@ -24,11 +26,12 @@ export class Monster extends Entity {
     );
     this._card = card;
     this._evasion = card.evasion;
+    this._encounters = encouters;
   }
   get card(): MonsterCard {
     return this._card;
   }
   get evasion(): number {
-    return this._evasion;
+    return this._evasion + this._encounters.dcModifier;
   }
 }

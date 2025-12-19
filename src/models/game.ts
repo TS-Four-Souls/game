@@ -312,10 +312,23 @@ export class Game {
     }
   }
 
+  getMonsterStat(monster: Monster, stat: "attackPoints" | "evasion"): number {
+    let baseStat = [stat === "attackPoints" ? monster.attackPoints : monster.evasion];
+    if (stat === "evasion")
+      this.emitter.emit("on:get:monster:evasion", {
+        player: this.currentPlayer,
+        eventIssuer: monster,
+        target: monster,
+        evasion: baseStat});
+    return baseStat[0]!;
+  }
+      
+
+
   attackRoll(player: Player, monster: Monster): void {
     const damageDealt = [player.attackPoints];
     const damageReceived = [monster.attackPoints];
-    const evasion = [monster.evasion];
+    const evasion = [this.getMonsterStat(monster, "evasion")];
     const dice = this.rollDice(player, true);
 
     this.emitter.emit("on:attack:roll", {
@@ -741,7 +754,7 @@ export class Game {
     this.emitter.emit("on:enter:play:after", { eventIssuer: player, card: card });
   }
 
-  activateItemAtIndex(player: Player, index: number, targets: any[] = [], effectId: number = 0): boolean {
+  activateItemAtIndex(player: Player, index: number, targets: any[] = [], effectId: number | "tap" = "tap"): boolean {
     const item = player.inPlay[index-1];
     if(!item || !(item instanceof ItemCard)) {
       return false;
@@ -847,6 +860,10 @@ export class Game {
 
   addPurchaseThisTurn(p: Player, value: number): void {
     p.remainingPurchaseThisTurn += value;
+  }
+
+  addDCmuliplier(e: Entity, value: number): void {
+    this.encounters.addDcModifier(value);
   }
 
   gainCoins(issuer: Issuer, coins: number): string {
@@ -1043,15 +1060,20 @@ export class Game {
     const player = this.assertIssuerSecret(issuer);
     this.assertPositiveNumber(number);
 
+    const n = [number]
     const lootDeck: Deck = this.decks["loot"]!;
-    for (let i = 0; i < number; i++) {
-      const drawnCard: Card = lootDeck.draw()!;
-      player.hand.addToHand(drawnCard);
-    }
-    this.emitter.emit("on:loot:after", { eventIssuer: player, numberOfCards: number });
-    this._onStateChange.dispatch();
+    this.emitter.emit("on:loot:would", { eventIssuer: player, numberOfCards: n });
+    const toLoot = n[0]!;
+    if (toLoot > 0)
+      for (let i = 0; i < toLoot; i++) {
+        
+        const drawnCard: Card = lootDeck.draw()!;
+        player.hand.addToHand(drawnCard);
+      }
+      this.emitter.emit("on:loot:after", { eventIssuer: player, numberOfCards: toLoot });
+      this._onStateChange.dispatch();
 
-    return `You have drawn ${number} loot card(s).\n`;
+    return `You have drawn ${toLoot} loot card(s).\n`;
   }
 
   getHand(issuer: Issuer): string {

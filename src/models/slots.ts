@@ -5,6 +5,7 @@ import type { Player } from "./player";
 class Shop {
     _slots: (undefined | Card)[];
     _deck: Deck;
+
     constructor(nbItemsInShop: number, deck: Deck) {
         this._slots = new Array(nbItemsInShop);
         this._deck = deck;
@@ -17,6 +18,7 @@ class Shop {
                 this._slots[i] = this._deck.draw();
         }
     }
+
     reduce() : void{
         const card = this._slots.pop();
         this._deck.addDiscardTop(card!);
@@ -104,6 +106,7 @@ class Encounters {
     _slots: Card[][];
     _monstersInPlay: (Monster | undefined)[];
     _deck: Deck;
+    dcModifier: number = 0;
     constructor(nbEncounterSlots: number, deck: Deck) {
         this._slots = new Array(nbEncounterSlots);
         this._monstersInPlay = new Array(nbEncounterSlots);
@@ -129,7 +132,7 @@ class Encounters {
                 }
                 this._slots[i]!.push(card!);
                 if (card.encounterType !== MonsterType.EVENT) {
-                    const monster = new Monster(card);
+                    const monster = new Monster(card, this);
                     this._monstersInPlay[i] = monster;
                 }else {
                     this._monstersInPlay[i] = undefined!;
@@ -142,11 +145,15 @@ class Encounters {
         return this._slots.map((slot, index) => slot.length === 0 || (!this.monsterIn(index)?.isEngagedInCombat) ? index : -1).filter(index => index !== -1);
     }
 
+    addDcModifier(value: number): void {
+        this.dcModifier += value;
+    }
+
     draw(position: number) : void {
         const card = this._deck.draw();
         this._slots[position]!.push(card!);
         if ((card as MonsterCard).encounterType !== MonsterType.EVENT) {
-            const monster = new Monster((card as MonsterCard));
+            const monster = new Monster((card as MonsterCard), this);
             this._monstersInPlay[position] = monster;
         } else {
             this._monstersInPlay[position] = undefined!;
@@ -177,7 +184,7 @@ class Encounters {
     forceSetMonsterAtSlot(index: number, monsterCard: MonsterCard): void {
         const previousCard = this._slots[index]![0]!;
         this._slots[index] = [monsterCard];
-        this._monstersInPlay[index] = new Monster(monsterCard);
+        this._monstersInPlay[index] = new Monster(monsterCard, this);
         this._deck.addRandomPosition(previousCard);
     }
 

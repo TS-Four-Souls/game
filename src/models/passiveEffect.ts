@@ -23,6 +23,7 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): EffectF
             const target = data.targets[0] === undefined ? data.issuer : data.targets[0];
             if (target !== eventIssuer) return;
             const current = damageArray[0] ?? 0;
+            if( current <= 0) return;
             const prevented = Math.min(current, amount);
             damageArray[0] = current - prevented;
             cleanup(); // One-shot: remove listeners after first use
@@ -648,6 +649,55 @@ export function preventDamageByRemovingCountersEffect(
             cleanup();
         });
 
+        return true;
+    };
+}
+
+export function takeDamagePlusEffect(
+    amount: number,
+    game: Game
+): EffectFunction {
+    return (data:EffectData) => {
+        let offDamage: (() => void) | null = null;
+
+        const cleanup = () => {
+            offDamage?.();
+            offDamage = null;
+        };
+
+        // Listen for the next damage event on this player
+        offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
+            if (data.issuer !== eventIssuer) return;
+            const current = damageArray[0] ?? 0;
+            damageArray[0] = current + amount;
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            cleanup();
+        });
+
+        return true;
+    };
+}
+
+export function lootFromDiscardEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offEffect: (() => void) | null = null;
+        // Listen for the next damage event on this player
+        offEffect = game.emitter.on("on:loot:would", ({ eventIssuer, numberOfCards }) => {
+            if (data.targets[0] !== eventIssuer) return;
+            while(numberOfCards[0]! > 0)
+            {
+                const card = game.decks["loot"]!.discard.pop();
+                if(card)
+                    eventIssuer.hand.addToHand(card);
+                else break;
+                numberOfCards[0]! -= 1;
+            }
+            offEffect?.();
+            offEffect = null;
+        });
         return true;
     };
 }
