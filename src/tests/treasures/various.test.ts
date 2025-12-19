@@ -160,6 +160,7 @@ describe("Treasure - Passive effects", () => {
         expect(shopItem).toBeDefined();
 
         // Purchase the item - normal price is 10¢, should be 5¢ with steamy sale
+        game.addPurchaseThisTurn(player1, 1); // allow purchase
         game.purchase(player1, 1); // index 1 is first shop slot
 
         // Should have spent 5¢ instead of 10¢
@@ -177,6 +178,7 @@ describe("Treasure - Passive effects", () => {
         player1.gainCoins(5);
 
         // Should be able to purchase with reduced price
+        game.addPurchaseThisTurn(player1, 1); // allow purchase
         const result = game.purchase(player1, 1);
 
         expect(result).toContain("successful");
@@ -369,5 +371,80 @@ describe("Treasure - Passive effects", () => {
 
         // Now battery2 should be recharged
         expect(battery2.charged).toBe(true);
+    });
+
+    // b2-theres_options    "You may purchase an additional time on your turn."
+    
+    it("theres_options - allows purchasing twice in one turn", () => {
+        const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
+        game.endTurn(); // end p1 turn
+        game.endTurn(); // end p2 turn, p1's turn starts
+        game.addInPlay(player1, theresOptions);
+        
+        // Give player enough coins for two purchases
+        player1.gainCoins(30);
+        
+        const shopItemsBefore = game.shop._slots.filter(s => s !== undefined).length;
+        
+        // Purchase first item
+        const result1 = game.purchase(player1, 1);
+        expect(result1).toContain("successful");
+        
+        // Without theres_options, second purchase would fail
+        // With theres_options, it should succeed
+        const result2 = game.purchase(player1, 1);
+        expect(result2).toContain("successful");
+        
+        // Player should have purchased 2 items (spent 20¢)
+        expect(player1.coins).toBe(10);
+    });
+
+    it("theres_options - cannot purchase three times", () => {
+        const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
+        game.endTurn(); // end p1 turn
+        game.endTurn(); // end p2 turn, p1's turn starts
+        game.addInPlay(player1, theresOptions);
+        
+        // Give player enough coins
+        player1.gainCoins(40);
+        
+        // Purchase first two items should succeed
+        game.purchase(player1, 1);
+        game.purchase(player1, 1);
+        
+        const initInplayCount = player1.inPlay.length;
+        // Third purchase should fail (only +1 additional purchase)
+        const result3 = game.purchase(player1, 1);
+        expect(player1.inPlay.length).toBe(initInplayCount); // no new item added
+        
+        // Should only have spent 20¢ (2 purchases)
+        expect(player1.coins).toBe(20);
+    });
+
+    it("theres_options - resets each turn", () => {
+        const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
+        game.addInPlay(player1, theresOptions);
+        
+        // Give player enough coins
+        player1.gainCoins(50);
+        
+        // Use both purchases this turn
+        game.purchase(player1, 1);
+        game.purchase(player1, 1);
+        
+        // Third purchase should fail
+        const result3 = game.purchase(player1, 1);
+        expect(result3).toContain("failed");
+        
+        // End turn and start new turn
+        game.endTurn();
+        game.endTurn();
+        
+        // Should be able to purchase twice again in new turn
+        const result4 = game.purchase(player1, 1);
+        const result5 = game.purchase(player1, 1);
+        
+        expect(result4).toContain("successful");
+        expect(result5).toContain("successful");
     });
 });

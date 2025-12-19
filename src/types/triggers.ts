@@ -106,7 +106,7 @@ export interface AbilityListener {
     // | "on:turn:start"
     // | "on:turn:end"
     // | "on:loot:step"
-    // | "on:item:activated"
+    // | "on:item:activated" problem: triggers on paid items.
     // | "on:item:purchased"
     // | "on:item:destroyed"
     // | "on:enter:play"

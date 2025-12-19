@@ -33,6 +33,11 @@ export abstract class Entity {
     }
   }
 
+  resetEntityFlags(): void {
+    this._engagedInCombat = 0;
+    this._damageTakenThisTurn = [];
+  }
+  
   get damageTakenThisTurn(): DamageObj[] {
     return this._damageTakenThisTurn;
   }

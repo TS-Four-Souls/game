@@ -345,6 +345,18 @@ export function flushOneMonsterSlotEffect(game: Game): EffectFunction {
     };
 }
 
+export function addCountersAndGainTreasureEffect(countersThreshold: number, treasureToGain: number, game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const dmg = data.targets.filter((c) => c.damageTaken !== undefined)[0]?.damageTaken as number || 0;
+        data.it.tags.counters = (data.it.tags.counters ?? 0) + dmg;
+        if (data.it.tags.counters >= countersThreshold) {
+            data.it.tags.counters -= countersThreshold;
+            game.gainTreasure(data.issuer, treasureToGain);
+        }
+        return true;
+    };
+}
+
 export function putTopMonsterInValidSlotEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         const nonAttackedSlots = game.monsterSlots.nonAttackedSlots;
@@ -383,6 +395,15 @@ export function discardAnyNumberOfLootCardsEffect(game: Game): EffectFunction {
             game.discardFromHand(player, index + 1);
         }
         data.targets[0] = nbDiscarded;
+        return true;
+    };
+}
+
+export function forcePlayerRerollDiceEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const dice = data.targets.find((t) => t.diceThatWouldRoll !== undefined);
+        const diceRoll: DiceRoll = data.targets[0] as DiceRoll;
+        diceRoll.roll();
         return true;
     };
 }
@@ -812,6 +833,24 @@ export function addInPlayEffect(game: Game): EffectFunction {
     };
 }
 
+export function lootCardsEffect(game: Game, nbCards: number): EffectFunction {
+    return (data: EffectData) => {
+        game.loot(data.issuer, nbCards);
+        return true;
+    };
+}
+
+export function rechargeCharaEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        if (data.issuer.character.charged === false) {
+            const selection = game.select(data.issuer, 1, [data.issuer.character], true);
+            if (selection.selected.length > 0)
+                game.recharge(data.issuer.character);
+        }
+        return true;
+    };
+}
+
 export function obtainRollResults(s: string): string[] {
     s = s.split("roll-")[1]!.trim();
     const lines: string[] = s.split("\n");
@@ -843,6 +882,17 @@ export function rollEffect(s: string, game: Game): EffectFunction {
         const result = data.issuer.rollDice();
         result.attachEffect(effects, data.it, data.targets);
         game.addToStack(result);
+        return true;
+    };
+}
+
+export function preventDeathEndTurnEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        game.preventDeath(data.issuer);
+        if (game.currentPlayer === data.issuer) {
+            game.resetStack();
+            game.endTurn();
+        }
         return true;
     };
 }

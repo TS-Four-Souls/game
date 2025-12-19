@@ -4,7 +4,7 @@ import { DiceRoll, Player } from "../../models/player";
 import type { ItemCard, treasureCard } from "@/models/cards";
 import { CharacterCard } from "@/models/cards";
 
-describe("Treasure - \"Each time a player rolls a\" effect", () => {
+describe("Treasure - with counters effect", () => {
     let game: Game;
     let player1: Player;
     let player2: Player;

@@ -15,6 +15,7 @@ export class Player extends Entity {
   private _remainingLootPlay: number;
   private _attackThisTurn: number = 0;
   private _attackRollThisTurn: number = 0;
+  private _remainingPurchaseThisTurn: number = 0;
 
   constructor(
     id: string, 
@@ -149,9 +150,20 @@ export class Player extends Entity {
     }
     return false;
   }
+
+  get remainingPurchaseThisTurn(): number {
+    return this._remainingPurchaseThisTurn;
+  }
+  
+  set remainingPurchaseThisTurn(value: number) {
+    this._remainingPurchaseThisTurn = value;
+  }
+
   resetTurnFlags() : void {
     this._attackThisTurn = 0;
     this._attackRollThisTurn = 0;
+    this._remainingPurchaseThisTurn = 0;
+    this.resetEntityFlags();
   }
   addSoul(card: Card){
     if(card.soul < 1)
@@ -168,7 +180,7 @@ export class Player extends Entity {
     this._souls.splice(idx, 1);
     return true;
   }
-  activateItem(item: ItemCard, targets: any[] = []): boolean {
+  activateItem(item: ItemCard, targets: any[] = [], effectId: number = 0): boolean {
     const index = this._inPlay.indexOf(item);
     if (index === -1) {
       throw new Error("Item not in play.");
@@ -176,9 +188,7 @@ export class Player extends Entity {
     // if (item.inPlayType !== InplayType.CHARGED) {
     //   return false;
     // }
-    if(item instanceof CharacterCard)
-      (item as CharacterCard).onTapChara(targets);
-    return true;
+    return item.onTap(targets, effectId);
   }
   gainCoins(coins: number): void {
     this._coin += coins;
@@ -237,6 +247,10 @@ export class DiceRoll {
     this._attackRoll = attackRoll;
   }
   
+  set targets(targets: any[]) {
+    this._targets = targets;
+  }
+
   get attackRoll(): boolean {
     return this._attackRoll;
   }

@@ -269,6 +269,7 @@ export class Game {
       eventIssuer: receiver,
       target: from,
       abilityCard: usingAbilityFrom,
+      deathOnStack: deathOnStack,
     });
   }
 
@@ -525,9 +526,12 @@ export class Game {
     this.players.forEach((p) => {
       p.remainingLootPlay = 0;
       p.attackThisTurn = 0;
+      p.remainingPurchaseThisTurn = 0;
       if (p === this.currentPlayer) {
         p.remainingLootPlay = 1;
         p.attackThisTurn = 1;
+        p.remainingPurchaseThisTurn = 1;
+
       }
     });
     this.rechargeEachItem(this.currentPlayer);
@@ -560,6 +564,9 @@ export class Game {
     this.emitter.emit("on:turn:end", { eventIssuer: player });
     for (const player of this.players) {
       player.resetTurnFlags();
+    }
+    for (const monster of this.monsters) {
+      monster.resetEntityFlags();
     }
     this.turnHandler.endTurn();
     this._onStateChange.dispatch();
@@ -734,15 +741,15 @@ export class Game {
     this.emitter.emit("on:enter:play:after", { eventIssuer: player, card: card });
   }
 
-  activateItemAtIndex(player: Player, index: number, targets: any[] = []): boolean {
+  activateItemAtIndex(player: Player, index: number, targets: any[] = [], effectId: number = 0): boolean {
     const item = player.inPlay[index-1];
     if(!item || !(item instanceof ItemCard)) {
       return false;
     }
-    return this.activateItem(player, item, targets);
+    return this.activateItem(player, item, targets, effectId);
   }
-  activateItem(player: Player, item: ItemCard, targets: any[] = []): boolean {
-    if (player.activateItem(item, targets)) {
+  activateItem(player: Player, item: ItemCard, targets: any[] = [], effectId: number = 0): boolean {
+    if (player.activateItem(item, targets, effectId)) {
       this.emitter.emit("on:item:activated", {
         eventIssuer: player,
         item: item,
@@ -836,6 +843,10 @@ export class Game {
 
   addAttackDiceModifier(e: Entity, value: number): void {
     e.addDiceModifier(value);
+  }
+
+  addPurchaseThisTurn(p: Player, value: number): void {
+    p.remainingPurchaseThisTurn += value;
   }
 
   gainCoins(issuer: Issuer, coins: number): string {
@@ -1017,8 +1028,11 @@ export class Game {
     this.assertPositiveNumber(index);
     const price = [gameParameters.shopPrice];
     this.emitter.emit("on:item:purchase", { eventIssuer: player, cost: price });
-
+    if(player.remainingPurchaseThisTurn <= 0){
+      return `Purchase failed. You have no remaining purchases this turn.\n`;
+    }
     if (this.shop.purchase(player, index, price[0]!)) {
+      player.remainingPurchaseThisTurn -= 1;
       return `Purchase successful. You have now ${player.coins} coins.\n`;
     } else {
       return `Purchase failed. You still have ${player.coins} coins.\n`;

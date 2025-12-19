@@ -478,8 +478,8 @@ export class ItemCard extends Card {
     isGuppy(): boolean {
         return this._guppy;
     }
-    onTap(targets: any[] = [], effectId: number =0): void {
-        this.activate(targets, effectId);
+    onTap(targets: any[] = [], effectId: number =0): boolean {
+        return this.activate(targets, effectId);
     }
     setEternal(eternal: boolean): void {
         this._eternal = eternal;

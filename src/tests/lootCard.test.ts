@@ -37,8 +37,7 @@ describe("Loot Card", () => {
         game.resolveStack();
 
         expect(player1.coins).toBe(initialCoins + 2);
-    }
-    , { repeats: 100 });
+    });
 
     it("b2-a_nickel: should increase player coins by 5", () => {
         player1.gainCoins(3);
