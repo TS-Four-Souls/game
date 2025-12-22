@@ -1409,29 +1409,27 @@ game.resolveStack();
     it("b2-dagaz: destroys a chosen curse when that option is selected", () => {
         const dagaz = game.decks["loot"]!.getCardFromSlug("b2-dagaz");
         const curses = game.decks["monster"]!.cards.filter((c) => c instanceof MonsterCard && c.isCurse);
-        expect(curses.length).toBeGreaterThan(3);
+        expect(curses.length).toBeGreaterThan(2); // This might be false if curses are drawn at the start of the game.
         player1.inPlay.push(curses[0]!);
         player1.inPlay.push(curses[1]!);
         player1.inPlay.push(curses[2]!);
-        player1.inPlay.push(curses[3]!);
         // console.log("Player1 curses before: ", inplayCurseSelector((player, card) => true, game)(player1));
         // console.log("Player1 in play before: ", player1.inPlay);
         player1.hand.addToHand(dagaz!);
 
-        const debugTarget: ChooseOneResult[] = [{ description: "destroy a curse.", chosenOptions: [curses[2]!] }];
+        const debugTarget: ChooseOneResult[] = [{ description: "destroy a curse.", chosenOptions: [curses[1]!] }];
         // console.log("debugTarget: ", debugTarget);
         // console.log("curse: ", curses[0]!);
         game.playCard(player1, 1, debugTarget);
-        player1.removeInPlay(curses[2]!); // Simulate curse being removed before resolution
-        player2.inPlay.push(curses[2]!); // Simulate curse being removed before resolution
+        player1.removeInPlay(curses[1]!); // Simulate curse being removed before resolution
+        player2.inPlay.push(curses[1]!); // Simulate curse being removed before resolution
         game.resolveStack();
 
-        expect(player1.inPlay).not.toContain(curses[2]!);
+        expect(player1.inPlay).not.toContain(curses[1]!);
         expect(player1.inPlay).toContain(curses[0]!);
-        expect(player1.inPlay).toContain(curses[1]!);
-        expect(player1.inPlay).toContain(curses[3]!);
-        expect(player2.inPlay).not.toContain(curses[2]!);
-        expect(game.destroyedCards).toContain(curses[2]!);
+        expect(player1.inPlay).toContain(curses[2]!);
+        expect(player2.inPlay).not.toContain(curses[1]!);
+        expect(game.destroyedCards).toContain(curses[1]!);
     });
 
     it("b2-dagaz: destroys nothing when the curse is not available anymore.", () => {

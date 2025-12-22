@@ -16,6 +16,8 @@ export class Player extends Entity {
   private _attackThisTurn: number = 0;
   private _attackRollThisTurn: number = 0;
   private _remainingPurchaseThisTurn: number = 0;
+  private _canSeeTopOfTreasureDeck: number = 0;
+  private _mustAttackMonster: any | null = null; // Monster type causes circular dependency
 
   constructor(
     id: string, 
@@ -32,6 +34,26 @@ export class Player extends Entity {
     this._inPlay = [];
     this._souls = [];
     this._remainingLootPlay = 0;
+  }
+
+  get mustAttackMonster(): any | null {
+    return this._mustAttackMonster;
+  }
+  
+  set mustAttackMonster(value: any | null) {
+    this._mustAttackMonster = value;
+  }
+
+  get canSeeTopOfTreasureDeck(): boolean {
+    return this._canSeeTopOfTreasureDeck > 0;
+  }
+  
+  addCanSeeTopOfTreasureDeck(value: number) {
+    const sum = this._canSeeTopOfTreasureDeck + value;
+    if(sum !== 0 && sum !== 1) {
+      throw new Error("canSeeTopOfTreasureDeck can only be set to 0 or 1");
+    }
+    this._canSeeTopOfTreasureDeck = sum;
   }
 
   get coins(): number {
@@ -163,6 +185,7 @@ export class Player extends Entity {
     this._attackThisTurn = 0;
     this._attackRollThisTurn = 0;
     this._remainingPurchaseThisTurn = 0;
+    this.mustAttackMonster = null;
     this.resetEntityFlags();
   }
   addSoul(card: Card){

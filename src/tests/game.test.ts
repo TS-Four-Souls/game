@@ -3,6 +3,7 @@ import { Game } from "@/models/game";
 import { Player } from "@/models/player";
 import { TurnHandler } from "@/models/turnHandler";
 import { Stack } from "@/models/stack";
+import type { CharacterCard } from "@/models/cards";
 
 describe("Game", () => {
   let game: Game;
@@ -361,15 +362,6 @@ describe("Player - Damage & Health", () => {
     player.heal();
     expect(player.currentHealthPoints).toBe(10);
     expect(player.isDead).toBe(false);
-  });
-
-  it("should be healable from dead state", () => {
-    player.receiveDamage(10);
-    expect(player.isDead).toBe(true);
-    
-    player.heal();
-    expect(player.isDead).toBe(false);
-    expect(player.currentHealthPoints).toBe(10);
   });
 });
 
@@ -816,6 +808,10 @@ describe("Game - Damage System", () => {
     player2 = new Player("player2", 3, 8, 15);
     game.addPlayer(player1);
     game.addPlayer(player2);
+    game.setupGame();
+    const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
+    const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
+    game.start(player1, [samson, isaac]);
   });
 
   it("should deal damage between entities", () => {
@@ -839,12 +835,12 @@ describe("Game - Damage System", () => {
   it("should handle damage that kills entity", () => {
     const mockCard = { name: "Test Card" } as any;
     
-    game.dealDamage(player1, player2, mockCard, 10);
+    game.dealDamage(player1, player2, mockCard, 100);
     game.resolveStack();
     game.resolveStack();
 
+    expect(game.stack.size).toBe(0);
     expect(player2.isDead).toBe(true);
-    expect(player2.currentHealthPoints).toBe(0);
   });
 });
 

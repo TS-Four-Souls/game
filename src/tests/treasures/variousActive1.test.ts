@@ -369,7 +369,7 @@ describe("Tap/Paid effects 1", () => {
         game.addInPlay(player1, mrBoom);
 
         // Get a monster from the deck
-        const monster = game.decks["monster"]!.getCardFromSlug("b2-clotty")! as MonsterCard;
+        const monster = game.obtainCard("b2-clotty")! as MonsterCard;
         game.monsters[0] = new Monster(monster, game.encounters);
         const initialHp = game.monsters[0]!.currentHealthPoints;
 

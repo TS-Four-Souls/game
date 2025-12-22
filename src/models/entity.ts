@@ -13,6 +13,7 @@ export abstract class Entity {
   private _engagedInCombat: number;
   private _attackDiceModifier: number = 0;
   private _damageTakenThisTurn: DamageObj[] = [];
+  private _died: boolean = false;
 
   constructor(
     readonly id: string,
@@ -24,20 +25,25 @@ export abstract class Entity {
     this._engagedInCombat = 0;
   }
 
-  receiveDamage(damage: number, dealer: Entity | null = null, abilityCard: Card | null = null): void {
-    if(damage <= 0) return;
+  receiveDamage(damage: number, dealer: Entity | null = null, abilityCard: Card | null = null): boolean {
+    if(damage <= 0) return true;
     this._damageTakenThisTurn.push({dealer: dealer!, abilityCard: abilityCard!, damage: damage});
     this._currentHealthPoints -= damage;
-    if (this._currentHealthPoints <= 0) {
+    if (this._currentHealthPoints < 0) {
       this._currentHealthPoints = 0;
+      this._died = true;
+      return false;
     }
+    return true;
   }
 
   resetEntityFlags(): void {
     this._engagedInCombat = 0;
     this._damageTakenThisTurn = [];
+    this._died = false;
+
   }
-  
+
   get damageTakenThisTurn(): DamageObj[] {
     return this._damageTakenThisTurn;
   }
@@ -56,10 +62,13 @@ export abstract class Entity {
 
   die(): void {
     this._currentHealthPoints = 0;
+    this._died = true;
   }
   
   get isDead(): boolean {
-    return this._currentHealthPoints <= 0;
+    if( this._currentHealthPoints <= 0 )
+      this.die();
+    return this._died;
   }
 
   get currentHealthPoints(): number {

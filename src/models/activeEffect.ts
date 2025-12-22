@@ -9,11 +9,12 @@ import type { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
 import { it } from "zod/locales";
-import { deckSelector, effectParser, inplayUnchargedItemSelector, type ChooseOneResult } from "./effectParser";
+import { deckSelector, effectParser, visibleItemSelector, inplayUnchargedItemSelector, type ChooseOneResult } from "./effectParser";
 // import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, goFirstInTurnOrderEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, startingItemEffect, temporaryStatModifierEffect, gainTreasureOnDeathEffect } from "./abilities";
 import *  as passive from "./passiveEffect";
 import type { BonusSoulCardType } from "@/types/cardTypes";
 import type { Monster } from "./monster";
+import { string } from "zod";
 
 export function gainCoinsEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
@@ -75,6 +76,16 @@ export function makeAPlayerWithMostSoulsDestroyASoulEffect(game: Game): EffectFu
         return false;
     };
 }
+
+export function forceAttackMonsterEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const targetMonster = data.targets[0] as Monster;
+        game.currentPlayer.mustAttackMonster = targetMonster;
+        game.currentPlayer.attackThisTurn = Math.max(1, game.currentPlayer.attackThisTurn);
+        return true;
+    };
+}
+
 export function look5Put1TopRestBottomEffect(deckName: string, game: Game): EffectFunction {
     return (data: EffectData) => {
         let cards = game.getFirstCardsOfDeck(deckName, 5);
@@ -216,7 +227,7 @@ export function drawAndGainCoinsAsAPlayerEffect(issuer: Player, target: Player, 
     const nbCardsToDraw = Math.max(0, target.hand.length - issuer.hand.length);
     const lootCards = game.loot(issuer, nbCardsToDraw);
     const nbCoinsToGain = Math.max(0, target.coins - issuer.coins);
-    issuer.gainCoins(nbCoinsToGain);
+    game.gainCoins(issuer, nbCoinsToGain);
     return true;
 }
 
@@ -558,6 +569,32 @@ export function rerollEachItemEffect(game: Game): EffectFunction {
         const inplayItems = player.inPlay.filter((card) => card instanceof ItemCard && !card.eternal) as ItemCard[];
         for (const card of inplayItems) {
             game.reroll(player, card);
+        }
+        return true;
+    };
+}
+
+export function eachPlayersVoteToDestroyItemEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const ListOfItems = visibleItemSelector((card) => card.eternal === false, game)(data.issuer);
+
+        const votes: Record<string, number> = {};
+        for (const player of game.players) {
+            const vote = game.select(player, 1, ListOfItems).selected[0].slug as string;
+            votes[vote] = (votes[vote] || 0) + 1;
+
+        }
+        let itemToDestroy: ItemCard | null = null;
+        let votesToDestroy = 0;
+        for (const [itemSlug, voteCount] of Object.entries(votes)) {
+            if(voteCount === votesToDestroy) itemToDestroy = null;
+            if (voteCount > votesToDestroy) {
+                votesToDestroy = voteCount;
+                itemToDestroy = ListOfItems.find((item) => item.slug === itemSlug)!;
+            }
+        }
+        if (itemToDestroy !== null) {
+            game.destroyCardsOrSouls([itemToDestroy]);
         }
         return true;
     };

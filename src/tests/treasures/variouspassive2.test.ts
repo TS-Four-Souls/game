@@ -34,6 +34,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
     it("bobs_brain - roll 1-2: deal 1 damage to a monster", () => {
         const bobsBrain = game.shop.obtainCard("b2-bobs_brain") as treasureCard;
         game.addInPlay(player1, bobsBrain);
+        game.addAttackThisTurn(player1, 1); // Give player1 an attack to use
 
         const monster = game.monsters[0]!;
         const initialMonsterHP = monster.currentHealthPoints;
@@ -60,6 +61,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
     it("bobs_brain - roll 3-4: deal 1 damage to a player", () => {
         const bobsBrain = game.shop.obtainCard("b2-bobs_brain") as treasureCard;
         game.addInPlay(player1, bobsBrain);
+        game.addAttackThisTurn(player1, 1); // Give player1 an attack to use
 
         const monster = game.monsters[0]!;
         const initialHP = player2.currentHealthPoints;
@@ -86,7 +88,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
     it("bobs_brain - roll 5-6: take 1 damage", () => {
         const bobsBrain = game.shop.obtainCard("b2-bobs_brain") as treasureCard;
         game.addInPlay(player1, bobsBrain);
-
+        game.addAttackThisTurn(player1, 1); // Give player1 an attack to use
         const monster = game.monsters[0]!;
         const initialHP = player1.currentHealthPoints;
 

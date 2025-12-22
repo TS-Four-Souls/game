@@ -20,8 +20,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         game.setupGame();
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const monsterCard = game.decks["monster"]!.getCardFromSlug("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.decks["monster"]!.getCardFromSlug("b2-fatty")! as MonsterCard;
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
         game.start(player1, [samson, isaac]);
         game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
         game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
@@ -563,6 +563,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         game.addHealth(monster0, 10);
         game.addHealth(player2, 10);
 
+        game.addAttackThisTurn(player2, 1); // Ensure player can attack
         game.declareAttack(player2);
         game.declareAttackOnMonster(player2, monster0);
         // First attack roll - should not trigger the effect
@@ -619,6 +620,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const correctValue = 3;
         const theD10 = game.shop.obtainCard("b2-the_d10")! as treasureCard;
         game.addInPlay(player1, theD10);
+        game.addAttackThisTurn(player2, 1); // Ensure player can attack
 
         const monster0 = game.monsters[0]!;
         const monster1 = game.monsters[1]!;

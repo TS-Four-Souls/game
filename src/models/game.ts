@@ -44,7 +44,7 @@ import { type ReadableSignal, Signal } from "micro-signals";
 import { GameEventEmitter } from "./eventEmmitter";
 import { preventNextDamageUpToEffect } from "@/models/passiveEffect";
 import { bSoulEffectParser } from "@/models/bonusSoulHandling";
-import { pl } from "zod/locales";
+import { ca, pl } from "zod/locales";
 
 const LOG_GAME = false;
 export const cards = await loadCards(process.cwd() + "/data/cards");
@@ -55,7 +55,7 @@ const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
 //   for (const cardEffect of card.effectOutcomes)
 //     console.log(card.slug, [cardEffect]);
 // }
-const gameParameters = { 
+export const gameParameters = { 
   nbItemsInShop: 2, 
   nbEncounters: 2,
   deathPenaltyCoins: 2,
@@ -233,7 +233,8 @@ export class Game {
     player.addSoul(soul);
   }
   deathPenalty(p: Player): void {
-    p.loseCoins(gameParameters.deathPenaltyCoins, true);
+
+    this.loseCoins(p, gameParameters.deathPenaltyCoins, true);
     const setOfLosableItems = (p.inPlay).filter((c) => (c instanceof treasureCard || (c instanceof LootCard && c.trinket))
       && c.eternal === false)
     if (gameParameters.deathPenaltyItem > 0) {
@@ -251,7 +252,7 @@ export class Game {
       const lootToLose = this.select(p, gameParameters.deathPenaltyLoot, p.hand.cards).selected[0];
       if (lootToLose) {
         this.discardFromHand(p, p.hand._hand.indexOf(lootToLose));
-        p.hand.removeCard(lootToLose);
+        this.removeCardFromHand(p, lootToLose);
         this.decks[lootToLose.type]!.addDiscardTop(lootToLose);
       }
     }
@@ -282,8 +283,15 @@ export class Game {
     });
     receiver.die();
     if (receiver instanceof Player) {
+      receiver.mustAttackMonster = null;
       this.deathPenalty(receiver);
     } else if (receiver instanceof Monster) {
+      // Clear any forced attack constraints on this monster
+      for (const player of this.players) {
+        if (player.mustAttackMonster === receiver) {
+          player.mustAttackMonster = null;
+        }
+      }
       this.encounters.kill(receiver);
       this.emitter.emit("on:monster:died", {
         eventIssuer: receiver,
@@ -299,16 +307,21 @@ export class Game {
   }
 
   declareAttack(player: Player): void {
-    if (player.isEngagedInCombat || player.attackThisTurn === 0) {
+    if (player.isEngagedInCombat || player.attackThisTurn > 0) {
       player.attackThisTurn -= 1;
       player.engageInCombat();
       this.emitter.emit("on:attack:declared", { eventIssuer: player });
     }
   }
 
+
   declareAttackOnMonster(player: Player, monster: Monster): void {
     if (player.isEngagedInCombat) {
       monster.engageInCombat();
+      // Clear forced attack constraint if this is the forced monster
+      if (player.mustAttackMonster === monster) {
+        player.mustAttackMonster = null;
+      }
     }
   }
 
@@ -323,7 +336,44 @@ export class Game {
     return baseStat[0]!;
   }
       
-
+  obtainCard(slug: string): Card | undefined {
+    // Search in shop
+    try {
+      const card = this.shop.obtainCard(slug);
+      if (card) return card;
+    } catch {
+      // Card not found in shop, continue searching
+    }
+    
+    // Search in encounters
+    try {
+      const card = this.encounters.obtainCard(slug);
+      if (card) return card;
+    } catch {
+      // Card not found in encounters, continue searching
+    }
+    
+    // Search in all decks
+    for (const deckKey in this.decks) {
+      try {
+        const card = this.decks[deckKey]!.getCardFromSlug(slug);
+        if (card) return card;
+      } catch {
+        // Card not found in this deck, continue searching
+      }
+    }
+    
+    // Search in all players' hands and in-play areas
+    for (const player of this.players) {
+      const handCard = player.hand.cards.find(c => c.slug === slug);
+      if (handCard) return handCard;
+      
+      const inPlayCard = player.inPlay.find(c => c.slug === slug);
+      if (inPlayCard) return inPlayCard;
+    }
+    
+    return undefined;
+  }
 
   attackRoll(player: Player, monster: Monster): void {
     const damageDealt = [player.attackPoints];
@@ -386,13 +436,22 @@ export class Game {
     this.dealDamage(dealer, receiver, usingAbilityFrom, damage);
   }
 
+// on health loss trigger can be added here. Be careful, in case of pay HP to verify that all the HP are actually lost.
+  healthLoss(dealer: Entity,
+    receiver: Entity,
+    usingAbilityFrom: Card,
+    damage: number
+  ): boolean {
+    return receiver.receiveDamage(damage, dealer, usingAbilityFrom);
+  }
+
   resolveDamage(
     dealer: Entity,
     receiver: Entity,
     usingAbilityFrom: Card,
     damage: number
   ): void {
-    receiver.receiveDamage(damage, dealer, usingAbilityFrom);
+    this.healthLoss(dealer, receiver, usingAbilityFrom, damage);
     
     if(receiver.damageTakenThisTurn.length === 1)
       this.emitter.emit("on:damage:taken:first-time-each-turn", {
@@ -419,7 +478,8 @@ export class Game {
     receiver: Entity,
     usingAbilityFrom: Card,
     damage: number,
-    callback?: (data:EffectData) => boolean
+    callback?: (data:EffectData) => boolean,
+    callbackTargets: any[] = []
   ): void {
     if (damage <= 0 || receiver.isDead) return;
 
@@ -433,7 +493,7 @@ export class Game {
       this
     );
     if (callback) {
-      damageOnStack.attachEffect(callback, usingAbilityFrom, []);
+      damageOnStack.attachEffect(callback, usingAbilityFrom, callbackTargets);
     }
       this.addToStack(damageOnStack);
 
@@ -573,6 +633,7 @@ export class Game {
     const player = this.assertIssuerSecret(this.currentPlayer);
     this.assertCurrentTurnIsPlayerTurn(player);
     this.assertNoOngoingAttack();
+    this.assertForcedAttackSatisfied(player);
     this.healEveryone();
     this.emitter.emit("on:turn:end", { eventIssuer: player });
     for (const player of this.players) {
@@ -598,7 +659,7 @@ export class Game {
     const player = this.assertIssuerSecret(issuer);
     this.assertPlayerIsAlive(player);
     this.assertPositiveNumber(index);
-    if (index < 1 || index > player.hand.cards.length) {
+    if (index < 0 || index > player.hand.cards.length) {
       return "Invalid card position.";
     }
     const playedCard: LootCard = player.hand.playCard(index - 1) as LootCard;
@@ -612,9 +673,10 @@ export class Game {
     const resolveFunction = playedCard.onPlay(player, targets);
     const lootCardEffect = new LootCardEffect(playedCard, resolveFunction);
     this.addToStack(lootCardEffect);
-
+    
     this._onStateChange.dispatch();
-
+    this.emitter.emit("on:loot:played", { eventIssuer: player, card: playedCard, targets: targets });
+    
     return `You have played the card: ${playedCard.name} to your in-play area.\n`;
   }
 
@@ -676,9 +738,27 @@ export class Game {
     if(!from.hand.cards.includes(card)){
       return false
     }
-    from.hand.removeCard(card);
-    to.hand.addToHand(card);
+    this.removeCardFromHand(from, card);
+    this.addCardToHand(to, card);
     return true;
+  }
+
+  /**
+   * Add a card to a player's hand and emit the appropriate event.
+   * This is the centralized method for all hand additions.
+   */
+  addCardToHand(player: Player, card: LootCard): void {
+    player.hand.addToHand(card);
+    this.emitter.emit("on:loot:added:after", { eventIssuer: player, card });
+  }
+
+  /**
+   * Remove a card from a player's hand and emit the appropriate event.
+   * This is the centralized method for all hand removals.
+   */
+  removeCardFromHand(player: Player, card: LootCard): void {
+    player.hand.removeCard(card);
+    this.emitter.emit("on:loot:removed:after", { eventIssuer: player, card });
   }
 
   assignRandomCharacterToPlayers(): void {
@@ -854,6 +934,10 @@ export class Game {
     e.addLootPlay(value);
   }
 
+  addCanSeeTopOfTreasureDeck(e: Player, value: number): void {
+    e.addCanSeeTopOfTreasureDeck(value);
+  }
+
   addAttackDiceModifier(e: Entity, value: number): void {
     e.addDiceModifier(value);
   }
@@ -983,8 +1067,6 @@ export class Game {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
 
-    console.log(player.attackPoints);
-
     const res: DetailedState = {
       me: {
         name: player.id,
@@ -1033,6 +1115,7 @@ export class Game {
           return json;
         }
       }),
+      firstCardTreasureDeck: player.canSeeTopOfTreasureDeck ? this.decks["treasure"]!.cards[0]?.json : undefined,
     };
 
     return JSON.stringify(res);
@@ -1048,7 +1131,7 @@ export class Game {
     if(player.remainingPurchaseThisTurn <= 0){
       return `Purchase failed. You have no remaining purchases this turn.\n`;
     }
-    if (this.shop.purchase(player, index, price[0]!)) {
+    if (this.shop.purchase(player, index, price[0]!, this)) {
       player.remainingPurchaseThisTurn -= 1;
       return `Purchase successful. You have now ${player.coins} coins.\n`;
     } else {
@@ -1068,7 +1151,7 @@ export class Game {
       for (let i = 0; i < toLoot; i++) {
         
         const drawnCard: Card = lootDeck.draw()!;
-        player.hand.addToHand(drawnCard);
+        this.addCardToHand(player, drawnCard as LootCard);
       }
       this.emitter.emit("on:loot:after", { eventIssuer: player, numberOfCards: toLoot });
       this._onStateChange.dispatch();
@@ -1158,7 +1241,7 @@ export class Game {
     this.assertPlayerIsAlive(player);
     this.assertPositiveNumber(amount);
 
-    const stolenCoins = target.loseCoins(amount, true);
+    const stolenCoins = this.loseCoins(target, amount, true);
     player.gainCoins(stolenCoins);
 
     return `You have stolen ${stolenCoins} coins from ${target.id}.\n`;
@@ -1175,10 +1258,10 @@ export class Game {
       throw new Error("Invalid card position.");
     }
 
-    const stolenCard: Card = target.hand.removeFromHandByPos(position);
-    player.hand.addToHand(stolenCard);
+    this.removeCardFromHand(target, card);
+    this.addCardToHand(player, card);
 
-    return `You have stolen the card: ${stolenCard.name} from ${target.id}.\n`;
+    return `You have stolen the card: ${card.name} from ${target.id}.\n`;
   }
 
   reroll(owner: Player, card: Card): void {
@@ -1193,6 +1276,18 @@ export class Game {
     this.gainTreasure(owner);
   }
 
+  mustAttackMonster(player: Player): any | null {
+    if (player.isDead)
+      player.mustAttackMonster = null;
+    if (player.mustAttackMonster !== null) {
+      if(this.monsters.includes(player.mustAttackMonster)){
+        return player.mustAttackMonster;
+      } else {
+        player.mustAttackMonster = null;
+      }
+    }
+    return null;
+  }
   discardMonster(issuer: Issuer, position: number): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -1253,7 +1348,6 @@ export class Game {
   getCardFromHand(issuer: Issuer, card: Card): Card {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
-    this.assertPlayerIsAlive(player);
     const position = player.hand.cards.indexOf(card);
     this.assertPositiveNumber(position);
 
@@ -1261,7 +1355,8 @@ export class Game {
       throw new Error("Invalid card position.");
     }
 
-    return player.hand.removeFromHandByPos(position);
+    this.removeCardFromHand(player, card as LootCard);
+    return card;
   }
 
   discardFromHand(issuer: Issuer, position: number): string {
@@ -1274,7 +1369,8 @@ export class Game {
       return "Invalid card position.";
     }
 
-    const discardedCard: Card = hand.removeFromHandByPos(position - 1);
+    const discardedCard: LootCard = hand.cards[position - 1] as LootCard;
+    this.removeCardFromHand(player, discardedCard);
     const lootDeck: Deck = this.decks["loot"]!;
     lootDeck.addDiscardTop(discardedCard);
 
@@ -1301,10 +1397,12 @@ export class Game {
   loseCoins(issuer: Issuer, coins: number, asMany: boolean): number {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
-    this.assertPlayerIsAlive(player);
     this.assertPositiveNumber(coins);
 
-    return player.loseCoins(coins, asMany);
+    const coinLost = player.loseCoins(coins, asMany);
+    this.emitter.emit("on:coin:lost:after", { eventIssuer: player, coinLost });
+
+    return coinLost;
   }
 
   rollDice(issuer: Issuer, attackRoll: boolean): DiceRoll {
@@ -1468,6 +1566,29 @@ export class Game {
     if (this._ongoingAttack !== null) {
       throw new Error("An attack is already ongoing");
     }
+  }
+
+  private assertForcedAttackSatisfied(player: Player): void {
+    // Check if there's a forced attack constraint
+    if (player.mustAttackMonster === null) {
+      return; // No constraint, all good
+    }
+    
+    // Check if player is dead - constraint doesn't apply
+    if (player.isDead) {
+      player.mustAttackMonster = null;
+      return;
+    }
+    
+    // Check if monster is still in play ("if able")
+    const monsterStillInPlay = this.monsters.includes(player.mustAttackMonster);
+    if (!monsterStillInPlay) {
+      player.mustAttackMonster = null; // Monster gone, constraint lifted
+      return;
+    }
+    
+    // Monster is still there and player is alive - constraint must be satisfied
+    throw new Error("You must attack the chosen monster before ending your turn");
   }
   getPlayerById(id: string): Player {
     for (const p of this.players) {

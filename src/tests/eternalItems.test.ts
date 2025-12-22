@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../models/game";
 import { DiceRoll, Player } from "../models/player";
 import { pl } from "zod/locales";
-import type { LootCard, ItemCard } from "@/models/cards";
+import type { LootCard, ItemCard, treasureCard } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
 import { effectParser, inplayCurseSelector, type ChooseOneOptions, type ChooseOneResult } from "@/models/effectParser";
 
@@ -412,6 +412,8 @@ describe("Eternal Items", () => {
         game.resolveStack(); // resolve death
         expect(player1.inPlay.length).toBe(2);
 
+        const blankcard = game.obtainCard("b2-blank_card") as treasureCard; 
+        game.decks["treasure"]!.addTopPosition(blankcard); // ensure blank card is on top of treasure deck, to avoid random death prevention items.
         // Kill Lazarus, verify treasure gained
         game.kill(player2, player2, dummyLoot);
         game.resolveStack(); // resolve death
@@ -420,6 +422,8 @@ describe("Eternal Items", () => {
 
         game.endTurn();
         expect(firstItemGained!.eternal).toBe(false);
+        expect(firstItemGained!).toBe(blankcard);
+
         // Kill Lazarus, verify treasure gained
         game.kill(player2, player2, dummyLoot);
         game.resolveStack(); // resolve death

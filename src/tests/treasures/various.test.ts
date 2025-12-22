@@ -389,7 +389,7 @@ describe("Treasure - Passive effects", () => {
         // Purchase first item
         const result1 = game.purchase(player1, 1);
         expect(result1).toContain("successful");
-        
+        game.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // remove purchased item from inPlay to ensure basic second purchase.
         // Without theres_options, second purchase would fail
         // With theres_options, it should succeed
         const result2 = game.purchase(player1, 1);
@@ -410,6 +410,7 @@ describe("Treasure - Passive effects", () => {
         
         // Purchase first two items should succeed
         game.purchase(player1, 1);
+        game.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // remove purchased item from inPlay to ensure basic second purchase.
         game.purchase(player1, 1);
         
         const initInplayCount = player1.inPlay.length;

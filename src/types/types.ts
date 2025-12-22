@@ -100,6 +100,7 @@ export type DetailedState = {
   shop: GenericCardType[];
   turn: string;
   stack: string[];
+  firstCardTreasureDeck?: GenericCardType;
 };
 
 export type DiscardCards = {

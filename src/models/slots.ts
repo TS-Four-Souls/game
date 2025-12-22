@@ -1,4 +1,5 @@
 import { type Card, type LootCard, type eternalCard, type treasureCard, MonsterCard, type CharacterCard, MonsterType, type Deck } from "./cards";
+import type { Game } from "./game";
 import { Monster } from "./monster";
 import type { Player } from "./player";
 
@@ -48,26 +49,26 @@ class Shop {
         }
         return false;
       }
-    purchaseTopDeck(player: Player, price: number) : boolean {
-        if (player.loseCoins(price, false) === price) {
+    purchaseTopDeck(player: Player, price: number, game: Game) : boolean {
+        if (game.loseCoins(player, price, false) === price) {
             const card = this._deck.draw();
             if (card)
                 {
-                    player.addInPlay(card);
+                    game.addInPlay(player, card);
                     return true;
                 }
         }
         return false;
     }
-    purchase(player: Player, index: number, price: number): boolean {
+    purchase(player: Player, index: number, price: number, game: Game): boolean {
         if(index === 0)
         {
-            return this.purchaseTopDeck(player, price);
+            return this.purchaseTopDeck(player, price, game);
         }
         if (index > 0) {
             index -= 1;
-            if (player.loseCoins(price, false) === price) {
-                player.addInPlay(this._slots[index]!);
+            if (game.loseCoins(player, price, false) === price) {
+                game.addInPlay(player, this._slots[index]!);
                 this._slots[index] = undefined;
                 this.fillEmptySpots();
                 return true;
@@ -139,6 +140,19 @@ class Encounters {
                 }
             }
         }
+    }
+
+    obtainCard(slug: string): Card | undefined{
+        for (let i = 0; i < this._slots.length; i++) {
+            const indexInSlot = this._slots[i]!.findIndex(card => card.slug === slug);
+            if (indexInSlot >= 0) {
+                const card = this._slots[i]![indexInSlot];
+                this._slots[i]!.splice(indexInSlot, 1);
+                this.fillEmptySpots();
+                return card;
+            }
+        }
+        return this._deck.getCardFromSlug(slug);
     }
 
     get nonAttackedSlots() : number[] {
