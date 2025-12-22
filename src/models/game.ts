@@ -30,6 +30,7 @@ import {
   type EffectType,
   type TargetsSelector,
   eternalCard,
+  createCardFromJson,
 } from "@/models/cards";
 import { Stack, type StackElement } from "@/models/stack";
 import {
@@ -887,33 +888,57 @@ export class Game {
     return type;
   }
 
+  /**
+   * Parses and attaches all effects from a card's effect outcomes.
+   * @param card - The card to attach effects to
+   */
+  attachEffectsToCard(card: Card): void {
+    if (!card.effectOutcomes || card.effectOutcomes.length === 0) {
+      console.log(
+        "WARNING: No effect outcomes for card:",
+        card.name
+      );
+      return;
+    }
+
+    for (const outcome of card.effectOutcomes) {
+      const effectType = this.getEffectTypeFromOutcome(outcome, card);
+      const effect: Effect = new Effect(
+        outcome,
+        effectType,
+        effectParser(outcome, this),
+        targetSelectorParser(outcome, this)
+      );
+      card.addEffect(effect);
+    }
+  }
+
   private joinEffectsToCards(): void {
     for(const deckName of ["loot", "bsoul", "character", "eternal", "treasure"])
     {
       const deck = this.decks[deckName]!;
       deck.cards.forEach((card: Card) => {
-        if (!card.effectOutcomes || card.effectOutcomes.length === 0) {
-          console.log(
-            "WARNING: No effect outcomes for loot card:",
-            card.name
-          );
-        }
-        // if(card.slug === "b2-forever_alone")
-        //   console.log("Processing effects for", card.slug);
-        for(const outcome of card.effectOutcomes)
-        {
-        const effectType = this.getEffectTypeFromOutcome(outcome, card);
-        const effect: Effect = new Effect(outcome,
-          effectType,
-          effectParser(outcome, this),
-          targetSelectorParser(
-            outcome,
-            this
-          ));
-          card.addEffect(effect);
-        }
+        this.attachEffectsToCard(card);
       });
     }
+  }
+
+  /**
+   * Creates a copy of a card by reconstructing it from its JSON definition.
+   * The copy is built from scratch with all effects parsed and attached.
+   * @param card - The card to copy
+   * @returns A new card instance with the same properties and effects
+   */
+  copyCard(card: Card): Card {
+    const json = card.json;
+    
+    // Create the appropriate card type using the helper function
+    const copiedCard = createCardFromJson(-1, json);
+
+    // Parse and attach effects to the copied card
+    this.attachEffectsToCard(copiedCard);
+
+    return copiedCard;
   }
 
   addAttack(e: Entity, value: number): void {
@@ -983,6 +1008,12 @@ export class Game {
   }
   setHand(player: Player, hand: Hand): Hand {
     return player.setHand(hand);
+  }
+  priorityPasses(): Player[] {
+    const order = this.turnHandler.priorityOrder;
+    this.emitter.emit("on:priority:passes", { eventIssuer: this.currentPlayer, order });
+    // todo handle priority passing effects
+    return order;
   }
   preventDeath(player: Player): void {
     this.stack.cancelPreviousDeath(player);
@@ -1120,6 +1151,8 @@ export class Game {
 
     return JSON.stringify(res);
   }
+
+
 
   purchase(issuer: Issuer, index: number): string {
     this.assertGameStarted();

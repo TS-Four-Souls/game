@@ -369,6 +369,9 @@ class Card {
     get type() {
         return this._type;
     }
+    set id(value: number) {
+        this._id = value;
+    }
     get id() {
         return this._id;
     }
@@ -448,6 +451,73 @@ class Card {
     }
     addEffect(effect: Effect) {
         this._effectInterface.addEffect(effect);
+    }
+
+    getActiveEffect(): Effect | undefined {
+        return this._effectInterface.getActiveEffect();
+    }
+
+    /**
+     * Transforms this card to become a copy of another card.
+     * Returns the original state so it can be restored later.
+     * @param otherCard - The card to copy
+     * @param attachEffects - Optional callback to attach effects to this card
+     */
+    becomesCopyOf(otherCard: Card, attachEffects?: (card: Card) => void): { originalState: any, restore: () => void } {
+        // Store original state including cleanup array
+        const originalState = {
+            json: this._json,
+            slug: this._slug,
+            name: this._name,
+            subtype: this._subtype,
+            effectOutcomes: this._effectOutcomes,
+            effectInterface: this._effectInterface,
+            cleanup: [...this._cleanup], // Store a COPY of the cleanup array
+            owner: this._owner,
+        };
+
+        // Don't cleanup here - we need to preserve the original effectInterface state
+        // Cleanup will happen in restore() for the copied effects only
+        
+        // Copy properties from the other card
+        this._json = otherCard._json;
+        this._slug = otherCard._slug;
+        this._name = otherCard._name;
+        this._subtype = otherCard._subtype;
+        this._effectOutcomes = otherCard._effectOutcomes;
+        
+        // Create a new effect interface
+        this._effectInterface = new EffectInterface(this);
+        
+        // Clear cleanup array for the transformed state
+        this._cleanup = [];
+        
+        // Attach effects if callback provided
+        if (attachEffects) {
+            attachEffects(this);
+        }
+        
+        // Restore function
+        const restore = () => {
+            // Clean up copied effects
+            this.cleanup();
+            
+            // Restore original properties
+            this._json = originalState.json;
+            this._slug = originalState.slug;
+            this._name = originalState.name;
+            this._subtype = originalState.subtype;
+            this._effectOutcomes = originalState.effectOutcomes;
+            this._effectInterface = originalState.effectInterface;
+            this._cleanup = originalState.cleanup; // Restore the original cleanup array
+            
+            // Re-subscribe effects if we have an owner
+            if (originalState.owner) {
+                this._effectInterface.subscribeAll(originalState.owner);
+            }
+        };
+
+        return { originalState, restore };
     }
 }
 
@@ -706,6 +776,32 @@ class BsoulCard extends Card {
     }
 }
 
+/**
+ * Creates a card instance from JSON data based on its type.
+ * @param id - The card ID to assign
+ * @param json - The JSON data for the card
+ * @returns A new card instance of the appropriate type
+ */
+function createCardFromJson(id: number, json: GenericCardType): Card {
+    switch (json.type) {
+        case "loot":
+            return new LootCard(id, json);
+        case "treasure":
+            return new treasureCard(id, json);
+        case "eternal":
+            return new eternalCard(id, json);
+        case "character":
+            return new CharacterCard(id, json);
+        case "monster":
+            return new MonsterCard(id, json);
+        case "bsoul":
+            return new BsoulCard(id, json);
+        default:
+            console.log(`Unknown card: ${json}, adding as generic Card.`);
+            return new Card(id, json);
+    }
+}
+
 class CardSet {
     protected _set: Card[];
     protected _type: string;
@@ -714,28 +810,7 @@ class CardSet {
         this._set = []
     }
     addCard(json: GenericCardType) : void{
-        if(json.type === "loot") {
-            this._set.push(new LootCard(this._set.length, json));
-        }
-        else if(json.type === "treasure") {
-            this._set.push(new treasureCard(this._set.length, json ));
-        }
-        else if(json.type === "eternal") {
-            this._set.push(new eternalCard(this._set.length, json ));
-        }
-        else if(json.type === "character") {
-            this._set.push(new CharacterCard(this._set.length, json ));
-        }
-        else if(json.type === "monster") {
-            this._set.push(new MonsterCard(this._set.length, json ));
-        }
-        else if(json.type === "bsoul") {
-            this._set.push(new BsoulCard(this._set.length, json ));
-        }
-        else{
-            console.log(`Unknown card: ${json}, adding as generic Card.`);
-            this._set.push(new Card(this._set.length, json ));
-        }
+        this._set.push(createCardFromJson(this._set.length, json));
         return;
     }
     get(id: number) : Card {
@@ -1046,4 +1121,4 @@ function randomCardFromSet(set: CardSet) : Card {
     return card;
 }
 
-export { Card, LootCard, treasureCard, MonsterCard, BsoulCard, CharacterCard, eternalCard, MonsterType, InplayType, CardSet, Deck, Hand, LoadsCardSets, LoadDecks, randomCardFromSet, isSameSlug };
+export { Card, LootCard, treasureCard, MonsterCard, BsoulCard, CharacterCard, eternalCard, MonsterType, InplayType, CardSet, Deck, Hand, LoadsCardSets, LoadDecks, randomCardFromSet, isSameSlug, createCardFromJson };

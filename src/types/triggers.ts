@@ -30,6 +30,7 @@ export type TriggerEvent =
     | "on:get:monster:evasion"
     | "on:enter:play:after"
     | "on:item:activated"
+    | "on:priority:passes"
     | "on:item:purchase"
     | "on:item:destroyed"
     | "on:enter:play"

@@ -26,6 +26,11 @@ export class TurnHandler {
         return this._isInitialized;
     }
 
+    get priorityOrder(): Player[] {
+        const idx = this._baseOrder.findIndex(p => p.id === this.current.id);
+        return this._baseOrder.slice(idx).concat(this._baseOrder.slice(0, idx));
+    }
+
     get current(): Player {
         return this._remainingTurnsInRound[0]!;
     }

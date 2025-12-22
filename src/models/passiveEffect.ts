@@ -122,6 +122,24 @@ export function permanentStatModifierEffect(
     };
 }
 
+export function noPriorityPassesOnYourTurnEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offPriorityPasses: (() => void) | null = null;
+        // Listen for priority passes on this player
+        offPriorityPasses = game.emitter.on("on:priority:passes", ({ eventIssuer, order }) => {
+            if (data.issuer !== eventIssuer) return;
+            // Clear the array by setting length to 0 (mutates the array)
+            order.length = 0;
+        });
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offPriorityPasses?.();
+            offPriorityPasses = null;
+        });
+        return true;
+    };
+}
+
 export function setNextDamageToXEffect(setTo: number, game: Game): EffectFunction {
     return (data:EffectData) => {
         let offDamage: (() => void) | null = null;

@@ -355,6 +355,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             return passive.lootDoubleThisTurnEffect(game);
         case "before a dice is rolled, choose a number. if the next roll is that number, loot 3.":
             return passive.lootOnNextRollEffect(game);
+        case "other players can't play loot cards or activate items on your turn.":
+            return passive.noPriorityPassesOnYourTurnEffect(game);
         case "the next time you play a non-trinket, non-ambush loot card this turn, copy it.":
             return passive.copyNextNonTrinketNonAmbushLootThisTurnEffect(game);
         case "you gain +1 [atk] till the end of turn.":
@@ -516,6 +518,10 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             return active.swapWithNonEternalItemEffect(game);
         case "this copies a ↷ ability of a non-eternal item.":
             return active.copyTapAbilityEffect(game);
+        case "choose a non-eternal item. this becomes a copy of that item.\n(this change is indefinite.)":
+            return active.becomesCopyOfItemIndefinitelyEffect(game);
+        case "choose a non-eternal passive item. this becomes a copy of that item till end of turn.":
+            return active.becomesCopyOfItemUntilEndOfTurnEffect(game);
         case "you may put any number of shop items into discard.":
             return active.discardAnyNumberOfShopItemsEffect(game);
         case "cancel the ↷ or $ ability of an item.":
@@ -742,6 +748,10 @@ export function targetSelectorParser(s:string, game: Game): TargetsSelector[] {
         return [{description: "Choose a monster", selector: (issuer: Player) => game.monsters}];
     }
     if (s === "choose a non-eternal passive item.")
+        return [{description: "Choose a non-eternal passive item", selector: inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false && card.subtype === "passive", game)}];
+    if (s === "choose a non-eternal item. this becomes a copy of that item.\n(this change is indefinite.)")
+        return [{description: "Choose a non-eternal item", selector: inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false, game)}];
+    if (s === "choose a non-eternal passive item. this becomes a copy of that item till end of turn.")
         return [{description: "Choose a non-eternal passive item", selector: inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false && card.subtype === "passive", game)}];
     if (s === "choose a player or monster, then roll- deal damage to them equal to the result." ||
         s === "choose a player or monster, then roll-\ndeal damage to them equal to the result." ||

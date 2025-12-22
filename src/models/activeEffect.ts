@@ -242,8 +242,66 @@ export function swapWithNonEternalItemEffect(game: Game): EffectFunction {
 
 export function copyTapAbilityEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
-        const itemToCopy = game.select(data.issuer, 1, game.inPlayItems.filter((card) => card instanceof ItemCard && card.eternal === false)).selected[0]! as ItemCard;
-        const effectToCopy = itemToCopy.tryActivateEffect();
+        const itemToCopy = data.targets[0] as ItemCard;
+        const activeEffect = itemToCopy.getActiveEffect();
+        if (!activeEffect)
+            throw new Error(`Item ${itemToCopy.name} has no active effect to copy.`);
+        return activeEffect.effectFunction({ it: data.it, issuer: data.issuer, targets: data.targets[1] });
+    };
+}
+
+export function becomesCopyOfItemIndefinitelyEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const itemToCopy = data.targets[0] as ItemCard;
+        const thisItem = data.it as ItemCard;
+        
+        // Get the owner
+        const owner = game.getOwner(thisItem);
+        if (!owner) return false;
+        
+        // Create a temporary copy to get the JSON from
+        const templateCopy = game.copyCard(itemToCopy) as ItemCard;
+        
+        // Transform this card to become the copy, with effect attachment
+        thisItem.becomesCopyOf(templateCopy, (card) => {
+            game.attachEffectsToCard(card);
+        });
+        
+        // Re-subscribe the new effects with the current owner
+        thisItem.onAddInPlay(owner);
+        
+        return true;
+    };
+}
+
+export function becomesCopyOfItemUntilEndOfTurnEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const itemToCopy = data.targets[0] as ItemCard;
+        const thisItem = data.it as ItemCard;
+        
+        // Get the owner
+        const owner = game.getOwner(thisItem);
+        if (!owner) return false;
+        
+        // Create a temporary copy to get the JSON from
+        const templateCopy = game.copyCard(itemToCopy) as ItemCard;
+        
+        // Transform this card to become the copy and get the restore function
+        const { restore } = thisItem.becomesCopyOf(templateCopy, (card) => {
+            game.attachEffectsToCard(card);
+        });
+        
+        // Re-subscribe the new effects
+        thisItem.onAddInPlay(owner);
+        
+        // Subscribe to end of turn event to restore the original card
+        const unsubscribe = game.emitter.on("on:turn:end", (event) => {
+            if (event.eventIssuer === owner) {
+                restore(); // restore() will call cleanup() internally
+                unsubscribe();
+            }
+        });
+        
         return true;
     };
 }
