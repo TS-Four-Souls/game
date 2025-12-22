@@ -144,8 +144,6 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         s !== "you may look at the top card of the treasure deck at any time on your turn."
         )
         return parseYouMayEffect(s, game);
-    if (s.startsWith("[paid effect] "))
-        return active.paidEffect(s, game);
     if (s.startsWith("choose one-"))
         return active.chooseOneEffect(s, game);
     if (s.startsWith("roll-"))

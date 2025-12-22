@@ -15,6 +15,7 @@ export type EffectType =
 export class Effect {
     protected _description: string;
     protected _effectFunction: EffectFunction;
+    protected _paymentFunction?: EffectFunction;
     protected _targetsSelector: TargetsSelector[];
     protected _cleanup: () => void = () => {};
     protected _type: EffectType;
@@ -25,12 +26,14 @@ export class Effect {
         effectFunction: EffectFunction
             = (data: EffectData) => { return true; },
         targetsSelector: TargetsSelector[]
-            = [{ description: "", selector: (issuer: Player) => [] }]
+            = [{ description: "", selector: (issuer: Player) => [] }],
+        paymentFunction?: EffectFunction
     ) {
         this._description = description;
         this._type = type;
         this._effectFunction = effectFunction;
         this._targetsSelector = targetsSelector;
+        this._paymentFunction = paymentFunction;
     }
 
     get description(): string {
@@ -48,6 +51,21 @@ export class Effect {
 
     get type(): EffectType {
         return this._type;
+    }
+
+    hasPayment(): boolean {
+        return this._paymentFunction !== undefined;
+    }
+
+    executePayment(data: EffectData): boolean {
+        if (!this._paymentFunction) {
+            throw new Error("Cannot execute payment: no payment function defined");
+        }
+        return this._paymentFunction(data);
+    }
+
+    execute(data: EffectData): boolean {
+        return this._effectFunction(data);
     }
 
     // Target validation methods
@@ -246,13 +264,29 @@ class EffectInterface {
         this.passiveEffects.subscribeAll(owner, this.it);
     }
 
-    paidEffect(issuer: Entity, targets: any[], effectId: number): boolean {
+    paidEffect(issuer: Entity, targets: any[], effectId: number): EffectOnStack | null {
         const effect = this.activeEffects.getPaidEffect(effectId);
-        return effect.effectFunction({ it: this.it, issuer: issuer as Player, targets: targets });
+        const data = { it: this.it, issuer: issuer as Player, targets: targets };
+        
+        // Execute payment if it exists
+        if (effect.hasPayment()) {
+            const paymentData = { it: this.it, issuer: issuer as Player, targets: targets[0] || [] };
+            if (!effect.executePayment(paymentData)) {
+                return null; // Payment failed
+            }
+            // Create EffectOnStack with the effect function and targets[1] for paid effects
+            const effectData = { it: this.it, issuer: issuer as Player, targets: targets[1] || [] };
+            return new EffectOnStack(effect.effectFunction, effectData, effect.description);
+        }
+        
+        // No payment required, execute effect directly with all targets
+        return new EffectOnStack(effect.effectFunction, data, effect.description);
     }
     
-    tapEffect(issuer: Entity, targets: any[]): boolean {
-        return this.activeEffects.activate(issuer, this.it, targets);
+    tapEffect(issuer: Entity, targets: any[]): EffectOnStack {
+        const effect = this.activeEffects.getActiveEffect();
+        const data = { it: this.it, issuer: issuer as Player, targets: targets };
+        return new EffectOnStack(effect.effectFunction, data, effect.description);
     }
     // activeEffect(issuer: Entity, targets: any[], effectId: number): void {
     //     this.activeEffects.pay(issuer, this.it, targets, effectId);
@@ -417,34 +451,6 @@ class Card {
         return false;
     }
 
-    activate(targets: any[], effectId: number | "tap"): boolean {
-        // Implement shovel and blank card before uncommenting this
-        // switch (this._effectInterface.getEffectType(effectId)) {
-        //     case "active":
-        //         this._effectInterface.activeEffect(this._owner, targets, effectId);
-        //         this._charged = false;
-        //         return true;
-        //     case "paid":
-        //         this._effectInterface.activeEffect(this._owner, targets, effectId);
-        //         return true;
-        //     default:
-        //         break;
-        // }
-        // return false;
-        // Temporary implementation until shovel and blank card are done, assuming effectId 0 is active effect.
-        switch (effectId) {
-            case "tap":
-                if (this._charged === true) {
-                    this._effectInterface.tapEffect(this._owner, targets);
-                    this._charged = false;
-                    return true;
-                }
-                break;
-            default:
-                return this._effectInterface.paidEffect(this._owner, targets, effectId);
-        }
-        return false;
-    }
     onAddInPlay(owner: Player): void {
         this._owner = owner;
         this._effectInterface.subscribeAll(owner);
@@ -588,8 +594,18 @@ export class ItemCard extends Card {
     isGuppy(): boolean {
         return this._guppy;
     }
-    tryActivateEffect(targets: any[] = [], effectId: number | "tap" = "tap" ): boolean {
-        return this.activate(targets, effectId);
+    tryActivateEffect(targets: any[] = [], effectId: number | "tap" = "tap" ): EffectOnStack | null {
+        switch (effectId) {
+            case "tap":
+                if (this._charged === true) {
+                    this._charged = false;
+                    return this._effectInterface.tapEffect(this._owner, targets);
+                }
+                break;
+            default:
+                return this._effectInterface.paidEffect(this._owner, targets, effectId);
+        }
+        return null;
     }
     setEternal(eternal: boolean): void {
         this._eternal = eternal;
@@ -678,26 +694,6 @@ class CharacterCard extends ItemCard {
         }
         this._eternal = true;
     }
-
-    // onTapChara(targets: any[] = []): void {
-    //     if(this._owner === undefined) {
-    //         throw new Error("CharacterCard has no owner assigned.");
-    //     }
-    //     if (this.charged) {
-    //         this.charged = false;
-    //         // Get the active effect and execute it directly
-    //         const activeEffect = this._effectInterface.getActiveEffect(0);
-    //         if (activeEffect) {
-    //             // Validate targets before calling effect function
-    //             if (activeEffect.targetStillValid(this._owner, targets)) {
-    //                 activeEffect.effectFunction({ it: this, issuer: this._owner, targets: targets });
-    //             } else {
-    //                 console.log("CharacterCard.onTapChara: targetStillValid() returned false for", this.name);
-    //             }
-    //         }
-    //     }
-    // }
-
     onRemoveFromPlay(): void {
 
     }
@@ -866,6 +862,26 @@ function LoadsCardSets(json_array: GenericCardType[]) : {[key: string]: CardSet}
         set.addCard(card_json);
     }
     return sets;
+}
+
+export class EffectOnStack {
+    protected _effectFunction: EffectFunction
+    protected _data: EffectData;
+    protected _description: string;
+
+    constructor(effectFunction: EffectFunction, data: EffectData, description: string) {
+        this._effectFunction = effectFunction;
+        this._data = data;
+        this._description = description;
+    }
+
+    onResolve(): boolean {
+        return this._effectFunction(this._data);
+    }
+
+    get json(): string {
+        return JSON.stringify({ issuer: this._data.issuer, targets: this._data.targets, card: this._data.it, effect: this._description });
+    }
 }
 class Deck {
     _type: string;

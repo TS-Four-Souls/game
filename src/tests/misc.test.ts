@@ -55,12 +55,15 @@ describe("Before start effects", () => {
         const initialLootPlays1 = player1.remainingLootPlay;
         const initialLootPlays2 = player2.remainingLootPlay;
         character1.recharge();
-        character1.tryActivateEffect();
+        game.activateItem(player1, character1, );
+        game.resolveStack();
         expect(player1.remainingLootPlay).toBe(initialLootPlays1 + 1);
-        character1.tryActivateEffect(); // uncharged tap should do nothing
+        game.activateItem(player1, character1, ); // uncharged tap should do nothing
+        game.resolveStack();
         expect(player1.remainingLootPlay).toBe(initialLootPlays1 + 1);
         character2.recharge();
-        character2.tryActivateEffect();
+        game.activateItem(player2, character2, );
+        game.resolveStack();
         expect(player2.remainingLootPlay).toBe(initialLootPlays2 + 1);
 
         game.endTurn();

@@ -34,6 +34,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         game.recharge(placebo);
         game.activateItem(player1, placebo, [sackOfPennies]);
         game.resolveStack();
+        game.resolveStack();
 
         // Player should gain 1¢
         expect(player1.coins).toBe(initialCoins + 1);
@@ -55,6 +56,8 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         game.recharge(placebo);
         game.activateItem(player1, placebo, [mrBoom, [monster]]);
         game.resolveStack();
+        game.resolveStack();
+        game.resolveStack();
 
         // Monster should take 1 damage
         expect(monster.currentHealthPoints).toBe(initialHP - 1);
@@ -71,6 +74,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         // Recharge placebo and activate it to copy razor_blade
         game.recharge(placebo);
         game.activateItem(player1, placebo, [razorBlade, [player2]]);
+        game.resolveStack();
         game.resolveStack();
 
         // Player2 should take 1 damage
@@ -216,11 +220,13 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         game.recharge(placebo);
         game.activateItem(player1, placebo, [sackOfPennies]);
         game.resolveStack();
+        game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 1);
 
         // Second use - copy razor_blade
         game.recharge(placebo);
         game.activateItem(player1, placebo, [razorBlade, [player2]]);
+        game.resolveStack();
         game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 1);
     });
@@ -365,6 +371,7 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
         game.recharge(modelingClay);
         game.activateItem(player1, modelingClay, [razorBlade]);
         game.resolveStack();
+        game.resolveStack();
 
         const initialHP = player2.currentHealthPoints;
 
@@ -372,10 +379,12 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
         game.recharge(modelingClay);
         game.activateItem(player1, modelingClay, [player2]);
         game.resolveStack();
+        game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 1);
 
         game.recharge(modelingClay);
         game.activateItem(player1, modelingClay, [player2]);
+        game.resolveStack();
         game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 2);
     });

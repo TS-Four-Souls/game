@@ -114,25 +114,6 @@ export function look1EachDeckEffect(game: Game): EffectFunction {
     };
 }
 
-export function paidEffect(s: string, game: Game): EffectFunction {
-    const s2 = s.replace("[paid effect] ", "").trim();
-    const idx = s2.indexOf(":");
-    const lines = [s2.substring(0, idx), s2.substring(idx + 1)].map(line => line.trim());
-    if (lines.length < 2) {
-        throw new Error(`invalid 'paid' effect format. s=${s}$ lines=${lines}$`);
-    }
-    const paiement = effectParser(lines[0]!, game);
-    const effect = effectParser(lines[1]!, game);
-
-    return (data: EffectData) => {
-        const data1 = { it: data.it, issuer: data.issuer, targets: data.targets[0] };
-        const data2 = { it: data.it, issuer: data.issuer, targets: data.targets[1] };
-        if(paiement(data1)) {
-            return effect(data2);
-        }
-        return false;
-    };
-}
 
 export function removeCountersEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {

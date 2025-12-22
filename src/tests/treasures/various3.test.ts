@@ -40,6 +40,7 @@ describe("Tap/Paid effects 1", () => {
     //     // Recharge and activate compost (sets up listener)
     //     game.recharge(compost);
     //     game.activateItem(player1, compost);
+        // game.resolveStack();
 
     //     // Loot should come from discard (resolves the effect)
     //     game.loot(player1, 1);
@@ -56,6 +57,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate compost
         game.recharge(compost);
         game.activateItem(player1, compost);
+        game.resolveStack();
         game.resolveStack();
 
         // Loot from empty discard should still loot from deck
@@ -78,6 +80,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Activate paid effect with 2 items to destroy and target item to steal
         game.activateItem(player1, contractFromBelow, [[item1, item2], [targetItem]], 0);
+        game.resolveStack();
         game.resolveStack();
 
         // Two items should be destroyed
@@ -102,6 +105,7 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(decoy);
         game.activateItem(player1, decoy, [targetItem]);
         game.resolveStack();
+        game.resolveStack();
 
         // Items should be swapped
         expect(player1.inPlay).not.toContain(decoy);
@@ -121,6 +125,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Activate paid effect with item to give and player to give to
         game.activateItem(player1, donationMachine, [[itemToGive, player2], []], 0);
+        game.resolveStack();
         game.resolveStack();
 
         // Item should be given to player2
@@ -143,6 +148,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate glass_cannon with target item
         game.recharge(glassCannon);
         game.activateItem(player1, glassCannon, [targetItem]);
+        game.resolveStack();
 
         // Target item should be destroyed first (on stack)
         expect(game.stack.size).toBeGreaterThan(0);
@@ -176,6 +182,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate glass_cannon with target item
         game.recharge(glassCannon);
         game.activateItem(player1, glassCannon, [targetItem]);
+        game.resolveStack();
 
         // Get the dice from the stack and set its value to 6
         const dice = game.stack.elements[0] as DiceRoll;
@@ -256,6 +263,7 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(boomerang);
         game.activateItem(player1, boomerang, [player2]);
         game.resolveStack();
+        game.resolveStack();
 
         // Player2 should have 1 less card, player1 should have 1 more
         expect(player2.hand.length).toBe(player2HandSize - 1);
@@ -276,6 +284,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate boomerang targeting player2
         game.recharge(boomerang);
         game.activateItem(player1, boomerang, [player2]);
+        game.resolveStack();
         game.resolveStack();
 
         // Nothing should change
@@ -300,6 +309,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate box
         game.recharge(box);
         game.activateItem(player1, box);
+        game.resolveStack();
         game.resolveStack();
 
         // Box should be destroyed
@@ -335,6 +345,7 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(chaos);
         game.activateItem(player1, chaos);
         game.resolveStack();
+        game.resolveStack();
 
         // Player1 should have player2's cards, player2 should have player1's cards
         expect(player1.hand.cards).toContain(p2Card1);
@@ -365,6 +376,7 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(guppysHead);
         game.activateItem(player1, guppysHead, [player2]);
         game.resolveStack();
+        game.resolveStack();
 
         // Player2 should have given a card to player1
         expect(player2.hand.length).toBe(player2HandSize - 1);
@@ -386,6 +398,7 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(guppysHead);
         game.activateItem(player1, guppysHead, [player2]);
         game.resolveStack();
+        game.resolveStack();
 
         // Player2 has no cards, so no card should be transferred
         expect(player2.hand.length).toBe(0);
@@ -401,6 +414,7 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(pandorasBox);
         game.activateItem(player1, pandorasBox);
+        game.resolveStack();
 
         // Get the dice from the stack and set value to 1
         const dice = game.stack.elements[0] as DiceRoll;
@@ -422,6 +436,7 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(pandorasBox);
         game.activateItem(player1, pandorasBox);
+        game.resolveStack();
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
@@ -441,6 +456,7 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(pandorasBox);
         game.activateItem(player1, pandorasBox);
+        game.resolveStack();
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3;
@@ -461,6 +477,7 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(pandorasBox);
         game.activateItem(player1, pandorasBox);
+        game.resolveStack();
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4;
@@ -480,6 +497,7 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(pandorasBox);
         game.activateItem(player1, pandorasBox);
+        game.resolveStack();
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5;
@@ -499,6 +517,7 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(pandorasBox);
         game.activateItem(player1, pandorasBox);
+        game.resolveStack();
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
@@ -528,6 +547,7 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(theShovel);
         game.activateItem(player1, theShovel);
         game.resolveStack();
+        game.resolveStack();
 
         // monster2 should be on top of the deck
         expect(game.decks["monster"]!.cards[0]).toBe(monster2);
@@ -550,6 +570,7 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(theD4);
         game.activateItem(player1, theD4, [[], [player1]]);
+        game.resolveStack();
         game.resolveStack(); // Resolve destroy d4
         game.resolveStack(); // Resolve reroll items
 
@@ -579,6 +600,7 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(luckyFoot);
         game.activateItem(player1, luckyFoot, [dice, 2]);
         game.resolveStack();
+        game.resolveStack();
 
         expect(dice.value).toBe(5);
     });
@@ -595,6 +617,7 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(miniMush);
         game.activateItem(player1, miniMush, [dice, 2]);
         game.resolveStack();
+        game.resolveStack();
 
         expect(dice.value).toBe(3);
     });
@@ -610,6 +633,7 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(miniMush);
         game.activateItem(player1, miniMush, [dice, 1]);
+        game.resolveStack();
         // game.resolveStack();
 
         expect(dice.value).toBe(4);
@@ -633,6 +657,7 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(momsShovel);
         game.activateItem(player1, momsShovel);
+        game.resolveStack();
         game.resolveStack(); // Resolve destroy moms_shovel
         game.resolveStack(); // Resolve steal soul
 
@@ -662,6 +687,7 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(momsBra);
         game.activateItem(player1, momsBra, [monster]);
         game.resolveStack();
+        game.resolveStack();
 
         // Deal 5 damage to monster - should be reduced to 1
         game.dealDamage(player1, monster, momsBra, 5);
@@ -680,6 +706,7 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(momsBra);
         game.activateItem(player1, momsBra, [player2]);
         game.resolveStack();
+        game.resolveStack();
 
         // Deal 5 damage to player2 - should be reduced to 1
         game.dealDamage(player1, player2, momsBra, 5);
@@ -697,6 +724,7 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(twoOfClubs);
         game.activateItem(player1, twoOfClubs, [player2]);
         game.resolveStack();
+        game.resolveStack();
 
         // Player2 loots 2, should get 4 cards instead
         game.loot(player2, 2);
@@ -710,6 +738,7 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(twoOfClubs);
         game.activateItem(player1, twoOfClubs, [player2]);
+        game.resolveStack();
         game.resolveStack();
 
         // Loot during turn - doubled
@@ -743,6 +772,7 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(crystalBall);
         game.activateItem(player1, crystalBall, [4]);
         game.resolveStack();
+        game.resolveStack();
 
         // Roll a 4 - should loot 3
         const dice = player1.rollDice();
@@ -766,6 +796,7 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(crystalBall);
         game.activateItem(player1, crystalBall);
+        game.resolveStack();
         game.resolveStack();
 
         // Roll a 5 (not 4) - should not loot
@@ -791,6 +822,7 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(blankCard);
         game.activateItem(player1, blankCard);
         game.resolveStack();
+        game.resolveStack();
 
         // Play a penny - effect should be copied (gain 1¢ twice)
         game.playCard(player1, lootCardIndex);
@@ -814,6 +846,7 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(blankCard);
         game.activateItem(player1, blankCard);
         game.resolveStack();
+        game.resolveStack();
 
         // Play trinket - should not be copied
         player1.playLootCard(trinketIndex);
@@ -835,6 +868,7 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(hostHat);
         game.activateItem(player1, hostHat);
         game.resolveStack();
+        game.resolveStack();
 
         // Deal 3 damage to player1 - should prevent 1 and deal 1 to player2
         game.dealDamage(player1, player1, hostHat, 3);
@@ -854,6 +888,7 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(hostHat);
         game.activateItem(player1, hostHat);
+        game.resolveStack();
         game.resolveStack();
 
         const player1HpAfterActivation = player1.currentHealthPoints;

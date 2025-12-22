@@ -121,6 +121,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         // Activate the battery
         game.recharge(battery);
         game.activateItem(player1, battery);
+        game.resolveStack();
 
         // Player should gain 1¢
         expect(player1.coins).toBe(initialCoins + 1);
@@ -139,8 +140,10 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         // Activate both items
         game.recharge(battery1);
         game.activateItem(player1, battery1);
+        game.resolveStack();
         game.recharge(battery2);
         game.activateItem(player1, battery2); // gain 1 coin
+        game.resolveStack();
 
         // Player should gain 2¢ (1¢ per activation)
         expect(player1.coins).toBe(initialCoins + 3);

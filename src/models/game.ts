@@ -22,6 +22,7 @@ import {
   ItemCard,
   LootCard,
   LootCardEffect,
+  EffectOnStack,
   InplayType,
   treasureCard,
   BsoulCard,
@@ -51,7 +52,7 @@ const LOG_GAME = false;
 export const cards = await loadCards(process.cwd() + "/data/cards");
 const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
 
-// for(const card of cardSets["treasure"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug))){
+// for(const card of cardSets["monster"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug))){
 //   // if((card as LootCard).trinket)
 //   for (const cardEffect of card.effectOutcomes)
 //     console.log(card.slug, [cardEffect]);
@@ -561,10 +562,12 @@ export class Game {
 
   resolveStack() {
     let elem = this.stack.resolve();
+    if (!elem) return;
     if (elem instanceof LootCardEffect) elem.onResolve();
     else if (elem instanceof DiceRoll) this.resolveDiceRoll(elem);
     else if (elem instanceof DeathOnStack) elem.onResolve();
     else if (elem instanceof DamageOnStack) elem.onResolve();
+    else if (elem instanceof EffectOnStack) elem.onResolve();
     this._onStateChange.dispatch();
   }
 
@@ -843,11 +846,15 @@ export class Game {
     return this.activateItem(player, item, targets, effectId);
   }
   activateItem(player: Player, item: ItemCard, targets: any[] = [], effectId: number | "tap" = "tap" ): boolean {
-    if (player.activateItem(item, targets, effectId) && effectId === "tap") {
-      this.emitter.emit("on:item:activated", {
-        eventIssuer: player,
-        item: item,
-      });
+    const effectOnStack = player.activateItem(item, targets, effectId);
+    if (effectOnStack) {
+      this.addToStack(effectOnStack);
+      if (effectId === "tap") {
+        this.emitter.emit("on:item:activated", {
+          eventIssuer: player,
+          item: item,
+        });
+      }
       return true;
     }
     return false;
@@ -903,13 +910,40 @@ export class Game {
 
     for (const outcome of card.effectOutcomes) {
       const effectType = this.getEffectTypeFromOutcome(outcome, card);
-      const effect: Effect = new Effect(
-        outcome,
-        effectType,
-        effectParser(outcome, this),
-        targetSelectorParser(outcome, this)
-      );
-      card.addEffect(effect);
+      
+      // Handle paid effects separately to extract payment and effect functions
+      if (effectType === "paid") {
+        const s2 = outcome.replace("[paid effect] ", "").replace("[Paid Effect] ", "").trim();
+        const idx = s2.indexOf(":");
+        
+        if (idx === -1) {
+          throw new Error(`Invalid paid effect format (missing ':'): ${outcome}`);
+        }
+        
+        const paymentString = s2.substring(0, idx).trim();
+        const effectString = s2.substring(idx + 1).trim();
+        
+        const paymentFunction = effectParser(paymentString, this);
+        const effectFunction = effectParser(effectString, this);
+        
+        const effect: Effect = new Effect(
+          outcome,
+          effectType,
+          effectFunction,
+          targetSelectorParser(outcome, this),
+          paymentFunction
+        );
+        card.addEffect(effect);
+      } else {
+        // Regular effects (passive/active)
+        const effect: Effect = new Effect(
+          outcome,
+          effectType,
+          effectParser(outcome, this),
+          targetSelectorParser(outcome, this)
+        );
+        card.addEffect(effect);
+      }
     }
   }
 
