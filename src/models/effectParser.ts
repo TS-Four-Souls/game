@@ -1,5 +1,5 @@
 import { DamageOnStack, DiceRoll, Player } from "./player";
-import { type Card, LootCard, type EffectFunction, type TargetsSelector, ItemCard, MonsterCard, InplayType, BsoulCard, type EffectData } from "./cards";
+import { type Card, LootCard, type EffectFunction, type TargetsSelector, ItemCard, MonsterCard, InplayType, BsoulCard, type EffectData, EffectOnStack, LootCardEffect } from "./cards";
 import { Game } from "./game";
 import type { Entity } from "./entity";
 import { effect } from "zod/v3";
@@ -684,11 +684,6 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
                 (data.it as ItemCard).recharge();
                 return true;
             };
-        case "cancel the ↷ or $ ability of an item.":
-            return (data:EffectData) => {
-                game.cancelAt(data.targets[0] as number);
-                return true;
-            }
         case "this becomes a soul. gain it.":
             return (data:EffectData) => { 
                 game.removeInPlay(data.issuer, data.it);
@@ -719,8 +714,10 @@ export function targetSelectorParser(s:string, game: Game): TargetsSelector[] {
         coinStolen !== null) {
         return [{description: "Choose another player", selector: anotherPlayerSelector(undefined, game)}];
     }
+    if (s === "cancel the ↷ or $ ability of an item.")
+        return [{ description: "Select a loot card on the stack.", selector: stackElementSelector((element) => element instanceof EffectOnStack, game) }];
     if (s === "cancel the ↷ or $ ability of an item or a loot being played.")
-        return [{description: "Select a loot card on the stack.", selector: stackElementSelector((element) => element instanceof LootCard, game)}];
+        return [{ description: "Select a loot card on the stack.", selector: stackElementSelector((element) => element instanceof LootCardEffect || element instanceof EffectOnStack, game)}];
     if (s.startsWith("choose a player.") ||
         s === "kill a player.") {
         return [{description: "Choose a player", selector: playerSelector(undefined, game)}];
