@@ -294,7 +294,8 @@ describe("Tap/Paid effects 2", () => {
         }
         
         game.addInPlay(player1, emptyVessel);
-        
+        game.resolveStack();
+
         // Player1 now has 0 cards
         expect(player1.hand.length).toBe(0);
         expect(player1.attackPoints).toBe(2); // 1 base + 1 from empty hand
@@ -313,13 +314,15 @@ describe("Tap/Paid effects 2", () => {
     it("empty_vessel - ATK bonus activates when hand becomes empty", () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
         game.addInPlay(player1, emptyVessel);
-        
+        game.resolveStack();
+
         // Start with empty hand and bonus
         expect(player1.hand.length).toBe(0);
         expect(player1.attackPoints).toBe(2);
         
         // Loot some cards
         game.loot(player1, 2);
+        game.resolveStack();
         expect(player1.hand.length).toBe(2);
         expect(player1.attackPoints).toBe(1); // Bonus deactivated
         
@@ -327,7 +330,8 @@ describe("Tap/Paid effects 2", () => {
         const cards = [...player1.hand.cards];
         game.removeCardFromHand(player1, cards[0]! as LootCard);
         game.removeCardFromHand(player1, cards[1]! as LootCard);
-        
+        game.resolveStack();
+
         expect(player1.hand.length).toBe(0);
         expect(player1.attackPoints).toBe(2); // Bonus reactivated!
     });
@@ -336,13 +340,16 @@ describe("Tap/Paid effects 2", () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
         game.addInPlay(player1, emptyVessel);
         
+        game.resolveStack();
         // Add a card
         game.loot(player1, 1);
+        game.resolveStack();
         expect(player1.attackPoints).toBe(1); // No bonus
         
         // Discard the card using game method
         game.discardFromHand(player1, 1);
-        
+        game.resolveStack();
+
         expect(player1.hand.length).toBe(0);
         expect(player1.attackPoints).toBe(2); // Bonus reactivated
     });
@@ -350,9 +357,11 @@ describe("Tap/Paid effects 2", () => {
     it("empty_vessel - ATK bonus responds to giveCard", () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
         game.addInPlay(player1, emptyVessel);
-        
+        game.resolveStack();
+
         // Give player1 some cards
         game.loot(player1, 2);
+        game.resolveStack();
         expect(player1.attackPoints).toBe(1); // No bonus with cards
         
         // Give all cards to player2
@@ -360,6 +369,7 @@ describe("Tap/Paid effects 2", () => {
         for (const card of cards) {
             game.giveCard(player1, player2, card as LootCard);
         }
+        game.resolveStack();
         
         expect(player1.hand.length).toBe(0);
         expect(player1.attackPoints).toBe(2); // Bonus reactivated
@@ -368,16 +378,19 @@ describe("Tap/Paid effects 2", () => {
     it("empty_vessel - ATK bonus responds to stealLootCard", () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
         game.addInPlay(player1, emptyVessel);
-        
+        game.resolveStack();
+
         // Give player1 one card
         game.loot(player1, 1);
+        game.resolveStack();
         expect(player1.attackPoints).toBe(1); // No bonus
         
         const stolenCard = player1.hand.cards[0] as LootCard;
         
         // Player2 steals the card
         game.stealLootCard(player2, player1, stolenCard);
-        
+        game.resolveStack();
+
         expect(player1.hand.length).toBe(0);
         expect(player1.attackPoints).toBe(2); // Bonus reactivated after being stolen from
     });
@@ -385,19 +398,22 @@ describe("Tap/Paid effects 2", () => {
     it("empty_vessel - receiving stolen card deactivates ATK bonus", () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
         game.addInPlay(player1, emptyVessel);
-        
+        game.resolveStack();
+
         // Player1 has empty hand with bonus
         expect(player1.hand.length).toBe(0);
         expect(player1.attackPoints).toBe(2);
         
         // Give player2 a card
         game.loot(player2, 1);
+        game.resolveStack();
         const cardToSteal = player2.hand.cards[0] as LootCard;
         
         // Player1 steals from player2
         game.stealLootCard(player1, player2, cardToSteal);
         
         expect(player1.hand.length).toBe(1);
+        game.resolveStack();
         expect(player1.attackPoints).toBe(1); // Bonus deactivated
     });
 
@@ -427,40 +443,48 @@ describe("Tap/Paid effects 2", () => {
     it("empty_vessel - ATK bonus correctly toggles with rapid hand size changes", () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
         game.addInPlay(player1, emptyVessel);
+        game.resolveStack();
         
         expect(player1.attackPoints).toBe(2); // Start with bonus
         
         // Add card
         const card1 = game.decks["loot"]!.draw() as LootCard;
         game.addCardToHand(player1, card1);
+        game.resolveStack();
         expect(player1.attackPoints).toBe(1);
         
         // Add another
         const card2 = game.decks["loot"]!.draw() as LootCard;
         game.addCardToHand(player1, card2);
+        game.resolveStack();
         expect(player1.attackPoints).toBe(1);
         
         // Remove one
         game.removeCardFromHand(player1, card1);
+        game.resolveStack();
         expect(player1.attackPoints).toBe(1);
         
         // Remove the last
         game.removeCardFromHand(player1, card2);
+        game.resolveStack();
         expect(player1.attackPoints).toBe(2);
         
         // Add again
         const card3 = game.decks["loot"]!.draw() as LootCard;
         game.addCardToHand(player1, card3);
+        game.resolveStack();
         expect(player1.attackPoints).toBe(1);
         
         // Remove again
         game.removeCardFromHand(player1, card3);
+        game.resolveStack();
         expect(player1.attackPoints).toBe(2);
     });
 
     it("empty_vessel - ATK bonus is specific to owner", () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
         game.addInPlay(player1, emptyVessel);
+        game.resolveStack();
         
         // Both players have empty hands
         expect(player1.hand.length).toBe(0);
@@ -472,6 +496,7 @@ describe("Tap/Paid effects 2", () => {
         
         // Give player2 a card (shouldn't affect player1's bonus)
         game.loot(player2, 1);
+        game.resolveStack();
         expect(player1.attackPoints).toBe(2); // Still has bonus
         expect(player2.attackPoints).toBe(1);
     });
@@ -492,6 +517,7 @@ describe("Tap/Paid effects 2", () => {
         while (player1.hand.length > 0) {
             game.discardFromHand(player1, 1);
         }
+        game.resolveStack();
         
         // Now bonus should activate
         expect(player1.hand.length).toBe(0);
@@ -508,6 +534,7 @@ describe("Tap/Paid effects 2", () => {
         
         // Add empty vessel
         game.addInPlay(player1, emptyVessel);
+        game.resolveStack();
         expect(player1.hand.length).toBe(0);
         expect(player1.attackPoints).toBe(2); // Bonus active
         
@@ -894,6 +921,7 @@ describe("Force Attack Monster", () => {
 
             // End turn
             game.endTurn();
+            game.resolveStack();
 
             // On next turn, player2 should not have the constraint
             expect(game.currentPlayer).toBe(player2);
@@ -901,6 +929,7 @@ describe("Force Attack Monster", () => {
 
             // End player2's turn
             game.endTurn();
+            game.resolveStack();
 
             // Back to player1 - constraint should not persist
             expect(game.currentPlayer).toBe(player1);

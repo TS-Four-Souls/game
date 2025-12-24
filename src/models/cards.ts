@@ -880,7 +880,7 @@ export class EffectOnStack {
     }
 
     get json(): string {
-        return JSON.stringify({ issuer: this._data.issuer, targets: this._data.targets, card: this._data.it, effect: this._description });
+        return JSON.stringify({ issuer: this._data.issuer.id, targets: this._data.targets, card: this._data.it.name, effect: this._description });
     }
 }
 class Deck {
@@ -994,6 +994,17 @@ class Deck {
 
     addDiscardTop(card: Card): void {
         this._discard.push(card.id);
+    }
+
+    drawTopDiscard(): Card {
+        if (this._discard.length === 0) {
+            throw new Error(`Cannot draw from empty discard pile of deck type ${this._type}.`);
+        }
+        const id = this._discard.pop()!;
+        if (typeof id === "undefined" || id === null) {
+            throw new Error(`Card id drawn from discard pile is undefined or null in deck of type ${this._type}.`);
+        }
+        return this._set.get(id);
     }
 
     get discard(): Card[] {

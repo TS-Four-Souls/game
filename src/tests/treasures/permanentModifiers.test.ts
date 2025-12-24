@@ -69,60 +69,79 @@ describe("Treasure - Permanent Modifiers", () => {
     it("+1 ATK declaration on your turn", () => {
         const cb = game.shop.obtainCard("b2-champion_belt")!;
         game.endTurn(); // to player2
+        game.resolveStack();
         game.endTurn(); // back to player1
+        game.resolveStack();
         const initialAtkLim = player1.attackThisTurn;
         expect(initialAtkLim).toBe(1); // because it's his turn
         game.addInPlay(player1, cb);
         expect(player1.attackThisTurn).toBe(initialAtkLim + 1);
         game.endTurn();
+        game.resolveStack();
         expect(player1.attackThisTurn).toBe(0);
         game.endTurn();
+        game.resolveStack();
         expect(player1.attackThisTurn).toBe(2);
         game.removeInPlay(player1, cb);
         expect(player1.attackThisTurn).toBe(1);
         game.endTurn();
+        game.resolveStack();
         expect(player1.attackThisTurn).toBe(0);
         game.endTurn();
+        game.resolveStack();
         expect(player1.attackThisTurn).toBe(1);
     });
 
     it("+1 Loot play on your turn", () => {
         const cb = game.shop.obtainCard("b2-polydactyly")!;
         game.endTurn(); // to player2
+        game.resolveStack();
         game.endTurn(); // back to player1
+        game.resolveStack();
         const initialLootPlay = player1.remainingLootPlay;
         expect(initialLootPlay).toBe(1); // because it's his turn
         game.addInPlay(player1, cb);
         expect(player1.remainingLootPlay).toBe(initialLootPlay + 1);
         game.endTurn();
+        game.resolveStack();
         expect(player1.remainingLootPlay).toBe(0);
         game.endTurn();
+        game.resolveStack();
         expect(player1.remainingLootPlay).toBe(2);
         game.removeInPlay(player1, cb);
         expect(player1.remainingLootPlay).toBe(1);
         game.endTurn();
+        game.resolveStack();
         expect(player1.remainingLootPlay).toBe(0);
         game.endTurn();
+        game.resolveStack();
         expect(player1.remainingLootPlay).toBe(1);
     });
 
     it("+1 Loot play on your turn", () => {
         const cb = game.shop.obtainCard("b2-belly_button")!;
         game.endTurn(); // to player2
+        game.resolveStack();
         game.endTurn(); // back to player1
+        game.resolveStack();
         const initialLootPlay = player1.remainingLootPlay;
         expect(initialLootPlay).toBe(1); // because it's his turn
         game.addInPlay(player1, cb);
         expect(player1.remainingLootPlay).toBe(initialLootPlay + 1);
         game.endTurn();
+        game.resolveStack();
         expect(player1.remainingLootPlay).toBe(0);
         game.endTurn();
+        game.resolveStack();
         expect(player1.remainingLootPlay).toBe(2);
         game.removeInPlay(player1, cb);
+        game.resolveStack();
         expect(player1.remainingLootPlay).toBe(1);
         game.endTurn();
+        game.resolveStack();
         expect(player1.remainingLootPlay).toBe(0);
         game.endTurn();
+        game.resolveStack();
         expect(player1.remainingLootPlay).toBe(1);
     });
 
@@ -145,8 +164,8 @@ describe("Treasure - Permanent Modifiers", () => {
                 // The roll should have +1 ATK from Curved Horn
                 attackRoll.value = 6; // Mock roll
             }
-            game.resolveStack();
-            game.resolveStack();
+            game.resolveStack(); // Resolve dice effects
+            game.resolveStack(); // resolve damage
 
             expect(monster.currentHealthPoints).toBe(initialMonsterHealth - baseAttack - 1);
 
@@ -164,13 +183,14 @@ describe("Treasure - Permanent Modifiers", () => {
             expect(monster.currentHealthPoints).toBe(initialMonsterHealth - baseAttack - baseAttack - 1);
             game.removeInPlay(player1, item);
             game.endTurn();
+            game.resolveStack();
         }
     });
 
     it("b2-belly_button: Each time you take damage, you may recharge your character", () => {
         const bellyButton = game.shop.obtainCard("b2-belly_button") as treasureCard;
         const dummyCard = { slug: "test", name: "Test" } as any;
-        
+        game.addHealth(player1, 10); // Ensure player has enough health
         game.addInPlay(player1, bellyButton);
         
         // Character starts uncharged (based on test failures)
@@ -189,7 +209,8 @@ describe("Treasure - Permanent Modifiers", () => {
         const initialHP = player1.currentHealthPoints;
         game.dealDamage(player2, player1, dummyCard, 1);
         game.resolveStack();
-        
+        game.resolveStack(); // resolve on damage taken
+
         // Character should be recharged after taking damage
         expect(player1.currentHealthPoints).toBe(initialHP - 1);
         expect(character.charged).toBe(true);
@@ -201,6 +222,7 @@ describe("Treasure - Permanent Modifiers", () => {
         // Take damage again - should recharge again
         game.dealDamage(player2, player1, dummyCard, 2);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(character.charged).toBe(true);
     });
 
@@ -238,7 +260,8 @@ describe("Treasure - Permanent Modifiers", () => {
             attackRoll.value = 6; // Successful hit
         }
         testGame.resolveStack(); // Resolve dice roll
-        testGame.resolveStack(); // Resolve damage to monster (triggers brimstone effect which adds more to stack)
+        testGame.resolveStack(); // Resolve damage
+        testGame.resolveStack(); // Resolve effect
         testGame.resolveStack(); // Resolve damage to another player (from brimstone)
         
         // One of the other players should have taken 1 damage
@@ -275,6 +298,7 @@ describe("Treasure - Permanent Modifiers", () => {
         game.resolveStack();
         game.resolveStack();
         game.resolveStack();
+        game.resolveStack();
 
         expect(game.stack.size).toBe(0);
         // Player2 should have taken 1 damage from ipecac effect
@@ -286,6 +310,7 @@ describe("Treasure - Permanent Modifiers", () => {
         const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll2).toBeDefined();
         const additional_damage = attackRoll2?.value === 6 ? 1 : 0;
+        game.resolveStack();
         game.resolveStack();
         game.resolveStack();
         

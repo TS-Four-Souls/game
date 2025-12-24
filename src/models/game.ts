@@ -78,6 +78,7 @@ export class Game {
   private _destroyedCards: Card[] = [];
   private _emitter: GameEventEmitter;
   private _bonusSouls: BsoulCard[] = [];
+  private _stackEmptyCallbacks: (() => void)[] = [];
 
   private _onStateChange: Signal<void> = new Signal();
   onStateChange: ReadableSignal<void> = this._onStateChange.readOnly();
@@ -283,29 +284,31 @@ export class Game {
       target: from,
       abilityCard: usingAbilityFrom,
     });
-    receiver.die();
-    if (receiver instanceof Player) {
-      receiver.mustAttackMonster = null;
-      this.deathPenalty(receiver);
-    } else if (receiver instanceof Monster) {
-      // Clear any forced attack constraints on this monster
-      for (const player of this.players) {
-        if (player.mustAttackMonster === receiver) {
-          player.mustAttackMonster = null;
+    this.executeWhenStackEmpty(() => {
+      receiver.die();
+      if (receiver instanceof Player) {
+        receiver.mustAttackMonster = null;
+        this.deathPenalty(receiver);
+      } else if (receiver instanceof Monster) {
+        // Clear any forced attack constraints on this monster
+        for (const player of this.players) {
+          if (player.mustAttackMonster === receiver) {
+            player.mustAttackMonster = null;
+          }
         }
+        this.encounters.kill(receiver);
+        this.emitter.emit("on:monster:died", {
+          eventIssuer: receiver,
+          target: from,
+          abilityCard: usingAbilityFrom,
+        });
       }
-      this.encounters.kill(receiver);
-      this.emitter.emit("on:monster:died", {
+      this.emitter.emit("on:death:after-penalty", {
         eventIssuer: receiver,
         target: from,
         abilityCard: usingAbilityFrom,
       });
-    }
-    this.emitter.emit("on:death:after-penalty", {
-      eventIssuer: receiver,
-      target: from,
-      abilityCard: usingAbilityFrom,
-    });
+  });
   }
 
   declareAttack(player: Player): void {
@@ -569,6 +572,34 @@ export class Game {
     else if (elem instanceof DamageOnStack) elem.onResolve();
     else if (elem instanceof EffectOnStack) elem.onResolve();
     this._onStateChange.dispatch();
+    
+    // If stack is now empty, execute any pending callbacks
+    if (this.stack.isEmpty() && this._stackEmptyCallbacks.length > 0) {
+      const callbacks = [...this._stackEmptyCallbacks];
+      this._stackEmptyCallbacks = [];
+      for (const callback of callbacks) {
+        callback();
+      }
+    }
+  }
+
+  executeWhenStackEmpty(callback: () => void): void {
+    if (this.stack.isEmpty()) {
+      // Stack is already empty, execute immediately
+      callback();
+    } else {
+      // Queue the callback to be executed when stack becomes empty
+      this._stackEmptyCallbacks.push(callback);
+    }
+    
+    // If stack is now empty, execute any pending callbacks
+    if (this.stack.isEmpty() && this._stackEmptyCallbacks.length > 0) {
+      const callbacks = [...this._stackEmptyCallbacks];
+      this._stackEmptyCallbacks = [];
+      for (const callback of callbacks) {
+        callback();
+      }
+    }
   }
 
   cancelStack(): void {
@@ -581,6 +612,7 @@ export class Game {
 
   resetStack(): void {
     this.stack.clear();
+    this.resolveStack();
   }
 
   allHands(): { player: Player; hand: Hand }[] {
@@ -614,9 +646,12 @@ export class Game {
     this.rechargeEachItem(this.currentPlayer);
     const player = this.currentPlayer;
     this.emitter.emit("on:turn:start", { eventIssuer: player });
-    this.lootStep();
-    this.emitter.emit("on:your:turn", { eventIssuer: player });
     this._onStateChange.dispatch();
+    this.executeWhenStackEmpty(() => {
+      this.lootStep();
+      this.emitter.emit("on:your:turn", { eventIssuer: player });
+      this._onStateChange.dispatch();
+    });
   }
 
   discardFromShop(index: number): void {
@@ -640,15 +675,17 @@ export class Game {
     this.assertForcedAttackSatisfied(player);
     this.healEveryone();
     this.emitter.emit("on:turn:end", { eventIssuer: player });
-    for (const player of this.players) {
-      player.resetTurnFlags();
-    }
-    for (const monster of this.monsters) {
-      monster.resetEntityFlags();
-    }
-    this.turnHandler.endTurn();
-    this._onStateChange.dispatch();
-    this.startTurn();
+    this.executeWhenStackEmpty(() => {
+      for (const player of this.players) {
+        player.resetTurnFlags();
+      }
+      for (const monster of this.monsters) {
+        monster.resetEntityFlags();
+      }
+      this.turnHandler.endTurn();
+      this._onStateChange.dispatch();
+      this.startTurn();
+    });
   }
 
   // Get target selectors for a card that a player wants to play

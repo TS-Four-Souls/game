@@ -41,6 +41,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Declare an attack to trigger the effect
         game.declareAttack(player1);
+        game.resolveStack(); // Resolve any stack effects
 
         expect(game.stack.elements.length).toBeGreaterThan(0);
         // Get the dice roll and set it to 1
@@ -68,6 +69,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Declare an attack
         game.declareAttack(player1);
+        game.resolveStack(); // Resolve any stack effects
 
         expect(game.stack.elements.length).toBeGreaterThan(0);
 
@@ -94,6 +96,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Declare an attack
         game.declareAttack(player1);
+        game.resolveStack(); // Resolve any stack effects
 
         expect(game.stack.elements.length).toBeGreaterThan(0);
 
@@ -141,8 +144,10 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         game.recharge(battery1);
         game.activateItem(player1, battery1);
         game.resolveStack();
+        game.resolveStack(); // Resolve any stack effects
         game.recharge(battery2);
         game.activateItem(player1, battery2); // gain 1 coin
+        game.resolveStack(); // Resolve any stack effects
         game.resolveStack();
 
         // Player should gain 2¢ (1¢ per activation)
@@ -197,6 +202,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Kill player1
         game.kill(player2, player1, guppysCollar);
+        game.resolveStack(); // Resolve any stack effects
 
         // Get the dice roll and set it to 2
         expect(game.stack.elements.length).toBeGreaterThan(0);
@@ -220,6 +226,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Kill player1
         game.kill(player2, player1, guppysCollar);
+        game.resolveStack(); // Resolve any stack effects
 
         // Get the dice roll and set it to 5
         expect(game.stack.elements.length).toBeGreaterThan(0);
@@ -249,6 +256,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         // Kill the monster
         game.kill(player2, monster, midasTouch);
         game.resolveStack(); // death on stack
+        game.resolveStack(); // gain coins
 
         // Player should gain 3¢
         expect(player1.coins).toBe(initialCoins + 3);
@@ -274,7 +282,9 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         game.kill(player2, monster1, midasTouch);
         game.kill(player2, monster2, midasTouch);
         game.resolveStack(); // death on stack
+        game.resolveStack(); // gain coins
         game.resolveStack(); // death on stack
+        game.resolveStack(); // gain coins
 
         // Player should gain 6¢ (3¢ per monster)
         expect(player1.coins).toBe(initialCoins + 6);
@@ -287,8 +297,9 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const initialHandSize = player1.hand.length;
 
         // Take damage
-        game.dealDamage(player2, player1, fannyPack, 2);
+        game.dealDamage(player2, player1, fannyPack, 1);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
 
         // Player should loot 1 card
         expect(player1.hand.length).toBe(initialHandSize + 1);
@@ -297,14 +308,16 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
     it("fanny_pack - triggers on multiple damage instances", () => {
         const fannyPack = game.shop.obtainCard("b2-fanny_pack") as treasureCard;
         game.addInPlay(player1, fannyPack);
-
+        game.addHealth(player1, 10); // Ensure player has enough health
         const initialHandSize = player1.hand.length;
 
         // Take damage twice
         game.dealDamage(player2, player1, fannyPack, 1);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         game.dealDamage(player2, player1, fannyPack, 1);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
 
         // Player should loot 2 cards (1 per damage instance)
         expect(player1.hand.length).toBe(initialHandSize + 2);
@@ -319,6 +332,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         // Take damage to trigger the effect
         game.dealDamage(player2, player1, curseOfTheTower, 1);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
 
         // Get the dice roll from the stack and set it to 2
         if (game.stack.elements.length > 0) {
@@ -349,6 +363,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         // Take damage to trigger the effect
         game.dealDamage(player2, player1, curseOfTheTower, 1);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
 
         // Get the dice roll and set it to 5
         if (game.stack.elements.length > 0) {
@@ -375,6 +390,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         // Kill the player
         game.kill(player2, player1, greedsGullet);
         game.resolveStack();
+        game.resolveStack(); // Resolve any stack effects
 
         // Player should gain 8¢ before paying penalties
         expect(player1.coins).toBeGreaterThanOrEqual(initialCoins + 6); // +8 - 2 for death penalties
@@ -389,6 +405,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         // Kill the player
         game.kill(player2, player1, suicideKing);
         game.resolveStack();
+        game.resolveStack(); // Resolve any stack effects
 
         // Player should loot 3 cards before paying penalties
         expect(player1.hand.length).toBeGreaterThanOrEqual(initialHandSize + 2); // +3 - 1

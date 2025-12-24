@@ -25,28 +25,35 @@ describe("Tap/Paid effects 1", () => {
     it("sack_of_pennies - tap to gain 1¢", () => {
     });
 
-    // it("compost - next loot comes from discard", () => {
-    //     const compost = game.shop.obtainCard("b2-compost") as ItemCard;
-    //     game.addInPlay(player1, compost);
+    it("compost - next loot comes from discard", () => {
+        const compost = game.shop.obtainCard("b2-compost") as ItemCard;
+        game.addInPlay(player1, compost);
 
-    //     // Put some cards in discard
-    //     const lootCard1 = game.decks["loot"]!.draw();
-    //     const lootCard2 = game.decks["loot"]!.draw();
-    //     game.decks["loot"]!.addDiscardTop(lootCard1!);
-    //     game.decks["loot"]!.addDiscardTop(lootCard2!);
+        // Put some cards in discard
+        const lootCard1 = game.decks["loot"]!.draw();
+        const lootCard2 = game.decks["loot"]!.draw();
+        game.decks["loot"]!.addDiscardTop(lootCard1!);
+        game.decks["loot"]!.addDiscardTop(lootCard2!);
 
-    //     const topDiscard = game.decks["loot"]!.discard[game.decks["loot"]!.discard.length - 1]!;
+        const topDiscard = game.decks["loot"]!.discard[0]!;
 
-    //     // Recharge and activate compost (sets up listener)
-    //     game.recharge(compost);
-    //     game.activateItem(player1, compost);
-        // game.resolveStack();
+        // Recharge and activate compost (sets up listener)
+        game.recharge(compost);
+        game.activateItem(player1, compost, [player1]);
+        game.resolveStack();
 
-    //     // Loot should come from discard (resolves the effect)
-    //     game.loot(player1, 1);
+        // Loot should come from discard (resolves the effect)
+        game.loot(player1, 1);
 
-    //     expect(player1.hand.cards).toContain(topDiscard);
-    // });
+        expect(player1.hand.cards).toContain(topDiscard);
+
+        const topDiscard2 = game.decks["loot"]!.discard[0]!;
+        expect(topDiscard).not.toBe(topDiscard2);
+
+        game.loot(player1, 1);
+
+        expect(player1.hand.cards).not.toContain(topDiscard2);
+    });
 
     it("compost - does nothing if discard is empty", () => {
         const compost = game.shop.obtainCard("b2-compost") as ItemCard;
@@ -239,12 +246,16 @@ describe("Tap/Paid effects 1", () => {
         game.addInPlay(player1, babyHaunt);
         expect(monster.evasion).toBe(initDC + 1);
         game.endTurn();
+        game.resolveStack();
         expect(monster.evasion).toBe(initDC);
         game.endTurn();
+        game.resolveStack();
         expect(monster.evasion).toBe(initDC + 1);
         game.endTurn();
+        game.resolveStack();
         expect(monster.evasion).toBe(initDC);
         game.endTurn();
+        game.resolveStack();
         expect(monster.evasion).toBe(initDC + 1);
         game.removeInPlay(player1, babyHaunt);
         expect(monster.evasion).toBe(initDC);
@@ -779,6 +790,7 @@ describe("Tap/Paid effects 1", () => {
         dice.value = 4;
         game.addToStack(dice);
         game.resolveStack();
+        game.resolveStack();
 
         expect(player1.hand.length).toBe(initialHandSize + 3);
     });
@@ -827,6 +839,7 @@ describe("Tap/Paid effects 1", () => {
         // Play a penny - effect should be copied (gain 1¢ twice)
         game.playCard(player1, lootCardIndex);
         expect(game.stack.size).toBe(2); // Copy should be on stack
+        game.resolveStack();
         game.resolveStack();
         game.resolveStack();
 
@@ -982,6 +995,7 @@ describe("b2-theres_options treasure deck visibility", () => {
 
         // End player1's turn
         game.endTurn();
+        game.resolveStack();
 
         // Now it's player2's turn
         expect(game.currentPlayer).toBe(player2);
@@ -1019,6 +1033,8 @@ describe("b2-theres_options treasure deck visibility", () => {
 
         // End turn
         game.endTurn();
+        game.resolveStack();
+
         expect(game.currentPlayer).toBe(player2);
 
         // Player2's turn - player1 should NOT see deck
@@ -1028,6 +1044,8 @@ describe("b2-theres_options treasure deck visibility", () => {
 
         // End player2's turn
         game.endTurn();
+        game.resolveStack();
+
         expect(game.currentPlayer).toBe(player1);
 
         // Back to player1's turn - should see deck again
@@ -1071,6 +1089,7 @@ describe("b2-theres_options treasure deck visibility", () => {
 
         // End turn to player2
         game.endTurn();
+        game.resolveStack();
         expect(game.currentPlayer).toBe(player2);
 
         // Player2's turn - only player2 sees deck
@@ -1095,6 +1114,7 @@ describe("b2-theres_options treasure deck visibility", () => {
 
         // End turn
         game.endTurn();
+        game.resolveStack();
         expect(game.currentPlayer).toBe(player2);
 
         // Player1 cannot see during other's turn
@@ -1102,6 +1122,7 @@ describe("b2-theres_options treasure deck visibility", () => {
 
         // Back to player1's turn
         game.endTurn();
+        game.resolveStack();
         expect(game.currentPlayer).toBe(player1);
 
         // Player1 can see again
@@ -1111,6 +1132,7 @@ describe("b2-theres_options treasure deck visibility", () => {
     it("adding the item mid-game works correctly", () => {
         // End first turn without the item
         game.endTurn();
+        game.resolveStack();
         expect(game.currentPlayer).toBe(player2);
 
         // Give player2 theres_options during their turn

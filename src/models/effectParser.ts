@@ -339,7 +339,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         case "if another player would pay the death penalty, you choose what item they would destroy and you gain any loot cards and ¢ they would lose.":
             return passive.replaceDeathPenaltyEffect(game);
         case "while you have 0¢, you have +1 to your attack rolls.":
-            return passive.ConditionalStatModifierEffect([game.addAttackDiceModifier.bind(game)], 1, (player: Player) => player.coins === 0, ["on:coin:gained:after","on:coin:lost:after"], game);
+            return passive.ConditionalStatModifierEffect([game.addAttackDiceModifier.bind(game)], 1, (player: Player) => player.coins === 0, ["on:coin:gained:after","on:coin:lost:after"], game, false);
         case "when you have 0 loot cards in your hand, you have +1 [atk] .":
             return passive.ConditionalStatModifierEffect([game.addAttack.bind(game)], 1, (player: Player) => player.hand.length === 0, ["on:loot:added:after","on:loot:removed:after"], game);
         case "choose a player. prevent the next 1 damage they would take this turn.":

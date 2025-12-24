@@ -57,17 +57,21 @@ describe("Before start effects", () => {
         character1.recharge();
         game.activateItem(player1, character1, );
         game.resolveStack();
+        game.resolveStack();
         expect(player1.remainingLootPlay).toBe(initialLootPlays1 + 1);
         game.activateItem(player1, character1, ); // uncharged tap should do nothing
+        game.resolveStack();
         game.resolveStack();
         expect(player1.remainingLootPlay).toBe(initialLootPlays1 + 1);
         character2.recharge();
         game.activateItem(player2, character2, );
         game.resolveStack();
+        game.resolveStack();
         expect(player2.remainingLootPlay).toBe(initialLootPlays2 + 1);
 
         game.endTurn();
-        
+        game.resolveStack();
+
         // Ensure the loot play resets at the start of the turn
         expect(game.players.filter(p => p.id !== game.currentPlayer.id)[0]!.remainingLootPlay).toBe(0);
         expect(game.currentPlayer.remainingLootPlay).toBeGreaterThanOrEqual(1);

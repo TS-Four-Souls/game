@@ -1,11 +1,23 @@
 import { DiceRoll, Player } from "./player";
-import { type Card, type EffectData, LootCard, type EffectFunction, type TargetsSelector, ItemCard, InplayType, treasureCard, LootCardEffect } from "./cards";
+import { type Card, type EffectData, LootCard, type EffectFunction, type TargetsSelector, ItemCard, InplayType, treasureCard, LootCardEffect, EffectOnStack } from "./cards";
 import { Game, gameParameters } from "./game";
 import type { TriggerEvent } from "@/types/triggers";
 import { deckSelector } from "./effectParser";
 import { Monster } from "./monster";
 import * as active from "./activeEffect";
 
+export function addPassiveEffectToStack(
+    game: Game,
+    effectFunction: EffectFunction,
+    data: EffectData,
+    description: string
+): void {
+    const effectOnStack = new EffectOnStack(effectFunction, data, description);
+    game.addToStack(effectOnStack);
+}
+
+// REPLACEMENT EFFECT: Uses "prevent" - does not use the stack.
+// Card text: "Prevent the next instance of up to X damage they would take this turn."
 export function preventNextDamageUpToEffect(amount: number, game: Game): EffectFunction {
     return (data:EffectData) => {
         let offDamage: (() => void) | null = null;
@@ -36,7 +48,9 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): EffectF
     };
 }
 
-// 1 turn stat modifier: adds value to a stat until end of turn
+// NOT a triggered effect. This effect is always activated through the stack.
+// Card text examples: "+X [stat] till end of turn" or "Gain +X [stat] this turn."
+// This modifies the stat value directly rather than replacing an event.
 export function temporaryStatModifierEffect(
     adders: ((player: Player, value: number) => void)[],
     amount: number,
@@ -47,20 +61,21 @@ export function temporaryStatModifierEffect(
             throw new Error("temporaryStatModifierEffect amount must be non-negative.");
         // Apply the stat modification
         const target = data.targets[0] === undefined ? data.issuer : data.targets[0];
-        for(const adder of adders)
-            adder(target, amount);
-        
-        // Register cleanup to reverse at end of turn
-        let offTurn = game.emitter.on("on:turn:end", () => {
             for(const adder of adders)
-                adder(target, -amount);
-            offTurn();
-        });
-
-        return true;
+                adder(target, amount);
+            
+            // Register cleanup to reverse at end of turn
+            let offTurn = game.emitter.on("on:turn:end", () => {
+                for(const adder of adders)
+                    adder(target, -amount);
+                offTurn();
+            });
+            
+            return true;
     };
 }
 
+// Associated with the coin gained replacement effect. It is therefore also considered as a replacement effect.
 export function lvlXaddListenerEffect(
     functions: EffectFunction[],
     lvl: number,
@@ -79,27 +94,7 @@ export function lvlXaddListenerEffect(
     };
 }
 
-export function countersOnDamageGainTreasureEffect(amountToRemove: number, treasureAmount: number, game: Game): EffectFunction {
-    return (data: EffectData) => {
-        let offDamage: (() => void) | null = null;
-        // Listen for the next damage event on this player
-        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, damage: dmg }) => {
-            if (data.issuer !== eventIssuer) return;
-            data.it.tags.counters = (data.it.tags.counters ?? 0) + dmg;
-            if (data.it.tags.counters >= amountToRemove) {
-                data.it.tags.counters -= amountToRemove;
-                game.gainTreasure(data.issuer, treasureAmount);
-            }
-        });
-        // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleaners.push(() => {
-            offDamage?.();
-            offDamage = null;
-        });
-        return true;
-    };
-}
-
+// REPLACEMENT EFFECT: Continuous stat modification - does not use the stack.
 export function permanentStatModifierEffect(
     adders: ((player: Player, value: number) => void)[],
     amount: number,
@@ -122,6 +117,7 @@ export function permanentStatModifierEffect(
     };
 }
 
+// REPLACEMENT EFFECT: Continuous priority modification - does not use the stack.
 export function noPriorityPassesOnYourTurnEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offPriorityPasses: (() => void) | null = null;
@@ -140,6 +136,8 @@ export function noPriorityPassesOnYourTurnEffect(game: Game): EffectFunction {
     };
 }
 
+// REPLACEMENT EFFECT: Modifies damage before it's taken - does not use the stack.
+// Replaces damage amount with a specific value.
 export function setNextDamageToXEffect(setTo: number, game: Game): EffectFunction {
     return (data:EffectData) => {
         let offDamage: (() => void) | null = null;
@@ -163,6 +161,7 @@ export function setNextDamageToXEffect(setTo: number, game: Game): EffectFunctio
     };
 }
 
+// REPLACEMENT EFFECT: Continuous stat modification on your turn - does not use the stack.
 export function onYourTurnModifier(
     adders: ((player: Player, value: number) => void)[],
     amount: number,
@@ -209,16 +208,26 @@ export function onYourTurnModifier(
     };
 }
 
+// TRIGGERED EFFECT: Uses the stack.
+// Card text: "Each time a monster dies, gain X¢."
 export function gainCoinsOnMonsterDeathEffect(
     amount: number,
     game: Game
 ): EffectFunction {
     return (data:EffectData) => {
         let offDeath: (() => void) | null = null;
-        // Listen for the next damage event on this player
+        // Listen for monster death events
         offDeath = game.emitter.on("on:monster:died", ({ eventIssuer }) => {
             if (!(eventIssuer instanceof Monster)) return;
-            game.gainCoins(data.issuer, amount);
+            
+            // Create the effect that will execute when the stack resolves
+            const effect = (effectData: EffectData) => {
+                game.gainCoins(effectData.issuer, amount);
+                return true;
+            };
+            
+            // Add to stack instead of executing immediately
+            addPassiveEffectToStack(game, effect, data, `Gain ${amount}¢ from monster death`);
         });
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
@@ -229,6 +238,7 @@ export function gainCoinsOnMonsterDeathEffect(
     };
 }
 
+// Continuous effect, no stack.
 // First attack roll stat modifier: adds value to a stat until end of turn
 export function firstAttackRollStatModifierEffect(
     damageDealtModifier: number=0,
@@ -260,6 +270,7 @@ export function firstAttackRollStatModifierEffect(
 }
 
 /*
+TRIGGERED EFFECT: Uses the stack.
 Each time you take damage, [do something].
 */
 export function onDamageTakenEffect(
@@ -279,10 +290,15 @@ export function onDamageTakenEffect(
                 ? data.targets.length 
                 : data.targets.findIndex((c) => c.damageTaken !== undefined);
             data.targets[index] = {damageTaken: dmg};
-            // for (const callback of callbacks)
-            //     callback(data.issuer, amount);
-            for (const func of effectFunctions)
-                func(data);
+            
+            // Add all effects as a single stack element
+            const effect = (effectData: EffectData) => {
+                for (const func of effectFunctions) {
+                    func(effectData);
+                }
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, "On damage taken effect");
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -294,6 +310,8 @@ export function onDamageTakenEffect(
     };
 }
 
+// TRIGGERED EFFECT: Uses the stack.
+// Executes effects before death penalty is applied.
 export function beforeDeathPenaltyEffect(
     // callbacks: ((player: Player, dmg: number) => void)[],
     effectFunctions: EffectFunction[],
@@ -307,10 +325,15 @@ export function beforeDeathPenaltyEffect(
 
         offDamage = game.emitter.on("on:death:before-penalty", ({ eventIssuer, target: dealer, abilityCard: usingAbilityFrom, damage: dmg }) => {
             if (data.issuer !== eventIssuer) return;
-            // for (const callback of callbacks)
-            //     callback(data.issuer, amount);
-            for (const func of effectFunctions)
-                func(data);
+            
+            // Add all effects as a single stack element
+            const effect = (effectData: EffectData) => {
+                for (const func of effectFunctions) {
+                    func(effectData);
+                }
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, "Before death penalty effect");
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -323,6 +346,7 @@ export function beforeDeathPenaltyEffect(
 }
 
 /*
+TRIGGERED EFFECT: Uses the stack.
 Each time triggerEvent triggers, if you are the eventIssuer, call effectFunctions.
 */
 export function onYourEventEffect(
@@ -335,8 +359,15 @@ export function onYourEventEffect(
 
         offDamage = game.emitter.on(triggerEvent, ({ eventIssuer }) => {
             if (data.issuer !== eventIssuer) return;
-            for (const func of effectFunctions)
-                func(data);
+            
+            // Add all effects as a single stack element
+            const effect = (effectData: EffectData) => {
+                for (const func of effectFunctions) {
+                    func(effectData);
+                }
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, `On event: ${triggerEvent}`);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -348,13 +379,22 @@ export function onYourEventEffect(
     };
 }
 
+// Reduces any damage to a maximum of 1.
 export function reduceDamageToOneEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         // Listen for the next damage event on this player
         offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
             if (data.issuer !== eventIssuer) return;
-            damageArray[0] = Math.min(damageArray[0] ?? 0, 1);
+            
+            // Create the effect that will execute when the stack resolves
+            const effect = (effectData: EffectData) => {
+                damageArray[0] = Math.min(damageArray[0] ?? 0, 1);
+                return true;
+            };
+            
+            // Add to stack instead of executing immediately
+            addPassiveEffectToStack(game, effect, data, "Reduce damage to 1");
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -366,6 +406,8 @@ export function reduceDamageToOneEffect(game: Game): EffectFunction {
     };
 }
 
+// REPLACEMENT EFFECT: Starts with "this enters play" - does not use the stack.
+// Card text: "This enters play deactivated."
 export function enterPlayDeactivatedEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         data.it.charged = false;
@@ -383,7 +425,14 @@ export function lootOnNextRollEffect(game: Game): EffectFunction {
                 throw new Error("lootOnNextRollEffect target must be a number between 1 and 6.");
             }
             if(diceRoll.value === guess) {
-                game.loot(data.issuer, 3);
+                // Create the effect that will execute when the stack resolves
+                const effect = (effectData: EffectData) => {
+                    game.loot(effectData.issuer, 3);
+                    return true;
+                };
+                
+                // Add to stack instead of executing immediately
+                addPassiveEffectToStack(game, effect, data, "Loot 3 from correct roll");
             }
             offRoll?.();
             offRoll = null;
@@ -401,10 +450,19 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): Effec
             card = card as LootCard;
             if (data.issuer !== eventIssuer) return;
             if( card.trinket || card.ambush) return;
-            const newTargets = game.select(data.issuer, 1, card.getTargetSelectors!(data.issuer, game), false);
-            const resolveFunction = card.onPlay(eventIssuer, newTargets.selected);
-            const lootCardEffect = new LootCardEffect(card, resolveFunction);
-            game.addToStack(lootCardEffect);
+            
+            // Create the effect that will execute when the stack resolves
+            const effect = (effectData: EffectData) => {
+                const newTargets = game.select(effectData.issuer, 1, card.getTargetSelectors!(effectData.issuer, game), false);
+                const resolveFunction = card.onPlay(eventIssuer, newTargets.selected);
+                const lootCardEffect = new LootCardEffect(card, resolveFunction);
+                game.addToStack(lootCardEffect);
+                return true;
+            };
+            
+            // Add to stack instead of executing immediately
+            addPassiveEffectToStack(game, effect, data, "Copy loot card effect");
+            
             offLoot?.();
             offLoot = null;
             offTurn?.();
@@ -421,6 +479,8 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): Effec
     };
 }
 
+
+// REPLACEMENT EFFECT: Uses "instead" - does not use the stack.
 export function replaceDeathPenaltyEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         // Listen for the next death penalty event on this player
@@ -464,26 +524,53 @@ export function replaceDeathPenaltyEffect(game: Game): EffectFunction {
 }
 
 // [game.addAttackDiceModifier.bind(game)], 1, (player: Player) => player.coins === 0, ["on:coin:gained:after", "on:coin:lost:after"], game);
+// HYBRID EFFECT: Can be either a replacement effect or triggered effect depending on useStack parameter.
+// Modifies stats based on a condition (e.g., "while you have 0¢").
 export function ConditionalStatModifierEffect(
     adders: ((player: Player, value: number) => void)[],
     amount: number,
     condition: (player: Player) => boolean,
     triggerEvents: TriggerEvent[],
-    game: Game
+    game: Game,
+    useStack: boolean = true
 ): EffectFunction {
     return (data: EffectData) => {
         let offEvents: (() => void)[] = [];
         
         let currentlyActive = false;
         const applyModifierIfConditionMet = (player: Player) => {
-            if (condition(player) && !currentlyActive) {
-                for (const adder of adders)
-                    adder(player, amount);
-                currentlyActive = true;
-            } else if (!condition(player) && currentlyActive) {
-                for (const adder of adders)
-                    adder(player, -amount);
-                currentlyActive = false;
+            const shouldBeActive = condition(player);
+            
+            if (shouldBeActive && !currentlyActive) {
+                if (useStack) {
+                    // Create the effect that will execute when the stack resolves
+                    const effect = (effectData: EffectData) => {
+                        for (const adder of adders)
+                            adder(player, amount);
+                        currentlyActive = true;
+                        return true;
+                    };
+                    addPassiveEffectToStack(game, effect, data, "Apply conditional stat modifier");
+                } else {
+                    for (const adder of adders)
+                        adder(player, amount);
+                    currentlyActive = true;
+                }
+            } else if (!shouldBeActive && currentlyActive) {
+                if (useStack) {
+                    // Create the effect that will execute when the stack resolves
+                    const effect = (effectData: EffectData) => {
+                        for (const adder of adders)
+                            adder(player, -amount);
+                        currentlyActive = false;
+                        return true;
+                    };
+                    addPassiveEffectToStack(game, effect, data, "Remove conditional stat modifier");
+                } else {
+                    for (const adder of adders)
+                        adder(player, -amount);
+                    currentlyActive = false;
+                }
             }
         };
         // Initial check
@@ -514,6 +601,9 @@ export function ConditionalStatModifierEffect(
     };
 }
 
+// REPLACEMENT EFFECT: Uses "prevent" - does not use the stack.
+// Card text: "Prevent the next X damage you would take this turn. When you prevent damage this way, deal Y damage to another player."
+// Note: The prevention is a replacement effect, but the damage dealt afterward is a triggered effect.
 export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: number, game: Game): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
@@ -560,8 +650,15 @@ export function changeRollOneToSixEffect(game: Game): EffectFunction {
         offRoll = game.emitter.on("on:dice:would-roll", ({ diceRoll }) => {
             if (data.issuer !== diceRoll._issuer) return;
             if (diceRoll.value === 1) {
-                const value = game.select(data.issuer, 1, [6], true).selected[0]!;
-                diceRoll.value = value;
+                // Create the effect that will execute when the stack resolves
+                const effect = (effectData: EffectData) => {
+                    const value = game.select(effectData.issuer, 1, [6], true).selected[0]!;
+                    diceRoll.value = value;
+                    return true;
+                };
+                
+                // Add to stack instead of executing immediately
+                addPassiveEffectToStack(game, effect, data, "Change roll 1 to 6");
             }
         });
         // Store cleanup function on the card for when it's removed/destroyed
@@ -579,14 +676,22 @@ export function giveThisToAnotherPlayerOnDeathEffect(game: Game): EffectFunction
         // Listen for the next damage event on this player
         offDeath = game.emitter.on("on:death:before-penalty", ({ eventIssuer }) => {
             if (data.issuer !== eventIssuer) return;
-            const otherPlayers = game.players.filter(p => p !== data.issuer);
-            if (otherPlayers.length === 0) return;
-            const selection = game.select(data.issuer, 1, otherPlayers, false);
-            if (selection.selected.length > 0) {
-                const chosenPlayer = selection.selected[0]!;
-                game.give(data.issuer, chosenPlayer, data.it);
-                data.issuer = chosenPlayer;
-            }
+            
+            // Create the effect that will execute when the stack resolves
+            const effect = (effectData: EffectData) => {
+                const otherPlayers = game.players.filter(p => p !== effectData.issuer);
+                if (otherPlayers.length === 0) return true;
+                const selection = game.select(effectData.issuer, 1, otherPlayers, false);
+                if (selection.selected.length > 0) {
+                    const chosenPlayer = selection.selected[0]!;
+                    game.give(effectData.issuer, chosenPlayer, effectData.it);
+                    effectData.issuer = chosenPlayer;
+                }
+                return true;
+            };
+            
+            // Add to stack instead of executing immediately
+            addPassiveEffectToStack(game, effect, data, "Give item to another player on death");
         });
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
@@ -602,8 +707,16 @@ export function onFirstDamageEachTurnEffect(functions: EffectFunction[], game: G
         let offDamage: (() => void) | null = null;
         offDamage = game.emitter.on("on:damage:taken:first-time-each-turn", ({ eventIssuer, damage: dmg }) => {
             if (data.issuer !== eventIssuer) return;
-            for (const func of functions)
-                func(data);
+            
+            // Create the effect that will execute when the stack resolves
+            const effect = (effectData: EffectData) => {
+                for (const func of functions)
+                    func(effectData);
+                return true;
+            };
+            
+            // Add to stack instead of executing immediately
+            addPassiveEffectToStack(game, effect, data, "On first damage each turn effect");
         });
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
@@ -615,6 +728,8 @@ export function onFirstDamageEachTurnEffect(functions: EffectFunction[], game: G
 }
 
 
+// REPLACEMENT EFFECT: Uses "instead" - does not use the stack.
+// Card text: "If this would be destroyed, it becomes a soul instead."
 export function becomeSoulInsteadOfDestructionEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offDestroy: (() => void) | null = null;
@@ -637,6 +752,8 @@ export function becomeSoulInsteadOfDestructionEffect(game: Game): EffectFunction
     };
 }
 
+// REPLACEMENT EFFECT: Modifies purchase cost - does not use the stack.
+// Reduces the cost of shop items.
 export function shopItemsCostLessEffect(discount: number, game: Game): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
@@ -677,21 +794,6 @@ export function lootStepEffect(
     };
 }
 
-export function gainCoinsOnDamageEffect(
-    amount: number,
-    game: Game
-): EffectFunction {
-    return onDamageTakenEffect([active.gainCoinsEffect(game, amount)], game);
-}
-
-export function rechargeCharaOnDamageEffect(
-    // amount: number,
-    game: Game
-): EffectFunction {
-    return onDamageTakenEffect([active.rechargeCharaEffect(game)], game);
-    }
-
-
 // "Each time a player dies, before paying penalties, loot 1."
 export function lootOnPlayerDeathEffect(
     amount: number,
@@ -708,7 +810,14 @@ export function lootOnPlayerDeathEffect(
         // Listen for damage events on this player
         offDeath = game.emitter.on("on:death:before-penalty", ({ eventIssuer, target: from, abilityCard: usingAbilityFrom, damage: dmg }) => {
             if (eventIssuer instanceof Player) {
-                game.loot(data.issuer, amount);
+                // Create the effect that will execute when the stack resolves
+                const effect = (effectData: EffectData) => {
+                    game.loot(effectData.issuer, amount);
+                    return true;
+                };
+                
+                // Add to stack instead of executing immediately
+                addPassiveEffectToStack(game, effect, data, `Loot ${amount} on player death`);
             }
         });
 
@@ -721,6 +830,8 @@ export function lootOnPlayerDeathEffect(
     };
 }
 // If you would gain any number of \u00A2, gain that much + amount\u00A2 instead.
+// REPLACEMENT EFFECT: Uses "if you would" and "instead" - does not use the stack.
+// Card text: "If you would gain any number of ¢, gain that much +X¢ instead."
 export function gainPlusCoinsEffect(
     amount: number,
     game: Game
@@ -760,8 +871,16 @@ export function onAttackRollEffect(
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:attack:roll", ({ eventIssuer, target, dice, damageDealt, damageReceived, evasion }) => {
             if (data.issuer !== eventIssuer) return;
-            if (rollValues.includes((dice as DiceRoll).value))
-                effect(data);
+            if (rollValues.includes((dice as DiceRoll).value)) {
+                // Create the effect that will execute when the stack resolves
+                const stackEffect = (effectData: EffectData) => {
+                    effect(effectData);
+                    return true;
+                };
+                
+                // Add to stack instead of executing immediately
+                addPassiveEffectToStack(game, stackEffect, data, "On attack roll effect");
+            }
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -789,8 +908,16 @@ export function onWouldRollEffect(
                 : data.targets.findIndex((c) => c.diceThatWouldRoll !== undefined);
             
             data.targets[index] = { diceThatWouldRoll: diceRoll};
-            for (const func of effectFunctions)
-                func(data);
+            
+            // Create the effect that will execute when the stack resolves
+            const effect = (effectData: EffectData) => {
+                for (const func of effectFunctions)
+                    func(effectData);
+                return true;
+            };
+            
+            // Add to stack instead of executing immediately
+            addPassiveEffectToStack(game, effect, data, "On would roll effect");
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -815,7 +942,15 @@ export function onRollEffect(
             if (rollValues.includes((diceRoll as DiceRoll).value))
             {
                 data.targets = [diceRoll._issuer];
-                effect(data);
+                
+                // Create the effect that will execute when the stack resolves
+                const stackEffect = (effectData: EffectData) => {
+                    effect(effectData);
+                    return true;
+                };
+                
+                // Add to stack instead of executing immediately
+                addPassiveEffectToStack(game, stackEffect, data, "On roll effect");
             }
         });
 
@@ -828,6 +963,7 @@ export function onRollEffect(
     };
 }
 
+// REPLACEMENT EFFECT: Uses "this enters play" - does not use the stack.
 export function startWithNCountersEffect(
     n: number,
     game: Game
@@ -839,6 +975,8 @@ export function startWithNCountersEffect(
     };
 }
 
+// REPLACEMENT EFFECT: Uses "prevent" - does not use the stack.
+// Card text: "If you would take damage while this has counters on it, remove that many counters and prevent that much damage."
 export function preventDamageByRemovingCountersEffect(
     game: Game
 ): EffectFunction {
@@ -873,6 +1011,8 @@ export function preventDamageByRemovingCountersEffect(
     };
 }
 
+// REPLACEMENT EFFECT: Uses "if you would" and "instead" - does not use the stack.
+// Card text: "If you would take any amount of damage, take that much damage +X instead."
 export function takeDamagePlusEffect(
     amount: number,
     game: Game
@@ -901,6 +1041,8 @@ export function takeDamagePlusEffect(
     };
 }
 
+// REPLACEMENT EFFECT: Uses "if you would" and "instead" - does not use the stack.
+// Card text: "If you would loot any number of loot cards, loot double that number instead."
 export function lootDoubleThisTurnEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
@@ -924,6 +1066,9 @@ export function lootDoubleThisTurnEffect(game: Game): EffectFunction {
     };
 }
 
+// REPLACEMENT EFFECT: Uses "instead" - does not use the stack.
+// Card text: "The next time a player would loot, they loot from the top of the loot discard instead."
+// Replaces the source deck for looting.
 export function lootFromDiscardEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
@@ -932,7 +1077,8 @@ export function lootFromDiscardEffect(game: Game): EffectFunction {
             if (data.targets[0] !== eventIssuer) return;
             while(numberOfCards[0]! > 0)
             {
-                const card = game.decks["loot"]!.discard.pop();
+                const card = 
+                    game.decks["loot"]!.drawTopDiscard();
                 if(card)
                     game.addCardToHand(eventIssuer, card as LootCard);
                 else break;
@@ -945,6 +1091,8 @@ export function lootFromDiscardEffect(game: Game): EffectFunction {
     };
 }
 
+// REPLACEMENT EFFECT: Uses "if you would" and "instead" - does not use the stack.
+// Card text: "If you would gain any amount of ¢, this levels up by that much instead."
 export function gainCoinsLevelUpEffect(
     game: Game
 ): EffectFunction {
@@ -975,6 +1123,8 @@ export function gainCoinsLevelUpEffect(
 }
 
 // Roll dice on trigger
+// REPLACEMENT EFFECT: Uses "prevent" - does not use the stack.
+// Card text: "Each time you would take damage, roll- X: prevent Y of that damage."
 export function preventDamageOnRollEffect(
     diceValues: number[],
     damagePrevented: number,
@@ -1010,6 +1160,7 @@ export function preventDamageOnRollEffect(
     };  
 }
 
+// Starts with if: replacement effect.
 export function goFirstInTurnOrderEffect(game: Game): EffectFunction {
     return (data:EffectData) => {
         let offEffect: (() => void) | null = game.emitter.on("on:game:start:before", () => {

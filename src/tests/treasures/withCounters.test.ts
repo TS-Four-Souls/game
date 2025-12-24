@@ -136,12 +136,14 @@ describe("Treasure - with counters effect", () => {
         // Test: take 2 damage, should add 2 counters
         game.dealDamage(player2, player1, cambionConception, 2);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(2);
         expect(player1.inPlay.length).toBe(initNbTreasure); // No treasure yet
 
         // Test: take 3 more damage, should add 3 counters (total 5)
         game.dealDamage(player2, player1, cambionConception, 3);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(5);
         expect(player1.inPlay.length).toBe(initNbTreasure); // Still no treasure (need 6+)
 
@@ -149,6 +151,7 @@ describe("Treasure - with counters effect", () => {
         // This should trigger: remove 6 counters and gain +1 treasure
         game.dealDamage(player2, player1, cambionConception, 1);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(0); // 6 counters removed
         expect(player1.inPlay.length).toBe(initNbTreasure + 1); // Gained 1 treasure
         game.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // Remove gained treasure for further tests
@@ -157,6 +160,7 @@ describe("Treasure - with counters effect", () => {
         // Should add 8 counters, then immediately remove 6 and gain treasure
         game.dealDamage(player2, player1, cambionConception, 8);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(2); // 8 added, 6 removed, 2 remaining
         expect(player1.inPlay.length).toBe(initNbTreasure + 1); // Gained another treasure
         game.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // Remove gained treasure for further tests
@@ -165,6 +169,7 @@ describe("Treasure - with counters effect", () => {
         // Should trigger treasure gain again
         game.dealDamage(player2, player1, cambionConception, 4);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(0); // 6 removed again
         expect(player1.inPlay.length).toBe(initNbTreasure + 1); // Third treasure gained
         game.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // Remove gained treasure for further tests
@@ -172,6 +177,7 @@ describe("Treasure - with counters effect", () => {
         // Test: take exactly 6 damage
         game.dealDamage(player2, player1, cambionConception, 6);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(0); // Should remove 6 and be at 0
         expect(player1.inPlay.length).toBe(initNbTreasure + 1); // Fourth treasure gained
         game.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // Remove gained treasure for further tests
@@ -179,6 +185,7 @@ describe("Treasure - with counters effect", () => {
         // Test: take 13 damage (should only trigger once, leaving 7 counters)
         game.dealDamage(player2, player1, cambionConception, 13);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(7); // 13 added, 6 removed, 7 remaining
         expect(player1.inPlay.length).toBe(initNbTreasure + 1); // Fifth treasure gained
     });
@@ -279,12 +286,15 @@ describe("Treasure - with counters effect", () => {
         // Test: taking 1 damage should add 1 counter
         game.dealDamage(player2, player1, thePoop, 1);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(thePoop.tags.counters).toBe(1);
         expect(player1.currentHealthPoints).toBe(initialHP - 1);
 
         // Test: taking 3 damage should add 3 more counters
         game.dealDamage(player2, player1, thePoop, 3);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
+
         expect(thePoop.tags.counters).toBe(2); // 1 + 3
         expect(player1.currentHealthPoints).toBe(initialHP - 4);
 
@@ -298,12 +308,14 @@ describe("Treasure - with counters effect", () => {
         const hpBeforePrevent = player1.currentHealthPoints;
         game.dealDamage(player2, player1, thePoop, 1);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(player1.currentHealthPoints).toBe(hpBeforePrevent); // No damage taken (prevented)
         expect(thePoop.tags.counters).toBe(2); // Counter not added since damage was prevented
 
         // Test: taking damage after prevention expired should add counter normally
         game.dealDamage(player2, player1, thePoop, 2);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(thePoop.tags.counters).toBe(3); // 1 + 2
         expect(player1.currentHealthPoints).toBe(hpBeforePrevent - 2);
 
@@ -317,6 +329,7 @@ describe("Treasure - with counters effect", () => {
         const hpBefore = player1.currentHealthPoints;
         game.dealDamage(player2, player1, thePoop, 5);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(player1.currentHealthPoints).toBe(hpBefore - 3); // 5 damage - 1 prevented = 4 actual damage
         expect(thePoop.tags.counters).toBe(2); // 4 + 4 (counters from 4 damage taken)
 
@@ -330,6 +343,7 @@ describe("Treasure - with counters effect", () => {
         // Verify we can still gain counters
         game.dealDamage(player2, player1, thePoop, 2);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(thePoop.tags.counters).toBe(1); // Counters work again
     });
 

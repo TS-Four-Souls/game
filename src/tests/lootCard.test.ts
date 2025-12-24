@@ -655,6 +655,7 @@ describe("Loot Card", () => {
         expect(stackSizeBeforeFool).toBeGreaterThan(initialStackSize);
 
         game.resolveStack();
+        game.resolveStack();
 
         // Stack should be empty and turn should have ended
         expect(game.turnHandler.current).not.toBe(initialPlayer);
@@ -1635,10 +1636,12 @@ game.resolveStack();
         expect(player1.attackPoints).toBe(initialAtk + 1);
         expect(player1.attackThisTurn).toBe(initialAtkThisTurn + 1);
         game.endTurn();
+        game.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk);
         expect(player1.attackThisTurn).toBe(0 ); // not his turn
         game.endTurn();
+        game.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk);
         expect(player1.attackThisTurn).toBe(1); // his turn
@@ -1663,10 +1666,12 @@ game.resolveStack();
         expect(player2.attackThisTurn).toBe(initialAtkThisTurn + 1);
         expect(player1.attackThisTurn).toBe(initialAtkThisTurn1);
         game.endTurn();
+        game.resolveStack();
 
         expect(player2.attackPoints).toBe(initialAtk);
         expect(player2.attackThisTurn).toBe(initialAtkThisTurn + 1); // his turn
         game.endTurn();
+        game.resolveStack();
 
         expect(player2.attackPoints).toBe(initialAtk);
         expect(player2.attackThisTurn).toBe(initialAtkThisTurn);

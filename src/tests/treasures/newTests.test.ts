@@ -281,7 +281,7 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
         const sackOfPennies = game.shop.obtainCard("b2-sack_of_pennies") as ItemCard;
         game.addInPlay(player1, modelingClay);
         game.addInPlay(player1, sackOfPennies);
-
+        game.addHealth(player1, 10); // Ensure player1 has enough HP
         // Transform
         game.recharge(modelingClay);
         game.activateItem(player1, modelingClay, [sackOfPennies]);
@@ -289,6 +289,7 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
 
         // End turn
         game.endTurn();
+        game.resolveStack(); // Resolve any stack effects
         expect(game.currentPlayer).toBe(player2);
 
         // Still should be sack_of_pennies
@@ -296,6 +297,7 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
 
         // End player2's turn
         game.endTurn();
+        game.resolveStack(); // Resolve any stack effects
         expect(game.currentPlayer).toBe(player1);
 
         // Still should be sack_of_pennies
@@ -584,6 +586,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // End player1's turn
         game.endTurn();
+        game.resolveStack();
         expect(game.currentPlayer).toBe(player2);
 
         // Should revert immediately after player1's turn ends
@@ -591,6 +594,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // End player2's turn
         game.endTurn();
+        game.resolveStack();
         expect(game.currentPlayer).toBe(player1);
 
         // Should still be diplopia
@@ -859,6 +863,7 @@ describe("b2-trinity_shield - prevents other players from priority actions", () 
 
         // End player1's turn
         game.endTurn();
+        game.resolveStack();
 
         // On player2's turn, priority should pass normally (trinity_shield doesn't affect player2's turn)
         const priorityOnPlayer2Turn = game.priorityPasses();

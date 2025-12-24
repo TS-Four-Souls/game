@@ -39,11 +39,22 @@ describe("Eternal Items", () => {
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5; // Force roll to 5 for testing
         game.endTurn();
+        game.resolveStack();
+        game.resolveStack();
+        game.resolveStack();
+        game.resolveStack();
+        game.resolveStack(); // Resolve any stack effects
         expect(theD6.charged).toBe(true);
         game.activateItem(player2, theD6, [dice]);
         game.resolveStack();
+        game.resolveStack();
+        game.resolveStack();
+        game.resolveStack(); 
         expect(dice.value).not.toBe(5); // value should change
         game.endTurn();
+        game.resolveStack();
+        game.resolveStack();
+        game.resolveStack(); // Resolve any stack effects
         expect(theD6.charged).toBe(true);
     }, {retry: 50}); // retry cause can roll randomly fail due to shuffling
     // [Tap Effect] Put the top card of any discard on top of its deck.
@@ -59,8 +70,11 @@ describe("Eternal Items", () => {
         
         const theCurse = player1.inPlay[1]! as ItemCard;
         game.endTurn();
+        game.resolveStack();
         expect(theCurse.charged).toBe(false);
         game.endTurn();
+        game.resolveStack();
+        game.resolveStack();
         expect(theCurse.charged).toBe(true);
 
         const cards = game.decks["loot"]!.drawSeveral(5) as LootCard[]
@@ -86,9 +100,12 @@ describe("Eternal Items", () => {
         expect(player2.inPlay[0]!.slug).toBe("b2-isaac");
 
         game.endTurn(); // Isaac's turn
+        game.resolveStack(); // Resolve any stack effects
         const theCurse = player1.inPlay[1]! as ItemCard;
         const shouldBeDiscarded = game.decks["treasure"]!.cards[0];
         game.endTurn(); // back to Eve's turn
+        game.resolveStack(); // Resolve any stack effects
+        game.resolveStack();
         // treasure by default.
         expect(game.decks["treasure"]!.discard[0]).toBe(shouldBeDiscarded);
         expect(game.decks["treasure"]!.cards[0]).not.toBe(shouldBeDiscarded);
@@ -396,6 +413,7 @@ describe("Eternal Items", () => {
         expect(player2.inPlay[1]!.eternal).toBe(true);
         const yumHeart = player2.inPlay[1]! as ItemCard;
         game.endTurn();
+        game.resolveStack(); // Resolve any stack effects
         expect(yumHeart.charged).toBe(true);
         
         expect(player2.currentHealthPoints).toBe(2);
@@ -412,6 +430,7 @@ describe("Eternal Items", () => {
         expect(player2.currentHealthPoints).toBe(1); // damage taken
 
         game.endTurn();
+        game.resolveStack(); // Resolve any stack effects
         expect(yumHeart.charged).toBe(true);
     });
 //     "Each time you die, after paying penalties, gain +1 treasure."
@@ -437,16 +456,19 @@ describe("Eternal Items", () => {
         // Kill Lazarus, verify treasure gained
         game.kill(player2, player2, dummyLoot);
         game.resolveStack(); // resolve death
+        game.resolveStack(); // resolve effect
         expect(player2.inPlay.length).toBe(3);
         const firstItemGained = player2.inPlay[2];
 
         game.endTurn();
+        game.resolveStack(); // Resolve any stack effects
         expect(firstItemGained!.eternal).toBe(false);
         expect(firstItemGained!).toBe(blankcard);
 
         // Kill Lazarus, verify treasure gained
         game.kill(player2, player2, dummyLoot);
         game.resolveStack(); // resolve death
+        game.resolveStack(); // Resolve any stack effects
         expect(player2.inPlay.length).toBe(3);
         expect(player2.inPlay[2]).not.toBe(firstItemGained);
 
@@ -473,27 +495,38 @@ describe("Eternal Items", () => {
         expect(player2.attackPoints).toBe(2);
 
         game.endTurn();
+        game.resolveStack();
+        game.resolveStack();
         expect(player2.attackPoints).toBe(1);
         expect(bloodlust.charged).toBe(true);
 
         game.activateItem(player2, bloodlust);
         game.resolveStack();
         game.endTurn();
+        game.resolveStack();
+        game.resolveStack();
+        game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
         game.activateItem(player2, bloodlust);
         game.resolveStack();
         expect(bloodlust.charged).toBe(false);
         game.endTurn();
+        game.resolveStack();
+        game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
         game.activateItem(player2, bloodlust);
         game.resolveStack();
         expect(bloodlust.charged).toBe(false);
         game.endTurn();
+        game.resolveStack();
+        game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
         game.activateItem(player2, bloodlust);
         game.resolveStack();
         expect(bloodlust.charged).toBe(false);
         game.endTurn();
+        game.resolveStack();
+        game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
     });
 
@@ -614,7 +647,8 @@ describe("Eternal Items", () => {
         // Deal damage to player2 (Blue Baby)
         game.dealDamage(player1, player2, dummyLoot, 1);
         game.resolveStack();
-        
+        game.resolveStack(); // resolve on damage taken
+
         // Forever Alone should recharge after taking damage
         expect(foreverAlone.charged).toBe(true);
         expect(player2.currentHealthPoints).toBe(1);
@@ -635,6 +669,7 @@ describe("Eternal Items", () => {
         // Deal damage
         game.dealDamage(player1, player2, dummyLoot, 1);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(foreverAlone.charged).toBe(true);
         
         // Heal player2
@@ -651,6 +686,7 @@ describe("Eternal Items", () => {
         // Deal damage again
         game.dealDamage(player1, player2, dummyLoot, 1);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(foreverAlone.charged).toBe(true);
     });
 
@@ -763,6 +799,7 @@ describe("Eternal Items", () => {
         incubus.charged = false;
         
         game.endTurn(); // Isaac's turn ends
+        game.resolveStack();
         expect(incubus.charged).toBe(true);
         
     });
@@ -798,6 +835,7 @@ describe("Eternal Items - 3 players tests", () => {
         const bloodlust = player2.inPlay[1]! as ItemCard;
 
         game.endTurn(); // samson turn
+        game.resolveStack();
         expect(bloodlust.charged).toBe(true);
         game.activateItem(player2, bloodlust);
         game.resolveStack();
@@ -806,20 +844,24 @@ describe("Eternal Items - 3 players tests", () => {
         expect(bloodlust.charged).toBe(false);
 
         game.endTurn(); // eve turn
+        game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
         game.activateItem(player2, bloodlust);
         game.resolveStack();
         expect(bloodlust.charged).toBe(false);
 
         game.endTurn(); // isaac turn
+        game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(false);
         game.endTurn(); // samson turn
+        game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
         game.activateItem(player2, bloodlust);
         game.resolveStack();
         expect(bloodlust.charged).toBe(false);
 
         game.endTurn(); // eve turn
+        game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);;
         expect(player1.attackPoints).toBe(1);
         game.activateItem(player2, bloodlust, [player1]);
@@ -828,19 +870,24 @@ describe("Eternal Items - 3 players tests", () => {
         expect(bloodlust.charged).toBe(false);
 
         game.endTurn(); // isaac turn
-        expect(bloodlust.charged).toBe(false); game.endTurn(); // samson turn
+        game.resolveStack(); // Resolve any stack effects
+        expect(bloodlust.charged).toBe(false); 
+        game.endTurn(); // samson turn
+        game.resolveStack();
         expect(bloodlust.charged).toBe(true);
         game.activateItem(player2, bloodlust);
         game.resolveStack();
         expect(bloodlust.charged).toBe(false);
 
         game.endTurn(); // eve turn
+        game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
         game.activateItem(player2, bloodlust);
         game.resolveStack();
         expect(bloodlust.charged).toBe(false);
 
         game.endTurn(); // isaac turn
+        game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(false);
     });
 });

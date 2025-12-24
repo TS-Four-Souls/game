@@ -55,7 +55,9 @@ describe("Treasure - Passive effects", () => {
 
         // End turn to trigger start of next player's turn
         game.endTurn(); // p1 ends
+        game.resolveStack(); // Resolve any stack effects
         game.endTurn(); // p2 ends, p1's turn starts - loot step happens
+        game.resolveStack(); // Resolve any stack effects
 
         // Player should loot 2 cards instead of 1 (1 base + 1 from item)
         expect(player1.hand.length).toBe(initialHandSize + 2);
@@ -68,7 +70,9 @@ describe("Treasure - Passive effects", () => {
         const initialHandSize = player1.hand.length;
 
         game.endTurn(); // p1 ends
+        game.resolveStack(); // Resolve any stack effects
         game.endTurn(); // p2 ends, p1's turn starts - loot step happens
+        game.resolveStack(); // Resolve any stack effects
 
         // Player should loot 2 cards instead of 1
         expect(player1.hand.length).toBe(initialHandSize + 2);
@@ -83,7 +87,9 @@ describe("Treasure - Passive effects", () => {
         const initialHandSize = player1.hand.length;
 
         game.endTurn(); // p1 ends
+        game.resolveStack(); // Resolve any stack effects
         game.endTurn(); // p2 ends, p1's turn starts - loot step happens
+        game.resolveStack(); // Resolve any stack effects
 
         // Player should loot 3 cards total (1 base + 1 + 1 from both items)
         expect(player1.hand.length).toBe(initialHandSize + 3);
@@ -100,6 +106,7 @@ describe("Treasure - Passive effects", () => {
         // Take 5 damage, should only lose 1 HP due to dry_baby effect
         game.dealDamage(player2, player1, dryBaby, 5);
         game.resolveStack();
+        game.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(initialHP - 1);
     });
@@ -112,6 +119,7 @@ describe("Treasure - Passive effects", () => {
 
         // Take 1 damage, should still lose 1 HP
         game.dealDamage(player2, player1, dryBaby, 1);
+        game.resolveStack();
         game.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(initialHP - 1);
@@ -126,7 +134,9 @@ describe("Treasure - Passive effects", () => {
         // Take damage multiple times
         game.dealDamage(player2, player1, dryBaby, 3);
         game.resolveStack();
+        game.resolveStack();
         game.dealDamage(player2, player1, dryBaby, 4);
+        game.resolveStack();
         game.resolveStack();
 
         // Each instance reduced to 1, so total 2 damage
@@ -200,6 +210,7 @@ describe("Treasure - Passive effects", () => {
         // Add to stack and resolve to trigger the effect
         game.addToStack(dice);
         game.resolveStack();
+        game.resolveStack();
 
         // The dice should now be 6
         expect(dice.value).toBe(6);
@@ -248,6 +259,7 @@ describe("Treasure - Passive effects", () => {
         // Kill player1
         game.kill(player1, player1, babyHaunt);
         game.resolveStack();
+        game.resolveStack();
 
         // baby_haunt should now be with player2
         expect(player1.inPlay).not.toContain(babyHaunt);
@@ -267,6 +279,7 @@ describe("Treasure - Passive effects", () => {
         // Kill player1
         game.kill(player1, player1, daddyHaunt);
         game.resolveStack();
+        game.resolveStack();
 
         // daddy_haunt should now be with player2
         expect(player1.inPlay).not.toContain(daddyHaunt);
@@ -274,6 +287,7 @@ describe("Treasure - Passive effects", () => {
 
         // Kill player1
         game.kill(player2, player2, daddyHaunt);
+        game.resolveStack();
         game.resolveStack();
 
         // daddy_haunt should now be with player2
@@ -320,6 +334,7 @@ describe("Treasure - Passive effects", () => {
         // Take damage
         game.dealDamage(player2, player1, theHabit, 1);
         game.resolveStack();
+        game.resolveStack();
 
         // The battery should be recharged
         expect(battery.charged).toBe(true);
@@ -332,7 +347,7 @@ describe("Treasure - Passive effects", () => {
         game.addInPlay(player1, theHabit);
         game.addInPlay(player1, battery1);
         game.addInPlay(player1, battery2);
-
+        game.addHealth(player1, 10); // Ensure player1 has enough HP
         // Discharge both items
         battery1.charged = false;
         battery2.charged = false;
@@ -349,6 +364,7 @@ describe("Treasure - Passive effects", () => {
         // Take damage twice
         game.dealDamage(player2, player1, theHabit, 1);
         game.resolveStack();
+        game.resolveStack();
 
         // Only battery1 should be recharged
         expect(battery1.charged).toBe(true);
@@ -357,16 +373,22 @@ describe("Treasure - Passive effects", () => {
         // Take damage again in same turn
         game.dealDamage(player2, player1, theHabit, 1);
         game.resolveStack();
+        game.resolveStack();
 
         // battery2 should still be discharged (habit only triggers once per turn)
         expect(battery2.charged).toBe(false);
 
         // End turn and start new turn
         game.endTurn();
+        game.resolveStack(); // Resolve any stack effects
         game.endTurn();
+        game.resolveStack(); // Resolve any stack effects
+        game.resolveStack(); // Resolve any stack effects
 
         // Take damage in new turn
         game.dealDamage(player2, player1, theHabit, 1);
+        game.resolveStack();
+        game.resolveStack(); // Resolve any stack effects
         game.resolveStack();
 
         // Now battery2 should be recharged
@@ -378,7 +400,9 @@ describe("Treasure - Passive effects", () => {
     it("theres_options - allows purchasing twice in one turn", () => {
         const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
         game.endTurn(); // end p1 turn
+        game.resolveStack(); // Resolve any stack effects
         game.endTurn(); // end p2 turn, p1's turn starts
+        game.resolveStack(); // Resolve any stack effects
         game.addInPlay(player1, theresOptions);
         
         // Give player enough coins for two purchases
@@ -402,7 +426,9 @@ describe("Treasure - Passive effects", () => {
     it("theres_options - cannot purchase three times", () => {
         const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
         game.endTurn(); // end p1 turn
+        game.resolveStack(); // Resolve any stack effects
         game.endTurn(); // end p2 turn, p1's turn starts
+        game.resolveStack(); // Resolve any stack effects
         game.addInPlay(player1, theresOptions);
         
         // Give player enough coins
@@ -439,8 +465,12 @@ describe("Treasure - Passive effects", () => {
         
         // End turn and start new turn
         game.endTurn();
+        game.resolveStack(); // Resolve any stack effects
+        game.resolveStack(); // Resolve any stack effects
         game.endTurn();
-        
+        game.resolveStack(); // Resolve any stack effects
+        game.resolveStack(); // Resolve any stack effects
+
         // Should be able to purchase twice again in new turn
         const result4 = game.purchase(player1, 1);
         const result5 = game.purchase(player1, 1);

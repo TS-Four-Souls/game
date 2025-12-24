@@ -30,6 +30,7 @@ describe("Loot Card", () => {
         const initialCoins2 = player2.coins;
         game.dealDamage(player2, player1, loot, 1); // No effect yet, not in play
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(player1.coins).toBe(initialCoins);
 
         player1.hand.addToHand(loot);
@@ -38,11 +39,13 @@ describe("Loot Card", () => {
 
         game.dealDamage(player2, player1, loot, 1);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(player1.coins).toBe(initialCoins + 1);
         expect(player1.currentHealthPoints).toBe(initialHealth - 2);
 
         game.dealDamage(player1, player2, loot, 1);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(player1.coins).toBe(initialCoins + 1);
         expect(player1.currentHealthPoints).toBe(initialHealth - 2);
         expect(player2.coins).toBe(initialCoins2); // No effect for other players
@@ -52,11 +55,13 @@ describe("Loot Card", () => {
 
         game.dealDamage(player2, player1, loot, 2);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(player1.coins).toBe(initialCoins + 2);
         expect(player1.currentHealthPoints).toBe(initialHealth - 2);
 
         game.dealDamage(player1, player2, loot, 1);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(player2.coins).toBe(initialCoins2); // No effect for other players
     });
 
@@ -69,6 +74,7 @@ describe("Loot Card", () => {
         const initialCoins2 = player2.coins;
         game.dealDamage(player2, player1, loot, 1); // No effect yet, not in play
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(player1.coins).toBe(initialCoins);
 
         player1.hand.addToHand(loot);
@@ -77,11 +83,13 @@ describe("Loot Card", () => {
 
         game.dealDamage(player2, player1, loot, 1);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(player1.coins).toBe(initialCoins + 1);
         expect(player1.currentHealthPoints).toBe(initialHealth - 2);
 
         game.dealDamage(player1, player2, loot, 1);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(player1.coins).toBe(initialCoins + 1);
         expect(player1.currentHealthPoints).toBe(initialHealth - 2);
         expect(player2.coins).toBe(initialCoins2); // No effect for other players
@@ -90,11 +98,13 @@ describe("Loot Card", () => {
 
         game.dealDamage(player2, player1, loot, 2);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(player1.coins).toBe(initialCoins + 1);
         expect(player1.currentHealthPoints).toBe(initialHealth - 4);
 
         game.dealDamage(player1, player2, loot, 1);
         game.resolveStack();
+        game.resolveStack(); // resolve on damage taken
         expect(player2.coins).toBe(initialCoins2); // No effect for other players
     });
 
@@ -111,12 +121,15 @@ describe("Loot Card", () => {
         game.dealDamage(player1, player2, loot, player2.currentHealthPoints); // Kill player 2
         game.resolveStack();
         game.resolveStack();
+        game.resolveStack();
         expect(player1.hand.cards.length).toBe(initialHandSize + 1); // Looted 1
         expect(player2.isDead).toBe(true);
         
         game.endTurn();
+        game.resolveStack();
         expect(player2.isDead).toBe(false); // Revived at turn end
         game.dealDamage(player1, player2, loot, player2.currentHealthPoints); // Kill player 2 again
+        game.resolveStack();
         game.resolveStack();
         game.resolveStack();
         expect(player1.hand.cards.length).toBe(initialHandSize + 2); // Looted 1
@@ -125,10 +138,12 @@ describe("Loot Card", () => {
         game.dealDamage(player2, player1, loot, player1.currentHealthPoints); // Kill player 1
         game.resolveStack();
         game.resolveStack();
+        game.resolveStack();
         expect(player1.hand.cards.length).toBe(initialHandSize + 2); // Looted 1 but discarded on death.
         expect(player1.isDead).toBe(true);
 
         game.endTurn();
+        game.resolveStack();
         const handSizeTurn3 = player1.hand.cards.length;
         expect(player1.isDead).toBe(false); // Revived at turn end
         expect(player2.isDead).toBe(false); // Revived at turn end
@@ -203,11 +218,15 @@ describe("Loot Card", () => {
         });
         
         game.endTurn(); // End player1's turn
+        game.resolveStack();
+
         // Start of player2's turn - no effect for them
         
         const topCard = game.getFirstCardsOfDeck("loot", 1)[0]!;
         game.addTopPosition("loot", topCard); // Put it back
         game.endTurn();
+        game.resolveStack();
+        game.resolveStack();
         // Start of player1's turn again - effect triggers
         // The top card should now be at the bottom
         const newBottomCards = lootDeck.cards[lootDeck.cards.length - 1];
@@ -221,13 +240,17 @@ describe("Loot Card", () => {
         });
         
         game.endTurn(); // End player1's turn
+        game.resolveStack();
+        game.resolveStack();
 
         // Now test choosing NOT to put on bottom
         const nextTopCard = game.getFirstCardsOfDeck("loot", 1)[0]!;
         game.addTopPosition("loot", nextTopCard); // Put it back
 
         game.endTurn(); // End player2's turn
-        
+        game.resolveStack();
+        game.resolveStack();
+
         // Start of player1's turn - effect triggers
         // The card should be drawn.
         expect(player1.hand.cards).toContain(nextTopCard);
@@ -252,13 +275,16 @@ describe("Loot Card", () => {
 
         // End player1's turn, start player2's turn
         game.endTurn();
-        
+        game.resolveStack();
+
         // Effect should NOT trigger for player2
         expect(selectCalled).toBe(false);
 
         // End player2's turn, start player1's turn
         game.endTurn();
-        
+        game.resolveStack();
+        game.resolveStack();
+
         // Effect SHOULD trigger for player1
         expect(selectCalled).toBe(true);
     });
@@ -304,11 +330,14 @@ describe("Loot Card", () => {
         });
 
         game.endTurn(); // End player1's turn
+        game.resolveStack();
         // Start of player2's turn - no effect for them
 
         const topCard = game.getFirstCardsOfDeck("treasure", 1)[0]!;
         game.addTopPosition("treasure", topCard); // Put it back
         game.endTurn();
+        game.resolveStack();
+        game.resolveStack();
         // Start of player1's turn again - effect triggers
         // The top card should now be at the bottom
         const newBottomCards = treasureDeck.cards[treasureDeck.cards.length - 1];
@@ -321,11 +350,13 @@ describe("Loot Card", () => {
         });
 
         game.endTurn(); // End player1's turn
+        game.resolveStack();
         // Now test choosing NOT to put on bottom
         const nextTopCard = game.getFirstCardsOfDeck("treasure", 1)[0]!;
         game.addTopPosition("treasure", nextTopCard); // Put it back
         
         game.endTurn(); // End player2's turn
+        game.resolveStack();
 
         // Start of player1's turn - effect triggers
         const finalBottomCards = treasureDeck.cards[treasureDeck.cards.length - 1];
@@ -352,12 +383,15 @@ describe("Loot Card", () => {
 
         // End player1's turn, start player2's turn
         game.endTurn();
+        game.resolveStack();
 
         // Effect should NOT trigger for player2
         expect(selectCalled).toBe(false);
 
         // End player2's turn, start player1's turn
         game.endTurn();
+        game.resolveStack();
+        game.resolveStack();
 
         // Effect SHOULD trigger for player1
         expect(selectCalled).toBe(true);
@@ -406,11 +440,14 @@ describe("Loot Card", () => {
         });
 
         game.endTurn(); // End player1's turn
+        game.resolveStack();
         // Start of player2's turn - no effect for them
 
         const topCard = game.getFirstCardsOfDeck("monster", 1)[0]!;
         game.addTopPosition("monster", topCard); // Put it back
         game.endTurn();
+        game.resolveStack();
+        game.resolveStack();
         // Start of player1's turn again - effect triggers
         // The top card should now be at the bottom
         const newBottomCards = monsterDeck.cards[monsterDeck.cards.length - 1];
@@ -423,11 +460,13 @@ describe("Loot Card", () => {
         });
 
         game.endTurn(); // End player1's turn
+        game.resolveStack();
         // Now test choosing NOT to put on bottom
         const nextTopCard = game.getFirstCardsOfDeck("monster", 1)[0]!;
         game.addTopPosition("monster", nextTopCard); // Put it back
 
         game.endTurn(); // End player2's turn
+        game.resolveStack();
 
         // Start of player1's turn - effect triggers
         const finalBottomCards = monsterDeck.cards[monsterDeck.cards.length - 1];
@@ -454,12 +493,16 @@ describe("Loot Card", () => {
 
         // End player1's turn, start player2's turn
         game.endTurn();
+        game.resolveStack();
+        game.resolveStack();
 
         // Effect should NOT trigger for player2
         expect(selectCalled).toBe(false);
 
         // End player2's turn, start player1's turn
         game.endTurn();
+        game.resolveStack();
+        game.resolveStack();
 
         // Effect SHOULD trigger for player1
         expect(selectCalled).toBe(true);
@@ -504,6 +547,7 @@ describe("Loot Card", () => {
         const beforeStack = game.stack.size;
         game.dealDamage(player2, player1, damageSource, initialHealth);
         game.resolveStack();
+        game.resolveStack();
         
         // Damage should be on the stack but death is pending
         expect(game.stack.size).toBeGreaterThan(beforeStack+1); // At least DeathOnStack and DiceRoll
@@ -527,11 +571,13 @@ describe("Loot Card", () => {
         // Take fatal damage on player1's turn
         game.dealDamage(player2, player1, damageSource, initialHealth);
         game.resolveStack();
+        game.resolveStack();
         const roll = game.stack._stack[1] as DiceRoll | undefined;
         expect(roll).toBeDefined();
         if (roll) {
             roll.value = 6; // Mock the dice roll to return 6
         }
+        game.resolveStack();
         game.resolveStack();
 
         // After resolving, player should still be alive
@@ -552,11 +598,14 @@ describe("Loot Card", () => {
         // Take fatal damage
         game.dealDamage(player2, player1, damageSource, initialHealth);
         game.resolveStack();
+        game.resolveStack();
         const roll = game.stack._stack[1] as DiceRoll | undefined;
+        expect(roll instanceof DiceRoll).toBe(true);
         expect(roll).toBeDefined();
         if (roll) {
             roll.value = 3; // Mock the dice roll to return 3
         }
+        game.resolveStack();
         game.resolveStack();
         game.resolveStack();
         // Player should be dead

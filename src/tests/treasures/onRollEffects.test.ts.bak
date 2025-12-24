@@ -54,8 +54,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
             attackRoll2.value = 5; // Triggering roll
         }
         game.resolveStack(); // roll resolution
+        game.resolveStack(); // passive effect (gain 3¢)
         game.resolveStack(); // damage resolution
-        game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 3);
         expect(game.stack.size).toBe(0);
 
@@ -69,8 +69,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         if (cardRoll) {
             cardRoll.value = 5; // Triggering roll
         }
-        game.resolveStack();
-        game.resolveStack();
+        game.resolveStack(); // roll resolution
+        game.resolveStack(); // passive effect (gain 3¢)
         expect(player1.coins).toBe(initialCoins + 6);
     });
 
@@ -106,6 +106,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
             attackRoll2.value = correctValue; // Triggering roll
         }
         game.resolveStack(); // roll resolution
+        game.resolveStack(); // passive effect (loot 1)
         game.resolveStack(); // damage resolution
         game.resolveStack(); // dies ?
         expect(player1.hand.length).toBe(initialHandLength + 1);
@@ -119,8 +120,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         if (cardRoll) {
             cardRoll.value = correctValue; // Triggering roll
         }
-        game.resolveStack();
-        game.resolveStack();
+        game.resolveStack(); // roll resolution
+        game.resolveStack(); // passive effect (loot 1)
         expect(player1.hand.length).toBe(initialHandLength + 2);
     });
 
@@ -156,6 +157,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
             attackRoll2.value = correctValue; // Triggering roll
         }
         game.resolveStack(); // roll resolution
+        game.resolveStack(); // passive effect (recharge sack)
         game.resolveStack(); // damage resolution
         game.resolveStack(); // dies ?
         expect(sack.charged).toBe(true);
@@ -170,8 +172,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         if (cardRoll) {
             cardRoll.value = correctValue; // Triggering roll
         }
-        game.resolveStack();
-        game.resolveStack();
+        game.resolveStack(); // roll resolution
+        game.resolveStack(); // passive effect (recharge sack)
         expect(sack.charged).toBe(true);
     });
 
@@ -208,6 +210,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
             attackRoll2.value = correctValue; // Triggering roll
         }
         game.resolveStack(); // roll resolution
+        game.resolveStack(); // passive effect (recharge item)
         game.resolveStack(); // damage resolution
         game.resolveStack(); // dies ?
         expect(recharged.charged).toBe(true);
@@ -222,8 +225,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         if (cardRoll) {
             cardRoll.value = correctValue; // Triggering roll
         }
-        game.resolveStack();
-        game.resolveStack();
+        game.resolveStack(); // roll resolution
+        game.resolveStack(); // passive effect (recharge item)
         expect(recharged.charged).toBe(true);
     });
 
@@ -261,6 +264,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
             attackRoll2.value = correctValue; // Triggering roll
         }
         game.resolveStack(); // roll resolution
+        game.resolveStack(); // passive effect (loot 1, then discard)
         game.resolveStack(); // damage resolution
         game.resolveStack(); // dies ?
         expect(game.stack.size).toBe(0);
@@ -282,8 +286,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         if (cardRoll) {
             cardRoll.value = correctValue; // Triggering roll
         }
-        game.resolveStack();
-        game.resolveStack();
+        game.resolveStack(); // roll resolution
+        game.resolveStack(); // passive effect (loot 1, then discard)
         expect(game.stack.size).toBe(0);
         expect(player1.hand.length).toBe(initialHandSize + 1 + 3); // looted 1, pill trigger loot 3.
         expect(player1.hand.cards).toContain(cardToAdd);
@@ -346,7 +350,6 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
             cardRoll.value = correctValue; // Triggering roll
         }
         game.resolveStack();
-        game.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(player1.hand.length).toBe(initialHandSize + 2); // stolen 2
         expect(player1.hand.cards.map(card => card.slug)).toContain(cardToSteal.slug);
@@ -405,7 +408,6 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         }
         game.resolveStack();
         game.resolveStack(); // damage resolution player 2 should take 1 damage
-        game.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(player2.currentHealthPoints).toBe(initHP - 2);
     });
@@ -523,7 +525,6 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
             cardRoll.value = correctValue; // Triggering roll
         }
         game.resolveStack();
-        game.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(player1.hand.length).toBe(initialHandSize + 2); // stolen 2
         expect(player1.hand.cards.map(card => card.slug)).toContain(cardToSteal.slug);
@@ -552,7 +553,6 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         if (cardRoll) {
             cardRoll.value = correctValue; // Triggering roll
         }
-        game.resolveStack();
         game.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(player1.inPlay).toContain(item2);
@@ -595,7 +595,6 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
             attackRoll2.value = correctValue; // Triggering roll
         }
         game.resolveStack(); // roll resolution
-        game.resolveStack(); // roll resolution
 
         // The effect should trigger and replace a monster NOT being attacked (monster1 or monster2)
         // Store the top card of monster deck before resolving
@@ -619,7 +618,6 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         if (cardRoll) {
             cardRoll.value = correctValue; // Triggering roll
         }
-        game.resolveStack();
         game.resolveStack();
 
         // Check that a monster was replaced (at least one slot changed)
@@ -649,7 +647,6 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
             attackRoll1.value = 6; // Non-triggering roll
         }
         game.resolveStack(); // roll resolution
-        game.resolveStack(); // roll resolution
         game.resolveStack(); // damage resolution
         expect(game.monsters[1]).toBe(monster1); // Monster slot 1 unchanged
 
@@ -662,7 +659,6 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         }
 
         const topMonsterCard = game.decks["monster"]!.cards[0];
-        game.resolveStack(); // roll resolution
         game.resolveStack(); // roll resolution
         game.resolveStack(); // damage resolution
 
@@ -683,10 +679,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
             cardRoll.value = correctValue; // Triggering roll
         }
         game.resolveStack();
-        game.resolveStack();
-        game.resolveStack();
 
-        game.resolveStack();
         // Check that the new top card was placed somewhere
         const foundNewTopCard = game.monsterSlots._slots[1]![2] === topMonsterCard2
         expect(foundNewTopCard).toBe(true);
