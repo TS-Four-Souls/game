@@ -4,7 +4,6 @@ import { DiceRoll, Player } from "../../models/player";
 import { pl } from "zod/locales";
 import type { LootCard, ItemCard, treasureCard } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
-import { effectParser, inplayCurseSelector, type ChooseOneOptions, type ChooseOneResult } from "@/models/effectParser";
 
 describe("Treasure - Permanent Modifiers", () => {
     let game: Game;
@@ -157,7 +156,9 @@ describe("Treasure - Permanent Modifiers", () => {
             const initialMonsterHealth = monster.currentHealthPoints;
 
             // Attack monster
-            game.attackRoll(player1, monster)
+            game.declareAttack(game.currentPlayer);
+            game.declareAttackOnMonster(game.currentPlayer, monster);
+            game.attackRoll(player1)
             const attackRoll = game.stack._stack[0] as DiceRoll | undefined;
             expect(attackRoll).toBeDefined();
             if (attackRoll) {
@@ -170,7 +171,7 @@ describe("Treasure - Permanent Modifiers", () => {
             expect(monster.currentHealthPoints).toBe(initialMonsterHealth - baseAttack - 1);
 
             // Second attack monster
-            game.attackRoll(player1, monster)
+            game.attackRoll(player1)
             const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
             expect(attackRoll2).toBeDefined();
             if (attackRoll2) {
@@ -253,7 +254,9 @@ describe("Treasure - Permanent Modifiers", () => {
         const initialP3HP = p3.currentHealthPoints;
         
         // Player1 attacks monster and deals combat damage
-        testGame.attackRoll(p1, monster);
+        game.declareAttack(game.currentPlayer);
+        game.declareAttackOnMonster(game.currentPlayer, monster);
+        testGame.attackRoll(p1);
         const attackRoll = testGame.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll).toBeDefined();
         if (attackRoll) {
@@ -279,9 +282,10 @@ describe("Treasure - Permanent Modifiers", () => {
         player2.addHealthPoints(10);
         
         const initialP2HP = player2.currentHealthPoints;
-        
+        game.declareAttack(game.currentPlayer);
+        game.declareAttackOnMonster(game.currentPlayer, monster);
         // Player1 attacks monster and rolls a 6
-        game.attackRoll(player1, monster);
+        game.attackRoll(player1);
         const attackRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll).toBeDefined();
         if (attackRoll?.value != 6) {
@@ -306,7 +310,7 @@ describe("Treasure - Permanent Modifiers", () => {
         
         // Roll another attack with non-6 value
         const initialP2HP2 = player2.currentHealthPoints;
-        game.attackRoll(player1, monster);
+        game.attackRoll(player1);
         const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll2).toBeDefined();
         const additional_damage = attackRoll2?.value === 6 ? 1 : 0;

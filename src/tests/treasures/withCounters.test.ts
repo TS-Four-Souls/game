@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../../models/game";
 import { DiceRoll, Player } from "../../models/player";
-import type { ItemCard, treasureCard } from "@/models/cards";
+import type { ItemCard, MonsterCard, treasureCard } from "@/models/cards";
 import { CharacterCard } from "@/models/cards";
 
 describe("Treasure - with counters effect", () => {
@@ -19,6 +19,14 @@ describe("Treasure - with counters effect", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
+        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
     });
 
     // "This item starts with 9 counters on it."
@@ -80,10 +88,16 @@ describe("Treasure - with counters effect", () => {
 
         // Test: LV1 Effect - +2 to first attack roll each turn
         const monster = game.monsters[0]!;
+        game.endTurn();
+        game.resolveStack();
+        game.discardFromHand(player2, 1);
+        game.declareAttack(player2);
+        game.declareAttackOnMonster(player2, monster);
+
         game.addHealth(monster, 20);
 
         // First attack roll of the turn
-        game.attackRoll(player1, monster);
+        game.attackRoll(player1);
         const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll1).toBeDefined();
         if (attackRoll1) {

@@ -4,7 +4,7 @@ import { DiceRoll, Player } from "../models/player";
 import { pl } from "zod/locales";
 import type { LootCard, ItemCard } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
-import { effectParser, inplayCurseSelector, type ChooseOneOptions, type ChooseOneResult } from "@/models/effectParser";
+import { type ChooseOneResult } from "@/models/effectParser";
 
 describe("Loot Card", () => {
     let game: Game;
@@ -21,6 +21,14 @@ describe("Loot Card", () => {
         const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [isaac, judas]);
+        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         game.decks["treasure"]?.addTopPosition(game.shop.obtainCard("b2-blank_card")!);
         game.decks["treasure"]?.addTopPosition(game.shop.obtainCard("b2-boomerang")!);
         game.decks["treasure"]?.addTopPosition(game.shop.obtainCard("b2-decoy")!);

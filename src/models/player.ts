@@ -1,6 +1,7 @@
 import { Entity } from "@/models/entity";
 import { CharacterCard, Hand, InplayType, ItemCard, treasureCard, type Card, type EffectFunction, EffectOnStack } from "./cards";
 import type { Game } from "./game";
+import type { Monster } from "./monster";
 
 export class Player extends Entity {
   /** This is the token the player uses to issue commands to the game
@@ -17,7 +18,7 @@ export class Player extends Entity {
   private _attackRollThisTurn: number = 0;
   private _remainingPurchaseThisTurn: number = 0;
   private _canSeeTopOfTreasureDeck: number = 0;
-  private _mustAttackMonster: any | null = null; // Monster type causes circular dependency
+  private _mustAttackMonster: (Monster | "topDeck")[] = [];
 
   constructor(
     id: string, 
@@ -36,12 +37,53 @@ export class Player extends Entity {
     this._remainingLootPlay = 0;
   }
 
-  get mustAttackMonster(): any | null {
+  get mustAttackMonster(): (Monster | "topDeck")[] {
     return this._mustAttackMonster;
   }
   
-  set mustAttackMonster(value: any | null) {
-    this._mustAttackMonster = value;
+
+mustAttack(value: Monster | "topDeck") {
+    this._mustAttackMonster.push(value);
+  }
+  
+  /**
+   * Returns true if the player has any attack requirement (must attack)
+   */
+  hasAttackRequirement(): boolean {
+    return this._mustAttackMonster.length > 0;
+  }
+  
+  /**
+   * Returns true if player must attack the top of the monster deck
+   */
+  mustAttackTopDeck(): boolean {
+    return this._mustAttackMonster.includes("topDeck");
+  }
+  
+  /**
+   * Returns true if attacking this element satisfies the requirement
+   */
+  canAttackThisMonster(elem: (Monster | "topDeck")): boolean {
+    if (this._mustAttackMonster.length === 0) return true; // No requirement
+    return this._mustAttackMonster.includes(elem); // Must be in the list
+  }
+  
+  /**
+   * Remove a monster from the must-attack list (call after attacking it)
+   */
+  clearAttackRequirement(elem?: Monster | "topDeck"): void {
+    
+    if (!elem) {
+      // Clear all requirements
+      this._mustAttackMonster = [];
+      return;
+    }
+
+    // Otherwise, remove the specific monster from the list
+    const index = this._mustAttackMonster.indexOf(elem);
+    if (index !== -1) {
+      this._mustAttackMonster.splice(index, 1);
+    }
   }
 
   get canSeeTopOfTreasureDeck(): boolean {
@@ -185,7 +227,7 @@ export class Player extends Entity {
     this._attackThisTurn = 0;
     this._attackRollThisTurn = 0;
     this._remainingPurchaseThisTurn = 0;
-    this.mustAttackMonster = null;
+    this._mustAttackMonster = [];
     this.resetEntityFlags();
   }
   addSoul(card: Card){

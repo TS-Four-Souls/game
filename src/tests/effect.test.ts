@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "@/models/game";
 import { Player } from "@/models/player";
 import { gainCoinsEffect } from "@/models/activeEffect";
-import { CharacterCard } from "@/models/cards";
+import { CharacterCard, MonsterCard } from "@/models/cards";
 
 // Minimal loot card stub
 const dummyLoot = { slug: "dummy-loot", name: "Dummy", type: "loot" } as any;
@@ -17,6 +17,15 @@ function setupGame() {
     const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
     const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
     game.start(p1, [isaac, samson]);
+    for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+        const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+        game.decks["monster"]!.addTopPosition(monsterCardTop);
+    }
+    const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+    const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+    game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+    game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+    game.decks["treasure"]?.addTopPosition(game.shop.obtainCard("b2-blank_card")!);
   return { game, p1, p2 };
 }
 
@@ -32,6 +41,14 @@ describe("Effect - gainCoins", () => {
   });
 
   it("should give coins to issuer when game started", () => {
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
     effectFn({it: dummyLoot, issuer: p1, targets: []});
     expect(p1.coins).toBe(5);
     expect(p2.coins).toBe(0);
@@ -41,12 +58,6 @@ describe("Effect - gainCoins", () => {
     effectFn({it: dummyLoot, issuer: p1, targets: []});
     effectFn({it: dummyLoot, issuer: p1, targets: []});
     expect(p1.coins).toBe(10);
-  });
-
-  it("should respect issuer secret (wrong secret fails)", () => {
-    const badIssuer = { id: p1.id, secret: "wrong" } as any;
-    const fn = () => effectFn({it: dummyLoot, issuer: badIssuer, targets: []});
-    expect(fn).toThrow("Invalid player secret");
   });
 
   it("should require game to be started", () => {

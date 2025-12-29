@@ -4,7 +4,6 @@ import { DiceRoll, Player } from "../models/player";
 import { pl } from "zod/locales";
 import type { LootCard, ItemCard, treasureCard } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
-import { effectParser, inplayCurseSelector, type ChooseOneOptions, type ChooseOneResult } from "@/models/effectParser";
 
 describe("Eternal Items", () => {
     let game: Game;
@@ -24,6 +23,14 @@ describe("Eternal Items", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         expect(player1.inPlay[0]!.slug).toBe("b2-samson");
         expect(player1.inPlay[0]!.eternal).toBe(true);
         expect(player2.inPlay[0]!.slug).toBe("b2-isaac");
@@ -62,6 +69,14 @@ describe("Eternal Items", () => {
         const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [eve, isaac]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         expect(player1.inPlay[0]!.slug).toBe("b2-eve");
         expect(player1.inPlay[0]!.eternal).toBe(true);
         expect(player1.inPlay[1]!.slug).toBe("b2-the_curse");
@@ -93,6 +108,14 @@ describe("Eternal Items", () => {
         const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [eve, isaac]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         expect(player1.inPlay[0]!.slug).toBe("b2-eve");
         expect(player1.inPlay[0]!.eternal).toBe(true);
         expect(player1.inPlay[1]!.slug).toBe("b2-the_curse");
@@ -116,6 +139,14 @@ describe("Eternal Items", () => {
         const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [theForgotten, isaac]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         expect(player1.inPlay[0]!.slug).toBe("b2-the_forgotten");
         expect(player1.inPlay[0]!.eternal).toBe(true);
         expect(player1.inPlay[1]!.slug).toBe("b2-the_bone");
@@ -150,6 +181,14 @@ describe("Eternal Items", () => {
         const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [theForgotten, isaac]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         
         const theBone = player1.inPlay[1]! as ItemCard;
         
@@ -187,6 +226,14 @@ describe("Eternal Items", () => {
         const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [theForgotten, isaac]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         
         const theBone = player1.inPlay[1]! as ItemCard;
         
@@ -213,6 +260,14 @@ describe("Eternal Items", () => {
         const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [theForgotten, isaac]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         
         const theBone = player1.inPlay[1]! as ItemCard;
         
@@ -243,6 +298,14 @@ describe("Eternal Items", () => {
         const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [theForgotten, isaac]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         
         const theBone = player1.inPlay[1]! as ItemCard;
         
@@ -273,6 +336,14 @@ describe("Eternal Items", () => {
         const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [theForgotten, isaac]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         
         const theBone = player1.inPlay[1]! as ItemCard;
         
@@ -315,6 +386,14 @@ describe("Eternal Items", () => {
         const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [judas, isaac]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         expect(player1.inPlay[0]!.slug).toBe("b2-judas");
         expect(player1.inPlay[0]!.eternal).toBe(true);
         expect(player1.inPlay[1]!.slug).toBe("b2-book_of_belial");
@@ -347,6 +426,14 @@ describe("Eternal Items", () => {
         const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [judas, isaac]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         expect(player1.inPlay[0]!.slug).toBe("b2-judas");
         expect(player1.inPlay[0]!.eternal).toBe(true);
         expect(player1.inPlay[1]!.slug).toBe("b2-book_of_belial");
@@ -380,6 +467,14 @@ describe("Eternal Items", () => {
         const cain = game.decks["character"]!.getCardFromSlug("b2-cain")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [cain, isaac]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         expect(player1.inPlay[0]!.slug).toBe("b2-cain");
         expect(player1.inPlay[0]!.eternal).toBe(true);
         expect(player1.inPlay[1]!.slug).toBe("b2-sleight_of_hand");
@@ -404,6 +499,14 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const maggy = game.decks["character"]!.getCardFromSlug("b2-maggy")! as CharacterCard;
         game.start(player1, [isaac, maggy]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         const dummyLoot = game.decks["loot"]!.draw() as LootCard;
         
         expect(player1.inPlay[0]!.slug).toBe("b2-isaac");
@@ -438,6 +541,14 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const lazarus = game.decks["character"]!.getCardFromSlug("b2-lazarus")! as CharacterCard;
         game.start(player1, [isaac, lazarus]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         const dummyLoot = game.decks["loot"]!.draw() as LootCard;
 
         expect(player1.inPlay[0]!.slug).toBe("b2-isaac");
@@ -478,6 +589,14 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         game.start(player1, [isaac, samson]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
 
         expect(player1.inPlay[0]!.slug).toBe("b2-isaac");
         expect(player2.inPlay[0]!.slug).toBe("b2-samson");
@@ -536,6 +655,14 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
         game.start(player1, [isaac, blueBaby]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         
         expect(player2.inPlay[0]!.slug).toBe("b2-blue_baby");
         expect(player2.inPlay[0]!.eternal).toBe(true);
@@ -566,6 +693,14 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
         game.start(player1, [isaac, blueBaby]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         
         const foreverAlone = player2.inPlay[1]! as ItemCard;
         game.recharge(foreverAlone);
@@ -588,6 +723,14 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
         game.start(player1, [isaac, blueBaby]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         
         const foreverAlone = player2.inPlay[1]! as ItemCard;
         game.recharge(foreverAlone);
@@ -629,6 +772,14 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
         game.start(player1, [isaac, blueBaby]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         
         const foreverAlone = player2.inPlay[1]! as ItemCard;
         const dummyLoot = game.decks["loot"]!.draw() as LootCard;
@@ -658,6 +809,14 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
         game.start(player1, [isaac, blueBaby]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         
         const foreverAlone = player2.inPlay[1]! as ItemCard;
         const dummyLoot = game.decks["loot"]!.draw() as LootCard;
@@ -695,6 +854,14 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
         game.start(player1, [isaac, lilith]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         
         expect(player2.inPlay[0]!.slug).toBe("b2-lilith");
         expect(player2.inPlay[0]!.eternal).toBe(true);
@@ -733,6 +900,14 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
         game.start(player1, [isaac, lilith]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
 
         const incubus = player2.inPlay[1]! as ItemCard;
         game.recharge(incubus);
@@ -765,6 +940,14 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
         game.start(player1, [isaac, lilith]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         
         const incubus = player2.inPlay[1]! as ItemCard;
         game.recharge(incubus);
@@ -792,6 +975,14 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
         game.start(player1, [isaac, lilith]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         
         const incubus = player2.inPlay[1]! as ItemCard;
         
@@ -827,6 +1018,14 @@ describe("Eternal Items - 3 players tests", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
         game.start(player1, [isaac, samson, judas]);
+        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
         expect(player1.inPlay[0]!.slug).toBe("b2-isaac");
         expect(player2.inPlay[0]!.slug).toBe("b2-samson");
         expect(player2.inPlay[0]!.eternal).toBe(true);

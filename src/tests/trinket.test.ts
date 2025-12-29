@@ -644,7 +644,9 @@ describe("Loot Card", () => {
         const initialMonsterHealth = monster.currentHealthPoints;
 
         // Attack monster
-        game.attackRoll(player1, monster)
+        game.declareAttack(game.currentPlayer);
+        game.declareAttackOnMonster(game.currentPlayer, monster);
+        game.attackRoll(player1)
         const attackRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll).toBeDefined();
         if (attackRoll) {
@@ -657,7 +659,7 @@ describe("Loot Card", () => {
         expect(monster.currentHealthPoints).toBe(initialMonsterHealth - baseAttack - 1);
 
         // Second attack monster
-        game.attackRoll(player1, monster)
+        game.attackRoll(player1)
         const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll2).toBeDefined();
         if (attackRoll2) {
@@ -682,7 +684,9 @@ describe("Loot Card", () => {
         const initialMonsterHealth = monster.currentHealthPoints;
 
         // Attack monster
-        game.attackRoll(player1, monster)
+        game.declareAttack(game.currentPlayer);
+        game.declareAttackOnMonster(game.currentPlayer, monster);
+        game.attackRoll(player1)
         const attackRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll).toBeDefined();
         if (attackRoll) {

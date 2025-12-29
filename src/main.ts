@@ -4,6 +4,7 @@ import { schemas, type Issuer } from "@/types/types";
 import { playerEndpointHandler } from "@/utils/endpoints";
 import { Elysia, sse } from "elysia";
 import { cors } from "@elysiajs/cors";
+import type { CharacterCard } from "./models/cards";
 const game = new Game();
 
 const PORT = process.env.PORT || 3000;
@@ -43,6 +44,62 @@ const app = new Elysia()
     },
     {
       body: schemas.joinRequest,
+    }
+  )
+  .post(
+    "/declareAttack",
+    async (request) => {
+      const player = game.getPlayerById(request.body.issuer.id);
+      game.declareAttack(player);
+      return new Response("", {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    },
+    {
+      body: schemas.userProtectedRequest,
+    }
+  )
+  .post(
+    "/attackMonster",
+    async (request) => {
+      const player = game.getPlayerById(request.body.issuer.id);
+      const monsterIndex =
+        request.body.index === "top"
+          ? request.body.replaceIndex
+          : request.body.index;
+      if (request.body.index === "top") {
+        game.drawMonster(player, request.body.replaceIndex);
+      }
+      const monster = game.encounters.monsterIn(monsterIndex);
+      if (!monster) {
+        return new Response(`No monster at index ${request.body.index}`, {
+          status: 400,
+        });
+      }
+      game.declareAttackOnMonster(player, monster);
+
+      return new Response("", {
+        status: 200,
+      });
+    },
+    {
+      body: schemas.attackMonsterRequest,
+    }
+  )
+  .post(
+    "/attackRoll",
+    async (request) => {
+      const player = game.getPlayerById(request.body.issuer.id);
+      game.attackRoll(player);
+      return new Response("", {
+        status: 200,
+      });
+    },
+    {
+      body: schemas.userProtectedRequest,
     }
   )
   .post(
@@ -128,21 +185,50 @@ const app = new Elysia()
       body: schemas.playCardRequest,
     }
   )
+  // .post(
+  //   "/activate",
+  //   async (request) => {
+  //     const player = game.getPlayerById(request.body.issuer.id);
+  //     game.activateItemAtIndex(player, request.body.index, request.body.targetChoices, request.body.effectIndex);
+  //     return new Response("", {
+  //       status: 200,
+  //     });
+  //   },
+  //   {
+  //     body: schemas.activateRequest,
+  //   }
+  // )
   .post(
-    "/activate",
+    "/purchase",
     async (request) => {
       const player = game.getPlayerById(request.body.issuer.id);
-      game.activateItemAtIndex(player, request.body.index);
-      return new Response("",
-        {
-          status: 200,
-        }
-      );
+      game.purchase(player, request.body.index);
+      return new Response("", {
+        status: 200,
+      });
     },
     {
-      body: schemas.activateRequest,
+      body: schemas.purchaseRequest,
     }
   )
+  // .post(
+  //   "/getEffectTarget",
+  //   async (request) => {
+  //     const player = game.getPlayerById(request.body.issuer.id);
+  //     const result = game
+  //       .getEffectTarget(player, request.body.index)
+  //       .map((selector) => ({
+  //         description: selector.description,
+  //         choices: selector.selector(player),
+  //       }));
+  //     return new Response(JSON.stringify(result), {
+  //       status: 200,
+  //     });
+  //   },
+  //   {
+  //     body: schemas.activateRequest,
+  //   }
+  // )
   .post(
     "/rolldice",
     async (request) => {
@@ -160,20 +246,20 @@ const app = new Elysia()
       body: schemas.userProtectedRequest,
     }
   )
-  .post(
-    "/gethand",
-    async (request) => {
-      return new Response(game.getHand(request.body.issuer), {
-        status: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-        },
-      });
-    },
-    {
-      body: schemas.userProtectedRequest,
-    }
-  )
+  // .post(
+  //   "/gethand",
+  //   async (request) => {
+  //     return new Response(game.getHand(request.body.issuer), {
+  //       status: 200,
+  //       headers: {
+  //         "Access-Control-Allow-Origin": "*",
+  //       },
+  //     });
+  //   },
+  //   {
+  //     body: schemas.userProtectedRequest,
+  //   }
+  // )
   .post(
     "/discardloot",
     async (request) => {
@@ -200,20 +286,6 @@ const app = new Elysia()
     },
     {
       body: schemas.userProtectedRequest,
-    }
-  )
-  .post(
-    "/purchase",
-    async (request) => {
-      return new Response(
-        game.purchase(request.body.issuer, request.body.index),
-        {
-          status: 200,
-        }
-      );
-    },
-    {
-      body: schemas.purchaseRequest,
     }
   )
   .post(
@@ -292,17 +364,6 @@ const app = new Elysia()
     }
   )
   .post(
-    "/hand",
-    async (request) => {
-      return new Response(game.getHand(request.body.issuer), {
-        status: 200,
-      });
-    },
-    {
-      body: schemas.userProtectedRequest,
-    }
-  )
-  .post(
     "/inplay",
     async (request) => {
       return new Response(game.getInPlay(request.body.issuer), {
@@ -345,7 +406,7 @@ const app = new Elysia()
   )
 
   // .post(
-  //   "/endturn", 
+  //   "/endturn",
   //   async (request) => {
   //     if(request.body.issuer !== game.currentPlayer?.name) {
   //     game.endTurn();
@@ -369,7 +430,15 @@ const app = new Elysia()
     const p2 = new Player("slichau", 1, 2, 0, "");
     game.addPlayer(p1);
     game.addPlayer(p2);
-    game.start(p1);
+    game.setupGame();
+    const isaac = game.decks["character"]!.getCardFromSlug(
+      "b2-isaac"
+    )! as CharacterCard;
+    const samson = game.decks["character"]!.getCardFromSlug(
+      "b2-samson"
+    )! as CharacterCard;
+    game.start(p1, [samson, isaac]);
+    // game.start(p1);
     return new Response("Debug reset", {
       status: 200,
     });
@@ -411,7 +480,7 @@ const app = new Elysia()
       });
     },
     {
-      query: schemas.issuerSchema,
+      query: schemas.issuerRequest,
     }
   )
   .listen(PORT);

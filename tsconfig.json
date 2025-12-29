@@ -19,6 +19,11 @@
     "verbatimModuleSyntax": true,
     "noEmit": true,
 
+    // Debugging
+    "sourceMap": true,
+    "inlineSourceMap": false,
+    "inlineSources": false,
+
     // Best practices
     "strict": true,
     "skipLibCheck": true,

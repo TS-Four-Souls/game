@@ -1,5 +1,5 @@
 import { shuffle, print } from '@/utils/auxiliary';
-import { chooseOneTargetSelector, effectParser, targetSelectorParser, isChooseOneResult, type ChooseOneOptions, type ChooseOneResult, isChooseOneOptions } from '@/models/effectParser';
+import { isChooseOneResult} from '@/models/effectParser';
 import type { CardRewards, EternalCardType, GenericCardType, LootCardType, InPlayCardType, TreasureCardType, CharacterCardType, MonsterCardType, BonusSoulCardType, GuppyCard } from '@/types/cardTypes';
 import { Player } from './player';
 import { assert } from 'console';
@@ -97,7 +97,12 @@ export class Effect {
                 if (targets[i]?.length > 0) {
                     const admissibleTargets = this._targetsSelector[i]!.selector(issuer);
                     if (isChooseOneResult(targets[i][0])) {
-                        return this.chooseOneTargetStillValid(issuer, [targets[i][0]]);
+                        if (
+                          !this.chooseOneTargetStillValid(issuer, [
+                            targets[i][0],
+                          ])
+                        )
+                          return false;
                     } else {
                         for (const targetId in targets) {
                             if (!admissibleTargets[targetId]?.includes(targets[targetId][0])) {
@@ -147,7 +152,11 @@ class PassiveEffectHandler extends EffectHandler {
     subscribeAll(owner: Entity, it: Card) {
         for (const effect of this._effects) {
             // Passive effects don't have targets, pass empty array
-            effect.effectFunction({ it, issuer: owner as Player, targets: [] });
+            let targets: any[] = [];
+            // if(effect.targetsSelector.length > 0) {
+            //     targets = effect.targetsSelector.map(selector => { selector.selector(owner as Player)[0]; });
+            // }
+            effect.effectFunction({ it: it, issuer: owner, targets: targets });
         }
     }
 }
@@ -192,6 +201,9 @@ class ActiveEffectHandler extends EffectHandler {
         return effect.effectFunction({ it, issuer: issuer as Player, targets: targets });
     }
 
+    hasActiveEffect(): boolean {
+        return this._activeEffect !== null;
+    }
 
     getPaidEffect(index: number): Effect {
         const paidEffects = this._effects[index];
@@ -292,7 +304,15 @@ class EffectInterface {
     //     this.activeEffects.pay(issuer, this.it, targets, effectId);
     // }
 
-    
+    get activeEffectList(): {index: ("tap" | number), description: string}[] {
+        let effects: {index: ("tap" | number), description: string}[] = [];
+        if( this.activeEffects.hasActiveEffect() )
+            effects.push({index: "tap" as const, description: this.activeEffects.getActiveEffect().description});
+        for (const [index, effect] of this.activeEffects.effectNames.entries()) 
+            effects.push({index: index, description: effect});
+        return effects;
+    }
+
 
     // Get the first active effect (for cards that have a single effect)
     getActiveEffect(index: number = 0): Effect | undefined {
@@ -323,6 +343,7 @@ class EffectInterface {
                    } else {
                        console.log("EffectInterface.onPlay resolve: targetStillValid() returned false for", (this.it as any).name);
                    }
+                this.subscribeAll(this._issuer!);
             }
         };
     }
@@ -351,7 +372,7 @@ class Card {
     protected _effectInterface: EffectInterface;
     protected _souls: number = 0;
     protected _charged: boolean = false;
-    protected _owner!: Player;
+    protected _owner!: Entity;
     protected _eternal: boolean = false;
     protected _position: Deck | null | Hand | Card[];
     protected _cleanup: (() => void)[] = [];
@@ -385,6 +406,11 @@ class Card {
         }
         return this._name + ": " + this._effectOutcomes.join(", ") + toAdd;
     }
+
+    get activeEffectList(): {index: "tap" | number, description: string}[] {
+        return this._effectInterface.activeEffectList;
+    }
+
     get charged(): boolean {
         return this._charged;
     }
@@ -451,7 +477,7 @@ class Card {
         return false;
     }
 
-    onAddInPlay(owner: Player): void {
+    onAddInPlay(owner: Entity): void {
         this._owner = owner;
         this._effectInterface.subscribeAll(owner);
     }
@@ -530,12 +556,12 @@ class Card {
 export type TargetsSelector = 
 {
     description: string;
-    selector: (issuer: Player) => any[];
+    selector: (player: Player) => any[];
 };
 
 export type EffectData = {
     it: Card,
-    issuer: Player,
+    issuer: Entity,
     targets: any[]
 }
 export type EffectFunction = (data: EffectData) => boolean;
@@ -565,6 +591,9 @@ export class ItemCard extends Card {
     }
     isActiveItem(): boolean {
         return this._inplayType === InplayType.CHARGED || this._inplayType === InplayType.UNCHARGED;
+    }
+    getEffectTarget(effectId: number | "tap"): TargetsSelector[] {
+        return this._effectInterface.getTargetSelectors(effectId);
     }
 
     // recharge(): boolean {
@@ -722,7 +751,10 @@ class MonsterCard extends Card {
 
     constructor(id: number, json: MonsterCardType) {
         super(id, json);
-        this._monsterType = MonsterType.EVENT;
+        this._monsterType = MonsterType.MONSTER;
+        if(["gevent", "bevent", "curse"].includes(json.subtype)) {
+            this._monsterType = MonsterType.EVENT;
+        }
         this._subtype = json.subtype;
         this._reward = json.rewards || {soul: 0, coin: 0, loot: 0, treasure: 0};
         if(json.stats) {
@@ -730,13 +762,13 @@ class MonsterCard extends Card {
             this._attackPoints = json.stats.attackPoints || 0;
             this._evasion = json.stats.evasionPoints || 0;
 
-            if (json.rewards && json.rewards.soul) {
-                this._monsterType = MonsterType.BOSS;
-                if (typeof json.rewards.soul === "number") {
-                    this._souls = json.rewards.soul as number;
+            if (json.rewards){
+                if (json.rewards.soul) {
+                    this._monsterType = MonsterType.BOSS;
+                    if (typeof json.rewards.soul === "number") {
+                        this._souls = json.rewards.soul as number;
+                    }
                 }
-            } else {
-                this._monsterType = MonsterType.MONSTER;
             }
         }
     }
@@ -757,6 +789,9 @@ class MonsterCard extends Card {
     }
     get rewards(): CardRewards | undefined {
         return this._json.rewards;
+    }
+    onPlay(issuer: Player, targets: any[] = []): void{
+        this._effectInterface.onPlay(issuer, targets)();
     }
 }
 
@@ -879,6 +914,12 @@ export class EffectOnStack {
         return this._effectFunction(this._data);
     }
 
+    get data(): EffectData {
+        return this._data;
+    }
+    set targets(targets: any[]) {
+        this._data.targets = targets;
+    }
     get json(): string {
         return JSON.stringify({ issuer: this._data.issuer.id, targets: this._data.targets, card: this._data.it.name, effect: this._description });
     }

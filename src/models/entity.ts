@@ -52,6 +52,10 @@ export abstract class Entity {
     return this._engagedInCombat > 0;
   }
 
+  combatEnded(){
+    this._engagedInCombat -= 1;
+  }
+
   engageInCombat(): void {
     this._engagedInCombat += 1;
   }

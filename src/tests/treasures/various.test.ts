@@ -4,7 +4,6 @@ import { DiceRoll, Player } from "../../models/player";
 import { pl } from "zod/locales";
 import type { LootCard, treasureCard, Card } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard, ItemCard } from "@/models/cards";
-import { effectParser, inplayCurseSelector, inplayUnchargedItemSelector, type ChooseOneOptions, type ChooseOneResult } from "@/models/effectParser";
 
 describe("Treasure - \"at the end of your turn\" effects", () => {
     let game: Game;
@@ -21,6 +20,14 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
+        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
     });
 
     it("edens_blessing - gain 6¢ at end of turn if you have 0¢", () => {
@@ -42,6 +49,14 @@ describe("Treasure - Passive effects", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
+        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
     });
 
     // b2-moms_coin_purse    "Loot +1 during your loot step."

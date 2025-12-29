@@ -4,7 +4,6 @@ import { DiceRoll, Player } from "../../models/player";
 import { pl } from "zod/locales";
 import type { LootCard, treasureCard, Card } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard, ItemCard } from "@/models/cards";
-import { effectParser, inplayCurseSelector, inplayUnchargedItemSelector, type ChooseOneOptions, type ChooseOneResult } from "@/models/effectParser";
 
 describe("Treasure - \"at the end of your turn\" effects", () => {
     let game: Game;
@@ -21,6 +20,15 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
+        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+
     });
 
     // b2-edens_blessing    "At the end of your turn, if you have 0¢, gain 6¢."
@@ -395,6 +403,14 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
+        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+            game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
     });
 
     // b2-dark_bum    "At the start of your turn, roll-\n1-2: Gain 3¢.\n3-4: Loot 1.\n5-6: Take 1 damage."
@@ -471,15 +487,22 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
         const initialHandSize = player1.hand.length;
 
         game.endTurn(); // p1 ends
+        expect(game.stack._stack.length).toBe(1);
         game.resolveStack(); // Resolve any stack effects
+        expect(game.stack._stack.length).toBe(0); // Ensure stack is clear
 
         game.endTurn(); // p2 ends, p1's turn starts - effect triggers
         game.resolveStack(); // Resolve any stack effects
         game.resolveStack(); // Resolve any stack effects
+        expect(game.stack._stack.length).toBe(1); // Ensure stack is clear
 
         const dice = game.stack.elements[0] as DiceRoll;
+        expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 4;
-        game.resolveStack();
+        expect(game.stack._stack.length).toBe(1);
+        game.resolveStack(); // Resolve any stack effects
+        game.resolveStack(); // Resolve any stack effects
+        expect(game.stack._stack.length).toBe(0); // Ensure stack is clear
 
         expect(player1.hand.length).toBe(initialHandSize + 2);
     });

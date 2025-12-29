@@ -35,6 +35,23 @@ const indexSchema = UserProtectedRequestSchema.extend({
   index: z.number(),
 });
 
+const attackMonsterSchema = z.union([
+  UserProtectedRequestSchema.extend({
+    index: z.number(),
+  }),
+  UserProtectedRequestSchema.extend({
+    index: z.literal("top"),
+    replaceIndex: z.number(),
+  }),
+]);
+
+const cardActivationSchema = UserProtectedRequestSchema.extend({
+
+  index: z.number(),
+  effectIndex: z.union([z.number(), z.literal("tap")]),
+  targetChoices: z.array(z.string()).optional(),
+});
+
 const NextTurnRequestSchema = UserProtectedRequestSchema.extend({});
 
 const ImageRequestSchema = UserProtectedRequestSchema.extend({
@@ -55,9 +72,10 @@ export const schemas = {
   drawMonsterRequest: indexSchema,
   discardInPlayRequest: indexSchema,
   playCardRequest: indexSchema,
-  activateRequest: indexSchema,
+  attackMonsterRequest: attackMonsterSchema,
   imageRequest: ImageRequestSchema,
-  issuerSchema: IssuerSchema,
+  activateRequest: cardActivationSchema,
+  issuerRequest: IssuerSchema,
 };
 
 export type Issuer = z.infer<typeof IssuerSchema>;
@@ -73,20 +91,22 @@ export type DetailedState = {
   me: {
     name: string;
     hand: GenericCardType[];
-    inPlay: GenericCardType[];
+    inPlay: (GenericCardType & { charged: boolean } & { effects: {
+        index: "tap" | number;
+        description: string;
+      }[] })[];
     souls: GenericCardType[];
     coins: number;
     currentHealthPoints: number;
     currentAttackPoints: number;
     remainingLootPlay: number;
-
-  },
+  };
   players: {
     name: string;
     handSize: number;
-    inPlay: GenericCardType[];
+    inPlay: (GenericCardType & { charged: boolean })[];
     souls: GenericCardType[];
-    coins: number
+    coins: number;
     currentHealthPoints: number;
     currentAttackPoints: number;
     remainingLootPlay: number;

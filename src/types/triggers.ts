@@ -36,7 +36,7 @@ export type TriggerEvent =
     | "on:enter:play"
     | "on:your:turn"
     | "on:loot:played"
-    | "on:monster:died"
+    | "on:death:monster"
     | "on:game:start:before"
     | "on:game:start";
 
