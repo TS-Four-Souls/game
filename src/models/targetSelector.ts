@@ -1,5 +1,5 @@
 import { DamageOnStack, DiceRoll, Player } from "./player";
-import { type Card, LootCard, type EffectFunction, type TargetsSelector, ItemCard, MonsterCard, InplayType, BsoulCard, type EffectData, EffectOnStack, LootCardEffect } from "./cards";
+import { type Card, LootCard, type EffectFunction, type TargetsSelector, ItemCard, MonsterCard, InplayType, BsoulCard, EffectData, EffectOnStack, LootCardEffect } from "./cards";
 import { Game } from "./game";
 import type { Entity } from "./entity";
 import type { StackElement } from "./stack";

@@ -1098,7 +1098,7 @@ describe("Loot Card", () => {
         expect(player2.inPlay).toContain(itemToSteal);
         expect(player1.inPlay).not.toContain(itemToSteal);
 
-        game.playCard(player1, 1, [[itemToDestroy], [itemToSteal]]);
+        game.playCard(player1, 1, [itemToDestroy, itemToSteal]);
         game.resolveStack();
 
         // Item should be destroyed from player1
@@ -1130,7 +1130,7 @@ describe("Loot Card", () => {
         expect(player1.inPlay).toContain(itemToDestroy);
         expect(game.shop._slots).toContain(shopItem);
 
-        game.playCard(player1, 1, [[itemToDestroy], [shopItem]]);
+        game.playCard(player1, 1, [itemToDestroy, shopItem]);
         game.resolveStack();
 
         // Item should be destroyed from player1

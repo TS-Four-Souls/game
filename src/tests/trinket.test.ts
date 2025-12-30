@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../models/game";
 import { DiceRoll, Player } from "../models/player";
-import type { CharacterCard } from "@/models/cards";
+import type { CharacterCard, MonsterCard } from "@/models/cards";
 
 describe("Loot Card", () => {
     let game: Game;
@@ -18,6 +18,14 @@ describe("Loot Card", () => {
         const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [isaac, judas]);
+        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+          const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+          game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
     });
 
 

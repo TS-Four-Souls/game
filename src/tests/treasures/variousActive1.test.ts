@@ -492,14 +492,13 @@ describe("Tap/Paid effects 1", () => {
         const initialHp = player2.currentHealthPoints;
 
         // Recharge and activate with choose one result to kill player2
-        // Note: "destroy this. if you do, choose one-" requires two target arrays:
-        // targets[0] for "destroy this" (empty) and targets[1] for "choose one" (must be array)
+        // choose one result should be passed directly as target
         game.recharge(chaosCard);
         const chooseOneTarget: ChooseOneResult = {
             description: "kill a player or monster.",
             chosenOptions: [player2]
         };
-        game.activateItem(player1, chaosCard, [[], [chooseOneTarget]]);
+        game.activateItem(player1, chaosCard, [chooseOneTarget]);
         game.resolveStack();
         game.resolveStack();
 
@@ -525,7 +524,7 @@ describe("Tap/Paid effects 1", () => {
             description: "destroy an item or soul.",
             chosenOptions: [targetItem]
         };
-        game.activateItem(player1, chaosCard, [[], [chooseOneTarget]]);
+        game.activateItem(player1, chaosCard, [chooseOneTarget]);
         game.resolveStack();
 
         // chaos_card should be destroyed

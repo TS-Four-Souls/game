@@ -588,7 +588,7 @@ describe("Tap/Paid effects 1", () => {
         const initialItemCount = player1.inPlay.length - 1; // -1 for d4 itself
 
         game.recharge(theD4);
-        game.activateItem(player1, theD4, [[], [player1]]);
+        game.activateItem(player1, theD4, [player1]);
         game.resolveStack();
         game.resolveStack(); // Resolve destroy d4
         game.resolveStack(); // Resolve reroll items

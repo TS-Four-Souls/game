@@ -205,7 +205,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         game.endTurn(); // end of turn of p1 - effect triggers, discards all and loots all back
         game.resolveStack(); // Resolve any stack effects
-        game.resolveStack(); // Resolve any stack effects
+        game.resolveStack(); // recharge blood lust at end of turn
 
         expect(player1.hand.length).toBe(handSizeBefore); // Same number of cards
 

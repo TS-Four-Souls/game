@@ -20,6 +20,14 @@ describe("Treasure - Permanent Modifiers", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
+        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+          const monsterCardTop = game.obtainCard(slug) as MonsterCard;
+          game.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
+        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
     });
     // [tap effect] look at the top 5 cards of a deck. put them back in any order.
     it("+1 HP", () => {
@@ -239,9 +247,17 @@ describe("Treasure - Permanent Modifiers", () => {
         testGame.setupGame();
         const samson = testGame.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = testGame.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const cain = testGame.decks["character"]!.getCardFromSlug("b2-cain")! as CharacterCard;
-        testGame.start(p1, [samson, isaac, cain]);
-        
+        const the_forgotten = testGame.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
+        testGame.start(p1, [samson, isaac, the_forgotten]);
+        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+          const monsterCardTop = testGame.obtainCard(slug) as MonsterCard;
+          testGame.decks["monster"]!.addTopPosition(monsterCardTop);
+        }
+        const monsterCard = testGame.obtainCard("b2-fly")! as MonsterCard;
+        const monsterCard2 = testGame.obtainCard("b2-fatty")! as MonsterCard;
+        testGame.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
+        testGame.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+
         // IMPORTANT: Get the card from testGame, not from the global game instance!
         const brimstone = testGame.shop.obtainCard("b2-brimstone") as treasureCard;
         
@@ -254,11 +270,12 @@ describe("Treasure - Permanent Modifiers", () => {
         const initialP3HP = p3.currentHealthPoints;
         
         // Player1 attacks monster and deals combat damage
-        game.declareAttack(game.currentPlayer);
-        game.declareAttackOnMonster(game.currentPlayer, monster);
+        testGame.declareAttack(testGame.currentPlayer);
+        testGame.declareAttackOnMonster(testGame.currentPlayer, monster);
         testGame.attackRoll(p1);
         const attackRoll = testGame.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll).toBeDefined();
+        expect(attackRoll instanceof DiceRoll).toBe(true);
         if (attackRoll) {
             attackRoll.value = 6; // Successful hit
         }

@@ -1,4 +1,4 @@
-import { type Card, type LootCard, type eternalCard, type treasureCard, MonsterCard, type CharacterCard, MonsterType, type Deck, EffectOnStack, type EffectData } from "./cards";
+import { type Card, type LootCard, type eternalCard, type treasureCard, MonsterCard, type CharacterCard, MonsterType, type Deck, EffectOnStack, EffectData } from "./cards";
 import type { Game } from "./game";
 import { Monster } from "./monster";
 import type { Player } from "./player";
@@ -160,7 +160,7 @@ class Encounters {
                     this.discardTop(index); // remove the card once the effect is resolved.
                     return true;
                 }, 
-                {it: card, issuer: this._game.currentPlayer, targets:[]}, 
+                new EffectData(card, this._game.currentPlayer, []), 
                 card.effectOutcomes.join('\n')
             );
             this._game.addToStack(effect);

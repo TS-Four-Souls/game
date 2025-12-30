@@ -27,7 +27,7 @@ import {
   treasureCard,
   BsoulCard,
   Effect,
-  type EffectData,
+  EffectData,
   type EffectType,
   type TargetsSelector,
   eternalCard,

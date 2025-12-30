@@ -156,7 +156,7 @@ describe("Treasure - with counters effect", () => {
 
         // Test: take 3 more damage, should add 3 counters (total 5)
         game.dealDamage(player2, player1, cambionConception, 3);
-        game.resolveStack();
+        game.resolveStack(); // resolve damage
         game.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(5);
         expect(player1.inPlay.length).toBe(initNbTreasure); // Still no treasure (need 6+)

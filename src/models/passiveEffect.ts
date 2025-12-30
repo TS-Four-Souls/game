@@ -1,5 +1,5 @@
 import { DiceRoll, Player } from "./player";
-import { type Card, type EffectData, LootCard, type EffectFunction, type TargetsSelector, ItemCard, InplayType, treasureCard, LootCardEffect, EffectOnStack } from "./cards";
+import { type Card, EffectData, LootCard, type EffectFunction, type TargetsSelector, ItemCard, InplayType, treasureCard, LootCardEffect, EffectOnStack } from "./cards";
 import { Game, gameParameters } from "./game";
 import type { TriggerEvent } from "@/types/triggers";
 import { deckSelector } from "./targetSelector";
@@ -32,7 +32,7 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): EffectF
 
         // Listen for the next damage event on this player
         offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
-            const target = data.targets[0] === undefined ? data.issuer : data.targets[0];
+            const target = data.targets.length > 0 ? data.peek() : data.issuer;
             if (target !== eventIssuer) return;
             const current = damageArray[0] ?? 0;
             if( current <= 0) return;
@@ -60,7 +60,7 @@ export function temporaryStatModifierEffect(
         if(amount < 0)
             throw new Error("temporaryStatModifierEffect amount must be non-negative.");
         // Apply the stat modification
-        const target = data.targets[0] === undefined ? data.issuer : data.targets[0];
+        const target = data.targets.length > 0 ? data.peek() : data.issuer;
             for(const adder of adders)
                 adder(target, amount);
             
@@ -104,7 +104,7 @@ export function permanentStatModifierEffect(
         if (amount < 0)
             throw new Error("permanentStatModifierEffect amount must be non-negative.");
         // Apply the stat modification
-        const target = data.targets[0] === undefined ? data.issuer : data.targets[0];
+        const target = data.targets.length > 0 ? data.peek() : data.issuer;
         for (const adder of adders)
             adder(target, amount);
 
@@ -150,7 +150,7 @@ export function setNextDamageToXEffect(setTo: number, game: Game): EffectFunctio
         };
         // Listen for the next damage event on this player
         offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
-            const target = data.targets[0] === undefined ? data.issuer : data.targets[0];
+            const target = data.targets.length > 0 ? data.peek() : data.issuer;
             if (target !== eventIssuer) return;
             damageArray[0] = setTo;
             cleanup(); // One-shot: remove listeners after first use
@@ -173,21 +173,21 @@ export function onYourTurnModifier(
 
         if(game.currentPlayer === data.issuer) {
             // Apply the stat modification
-            const target = data.targets[0] === undefined ? data.issuer : data.targets[0];
+            const target = data.targets.length > 0 ? data.peek() : data.issuer;
             for (const adder of adders)
                 adder(target, amount);
         }
 
         let offTurn = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
             if (eventIssuer !== data.issuer) return;
-            const target = data.targets[0] === undefined ? data.issuer : data.targets[0];
+            const target = data.targets.length > 0 ? data.peek() : data.issuer;
             for (const adder of adders)
                 adder(target, amount);
         });
 
         let offTurnEnd = game.emitter.on("on:turn:end", ({ eventIssuer }) => {
             if (eventIssuer !== data.issuer) return;
-            const target = data.targets[0] === undefined ? data.issuer : data.targets[0];
+            const target = data.targets.length > 0 ? data.peek() : data.issuer;
             for (const adder of adders)
                 adder(target, -amount);
         });
@@ -196,7 +196,7 @@ export function onYourTurnModifier(
 
         data.it.cleaners.push(() => {            
             if (game.currentPlayer === data.issuer) {
-                const target = data.targets[0] === undefined ? data.issuer : data.targets[0];
+                const target = data.targets.length > 0 ? data.peek() : data.issuer;
                 for (const adder of adders)
                     adder(target, -amount);
             }
@@ -216,7 +216,7 @@ export function curseEffect(restEffectFunction: EffectFunction, game: Game): Eff
         // Add the curse to their in play area.
         game.addInPlay(owner, data.it as ItemCard);
         // Apply the rest of the effect.
-        restEffectFunction({it: data.it, issuer: owner, targets: []});
+        restEffectFunction(new EffectData(data.it, owner, []));
         // Add Listener to remove the curse when the owner dies.
         let offDeath: (() => void) | null = null;
         // offDeath = game.emitter.on("on:death:after-penalty", ({ eventIssuer }) => {
@@ -315,7 +315,7 @@ export function onDamageTakenEffect(
             const index = data.targets.findIndex((c) => c.damageTaken !== undefined) < 0 
                 ? data.targets.length 
                 : data.targets.findIndex((c) => c.damageTaken !== undefined);
-            data.targets[index] = {damageTaken: dmg};
+            data.addTarget({damageTaken: dmg});
             
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
@@ -446,7 +446,7 @@ export function lootOnNextRollEffect(game: Game): EffectFunction {
         let offRoll: (() => void) | null = null;
         // Listen for the next roll event on this player
         offRoll = game.emitter.on("on:dice:rolled", ({ diceRoll }) => {
-            const guess = data.targets[0] as number;
+            const guess = data.next as number;
             if(guess < 1 || guess > 6) {
                 throw new Error("lootOnNextRollEffect target must be a number between 1 and 6.");
             }
@@ -942,7 +942,7 @@ export function onWouldRollEffect(
                 ? data.targets.length
                 : data.targets.findIndex((c) => c.diceThatWouldRoll !== undefined);
             
-            data.targets[index] = { diceThatWouldRoll: diceRoll};
+            data.addTarget({ diceThatWouldRoll: diceRoll});
             
             // Create the effect that will execute when the stack resolves
             const effect = (effectData: EffectData) => {
@@ -1094,7 +1094,8 @@ export function lootDoubleThisTurnEffect(game: Game): EffectFunction {
         let offEndTurn: (() => void) | null = null;
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:loot:would", ({ eventIssuer, numberOfCards }) => {
-            if (data.targets[0] !== eventIssuer) return;
+            const target = data.next;
+            if (target !== eventIssuer) return;
             numberOfCards[0]! *= 2;
         });
 
@@ -1119,7 +1120,8 @@ export function lootFromDiscardEffect(game: Game): EffectFunction {
         let offEffect: (() => void) | null = null;
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:loot:would", ({ eventIssuer, numberOfCards }) => {
-            if (data.targets[0] !== eventIssuer) return;
+            const target = data.next;
+            if (target !== eventIssuer) return;
             while(numberOfCards[0]! > 0)
             {
                 const card = 

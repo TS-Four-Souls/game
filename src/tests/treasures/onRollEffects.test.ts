@@ -34,6 +34,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
     it("eye_of_greed", () => {
 
         const eyeOfGreed = game.shop.obtainCard("b2-eye_of_greed")! as treasureCard;
+        const card = game.obtainCard("b2-pills") as LootCard;
+
         game.addInPlay(player1, eyeOfGreed);
         const initialCoins = player2.coins;
         const monster = game.monsters[0]!;
@@ -71,7 +73,6 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         expect(game.stack.size).toBe(0);
 
         // card roll
-        const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
         player1.hand.addToHand(card);
         const playCard = game.playCard(player1, 1);
         game.resolveStack();
@@ -90,7 +91,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const correctValue = 1;
         const theRelic = game.shop.obtainCard("b2-the_relic")! as treasureCard;
         game.addInPlay(player1, theRelic);
-        const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
+        const card = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(card);
         const initialHandLength = player1.hand.length;
         const monster = game.monsters[0]!;
@@ -148,7 +149,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const sack = game.shop.obtainCard("b2-sack_of_pennies")! as treasureCard;
         game.addInPlay(player1, sack);
         sack.charged = false;
-        const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
+        const card = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(card);
         const monster = game.monsters[0]!;
 
@@ -207,7 +208,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const recharged = game.select(player1, 1, inplayUnchargedItemSelector(game)(player1), true).selected[0] as Card;
         game.addInPlay(player1, baby);
         recharged.charged = false;
-        const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
+        const card = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(card);
         const monster = game.monsters[0]!;
 
@@ -263,7 +264,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
     it("moms_box", () => {
 
         const correctValue = 4;
-        const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
+        const card = game.obtainCard("b2-pills") as LootCard;
         const item = game.shop.obtainCard("b2-moms_box")! as treasureCard;
         game.addInPlay(player1, item);
         const monster = game.monsters[0]!;
@@ -334,7 +335,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
     it("tarot_cloth", () => {
 
         const correctValue = 4;
-        const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
+        const card = game.obtainCard("b2-pills") as LootCard;
         const item = game.shop.obtainCard("b2-tarot_cloth")! as treasureCard;
         game.loot(player2, 1);
         game.addInPlay(player1, item);
@@ -403,7 +404,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
     it("moms_razor", () => {
 
         const correctValue = 6;
-        const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
+        const card = game.obtainCard("b2-pills") as LootCard;
         const item = game.shop.obtainCard("b2-moms_razor")! as treasureCard;
         game.addInPlay(player1, item);
         const monster = game.monsters[0]!;
@@ -468,7 +469,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
     it("cheese_grater", () => {
 
         const correctValue = 6;
-        const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
+        const card = game.obtainCard("b2-pills") as LootCard;
         const item = game.shop.obtainCard("b2-cheese_grater")! as treasureCard;
         game.addInPlay(player1, item);
         const monster = game.monsters[0]!;
@@ -533,7 +534,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
     it("dead_bird", () => {
 
         const correctValue = 3;
-        const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
+        const card = game.obtainCard("b2-pills") as LootCard;
         const item = game.shop.obtainCard("b2-dead_bird")! as treasureCard;
         game.loot(player2, 1);
         game.addInPlay(player1, item);
@@ -602,7 +603,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
     it("finger", () => {
 
         const correctValue = 2;
-        const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
+        const card = game.obtainCard("b2-pills") as LootCard;
         const item1 = game.shop.obtainCard("b2-blank_card")! as treasureCard;
         const item2 = game.shop.obtainCard("b2-dry_baby")! as treasureCard;
         const item = game.shop.obtainCard("b2-finger")! as treasureCard;
@@ -633,6 +634,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
     it("spider_mod", () => {
         const correctValue = 5;
         const spiderMod = game.shop.obtainCard("b2-spider_mod")! as treasureCard;
+        const card = game.obtainCard("b2-pills") as LootCard;
         game.addInPlay(player1, spiderMod);
 
         // Store references to current monsters
@@ -681,7 +683,6 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         expect(monstersChanged).toBe(true);
 
         // card roll
-        const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
         player2.hand.addToHand(card);
         const playCard = game.playCard(player2, 1);
         game.resolveStack();
@@ -748,7 +749,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         expect(foundTopCard).toBe(true);
 
         // card roll
-        const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
+        const card = game.obtainCard("b2-pills") as LootCard;
         player2.hand.addToHand(card);
         const playCard = game.playCard(player2, 2);
         game.resolveStack();

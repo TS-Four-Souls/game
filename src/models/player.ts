@@ -1,5 +1,5 @@
 import { Entity } from "@/models/entity";
-import { CharacterCard, Hand, InplayType, ItemCard, treasureCard, type Card, type EffectFunction, EffectOnStack } from "./cards";
+import { CharacterCard, Hand, InplayType, ItemCard, treasureCard, type Card, type EffectFunction, EffectOnStack, EffectData } from "./cards";
 import type { Game } from "./game";
 import type { Monster } from "./monster";
 
@@ -354,7 +354,7 @@ export class DiceRoll {
   }
   onResolve(): void {
     if (this._effect?.length === 6) {
-      this._effect[this._value - 1]!({it: this._card!, issuer: this._issuer, targets: this._targets});
+      this._effect[this._value - 1]!(new EffectData(this._card!, this._issuer, this._targets));
     }
   }
 }
@@ -392,7 +392,7 @@ export class DamageOnStack {
   onResolve(): void {
     this.game.resolveDamage(this.from, this.receiver, this._card, this.damage[0]!);
     if(this._effect) {
-      this._effect({it: this._card, issuer: this.from as Player, targets: [this, this._targets]});
+      this._effect(new EffectData(this._card, this.from as Player, [this, this._targets]));
     }
   }
   get json(): string {

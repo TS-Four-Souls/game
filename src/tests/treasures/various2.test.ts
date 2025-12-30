@@ -112,7 +112,7 @@ describe("Tap/Paid effects 2", () => {
         game.recharge(guppysPaw);
         
         expect(player1.currentHealthPoints).toBe(2);
-        game.activateItem(player1, guppysPaw, [[],[player2]]);
+        game.activateItem(player1, guppysPaw, [player2]);
         game.resolveStack();
         
         expect(player1.currentHealthPoints).toBe(1); // Paid 1 HP
@@ -158,7 +158,7 @@ describe("Tap/Paid effects 2", () => {
         
         game.recharge(guppysPaw);
         
-        game.activateItem(player1, guppysPaw, [[],[player2]]);
+        game.activateItem(player1, guppysPaw, [player2]);
         game.resolveStack();
         
         // Deal 5 damage to player2
@@ -177,7 +177,7 @@ describe("Tap/Paid effects 2", () => {
         
         game.recharge(guppysPaw);
         
-        game.activateItem(player1, guppysPaw, [[],[player2]]);
+        game.activateItem(player1, guppysPaw, [player2]);
         game.resolveStack();
         
         // First damage instance - should be prevented
@@ -200,7 +200,7 @@ describe("Tap/Paid effects 2", () => {
         
         
         expect(player1.currentHealthPoints).toBe(2);
-        game.activateItem(player1, guppysPaw, [[],[player1]]);
+        game.activateItem(player1, guppysPaw, [player1]);
         game.resolveStack();
         
         expect(player1.currentHealthPoints).toBe(1); // Paid 1 HP

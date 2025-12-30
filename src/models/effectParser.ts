@@ -1,5 +1,5 @@
 import { DamageOnStack, DiceRoll, Player } from "./player";
-import { type Card, LootCard, type EffectFunction, type TargetsSelector, ItemCard, MonsterCard, InplayType, BsoulCard, type EffectData, EffectOnStack, LootCardEffect } from "./cards";
+import { type Card, LootCard, type EffectFunction, type TargetsSelector, ItemCard, MonsterCard, InplayType, BsoulCard, EffectData, EffectOnStack, LootCardEffect } from "./cards";
 import { Game } from "./game";
 import type { Entity } from "./entity";
 import { effect } from "zod/v3";
@@ -197,7 +197,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             return game.destroyCardsOrSouls(itemsToDestroy);
         };
     if (s.startsWith("kill "))
-        return (data:EffectData) => { game.kill(data.issuer, data.targets[0] as Entity, data.it); return true; };
+        return (data:EffectData) => { game.kill(data.issuer, data.next as Entity, data.it); return true; };
     if (s.startsWith("destroy this."))
         return (data:EffectData) => { 
             game.destroyCardsOrSouls([data.it]); 
@@ -215,9 +215,9 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
 
             // console.log("executing combined effect");
             // console.log("  targets:", targets);
-            firstEffect({it: data.it, issuer: data.issuer, targets: data.targets});
+            firstEffect(data);
             // console.log("first effect done, executing second");
-            secondEffect({it: data.it, issuer: data.issuer, targets: data.targets});
+            secondEffect(data);
             // console.log("second effect done");
             return true;
         };
@@ -228,8 +228,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         const secondEffect = effectParser(parts[1]!.trim(), game);
         return (data:EffectData) => {
             // todo verify that the first effect was successful.
-            if(firstEffect({it: data.it, issuer: data.issuer, targets: data.targets[0]}))
-                secondEffect({it: data.it, issuer: data.issuer, targets: data.targets[1]});
+            if(firstEffect(data))
+                secondEffect(data);
             return true;
         };
     }
@@ -331,7 +331,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         damageToDeal = 1;
     if (damageToDeal !== null)
         return (data:EffectData) => {
-            const target = data.targets[0] as Entity;
+            const target = data.next as Entity;
             game.dealDamage(data.issuer, target, data.it, damageToDeal);
             return true;
         };
@@ -496,14 +496,14 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
                 if (data.issuer instanceof Player === false) return false;
                 // const itemToGive = game.select(data.issuer, 1, data.issuer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false)).selected[0] as ItemCard;
                 // const targetPlayer = game.select(data.issuer, 1, game.players.filter((p) => p !== data.issuer)).selected[0] as Player;
-                const itemToGive = data.targets[0] as ItemCard;
-                const targetPlayer = data.targets[1] as Player;
+                const itemToGive = data.next as ItemCard;
+                const targetPlayer = data.next as Player;
                 return game.give(data.issuer, targetPlayer, itemToGive);
             };
         case "look at the top 5 cards of a deck. put them back in any order.":
             return (data:EffectData) => {
                 if (data.issuer instanceof Player === false) return false;
-                const deckName = data.targets[0] as string;
+                const deckName = data.next as string;
                 const top5Cards = game.getFirstCardsOfDeck(deckName, 5);
                 const selectionResult = game.select(data.issuer, 5, top5Cards, false);
                 for (let i = selectionResult.selected.length - 1; i >= 0; i--) {
@@ -519,8 +519,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             return active.makePlayerGiveLootCardEffect(game);
         case "add or subtract 1 from a roll.":
             return (data:EffectData) => {
-                const choosenDiceRoll: DiceRoll = data.targets[0] as DiceRoll;
-                const value = data.targets[1] as number;
+                const choosenDiceRoll: DiceRoll = data.next as DiceRoll;
+                const value = data.next as number;
                 if (value === 1) 
                     choosenDiceRoll.add(1);
                 else if (value === -1)
@@ -617,7 +617,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             return active.putTopMonsterInValidSlotEffect(game);
         case "kill a monster.":
             return (data:EffectData) => {
-                const targetMonster = data.targets[0] as Monster;
+                const targetMonster = data.next as Monster;
                 game.kill(data.issuer, targetMonster, data.it);
                 return true;
             };
@@ -695,7 +695,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
 
         case "choose a dice roll. its controller rerolls it.":
             return (data:EffectData) => {
-                const choosenDiceRoll:DiceRoll = data.targets[0] as DiceRoll;
+                const choosenDiceRoll:DiceRoll = data.next as DiceRoll;
                 choosenDiceRoll.roll();
                 return true;
             };
@@ -706,7 +706,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         case "change the result of a dice roll to a 1 or 6.":
             return (data:EffectData) => {
                 if (data.issuer instanceof Player === false) return false;
-                const choosenDiceRoll: DiceRoll = data.targets[0] as DiceRoll;
+                const choosenDiceRoll: DiceRoll = data.next as DiceRoll;
                 const selectionResult = game.select(data.issuer, 1, [1, 6]);
                 const newValue = selectionResult.selected[0] as number;
                 choosenDiceRoll.value = newValue;
@@ -724,8 +724,9 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         case "reroll an item. (destroy that item and replace it with the top card of the treasure deck.)":
         case "reroll an item.\n(destroy that item and replace it with the top card of the treasure deck.)":
             return (data:EffectData) => {
-                const p: Player = game.getPlayerById(data.targets[0].player)!;
-                game.reroll(p, data.targets[0].card);
+                const rerollTarget = data.next;
+                const p: Player = game.getPlayerById(rerollTarget.player)!;
+                game.reroll(p, rerollTarget.card);
                 return true;
             };
         case "put each shop item on the bottom of the treasure deck.":
@@ -736,7 +737,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         case "that player gives you a loot card.":
             return (data:EffectData) => { 
                 if (data.issuer instanceof Player === false) return false;
-                const targetPlayer = data.targets[0] as Player;
+                const targetPlayer = data.next as Player;
                 if (targetPlayer.hand.length > 0) {
                     const cardToSteal = game.select(targetPlayer, 1, targetPlayer.hand.cards).selected[0] as LootCard;
                     game.stealLootCard(data.issuer, targetPlayer, cardToSteal);

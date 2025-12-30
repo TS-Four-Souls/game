@@ -156,7 +156,7 @@ class PassiveEffectHandler extends EffectHandler {
             // if(effect.targetsSelector.length > 0) {
             //     targets = effect.targetsSelector.map(selector => { selector.selector(owner as Player)[0]; });
             // }
-            effect.effectFunction({ it: it, issuer: owner, targets: targets });
+            effect.effectFunction(new EffectData(it, owner, targets));
         }
     }
 }
@@ -193,12 +193,12 @@ class ActiveEffectHandler extends EffectHandler {
         if (this._activeEffect === null) {
             throw new Error("No active effect found in ActiveEffectHandler.");
         }
-        return this._activeEffect.effectFunction({ it, issuer: issuer as Player, targets: targets });
+        return this._activeEffect.effectFunction(new EffectData(it, issuer as Player, targets));
     }
 
     pay(issuer: Entity, it: Card, targets: any[], effectId: number): boolean {
         const effect = this.getPaidEffect(effectId);
-        return effect.effectFunction({ it, issuer: issuer as Player, targets: targets });
+        return effect.effectFunction(new EffectData(it, issuer as Player, targets));
     }
 
     hasActiveEffect(): boolean {
@@ -278,26 +278,27 @@ class EffectInterface {
 
     paidEffect(issuer: Entity, targets: any[], effectId: number): EffectOnStack | null {
         const effect = this.activeEffects.getPaidEffect(effectId);
-        const data = { it: this.it, issuer: issuer as Player, targets: targets };
         
         // Execute payment if it exists
         if (effect.hasPayment()) {
-            const paymentData = { it: this.it, issuer: issuer as Player, targets: targets[0] || [] };
+            // Payment gets first element of targets array
+            const paymentData = new EffectData(this.it, issuer as Player, targets[0] || []);
             if (!effect.executePayment(paymentData)) {
                 return null; // Payment failed
             }
-            // Create EffectOnStack with the effect function and targets[1] for paid effects
-            const effectData = { it: this.it, issuer: issuer as Player, targets: targets[1] || [] };
+            // Effect gets second element of targets array
+            const effectData = new EffectData(this.it, issuer as Player, targets[1] || []);
             return new EffectOnStack(effect.effectFunction, effectData, effect.description);
         }
         
         // No payment required, execute effect directly with all targets
+        const data = new EffectData(this.it, issuer as Player, targets);
         return new EffectOnStack(effect.effectFunction, data, effect.description);
     }
     
     tapEffect(issuer: Entity, targets: any[]): EffectOnStack {
         const effect = this.activeEffects.getActiveEffect();
-        const data = { it: this.it, issuer: issuer as Player, targets: targets };
+        const data = new EffectData(this.it, issuer as Player, targets);
         return new EffectOnStack(effect.effectFunction, data, effect.description);
     }
     // activeEffect(issuer: Entity, targets: any[], effectId: number): void {
@@ -339,7 +340,7 @@ class EffectInterface {
                 }
                    // Validate targets before calling effect function
                    if (effect.targetStillValid(this._issuer!, targets)) {
-                       effect.effectFunction({ it: this.it, issuer: this._issuer!, targets: targets });
+                       effect.effectFunction(new EffectData(this.it, this._issuer!, targets));
                    } else {
                        console.log("EffectInterface.onPlay resolve: targetStillValid() returned false for", (this.it as any).name);
                    }
@@ -559,11 +560,47 @@ export type TargetsSelector =
     selector: (player: Player) => any[];
 };
 
-export type EffectData = {
-    it: Card,
-    issuer: Entity,
-    targets: any[]
+export class EffectData {
+    it: Card;
+    issuer: Entity;
+    private _targets: any[];
+    private _nextIndex: number = 0;
+
+    constructor(it: Card, issuer: Entity, targets: any[]) {
+        this.it = it;
+        this.issuer = issuer;
+        this._targets = targets;
+    }
+
+    get targets(): any[] {
+        return this._targets;
+    }
+
+    set targets(targets: any[]) {
+        this._targets = targets;
+        this._nextIndex = 0;
+    }
+
+    get next(): any {
+        if (this._nextIndex >= this._targets.length) {
+            return undefined;
+        }
+        return this._targets[this._nextIndex++];
+    }
+    
+    peek(index: number = 0): any {
+        return this._targets[index];
+    }
+    
+    get remaining(): any[] {
+        return this._targets.slice(this._nextIndex);
+    }
+
+    addTarget(target: any): void {
+        this._targets.push(target);
+    }
 }
+
 export type EffectFunction = (data: EffectData) => boolean;
 
 enum InplayType { CHARGED, UNCHARGED, PASSIVE, PAID, PLAYABLE }
@@ -919,6 +956,8 @@ export class EffectOnStack {
     }
     set targets(targets: any[]) {
         this._data.targets = targets;
+        // Reset the consumption index when targets are set externally
+        (this._data as any)._nextIndex = 0;
     }
     get json(): string {
         return JSON.stringify({ issuer: this._data.issuer.id, targets: this._data.targets, card: this._data.it.name, effect: this._description });
