@@ -35,8 +35,7 @@ import {
   MonsterType,
 } from "@/models/cards";
 import { Stack, type StackElement } from "@/models/stack";
-import { effectParser } from "@/models/effectParser";
-import { targetSelectorParser } from "@/models/targetSelector";
+import { effectParser, type ParsedEffect } from "@/models/effectParser";
 import { getAttackRollEffect } from "@/models/activeEffect";
 import { Shop, Encounters } from "@/models/slots";
 import { Entity } from "@/models/entity";
@@ -1079,24 +1078,25 @@ export class Game {
         const paymentString = s2.substring(0, idx).trim();
         const effectString = s2.substring(idx + 1).trim();
 
-        const paymentFunction = effectParser(paymentString, this);
-        const effectFunction = effectParser(effectString, this);
+        const paymentParsed = effectParser(paymentString, this);
+        const effectParsed = effectParser(effectString, this);
 
         const effect: Effect = new Effect(
           outcome,
           effectType,
-          effectFunction,
-          targetSelectorParser(outcome, this),
-          paymentFunction
+          effectParsed.effectFunction,
+          effectParsed.targetSelectors,
+          paymentParsed.effectFunction
         );
         card.addEffect(effect);
       } else {
         // Regular effects (passive/active)
+        const parsed = effectParser(outcome, this);
         const effect: Effect = new Effect(
           outcome,
           effectType,
-          effectParser(outcome, this),
-          targetSelectorParser(outcome, this)
+          parsed.effectFunction,
+          parsed.targetSelectors
         );
         card.addEffect(effect);
       }

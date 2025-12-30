@@ -250,6 +250,9 @@ mustAttack(value: Monster | "topDeck") {
     if (index === -1) {
       throw new Error("Item not in play.");
     }
+    if (!item.targetStillValid(this, effectId, targets))
+      throw new Error("Targets are not valid for this effect.");
+
     return item.tryActivateEffect(targets, effectId);
   }
   gainCoins(coins: number): void {

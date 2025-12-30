@@ -999,7 +999,7 @@ describe("b2-no - Cancel the ↷ or $ ability of an item", () => {
         const initialHP = monster.currentHealthPoints;
 
         // Player 2 activates mr_boom (paid effect) to deal 1 damage
-        game.activateItem(player2, mrBoom, [[monster]]);
+        game.activateItem(player2, mrBoom, [monster]);
         expect(game.stack.size).toBe(1);
 
         // Player 1 uses "no" to cancel the mr_boom ability
@@ -1044,7 +1044,7 @@ describe("b2-no - Cancel the ↷ or $ ability of an item", () => {
         const initialHP = player1.currentHealthPoints;
 
         // Player 2 uses razor_blade to damage player 1
-        game.activateItem(player2, razorBlade, [[player1]]);
+        game.activateItem(player2, razorBlade, [player1]);
         expect(game.stack.size).toBe(1);
 
         // Player 1 uses no to cancel the damage

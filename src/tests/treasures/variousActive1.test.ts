@@ -106,7 +106,7 @@ describe("Tap/Paid effects 1", () => {
         const initialCoins = player1.coins;
 
         // Activate battery_bum (paid effect with effectId 0)
-        game.activateItem(player1, batteryBum, [[], [battery]], 0);
+        game.activateItem(player1, batteryBum, [battery], 0);
         game.resolveStack();
 
         // Battery should be recharged and player should lose 4¢
@@ -240,7 +240,7 @@ describe("Tap/Paid effects 1", () => {
         const initialMonsterHP = monster.currentHealthPoints;
 
         // Activate golden_razor_blade (paid effect with effectId 0) with monster as target
-        game.activateItem(player1, goldenRazor, [[], [monster]], 0);
+        game.activateItem(player1, goldenRazor, [monster], 0);
         game.resolveStack();
         game.resolveStack();
 
@@ -260,7 +260,7 @@ describe("Tap/Paid effects 1", () => {
         const initialHP = player2.currentHealthPoints;
 
         // Activate golden_razor_blade (paid effect with effectId 0) with player2 as target
-        game.activateItem(player1, goldenRazor, [[],[player2]], 0);
+        game.activateItem(player1, goldenRazor, [player2], 0);
         game.resolveStack();
         game.resolveStack();
 
@@ -474,7 +474,7 @@ describe("Tap/Paid effects 1", () => {
         const initialCoins = player1.coins;
 
         // Activate pay_to_play (paid effect with effectId 0)
-        game.activateItem(player1, payToPlay, [[],[targetItem]], 0);
+        game.activateItem(player1, payToPlay, [targetItem], 0);
         game.resolveStack();
 
         // Item should be stolen and player should lose 10¢

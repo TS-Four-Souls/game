@@ -111,10 +111,10 @@ describe("Effect - additional unique implementations", () => {
     let added = false, extra = false;
     game.addBottomPosition = () => { added = true; };
     game.addExtraTurn = () => { extra = true; };
-    const fn = effect.effectParser("Put this on the bottom of the loot deck. If you do, take an extra turn after this one if it's your turn.", game);
+    const parsed = effect.effectParser("Put this on the bottom of the loot deck. If you do, take an extra turn after this one if it's your turn.", game);
     // Use a real loot card
     const card = game.decks["loot"]!.cards[0]!;
-    fn(new EffectData(card, p1, []));
+    parsed.effectFunction(new EffectData(card, p1, []));
     expect(added).toBe(true);
     expect(extra).toBe(true);
   });

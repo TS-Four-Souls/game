@@ -94,8 +94,7 @@ describe("Tap/Paid effects 1", () => {
         game.addInPlay(player2, targetItem);
 
         // Activate paid effect with 2 items to destroy and target item to steal
-        game.activateItem(player1, contractFromBelow, [[item1, item2], [targetItem]], 0);
-        game.resolveStack();
+        game.activateItem(player1, contractFromBelow, [item1, item2, targetItem], 0);
         game.resolveStack();
 
         // Two items should be destroyed
@@ -139,7 +138,7 @@ describe("Tap/Paid effects 1", () => {
         const initialCoins = player1.coins;
 
         // Activate paid effect with item to give and player to give to
-        game.activateItem(player1, donationMachine, [[itemToGive, player2], []], 0);
+        game.activateItem(player1, donationMachine, [itemToGive, player2], 0);
         game.resolveStack();
         game.resolveStack();
 

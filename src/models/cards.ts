@@ -26,7 +26,7 @@ export class Effect {
         effectFunction: EffectFunction
             = (data: EffectData) => { return true; },
         targetsSelector: TargetsSelector[]
-            = [{ description: "", selector: (issuer: Player) => [] }],
+            = [{ description: "", selector: (issuer: Player) => [], count: 0, asMany: false }],
         paymentFunction?: EffectFunction
     ) {
         this._description = description;
@@ -104,8 +104,9 @@ export class Effect {
                         )
                           return false;
                     } else {
-                        for (const targetId in targets) {
-                            if (!admissibleTargets[targetId]?.includes(targets[targetId][0])) {
+                        // Check each target in targets[i] against admissibleTargets
+                        for (const target of targets) {
+                            if (!admissibleTargets.includes(target)) {
                                 return false;
                             }
                         }
@@ -279,20 +280,15 @@ class EffectInterface {
     paidEffect(issuer: Entity, targets: any[], effectId: number): EffectOnStack | null {
         const effect = this.activeEffects.getPaidEffect(effectId);
         
+        const data = new EffectData(this.it, issuer as Player, targets);
         // Execute payment if it exists
         if (effect.hasPayment()) {
-            // Payment gets first element of targets array
-            const paymentData = new EffectData(this.it, issuer as Player, targets[0] || []);
-            if (!effect.executePayment(paymentData)) {
+            if (!effect.executePayment(data)) {
                 return null; // Payment failed
             }
             // Effect gets second element of targets array
-            const effectData = new EffectData(this.it, issuer as Player, targets[1] || []);
-            return new EffectOnStack(effect.effectFunction, effectData, effect.description);
+            return new EffectOnStack(effect.effectFunction, data, effect.description);
         }
-        
-        // No payment required, execute effect directly with all targets
-        const data = new EffectData(this.it, issuer as Player, targets);
         return new EffectOnStack(effect.effectFunction, data, effect.description);
     }
     
@@ -349,6 +345,14 @@ class EffectInterface {
         };
     }
 
+    targetStillValid(
+    player: Player,
+    effectId: number | "tap",
+    targets: any[]
+  ): boolean {
+    const effect = effectId === "tap" ? this.activeEffects.getActiveEffect() : this.activeEffects.getPaidEffect(effectId);
+    return effect.targetStillValid(player, targets);
+  }
     debugSetTargets(targets: any[]): void {
         // This method is deprecated - targets should be passed to onPlay instead
         console.warn("debugSetTargets is deprecated. Pass targets to onPlay instead.");
@@ -558,6 +562,8 @@ export type TargetsSelector =
 {
     description: string;
     selector: (player: Player) => any[];
+    count: number;
+    asMany: boolean;
 };
 
 export class EffectData {
@@ -605,77 +611,90 @@ export type EffectFunction = (data: EffectData) => boolean;
 
 enum InplayType { CHARGED, UNCHARGED, PASSIVE, PAID, PLAYABLE }
 export class ItemCard extends Card {
-    protected _inplayType: InplayType;
-    protected _guppy: boolean = false;
+  protected _inplayType: InplayType;
+  protected _guppy: boolean = false;
 
-    protected _cost: string;
-    constructor(id: number, json: InPlayCardType) {
-        super(id, json);
-        this._guppy = (json as GuppyCard).guppy === true;
-        this._cost = "";
-        this._inplayType = InplayType.PASSIVE;
-        if (json.effectOutcome !== undefined) {
-            if (json.effectOutcome.join(", ").includes("[Tap Effect]")) {
-                this._inplayType = InplayType.UNCHARGED;
-            } else if (json.effectOutcome.join(", ").includes("[Paid Effect]")) {
-                this._inplayType = InplayType.PAID;
-            }
+  protected _cost: string;
+  constructor(id: number, json: InPlayCardType) {
+    super(id, json);
+    this._guppy = (json as GuppyCard).guppy === true;
+    this._cost = "";
+    this._inplayType = InplayType.PASSIVE;
+    if (json.effectOutcome !== undefined) {
+      if (json.effectOutcome.join(", ").includes("[Tap Effect]")) {
+        this._inplayType = InplayType.UNCHARGED;
+      } else if (json.effectOutcome.join(", ").includes("[Paid Effect]")) {
+        this._inplayType = InplayType.PAID;
+      }
+    }
+  }
+
+  get inPlayType(): InplayType {
+    return this._inplayType;
+  }
+  isActiveItem(): boolean {
+    return (
+      this._inplayType === InplayType.CHARGED ||
+      this._inplayType === InplayType.UNCHARGED
+    );
+  }
+  getEffectTarget(effectId: number | "tap"): TargetsSelector[] {
+    return this._effectInterface.getTargetSelectors(effectId);
+  }
+
+  // recharge(): boolean {
+  //     if (this._inplayType === InplayType.UNCHARGED) {
+  //         this._inplayType = InplayType.CHARGED;
+  //         return true;
+  //     }
+  //     return false;
+  // }
+
+  // activate(): boolean {
+  //     if (this._inplayType === InplayType.CHARGED) {
+  //         this._inplayType = InplayType.UNCHARGED;
+  //         return true;
+  //     }
+  //     if (this._inplayType === InplayType.PAID) {
+  //         return true;
+  //     }
+  //     return false;
+  // }
+  get cost(): string {
+    return this._cost;
+  }
+  isEternal(): boolean {
+    return this._eternal;
+  }
+  isGuppy(): boolean {
+    return this._guppy;
+  }
+  tryActivateEffect(
+    targets: any[] = [],
+    effectId: number | "tap" = "tap"
+  ): EffectOnStack | null {
+    switch (effectId) {
+      case "tap":
+        if (this._charged === true) {
+          this._charged = false;
+          return this._effectInterface.tapEffect(this._owner, targets);
         }
+        break;
+      default:
+        return this._effectInterface.paidEffect(this._owner, targets, effectId);
     }
-
-    get inPlayType(): InplayType {
-        return this._inplayType;
-    }
-    isActiveItem(): boolean {
-        return this._inplayType === InplayType.CHARGED || this._inplayType === InplayType.UNCHARGED;
-    }
-    getEffectTarget(effectId: number | "tap"): TargetsSelector[] {
-        return this._effectInterface.getTargetSelectors(effectId);
-    }
-
-    // recharge(): boolean {
-    //     if (this._inplayType === InplayType.UNCHARGED) {
-    //         this._inplayType = InplayType.CHARGED;
-    //         return true;
-    //     }
-    //     return false;
-    // }
-
-    // activate(): boolean {
-    //     if (this._inplayType === InplayType.CHARGED) {
-    //         this._inplayType = InplayType.UNCHARGED;
-    //         return true;
-    //     }
-    //     if (this._inplayType === InplayType.PAID) {
-    //         return true;
-    //     }
-    //     return false;
-    // }
-    get cost(): string {
-        return this._cost;
-    }
-    isEternal(): boolean {
-        return this._eternal;
-    }
-    isGuppy(): boolean {
-        return this._guppy;
-    }
-    tryActivateEffect(targets: any[] = [], effectId: number | "tap" = "tap" ): EffectOnStack | null {
-        switch (effectId) {
-            case "tap":
-                if (this._charged === true) {
-                    this._charged = false;
-                    return this._effectInterface.tapEffect(this._owner, targets);
-                }
-                break;
-            default:
-                return this._effectInterface.paidEffect(this._owner, targets, effectId);
-        }
-        return null;
-    }
-    setEternal(eternal: boolean): void {
-        this._eternal = eternal;
-    }
+    return null;
+  }
+  targetStillValid(
+    player: Player,
+    effectId: number | "tap",
+    targets: any[]
+  ): boolean {
+    return this._effectInterface.targetStillValid(player, effectId, targets);
+  }
+  setEternal(eternal: boolean): void {
+    this._eternal = eternal;
+  }
 }
 
 class LootCard extends ItemCard {
