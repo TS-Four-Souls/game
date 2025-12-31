@@ -137,7 +137,7 @@ describe("Tap/Paid effects 2", () => {
         game.recharge(guppysPaw);
         
         // Try to activate - should fail because player1 has 0 HP
-        game.activateItem(player1, guppysPaw, [[],[player2]]);
+        game.activateItem(player1, guppysPaw, [player2]);
         game.resolveStack();
         
         expect(player1.currentHealthPoints).toBe(0); // No HP paid

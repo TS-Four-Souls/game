@@ -10,7 +10,7 @@ import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
 import { it } from "zod/locales";
 import { effectParser, type ChooseOneResult, type ParsedEffect } from "./effectParser";
-import { deckSelector, visibleItemSelector, inplayUnchargedItemSelector, chooseOneTargetSelector } from "./targetSelector";
+import { deckSelector, visibleItemSelector, inplayUnchargedItemSelector } from "./targetSelector";
 // import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, goFirstInTurnOrderEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, startingItemEffect, temporaryStatModifierEffect, gainTreasureOnDeathEffect } from "./abilities";
 import *  as passive from "./passiveEffect";
 import type { BonusSoulCardType } from "@/types/cardTypes";
@@ -159,6 +159,7 @@ export function chooseOneEffect(s: string, game: Game): ParsedEffect {
         throw new Error(`invalid 'choose one' effect format. s=${s}$ lines=${lines}$`);
     }
     const effects: ParsedEffect[] = lines.slice(1).map(line => effectParser(line, game));
+    
     return {
         effectFunction: (data: EffectData) => {
             const targetsChooseOne = data.next as ChooseOneResult;
@@ -172,7 +173,18 @@ export function chooseOneEffect(s: string, game: Game): ParsedEffect {
             }
             throw new Error(`choose one effect description not found: ${description}`);
         },
-        targetSelectors: [{ description: "Choose one:", selector: chooseOneTargetSelector(s, game), count: 1, asMany: false }] // chooseOne has special target handling
+        targetSelectors: [{ 
+            description: "Choose one:", 
+            selector: (issuer: Player) => {
+                // Construct ChooseOneOptions array from parsed effects
+                return effects.map((effect, i) => ({
+                    description: lines[i + 1]!,
+                    admissibleTargets: effect.targetSelectors.map(ts => ts.selector(issuer)).flat()
+                }));
+            }, 
+            count: 1, 
+            asMany: false 
+        }]
     };
 }
 
@@ -874,9 +886,9 @@ export function loot1PutCardOnTopEffect(game: Game): EffectFunction {
 
 export function rerollItemEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
-        const rerollInfo = data.next;
-        const p: Player = game.getPlayerById(rerollInfo.player)!;
-        game.reroll(p, rerollInfo.card);
+        const card = data.next;
+        const p: Player = game.getOwner(card)!;
+        game.reroll(p, card);
         return true;
     };
 }

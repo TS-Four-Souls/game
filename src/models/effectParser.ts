@@ -39,22 +39,22 @@ const createSelector = (
 const noTargets: TargetsSelector[] = [];
 
 const selectPlayer = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose a player", playerSelector(undefined, game), count, asMany)];
+    [createSelector("Choose a player", playerSelector(() => true, game), count, asMany)];
 
 const selectAnotherPlayer = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose another player", anotherPlayerSelector(undefined, game), count, asMany)];
+    [createSelector("Choose another player", anotherPlayerSelector(() => true, game), count, asMany)];
 
 const selectMonster = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
     [createSelector("Choose a monster", (issuer: Player) => game.monsters, count, asMany)];
 
 const selectPlayerOrMonster = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose a player or monster", activeEntitySelector(undefined, game), count, asMany)];
+    [createSelector("Choose a player or monster", activeEntitySelector(() => true, game), count, asMany)];
 
 const selectDeck = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Select a deck", deckSelector(undefined, game), count, asMany)];
+    [createSelector("Select a deck", deckSelector(() => true, game), count, asMany)];
 
 const selectRoll = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose a dice roll", rollSelector(undefined, game), count, asMany)];
+    [createSelector("Choose a dice roll", rollSelector(() => true, game), count, asMany)];
 
 const selectItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
     [createSelector("Select a rechargeable item", inplayUnchargedItemSelector(game), count, asMany)];
@@ -63,13 +63,13 @@ const selectCurse = (game: Game, count: number = 1, asMany: boolean = false): Ta
     [createSelector("Select a curse", inplayCurseSelector((player, card) => true, game), count, asMany)];
 
 const selectNonEternalItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose a non-eternal item", inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), count, asMany)];
+    [createSelector("Choose any non-eternal item", inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), count, asMany)];
 
 const selectAnotherPlayerNonEternalItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose a non-eternal item", inAnotherplayItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), count, asMany)];
+    [createSelector("Choose another player's non-eternal item", inAnotherplayItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), count, asMany)];
 
 const selectNonEternalPassiveItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose a non-eternal passive item", inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false && card.subtype === "passive", game), count, asMany)];
+    [createSelector("Choose a non-eternal passive item", inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false && card.activeEffectList.length === 0, game), count, asMany)];
 
 const selectItemYouControl = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
     [createSelector("Destroy an item you control", inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false && player == game.getOwner(card), game), count, asMany)];
@@ -84,7 +84,7 @@ const selectPlayerWithMostSouls = (game: Game, count: number = 1, asMany: boolea
     [createSelector("Choose a player with the most souls or tied for the most", playerSelector((p) => p.souls.length === Math.max(...game.players.map(p => p.souls.length)), game), count, asMany)];
 
 const selectRollAddOrSubtract = (game: Game): TargetsSelector[] => [
-    createSelector("Choose a dice roll", rollSelector(undefined, game)),
+    createSelector("Choose a dice roll", rollSelector(() => true, game)),
     createSelector("Choose to add or subtract 1", (issuer: Player) => [1, -1])
 ];
 
@@ -249,9 +249,9 @@ export function parseCurseEffect(s: string, game: Game): ParsedEffect {
 
 export function effectParser(s: string, game: Game, defaultEffect: EffectFunction = active.addInPlayEffect(game), selectionOnResolve = false): ParsedEffect {
     const originalS = s;
-    if (s === "[Paid Effect] Destroy 2 items you control:\nsteal a non-eternal item from a player."){
-        console.log("parsing special roll effect:", originalS);
-    }
+    // if (s === "[Paid Effect] Destroy 2 items you control:\nsteal a non-eternal item from a player."){
+    //     console.log("parsing special roll effect:", originalS);
+    // }
     s = s.replace("[Tap Effect] ", ""); // remove tap effect marker
     s = s.replace("[Curse Effect] ", ""); // remove curse effect marker
     s = s.toLowerCase();
@@ -341,7 +341,13 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         return { effectFunction: active.destroyTwoItemsEffect(game), targetSelectors: selectItemYouControl(game, 2) };
     }
     if (s.startsWith("kill ")) {
-        return { effectFunction: active.killTargetEffect(game), targetSelectors: selectMonster(game) };
+        let selector = selectMonster(game);
+        if( s.includes("player"))
+        {    selector = selectPlayer(game);
+            if(s.includes("monster"))
+                selector = selectPlayerOrMonster(game);
+        }
+        return { effectFunction: active.killTargetEffect(game), targetSelectors: selector };
     }
     if (s.startsWith("destroy this.")) {
         const restParsed = effectParser(s.substring(12).trim(), game);
@@ -683,8 +689,6 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
             return { effectFunction: active.destroyOneEffect(game), targetSelectors: selectItemYouControl(game) };
         case "destroy a soul you control.":
             return { effectFunction: active.destroyOneEffect(game, true), targetSelectors: selectSoulYouControl(game) };
-        case "Destroy 2 items you control":
-            return { effectFunction: active.destroyTwoItemsEffect(game), targetSelectors: selectItemYouControl(game, 2) };
         case "each player votes on an item in play. destroy the item with the most votes. if there is a tie, nothing happens.":
             return { effectFunction: active.eachPlayersVoteToDestroyItemEffect(game), targetSelectors: noTargets };
         case "swap this with a non-eternal item another player controls.":
@@ -730,8 +734,6 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
             return { effectFunction: active.flushOneMonsterSlotEffect(game), targetSelectors: noTargets };
         case "you may put the top card of the monster deck in a monster slot not being attacked.":
             return { effectFunction: active.putTopMonsterInValidSlotEffect(game), targetSelectors: noTargets };
-        case "kill a monster.":
-            return { effectFunction: active.killMonsterEffect(game), targetSelectors: selectMonster(game) };
         case "when this enters play, it becomes a soul.\n(it's no longer an item.)":
             return { effectFunction: active.enterPlayBecomeSoulEffect(game), targetSelectors: noTargets };
         case "cancel the ↷ or $ ability of an item or a loot being played.":

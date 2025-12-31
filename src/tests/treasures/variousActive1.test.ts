@@ -796,7 +796,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Recharge and activate the_d20 with target item (needs {player, card} format for reroll)
         game.recharge(theD20);
-        game.activateItem(player1, theD20, [{ player: player2.id, card: targetItem }]);
+        game.activateItem(player1, theD20, [targetItem]);
         game.resolveStack();
 
         // Target item should be destroyed

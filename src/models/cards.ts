@@ -1,5 +1,6 @@
 import { shuffle, print } from '@/utils/auxiliary';
 import { isChooseOneResult} from '@/models/effectParser';
+import { isChooseOneOptions } from './targetSelector';
 import type { CardRewards, EternalCardType, GenericCardType, LootCardType, InPlayCardType, TreasureCardType, CharacterCardType, MonsterCardType, BonusSoulCardType, GuppyCard } from '@/types/cardTypes';
 import { Player } from './player';
 import { assert } from 'console';
@@ -92,28 +93,41 @@ export class Effect {
     }
 
     targetStillValid(issuer: Player, targets: any[]): boolean {
-        if (targets.length > 0) {
-            for (const i in this._targetsSelector) {
-                if (targets[i]?.length > 0) {
-                    const admissibleTargets = this._targetsSelector[i]!.selector(issuer);
-                    if (isChooseOneResult(targets[i][0])) {
-                        if (
-                          !this.chooseOneTargetStillValid(issuer, [
-                            targets[i][0],
-                          ])
-                        )
-                          return false;
-                    } else {
-                        // Check each target in targets[i] against admissibleTargets
-                        for (const target of targets) {
-                            if (!admissibleTargets.includes(target)) {
-                                return false;
-                            }
-                        }
+        if (targets.length === 0) return true;
+        
+        // Flat format validation: [target1, target2, ChooseOneResult, target3]
+        let targetIndex = 0;
+        
+        for (let i = 0; i < this._targetsSelector.length; i++) {
+            if (targetIndex >= targets.length) break;
+            
+            const selector = this._targetsSelector[i]!;
+            const admissibleTargets = selector.selector(issuer);
+            
+            // Check if this is a choose-one selector
+            if (admissibleTargets.length > 0 && isChooseOneOptions(admissibleTargets[0])) {
+                // The current target should be a ChooseOneResult
+                const chooseOneTarget = targets[targetIndex];
+                if (!isChooseOneResult(chooseOneTarget)) {
+                    return false;
+                }
+                
+                if (!this.chooseOneTargetStillValid(issuer, [chooseOneTarget])) {
+                    return false;
+                }
+                targetIndex++;
+            } else {
+                // Regular selector - check the next `selector.count` targets
+                for (let j = 0; j < selector.count && targetIndex < targets.length; j++) {
+                    const target = targets[targetIndex];
+                    if (!admissibleTargets.includes(target)) {
+                        return false;
                     }
+                    targetIndex++;
                 }
             }
         }
+        
         return true;
     }
 
@@ -338,7 +352,7 @@ class EffectInterface {
                    if (effect.targetStillValid(this._issuer!, targets)) {
                        effect.effectFunction(new EffectData(this.it, this._issuer!, targets));
                    } else {
-                       console.log("EffectInterface.onPlay resolve: targetStillValid() returned false for", (this.it as any).name);
+                    //    console.log("EffectInterface.onPlay resolve: targetStillValid() returned false for", (this.it as any).name);
                    }
                 this.subscribeAll(this._issuer!);
             }

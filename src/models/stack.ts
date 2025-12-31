@@ -4,6 +4,13 @@ import { DamageOnStack, DeathOnStack, DiceRoll, type Player } from "./player";
 
 export type StackElement = LootCardEffect | DiceRoll | DeathOnStack | DamageOnStack | EffectOnStack;
     
+export function isStackElement(obj: any): obj is StackElement {
+    return obj instanceof LootCardEffect ||
+           obj instanceof DiceRoll ||
+           obj instanceof DeathOnStack ||
+           obj instanceof DamageOnStack ||
+           obj instanceof EffectOnStack;
+}
 export class Stack {
     _stack: StackElement[] = [];
     

@@ -926,26 +926,21 @@ export class Game {
     });
   }
 
-  // activateItemAtIndex(
-  //   player: Player,
-  //   index: number,
-  //   choices: any[] = [],
-  //   effectId: number | "tap" = "tap"
-  // ): boolean {
-  //   const item = player.inPlay[index - 1];
-  //   if (!item || !(item instanceof ItemCard)) {
-  //     throw new Error("Player does not own the specified item.");
-  //   }
-  // if(!item.activeEffectList.map((e) => e.index).includes(effectId))
-  //   throw new Error("Item does not have the specified effect ID.");
+  activateItemAtIndex(
+    player: Player,
+    index: number,
+    choices: any[] = [],
+    effectId: number | "tap" = "tap"
+  ): boolean {
+    const item = player.inPlay[index - 1];
+    if (!item || !(item instanceof ItemCard)) {
+      throw new Error("Player does not own the specified item.");
+    }
+    if(!item.activeEffectList.map((e) => e.index).includes(effectId))
+      throw new Error("Item does not have the specified effect ID.");
 
-  // const targetsSelectors = item.getEffectTarget(effectId);
-  // targetsSelectors[0]?.description
-  // currChoiceIndex = 0;
-  // for (let index = 0; index < targetsSelectors.length; index++) {
-  //   const targets = targetsSelectors[index];
-  //   for
-  // }
+    return this.activateItem(player, item, choices, effectId);
+  }
 
   // getEffectTarget(
   //   player: Player,
@@ -1085,7 +1080,7 @@ export class Game {
           outcome,
           effectType,
           effectParsed.effectFunction,
-          effectParsed.targetSelectors,
+          [...paymentParsed.targetSelectors, ...effectParsed.targetSelectors],
           paymentParsed.effectFunction
         );
         card.addEffect(effect);

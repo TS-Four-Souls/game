@@ -5,6 +5,7 @@ import { playerEndpointHandler } from "@/utils/endpoints";
 import { Elysia, sse } from "elysia";
 import { cors } from "@elysiajs/cors";
 import type { CharacterCard } from "./models/cards";
+import { TargetBuilder, type TargetSelectorResponse } from "./models/targetBuilder";
 const game = new Game();
 
 const PORT = process.env.PORT || 3000;
@@ -185,19 +186,26 @@ const app = new Elysia()
       body: schemas.playCardRequest,
     }
   )
-  // .post(
-  //   "/activate",
-  //   async (request) => {
-  //     const player = game.getPlayerById(request.body.issuer.id);
-  //     game.activateItemAtIndex(player, request.body.index, request.body.targetChoices, request.body.effectIndex);
-  //     return new Response("", {
-  //       status: 200,
-  //     });
-  //   },
-  //   {
-  //     body: schemas.activateRequest,
-  //   }
-  // )
+  .post(
+    "/activate",
+    async (request) => {
+      const player = game.getPlayerById(request.body.issuer.id);
+      const partialChoices = request.body.targetChoices || [];
+      const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(game, player, request.body.index, partialChoices, request.body.effectIndex);
+      game.activateItemAtIndex(player, request.body.index, partialChoices, request.body.effectIndex);
+      if (choices.complete) {
+        console.log("Activation complete");
+        const targets = TargetBuilder.buildTargets(game, player, request.body.index, partialChoices, request.body.effectIndex);
+        game.activateItemAtIndex(player, request.body.index, targets, request.body.effectIndex);
+      }
+      return new Response(JSON.stringify(choices), {
+        status: 200,
+      });
+    },
+    {
+      body: schemas.activateRequest,
+    }
+  )
   .post(
     "/purchase",
     async (request) => {

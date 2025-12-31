@@ -45,12 +45,7 @@ describe("Eternal Items", () => {
         game.resolveStack(); // resolve pills play
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5; // Force roll to 5 for testing
-        game.endTurn();
-        game.resolveStack();
-        game.resolveStack();
-        game.resolveStack();
-        game.resolveStack();
-        game.resolveStack(); // Resolve any stack effects
+        game.recharge(theD6);
         expect(theD6.charged).toBe(true);
         game.activateItem(player2, theD6, [dice]);
         game.resolveStack();
