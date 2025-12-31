@@ -932,7 +932,7 @@ export class Game {
     choices: any[] = [],
     effectId: number | "tap" = "tap"
   ): boolean {
-    const item = player.inPlay[index - 1];
+    const item = player.inPlay[index];
     if (!item || !(item instanceof ItemCard)) {
       throw new Error("Player does not own the specified item.");
     }

@@ -289,6 +289,7 @@ describe("Target Builder Interface", () => {
             
             // Should make progress
             expect(step2.complete).toBe(false);
+            expect(step2.options.includes(targetItem.slug)).toBe(true);
             const step3 = TargetBuilder.getNextSelector(game, player1, chaosIndex, [chosenOption, targetItem.slug], "tap");
             expect(step3.complete).toBe(true);
 
