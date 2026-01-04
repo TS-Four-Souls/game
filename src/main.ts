@@ -444,7 +444,11 @@ const app = new Elysia()
     const samson = game.decks["character"]!.getCardFromSlug(
       "b2-samson"
     )! as CharacterCard;
+    const card = game.obtainCard("b2-chaos_card")!;
+    game.addInPlay(p1, card);
     game.start(p1, [samson, isaac]);
+    // TODO: the game should be the one charging the items at the start of the turn
+    game.startTurn();
     // game.start(p1);
     return new Response("Debug reset", {
       status: 200,
