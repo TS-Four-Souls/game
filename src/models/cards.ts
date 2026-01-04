@@ -5,8 +5,7 @@ import type { CardRewards, EternalCardType, GenericCardType, LootCardType, InPla
 import { Player } from './player';
 import { assert } from 'console';
 import type { Entity } from './entity';
-import type { Game } from './game';
-import { t } from 'elysia';
+import { TargetBuilder } from './targetBuilder';
 
 export type EffectType =
     | "passive"
@@ -993,7 +992,7 @@ export class EffectOnStack {
         (this._data as any)._nextIndex = 0;
     }
     get json(): string {
-        return JSON.stringify({ issuer: this._data.issuer.id, targets: this._data.targets, card: this._data.it.name, effect: this._description });
+        return JSON.stringify({ issuer: this._data.issuer.id, targets: TargetBuilder.convertToStringIdentifiers(this._data.targets), card: this._data.it.name, effect: this._description });
     }
 }
 class Deck {

@@ -1,12 +1,9 @@
 import type { Game } from "./game";
 import type { Player } from "./player";
 import { ItemCard, type TargetsSelector } from "./cards";
-import type { Card } from "./cards";
-import type { Monster } from "./monster";
-import { DiceRoll } from "./player";
 import { isChooseOneOptions, type ChooseOneOptions } from "./targetSelector";
-import { type StackElement, isStackElement } from "./stack";
-import type { ChooseOneResult } from "./effectParser";
+import { isStackElement } from "./stack";
+import { isChooseOneResult, type ChooseOneResult } from "./effectParser";
 /**
  * Represents the server's response when building targets progressively
  */
@@ -71,14 +68,14 @@ export class TargetBuilder {
         // Get all target selectors for this effect
         const item: ItemCard = player.inPlay[itemIndex] as ItemCard;
         console.log("TargetBuilder.getNextSelector for item:", item.name, "effectId:", effectId, "partialChoices:", partialChoices);
-        if(!item)
+        if (!item)
             throw new Error(`Item at index ${itemIndex} not found in player's inPlay.`);
 
         const rootSelectors = item.getEffectTarget(effectId);
-        
+
         let selectorIndex = 0;
         let selector: TargetsSelector | undefined = rootSelectors[selectorIndex];
-        
+
         if (!selector) {
             return {
                 description: "",
@@ -89,24 +86,24 @@ export class TargetBuilder {
                 isChooseOne: false
             };
         }
-        
+
         // Walk through choices using for loop
         let choicesProcessed = 0;
         for (let i = 0; i < partialChoices.length; i++) {
             const possibleTargets: any[] = selector.selector(player);
             const choice = partialChoices[i]!;
-            
+
             // Check if this is a choose-one selector
             if (possibleTargets.length > 0 && isChooseOneOptions(possibleTargets[0])) {
                 // Choose-one: find the chosen option
                 const chosenOption = (possibleTargets as ChooseOneOptions[]).find(
                     opt => opt.description === choice
                 );
-                
+
                 if (!chosenOption) {
                     throw new Error(`Invalid choose-one option: ${choice}`);
                 }
-                
+
                 // Now we need to get targets from the chosen option's admissibleTargets
                 // Create a temporary selector for the admissible targets
                 selector = {
@@ -122,16 +119,16 @@ export class TargetBuilder {
                 if (!resolved) {
                     throw new Error(`Invalid target choice: ${choice}`);
                 }
-                
+
                 choicesProcessed++;
-                
+
                 // Check if we've filled this selector's count
                 if (choicesProcessed >= selector.count) {
                     // Move to next selector
                     selectorIndex++;
                     selector = rootSelectors[selectorIndex];
                     choicesProcessed = 0;
-                    
+
                     if (!selector) {
                         return {
                             description: "",
@@ -145,13 +142,13 @@ export class TargetBuilder {
                 }
             }
         }
-        
+
         // Get the next selector to display
         const possibleTargets = selector.selector(player);
-        
+
         // Check if this is a choose-one selector
         const isChooseOne = possibleTargets.length > 0 && isChooseOneOptions(possibleTargets[0]);
-        
+
         if (isChooseOne) {
             // Return choose-one option descriptions
             const options = (possibleTargets as ChooseOneOptions[]).map(opt => opt.description);
@@ -169,7 +166,7 @@ export class TargetBuilder {
                 description: selector.description,
                 count: selector.count,
                 asMany: selector.asMany,
-                options: TargetBuilder.convertToStringIdentifiers(game, possibleTargets),
+                options: TargetBuilder.convertToStringIdentifiers(possibleTargets),
                 complete: false,
                 isChooseOne: false
             };
@@ -187,38 +184,41 @@ export class TargetBuilder {
      * @param options Array of target options (Cards, Players, Monsters, numbers, etc.)
      * @returns Array of string identifiers
      */
-    private static convertToStringIdentifiers(game: Game, options: any[]): string[] {
-        if (options.length === 0) return [];
-        
-        const firstOption = options[0];
-        
-        // Handle Cards
-        if (firstOption && typeof firstOption === 'object' && 'slug' in firstOption) {
-            return options.map(opt => opt.slug);
-        }
-        
-        // Handle Entities (by ID)
-        if (firstOption && typeof firstOption === 'object' && 'id' in firstOption) {
-            return options.map(opt => opt.id);
-        }
-        
-        // Handle Stack Elements
-        if (isStackElement(firstOption)) {
-            return options.map(opt => `${opt.json}`);
-        }
-        
-        // Handle primitive types (numbers, strings, booleans)
-        if (typeof firstOption === 'number' || typeof firstOption === 'string' || typeof firstOption === 'boolean') {
-            return options.map(opt => String(opt));
-        }
+    static convertToStringIdentifiers(options: any[]): string[] {
+        return options.map(option => {
 
-        // Handle arrays (for special cases like deck selection)
-        if (Array.isArray(firstOption)) {
-            return options.map(opt => JSON.stringify(opt));
-        }
+            // Handle Cards
+            if (typeof option === 'object' && 'slug' in option) {
+                return option.slug;
+            }
 
-        // Fallback for unknown types
-        return options.map(opt => opt?.constructor?.name || 'undefined');
+            // Handle Entities (by ID)
+            if (typeof option === 'object' && 'id' in option) {
+                return option.id;
+            }
+
+            if (isChooseOneResult(option)) {
+                return `${option.description} => ${TargetBuilder.convertToStringIdentifiers(option.chosenOptions)}`;
+            }
+
+            // Handle Stack Elements
+            if (isStackElement(option)) {
+                return option.json
+            }
+
+            // Handle primitive types (numbers, strings, booleans)
+            if (typeof option === 'number' || typeof option === 'string' || typeof option === 'boolean') {
+                return `${option}`;
+            }
+
+            // Handle arrays (for special cases like deck selection)
+            if (Array.isArray(option)) {
+                return TargetBuilder.convertToStringIdentifiers(option);
+            }
+
+            // Fallback for unknown types
+            return option?.constructor?.name || 'undefined';
+        });
     }
 
     /**
@@ -233,39 +233,39 @@ export class TargetBuilder {
      */
     private static resolveIdentifier(identifier: string, possibleTargets: any[]): any {
         if (possibleTargets.length === 0) return undefined;
-        
+
         const firstTarget = possibleTargets[0];
-        
+
         // Cards - match by slug
         if (firstTarget && typeof firstTarget === 'object' && 'slug' in firstTarget) {
             return possibleTargets.find(t => t.slug === identifier);
         }
-        
+
         // Entities - match by ID
         if (firstTarget && typeof firstTarget === 'object' && 'id' in firstTarget) {
             return possibleTargets.find(t => t.id === identifier);
         }
-        
+
         // Stack Elements - match by json
         if (isStackElement(firstTarget)) {
             return possibleTargets.find(t => `${t.json}` === identifier);
         }
-        
+
         // Primitives - try parsing and direct match
         if (typeof firstTarget === 'number') {
             const parsed = parseFloat(identifier);
             return possibleTargets.find(t => t === parsed);
         }
-        
+
         if (typeof firstTarget === 'boolean') {
             const parsed = identifier === 'true';
             return possibleTargets.find(t => t === parsed);
         }
-        
+
         if (typeof firstTarget === 'string') {
             return possibleTargets.find(t => t === identifier);
         }
-        
+
         // Arrays - match by JSON stringification
         if (Array.isArray(firstTarget)) {
             try {
@@ -275,20 +275,9 @@ export class TargetBuilder {
                 return undefined;
             }
         }
-        
+
         // Fallback - direct match
         return possibleTargets.find(t => t === identifier || String(t) === identifier);
-    }
-
-    /**
-     * Resolve an array of string identifiers back to game objects by matching against possibleTargets.
-     * 
-     * @param identifiers Array of string identifiers
-     * @param possibleTargets The array of possible targets from the selector
-     * @returns Array of resolved objects
-     */
-    private static resolveIdentifiers(identifiers: string[], possibleTargets: any[]): any[] {
-        return identifiers.map(id => TargetBuilder.resolveIdentifier(id, possibleTargets)).filter(obj => obj !== undefined);
     }
 
     /**
@@ -312,32 +301,32 @@ export class TargetBuilder {
         const item: ItemCard = player.inPlay[itemIndex] as ItemCard;
         const rootSelectors = item.getEffectTarget(effectId);
         const result: any[] = [];
-        
+
         let selectorIndex = 0;
         let choiceIndex = 0;
         let selector: TargetsSelector | undefined = rootSelectors[selectorIndex];
-        
+
         while (selector && choiceIndex < partialChoices.length) {
             const possibleTargets = selector.selector(player);
-            
+
             // Check if this is a choose-one selector
             if (possibleTargets.length > 0 && isChooseOneOptions(possibleTargets[0])) {
                 const choice = partialChoices[choiceIndex]!;
                 const chosenOption = (possibleTargets as ChooseOneOptions[]).find(
                     opt => opt.description === choice
                 );
-                
+
                 if (!chosenOption) {
                     throw new Error(`Invalid choose-one option: ${choice}`);
                 }
-                
+
                 choiceIndex++; // Move past the option choice
-                
+
                 // Collect the targets for this option from admissibleTargets
                 const targetsNeeded = selector.count;
                 const admissibleTargets = chosenOption.admissibleTargets;
                 const chosenTargets: any[] = [];
-                
+
                 for (let i = 0; i < targetsNeeded && choiceIndex < partialChoices.length; i++) {
                     const targetId = partialChoices[choiceIndex]!;
                     const resolved = TargetBuilder.resolveIdentifier(targetId, admissibleTargets);
@@ -346,7 +335,7 @@ export class TargetBuilder {
                     }
                     choiceIndex++;
                 }
-                
+
                 // Create ChooseOneResult object
                 const chooseOneResult: ChooseOneResult = {
                     description: chosenOption.description,
@@ -364,11 +353,11 @@ export class TargetBuilder {
                     choiceIndex++;
                 }
             }
-            
+
             selectorIndex++;
             selector = rootSelectors[selectorIndex];
         }
-        if(!item.targetStillValid(player, effectId, result)) {       
+        if (!item.targetStillValid(player, effectId, result)) {
             throw new Error(`One or more targets are no longer valid.`);
         }
         return result;
