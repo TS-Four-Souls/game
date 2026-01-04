@@ -192,7 +192,6 @@ const app = new Elysia()
       const player = game.getPlayerById(request.body.issuer.id);
       const partialChoices = request.body.targetChoices || [];
       const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(game, player, request.body.index, partialChoices, request.body.effectIndex);
-      game.activateItemAtIndex(player, request.body.index, partialChoices, request.body.effectIndex);
       if (choices.complete) {
         console.log("Activation complete");
         const targets = TargetBuilder.buildTargets(game, player, request.body.index, partialChoices, request.body.effectIndex);
