@@ -969,8 +969,10 @@ export class Game {
           item: item,
         });
       }
+      this._onStateChange.dispatch();
       return true;
     }
+    this._onStateChange.dispatch();
     return false;
   }
 
@@ -996,6 +998,7 @@ export class Game {
     this.healEveryone();
     this.endTurn();
 
+    this._onStateChange.dispatch();
     return `It's ${this.currentPlayer!.id}'s turn. Round ${roundIndex}.\n`;
   }
 
@@ -1083,7 +1086,7 @@ export class Game {
           [...paymentParsed.targetSelectors, ...effectParsed.targetSelectors],
           paymentParsed.effectFunction
         );
-        card.addEffect(effect);
+          card.addEffect(effect);
       } else {
         // Regular effects (passive/active)
         const parsed = effectParser(outcome, this);
@@ -1093,7 +1096,7 @@ export class Game {
           parsed.effectFunction,
           parsed.targetSelectors
         );
-        card.addEffect(effect);
+          card.addEffect(effect);
       }
     }
   }
