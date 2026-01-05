@@ -443,7 +443,7 @@ describe("Tap/Paid effects 2", () => {
         expect(player1.attackPoints).toBe(1); // No bonus (has card in hand)
         
         // Play the card
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
         
         expect(player1.hand.length).toBe(0);

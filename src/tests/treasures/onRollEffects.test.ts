@@ -33,6 +33,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
         game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
     });
+
     // "Each time a player rolls a ❺, gain 3¢."
     it("eye_of_greed", () => {
 
@@ -77,7 +78,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         // card roll
         player1.hand.addToHand(card);
-        const playCard = game.playCard(player1, 1);
+        const playCard = game.playCard(player1, 0);
         game.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
@@ -134,7 +135,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         expect(game.stack.size).toBe(0);
 
         // card roll
-        const playCard = game.playCard(player1, 1);
+        const playCard = game.playCard(player1, 0);
         game.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
@@ -192,7 +193,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         sack.charged = false;
 
         // card roll
-        const playCard = game.playCard(player1, 1);
+        const playCard = game.playCard(player1, 0);
         game.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
@@ -251,7 +252,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         recharged.charged = false;
 
         // card roll
-        const playCard = game.playCard(player1, 1);
+        const playCard = game.playCard(player1, 0);
         game.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
@@ -318,7 +319,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         cardToDiscard = player1.hand.cards[1]!;
         cardToAdd = game.decks["loot"]!.cards[0]!;
         expect(game.stack.size).toBe(0);
-        const playCard = game.playCard(player1, 1);
+        const playCard = game.playCard(player1, 0);
         game.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
@@ -388,7 +389,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         player2.hand.addToHand(card);
         cardToSteal = player2.hand.cards[0]!;
         expect(game.stack.size).toBe(0);
-        const playCard = game.playCard(player2, 2);
+        const playCard = game.playCard(player2, 1);
         game.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
@@ -454,7 +455,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         // card roll
         player2.hand.addToHand(card);
         expect(game.stack.size).toBe(0);
-        const playCard = game.playCard(player2, 1);
+        const playCard = game.playCard(player2, 0);
         game.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
@@ -520,7 +521,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         // card roll
         player2.hand.addToHand(card);
         expect(game.stack.size).toBe(0);
-        const playCard = game.playCard(player2, 1);
+        const playCard = game.playCard(player2, 0);
         game.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
@@ -587,7 +588,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         player2.hand.addToHand(card);
         cardToSteal = player2.hand.cards[0]!;
         expect(game.stack.size).toBe(0);
-        const playCard = game.playCard(player2, 2);
+        const playCard = game.playCard(player2, 1);
         game.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
@@ -617,7 +618,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         // card roll
         player2.hand.addToHand(card);
-        const playCard = game.playCard(player2, 1);
+        const playCard = game.playCard(player2, 0);
         game.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
@@ -687,7 +688,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         // card roll
         player2.hand.addToHand(card);
-        const playCard = game.playCard(player2, 1);
+        const playCard = game.playCard(player2, 0);
         game.resolveStack();
 
         const initialRemainingMonster = game.monsters[0];
@@ -754,7 +755,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         // card roll
         const card = game.obtainCard("b2-pills") as LootCard;
         player2.hand.addToHand(card);
-        const playCard = game.playCard(player2, 2);
+        const playCard = game.playCard(player2, 1);
         game.resolveStack();
 
         const topMonsterCard2 = game.decks["monster"]!.cards[0];

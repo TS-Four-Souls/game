@@ -744,7 +744,7 @@ export class Game {
     if (index < 0 || index > player.hand.cards.length) {
       return "Invalid card position.";
     }
-    const playedCard: LootCard = player.hand.playCard(index - 1) as LootCard;
+    const playedCard: LootCard = player.hand.playCard(index) as LootCard;
 
     if (targets.length === 0) {
       if (playedCard.getTargetSelectors().length === 1)

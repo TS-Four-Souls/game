@@ -142,7 +142,7 @@ describe("Loot deck integration", () => {
 
     game.decks["loot"]!.remove(gainCoinCard!);
     p1.hand.addToHand(gainCoinCard!);
-    const handIndex = p1.hand.cards.length;
+    const handIndex = p1.hand.cards.length - 1;
 
     expect(game.stack.isEmpty()).toBe(true);
     game.playCard(p1, handIndex);
@@ -165,7 +165,7 @@ describe("Loot deck integration", () => {
     game.decks["loot"]!.remove(rollCard!);
     p1.hand.addToHand(rollCard!);
 
-    game.playCard(p1, p1.hand.cards.length);
+    game.playCard(p1, p1.hand.cards.length - 1);
     expect(game.stack.size).toBe(1);
   });
 
@@ -181,7 +181,7 @@ describe("Loot deck integration", () => {
 
    p1.hand.addToHand(damageCard!);
 
-    game.playCard(p1, p1.hand.cards.length, [p2]);
+    game.playCard(p1, p1.hand.cards.length - 1, [p2]);
     expect(game.stack.size).toBe(1);
 
     game.resolveStack();
@@ -204,13 +204,13 @@ describe("Loot deck integration", () => {
     
     game.decks["loot"]!.remove(gainCoinCard!);
     p1.hand.addToHand(gainCoinCard!);
-    game.playCard(p1, p1.hand.cards.length);
+    game.playCard(p1, p1.hand.cards.length - 1);
     expect(game.stack.size).toBe(1);
 
     // Then play the cancel card
     game.decks["loot"]!.remove(cancelCard!);
     p1.hand.addToHand(cancelCard!);
-    game.playCard(p1, p1.hand.cards.length);
+    game.playCard(p1, p1.hand.cards.length - 1);
     expect(game.stack.size).toBe(2);
 
     // Resolve cancel effect first (LIFO)
@@ -247,7 +247,7 @@ describe("Loot deck integration", () => {
     const initialInPlay = p1.inPlay.length;
     p1.hand.addToHand(treasureCard!);
 
-    game.playCard(p1, p1.hand.cards.length);
+    game.playCard(p1, p1.hand.cards.length - 1);
     game.resolveStack();
 
     expect(p1.inPlay.length).toBe(initialInPlay + 1);
@@ -277,11 +277,11 @@ describe("Loot deck integration", () => {
     p1.hand.addToHand(card2);
 
     // Play first card
-    game.playCard(p1, p1.hand.cards.length - 1);
+    game.playCard(p1, p1.hand.cards.length - 2);
     expect(game.stack.size).toBe(1);
 
     // Play second card
-    game.playCard(p1, p1.hand.cards.length);
+    game.playCard(p1, p1.hand.cards.length - 1);
     expect(game.stack.size).toBe(2);
 
     // Resolve in LIFO order (second card first)
@@ -326,7 +326,7 @@ describe("Loot deck integration", () => {
 
     // Play recharge card
     p1.hand.addToHand(rechargeCard);
-    game.playCard(p1, p1.hand.cards.length, [item]);
+    game.playCard(p1, p1.hand.cards.length - 1, [item]);
 
     // Set target to the discharged item
     // Game now selects targets deterministically
@@ -363,7 +363,7 @@ describe("Loot deck integration", () => {
       targets.push(admissible[0]); // Pick first admissible target
     }
 
-    game.playCard(p1, p1.hand.cards.length, targets);
+    game.playCard(p1, p1.hand.cards.length - 1, targets);
 
     game.resolveStack();
 
@@ -388,7 +388,7 @@ describe("Loot deck integration", () => {
     game.decks["loot"]!.remove(takeDamageCard!);
     p1.hand.addToHand(takeDamageCard!);
 
-    game.playCard(p1, p1.hand.cards.length);
+    game.playCard(p1, p1.hand.cards.length - 1);
     game.resolveStack();
 
     expect(p1.currentHealthPoints).toBe(initialHP - damageTaken);

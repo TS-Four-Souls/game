@@ -44,7 +44,7 @@ describe("Eternal Items", () => {
         const theD6 = player2.inPlay[1]! as ItemCard;
 
         player1.hand.addToHand(card);
-        game.playCard(player1, 1, []); // play pills
+        game.playCard(player1, 0, []); // play pills
         game.resolveStack(); // resolve pills play
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5; // Force roll to 5 for testing
@@ -210,7 +210,7 @@ describe("Eternal Items", () => {
         // Create a dice roll scenario
         const card = game.decks["loot"]!.getCardFromSlug("b2-pills") as LootCard;
         player1.hand.addToHand(card);
-        game.playCard(player1, 1, []); // play pills
+        game.playCard(player1, 0, []); // play pills
         game.resolveStack(); // resolve pills play
         expect(game.stack.size).toBe(1); // Dice roll should be on stack
 
@@ -421,7 +421,7 @@ describe("Eternal Items", () => {
         expect(bookOfBelial.charged).toBe(true);
 
         player1.hand.addToHand(card);
-        game.playCard(player1, 1, []); // play pills
+        game.playCard(player1, 0, []); // play pills
         game.resolveStack(); // resolve pills play
         expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
@@ -463,7 +463,7 @@ describe("Eternal Items", () => {
         expect(bookOfBelial.charged).toBe(true);
 
         player1.hand.addToHand(card);
-        game.playCard(player1, 1, []); // play pills
+        game.playCard(player1, 0, []); // play pills
         game.resolveStack(); // resolve pills play
         expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;

@@ -176,7 +176,7 @@ describe("Bonus Soul effects", () => {
         if (!guppyItem1 || !guppyItem2)
             throw new Error("Guppy items not found in treasure deck");
         player1.hand.addToHand(guppyItem1);
-        game.playCard(player1, 1); // Play guppy's hairball
+        game.playCard(player1, 0); // Play guppy's hairball
         game.resolveStack();
         expect(player1.totalSouls).toBe(initSoul);
         game.addInPlay(player1, guppyItem2);

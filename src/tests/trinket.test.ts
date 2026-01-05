@@ -45,7 +45,7 @@ describe("Loot Card", () => {
         expect(player1.coins).toBe(initialCoins);
 
         player1.hand.addToHand(loot);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         game.dealDamage(player2, player1, loot, 1);
@@ -89,7 +89,7 @@ describe("Loot Card", () => {
         expect(player1.coins).toBe(initialCoins);
 
         player1.hand.addToHand(loot);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         game.dealDamage(player2, player1, loot, 1);
@@ -126,7 +126,7 @@ describe("Loot Card", () => {
         const initialHandSize = player1.hand.cards.length;
 
         player1.hand.addToHand(loot);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         game.dealDamage(player1, player2, loot, player2.currentHealthPoints); // Kill player 2
@@ -171,7 +171,7 @@ describe("Loot Card", () => {
         const initialHandSize = player1.hand.cards.length;
 
         player1.hand.addToHand(loot);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         game.dealDamage(player1, monster, loot, monster.currentHealthPoints); // Kill monster
@@ -185,7 +185,7 @@ describe("Loot Card", () => {
         const initialCoins2 = player2.coins;
 
         player1.hand.addToHand(loot);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         // gain x + 1 coins.
@@ -216,7 +216,7 @@ describe("Loot Card", () => {
         const cainsEye = game.decks["loot"]!.getCardFromSlug("b2-cains_eye")!;
         
         player1.hand.addToHand(cainsEye);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         // Get the current top card before turn starts
@@ -271,7 +271,7 @@ describe("Loot Card", () => {
         const cainsEye = game.decks["loot"]!.getCardFromSlug("b2-cains_eye")!;
         
         player1.hand.addToHand(cainsEye);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         const lootDeck = game.decks["loot"]!;
@@ -304,7 +304,7 @@ describe("Loot Card", () => {
         const cainsEye = game.decks["loot"]!.getCardFromSlug("b2-cains_eye")!;
         
         player1.hand.addToHand(cainsEye);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         // Remove the trinket
@@ -328,7 +328,7 @@ describe("Loot Card", () => {
         const goldenHorseshoe = game.decks["loot"]!.getCardFromSlug("b2-golden_horseshoe")!;
 
         player1.hand.addToHand(goldenHorseshoe);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         // Get the current top card before turn starts
@@ -379,7 +379,7 @@ describe("Loot Card", () => {
         const goldenHorseshoe = game.decks["loot"]!.getCardFromSlug("b2-golden_horseshoe")!;
 
         player1.hand.addToHand(goldenHorseshoe);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         const treasureDeck = game.decks["treasure"]!;
@@ -412,7 +412,7 @@ describe("Loot Card", () => {
         const goldenHorseshoe = game.decks["loot"]!.getCardFromSlug("b2-golden_horseshoe")!;
 
         player1.hand.addToHand(goldenHorseshoe);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         // Remove the trinket
@@ -438,7 +438,7 @@ describe("Loot Card", () => {
         const purpleHeart = game.decks["loot"]!.getCardFromSlug("b2-purple_heart")!;
 
         player1.hand.addToHand(purpleHeart);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         // Get the current top card before turn starts
@@ -489,7 +489,7 @@ describe("Loot Card", () => {
         const purpleHeart = game.decks["loot"]!.getCardFromSlug("b2-purple_heart")!;
 
         player1.hand.addToHand(purpleHeart);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         const monsterDeck = game.decks["monster"]!;
@@ -523,7 +523,7 @@ describe("Loot Card", () => {
         const purpleHeart = game.decks["loot"]!.getCardFromSlug("b2-purple_heart")!;
 
         player1.hand.addToHand(purpleHeart);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         // Remove the trinket
@@ -546,7 +546,7 @@ describe("Loot Card", () => {
     it("Broken Ankh: should prevent death when rolling a 6, not on other rolls", () => {
         const brokenAnkh = game.decks["loot"]!.getCardFromSlug("b2-broken_ankh")!;
         player1.hand.addToHand(brokenAnkh);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         const initialHealth = player1.currentHealthPoints;
@@ -573,7 +573,7 @@ describe("Loot Card", () => {
 
         player1.addHealthPoints(10);
         player1.hand.addToHand(brokenAnkh);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         const initialHealth = player1.currentHealthPoints;
@@ -600,7 +600,7 @@ describe("Loot Card", () => {
         const brokenAnkh = game.decks["loot"]!.getCardFromSlug("b2-broken_ankh")!;
 
         player1.hand.addToHand(brokenAnkh);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         const initialHealth = player1.currentHealthPoints;
@@ -627,7 +627,7 @@ describe("Loot Card", () => {
         const brokenAnkh = game.decks["loot"]!.getCardFromSlug("b2-broken_ankh")!;
 
         player1.hand.addToHand(brokenAnkh);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         const initialHealth = player2.currentHealthPoints;
@@ -647,7 +647,7 @@ describe("Loot Card", () => {
         const curvedHorn = game.decks["loot"]!.getCardFromSlug("b2-curved_horn")!;
         const baseAttack = player1.attackPoints;
         player1.hand.addToHand(curvedHorn);
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack(); // add curvedHorn to in play
 
         const monster = game.monsters[0]!;
@@ -687,7 +687,7 @@ describe("Loot Card", () => {
         const curvedHorn = game.decks["loot"]!.getCardFromSlug("b2-curved_horn")!;
         const baseAttack = player1.attackPoints;
         player2.hand.addToHand(curvedHorn);
-        game.playCard(player2, 1);
+        game.playCard(player2, 0);
         game.resolveStack(); // add curvedHorn to in play
 
         const monster = game.monsters[0]!;
@@ -718,7 +718,7 @@ describe("Loot Card", () => {
 
         const beforeSouls = player1.totalSouls;
 
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
         
         expect(card!.soul).toBe(1);
@@ -731,7 +731,7 @@ describe("Loot Card", () => {
         player1.hand.addToHand(card!);
         const life = player1.healthPoints;
 
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
         
         game.dealDamage(player2, player1, card!, 1);
@@ -750,7 +750,7 @@ describe("Loot Card", () => {
         player1.hand.addToHand(card!);
         const life = player1.healthPoints;
 
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         game.dealDamage(player2, player1, card!, 1);

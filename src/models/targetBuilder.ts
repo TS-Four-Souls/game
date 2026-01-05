@@ -68,9 +68,9 @@ export class TargetBuilder {
     ): TargetSelectorResponse {
         // Get all target selectors for this effect
         const item: ItemCard = lootCard ? player.hand.cards[itemIndex] as ItemCard : player.inPlay[itemIndex] as ItemCard;
-        // console.log("TargetBuilder.getNextSelector for item:", item.name, "effectId:", effectId, "partialChoices:", partialChoices);
         if(!item)
             throw new Error(`Item at index ${itemIndex} not found.`);
+        console.log("TargetBuilder.getNextSelector for item:", item.name, "effectId:", effectId, "partialChoices:", partialChoices);
 
         const rootSelectors = item.getEffectTarget(effectId);
 

@@ -338,11 +338,11 @@ describe("Tap/Paid effects 1", () => {
         expect(game.destroyedCards).toContain(box);
 
         // Play all 3 loot cards (normally can only play 1 per turn)
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
-        game.playCard(player1, 1);
+        game.playCard(player1, 0);
         game.resolveStack();
 
         // Player should have gained 3¢ (1 from each penny)
@@ -839,7 +839,7 @@ describe("Tap/Paid effects 1", () => {
         player1.hand.addToHand(lootCard!);
 
         const initialCoins = player1.coins;
-        const lootCardIndex = player1.hand.cards.indexOf(lootCard!) + 1;
+        const lootCardIndex = player1.hand.cards.indexOf(lootCard!);
 
         game.recharge(blankCard);
         game.activateItem(player1, blankCard);
