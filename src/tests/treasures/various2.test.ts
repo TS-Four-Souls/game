@@ -2,6 +2,7 @@ import { describe, it, beforeEach, expect } from "bun:test";
 import { Game } from "../../models/game";
 import { Player } from "../../models/player";
 import { CharacterCard, ItemCard, treasureCard, LootCard, MonsterCard } from "@/models/cards";
+import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
 
 describe("Tap/Paid effects 2", () => {
     let game: Game;
@@ -22,7 +23,9 @@ describe("Tap/Paid effects 2", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const lazarus = game.decks["character"]!.getCardFromSlug("b2-lazarus")! as CharacterCard;
         game.start(player1, [samson, isaac, lazarus]);
-        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+            for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
         }
@@ -708,7 +711,9 @@ describe("Force Attack Monster", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
-        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+            for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
         }
@@ -836,7 +841,9 @@ describe("Force Attack Monster", () => {
             const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
             const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
             game.start(player1, [samson, isaac]);
-            for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+                for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
                 const monsterCardTop = game.obtainCard(slug) as MonsterCard;
                 game.decks["monster"]!.addTopPosition(monsterCardTop);
             }
@@ -905,11 +912,16 @@ describe("Force Attack Monster", () => {
             const targetMonster = game.monsters[0]!;
 
             // Player starts with attackThisTurn = 0 after game.start()
-            // Use up any attacks by attacking another monster first
+            dischargeEachItemsAndRemoveCoins(game);
+            emptyHands(game);
+                // Use up any attacks by attacking another monster first
             if (game.currentPlayer.attackThisTurn !== 0) {
                 game.declareAttack(game.currentPlayer);
                 game.declareAttackOnMonster(game.currentPlayer, game.monsters[1]!);
             }
+            game.kill(game.currentPlayer, game.monsters[1]!, monsterManual);
+            game.resolveStack();
+            game.resolveStack();
             expect(game.currentPlayer.attackThisTurn).toBeLessThanOrEqual(0);
 
             // Now activate monster manual

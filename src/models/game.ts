@@ -62,6 +62,8 @@ export const gameParameters = {
   deathPenaltyItem: 1,
   deathPenaltyLoot: 1,
   treasuresOnStart: 0,
+  lootOnStart: 3,
+  coinsOnStart: 3,
   shopPrice: 10,
 };
 export class Game {
@@ -802,7 +804,17 @@ export class Game {
     this.emitter.emit("on:game:start:before", {});
     this.emitter.emit("on:game:start", {});
     this.healEveryone();
-    // this.startTurn();
+    
+    this.startOfGameSetup();
+    this.startTurn();
+  }
+
+  startOfGameSetup(): void {
+    for (const player of this.players) {
+      this.gainTreasure(player,  gameParameters.treasuresOnStart);
+      this.loot(player, gameParameters.lootOnStart);
+      this.gainCoins(player, gameParameters.coinsOnStart);
+    }
   }
 
   give(from: Player, to: Player, card: Card): boolean {
@@ -994,6 +1006,7 @@ export class Game {
     const roundIndex = this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.assertCurrentTurnIsPlayerTurn(player);
+    this.assertEmptyStack();
     this.assertNoOngoingAttack();
     this.healEveryone();
     this.endTurn();
@@ -1706,6 +1719,11 @@ export class Game {
     if (this.players.some((p) => p.id === id)) {
       throw new Error(`Player ${id} already exists`);
     }
+  }
+
+  private assertEmptyStack(): void {
+    if(this._stack.size > 0)
+      throw new Error(`Stack is not empty.`);
   }
 
   private assertIssuerSecret(issuer: Issuer): Player {

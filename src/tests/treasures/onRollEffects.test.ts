@@ -5,6 +5,7 @@ import { pl } from "zod/locales";
 import type { LootCard, ItemCard, treasureCard, Card } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
 import { inplayUnchargedItemSelector } from "@/models/targetSelector";
+import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
 
 describe("Treasure - \"Each time a player rolls a\" effect", () => {
     let game: Game;
@@ -21,7 +22,9 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+            for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
         }

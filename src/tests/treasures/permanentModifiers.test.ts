@@ -4,6 +4,7 @@ import { DiceRoll, Player } from "../../models/player";
 import { pl } from "zod/locales";
 import type { LootCard, ItemCard, treasureCard } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
+import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
 
 describe("Treasure - Permanent Modifiers", () => {
     let game: Game;
@@ -20,7 +21,9 @@ describe("Treasure - Permanent Modifiers", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
-        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+            for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
           const monsterCardTop = game.obtainCard(slug) as MonsterCard;
           game.decks["monster"]!.addTopPosition(monsterCardTop);
         }
@@ -249,7 +252,9 @@ describe("Treasure - Permanent Modifiers", () => {
         const isaac = testGame.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const the_forgotten = testGame.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         testGame.start(p1, [samson, isaac, the_forgotten]);
-        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+            for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
           const monsterCardTop = testGame.obtainCard(slug) as MonsterCard;
           testGame.decks["monster"]!.addTopPosition(monsterCardTop);
         }

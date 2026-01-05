@@ -175,16 +175,33 @@ const app = new Elysia()
   .post(
     "/playcard",
     async (request) => {
-      return new Response(
-        game.playCard(request.body.issuer, request.body.index),
-        {
-          status: 200,
-        }
-      );
+      const player = game.getPlayerById(request.body.issuer.id);
+      const partialChoices = request.body.targetChoices || [];
+      const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(game, player, request.body.index, partialChoices, request.body.effectIndex);
+      game.activateItemAtIndex(player, request.body.index, partialChoices, request.body.effectIndex);
+      if (choices.complete) {
+        console.log("Card ready to be played");
+        const targets = TargetBuilder.buildTargets(game, player, request.body.index, partialChoices, request.body.effectIndex);
+        game.playCard(player, request.body.index, targets);
+      }
+      return new Response(JSON.stringify(choices), {
+        status: 200,
+      });
     },
     {
       body: schemas.playCardRequest,
     }
+    // async (request) => {
+    //   return new Response(
+    //     game.playCard(request.body.issuer, request.body.index),
+    //     {
+    //       status: 200,
+    //     }
+    //   );
+    // },
+    // {
+    //   body: schemas.playCardRequest,
+    // }
   )
   .post(
     "/activate",
@@ -447,9 +464,6 @@ const app = new Elysia()
     const card = game.obtainCard("b2-chaos_card")!;
     game.addInPlay(p1, card);
     game.start(p1, [samson, isaac]);
-    // TODO: the game should be the one charging the items at the start of the turn
-    game.startTurn();
-    // game.start(p1);
     return new Response("Debug reset", {
       status: 200,
     });

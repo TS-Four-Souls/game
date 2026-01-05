@@ -2,6 +2,7 @@ import { describe, it, beforeEach, expect } from "bun:test";
 import { Game } from "../../models/game";
 import { Player } from "../../models/player";
 import { CharacterCard, ItemCard, MonsterCard } from "@/models/cards";
+import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
 
 describe("card activations", () => {
   let game: Game;
@@ -22,7 +23,11 @@ describe("card activations", () => {
       "b2-isaac"
     )! as CharacterCard;
     game.start(player1, [samson, isaac]);
-    for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+          dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
       const monsterCardTop = game.obtainCard(slug) as MonsterCard;
       game.decks["monster"]!.addTopPosition(monsterCardTop);
     }

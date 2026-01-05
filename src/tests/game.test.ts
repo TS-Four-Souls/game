@@ -4,6 +4,7 @@ import { Player } from "@/models/player";
 import { TurnHandler } from "@/models/turnHandler";
 import { Stack } from "@/models/stack";
 import type { CharacterCard } from "@/models/cards";
+import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
 
 describe("Game", () => {
   let game: Game;
@@ -35,7 +36,9 @@ describe("Game", () => {
     expect(game.players.length).toBe(2);
     expect(() => {
       game.start(player1);
-    }).not.toThrow();
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+        }).not.toThrow();
   });
 
   it("should throw error when retrieving non-existent player", () => {
@@ -565,7 +568,9 @@ describe("Game - Guardrails", () => {
 
   it("should not allow adding players after game start", () => {
     game.start(player1);
-    const latePlayer = new Player("late", 1, 1, 0);
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+        const latePlayer = new Player("late", 1, 1, 0);
     expect(() => game.addPlayer(latePlayer)).toThrow("Game already started");
   });
 
@@ -700,19 +705,25 @@ describe("Game - Game State", () => {
 
   it("should get shop", () => {
     game.start(player1);
-    const shop = game.shop;
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+        const shop = game.shop;
     expect(shop).toBeDefined();
   });
 
   it("should get encounters", () => {
     game.start(player1);
-    const encounters = game.encounters;
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+        const encounters = game.encounters;
     expect(encounters).toBeDefined();
   });
 
   it("should get monster slots", () => {
     game.start(player1);
-    const slots = game.monsterSlots;
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+        const slots = game.monsterSlots;
     expect(slots).toBeDefined();
   });
 
@@ -812,7 +823,9 @@ describe("Game - Damage System", () => {
     const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
     const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
     game.start(player1, [samson, isaac]);
-  });
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+      });
 
   it("should deal damage between entities", () => {
     const initialHealth = player2.currentHealthPoints;

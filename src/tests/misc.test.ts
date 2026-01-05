@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../models/game";
 import { Player } from "../models/player";
 import { type ItemCard, type LootCard, type CharacterCard, treasureCard } from "@/models/cards";
+import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
 
 
 
@@ -28,14 +29,18 @@ describe("Before start effects", () => {
         const cain = game.decks["character"]!.getCardFromSlug("b2-cain")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [isaac, cain]);
-        expect(game.currentPlayer).toBe(player2);
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+            expect(game.currentPlayer).toBe(player2);
     });
 
     it("Eden gets a treasure and set it eternal", () => {
         const eden = game.decks["character"]!.getCardFromSlug("b2-eden")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [isaac, eden]);
-        expect(player2.inPlay[0]!.slug).toBe("b2-eden");
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+            expect(player2.inPlay[0]!.slug).toBe("b2-eden");
         expect(player2.inPlay.length).toBe(2);
         expect(player2.inPlay[0]!.eternal).toBe(true);
         expect(player2.inPlay[1]!.eternal).toBe(true);
@@ -47,7 +52,9 @@ describe("Before start effects", () => {
         // const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         expect(game.players.length).toBe(2);
         game.start(player1);
-        expect(game.players.length).toBe(2);
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+            expect(game.players.length).toBe(2);
         const character1 = player1.inPlay[0] as CharacterCard;
         const character2 = player2.inPlay[0] as CharacterCard;
         if(!character1 || !character2)
@@ -94,7 +101,9 @@ describe("Bonus Soul effects", () => {
         const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [isaac, judas]);
-    });
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+        });
 
     it("Greed", () => {
         const initSoul = player1.totalSouls;

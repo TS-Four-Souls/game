@@ -63,13 +63,14 @@ export class TargetBuilder {
         player: Player,
         itemIndex: number,
         partialChoices: string[] = [],
-        effectId: number | "tap" = "tap"
+        effectId: number | "tap" = "tap",
+        lootCard: boolean = false
     ): TargetSelectorResponse {
         // Get all target selectors for this effect
-        const item: ItemCard = player.inPlay[itemIndex] as ItemCard;
-        console.log("TargetBuilder.getNextSelector for item:", item.name, "effectId:", effectId, "partialChoices:", partialChoices);
-        if (!item)
-            throw new Error(`Item at index ${itemIndex} not found in player's inPlay.`);
+        const item: ItemCard = lootCard ? player.hand.cards[itemIndex] as ItemCard : player.inPlay[itemIndex] as ItemCard;
+        // console.log("TargetBuilder.getNextSelector for item:", item.name, "effectId:", effectId, "partialChoices:", partialChoices);
+        if(!item)
+            throw new Error(`Item at index ${itemIndex} not found.`);
 
         const rootSelectors = item.getEffectTarget(effectId);
 
@@ -180,7 +181,6 @@ export class TargetBuilder {
      * Since options is always a homogeneous array, we determine the type from the first element
      * and return simple string values without type prefixes.
      * 
-     * @param game The game instance
      * @param options Array of target options (Cards, Players, Monsters, numbers, etc.)
      * @returns Array of string identifiers
      */
@@ -296,9 +296,12 @@ export class TargetBuilder {
         player: Player,
         itemIndex: number,
         partialChoices: string[],
-        effectId: number | "tap" = "tap"
+        effectId: number | "tap" = "tap",
+        lootCard: boolean = false
     ): any[] {
-        const item: ItemCard = player.inPlay[itemIndex] as ItemCard;
+                const item: ItemCard = lootCard ? player.hand.cards[itemIndex] as ItemCard : player.inPlay[itemIndex] as ItemCard;
+        if(!item)
+            throw new Error(`Item at index ${itemIndex} not found.`);
         const rootSelectors = item.getEffectTarget(effectId);
         const result: any[] = [];
 

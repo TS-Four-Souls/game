@@ -389,7 +389,7 @@ class Card {
     protected _effectOutcomes: string[];
     protected _effectInterface: EffectInterface;
     protected _souls: number = 0;
-    protected _charged: boolean = false;
+    protected _charged: boolean = true;
     protected _owner!: Entity;
     protected _eternal: boolean = false;
     protected _position: Deck | null | Hand | Card[];
@@ -790,6 +790,7 @@ class CharacterCard extends ItemCard {
             this._healthPoints = json.stats.healthPoints || 0;
             this._attackPoints = json.stats.attackPoints || 0;
         }
+        this._charged = false;
         this._eternal = true;
     }
     onRemoveFromPlay(): void {

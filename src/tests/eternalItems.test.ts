@@ -4,6 +4,7 @@ import { DiceRoll, Player } from "../models/player";
 import { pl } from "zod/locales";
 import type { LootCard, ItemCard, treasureCard } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
+import { dischargeEachItemsAndRemoveCoins, emptyHands } from "./testHelpers";
 
 describe("Eternal Items", () => {
     let game: Game;
@@ -23,6 +24,8 @@ describe("Eternal Items", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -64,6 +67,8 @@ describe("Eternal Items", () => {
         const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [eve, isaac]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -103,6 +108,8 @@ describe("Eternal Items", () => {
         const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [eve, isaac]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -134,6 +141,8 @@ describe("Eternal Items", () => {
         const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [theForgotten, isaac]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -176,6 +185,8 @@ describe("Eternal Items", () => {
         const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [theForgotten, isaac]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -221,6 +232,8 @@ describe("Eternal Items", () => {
         const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [theForgotten, isaac]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -255,6 +268,8 @@ describe("Eternal Items", () => {
         const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [theForgotten, isaac]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -293,6 +308,8 @@ describe("Eternal Items", () => {
         const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [theForgotten, isaac]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -331,6 +348,8 @@ describe("Eternal Items", () => {
         const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [theForgotten, isaac]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -381,6 +400,8 @@ describe("Eternal Items", () => {
         const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [judas, isaac]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -421,6 +442,8 @@ describe("Eternal Items", () => {
         const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [judas, isaac]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -462,6 +485,8 @@ describe("Eternal Items", () => {
         const cain = game.decks["character"]!.getCardFromSlug("b2-cain")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [cain, isaac]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -494,6 +519,8 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const maggy = game.decks["character"]!.getCardFromSlug("b2-maggy")! as CharacterCard;
         game.start(player1, [isaac, maggy]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -536,6 +563,8 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const lazarus = game.decks["character"]!.getCardFromSlug("b2-lazarus")! as CharacterCard;
         game.start(player1, [isaac, lazarus]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -584,6 +613,8 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         game.start(player1, [isaac, samson]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -650,6 +681,8 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
         game.start(player1, [isaac, blueBaby]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -688,6 +721,8 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
         game.start(player1, [isaac, blueBaby]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -718,6 +753,8 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
         game.start(player1, [isaac, blueBaby]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -767,6 +804,8 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
         game.start(player1, [isaac, blueBaby]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -804,6 +843,8 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
         game.start(player1, [isaac, blueBaby]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -849,6 +890,8 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
         game.start(player1, [isaac, lilith]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -895,6 +938,8 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
         game.start(player1, [isaac, lilith]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -935,6 +980,8 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
         game.start(player1, [isaac, lilith]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -970,6 +1017,8 @@ describe("Eternal Items", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
         game.start(player1, [isaac, lilith]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -1013,6 +1062,8 @@ describe("Eternal Items - 3 players tests", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
         game.start(player1, [isaac, samson, judas]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);

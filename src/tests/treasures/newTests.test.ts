@@ -4,6 +4,7 @@ import { DiceRoll, Player } from "../../models/player";
 import { CharacterCard, ItemCard, treasureCard, MonsterCard } from "@/models/cards";
 import { Monster } from "@/models/monster";
 import type { ChooseOneResult } from "@/models/effectParser";
+import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
 
 describe("b2-placebo - copies tap ability of non-eternal item", () => {
     let game: Game;
@@ -20,7 +21,9 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+            for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
         }
@@ -255,7 +258,9 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+            for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
         }
@@ -518,7 +523,9 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+            for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
         }
@@ -835,7 +842,9 @@ describe("b2-trinity_shield - prevents other players from priority actions", () 
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+            for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
         }
@@ -935,7 +944,9 @@ describe("b2-no - Cancel the ↷ or $ ability of an item", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+            for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
         }

@@ -4,6 +4,7 @@ import { DiceRoll, Player } from "../../models/player";
 import { CharacterCard, ItemCard, treasureCard, MonsterCard } from "@/models/cards";
 import { Monster } from "@/models/monster";
 import type { ChooseOneResult } from "@/models/effectParser";
+import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
 
 describe("Tap/Paid effects 1", () => {
     let game: Game;
@@ -20,7 +21,9 @@ describe("Tap/Paid effects 1", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
-        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+            for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
         }

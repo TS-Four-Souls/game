@@ -3,6 +3,7 @@ import { Game } from "@/models/game";
 import { Player } from "@/models/player";
 import { gainCoinsEffect } from "@/models/activeEffect";
 import { CharacterCard, MonsterCard, EffectData } from "@/models/cards";
+import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
 
 // Minimal loot card stub
 const dummyLoot = { slug: "dummy-loot", name: "Dummy", type: "loot" } as any;
@@ -17,6 +18,9 @@ function setupGame() {
     const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
     const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
     game.start(p1, [isaac, samson]);
+    dischargeEachItemsAndRemoveCoins(game);
+    emptyHands(game);
+        
     for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
         const monsterCardTop = game.obtainCard(slug) as MonsterCard;
         game.decks["monster"]!.addTopPosition(monsterCardTop);

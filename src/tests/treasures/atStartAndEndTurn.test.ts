@@ -4,6 +4,7 @@ import { DiceRoll, Player } from "../../models/player";
 import { pl } from "zod/locales";
 import type { LootCard, treasureCard, Card } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard, ItemCard } from "@/models/cards";
+import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
 
 describe("Treasure - \"at the end of your turn\" effects", () => {
     let game: Game;
@@ -20,7 +21,9 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
-        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
+            for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
         }
@@ -403,7 +406,9 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
-        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
+            for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
         }

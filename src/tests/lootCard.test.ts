@@ -5,6 +5,7 @@ import { pl } from "zod/locales";
 import type { LootCard, ItemCard } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
 import { type ChooseOneResult } from "@/models/effectParser";
+import { setupStandardTestGame, dischargeEachItemsAndRemoveCoins, emptyHands } from "./testHelpers";
 
 describe("Loot Card", () => {
     let game: Game;
@@ -12,27 +13,10 @@ describe("Loot Card", () => {
     let player2: Player;
 
     beforeEach(() => {
-        game = new Game();
-        player1 = new Player("Player 1");
-        player2 = new Player("Player 2");
-        game.addPlayer(player1);
-        game.addPlayer(player2);
-        game.setupGame();
-        const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [isaac, judas]);
-        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
-        game.decks["treasure"]?.addTopPosition(game.shop.obtainCard("b2-blank_card")!);
-        game.decks["treasure"]?.addTopPosition(game.shop.obtainCard("b2-boomerang")!);
-        game.decks["treasure"]?.addTopPosition(game.shop.obtainCard("b2-decoy")!);
-        game.decks["treasure"]?.addTopPosition(game.shop.obtainCard("b2-crystal_ball")!);
+        const setup = setupStandardTestGame();
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
     });
 
 
@@ -1706,7 +1690,9 @@ describe("Loot Cards - 3 players tests", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         game.start(player1, [isaac, judas, samson]);
-    });
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+        });
 
     it("b2-xx_judgement: tie for most souls chooses target to destroy soul", () => {
 

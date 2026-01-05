@@ -3,6 +3,7 @@ import { Game } from "../models/game";
 import { Player } from "../models/player";
 import { CharacterCard, ItemCard, MonsterCard } from "@/models/cards";
 import { TargetBuilder } from "@/models/targetBuilder";
+import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
 
 describe("Target Builder Interface", () => {
     let game: Game;
@@ -19,7 +20,9 @@ describe("Target Builder Interface", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
-        for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
+      dischargeEachItemsAndRemoveCoins(game);
+      emptyHands(game);
+            for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
             const monsterCardTop = game.decks["monster"]!.cards.find(c => c.slug === slug) as MonsterCard;
             if (monsterCardTop) {
                 game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -124,15 +127,15 @@ describe("Target Builder Interface", () => {
         const card = game.obtainCard("b2-blank_card") as ItemCard;
 
         // Test card conversion - should return just the slug
-        const cardIdentifiers = TargetBuilder["convertToStringIdentifiers"](game, [card]);
+        const cardIdentifiers = TargetBuilder["convertToStringIdentifiers"]([card]);
         expect(cardIdentifiers[0]).toBe(card.slug);
 
         // Test number conversion - should return string numbers
-        const numberIdentifiers = TargetBuilder["convertToStringIdentifiers"](game, [1, 2, 3]);
+        const numberIdentifiers = TargetBuilder["convertToStringIdentifiers"]([1, 2, 3]);
         expect(numberIdentifiers).toEqual(['1', '2', '3']);
 
         // Test string conversion - should return strings as-is
-        const stringIdentifiers = TargetBuilder["convertToStringIdentifiers"](game, ['test']);
+        const stringIdentifiers = TargetBuilder["convertToStringIdentifiers"](['test']);
         expect(stringIdentifiers[0]).toBe('test');
     });
 
@@ -302,5 +305,31 @@ describe("Target Builder Interface", () => {
             expect(player1.inPlay.find(i => i.slug === chaosCard.slug)).toBeUndefined();
 
         }
+    });
+
+    it("should handle b", () => {
+    const bloodLust = player1.inPlay[1] as ItemCard;
+    game.recharge(bloodLust)
+
+    // Step 1: Get the choose-one selector
+    const step1 = TargetBuilder.getNextSelector(game, player1, 1, [], "tap");
+    
+    // Verify basic behavior
+    expect(typeof step1.complete).toBe('boolean');
+    expect(Array.isArray(step1.options)).toBe(true);
+    
+    expect( step1.options.length >= 2).toBe(true);
+    if (step1.options.length >= 2) {
+        // Choose second option
+        const chosenOption = step1.options[1]!;
+        const step2 = TargetBuilder.getNextSelector(game, player1, 1, [chosenOption], "tap");
+        
+        // Should make progress
+        expect(step2.complete).toBe(true);
+        const targets = TargetBuilder.buildTargets(game, player1, 1, [chosenOption]);
+        game.activateItem(player1, bloodLust, targets);
+        game.resolveStack();
+
+    }
     });
 });

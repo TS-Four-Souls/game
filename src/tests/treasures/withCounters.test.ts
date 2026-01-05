@@ -3,6 +3,7 @@ import { Game } from "../../models/game";
 import { DiceRoll, Player } from "../../models/player";
 import type { ItemCard, MonsterCard, treasureCard } from "@/models/cards";
 import { CharacterCard } from "@/models/cards";
+import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
 
 describe("Treasure - with counters effect", () => {
     let game: Game;
@@ -19,6 +20,8 @@ describe("Treasure - with counters effect", () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [samson, isaac]);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
         for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);

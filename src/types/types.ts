@@ -71,7 +71,7 @@ export const schemas = {
   killMonsterRequest: indexSchema,
   drawMonsterRequest: indexSchema,
   discardInPlayRequest: indexSchema,
-  playCardRequest: indexSchema,
+  playCardRequest: cardActivationSchema,
   attackMonsterRequest: attackMonsterSchema,
   imageRequest: ImageRequestSchema,
   activateRequest: cardActivationSchema,
