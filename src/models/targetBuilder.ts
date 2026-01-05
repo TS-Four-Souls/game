@@ -185,6 +185,7 @@ export class TargetBuilder {
      * @returns Array of string identifiers
      */
     static convertToStringIdentifiers(options: any[]): string[] {
+        console.log("Converting options to string identifiers:", options);
         return options.map(option => {
 
             // Handle Cards
@@ -203,7 +204,8 @@ export class TargetBuilder {
 
             // Handle Stack Elements
             if (isStackElement(option)) {
-                return option.json
+                console.log("Stack element json:", JSON.stringify(option.json));
+                return JSON.stringify(option.json);
             }
 
             // Handle primitive types (numbers, strings, booleans)
@@ -248,7 +250,7 @@ export class TargetBuilder {
 
         // Stack Elements - match by json
         if (isStackElement(firstTarget)) {
-            return possibleTargets.find(t => `${t.json}` === identifier);
+            return possibleTargets.find(t => `${JSON.stringify(t.json)}` === identifier);
         }
 
         // Primitives - try parsing and direct match

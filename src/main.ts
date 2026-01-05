@@ -178,6 +178,7 @@ const app = new Elysia()
       const player = game.getPlayerById(request.body.issuer.id);
       const partialChoices = request.body.targetChoices || [];
       const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(game, player, request.body.index, partialChoices, request.body.effectIndex, true);
+      console.log("Play card target selection:", choices);
       if (choices.complete) {
         console.log("Card ready to be played");
         const targets = TargetBuilder.buildTargets(game, player, request.body.index, partialChoices, request.body.effectIndex, true);
