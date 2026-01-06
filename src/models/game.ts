@@ -600,18 +600,12 @@ export class Game {
     resolve: (selection: any[]) => void;
   }> = new Map();
   
-  private isInTestMode = true; // Set to false for multiplayer mode
-
   async select(
     player: Player,
     n: number,
     Options: any[],
     anyNumber: boolean = false
   ): Promise<{ selected: any[]; remaining: any[] }> {
-    // In test mode: return immediately with mock selection
-    if (this.isInTestMode) {
-      return { selected: Options.slice(0, n), remaining: Options.slice(n) };
-    }
 
     // In multiplayer mode: create promise that waits for client input
     return new Promise((resolve) => {

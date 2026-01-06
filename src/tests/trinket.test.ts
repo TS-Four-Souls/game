@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../models/game";
 import { DiceRoll, Player } from "../models/player";
 import type { CharacterCard, MonsterCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "@/tests/testHelpers";
 
 describe("Loot Card", () => {
     let game: Game;
@@ -11,6 +11,7 @@ describe("Loot Card", () => {
 
     beforeEach(() => {
         game = new Game();
+        mockGameSelections(game);
         player1 = new Player("Player 1");
         player2 = new Player("Player 2");
         game.addPlayer(player1);

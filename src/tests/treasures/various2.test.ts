@@ -2,7 +2,7 @@ import { describe, it, beforeEach, expect } from "bun:test";
 import { Game } from "../../models/game";
 import { Player } from "../../models/player";
 import { CharacterCard, ItemCard, treasureCard, LootCard, MonsterCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame, mockGameSelections } from "@/tests/testHelpers";
 
 describe("Tap/Paid effects 2", () => {
     let game: Game;
@@ -11,28 +11,17 @@ describe("Tap/Paid effects 2", () => {
     let player3: Player;
 
     beforeEach(() => {
-        game = new Game();
-        player1 = new Player("Player 1");
-        player2 = new Player("Player 2");
-        player3 = new Player("Player 3");
-        game.addPlayer(player1);
-        game.addPlayer(player2);
-        game.addPlayer(player3);
-        game.setupGame();
-        const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const lazarus = game.decks["character"]!.getCardFromSlug("b2-lazarus")! as CharacterCard;
-        game.start(player1, [samson, isaac, lazarus]);
-      dischargeEachItemsAndRemoveCoins(game);
-      emptyHands(game);
-            for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupTestGame({
+            characters: ["b2-samson", "b2-isaac", "b2-lazarus"],
+            playerCount: 3,
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card"],
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        player3 = setup.player3!;
     });
 
     // b2-remote_detonator: "[Tap Effect] Each player votes on an item in play. Destroy the item with the most votes. If there is a tie, nothing happens."
@@ -707,6 +696,7 @@ describe("Force Attack Monster", () => {
 
     beforeEach(() => {
         game = new Game();
+        mockGameSelections(game);
         player1 = new Player("Player 1");
         player2 = new Player("Player 2");
         game.addPlayer(player1);
@@ -837,6 +827,7 @@ describe("Force Attack Monster", () => {
 
         beforeEach(() => {
             game = new Game();
+            mockGameSelections(game);
             player1 = new Player("Player 1");
             player2 = new Player("Player 2");
             game.addPlayer(player1);

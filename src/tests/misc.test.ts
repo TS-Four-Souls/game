@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../models/game";
 import { Player } from "../models/player";
 import { type ItemCard, type LootCard, type CharacterCard, treasureCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "@/tests/testHelpers";
 
 
 
@@ -18,6 +18,7 @@ describe("Before start effects", () => {
 
     beforeEach(() => {
         game = new Game();
+        mockGameSelections(game);
         player1 = new Player("Player 1");
         player2 = new Player("Player 2");
         game.addPlayer(player1);
@@ -95,6 +96,7 @@ describe("Bonus Soul effects", () => {
 
     beforeEach(() => {
         game = new Game();
+        mockGameSelections(game);
         player1 = new Player("Player 1");
         player2 = new Player("Player 2");
         game.addPlayer(player1);

@@ -3,7 +3,7 @@ import { Game } from "../../models/game";
 import { DiceRoll, Player } from "../../models/player";
 import type { ItemCard, MonsterCard, treasureCard } from "@/models/cards";
 import { CharacterCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "@/tests/testHelpers";
 
 describe("Treasure - with counters effect", () => {
     let game: Game;
@@ -12,6 +12,7 @@ describe("Treasure - with counters effect", () => {
 
     beforeEach(() => {
         game = new Game();
+        mockGameSelections(game);
         player1 = new Player("Player 1");
         player2 = new Player("Player 2");
         game.addPlayer(player1);

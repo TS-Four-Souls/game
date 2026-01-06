@@ -4,7 +4,7 @@ import { DiceRoll, Player } from "../models/player";
 import { pl } from "zod/locales";
 import type { LootCard, ItemCard, treasureCard } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands } from "./testHelpers";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "./testHelpers";
 
 describe("Eternal Items", () => {
     let game: Game;
@@ -13,6 +13,7 @@ describe("Eternal Items", () => {
 
     beforeEach(() => {
         game = new Game();
+        mockGameSelections(game);
         player1 = new Player("Player 1");
         player2 = new Player("Player 2");
         game.addPlayer(player1);
@@ -1052,6 +1053,7 @@ describe("Eternal Items - 3 players tests", () => {
 
     beforeEach(() => {
         game = new Game();
+        mockGameSelections(game);
         player1 = new Player("Player 1");
         player2 = new Player("Player 2");
         player3 = new Player("Player 3");

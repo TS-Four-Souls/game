@@ -4,7 +4,7 @@ import { DiceRoll, Player } from "../../models/player";
 import { pl } from "zod/locales";
 import type { LootCard, ItemCard, treasureCard } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "@/tests/testHelpers";
 
 describe("Treasure - Permanent Modifiers", () => {
     let game: Game;
@@ -13,6 +13,7 @@ describe("Treasure - Permanent Modifiers", () => {
 
     beforeEach(() => {
         game = new Game();
+        mockGameSelections(game);
         player1 = new Player("Player 1");
         player2 = new Player("Player 2");
         game.addPlayer(player1);
@@ -241,6 +242,7 @@ describe("Treasure - Permanent Modifiers", () => {
     it("b2-brimstone: Each time you deal combat damage to a monster, deal 1 damage to another player", async () => {
         // Setup a fresh game with 3 players (minimum required for brimstone)
         const testGame = new Game();
+        mockGameSelections(testGame);
         const p1 = new Player("Player 1");
         const p2 = new Player("Player 2");
         const p3 = new Player("Player 3");

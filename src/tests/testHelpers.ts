@@ -117,7 +117,7 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
 
     // Create game instance
     const game = new Game();
-
+    mockGameSelections(game);
     // Create players
     const players: Player[] = [];
     for (let i = 0; i < playerCount; i++) {
@@ -267,4 +267,40 @@ export function setupFourPlayerGame(): GameSetupResult {
         monsters: ["b2-fly", "b2-fatty"],
         monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
     });
+}
+
+/**
+ * Mocks the game.select and game.selectMultiple methods for testing.
+ * This replaces the multiplayer implementations with synchronous test versions
+ * that immediately return mock selections.
+ * 
+ * Call this in beforeEach() to ensure tests don't wait for client responses.
+ * 
+ * @param game - The game instance to mock
+ * @example
+ * beforeEach(() => {
+ *   game = new Game();
+ *   mockGameSelections(game);
+ *   // ... rest of setup
+ * });
+ */
+export function mockGameSelections(game: Game): void {
+    // Mock single player selection
+    game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+        return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+    };
+
+    // Mock multiple player selection
+    game.selectMultiple = async (selections: Array<{
+        player: Player;
+        count: number;
+        options: any[];
+        asMany?: boolean;
+    }>) => {
+        return selections.map(sel => ({
+            playerId: sel.player.id,
+            selected: sel.options.slice(0, sel.count),
+            remaining: sel.options.slice(sel.count)
+        }));
+    };
 }

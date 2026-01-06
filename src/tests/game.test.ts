@@ -4,7 +4,7 @@ import { Player } from "@/models/player";
 import { TurnHandler } from "@/models/turnHandler";
 import { Stack } from "@/models/stack";
 import type { CharacterCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "@/tests/testHelpers";
 
 describe("Game", () => {
   let game: Game;
@@ -13,6 +13,7 @@ describe("Game", () => {
 
   beforeEach(() => {
     game = new Game();
+    mockGameSelections(game);
     player1 = new Player("player1", 1, 2, 0);
     player2 = new Player("player2", 1, 2, 0);
     
@@ -498,6 +499,7 @@ describe("Game - Multiple Players", () => {
 
   beforeEach(() => {
     game = new Game();
+    mockGameSelections(game);
     player1 = new Player("player1", 2, 4, 10);
     player2 = new Player("player2", 3, 5, 15);
     player3 = new Player("player3", 1, 6, 8);
@@ -560,6 +562,7 @@ describe("Game - Guardrails", () => {
 
   beforeEach(() => {
     game = new Game();
+    mockGameSelections(game);
     player1 = new Player("p1", 2, 4, 5);
     player2 = new Player("p2", 2, 4, 5);
     game.addPlayer(player1);
@@ -603,6 +606,7 @@ describe("Game - Stack Operations", () => {
 
   beforeEach(() => {
     game = new Game();
+    mockGameSelections(game);
     player1 = new Player("player1", 2, 4, 10);
     player2 = new Player("player2", 3, 5, 15);
     game.addPlayer(player1);
@@ -678,6 +682,7 @@ describe("Game - Game State", () => {
 
   beforeEach(() => {
     game = new Game();
+    mockGameSelections(game);
     player1 = new Player("player1", 2, 4, 10);
     player2 = new Player("player2", 3, 5, 15);
     game.addPlayer(player1);
@@ -760,6 +765,7 @@ describe("Game - Souls & State", () => {
 
   beforeEach(() => {
     game = new Game();
+    mockGameSelections(game);
     player1 = new Player("player1", 2, 4, 10);
     player2 = new Player("player2", 3, 5, 15);
     game.addPlayer(player1);
@@ -815,6 +821,7 @@ describe("Game - Damage System", () => {
 
   beforeEach(() => {
     game = new Game();
+    mockGameSelections(game);
     player1 = new Player("player1", 2, 10, 10);
     player2 = new Player("player2", 3, 8, 15);
     game.addPlayer(player1);

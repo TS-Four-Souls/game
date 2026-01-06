@@ -4,7 +4,7 @@ import { DiceRoll, Player } from "../../models/player";
 import { CharacterCard, ItemCard, treasureCard, MonsterCard } from "@/models/cards";
 import { Monster } from "@/models/monster";
 import type { ChooseOneResult } from "@/models/effectParser";
-import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
+import { dischargeEachItemsAndRemoveCoins, setupTestGame } from "@/tests/testHelpers";
 
 describe("Tap/Paid effects 1", () => {
     let game: Game;
@@ -12,25 +12,15 @@ describe("Tap/Paid effects 1", () => {
     let player2: Player;
 
     beforeEach(() => {
-        game = new Game();
-        player1 = new Player("Player 1");
-        player2 = new Player("Player 2");
-        game.addPlayer(player1);
-        game.addPlayer(player2);
-        game.setupGame();
-        const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [samson, isaac]);
-      dischargeEachItemsAndRemoveCoins(game);
-      emptyHands(game);
-            for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupTestGame({
+            characters: ["b2-samson", "b2-isaac"],
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card"],
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
     });
 
     it("sack_of_pennies - tap to gain 1¢", async () => {
@@ -970,27 +960,17 @@ describe("b2-theres_options treasure deck visibility", () => {
     let the_forgotten: CharacterCard;
 
     beforeEach(() => {
-        game = new Game();
-        player1 = new Player("Player 1");
-        player2 = new Player("Player 2");
-        player3 = new Player("Player 3");
-        game.addPlayer(player1);
-        game.addPlayer(player2);
-        game.setupGame();
-        samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        the_forgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
-        game.start(player1, [samson, isaac]);
-      dischargeEachItemsAndRemoveCoins(game);
-      emptyHands(game);
-            for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupTestGame({
+            characters: ["b2-samson", "b2-isaac", "b2-the_forgotten"],
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card"],
+            playerCount: 3
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        player3 = setup.player3!;
     });
 
     it("player can see top of treasure deck during their turn", async () => {
@@ -1066,7 +1046,12 @@ describe("b2-theres_options treasure deck visibility", () => {
         game.endTurn();
         await game.resolveStack();
 
-        expect(game.currentPlayer).toBe(player1);
+        expect(game.currentPlayer).toBe(player3);
+
+        // End player3's turn
+        game.endTurn();
+        await game.resolveStack();
+        expect(game.currentPlayer).toBe(player1)
 
         // Back to player1's turn - should see deck again
         stateStr = game.detailedStateJSON(player1);
@@ -1139,7 +1124,14 @@ describe("b2-theres_options treasure deck visibility", () => {
 
         // Player1 cannot see during other's turn
         expect(player1.canSeeTopOfTreasureDeck).toBe(false);
+        
+        // End turn
+        game.endTurn();
+        await game.resolveStack();
+        expect(game.currentPlayer).toBe(player3);
 
+        // Player1 cannot see during other's turn
+        expect(player1.canSeeTopOfTreasureDeck).toBe(false);
         // Back to player1's turn
         game.endTurn();
         await game.resolveStack();

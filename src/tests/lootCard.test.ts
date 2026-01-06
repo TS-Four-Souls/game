@@ -5,7 +5,7 @@ import { pl } from "zod/locales";
 import type { LootCard, ItemCard } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
 import { type ChooseOneResult } from "@/models/effectParser";
-import { setupStandardTestGame, dischargeEachItemsAndRemoveCoins, emptyHands } from "./testHelpers";
+import { setupStandardTestGame, dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "./testHelpers";
 
 describe("Loot Card", () => {
     let game: Game;
@@ -1680,6 +1680,7 @@ describe("Loot Cards - 3 players tests", () => {
 
     beforeEach(() => {
         game = new Game();
+        mockGameSelections(game);
         player1 = new Player("Player 1");
         player2 = new Player("Player 2");
         player3 = new Player("Player 3");
