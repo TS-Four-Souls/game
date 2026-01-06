@@ -235,7 +235,7 @@ export class Game {
     target.removeSoul(soul);
     player.addSoul(soul);
   }
-  deathPenalty(p: Player): void {
+  async deathPenalty(p: Player): Promise<void> {
     this.loseCoins(p, gameParameters.deathPenaltyCoins, true);
     const setOfLosableItems = p.inPlay.filter(
       (c) =>
@@ -243,22 +243,22 @@ export class Game {
         c.eternal === false
     );
     if (gameParameters.deathPenaltyItem > 0) {
-      const itemToLose = this.select(
+      const itemToLose = (await this.select(
         p,
         gameParameters.deathPenaltyItem,
         setOfLosableItems
-      ).selected[0];
+      )).selected[0];
       if (itemToLose) {
         this.removeInPlay(p, itemToLose);
         this.decks[itemToLose.type]!.addDiscardTop(itemToLose);
       }
     }
     if (gameParameters.deathPenaltyLoot > 0) {
-      const lootToLose = this.select(
+      const lootToLose = (await this.select(
         p,
         gameParameters.deathPenaltyLoot,
         p.hand.cards
-      ).selected[0];
+      )).selected[0];
       if (lootToLose) {
         this.discardFromHand(p, p.hand._hand.indexOf(lootToLose));
         this.removeCardFromHand(p, lootToLose);
@@ -290,14 +290,14 @@ export class Game {
       target: from,
       abilityCard: usingAbilityFrom,
     });
-    this.executeWhenStackEmpty(() => {
+    this.executeWhenStackEmpty(async () => {
       receiver.die();
       if (receiver.isEngagedInCombat) {
         this.Entities.forEach((e) => e.combatEnded());
       }
       if (receiver instanceof Player) {
         receiver.clearAttackRequirement(); // clear any forced attack constraints on this player.
-        this.deathPenalty(receiver);
+        await this.deathPenalty(receiver);
       } else if (receiver instanceof Monster) {
         // Clear any forced attack constraints on this monster
         for (const player of this.players) {
@@ -569,12 +569,12 @@ export class Game {
     this.players.push(newPlayer);
   }
 
-  gainTreasureAmongs(
+  async gainTreasureAmongs(
     player: Player,
     amount: number,
     treasures: treasureCard[]
-  ): { selected: treasureCard[]; remaining: treasureCard[] } {
-    const selection = this.select(player, amount, treasures);
+  ): Promise<{ selected: treasureCard[]; remaining: treasureCard[] }> {
+    const selection = await this.select(player, amount, treasures);
     for (const card of selection.selected) {
       this.addInPlay(player, card);
     }
@@ -582,14 +582,55 @@ export class Game {
     return selection;
   }
 
-  select(
+  // Pending selection tracking for multiplayer
+  private pendingSelection: {
+    playerId: string;
+    options: any[];
+    count: number;
+    asMany: boolean;
+  } | null = null;
+  private pendingSelectionResolve: ((selection: any[]) => void) | null = null;
+  private isInTestMode = true; // Set to false for multiplayer mode
+
+  async select(
     player: Player,
     n: number,
     Options: any[],
     anyNumber: boolean = false
-  ): { selected: any[]; remaining: any[] } {
-    // TODO: implement player choice
-    return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+  ): Promise<{ selected: any[]; remaining: any[] }> {
+    // In test mode: return immediately with mock selection
+    if (this.isInTestMode) {
+      return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+    }
+
+    // In multiplayer mode: create promise that waits for client input
+    return new Promise((resolve) => {
+      this.pendingSelection = {
+        playerId: player.id,
+        options: Options,
+        count: n,
+        asMany: anyNumber
+      };
+      this.pendingSelectionResolve = (selection: any[]) => {
+        const remaining = Options.filter(opt => !selection.includes(opt));
+        resolve({ selected: selection, remaining });
+      };
+    });
+  }
+
+  // Called when client provides selection to continue paused resolution
+  provideSelection(playerId: string, selection: any[]): void {
+    if (!this.pendingSelectionResolve) {
+      throw new Error('Not waiting for selection');
+    }
+    if (this.pendingSelection?.playerId !== playerId) {
+      throw new Error('Wrong player');
+    }
+    
+    // Resolve the promise - this resumes the awaiting code
+    this.pendingSelectionResolve(selection);
+    this.pendingSelectionResolve = null;
+    this.pendingSelection = null;
   }
 
   get monsterSlots(): Encounters {
@@ -607,10 +648,10 @@ export class Game {
     player.addSoul(soulCard);
   }
 
-  resolveStack() {
+  async resolveStack(): Promise<void> {
     let elem = this.stack.resolve();
     if (!elem) return;
-    elem.onResolve();
+    await elem.onResolve();
     if (elem instanceof DiceRoll)
       this.emitter.emit("on:dice:rolled", { diceRoll: elem });
     this._onStateChange.dispatch();
@@ -620,15 +661,15 @@ export class Game {
       const callbacks = [...this._stackEmptyCallbacks];
       this._stackEmptyCallbacks = [];
       for (const callback of callbacks) {
-        callback();
+        await callback();
       }
     }
   }
 
-  executeWhenStackEmpty(callback: () => void): void {
+  async executeWhenStackEmpty(callback: () => void | Promise<void>): Promise<void> {
     if (this.stack.isEmpty()) {
       // Stack is already empty, execute immediately
-      callback();
+      await callback();
     } else {
       // Queue the callback to be executed when stack becomes empty
       this._stackEmptyCallbacks.push(callback);
@@ -639,7 +680,7 @@ export class Game {
       const callbacks = [...this._stackEmptyCallbacks];
       this._stackEmptyCallbacks = [];
       for (const callback of callbacks) {
-        callback();
+        await callback();
       }
     }
   }

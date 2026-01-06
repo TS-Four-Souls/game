@@ -33,10 +33,10 @@ describe("Tap/Paid effects 1", () => {
         game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
     });
 
-    it("sack_of_pennies - tap to gain 1¢", () => {
+    it("sack_of_pennies - tap to gain 1¢", async () => {
     });
 
-    it("compost - next loot comes from discard", () => {
+    it("compost - next loot comes from discard", async () => {
         const compost = game.shop.obtainCard("b2-compost") as ItemCard;
         game.addInPlay(player1, compost);
 
@@ -51,7 +51,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate compost (sets up listener)
         game.recharge(compost);
         game.activateItem(player1, compost, [player1]);
-        game.resolveStack();
+        await game.resolveStack();
 
         // Loot should come from discard (resolves the effect)
         game.loot(player1, 1);
@@ -66,7 +66,7 @@ describe("Tap/Paid effects 1", () => {
         expect(player1.hand.cards).not.toContain(topDiscard2);
     });
 
-    it("compost - does nothing if discard is empty", () => {
+    it("compost - does nothing if discard is empty", async () => {
         const compost = game.shop.obtainCard("b2-compost") as ItemCard;
         game.addInPlay(player1, compost);
 
@@ -75,8 +75,8 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate compost
         game.recharge(compost);
         game.activateItem(player1, compost);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // Loot from empty discard should still loot from deck
         game.loot(player1, 1);
@@ -85,7 +85,7 @@ describe("Tap/Paid effects 1", () => {
         expect(player1.hand.length).toBe(initialHandSize + 1);
     });
 
-    it("contract_from_below - destroy 2 items to steal non-eternal item", () => {
+    it("contract_from_below - destroy 2 items to steal non-eternal item", async () => {
         const contractFromBelow = game.shop.obtainCard("b2-contract_from_below") as ItemCard;
         const item1 = game.shop.obtainCard("b2-blank_card") as ItemCard;
         const item2 = game.shop.obtainCard("b2-dry_baby") as ItemCard;
@@ -98,7 +98,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Activate paid effect with 2 items to destroy and target item to steal
         game.activateItem(player1, contractFromBelow, [item1, item2, targetItem], 0);
-        game.resolveStack();
+        await game.resolveStack();
 
         // Two items should be destroyed
         expect(player1.inPlay).not.toContain(item1);
@@ -111,7 +111,7 @@ describe("Tap/Paid effects 1", () => {
         expect(player1.inPlay).toContain(targetItem);
     });
 
-    it("decoy - swap with non-eternal item from another player", () => {
+    it("decoy - swap with non-eternal item from another player", async () => {
         const decoy = game.shop.obtainCard("b2-decoy") as ItemCard;
         const targetItem = game.shop.obtainCard("b2-blank_card") as ItemCard;
 
@@ -121,8 +121,8 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate decoy with target item
         game.recharge(decoy);
         game.activateItem(player1, decoy, [targetItem]);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // Items should be swapped
         expect(player1.inPlay).not.toContain(decoy);
@@ -131,7 +131,7 @@ describe("Tap/Paid effects 1", () => {
         expect(player2.inPlay).not.toContain(targetItem);
     });
 
-    it("donation_machine - give item to gain 8¢", () => {
+    it("donation_machine - give item to gain 8¢", async () => {
         const donationMachine = game.shop.obtainCard("b2-donation_machine") as ItemCard;
         const itemToGive = game.shop.obtainCard("b2-blank_card") as ItemCard;
 
@@ -142,8 +142,8 @@ describe("Tap/Paid effects 1", () => {
 
         // Activate paid effect with item to give and player to give to
         game.activateItem(player1, donationMachine, [itemToGive, player2], 0);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // Item should be given to player2
         expect(player1.inPlay).not.toContain(itemToGive);
@@ -153,7 +153,7 @@ describe("Tap/Paid effects 1", () => {
         expect(player1.coins).toBe(initialCoins + 8);
     });
 
-    it("glass_cannon - roll 1-5 destroys this and loots 2", () => {
+    it("glass_cannon - roll 1-5 destroys this and loots 2", async () => {
         const glassCannon = game.shop.obtainCard("b2-glass_cannon") as ItemCard;
         const targetItem = game.shop.obtainCard("b2-blank_card") as ItemCard;
 
@@ -165,7 +165,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate glass_cannon with target item
         game.recharge(glassCannon);
         game.activateItem(player1, glassCannon, [targetItem]);
-        game.resolveStack();
+        await game.resolveStack();
 
         // Target item should be destroyed first (on stack)
         expect(game.stack.size).toBeGreaterThan(0);
@@ -173,9 +173,9 @@ describe("Tap/Paid effects 1", () => {
         // Get the dice from the stack and set its value to 3 (1-5 range)
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3;
-        game.resolveStack(); // Resolve the dice roll
-        game.resolveStack(); // Resolve destroy target item
-        game.resolveStack(); // Resolve destroy glass cannon and loot 2
+        await game.resolveStack(); // Resolve the dice roll
+        await game.resolveStack(); // Resolve destroy target item
+        await game.resolveStack(); // Resolve destroy glass cannon and loot 2
 
         // Target item should be destroyed
         expect(player1.inPlay).not.toContain(targetItem);
@@ -187,7 +187,7 @@ describe("Tap/Paid effects 1", () => {
         expect(player1.hand.length).toBe(initialHandSize + 2);
     });
 
-    it("glass_cannon - roll 6 recharges this", () => {
+    it("glass_cannon - roll 6 recharges this", async () => {
         const glassCannon = game.shop.obtainCard("b2-glass_cannon") as ItemCard;
         const targetItem = game.shop.obtainCard("b2-blank_card") as ItemCard;
 
@@ -199,14 +199,14 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate glass_cannon with target item
         game.recharge(glassCannon);
         game.activateItem(player1, glassCannon, [targetItem]);
-        game.resolveStack();
+        await game.resolveStack();
 
         // Get the dice from the stack and set its value to 6
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
-        game.resolveStack(); // Resolve the dice roll
-        game.resolveStack(); // Resolve destroy target item
-        game.resolveStack(); // Resolve recharge glass cannon
+        await game.resolveStack(); // Resolve the dice roll
+        await game.resolveStack(); // Resolve destroy target item
+        await game.resolveStack(); // Resolve recharge glass cannon
 
         // Target item should be destroyed
         expect(player1.inPlay).not.toContain(targetItem);
@@ -218,7 +218,7 @@ describe("Tap/Paid effects 1", () => {
         expect(player1.hand.length).toBe(initialHandSize); // No loot
     });
 
-    it("daddy_haunt - damage increased by 1", () => {
+    it("daddy_haunt - damage increased by 1", async () => {
         const daddyHaunt = game.shop.obtainCard("b2-daddy_haunt") as ItemCard;
         game.addInPlay(player1, daddyHaunt);
         game.addHealth(player1, 10); // Heal player1 to full health
@@ -227,13 +227,13 @@ describe("Tap/Paid effects 1", () => {
 
         // Deal 2 damage to player1
         game.dealDamage(player2, player1, daddyHaunt, 2);
-        game.resolveStack();
+        await game.resolveStack();
 
         // Player should take 3 damage (2 + 1 from curse)
         expect(player1.currentHealthPoints).toBe(initialHp - 3);
     });
 
-    it("daddy_haunt - single damage becomes 2", () => {
+    it("daddy_haunt - single damage becomes 2", async () => {
         const daddyHaunt = game.shop.obtainCard("b2-daddy_haunt") as ItemCard;
         game.addInPlay(player1, daddyHaunt);
         game.addHealth(player1, 10); // Heal player1 to full health
@@ -242,13 +242,13 @@ describe("Tap/Paid effects 1", () => {
 
         // Deal 1 damage to player1
         game.dealDamage(player2, player1, daddyHaunt, 1);
-        game.resolveStack();
+        await game.resolveStack();
 
         // Player should take 2 damage (1 + 1 from curse)
         expect(player1.currentHealthPoints).toBe(initialHp - 2);
     });
 
-    it("baby_haunt - monsters have +1 DC on your turn", () => {
+    it("baby_haunt - monsters have +1 DC on your turn", async () => {
         const babyHaunt = game.shop.obtainCard("b2-baby_haunt") as ItemCard;
         const monster = game.monsters[0]!;
         const initDC = monster.evasion;
@@ -256,22 +256,22 @@ describe("Tap/Paid effects 1", () => {
         game.addInPlay(player1, babyHaunt);
         expect(monster.evasion).toBe(initDC + 1);
         game.endTurn();
-        game.resolveStack();
+        await game.resolveStack();
         expect(monster.evasion).toBe(initDC);
         game.endTurn();
-        game.resolveStack();
+        await game.resolveStack();
         expect(monster.evasion).toBe(initDC + 1);
         game.endTurn();
-        game.resolveStack();
+        await game.resolveStack();
         expect(monster.evasion).toBe(initDC);
         game.endTurn();
-        game.resolveStack();
+        await game.resolveStack();
         expect(monster.evasion).toBe(initDC + 1);
         game.removeInPlay(player1, babyHaunt);
         expect(monster.evasion).toBe(initDC);
     });
 
-    it("boomerang - steal random loot card from another player", () => {
+    it("boomerang - steal random loot card from another player", async () => {
         const boomerang = game.shop.obtainCard("b2-boomerang") as ItemCard;
         game.addInPlay(player1, boomerang);
 
@@ -283,15 +283,15 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate boomerang targeting player2
         game.recharge(boomerang);
         game.activateItem(player1, boomerang, [player2]);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // Player2 should have 1 less card, player1 should have 1 more
         expect(player2.hand.length).toBe(player2HandSize - 1);
         expect(player1.hand.length).toBe(player1HandSize + 1);
     });
 
-    it("boomerang - does nothing if target has no loot cards", () => {
+    it("boomerang - does nothing if target has no loot cards", async () => {
         const boomerang = game.shop.obtainCard("b2-boomerang") as ItemCard;
         game.addInPlay(player1, boomerang);
 
@@ -305,15 +305,15 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate boomerang targeting player2
         game.recharge(boomerang);
         game.activateItem(player1, boomerang, [player2]);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // Nothing should change
         expect(player2.hand.length).toBe(0);
         expect(player1.hand.length).toBe(player1HandSize);
     });
 
-    it("box - destroy to play unlimited loot cards", () => {
+    it("box - destroy to play unlimited loot cards", async () => {
         const box = game.shop.obtainCard("b2-box") as ItemCard;
         game.addInPlay(player1, box);
 
@@ -330,8 +330,8 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate box
         game.recharge(box);
         game.activateItem(player1, box);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // Box should be destroyed
         expect(player1.inPlay).not.toContain(box);
@@ -339,17 +339,17 @@ describe("Tap/Paid effects 1", () => {
 
         // Play all 3 loot cards (normally can only play 1 per turn)
         game.playCard(player1, 0);
-        game.resolveStack();
+        await game.resolveStack();
         game.playCard(player1, 0);
-        game.resolveStack();
+        await game.resolveStack();
         game.playCard(player1, 0);
-        game.resolveStack();
+        await game.resolveStack();
 
         // Player should have gained 3¢ (1 from each penny)
         expect(player1.coins).toBe(initialCoins + 3);
     });
 
-    it("chaos - each player gives hand to left", () => {
+    it("chaos - each player gives hand to left", async () => {
         const chaos = game.shop.obtainCard("b2-chaos") as ItemCard;
         game.addInPlay(player1, chaos);
 
@@ -365,8 +365,8 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate chaos
         game.recharge(chaos);
         game.activateItem(player1, chaos);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // Player1 should have player2's cards, player2 should have player1's cards
         expect(player1.hand.cards).toContain(p2Card1);
@@ -377,7 +377,7 @@ describe("Tap/Paid effects 1", () => {
         expect(player2.hand.cards).not.toContain(p2Card1);
     });
 
-    it("guppys_head - player gives you a loot card ", () => {
+    it("guppys_head - player gives you a loot card ", async () => {
         const guppysHead = game.shop.obtainCard("b2-guppys_head") as ItemCard;
         game.addInPlay(player1, guppysHead);
 
@@ -389,22 +389,22 @@ describe("Tap/Paid effects 1", () => {
         const player2HandSize = player2.hand.length;
 
         // Mock game.select to return the loot card
-        game.select = (issuer, n, opts, optional) => {
+        game.select = async (issuer, n, opts, optional) => {
             return { selected: [opts[0]], remaining: [] };
         };
 
         // Recharge and activate guppys_head targeting player2
         game.recharge(guppysHead);
         game.activateItem(player1, guppysHead, [player2]);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // Player2 should have given a card to player1
         expect(player2.hand.length).toBe(player2HandSize - 1);
         expect(player1.hand.length).toBe(player1HandSize + 1);
     });
 
-    it("guppys_head - does nothing if target has no loot cards", () => {
+    it("guppys_head - does nothing if target has no loot cards", async () => {
         const guppysHead = game.shop.obtainCard("b2-guppys_head") as ItemCard;
         game.addInPlay(player1, guppysHead);
 
@@ -418,8 +418,8 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate guppys_head targeting player2
         game.recharge(guppysHead);
         game.activateItem(player1, guppysHead, [player2]);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // Player2 has no cards, so no card should be transferred
         expect(player2.hand.length).toBe(0);
@@ -427,7 +427,7 @@ describe("Tap/Paid effects 1", () => {
         expect(player1.hand.length).toBe(player1InitialHandSize);
     });
 
-    it("pandoras_box - roll 1 to gain 1¢", () => {
+    it("pandoras_box - roll 1 to gain 1¢", async () => {
         const pandorasBox = game.shop.obtainCard("b2-pandoras_box") as ItemCard;
         game.addInPlay(player1, pandorasBox);
 
@@ -435,21 +435,21 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(pandorasBox);
         game.activateItem(player1, pandorasBox);
-        game.resolveStack();
+        await game.resolveStack();
 
         // Get the dice from the stack and set value to 1
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
-        game.resolveStack(); // Resolve dice roll
-        game.resolveStack(); // Resolve destroy pandoras box
-        game.resolveStack(); // Resolve gain 1¢
+        await game.resolveStack(); // Resolve dice roll
+        await game.resolveStack(); // Resolve destroy pandoras box
+        await game.resolveStack(); // Resolve gain 1¢
 
         expect(player1.inPlay).not.toContain(pandorasBox);
         expect(game.destroyedCards).toContain(pandorasBox);
         expect(player1.coins).toBe(initialCoins + 1);
     });
 
-    it("pandoras_box - roll 2 to gain 6¢", () => {
+    it("pandoras_box - roll 2 to gain 6¢", async () => {
         const pandorasBox = game.shop.obtainCard("b2-pandoras_box") as ItemCard;
         game.addInPlay(player1, pandorasBox);
 
@@ -457,19 +457,19 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(pandorasBox);
         game.activateItem(player1, pandorasBox);
-        game.resolveStack();
+        await game.resolveStack();
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
-        game.resolveStack();
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         expect(player1.inPlay).not.toContain(pandorasBox);
         expect(player1.coins).toBe(initialCoins + 6);
     });
 
-    it("pandoras_box - roll 3 to kill a monster", () => {
+    it("pandoras_box - roll 3 to kill a monster", async () => {
         const pandorasBox = game.shop.obtainCard("b2-pandoras_box") as ItemCard;
         game.addInPlay(player1, pandorasBox);
 
@@ -477,20 +477,20 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(pandorasBox);
         game.activateItem(player1, pandorasBox);
-        game.resolveStack();
+        await game.resolveStack();
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3;
         dice.targets = [monster];
-        game.resolveStack(); // Resolve dice
-        game.resolveStack(); // Resolve destroy pandoras box
-        game.resolveStack(); // Resolve kill monster
+        await game.resolveStack(); // Resolve dice
+        await game.resolveStack(); // Resolve destroy pandoras box
+        await game.resolveStack(); // Resolve kill monster
 
         expect(player1.inPlay).not.toContain(pandorasBox);
         expect(game.monsters).not.toContain(monster);
     });
 
-    it("pandoras_box - roll 4 to loot 3", () => {
+    it("pandoras_box - roll 4 to loot 3", async () => {
         const pandorasBox = game.shop.obtainCard("b2-pandoras_box") as ItemCard;
         game.addInPlay(player1, pandorasBox);
 
@@ -498,19 +498,19 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(pandorasBox);
         game.activateItem(player1, pandorasBox);
-        game.resolveStack();
+        await game.resolveStack();
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4;
-        game.resolveStack();
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         expect(player1.inPlay).not.toContain(pandorasBox);
         expect(player1.hand.length).toBe(initialHandSize + 3);
     });
 
-    it("pandoras_box - roll 5 to gain 9¢", () => {
+    it("pandoras_box - roll 5 to gain 9¢", async () => {
         const pandorasBox = game.shop.obtainCard("b2-pandoras_box") as ItemCard;
         game.addInPlay(player1, pandorasBox);
 
@@ -518,19 +518,19 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(pandorasBox);
         game.activateItem(player1, pandorasBox);
-        game.resolveStack();
+        await game.resolveStack();
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5;
-        game.resolveStack();
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         expect(player1.inPlay).not.toContain(pandorasBox);
         expect(player1.coins).toBe(initialCoins + 9);
     });
 
-    it("pandoras_box - roll 6 to become a soul", () => {
+    it("pandoras_box - roll 6 to become a soul", async () => {
         const pandorasBox = game.shop.obtainCard("b2-pandoras_box") as ItemCard;
         game.addInPlay(player1, pandorasBox);
 
@@ -538,19 +538,19 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(pandorasBox);
         game.activateItem(player1, pandorasBox);
-        game.resolveStack();
+        await game.resolveStack();
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         expect(player1.inPlay).not.toContain(pandorasBox);
         expect(player1.souls.length).toBe(initialSouls + 1);
         expect(player1.souls).toContain(pandorasBox);
     });
 
-    it("the_shovel - put non-event monster from discard on top of monster deck", () => {
+    it("the_shovel - put non-event monster from discard on top of monster deck", async () => {
         const theShovel = game.shop.obtainCard("b2-the_shovel") as ItemCard;
         game.addInPlay(player1, theShovel);
 
@@ -561,21 +561,21 @@ describe("Tap/Paid effects 1", () => {
         game.decks["monster"]!.addDiscardTop(monster2);
 
         // Mock game.select to choose monster2
-        game.select = (issuer, n, opts, optional) => {
+        game.select = async (issuer, n, opts, optional) => {
             return { selected: [opts[0]], remaining: [] };
         };
 
         game.recharge(theShovel);
         game.activateItem(player1, theShovel);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // monster2 should be on top of the deck
         expect(game.decks["monster"]!.cards[0]).toBe(monster2);
         expect(game.decks["monster"]!.discard).not.toContain(monster2);
     });
 
-    it("the_d4 - destroy and reroll all items of chosen player", () => {
+    it("the_d4 - destroy and reroll all items of chosen player", async () => {
         const theD4 = game.shop.obtainCard("b2-the_d4") as ItemCard;
         const item1 = game.shop.obtainCard("b2-blank_card") as ItemCard;
         const item2 = game.shop.obtainCard("b2-dry_baby") as ItemCard;
@@ -591,9 +591,9 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(theD4);
         game.activateItem(player1, theD4, [player1]);
-        game.resolveStack();
-        game.resolveStack(); // Resolve destroy d4
-        game.resolveStack(); // Resolve reroll items
+        await game.resolveStack();
+        await game.resolveStack(); // Resolve destroy d4
+        await game.resolveStack(); // Resolve reroll items
 
         // d4 should be destroyed
         expect(player1.inPlay).not.toContain(theD4);
@@ -609,7 +609,7 @@ describe("Tap/Paid effects 1", () => {
         expect(player1.inPlay.length).toBe(initialItemCount); // Same count but different items
     });
 
-    it("lucky_foot - add up to 2 to a non-attack roll", () => {
+    it("lucky_foot - add up to 2 to a non-attack roll", async () => {
         const luckyFoot = game.shop.obtainCard("b2-lucky_foot") as ItemCard;
         game.addInPlay(player1, luckyFoot);
 
@@ -620,13 +620,13 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(luckyFoot);
         game.activateItem(player1, luckyFoot, [dice, 2]);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         expect(dice.value).toBe(5);
     });
 
-    it("mini_mush - subtract 2 from a roll", () => {
+    it("mini_mush - subtract 2 from a roll", async () => {
         const miniMush = game.shop.obtainCard("b2-mini_mush") as ItemCard;
         game.addInPlay(player1, miniMush);
 
@@ -637,13 +637,13 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(miniMush);
         game.activateItem(player1, miniMush, [dice, 2]);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         expect(dice.value).toBe(3);
     });
 
-    it("mini_mush - subtract 1 from a roll", () => {
+    it("mini_mush - subtract 1 from a roll", async () => {
         const miniMush = game.shop.obtainCard("b2-mini_mush") as ItemCard;
         game.addInPlay(player1, miniMush);
 
@@ -654,13 +654,13 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(miniMush);
         game.activateItem(player1, miniMush, [dice, 1]);
-        game.resolveStack();
-        // game.resolveStack();
+        await game.resolveStack();
+        // await game.resolveStack();
 
         expect(dice.value).toBe(4);
     });
 
-    it("moms_shovel - destroy to steal a soul from another player", () => {
+    it("moms_shovel - destroy to steal a soul from another player", async () => {
         const momsShovel = game.shop.obtainCard("b2-moms_shovel") as ItemCard;
         const soul = game.shop.obtainCard("b2-blank_card") as ItemCard;
         soul.soul = 1;
@@ -672,15 +672,15 @@ describe("Tap/Paid effects 1", () => {
         const player2InitialSouls = player2.souls.length;
 
         // Mock game.select to choose the soul
-        game.select = (issuer, n, opts, optional) => {
+        game.select = async (issuer, n, opts, optional) => {
             return { selected: [soul], remaining: [] };
         };
 
         game.recharge(momsShovel);
         game.activateItem(player1, momsShovel);
-        game.resolveStack();
-        game.resolveStack(); // Resolve destroy moms_shovel
-        game.resolveStack(); // Resolve steal soul
+        await game.resolveStack();
+        await game.resolveStack(); // Resolve destroy moms_shovel
+        await game.resolveStack(); // Resolve steal soul
 
         // moms_shovel should be destroyed
         expect(player1.inPlay).not.toContain(momsShovel);
@@ -693,7 +693,7 @@ describe("Tap/Paid effects 1", () => {
         expect(player2.souls).not.toContain(soul);
     });
 
-    it("moms_bra - reduce monster damage to 1", () => {
+    it("moms_bra - reduce monster damage to 1", async () => {
         const momsBra = game.shop.obtainCard("b2-moms_bra") as ItemCard;
         game.addInPlay(player1, momsBra);
 
@@ -701,23 +701,23 @@ describe("Tap/Paid effects 1", () => {
         const initialHp = monster.currentHealthPoints;
 
         // Mock game.select to choose the monster
-        game.select = (issuer, n, opts, optional) => {
+        game.select = async (issuer, n, opts, optional) => {
             return { selected: [monster], remaining: [] };
         };
 
         game.recharge(momsBra);
         game.activateItem(player1, momsBra, [monster]);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // Deal 5 damage to monster - should be reduced to 1
         game.dealDamage(player1, monster, momsBra, 5);
-        game.resolveStack();
+        await game.resolveStack();
 
         expect(monster.currentHealthPoints).toBe(initialHp - 1);
     });
 
-    it("moms_bra - reduce player damage to 1", () => {
+    it("moms_bra - reduce player damage to 1", async () => {
         const momsBra = game.shop.obtainCard("b2-moms_bra") as ItemCard;
         game.addInPlay(player1, momsBra);
 
@@ -726,17 +726,17 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(momsBra);
         game.activateItem(player1, momsBra, [player2]);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // Deal 5 damage to player2 - should be reduced to 1
         game.dealDamage(player1, player2, momsBra, 5);
-        game.resolveStack();
+        await game.resolveStack();
 
         expect(player2.currentHealthPoints).toBe(initialHp - 1);
     });
 
-    it("two_of_clubs - double loot for chosen player", () => {
+    it("two_of_clubs - double loot for chosen player", async () => {
         const twoOfClubs = game.shop.obtainCard("b2-two_of_clubs") as ItemCard;
         game.addInPlay(player1, twoOfClubs);
 
@@ -744,8 +744,8 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(twoOfClubs);
         game.activateItem(player1, twoOfClubs, [player2]);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // Player2 loots 2, should get 4 cards instead
         game.loot(player2, 2);
@@ -753,14 +753,14 @@ describe("Tap/Paid effects 1", () => {
         expect(player2.hand.length).toBe(initialHandSize + 4);
     });
 
-    it("two_of_clubs - effect ends at end of turn", () => {
+    it("two_of_clubs - effect ends at end of turn", async () => {
         const twoOfClubs = game.shop.obtainCard("b2-two_of_clubs") as ItemCard;
         game.addInPlay(player1, twoOfClubs);
 
         game.recharge(twoOfClubs);
         game.activateItem(player1, twoOfClubs, [player2]);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // Loot during turn - doubled
         const handSizeAfterActivation = player2.hand.length;
@@ -779,7 +779,7 @@ describe("Tap/Paid effects 1", () => {
     // TODO: These tests require further investigation - the card effects may not be fully implemented yet
     // crystal_ball, blank_card, and host_hat seem to have issues with their passive effects
 
-    it("crystal_ball - correct guess loots 3", () => {
+    it("crystal_ball - correct guess loots 3", async () => {
         const crystalBall = game.shop.obtainCard("b2-crystal_ball") as ItemCard;
         game.addInPlay(player1, crystalBall);
 
@@ -792,45 +792,45 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(crystalBall);
         game.activateItem(player1, crystalBall, [4]);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // Roll a 4 - should loot 3
         const dice = player1.rollDice();
         dice.value = 4;
         game.addToStack(dice);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         expect(player1.hand.length).toBe(initialHandSize + 3);
     });
 
-    it("crystal_ball - wrong guess does not loot", () => {
+    it("crystal_ball - wrong guess does not loot", async () => {
         const crystalBall = game.shop.obtainCard("b2-crystal_ball") as ItemCard;
         game.addInPlay(player1, crystalBall);
 
         const initialHandSize = player1.hand.length;
 
         // Mock game.select to choose number 4
-        game.select = (issuer, n, opts, optional) => {
+        game.select = async (issuer, n, opts, optional) => {
             return { selected: [4], remaining: [] };
         };
 
         game.recharge(crystalBall);
         game.activateItem(player1, crystalBall);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // Roll a 5 (not 4) - should not loot
         const dice = player1.rollDice();
         dice.value = 5;
         game.addToStack(dice);
-        game.resolveStack();
+        await game.resolveStack();
 
         expect(player1.hand.length).toBe(initialHandSize);
     });
 
-    it("blank_card - copies next loot card played", () => {
+    it("blank_card - copies next loot card played", async () => {
         const blankCard = game.shop.obtainCard("b2-blank_card") as ItemCard;
         game.addInPlay(player1, blankCard);
 
@@ -843,20 +843,20 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(blankCard);
         game.activateItem(player1, blankCard);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // Play a penny - effect should be copied (gain 1¢ twice)
         game.playCard(player1, lootCardIndex);
         expect(game.stack.size).toBe(2); // Copy should be on stack
-        game.resolveStack();
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         expect(player1.coins).toBe(initialCoins + 2); // 1 from original + 1 from copy
     });
 
-    it("blank_card - does not copy trinkets", () => {
+    it("blank_card - does not copy trinkets", async () => {
         const blankCard = game.shop.obtainCard("b2-blank_card") as ItemCard;
         game.addInPlay(player1, blankCard);
 
@@ -868,18 +868,18 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(blankCard);
         game.activateItem(player1, blankCard);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // Play trinket - should not be copied
         player1.playLootCard(trinketIndex);
-        game.resolveStack();
+        await game.resolveStack();
 
         expect(player1.inPlay).toContain(trinket);
         // No additional effect from blank_card
     });
 
-    it("host_hat - prevent 1 damage and deal 1 to another player", () => {
+    it("host_hat - prevent 1 damage and deal 1 to another player", async () => {
         const hostHat = game.shop.obtainCard("b2-host_hat") as ItemCard;
         game.addInPlay(player1, hostHat);
 
@@ -890,19 +890,19 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(hostHat);
         game.activateItem(player1, hostHat);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         // Deal 3 damage to player1 - should prevent 1 and deal 1 to player2
         game.dealDamage(player1, player1, hostHat, 3);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(player1InitialHp - 2); // Prevented 1 of 3
         expect(player2.currentHealthPoints).toBe(player2InitialHp - 1); // Took 1 damage
     });
 
-    it("host_hat - only works once per turn", () => {
+    it("host_hat - only works once per turn", async () => {
         const hostHat = game.shop.obtainCard("b2-host_hat") as ItemCard;
         game.addInPlay(player1, hostHat);
 
@@ -911,16 +911,16 @@ describe("Tap/Paid effects 1", () => {
 
         game.recharge(hostHat);
         game.activateItem(player1, hostHat);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         const player1HpAfterActivation = player1.currentHealthPoints;
         const player2HpAfterActivation = player2.currentHealthPoints;
 
         // First damage - prevented
         game.dealDamage(player1, player1, hostHat, 2);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(player1HpAfterActivation - 1);
         expect(player2.currentHealthPoints).toBe(player2HpAfterActivation - 1);
@@ -930,9 +930,9 @@ describe("Tap/Paid effects 1", () => {
 
         // Second damage - not prevented (already used)
         game.dealDamage(player1, player1, hostHat, 2);
-        game.resolveStack();
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(player1.currentHealthPoints).toBe(player1HpAfterFirstDamage - 2);
         expect(player2.currentHealthPoints).toBe(player2HpAfterFirstDamage); // No additional damage
@@ -993,7 +993,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
     });
 
-    it("player can see top of treasure deck during their turn", () => {
+    it("player can see top of treasure deck during their turn", async () => {
 
         // Give player1 theres_options
         const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
@@ -1008,14 +1008,14 @@ describe("b2-theres_options treasure deck visibility", () => {
         expect(state.firstCardTreasureDeck).not.toBeUndefined();
     });
 
-    it("player cannot see top of treasure deck when not their turn", () => {
+    it("player cannot see top of treasure deck when not their turn", async () => {
         // Give player1 theres_options
         const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
         game.addInPlay(player1, theresOptions);
 
         // End player1's turn
         game.endTurn();
-        game.resolveStack();
+        await game.resolveStack();
 
         // Now it's player2's turn
         expect(game.currentPlayer).toBe(player2);
@@ -1028,7 +1028,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         expect(state.firstCardTreasureDeck).toBeUndefined();
     });
 
-    it("other players cannot see top of treasure deck even when someone has the item", () => {
+    it("other players cannot see top of treasure deck even when someone has the item", async () => {
         // Give player1 theres_options
         const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
         game.addInPlay(player1, theresOptions);
@@ -1041,7 +1041,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         expect(state.firstCardTreasureDeck).toBeUndefined();
     });
 
-    it("visibility updates when turn changes", () => {
+    it("visibility updates when turn changes", async () => {
         // Give player1 theres_options
         const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
         game.addInPlay(player1, theresOptions);
@@ -1053,7 +1053,7 @@ describe("b2-theres_options treasure deck visibility", () => {
 
         // End turn
         game.endTurn();
-        game.resolveStack();
+        await game.resolveStack();
 
         expect(game.currentPlayer).toBe(player2);
 
@@ -1064,7 +1064,7 @@ describe("b2-theres_options treasure deck visibility", () => {
 
         // End player2's turn
         game.endTurn();
-        game.resolveStack();
+        await game.resolveStack();
 
         expect(game.currentPlayer).toBe(player1);
 
@@ -1074,7 +1074,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         expect(state.firstCardTreasureDeck).toBeDefined();
     });
 
-    it("removing the item removes visibility", () => {
+    it("removing the item removes visibility", async () => {
         // Give player1 theres_options
         const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
         game.addInPlay(player1, theresOptions);
@@ -1093,7 +1093,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         expect(state.firstCardTreasureDeck).toBeUndefined();
     });
 
-    it("visibility is specific to player who owns the item", () => {
+    it("visibility is specific to player who owns the item", async () => {
 
         // Give player2 theres_options
         const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
@@ -1109,7 +1109,7 @@ describe("b2-theres_options treasure deck visibility", () => {
 
         // End turn to player2
         game.endTurn();
-        game.resolveStack();
+        await game.resolveStack();
         expect(game.currentPlayer).toBe(player2);
 
         // Player2's turn - only player2 sees deck
@@ -1121,7 +1121,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         expect(state2.firstCardTreasureDeck).toBeDefined();
     });
 
-    it("property canSeeTopOfTreasureDeck is correctly set", () => {
+    it("property canSeeTopOfTreasureDeck is correctly set", async () => {
         // Initially, player1 cannot see top of deck
         expect(player1.canSeeTopOfTreasureDeck).toBe(false);
 
@@ -1134,7 +1134,7 @@ describe("b2-theres_options treasure deck visibility", () => {
 
         // End turn
         game.endTurn();
-        game.resolveStack();
+        await game.resolveStack();
         expect(game.currentPlayer).toBe(player2);
 
         // Player1 cannot see during other's turn
@@ -1142,17 +1142,17 @@ describe("b2-theres_options treasure deck visibility", () => {
 
         // Back to player1's turn
         game.endTurn();
-        game.resolveStack();
+        await game.resolveStack();
         expect(game.currentPlayer).toBe(player1);
 
         // Player1 can see again
         expect(player1.canSeeTopOfTreasureDeck).toBe(true);
     });
 
-    it("adding the item mid-game works correctly", () => {
+    it("adding the item mid-game works correctly", async () => {
         // End first turn without the item
         game.endTurn();
-        game.resolveStack();
+        await game.resolveStack();
         expect(game.currentPlayer).toBe(player2);
 
         // Give player2 theres_options during their turn
@@ -1166,7 +1166,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         expect(player2.canSeeTopOfTreasureDeck).toBe(true);
     });
 
-    it("correct top card is returned in state", () => {
+    it("correct top card is returned in state", async () => {
         // Give player1 theres_options
         const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
         game.addInPlay(player1, theresOptions);

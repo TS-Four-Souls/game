@@ -70,7 +70,7 @@ export class TargetBuilder {
         const item: ItemCard = lootCard ? player.hand.cards[itemIndex] as ItemCard : player.inPlay[itemIndex] as ItemCard;
         if(!item)
             throw new Error(`Item at index ${itemIndex} not found.`);
-        console.log("TargetBuilder.getNextSelector for item:", item.name, "effectId:", effectId, "partialChoices:", partialChoices);
+        // console.log("TargetBuilder.getNextSelector for item:", item.name, "effectId:", effectId, "partialChoices:", partialChoices);
 
         const rootSelectors = item.getEffectTarget(effectId);
 

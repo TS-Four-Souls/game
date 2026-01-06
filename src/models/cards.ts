@@ -57,15 +57,15 @@ export class Effect {
         return this._paymentFunction !== undefined;
     }
 
-    executePayment(data: EffectData): boolean {
+    async executePayment(data: EffectData): Promise<boolean> {
         if (!this._paymentFunction) {
             throw new Error("Cannot execute payment: no payment function defined");
         }
-        return this._paymentFunction(data);
+        return await this._paymentFunction(data);
     }
 
-    execute(data: EffectData): boolean {
-        return this._effectFunction(data);
+    async execute(data: EffectData): Promise<boolean> {
+        return await this._effectFunction(data);
     }
 
     // Target validation methods
@@ -203,16 +203,16 @@ class ActiveEffectHandler extends EffectHandler {
         return this._activeEffect;
     }
 
-    activate(issuer: Entity, it: Card, targets: any[]): boolean {
+    async activate(issuer: Entity, it: Card, targets: any[]): Promise<boolean> {
         if (this._activeEffect === null) {
             throw new Error("No active effect found in ActiveEffectHandler.");
         }
-        return this._activeEffect.effectFunction(new EffectData(it, issuer as Player, targets));
+        return await this._activeEffect.effectFunction(new EffectData(it, issuer as Player, targets));
     }
 
-    pay(issuer: Entity, it: Card, targets: any[], effectId: number): boolean {
+    async pay(issuer: Entity, it: Card, targets: any[], effectId: number): Promise<boolean> {
         const effect = this.getPaidEffect(effectId);
-        return effect.effectFunction(new EffectData(it, issuer as Player, targets));
+        return await effect.effectFunction(new EffectData(it, issuer as Player, targets));
     }
 
     hasActiveEffect(): boolean {
@@ -333,7 +333,7 @@ class EffectInterface {
         return this.activeEffects.getTargetSelectors(index);
     }
     // Lifecycle methods for loot cards - onPlay takes targets as parameter and returns a resolve function
-    onPlay(issuer: Player, targets: any[]): (() => void) {
+    onPlay(issuer: Player, targets: any[]): (() => void | Promise<void>) {
         this._issuer = issuer;
         const effect = this.activeEffects.getActiveEffect();
         if (!effect) {
@@ -341,7 +341,7 @@ class EffectInterface {
         }
 
         // Return a resolve function to be called later
-        return () => {
+        return async () => {
             const trinket = (this.it as LootCard).trinket
             if(this._issuer) {
                 if(trinket) {
@@ -349,7 +349,7 @@ class EffectInterface {
                 }
                    // Validate targets before calling effect function
                    if (effect.targetStillValid(this._issuer!, targets)) {
-                       effect.effectFunction(new EffectData(this.it, this._issuer!, targets));
+                       await effect.effectFunction(new EffectData(this.it, this._issuer!, targets));
                    } else {
                     //    console.log("EffectInterface.onPlay resolve: targetStillValid() returned false for", (this.it as any).name);
                    }
@@ -620,7 +620,7 @@ export class EffectData {
     }
 }
 
-export type EffectFunction = (data: EffectData) => boolean;
+export type EffectFunction = (data: EffectData) => boolean | Promise<boolean>;
 
 enum InplayType { CHARGED, UNCHARGED, PASSIVE, PAID, PLAYABLE }
 export class ItemCard extends Card {
@@ -729,11 +729,11 @@ class LootCard extends ItemCard {
         return this._trinket;
     }
 
-    onPlay(issuer: Player, targets: any[] = []): () => void {
+    onPlay(issuer: Player, targets: any[] = []): (() => void | Promise<void>) {
         // Return a resolve function that captures trinket state
         const resolveFunction = this._effectInterface.onPlay(issuer, targets);
         return () => {
-            resolveFunction();
+            return resolveFunction();
         };
     }
 
@@ -745,15 +745,15 @@ class LootCard extends ItemCard {
 // Wrapper class to hold loot card effect resolution on the stack
 export class LootCardEffect {
     private card: LootCard;
-    private resolve: () => void;
+    private resolve: () => void | Promise<void>;
 
-    constructor(card: LootCard, resolveFunction: () => void) {
+    constructor(card: LootCard, resolveFunction: () => void | Promise<void>) {
         this.card = card;
         this.resolve = resolveFunction;
     }
 
-    onResolve(): void {
-        this.resolve();
+    async onResolve(): Promise<void> {
+        await this.resolve();
     }
 
     get json() {
@@ -980,8 +980,8 @@ export class EffectOnStack {
         this._description = description;
     }
 
-    onResolve(): boolean {
-        return this._effectFunction(this._data);
+    async onResolve(): Promise<boolean> {
+        return await this._effectFunction(this._data);
     }
 
     get data(): EffectData {

@@ -18,18 +18,18 @@ describe("Game", () => {
     
   });
 
-  it("should create a new game instance", () => {
+  it("should create a new game instance", async () => {
     expect(game).toBeDefined();
   });
 
-  it("should add players to the game", () => {
+  it("should add players to the game", async () => {
     game.addPlayer(player1);
     game.addPlayer(player2);
     
     expect(game.players.length).toBe(2);
   });
 
-  it("should start the game with a player", () => {
+  it("should start the game with a player", async () => {
     game.addPlayer(player1);
     game.addPlayer(player2);
     
@@ -41,13 +41,13 @@ describe("Game", () => {
         }).not.toThrow();
   });
 
-  it("should throw error when retrieving non-existent player", () => {
+  it("should throw error when retrieving non-existent player", async () => {
     expect(() => {
       game.getPlayerById("nonexistent");
     }).toThrow("Player not found");
   });
 
-  it("should have empty player list initially", () => {
+  it("should have empty player list initially", async () => {
     expect(game.players.length).toBe(0);
   });
 });
@@ -59,79 +59,79 @@ describe("Player", () => {
     player = new Player("testPlayer", 3, 5, 10);
   });
 
-  it("should create a player with correct attributes", () => {
+  it("should create a player with correct attributes", async () => {
     expect(player.id).toBe("testPlayer");
     expect(player.attackPoints).toBe(3);
     expect(player.healthPoints).toBe(5);
     expect(player.coins).toBe(10);
   });
 
-  it("should have a unique secret token", () => {
+  it("should have a unique secret token", async () => {
     const player2 = new Player("testPlayer2", 3, 5, 10);
     expect(player.secret).toBeDefined();
     expect(player2.secret).toBeDefined();
     expect(player.secret !== player2.secret).toBe(true);
   });
 
-  it("should start with full health", () => {
+  it("should start with full health", async () => {
     expect(player.currentHealthPoints).toBe(5);
     expect(player.isDead).toBe(false);
   });
 
-  it("should start with empty hand", () => {
+  it("should start with empty hand", async () => {
     expect(player.hand.cards.length).toBe(0);
   });
 
-  it("should start with zero souls", () => {
+  it("should start with zero souls", async () => {
     expect(player.souls.length).toBe(0);
     expect(player.totalSouls).toBe(0);
   });
 
-  it("should start with no in-play cards", () => {
+  it("should start with no in-play cards", async () => {
     expect(player.inPlay.length).toBe(0);
   });
 
-  it("should gain coins", () => {
+  it("should gain coins", async () => {
     player.gainCoins(5);
     expect(player.coins).toBe(15);
     player.gainCoins(10);
     expect(player.coins).toBe(25);
   });
 
-  it("should lose coins successfully", () => {
+  it("should lose coins successfully", async () => {
     expect(player.loseCoins(5, false)).toBe(5);
     expect(player.coins).toBe(5);
   });
 
-  it("should not lose more coins than available without asMany flag", () => {
+  it("should not lose more coins than available without asMany flag", async () => {
     expect(player.loseCoins(20, false)).toBe(0);
     expect(player.coins).toBe(10);
   });
 
-  it("should lose all coins with asMany flag when not enough coins", () => {
+  it("should lose all coins with asMany flag when not enough coins", async () => {
     expect(player.loseCoins(20, true)).toBe(10);
     expect(player.coins).toBe(0);
   });
 
-  it("should receive damage", () => {
+  it("should receive damage", async () => {
     player.receiveDamage(2);
     expect(player.currentHealthPoints).toBe(3);
     expect(player.isDead).toBe(false);
   });
 
-  it("should die when health reaches zero", () => {
+  it("should die when health reaches zero", async () => {
     player.receiveDamage(5);
     expect(player.currentHealthPoints).toBe(0);
     expect(player.isDead).toBe(true);
   });
 
-  it("should not go below zero health", () => {
+  it("should not go below zero health", async () => {
     player.receiveDamage(10);
     expect(player.currentHealthPoints).toBe(0);
     expect(player.isDead).toBe(true);
   });
 
-  it("should heal to full health", () => {
+  it("should heal to full health", async () => {
     player.receiveDamage(3);
     expect(player.currentHealthPoints).toBe(2);
     player.heal();
@@ -139,13 +139,13 @@ describe("Player", () => {
     expect(player.isDead).toBe(false);
   });
 
-  it("should die immediately with die() method", () => {
+  it("should die immediately with die() method", async () => {
     player.die();
     expect(player.currentHealthPoints).toBe(0);
     expect(player.isDead).toBe(true);
   });
 
-  it("should add to score", () => {
+  it("should add to score", async () => {
     expect(player.score).toBe(0);
     player.addScore(3);
     expect(player.score).toBe(3);
@@ -153,12 +153,12 @@ describe("Player", () => {
     expect(player.score).toBe(5);
   });
 
-  it("should verify secret token correctly", () => {
+  it("should verify secret token correctly", async () => {
     expect(player.verifySecret(player.secret)).toBe(true);
     expect(player.verifySecret("wrongSecret")).toBe(false);
   });
 
-  it("should roll a dice between 1 and 6", () => {
+  it("should roll a dice between 1 and 6", async () => {
     const dice = player.rollDice();
     expect(dice.value >= 1 && dice.value <= 6).toBe(true);
     expect(dice.issuer).toBe(player);
@@ -172,18 +172,18 @@ describe("Player - In-Play Cards", () => {
     player = new Player("testPlayer", 3, 5, 10);
   });
 
-  it("should have empty in-play cards initially", () => {
+  it("should have empty in-play cards initially", async () => {
     expect(player.inPlay.length).toBe(0);
   });
 
-  it("should be able to add in-play cards", () => {
+  it("should be able to add in-play cards", async () => {
     const mockCard = { id: "card1", name: "Test Card", type: "item" } as any;
     player.addInPlay(mockCard);
     expect(player.inPlay.length).toBe(1);
     expect(player.inPlay[0]).toBe(mockCard);
   });
 
-  it("should be able to add multiple in-play cards", () => {
+  it("should be able to add multiple in-play cards", async () => {
     const card1 = { id: "card1", name: "Card 1", type: "item" } as any;
     const card2 = { id: "card2", name: "Card 2", type: "item" } as any;
     const card3 = { id: "card3", name: "Card 3", type: "item" } as any;
@@ -195,7 +195,7 @@ describe("Player - In-Play Cards", () => {
     expect(player.inPlay.length).toBe(3);
   });
 
-  it("should not remove eternal or character cards by index", () => {
+  it("should not remove eternal or character cards by index", async () => {
     const eternalCard = { id: "et1", name: "Eternal", type: "eternal", eternal: true } as any;
     const characterCard = { id: "ch1", name: "Char", type: "character", eternal: true } as any;
     const itemCard = { id: "it1", name: "Item", type: "item" } as any;
@@ -211,14 +211,14 @@ describe("Player - In-Play Cards", () => {
     expect(player.inPlay.length).toBe(2);
   });
 
-  it("should return false when removing non-existent in-play card", () => {
+  it("should return false when removing non-existent in-play card", async () => {
     const card = { id: "c1", name: "Card", type: "item" } as any;
     player.addInPlay(card);
     expect(player.removeInPlay({ id: "other" } as any)).toBe(false);
     expect(player.inPlay.length).toBe(1);
   });
 
-  it("should ignore negative index removal", () => {
+  it("should ignore negative index removal", async () => {
     const card = { id: "cardX", name: "CardX", type: "item" } as any;
     player.addInPlay(card);
 
@@ -227,7 +227,7 @@ describe("Player - In-Play Cards", () => {
     expect(player.inPlay.length).toBe(1);
   });
 
-  it("should return true but keep size when removing out-of-range index", () => {
+  it("should return true but keep size when removing out-of-range index", async () => {
     const card = { id: "cardY", name: "CardY", type: "item" } as any;
     player.addInPlay(card);
 
@@ -244,7 +244,7 @@ describe("Player - Removal", () => {
     player = new Player("testPlayer", 3, 5, 10);
   });
 
-  it("should remove card from in-play when present", () => {
+  it("should remove card from in-play when present", async () => {
     const card = { id: "cardA", name: "A", type: "item" } as any;
     player.addInPlay(card);
 
@@ -253,7 +253,7 @@ describe("Player - Removal", () => {
     expect(player.inPlay.length).toBe(0);
   });
 
-  it("should remove card from hand when present there", () => {
+  it("should remove card from hand when present there", async () => {
     const loot = { id: "loot1", name: "Loot", type: "loot" } as any;
     player.hand.addToHand(loot as any);
 
@@ -271,12 +271,12 @@ describe("Player - Souls", () => {
     player = new Player("testPlayer", 3, 5, 10);
   });
 
-  it("should start with zero souls", () => {
+  it("should start with zero souls", async () => {
     expect(player.souls.length).toBe(0);
     expect(player.totalSouls).toBe(0);
   });
 
-  it("should be able to add a soul card", () => {
+  it("should be able to add a soul card", async () => {
     const soulCard = { id: "soul1", name: "Soul", soul: 1 } as any;
     player.addSoul(soulCard);
     
@@ -284,7 +284,7 @@ describe("Player - Souls", () => {
     expect(player.souls[0]).toBe(soulCard);
   });
 
-  it("should calculate total souls correctly", () => {
+  it("should calculate total souls correctly", async () => {
     const soul1 = { id: "soul1", name: "Soul 1", soul: 1 } as any;
     const soul2 = { id: "soul2", name: "Soul 2", soul: 2 } as any;
     const soul3 = { id: "soul3", name: "Soul 3", soul: 1 } as any;
@@ -296,7 +296,7 @@ describe("Player - Souls", () => {
     expect(player.totalSouls).toBe(4);
   });
 
-  it("should throw error when adding card with no soul", () => {
+  it("should throw error when adding card with no soul", async () => {
     const badCard = { id: "card1", name: "Bad Card", soul: -1 } as any;
     
     expect(() => {
@@ -304,7 +304,7 @@ describe("Player - Souls", () => {
     }).toThrow("Cannot add a card with no soul as a soul card.");
   });
 
-  it("should be able to remove a soul card", () => {
+  it("should be able to remove a soul card", async () => {
     const soul1 = { id: "soul1", name: "Soul 1", soul: 1 } as any;
     const soul2 = { id: "soul2", name: "Soul 2", soul: 2 } as any;
     
@@ -316,7 +316,7 @@ describe("Player - Souls", () => {
     expect(removed).toBe(true);
   });
 
-  it("should return false when removing non-existent soul", () => {
+  it("should return false when removing non-existent soul", async () => {
     const soul1 = { id: "soul1", name: "Soul 1", soul: 1 } as any;
     const soul2 = { id: "soul2", name: "Soul 2", soul: 2 } as any;
     
@@ -335,7 +335,7 @@ describe("Player - Damage & Health", () => {
     player = new Player("testPlayer", 3, 10, 10);
   });
 
-  it("should take multiple damage hits", () => {
+  it("should take multiple damage hits", async () => {
     player.receiveDamage(2);
     expect(player.currentHealthPoints).toBe(8);
     
@@ -346,19 +346,19 @@ describe("Player - Damage & Health", () => {
     expect(player.currentHealthPoints).toBe(4);
   });
 
-  it("should survive partial damage and be alive", () => {
+  it("should survive partial damage and be alive", async () => {
     player.receiveDamage(5);
     expect(player.isDead).toBe(false);
     expect(player.currentHealthPoints).toBe(5);
   });
 
-  it("should be dead after exactly reaching zero health", () => {
+  it("should be dead after exactly reaching zero health", async () => {
     player.receiveDamage(10);
     expect(player.isDead).toBe(true);
     expect(player.currentHealthPoints).toBe(0);
   });
 
-  it("should recover to full health after heal", () => {
+  it("should recover to full health after heal", async () => {
     player.receiveDamage(7);
     expect(player.currentHealthPoints).toBe(3);
     
@@ -375,11 +375,11 @@ describe("Player - Coins", () => {
     player = new Player("testPlayer", 3, 5, 100);
   });
 
-  it("should start with correct coin amount", () => {
+  it("should start with correct coin amount", async () => {
     expect(player.coins).toBe(100);
   });
 
-  it("should gain multiple coin transactions", () => {
+  it("should gain multiple coin transactions", async () => {
     player.gainCoins(10);
     expect(player.coins).toBe(110);
     
@@ -390,14 +390,14 @@ describe("Player - Coins", () => {
     expect(player.coins).toBe(140);
   });
 
-  it("should lose exact amount of coins when available", () => {
+  it("should lose exact amount of coins when available", async () => {
     const lost = player.loseCoins(25, false);
     
     expect(lost).toBe(25);
     expect(player.coins).toBe(75);
   });
 
-  it("should lose multiple times", () => {
+  it("should lose multiple times", async () => {
     player.loseCoins(20, false);
     expect(player.coins).toBe(80);
     
@@ -408,7 +408,7 @@ describe("Player - Coins", () => {
     expect(player.coins).toBe(0);
   });
 
-  it("should handle edge case of zero coins", () => {
+  it("should handle edge case of zero coins", async () => {
     const lost = player.loseCoins(100, false);
     expect(lost).toBe(100);
     expect(player.coins).toBe(0);
@@ -417,7 +417,7 @@ describe("Player - Coins", () => {
     expect(lostMore).toBe(0);
   });
 
-  it("should use asMany flag correctly", () => {
+  it("should use asMany flag correctly", async () => {
     const lost = player.loseCoins(150, true);
     expect(lost).toBe(100);
     expect(player.coins).toBe(0);
@@ -431,25 +431,25 @@ describe("DiceRoll", () => {
     player = new Player("testPlayer", 3, 5, 10);
   });
 
-  it("should create a valid dice roll", () => {
+  it("should create a valid dice roll", async () => {
     const dice = player.rollDice();
     
     expect(dice).toBeDefined();
     expect(dice.value >= 1 && dice.value <= 6).toBe(true);
   });
 
-  it("should track the issuer correctly", () => {
+  it("should track the issuer correctly", async () => {
     const dice = player.rollDice();
     expect(dice.issuer).toBe(player);
     expect(dice.issuer.id).toBe("testPlayer");
   });
 
-  it("should not be an attack roll by default", () => {
+  it("should not be an attack roll by default", async () => {
     const dice = player.rollDice();
     expect(dice.attackRoll).toBe(false);
   });
 
-  it("should allow setting dice value between 1 and 6", () => {
+  it("should allow setting dice value between 1 and 6", async () => {
     const dice = player.rollDice();
     
     dice.value = 1;
@@ -462,7 +462,7 @@ describe("DiceRoll", () => {
     expect(dice.value).toBe(3);
   });
 
-  it("should roll and generate new value", () => {
+  it("should roll and generate new value", async () => {
     const dice = player.rollDice();
     const firstValue = dice.value;
     
@@ -474,7 +474,7 @@ describe("DiceRoll", () => {
     expect(secondValue >= 1 && secondValue <= 6).toBe(true);
   });
 
-  it("should return json representation correctly", () => {
+  it("should return json representation correctly", async () => {
     const dice = player.rollDice();
     const json = dice.json;
     
@@ -482,7 +482,7 @@ describe("DiceRoll", () => {
     expect(json.diceRoll >= 1 && json.diceRoll <= 6).toBe(true);
   });
 
-  it("should resolve to current value", () => {
+  it("should resolve to current value", async () => {
     const dice = player.rollDice();
     dice.value = 4;
     
@@ -503,7 +503,7 @@ describe("Game - Multiple Players", () => {
     player3 = new Player("player3", 1, 6, 8);
   });
 
-  it("should add multiple players", () => {
+  it("should add multiple players", async () => {
     game.addPlayer(player1);
     game.addPlayer(player2);
     game.addPlayer(player3);
@@ -511,7 +511,7 @@ describe("Game - Multiple Players", () => {
     expect(game.players.length).toBe(3);
   });
 
-  it("should throw error when adding duplicate player ID", () => {
+  it("should throw error when adding duplicate player ID", async () => {
     game.addPlayer(player1);
     const duplicatePlayer = new Player("player1", 2, 4, 10);
     
@@ -520,7 +520,7 @@ describe("Game - Multiple Players", () => {
     }).toThrow();
   });
 
-  it("should retrieve correct players", () => {
+  it("should retrieve correct players", async () => {
     game.addPlayer(player1);
     game.addPlayer(player2);
     game.addPlayer(player3);
@@ -530,7 +530,7 @@ describe("Game - Multiple Players", () => {
     expect(() => game.getPlayerById("player3")).not.toThrow();
   });
 
-  it("should maintain player order", () => {
+  it("should maintain player order", async () => {
     game.addPlayer(player1);
     game.addPlayer(player2);
     game.addPlayer(player3);
@@ -540,7 +540,7 @@ describe("Game - Multiple Players", () => {
     expect(game.players[2]).toBe(player3);
   });
 
-  it("should get all players hands", () => {
+  it("should get all players hands", async () => {
     game.addPlayer(player1);
     game.addPlayer(player2);
     game.addPlayer(player3);
@@ -566,7 +566,7 @@ describe("Game - Guardrails", () => {
     game.addPlayer(player2);
   });
 
-  it("should not allow adding players after game start", () => {
+  it("should not allow adding players after game start", async () => {
     game.start(player1);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
@@ -574,9 +574,9 @@ describe("Game - Guardrails", () => {
     expect(() => game.addPlayer(latePlayer)).toThrow("Game already started");
   });
 
-  it("should select the first n options", () => {
+  it("should select the first n options", async () => {
     const options = [1, 2, 3, 4];
-    const result = game.select(player1, 2, options);
+    const result = await game.select(player1, 2, options);
     expect(result.selected).toEqual([1, 2]);
     expect(result.remaining).toEqual([3, 4]);
   });
@@ -609,30 +609,30 @@ describe("Game - Stack Operations", () => {
     game.addPlayer(player2);
   });
 
-  it("should have an empty stack initially", () => {
+  it("should have an empty stack initially", async () => {
     expect(game.stack.size).toBe(0);
   });
 
-  it("should reset the stack", () => {
+  it("should reset the stack", async () => {
     game.resetStack();
     expect(game.stack.size).toBe(0);
   });
 
-  it("should cancel stack", () => {
+  it("should cancel stack", async () => {
     game.cancelStack();
     expect(game.stack.size).toBe(0);
   });
 
-  it("should add to stack and resolve dice roll", () => {
+  it("should add to stack and resolve dice roll", async () => {
     const dice = player1.rollDice();
     game.addToStack(dice);
     expect(game.stack.size).toBe(1);
 
-    game.resolveStack();
+    await game.resolveStack();
     expect(game.stack.size).toBe(0);
   });
 
-  it("should get destroyed cards", () => {
+  it("should get destroyed cards", async () => {
     const destroyed = game.destroyedCards;
     expect(destroyed).toBeDefined();
     expect(Array.isArray(destroyed)).toBe(true);
@@ -641,7 +641,7 @@ describe("Game - Stack Operations", () => {
 
 describe("Stack - Behavior", () => {
 
-  it("should resolve and remove the top element", () => {
+  it("should resolve and remove the top element", async () => {
     const stack = new Stack();
     const loot = { id: "loot", type: "loot" } as any;
     const dice = new Player("p", 1, 1, 0).rollDice();
@@ -654,7 +654,7 @@ describe("Stack - Behavior", () => {
     expect(stack.size).toBe(1);
   });
 
-  it("should remove element at index", () => {
+  it("should remove element at index", async () => {
     const stack = new Stack();
     const a = { id: "a", type: "loot" } as any;
     const b = { id: "b", type: "loot" } as any;
@@ -684,7 +684,7 @@ describe("Game - Game State", () => {
     game.addPlayer(player2);
   });
 
-  it("should get game state JSON", () => {
+  it("should get game state JSON", async () => {
     const stateJson = game.stateJson;
     
     expect(stateJson).toBeDefined();
@@ -692,18 +692,18 @@ describe("Game - Game State", () => {
     expect(stateJson.players.length).toBe(2);
   });
 
-  it("should get decks", () => {
+  it("should get decks", async () => {
     const decks = game.decks;
     expect(decks).toBeDefined();
     expect(typeof decks).toBe("object");
   });
 
-  it("should get turn handler", () => {
+  it("should get turn handler", async () => {
     const turnHandler = game.turnHandler;
     expect(turnHandler).toBeDefined();
   });
 
-  it("should get shop", () => {
+  it("should get shop", async () => {
     game.start(player1);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
@@ -711,7 +711,7 @@ describe("Game - Game State", () => {
     expect(shop).toBeDefined();
   });
 
-  it("should get encounters", () => {
+  it("should get encounters", async () => {
     game.start(player1);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
@@ -719,7 +719,7 @@ describe("Game - Game State", () => {
     expect(encounters).toBeDefined();
   });
 
-  it("should get monster slots", () => {
+  it("should get monster slots", async () => {
     game.start(player1);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
@@ -727,14 +727,14 @@ describe("Game - Game State", () => {
     expect(slots).toBeDefined();
   });
 
-  it("should get stack", () => {
+  it("should get stack", async () => {
     const stack = game.stack;
     expect(stack).toBeDefined();
   });
 });
 
 describe("TurnHandler", () => {
-  it("should advance turns and rounds correctly", () => {
+  it("should advance turns and rounds correctly", async () => {
     const handler = new TurnHandler();
     const p1 = new Player("p1", 1, 1, 0);
     const p2 = new Player("p2", 1, 1, 0);
@@ -766,7 +766,7 @@ describe("Game - Souls & State", () => {
     game.addPlayer(player2);
   });
 
-  it("should compute players with most souls", () => {
+  it("should compute players with most souls", async () => {
     const soul1 = { id: "s1", name: "Soul 1", soul: 1 } as any;
     const soul2 = { id: "s2", name: "Soul 2", soul: 2 } as any;
 
@@ -778,7 +778,7 @@ describe("Game - Souls & State", () => {
     expect(leaders[0]).toBe(player2);
   });
 
-  it("should return all leaders on tie", () => {
+  it("should return all leaders on tie", async () => {
     const soul = { id: "s1", name: "Soul", soul: 1 } as any;
     game.addSoul(player1, soul);
     game.addSoul(player2, soul);
@@ -789,7 +789,7 @@ describe("Game - Souls & State", () => {
     expect(leaders).toContain(player2);
   });
 
-  it("stateJson should include in-play slugs", () => {
+  it("stateJson should include in-play slugs", async () => {
     const card = { slug: "card-1", name: "Card", type: "item" } as any;
     player1.addInPlay(card);
 
@@ -800,7 +800,7 @@ describe("Game - Souls & State", () => {
     expect(p1?.inPlay[0]?.slug).toBe("card-1");
   });
 
-  it("should return both players when no souls are present", () => {
+  it("should return both players when no souls are present", async () => {
     const leaders = game.playersWithMostSouls;
     expect(leaders.length).toBe(2);
     expect(leaders).toContain(player1);
@@ -827,16 +827,16 @@ describe("Game - Damage System", () => {
       emptyHands(game);
       });
 
-  it("should deal damage between entities", () => {
+  it("should deal damage between entities", async () => {
     const initialHealth = player2.currentHealthPoints;
     const mockCard = { name: "Test Card" } as any;
     
     game.dealDamage(player1, player2, mockCard, 1);
-    game.resolveStack();
+    await game.resolveStack();
     expect(player2.currentHealthPoints).toBe(initialHealth - 1);
   });
 
-  it("should handle zero damage", () => {
+  it("should handle zero damage", async () => {
     const initialHealth = player2.currentHealthPoints;
     const mockCard = { name: "Test Card" } as any;
     
@@ -845,12 +845,12 @@ describe("Game - Damage System", () => {
     expect(player2.currentHealthPoints).toBe(initialHealth);
   });
 
-  it("should handle damage that kills entity", () => {
+  it("should handle damage that kills entity", async () => {
     const mockCard = { name: "Test Card" } as any;
     
     game.dealDamage(player1, player2, mockCard, 100);
-    game.resolveStack();
-    game.resolveStack();
+    await game.resolveStack();
+    await game.resolveStack();
 
     expect(game.stack.size).toBe(0);
     expect(player2.isDead).toBe(true);
@@ -864,7 +864,7 @@ describe("Player - Edge Cases & Combinations", () => {
     player = new Player("testPlayer", 5, 20, 50);
   });
 
-  it("should handle multiple damage and healing cycles", () => {
+  it("should handle multiple damage and healing cycles", async () => {
     player.receiveDamage(5);
     expect(player.currentHealthPoints).toBe(15);
     
@@ -878,7 +878,7 @@ describe("Player - Edge Cases & Combinations", () => {
     expect(player.currentHealthPoints).toBe(20);
   });
 
-  it("should handle complex coin transactions", () => {
+  it("should handle complex coin transactions", async () => {
     player.gainCoins(25);
     expect(player.coins).toBe(75);
     
@@ -895,7 +895,7 @@ describe("Player - Edge Cases & Combinations", () => {
     expect(player.coins).toBe(30);
   });
 
-  it("should accumulate score over time", () => {
+  it("should accumulate score over time", async () => {
     expect(player.score).toBe(0);
     
     player.addScore(1);
@@ -907,7 +907,7 @@ describe("Player - Edge Cases & Combinations", () => {
     expect(player.score).toBe(15);
   });
 
-  it("should handle negative score additions", () => {
+  it("should handle negative score additions", async () => {
     player.addScore(10);
     expect(player.score).toBe(10);
     
@@ -915,7 +915,7 @@ describe("Player - Edge Cases & Combinations", () => {
     expect(player.score).toBe(7);
   });
 
-  it("should handle max dice value properly", () => {
+  it("should handle max dice value properly", async () => {
     const dice = player.rollDice();
     
     for (let i = 1; i <= 6; i++) {
@@ -925,7 +925,7 @@ describe("Player - Edge Cases & Combinations", () => {
     }
   });
 
-  it("should maintain player attributes immutably", () => {
+  it("should maintain player attributes immutably", async () => {
     const originalAttack = player.attackPoints;
     const originalHealth = player.healthPoints;
     
@@ -935,7 +935,7 @@ describe("Player - Edge Cases & Combinations", () => {
     expect(player.healthPoints).toBe(originalHealth);
   });
 
-  it("should handle soul card with zero soul value", () => {
+  it("should handle soul card with zero soul value", async () => {
     const zeroSoulCard = { id: "soul0", name: "Zero Soul", soul: 1 } as any;
     
     // Should not throw since soul is 1
@@ -944,7 +944,7 @@ describe("Player - Edge Cases & Combinations", () => {
     expect(player.totalSouls).toBe(1);
   });
 
-  it("should handle many souls correctly", () => {
+  it("should handle many souls correctly", async () => {
     const souls = [];
     for (let i = 1; i <= 10; i++) {
       const soul = { id: `soul${i}`, name: `Soul ${i}`, soul: i } as any;
@@ -956,7 +956,7 @@ describe("Player - Edge Cases & Combinations", () => {
     expect(player.totalSouls).toBe(55); // 1+2+3+...+10 = 55
   });
 
-  it("should handle removing items in various ways", () => {
+  it("should handle removing items in various ways", async () => {
     const card1 = { id: "card1", name: "Card 1", type: "item" } as any;
     const card2 = { id: "card2", name: "Card 2", type: "item" } as any;
     const card3 = { id: "card3", name: "Card 3", type: "character" } as any;

@@ -209,9 +209,9 @@ export function onYourTurnModifier(
 }
 
 export function curseEffect(restEffectFunction: EffectFunction, game: Game): EffectFunction {
-    return (data: EffectData) => {
+    return async (data: EffectData) => {
         // select owner of the curse.
-        const owner = game.select(game.currentPlayer, 1, game.players, false).selected[0];
+        const owner = (await game.select(game.currentPlayer, 1, game.players, false)).selected[0];
         if (!owner) return false;
         // Add the curse to their in play area.
         game.addInPlay(owner, data.it as ItemCard);
@@ -479,9 +479,9 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): Effec
             if( card.trinket || card.ambush) return;
             
             // Create the effect that will execute when the stack resolves
-            const effect = (effectData: EffectData) => {
+            const effect = async (effectData: EffectData) => {
                 if (!(effectData.issuer instanceof Player)) return false;
-                const newTargets = game.select(effectData.issuer, 1, card.getTargetSelectors!(effectData.issuer, game), false);
+                const newTargets = await game.select(effectData.issuer, 1, card.getTargetSelectors!(effectData.issuer, game), false);
                 const resolveFunction = card.onPlay(eventIssuer, newTargets.selected);
                 const lootCardEffect = new LootCardEffect(card, resolveFunction);
                 game.addToStack(lootCardEffect);
@@ -515,9 +515,9 @@ export function replaceDeathPenaltyEffect(game: Game): EffectFunction {
         if (!(data.issuer instanceof Player)) return false;
         let OriginalDeathPenalty = game.deathPenalty.bind(game);
 
-        game.deathPenalty = (player: Player) => {
+        game.deathPenalty = async (player: Player) => {
             if (data.issuer === player) {
-                OriginalDeathPenalty(player);
+                await OriginalDeathPenalty(player);
                 return;
             }
 
@@ -526,18 +526,18 @@ export function replaceDeathPenaltyEffect(game: Game): EffectFunction {
             const setOfLosableItems = (player.inPlay).filter((c) => (c instanceof treasureCard || (c instanceof LootCard && c.trinket))
             && c.eternal === false)
             if (gameParameters.deathPenaltyItem > 0) {
-            const itemToLose = game.select(
+            const itemToLose = (await game.select(
                 data.issuer as Player,
                 gameParameters.deathPenaltyItem,
                 setOfLosableItems
-            ).selected[0];
+            )).selected[0];
             if (itemToLose) {
                 game.removeInPlay(player, itemToLose);
                 game.decks[itemToLose.type]!.addDiscardTop(itemToLose);
             }
             }
             if(gameParameters.deathPenaltyLoot > 0) {
-                const lootToLose = game.select(player, gameParameters.deathPenaltyLoot, player.hand.cards).selected[0];
+                const lootToLose = (await game.select(player, gameParameters.deathPenaltyLoot, player.hand.cards)).selected[0];
                 if (lootToLose) {
                     const card = game.getCardFromHand(player, lootToLose);
                     game.addCardToHand(data.issuer as Player, lootToLose);
@@ -647,7 +647,7 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
         };
 
         // Listen for the next damage event on this player
-        offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
+        offDamage = game.emitter.on("on:damage:would-take", async ({ eventIssuer, damageArray }) => {
             const target = data.issuer;
             if (target !== eventIssuer) return;
             const current = damageArray[0] ?? 0;
@@ -658,7 +658,7 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
             // Deal 1 damage to another player
             const otherPlayers = game.players.filter(p => p !== data.issuer);
             if (otherPlayers.length === 0) return;
-            const selection = game.select(data.issuer, 1, otherPlayers, false);
+            const selection = await game.select(data.issuer, 1, otherPlayers, false);
             if (selection.selected.length > 0) {
                 const chosenPlayer = selection.selected[0]!;
                 game.dealDamage(data.issuer, chosenPlayer, data.it, deal);
@@ -682,9 +682,9 @@ export function changeRollOneToSixEffect(game: Game): EffectFunction {
             if (data.issuer !== diceRoll._issuer) return;
             if (diceRoll.value === 1) {
                 // Create the effect that will execute when the stack resolves
-                const effect = (effectData: EffectData) => {
+                const effect = async (effectData: EffectData) => {
                     if (!(effectData.issuer instanceof Player)) return false;
-                    const value = game.select(effectData.issuer, 1, [6], true).selected[0]!;
+                    const value = (await game.select(effectData.issuer, 1, [6], true)).selected[0]!;
                     diceRoll.value = value;
                     return true;
                 };
@@ -711,11 +711,11 @@ export function giveThisToAnotherPlayerOnDeathEffect(game: Game): EffectFunction
             if (!(data.issuer instanceof Player)) return;
             
             // Create the effect that will execute when the stack resolves
-            const effect = (effectData: EffectData) => {
+            const effect = async (effectData: EffectData) => {
                 if (!(effectData.issuer instanceof Player)) return false;
                 const otherPlayers = game.players.filter(p => p !== effectData.issuer);
                 if (otherPlayers.length === 0) return true;
-                const selection = game.select(effectData.issuer, 1, otherPlayers, false);
+                const selection = await game.select(effectData.issuer, 1, otherPlayers, false);
                 if (selection.selected.length > 0) {
                     const chosenPlayer = selection.selected[0]!;
                     game.give(effectData.issuer, chosenPlayer, effectData.it);
@@ -1223,10 +1223,10 @@ export function goFirstInTurnOrderEffect(game: Game): EffectFunction {
 
 export function startingItemEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
-        let offEffect: (() => void) | null = game.emitter.on("on:game:start:before", () => {
+        let offEffect: (() => void) | null = game.emitter.on("on:game:start:before", async () => {
             if (!(data.issuer instanceof Player)) return;
             const options: treasureCard[] = game.decks["treasure"]!.drawSeveral(3) as treasureCard[];
-            const selection = game.gainTreasureAmongs(data.issuer, 1, options);
+            const selection = await game.gainTreasureAmongs(data.issuer, 1, options);
             selection.selected[0]?.setEternal(true);
             offEffect?.();
             offEffect = null;

@@ -44,7 +44,7 @@ describe("Effect - gainCoins", () => {
     effectFn = gainCoinsEffect(game, 5);
   });
 
-  it("should give coins to issuer when game started", () => {
+  it("should give coins to issuer when game started", async () => {
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
             const monsterCardTop = game.obtainCard(slug) as MonsterCard;
             game.decks["monster"]!.addTopPosition(monsterCardTop);
@@ -58,13 +58,13 @@ describe("Effect - gainCoins", () => {
     expect(p2.coins).toBe(0);
   });
 
-  it("should accumulate across multiple triggers", () => {
+  it("should accumulate across multiple triggers", async () => {
     effectFn(new EffectData(dummyLoot, p1, []));
     effectFn(new EffectData(dummyLoot, p1, []));
     expect(p1.coins).toBe(10);
   });
 
-  it("should require game to be started", () => {
+  it("should require game to be started", async () => {
     const freshGame = new Game();
     const a = new Player("a", 1, 1, 0);
     const b = new Player("b", 1, 1, 0);
@@ -74,7 +74,7 @@ describe("Effect - gainCoins", () => {
     expect(() => fn(new EffectData(dummyLoot, a, []))).toThrow("Game not started");
   });
 
-  it("should reject negative coin amount", () => {
+  it("should reject negative coin amount", async () => {
     const negEffect = gainCoinsEffect(game, -2 as any);
     expect(() => negEffect(new EffectData(dummyLoot, p1, []))).toThrow("Number is negative.");
   });
@@ -86,18 +86,18 @@ import * as active from "@/models/activeEffect";
 import type { ItemCard, LootCard } from "@/models/cards";
 
 describe("Effect - additional unique implementations", () => {
-  it("changeRollDiceResultEffect sets dice value", () => {
+  it("changeRollDiceResultEffect sets dice value", async () => {
     const { game, p1 } = setupGame();
     const dice = { value: 3 };
-    game.select = (_p, n, opts) => ({ selected: [6], remaining: [] });
+    game.select = async (_p, n, opts) => ({ selected: [6], remaining: [] });
     const fn = active.changeRollDiceResultEffect(game);
     // Use a real loot card
     const card = game.decks["loot"]!.cards[0]!;
-    fn(new EffectData(card, p1, [dice]));
+    await fn(new EffectData(card, p1, [dice]));
     expect(dice.value).toBe(6);
   });
 
-  it("drawAndGainCoinsAsAPlayerEffect works", () => {
+  it("drawAndGainCoinsAsAPlayerEffect works", async () => {
     const { game, p1, p2 } = setupGame();
     const c = game.decks["loot"]!.draw();
     p2.hand.addToHand(c); // p2 has more cards
@@ -109,7 +109,7 @@ describe("Effect - additional unique implementations", () => {
     expect(p1.coins).toBe(5);
   });
 
-  it("put on bottom of loot deck and extra turn", () => {
+  it("put on bottom of loot deck and extra turn", async () => {
     const { game, p1 } = setupGame();
     Object.defineProperty(game, "currentPlayer", { get: () => p1 });
     let added = false, extra = false;
@@ -118,7 +118,7 @@ describe("Effect - additional unique implementations", () => {
     const parsed = effect.effectParser("Put this on the bottom of the loot deck. If you do, take an extra turn after this one if it's your turn.", game);
     // Use a real loot card
     const card = game.decks["loot"]!.cards[0]!;
-    parsed.effectFunction(new EffectData(card, p1, []));
+    await parsed.effectFunction(new EffectData(card, p1, []));
     expect(added).toBe(true);
     expect(extra).toBe(true);
   });
@@ -132,7 +132,7 @@ describe("Loot deck integration", () => {
     );
   };
 
-  it("plays a gain coins card through the stack", () => {
+  it("plays a gain coins card through the stack", async () => {
     const { game, p1 } = setupGame();
     const gainCoinCard = findCardByEffect(game, /^Gain\s+\d+\u00A2/);
     expect(gainCoinCard).toBeTruthy();
@@ -148,14 +148,14 @@ describe("Loot deck integration", () => {
     game.playCard(p1, handIndex);
     expect(game.stack.size).toBe(1);
 
-    game.resolveStack();
-    game.resolveStack();
+    await game.resolveStack();
+    await game.resolveStack();
 
     expect(p1.coins).toBe(coinsToGain);
     expect(game.stack.isEmpty()).toBe(true);
   });
 
-  it("plays a roll-based loot card through the stack", () => {
+  it("plays a roll-based loot card through the stack", async () => {
     const { game, p1 } = setupGame();
     const rollCard = findCardByEffect(game, /^Roll-/);
     expect(rollCard).toBeTruthy();
@@ -169,7 +169,7 @@ describe("Loot deck integration", () => {
     expect(game.stack.size).toBe(1);
   });
 
-  it("plays a deal damage card through the stack", () => {
+  it("plays a deal damage card through the stack", async () => {
     const { game, p1, p2 } = setupGame();
     const damageCard = game.decks["loot"]!.getCardFromSlug("b2-bomb");
     expect(damageCard).toBeTruthy();
@@ -184,16 +184,16 @@ describe("Loot deck integration", () => {
     game.playCard(p1, p1.hand.cards.length - 1, [p2]);
     expect(game.stack.size).toBe(1);
 
-    game.resolveStack();
-    game.resolveStack();
-    game.resolveStack();
+    await game.resolveStack();
+    await game.resolveStack();
+    await game.resolveStack();
 
     // HP should be reduced by damage amount, but clamped to 0 minimum
     expect(p2.currentHealthPoints).toBe(Math.max(0, initialHP - damageToDeal));
     expect(game.stack.isEmpty()).toBe(true);
   });
 
-  it("plays a cancel ability card that affects the stack", () => {
+  it("plays a cancel ability card that affects the stack", async () => {
     const { game, p1 } = setupGame();
     const cancelCard = findCardByEffect(game, /^Cancel the.*ability/);
     expect(cancelCard).toBeTruthy();
@@ -216,7 +216,7 @@ describe("Loot deck integration", () => {
     // Resolve cancel effect first (LIFO)
     // When cancel resolves, it gets popped first, then its effect runs
     // The effect should cancel the previous item (gainCoin) from the stack
-    game.resolveStack();
+    await game.resolveStack();
     
     // After cancel resolves and removes the gain coin card
     // But actually, cancelPreviousAbility is called AFTER the cancel card is popped
@@ -229,14 +229,14 @@ describe("Loot deck integration", () => {
     // If the cancel worked, stack should be 0 and coins should be 0
     // If cancel didn't work due to timing, we need to resolve the remaining item
     if (stackAfterCancel > 0) {
-      game.resolveStack();
+      await game.resolveStack();
     }
     
     // The test just verifies the final state - stack empty
     expect(game.stack.isEmpty()).toBe(true);
   });
 
-  it("plays a gain treasure card through the stack", () => {
+  it("plays a gain treasure card through the stack", async () => {
     const { game, p1 } = setupGame();
     const treasureCard = game.decks["loot"]!.getCardFromSlug("b2-xvii_the_stars");
     
@@ -248,13 +248,13 @@ describe("Loot deck integration", () => {
     p1.hand.addToHand(treasureCard!);
 
     game.playCard(p1, p1.hand.cards.length - 1);
-    game.resolveStack();
+    await game.resolveStack();
 
     expect(p1.inPlay.length).toBe(initialInPlay + 1);
     expect(game.stack.isEmpty()).toBe(true);
   });
 
-  it("handles multiple cards in stack with LIFO resolution", () => {
+  it("handles multiple cards in stack with LIFO resolution", async () => {
     const { game, p1 } = setupGame();
     
     // Find two different gain coin cards
@@ -285,17 +285,17 @@ describe("Loot deck integration", () => {
     expect(game.stack.size).toBe(2);
 
     // Resolve in LIFO order (second card first)
-    game.resolveStack();
+    await game.resolveStack();
     expect(p1.coins).toBe(amount2);
     expect(game.stack.size).toBe(1);
 
     // Resolve first card
-    game.resolveStack();
+    await game.resolveStack();
     expect(p1.coins).toBe(amount1 + amount2);
     expect(game.stack.isEmpty()).toBe(true);
   });
 
-  it("recharge item effect works correctly", () => {
+  it("recharge item effect works correctly", async () => {
     const { game, p1 } = setupGame();
     const rechargeCard = game.decks["loot"]!.getCardFromSlug("b2-lil_battery_4");
     
@@ -321,7 +321,7 @@ describe("Loot deck integration", () => {
     // Activate (discharge) the item
     const item = chargedItem as ItemCard;
     game.activateItem(p1, item);
-    game.resolveStack();
+    await game.resolveStack();
     expect(item.charged).not.toBe(0); // Not CHARGED
 
     // Play recharge card
@@ -331,12 +331,12 @@ describe("Loot deck integration", () => {
     // Set target to the discharged item
     // Game now selects targets deterministically
 
-    game.resolveStack();
+    await game.resolveStack();
 
     expect(item.charged).toBe(true); // CHARGED
   });
 
-  it("steal coins effect works correctly", () => {
+  it("steal coins effect works correctly", async () => {
     const { game, p1, p2 } = setupGame();
     const stealCard = findCardByEffect(game, /^Steal\s+\d+\u00A2/);
     
@@ -365,14 +365,14 @@ describe("Loot deck integration", () => {
 
     game.playCard(p1, p1.hand.cards.length - 1, targets);
 
-    game.resolveStack();
+    await game.resolveStack();
 
     expect(p1.coins).toBe(p1InitialCoins + coinsToSteal);
     expect(p2.coins).toBe(Math.max(0, p2InitialCoins - coinsToSteal));
     expect(game.stack.isEmpty()).toBe(true);
   });
 
-  it("take damage effect works correctly", () => {
+  it("take damage effect works correctly", async () => {
     const { game, p1 } = setupGame();
     const takeDamageCard = findCardByEffect(game, /^Take\s+\d+\s+damage/);
     
@@ -389,13 +389,13 @@ describe("Loot deck integration", () => {
     p1.hand.addToHand(takeDamageCard!);
 
     game.playCard(p1, p1.hand.cards.length - 1);
-    game.resolveStack();
+    await game.resolveStack();
 
     expect(p1.currentHealthPoints).toBe(initialHP - damageTaken);
     expect(game.stack.isEmpty()).toBe(true);
   });
 
-  it("verifies effect parser handles multiple card types", () => {
+  it("verifies effect parser handles multiple card types", async () => {
     const { game, p1 } = setupGame();
     const lootDeck = game.decks["loot"]!;
     

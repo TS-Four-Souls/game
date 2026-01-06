@@ -34,13 +34,13 @@
 //     });
 
 //     // b2-holy_squirt: Each time a player rolls a ❺, they loot 1
-//     it("holy_squirt - player loots 1 when rolling a 5 (attack roll)", () => {
+//     it("holy_squirt - player loots 1 when rolling a 5 (attack roll)", async () => {
 //         const holySquirt = game.obtainCard("b2-holy_squirt") as MonsterCard;
 //         game.decks["monster"]!.addTopPosition(holySquirt);
         
 //         // Trigger the event
 //         game.monsterSlots.discardTop(0);
-//         game.resolveStack(); // resolve the event addition
+//         await game.resolveStack(); // resolve the event addition
         
 //         const monster = game.monsters[0]!;
 //         game.addHealth(monster, 10);
@@ -53,9 +53,9 @@
 //         if (attackRoll1) {
 //             attackRoll1.value = 6; // Non-triggering roll
 //         }
-//         game.resolveStack(); // roll resolution
-//         game.resolveStack(); // damage resolution
-//         game.resolveStack(); // dies ?
+//         await game.resolveStack(); // roll resolution
+//         await game.resolveStack(); // damage resolution
+//         await game.resolveStack(); // dies ?
 //         expect(player1.hand.length).toBe(initialHandSize);
         
 //         // Attack roll with triggering value
@@ -65,20 +65,20 @@
 //         if (attackRoll2) {
 //             attackRoll2.value = 5; // Triggering roll
 //         }
-//         game.resolveStack(); // roll resolution
-//         game.resolveStack(); // damage resolution
-//         game.resolveStack(); // loot effect
+//         await game.resolveStack(); // roll resolution
+//         await game.resolveStack(); // damage resolution
+//         await game.resolveStack(); // loot effect
         
 //         expect(player1.hand.length).toBe(initialHandSize + 1);
 //     });
 
-//     it("holy_squirt - player loots 1 when rolling a 5 (card roll)", () => {
+//     it("holy_squirt - player loots 1 when rolling a 5 (card roll)", async () => {
 //         const holySquirt = game.obtainCard("b2-holy_squirt") as MonsterCard;
 //         game.decks["monster"]!.addTopPosition(holySquirt);
         
 //         // Trigger the event
 //         game.monsterSlots.discardTop(0);
-//         game.resolveStack(); // resolve the event addition
+//         await game.resolveStack(); // resolve the event addition
         
 //         const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
 //         player1.hand.addToHand(card);
@@ -86,26 +86,26 @@
         
 //         // Play card that triggers a roll
 //         game.playCard(player1, 1);
-//         game.resolveStack(); // card resolution
+//         await game.resolveStack(); // card resolution
         
 //         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
 //         expect(cardRoll).toBeDefined();
 //         if (cardRoll) {
 //             cardRoll.value = 5; // Triggering roll
 //         }
-//         game.resolveStack(); // roll resolution
-//         game.resolveStack(); // loot effect
+//         await game.resolveStack(); // roll resolution
+//         await game.resolveStack(); // loot effect
         
 //         expect(player1.hand.length).toBe(initialHandSize + 1);
 //     });
 
-//     it("holy_squirt - player does not loot when rolling other values", () => {
+//     it("holy_squirt - player does not loot when rolling other values", async () => {
 //         const holySquirt = game.obtainCard("b2-holy_squirt") as MonsterCard;
 //         game.decks["monster"]!.addTopPosition(holySquirt);
         
 //         // Trigger the event
 //         game.monsterSlots.discardTop(0);
-//         game.resolveStack(); // resolve the event addition
+//         await game.resolveStack(); // resolve the event addition
         
 //         const monster = game.monsters[0]!;
 //         game.addHealth(monster, 10);
@@ -118,21 +118,21 @@
 //             if (attackRoll) {
 //                 attackRoll.value = rollValue;
 //             }
-//             game.resolveStack(); // roll resolution
-//             game.resolveStack(); // damage resolution
-//             game.resolveStack(); // dies ?
+//             await game.resolveStack(); // roll resolution
+//             await game.resolveStack(); // damage resolution
+//             await game.resolveStack(); // dies ?
 //         }
         
 //         expect(player1.hand.length).toBe(initialHandSize);
 //     });
 
-//     it("holy_squirt - multiple players loot when rolling 5", () => {
+//     it("holy_squirt - multiple players loot when rolling 5", async () => {
 //         const holySquirt = game.obtainCard("b2-holy_squirt") as MonsterCard;
 //         game.decks["monster"]!.addTopPosition(holySquirt);
         
 //         // Trigger the event
 //         game.monsterSlots.discardTop(0);
-//         game.resolveStack(); // resolve the event addition
+//         await game.resolveStack(); // resolve the event addition
         
 //         const monster = game.monsters[0]!;
 //         game.addHealth(monster, 20);
@@ -146,9 +146,9 @@
 //         if (attackRoll1) {
 //             attackRoll1.value = 5;
 //         }
-//         game.resolveStack(); // roll resolution
-//         game.resolveStack(); // damage resolution
-//         game.resolveStack(); // loot effect
+//         await game.resolveStack(); // roll resolution
+//         await game.resolveStack(); // damage resolution
+//         await game.resolveStack(); // loot effect
         
 //         expect(player1.hand.length).toBe(initialHandSizeP1 + 1);
         
@@ -161,9 +161,9 @@
 //         if (attackRoll2) {
 //             attackRoll2.value = 5;
 //         }
-//         game.resolveStack(); // roll resolution
-//         game.resolveStack(); // damage resolution
-//         game.resolveStack(); // loot effect
+//         await game.resolveStack(); // roll resolution
+//         await game.resolveStack(); // damage resolution
+//         await game.resolveStack(); // loot effect
         
 //         expect(player2.hand.length).toBe(initialHandSizeP2 + 1);
 //     });

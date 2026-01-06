@@ -171,9 +171,10 @@ export function parseYouMayEffect(s: string, game: Game): ParsedEffect {
     const restOfEffect = s.substring("you may".length).trim();
     const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
     return {
-        effectFunction: (data:EffectData) => {
+        effectFunction: async (data:EffectData) => {
             if (data.issuer instanceof Player === false) return false;
-            const choice = game.select(data.issuer, 1, [data.it], true).selected.length > 0;
+            const selection = await game.select(data.issuer, 1, [data.it], true)
+            const choice = selection.selected.length > 0;
             if (choice) {
                 return restParsed.effectFunction(data);
             }
@@ -368,9 +369,9 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         const firstParsed = effectParser(firstTrimmed, game);
         const secondParsed = effectParser(secondTrimmed, game);
         return {
-            effectFunction: (data:EffectData) => {
-                firstParsed.effectFunction(data);
-                secondParsed.effectFunction(data);
+            effectFunction: async (data:EffectData) => {
+                await firstParsed.effectFunction(data);
+                await secondParsed.effectFunction(data);
                 return true;
             },
             targetSelectors: [...firstParsed.targetSelectors, ...secondParsed.targetSelectors]
@@ -381,9 +382,9 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         const firstParsed = effectParser(parts[0]!.trim(), game);
         const secondParsed = effectParser(parts[1]!.trim(), game);
         return {
-            effectFunction: (data:EffectData) => {
-                if(firstParsed.effectFunction(data))
-                    secondParsed.effectFunction(data);
+            effectFunction: async (data:EffectData) => {
+                if(await firstParsed.effectFunction(data))
+                    await secondParsed.effectFunction(data);
                 return true;
             },
             targetSelectors: [...firstParsed.targetSelectors, ...secondParsed.targetSelectors]

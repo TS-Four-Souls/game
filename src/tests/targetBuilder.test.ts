@@ -34,7 +34,7 @@ describe("Target Builder Interface", () => {
         if (monsterCard2) game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
     });
 
-    it("should progressively build targets for a tap effect with one selector", () => {
+    it("should progressively build targets for a tap effect with one selector", async () => {
         // Get an item with a simple selector
         const item = game.shop._slots.find(c => c && c.constructor.name === 'ItemCard') as ItemCard;
         if (!item) return; // Skip if no item in shop
@@ -65,7 +65,7 @@ describe("Target Builder Interface", () => {
         expect(step2.complete).toBe(true);
     });
 
-    it("should build targets for contract_from_below (paid effect)", () => {
+    it("should build targets for contract_from_below (paid effect)", async () => {
         // Contract from below: "Destroy 2 items you control: steal a non-eternal item from a player"
         // NOTE: The steal part has no selector (handled internally by game)
         const contractFromBelow = game.obtainCard("b2-contract_from_below") as ItemCard;
@@ -102,7 +102,7 @@ describe("Target Builder Interface", () => {
         }
     });
 
-    it("should use buildTargets helper to convert string identifiers to targets", () => {
+    it("should use buildTargets helper to convert string identifiers to targets", async () => {
         const item1 = game.obtainCard("b2-blank_card") as ItemCard;
         const item2 = game.obtainCard("b2-dry_baby") as ItemCard;
         
@@ -123,7 +123,7 @@ describe("Target Builder Interface", () => {
         expect(Array.isArray(targets)).toBe(true);
     });
 
-    it("should convert various object types to string identifiers", () => {
+    it("should convert various object types to string identifiers", async () => {
         const card = game.obtainCard("b2-blank_card") as ItemCard;
 
         // Test card conversion - should return just the slug
@@ -139,7 +139,7 @@ describe("Target Builder Interface", () => {
         expect(stringIdentifiers[0]).toBe('test');
     });
 
-    it("should resolve identifiers back to objects", () => {
+    it("should resolve identifiers back to objects", async () => {
         const card = game.obtainCard("b2-blank_card") as ItemCard;
 
         // Resolve card - identifier is just the slug
@@ -155,7 +155,7 @@ describe("Target Builder Interface", () => {
         expect(resolvedString).toBe('test');
     });
 
-    it("should not leak information - only show next selector options", () => {
+    it("should not leak information - only show next selector options", async () => {
         // This test demonstrates the security aspect using a multi-selector effect
         const item = game.obtainCard("b2-blank_card") as ItemCard;
         game.addInPlay(player1, item);
@@ -171,7 +171,7 @@ describe("Target Builder Interface", () => {
         expect(Array.isArray(step1.options)).toBe(true);
     });
 
-    it("should handle effects with no selectors", () => {
+    it("should handle effects with no selectors", async () => {
         // Get an item with no selectors (e.g., "loot 1")
         const item = game.shop._slots.find(c => c && c.constructor.name === 'ItemCard') as ItemCard;
         if (!item) return; // Skip if no item
@@ -185,7 +185,7 @@ describe("Target Builder Interface", () => {
         expect(result.complete).toBe(true);
     });
 
-    it("should handle 'asMany' selectors correctly", () => {
+    it("should handle 'asMany' selectors correctly", async () => {
         // Find an effect with asMany=true (like "destroy any number of items")
         // For now, just verify the interface returns the asMany flag
         const item = game.obtainCard("b2-blank_card") as ItemCard;
@@ -198,7 +198,7 @@ describe("Target Builder Interface", () => {
         expect(typeof result.asMany).toBe('boolean');
     });
 
-    it("complete workflow: build targets step-by-step and activate item", () => {
+    it("complete workflow: build targets step-by-step and activate item", async () => {
         // Demonstrate complete client-server workflow
         const contractFromBelow = game.obtainCard("b2-contract_from_below") as ItemCard;
         const item1 = game.obtainCard("b2-blank_card") as ItemCard;
@@ -246,7 +246,7 @@ describe("Target Builder Interface", () => {
         }
     });
 
-    it("should handle chaos card choose-one - option 1: Kill a player or monster", () => {
+    it("should handle chaos card choose-one - option 1: Kill a player or monster", async () => {
         const chaosCard = game.obtainCard("b2-chaos_card") as ItemCard;
         game.addInPlay(player1, chaosCard);
         const chaosIndex = player1.inPlay.indexOf(chaosCard);
@@ -269,7 +269,7 @@ describe("Target Builder Interface", () => {
         }
     });
 
-    it("should handle chaos card choose-one - option 2: Destroy an item or soul", () => {
+    it("should handle chaos card choose-one - option 2: Destroy an item or soul", async () => {
         const chaosCard = game.obtainCard("b2-chaos_card") as ItemCard;
         const targetItem = game.obtainCard("b2-blank_card") as ItemCard;
         game.addInPlay(player1, chaosCard);
@@ -299,7 +299,7 @@ describe("Target Builder Interface", () => {
             const targets = TargetBuilder.buildTargets(game, player1, chaosIndex, [chosenOption, targetItem.slug]);
 
             game.activateItem(player1, chaosCard, targets);
-            game.resolveStack();
+            await game.resolveStack();
             // Verify the item was destroyed
             expect(player2.inPlay.find(i => i.slug === targetItem.slug)).toBeUndefined();
             expect(player1.inPlay.find(i => i.slug === chaosCard.slug)).toBeUndefined();
@@ -307,7 +307,7 @@ describe("Target Builder Interface", () => {
         }
     });
 
-    it("should handle b", () => {
+    it("should handle b", async () => {
     const bloodLust = player1.inPlay[1] as ItemCard;
     game.recharge(bloodLust)
 
@@ -328,7 +328,7 @@ describe("Target Builder Interface", () => {
         expect(step2.complete).toBe(true);
         const targets = TargetBuilder.buildTargets(game, player1, 1, [chosenOption]);
         game.activateItem(player1, bloodLust, targets);
-        game.resolveStack();
+        await game.resolveStack();
 
     }
     });

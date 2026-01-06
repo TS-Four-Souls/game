@@ -25,7 +25,7 @@ describe("Before start effects", () => {
         game.setupGame();
     });
 
-    it("Cain plays first", () => {
+    it("Cain plays first", async () => {
         const cain = game.decks["character"]!.getCardFromSlug("b2-cain")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [isaac, cain]);
@@ -34,10 +34,12 @@ describe("Before start effects", () => {
             expect(game.currentPlayer).toBe(player2);
     });
 
-    it("Eden gets a treasure and set it eternal", () => {
+    it("Eden gets a treasure and set it eternal", async () => {
         const eden = game.decks["character"]!.getCardFromSlug("b2-eden")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         game.start(player1, [isaac, eden]);
+        // Wait for async event handlers to complete
+        await new Promise(resolve => setTimeout(resolve, 10));
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
             expect(player2.inPlay[0]!.slug).toBe("b2-eden");
@@ -47,7 +49,7 @@ describe("Before start effects", () => {
         expect(player2.inPlay[1]! instanceof treasureCard).toBe(true);
     });
 
-    it("Character card activation gives a loot play (random characters)", () => {
+    it("Character card activation gives a loot play (random characters)", async () => {
         // const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         // const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         expect(game.players.length).toBe(2);
@@ -63,21 +65,21 @@ describe("Before start effects", () => {
         const initialLootPlays2 = player2.remainingLootPlay;
         character1.recharge();
         game.activateItem(player1, character1, );
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
         expect(player1.remainingLootPlay).toBe(initialLootPlays1 + 1);
         game.activateItem(player1, character1, ); // uncharged tap should do nothing
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
         expect(player1.remainingLootPlay).toBe(initialLootPlays1 + 1);
         character2.recharge();
         game.activateItem(player2, character2, );
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
         expect(player2.remainingLootPlay).toBe(initialLootPlays2 + 1);
 
         game.endTurn();
-        game.resolveStack();
+        await game.resolveStack();
 
         // Ensure the loot play resets at the start of the turn
         expect(game.players.filter(p => p.id !== game.currentPlayer.id)[0]!.remainingLootPlay).toBe(0);
@@ -105,7 +107,7 @@ describe("Bonus Soul effects", () => {
       emptyHands(game);
         });
 
-    it("Greed", () => {
+    it("Greed", async () => {
         const initSoul = player1.totalSouls;
         game.gainCoins(player1, 24);
         expect(player1.coins).toBe(24);
@@ -122,7 +124,7 @@ describe("Bonus Soul effects", () => {
         expect(player2.totalSouls).toBe(player2souls);
     });
 
-    it("Gluttony", () => {
+    it("Gluttony", async () => {
         const initSoul = player1.totalSouls;
         game.loot(player1, 9);
         expect(player1.totalSouls).toBe(initSoul);
@@ -137,7 +139,7 @@ describe("Bonus Soul effects", () => {
         expect(player2.totalSouls).toBe(player2souls);
     });
 
-    it("Guppy combination 1", () => {
+    it("Guppy combination 1", async () => {
         const initSoul = player1.totalSouls;
         const guppyItem1 = game.shop.obtainCard("b2-guppys_head");
         const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
@@ -157,7 +159,7 @@ describe("Bonus Soul effects", () => {
 
     });
 
-    it("Guppy combination 2", () => {
+    it("Guppy combination 2", async () => {
         const initSoul = player1.totalSouls;
         const guppyItem1 = game.shop.obtainCard("b2-guppys_paw")
         const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
@@ -169,7 +171,7 @@ describe("Bonus Soul effects", () => {
         expect(player1.totalSouls).toBe(initSoul + 1);
     });
 
-    it("Guppy combination 3", () => {
+    it("Guppy combination 3", async () => {
         const initSoul = player1.totalSouls;
         const guppyItem1 = game.decks["loot"]!.getCardFromSlug("b2-guppys_hairball");
         const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
@@ -177,7 +179,7 @@ describe("Bonus Soul effects", () => {
             throw new Error("Guppy items not found in treasure deck");
         player1.hand.addToHand(guppyItem1);
         game.playCard(player1, 0); // Play guppy's hairball
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.totalSouls).toBe(initSoul);
         game.addInPlay(player1, guppyItem2);
         expect(player1.totalSouls).toBe(initSoul + 1);

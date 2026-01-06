@@ -24,7 +24,7 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
     });
 
     // b2-chest: Roll- 1-2: Gain 1¢. 3-4: Gain 3¢. 5-6: Gain 6¢.
-    it("chest - roll 1: gain 1¢", () => {
+    it("chest - roll 1: gain 1¢", async () => {
         const chest = game.obtainCard("b2-chest") as MonsterCard;
         game.decks["monster"]!.addTopPosition(chest);
         
@@ -33,132 +33,132 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         // Discard existing monster and draw the chest event
         game.monsterSlots.discardTop(0);
         expect(game.stack.size).toBe(1);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
         
         const dice = game.stack.elements[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 1;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 1);
     });
 
-    it("chest - roll 3: gain 3¢", () => {
+    it("chest - roll 3: gain 3¢", async () => {
         const chest = game.obtainCard("b2-chest") as MonsterCard;
         game.decks["monster"]!.addTopPosition(chest);
         
         const initialCoins = player1.coins;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 3);
     });
 
-    it("chest - roll 6: gain 6¢", () => {
+    it("chest - roll 6: gain 6¢", async () => {
         const chest = game.obtainCard("b2-chest") as MonsterCard;
         game.decks["monster"]!.addTopPosition(chest);
         
         const initialCoins = player1.coins;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 6);
     });
 
     // b2-chest_2: Roll- 1-2: Loot 1. 3-4: Loot 2. 5-6: Loot 3.
-    it("chest_2 - roll 1: loot 1", () => {
+    it("chest_2 - roll 1: loot 1", async () => {
         const chest2 = game.obtainCard("b2-chest_2") as MonsterCard;
         game.decks["monster"]!.addTopPosition(chest2);
         
         const initialHandSize = player1.hand.length;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.hand.length).toBe(initialHandSize + 1);
     });
 
-    it("chest_2 - roll 4: loot 2", () => {
+    it("chest_2 - roll 4: loot 2", async () => {
         const chest2 = game.obtainCard("b2-chest_2") as MonsterCard;
         game.decks["monster"]!.addTopPosition(chest2);
         
         const initialHandSize = player1.hand.length;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.hand.length).toBe(initialHandSize + 2);
     });
 
-    it("chest_2 - roll 6: loot 3", () => {
+    it("chest_2 - roll 6: loot 3", async () => {
         const chest2 = game.obtainCard("b2-chest_2") as MonsterCard;
         game.decks["monster"]!.addTopPosition(chest2);
         
         const initialHandSize = player1.hand.length;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.hand.length).toBe(initialHandSize + 3);
     });
 
     // b2-cursed_chest: Roll- 1-3: Take 1 Damage. 4-5: Take 2 Damage. 6: Search the treasure deck for a Guppy item, gain it, then shuffle the treasure deck.
-    it("cursed_chest - roll 2: take 1 damage", () => {
+    it("cursed_chest - roll 2: take 1 damage", async () => {
         const cursedChest = game.obtainCard("b2-cursed_chest") as MonsterCard;
         game.decks["monster"]!.addTopPosition(cursedChest);
         
         const initialHP = player1.currentHealthPoints;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
         
-        game.resolveStack();
-        game.resolveStack(); // damage resolution
+        await game.resolveStack();
+        await game.resolveStack(); // damage resolution
         expect(player1.currentHealthPoints).toBe(initialHP - 1);
     });
 
-    it("cursed_chest - roll 5: take 2 damage", () => {
+    it("cursed_chest - roll 5: take 2 damage", async () => {
         const cursedChest = game.obtainCard("b2-cursed_chest") as MonsterCard;
         game.decks["monster"]!.addTopPosition(cursedChest);
         
         const initialHP = player1.currentHealthPoints;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5;
         
-        game.resolveStack();
-        game.resolveStack(); // damage resolution
+        await game.resolveStack();
+        await game.resolveStack(); // damage resolution
         expect(player1.currentHealthPoints).toBe(initialHP - 2);
     });
 
-    it("cursed_chest - roll 6: search for guppy item", () => {
+    it("cursed_chest - roll 6: search for guppy item", async () => {
         const cursedChest = game.obtainCard("b2-cursed_chest") as MonsterCard;
         game.decks["monster"]!.addTopPosition(cursedChest);
         
@@ -169,119 +169,119 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialTreasures = player1.inPlay.filter(c => c instanceof treasureCard).length;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.inPlay.filter(c => c instanceof treasureCard).length).toBe(initialTreasures + 1);
         expect(player1.inPlay.find(c => c.slug === "b2-guppys_head")).toBeDefined();
         // Search the treasure deck for a Guppy item, gain it, then shuffle the treasure deck.
     });
 
     // b2-dark_chest: Roll- 1-2: Loot 1. 3-4: Gain 3¢. 5-6: Take 2 damage.
-    it("dark_chest - roll 2: loot 1", () => {
+    it("dark_chest - roll 2: loot 1", async () => {
         const darkChest = game.obtainCard("b2-dark_chest") as MonsterCard;
         game.decks["monster"]!.addTopPosition(darkChest);
         
         const initialHandSize = player1.hand.length;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.hand.length).toBe(initialHandSize + 1);
     });
 
-    it("dark_chest - roll 4: gain 3¢", () => {
+    it("dark_chest - roll 4: gain 3¢", async () => {
         const darkChest = game.obtainCard("b2-dark_chest") as MonsterCard;
         game.decks["monster"]!.addTopPosition(darkChest);
         
         const initialCoins = player1.coins;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 3);
     });
 
-    it("dark_chest - roll 6: take 2 damage", () => {
+    it("dark_chest - roll 6: take 2 damage", async () => {
         const darkChest = game.obtainCard("b2-dark_chest") as MonsterCard;
         game.decks["monster"]!.addTopPosition(darkChest);
         
         const initialHP = player1.currentHealthPoints;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
         
-        game.resolveStack();
-        game.resolveStack(); // damage resolution
+        await game.resolveStack();
+        await game.resolveStack(); // damage resolution
         expect(player1.currentHealthPoints).toBe(initialHP - 2);
     });
 
     // b2-dark_chest_2: Roll- 1-2: Gain 1¢. 3-4: Loot 2. 5-6: Take 2 damage.
-    it("dark_chest_2 - roll 1: gain 1¢", () => {
+    it("dark_chest_2 - roll 1: gain 1¢", async () => {
         const darkChest2 = game.obtainCard("b2-dark_chest_2") as MonsterCard;
         game.decks["monster"]!.addTopPosition(darkChest2);
         
         const initialCoins = player1.coins;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 1);
     });
 
-    it("dark_chest_2 - roll 3: loot 2", () => {
+    it("dark_chest_2 - roll 3: loot 2", async () => {
         const darkChest2 = game.obtainCard("b2-dark_chest_2") as MonsterCard;
         game.decks["monster"]!.addTopPosition(darkChest2);
         
         const initialHandSize = player1.hand.length;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.hand.length).toBe(initialHandSize + 2);
     });
 
-    it("dark_chest_2 - roll 5: take 2 damage", () => {
+    it("dark_chest_2 - roll 5: take 2 damage", async () => {
         const darkChest2 = game.obtainCard("b2-dark_chest_2") as MonsterCard;
         game.decks["monster"]!.addTopPosition(darkChest2);
         
         const initialHP = player1.currentHealthPoints;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5;
         
-        game.resolveStack();
-        game.resolveStack(); // damage resolution
+        await game.resolveStack();
+        await game.resolveStack(); // damage resolution
         expect(player1.currentHealthPoints).toBe(initialHP - 2);
     });
 
     // b2-gold_chest: Roll- 1-2: Gain +1 Treasure. 3-4: Gain 5¢. 5-6: Gain 7¢.
-    it("gold_chest - roll 2: gain +1 treasure", () => {
+    it("gold_chest - roll 2: gain +1 treasure", async () => {
         const goldChest = game.obtainCard("b2-gold_chest") as MonsterCard;
         game.decks["monster"]!.addTopPosition(goldChest);
         
@@ -289,50 +289,50 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialTreasures = player1.inPlay.filter(c => c instanceof treasureCard).length;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.inPlay.filter(c => c instanceof treasureCard).length).toBe(initialTreasures + 1);
         expect(player1.inPlay).toContain(topTreasure);
     });
 
-    it("gold_chest - roll 3: gain 5¢", () => {
+    it("gold_chest - roll 3: gain 5¢", async () => {
         const goldChest = game.obtainCard("b2-gold_chest") as MonsterCard;
         game.decks["monster"]!.addTopPosition(goldChest);
         
         const initialCoins = player1.coins;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 5);
     });
 
-    it("gold_chest - roll 6: gain 7¢", () => {
+    it("gold_chest - roll 6: gain 7¢", async () => {
         const goldChest = game.obtainCard("b2-gold_chest") as MonsterCard;
         game.decks["monster"]!.addTopPosition(goldChest);
         
         const initialCoins = player1.coins;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 7);
     });
 
     // b2-gold_chest_2: Roll- 1-2: Gain +1 Treasure. 3-4: Loot 1. 5-6: Loot 2.
-    it("gold_chest_2 - roll 1: gain +1 treasure", () => {
+    it("gold_chest_2 - roll 1: gain +1 treasure", async () => {
         const goldChest2 = game.obtainCard("b2-gold_chest_2") as MonsterCard;
         game.decks["monster"]!.addTopPosition(goldChest2);
         
@@ -340,67 +340,67 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialTreasures = player1.inPlay.filter(c => c instanceof treasureCard).length;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.inPlay.filter(c => c instanceof treasureCard).length).toBe(initialTreasures + 1);
         expect(player1.inPlay).toContain(topTreasure);
     });
 
-    it("gold_chest_2 - roll 4: loot 1", () => {
+    it("gold_chest_2 - roll 4: loot 1", async () => {
         const goldChest2 = game.obtainCard("b2-gold_chest_2") as MonsterCard;
         game.decks["monster"]!.addTopPosition(goldChest2);
         
         const initialHandSize = player1.hand.length;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.hand.length).toBe(initialHandSize + 1);
     });
 
-    it("gold_chest_2 - roll 5: loot 2", () => {
+    it("gold_chest_2 - roll 5: loot 2", async () => {
         const goldChest2 = game.obtainCard("b2-gold_chest_2") as MonsterCard;
         game.decks["monster"]!.addTopPosition(goldChest2);
         
         const initialHandSize = player1.hand.length;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.hand.length).toBe(initialHandSize + 2);
     });
 
     // b2-secret_room: Roll- 1: Take 3 damage. 2-3: Discard 2 loot cards. 4-5: Gain 7¢. 6: Gain +1 Treasure.
-    it("secret_room - roll 1: take 3 damage", () => {
+    it("secret_room - roll 1: take 3 damage", async () => {
         const secretRoom = game.obtainCard("b2-secret_room") as MonsterCard;
         game.decks["monster"]!.addTopPosition(secretRoom);
         game.addHealth(player1, 5); // Ensure player has enough health to take damage
         const initialHP = player1.currentHealthPoints;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
         
-        game.resolveStack();
-        game.resolveStack(); // damage resolution
+        await game.resolveStack();
+        await game.resolveStack(); // damage resolution
         expect(player1.currentHealthPoints).toBe(initialHP - 3);
     });
 
-    it("secret_room - roll 2: discard 2 loot cards", () => {
+    it("secret_room - roll 2: discard 2 loot cards", async () => {
         const secretRoom = game.obtainCard("b2-secret_room") as MonsterCard;
         game.decks["monster"]!.addTopPosition(secretRoom);
         
@@ -409,34 +409,34 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialHandSize = player1.hand.length;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
         
-        game.resolveStack();
-        game.resolveStack(); // discard resolution
+        await game.resolveStack();
+        await game.resolveStack(); // discard resolution
         
         expect(player1.hand.length).toBe(initialHandSize - 2);
     });
 
-    it("secret_room - roll 4: gain 7¢", () => {
+    it("secret_room - roll 4: gain 7¢", async () => {
         const secretRoom = game.obtainCard("b2-secret_room") as MonsterCard;
         game.decks["monster"]!.addTopPosition(secretRoom);
         
         const initialCoins = player1.coins;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 7);
     });
 
-    it("secret_room - roll 6: gain +1 treasure", () => {
+    it("secret_room - roll 6: gain +1 treasure", async () => {
         const secretRoom = game.obtainCard("b2-secret_room") as MonsterCard;
         game.decks["monster"]!.addTopPosition(secretRoom);
         
@@ -444,12 +444,12 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialTreasures = player1.inPlay.filter(c => c instanceof treasureCard).length;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
         
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.inPlay.filter(c => c instanceof treasureCard).length).toBe(initialTreasures + 1);
         expect(player1.inPlay).toContain(topTreasure);
     });
@@ -484,32 +484,32 @@ describe("Event Monsters - Expansion Effects", () => {
     });
 
     // b2-xl_floor: Expand monster slots by 1
-    it("xl_floor - expands monster slots by 1", () => {
+    it("xl_floor - expands monster slots by 1", async () => {
         const xlFloor = game.obtainCard("b2-xl_floor") as MonsterCard;
         game.decks["monster"]!.addTopPosition(xlFloor);
         
         const initialMonsterSlots = game.monsterSlots.slots.length;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
         
         expect(game.monsterSlots.slots.length).toBe(initialMonsterSlots + 1);
     });
 
     // b2-shop_upgrade: Expand shop slots by 2
-    it("shop_upgrade - expands shop slots by 2", () => {
+    it("shop_upgrade - expands shop slots by 2", async () => {
         const shopUpgrade = game.obtainCard("b2-shop_upgrade") as MonsterCard;
         game.decks["monster"]!.addTopPosition(shopUpgrade);
         
         const initialShopSlots = game.shop._slots.length;
         
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
         expect(game.shop._slots.length).toBe(initialShopSlots + 2);
     });
 
     // b2-mom: When this dies, expand monsters slots by 1
-    it("mom - expands monster slots by 1 when dies", () => {
+    it("mom - expands monster slots by 1 when dies", async () => {
         const mom = game.obtainCard("b2-mom") as MonsterCard;
         game.monsterSlots.forceSetMonsterAtSlot(0, mom);
         
@@ -518,14 +518,14 @@ describe("Event Monsters - Expansion Effects", () => {
         
         // Kill the monster
         game.kill(player1, monster, mom);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
         
         expect(game.monsterSlots._slots.length).toBe(initialMonsterSlots + 1);
     });
 
     // b2-mulligan: When this dies, expand monster slots by 1
-    it("mulligan - expands monster slots by 1 when dies", () => {
+    it("mulligan - expands monster slots by 1 when dies", async () => {
         const mulligan = game.obtainCard("b2-mulligan") as MonsterCard;
         game.monsterSlots.forceSetMonsterAtSlot(0, mulligan);
         
@@ -534,14 +534,14 @@ describe("Event Monsters - Expansion Effects", () => {
         
         // Kill the monster
         game.kill(player1, monster, mulligan);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
         
         expect(game.monsterSlots.slots.length).toBe(initialMonsterSlots + 1);
     });
 
     // b2-hanger: When this dies, expand shop slots by 1
-    it("hanger - expands shop slots by 1 when dies", () => {
+    it("hanger - expands shop slots by 1 when dies", async () => {
         const hanger = game.obtainCard("b2-hanger") as MonsterCard;
         game.monsterSlots.forceSetMonsterAtSlot(0, hanger);
         
@@ -550,8 +550,8 @@ describe("Event Monsters - Expansion Effects", () => {
         
         // Kill the monster
         game.kill(player1, monster, hanger);
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
         
         expect(game.shop._slots.length).toBe(initialShopSlots + 1);
     });
@@ -586,7 +586,7 @@ describe("Event Monsters - Curse Effects", () => {
     });
 
     // b2-curse_of_amnesia: At the end of your turn, discard 2 loot cards
-    it("curse_of_amnesia - discard 2 loot cards at end of turn", () => {
+    it("curse_of_amnesia - discard 2 loot cards at end of turn", async () => {
         const curseOfAmnesia = game.obtainCard("b2-curse_of_amnesia") as MonsterCard;
         game.decks["monster"]!.addTopPosition(curseOfAmnesia);
         
@@ -596,18 +596,18 @@ describe("Event Monsters - Curse Effects", () => {
         
         // Draw the curse to trigger its effect
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
         
         // End player's turn to trigger curse effect
         game.endTurn();
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
         
         expect(player1.hand.length).toBe(initialHandSize - 2);
     });
 
     // b2-curse_of_greed: At the end of your turn, lose 4¢
-    it("curse_of_greed - lose 4¢ at end of turn", () => {
+    it("curse_of_greed - lose 4¢ at end of turn", async () => {
         const curseOfGreed = game.obtainCard("b2-curse_of_greed") as MonsterCard;
         game.decks["monster"]!.addTopPosition(curseOfGreed);
         
@@ -617,17 +617,17 @@ describe("Event Monsters - Curse Effects", () => {
         
         // Draw the curse to trigger its effect
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
         
         // End player's turn to trigger curse effect
         game.endTurn();
-        game.resolveStack();
+        await game.resolveStack();
         
         expect(player1.coins).toBe(initialCoins - 4);
     });
 
     // b2-curse_of_loss: When you die, destroy a soul you control
-    it("curse_of_loss - destroy a soul when you die", () => {
+    it("curse_of_loss - destroy a soul when you die", async () => {
         const curseOfLoss = game.obtainCard("b2-curse_of_loss") as MonsterCard;
         game.decks["monster"]!.addTopPosition(curseOfLoss);
         
@@ -639,20 +639,20 @@ describe("Event Monsters - Curse Effects", () => {
         
         // Draw the curse
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
         
         // Kill the player
         game.kill(player1, player1, curseOfLoss);
-        game.resolveStack(); // death resolution
+        await game.resolveStack(); // death resolution
         const effect = game.stack._stack[0] as EffectOnStack ;
         effect.targets = [soulCard]; // Choose soul to destroy
-        game.resolveStack(); // curse effect resolution
+        await game.resolveStack(); // curse effect resolution
         
         expect(player1.souls.length).toBe(initialSouls - 1);
     });
 
     // b2-curse_of_pain: At the start of your turn, take 1 damage
-    it("curse_of_pain - take 1 damage at start of turn", () => {
+    it("curse_of_pain - take 1 damage at start of turn", async () => {
         const curseOfPain = game.obtainCard("b2-curse_of_pain") as MonsterCard;
         game.decks["monster"]!.addTopPosition(curseOfPain);
         
@@ -660,22 +660,22 @@ describe("Event Monsters - Curse Effects", () => {
         
         // Draw the curse
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
         
         // Start next turn to trigger curse effect
         game.endTurn();
-        game.resolveStack();
+        await game.resolveStack();
         expect(player1.currentHealthPoints).toBe(initialHP );
         game.endTurn();
-        game.resolveStack();
-        game.resolveStack();
-        game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
         
         expect(player1.currentHealthPoints).toBe(initialHP - 1);
     });
 
     // b2-curse_of_the_blind: Monsters have +1 [DC] on your turn
-    it("curse_of_the_blind - monsters have +1 DC on your turn", () => {
+    it("curse_of_the_blind - monsters have +1 DC on your turn", async () => {
         const curseOfTheBlind = game.obtainCard("b2-curse_of_the_blind") as MonsterCard;
         game.decks["monster"]!.addTopPosition(curseOfTheBlind);
         
@@ -685,7 +685,7 @@ describe("Event Monsters - Curse Effects", () => {
         
         // Draw the curse
         game.monsterSlots.discardTop(0);
-        game.resolveStack(); // resolve the event addition
+        await game.resolveStack(); // resolve the event addition
         
         // Check DC during player1's turn
         const currentDC = fly.evasion;

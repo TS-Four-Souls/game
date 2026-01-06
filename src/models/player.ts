@@ -541,9 +541,9 @@ export class DiceRoll {
     this._card = card;
     this._targets = targets;
   }
-  onResolve(): void {
+  async onResolve(): Promise<void> {
     if (this._effect?.length === 6) {
-      this._effect[this._value - 1]!(new EffectData(this._card!, this._issuer, this._targets));
+      await this._effect[this._value - 1]!(new EffectData(this._card!, this._issuer, this._targets));
     }
   }
 }
@@ -578,10 +578,10 @@ export class DamageOnStack {
     this._targets = targets;
   }
 
-  onResolve(): void {
+  async onResolve(): Promise<void> {
     this.game.resolveDamage(this.from, this.receiver, this._card, this.damage[0]!);
     if(this._effect) {
-      this._effect(new EffectData(this._card, this.from as Player, [this, this._targets]));
+      await this._effect(new EffectData(this._card, this.from as Player, [this, this._targets]));
     }
   }
   get json(): string {
@@ -608,7 +608,7 @@ export class DeathOnStack {
     this.game = game;
   }
 
-  onResolve(): void {
+  async onResolve(): Promise<void> {
     this.game.resolveDeath(this.receiver, this.from, this.usingAbilityFrom);
   }
 
