@@ -4,7 +4,6 @@ import { DiceRoll, Player } from "../models/player";
 import { pl } from "zod/locales";
 import type { LootCard, ItemCard } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
-import { type ChooseOneResult } from "@/models/effectParser";
 import { setupStandardTestGame, dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "./testHelpers";
 
 describe("Loot Card", () => {
@@ -1054,7 +1053,7 @@ describe("Loot Card", () => {
         const beforeHp = player1.currentHealthPoints;
         const beforeCoins = player1.coins;
 
-        const debugTarget: ChooseOneResult[] = [{ description: "take 1 damage and gain 4\u00A2.", chosenOptions: [] }];
+        const debugTarget = ["Take 1 damage and gain 4¢."];
         game.playCard(player1, 0, debugTarget);
         await game.resolveStack();
         await game.resolveStack();
@@ -1279,11 +1278,11 @@ describe("Loot Card", () => {
         // player1 takes damage - should NOT be prevented (shield is on player2)
         const initialP1HP = player1.currentHealthPoints;
         game.dealDamage(player2, player1, dummyCard, 2);
-await game.resolveStack();
+        await game.resolveStack();
         expect(player1.currentHealthPoints).toBe(initialP1HP - 2); // Full damage taken
 
         game.dealDamage(player2, player2, dummyCard, 2);
-await game.resolveStack();
+        await game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialP1HP - 1); // Full damage taken
     });
 
@@ -1393,7 +1392,7 @@ await game.resolveStack();
         // console.log("Player1 in play before: ", player1.inPlay);
         player1.hand.addToHand(dagaz!);
 
-        const debugTarget: ChooseOneResult[] = [{ description: "destroy a curse.", chosenOptions: [curses[0]!] }];
+        const debugTarget = ["Destroy a curse.", curses[0]!];
         // console.log("debugTarget: ", debugTarget);
         // console.log("curse: ", curses[0]!);
         game.playCard(player1, 0, debugTarget);
@@ -1414,7 +1413,7 @@ await game.resolveStack();
         // console.log("Player1 in play before: ", player1.inPlay);
         player1.hand.addToHand(dagaz!);
 
-        const debugTarget: ChooseOneResult[] = [{ description: "destroy a curse.", chosenOptions: [curses[1]!] }];
+        const debugTarget = ["Destroy a curse.", curses[1]!];
         // console.log("debugTarget: ", debugTarget);
         // console.log("curse: ", curses[0]!);
         game.playCard(player1, 0, debugTarget);
@@ -1437,7 +1436,7 @@ await game.resolveStack();
         player1.inPlay.push(curses[1]!);
         player1.hand.addToHand(dagaz!);
 
-        const debugTarget: ChooseOneResult[] = [{ description: "destroy a curse.", chosenOptions: [curses[2]!] }];
+        const debugTarget = ["Destroy a curse.", curses[2]!];
         // console.log("debugTarget: ", debugTarget);
         // console.log("curse: ", curses[0]!);
         game.playCard(player1, 0, debugTarget);
@@ -1455,7 +1454,7 @@ await game.resolveStack();
         player1.hand.addToHand(dagaz!);
 
         const initialHP = player2.currentHealthPoints;
-        const debugTarget: ChooseOneResult[] = [{ description: "choose a player. prevent the next 1 damage they would take this turn.", chosenOptions: [player2] }];
+        const debugTarget = ["Choose a player. Prevent the next 1 damage they would take this turn.", player2];
         game.playCard(player1, 0, debugTarget);
         await game.resolveStack();
 

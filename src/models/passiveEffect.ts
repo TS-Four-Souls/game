@@ -32,7 +32,10 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): EffectF
 
         // Listen for the next damage event on this player
         offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
-            const target = data.targets.length > 0 ? data.peek() : data.issuer;
+            let target = data.peek();
+            if(data.targets.length == 0)
+                target = data.issuer;
+            // const target = data.targets.length > 0 ? data.peek() : data.issuer;
             if (target !== eventIssuer) return;
             const current = damageArray[0] ?? 0;
             if( current <= 0) return;
@@ -481,7 +484,9 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): Effec
             // Create the effect that will execute when the stack resolves
             const effect = async (effectData: EffectData) => {
                 if (!(effectData.issuer instanceof Player)) return false;
-                const newTargets = await game.select(effectData.issuer, 1, card.getTargetSelectors!(effectData.issuer, game), false);
+                let newTargets = { selected: [] as Card[] };
+                if(card.getTargetSelectors!(effectData.issuer, game).length > 0)
+                    newTargets = await game.select(effectData.issuer, 1, card.getTargetSelectors!(effectData.issuer, game), false);
                 const resolveFunction = card.onPlay(eventIssuer, newTargets.selected);
                 const lootCardEffect = new LootCardEffect(card, resolveFunction);
                 game.addToStack(lootCardEffect);

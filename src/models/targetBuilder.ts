@@ -3,7 +3,6 @@ import type { Player } from "./player";
 import { Card, ItemCard, type TargetsSelector } from "./cards";
 import { isChooseOneOptions, type ChooseOneOptions } from "./targetSelector";
 import { isStackElement } from "./stack";
-import { isChooseOneResult, type ChooseOneResult } from "./effectParser";
 /**
  * Represents the server's response when building targets progressively
  */
@@ -66,6 +65,7 @@ export class TargetBuilder {
         effectId: number | "tap" = "tap",
         lootCard: boolean = false
     ): TargetSelectorResponse {
+        game.assertNoPendingSelection();
         // Get all target selectors for this effect
         const item: ItemCard = lootCard ? player.hand.cards[itemIndex] as ItemCard : player.inPlay[itemIndex] as ItemCard;
         if(!item)
@@ -200,10 +200,6 @@ export class TargetBuilder {
                 return option.id;
             }
 
-            if (isChooseOneResult(option)) {
-                return `${option.description} => ${TargetBuilder.convertToStringIdentifiers(option.chosenOptions)}`;
-            }
-
             // Handle Stack Elements
             if (isStackElement(option)) {
                 // console.log("Stack element json:", JSON.stringify(option.json));
@@ -329,6 +325,7 @@ export class TargetBuilder {
         effectId: number | "tap" = "tap",
         lootCard: boolean = false
     ): any[] {
+        game.assertNoPendingSelection();
                 const item: ItemCard = lootCard ? player.hand.cards[itemIndex] as ItemCard : player.inPlay[itemIndex] as ItemCard;
         if(!item)
             throw new Error(`Item at index ${itemIndex} not found.`);
@@ -369,12 +366,8 @@ export class TargetBuilder {
                     choiceIndex++;
                 }
 
-                // Create ChooseOneResult object
-                const chooseOneResult: ChooseOneResult = {
-                    description: chosenOption.description,
-                    chosenOptions: chosenTargets
-                };
-                result.push(chooseOneResult);
+                // Push description and spread targets into flat array
+                result.push(chosenOption.description, ...chosenTargets);
             } else {
                 // Regular selector - collect count targets
                 for (let i = 0; i < selector.count && choiceIndex < partialChoices.length; i++) {

@@ -101,7 +101,7 @@ describe("Treasure - with counters effect", () => {
         game.addHealth(monster, 20);
 
         // First attack roll of the turn
-        game.attackRoll(player1);
+        game.attackRoll(player2);
         const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll1).toBeDefined();
         if (attackRoll1) {

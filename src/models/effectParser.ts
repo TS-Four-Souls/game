@@ -130,14 +130,6 @@ export function parseText(text: string, re: RegExp): string {
     return m ? m[1]! : "";
 }
 
-export type ChooseOneResult = {
-    description: string;
-    chosenOptions: any[];
-};
-
-export const isChooseOneResult = (x: any): x is ChooseOneResult => {
-    return typeof x === 'object' && x !== null && 'description' in x && 'chosenOptions' in x;
-};
 
 export function parseEachTimeRollEffect(s: string, game: Game): ParsedEffect {
     let rollMatch = s.match(/^each time a player rolls a (\d),? they /u);

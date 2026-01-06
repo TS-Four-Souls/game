@@ -3,7 +3,6 @@ import { Game } from "../../models/game";
 import { DiceRoll, Player } from "../../models/player";
 import { CharacterCard, ItemCard, treasureCard, MonsterCard } from "@/models/cards";
 import { Monster } from "@/models/monster";
-import type { ChooseOneResult } from "@/models/effectParser";
 import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
 
 describe("b2-placebo - copies tap ability of non-eternal item", () => {

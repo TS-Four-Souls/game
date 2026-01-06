@@ -291,23 +291,23 @@ const app = new Elysia()
   //     body: schemas.activateRequest,
   //   }
   // )
-  .post(
-    "/rolldice",
-    async (request) => {
-      return new Response(
-        game.rollDice(request.body.issuer, false).json.toString(),
-        {
-          status: 200,
-          headers: {
-            "Access-Control-Allow-Origin": "*",
-          },
-        }
-      );
-    },
-    {
-      body: schemas.userProtectedRequest,
-    }
-  )
+  // .post(
+  //   "/rolldice",
+  //   async (request) => {
+  //     return new Response(
+  //       game.rollDice(request.body.issuer, false).json.toString(),
+  //       {
+  //         status: 200,
+  //         headers: {
+  //           "Access-Control-Allow-Origin": "*",
+  //         },
+  //       }
+  //     );
+  //   },
+  //   {
+  //     body: schemas.userProtectedRequest,
+  //   }
+  // )
   // .post(
   //   "/gethand",
   //   async (request) => {
@@ -322,20 +322,20 @@ const app = new Elysia()
   //     body: schemas.userProtectedRequest,
   //   }
   // )
-  .post(
-    "/discardloot",
-    async (request) => {
-      return new Response(
-        game.discardFromHand(request.body.issuer, request.body.position),
-        {
-          status: 200,
-        }
-      );
-    },
-    {
-      body: schemas.discardLootRequest,
-    }
-  )
+  // .post(
+  //   "/discardloot",
+  //   async (request) => {
+  //     return new Response(
+  //       game.discardFromHand(request.body.issuer, request.body.position),
+  //       {
+  //         status: 200,
+  //       }
+  //     );
+  //   },
+  //   {
+  //     body: schemas.discardLootRequest,
+  //   }
+  // )
   .post(
     "/gaintreasure",
     async (request) => {
@@ -350,48 +350,48 @@ const app = new Elysia()
       body: schemas.userProtectedRequest,
     }
   )
-  .post(
-    "/discardmonster",
-    async (request) => {
-      return new Response(
-        game.discardMonster(request.body.issuer, request.body.index),
-        {
-          status: 200,
-        }
-      );
-    },
-    {
-      body: schemas.discardMonsterRequest,
-    }
-  )
-  .post(
-    "/killmonster",
-    async (request) => {
-      return new Response(
-        game.killMonster(request.body.issuer, request.body.index),
-        {
-          status: 200,
-        }
-      );
-    },
-    {
-      body: schemas.killMonsterRequest,
-    }
-  )
-  .post(
-    "/discardinplay",
-    async (request) => {
-      return new Response(
-        game.discardInPlay(request.body.issuer, request.body.index),
-        {
-          status: 200,
-        }
-      );
-    },
-    {
-      body: schemas.discardInPlayRequest,
-    }
-  )
+  // .post(
+  //   "/discardmonster",
+  //   async (request) => {
+  //     return new Response(
+  //       game.discardMonster(request.body.issuer, request.body.index),
+  //       {
+  //         status: 200,
+  //       }
+  //     );
+  //   },
+  //   {
+  //     body: schemas.discardMonsterRequest,
+  //   }
+  // )
+  // .post(
+  //   "/killmonster",
+  //   async (request) => {
+  //     return new Response(
+  //       game.killMonster(request.body.issuer, request.body.index),
+  //       {
+  //         status: 200,
+  //       }
+  //     );
+  //   },
+  //   {
+  //     body: schemas.killMonsterRequest,
+  //   }
+  // )
+  // .post(
+  //   "/discardinplay",
+  //   async (request) => {
+  //     return new Response(
+  //       game.discardInPlay(request.body.issuer, request.body.index),
+  //       {
+  //         status: 200,
+  //       }
+  //     );
+  //   },
+  //   {
+  //     body: schemas.discardInPlayRequest,
+  //   }
+  // )
   .get("/images/:slug/front", (request) => {
     const slug = request.params.slug;
     const card = cards.find((card) => card.slug === slug);
@@ -425,36 +425,36 @@ const app = new Elysia()
       body: schemas.userProtectedRequest,
     }
   )
-  .post(
-    "/inplay",
-    async (request) => {
-      return new Response(game.getInPlay(request.body.issuer), {
-        status: 200,
-      });
-    },
-    {
-      body: schemas.userProtectedRequest,
-    }
-  )
-  .post(
-    "/losecoins",
-    async (request) => {
-      return new Response(
-        "" +
-          game.loseCoins(
-            request.body.issuer,
-            request.body.coins,
-            request.body.asMany
-          ),
-        {
-          status: 200,
-        }
-      );
-    },
-    {
-      body: schemas.loseCoinsRequest,
-    }
-  )
+  // .post(
+  //   "/inplay",
+  //   async (request) => {
+  //     return new Response(game.getInPlay(request.body.issuer), {
+  //       status: 200,
+  //     });
+  //   },
+  //   {
+  //     body: schemas.userProtectedRequest,
+  //   }
+  // )
+  // .post(
+  //   "/losecoins",
+  //   async (request) => {
+  //     return new Response(
+  //       "" +
+  //         game.loseCoins(
+  //           request.body.issuer,
+  //           request.body.coins,
+  //           request.body.asMany
+  //         ),
+  //       {
+  //         status: 200,
+  //       }
+  //     );
+  //   },
+  //   {
+  //     body: schemas.loseCoinsRequest,
+  //   }
+  // )
   .post(
     "/endturn",
     async (request) => {
@@ -499,11 +499,13 @@ const app = new Elysia()
     // const samson = game.decks["character"]!.getCardFromSlug(
     //   "b2-samson"
     // )! as CharacterCard;
-    const card = game.obtainCard("b2-remote_detonator")!;
-    const card2 = game.obtainCard("b2-xv_the_devil")! as LootCard;
-    game.addInPlay(p1, card);
+    // const card = game.obtainCard("b2-remote_detonator")!;
+    // const card2 = game.obtainCard("b2-xv_the_devil")! as LootCard;
+    const card2 = game.obtainCard("b2-xiv_temperance")! as LootCard;
     game.addCardToHand(p1, card2);
     game.start(p1);
+    const card = game.obtainCard("b2-blank_card")!;
+    game.addInPlay(p1, card);
     return new Response("Debug reset", {
       status: 200,
     });

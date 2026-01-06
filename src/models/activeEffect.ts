@@ -9,7 +9,7 @@ import type { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
 import { it } from "zod/locales";
-import { effectParser, type ChooseOneResult, type ParsedEffect } from "./effectParser";
+import { effectParser, type ParsedEffect } from "./effectParser";
 import { deckSelector, visibleItemSelector, inplayUnchargedItemSelector } from "./targetSelector";
 // import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, goFirstInTurnOrderEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, startingItemEffect, temporaryStatModifierEffect, gainTreasureOnDeathEffect } from "./abilities";
 import *  as passive from "./passiveEffect";
@@ -162,13 +162,11 @@ export function chooseOneEffect(s: string, game: Game): ParsedEffect {
     
     return {
         effectFunction: async (data: EffectData) => {
-            const targetsChooseOne = data.next as ChooseOneResult;
-            const description = targetsChooseOne.description;
-            const options = targetsChooseOne.chosenOptions;
+            const description = (data.next as string).toLowerCase();
             for(let i = 0; i < effects.length; i++) {
                 if (description === lines[i+1]) {
                     // Create new EffectData with chosen options as targets
-                    return await effects[i]!.effectFunction(new EffectData(data.it, data.issuer, options));
+                    return await effects[i]!.effectFunction(data);
                 }
             }
             throw new Error(`choose one effect description not found: ${description}`);
@@ -214,18 +212,18 @@ export function shuffleTreasureDeckEffect(game: Game): EffectFunction {
         return true;
     };
 }
-export function destroyYourItemAndStealEffect(game: Game): EffectFunction {
-    return async (data: EffectData) => {
-        if (data.issuer instanceof Player === false) return false;
-        if (data.issuer.inPlay.filter((card) => card.eternal === false).length > 0) {
-            const itemToDestroy = (await game.select(data.issuer, 1, data.issuer.inPlay.filter((card) => card.eternal === false))).selected[0]!;
-            itemToDestroy.destroy();
-            const itemToSteal = (await game.select(data.issuer, 1, game.visibleItems.filter((card) => card.eternal === false))).selected[0]!;
-            return game.stealItemAnywhere(data.issuer, itemToSteal);
-        }
-        return false;
-    };
-}
+// export function destroyYourItemAndStealEffect(game: Game): EffectFunction {
+//     return async (data: EffectData) => {
+//         if (data.issuer instanceof Player === false) return false;
+//         if (data.issuer.inPlay.filter((card) => card.eternal === false).length > 0) {
+//             const itemToDestroy = (await game.select(data.issuer, 1, data.issuer.inPlay.filter((card) => card.eternal === false))).selected[0]!;
+//             itemToDestroy.destroy();
+//             const itemToSteal = (await game.select(data.issuer, 1, game.visibleItems.filter((card) => card.eternal === false))).selected[0]!;
+//             return game.stealItemAnywhere(data.issuer, itemToSteal);
+//         }
+//         return false;
+//     };
+// }
 
 export function destroyOneEffect(game: Game, selectionOnResolve: boolean=false): EffectFunction {
     return async (data: EffectData) => {
@@ -373,8 +371,9 @@ export function stealNonEternalItemEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
 
-        const selection = await game.select(data.issuer, 1, game.inPlayItems.filter(({player, card}) => card instanceof ItemCard && card.eternal === false));
-        const itemToSteal = selection.selected[0]!.card as ItemCard;
+        // const selection = await game.select(data.issuer, 1, game.inPlayItems.filter(({player, card}) => card instanceof ItemCard && card.eternal === false));
+        const itemToSteal = data.next;
+        // selection.selected[0]!.card as ItemCard;
         return game.stealItemAnywhere(data.issuer, itemToSteal);
     };
 }
@@ -383,8 +382,8 @@ export function stealNonEternalItemFromAnywhereEffect(game: Game): EffectFunctio
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
 
-        const selection = await game.select(data.issuer, 1, game.visibleItems.filter((card) => card instanceof ItemCard && card.eternal === false));
-        const itemToSteal = selection.selected[0]!;
+        // const selection = await game.select(data.issuer, 1, game.visibleItems.filter((card) => card instanceof ItemCard && card.eternal === false));
+        const itemToSteal = data.next;
         // data.next as ItemCard;
         return game.stealItemAnywhere(data.issuer, itemToSteal);
     };
@@ -753,7 +752,9 @@ export function discardNLootCardsEffect(n: number, game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         for (let i = 0; i < n; i++) {
-            const toDiscard = (await game.select(data.issuer, 1, data.issuer.hand.cards)).selected[0] as LootCard;
+            let toDiscard = data.next as LootCard;
+            if (!toDiscard) 
+                toDiscard = (await game.select(data.issuer, 1, data.issuer.hand.cards)).selected[0] as LootCard;
             const index = data.issuer.hand.cards.indexOf(toDiscard);
             game.discardFromHand(data.issuer, index + 1);
         }

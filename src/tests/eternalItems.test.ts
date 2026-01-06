@@ -712,9 +712,7 @@ describe("Eternal Items", () => {
         expect(player2.coins).toBe(0);
         
         game.activateItem(player2,
-            foreverAlone, [{
-            description: "steal 1\u00A2 from another player.",
-            chosenOptions: [player1]}]);
+            foreverAlone, ["Steal 1¢ from another player.", player1]);
         await game.resolveStack();
         
         expect(player1.coins).toBe(4); // Lost 1 coin
@@ -745,10 +743,7 @@ describe("Eternal Items", () => {
         let peekCalled = false;
         // Mock game.select to choose option 2 (look at top card)
         game.activateItem(player2,
-            foreverAlone, [{
-            description: "look at the top card of a deck.",
-            chosenOptions: ["treasure"]
-        }]);
+            foreverAlone, ["Look at the top card of a deck.", "treasure"]);
         await game.resolveStack();
         
         expect(foreverAlone.charged).toBe(false);
@@ -776,10 +771,7 @@ describe("Eternal Items", () => {
         const initialHandSizeT1 = player2.hand.length;
         // The discarded card is chosen on resolve stack, so no need to specify here
         game.activateItem(player2,
-            foreverAlone, [{
-            description: "discard a loot card, then loot 1.",
-            chosenOptions: []
-        }]);
+            foreverAlone, ["Discard a loot card, then loot 1."]);
         await game.resolveStack();
         expect(player2.hand.length).toBe(initialHandSizeT1 + 1); // discard nothing, loot 1
         expect(foreverAlone.charged).toBe(false);
@@ -793,10 +785,7 @@ describe("Eternal Items", () => {
         const initialHandSizeT2 = player2.hand.length;
         // The discarded card is chosen on resolve stack, so no need to specify here
         game.activateItem(player2,
-            foreverAlone, [{
-            description: "discard a loot card, then loot 1.",
-            chosenOptions: []
-        }]);
+            foreverAlone, ["Discard a loot card, then loot 1.", lootCard]);
         await game.resolveStack();
         
         // Should discard 1 card and loot 1 card (net 0 change)
@@ -827,10 +816,7 @@ describe("Eternal Items", () => {
         expect(foreverAlone.charged).toBe(true);
         
         game.activateItem(player2,
-            foreverAlone, [{
-            description: "steal 1\u00A2 from another player.",
-            chosenOptions: [player1]
-        }]);
+            foreverAlone, ["Steal 1¢ from another player.", player1]);
         await game.resolveStack();
         expect(foreverAlone.charged).toBe(false);
         
@@ -876,10 +862,7 @@ describe("Eternal Items", () => {
         player2.heal();
 
         game.activateItem(player2,
-            foreverAlone, [{
-            description: "steal 1\u00A2 from another player.",
-            chosenOptions: [player1]
-        }]);
+            foreverAlone, ["Steal 1¢ from another player.", player1]);
         await game.resolveStack();
         expect(foreverAlone.charged).toBe(false);
         
@@ -925,10 +908,7 @@ describe("Eternal Items", () => {
         const player2InitialHand = player2.hand.cards.slice();
         
         game.activateItem(player2,
-            incubus, [{
-            description: "look at a player's hand. you may swap a card from your hand with one of theirs.",
-            chosenOptions: []
-        }]);
+            incubus, ["Look at a player's hand. You may swap a card from your hand with one of theirs."]);
         await game.resolveStack();
         
         // The swap should have occurred - player1 should have player2's card and vice versa
@@ -964,10 +944,7 @@ describe("Eternal Items", () => {
         const topLootCardBefore = game.decks["loot"]!.cards[0]!;
 
         game.activateItem(player2,
-            incubus, [{
-            description: "loot 1, then put a card from your hand on top of the loot deck.",
-            chosenOptions: []
-        }]);
+            incubus, ["Loot 1, then put a card from your hand on top of the loot deck."]);
         await game.resolveStack();
 
         // After looting 1 and putting 1 back, hand size should be the same
@@ -1007,10 +984,7 @@ describe("Eternal Items", () => {
         expect(player2.hand.length).toBe(0);
         
         game.activateItem(player2,
-            incubus, [{
-            description: "loot 1, then put a card from your hand on top of the loot deck.",
-            chosenOptions: []
-        }]);
+            incubus, ["Loot 1, then put a card from your hand on top of the loot deck."]);
         await game.resolveStack();
         
         // Should have 1 card after looting (can't put back if hand was empty)

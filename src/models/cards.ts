@@ -1,5 +1,4 @@
 import { shuffle, print } from '@/utils/auxiliary';
-import { isChooseOneResult} from '@/models/effectParser';
 import { isChooseOneOptions } from './targetSelector';
 import type { CardRewards, EternalCardType, GenericCardType, LootCardType, InPlayCardType, TreasureCardType, CharacterCardType, MonsterCardType, BonusSoulCardType, GuppyCard } from '@/types/cardTypes';
 import { Player } from './player';
@@ -69,22 +68,23 @@ export class Effect {
     }
 
     // Target validation methods
-    private chooseOneTargetStillValid(issuer: Player, targets: any[]): boolean {
-        if (targets.length > 1)
-            throw new Error("chooseOne target should have length at most 1.");
-        for (const chooseOneTarget of targets) {
-            const descr = chooseOneTarget.description;
-            const targetsList = chooseOneTarget.chosenOptions;
-            if (targetsList.length > 0) {
-                for (const admissibleTarget of this._targetsSelector[0]!.selector(issuer)) {
-                    if (admissibleTarget.description === descr) {
-                        for (const t of targetsList) {
-                            if (!admissibleTarget.admissibleTargets.includes(t)) {
-                                return false;
-                            }
+    private chooseOneTargetStillValid(issuer: Player, chooseOneArray: any[]): boolean {
+        // Flat array format: ["description", ...targets]
+        if (!Array.isArray(chooseOneArray) || chooseOneArray.length === 0) return false;
+        
+        const descr = chooseOneArray[0];
+        if (typeof descr !== 'string') return false;
+        
+        const targetsList = chooseOneArray.slice(1);
+        if (targetsList.length > 0) {
+            for (const admissibleTarget of this._targetsSelector[0]!.selector(issuer)) {
+                if (admissibleTarget.description.toLowerCase() === descr.toLowerCase()) {
+                    for (const t of targetsList) {
+                        if (!admissibleTarget.admissibleTargets.includes(t)) {
+                            return false;
                         }
-                        return true;
                     }
+                    return true;
                 }
             }
         }
@@ -94,7 +94,22 @@ export class Effect {
     targetStillValid(issuer: Player, targets: any[]): boolean {
         if (targets.length === 0) return true;
         
-        // Flat format validation: [target1, target2, ChooseOneResult, target3]
+        // Check if the first selector is a choose-one selector
+        if (this._targetsSelector.length > 0) {
+            const firstSelector = this._targetsSelector[0]!;
+            const admissibleTargets = firstSelector.selector(issuer);
+            
+            // If this is a choose-one selector and targets are provided
+            if (admissibleTargets.length > 0 && isChooseOneOptions(admissibleTargets[0])) {
+                // The entire targets array IS the flat choose-one format: ["description", ...targets]
+                if (typeof targets[0] === 'string') {
+                    return this.chooseOneTargetStillValid(issuer, targets);
+                }
+                return false;
+            }
+        }
+        
+        // Regular format validation: [target1, target2, target3]
         let targetIndex = 0;
         
         for (let i = 0; i < this._targetsSelector.length; i++) {
@@ -103,18 +118,9 @@ export class Effect {
             const selector = this._targetsSelector[i]!;
             const admissibleTargets = selector.selector(issuer);
             
-            // Check if this is a choose-one selector
             if (admissibleTargets.length > 0 && isChooseOneOptions(admissibleTargets[0])) {
-                // The current target should be a ChooseOneResult
-                const chooseOneTarget = targets[targetIndex];
-                if (!isChooseOneResult(chooseOneTarget)) {
-                    return false;
-                }
-                
-                if (!this.chooseOneTargetStillValid(issuer, [chooseOneTarget])) {
-                    return false;
-                }
-                targetIndex++;
+                // Should not reach here with new format
+                return false;
             } else {
                 // Regular selector - check the next `selector.count` targets
                 for (let j = 0; j < selector.count && targetIndex < targets.length; j++) {
@@ -607,7 +613,9 @@ export class EffectData {
         return this._targets[this._nextIndex++];
     }
     
-    peek(index: number = 0): any {
+    peek(index: number = -1): any {
+        if (index === -1)
+            index = this._nextIndex;
         return this._targets[index];
     }
     

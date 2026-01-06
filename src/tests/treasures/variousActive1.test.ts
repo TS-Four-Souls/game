@@ -3,7 +3,6 @@ import { Game } from "../../models/game";
 import { DiceRoll, Player } from "../../models/player";
 import { CharacterCard, ItemCard, treasureCard, MonsterCard } from "@/models/cards";
 import { Monster } from "@/models/monster";
-import type { ChooseOneResult } from "@/models/effectParser";
 import { dischargeEachItemsAndRemoveCoins, setupTestGame } from "@/tests/testHelpers";
 
 describe("Tap/Paid effects 1", () => {
@@ -141,11 +140,8 @@ describe("Tap/Paid effects 1", () => {
 
         // Recharge and activate the item with choose one result
         game.recharge(flush);
-        const chooseOneTarget: ChooseOneResult = {
-            description: "put each monster not being attacked on the bottom of the monster deck.",
-            chosenOptions: []
-        };
-        game.activateItem(player1, flush, [chooseOneTarget]);
+        const chooseOneTarget = ["Put each monster not being attacked on the bottom of the monster deck."];
+        game.activateItem(player1, flush, chooseOneTarget);
         await game.resolveStack();
 
         // Monsters should be removed from slots and added to bottom of deck
@@ -162,11 +158,8 @@ describe("Tap/Paid effects 1", () => {
 
         // Recharge and activate the item with choose one result
         game.recharge(flush);
-        const chooseOneTarget: ChooseOneResult = {
-            description: "put each shop item on the bottom of the treasure deck.",
-            chosenOptions: []
-        };
-        game.activateItem(player1, flush, [chooseOneTarget]);
+        const chooseOneTarget = ["Put each shop item on the bottom of the treasure deck."];
+        game.activateItem(player1, flush, chooseOneTarget);
         await game.resolveStack();
 
         // Shop should be empty
@@ -487,11 +480,8 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate with choose one result to kill player2
         // choose one result should be passed directly as target
         game.recharge(chaosCard);
-        const chooseOneTarget: ChooseOneResult = {
-            description: "kill a player or monster.",
-            chosenOptions: [player2]
-        };
-        game.activateItem(player1, chaosCard, [chooseOneTarget]);
+        const chooseOneTarget = ["Kill a player or monster.", player2];
+        game.activateItem(player1, chaosCard, chooseOneTarget);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -513,11 +503,8 @@ describe("Tap/Paid effects 1", () => {
         // Note: "destroy this. if you do, choose one-" requires two target arrays:
         // targets[0] for "destroy this" (empty) and targets[1] for "choose one" (must be array)
         game.recharge(chaosCard);
-        const chooseOneTarget: ChooseOneResult = {
-            description: "destroy an item or soul.",
-            chosenOptions: [targetItem]
-        };
-        game.activateItem(player1, chaosCard, [chooseOneTarget]);
+        const chooseOneTarget = ["Destroy an item or soul.", targetItem];
+        game.activateItem(player1, chaosCard, chooseOneTarget);
         await game.resolveStack();
 
         // chaos_card should be destroyed

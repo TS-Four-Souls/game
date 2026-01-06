@@ -323,6 +323,8 @@ export class Game {
     this.assertCurrentTurnIsPlayerTurn(player);
     this.assertNoOngoingAttack();
     this.assertPlayerIsAlive(player);
+    this.assertNoPendingSelection();
+
     if (player.isEngagedInCombat) {
       throw new Error("Player is already engaged in combat.");
     }
@@ -412,6 +414,9 @@ export class Game {
   }
 
   attackRoll(player: Player): void {
+    this.assertCurrentTurnIsPlayerTurn(player);
+    this.assertPlayerIsAlive(player);
+    this.assertNoPendingSelection();
     // todo force player to have declared attack.
     const monster = [...this.monsters].find(
       (m): m is Monster => m !== undefined && m.isEngagedInCombat
@@ -876,6 +881,7 @@ export class Game {
     const player = this.assertIssuerSecret(issuer);
     this.assertPlayerIsAlive(player);
     this.assertPositiveNumber(index);
+    this.assertNoPendingSelection();
     if (index < 0 || index > player.hand.cards.length) {
       return "Invalid card position.";
     }
@@ -1080,6 +1086,7 @@ export class Game {
     choices: any[] = [],
     effectId: number | "tap" = "tap"
   ): boolean {
+    this.assertNoPendingSelection();
     const item = player.inPlay[index];
     if (!item || !(item instanceof ItemCard)) {
       throw new Error("Player does not own the specified item.");
@@ -1145,6 +1152,8 @@ export class Game {
     this.assertCurrentTurnIsPlayerTurn(player);
     this.assertEmptyStack();
     this.assertNoOngoingAttack();
+    this.assertForcedAttackSatisfied(player);
+    this.assertNoPendingSelection();
     this.healEveryone();
     this.endTurn();
 
@@ -1482,6 +1491,8 @@ export class Game {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.assertPlayerIsAlive(player);
+    this.assertNoPendingSelection();
+    this.assertNoOngoingAttack();
     this.assertPositiveNumber(index);
     const price = [gameParameters.shopPrice];
     this.emitter.emit("on:item:purchase", { eventIssuer: player, cost: price });
@@ -1657,6 +1668,8 @@ export class Game {
     const player = this.assertIssuerSecret(issuer);
     this.assertPlayerIsAlive(player);
     this.assertPositiveNumber(position);
+    this.assertCurrentTurnIsPlayerTurn(player);
+    this.assertNoPendingSelection();
 
     if (!player.isEngagedInCombat) {
       throw new Error("You must be engaged in combat to draw a monster.");
@@ -1938,7 +1951,7 @@ export class Game {
     }
   }
 
-  private assertNoPendingSelection(player: Player): void {
+  assertNoPendingSelection(): void {
     if(this.hasPendingSelections)
       throw new Error("Pending selection need to be resolved");
   }

@@ -212,9 +212,7 @@ describe("Event Monsters - Other Events", () => {
         // Draw the event
         game.monsterSlots.discardTop(0);
         const effect = game.stack._stack[game.stack._stack.length - 1] as EffectOnStack;
-        effect.targets = [{
-            description: "put this into discard.",
-            chosenOptions: [] }];
+        effect.targets = ["Put this into discard."];
         await game.resolveStack(); // resolve the event addition
         await game.resolveStack();
         
@@ -232,10 +230,7 @@ describe("Event Monsters - Other Events", () => {
         // Draw the event
         game.monsterSlots.discardTop(0);
         const effect = game.stack._stack[game.stack._stack.length - 1] as EffectOnStack;
-        effect.targets = [{
-            description: "loot 2. take 1 damage.",
-            chosenOptions: []
-        }];
+        effect.targets = ["Loot 2. Take 1 damage."];
         await game.resolveStack(); // resolve the event addition
         await game.resolveStack();
         await game.resolveStack(); // damage resolution
@@ -261,10 +256,7 @@ describe("Event Monsters - Other Events", () => {
         // Draw the event
         game.monsterSlots.discardTop(0);
         const effect = game.stack._stack[game.stack._stack.length - 1] as EffectOnStack;
-        effect.targets = [{
-            description: "take 2 damage. search the treasure deck for a guppy item, gain it, then shuffle the treasure deck.",
-            chosenOptions: []
-        }];
+        effect.targets = ["Take 2 damage. Search the treasure deck for a guppy item, gain it, then shuffle the treasure deck."];
         await game.resolveStack(); // resolve the event addition
         await game.resolveStack(); // damage resolution
         
