@@ -1,6 +1,6 @@
 import type { Game } from "./game";
 import type { Player } from "./player";
-import { ItemCard, type TargetsSelector } from "./cards";
+import { Card, ItemCard, type TargetsSelector } from "./cards";
 import { isChooseOneOptions, type ChooseOneOptions } from "./targetSelector";
 import { isStackElement } from "./stack";
 import { isChooseOneResult, type ChooseOneResult } from "./effectParser";
@@ -70,6 +70,8 @@ export class TargetBuilder {
         const item: ItemCard = lootCard ? player.hand.cards[itemIndex] as ItemCard : player.inPlay[itemIndex] as ItemCard;
         if(!item)
             throw new Error(`Item at index ${itemIndex} not found.`);
+        if(effectId === "tap" && !item.charged)
+            throw new Error(`Item ${item.name} is not charged.`);
         // console.log("TargetBuilder.getNextSelector for item:", item.name, "effectId:", effectId, "partialChoices:", partialChoices);
 
         const rootSelectors = item.getEffectTarget(effectId);
@@ -217,6 +219,10 @@ export class TargetBuilder {
             if (option === null) {
                 return 'null';
             }
+            
+            // { player: Player; hand: Hand }
+            if( typeof option === 'object' && 'player' in option && 'hand' in option)
+                return option.player.id + ': ' + option.hand.cards.map((c: Card) => c.slug).join(',');
 
             // Handle arrays and plain objects with JSON stringification
             if (Array.isArray(option) || typeof option === 'object') {

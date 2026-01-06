@@ -4,8 +4,9 @@ import { schemas, type Issuer } from "@/types/types";
 import { playerEndpointHandler } from "@/utils/endpoints";
 import { Elysia, sse } from "elysia";
 import { cors } from "@elysiajs/cors";
-import type { CharacterCard } from "./models/cards";
+import type { CharacterCard, LootCard } from "./models/cards";
 import { TargetBuilder, type TargetSelectorResponse } from "./models/targetBuilder";
+import type { LoosePartial } from "node_modules/zod/v4/core/util.d.cts";
 const game = new Game();
 
 const PORT = process.env.PORT || 3000;
@@ -492,15 +493,17 @@ const app = new Elysia()
     game.addPlayer(p1);
     game.addPlayer(p2);
     game.setupGame();
-    const isaac = game.decks["character"]!.getCardFromSlug(
-      "b2-isaac"
-    )! as CharacterCard;
-    const samson = game.decks["character"]!.getCardFromSlug(
-      "b2-samson"
-    )! as CharacterCard;
-    const card = game.obtainCard("b2-chaos_card")!;
+    // const isaac = game.decks["character"]!.getCardFromSlug(
+    //   "b2-isaac"
+    // )! as CharacterCard;
+    // const samson = game.decks["character"]!.getCardFromSlug(
+    //   "b2-samson"
+    // )! as CharacterCard;
+    const card = game.obtainCard("b2-remote_detonator")!;
+    const card2 = game.obtainCard("b2-xv_the_devil")! as LootCard;
     game.addInPlay(p1, card);
-    game.start(p1, [samson, isaac]);
+    game.addCardToHand(p1, card2);
+    game.start(p1);
     return new Response("Debug reset", {
       status: 200,
     });

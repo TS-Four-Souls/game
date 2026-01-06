@@ -370,21 +370,22 @@ export function stealCoinsEffect(game: Game, amount: number): EffectFunction {
 }
 
 export function stealNonEternalItemEffect(game: Game): EffectFunction {
-    return (data: EffectData) => {
+    return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
 
-        const itemToSteal = data.next as ItemCard;
-        // game.select(data.issuer, 1, game.inPlayItems.filter(({player, card}) => card instanceof ItemCard && card.eternal === false)).selected[0]!;
+        const selection = await game.select(data.issuer, 1, game.inPlayItems.filter(({player, card}) => card instanceof ItemCard && card.eternal === false));
+        const itemToSteal = selection.selected[0]!.card as ItemCard;
         return game.stealItemAnywhere(data.issuer, itemToSteal);
     };
 }
 
 export function stealNonEternalItemFromAnywhereEffect(game: Game): EffectFunction {
-    return (data: EffectData) => {
+    return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
 
-        const itemToSteal = data.next as ItemCard;
-        // game.select(data.issuer, 1, game.visibleItems.filter((card) => card instanceof ItemCard && card.eternal === false)).selected[0]!;
+        const selection = await game.select(data.issuer, 1, game.visibleItems.filter((card) => card instanceof ItemCard && card.eternal === false));
+        const itemToSteal = selection.selected[0]!;
+        // data.next as ItemCard;
         return game.stealItemAnywhere(data.issuer, itemToSteal);
     };
 }

@@ -110,9 +110,15 @@ export function inplayItemSelector(filter: (player: Player, card: ItemCard) => b
         return game.inPlayItems.filter(({ player, card }) => filter(player, card)).map(({ card }) => card);
     };
 }
+
+export function YourItemSelector(filter: (player: Player, card: ItemCard) => boolean, game: Game): (issuer: Player) => any[] {
+    return (issuer: Player) => {
+        return game.inPlayItems.filter(({ player, card }) => player === issuer &&filter(player, card)).map(({ card }) => card);
+    };
+}
 export function inAnotherplayItemSelector(filter: (player: Player, card: ItemCard) => boolean, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
-        return game.inPlayItems.filter(({ player, card }) => filter(player, card) && issuer !== player).map(({ card }) => card);
+        return game.inPlayItems.filter(({ player, card }) => filter(player, card) && issuer.id !== player.id).map(({ card }) => card);
     };
 }
 

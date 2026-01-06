@@ -593,6 +593,10 @@ export class Game {
     resolve: (selection: any[]) => void;
   }> = new Map();
   
+  get hasPendingSelections(): boolean {
+    return this.pendingMultipleSelections.size > 0;
+  }
+
   async select(
     player: Player,
     n: number,
@@ -753,6 +757,7 @@ export class Game {
         await callback();
       }
     }
+    this._onStateChange.dispatch();
   }
 
   async executeWhenStackEmpty(callback: () => void | Promise<void>): Promise<void> {
@@ -1931,6 +1936,11 @@ export class Game {
     if (this._ongoingAttack !== null) {
       throw new Error("An attack is already ongoing");
     }
+  }
+
+  private assertNoPendingSelection(player: Player): void {
+    if(this.hasPendingSelections)
+      throw new Error("Pending selection need to be resolved");
   }
 
   private assertForcedAttackSatisfied(player: Player): void {

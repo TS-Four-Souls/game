@@ -10,7 +10,7 @@ import * as active from "./activeEffect";
 import type { BonusSoulCardType } from "@/types/cardTypes";
 import { parse } from "zod";
 import type { Monster } from "./monster";
-import { inAnotherplayItemSelector, anotherPlayerSelector, playerSelector, activeEntitySelector, deckSelector, rollSelector, inplayUnchargedItemSelector, inplayCurseSelector, inplayItemSelector, visibleItemSelector, stackElementSelector } from "./targetSelector";
+import { inAnotherplayItemSelector, anotherPlayerSelector, playerSelector, activeEntitySelector, deckSelector, rollSelector, inplayUnchargedItemSelector, inplayCurseSelector, inplayItemSelector, visibleItemSelector, stackElementSelector, YourItemSelector } from "./targetSelector";
 
 /**
  * Represents a parsed effect with both its execution function and target selectors.
@@ -72,7 +72,7 @@ const selectNonEternalPassiveItem = (game: Game, count: number = 1, asMany: bool
     [createSelector("Choose a non-eternal passive item", inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false && card.activeEffectList.length === 0, game), count, asMany)];
 
 const selectItemYouControl = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Destroy an item you control", inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false && player == game.getOwner(card), game), count, asMany)];
+    [createSelector("Destroy an item you control", YourItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), count, asMany)];
 
 const selectSoulYouControl = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
     [createSelector("Destroy a soul you control", (issuer: Player) => issuer.souls, count, asMany)];
