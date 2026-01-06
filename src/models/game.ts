@@ -590,6 +590,16 @@ export class Game {
     asMany: boolean;
   } | null = null;
   private pendingSelectionResolve: ((selection: any[]) => void) | null = null;
+  
+  // For parallel selections (e.g., voting)
+  private pendingMultipleSelections: Map<string, {
+    playerId: string;
+    options: any[];
+    count: number;
+    asMany: boolean;
+    resolve: (selection: any[]) => void;
+  }> = new Map();
+  
   private isInTestMode = true; // Set to false for multiplayer mode
 
   async select(
@@ -618,8 +628,61 @@ export class Game {
     });
   }
 
+  // Select from multiple players in parallel (useful for voting)
+  async selectMultiple(
+    selections: Array<{
+      player: Player;
+      count: number;
+      options: any[];
+      asMany?: boolean;
+    }>
+  ): Promise<Array<{ playerId: string; selected: any[]; remaining: any[] }>> {
+    // In test mode: return immediately with mock selections
+    if (this.isInTestMode) {
+      return selections.map(sel => ({
+        playerId: sel.player.id,
+        selected: sel.options.slice(0, sel.count),
+        remaining: sel.options.slice(sel.count)
+      }));
+    }
+
+    // In multiplayer mode: create promises for all players
+    const promises = selections.map(sel => {
+      return new Promise<{ playerId: string; selected: any[]; remaining: any[] }>((resolve) => {
+        const requestId = `${sel.player.id}_${Date.now()}_${Math.random()}`;
+        this.pendingMultipleSelections.set(requestId, {
+          playerId: sel.player.id,
+          options: sel.options,
+          count: sel.count,
+          asMany: sel.asMany || false,
+          resolve: (selection: any[]) => {
+            const remaining = sel.options.filter(opt => !selection.includes(opt));
+            resolve({
+              playerId: sel.player.id,
+              selected: selection,
+              remaining
+            });
+            this.pendingMultipleSelections.delete(requestId);
+          }
+        });
+      });
+    });
+
+    // Wait for all selections to complete
+    return Promise.all(promises);
+  }
+
   // Called when client provides selection to continue paused resolution
   provideSelection(playerId: string, selection: any[]): void {
+    // Check if this is a parallel selection
+    for (const [requestId, pending] of this.pendingMultipleSelections.entries()) {
+      if (pending.playerId === playerId) {
+        pending.resolve(selection);
+        return;
+      }
+    }
+    
+    // Otherwise, handle single selection
     if (!this.pendingSelectionResolve) {
       throw new Error('Not waiting for selection');
     }
@@ -631,6 +694,38 @@ export class Game {
     this.pendingSelectionResolve(selection);
     this.pendingSelectionResolve = null;
     this.pendingSelection = null;
+  }
+
+  // Get all pending selections (for server to send to clients)
+  getPendingSelections(): Array<{
+    playerId: string;
+    options: any[];
+    count: number;
+    asMany: boolean;
+  }> {
+    const pending: Array<{
+      playerId: string;
+      options: any[];
+      count: number;
+      asMany: boolean;
+    }> = [];
+    
+    // Add single pending selection if exists
+    if (this.pendingSelection) {
+      pending.push(this.pendingSelection);
+    }
+    
+    // Add all parallel pending selections
+    for (const selection of this.pendingMultipleSelections.values()) {
+      pending.push({
+        playerId: selection.playerId,
+        options: selection.options,
+        count: selection.count,
+        asMany: selection.asMany
+      });
+    }
+    
+    return pending;
   }
 
   get monsterSlots(): Encounters {

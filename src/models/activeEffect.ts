@@ -693,12 +693,23 @@ export function eachPlayersVoteToDestroyItemEffect(game: Game): EffectFunction {
         if (data.issuer instanceof Player === false) return false;
         const ListOfItems = visibleItemSelector((card) => card.eternal === false, game)(data.issuer);
 
-        const votes: Record<string, number> = {};
-        for (const player of game.players) {
-            const vote = (await game.select(player, 1, ListOfItems)).selected[0].slug as string;
-            votes[vote] = (votes[vote] || 0) + 1;
+        // Request votes from all players in parallel
+        const voteRequests = game.players.map(player => ({
+            player,
+            count: 1,
+            options: ListOfItems,
+            asMany: false
+        }));
+        const voteResults = await game.selectMultiple(voteRequests);
 
+        // Count the votes
+        const votes: Record<string, number> = {};
+        for (const result of voteResults) {
+            const vote = result.selected[0].slug as string;
+            votes[vote] = (votes[vote] || 0) + 1;
         }
+
+        // Find the item with most votes
         let itemToDestroy: ItemCard | null = null;
         let votesToDestroy = 0;
         for (const [itemSlug, voteCount] of Object.entries(votes)) {

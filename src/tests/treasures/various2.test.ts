@@ -36,9 +36,6 @@ describe("Tap/Paid effects 2", () => {
     });
 
     // b2-remote_detonator: "[Tap Effect] Each player votes on an item in play. Destroy the item with the most votes. If there is a tie, nothing happens."
-    // TODO: This test is skipped because the voting mechanism needs more investigation.
-    // The effect should call game.select for each player to vote, but the mock isn't being called.
-    // Needs investigation into how visibleItemSelector works and when the effect is executed.
     it("remote_detonator - destroys item with most votes", async () => {
         const remoteDetonator = game.shop.obtainCard("b2-remote_detonator") as ItemCard;
         const breakfast = game.shop.obtainCard("b2-breakfast") as ItemCard;
@@ -52,12 +49,16 @@ describe("Tap/Paid effects 2", () => {
         
         game.recharge(remoteDetonator);
         
-        // Mock the selection - all 3 players vote for breakfast
+        // Mock selectMultiple - all 3 players vote for breakfast
         let voteCount = 0;
-        game.select = (player: Player, n: number, Options: any[], anyNumber:boolean = false) => {
-            voteCount++;
+        game.selectMultiple = async (selections: any[]) => {
+            voteCount = selections.length;
             // All players vote for breakfast
-            return { selected: [breakfast as any], remaining: Options.filter(i => i !== breakfast) as any[] };
+            return selections.map(sel => ({
+                playerId: sel.player.id,
+                selected: [breakfast as any],
+                remaining: sel.options.filter((i: any) => i !== breakfast) as any[]
+            }));
         };
         
         expect(player1.inPlay).toContain(breakfast);
@@ -82,13 +83,16 @@ describe("Tap/Paid effects 2", () => {
         const nbVisible = game.visibleItems.length;
         game.recharge(remoteDetonator);
         
-        // Mock the selection - create a tie (each item gets 1 vote)
+        // Mock selectMultiple - create a tie (each item gets 1 vote)
         let voteCount = 0;
-        game.select = (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
-            voteCount++;
-            if (voteCount === 1) return { selected: [breakfast], remaining: Options.filter(i => i !== breakfast) };
-            if (voteCount === 2) return { selected: [dinner], remaining: Options.filter(i => i !== dinner) };
-            return { selected: [brimstone], remaining: Options.filter(i => i !== brimstone) };
+        game.selectMultiple = async (selections: any[]) => {
+            voteCount = selections.length;
+            // Each player votes for a different item (creating a tie)
+            return [
+                { playerId: player1.id, selected: [breakfast], remaining: selections[0].options.filter((i: any) => i !== breakfast) },
+                { playerId: player2.id, selected: [dinner], remaining: selections[1].options.filter((i: any) => i !== dinner) },
+                { playerId: player3.id, selected: [brimstone], remaining: selections[2].options.filter((i: any) => i !== brimstone) }
+            ];
         };
         
         const initialInPlay1 = [...player1.inPlay];

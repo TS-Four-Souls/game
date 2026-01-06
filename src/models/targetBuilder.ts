@@ -185,7 +185,7 @@ export class TargetBuilder {
      * @returns Array of string identifiers
      */
     static convertToStringIdentifiers(options: any[]): string[] {
-        console.log("Converting options to string identifiers:", options);
+        // console.log("Converting options to string identifiers:", options);
         return options.map(option => {
 
             // Handle Cards
@@ -204,7 +204,7 @@ export class TargetBuilder {
 
             // Handle Stack Elements
             if (isStackElement(option)) {
-                console.log("Stack element json:", JSON.stringify(option.json));
+                // console.log("Stack element json:", JSON.stringify(option.json));
                 return JSON.stringify(option.json);
             }
 
