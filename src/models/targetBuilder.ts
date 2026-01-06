@@ -189,12 +189,12 @@ export class TargetBuilder {
         return options.map(option => {
 
             // Handle Cards
-            if (typeof option === 'object' && 'slug' in option) {
+            if (typeof option === 'object' && option !== null && 'slug' in option) {
                 return option.slug;
             }
 
             // Handle Entities (by ID)
-            if (typeof option === 'object' && 'id' in option) {
+            if (typeof option === 'object' && option !== null && 'id' in option) {
                 return option.id;
             }
 
@@ -213,9 +213,14 @@ export class TargetBuilder {
                 return `${option}`;
             }
 
-            // Handle arrays (for special cases like deck selection)
-            if (Array.isArray(option)) {
-                return TargetBuilder.convertToStringIdentifiers(option);
+            // Handle null explicitly
+            if (option === null) {
+                return 'null';
+            }
+
+            // Handle arrays and plain objects with JSON stringification
+            if (Array.isArray(option) || typeof option === 'object') {
+                return JSON.stringify(option);
             }
 
             // Fallback for unknown types
@@ -236,16 +241,33 @@ export class TargetBuilder {
     private static resolveIdentifier(identifier: string, possibleTargets: any[]): any {
         if (possibleTargets.length === 0) return undefined;
 
+        // Special case: if identifier is 'null', find null in the array
+        if (identifier === 'null') {
+            return possibleTargets.find(t => t === null);
+        }
+
         const firstTarget = possibleTargets[0];
+
+        // Null - skip to next target if first is null
+        if (firstTarget === null) {
+            // Find first non-null target to determine type
+            const nonNullTarget = possibleTargets.find(t => t !== null);
+            if (!nonNullTarget) {
+                // All null array, already handled above
+                return undefined;
+            }
+            // Use the non-null target as firstTarget for type detection
+            return TargetBuilder.resolveIdentifier(identifier, [nonNullTarget, ...possibleTargets.filter(t => t !== nonNullTarget)]);
+        }
 
         // Cards - match by slug
         if (firstTarget && typeof firstTarget === 'object' && 'slug' in firstTarget) {
-            return possibleTargets.find(t => t.slug === identifier);
+            return possibleTargets.find(t => t && t.slug === identifier);
         }
 
         // Entities - match by ID
         if (firstTarget && typeof firstTarget === 'object' && 'id' in firstTarget) {
-            return possibleTargets.find(t => t.id === identifier);
+            return possibleTargets.find(t => t && t.id === identifier);
         }
 
         // Stack Elements - match by json
@@ -268,11 +290,11 @@ export class TargetBuilder {
             return possibleTargets.find(t => t === identifier);
         }
 
-        // Arrays - match by JSON stringification
-        if (Array.isArray(firstTarget)) {
+        // Arrays and plain objects - match by JSON stringification
+        if (Array.isArray(firstTarget) || typeof firstTarget === 'object') {
             try {
-                const parsedArray = JSON.parse(identifier);
-                return possibleTargets.find(t => JSON.stringify(t) === JSON.stringify(parsedArray));
+                const parsed = JSON.parse(identifier);
+                return possibleTargets.find(t => JSON.stringify(t) === JSON.stringify(parsed));
             } catch {
                 return undefined;
             }

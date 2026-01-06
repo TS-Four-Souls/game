@@ -58,6 +58,12 @@ const ImageRequestSchema = UserProtectedRequestSchema.extend({
   path: z.string(),
 });
 
+const SubmitSelectionSchema = UserProtectedRequestSchema.extend({
+  requestId: z.string(),
+  selectedIdentifiers: z.array(z.string()),
+});
+
+
 export const schemas = {
   joinRequest: JoinRequestSchema,
   userProtectedRequest: UserProtectedRequestSchema,
@@ -76,6 +82,7 @@ export const schemas = {
   imageRequest: ImageRequestSchema,
   activateRequest: cardActivationSchema,
   issuerRequest: IssuerSchema,
+  submitSelectionRequest: SubmitSelectionSchema,
 };
 
 export type Issuer = z.infer<typeof IssuerSchema>;
@@ -121,6 +128,12 @@ export type DetailedState = {
   turn: string;
   stack: string[];
   firstCardTreasureDeck?: GenericCardType;
+  pendingSelection?: {
+    requestId: string;
+    options: string[];
+    count: number;
+    asMany: boolean;
+  };
 };
 
 export type DiscardCards = {

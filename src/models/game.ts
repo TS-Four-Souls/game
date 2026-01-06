@@ -1,5 +1,6 @@
 import { Monster } from "@/models/monster";
 import { DamageOnStack, DeathOnStack, DiceRoll, Player } from "@/models/player";
+import { TargetBuilder } from "@/models/targetBuilder";
 import type {
   DetailedState,
   DiscardCards,
@@ -582,21 +583,13 @@ export class Game {
     return selection;
   }
 
-  // Pending selection tracking for multiplayer
-  private pendingSelection: {
-    playerId: string;
-    options: any[];
-    count: number;
-    asMany: boolean;
-  } | null = null;
-  private pendingSelectionResolve: ((selection: any[]) => void) | null = null;
-  
-  // For parallel selections (e.g., voting)
+  // Pending selection tracking for multiplayer (handles both single and multiple selections)
   private pendingMultipleSelections: Map<string, {
     playerId: string;
     options: any[];
     count: number;
     asMany: boolean;
+    requestId: string;
     resolve: (selection: any[]) => void;
   }> = new Map();
   
@@ -606,23 +599,50 @@ export class Game {
     Options: any[],
     anyNumber: boolean = false
   ): Promise<{ selected: any[]; remaining: any[] }> {
-
-    // In multiplayer mode: create promise that waits for client input
-    return new Promise((resolve) => {
-      this.pendingSelection = {
-        playerId: player.id,
-        options: Options,
-        count: n,
-        asMany: anyNumber
-      };
-      this.pendingSelectionResolve = (selection: any[]) => {
-        const remaining = Options.filter(opt => !selection.includes(opt));
-        resolve({ selected: selection, remaining });
-      };
-    });
+    const results = await this.selectMultiple([{
+      player,
+      count: n,
+      options: Options,
+      asMany: anyNumber
+    }]);
+    return results[0]!;
   }
 
   // Select from multiple players in parallel (useful for voting)
+  // Method to submit a selection from the client
+  submitSelection(issuer: Issuer, requestId: string, selectedIdentifiers: string[]): void {
+    const player = this.assertIssuerSecret(issuer);
+    
+    // Check if this is from a selectMultiple() call
+    const pending = this.pendingMultipleSelections.get(requestId);
+    if (pending && pending.playerId === player.id) {
+      // Validate selection count
+      if (!pending.asMany && selectedIdentifiers.length !== pending.count) {
+        throw new Error(`Must select exactly ${pending.count} option(s)`);
+      }
+      
+      if (pending.asMany && selectedIdentifiers.length > pending.count) {
+        throw new Error(`Must select at most ${pending.count} option(s)`);
+      }
+      
+      // Resolve identifiers back to actual options
+      const selected = selectedIdentifiers.map(id => {
+        const option = TargetBuilder['resolveIdentifier'](id, pending.options);
+        if (option === undefined) {
+          throw new Error(`Invalid selection identifier: ${id}`);
+        }
+        return option;
+      });
+      
+      // Resolve the pending promise
+      pending.resolve(selected);
+      return;
+    }
+    
+    // No matching pending selection found
+    throw new Error("No pending selection found for this request ID");
+  }
+
   async selectMultiple(
     selections: Array<{
       player: Player;
@@ -631,24 +651,17 @@ export class Game {
       asMany?: boolean;
     }>
   ): Promise<Array<{ playerId: string; selected: any[]; remaining: any[] }>> {
-    // In test mode: return immediately with mock selections
-    if (this.isInTestMode) {
-      return selections.map(sel => ({
-        playerId: sel.player.id,
-        selected: sel.options.slice(0, sel.count),
-        remaining: sel.options.slice(sel.count)
-      }));
-    }
-
     // In multiplayer mode: create promises for all players
     const promises = selections.map(sel => {
       return new Promise<{ playerId: string; selected: any[]; remaining: any[] }>((resolve) => {
         const requestId = `${sel.player.id}_${Date.now()}_${Math.random()}`;
+        const asMany = sel.asMany ?? false; // Use ?? instead of || to handle explicit false
         this.pendingMultipleSelections.set(requestId, {
           playerId: sel.player.id,
           options: sel.options,
           count: sel.count,
-          asMany: sel.asMany || false,
+          asMany: asMany,
+          requestId,
           resolve: (selection: any[]) => {
             const remaining = sel.options.filter(opt => !selection.includes(opt));
             resolve({
@@ -661,6 +674,9 @@ export class Game {
         });
       });
     });
+
+    // Notify clients of state change (so players see the selection requests via SSE)
+    this._onStateChange.dispatch();
 
     // Wait for all selections to complete
     return Promise.all(promises);
@@ -676,18 +692,7 @@ export class Game {
       }
     }
     
-    // Otherwise, handle single selection
-    if (!this.pendingSelectionResolve) {
-      throw new Error('Not waiting for selection');
-    }
-    if (this.pendingSelection?.playerId !== playerId) {
-      throw new Error('Wrong player');
-    }
-    
-    // Resolve the promise - this resumes the awaiting code
-    this.pendingSelectionResolve(selection);
-    this.pendingSelectionResolve = null;
-    this.pendingSelection = null;
+    throw new Error('Not waiting for selection');
   }
 
   // Get all pending selections (for server to send to clients)
@@ -704,12 +709,7 @@ export class Game {
       asMany: boolean;
     }> = [];
     
-    // Add single pending selection if exists
-    if (this.pendingSelection) {
-      pending.push(this.pendingSelection);
-    }
-    
-    // Add all parallel pending selections
+    // Add all pending selections
     for (const selection of this.pendingMultipleSelections.values()) {
       pending.push({
         playerId: selection.playerId,
@@ -910,7 +910,8 @@ export class Game {
     this.assertIssuerSecret(issuer);
     this.assertGameNotStarted();
     this.assertMinimumPlayerCount();
-
+    this.pendingMultipleSelections.clear();
+    
     if (this._decks["character"] === undefined) {
       this.setupGame();
     }
@@ -1130,6 +1131,7 @@ export class Game {
     this._emitter = new GameEventEmitter();
     this._bonusSouls = [];
     this._destroyedCards = [];
+    this.pendingMultipleSelections.clear();
   }
 
   nextTurn(issuer: Issuer): string {
@@ -1452,6 +1454,20 @@ export class Game {
       firstCardTreasureDeck: player.canSeeTopOfTreasureDeck
         ? this.decks["treasure"]!.cards[0]?.json
         : undefined,
+      pendingSelection: (() => {
+        // Check if player has a pending selection from selectMultiple
+        for (const sel of this.pendingMultipleSelections.values()) {
+          if (sel.playerId === player.id) {
+            return {
+              requestId: sel.requestId,
+              options: TargetBuilder.convertToStringIdentifiers(sel.options),
+              count: sel.count,
+              asMany: sel.asMany,
+            };
+          }
+        }
+        return undefined;
+      })(),
     };
 
     return JSON.stringify(res);

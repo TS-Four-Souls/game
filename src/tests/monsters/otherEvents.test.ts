@@ -157,7 +157,7 @@ describe("Event Monsters - Other Events", () => {
          
         // Mock select to choose no monsters to move
         const originalSelect = game.select.bind(game);
-        game.select = (player: Player, n: number, options: any[], optional?: boolean) => {
+        game.select = async (player: Player, n: number, options: any[], optional?: boolean) => {
             if (optional) {
                 return { selected: [], remaining: options };
             }

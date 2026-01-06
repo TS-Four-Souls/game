@@ -159,6 +159,43 @@ const app = new Elysia()
     }
   )
   .post(
+    "/submitSelection",
+    async (request) => {
+      try {
+        game.submitSelection(
+          request.body.issuer,
+          request.body.requestId,
+          request.body.selectedIdentifiers
+        );
+        return new Response(
+          JSON.stringify({ success: true }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+      } catch (error) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: error instanceof Error ? error.message : "Unknown error" 
+          }),
+          {
+            status: 400,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+      }
+    },
+    {
+      body: schemas.submitSelectionRequest,
+    }
+  )
+  .post(
     "/gaincoins",
     async (request) => {
       return new Response(
