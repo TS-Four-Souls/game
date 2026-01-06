@@ -60,7 +60,7 @@ const ImageRequestSchema = UserProtectedRequestSchema.extend({
 
 const SubmitSelectionSchema = UserProtectedRequestSchema.extend({
   requestId: z.string(),
-  selectedIdentifiers: z.array(z.string()),
+  selectedOptions: z.array(z.string()),
 });
 
 

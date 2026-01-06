@@ -165,7 +165,7 @@ const app = new Elysia()
         game.submitSelection(
           request.body.issuer,
           request.body.requestId,
-          request.body.selectedIdentifiers
+          request.body.selectedOptions
         );
         return new Response(
           JSON.stringify({ success: true }),
