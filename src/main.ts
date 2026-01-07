@@ -503,10 +503,10 @@ const app = new Elysia()
     // )! as CharacterCard;
     // const card = game.obtainCard("b2-remote_detonator")!;
     // const card2 = game.obtainCard("b2-xv_the_devil")! as LootCard;
-    const card2 = game.obtainCard("b2-xiv_temperance")! as LootCard;
+    const card2 = game.obtainCard("b2-xv_the_devil")! as LootCard;
     game.addCardToHand(p1, card2);
     game.start(p1);
-    const card = game.obtainCard("b2-blank_card")!;
+    const card = game.obtainCard("b2-the_chest")!;
     game.addInPlay(p1, card);
     return new Response("Debug reset", {
       status: 200,

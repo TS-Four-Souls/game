@@ -138,7 +138,7 @@ export function parseEachTimeRollEffect(s: string, game: Game): ParsedEffect {
     if (rollMatch && !s.split(" ").includes("you")) { 
         const rollValue = Number(rollMatch[1]);
         const restOfEffect = s.substring(rollMatch[0]!.length).trim();
-        const restParsed = effectParser(restOfEffect, game);
+        const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
         return {
             effectFunction: passive.onRollEffect([rollValue], restParsed.effectFunction, game, true),
             targetSelectors: restParsed.targetSelectors
@@ -150,7 +150,7 @@ export function parseEachTimeRollEffect(s: string, game: Game): ParsedEffect {
 
         const rollValue = Number(rollMatch[1]);
         const restOfEffect = s.substring(rollMatch[0]!.length).trim();
-        const restParsed = effectParser(restOfEffect, game);
+        const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
         return {
             effectFunction: passive.onRollEffect([rollValue], restParsed.effectFunction, game),
             targetSelectors: restParsed.targetSelectors
@@ -240,6 +240,17 @@ export function parseCurseEffect(s: string, game: Game): ParsedEffect {
     };
 }
 
+export function decideEntitySelector(s: string, game: Game): TargetsSelector[] {
+let selector = selectMonster(game);
+    if( s.includes("player"))
+    {    selector = selectPlayer(game);
+        if(s.includes("monster"))
+            selector = selectPlayerOrMonster(game);
+    }
+    return selector;
+}
+
+
 export function effectParser(s: string, game: Game, defaultEffect: EffectFunction = active.addInPlayEffect(game), selectionOnResolve = false): ParsedEffect {
     const originalS = s;
     // if (s === "[Paid Effect] Destroy 2 items you control:\nsteal a non-eternal item from a player."){
@@ -252,21 +263,21 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     if(s.startsWith("[curse] "))
         return parseCurseEffect(s.substring(8).trim(), game);
     if (s.startsWith("when you die, ") && s !== "when you die, before paying penalties, give this to another player.") {
-        const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game);
+        const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, defaultEffect, true);
         return {
             effectFunction: passive.onYourEventEffect("on:death:before-penalty", [restParsed.effectFunction], game),
             targetSelectors: restParsed.targetSelectors
         };
     }
     if (s.startsWith("each time you deal combat damage to a monster,")) {
-        const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game);
+        const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, defaultEffect, true);
         return {
             effectFunction: passive.onYourEventEffect("on:combatdamage:dealt:to-monster", [restParsed.effectFunction], game),
             targetSelectors: restParsed.targetSelectors
         };
     }
     if (s.startsWith("each time you die, after paying penalties, ")) {
-        const restParsed = effectParser(s.substring(s.indexOf(",", s.indexOf(",")+1) + 1).trim(), game);
+        const restParsed = effectParser(s.substring(s.indexOf(",", s.indexOf(",")+1) + 1).trim(), game, defaultEffect, true);
         return {
             effectFunction: passive.onYourEventEffect("on:death:after-penalty", [restParsed.effectFunction], game),
             targetSelectors: restParsed.targetSelectors
@@ -275,14 +286,14 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     if (s.startsWith("at the start of your turn, "))
         return parseAtTheStartOfYourTurnEffect(s, game);
     if (s.startsWith("each time you activate an item, ")) {
-        const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game);
+        const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, defaultEffect, true);
         return {
             effectFunction: passive.onYourEventEffect("on:item:activated", [restParsed.effectFunction], game),
             targetSelectors: restParsed.targetSelectors
         };
     }
     if (s.startsWith("when you would die, ") || s.startsWith("each time you would die, ")) {
-        const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game);
+        const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, defaultEffect, true);
         return {
             effectFunction: passive.onYourEventEffect("on:death:would-death", [restParsed.effectFunction], game),
             targetSelectors: restParsed.targetSelectors
@@ -334,16 +345,11 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         return { effectFunction: active.destroyTwoItemsEffect(game), targetSelectors: selectItemYouControl(game, 2) };
     }
     if (s.startsWith("kill ")) {
-        let selector = selectMonster(game);
-        if( s.includes("player"))
-        {    selector = selectPlayer(game);
-            if(s.includes("monster"))
-                selector = selectPlayerOrMonster(game);
-        }
+        const selector = decideEntitySelector(s, game);
         return { effectFunction: active.killTargetEffect(game), targetSelectors: selector };
     }
     if (s.startsWith("destroy this.")) {
-        const restParsed = effectParser(s.substring(12).trim(), game);
+        const restParsed = effectParser(s.substring(12).trim(), game, defaultEffect, selectionOnResolve);
         return {
             effectFunction: (data:EffectData) => { 
                 game.destroyCardsOrSouls([data.it]); 
@@ -358,8 +364,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         const parts = s.split(", then");
         const firstTrimmed = parts[0]!.trim();
         const secondTrimmed = parts[1]!.trim();
-        const firstParsed = effectParser(firstTrimmed, game);
-        const secondParsed = effectParser(secondTrimmed, game);
+        const firstParsed = effectParser(firstTrimmed, game, defaultEffect, selectionOnResolve);
+        const secondParsed = effectParser(secondTrimmed, game, defaultEffect, selectionOnResolve);
         return {
             effectFunction: async (data:EffectData) => {
                 await firstParsed.effectFunction(data);
@@ -371,8 +377,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     }
     if(s.includes(" if you do, ")){
         const parts = s.split(" if you do, ");
-        const firstParsed = effectParser(parts[0]!.trim(), game);
-        const secondParsed = effectParser(parts[1]!.trim(), game);
+        const firstParsed = effectParser(parts[0]!.trim(), game, defaultEffect, selectionOnResolve);
+        const secondParsed = effectParser(parts[1]!.trim(), game, defaultEffect, selectionOnResolve);
         return {
             effectFunction: async (data:EffectData) => {
                 if(await firstParsed.effectFunction(data))
@@ -420,7 +426,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     if (toDiscard === null)
         toDiscard = parseNumber(s, /^discard (\d+) loot cards?\.?$/u);
     if( toDiscard !== null)
-        return { effectFunction: active.discardNLootCardsEffect(toDiscard, game), targetSelectors: selectLootInYourHand(game, toDiscard) };
+        return { effectFunction: active.discardNLootCardsEffect(toDiscard, game, selectionOnResolve), targetSelectors: selectLootInYourHand(game, toDiscard)};
     const eachPlayerLoots = parseNumber(s, /^each player loots\s+(\d+)\.?$/u);
     if (eachPlayerLoots !== null)
         return { effectFunction: active.eachPlayerLootsEffect(game, eachPlayerLoots), targetSelectors: noTargets };
@@ -448,7 +454,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     if(s === "deal 1 damage to them.")
         damageToDeal = 1;
     if (damageToDeal !== null)
-        return { effectFunction: active.dealDamageToTargetEffect(game, damageToDeal), targetSelectors: selectPlayerOrMonster(game) };
+        return { effectFunction: active.dealDamageToTargetEffect(game, damageToDeal), targetSelectors: decideEntitySelector(s, game) };
     const slot = parseText(s, /^expand (\w+)s? slot/u)
     if (slot !== "")
     {
@@ -768,7 +774,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         case "each player gives their hand to the player to their left.":
             return { effectFunction: active.passHandsLeftEffect(game), targetSelectors: noTargets };
         case "steal a non-eternal item from a player or from the shop.":
-            return { effectFunction: active.stealNonEternalItemFromAnywhereEffect(game), targetSelectors: noTargets };
+            return { effectFunction: active.stealNonEternalItemFromAnywhereEffect(game), targetSelectors: selectNonEternalItemFromAnywhere(game) };
         
         case "look at the top card of each deck. you may put any of those cards on the bottom of their deck":
             return { effectFunction: active.look1EachDeckEffect(game), targetSelectors: noTargets };

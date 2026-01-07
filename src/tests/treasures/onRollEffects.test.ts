@@ -255,8 +255,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
     });
 
     // "Each time a player rolls a ❹, you may loot 1, then discard a loot card."
-    it.skip("moms_box", async () => {
-
+    it("moms_box", async () => {
         const correctValue = 4;
         const card = game.obtainCard("b2-pills") as LootCard;
         const item = game.shop.obtainCard("b2-moms_box")! as treasureCard;
@@ -295,7 +294,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
             attackRoll2.value = correctValue; // Triggering roll
         }
         await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // damage resolution
+        await game.resolveStack(); // effect resolution
+        await game.resolveStack(); // damage
         expect(game.stack.size).toBe(0);
         expect(player1.hand.length).toBe(initialHandSize); // looted 1, discarded 1
         expect(player1.hand.cards).not.toContain(cardToDiscard);

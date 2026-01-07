@@ -901,14 +901,14 @@ describe("Force Attack Monster", () => {
         });
 
         it("allows attack even when attackThisTurn is 0 (bypasses limit)", async () => {
+            // Player starts with attackThisTurn = 0 after game.start()
+            dischargeEachItemsAndRemoveCoins(game);
+            emptyHands(game);
             const monsterManual = game.shop.obtainCard("b2-monster_manual") as ItemCard;
             game.addInPlay(player1, monsterManual);
 
             const targetMonster = game.monsters[0]!;
 
-            // Player starts with attackThisTurn = 0 after game.start()
-            dischargeEachItemsAndRemoveCoins(game);
-            emptyHands(game);
                 // Use up any attacks by attacking another monster first
             if (game.currentPlayer.attackThisTurn !== 0) {
                 game.declareAttack(game.currentPlayer);

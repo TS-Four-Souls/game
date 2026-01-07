@@ -404,10 +404,17 @@ export class Game {
     // Search in all players' hands and in-play areas
     for (const player of this.players) {
       const handCard = player.hand.cards.find((c) => c.slug === slug);
-      if (handCard) return handCard;
+      if (handCard){
+        player.hand.removeCard(handCard);
+        return handCard;
+      }
 
       const inPlayCard = player.inPlay.find((c) => c.slug === slug);
-      if (inPlayCard) return inPlayCard;
+      if (inPlayCard)
+      {
+        player.removeInPlay(inPlayCard);
+        return inPlayCard;
+      }
     }
 
     return undefined;
@@ -605,6 +612,12 @@ export class Game {
     Options: any[],
     anyNumber: boolean = false
   ): Promise<{ selected: any[]; remaining: any[] }> {
+    if( n === 1 && !anyNumber && Options.length === 1){
+      return {
+        selected: [Options[0]!],
+        remaining: []
+      };
+    }
     const results = await this.selectMultiple([{
       player,
       count: n,

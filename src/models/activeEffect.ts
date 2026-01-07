@@ -750,12 +750,12 @@ export function destroyThisAndLoot2Effect(game: Game): EffectFunction {
     };
 }
 
-export function discardNLootCardsEffect(n: number, game: Game): EffectFunction {
+export function discardNLootCardsEffect(n: number, game: Game, selectionOnResolve: boolean = false): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         for (let i = 0; i < n; i++) {
             let toDiscard = data.next as LootCard;
-            if (!toDiscard) 
+            if (selectionOnResolve || !toDiscard) 
                 toDiscard = (await game.select(data.issuer, 1, data.issuer.hand.cards)).selected[0] as LootCard;
             const index = data.issuer.hand.cards.indexOf(toDiscard);
             game.discardFromHand(data.issuer, index + 1);
