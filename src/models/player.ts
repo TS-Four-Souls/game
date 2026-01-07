@@ -431,7 +431,7 @@ export class Player extends Entity {
     this._souls.splice(idx, 1);
     return true;
   }
-  activateItem(item: ItemCard, targets: any[] = [], effectId: number | "tap" = "tap"): EffectOnStack | null {
+  async activateItem(item: ItemCard, targets: any[] = [], effectId: number | "tap" = "tap"): Promise<EffectOnStack> {
     const index = this._inPlay.indexOf(item);
     if (index === -1) {
       throw new Error("Item not in play.");
@@ -439,7 +439,7 @@ export class Player extends Entity {
     if (!item.targetStillValid(this, effectId, targets))
       throw new Error("Targets are not valid for this effect.");
 
-    return item.tryActivateEffect(targets, effectId);
+    return await item.tryActivateEffect(targets, effectId);
   }
   gainCoins(coins: number): void {
     this._coin += coins;

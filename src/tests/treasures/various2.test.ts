@@ -51,7 +51,7 @@ describe("Tap/Paid effects 2", () => {
         };
         
         expect(player1.inPlay).toContain(breakfast);
-        game.activateItem(player1, remoteDetonator);
+        await game.activateItem(player1, remoteDetonator);
         await game.resolveStack();
         
         expect(voteCount).toBe(3); // All 3 players should have voted
@@ -88,7 +88,7 @@ describe("Tap/Paid effects 2", () => {
         const initialInPlay2 = [...player2.inPlay];
         const initialInPlay3 = [...player3.inPlay];
         
-        game.activateItem(player1, remoteDetonator);
+        await game.activateItem(player1, remoteDetonator);
         await game.resolveStack();
         
         // Nothing should be destroyed on a tie
@@ -108,7 +108,7 @@ describe("Tap/Paid effects 2", () => {
         game.recharge(guppysPaw);
         
         expect(player1.currentHealthPoints).toBe(2);
-        game.activateItem(player1, guppysPaw, [player2]);
+        await game.activateItem(player1, guppysPaw, [player2]);
         await game.resolveStack();
         
         expect(player1.currentHealthPoints).toBe(1); // Paid 1 HP
@@ -133,7 +133,7 @@ describe("Tap/Paid effects 2", () => {
         game.recharge(guppysPaw);
         
         // Try to activate - should fail because player1 has 0 HP
-        game.activateItem(player1, guppysPaw, [player2]);
+        await game.activateItem(player1, guppysPaw, [player2]);
         await game.resolveStack();
         
         expect(player1.currentHealthPoints).toBe(0); // No HP paid
@@ -154,7 +154,7 @@ describe("Tap/Paid effects 2", () => {
         
         game.recharge(guppysPaw);
         
-        game.activateItem(player1, guppysPaw, [player2]);
+        await game.activateItem(player1, guppysPaw, [player2]);
         await game.resolveStack();
         
         // Deal 5 damage to player2
@@ -173,7 +173,7 @@ describe("Tap/Paid effects 2", () => {
         
         game.recharge(guppysPaw);
         
-        game.activateItem(player1, guppysPaw, [player2]);
+        await game.activateItem(player1, guppysPaw, [player2]);
         await game.resolveStack();
         
         // First damage instance - should be prevented
@@ -196,7 +196,7 @@ describe("Tap/Paid effects 2", () => {
         
         
         expect(player1.currentHealthPoints).toBe(2);
-        game.activateItem(player1, guppysPaw, [player1]);
+        await game.activateItem(player1, guppysPaw, [player1]);
         await game.resolveStack();
         
         expect(player1.currentHealthPoints).toBe(1); // Paid 1 HP
@@ -855,7 +855,7 @@ describe("Force Attack Monster", () => {
             const targetMonster = game.monsters[1]!;
 
             game.recharge(monsterManual);
-            game.activateItem(player1, monsterManual, [targetMonster]);
+            await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.resolveStack();
 
             // Active player (player1) should have forced attack constraint
@@ -869,7 +869,7 @@ describe("Force Attack Monster", () => {
             const targetMonster = game.monsters[0]!;
 
             game.recharge(monsterManual);
-            game.activateItem(player1, monsterManual, [targetMonster]);
+            await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.resolveStack();
 
             // Try to end turn without attacking
@@ -885,7 +885,7 @@ describe("Force Attack Monster", () => {
             const targetMonster = game.monsters[0]!;
 
             game.recharge(monsterManual);
-            game.activateItem(player1, monsterManual, [targetMonster]);
+            await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.resolveStack();
 
             // Attack the forced monster
@@ -921,7 +921,7 @@ describe("Force Attack Monster", () => {
 
             // Now activate monster manual
             game.recharge(monsterManual);
-            game.activateItem(player1, monsterManual, [targetMonster]);
+            await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.resolveStack();
 
             // Player should still be forced to attack despite having 0 or negative attacks
@@ -941,7 +941,7 @@ describe("Force Attack Monster", () => {
             const targetMonster = game.monsters[0]!;
 
             game.recharge(monsterManual);
-            game.activateItem(player1, monsterManual, [targetMonster]);
+            await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.resolveStack();
 
             expect(game.currentPlayer.mustAttackMonster![0]).toBe(targetMonster);
@@ -974,7 +974,7 @@ describe("Force Attack Monster", () => {
             const targetMonster = game.monsters[0]!;
 
             game.recharge(monsterManual);
-            game.activateItem(player1, monsterManual, [targetMonster]);
+            await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.resolveStack();
 
             expect(game.currentPlayer.mustAttackMonster![0]).toBe(targetMonster);
@@ -1000,7 +1000,7 @@ describe("Force Attack Monster", () => {
             const monsterPosition = game.monsters.indexOf(targetMonster) + 1;
 
             game.recharge(monsterManual);
-            game.activateItem(player1, monsterManual, [targetMonster]);
+            await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.resolveStack();
 
             expect(game.currentPlayer.mustAttackMonster![0]).toBe(targetMonster);
@@ -1024,7 +1024,7 @@ describe("Force Attack Monster", () => {
             const targetMonster = game.monsters[0]!;
 
             game.recharge(monsterManual);
-            game.activateItem(player1, monsterManual, [targetMonster]);
+            await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.resolveStack();
 
             expect(game.currentPlayer.mustAttackMonster![0]).toBe(
@@ -1046,7 +1046,7 @@ describe("Force Attack Monster", () => {
             const targetMonster = game.monsters[0]!;
 
             game.recharge(monsterManual);
-            game.activateItem(player1, monsterManual, [targetMonster]);
+            await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.resolveStack();
 
             // Only current player (player1) should have the constraint
@@ -1065,7 +1065,7 @@ describe("Force Attack Monster", () => {
             game.addAttackThisTurn(game.currentPlayer, 2);
 
             game.recharge(monsterManual);
-            game.activateItem(player1, monsterManual, [targetMonster]);
+            await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.resolveStack();
 
             // Attack the forced monster first
@@ -1096,7 +1096,7 @@ describe("Force Attack Monster", () => {
     //         const secondMonster = game.monsters[1]!;
 
     //         game.recharge(monsterManual);
-    //         game.activateItem(player1, monsterManual, [secondMonster]);
+    //         await game.activateItem(player1, monsterManual, [secondMonster]);
     //         await game.resolveStack();
 
     //         // Should force attack on second monster specifically

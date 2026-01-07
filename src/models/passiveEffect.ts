@@ -4,6 +4,7 @@ import { Game, gameParameters } from "./game";
 import type { TriggerEvent } from "@/types/triggers";
 import { deckSelector } from "./targetSelector";
 import { Monster } from "./monster";
+import { TargetBuilder } from "./targetBuilder";
 import * as active from "./activeEffect";
 
 export function addPassiveEffectToStack(
@@ -484,14 +485,35 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): Effec
             // Create the effect that will execute when the stack resolves
             const effect = async (effectData: EffectData) => {
                 if (!(effectData.issuer instanceof Player)) return false;
-                let newTargets = { selected: [] as Card[] };
-                if(card.getTargetSelectors!(effectData.issuer, game).length > 0)
-                    newTargets = await game.select(effectData.issuer, 1, card.getTargetSelectors!(effectData.issuer, game), false);
-                const resolveFunction = card.onPlay(eventIssuer, newTargets.selected);
+                // let newTargets = { selected: [] as Card[] };
+                const selector = card.getTargetSelectors!()[0];
+                const targets: string[] = [];
+                let options = TargetBuilder.getNextSelector(game, eventIssuer, card, targets, "tap");
+                while(!options.complete)
+                {
+                    const selection = await game.select(eventIssuer, options.count, options.options, options.asMany);
+                    targets.push(...selection.selected);
+                    options = TargetBuilder.getNextSelector(game, eventIssuer, card, targets, "tap");
+                }
+                const newTargets = TargetBuilder.buildTargets(game, eventIssuer, card, targets, "tap");
+                // console.log(card.getTargetSelectors!()[0].selector(effectData.issuer), "selectors");
+                // if(selector.selector(effectData.issuer).length > 0)
+                //     newTargets = await game.select(effectData.issuer, 1, selector.selector(effectData.issuer), false);
+                const resolveFunction = card.onPlay(eventIssuer, newTargets);
                 const lootCardEffect = new LootCardEffect(card, resolveFunction);
                 game.addToStack(lootCardEffect);
                 return true;
             };
+            // const effect = async (effectData: EffectData) => {
+            //     if (!(effectData.issuer instanceof Player)) return false;
+            //     let newTargets = { selected: [] as Card[] };
+            //     if(card.getTargetSelectors!(effectData.issuer, game).length > 0)
+            //         newTargets = await game.select(effectData.issuer, 1, card.getTargetSelectors!(effectData.issuer, game), false);
+            //     const resolveFunction = card.onPlay(eventIssuer, newTargets.selected);
+            //     const lootCardEffect = new LootCardEffect(card, resolveFunction);
+            //     game.addToStack(lootCardEffect);
+            //     return true;
+            // };
             
             // Add to stack instead of executing immediately
             addPassiveEffectToStack(game, effect, data, "Copy loot card effect");

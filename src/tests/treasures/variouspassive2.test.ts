@@ -124,7 +124,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Activate the battery
         game.recharge(battery);
-        game.activateItem(player1, battery);
+        await game.activateItem(player1, battery);
         await game.resolveStack();
 
         // Player should gain 1¢
@@ -143,11 +143,11 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Activate both items
         game.recharge(battery1);
-        game.activateItem(player1, battery1);
+        await game.activateItem(player1, battery1);
         await game.resolveStack();
         await game.resolveStack(); // Resolve any stack effects
         game.recharge(battery2);
-        game.activateItem(player1, battery2); // gain 1 coin
+        await game.activateItem(player1, battery2); // gain 1 coin
         await game.resolveStack(); // Resolve any stack effects
         await game.resolveStack();
 

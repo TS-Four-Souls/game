@@ -42,7 +42,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
         // Recharge placebo and activate it to copy sack_of_pennies
         game.recharge(placebo);
-        game.activateItem(player1, placebo, [sackOfPennies]);
+        await game.activateItem(player1, placebo, [sackOfPennies]);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -64,7 +64,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
         // Recharge placebo and activate it to copy mr_boom
         game.recharge(placebo);
-        game.activateItem(player1, placebo, [mrBoom, [monster]]);
+        await game.activateItem(player1, placebo, [mrBoom, [monster]]);
         await game.resolveStack();
         await game.resolveStack();
         await game.resolveStack();
@@ -83,7 +83,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
         // Recharge placebo and activate it to copy razor_blade
         game.recharge(placebo);
-        game.activateItem(player1, placebo, [razorBlade, [player2]]);
+        await game.activateItem(player1, placebo, [razorBlade, [player2]]);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -101,13 +101,13 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
         // Deactivate sack_of_pennies
         game.recharge(sackOfPennies);
-        game.activateItem(player1, sackOfPennies);
+        await game.activateItem(player1, sackOfPennies);
         await game.resolveStack();
         expect(sackOfPennies.charged).toBe(false);
 
         // Recharge placebo and activate it to copy the_battery
         game.recharge(placebo);
-        game.activateItem(player1, placebo, [theBattery, [sackOfPennies]]);
+        await game.activateItem(player1, placebo, [theBattery, [sackOfPennies]]);
         await game.resolveStack();
 
         // sack_of_pennies should be recharged
@@ -127,7 +127,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
         // Recharge placebo and activate it to copy boomerang
         game.recharge(placebo);
-        game.activateItem(player1, placebo, [boomerang, [player2]]);
+        await game.activateItem(player1, placebo, [boomerang, [player2]]);
         await game.resolveStack();
 
         // Player1 should have 1 more card, player2 should have 1 less
@@ -148,7 +148,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
         // Recharge placebo and activate it to copy jawbone
         game.recharge(placebo);
-        game.activateItem(player1, placebo, [jawbone, [player2]]);
+        await game.activateItem(player1, placebo, [jawbone, [player2]]);
         await game.resolveStack();
 
         // Player1 should gain 3¢, player2 should lose 3¢
@@ -166,7 +166,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
         // Recharge placebo and activate it to copy player2's sack_of_pennies
         game.recharge(placebo);
-        game.activateItem(player1, placebo, [sackOfPennies]);
+        await game.activateItem(player1, placebo, [sackOfPennies]);
         await game.resolveStack();
 
         // Player1 should gain 1¢
@@ -186,7 +186,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         expect(sackOfPennies.charged).toBe(true);
 
         // Activate placebo to copy sack_of_pennies
-        game.activateItem(player1, placebo, [sackOfPennies]);
+        await game.activateItem(player1, placebo, [sackOfPennies]);
         await game.resolveStack();
 
         // Placebo should be deactivated, but sack_of_pennies should still be charged
@@ -204,13 +204,13 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
         // First use
         game.recharge(placebo);
-        game.activateItem(player1, placebo, [sackOfPennies]);
+        await game.activateItem(player1, placebo, [sackOfPennies]);
         await game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 1);
 
         // Recharge and use again
         game.recharge(placebo);
-        game.activateItem(player1, placebo, [sackOfPennies]);
+        await game.activateItem(player1, placebo, [sackOfPennies]);
         await game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 2);
     });
@@ -228,14 +228,14 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
         // First use - copy sack_of_pennies
         game.recharge(placebo);
-        game.activateItem(player1, placebo, [sackOfPennies]);
+        await game.activateItem(player1, placebo, [sackOfPennies]);
         await game.resolveStack();
         await game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 1);
 
         // Second use - copy razor_blade
         game.recharge(placebo);
-        game.activateItem(player1, placebo, [razorBlade, [player2]]);
+        await game.activateItem(player1, placebo, [razorBlade, [player2]]);
         await game.resolveStack();
         await game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 1);
@@ -281,7 +281,7 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
 
         // Activate modeling_clay to become sack_of_pennies
         game.recharge(modelingClay);
-        game.activateItem(player1, modelingClay, [sackOfPennies]);
+        await game.activateItem(player1, modelingClay, [sackOfPennies]);
         await game.resolveStack();
 
         // modeling_clay should now have sack_of_pennies properties
@@ -291,7 +291,7 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
         // Test that it can gain 1¢ like sack_of_pennies
         const initialCoins = player1.coins;
         game.recharge(modelingClay);
-        game.activateItem(player1, modelingClay);
+        await game.activateItem(player1, modelingClay);
         await game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 1);
     });
@@ -304,7 +304,7 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
         game.addHealth(player1, 10); // Ensure player1 has enough HP
         // Transform
         game.recharge(modelingClay);
-        game.activateItem(player1, modelingClay, [sackOfPennies]);
+        await game.activateItem(player1, modelingClay, [sackOfPennies]);
         await game.resolveStack();
 
         // End turn
@@ -334,7 +334,7 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
 
         // Transform into breakfast
         game.recharge(modelingClay);
-        game.activateItem(player1, modelingClay, [breakfast]);
+        await game.activateItem(player1, modelingClay, [breakfast]);
         await game.resolveStack();
 
         // Should have breakfast's properties
@@ -353,7 +353,7 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
 
         // Transform into player2's sack_of_pennies
         game.recharge(modelingClay);
-        game.activateItem(player1, modelingClay, [sackOfPennies]);
+        await game.activateItem(player1, modelingClay, [sackOfPennies]);
         await game.resolveStack();
 
         // Should be transformed
@@ -362,7 +362,7 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
         // Player1 should be able to use it
         const initialCoins = player1.coins;
         game.recharge(modelingClay);
-        game.activateItem(player1, modelingClay);
+        await game.activateItem(player1, modelingClay);
         await game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 1);
     });
@@ -376,7 +376,7 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
         // Recharge and transform
         game.recharge(modelingClay);
         const wasCharged = modelingClay.charged;
-        game.activateItem(player1, modelingClay, [sackOfPennies]);
+        await game.activateItem(player1, modelingClay, [sackOfPennies]);
         await game.resolveStack();
 
         // After activation, should be uncharged (consumed the charge)
@@ -391,7 +391,7 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
 
         // Transform into razor_blade
         game.recharge(modelingClay);
-        game.activateItem(player1, modelingClay, [razorBlade]);
+        await game.activateItem(player1, modelingClay, [razorBlade]);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -399,13 +399,13 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
 
         // Use it multiple times to verify it keeps working
         game.recharge(modelingClay);
-        game.activateItem(player1, modelingClay, [player2]);
+        await game.activateItem(player1, modelingClay, [player2]);
         await game.resolveStack();
         await game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 1);
 
         game.recharge(modelingClay);
-        game.activateItem(player1, modelingClay, [player2]);
+        await game.activateItem(player1, modelingClay, [player2]);
         await game.resolveStack();
         await game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 2);
@@ -423,20 +423,20 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
 
         // Transform modeling_clay into sack_of_pennies
         game.recharge(modelingClay);
-        game.activateItem(player1, modelingClay, [sackInShop]);
+        await game.activateItem(player1, modelingClay, [sackInShop]);
         await game.resolveStack();
 
         expect(modelingClay.name).toBe("Sack Of Pennies");
 
         // Player1's modeling_clay (now sack_of_pennies) works
         game.recharge(modelingClay);
-        game.activateItem(player1, modelingClay, []);
+        await game.activateItem(player1, modelingClay, []);
         await game.resolveStack();
         expect(player1.coins).toBe(player1InitialCoins + 1);
 
         // Player2's original sack_of_pennies still works independently
         game.recharge(sackInShop);
-        game.activateItem(player2, sackInShop, []);
+        await game.activateItem(player2, sackInShop, []);
         await game.resolveStack();
         expect(player2.coins).toBe(player2InitialCoins + 1);
     });
@@ -453,7 +453,7 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
 
         // Transform into breakfast
         game.recharge(modelingClay);
-        game.activateItem(player1, modelingClay, [breakfast1]);
+        await game.activateItem(player1, modelingClay, [breakfast1]);
         await game.resolveStack();
 
         // Player1 should have +1 HP from modeling_clay-as-breakfast
@@ -483,14 +483,14 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
 
         // First transformation: sack_of_pennies
         game.recharge(modelingClay);
-        game.activateItem(player1, modelingClay, [sack]);
+        await game.activateItem(player1, modelingClay, [sack]);
         await game.resolveStack();
         expect(modelingClay.name).toBe("Sack Of Pennies");
 
         // Use it
         const coinsBeforeUse = player1.coins;
         game.recharge(modelingClay);
-        game.activateItem(player1, modelingClay, []);
+        await game.activateItem(player1, modelingClay, []);
         await game.resolveStack();
         expect(player1.coins).toBe(coinsBeforeUse + 1);
 
@@ -501,7 +501,7 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
         // Original sack still works for player2
         game.recharge(sack);
         const player2CoinsBeforeUse = player2.coins;
-        game.activateItem(player2, sack, []);
+        await game.activateItem(player2, sack, []);
         await game.resolveStack();
         expect(player2.coins).toBe(player2CoinsBeforeUse + 1);
     });
@@ -544,7 +544,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // Transform into breakfast
         game.recharge(diplopia);
-        game.activateItem(player1, diplopia, [breakfast]);
+        await game.activateItem(player1, diplopia, [breakfast]);
         await game.resolveStack();
 
         // Should be transformed
@@ -565,7 +565,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // Transform into breakfast
         game.recharge(diplopia);
-        game.activateItem(player1, diplopia, [breakfast]);
+        await game.activateItem(player1, diplopia, [breakfast]);
         await game.resolveStack();
 
         // Should be breakfast
@@ -594,7 +594,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // Transform into player2's breakfast
         game.recharge(diplopia);
-        game.activateItem(player1, diplopia, [breakfast]);
+        await game.activateItem(player1, diplopia, [breakfast]);
         await game.resolveStack();
 
         // Should be transformed and player1 gets the benefit
@@ -610,7 +610,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // Transform
         game.recharge(diplopia);
-        game.activateItem(player1, diplopia, [breakfast]);
+        await game.activateItem(player1, diplopia, [breakfast]);
         await game.resolveStack();
         expect(diplopia.name).toBe("Breakfast");
 
@@ -641,7 +641,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // First turn - copy breakfast
         game.recharge(diplopia);
-        game.activateItem(player1, diplopia, [breakfast]);
+        await game.activateItem(player1, diplopia, [breakfast]);
         await game.resolveStack();
         expect(diplopia.name).toBe("Breakfast");
 
@@ -655,7 +655,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // Second turn - copy dinner
         game.recharge(diplopia);
-        game.activateItem(player1, diplopia, [dinner]);
+        await game.activateItem(player1, diplopia, [dinner]);
         await game.resolveStack();
         expect(diplopia.name).toBe("Dinner");
 
@@ -674,7 +674,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // Transform into brimstone
         game.recharge(diplopia);
-        game.activateItem(player1, diplopia, [brimstone]);
+        await game.activateItem(player1, diplopia, [brimstone]);
         await game.resolveStack();
 
         // Should have +1 ATK from brimstone
@@ -699,7 +699,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // Player1 transforms diplopia into copy of player2's brimstone
         game.recharge(diplopia);
-        game.activateItem(player1, diplopia, [brimstone]);
+        await game.activateItem(player1, diplopia, [brimstone]);
         await game.resolveStack();
 
         expect(diplopia.name).toBe("Brimstone");
@@ -730,7 +730,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // Player1 copies breakfast
         game.recharge(diplopia);
-        game.activateItem(player1, diplopia, [breakfast]);
+        await game.activateItem(player1, diplopia, [breakfast]);
         await game.resolveStack();
 
         // Player1 gets temporary HP bonus
@@ -764,7 +764,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // First use: copy breakfast
         game.recharge(diplopia);
-        game.activateItem(player1, diplopia, [breakfast]);
+        await game.activateItem(player1, diplopia, [breakfast]);
         await game.resolveStack();
         expect(player1.currentHealthPoints).toBe(player1InitialHP + 1);
 
@@ -774,7 +774,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // Second use: copy brimstone
         game.recharge(diplopia);
-        game.activateItem(player1, diplopia, [brimstone]);
+        await game.activateItem(player1, diplopia, [brimstone]);
         await game.resolveStack();
         expect(player1.attackPoints).toBe(player1InitialATK + 1);
 
@@ -800,7 +800,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // First transformation: breakfast
         game.recharge(diplopia);
-        game.activateItem(player1, diplopia, [breakfast]);
+        await game.activateItem(player1, diplopia, [breakfast]);
         await game.resolveStack();
 
         expect(diplopia.name).toBe("Breakfast");
@@ -811,7 +811,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // Second transformation: brimstone  
         game.recharge(diplopia);
-        game.activateItem(player1, diplopia, [brimstone]);
+        await game.activateItem(player1, diplopia, [brimstone]);
         await game.resolveStack();
 
         expect(diplopia.name).toBe("Brimstone");
@@ -965,12 +965,12 @@ describe("b2-no - Cancel the ↷ or $ ability of an item", () => {
 
         // Player 2 activates sack_of_pennies to gain 1¢
         game.recharge(sackOfPennies);
-        game.activateItem(player2, sackOfPennies);
+        await game.activateItem(player2, sackOfPennies);
         expect(game.stack.size).toBe(1);
 
         // Player 1 uses "no" to cancel the sack_of_pennies ability
         game.recharge(no);
-        game.activateItem(player1, no, [game.stack._stack[0]]); // Cancel the item at stack position 0
+        await game.activateItem(player1, no, [game.stack._stack[0]]); // Cancel the item at stack position 0
         await game.resolveStack(); // Resolve the no effect
 
         // The sack_of_pennies effect should be cancelled
@@ -991,11 +991,11 @@ describe("b2-no - Cancel the ↷ or $ ability of an item", () => {
         const initialHP = monster.currentHealthPoints;
 
         // Player 2 activates mr_boom (paid effect) to deal 1 damage
-        game.activateItem(player2, mrBoom, [monster]);
+        await game.activateItem(player2, mrBoom, [monster]);
         expect(game.stack.size).toBe(1);
 
         // Player 1 uses "no" to cancel the mr_boom ability
-        game.activateItem(player1, no, [game.stack._stack[0]]);
+        await game.activateItem(player1, no, [game.stack._stack[0]]);
         await game.resolveStack(); // Resolve the no effect
         await game.resolveStack(); // Resolve the no effect
 
@@ -1017,8 +1017,8 @@ describe("b2-no - Cancel the ↷ or $ ability of an item", () => {
         const stackLengthBefore = game.stack.size;
         
         // Activate no when stack is empty (should still work but have no effect)
-        expect(() => {
-            game.activateItem(player1, no, [undefined]);
+        await expect(async () => {
+            await game.activateItem(player1, no, [undefined]);
         }).toThrow();
     });
 
@@ -1033,11 +1033,11 @@ describe("b2-no - Cancel the ↷ or $ ability of an item", () => {
         const initialHP = player1.currentHealthPoints;
 
         // Player 2 uses razor_blade to damage player 1
-        game.activateItem(player2, razorBlade, [player1]);
+        await game.activateItem(player2, razorBlade, [player1]);
         expect(game.stack.size).toBe(1);
 
         // Player 1 uses no to cancel the damage
-        game.activateItem(player1, no, [game.stack._stack[0]]);
+        await game.activateItem(player1, no, [game.stack._stack[0]]);
         await game.resolveStack();
         expect(game.stack.size).toBe(0);
 
@@ -1063,9 +1063,9 @@ describe("b2-no - Cancel the ↷ or $ ability of an item", () => {
         const initialHP = monster.currentHealthPoints;
 
         // Player 2 activates mr_boom
-        game.activateItem(player2, mrBoom, [monster]);
+        await game.activateItem(player2, mrBoom, [monster]);
         
-        game.activateItem(player1, no, [game.stack._stack[0]]);
+        await game.activateItem(player1, no, [game.stack._stack[0]]);
         await game.resolveStack();
         await game.resolveStack();
         await game.resolveStack();
@@ -1086,10 +1086,10 @@ describe("b2-no - Cancel the ↷ or $ ability of an item", () => {
         expect(no.charged).toBe(true);
 
         // Player 2 activates sack of pennies
-        game.activateItem(player2, sackOfPennies);
+        await game.activateItem(player2, sackOfPennies);
 
         // Player 1 activates no
-        game.activateItem(player1, no, [game.stack._stack[0]]);
+        await game.activateItem(player1, no, [game.stack._stack[0]]);
         await game.resolveStack();
         await game.resolveStack();
 

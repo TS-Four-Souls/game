@@ -125,7 +125,9 @@ export function look1EachDeckEffect(game: Game): EffectFunction {
 
 export function removeCountersEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
-        if ((data.it as ItemCard).tags.counters! >= amount) {
+        if(!(data.it as ItemCard).tags.counters)
+            (data.it as ItemCard).tags.counters = 0;
+        if ((data.it as ItemCard).tags.counters as number >= amount) {
             (data.it as ItemCard).tags.counters -= amount;
             return true;
         }
@@ -971,28 +973,6 @@ export function rechargeThisEffect(game: Game): EffectFunction {
 export function cancelAtIndexEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         game.cancelAt(data.next as number);
-        return true;
-    };
-}
-
-export function removeCounterAndDoEffect(s: string, game: Game): EffectFunction {
-    const restParsed = effectParser(s.substring(24).trim(), game);
-    return async (data: EffectData) => {
-        if ((data.it as ItemCard).tags.counters! > 0) {
-            (data.it as ItemCard).tags.counters -= 1;
-            await restParsed.effectFunction(data);
-        }
-        return true;
-    };
-}
-
-export function remove3CountersAndDoEffect(s: string, game: Game): EffectFunction {
-    const restParsed = effectParser(s.substring(24).trim(), game);
-    return async (data: EffectData) => {
-        if ((data.it as ItemCard).tags.counters! >= 3) {
-            (data.it as ItemCard).tags.counters -= 3;
-            await restParsed.effectFunction(data);
-        }
         return true;
     };
 }

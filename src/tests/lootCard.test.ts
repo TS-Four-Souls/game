@@ -544,7 +544,7 @@ describe("Loot Card", () => {
 
         // Recharge and tap the item (simulate using it)
         item.recharge();
-        game.activateItem(player1, item);
+        await game.activateItem(player1, item);
         await game.resolveStack();
         expect(item.charged).toBe(false);
 
@@ -570,10 +570,10 @@ describe("Loot Card", () => {
 
         player1.inPlay.push(item1, item2);
         item1.recharge();
-        game.activateItem(player1, item1);
+        await game.activateItem(player1, item1);
         await game.resolveStack();
         item2.recharge();
-        game.activateItem(player1, item2);
+        await game.activateItem(player1, item2);
         await game.resolveStack();
 
         // Play lil battery targeting item1

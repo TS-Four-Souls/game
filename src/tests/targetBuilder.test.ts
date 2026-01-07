@@ -43,10 +43,9 @@ describe("Target Builder Interface", () => {
         if (item.isActiveItem()) {
             game.recharge(item);
         }
-        const itemIndex = player1.inPlay.indexOf(item);
 
         // Step 1: Start building targets with empty array
-        const step1 = TargetBuilder.getNextSelector(game, player1, itemIndex, []);
+        const step1 = TargetBuilder.getNextSelector(game, player1, item, []);
         
         expect(step1.complete).toBe(false);
         expect(step1.description).toBeTruthy();
@@ -59,7 +58,7 @@ describe("Target Builder Interface", () => {
         const chosenOption = step1.options[0]!;
         
         // Step 3: Continue building with the chosen target (flat array)
-        const step2 = TargetBuilder.getNextSelector(game, player1, itemIndex, [chosenOption]);
+        const step2 = TargetBuilder.getNextSelector(game, player1, item, [chosenOption]);
         
         // Should be complete now (single selector)
         expect(step2.complete).toBe(true);
@@ -75,10 +74,9 @@ describe("Target Builder Interface", () => {
         game.addInPlay(player1, contractFromBelow);
         game.addInPlay(player1, item1);
         game.addInPlay(player1, item2);
-        const contractIndex = player1.inPlay.indexOf(contractFromBelow);
 
         // Step 1: Get first selector (payment - destroy 2 items)
-        const step1 = TargetBuilder.getNextSelector(game, player1, contractIndex, [], 0);
+        const step1 = TargetBuilder.getNextSelector(game, player1, contractFromBelow, [], 0);
         
         // Should return selector info (complete status may vary based on if selector exists)
         expect(typeof step1.complete).toBe('boolean');
@@ -93,7 +91,7 @@ describe("Target Builder Interface", () => {
             const step2 = TargetBuilder.getNextSelector(
                 game,
                 player1, 
-                contractIndex, 
+                contractFromBelow, 
                 itemsToDestroy,
                 0
             );
@@ -108,7 +106,6 @@ describe("Target Builder Interface", () => {
         
         game.addInPlay(player1, item1);
         game.addInPlay(player1, item2);
-        const item1Index = player1.inPlay.indexOf(item1);
 
         // Simulate client sending string identifiers (flat array)
         const stringTargets = [
@@ -117,7 +114,7 @@ describe("Target Builder Interface", () => {
         ];
 
         // Build actual targets - need an item with selectors that match
-        const targets = TargetBuilder.buildTargets(game, player1, item1Index, stringTargets);
+        const targets = TargetBuilder.buildTargets(game, player1, item1, stringTargets);
 
         // Just verify buildTargets doesn't crash
         expect(Array.isArray(targets)).toBe(true);
@@ -159,11 +156,10 @@ describe("Target Builder Interface", () => {
         // This test demonstrates the security aspect using a multi-selector effect
         const item = game.obtainCard("b2-blank_card") as ItemCard;
         game.addInPlay(player1, item);
-        const itemIndex = player1.inPlay.indexOf(item);
         
         // For testing progressive disclosure, we need an effect with multiple selectors
         // Many effects only have 1 selector or no selectors, so just verify basic behavior
-        const step1 = TargetBuilder.getNextSelector(game, player1, itemIndex, [], "tap");
+        const step1 = TargetBuilder.getNextSelector(game, player1, item, [], "tap");
         
         // Verify we only get information about current selector, not future ones
         expect(step1.isChooseOne).toBeDefined();
@@ -177,9 +173,8 @@ describe("Target Builder Interface", () => {
         if (!item) return; // Skip if no item
         
         game.addInPlay(player1, item);
-        const itemIndex = player1.inPlay.indexOf(item);
 
-        const result = TargetBuilder.getNextSelector(game, player1, itemIndex, []);
+        const result = TargetBuilder.getNextSelector(game, player1, item, []);
         
         // Should immediately be complete if no selectors
         expect(result.complete).toBe(true);
@@ -190,9 +185,8 @@ describe("Target Builder Interface", () => {
         // For now, just verify the interface returns the asMany flag
         const item = game.obtainCard("b2-blank_card") as ItemCard;
         game.addInPlay(player1, item);
-        const itemIndex = player1.inPlay.indexOf(item);
         
-        const result = TargetBuilder.getNextSelector(game, player1, itemIndex, []);
+        const result = TargetBuilder.getNextSelector(game, player1, item, []);
         
         // Verify asMany field exists (it's boolean)
         expect(typeof result.asMany).toBe('boolean');
@@ -209,10 +203,9 @@ describe("Target Builder Interface", () => {
         game.addInPlay(player1, item1);
         game.addInPlay(player1, item2);
         game.addInPlay(player2, targetItem);
-        const contractIndex = player1.inPlay.indexOf(contractFromBelow);
 
         // CLIENT: Request first selector
-        const selector1 = TargetBuilder.getNextSelector(game, player1, contractIndex, [], 0);
+        const selector1 = TargetBuilder.getNextSelector(game, player1, contractFromBelow, [], 0);
         expect(selector1.complete).toBe(false);
         
         // CLIENT: User picks items (just pick available options)
@@ -222,7 +215,7 @@ describe("Target Builder Interface", () => {
         const selector2 = TargetBuilder.getNextSelector(
             game,
             player1,
-            contractIndex,
+            contractFromBelow,
             chosenItems,
             0
         );
@@ -236,7 +229,7 @@ describe("Target Builder Interface", () => {
                 const selector3 = TargetBuilder.getNextSelector(
                     game,
                     player1,
-                    contractIndex,
+                    contractFromBelow,
                     allChoices,
                     0
                 );
@@ -249,10 +242,9 @@ describe("Target Builder Interface", () => {
     it("should handle chaos card choose-one - option 1: Kill a player or monster", async () => {
         const chaosCard = game.obtainCard("b2-chaos_card") as ItemCard;
         game.addInPlay(player1, chaosCard);
-        const chaosIndex = player1.inPlay.indexOf(chaosCard);
 
         // Step 1: Get the choose-one selector
-        const step1 = TargetBuilder.getNextSelector(game, player1, chaosIndex, [], "tap");
+        const step1 = TargetBuilder.getNextSelector(game, player1, chaosCard, [], "tap");
         
         // Chaos card has "if you do, choose one-" which might affect structure
         // Just verify basic progressive disclosure works
@@ -262,7 +254,7 @@ describe("Target Builder Interface", () => {
         if (step1.isChooseOne && step1.options.length > 0) {
             // Choose first option
             const chosenOption = step1.options[0]!;
-            const step2 = TargetBuilder.getNextSelector(game, player1, chaosIndex, [chosenOption], "tap");
+            const step2 = TargetBuilder.getNextSelector(game, player1, chaosCard, [chosenOption], "tap");
             
             // Should make progress
             expect(typeof step2.complete).toBe('boolean');
@@ -275,10 +267,9 @@ describe("Target Builder Interface", () => {
         game.addInPlay(player1, chaosCard);
         game.addInPlay(player2, targetItem);
         game.recharge(chaosCard)
-        const chaosIndex = player1.inPlay.indexOf(chaosCard);
 
         // Step 1: Get the choose-one selector
-        const step1 = TargetBuilder.getNextSelector(game, player1, chaosIndex, [], "tap");
+        const step1 = TargetBuilder.getNextSelector(game, player1, chaosCard, [], "tap");
         
         // Verify basic behavior
         expect(typeof step1.complete).toBe('boolean');
@@ -288,17 +279,17 @@ describe("Target Builder Interface", () => {
         if (step1.isChooseOne && step1.options.length >= 2) {
             // Choose second option
             const chosenOption = step1.options[1]!;
-            const step2 = TargetBuilder.getNextSelector(game, player1, chaosIndex, [chosenOption], "tap");
+            const step2 = TargetBuilder.getNextSelector(game, player1, chaosCard, [chosenOption], "tap");
             
             // Should make progress
             expect(step2.complete).toBe(false);
             expect(step2.options.includes(targetItem.slug)).toBe(true);
-            const step3 = TargetBuilder.getNextSelector(game, player1, chaosIndex, [chosenOption, targetItem.slug], "tap");
+            const step3 = TargetBuilder.getNextSelector(game, player1, chaosCard, [chosenOption, targetItem.slug], "tap");
             expect(step3.complete).toBe(true);
 
-            const targets = TargetBuilder.buildTargets(game, player1, chaosIndex, [chosenOption, targetItem.slug]);
+            const targets = TargetBuilder.buildTargets(game, player1, chaosCard, [chosenOption, targetItem.slug]);
 
-            game.activateItem(player1, chaosCard, targets);
+            await game.activateItem(player1, chaosCard, targets);
             await game.resolveStack();
             // Verify the item was destroyed
             expect(player2.inPlay.find(i => i.slug === targetItem.slug)).toBeUndefined();
@@ -312,7 +303,7 @@ describe("Target Builder Interface", () => {
     game.recharge(bloodLust)
 
     // Step 1: Get the choose-one selector
-    const step1 = TargetBuilder.getNextSelector(game, player1, 1, [], "tap");
+    const step1 = TargetBuilder.getNextSelector(game, player1, bloodLust, [], "tap");
     
     // Verify basic behavior
     expect(typeof step1.complete).toBe('boolean');
@@ -322,12 +313,12 @@ describe("Target Builder Interface", () => {
     if (step1.options.length >= 2) {
         // Choose second option
         const chosenOption = step1.options[1]!;
-        const step2 = TargetBuilder.getNextSelector(game, player1, 1, [chosenOption], "tap");
+        const step2 = TargetBuilder.getNextSelector(game, player1, bloodLust, [chosenOption], "tap");
         
         // Should make progress
         expect(step2.complete).toBe(true);
-        const targets = TargetBuilder.buildTargets(game, player1, 1, [chosenOption]);
-        game.activateItem(player1, bloodLust, targets);
+        const targets = TargetBuilder.buildTargets(game, player1, bloodLust, [chosenOption]);
+        await game.activateItem(player1, bloodLust, targets);
         await game.resolveStack();
 
     }

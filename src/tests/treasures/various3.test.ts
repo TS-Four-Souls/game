@@ -39,7 +39,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Recharge and activate compost (sets up listener)
         game.recharge(compost);
-        game.activateItem(player1, compost, [player1]);
+        await game.activateItem(player1, compost, [player1]);
         await game.resolveStack();
 
         // Loot should come from discard (resolves the effect)
@@ -63,7 +63,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Recharge and activate compost
         game.recharge(compost);
-        game.activateItem(player1, compost);
+        await game.activateItem(player1, compost);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -86,7 +86,7 @@ describe("Tap/Paid effects 1", () => {
         game.addInPlay(player2, targetItem);
 
         // Activate paid effect with 2 items to destroy and target item to steal
-        game.activateItem(player1, contractFromBelow, [item1, item2, targetItem], 0);
+        await game.activateItem(player1, contractFromBelow, [item1, item2, targetItem], 0);
         await game.resolveStack();
 
         // Two items should be destroyed
@@ -109,7 +109,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Recharge and activate decoy with target item
         game.recharge(decoy);
-        game.activateItem(player1, decoy, [targetItem]);
+        await game.activateItem(player1, decoy, [targetItem]);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -130,7 +130,7 @@ describe("Tap/Paid effects 1", () => {
         const initialCoins = player1.coins;
 
         // Activate paid effect with item to give and player to give to
-        game.activateItem(player1, donationMachine, [itemToGive, player2], 0);
+        await game.activateItem(player1, donationMachine, [itemToGive, player2], 0);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -153,7 +153,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Recharge and activate glass_cannon with target item
         game.recharge(glassCannon);
-        game.activateItem(player1, glassCannon, [targetItem]);
+        await game.activateItem(player1, glassCannon, [targetItem]);
         await game.resolveStack();
 
         // Target item should be destroyed first (on stack)
@@ -187,7 +187,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Recharge and activate glass_cannon with target item
         game.recharge(glassCannon);
-        game.activateItem(player1, glassCannon, [targetItem]);
+        await game.activateItem(player1, glassCannon, [targetItem]);
         await game.resolveStack();
 
         // Get the dice from the stack and set its value to 6
@@ -271,7 +271,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Recharge and activate boomerang targeting player2
         game.recharge(boomerang);
-        game.activateItem(player1, boomerang, [player2]);
+        await game.activateItem(player1, boomerang, [player2]);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -293,7 +293,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Recharge and activate boomerang targeting player2
         game.recharge(boomerang);
-        game.activateItem(player1, boomerang, [player2]);
+        await game.activateItem(player1, boomerang, [player2]);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -318,7 +318,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Recharge and activate box
         game.recharge(box);
-        game.activateItem(player1, box);
+        await game.activateItem(player1, box);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -353,7 +353,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Recharge and activate chaos
         game.recharge(chaos);
-        game.activateItem(player1, chaos);
+        await game.activateItem(player1, chaos);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -384,7 +384,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Recharge and activate guppys_head targeting player2
         game.recharge(guppysHead);
-        game.activateItem(player1, guppysHead, [player2]);
+        await game.activateItem(player1, guppysHead, [player2]);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -406,7 +406,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Recharge and activate guppys_head targeting player2
         game.recharge(guppysHead);
-        game.activateItem(player1, guppysHead, [player2]);
+        await game.activateItem(player1, guppysHead, [player2]);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -423,7 +423,7 @@ describe("Tap/Paid effects 1", () => {
         const initialCoins = player1.coins;
 
         game.recharge(pandorasBox);
-        game.activateItem(player1, pandorasBox);
+        await game.activateItem(player1, pandorasBox);
         await game.resolveStack();
 
         // Get the dice from the stack and set value to 1
@@ -445,7 +445,7 @@ describe("Tap/Paid effects 1", () => {
         const initialCoins = player1.coins;
 
         game.recharge(pandorasBox);
-        game.activateItem(player1, pandorasBox);
+        await game.activateItem(player1, pandorasBox);
         await game.resolveStack();
 
         const dice = game.stack.elements[0] as DiceRoll;
@@ -465,7 +465,7 @@ describe("Tap/Paid effects 1", () => {
         const monster = game.monsters[0];
 
         game.recharge(pandorasBox);
-        game.activateItem(player1, pandorasBox);
+        await game.activateItem(player1, pandorasBox);
         await game.resolveStack();
 
         const dice = game.stack.elements[0] as DiceRoll;
@@ -486,7 +486,7 @@ describe("Tap/Paid effects 1", () => {
         const initialHandSize = player1.hand.length;
 
         game.recharge(pandorasBox);
-        game.activateItem(player1, pandorasBox);
+        await game.activateItem(player1, pandorasBox);
         await game.resolveStack();
 
         const dice = game.stack.elements[0] as DiceRoll;
@@ -506,7 +506,7 @@ describe("Tap/Paid effects 1", () => {
         const initialCoins = player1.coins;
 
         game.recharge(pandorasBox);
-        game.activateItem(player1, pandorasBox);
+        await game.activateItem(player1, pandorasBox);
         await game.resolveStack();
 
         const dice = game.stack.elements[0] as DiceRoll;
@@ -526,7 +526,7 @@ describe("Tap/Paid effects 1", () => {
         const initialSouls = player1.souls.length;
 
         game.recharge(pandorasBox);
-        game.activateItem(player1, pandorasBox);
+        await game.activateItem(player1, pandorasBox);
         await game.resolveStack();
 
         const dice = game.stack.elements[0] as DiceRoll;
@@ -555,7 +555,7 @@ describe("Tap/Paid effects 1", () => {
         };
 
         game.recharge(theShovel);
-        game.activateItem(player1, theShovel);
+        await game.activateItem(player1, theShovel);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -579,7 +579,7 @@ describe("Tap/Paid effects 1", () => {
         const initialItemCount = player1.inPlay.length - 1; // -1 for d4 itself
 
         game.recharge(theD4);
-        game.activateItem(player1, theD4, [player1]);
+        await game.activateItem(player1, theD4, [player1]);
         await game.resolveStack();
         await game.resolveStack(); // Resolve destroy d4
         await game.resolveStack(); // Resolve reroll items
@@ -608,7 +608,7 @@ describe("Tap/Paid effects 1", () => {
         dice.value = 3;
 
         game.recharge(luckyFoot);
-        game.activateItem(player1, luckyFoot, [dice, 2]);
+        await game.activateItem(player1, luckyFoot, [dice, 2]);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -625,7 +625,7 @@ describe("Tap/Paid effects 1", () => {
         dice.value = 5;
 
         game.recharge(miniMush);
-        game.activateItem(player1, miniMush, [dice, 2]);
+        await game.activateItem(player1, miniMush, [dice, 2]);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -642,7 +642,7 @@ describe("Tap/Paid effects 1", () => {
         dice.value = 5;
 
         game.recharge(miniMush);
-        game.activateItem(player1, miniMush, [dice, 1]);
+        await game.activateItem(player1, miniMush, [dice, 1]);
         await game.resolveStack();
         // await game.resolveStack();
 
@@ -666,7 +666,7 @@ describe("Tap/Paid effects 1", () => {
         };
 
         game.recharge(momsShovel);
-        game.activateItem(player1, momsShovel);
+        await game.activateItem(player1, momsShovel);
         await game.resolveStack();
         await game.resolveStack(); // Resolve destroy moms_shovel
         await game.resolveStack(); // Resolve steal soul
@@ -695,7 +695,7 @@ describe("Tap/Paid effects 1", () => {
         };
 
         game.recharge(momsBra);
-        game.activateItem(player1, momsBra, [monster]);
+        await game.activateItem(player1, momsBra, [monster]);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -714,7 +714,7 @@ describe("Tap/Paid effects 1", () => {
         const initialHp = player2.currentHealthPoints;
 
         game.recharge(momsBra);
-        game.activateItem(player1, momsBra, [player2]);
+        await game.activateItem(player1, momsBra, [player2]);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -732,7 +732,7 @@ describe("Tap/Paid effects 1", () => {
         const initialHandSize = player2.hand.length;
 
         game.recharge(twoOfClubs);
-        game.activateItem(player1, twoOfClubs, [player2]);
+        await game.activateItem(player1, twoOfClubs, [player2]);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -747,7 +747,7 @@ describe("Tap/Paid effects 1", () => {
         game.addInPlay(player1, twoOfClubs);
 
         game.recharge(twoOfClubs);
-        game.activateItem(player1, twoOfClubs, [player2]);
+        await game.activateItem(player1, twoOfClubs, [player2]);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -780,7 +780,7 @@ describe("Tap/Paid effects 1", () => {
         // };
 
         game.recharge(crystalBall);
-        game.activateItem(player1, crystalBall, [4]);
+        await game.activateItem(player1, crystalBall, [4]);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -806,7 +806,7 @@ describe("Tap/Paid effects 1", () => {
         };
 
         game.recharge(crystalBall);
-        game.activateItem(player1, crystalBall);
+        await game.activateItem(player1, crystalBall);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -831,7 +831,7 @@ describe("Tap/Paid effects 1", () => {
         const lootCardIndex = player1.hand.cards.indexOf(lootCard!);
 
         game.recharge(blankCard);
-        game.activateItem(player1, blankCard);
+        await game.activateItem(player1, blankCard);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -856,7 +856,7 @@ describe("Tap/Paid effects 1", () => {
         const trinketIndex = player1.hand.cards.indexOf(trinket!);
 
         game.recharge(blankCard);
-        game.activateItem(player1, blankCard);
+        await game.activateItem(player1, blankCard);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -878,7 +878,7 @@ describe("Tap/Paid effects 1", () => {
         const player2InitialHp = player2.currentHealthPoints;
 
         game.recharge(hostHat);
-        game.activateItem(player1, hostHat);
+        await game.activateItem(player1, hostHat);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -899,7 +899,7 @@ describe("Tap/Paid effects 1", () => {
         player2.addHealthPoints(10);
 
         game.recharge(hostHat);
-        game.activateItem(player1, hostHat);
+        await game.activateItem(player1, hostHat);
         await game.resolveStack();
         await game.resolveStack();
 

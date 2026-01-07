@@ -51,7 +51,7 @@ describe("Eternal Items", () => {
         dice.value = 5; // Force roll to 5 for testing
         game.recharge(theD6);
         expect(theD6.charged).toBe(true);
-        game.activateItem(player2, theD6, [dice]);
+        await game.activateItem(player2, theD6, [dice]);
         await game.resolveStack();
         await game.resolveStack();
         await game.resolveStack();
@@ -98,7 +98,7 @@ describe("Eternal Items", () => {
             game.decks["loot"]!.addDiscardTop(c);
         const topDiscardCard = game.decks["loot"]!.discard[0];
 
-        game.activateItem(player1, theCurse, ["loot"]);
+        await game.activateItem(player1, theCurse, ["loot"]);
         await game.resolveStack();
         await game.resolveStack(); // resolve the curse effect
         expect(game.decks["loot"]!.discard.length).toBe(4); // top of loot deck should be the previous top of discard
@@ -159,13 +159,13 @@ describe("Eternal Items", () => {
         expect(player2.inPlay[0]!.slug).toBe("b2-isaac");
         const theBone = player1.inPlay[1]! as ItemCard;
         game.recharge(theBone);
-        game.activateItem(player1, theBone);
+        await game.activateItem(player1, theBone);
         await game.resolveStack();
         expect(theBone.tags.counters).toBe(1);
         game.endTurn();
         expect(theBone.charged).toBe(false);
         game.recharge(theBone);
-        game.activateItem(player1, theBone);
+        await game.activateItem(player1, theBone);
         await game.resolveStack();
         await game.resolveStack();
         expect(theBone.tags.counters).toBe(2);
@@ -201,10 +201,10 @@ describe("Eternal Items", () => {
         
         // Add 2 counters to the bone
         game.recharge(theBone);
-        game.activateItem(player1, theBone);
+        await game.activateItem(player1, theBone);
         await game.resolveStack();
         game.recharge(theBone);
-        game.activateItem(player1, theBone);
+        await game.activateItem(player1, theBone);
         await game.resolveStack();
         expect(theBone.tags.counters).toBe(2);
         
@@ -219,7 +219,7 @@ describe("Eternal Items", () => {
         dice.value = 4; // Force roll to 4 for testing
         
         // Use paid effect to add +1 to the roll
-        game.activateItem(player1, theBone, [dice], 0); // Index 0 for first paid effect
+        await game.activateItem(player1, theBone, [dice], 0); // Index 0 for first paid effect
         await game.resolveStack();
         await game.resolveStack(); // resolve the paid effect
         expect(dice.value).toBe(5); // Should be 4 + 1
@@ -249,7 +249,7 @@ describe("Eternal Items", () => {
         // Add 3 counters to the bone
         for (let i = 0; i < 3; i++) {
             game.recharge(theBone);
-            game.activateItem(player1, theBone);
+            await game.activateItem(player1, theBone);
             await game.resolveStack();
         }
         expect(theBone.tags.counters).toBe(3);
@@ -257,7 +257,7 @@ describe("Eternal Items", () => {
         const initialHP = player2.currentHealthPoints;
         
         // Use paid effect to deal damage to player2
-        game.activateItem(player1, theBone, [player2], 1); // Index 1 for second paid effect
+        await game.activateItem(player1, theBone, [player2], 1); // Index 1 for second paid effect
         await game.resolveStack(); // resolve damage
         await game.resolveStack(); // resolve damage
         
@@ -284,10 +284,10 @@ describe("Eternal Items", () => {
         
         // Add 2 counters to the bone
         game.recharge(theBone);
-        game.activateItem(player1, theBone);
+        await game.activateItem(player1, theBone);
         await game.resolveStack();
         game.recharge(theBone);
-        game.activateItem(player1, theBone);
+        await game.activateItem(player1, theBone);
         await game.resolveStack();
         expect(theBone.tags.counters).toBe(2);
         
@@ -296,7 +296,7 @@ describe("Eternal Items", () => {
         const initialMonsterHP = monster.currentHealthPoints;
         
         // Use paid effect to deal damage to monster
-        game.activateItem(player1, theBone, [monster], 1); // Index 1 for second paid effect
+        await game.activateItem(player1, theBone, [monster], 1); // Index 1 for second paid effect
         await game.resolveStack(); // resolve damage
         await game.resolveStack(); // resolve damage
         
@@ -325,7 +325,7 @@ describe("Eternal Items", () => {
         // Add 5 counters to the bone
         for (let i = 0; i < 5; i++) {
             game.recharge(theBone);
-            game.activateItem(player1, theBone);
+            await game.activateItem(player1, theBone);
             await game.resolveStack();
         }
         expect(theBone.tags.counters).toBe(5);
@@ -334,7 +334,7 @@ describe("Eternal Items", () => {
         const initialSouls = player1.totalSouls;
         
         // Use paid effect to convert to soul
-        game.activateItem(player1, theBone, [], 2); // Index 2 for third paid effect
+        await game.activateItem(player1, theBone, [], 2); // Index 2 for third paid effect
         await game.resolveStack(); // resolve soul conversion
         
         expect(theBone.tags.counters).toBe(0); // Counters should be removed
@@ -365,7 +365,7 @@ describe("Eternal Items", () => {
         // Add only 4 counters to the bone
         for (let i = 0; i < 4; i++) {
             game.recharge(theBone);
-            game.activateItem(player1, theBone);
+            await game.activateItem(player1, theBone);
             await game.resolveStack();
         }
         expect(theBone.tags.counters).toBe(4);
@@ -373,7 +373,9 @@ describe("Eternal Items", () => {
         const initialSouls = player1.souls;
         
         // Attempt to use paid effect with insufficient counters
-        game.activateItem(player1, theBone, [], 2)
+        await expect(async () => {
+            await game.activateItem(player1, theBone, [], 2)}
+        ).toThrow();
         expect(theBone.tags.counters).toBe(4); // Counters should remain unchanged
         expect(player1.souls).toBe(initialSouls); // Souls should remain unchanged
     });
@@ -429,7 +431,7 @@ describe("Eternal Items", () => {
         dice.value = 5; // Force roll to 5 for testing
         const initialHandSize = player1.hand.length;
         
-        game.activateItem(player1, bookOfBelial, [dice, -1]); // subtract 1 to roll
+        await game.activateItem(player1, bookOfBelial, [dice, -1]); // subtract 1 to roll
         await game.resolveStack();
         expect(dice.value).toBe(4);
         await game.resolveStack();
@@ -471,7 +473,7 @@ describe("Eternal Items", () => {
         dice.value = 2; // Force roll to 5 for testing
         
         const initialHandSize = player1.hand.length;
-        game.activateItem(player1, bookOfBelial, [dice, 1]); // subtract 1 to roll
+        await game.activateItem(player1, bookOfBelial, [dice, 1]); // subtract 1 to roll
         await game.resolveStack();
         expect(dice.value).toBe(3);
         await game.resolveStack();
@@ -507,7 +509,7 @@ describe("Eternal Items", () => {
         expect(sleightOfHand.charged).toBe(true);
 
         const top5reverse = game.decks["loot"]!.cards.slice(0, 5).map(c => c.slug);
-        game.activateItem(player1, sleightOfHand, ["loot"]);
+        await game.activateItem(player1, sleightOfHand, ["loot"]);
         await game.resolveStack();
         await game.resolveStack(); // resolve sleight of hand effect
         const top5After = game.getFirstCardsOfDeck("loot", 5).map(c => c.slug);
@@ -543,7 +545,7 @@ describe("Eternal Items", () => {
         expect(yumHeart.charged).toBe(true);
         
         expect(player2.currentHealthPoints).toBe(2);
-        game.activateItem(player2, yumHeart);
+        await game.activateItem(player2, yumHeart);
         await game.resolveStack();
         // simulate large amount of damage to maggy
         game.dealDamage(player2, player2, dummyLoot, 1000);
@@ -640,7 +642,7 @@ describe("Eternal Items", () => {
         expect(bloodlust.charged).toBe(true);
 
         expect(player2.attackPoints).toBe(1);
-        game.activateItem(player2, bloodlust);
+        await game.activateItem(player2, bloodlust);
         await game.resolveStack();
         expect(player2.attackPoints).toBe(2);
 
@@ -650,28 +652,28 @@ describe("Eternal Items", () => {
         expect(player2.attackPoints).toBe(1);
         expect(bloodlust.charged).toBe(true);
 
-        game.activateItem(player2, bloodlust);
+        await game.activateItem(player2, bloodlust);
         await game.resolveStack();
         game.endTurn();
         await game.resolveStack();
         await game.resolveStack();
         await game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
-        game.activateItem(player2, bloodlust);
+        await game.activateItem(player2, bloodlust);
         await game.resolveStack();
         expect(bloodlust.charged).toBe(false);
         game.endTurn();
         await game.resolveStack();
         await game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
-        game.activateItem(player2, bloodlust);
+        await game.activateItem(player2, bloodlust);
         await game.resolveStack();
         expect(bloodlust.charged).toBe(false);
         game.endTurn();
         await game.resolveStack();
         await game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
-        game.activateItem(player2, bloodlust);
+        await game.activateItem(player2, bloodlust);
         await game.resolveStack();
         expect(bloodlust.charged).toBe(false);
         game.endTurn();
@@ -711,7 +713,7 @@ describe("Eternal Items", () => {
         expect(player1.coins).toBe(5);
         expect(player2.coins).toBe(0);
         
-        game.activateItem(player2,
+        await game.activateItem(player2,
             foreverAlone, ["Steal 1¢ from another player.", player1]);
         await game.resolveStack();
         
@@ -742,7 +744,7 @@ describe("Eternal Items", () => {
         
         let peekCalled = false;
         // Mock game.select to choose option 2 (look at top card)
-        game.activateItem(player2,
+        await game.activateItem(player2,
             foreverAlone, ["Look at the top card of a deck.", "treasure"]);
         await game.resolveStack();
         
@@ -770,7 +772,7 @@ describe("Eternal Items", () => {
         // Give player2 a loot card to discard
         const initialHandSizeT1 = player2.hand.length;
         // The discarded card is chosen on resolve stack, so no need to specify here
-        game.activateItem(player2,
+        await game.activateItem(player2,
             foreverAlone, ["Discard a loot card, then loot 1."]);
         await game.resolveStack();
         expect(player2.hand.length).toBe(initialHandSizeT1 + 1); // discard nothing, loot 1
@@ -784,7 +786,7 @@ describe("Eternal Items", () => {
         const lootCard = player2.hand.cards[0] as LootCard;
         const initialHandSizeT2 = player2.hand.length;
         // The discarded card is chosen on resolve stack, so no need to specify here
-        game.activateItem(player2,
+        await game.activateItem(player2,
             foreverAlone, ["Discard a loot card, then loot 1.", lootCard]);
         await game.resolveStack();
         
@@ -815,7 +817,7 @@ describe("Eternal Items", () => {
         game.recharge(foreverAlone);
         expect(foreverAlone.charged).toBe(true);
         
-        game.activateItem(player2,
+        await game.activateItem(player2,
             foreverAlone, ["Steal 1¢ from another player.", player1]);
         await game.resolveStack();
         expect(foreverAlone.charged).toBe(false);
@@ -861,7 +863,7 @@ describe("Eternal Items", () => {
         // Heal player2
         player2.heal();
 
-        game.activateItem(player2,
+        await game.activateItem(player2,
             foreverAlone, ["Steal 1¢ from another player.", player1]);
         await game.resolveStack();
         expect(foreverAlone.charged).toBe(false);
@@ -907,7 +909,7 @@ describe("Eternal Items", () => {
         const player1InitialHand = player1.hand.cards.slice();
         const player2InitialHand = player2.hand.cards.slice();
         
-        game.activateItem(player2,
+        await game.activateItem(player2,
             incubus, ["Look at a player's hand. You may swap a card from your hand with one of theirs."]);
         await game.resolveStack();
         
@@ -943,7 +945,7 @@ describe("Eternal Items", () => {
         const initialHandSize = player2.hand.length;
         const topLootCardBefore = game.decks["loot"]!.cards[0]!;
 
-        game.activateItem(player2,
+        await game.activateItem(player2,
             incubus, ["Loot 1, then put a card from your hand on top of the loot deck."]);
         await game.resolveStack();
 
@@ -983,7 +985,7 @@ describe("Eternal Items", () => {
         
         expect(player2.hand.length).toBe(0);
         
-        game.activateItem(player2,
+        await game.activateItem(player2,
             incubus, ["Loot 1, then put a card from your hand on top of the loot deck."]);
         await game.resolveStack();
         
@@ -1062,16 +1064,14 @@ describe("Eternal Items - 3 players tests", () => {
         game.endTurn(); // samson turn
         await game.resolveStack();
         expect(bloodlust.charged).toBe(true);
-        game.activateItem(player2, bloodlust);
-        await game.resolveStack();
-        game.activateItem(player2, bloodlust);
+        await game.activateItem(player2, bloodlust);
         await game.resolveStack();
         expect(bloodlust.charged).toBe(false);
 
         game.endTurn(); // eve turn
         await game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
-        game.activateItem(player2, bloodlust);
+        await game.activateItem(player2, bloodlust);
         await game.resolveStack();
         expect(bloodlust.charged).toBe(false);
 
@@ -1081,7 +1081,7 @@ describe("Eternal Items - 3 players tests", () => {
         game.endTurn(); // samson turn
         await game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
-        game.activateItem(player2, bloodlust);
+        await game.activateItem(player2, bloodlust);
         await game.resolveStack();
         expect(bloodlust.charged).toBe(false);
 
@@ -1089,7 +1089,7 @@ describe("Eternal Items - 3 players tests", () => {
         await game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);;
         expect(player1.attackPoints).toBe(1);
-        game.activateItem(player2, bloodlust, [player1]);
+        await game.activateItem(player2, bloodlust, [player1]);
         await game.resolveStack();
         expect(player1.attackPoints).toBe(2);
         expect(bloodlust.charged).toBe(false);
@@ -1100,14 +1100,14 @@ describe("Eternal Items - 3 players tests", () => {
         game.endTurn(); // samson turn
         await game.resolveStack();
         expect(bloodlust.charged).toBe(true);
-        game.activateItem(player2, bloodlust);
+        await game.activateItem(player2, bloodlust);
         await game.resolveStack();
         expect(bloodlust.charged).toBe(false);
 
         game.endTurn(); // eve turn
         await game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
-        game.activateItem(player2, bloodlust);
+        await game.activateItem(player2, bloodlust);
         await game.resolveStack();
         expect(bloodlust.charged).toBe(false);
 

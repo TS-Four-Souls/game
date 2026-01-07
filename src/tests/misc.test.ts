@@ -65,16 +65,16 @@ describe("Before start effects", () => {
         const initialLootPlays1 = player1.remainingLootPlay;
         const initialLootPlays2 = player2.remainingLootPlay;
         character1.recharge();
-        game.activateItem(player1, character1, );
+        await game.activateItem(player1, character1, );
         await game.resolveStack();
         await game.resolveStack();
         expect(player1.remainingLootPlay).toBe(initialLootPlays1 + 1);
-        game.activateItem(player1, character1, ); // uncharged tap should do nothing
+        expect(game.activateItem(player1, character1, )).rejects.toThrow(); // uncharged tap should do nothing
         await game.resolveStack();
         await game.resolveStack();
         expect(player1.remainingLootPlay).toBe(initialLootPlays1 + 1);
         character2.recharge();
-        game.activateItem(player2, character2, );
+        await game.activateItem(player2, character2, );
         await game.resolveStack();
         await game.resolveStack();
         expect(player2.remainingLootPlay).toBe(initialLootPlays2 + 1);

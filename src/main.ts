@@ -215,11 +215,12 @@ const app = new Elysia()
     async (request) => {
       const player = game.getPlayerById(request.body.issuer.id);
       const partialChoices = request.body.targetChoices || [];
-      const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(game, player, request.body.index, partialChoices, request.body.effectIndex, true);
+      const card = TargetBuilder.getCardFromPlayer(game, player, request.body.index, "hand");
+      const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(game, player, card, partialChoices, request.body.effectIndex);
       console.log("Play card target selection:", choices);
       if (choices.complete) {
         console.log("Card ready to be played");
-        const targets = TargetBuilder.buildTargets(game, player, request.body.index, partialChoices, request.body.effectIndex, true);
+        const targets = TargetBuilder.buildTargets(game, player, card, partialChoices, request.body.effectIndex);
         game.playCard(player, request.body.index, targets);
       }
       return new Response(JSON.stringify(choices), {
@@ -246,11 +247,12 @@ const app = new Elysia()
     async (request) => {
       const player = game.getPlayerById(request.body.issuer.id);
       const partialChoices = request.body.targetChoices || [];
-      const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(game, player, request.body.index, partialChoices, request.body.effectIndex);
+      const item = TargetBuilder.getCardFromPlayer(game, player, request.body.index, "inPlay");
+      const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(game, player, item, partialChoices, request.body.effectIndex);
       if (choices.complete) {
         console.log("Activation complete");
-        const targets = TargetBuilder.buildTargets(game, player, request.body.index, partialChoices, request.body.effectIndex);
-        game.activateItemAtIndex(player, request.body.index, targets, request.body.effectIndex);
+        const targets = TargetBuilder.buildTargets(game, player, item, partialChoices, request.body.effectIndex);
+        await game.activateItemAtIndex(player, request.body.index, targets, request.body.effectIndex);
       }
       return new Response(JSON.stringify(choices), {
         status: 200,

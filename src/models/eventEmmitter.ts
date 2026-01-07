@@ -21,7 +21,7 @@ export class GameEventEmitter {
     }
   }
   
-  emit(event: TriggerEvent, data: any = {}): void {
+  emit(event: TriggerEvent, data: any = {}): number {
     // console.log(`Event emitted: ${event}`
     //   , data.card ? `for ${data.card.name}` : '');
     const cbs = this.listeners.get(event) || [];
@@ -30,5 +30,6 @@ export class GameEventEmitter {
     for (const cb of cbsCopy) {
       cb(data);
     }
+    return cbs.length;
   }
 }

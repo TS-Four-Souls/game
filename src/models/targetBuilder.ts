@@ -34,14 +34,14 @@ export interface TargetSelectorResponse {
  * Usage:
  * ```typescript
  * // Step 1: Get first selector
- * const itemIndex = player.inPlay.indexOf(item);
- * const step1 = TargetBuilder.getNextSelector(game, player, itemIndex, []);
+ * const item = player.inPlay[0];
+ * const step1 = TargetBuilder.getNextSelector(game, player, item, []);
  * // If it's choose-one with options: ["option A", "option B"]
  * // Step 2: User picks "option A", get targets for that option
- * const step2 = TargetBuilder.getNextSelector(game, player, itemIndex, ["option A"]);
+ * const step2 = TargetBuilder.getNextSelector(game, player, item, ["option A"]);
  * // Now returns the admissible targets for option A
  * // Step 3: User picks a target "b2-blank_card"
- * const step3 = TargetBuilder.getNextSelector(game, player, itemIndex, ["option A", "b2-blank_card"]);
+ * const step3 = TargetBuilder.getNextSelector(game, player, item, ["option A", "b2-blank_card"]);
  * // Continue until complete
  * ```
  */
@@ -52,7 +52,7 @@ export class TargetBuilder {
      * 
      * @param game The game instance
      * @param player The player building the targets
-     * @param itemIndex The index of the item in player.inPlay whose effect is being activated
+     * @param item The item card whose effect is being activated
      * @param partialChoices Flat array of all string identifiers chosen so far
      * @param effectId Which effect to activate ("tap" or paid effect index)
      * @returns Information about the next selector to fill, or completion status
@@ -60,16 +60,13 @@ export class TargetBuilder {
     static getNextSelector(
         game: Game,
         player: Player,
-        itemIndex: number,
+        item: ItemCard,
         partialChoices: string[] = [],
-        effectId: number | "tap" = "tap",
-        lootCard: boolean = false
+        effectId: number | "tap" = "tap"
     ): TargetSelectorResponse {
         game.assertNoPendingSelection();
-        // Get all target selectors for this effect
-        const item: ItemCard = lootCard ? player.hand.cards[itemIndex] as ItemCard : player.inPlay[itemIndex] as ItemCard;
         if(!item)
-            throw new Error(`Item at index ${itemIndex} not found.`);
+            throw new Error(`Item not found.`);
         if(effectId === "tap" && !item.charged)
             throw new Error(`Item ${item.name} is not charged.`);
         // console.log("TargetBuilder.getNextSelector for item:", item.name, "effectId:", effectId, "partialChoices:", partialChoices);
@@ -107,15 +104,32 @@ export class TargetBuilder {
                     throw new Error(`Invalid choose-one option: ${choice}`);
                 }
 
-                // Now we need to get targets from the chosen option's admissibleTargets
-                // Create a temporary selector for the admissible targets
-                selector = {
-                    description: chosenOption.description,
-                    selector: () => chosenOption.admissibleTargets,
-                    count: selector.count,
-                    asMany: selector.asMany
-                };
-                choicesProcessed = 0; // Reset for the sub-selector
+                // If admissibleTargets is empty, this option needs no targets - move to next selector
+                if (chosenOption.admissibleTargets.length === 0) {
+                    selectorIndex++;
+                    selector = rootSelectors[selectorIndex];
+                    choicesProcessed = 0;
+                    
+                    if (!selector) {
+                        return {
+                            description: "",
+                            count: 0,
+                            asMany: false,
+                            options: [],
+                            complete: true,
+                            isChooseOne: false
+                        };
+                    }
+                } else {
+                    // Create a temporary selector for the admissible targets
+                    selector = {
+                        description: chosenOption.description,
+                        selector: () => chosenOption.admissibleTargets,
+                        count: selector.count,
+                        asMany: selector.asMany
+                    };
+                    choicesProcessed = 0; // Reset for the sub-selector
+                }
             } else {
                 // Regular selector - validate choice by matching against possibleTargets
                 const resolved = TargetBuilder.resolveIdentifier(choice, possibleTargets);
@@ -175,13 +189,29 @@ export class TargetBuilder {
             };
         }
     }
+    /**
+     * Return an item from a player's inPlay or hand by its index.
+     * 
+     * @param game The game instance
+     * @param player The player owning the item
+     * @param itemId The index of the item in the specified set
+     * @param type "inPlay" to get from inPlay, "hand" to get from hand (default: "inPlay")
+     * @returns The ItemCard found
+     */
+    static getCardFromPlayer(game: Game,
+    player: Player,
+    itemId: number,
+    type : "inPlay" | "hand" = "inPlay"): ItemCard {
+        const set = type === "inPlay" ? player.inPlay : player.hand.cards;
+        const card = set[itemId];
+        if(!card || !(card instanceof ItemCard))
+            throw new Error(`Item not found in player's ${type}.`);
+        return card;
+    }
 
     /**
      * Convert target objects to string identifiers that can be sent to clients
      * and later resolved back to the actual objects.
-     * 
-     * Since options is always a homogeneous array, we determine the type from the first element
-     * and return simple string values without type prefixes.
      * 
      * @param options Array of target options (Cards, Players, Monsters, numbers, etc.)
      * @returns Array of string identifiers
@@ -312,7 +342,7 @@ export class TargetBuilder {
      * 
      * @param game The game instance
      * @param player The player building targets
-     * @param itemIndex The index of the item in player.inPlay being activated
+     * @param item The item card whose effect is being activated
      * @param partialChoices Flat array of all string identifiers
      * @param effectId Which effect to activate
      * @returns Flat array of resolved targets [target0, target1, target2, ...]
@@ -320,15 +350,13 @@ export class TargetBuilder {
     static buildTargets(
         game: Game,
         player: Player,
-        itemIndex: number,
+        item: ItemCard,
         partialChoices: string[],
-        effectId: number | "tap" = "tap",
-        lootCard: boolean = false
+        effectId: number | "tap" = "tap"
     ): any[] {
         game.assertNoPendingSelection();
-                const item: ItemCard = lootCard ? player.hand.cards[itemIndex] as ItemCard : player.inPlay[itemIndex] as ItemCard;
         if(!item)
-            throw new Error(`Item at index ${itemIndex} not found.`);
+            throw new Error(`Item not found.`);
         const rootSelectors = item.getEffectTarget(effectId);
         const result: any[] = [];
 

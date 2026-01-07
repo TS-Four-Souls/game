@@ -320,7 +320,7 @@ describe("Loot deck integration", () => {
 
     // Activate (discharge) the item
     const item = chargedItem as ItemCard;
-    game.activateItem(p1, item);
+    await game.activateItem(p1, item);
     await game.resolveStack();
     expect(item.charged).not.toBe(0); // Not CHARGED
 

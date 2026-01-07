@@ -296,14 +296,14 @@ class EffectInterface {
         this.passiveEffects.subscribeAll(owner, this.it);
     }
 
-    paidEffect(issuer: Entity, targets: any[], effectId: number): EffectOnStack | null {
+    async paidEffect(issuer: Entity, targets: any[], effectId: number): Promise<EffectOnStack> {
         const effect = this.activeEffects.getPaidEffect(effectId);
         
         const data = new EffectData(this.it, issuer as Player, targets);
         // Execute payment if it exists
         if (effect.hasPayment()) {
-            if (!effect.executePayment(data)) {
-                return null; // Payment failed
+            if (!await effect.executePayment(data)) {
+                throw new Error(`Payment denied for ${this.it.slug}.`);
             }
             // Effect gets second element of targets array
             return new EffectOnStack(effect.effectFunction, data, effect.description);
@@ -690,21 +690,20 @@ export class ItemCard extends Card {
   isGuppy(): boolean {
     return this._guppy;
   }
-  tryActivateEffect(
+  async tryActivateEffect(
     targets: any[] = [],
     effectId: number | "tap" = "tap"
-  ): EffectOnStack | null {
+  ): Promise<EffectOnStack> {
     switch (effectId) {
       case "tap":
         if (this._charged === true) {
           this._charged = false;
           return this._effectInterface.tapEffect(this._owner, targets);
         }
-        break;
+        throw new Error("Cannot activate uncharged item");
       default:
-        return this._effectInterface.paidEffect(this._owner, targets, effectId);
+        return await this._effectInterface.paidEffect(this._owner, targets, effectId);
     }
-    return null;
   }
   targetStillValid(
     player: Player,
@@ -746,7 +745,7 @@ class LootCard extends ItemCard {
     }
 
     getTargetSelectors(): TargetsSelector[] {
-        return this._effectInterface.getTargetSelectors(0);
+        return this._effectInterface.getTargetSelectors("tap");
     }
 }
 

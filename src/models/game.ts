@@ -46,6 +46,7 @@ import { GameEventEmitter } from "./eventEmmitter";
 import { preventNextDamageUpToEffect } from "@/models/passiveEffect";
 import { bSoulEffectParser } from "@/models/bonusSoulHandling";
 import { ca, pl } from "zod/locales";
+import type { TriggerEvent } from "@/types/triggers";
 
 const LOG_GAME = false;
 export const cards = await loadCards(process.cwd() + "/data/cards");
@@ -276,7 +277,7 @@ export class Game {
       this
     );
     this.addToStack(deathOnStack);
-    this.emitter.emit("on:death:would-death", {
+    this.emit("on:death:would-death", {
       eventIssuer: receiver,
       target: from,
       abilityCard: usingAbilityFrom,
@@ -286,7 +287,7 @@ export class Game {
 
   // Should only be called by DeathOnStack objects.
   resolveDeath(receiver: Entity, from: Entity, usingAbilityFrom: Card): void {
-    this.emitter.emit("on:death:before-penalty", {
+    this.emit("on:death:before-penalty", {
       eventIssuer: receiver,
       target: from,
       abilityCard: usingAbilityFrom,
@@ -304,14 +305,14 @@ export class Game {
         for (const player of this.players) {
           player.clearAttackRequirement(receiver);
         }
-        this.emitter.emit("on:death:monster", {
+        this.emit("on:death:monster", {
           eventIssuer: receiver,
           target: from,
           abilityCard: usingAbilityFrom,
         });
         this.encounters.kill(receiver);
       }
-      this.emitter.emit("on:death:after-penalty", {
+      this.emit("on:death:after-penalty", {
         eventIssuer: receiver,
         target: from,
         abilityCard: usingAbilityFrom,
@@ -333,8 +334,7 @@ export class Game {
 
     player.attackThisTurn -= 1;
     player.engageInCombat();
-    this.emitter.emit("on:attack:declared", { eventIssuer: player });
-    this._onStateChange.dispatch();
+    this.emit("on:attack:declared", { eventIssuer: player });
   }
 
   declareAttackOnMonster(player: Player, monster: Monster): void {
@@ -365,7 +365,7 @@ export class Game {
       stat === "attackPoints" ? monster.attackPoints : monster.evasion,
     ];
     if (stat === "evasion")
-      this.emitter.emit("on:get:monster:evasion", {
+      this.emit("on:get:monster:evasion", {
         player: this.currentPlayer,
         eventIssuer: monster,
         target: monster,
@@ -429,7 +429,7 @@ export class Game {
     const evasion = [this.getMonsterStat(monster, "evasion")];
     const dice = this.rollDice(player, true);
 
-    this.emitter.emit("on:attack:roll", {
+    this.emit("on:attack:roll", {
       eventIssuer: player,
       target: monster,
       dice,
@@ -438,7 +438,7 @@ export class Game {
       evasion,
     });
     if (player.attackRollThisTurn === 1)
-      this.emitter.emit("on:attack:roll:first-time-each-turn", {
+      this.emit("on:attack:roll:first-time-each-turn", {
         eventIssuer: player,
         target: monster,
         dice,
@@ -457,8 +457,6 @@ export class Game {
       monster.card,
       [monster]
     );
-
-    this._onStateChange.dispatch();
   }
 
   dealCombatDamage(
@@ -469,14 +467,14 @@ export class Game {
   ): void {
     if (damage <= 0 || receiver.isDead) return;
     if (receiver instanceof Player) {
-      this.emitter.emit("on:combatdamage:dealt:to-player", {
+      this.emit("on:combatdamage:dealt:to-player", {
         eventIssuer: dealer, // The dealer is the one dealing combat damage
         target: receiver,
         abilityCard: usingAbilityFrom,
         damage,
       });
     } else if (receiver instanceof Monster) {
-      this.emitter.emit("on:combatdamage:dealt:to-monster", {
+      this.emit("on:combatdamage:dealt:to-monster", {
         eventIssuer: dealer, // The dealer is the one dealing combat damage
         target: receiver,
         abilityCard: usingAbilityFrom,
@@ -505,14 +503,14 @@ export class Game {
     this.healthLoss(dealer, receiver, usingAbilityFrom, damage);
 
     if (receiver.damageTakenThisTurn.length === 1)
-      this.emitter.emit("on:damage:taken:first-time-each-turn", {
+      this.emit("on:damage:taken:first-time-each-turn", {
         eventIssuer: receiver,
         target: dealer,
         abilityCard: usingAbilityFrom,
         damage: damage,
       });
 
-    this.emitter.emit("on:damage:taken", {
+    this.emit("on:damage:taken", {
       eventIssuer: receiver,
       target: dealer,
       abilityCard: usingAbilityFrom,
@@ -548,7 +546,7 @@ export class Game {
     }
     this.addToStack(damageOnStack);
 
-    this.emitter.emit("on:damage:would-take", {
+    this.emit("on:damage:would-take", {
       eventIssuer: receiver,
       target: dealer,
       abilityCard: usingAbilityFrom,
@@ -584,7 +582,6 @@ export class Game {
     for (const card of selection.selected) {
       this.addInPlay(player, card);
     }
-    this._onStateChange.dispatch();
     return selection;
   }
 
@@ -740,6 +737,7 @@ export class Game {
   }
   addToStack(item: StackElement): void {
     this.stack.push(item);
+    this._onStateChange.dispatch();
   }
 
   addSoul(player: Player, soulCard: Card): void {
@@ -750,9 +748,9 @@ export class Game {
     let elem = this.stack.resolve();
     if (!elem) return;
     await elem.onResolve();
-    if (elem instanceof DiceRoll)
-      this.emitter.emit("on:dice:rolled", { diceRoll: elem });
     this._onStateChange.dispatch();
+    if (elem instanceof DiceRoll)
+      this.emit("on:dice:rolled", { diceRoll: elem });
 
     // If stack is now empty, execute any pending callbacks
     if (this.stack.isEmpty() && this._stackEmptyCallbacks.length > 0) {
@@ -761,8 +759,8 @@ export class Game {
       for (const callback of callbacks) {
         await callback();
       }
+      this._onStateChange.dispatch();
     }
-    this._onStateChange.dispatch();
   }
 
   async executeWhenStackEmpty(callback: () => void | Promise<void>): Promise<void> {
@@ -781,6 +779,7 @@ export class Game {
       for (const callback of callbacks) {
         await callback();
       }
+      this._onStateChange.dispatch();
     }
   }
 
@@ -808,8 +807,8 @@ export class Game {
 
   lootStep(): void {
     const player = this.currentPlayer;
-    // this.emitter.emit("on:loot:step:before", { eventIssuer: player });
-    this.emitter.emit("on:loot:step", { eventIssuer: player });
+    // this.emit("on:loot:step:before", { eventIssuer: player });
+    this.emit("on:loot:step", { eventIssuer: player });
     this.loot(player, 1);
   }
 
@@ -826,12 +825,10 @@ export class Game {
     });
     this.rechargeEachItem(this.currentPlayer);
     const player = this.currentPlayer;
-    this.emitter.emit("on:turn:start", { eventIssuer: player });
-    this._onStateChange.dispatch();
+    this.emit("on:turn:start", { eventIssuer: player });
     this.executeWhenStackEmpty(() => {
       this.lootStep();
-      this.emitter.emit("on:your:turn", { eventIssuer: player });
-      this._onStateChange.dispatch();
+      this.emit("on:your:turn", { eventIssuer: player });
     });
   }
 
@@ -855,7 +852,7 @@ export class Game {
     this.assertNoOngoingAttack();
     this.assertForcedAttackSatisfied(player);
     this.healEveryone();
-    this.emitter.emit("on:turn:end", { eventIssuer: player });
+    this.emit("on:turn:end", { eventIssuer: player });
     this.executeWhenStackEmpty(() => {
       for (const player of this.players) {
         player.resetTurnFlags();
@@ -879,7 +876,7 @@ export class Game {
   playCard(issuer: Issuer, index: number, targets: any[] = []): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
-    this.assertPlayerIsAlive(player);
+    // this.assertPlayerIsAlive(player);
     this.assertPositiveNumber(index);
     this.assertNoPendingSelection();
     if (index < 0 || index > player.hand.cards.length) {
@@ -896,8 +893,7 @@ export class Game {
     const lootCardEffect = new LootCardEffect(playedCard, resolveFunction);
     this.addToStack(lootCardEffect);
 
-    this._onStateChange.dispatch();
-    this.emitter.emit("on:loot:played", {
+    this.emit("on:loot:played", {
       eventIssuer: player,
       card: playedCard,
       targets: targets,
@@ -943,8 +939,8 @@ export class Game {
       this.decks["monster"]!,
       this
     );
-    this.emitter.emit("on:game:start:before", {});
-    this.emitter.emit("on:game:start", {});
+    this.emit("on:game:start:before", {});
+    this.emit("on:game:start", {});
     this.healEveryone();
     
     this.startOfGameSetup();
@@ -986,7 +982,7 @@ export class Game {
    */
   addCardToHand(player: Player, card: LootCard): void {
     player.hand.addToHand(card);
-    this.emitter.emit("on:loot:added:after", { eventIssuer: player, card });
+    this.emit("on:loot:added:after", { eventIssuer: player, card });
   }
 
   /**
@@ -995,7 +991,7 @@ export class Game {
    */
   removeCardFromHand(player: Player, card: LootCard): void {
     player.hand.removeCard(card);
-    this.emitter.emit("on:loot:removed:after", { eventIssuer: player, card });
+    this.emit("on:loot:removed:after", { eventIssuer: player, card });
   }
 
   assignRandomCharacterToPlayers(): void {
@@ -1065,7 +1061,7 @@ export class Game {
   }
 
   addInPlay(player: Player, card: Card): void {
-    this.emitter.emit("on:enter:play", { eventIssuer: player, card: card });
+    this.emit("on:enter:play", { eventIssuer: player, card: card });
     if (
       card instanceof CharacterCard ||
       card instanceof eternalCard ||
@@ -1074,18 +1070,18 @@ export class Game {
       card.onAddInPlay(player);
     }
     player.addInPlay(card);
-    this.emitter.emit("on:enter:play:after", {
+    this.emit("on:enter:play:after", {
       eventIssuer: player,
       card: card,
     });
   }
 
-  activateItemAtIndex(
+  async activateItemAtIndex(
     player: Player,
     index: number,
     choices: any[] = [],
     effectId: number | "tap" = "tap"
-  ): boolean {
+  ): Promise<boolean> {
     this.assertNoPendingSelection();
     const item = player.inPlay[index];
     if (!item || !(item instanceof ItemCard)) {
@@ -1094,7 +1090,7 @@ export class Game {
     if(!item.activeEffectList.map((e) => e.index).includes(effectId))
       throw new Error("Item does not have the specified effect ID.");
 
-    return this.activateItem(player, item, choices, effectId);
+    return await this.activateItem(player, item, choices, effectId);
   }
 
   // getEffectTarget(
@@ -1109,26 +1105,21 @@ export class Game {
   //   return item.getEffectTarget(effectId);
   // return true;
   // }
-  activateItem(
+  async activateItem(
     player: Player,
     item: ItemCard,
     targets: any[] = [],
     effectId: number | "tap" = "tap"
-  ): boolean {
-    const effectOnStack = player.activateItem(item, targets, effectId);
-    if (effectOnStack) {
-      this.addToStack(effectOnStack);
-      if (effectId === "tap") {
-        this.emitter.emit("on:item:activated", {
-          eventIssuer: player,
-          item: item,
-        });
-      }
-      this._onStateChange.dispatch();
-      return true;
+  ): Promise<boolean> {
+    const effectOnStack = await player.activateItem(item, targets, effectId);
+    this.addToStack(effectOnStack);
+    if (effectId === "tap") {
+      this.emit("on:item:activated", {
+        eventIssuer: player,
+        item: item,
+      });
     }
-    this._onStateChange.dispatch();
-    return false;
+    return true;
   }
 
   debugReset(): void {
@@ -1157,7 +1148,6 @@ export class Game {
     this.healEveryone();
     this.endTurn();
 
-    this._onStateChange.dispatch();
     return `It's ${this.currentPlayer!.id}'s turn. Round ${roundIndex}.\n`;
   }
 
@@ -1334,12 +1324,12 @@ export class Game {
     this.assertPositiveNumber(coins);
     if (coins > 0) {
       const amount = [coins];
-      this.emitter.emit("on:coin:gained", {
+      this.emit("on:coin:gained", {
         eventIssuer: player,
         coinGained: amount,
       });
       player.gainCoins(amount[0]!);
-      this.emitter.emit("on:coin:gained:after", {
+      this.emit("on:coin:gained:after", {
         eventIssuer: player,
         coinGained: amount,
       });
@@ -1366,7 +1356,7 @@ export class Game {
   }
   priorityPasses(): Player[] {
     const order = this.turnHandler.priorityOrder;
-    this.emitter.emit("on:priority:passes", {
+    this.emit("on:priority:passes", {
       eventIssuer: this.currentPlayer,
       order,
     });
@@ -1387,7 +1377,6 @@ export class Game {
       const drawnCard: Card = treasureDeck.draw()!;
       this.addInPlay(player, drawnCard);
     }
-    this._onStateChange.dispatch();
     return `You have drawn ${number} treasure card(s).\n`;
   }
 
@@ -1405,7 +1394,7 @@ export class Game {
       });
     });
     this.destroyedCards.push(...cards);
-    this.emitter.emit("on:item:destroyed", { eventIssuer: null, cards: cards });
+    this.emit("on:item:destroyed", { eventIssuer: null, cards: cards });
     return true;
   }
 
@@ -1495,7 +1484,7 @@ export class Game {
     this.assertNoOngoingAttack();
     this.assertPositiveNumber(index);
     const price = [gameParameters.shopPrice];
-    this.emitter.emit("on:item:purchase", { eventIssuer: player, cost: price });
+    this.emit("on:item:purchase", { eventIssuer: player, cost: price });
     if (player.remainingPurchaseThisTurn <= 0) {
       return `Purchase failed. You have no remaining purchases this turn.\n`;
     }
@@ -1515,7 +1504,7 @@ export class Game {
 
     const n = [number];
     const lootDeck: Deck = this.decks["loot"]!;
-    this.emitter.emit("on:loot:would", {
+    this.emit("on:loot:would", {
       eventIssuer: player,
       numberOfCards: n,
     });
@@ -1525,13 +1514,18 @@ export class Game {
         const drawnCard: Card = lootDeck.draw()!;
         this.addCardToHand(player, drawnCard as LootCard);
       }
-    this.emitter.emit("on:loot:after", {
+    this.emit("on:loot:after", {
       eventIssuer: player,
       numberOfCards: toLoot,
     });
     this._onStateChange.dispatch();
-
+    
     return `You have drawn ${toLoot} loot card(s).\n`;
+  }
+
+  emit(event: TriggerEvent, data: any = {}): void {
+    if(this.emitter.emit(event, data) > 0)
+      this._onStateChange.dispatch();
   }
 
   get monsterSlotsJSON(): string {
@@ -1774,7 +1768,7 @@ export class Game {
     this.assertPositiveNumber(coins);
 
     const coinLost = player.loseCoins(coins, asMany);
-    this.emitter.emit("on:coin:lost:after", { eventIssuer: player, coinLost });
+    this.emit("on:coin:lost:after", { eventIssuer: player, coinLost });
 
     return coinLost;
   }
@@ -1785,14 +1779,14 @@ export class Game {
     if (attackRoll) this.assertPlayerIsAlive(player);
 
     let diceRoll = player.rollDice(attackRoll);
-    this.stack.push(diceRoll);
-    this.emitter.emit("on:dice:would-roll", { eventIssuer: player, diceRoll });
+    this.addToStack(diceRoll);
+    this.emit("on:dice:would-roll", { eventIssuer: player, diceRoll });
     return diceRoll;
   }
 
   resolveDiceRoll(diceRoll: DiceRoll): void {
     diceRoll.onResolve();
-    this.emitter.emit("on:dice:rolled", { diceRoll });
+    this.emit("on:dice:rolled", { diceRoll });
   }
 
   inPlayTargetableCards(target: Player): ItemCard[] {
