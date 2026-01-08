@@ -60,6 +60,16 @@ export class Player extends Entity {
   /** @private Monsters or deck that this player must attack */
   private _mustAttackMonster: (Monster | "topDeck")[] = [];
 
+  private _diceModifier: number = 0;
+
+  get diceModifier(): number {
+    return this._diceModifier;
+  }
+
+  addDiceModifier(value: number): void {
+    this._diceModifier += value;
+  }
+
   /**
    * Creates a new Player instance.
    * 
@@ -542,6 +552,7 @@ export class DiceRoll {
     this._targets = targets;
   }
   async onResolve(): Promise<void> {
+    this.value += (this._attackRoll ? this._issuer.attackDiceModifier : 0) + this._issuer.diceModifier;
     if (this._effect?.length === 6) {
       await this._effect[this._value - 1]!(new EffectData(this._card!, this._issuer, this._targets));
     }

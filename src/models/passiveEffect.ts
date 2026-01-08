@@ -1003,9 +1003,9 @@ export function onRollEffect(
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:dice:rolled", ({ diceRoll }) => {
             // For monsters, only trigger if the monster is currently engaged in combat
-            if (data.issuer instanceof Monster && !data.issuer.isEngagedInCombat) {
-                return;
-            }
+            // if (data.issuer instanceof Monster && !data.issuer.isEngagedInCombat) {
+            //     return;
+            // }
             
             if (rollValues.includes((diceRoll as DiceRoll).value))
             {

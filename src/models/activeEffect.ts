@@ -969,6 +969,14 @@ export function rechargeThisEffect(game: Game): EffectFunction {
         return true;
     };
 }
+export function forceAttackMonsterDeckEffect(game: Game, times: number): EffectFunction {
+    return (data: EffectData) => {
+        for (let i = 0; i < times; i++) {
+            game.playerMustAttackList(data.issuer as Player).push("topDeck");
+        }
+        return true;
+    };
+}
 
 export function cancelAtIndexEffect(game: Game): EffectFunction {
     return (data: EffectData) => {

@@ -317,7 +317,7 @@ describe("Treasure - Passive effects", () => {
         expect(battery.charged).toBe(false);
 
         // Mock game.select to choose the battery to recharge
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = async (_issuer, _n, opts, _optional) => {
             return { selected: [battery], remaining: [] };
         };
 
@@ -343,7 +343,7 @@ describe("Treasure - Passive effects", () => {
         battery2.charged = false;
 
         let selectCount = 0;
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = async (_issuer, _n, opts, _optional) => {
             selectCount++;
             if (selectCount === 1) {
                 return { selected: [battery1], remaining: [] };
@@ -431,7 +431,7 @@ describe("Treasure - Passive effects", () => {
         
         const initInplayCount = player1.inPlay.length;
         // Third purchase should fail (only +1 additional purchase)
-        const result3 = game.purchase(player1, 1);
+        expect(() => game.purchase(player1, 1)).toThrow();
         expect(player1.inPlay.length).toBe(initInplayCount); // no new item added
         
         // Should only have spent 20¢ (2 purchases)
@@ -450,8 +450,7 @@ describe("Treasure - Passive effects", () => {
         game.purchase(player1, 1);
         
         // Third purchase should fail
-        const result3 = game.purchase(player1, 1);
-        expect(result3).toContain("failed");
+        expect(() => game.purchase(player1, 1)).toThrow();
         
         // End turn and start new turn
         game.endTurn();

@@ -52,20 +52,38 @@ describe("Event Monsters - Other Events", () => {
         expect(top6Cards).toContain(lootedCards[0]!);
     });
 
-    // // b2-ambush: The active player must attack the monster deck 2 times this turn.
-    // it("ambush - active player must attack monster deck 2 times", async () => {
-    //     const ambush = game.obtainCard("b2-ambush") as MonsterCard;
-    //     game.decks["monster"]!.addTopPosition(ambush);
+    // b2-ambush: The active player must attack the monster deck 2 times this turn.
+    it("ambush - active player must attack monster deck 2 times", async () => {
+        const initialAttacks = player1.mustAttackMonster.length;
+        const ambush = game.obtainCard("b2-ambush") as MonsterCard;
+        game.decks["monster"]!.addTopPosition(ambush);
         
-    //     const initialAttacks = player1.mustAttackMonsterDeck;
         
-    //     // Draw the event to trigger its effect
-    //     game.monsterSlots.discardTop(0);
-    //     await game.resolveStack();
+        // Draw the event to trigger its effect
+        game.monsterSlots.discardTop(0);
+        await game.resolveStack();
         
-    //     // Player should be forced to attack the monster deck 2 additional times
-    //     expect(player1.mustAttackMonsterDeck).toBe(initialAttacks + 2);
-    // });
+        // Player should be forced to attack the monster deck 2 additional times
+        expect(player1.mustAttackMonster.length).toBe(initialAttacks + 2);
+        expect(() => {game.nextTurn(player1)}).toThrow()
+
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, "topDeck", 0);
+        game.kill(player1, game.monsters[0]!, ambush);
+        game.resolveStack();
+        
+        expect(player1.mustAttackMonster.length).toBe(initialAttacks + 1);
+        expect(player1.isEngagedInCombat).toBe(false);
+        expect(() => {game.nextTurn(player1)}).toThrow()
+
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, "topDeck", 0);
+        game.kill(player1, game.monsters[0]!, ambush);
+        game.resolveStack();
+
+        expect(player1.mustAttackMonster.length).toBe(initialAttacks);
+        expect(player1.isEngagedInCombat).toBe(false);
+    });
 
     // b2-mega_troll_bomb: Each player takes 2 damage!
     it("mega_troll_bomb - each player takes 2 damage", async () => {

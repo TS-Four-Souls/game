@@ -1514,21 +1514,39 @@ describe("Loot Card", () => {
         game.playCard(player1, 0);
 
         const initialAtk = player1.attackPoints;
-        const initialDiceMod = player1.attackDiceModifier;
+        const initialDiceMod = player1.diceModifier;
 
         // (pills as LootCard).debugSetTargets([player1]);
         await game.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk + 1);
-        expect(player1.attackDiceModifier).toBe(initialDiceMod + 1);
+        expect(player1.diceModifier).toBe(initialDiceMod + 1);
+
+        const pill = game.obtainCard("b2-pills")!;
+        expect(pill).toBeDefined();
+        player1.hand.addToHand(pill);
+        game.playCard(player1, player1.hand.cards.indexOf(pill));
+        await game.resolveStack();
+        expect(game.stack.size).toBe(1);
+        const dice = game.stack.elements[0] as DiceRoll;
+        expect(dice instanceof DiceRoll).toBe(true);
+        dice.value = 2;
+        const initHandSize = player1.hand.cards.length;
+
+        await game.resolveStack();
+        
+        // Dice roll should have +1 modifier
+        expect(dice.value).toBe(3); // 2 + 1 from Empress
+        expect(player1.hand.cards.length).toBe(initHandSize + 3); // Looted successfully
+
         game.endTurn();
 
         expect(player1.attackPoints).toBe(initialAtk);
-        expect(player1.attackDiceModifier).toBe(initialDiceMod);
+        expect(player1.diceModifier).toBe(initialDiceMod);
         game.endTurn();
 
         expect(player1.attackPoints).toBe(initialAtk);
-        expect(player1.attackDiceModifier).toBe(initialDiceMod);
+        expect(player1.diceModifier).toBe(initialDiceMod);
     });
 
     it("b2-iii_the_empress: give to other player +1 [ATK] and +1 to dice rolls till end of turn", async () => {
@@ -1539,23 +1557,23 @@ describe("Loot Card", () => {
 
         const initialAtk1 = player1.attackPoints;
         const initialAtk = player2.attackPoints;
-        const initialDiceMod1 = player1.attackDiceModifier;
-        const initialDiceMod = player2.attackDiceModifier;
+        const initialDiceMod1 = player1.diceModifier;
+        const initialDiceMod = player2.diceModifier;
 
         await game.resolveStack();
 
         expect(player2.attackPoints).toBe(initialAtk + 1);
         expect(player1.attackPoints).toBe(initialAtk1);
-        expect(player2.attackDiceModifier).toBe(initialDiceMod + 1);
-        expect(player1.attackDiceModifier).toBe(initialDiceMod1);
+        expect(player2.diceModifier).toBe(initialDiceMod + 1);
+        expect(player1.diceModifier).toBe(initialDiceMod1);
         game.endTurn();
 
         expect(player2.attackPoints).toBe(initialAtk);
-        expect(player2.attackDiceModifier).toBe(initialDiceMod);
+        expect(player2.diceModifier).toBe(initialDiceMod);
         game.endTurn();
 
         expect(player2.attackPoints).toBe(initialAtk);
-        expect(player2.attackDiceModifier).toBe(initialDiceMod);
+        expect(player2.diceModifier).toBe(initialDiceMod);
     });
 
     it("b2-vii_the_chariot: They gain +1 [ATK] and +1 [HP] till end of turn.", async () => {

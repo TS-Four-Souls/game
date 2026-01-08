@@ -68,19 +68,20 @@ const app = new Elysia()
     "/attackMonster",
     async (request) => {
       const player = game.getPlayerById(request.body.issuer.id);
-      const monsterIndex =
-        request.body.index === "top"
-          ? request.body.replaceIndex
-          : request.body.index;
-      if (request.body.index === "top") {
-        game.drawMonster(player, request.body.replaceIndex);
-      }
-      const monster = game.encounters.monsterIn(monsterIndex);
+      const monster = 
+        request.body.index === "top" 
+        ? "topDeck" 
+        : game.encounters.monsterIn(request.body.index);
       if (!monster) {
         return new Response(`No monster at index ${request.body.index}`, {
           status: 400,
         });
       }
+    const drawInIndex = 
+      request.body.index === "top" 
+      ? request.body.replaceIndex 
+      : -1;
+      game.declareAttackOnMonster(player, monster, drawInIndex);
       game.declareAttackOnMonster(player, monster);
 
       return new Response("", {

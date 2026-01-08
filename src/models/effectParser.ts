@@ -564,7 +564,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         case "choose a player.\nthey gain +1 [atk] and +1 [hp] till end of turn.":
             return { effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game), game.addHealth.bind(game)], 1, game), targetSelectors: selectPlayer(game) };
         case "choose a player.\nthey gain +1 [atk] and +1 to dice rolls till end of turn.":
-            return { effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game), game.addAttackDiceModifier.bind(game)], 1, game), targetSelectors: selectPlayer(game) };
+            return { effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game), game.addDiceModifier.bind(game)], 1, game), targetSelectors: selectPlayer(game) };
         case "choose a player.\nthey gain +1 [atk] till end of turn and may attack an additional time this turn.":
             return { effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game), game.addAttackThisTurn.bind(game)], 1, game), targetSelectors: selectPlayer(game) };
         case "the active player may attack an additional time this turn.":
@@ -600,7 +600,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         case "you have +1 to attack rolls.":
             return { effectFunction: passive.permanentStatModifierEffect([game.addAttackDiceModifier.bind(game)], 1, game), targetSelectors: noTargets };
         case "monsters have +1 [dc] on your turn.":
-            return { effectFunction: passive.onYourTurnModifier([game.addDCmuliplier.bind(game)], 1, game), targetSelectors: noTargets };
+            return { effectFunction: passive.onYourTurnModifier([game.addDCmodifier.bind(game)], 1, game), targetSelectors: noTargets };
         case "you may look at the top card of the treasure deck at any time on your turn.":
             return { effectFunction: passive.onYourTurnModifier([game.addCanSeeTopOfTreasureDeck.bind(game)], 1, game), targetSelectors: noTargets };
         case "you may purchase an additional time on your turn.":
@@ -809,6 +809,8 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
             return { effectFunction: active.rechargeThisEffect(game), targetSelectors: noTargets };
         case "this becomes a soul. gain it.":
             return { effectFunction: active.thisBecomeSoulGainItEffect(game), targetSelectors: noTargets };
+        case "the active player must attack the monster deck 2 times this turn.":
+            return { effectFunction: active.forceAttackMonsterDeckEffect(game, 2), targetSelectors: noTargets };
         default:
             return null; // No match found
         }

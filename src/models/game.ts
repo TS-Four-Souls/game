@@ -337,11 +337,15 @@ export class Game {
     this.emit("on:attack:declared", { eventIssuer: player });
   }
 
-  declareAttackOnMonster(player: Player, monster: Monster): void {
+  declareAttackOnMonster(player: Player, monster: Monster | "topDeck", drawInIndex: number=-1): void {
+    if(drawInIndex !== -1 && monster !== "topDeck")
+      throw new Error("drawInIndex can only be specified when drawing from topDeck");
+    if(drawInIndex === -1 && monster === "topDeck")
+      throw new Error("drawInIndex must be specified when drawing from topDeck");
+    
     this.assertCurrentTurnIsPlayerTurn(player);
     this.assertNoOngoingAttack();
     this.assertPlayerIsAlive(player);
-    this.assertMonsterIsAlive(monster);
     if (!player.isEngagedInCombat) {
       throw new Error("Player has not declared an attack.");
     }
@@ -354,6 +358,14 @@ export class Game {
     if( !player.canAttackThisMonster(monster)) {
       throw new Error("Player must attack a specific monster.");
     }
+    if( monster === "topDeck"){
+      this.drawMonster(player, drawInIndex);
+      player.clearAttackRequirement("topDeck");
+      if(this.encounters.monsterIn(drawInIndex) === undefined)
+        return; // drawn event.
+      monster = this.encounters.monsterIn(drawInIndex)!;
+    }
+    this.assertMonsterIsAlive(monster);
     monster.engageInCombat();
     // Clear forced attack constraint if this monster satisfies it
     player.clearAttackRequirement(monster);
@@ -911,7 +923,6 @@ export class Game {
       card: playedCard,
       targets: targets,
     });
-
     return `You have played the card: ${playedCard.name} to your in-play area.\n`;
   }
 
@@ -1320,6 +1331,12 @@ export class Game {
   }
 
   addAttackDiceModifier(e: Entity, value: number): void {
+    e.addAttackDiceModifier(value);
+  }
+
+  addDiceModifier(e: Entity, value: number): void {
+    if(!(e instanceof Player))
+      throw new Error("Dice modifier can only be added to players.");
     e.addDiceModifier(value);
   }
 
@@ -1327,7 +1344,7 @@ export class Game {
     p.remainingPurchaseThisTurn += value;
   }
 
-  addDCmuliplier(e: Entity, value: number): void {
+  addDCmodifier(e: Entity, value: number): void {
     this.encounters.addDcModifier(value);
   }
 
@@ -1499,14 +1516,14 @@ export class Game {
     const price = [gameParameters.shopPrice];
     this.emit("on:item:purchase", { eventIssuer: player, cost: price });
     if (player.remainingPurchaseThisTurn <= 0) {
-      return `Purchase failed. You have no remaining purchases this turn.\n`;
+      throw new Error(`Purchase failed. You have no remaining purchases this turn.\n`);
     }
     if (this.shop.purchase(player, index, price[0]!, this)) {
       player.remainingPurchaseThisTurn -= 1;
       this._onStateChange.dispatch();
       return `Purchase successful. You have now ${player.coins} coins.\n`;
     } else {
-      return `Purchase failed. You still have ${player.coins} coins.\n`;
+      throw new Error(`Purchase failed. You need ${price[0]! - player.coins} more coins.\n`);
     }
   }
 

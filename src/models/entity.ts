@@ -94,7 +94,7 @@ export abstract class Entity {
     this._attackPoints += amount;
   }
 
-  addDiceModifier(amount: number): void {
+  addAttackDiceModifier(amount: number): void {
     this._attackDiceModifier += amount;
   }
 
