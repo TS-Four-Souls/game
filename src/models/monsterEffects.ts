@@ -16,25 +16,14 @@ import type { BonusSoulCardType } from "@/types/cardTypes";
 import { Monster } from "./monster";
 import { string } from "zod";
 
-
-export function monsterIncreaseEvasionEffect(game: Game, amount: number, exceptSelf: boolean): EffectFunction {
+export function thisHealsEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
-        if (amount < 0)
-            throw new Error("monsterIncreaseEvasionEffect amount must be non-negative.");
-        // Apply the stat modification
-        // const monster = game.encounters.
+        let target = data.issuer;
         if(!(data.issuer instanceof Monster))
-            throw new Error("monsterIncreaseEvasionEffect can only be applied to monsters.");
-
-        game.addDCmodifier(data.issuer, amount);
-        if(exceptSelf)
-            data.issuer.addAttackDiceModifier( -amount);
-        
-        data.it.cleaners.push(() => {
-        game.addDCmodifier(data.issuer, -amount);
-        if(exceptSelf)
-            data.issuer.addAttackDiceModifier( amount);
-        });
+            target = game.monsters.find((m => m.id === data.it.slug))!;
+        if(!target)
+            throw new Error("thisHealsEffect effect could not find the monster to heal.");
+        target.heal(amount);
         return true;
     };
 }

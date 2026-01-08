@@ -229,6 +229,9 @@ class Encounters {
     
     /** Global modifier to all monster evasion values (DC = difficulty class) */
     dcModifier: number = 0;
+
+    /** Global modifier to all monster attack values (DC = difficulty class) */
+    attackModifier: number = 0;
     
     /**
      * Creates a new Encounters manager.
@@ -353,8 +356,18 @@ class Encounters {
      * 
      * @param value - Amount to add to the DC modifier
      */
-    addDcModifier(value: number): void {
+    addDCModifier(value: number): void {
         this.dcModifier += value;
+    }
+
+    /**
+     * Adds to the global attack modifier.
+     * This modifier affects the attack value of all monsters.
+     * 
+     * @param value - Amount to add to the attack modifier
+     */
+    addAttackModifier(value: number): void {
+        this.attackModifier += value;
     }
 
     /**

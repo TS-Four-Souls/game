@@ -409,6 +409,40 @@ export function onYourEventEffect(
     };
 }
 
+/*
+TRIGGERED EFFECT: Uses the stack.
+Each time triggerEvent triggers, if you are the eventIssuer, call effectFunctions.
+*/
+export function onAnyEventEffect(
+    triggerEvent: TriggerEvent,
+    effectFunctions: EffectFunction[],
+    game: Game
+): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        
+        offDamage = game.emitter.on(triggerEvent, ({ eventIssuer }) => {
+            data.issuer = eventIssuer;
+            
+            // Add all effects as a single stack element
+            const effect = (effectData: EffectData) => {
+                for (const func of effectFunctions) {
+                    func(effectData);
+                }
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, `On event: ${triggerEvent}`);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
 // Reduces any damage to a maximum of 1.
 export function reduceDamageToOneEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
@@ -954,6 +988,41 @@ export function onAttackRollEffect(
     };
 }
 
+// Each time the attacking player rolls an attack roll of X
+export function onAttackingPlayerRollEffect(
+    rollValues: number[],
+    effect: EffectFunction,
+    game: Game
+): EffectFunction {
+    return (data: EffectData) => {
+        let offEffect: (() => void) | null = null;
+        
+        offEffect = game.emitter.on("on:dice:rolled", ({ diceRoll }) => {
+            const dice = diceRoll as DiceRoll;
+            if( !dice.issuer.engageInCombat || !dice.attackRoll)
+                return;
+            // Only trigger for attack rolls with specified values
+            if (rollValues.includes((dice as DiceRoll).value)) {
+                // Create the effect that will execute when the stack resolves
+                const stackEffect = (effectData: EffectData) => {
+                    effect(effectData);
+                    return true;
+                };
+                
+                // Add to stack instead of executing immediately
+                addPassiveEffectToStack(game, stackEffect, data, "On attacking player attack roll effect");
+            }
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offEffect?.();
+            offEffect = null;
+        });
+        return true;
+    };
+}
+
 export function onWouldRollEffect(
     effectFunctions: EffectFunction[],
     values: number[],
@@ -991,7 +1060,6 @@ export function onWouldRollEffect(
     };
 }
 
-// Each time you roll an attack roll, 
 export function onRollEffect(
     rollValues: number[],
     effect: EffectFunction,
@@ -1023,6 +1091,42 @@ export function onRollEffect(
                 }
                 // Add to stack instead of executing immediately
                 addPassiveEffectToStack(game, stackEffect, data, "On roll effect");
+            }
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offEffect?.();
+            offEffect = null;
+        });
+        return true;
+    };
+}
+
+// When the active player rolls a specific value
+export function onActivePlayerRollEffect(
+    rollValues: number[],
+    effect: EffectFunction,
+    game: Game
+): EffectFunction {
+    return (data: EffectData) => {
+        let offEffect: (() => void) | null = null;
+        
+        offEffect = game.emitter.on("on:dice:rolled", ({ diceRoll }) => {
+            // Only trigger if the roll issuer is the active player
+            if (diceRoll._issuer !== game.currentPlayer) {
+                return;
+            }
+            
+            if (rollValues.includes((diceRoll as DiceRoll).value)) {
+                // Create the effect that will execute when the stack resolves
+                const stackEffect = (effectData: EffectData) => {
+                    effect(effectData);
+                    return true;
+                };
+                
+                // Add to stack instead of executing immediately
+                addPassiveEffectToStack(game, stackEffect, data, "On active player roll effect");
             }
         });
 

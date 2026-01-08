@@ -4,9 +4,10 @@ import { Game } from "./game";
 import type { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
-import { it } from "zod/locales";
+import { it, no } from "zod/locales";
 import *  as passive from "./passiveEffect";
 import * as active from "./activeEffect";
+import * as monster from "./monsterEffects";
 import type { BonusSoulCardType } from "@/types/cardTypes";
 import { parse } from "zod";
 import type { Monster } from "./monster";
@@ -130,14 +131,40 @@ export function parseText(text: string, re: RegExp): string {
     return m ? m[1]! : "";
 }
 
+export function eachTimeActivateItemEffect(s: string, game: Game): ParsedEffect {
+    const restOfEffect = s.substring("each time a player activates an item, they".length).trim();
+    const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
+    return {
+        effectFunction: passive.onAnyEventEffect("on:item:activated", [restParsed.effectFunction], game),
+        targetSelectors: restParsed.targetSelectors
+    };
+}
 
 export function parseEachTimeRollEffect(s: string, game: Game): ParsedEffect {
+    // Check for "each time the attacking player rolls an attack roll of X"
+    let attackRollMatch = s.match(/^each time the attacking player rolls an attack roll of (\d),?/u);
+    if (attackRollMatch) {
+        const rollValue = Number(attackRollMatch[1]);
+        let restOfEffect = s.substring(attackRollMatch[0]!.length).trim();
+        restOfEffect = restOfEffect.replace("they", "");
+
+        const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
+        return {
+            effectFunction: passive.onAttackingPlayerRollEffect([rollValue], restParsed.effectFunction, game),
+            targetSelectors: restParsed.targetSelectors
+        };
+    }
+
     let rollMatch = s.match(/^each time a player rolls a (\d),? they /u);
     // If "you" is present, handling it requires having both you and they.
     // So far only "they must give you a loot card" is using it.
-    if (rollMatch && !s.split(" ").includes("you")) { 
+    if (rollMatch && !s.split(" ").includes("you")) {
         const rollValue = Number(rollMatch[1]);
-        const restOfEffect = s.substring(rollMatch[0]!.length).trim();
+        let restOfEffect = s.substring(rollMatch[0]!.length).trim();
+        if (restOfEffect.startsWith("may"))
+        {
+            restOfEffect = "you " + restOfEffect;
+        }
         const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
         return {
             effectFunction: passive.onRollEffect([rollValue], restParsed.effectFunction, game, true),
@@ -157,6 +184,20 @@ export function parseEachTimeRollEffect(s: string, game: Game): ParsedEffect {
         };
     }
     throw new Error(`Could not parse 'Each time a player rolls a X' effect: ${s}`);
+}
+
+export function parseWhenActivePlayerRollsEffect(s: string, game: Game): ParsedEffect {
+    const rollMatch = s.match(/^when the active player rolls a (\d),?/u);
+    if (rollMatch) {
+        const rollValue = Number(rollMatch[1]);
+        const restOfEffect = s.substring(rollMatch[0]!.length).trim();
+        const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
+        return {
+            effectFunction: passive.onActivePlayerRollEffect([rollValue], restParsed.effectFunction, game),
+            targetSelectors: restParsed.targetSelectors
+        };
+    }
+    throw new Error(`Could not parse 'When the active player rolls a X' effect: ${s}`);
 }
 
 export function parseYouMayEffect(s: string, game: Game): ParsedEffect {
@@ -253,7 +294,7 @@ let selector = selectMonster(game);
 
 export function effectParser(s: string, game: Game, defaultEffect: EffectFunction = active.addInPlayEffect(game), selectionOnResolve = false): ParsedEffect {
     const originalS = s;
-    // if (s === "[Paid Effect] Destroy 2 items you control:\nsteal a non-eternal item from a player."){
+    // if (originalS == "Each time the attacking player rolls an attack roll of 1, each monster gains +1 [DC] till end of turn."){
     //     console.log("parsing special roll effect:", originalS);
     // }
     s = s.replace("[Tap Effect] ", ""); // remove tap effect marker
@@ -275,6 +316,9 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             effectFunction: passive.onYourEventEffect("on:combatdamage:dealt:to-monster", [restParsed.effectFunction], game),
             targetSelectors: restParsed.targetSelectors
         };
+    }
+    if(s.startsWith("each time a player activates an item, they")){
+        return eachTimeActivateItemEffect(s, game);
     }
     if (s.startsWith("each time you die, after paying penalties, ")) {
         const restParsed = effectParser(s.substring(s.indexOf(",", s.indexOf(",")+1) + 1).trim(), game, defaultEffect, true);
@@ -307,7 +351,11 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         return parseAtTheEndOfYourTurnEffect(s, game);
     if (s.startsWith("when this dies, "))
         return parseWhenThisDiesEffect(s, game);
+    if (s.startsWith("when the active player rolls a"))
+        return parseWhenActivePlayerRollsEffect(s, game);
     if (s.startsWith("each time a player rolls a"))
+        return parseEachTimeRollEffect(s, game);
+    if(s.startsWith("each time the attacking player rolls an attack roll of"))
         return parseEachTimeRollEffect(s, game);
     if (s.startsWith("each time you take damage, "))
         return parseOnDamageTakenEffect(s, game);
@@ -405,7 +453,12 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     const treasureAmount = parseNumber(s, /^gain \+(\d+) treasures?\.?$/u);
     if (treasureAmount !== null)
         return { effectFunction: active.gainTreasuresEffect(game, treasureAmount), targetSelectors: noTargets };
-
+    const hpToHeal = parseNumber(s, /^heal (\d+) \[hp\] ?\.?$/u);
+    if (hpToHeal !== null)
+        return { effectFunction: active.healEffect(game, hpToHeal), targetSelectors: noTargets };
+    const thisHeals = parseNumber(s, /^this heals (\d+) \[hp\] ?\.?$/u);
+    if (thisHeals !== null)
+        return { effectFunction: monster.thisHealsEffect(game, thisHeals), targetSelectors: noTargets };
     const loseAmount = parseNumber(s, /^lose\s+(\d+)\u00A2\.?$/u);
     if (loseAmount !== null)
         return { effectFunction: active.loseCoinsEffect(game, loseAmount), targetSelectors: noTargets };
@@ -554,6 +607,10 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         case "choose a player or monster. they gain +1 [atk] till end of turn.":
         case "gain +1 [atk] till end of turn.":
             return { effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game)], 1, game), targetSelectors: selectPlayerOrMonster(game) };
+        case "each monster gains +1 [atk] till end of turn.":
+            return { effectFunction: passive.temporaryStatModifierEffect([game.addAttackToEachMonster.bind(game)], 1, game), targetSelectors: noTargets };
+        case "each monster gains +1 [dc] till end of turn.":
+            return { effectFunction: passive.temporaryStatModifierEffect([game.addDCToEachMonster.bind(game)], 1, game), targetSelectors: noTargets };
         case "if you would take any amount of damage, take that much damage +1 instead.":
             return { effectFunction: passive.takeDamagePlusEffect(1, game), targetSelectors: noTargets };
         case "you gain +1 [hp] till the end of turn.":
@@ -600,7 +657,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         case "you have +1 to attack rolls.":
             return { effectFunction: passive.permanentStatModifierEffect([game.addAttackDiceModifier.bind(game)], 1, game), targetSelectors: noTargets };
         case "monsters have +1 [dc] on your turn.":
-            return { effectFunction: passive.onYourTurnModifier([game.addDCmodifier.bind(game)], 1, game), targetSelectors: noTargets };
+            return { effectFunction: passive.onYourTurnModifier([game.addDCToEachMonster.bind(game)], 1, game), targetSelectors: noTargets };
         case "you may look at the top card of the treasure deck at any time on your turn.":
             return { effectFunction: passive.onYourTurnModifier([game.addCanSeeTopOfTreasureDeck.bind(game)], 1, game), targetSelectors: noTargets };
         case "you may purchase an additional time on your turn.":
@@ -652,6 +709,8 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
             return { effectFunction: active.addOrSubtract1FromRollEffect(game), targetSelectors: selectRollAddOrSubtract(game) };
         case "recharge your character.":
             return { effectFunction: active.rechargeCharaEffect(game), targetSelectors: noTargets };
+        case "choose a living player. That player dies.":
+            return { effectFunction: active.deathTargetEffect(game), targetSelectors: selectPlayer(game) };
         case "put a card from your hand on top of the loot deck.":
             return { effectFunction: active.putCardFromHandOnTopOfDeckEffect(game), targetSelectors: noTargets };
         case "recharge an item.":
@@ -764,6 +823,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         case "look at the top card of a deck.":
             return { effectFunction: active.lookAtTopCardOfDeckEffect(game, "just_watch"), targetSelectors: selectDeck(game) };
         case "end the turn. cancel everything that hasn't resolved.":
+        case "cancel everything that hasn't resolved and end the turn.":
             return { effectFunction: active.endTurnAndResetStackEffect(game), targetSelectors: noTargets };
         
         case "choose the player with the most souls or tied for the most. that player destroys a soul they control.":

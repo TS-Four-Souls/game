@@ -276,6 +276,9 @@ export class Game {
       usingAbilityFrom,
       this
     );
+    this.assertGameStarted();
+    this.assertEntityIsInPlay(receiver);
+    
     this.addToStack(deathOnStack);
     this.emit("on:death:would-death", {
       eventIssuer: receiver,
@@ -541,6 +544,9 @@ export class Game {
     }
   }
 
+  heal(receiver: Entity, amount: number): void {
+    receiver.heal(amount);
+  }
   dealDamage(
     dealer: Entity,
     receiver: Entity,
@@ -818,7 +824,7 @@ export class Game {
 
   resetStack(): void {
     this.stack.clear();
-    this.resolveStack();
+    // this.resolveStack();
   }
 
   allHands(): { player: Player; hand: Hand }[] {
@@ -1322,6 +1328,14 @@ export class Game {
     e.addHealthPoints(value);
   }
 
+  addAttackToEachMonster(e: Entity, value: number): void {
+    this.encounters.addAttackModifier(value);
+  }
+
+  addDCToEachMonster(e: Entity, value: number): void {
+    this.encounters.addDCModifier(value);
+  }
+
   addLootPlay(e: Player, value: number): void {
     e.addLootPlay(value);
   }
@@ -1342,10 +1356,6 @@ export class Game {
 
   addPurchaseThisTurn(p: Player, value: number): void {
     p.remainingPurchaseThisTurn += value;
-  }
-
-  addDCmodifier(e: Entity, value: number): void {
-    this.encounters.addDcModifier(value);
   }
 
   gainCoins(issuer: Issuer, coins: number): string {

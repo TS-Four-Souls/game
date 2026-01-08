@@ -728,6 +728,7 @@ export function eachPlayersVoteToDestroyItemEffect(game: Game): EffectFunction {
     };
 }
 
+
 export function stealRandomLootCardEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
@@ -895,6 +896,14 @@ export function loot1PutCardOnTopEffect(game: Game): EffectFunction {
         const cardToPutBack = (await game.select(data.issuer, 1, data.issuer.hand.cards)).selected[0] as LootCard;
         const card = game.getCardFromHand(data.issuer, cardToPutBack);
         game.decks["loot"]!.addTopPosition(card);
+        return true;
+    };
+}
+
+export function healEffect(game: Game, amount: number): EffectFunction {
+    return (data: EffectData) => {
+        if (data.issuer instanceof Player === false) return false;
+        game.heal(data.issuer, amount);
         return true;
     };
 }
@@ -1154,6 +1163,13 @@ export function takeDamageGainCoinsEffect(s: string, damage: number, coins: numb
 export function killTargetEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         game.kill(data.issuer, data.next as Entity, data.it);
+        return true;
+    };
+}
+
+export function deathTargetEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        game.death(data.next, data.issuer, data.it);
         return true;
     };
 }

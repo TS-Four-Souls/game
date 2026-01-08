@@ -52,6 +52,10 @@ export class Monster extends Entity {
   get card(): MonsterCard {
     return this._card;
   }
+
+  override get attackPoints(): number {
+    return super.attackPoints + this._encounters.attackModifier;
+  }
   
   /**
    * Gets the effective evasion value for this monster.

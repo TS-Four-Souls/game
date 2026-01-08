@@ -60,8 +60,11 @@ export abstract class Entity {
     this._engagedInCombat += 1;
   }
 
-  heal(): void {
-    this._currentHealthPoints = this.healthPoints;
+  heal(amount:number|"full" = "full"): void {
+    if(amount === "full")
+      this._currentHealthPoints = this.healthPoints;
+    else
+      this._currentHealthPoints = Math.min(this._currentHealthPoints + amount, this.healthPoints);
   }
 
   die(): void {
