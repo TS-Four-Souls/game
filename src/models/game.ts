@@ -37,7 +37,7 @@ import {
 } from "@/models/cards";
 import { Stack, type StackElement } from "@/models/stack";
 import { effectParser, type ParsedEffect } from "@/models/effectParser";
-import { getAttackRollEffect } from "@/models/activeEffect";
+import { getAttackRollEffect, targetGetCoinRollEffect, targetGetLootRollEffect } from "@/models/activeEffect";
 import { Shop, Encounters } from "@/models/slots";
 import { Entity } from "@/models/entity";
 import { TurnHandler } from "./turnHandler";
@@ -52,10 +52,10 @@ const LOG_GAME = false;
 export const cards = await loadCards(process.cwd() + "/data/cards");
 const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
 
-// for(const card of cardSets["monster"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug))){
+// for(const card of cardSets["monster"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug)) as MonsterCard[]){
 //   // if((card as LootCard).trinket)
-//   for (const cardEffect of card.effectOutcomes)
-//     console.log(card.slug, [cardEffect]);
+//   // for (const cardEffect of card.json.rewards) {
+//     console.log(card.slug, card.json.rewards);
 // }
 export const gameParameters = {
   nbItemsInShop: 2,
@@ -288,6 +288,51 @@ export class Game {
     });
   }
 
+  monsterRewards(monster: Monster): void {
+    const rewards = monster.card.rewards;
+    if( rewards?.coin)
+      {
+        if(rewards.coin === "roll")
+          {
+            const roll = this.rollDice(this.currentPlayer, false);
+            roll.attachEffect(targetGetCoinRollEffect(this), monster.card, [this.currentPlayer]);
+
+          }
+        else if (typeof rewards.coin === "number")
+          {
+            this.gainCoins(this.currentPlayer, rewards.coin);
+          }
+      }
+    if( rewards?.loot)
+      {
+        if(rewards.loot === "roll")
+          {
+            const roll = this.rollDice(this.currentPlayer, false);
+            roll.attachEffect(targetGetLootRollEffect(this), monster.card, [this.currentPlayer]);
+
+          }
+        else if (typeof rewards.loot === "number")
+          this.loot(this.currentPlayer, rewards.loot);
+      }
+    if( rewards?.treasure && typeof rewards.treasure === "number")
+      this.gainTreasure(this.currentPlayer, rewards.treasure);
+  }
+
+  obtainMonsterSoul(monster: Monster): void {
+    const card = monster.card;
+    if (card.rewards?.soul !== undefined) 
+    {
+      if(this.encounters._deck._order.includes(card.id))
+        return; // monster is back in the deck and does not give his soul.
+      if(typeof card.rewards?.soul !== "number")
+        throw new Error("Monster soul reward must be a number.");
+      card.soul = card.rewards?.soul;
+      this.currentPlayer.addSoul(monster.card);
+      this._onStateChange.dispatch();
+    }
+  }
+
+
   // Should only be called by DeathOnStack objects.
   resolveDeath(receiver: Entity, from: Entity, usingAbilityFrom: Card): void {
     this.emit("on:death:before-penalty", {
@@ -308,12 +353,14 @@ export class Game {
         for (const player of this.players) {
           player.clearAttackRequirement(receiver);
         }
+        this.monsterRewards(receiver);
         this.emit("on:death:monster", {
           eventIssuer: receiver,
           target: from,
           abilityCard: usingAbilityFrom,
         });
         this.encounters.kill(receiver);
+        this.obtainMonsterSoul(receiver);
       }
       this.emit("on:death:after-penalty", {
         eventIssuer: receiver,

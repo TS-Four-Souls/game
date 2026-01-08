@@ -889,6 +889,33 @@ export function getAttackRollEffect(damageDealt: number, damageReceived: number,
     return effects;
 }
 
+export function targetGetCoinRollEffect(game: Game): EffectFunction[] {
+    const effects: EffectFunction[] = [];
+    for (let i = 0; i < 6; i++) {
+        effects.push((data: EffectData) => {
+            const target = data.next as Player;
+            if(!target) throw new Error("No target for targetGetCoinRollEffect");
+            game.gainCoins(target, i + 1);
+            return true;
+        });
+    }
+    return effects;
+}
+
+export function targetGetLootRollEffect(game: Game): EffectFunction[] {
+    const effects: EffectFunction[] = [];
+    for (let i = 0; i < 6; i++) {
+        effects.push((data: EffectData) => {
+            const target = data.next as Player;
+            if(!target) throw new Error("No target for targetGetCoinRollEffect");
+            game.loot(target, i + 1);
+            return true;
+        });
+    }
+    return effects;
+}
+
+
 export function loot1PutCardOnTopEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;

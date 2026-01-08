@@ -13,7 +13,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
     beforeEach(() => {
         const setup = setupTestGame({
             characters: ["b2-samson", "b2-isaac"],
-            monsters: ["b2-fly", "b2-fatty"],
+            monsters: ["b2-fly", "b2-fatty"], // fly = 1 coin and fatty = 1 loot.
             monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
             treasureDeck: ["b2-blank_card"],
         });
@@ -259,15 +259,15 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         await game.resolveStack(); // death on stack
         await game.resolveStack(); // gain coins
 
-        // Player should gain 3¢
-        expect(player1.coins).toBe(initialCoins + 3);
+        // Player should gain 3¢ + fly = 1 coins
+        expect(player1.coins).toBe(initialCoins + 3 + 1);
 
         // Kill the player
         game.kill(player2, player2, midasTouch);
         await game.resolveStack(); // death on stack
 
         // Player should gain 3¢
-        expect(player1.coins).toBe(initialCoins + 3);
+        expect(player1.coins).toBe(initialCoins + 3 + 1);
     });
 
     it("the_midas_touch - triggers multiple times", async () => {
@@ -287,8 +287,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         await game.resolveStack(); // death on stack
         await game.resolveStack(); // gain coins
 
-        // Player should gain 6¢ (3¢ per monster)
-        expect(player1.coins).toBe(initialCoins + 6);
+        // Player should gain 6¢ (3¢ per monster) // fly = 1 coin
+        expect(player1.coins).toBe(initialCoins + 6 + 1);
     });
 
     it("fanny_pack - loot 1 when taking damage", async () => {
