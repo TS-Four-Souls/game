@@ -394,7 +394,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     }
     if (s.startsWith("kill ")) {
         const selector = decideEntitySelector(s, game);
-        return { effectFunction: active.killTargetEffect(game), targetSelectors: selector };
+        return { effectFunction: active.killTargetEffect(game, selector, selectionOnResolve), targetSelectors: selector };
     }
     if (s.startsWith("destroy this.")) {
         const restParsed = effectParser(s.substring(12).trim(), game, defaultEffect, selectionOnResolve);

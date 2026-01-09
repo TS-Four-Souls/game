@@ -1124,7 +1124,7 @@ export function rollEffect(s: string, game: Game): ParsedEffect {
     if (s == "roll-\ndeal damage to them equal to the result.")
         return dealRollDamageEffect(s, game);
     const rollResults = obtainRollResults(s);
-    const parsedEffects: ParsedEffect[] = rollResults.map(effectText => effectParser(effectText, game));
+    const parsedEffects: ParsedEffect[] = rollResults.map(effectText => effectParser(effectText, game, addInPlayEffect(game), true));
     const effects: EffectFunction[] = parsedEffects.map(p => p.effectFunction);
     return {
         effectFunction: (data: EffectData) => {
@@ -1187,8 +1187,16 @@ export function takeDamageGainCoinsEffect(s: string, damage: number, coins: numb
     };
 }
 
-export function killTargetEffect(game: Game): EffectFunction {
-    return (data: EffectData) => {
+export function killTargetEffect(game: Game, selectors: TargetsSelector[] = [], selectionOnResolve: boolean = false): EffectFunction {
+    return async (data: EffectData) => {
+        if(selectionOnResolve){
+            console.log("selecting target for killTargetEffect on resolve");
+            if(data.issuer instanceof Player === false) 
+                throw new Error("Issuer should be a player to select target for killTargetEffect.");
+            const target = await game.select(data.issuer as Player, 1, selectors[0]!.selector(data.issuer));
+            game.kill(data.issuer, target.selected[0] as Entity, data.it);
+            return true;
+        }
         game.kill(data.issuer, data.next as Entity, data.it);
         return true;
     };

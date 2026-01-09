@@ -470,7 +470,6 @@ describe("Tap/Paid effects 1", () => {
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3;
-        dice.targets = [monster];
         await game.resolveStack(); // Resolve dice
         await game.resolveStack(); // Resolve destroy pandoras box
         await game.resolveStack(); // Resolve kill monster
