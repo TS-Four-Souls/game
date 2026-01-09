@@ -48,21 +48,22 @@ describe("Eternal Items", () => {
         game.playCard(player1, 0, []); // play pills
         await game.resolveStack(); // resolve pills play
         const dice = game.stack.elements[0] as DiceRoll;
-        dice.value = 5; // Force roll to 5 for testing
-        game.recharge(theD6);
-        expect(theD6.charged).toBe(true);
-        await game.activateItem(player2, theD6, [dice]);
+        dice.value = 1; // Force roll to 1 for testing
+        let sumDiceRoll = 0;
+        for (let i=0; i<50; i++){
+            game.recharge(theD6);
+            await game.activateItem(player2, theD6, [dice]);
+            await game.resolveStack();
+            sumDiceRoll += dice.value;
+        }
+        expect(sumDiceRoll).not.toBe(50); // value should change
         await game.resolveStack();
-        await game.resolveStack();
-        await game.resolveStack();
-        await game.resolveStack(); 
-        expect(dice.value).not.toBe(5); // value should change
         game.endTurn();
         await game.resolveStack();
         await game.resolveStack();
         await game.resolveStack(); // Resolve any stack effects
         expect(theD6.charged).toBe(true);
-    }, {retry: 50}); // retry cause can roll randomly fail due to shuffling
+    }); 
     // [Tap Effect] Put the top card of any discard on top of its deck.
     it("The Curse - active", async () => {
         const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
