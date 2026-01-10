@@ -123,7 +123,7 @@ export type DetailedState = {
     treasure?: GenericCardType;
     monster?: GenericCardType;
   };
-  monsters: GenericCardType[];
+  monsters: MonsterCardType[];
   shop: GenericCardType[];
   turn: string;
   stack: string[];
@@ -135,6 +135,16 @@ export type DetailedState = {
     asMany: boolean;
   };
 };
+
+
+type MonsterCardType = {
+  slug: string;
+  stats?: {
+    healthPoints: number;
+    attackPoints: number;
+    evasionPoints: number;
+  }
+}
 
 export type DiscardCards = {
   cards: GenericCardType[];

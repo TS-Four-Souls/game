@@ -496,12 +496,12 @@ const app = new Elysia()
     game.addPlayer(p1);
     game.addPlayer(p2);
     game.setupGame();
-    // const isaac = game.decks["character"]!.getCardFromSlug(
-    //   "b2-isaac"
-    // )! as CharacterCard;
-    // const samson = game.decks["character"]!.getCardFromSlug(
-    //   "b2-samson"
-    // )! as CharacterCard;
+     const cain = game.decks["character"]!.getCardFromSlug(
+       "b2-cain"
+     )! as CharacterCard;
+     const samson = game.decks["character"]!.getCardFromSlug(
+       "b2-samson"
+     )! as CharacterCard;
     // const card = game.obtainCard("b2-remote_detonator")!;
     // const card2 = game.obtainCard("b2-xv_the_devil")! as LootCard;
     const loots = ["b2-i_the_magician", "b2-gold_bomb"]
@@ -512,8 +512,8 @@ const app = new Elysia()
     // const card2 = game.obtainCard("b2-gold_bomb")! as LootCard;
     // // const card2 = game.obtainCard("b2-bomb")! as LootCard;
     // game.addCardToHand(p1, card2);
-    game.start(p1);
-    const treas = ["b2-pandoras_box", "b2-placebo", "b2-the_d20"]
+    game.start(p1, [cain, samson]);
+    const treas = ["b2-pandoras_box", "b2-placebo", "b2-the_d20", "b2-chaos_card", "b2-contract_from_below", "b2-incubus"]
     for (const slug of treas) {
       const card = game.obtainCard(slug)!;
       game.addInPlay(p1, card);

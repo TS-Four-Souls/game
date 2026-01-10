@@ -278,7 +278,7 @@ export class Game {
     );
     this.assertGameStarted();
     this.assertEntityIsInPlay(receiver);
-    
+
     this.addToStack(deathOnStack);
     this.emit("on:death:would-death", {
       eventIssuer: receiver,
@@ -290,41 +290,35 @@ export class Game {
 
   monsterRewards(monster: Monster): void {
     const rewards = monster.card.rewards;
-    if( rewards?.coin)
-      {
-        if(rewards.coin === "roll")
-          {
-            const roll = this.rollDice(this.currentPlayer, false);
-            roll.attachEffect(targetGetCoinRollEffect(this), monster.card, [this.currentPlayer]);
+    if (rewards?.coin) {
+      if (rewards.coin === "roll") {
+        const roll = this.rollDice(this.currentPlayer, false);
+        roll.attachEffect(targetGetCoinRollEffect(this), monster.card, [this.currentPlayer]);
 
-          }
-        else if (typeof rewards.coin === "number")
-          {
-            this.gainCoins(this.currentPlayer, rewards.coin);
-          }
       }
-    if( rewards?.loot)
-      {
-        if(rewards.loot === "roll")
-          {
-            const roll = this.rollDice(this.currentPlayer, false);
-            roll.attachEffect(targetGetLootRollEffect(this), monster.card, [this.currentPlayer]);
+      else if (typeof rewards.coin === "number") {
+        this.gainCoins(this.currentPlayer, rewards.coin);
+      }
+    }
+    if (rewards?.loot) {
+      if (rewards.loot === "roll") {
+        const roll = this.rollDice(this.currentPlayer, false);
+        roll.attachEffect(targetGetLootRollEffect(this), monster.card, [this.currentPlayer]);
 
-          }
-        else if (typeof rewards.loot === "number")
-          this.loot(this.currentPlayer, rewards.loot);
       }
-    if( rewards?.treasure && typeof rewards.treasure === "number")
+      else if (typeof rewards.loot === "number")
+        this.loot(this.currentPlayer, rewards.loot);
+    }
+    if (rewards?.treasure && typeof rewards.treasure === "number")
       this.gainTreasure(this.currentPlayer, rewards.treasure);
   }
 
   obtainMonsterSoul(monster: Monster): void {
     const card = monster.card;
-    if (card.rewards?.soul !== undefined) 
-    {
-      if(this.encounters._deck._order.includes(card.id))
+    if (card.rewards?.soul !== undefined) {
+      if (this.encounters._deck._order.includes(card.id))
         return; // monster is back in the deck and does not give his soul.
-      if(typeof card.rewards?.soul !== "number")
+      if (typeof card.rewards?.soul !== "number")
         throw new Error("Monster soul reward must be a number.");
       card.soul = card.rewards?.soul;
       this.currentPlayer.addSoul(monster.card);
@@ -387,12 +381,12 @@ export class Game {
     this.emit("on:attack:declared", { eventIssuer: player });
   }
 
-  declareAttackOnMonster(player: Player, monster: Monster | "topDeck", drawInIndex: number=-1): void {
-    if(drawInIndex !== -1 && monster !== "topDeck")
+  declareAttackOnMonster(player: Player, monster: Monster | "topDeck", drawInIndex: number = -1): void {
+    if (drawInIndex !== -1 && monster !== "topDeck")
       throw new Error("drawInIndex can only be specified when drawing from topDeck");
-    if(drawInIndex === -1 && monster === "topDeck")
+    if (drawInIndex === -1 && monster === "topDeck")
       throw new Error("drawInIndex must be specified when drawing from topDeck");
-    
+
     this.assertCurrentTurnIsPlayerTurn(player);
     this.assertNoOngoingAttack();
     this.assertPlayerIsAlive(player);
@@ -405,13 +399,13 @@ export class Game {
     if (isMonsterAlreadyEngaged) {
       throw new Error("Another monster is already engaged in combat.");
     }
-    if( !player.canAttackThisMonster(monster)) {
+    if (!player.canAttackThisMonster(monster)) {
       throw new Error("Player must attack a specific monster.");
     }
-    if( monster === "topDeck"){
+    if (monster === "topDeck") {
       this.drawMonster(player, drawInIndex);
       player.clearAttackRequirement("topDeck");
-      if(this.encounters.monsterIn(drawInIndex) === undefined)
+      if (this.encounters.monsterIn(drawInIndex) === undefined)
         return; // drawn event.
       monster = this.encounters.monsterIn(drawInIndex)!;
     }
@@ -466,14 +460,13 @@ export class Game {
     // Search in all players' hands and in-play areas
     for (const player of this.players) {
       const handCard = player.hand.cards.find((c) => c.slug === slug);
-      if (handCard){
+      if (handCard) {
         player.hand.removeCard(handCard);
         return handCard;
       }
 
       const inPlayCard = player.inPlay.find((c) => c.slug === slug);
-      if (inPlayCard)
-      {
+      if (inPlayCard) {
         player.removeInPlay(inPlayCard);
         return inPlayCard;
       }
@@ -666,7 +659,7 @@ export class Game {
     requestId: string;
     resolve: (selection: any[]) => void;
   }> = new Map();
-  
+
   get hasPendingSelections(): boolean {
     return this.pendingMultipleSelections.size > 0;
   }
@@ -677,7 +670,7 @@ export class Game {
     Options: any[],
     anyNumber: boolean = false
   ): Promise<{ selected: any[]; remaining: any[] }> {
-    if( n === 1 && !anyNumber && Options.length === 1){
+    if (n === 1 && !anyNumber && Options.length === 1) {
       return {
         selected: [Options[0]!],
         remaining: []
@@ -696,7 +689,7 @@ export class Game {
   // Method to submit a selection from the client
   submitSelection(issuer: Issuer, requestId: string, selectedIdentifiers: string[]): void {
     const player = this.assertIssuerSecret(issuer);
-    
+
     // Check if this is from a selectMultiple() call
     const pending = this.pendingMultipleSelections.get(requestId);
     if (pending && pending.playerId === player.id) {
@@ -704,11 +697,11 @@ export class Game {
       if (!pending.asMany && selectedIdentifiers.length !== pending.count) {
         throw new Error(`Must select exactly ${pending.count} option(s)`);
       }
-      
+
       if (pending.asMany && selectedIdentifiers.length > pending.count) {
         throw new Error(`Must select at most ${pending.count} option(s)`);
       }
-      
+
       // Resolve identifiers back to actual options
       const selected = selectedIdentifiers.map(id => {
         const option = TargetBuilder['resolveIdentifier'](id, pending.options);
@@ -717,12 +710,12 @@ export class Game {
         }
         return option;
       });
-      
+
       // Resolve the pending promise
       pending.resolve(selected);
       return;
     }
-    
+
     // No matching pending selection found
     throw new Error("No pending selection found for this request ID");
   }
@@ -775,7 +768,7 @@ export class Game {
         return;
       }
     }
-    
+
     throw new Error('Not waiting for selection');
   }
 
@@ -792,7 +785,7 @@ export class Game {
       count: number;
       asMany: boolean;
     }> = [];
-    
+
     // Add all pending selections
     for (const selection of this.pendingMultipleSelections.values()) {
       pending.push({
@@ -802,7 +795,7 @@ export class Game {
         asMany: selection.asMany
       });
     }
-    
+
     return pending;
   }
 
@@ -995,7 +988,7 @@ export class Game {
     this.assertGameNotStarted();
     this.assertMinimumPlayerCount();
     this.pendingMultipleSelections.clear();
-    
+
     if (this._decks["character"] === undefined) {
       this.setupGame();
     }
@@ -1019,14 +1012,14 @@ export class Game {
     this.emit("on:game:start:before", {});
     this.emit("on:game:start", {});
     this.healEveryone();
-    
+
     this.startOfGameSetup();
     this.startTurn();
   }
 
   startOfGameSetup(): void {
     for (const player of this.players) {
-      this.gainTreasure(player,  gameParameters.treasuresOnStart);
+      this.gainTreasure(player, gameParameters.treasuresOnStart);
       this.loot(player, gameParameters.lootOnStart);
       this.gainCoins(player, gameParameters.coinsOnStart);
     }
@@ -1123,9 +1116,9 @@ export class Game {
         if (cards[0]?.slug !== cardName) {
           throw new Error(
             "Eternal card slug mismatch: expected " +
-              cardName +
-              ", got " +
-              cards[0]?.slug
+            cardName +
+            ", got " +
+            cards[0]?.slug
           );
         }
         this.addInPlay(player, cards[0]!);
@@ -1164,7 +1157,7 @@ export class Game {
     if (!item || !(item instanceof ItemCard)) {
       throw new Error("Player does not own the specified item.");
     }
-    if(!item.activeEffectList.map((e) => e.index).includes(effectId))
+    if (!item.activeEffectList.map((e) => e.index).includes(effectId))
       throw new Error("Item does not have the specified effect ID.");
 
     return await this.activateItem(player, item, choices, effectId);
@@ -1240,7 +1233,7 @@ export class Game {
       (card.type === "monster" &&
         (card as MonsterCard).encounterType === MonsterType.EVENT &&
         outcome !==
-          "The active player may attack an additional time this turn.")
+        "The active player may attack an additional time this turn.")
     )
       type = "active";
     else if (outcome.startsWith("[Paid Effect]")) type = "paid";
@@ -1312,7 +1305,7 @@ export class Game {
           [...paymentParsed.targetSelectors, ...effectParsed.targetSelectors],
           paymentParsed.effectFunction
         );
-          card.addEffect(effect);
+        card.addEffect(effect);
       } else {
         // Regular effects (passive/active)
         const parsed = effectParser(outcome, this);
@@ -1322,7 +1315,7 @@ export class Game {
           parsed.effectFunction,
           parsed.targetSelectors
         );
-          card.addEffect(effect);
+        card.addEffect(effect);
       }
     }
   }
@@ -1396,7 +1389,7 @@ export class Game {
   }
 
   addDiceModifier(e: Entity, value: number): void {
-    if(!(e instanceof Player))
+    if (!(e instanceof Player))
       throw new Error("Dice modifier can only be added to players.");
     e.addDiceModifier(value);
   }
@@ -1527,7 +1520,16 @@ export class Game {
           ? this.decks["monster"]!.discard[0]!.json
           : undefined,
       },
-      monsters: this.encounters._slots.map((m) => m[m.length - 1]!.json),
+      monsters: this.encounters._slots.map((m, index) => ({ card: m[m.length - 1]!, monster: this.encounters.monsterIn(index) })).map((m) => ({
+        slug: m.card?.slug,
+        ...(m.monster ? {
+          stats: {
+            healthPoints: m.monster.currentHealthPoints,
+            attackPoints: m.monster.attackPoints,
+            evasionPoints: m.monster.evasion,
+          }
+        } : {}),
+      })),
       shop: this.shop._slots.map((m) => m!.json),
       turn: this.currentPlayer.id,
       stack: this.stack.elements.map((el) => {
@@ -1606,12 +1608,12 @@ export class Game {
       numberOfCards: toLoot,
     });
     this._onStateChange.dispatch();
-    
+
     return `You have drawn ${toLoot} loot card(s).\n`;
   }
 
   emit(event: TriggerEvent, data: any = {}): void {
-    if(this.emitter.emit(event, data) > 0)
+    if (this.emitter.emit(event, data) > 0)
       this._onStateChange.dispatch();
   }
 
@@ -1802,7 +1804,7 @@ export class Game {
     }
 
     const mustAttackPlayers: (Monster | "topDeck")[] = player.mustAttackMonster;
-    
+
     for (const req of mustAttackPlayers) {
       if (req === "topDeck") continue;
       const monster = req as Monster;
@@ -1967,7 +1969,7 @@ export class Game {
   }
 
   private assertEmptyStack(): void {
-    if(this._stack.size > 0)
+    if (this._stack.size > 0)
       throw new Error(`Stack is not empty.`);
   }
 
@@ -2033,7 +2035,7 @@ export class Game {
   }
 
   assertNoPendingSelection(): void {
-    if(this.hasPendingSelections)
+    if (this.hasPendingSelections)
       throw new Error("Pending selection need to be resolved");
   }
 
@@ -2050,12 +2052,12 @@ export class Game {
     }
 
     const requirement = player.mustAttackMonster!;
-    
+
     // Filter monsters that are still in play
     const validMonsters = requirement.filter(
       m => m === "topDeck" || this.monsters.includes(m as Monster)
     );
-    
+
     if (validMonsters.length === 0) {
       player.clearAttackRequirement(); // All monsters gone, constraint lifted
       return;
