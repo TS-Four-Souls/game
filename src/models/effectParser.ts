@@ -209,7 +209,7 @@ export function parseYouMayEffect(s: string, game: Game): ParsedEffect {
     return {
         effectFunction: async (data:EffectData) => {
             if (data.issuer instanceof Player === false) return false;
-            const selection = await game.select(data.issuer, 1, [data.it], true)
+            const selection = await game.select(data.issuer, 1, [data.it], true, "Use " + data.it.name + "'s effect?");
             const choice = selection.selected.length > 0;
             if (choice) {
                 return restParsed.effectFunction(data);
@@ -375,23 +375,6 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         return active.chooseOneEffect(s, game);
     if (s.startsWith("roll-"))
         return active.rollEffect(s, game);
-    // if (s.startsWith("discard a loot card:")) {
-    //     const restParsed = effectParser(s.substring(21).trim(), game);
-    //     return {
-    //         effectFunction: (data:EffectData) => {
-    //             if (data.issuer instanceof Player === false) return false;
-    //             if(data.issuer.hand.length > 0)
-    //             {
-    //                 const toDiscard = game.select(data.issuer, 1, data.issuer.hand.cards).selected[0]!;
-    //                 const index = data.issuer.hand.cards.indexOf(toDiscard);
-    //                 game.discardFromHand(data.issuer, index + 1);
-    //                 return restParsed.effectFunction(data);
-    //             }
-    //             return false;
-    //         },
-    //         targetSelectors: restParsed.targetSelectors
-    //     };
-    // }
     if (s.startsWith("destroy 2 items you control")) {
         return { effectFunction: active.destroyTwoItemsEffect(game), targetSelectors: selectItemYouControl(game, 2) };
     }

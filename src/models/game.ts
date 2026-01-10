@@ -248,7 +248,9 @@ export class Game {
       const itemToLose = (await this.select(
         p,
         gameParameters.deathPenaltyItem,
-        setOfLosableItems
+        setOfLosableItems,
+        false,
+        gameParameters.deathPenaltyItem > 1 ? "Select items to lose." : "Select an item to lose."
       )).selected[0];
       if (itemToLose) {
         this.removeInPlay(p, itemToLose);
@@ -259,7 +261,9 @@ export class Game {
       const lootToLose = (await this.select(
         p,
         gameParameters.deathPenaltyLoot,
-        p.hand.cards
+        p.hand.cards,
+        false,
+        gameParameters.deathPenaltyLoot > 1 ? "Select loot cards to lose." : "Select a loot card to lose."
       )).selected[0];
       if (lootToLose) {
         this.discardFromHand(p, p.hand._hand.indexOf(lootToLose));
@@ -643,7 +647,7 @@ export class Game {
     amount: number,
     treasures: treasureCard[]
   ): Promise<{ selected: treasureCard[]; remaining: treasureCard[] }> {
-    const selection = await this.select(player, amount, treasures);
+    const selection = await this.select(player, amount, treasures, false, "Select treasures to gain");
     for (const card of selection.selected) {
       this.addInPlay(player, card);
     }
@@ -668,7 +672,8 @@ export class Game {
     player: Player,
     n: number,
     Options: any[],
-    anyNumber: boolean = false
+    anyNumber: boolean = false,
+    description: string = "UNDEFINED SHOULD NOT HAPPEN"
   ): Promise<{ selected: any[]; remaining: any[] }> {
     if (n === 1 && !anyNumber && Options.length === 1) {
       return {
@@ -676,6 +681,9 @@ export class Game {
         remaining: []
       };
     }
+    if(Options.length === 0)
+      return {selected: [], remaining: []};
+    
     const results = await this.selectMultiple([{
       player,
       count: n,

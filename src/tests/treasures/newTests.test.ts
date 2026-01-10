@@ -3,7 +3,7 @@ import { Game } from "../../models/game";
 import { DiceRoll, Player } from "../../models/player";
 import { CharacterCard, ItemCard, treasureCard, MonsterCard } from "@/models/cards";
 import { Monster } from "@/models/monster";
-import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "@/tests/testHelpers";
 
 describe("b2-placebo - copies tap ability of non-eternal item", () => {
     let game: Game;
@@ -11,7 +11,9 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
     let player2: Player;
 
     beforeEach(() => {
+
         game = new Game();
+        mockGameSelections(game);
         player1 = new Player("Player 1");
         player2 = new Player("Player 2");
         game.addPlayer(player1);
@@ -62,9 +64,13 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         const monster = game.monsters[0]!;
         const initialHP = monster.currentHealthPoints;
 
+        game.select = async (_issuer, _n, opts, _optional) => {
+            return { selected: [game.monsters[0]?.card.slug], remaining: [] };
+        };
         // Recharge placebo and activate it to copy mr_boom
         game.recharge(placebo);
-        await game.activateItem(player1, placebo, [mrBoom, monster]);
+        await game.activateItem(player1, placebo, [mrBoom]);
+
         await game.resolveStack();
         await game.resolveStack();
         await game.resolveStack();
@@ -81,11 +87,15 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
         const initialHP = player2.currentHealthPoints;
 
+        game.select = async (_issuer, _n, opts, _optional) => {
+            return { selected: ["Player 2"], remaining: [] };
+        };
         // Recharge placebo and activate it to copy razor_blade
         game.recharge(placebo);
-        await game.activateItem(player1, placebo, [razorBlade, player2]);
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.activateItem(player1, placebo, [razorBlade]);
+        await game.resolveStack(); // placebo activation
+        await game.resolveStack(); // razor_blade effect
+        await game.resolveStack(); // damage resolution
 
         // Player2 should take 1 damage
         expect(player2.currentHealthPoints).toBe(initialHP - 1);
@@ -106,8 +116,12 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         expect(sackOfPennies.charged).toBe(false);
 
         // Recharge placebo and activate it to copy the_battery
+        game.select = async (_issuer, _n, opts, _optional) => {
+            return { selected: ["b2-sack_of_pennies"], remaining: [] };
+        };
         game.recharge(placebo);
-        await game.activateItem(player1, placebo, [theBattery, sackOfPennies]);
+        await game.activateItem(player1, placebo, [theBattery]);
+        await game.resolveStack();
         await game.resolveStack();
 
         // sack_of_pennies should be recharged
@@ -125,9 +139,13 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         const initialP1Hand = player1.hand.length;
         const initialP2Hand = player2.hand.length;
 
+        game.select = async (_issuer, _n, opts, _optional) => {
+            return { selected: ["Player 2"], remaining: [] };
+        };
         // Recharge placebo and activate it to copy boomerang
         game.recharge(placebo);
-        await game.activateItem(player1, placebo, [boomerang, [player2]]);
+        await game.activateItem(player1, placebo, [boomerang]);
+        await game.resolveStack();
         await game.resolveStack();
 
         // Player1 should have 1 more card, player2 should have 1 less
@@ -148,7 +166,11 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
         // Recharge placebo and activate it to copy jawbone
         game.recharge(placebo);
-        await game.activateItem(player1, placebo, [jawbone, player2]);
+        game.select = async (_issuer, _n, opts, _optional) => {
+            return { selected: ["Player 2"], remaining: [] };
+        };
+        await game.activateItem(player1, placebo, [jawbone]);
+        await game.resolveStack();
         await game.resolveStack();
 
         // Player1 should gain 3¢, player2 should lose 3¢
@@ -167,6 +189,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         // Recharge placebo and activate it to copy player2's sack_of_pennies
         game.recharge(placebo);
         await game.activateItem(player1, placebo, [sackOfPennies]);
+        await game.resolveStack();
         await game.resolveStack();
 
         // Player1 should gain 1¢
@@ -206,11 +229,13 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         game.recharge(placebo);
         await game.activateItem(player1, placebo, [sackOfPennies]);
         await game.resolveStack();
+        await game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 1);
 
         // Recharge and use again
         game.recharge(placebo);
         await game.activateItem(player1, placebo, [sackOfPennies]);
+        await game.resolveStack();
         await game.resolveStack();
         expect(player1.coins).toBe(initialCoins + 2);
     });
@@ -235,7 +260,11 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
         // Second use - copy razor_blade
         game.recharge(placebo);
-        await game.activateItem(player1, placebo, [razorBlade, player2]);
+        game.select = async (_issuer, _n, opts, _optional) => {
+            return { selected: ["Player 2"], remaining: [] };
+        };
+        await game.activateItem(player1, placebo, [razorBlade]);
+        await game.resolveStack();
         await game.resolveStack();
         await game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 1);
