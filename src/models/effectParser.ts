@@ -66,6 +66,9 @@ const selectCurse = (game: Game, count: number = 1, asMany: boolean = false): Ta
 const selectNonEternalItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
     [createSelector("Choose any non-eternal item", inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), count, asMany)];
 
+const selectNonEternalTapItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
+    [createSelector("Choose any non-eternal item", inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false && card.hasActiveEffect() && card.slug != "b2-placebo", game), count, asMany)];
+
 const selectAnotherPlayerNonEternalItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
     [createSelector("Choose another player's non-eternal item", inAnotherplayItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), count, asMany)];
 
@@ -755,7 +758,21 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
               targetSelectors: selectAnotherPlayerNonEternalItem(game),
             };
         case "this copies a ↷ ability of a non-eternal item.":
-            return { effectFunction: active.copyTapAbilityEffect(game), targetSelectors: selectNonEternalItem(game) };
+            return { effectFunction: active.copyTapAbilityEffect(game), targetSelectors: 
+        //         [{ 
+        //     description: "Choose one:", 
+        //     selector: (issuer: Player) => {
+        //         // Construct ChooseOneOptions array from parsed effects
+        //         const items = selectNonEternalTapItem(game)[0]!.selector(issuer);
+        //         return items.map((item) => ({
+        //             description: item,
+        //             admissibleTargets: (item as ItemCard).getActiveEffect()?.targetsSelector.map(ts => ts.selector(issuer)).flat()
+        //         }));
+        //     }, 
+        //     count: 1, 
+        //     asMany: false 
+        // }]};
+        selectNonEternalTapItem(game) };
         case "choose a non-eternal item. this becomes a copy of that item.\n(this change is indefinite.)":
             return { effectFunction: active.becomesCopyOfItemIndefinitelyEffect(game), targetSelectors: selectNonEternalItem(game) };
         case "choose a non-eternal passive item. this becomes a copy of that item till end of turn.":

@@ -64,7 +64,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
         // Recharge placebo and activate it to copy mr_boom
         game.recharge(placebo);
-        await game.activateItem(player1, placebo, [mrBoom, [monster]]);
+        await game.activateItem(player1, placebo, [mrBoom, monster]);
         await game.resolveStack();
         await game.resolveStack();
         await game.resolveStack();
@@ -83,7 +83,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
         // Recharge placebo and activate it to copy razor_blade
         game.recharge(placebo);
-        await game.activateItem(player1, placebo, [razorBlade, [player2]]);
+        await game.activateItem(player1, placebo, [razorBlade, player2]);
         await game.resolveStack();
         await game.resolveStack();
 
@@ -107,7 +107,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
         // Recharge placebo and activate it to copy the_battery
         game.recharge(placebo);
-        await game.activateItem(player1, placebo, [theBattery, [sackOfPennies]]);
+        await game.activateItem(player1, placebo, [theBattery, sackOfPennies]);
         await game.resolveStack();
 
         // sack_of_pennies should be recharged
@@ -148,7 +148,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
         // Recharge placebo and activate it to copy jawbone
         game.recharge(placebo);
-        await game.activateItem(player1, placebo, [jawbone, [player2]]);
+        await game.activateItem(player1, placebo, [jawbone, player2]);
         await game.resolveStack();
 
         // Player1 should gain 3¢, player2 should lose 3¢
@@ -235,7 +235,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
         // Second use - copy razor_blade
         game.recharge(placebo);
-        await game.activateItem(player1, placebo, [razorBlade, [player2]]);
+        await game.activateItem(player1, placebo, [razorBlade, player2]);
         await game.resolveStack();
         await game.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 1);

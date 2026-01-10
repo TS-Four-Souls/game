@@ -292,6 +292,10 @@ class EffectInterface {
         }
     }
     
+    hasActiveEffect(): boolean {
+        return this.activeEffects.hasActiveEffect();
+    }
+
     subscribeAll(owner: Entity): void {
         this.passiveEffects.subscribeAll(owner, this.it);
     }
@@ -511,6 +515,10 @@ class Card {
 
     getActiveEffect(): Effect | undefined {
         return this._effectInterface.getActiveEffect();
+    }
+
+    hasActiveEffect(): boolean {
+        return this._effectInterface.hasActiveEffect();
     }
 
     /**

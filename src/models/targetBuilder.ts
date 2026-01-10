@@ -55,6 +55,7 @@ export class TargetBuilder {
      * @param item The item card whose effect is being activated
      * @param partialChoices Flat array of all string identifiers chosen so far
      * @param effectId Which effect to activate ("tap" or paid effect index)
+     * @param throwIfNotCharged Whether to throw an error if the item is not charged (default: true)
      * @returns Information about the next selector to fill, or completion status
      */
     static getNextSelector(
@@ -62,12 +63,13 @@ export class TargetBuilder {
         player: Player,
         item: ItemCard,
         partialChoices: string[] = [],
-        effectId: number | "tap" = "tap"
+        effectId: number | "tap" = "tap",
+        throwIfNotCharged: boolean = true
     ): TargetSelectorResponse {
         game.assertNoPendingSelection();
         if(!item)
             throw new Error(`Item not found.`);
-        if(effectId === "tap" && !item.charged)
+        if(throwIfNotCharged && effectId === "tap" && !item.charged)
             throw new Error(`Item ${item.name} is not charged.`);
         // console.log("TargetBuilder.getNextSelector for item:", item.name, "effectId:", effectId, "partialChoices:", partialChoices);
 

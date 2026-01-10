@@ -3,7 +3,7 @@
 
 
 import { DamageOnStack, DiceRoll, Player } from "./player";
-import { type Card, LootCard, type EffectFunction, type TargetsSelector, ItemCard, MonsterCard, InplayType, BsoulCard, EffectData } from "./cards";
+import { type Card, LootCard, type EffectFunction, type TargetsSelector, ItemCard, MonsterCard, InplayType, BsoulCard, EffectData, EffectOnStack } from "./cards";
 import { Game } from "./game";
 import type { Entity } from "./entity";
 import { effect } from "zod/v3";
@@ -11,6 +11,7 @@ import type { Stack, StackElement } from "./stack";
 import { it } from "zod/locales";
 import { effectParser, type ParsedEffect } from "./effectParser";
 import { deckSelector, visibleItemSelector, inplayUnchargedItemSelector } from "./targetSelector";
+import { TargetBuilder } from "./targetBuilder";
 // import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, goFirstInTurnOrderEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, startingItemEffect, temporaryStatModifierEffect, gainTreasureOnDeathEffect } from "./abilities";
 import *  as passive from "./passiveEffect";
 import type { BonusSoulCardType } from "@/types/cardTypes";
@@ -276,14 +277,32 @@ export function swapWithNonEternalItemEffect(game: Game): EffectFunction {
 }
 
 export function copyTapAbilityEffect(game: Game): EffectFunction {
-    return (data: EffectData) => {
+    return async (data: EffectData) => {
         const itemToCopy = data.next as ItemCard;
         const activeEffect = itemToCopy.getActiveEffect();
         if (!activeEffect)
             throw new Error(`Item ${itemToCopy.name} has no active effect to copy.`);
+        const player = data.issuer as Player;
+        if(player === undefined)
+            throw new Error(`Effect issuer is not a player.`);
+        const card = data.it as ItemCard;
+
         // The next target is expected to be an array of targets for the copied effect
-        const copiedEffectTargets = data.next as any[];
-        return activeEffect.effectFunction(new EffectData(data.it, data.issuer, copiedEffectTargets));
+        let targets: any[] = [];
+        console.log("Copying tap ability, gathering targets...");
+        let options = TargetBuilder.getNextSelector(game, player, itemToCopy, targets, "tap", false);
+        console.log("First selector options:", options);
+        while(!options.complete)
+        {
+            const selection = await game.select(player, options.count, options.options, options.asMany);
+            targets.push(...selection.selected);
+            options = TargetBuilder.getNextSelector(game, player, itemToCopy, targets, "tap", false);
+        }
+        const newTargets = TargetBuilder.buildTargets(game, player, itemToCopy, targets, "tap");
+        const effectOnStack: EffectOnStack = new EffectOnStack(activeEffect.effectFunction, new EffectData(data.it, data.issuer, newTargets), `Copy of ${itemToCopy.name} tap ability`);
+        game.addToStack(effectOnStack);
+        return true;
+        // return activeEffect.effectFunction(data);
     };
 }
 
@@ -471,7 +490,7 @@ export function swapNonEternalItemsEffect(game: Game): EffectFunction {
 export function flushOneMonsterSlotEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const monsterToFlush = (await game.select(data.issuer, 1, game.monsters.filter((m) => m !== null && !m.isEngagedInCombat))).selected[0] as Monster;
+        const monsterToFlush = (await game.select(data.issuer, 1, game.monsters.filter((m) => m !== null && !m.isEngagedInCombat), true)).selected[0] as Monster;
         if(monsterToFlush === undefined) return true;
         game.monsterSlots.flushMonster(monsterToFlush);
         return true;

@@ -513,7 +513,7 @@ const app = new Elysia()
     // // const card2 = game.obtainCard("b2-bomb")! as LootCard;
     // game.addCardToHand(p1, card2);
     game.start(p1);
-    const treas = ["b2-pandoras_box", "b2-placebo"]
+    const treas = ["b2-pandoras_box", "b2-placebo", "b2-the_d20"]
     for (const slug of treas) {
       const card = game.obtainCard(slug)!;
       game.addInPlay(p1, card);
