@@ -1,0 +1,617 @@
+import { describe, it, expect, beforeEach } from "bun:test";
+import { Game } from "../../models/game";
+import { DiceRoll, Player } from "../../models/player";
+import type { LootCard } from "@/models/cards";
+import { MonsterCard } from "@/models/cards";
+import { setupTestGame, emptyHands, mockGameSelections } from "../testHelpers";
+
+describe("Monsters - Attack Roll Triggered Effects", () => {
+    let game: Game;
+    let player1: Player;
+    let player2: Player;
+
+    beforeEach(() => {
+        const setup = setupTestGame({
+            characters: ["b2-samson", "b2-isaac"],
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card"],
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        mockGameSelections(game);
+    });
+
+    // b2-swarm_of_flies: Each time the attacking player rolls an attack roll of 5, they take 1 damage.
+    describe("b2-swarm_of_flies", () => {
+        it("attacking player takes 1 damage when rolling attack roll of 5", async () => {
+            const swarmOfFlies = game.obtainCard("b2-swarm_of_flies") as MonsterCard;
+            expect(swarmOfFlies).toBeInstanceOf(MonsterCard);
+            
+            game.monsterSlots.forceSetMonsterAtSlot(0, swarmOfFlies);
+            
+            const swarmMonster = game.monsters[0]!;
+            game.addHealth(player1, 10); // Ensure player has enough HP to take damage
+            const initialHP = player1.currentHealthPoints;
+            
+            // Declare attack
+            game.declareAttack(player1);
+            game.declareAttackOnMonster(player1, swarmMonster);
+            
+            game.addHealth(swarmMonster, 10); // Ensure monster has HP to survive
+            
+            // Make attack roll
+            game.attackRoll(player1);
+            
+            const dice = game.stack.elements[0] as DiceRoll;
+            expect(dice).toBeInstanceOf(DiceRoll);
+            dice.value = 5; // Triggering value
+            
+            await game.resolveStack(); // resolve the dice roll
+            await game.resolveStack(); // resolve swarm_of_flies effect
+            await game.resolveStack(); // resolve swarm_of_flies effect
+            await game.resolveStack(); // resolve damage
+            
+            // Player should have taken 1 damage
+            expect(player1.currentHealthPoints).toBe(initialHP - 1);
+        });
+
+        it("no damage when rolling attack roll values other than 5", async () => {
+            const swarmOfFlies = game.obtainCard("b2-swarm_of_flies") as MonsterCard;
+            expect(swarmOfFlies).toBeInstanceOf(MonsterCard);
+            
+            game.monsterSlots.forceSetMonsterAtSlot(0, swarmOfFlies);
+            
+            const swarmMonster = game.monsters[0]!;
+            const initialHP = player1.currentHealthPoints;
+            
+            game.declareAttack(player1);
+            game.declareAttackOnMonster(player1, swarmMonster);
+            
+            game.addHealth(swarmMonster, 10);
+            
+            game.attackRoll(player1);
+            
+            const dice = game.stack.elements[0] as DiceRoll;
+            dice.value = 3; // Non-triggering value
+            
+            await game.resolveStack();
+            await game.resolveStack();
+            
+            // Player should not take damage
+            expect(player1.currentHealthPoints).toBe(initialHP);
+        });
+
+        it("triggers multiple times if player attacks multiple times", async () => {
+            const swarmOfFlies = game.obtainCard("b2-swarm_of_flies") as MonsterCard;
+            expect(swarmOfFlies).toBeInstanceOf(MonsterCard);
+            
+            game.monsterSlots.forceSetMonsterAtSlot(0, swarmOfFlies);
+            
+            const swarmMonster = game.monsters[0]!;
+            game.addHealth(player1, 10);
+            const initialHP = player1.currentHealthPoints;
+            
+            // First attack
+            game.declareAttack(player1);
+            game.declareAttackOnMonster(player1, swarmMonster);
+            game.addHealth(swarmMonster, 10);
+            
+            game.attackRoll(player1);
+            const dice1 = game.stack.elements[0] as DiceRoll;
+            dice1.value = 5;
+            
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            
+            expect(player1.currentHealthPoints).toBe(initialHP - 1);
+            
+            // Second attack
+            
+            game.attackRoll(player1);
+            const dice2 = game.stack.elements[0] as DiceRoll;
+            dice2.value = 5;
+            
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            
+            // Should trigger again
+            expect(player1.currentHealthPoints).toBe(initialHP - 2);
+        });
+    });
+
+    // b2-chub: Each time the attacking player rolls an attack roll of 1, this heals 2 [HP].
+    describe("b2-chub", () => {
+        it("monster heals 2 HP when attacking player rolls attack roll of 1", async () => {
+            const chub = game.obtainCard("b2-chub") as MonsterCard;
+            expect(chub).toBeInstanceOf(MonsterCard);
+            
+            game.monsterSlots.forceSetMonsterAtSlot(0, chub);
+            
+            const chubMonster = game.monsters[0]!;
+            game.addHealth(player1, 10);
+            
+            // Reduce chub's health so it can heal
+            game.dealDamage(chubMonster, chubMonster, chubMonster.card, 3);
+            await game.resolveStack(); // resolve the dice roll and chub healing effect
+
+            const initialMonsterHP = chubMonster.currentHealthPoints;
+            
+            game.declareAttack(player1);
+            game.declareAttackOnMonster(player1, chubMonster);
+            
+            // Make attack roll
+            game.attackRoll(player1);
+            
+            const dice = game.stack.elements[0] as DiceRoll;
+            expect(dice).toBeInstanceOf(DiceRoll);
+            dice.value = 1; // Triggering value
+            
+            await game.resolveStack(); // resolve the dice roll and chub healing effect
+            await game.resolveStack(); // resolve the dice roll and chub healing effect
+            await game.resolveStack(); // resolve the dice roll and chub healing effect
+            
+            // Monster should have healed 2 HP
+            expect(chubMonster.currentHealthPoints).toBe(initialMonsterHP + 2);
+        });
+
+        it("no healing when rolling attack roll values other than 1", async () => {
+            const chub = game.obtainCard("b2-chub") as MonsterCard;
+            expect(chub).toBeInstanceOf(MonsterCard);
+            
+            game.monsterSlots.forceSetMonsterAtSlot(0, chub);
+            
+            const chubMonster = game.monsters[0]!;
+            game.dealDamage(chubMonster, chubMonster, chubMonster.card, 2);
+            await game.resolveStack();
+
+            const initialMonsterHP = chubMonster.currentHealthPoints;
+            
+            game.declareAttack(player1);
+            game.declareAttackOnMonster(player1, chubMonster);
+            
+            game.attackRoll(player1);
+            
+            const dice = game.stack.elements[0] as DiceRoll;
+            dice.value = 2; // Non-triggering value
+            
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            
+            // Monster should not heal
+            expect(chubMonster.currentHealthPoints).toBe(initialMonsterHP);
+        });
+
+        it("heals multiple times on multiple attack rolls of 1", async () => {
+            const chub = game.obtainCard("b2-chub") as MonsterCard;
+            expect(chub).toBeInstanceOf(MonsterCard);
+            
+            game.monsterSlots.forceSetMonsterAtSlot(0, chub);
+            
+            const chubMonster = game.monsters[0]!;
+            game.dealDamage(chubMonster, chubMonster, chubMonster.card, 3);
+            await game.resolveStack();
+
+            const initialMonsterHP = chubMonster.currentHealthPoints;
+            
+            // First attack roll of 1
+            game.declareAttack(player1);
+            game.declareAttackOnMonster(player1, chubMonster);
+            
+            game.attackRoll(player1);
+            const dice1 = game.stack.elements[0] as DiceRoll;
+            dice1.value = 1;
+            
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            
+            expect(chubMonster.currentHealthPoints).toBe(initialMonsterHP + 2);
+            
+            game.attackRoll(player1);
+            const dice2 = game.stack.elements[0] as DiceRoll;
+            dice2.value = 1;
+            
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            
+            // Should heal again
+            expect(chubMonster.currentHealthPoints).toBe(initialMonsterHP + 3);
+        });
+
+        it("cannot heal beyond max HP", async () => {
+            const chub = game.obtainCard("b2-chub") as MonsterCard;
+            expect(chub).toBeInstanceOf(MonsterCard);
+            
+            game.monsterSlots.forceSetMonsterAtSlot(0, chub);
+            
+            const chubMonster = game.monsters[0]!;
+            const maxHP = chubMonster.healthPoints;
+            
+            // Set chub to 1 HP below max
+            game.dealDamage(chubMonster, chubMonster, chubMonster.card, 1);
+            await game.resolveStack();
+
+            
+            game.declareAttack(player1);
+            game.declareAttackOnMonster(player1, chubMonster);
+            
+            game.attackRoll(player1);
+            const dice = game.stack.elements[0] as DiceRoll;
+            dice.value = 1;
+            
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            
+            // Should not exceed max HP
+            expect(chubMonster.currentHealthPoints).toBe(maxHP);
+        });
+    });
+
+    // b2-satan: Each time the attacking player rolls an attack roll of 6, they choose a living player. That player dies.
+    describe("b2-satan", () => {
+        it("attacking player chooses a living player who dies when rolling attack roll of 6", async () => {
+            const satan = game.obtainCard("b2-satan") as MonsterCard;
+            expect(satan).toBeInstanceOf(MonsterCard);
+            
+            game.monsterSlots.forceSetMonsterAtSlot(0, satan);
+            
+            const satanMonster = game.monsters[0]!;
+            game.addHealth(player1, 10);
+            game.addHealth(player2, 5);
+            
+            expect(player2.isDead).toBe(false);
+            
+            game.declareAttack(player1);
+            game.declareAttackOnMonster(player1, satanMonster);
+            
+            game.addHealth(satanMonster, 10);
+            
+            // Make attack roll
+            game.attackRoll(player1);
+            
+            const dice = game.stack.elements[0] as DiceRoll;
+            expect(dice).toBeInstanceOf(DiceRoll);
+            dice.value = 6; // Triggering value
+            
+            game.select = async (_p, n, opts) => ({ selected: [player2], remaining: [] });
+            await game.resolveStack(); // resolve the dice roll 
+            await game.resolveStack(); // resolve effect
+            await game.resolveStack(); // resolve player death
+            await game.resolveStack(); // resolve damage
+            
+            // Player2 should be dead
+            expect(player2.isDead).toBe(true);
+        });
+
+        it("no effect when rolling attack roll values other than 6", async () => {
+            const satan = game.obtainCard("b2-satan") as MonsterCard;
+            expect(satan).toBeInstanceOf(MonsterCard);
+            
+            game.monsterSlots.forceSetMonsterAtSlot(0, satan);
+            
+            const satanMonster = game.monsters[0]!;
+            game.addHealth(player2, 5);
+            
+            expect(player2.isDead).toBe(false);
+            
+            game.declareAttack(player1);
+            game.declareAttackOnMonster(player1, satanMonster);
+            
+            game.addHealth(satanMonster, 10);
+            
+            game.attackRoll(player1);
+            
+            const dice = game.stack.elements[0] as DiceRoll;
+            dice.value = 2; // Non-triggering value
+            
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            
+            // Player2 should still be alive
+            expect(player2.isDead).toBe(false);
+            expect(game.hasPendingSelections).toBe(false);
+        });
+
+        it("can kill different players on multiple triggers", async () => {
+            // Set up a 4-player game instead
+            const setup4 = setupTestGame({
+                characters: ["b2-samson", "b2-isaac", "b2-the_forgotten", "b2-judas"],
+                monsters: ["b2-fly", "b2-fatty"],
+                playerCount: 4
+            });
+            const game4 = setup4.game;
+            mockGameSelections(game4);
+            const player1_4 = setup4.player1;
+            const player2_4 = setup4.player2!;
+            const player3 = setup4.player3!;
+            const player4 = setup4.player4!;
+            
+            const satan = game4.obtainCard("b2-satan") as MonsterCard;
+            expect(satan).toBeInstanceOf(MonsterCard);
+            
+            game4.monsterSlots.forceSetMonsterAtSlot(0, satan);
+            
+            const satanMonster = game4.monsters[0]!;
+            game4.addHealth(player1_4, 10);
+            game4.addHealth(player2_4, 5);
+            game4.addHealth(player3, 5);
+            game4.addHealth(player4, 5);
+            
+            // First attack roll of 6 - kill player2
+            game4.declareAttack(player1_4);
+            game4.declareAttackOnMonster(player1_4, satanMonster);
+            game4.addHealth(satanMonster, 10);
+            
+            game4.attackRoll(player1_4);
+            const dice1 = game4.stack.elements[0] as DiceRoll;
+            dice1.value = 6;
+            game4.select = async (_p, n, opts) => ({ selected: [player2_4], remaining: [] });
+            
+            await game4.resolveStack();
+            await game4.resolveStack(); // resolve death
+            await game4.resolveStack(); // resolve death
+            await game4.resolveStack(); // resolve death
+            
+            expect(player2_4.isDead).toBe(true);
+            expect(player3.isDead).toBe(false);
+            
+            game4.attackRoll(player1_4);
+            const dice2 = game4.stack.elements[0] as DiceRoll;
+            dice2.value = 6;
+            game4.select = async (_p, n, opts) => ({ selected: [player3], remaining: [] });
+            
+            await game4.resolveStack();
+            await game4.resolveStack(); // resolve death
+            await game4.resolveStack(); // resolve death
+            await game4.resolveStack(); // resolve death
+            
+            expect(player3.isDead).toBe(true);
+            expect(player4.isDead).toBe(false);
+        });
+
+        it("attacking player can choose themselves to die", async () => {
+            const satan = game.obtainCard("b2-satan") as MonsterCard;
+            expect(satan).toBeInstanceOf(MonsterCard);
+            
+            game.monsterSlots.forceSetMonsterAtSlot(0, satan);
+            
+            const satanMonster = game.monsters[0]!;
+            game.addHealth(player1, 10);
+            
+            expect(player1.isDead).toBe(false);
+            
+            game.declareAttack(player1);
+            game.declareAttackOnMonster(player1, satanMonster);
+            game.addHealth(satanMonster, 10);
+            
+            game.attackRoll(player1);
+            const dice = game.stack.elements[0] as DiceRoll;
+            dice.value = 6;
+            
+            game.select = async (_p, n, opts) => ({ selected: [player1], remaining: [] });
+            await game.resolveStack();
+            await game.resolveStack(); // resolve player death
+            await game.resolveStack(); // resolve player death
+            await game.resolveStack(); // resolve player death
+            
+            // Player1 should be dead
+            expect(player1.isDead).toBe(true);
+        });
+    });
+
+    // b2-ring_of_flies: Each time the attacking player rolls an attack roll of 3, they must steal a loot card from another player at random.
+    describe("b2-ring_of_flies", () => {
+        it("attacking player steals a loot card from another player when rolling attack roll of 3", async () => {
+            const ringOfFlies = game.obtainCard("b2-ring_of_flies") as MonsterCard;
+            expect(ringOfFlies).toBeInstanceOf(MonsterCard);
+            
+            game.monsterSlots.forceSetMonsterAtSlot(0, ringOfFlies);
+            
+            const ringMonster = game.monsters[0]!;
+            game.addHealth(player1, 10);
+            
+            // Give player2 some loot cards
+            const lootCard1 = game.decks["loot"]!.draw() as LootCard;
+            const lootCard2 = game.decks["loot"]!.draw() as LootCard;
+            player2.hand.addToHand(lootCard1);
+            player2.hand.addToHand(lootCard2);
+            
+            const initialPlayer1HandSize = player1.hand.length;
+            const initialPlayer2HandSize = player2.hand.length;
+            
+            game.declareAttack(player1);
+            game.declareAttackOnMonster(player1, ringMonster);
+            
+            // Make attack roll
+            game.attackRoll(player1);
+            
+            const dice = game.stack.elements[0] as DiceRoll;
+            expect(dice).toBeInstanceOf(DiceRoll);
+            dice.value = 3; // Triggering value
+            
+            await game.resolveStack(); // resolve the dice roll
+            await game.resolveStack(); // resolve ring_of_flies effect
+            await game.resolveStack(); // resolve ring_of_flies effect
+            await game.resolveStack(); // resolve ring_of_flies effect
+            
+            // Player1 should have gained a card, player2 should have lost one
+            expect(player1.hand.length).toBe(initialPlayer1HandSize + 1);
+            expect(player2.hand.length).toBe(initialPlayer2HandSize - 1);
+        });
+
+        it("no effect when rolling attack roll values other than 3", async () => {
+            const ringOfFlies = game.obtainCard("b2-ring_of_flies") as MonsterCard;
+            expect(ringOfFlies).toBeInstanceOf(MonsterCard);
+            
+            game.monsterSlots.forceSetMonsterAtSlot(0, ringOfFlies);
+            
+            const ringMonster = game.monsters[0]!;
+            
+            const lootCard = game.decks["loot"]!.draw() as LootCard;
+            player2.hand.addToHand(lootCard);
+            
+            const initialPlayer1HandSize = player1.hand.length;
+            const initialPlayer2HandSize = player2.hand.length;
+            
+            game.declareAttack(player1);
+            game.declareAttackOnMonster(player1, ringMonster);
+            game.addHealth(ringMonster, 10);
+            
+            game.attackRoll(player1);
+            
+            const dice = game.stack.elements[0] as DiceRoll;
+            dice.value = 5; // Non-triggering value
+            
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            
+            // No cards should be stolen
+            expect(player1.hand.length).toBe(initialPlayer1HandSize);
+            expect(player2.hand.length).toBe(initialPlayer2HandSize);
+        });
+
+        it("steals multiple cards on multiple attack rolls of 3", async () => {
+            const ringOfFlies = game.obtainCard("b2-ring_of_flies") as MonsterCard;
+            expect(ringOfFlies).toBeInstanceOf(MonsterCard);
+            
+            game.monsterSlots.forceSetMonsterAtSlot(0, ringOfFlies);
+            
+            const ringMonster = game.monsters[0]!;
+            
+            // Give player2 multiple loot cards
+            for (let i = 0; i < 5; i++) {
+                const lootCard = game.decks["loot"]!.draw() as LootCard;
+                player2.hand.addToHand(lootCard);
+            }
+            
+            const initialPlayer1HandSize = player1.hand.length;
+            const initialPlayer2HandSize = player2.hand.length;
+            
+            // First attack roll of 3
+            game.declareAttack(player1);
+            game.declareAttackOnMonster(player1, ringMonster);
+            game.addHealth(ringMonster, 10);
+            
+            game.attackRoll(player1);
+            const dice1 = game.stack.elements[0] as DiceRoll;
+            dice1.value = 3;
+            
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            
+            expect(player1.hand.length).toBe(initialPlayer1HandSize + 1);
+            expect(player2.hand.length).toBe(initialPlayer2HandSize - 1);
+            
+            // Second attack roll of 3
+            game.attackRoll(player1);
+            const dice2 = game.stack.elements[0] as DiceRoll;
+            dice2.value = 3;
+            
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            
+            // Should steal again
+            expect(player1.hand.length).toBe(initialPlayer1HandSize + 2);
+            expect(player2.hand.length).toBe(initialPlayer2HandSize - 2);
+        });
+
+        it("no effect when other players have no loot cards", async () => {
+            const ringOfFlies = game.obtainCard("b2-ring_of_flies") as MonsterCard;
+            expect(ringOfFlies).toBeInstanceOf(MonsterCard);
+            
+            game.monsterSlots.forceSetMonsterAtSlot(0, ringOfFlies);
+            
+            const ringMonster = game.monsters[0]!;
+            
+            // Empty all hands
+            emptyHands(game);
+            
+            const initialPlayer1HandSize = player1.hand.length;
+            
+            game.declareAttack(player1);
+            game.declareAttackOnMonster(player1, ringMonster);
+            game.addHealth(ringMonster, 10);
+            
+            game.attackRoll(player1);
+            const dice = game.stack.elements[0] as DiceRoll;
+            dice.value = 3;
+            
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            await game.resolveStack();
+            
+            // No cards to steal, hand size should remain the same
+            expect(player1.hand.length).toBe(initialPlayer1HandSize);
+        });
+
+        it("steals from a different player when multiple players have loot", async () => {
+            // Set up a 3-player game
+            const setup3 = setupTestGame({
+                characters: ["b2-samson", "b2-isaac", "b2-the_forgotten"],
+                monsters: ["b2-fly", "b2-fatty"],
+                playerCount: 3
+            });
+            const game3 = setup3.game;
+            mockGameSelections(game3);
+            const player1_3 = setup3.player1;
+            const player2_3 = setup3.player2!;
+            const player3 = setup3.player3!;
+            
+            const ringOfFlies = game3.obtainCard("b2-ring_of_flies") as MonsterCard;
+            expect(ringOfFlies).toBeInstanceOf(MonsterCard);
+            
+            game3.monsterSlots.forceSetMonsterAtSlot(0, ringOfFlies);
+            
+            const ringMonster = game3.monsters[0]!;
+            
+            // Give both player2 and player3 loot cards
+            const lootCard2 = game3.decks["loot"]!.draw() as LootCard;
+            const lootCard3 = game3.decks["loot"]!.draw() as LootCard;
+            player2_3.hand.addToHand(lootCard2);
+            player3.hand.addToHand(lootCard3);
+            
+            const initialPlayer1HandSize = player1_3.hand.length;
+            const totalOtherPlayersCards = player2_3.hand.length + player3.hand.length;
+            
+            game3.declareAttack(player1_3);
+            game3.declareAttackOnMonster(player1_3, ringMonster);
+            game3.addHealth(ringMonster, 10);
+            
+            game3.attackRoll(player1_3);
+            const dice = game3.stack.elements[0] as DiceRoll;
+            dice.value = 3;
+            
+            await game3.resolveStack();
+            await game3.resolveStack();
+            await game3.resolveStack();
+            await game3.resolveStack();
+            
+            // Player1 should gain one card
+            expect(player1_3.hand.length).toBe(initialPlayer1HandSize + 1);
+            // One of the other players should have lost a card
+            expect(player2_3.hand.length + player3.hand.length).toBe(totalOtherPlayersCards - 1);
+        });
+    });
+});

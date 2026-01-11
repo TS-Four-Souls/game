@@ -244,31 +244,35 @@ export class Game {
         (c instanceof treasureCard || (c instanceof LootCard && c.trinket)) &&
         c.eternal === false
     );
-    if (gameParameters.deathPenaltyItem > 0) {
+    if (gameParameters.deathPenaltyItem > 0 && setOfLosableItems.length > 0) {
       const itemToLose = (await this.select(
         p,
         gameParameters.deathPenaltyItem,
         setOfLosableItems,
         false,
         gameParameters.deathPenaltyItem > 1 ? "Select items to lose." : "Select an item to lose."
-      )).selected[0];
-      if (itemToLose) {
-        this.removeInPlay(p, itemToLose);
-        this.decks[itemToLose.type]!.addDiscardTop(itemToLose);
+      )).selected;
+      if (itemToLose && itemToLose.length > 0) {
+        for (const item of itemToLose) {
+          this.removeInPlay(p, item);
+          this.decks[item.type]!.addDiscardTop(item);
+        }
       }
     }
-    if (gameParameters.deathPenaltyLoot > 0) {
+    if (gameParameters.deathPenaltyLoot > 0 && p.hand.cards.length > 0) {
       const lootToLose = (await this.select(
         p,
         gameParameters.deathPenaltyLoot,
         p.hand.cards,
         false,
         gameParameters.deathPenaltyLoot > 1 ? "Select loot cards to lose." : "Select a loot card to lose."
-      )).selected[0];
-      if (lootToLose) {
-        this.discardFromHand(p, p.hand._hand.indexOf(lootToLose));
-        this.removeCardFromHand(p, lootToLose);
-        this.decks[lootToLose.type]!.addDiscardTop(lootToLose);
+      )).selected;
+      if (lootToLose && lootToLose.length > 0) {
+        for (const loot of lootToLose){
+          this.discardFromHand(p, p.hand._hand.indexOf(loot));
+          this.removeCardFromHand(p, loot);
+          this.decks[loot.type]!.addDiscardTop(loot);
+        }
       }
     }
     for(const item of p.inPlay)
@@ -342,10 +346,10 @@ export class Game {
       abilityCard: usingAbilityFrom,
     });
     this.executeWhenStackEmpty(async () => {
-      receiver.die();
-      if (receiver.isEngagedInCombat) {
-        this.Entities.forEach((e) => e.combatEnded());
-      }
+    receiver.die();
+    if (receiver.isEngagedInCombat) {
+      this.Entities.forEach((e) => e.combatEnded());
+    }
       if (receiver instanceof Player) {
         receiver.clearAttackRequirement(); // clear any forced attack constraints on this player.
         await this.deathPenalty(receiver);
@@ -680,7 +684,7 @@ export class Game {
   ): Promise<{ selected: any[]; remaining: any[] }> {
     if (n === 1 && !anyNumber && Options.length === 1) {
       return {
-        selected: [Options[0]!],
+        selected: Options,
         remaining: []
       };
     }
@@ -1375,7 +1379,7 @@ export class Game {
     e.addAttackPoints(value);
   }
 
-  addAttackThisTurn(e: Entity, value: number): void {
+  addAttackThisTurn(e: Entity, value: number=1): void {
     if (e instanceof Player) {
       e.addAttackThisTurn(value);
     }

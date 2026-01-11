@@ -257,7 +257,6 @@ describe("Treasure - Passive effects", () => {
     });
 
     // b2-daddy_haunt    "When you die, before paying penalties, give this to another player."
-    // Note: Transfer mechanism needs verification
 
     it("daddy_haunt - transfers to another player on death", async () => {
         const daddyHaunt = game.shop.obtainCard("b2-daddy_haunt") as treasureCard;

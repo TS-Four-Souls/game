@@ -730,6 +730,20 @@ export function stealRandomLootCardEffect(game: Game): EffectFunction {
     };
 }
 
+export function stealAPlayerRandomLootCardEffect(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        if (data.issuer instanceof Player === false) return false;
+        const targetPlayer = (await game.select(data.issuer, 1, game.players.filter((p) => p !== data.issuer), false, "Select a player to steal a random loot card from.")).selected[0] as Player;
+        if (targetPlayer.hand.length > 0) {
+            const randomIndex = Math.floor(Math.random() * targetPlayer.hand.length);
+            const cardToSteal = targetPlayer.hand.cards[randomIndex]!;
+            game.stealLootCard(data.issuer, targetPlayer, cardToSteal as LootCard);
+        }
+        return true;
+    };
+}
+
+
 export function destroyThisAndLoot2Effect(game: Game): EffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
@@ -1191,8 +1205,18 @@ export function killTargetEffect(game: Game, selectors: TargetsSelector[] = [], 
     };
 }
 
-export function deathTargetEffect(game: Game): EffectFunction {
-    return (data: EffectData) => {
+export function deathTargetEffect(game: Game, selectionOnResolve: boolean = false): EffectFunction {
+    return async (data: EffectData) => {
+        const target = data.next as Entity;
+        if(selectionOnResolve){
+            if(data.issuer instanceof Player === false) 
+                throw new Error("Issuer should be a player to select target for deathTargetEffect.");
+            const target = await game.select(data.issuer as Player, 1, game.players, false, "Select a target to kill.");
+            game.death(target.selected[0] as Entity, data.issuer, data.it);
+            return true;
+        }
+        if(!target) 
+            throw new Error("No target for deathTargetEffect");
         game.death(data.next, data.issuer, data.it);
         return true;
     };

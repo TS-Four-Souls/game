@@ -620,7 +620,7 @@ export class DeathOnStack {
   }
 
   async onResolve(): Promise<void> {
-    this.game.resolveDeath(this.receiver, this.from, this.usingAbilityFrom);
+    await this.game.resolveDeath(this.receiver, this.from, this.usingAbilityFrom);
   }
 
   get json(): string {

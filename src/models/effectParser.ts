@@ -149,11 +149,16 @@ export function parseEachTimeRollEffect(s: string, game: Game): ParsedEffect {
     if (attackRollMatch) {
         const rollValue = Number(attackRollMatch[1]);
         let restOfEffect = s.substring(attackRollMatch[0]!.length).trim();
-        restOfEffect = restOfEffect.replace("they", "");
-
-        const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
+        restOfEffect = restOfEffect.replace("they", "").trim();
+        if (restOfEffect.startsWith("may") ||
+            restOfEffect.startsWith("must")
+        )
+        {
+            restOfEffect = "you " + restOfEffect;
+        }
+        const restParsed = effectParser(restOfEffect, game, (data:EffectData) => {throw new Error("Not implemented");}, true);
         return {
-            effectFunction: passive.onAttackingPlayerRollEffect([rollValue], restParsed.effectFunction, game),
+            effectFunction: passive.onAttackingPlayerRollEffect([rollValue], restParsed.effectFunction, game, true),
             targetSelectors: restParsed.targetSelectors
         };
     }
@@ -164,7 +169,9 @@ export function parseEachTimeRollEffect(s: string, game: Game): ParsedEffect {
     if (rollMatch && !s.split(" ").includes("you")) {
         const rollValue = Number(rollMatch[1]);
         let restOfEffect = s.substring(rollMatch[0]!.length).trim();
-        if (restOfEffect.startsWith("may"))
+        if (restOfEffect.startsWith("may") ||
+            restOfEffect.startsWith("must")
+        )
         {
             restOfEffect = "you " + restOfEffect;
         }
@@ -695,8 +702,8 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
             return { effectFunction: active.addOrSubtract1FromRollEffect(game), targetSelectors: selectRollAddOrSubtract(game) };
         case "recharge your character.":
             return { effectFunction: active.rechargeCharaEffect(game), targetSelectors: noTargets };
-        case "choose a living player. That player dies.":
-            return { effectFunction: active.deathTargetEffect(game), targetSelectors: selectPlayer(game) };
+        case "choose a living player. that player dies.":
+            return { effectFunction: active.deathTargetEffect(game, true), targetSelectors: selectPlayer(game) };
         case "put a card from your hand on top of the loot deck.":
             return { effectFunction: active.putCardFromHandOnTopOfDeckEffect(game), targetSelectors: noTargets };
         case "recharge an item.":
@@ -810,6 +817,8 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
             return { effectFunction: active.rerollEachItemEffect(game), targetSelectors: selectPlayer(game) };
         case "choose another player. steal a loot card from them at random.":
             return { effectFunction: active.stealRandomLootCardEffect(game), targetSelectors: selectAnotherPlayer(game) };
+        case "you must steal a loot card from from another player at random.":
+            return { effectFunction: active.stealAPlayerRandomLootCardEffect(game), targetSelectors: noTargets };
         case "choose a monster. the active player must attack that monster this turn if able.":
             return { effectFunction: active.forceAttackMonsterEffect(game), targetSelectors: selectMonster(game) };
         case "you may play any number of additional loot cards till end of turn.":

@@ -982,7 +982,8 @@ export function onAttackRollEffect(
 export function onAttackingPlayerRollEffect(
     rollValues: number[],
     effect: EffectFunction,
-    game: Game
+    game: Game,
+    diceIssuerIssueTheEvent: boolean = false
 ): EffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
@@ -994,13 +995,16 @@ export function onAttackingPlayerRollEffect(
             // Only trigger for attack rolls with specified values
             if (rollValues.includes((dice as DiceRoll).value)) {
                 // Create the effect that will execute when the stack resolves
+                let copyData = data;
+                if(diceIssuerIssueTheEvent && dice.issuer !== undefined)
+                    copyData.issuer = dice.issuer;
                 const stackEffect = (effectData: EffectData) => {
                     effect(effectData);
                     return true;
                 };
                 
                 // Add to stack instead of executing immediately
-                addPassiveEffectToStack(game, stackEffect, data, "On attacking player attack roll effect");
+                addPassiveEffectToStack(game, stackEffect, copyData, "On attacking player attack roll effect");
             }
         });
 

@@ -287,6 +287,14 @@ export function setupFourPlayerGame(): GameSetupResult {
 export function mockGameSelections(game: Game): void {
     // Mock single player selection
     game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+        if (n === 1 && !anyNumber && Options.length === 1) {
+            return {
+                selected: Options,
+                remaining: []
+            };
+            }
+        if(Options.length === 0)
+            return {selected: [], remaining: []};
         return { selected: Options.slice(0, n), remaining: Options.slice(n) };
     };
 
