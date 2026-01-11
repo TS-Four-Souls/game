@@ -418,4 +418,29 @@ export class TargetBuilder {
         }
         return result;
     }
+
+    static async buildTargetsOnResolve(
+        game: Game,
+        player: Player,
+        item: ItemCard
+    ): Promise<any[]> {
+        if(!item)
+            throw new Error(`Item not found or has no active effect.`);
+        const activeEffect = item.getActiveEffect();
+        if (!activeEffect)
+            throw new Error(`Item ${item.name} has no active effect to copy.`);
+        if(player === undefined)
+            throw new Error(`Effect issuer is not a player.`);
+
+        // The next target is expected to be an array of targets for the copied effect
+        let targets: any[] = [];
+        let options = TargetBuilder.getNextSelector(game, player, item, targets, "tap", false);
+        while(!options.complete)
+        {
+            const selection = await game.select(player, options.count, options.options, options.asMany, "Select targets for the copied card.");
+            targets.push(...selection.selected);
+            options = TargetBuilder.getNextSelector(game, player, item, targets, "tap", false);
+        }
+        return TargetBuilder.buildTargets(game, player, item, targets, "tap");
+    }
 }

@@ -393,7 +393,11 @@ class Encounters {
     discardTop(index: number) : void {
         if (index >= 0) {
             const card = this._slots[index]!.pop();
-            this.fillEmptySpots(false);
+            if(this._slots[index]!.length === 0) {
+                this.fillEmptySpots(false);
+            }else{
+                this.createMonsterAtSlot(index);
+            }
             this._deck.addDiscardTop(card!);
         }
     }
@@ -526,6 +530,10 @@ class Encounters {
      */
     get slots(): Card[][] {
         return this._slots;
+    }
+
+    get visible(): MonsterCard[] {
+        return this.slots.map(slot => slot[slot.length - 1] as MonsterCard);
     }
 
     /**

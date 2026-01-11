@@ -519,20 +519,7 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): Effec
             // Create the effect that will execute when the stack resolves
             const effect = async (effectData: EffectData) => {
                 if (!(effectData.issuer instanceof Player)) return false;
-                // let newTargets = { selected: [] as Card[] };
-                const selector = card.getTargetSelectors!()[0];
-                const targets: string[] = [];
-                let options = TargetBuilder.getNextSelector(game, eventIssuer, card, targets, "tap");
-                while(!options.complete)
-                {
-                    const selection = await game.select(eventIssuer, options.count, options.options, options.asMany, "Select targets for copied loot card effect");
-                    targets.push(...selection.selected);
-                    options = TargetBuilder.getNextSelector(game, eventIssuer, card, targets, "tap");
-                }
-                const newTargets = TargetBuilder.buildTargets(game, eventIssuer, card, targets, "tap");
-                // console.log(card.getTargetSelectors!()[0].selector(effectData.issuer), "selectors");
-                // if(selector.selector(effectData.issuer).length > 0)
-                //     newTargets = await game.select(effectData.issuer, 1, selector.selector(effectData.issuer), false);
+                const newTargets = await TargetBuilder.buildTargetsOnResolve(game, eventIssuer, card);
                 const resolveFunction = card.onPlay(eventIssuer, newTargets);
                 const lootCardEffect = new LootCardEffect(card, resolveFunction);
                 game.addToStack(lootCardEffect);

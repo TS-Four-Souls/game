@@ -271,18 +271,7 @@ export function copyTapAbilityEffect(game: Game): EffectFunction {
         const player = data.issuer as Player;
         if(player === undefined)
             throw new Error(`Effect issuer is not a player.`);
-        const card = data.it as ItemCard;
-
-        // The next target is expected to be an array of targets for the copied effect
-        let targets: any[] = [];
-        let options = TargetBuilder.getNextSelector(game, player, itemToCopy, targets, "tap", false);
-        while(!options.complete)
-        {
-            const selection = await game.select(player, options.count, options.options, options.asMany, "Select targets for the copied tap ability.");
-            targets.push(...selection.selected);
-            options = TargetBuilder.getNextSelector(game, player, itemToCopy, targets, "tap", false);
-        }
-        const newTargets = TargetBuilder.buildTargets(game, player, itemToCopy, targets, "tap");
+        const newTargets = await TargetBuilder.buildTargetsOnResolve(game, player, itemToCopy);
         const effectOnStack: EffectOnStack = new EffectOnStack(activeEffect.effectFunction, new EffectData(data.it, data.issuer, newTargets), `Copy of ${itemToCopy.name} tap ability`);
         game.addToStack(effectOnStack);
         return true;

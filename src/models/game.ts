@@ -271,6 +271,9 @@ export class Game {
         this.decks[lootToLose.type]!.addDiscardTop(lootToLose);
       }
     }
+    for(const item of p.inPlay)
+      if(item.hasActiveEffect())
+        item.charged = false;
   }
 
   death(receiver: Entity, from: Entity, usingAbilityFrom: Card): void {
@@ -839,6 +842,12 @@ export class Game {
         await callback();
       }
       this._onStateChange.dispatch();
+    }
+  }
+
+  async resolveEntireStack(): Promise<void> {
+    while (!this.stack.isEmpty()) {
+      await this.resolveStack();
     }
   }
 
