@@ -209,9 +209,9 @@ export function expandSlotsEffect(slotText: string, numberToExpand: number, game
     };
 }
 
-export function shuffleTreasureDeckEffect(game: Game): EffectFunction {
+export function shuffleDeckEffect(game: Game, deckName: string): EffectFunction {
     return (data: EffectData) => {
-        game.decks["treasure"]!.shuffle();
+        game.decks[deckName]!.shuffle();
         return true;
     };
 }
@@ -442,6 +442,33 @@ export function lookAtHands(game: Game): EffectFunction {
     };
 }
 
+export function deal2DamageDividedAsYouChooseEffect(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        if (data.issuer instanceof Player === false) return false;
+        const player = data.issuer;
+        const firstTarget = data.next as Entity;
+        const secondTarget = data.next as Entity;
+        if(!firstTarget)
+            return false;
+        if(!secondTarget)
+            game.dealDamage(player, firstTarget, data.it, 2);
+        else
+        {
+            game.dealDamage(player, firstTarget, data.it, 1);
+            game.dealDamage(player, secondTarget, data.it, 1);
+        }
+        return true;
+    };
+}
+
+export function lookAtAPlayerHand(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        if (data.issuer instanceof Player === false) return false;
+        const target = data.next as Player;
+        await game.select(data.issuer, 0, target.hand.cards.map(card => card.slug), true, `Here is ${target.id}'s hand:`);
+        return true;
+    };
+}
 export function swapNonEternalItemsEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
@@ -514,7 +541,7 @@ export function discardAnyNumberOfLootCardsEffect(game: Game): EffectFunction {
         const nbDiscarded = selectionResult.selected.length;
         for (const card of selectionResult.selected) {
             const index = player.hand.cards.indexOf(card);
-            game.discardFromHand(player, index + 1);
+            game.discardFromHandAtIndex(player, index + 1);
         }
         data.addTarget(nbDiscarded);
         return true;
@@ -756,13 +783,37 @@ export function destroyThisAndLoot2Effect(game: Game): EffectFunction {
 export function discardNLootCardsEffect(n: number, game: Game, selectionOnResolve: boolean = false): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        for (let i = 0; i < n; i++) {
-            let toDiscard = data.next as LootCard;
-            if (selectionOnResolve || !toDiscard) 
-                toDiscard = (await game.select(data.issuer, 1, data.issuer.hand.cards, false, "Select a loot card to discard.")).selected[0] as LootCard;
-            const index = data.issuer.hand.cards.indexOf(toDiscard);
-            game.discardFromHand(data.issuer, index + 1);
+        let toDiscard: LootCard[] = [];
+        if (selectionOnResolve || !toDiscard) 
+            toDiscard = (await game.select(data.issuer, n, data.issuer.hand.cards, false, "Select a loot card to discard.")).selected as LootCard[];
+        else 
+            for (let i = 0; i < n; i++) {
+                toDiscard.push(data.next as LootCard);
+            }
+        for (const card of toDiscard) {
+            const index = data.issuer.hand.cards.indexOf(card);
+            game.discardFromHandAtIndex(data.issuer, index + 1);
         }
+        return true;
+    };
+}
+
+export function destroyOneOfYourSoulEffect(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        if (data.issuer instanceof Player === false) return false;
+        const soulToDestroy = (await game.select(data.issuer, 1, data.issuer.souls, false, "Select a soul to destroy.")).selected[0]!;
+        return game.destroyCardsOrSouls([soulToDestroy]);
+    };
+}
+
+export function giveSoulEffect(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        if (data.issuer instanceof Player === false) return false;
+        const targetPlayer = data.next as Player;
+        if(!targetPlayer)
+            throw new Error("No target player to give soul to");
+        const soulToGive = (await game.select(data.issuer, 1, data.issuer.souls, false, "Select a soul to give.")).selected[0]!;
+        game.give(data.issuer, targetPlayer, soulToGive);
         return true;
     };
 }
@@ -1046,11 +1097,12 @@ export function dealDamageToEachOtherPlayerEffect(game: Game, dmg: number): Effe
     };
 }
 
-export function dealDamageToAnotherPlayerEffect(game: Game, dmg: number): EffectFunction {
+export function dealDamageToAPlayerEffect(game: Game, dmg: number, canTargetSelf: boolean=false, issuerIsCurrentPlayer: boolean=false): EffectFunction {
     return async (data: EffectData) => {
-        if (data.issuer instanceof Player === false) return false;
-        const target = (await game.select(data.issuer, 1, game.players.filter((p) => p !== data.issuer), false, "Select another player to deal damage to.")).selected[0] as Player;
-        game.dealDamage(data.issuer, target, data.it, dmg);
+        const issuer = issuerIsCurrentPlayer ? game.currentPlayer : data.issuer;
+        if (issuer instanceof Player === false) return false;
+        const target = (await game.select(issuer, 1, game.players.filter((p) => (canTargetSelf ? true : p !== issuer)), false, "Select another player to deal damage to.")).selected[0] as Player;
+        game.dealDamage(issuer, target, data.it, dmg);
         return true;
     };
 }
@@ -1190,17 +1242,27 @@ export function takeDamageGainCoinsEffect(s: string, damage: number, coins: numb
     };
 }
 
-export function killTargetEffect(game: Game, selectors: TargetsSelector[] = [], selectionOnResolve: boolean = false): EffectFunction {
+export function killTargetEffect(game: Game, selectors: TargetsSelector[] = [], selectionOnResolve: boolean = false, issuerIsCurrentPlayer=false): EffectFunction {
     return async (data: EffectData) => {
+        const issuer = issuerIsCurrentPlayer ? game.currentPlayer : data.issuer;
         if(selectionOnResolve){
-            console.log("selecting target for killTargetEffect on resolve");
-            if(data.issuer instanceof Player === false) 
+            if(issuer instanceof Player === false) 
                 throw new Error("Issuer should be a player to select target for killTargetEffect.");
-            const target = await game.select(data.issuer as Player, 1, selectors[0]!.selector(data.issuer), false, "Select a target to kill.");
-            game.kill(data.issuer, target.selected[0] as Entity, data.it);
+            const target = await game.select(issuer as Player, 1, selectors[0]!.selector(issuer), false, "Select a target to kill.");
+            game.kill(issuer, target.selected[0] as Entity, data.it);
             return true;
         }
-        game.kill(data.issuer, data.next as Entity, data.it);
+        game.kill(issuer, data.next as Entity, data.it);
+        return true;
+    };
+}
+
+export function issuerSkipNextTurnEffect(game: Game, issuerIsCurrentPlayer: boolean = false): EffectFunction {
+    return (data: EffectData) => {
+        const issuer = issuerIsCurrentPlayer ? game.currentPlayer : data.issuer;
+        if(issuer instanceof Player === false) 
+            return false;
+        game.playerSkipNextTurn(issuer);
         return true;
     };
 }

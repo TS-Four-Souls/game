@@ -5,6 +5,7 @@ export class TurnHandler {
     private _roundIndex: number = 0;
     private _remainingTurnsInRound: Player[] = [];
     private _baseOrder: Player[] = [];
+    private _skipTurnNextRoundList: Player[] = [];
 
     constructor() { }
     initialize(baseOrder: Player[]) : void {
@@ -20,6 +21,21 @@ export class TurnHandler {
             this._roundIndex += 1;
             this._remainingTurnsInRound = [...this._baseOrder];
         }
+        const nextPlayer = this._remainingTurnsInRound[0]!;
+        if(this._skipTurnNextRoundList.includes(nextPlayer))
+        {
+            const idx = this._skipTurnNextRoundList.findIndex(p => p.id === nextPlayer.id);
+            this._skipTurnNextRoundList.splice(idx, 1);
+            this.endTurn();
+        }
+    }
+
+    get skipNextTurnList(): Player[] {
+        return this._skipTurnNextRoundList;
+    }
+
+    numberOfTurnSkiped(player: Player): number {
+        return this._skipTurnNextRoundList.filter(p => p.id === player.id).length;
     }
 
     get isInitialized(): boolean {
@@ -50,6 +66,9 @@ export class TurnHandler {
         }
         this._baseOrder = this._baseOrder.slice(idx).concat(this._baseOrder.slice(0, idx));
         this._remainingTurnsInRound = [...this._baseOrder];
+    }
+    skipNextTurn(player: Player, canSkip0: boolean=false) : void {
+        this._skipTurnNextRoundList.push(player);
     }
     reset() : void {
         this._isInitialized = false;

@@ -981,7 +981,7 @@ describe("Eternal Items", () => {
         
         // Empty player2's hand
         while (player2.hand.length > 0) {
-            game.discardFromHand(player2, 1);
+            game.discardFromHandAtIndex(player2, 1);
         }
         
         expect(player2.hand.length).toBe(0);

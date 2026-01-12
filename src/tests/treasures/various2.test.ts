@@ -294,7 +294,7 @@ describe("Tap/Paid effects 2", () => {
         
         // Clear player1's hand first (game already started and player looted)
         while (player1.hand.length > 0) {
-            game.discardFromHand(player1, 1);
+            game.discardFromHandAtIndex(player1, 1);
         }
         
         game.addInPlay(player1, emptyVessel);
@@ -340,7 +340,7 @@ describe("Tap/Paid effects 2", () => {
         expect(player1.attackPoints).toBe(2); // Bonus reactivated!
     });
 
-    it("empty_vessel - ATK bonus responds to discardFromHand", async () => {
+    it("empty_vessel - ATK bonus responds to discardFromHandAtIndex", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
         game.addInPlay(player1, emptyVessel);
         
@@ -351,7 +351,7 @@ describe("Tap/Paid effects 2", () => {
         expect(player1.attackPoints).toBe(1); // No bonus
         
         // Discard the card using game method
-        game.discardFromHand(player1, 1);
+        game.discardFromHandAtIndex(player1, 1);
         await game.resolveStack();
 
         expect(player1.hand.length).toBe(0);
@@ -519,7 +519,7 @@ describe("Tap/Paid effects 2", () => {
         
         // Discard all cards
         while (player1.hand.length > 0) {
-            game.discardFromHand(player1, 1);
+            game.discardFromHandAtIndex(player1, 1);
         }
         await game.resolveStack();
         
@@ -533,7 +533,7 @@ describe("Tap/Paid effects 2", () => {
         
         // Clear player1's hand
         while (player1.hand.length > 0) {
-            game.discardFromHand(player1, 1);
+            game.discardFromHandAtIndex(player1, 1);
         }
         
         // Add empty vessel

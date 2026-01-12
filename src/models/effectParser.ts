@@ -301,6 +301,45 @@ let selector = selectMonster(game);
     return selector;
 }
 
+function noTargetEffect(effectFunction: EffectFunction): ParsedEffect {
+    return { effectFunction, targetSelectors: noTargets };
+}
+export function parseTheActivePlayerEffect(s: string, game: Game): ParsedEffect {
+    switch (s) {
+        case "the active player may attack the monster deck an additional time.":
+            return noTargetEffect(monster.activePlayerMayAttackMonsterDeckEffect(game));
+        case "the active player must make an additional attack.":
+            return noTargetEffect(monster.activePlayerMustMakeAdditionalAttackEffect(game));
+        case "the active player forces a player to discard 2 loot cards.":
+            return noTargetEffect(monster.activePlayerSelectAndCallEffect(game, active.discardNLootCardsEffect(2, game, true)));
+        case "the active player kills a player.":
+            return noTargetEffect(active.killTargetEffect(game, decideEntitySelector(s, game), true, true));
+        case "the active player skips their next turn.":
+            return noTargetEffect(active.issuerSkipNextTurnEffect(game, true));
+        case "the active player chooses a player. they lose 7¢.":
+            return noTargetEffect(monster.activePlayerSelectAndCallEffect(game, active.loseCoinsEffect(game, 7)));
+        case "the active player may steal a non-eternal item another player controls.":
+            return noTargetEffect(monster.activePlayerSelectTargetEffect(game, active.stealNonEternalItemEffect(game), selectAnotherPlayerNonEternalItem(game, 1, true)[0]!));
+        case "the active player may look at a player's hand.":
+            return noTargetEffect(monster.activePlayerSelectTargetEffect(game, active.lookAtAPlayerHand(game), selectPlayer(game, 1, true)[0]!));
+        case "the active player deals 3 damage to a player.":
+            return noTargetEffect(active.dealDamageToAPlayerEffect(game, 3, true, true));
+        case "the active player deals 2 damage divided as they choose to any number of monsters or players.":
+            return noTargetEffect(monster.activePlayerSelectTargetEffect(game, active.deal2DamageDividedAsYouChooseEffect(game), selectPlayerOrMonster(game, 2, true)[0]!));
+        case "the active player recharges each item they control.":
+            return noTargetEffect(monster.activePlayerIsTargetedByEffect(game, active.rechargeEachItemsOfTargetEffect(game)));
+        case "the active player may choose another player. they give you a soul they control.":
+            return noTargetEffect(monster.activePlayerSelectAndCallEffect(game, active.giveSoulEffect(game), true));
+        case "the active player chooses a player. that player destroys a soul they control.":
+            return noTargetEffect(monster.activePlayerSelectAndCallEffect(game, active.destroyOneOfYourSoulEffect(game)));
+        case "the active player rolls-\n1-3: each player takes 1 damage.\n4-6: each player takes 2 damage.":
+            return noTargetEffect(monster.activePlayerRollsEffect(game, s));
+        default:
+            return noTargetEffect(active.addInPlayEffect(game));
+            // throw new Error(`Could not parse 'The active player ...' effect: ${s}`);
+    }
+}
+
 
 export function effectParser(s: string, game: Game, defaultEffect: EffectFunction = active.addInPlayEffect(game), selectionOnResolve = false): ParsedEffect {
     const originalS = s;
@@ -320,6 +359,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             targetSelectors: restParsed.targetSelectors
         };
     }
+    if(s.startsWith("the active player ") && !s.includes("this turn"))
+        return parseTheActivePlayerEffect(s, game);
     if (s.startsWith("each time you deal combat damage to a monster,")) {
         const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, defaultEffect, true);
         return {
@@ -359,7 +400,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         return parseEachTimeWouldRollEffect(s, game);
     if (s.startsWith("at the end of your turn, "))
         return parseAtTheEndOfYourTurnEffect(s, game);
-    if (s.startsWith("when this dies, "))
+    if (s.startsWith("when this dies, ") && !s.includes("killed")) // effects that include "killed" refers to the killer and need to be handled differently.
         return parseWhenThisDiesEffect(s, game);
     if (s.startsWith("when the active player rolls a"))
         return parseWhenActivePlayerRollsEffect(s, game);
@@ -523,6 +564,11 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     if (standardEffect !== null) {
         return standardEffect;
     }
+    // Parse standard string-matched monster effects
+    const standardMonsterEffect = parseStandardMonsterEffect(s, game);
+    if (standardMonsterEffect !== null) {
+        return standardMonsterEffect;
+    }
 
     // multiple effects separated by ., try to parse them individually.
     // To do so, replace by ", then " and parse again.
@@ -667,7 +713,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         case "deal 1 damage to another player.":
             // Example of inline target selector specification
             return {
-                effectFunction: active.dealDamageToAnotherPlayerEffect(game, 1),
+                effectFunction: active.dealDamageToAPlayerEffect(game, 1, false),
                 targetSelectors: selectAnotherPlayer(game)
             };
         case "put counters on this equal to the amount of damage taken. then, if this has 6+ counters, remove 6 counters from this and gain +1 treasure.":
@@ -726,8 +772,10 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
             return { effectFunction: active.forcePlayerRerollDiceEffect(game), targetSelectors: noTargets };
         case "destroy a curse.":
             return { effectFunction: active.destroyOneEffect(game), targetSelectors: selectCurse(game) };
+        case "shuffle the monster deck.":
+            return { effectFunction: active.shuffleDeckEffect(game, "monster"), targetSelectors: noTargets };
         case "shuffle the treasure deck.":
-            return { effectFunction: active.shuffleTreasureDeckEffect(game), targetSelectors: noTargets };
+            return { effectFunction: active.shuffleDeckEffect(game, "treasure"), targetSelectors: noTargets };
         case "search the treasure deck for a guppy item, gain it":
             return { effectFunction: active.searchGuppyItemEffect(game), targetSelectors: noTargets };
         case "choose a player at random. that player destroys an item they control.":
@@ -883,4 +931,25 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         default:
             return null; // No match found
         }
+}
+
+function parseStandardMonsterEffect(effectText: string, game: Game): ParsedEffect | null {
+    switch (effectText.toLowerCase()) {
+        case "when this dies, it deals 1 damage to the player who killed it.":
+            return noTargetEffect(monster.dealDamageToKillerOnDeathEffect(game, 1));
+        case "it deals 1 damage to each player.":
+            return noTargetEffect(active.dealDamageToEachPlayerEffect(game, 1));
+        case "put it in the monster deck 6 cards from the top.":
+            return noTargetEffect(monster.putInMonsterDeck6FromTopEffect(game));
+        case "search the monster deck for a card named the bloat and put it in a monster slot not being attacked":
+            return noTargetEffect(monster.searchForBloatEffect(game));
+        case "after gaining rewards, the active player rolls-\n1 or 6: put this on top of the monster deck.":
+            return noTargetEffect(monster.putOnTopOfMonsterDeckOnRollEffect(game, [1, 6]));
+        case "when this dies, the player that killed it discards their hand.":
+            return noTargetEffect(monster.killerDiscardsHandOnDeathEffect(game));
+        case "When this dies on an attack roll of 6, double its rewards.":
+            return noTargetEffect(monster.doubleRewardsOnDeathRollEffect(game, [6]));
+        default:
+            return null; // No match found
+    }
 }

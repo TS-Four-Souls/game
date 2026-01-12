@@ -1,9 +1,9 @@
 import type { Card } from "./cards";
-import type { DamageOnStack } from "./player";
+import type { DamageOnStack, DiceRoll } from "./player";
 
 type DamageObj = {
   dealer: Entity | null;
-  abilityCard: Card | null;
+  with: Card | DiceRoll | null;
   damage: number;
 };
 
@@ -25,9 +25,9 @@ export abstract class Entity {
     this._engagedInCombat = 0;
   }
 
-  receiveDamage(damage: number, dealer: Entity | null = null, abilityCard: Card | null = null): boolean {
+  receiveDamage(damage: number, dealer: Entity | null = null, abilityCard: Card | DiceRoll | null = null): boolean {
     if(damage <= 0) return true;
-    this._damageTakenThisTurn.push({dealer: dealer!, abilityCard: abilityCard!, damage: damage});
+    this._damageTakenThisTurn.push({dealer: dealer!, with: abilityCard!, damage: damage});
     this._currentHealthPoints -= damage;
     if (this._currentHealthPoints < 0) {
       this._currentHealthPoints = 0;

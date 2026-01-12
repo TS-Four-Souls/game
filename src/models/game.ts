@@ -269,7 +269,7 @@ export class Game {
       )).selected;
       if (lootToLose && lootToLose.length > 0) {
         for (const loot of lootToLose){
-          this.discardFromHand(p, p.hand._hand.indexOf(loot));
+          this.discardFromHandAtIndex(p, p.hand._hand.indexOf(loot));
           this.removeCardFromHand(p, loot);
           this.decks[loot.type]!.addDiscardTop(loot);
         }
@@ -327,7 +327,7 @@ export class Game {
   obtainMonsterSoul(monster: Monster): void {
     const card = monster.card;
     if (card.rewards?.soul !== undefined) {
-      if (this.encounters._deck._order.includes(card.id))
+      if (this.encounters._deck.cards.includes(card))
         return; // monster is back in the deck and does not give his soul.
       if (typeof card.rewards?.soul !== "number")
         throw new Error("Monster soul reward must be a number.");
@@ -365,7 +365,9 @@ export class Game {
           abilityCard: usingAbilityFrom,
         });
         this.encounters.kill(receiver);
-        this.obtainMonsterSoul(receiver);
+        this.executeWhenStackEmpty(async () => {
+          this.obtainMonsterSoul(receiver);
+        });
       }
       this.emit("on:death:after-penalty", {
         eventIssuer: receiver,
@@ -1047,6 +1049,11 @@ export class Game {
   }
 
   give(from: Player, to: Player, card: Card): boolean {
+    if(from.souls.includes(card)){
+      from.removeSoul(card);
+      to.addSoul(card);
+      return true;
+    }
     if (card instanceof LootCard) {
       return this.giveCard(from, to, card);
     }
@@ -1837,7 +1844,7 @@ export class Game {
     return player.mustAttackMonster;
   }
 
-  discardFromHand(issuer: Issuer, position: number): string {
+  discardFromHandAtIndex(issuer: Issuer, position: number): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.assertPositiveNumber(position);
@@ -1854,6 +1861,12 @@ export class Game {
 
     return `You have discarded the card: ${discardedCard.name}.\n`;
   }
+
+  playerSkipNextTurn(player: Player): void {
+    this.turnHandler.skipNextTurn(player);
+  }
+
+
 
   getDiscard(deckType: string): string {
     try {

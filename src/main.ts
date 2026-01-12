@@ -329,7 +329,7 @@ const app = new Elysia()
   //   "/discardloot",
   //   async (request) => {
   //     return new Response(
-  //       game.discardFromHand(request.body.issuer, request.body.position),
+  //       game.discardFromHandAtIndex(request.body.issuer, request.body.position),
   //       {
   //         status: 200,
   //       }

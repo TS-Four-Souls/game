@@ -536,6 +536,10 @@ class Encounters {
         return this.slots.map(slot => slot[slot.length - 1] as MonsterCard);
     }
 
+    get nonEngagedInCombat(): MonsterCard[] {
+        return this.visible.map((monster, index) => ((this.monsterIn(index) === undefined || this.monsterIn(index)?.isEngagedInCombat) ? -1 : monster)).filter(index => index !== -1);
+    }
+
     /**
      * Gets all active Monster entities currently in play.
      * Filters out undefined values (empty slots or event slots).

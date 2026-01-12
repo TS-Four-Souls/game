@@ -94,6 +94,7 @@ describe("Monster Rewards - Verification", () => {
         }
 
         if (expectedReward.souls !== undefined) {
+            await game.resolveEntireStack(); // Ensure all soul gain effects are resolved
             expect(player1.souls.length).toBe(initialSouls + expectedReward.souls);
         } else {
             expect(player1.souls.length).toBe(initialSouls);
@@ -176,6 +177,10 @@ describe("Monster Rewards - Verification", () => {
 
     describe("Boss Soul Rewards", () => {
         it("should give 1 soul for killing Death (boss)", async () => {
+            // Death allows player to kill someone. This makes sure active player kills someone else.
+            game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false, description: string = "UNDEFINED SHOULD NOT HAPPEN") => {
+                return { selected: Options.slice( 1, 2), remaining: Options.slice(1) };
+            }
             await testMonsterReward("b2-death", { souls: 1, treasures: 1 });
         });
 
