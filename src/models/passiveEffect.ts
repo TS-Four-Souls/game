@@ -314,7 +314,7 @@ export function onDamageTakenEffect(
         //     throw new Error("permanentStatModifierEffect amount must be non-negative.");
         let offDamage: (() => void) | null = null;
 
-        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target: dealer, abilityCard: usingAbilityFrom, damage: dmg }) => {
+        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target: dealer, source, damage: dmg }) => {
             if (data.issuer !== eventIssuer) return;
             const index = data.targets.findIndex((c) => c.damageTaken !== undefined) < 0 
                 ? data.targets.length 
@@ -353,7 +353,7 @@ export function beforeDeathPenaltyEffect(
         //     throw new Error("permanentStatModifierEffect amount must be non-negative.");
         let offDamage: (() => void) | null = null;
 
-        offDamage = game.emitter.on("on:death:before-penalty", ({ eventIssuer, target: dealer, abilityCard: usingAbilityFrom, damage: dmg }) => {
+        offDamage = game.emitter.on("on:death:before-penalty", ({ eventIssuer, target: dealer, source, damage: dmg }) => {
             if (data.issuer !== eventIssuer) return;
             
             // Add all effects as a single stack element
@@ -894,7 +894,7 @@ export function lootOnPlayerDeathEffect(
         };
 
         // Listen for damage events on this player
-        offDeath = game.emitter.on("on:death:before-penalty", ({ eventIssuer, target: from, abilityCard: usingAbilityFrom, damage: dmg }) => {
+        offDeath = game.emitter.on("on:death:before-penalty", ({ eventIssuer, target: from, source, damage: dmg }) => {
             if (eventIssuer instanceof Player) {
                 // Create the effect that will execute when the stack resolves
                 const effect = (effectData: EffectData) => {

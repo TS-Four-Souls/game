@@ -48,6 +48,10 @@ const selectAnotherPlayer = (game: Game, count: number = 1, asMany: boolean = fa
 const selectMonster = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
     [createSelector("Choose a monster", (issuer: Player) => game.monsters, count, asMany)];
 
+const selectAttackableMonster = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
+    [createSelector("Choose a monster", (issuer: Player) => game.monsters.filter(m => m.attackable), count, asMany)];
+
+
 const selectPlayerOrMonster = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
     [createSelector("Choose a player or monster", activeEntitySelector(() => true, game), count, asMany)];
 
@@ -868,7 +872,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         case "you must steal a loot card from from another player at random.":
             return { effectFunction: active.stealAPlayerRandomLootCardEffect(game), targetSelectors: noTargets };
         case "choose a monster. the active player must attack that monster this turn if able.":
-            return { effectFunction: active.forceAttackMonsterEffect(game), targetSelectors: selectMonster(game) };
+            return { effectFunction: active.forceAttackMonsterEffect(game), targetSelectors: selectAttackableMonster(game) };
         case "you may play any number of additional loot cards till end of turn.":
             return { effectFunction: active.playUnlimitedLootCardsThisTurnEffect(game), targetSelectors: noTargets };
         case "choose a player. recharge each item they control.":
@@ -933,12 +937,15 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         }
 }
 
-function parseStandardMonsterEffect(effectText: string, game: Game): ParsedEffect | null {
-    switch (effectText.toLowerCase()) {
+function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null {
+    if(s.startsWith("this takes no combat damage on attack rolls of"))
+    {
+        const numbers = s.match(/\d+/g)?.map(numStr => parseInt(numStr, 10)) || [];
+        return noTargetEffect(monster.noCombatDamageOnAttackRollEffect(game, numbers));
+    }
+    switch (s.toLowerCase()) {
         case "when this dies, it deals 1 damage to the player who killed it.":
             return noTargetEffect(monster.dealDamageToKillerOnDeathEffect(game, 1));
-        case "it deals 1 damage to each player.":
-            return noTargetEffect(active.dealDamageToEachPlayerEffect(game, 1));
         case "put it in the monster deck 6 cards from the top.":
             return noTargetEffect(monster.putInMonsterDeck6FromTopEffect(game));
         case "search the monster deck for a card named the bloat and put it in a monster slot not being attacked":
@@ -947,8 +954,24 @@ function parseStandardMonsterEffect(effectText: string, game: Game): ParsedEffec
             return noTargetEffect(monster.putOnTopOfMonsterDeckOnRollEffect(game, [1, 6]));
         case "when this dies, the player that killed it discards their hand.":
             return noTargetEffect(monster.killerDiscardsHandOnDeathEffect(game));
-        case "When this dies on an attack roll of 6, double its rewards.":
+        case "when this dies on an attack roll of 6, double its rewards.":
             return noTargetEffect(monster.doubleRewardsOnDeathRollEffect(game, [6]));
+        case "it deals 1 damage to each player.":
+            return noTargetEffect(active.dealDamageToEachPlayerEffect(game, 1));
+        case "each time this takes damage, it gains +1 [atk] till end of turn.":
+            return noTargetEffect(monster.gainAttackOnDamageEffect(game, 1));
+        case "other monsters have +1 [dc] .":
+            return noTargetEffect(monster.monstersGainDCEffect(game, 1, false));
+        case "monsters have +1 [dc] .":
+            return noTargetEffect(monster.monstersGainDCEffect(game, 1, true));
+        case "when another monster dies, this dies.":
+            return noTargetEffect(monster.dieWhenAnotherMonsterDiesEffect(game));
+        case "this can't be attacked.":
+            return noTargetEffect(monster.cantBeAttackedEffect(game));
+        case "Damage dealt to this is also dealt to the player to the active player's right.":
+            return noTargetEffect(monster.damageAlsoPlayerToTheEffect(game, "right"));
+        case "Damage dealt to this is also dealt to the player to the active player's left.":
+            return noTargetEffect(monster.damageAlsoPlayerToTheEffect(game, "left"));
         default:
             return null; // No match found
     }

@@ -1,5 +1,5 @@
 import { Entity } from "@/models/entity";
-import { CharacterCard, Hand, InplayType, ItemCard, treasureCard, type Card, type EffectFunction, EffectOnStack, EffectData } from "./cards";
+import { CharacterCard, Hand, InplayType, ItemCard, treasureCard, Card, type EffectFunction, EffectOnStack, EffectData } from "./cards";
 import type { Game } from "./game";
 import type { Monster } from "./monster";
 
@@ -522,6 +522,10 @@ export class DiceRoll {
     return this._value;
   }
 
+  get card(): Card | null {
+    return this._card;
+  }
+
   add(modifier: number): void {
     if(modifier < 0){
       throw new Error("Modifier must be positive");
@@ -554,7 +558,9 @@ export class DiceRoll {
   async onResolve(): Promise<void> {
     this.value += (this._attackRoll ? this._issuer.attackDiceModifier : 0) + this._issuer.diceModifier;
     if (this._effect?.length === 6) {
-      await this._effect[this._value - 1]!(new EffectData(this._card!, this._issuer, this._targets));
+      // For attack rolls, prepend the dice roll itself to targets so effects can use it as the damage source
+      const targetsWithDiceRoll = this._attackRoll ? [this, ...this._targets] : this._targets;
+      await this._effect[this._value - 1]!(new EffectData(this._card!, this._issuer, targetsWithDiceRoll));
     }
   }
 }
@@ -564,7 +570,7 @@ export class DamageOnStack {
   from: Entity;
   receiver: Entity;
   damage: number[];
-  _card: Card;
+  _source: Card | DiceRoll;
   _targets: any[] = [];
   _effect: EffectFunction | null = null;
   game: Game;
@@ -573,30 +579,32 @@ export class DamageOnStack {
     from: Entity,
     receiver: Entity,
     damage: number[],
-    usingAbilityFrom: Card,
+    source: Card | DiceRoll,
     game: Game
   ) {
     this.receiver = receiver;
     this.from = from;
     this.damage = damage;
-    this._card = usingAbilityFrom;
+    this._source = source;
     this.game = game;
   }
 
-  attachEffect(effect: EffectFunction, card: Card, targets: any[] = []): void {
+  attachEffect(effect: EffectFunction, source: Card | DiceRoll, targets: any[] = []): void {
     this._effect = effect;
-    this._card = card;
+    this._source = source;
     this._targets = targets;
   }
 
   async onResolve(): Promise<void> {
-    this.game.resolveDamage(this.from, this.receiver, this._card, this.damage[0]!);
+    this.game.resolveDamage(this.from, this.receiver, this._source, this.damage[0]!);
     if(this._effect) {
-      await this._effect(new EffectData(this._card, this.from as Player, [this, this._targets]));
+      const card = this._source instanceof DiceRoll ? this._source.card! : this._source;
+      await this._effect(new EffectData(card, this.from as Player, [this, this._targets]));
     }
   }
   get json(): string {
-    return JSON.stringify({from: this.from.id, receiver: this.receiver.id, damage: this.damage, card: this._card.name});
+    const sourceName = this._source instanceof DiceRoll ? `Dice Roll (${this._source.card?.name})` : this._source.name;
+    return JSON.stringify({from: this.from.id, receiver: this.receiver.id, damage: this.damage, source: sourceName});
   }
 };
 
@@ -604,26 +612,27 @@ export class DeathOnStack {
 
   receiver: Entity;
   from: Entity;
-  usingAbilityFrom: Card; 
+  source: Card | DiceRoll; 
   game: Game;
 
   constructor(
     receiver: Entity,
     from: Entity,
-    usingAbilityFrom: Card,
+    source: Card | DiceRoll,
     game: Game
   ) {
     this.receiver = receiver;
     this.from = from;
-    this.usingAbilityFrom = usingAbilityFrom;
+    this.source = source;
     this.game = game;
   }
 
   async onResolve(): Promise<void> {
-    await this.game.resolveDeath(this.receiver, this.from, this.usingAbilityFrom);
+    await this.game.resolveDeath(this.receiver, this.from, this.source);
   }
 
   get json(): string {
-    return JSON.stringify({receiver: this.receiver.id, from: this.from.id, card: this.usingAbilityFrom.name});
+    const sourceName = this.source instanceof DiceRoll ? `Dice Roll (${this.source.card?.name})` : this.source.name;
+    return JSON.stringify({receiver: this.receiver.id, from: this.from.id, source: sourceName});
   }
 };

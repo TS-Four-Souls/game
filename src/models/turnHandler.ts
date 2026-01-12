@@ -51,6 +51,20 @@ export class TurnHandler {
         return this._remainingTurnsInRound[0]!;
     }
 
+    getPlayerTo(player: Player, direction: "left" | "right"): Player {
+        const idx = this._baseOrder.findIndex(p => p.id === player.id);
+        if (idx === -1) {
+            throw new Error("Player not found in base order");
+        }
+        let targetIdx: number;
+        if (direction === "left") {
+            targetIdx = (idx + 1) % this._baseOrder.length;
+        } else {
+            targetIdx = (idx - 1 + this._baseOrder.length) % this._baseOrder.length;
+        }
+        return this._baseOrder[targetIdx]!;
+    }
+
     get round(): number {
         return this._roundIndex;
     }

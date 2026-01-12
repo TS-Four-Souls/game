@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, expectTypeOf } from "bun:test";
 import { Game } from "../../models/game";
 import { DiceRoll, Player } from "../../models/player";
 import type { LootCard } from "@/models/cards";
@@ -721,5 +721,33 @@ describe("Monsters - On death effects", () => {
         expect(game.stack.size).toBe(0);
         expect(player2.hand.length).toBe(0);
         expect(player1.hand.length).toBeGreaterThanOrEqual(4);
+    });
+
+    it("double rewards when dinga dies on attack roll of 6. (p2)", async () => {
+        const card = game.obtainCard("b2-dinga") as MonsterCard;
+        expect(card).toBeInstanceOf(MonsterCard);
+        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        const monster = game.monsters[0]!;
+        
+        let currentcoins = player1.coins;
+        game.addAttack(player1, 100); // ensure kill
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, monster);
+        game.attackRoll(player1); // ensure hit
+        expect(game.stack._stack.length).toBe(1);
+        const roll = game.stack._stack[0] as DiceRoll;
+        roll.value = 6;
+        await game.resolveStack(); // resolve dice
+        await game.resolveStack(); // resolve damage
+
+        await game.resolveStack(); // resolve death
+        await game.resolveStack(); // resolve effect
+        await game.resolveStack(); // resolve coin gain
+        expect(player1.coins).toBeGreaterThan(currentcoins);
+        currentcoins = player1.coins;
+        await game.resolveStack(); // resolve coin gain
+        
+        expect(game.stack.size).toBe(0);
+        expect(player1.coins).toBeGreaterThan(currentcoins);
     });
 });

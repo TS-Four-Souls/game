@@ -930,11 +930,12 @@ export function getAttackRollEffect(damageDealt: number, damageReceived: number,
     const effects: EffectFunction[] = [];
     for (let i = 0; i < 6; i++) {
         effects.push((data: EffectData) => {
-            const target = data.next as Entity;
+            const diceRoll = data.next; // First target is the DiceRoll itself
+            const target = data.next as Entity; // Second target is the monster
             if (i + 1 >= evasion) {
-                game.dealCombatDamage(data.issuer, target, data.it, damageDealt);
+                game.dealCombatDamage(data.issuer, target, diceRoll, damageDealt);
             } else {
-                game.dealCombatDamage(target, data.issuer, data.it, damageReceived);
+                game.dealCombatDamage(target, data.issuer, diceRoll, damageReceived);
             }
             return true;
         });

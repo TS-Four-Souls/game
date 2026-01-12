@@ -65,4 +65,10 @@ export class Monster extends Entity {
   get evasion(): number {
     return this._evasion + this._encounters.dcModifier;
   }
+
+  addEvasion(amount: number): void {
+    if(this._evasion + amount < 0)
+      throw new Error("Monster evasion cannot be negative.");
+    this._evasion += amount;
+  }
 }

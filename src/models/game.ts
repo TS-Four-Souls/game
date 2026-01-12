@@ -48,6 +48,9 @@ import { bSoulEffectParser } from "@/models/bonusSoulHandling";
 import { ca, pl } from "zod/locales";
 import type { TriggerEvent } from "@/types/triggers";
 
+// Type representing sources of damage - either a card ability or a dice roll
+export type DamageSource = Card | DiceRoll;
+
 const LOG_GAME = false;
 export const cards = await loadCards(process.cwd() + "/data/cards");
 const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
@@ -181,6 +184,10 @@ export class Game {
     return this.turnHandler.current;
   }
 
+  getPlayerToThe(direction: "left" | "right"): Player {
+    return this.turnHandler.getPlayerTo(this.currentPlayer, direction);
+  }
+
   get inPlayItems(): { player: Player; card: ItemCard }[] {
     const items: { player: Player; card: ItemCard }[] = [];
     for (const player of this.players) {
@@ -280,11 +287,11 @@ export class Game {
         item.charged = false;
   }
 
-  death(receiver: Entity, from: Entity, usingAbilityFrom: Card): void {
+  death(receiver: Entity, from: Entity, source: DamageSource): void {
     const deathOnStack = new DeathOnStack(
       receiver,
       from,
-      usingAbilityFrom,
+      source,
       this
     );
     this.assertGameStarted();
@@ -294,7 +301,7 @@ export class Game {
     this.emit("on:death:would-death", {
       eventIssuer: receiver,
       target: from,
-      abilityCard: usingAbilityFrom,
+      source: source,
       deathOnStack: deathOnStack,
     });
   }
@@ -339,11 +346,11 @@ export class Game {
 
 
   // Should only be called by DeathOnStack objects.
-  resolveDeath(receiver: Entity, from: Entity, usingAbilityFrom: Card): void {
+  resolveDeath(receiver: Entity, from: Entity, source: DamageSource): void {
     this.emit("on:death:before-penalty", {
       eventIssuer: receiver,
       target: from,
-      abilityCard: usingAbilityFrom,
+      source: source,
     });
     this.executeWhenStackEmpty(async () => {
     receiver.die();
@@ -362,7 +369,7 @@ export class Game {
         this.emit("on:death:monster", {
           eventIssuer: receiver,
           target: from,
-          abilityCard: usingAbilityFrom,
+          source: source,
         });
         this.encounters.kill(receiver);
         this.executeWhenStackEmpty(async () => {
@@ -372,7 +379,7 @@ export class Game {
       this.emit("on:death:after-penalty", {
         eventIssuer: receiver,
         target: from,
-        abilityCard: usingAbilityFrom,
+        source: source,
       });
     });
   }
@@ -399,7 +406,11 @@ export class Game {
       throw new Error("drawInIndex can only be specified when drawing from topDeck");
     if (drawInIndex === -1 && monster === "topDeck")
       throw new Error("drawInIndex must be specified when drawing from topDeck");
-
+    if(monster !== "topDeck" && !monster.attackable)
+    {
+      player.clearAttackRequirement(monster);
+      throw new Error("This monster cannot be attacked.");
+    }
     this.assertCurrentTurnIsPlayerTurn(player);
     this.assertNoOngoingAttack();
     this.assertPlayerIsAlive(player);
@@ -418,8 +429,12 @@ export class Game {
     if (monster === "topDeck") {
       this.drawMonster(player, drawInIndex);
       player.clearAttackRequirement("topDeck");
-      if (this.encounters.monsterIn(drawInIndex) === undefined)
-        return; // drawn event.
+      if (this.encounters.monsterIn(drawInIndex) === undefined ||
+        !this.encounters.monsterIn(drawInIndex)!.attackable)
+        {
+          player.combatEnded();
+          return; // drawn event.
+        }
       monster = this.encounters.monsterIn(drawInIndex)!;
     }
     this.assertMonsterIsAlive(monster);
@@ -537,7 +552,7 @@ export class Game {
   dealCombatDamage(
     dealer: Entity,
     receiver: Entity,
-    usingAbilityFrom: Card,
+    source: DamageSource,
     damage: number
   ): void {
     if (damage <= 0 || receiver.isDead) return;
@@ -545,55 +560,55 @@ export class Game {
       this.emit("on:combatdamage:dealt:to-player", {
         eventIssuer: dealer, // The dealer is the one dealing combat damage
         target: receiver,
-        abilityCard: usingAbilityFrom,
+        source: source,
         damage,
       });
     } else if (receiver instanceof Monster) {
       this.emit("on:combatdamage:dealt:to-monster", {
         eventIssuer: dealer, // The dealer is the one dealing combat damage
         target: receiver,
-        abilityCard: usingAbilityFrom,
+        source: source,
         damage,
       });
     }
-    this.dealDamage(dealer, receiver, usingAbilityFrom, damage);
+    this.dealDamage(dealer, receiver, source, damage);
   }
 
   // on health loss trigger can be added here. Be careful, in case of pay HP to verify that all the HP are actually lost.
   healthLoss(
     dealer: Entity,
     receiver: Entity,
-    usingAbilityFrom: Card,
+    source: DamageSource,
     damage: number
   ): boolean {
-    return receiver.receiveDamage(damage, dealer, usingAbilityFrom);
+    return receiver.receiveDamage(damage, dealer, source);
   }
 
   resolveDamage(
     dealer: Entity,
     receiver: Entity,
-    usingAbilityFrom: Card,
+    source: DamageSource,
     damage: number
   ): void {
-    this.healthLoss(dealer, receiver, usingAbilityFrom, damage);
+    this.healthLoss(dealer, receiver, source, damage);
 
     if (receiver.damageTakenThisTurn.length === 1)
       this.emit("on:damage:taken:first-time-each-turn", {
         eventIssuer: receiver,
         target: dealer,
-        abilityCard: usingAbilityFrom,
+        source: source,
         damage: damage,
       });
 
     this.emit("on:damage:taken", {
       eventIssuer: receiver,
       target: dealer,
-      abilityCard: usingAbilityFrom,
+      source: source,
       damage: damage,
     });
 
     if (receiver.currentHealthPoints <= 0) {
-      this.death(receiver, dealer, usingAbilityFrom);
+      this.death(receiver, dealer, source);
     }
   }
 
@@ -603,7 +618,7 @@ export class Game {
   dealDamage(
     dealer: Entity,
     receiver: Entity,
-    usingAbilityFrom: Card,
+    source: DamageSource,
     damage: number,
     callback?: (data: EffectData) => boolean,
     callbackTargets: any[] = []
@@ -616,18 +631,17 @@ export class Game {
       dealer,
       receiver,
       damageArray,
-      usingAbilityFrom,
+      source,
       this
     );
     if (callback) {
-      damageOnStack.attachEffect(callback, usingAbilityFrom, callbackTargets);
+      damageOnStack.attachEffect(callback, source, callbackTargets);
     }
     this.addToStack(damageOnStack);
-
     this.emit("on:damage:would-take", {
       eventIssuer: receiver,
       target: dealer,
-      abilityCard: usingAbilityFrom,
+      source: source,
       damageArray: damageArray,
     });
   }
@@ -1761,10 +1775,10 @@ export class Game {
 
     return `You have discarded the monster at position ${position}.\n`;
   }
-  kill(killer: Entity, entity: Entity, usingCard: Card): void {
+  kill(killer: Entity, entity: Entity, source: DamageSource): void {
     this.assertGameStarted();
     this.assertEntityIsInPlay(entity);
-    this.death(entity, killer, usingCard);
+    this.death(entity, killer, source);
   }
 
   discardInPlayByCard(player: Player, card: Card): void {
@@ -1838,6 +1852,9 @@ export class Game {
       const monster = req as Monster;
       // If any required monster is no longer in play, clear the requirement
       if (!this.monsters.includes(monster)) {
+        player.clearAttackRequirement(monster);
+      }
+      if(monster.attackable === false) {
         player.clearAttackRequirement(monster);
       }
     }

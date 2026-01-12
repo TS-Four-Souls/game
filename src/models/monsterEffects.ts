@@ -2,7 +2,7 @@
 
 
 import { DamageOnStack, DiceRoll, Player } from "./player";
-import { type Card, LootCard, type EffectFunction, type TargetsSelector, ItemCard, MonsterCard, InplayType, BsoulCard, EffectData } from "./cards";
+import { Card, LootCard, type EffectFunction, type TargetsSelector, ItemCard, MonsterCard, InplayType, BsoulCard, EffectData } from "./cards";
 import { Game } from "./game";
 import type { Entity } from "./entity";
 import { effect } from "zod/v3";
@@ -192,22 +192,23 @@ return (data: EffectData) => {
     };
 }
 
-export function doubleRewardsOnDeathRollEffect(game: Game, rolls: number[]): EffectFunction {
+export function doubleRewardsOnDeathRollEffect(game: Game, rollValues: number[]): EffectFunction {
 
     return (data: EffectData) => {
         let offDeath: (() => void) | null = null;
         
-        offDeath = game.emitter.on("on:death:monster", ({ eventIssuer, target, ability }) => {
+        offDeath = game.emitter.on("on:death:monster", ({ eventIssuer, target, source }) => {
             if (data.issuer !== eventIssuer) return;
-            const roll = game.rollDice(game.currentPlayer as Player, false);
-            roll.attachEffect([1,2,3,4,5,6].map(n => (data:EffectData) => {
-                if(rolls.includes(n)) {
-                    console.log("Double rewards on death effect triggered.", eventIssuer.id);
-                    game.monsterRewards(eventIssuer as Monster);
-                    return true;
-                }
-                return false;
-            }), data.it, []);
+            if(source instanceof Card) return;
+            const roll = source as DiceRoll;
+            if(!rollValues.includes(roll.value)) return;
+            
+            // Add all effects as a single stack element
+            const effect = (effectData: EffectData) => {
+                game.monsterRewards(data.issuer as Monster);
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, `When ${data.it.name} dies, if the killing roll was ${rollValues.join(" or ")}, it grants double rewards.`);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -215,6 +216,141 @@ export function doubleRewardsOnDeathRollEffect(game: Game, rolls: number[]): Eff
             offDeath?.();
             offDeath = null;
         });
+        return true;
+    };
+}
+
+export function noCombatDamageOnAttackRollEffect(game: Game, rollValues: number[]): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        
+        offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, target, source, damageArray }) => {
+            if(!(target instanceof Player)) return;
+            if(!(eventIssuer instanceof Monster)) return;
+            if(source instanceof Card) return;
+            if (data.issuer !== eventIssuer) return;
+            const roll = source as DiceRoll;
+            if(!rollValues.includes(roll.value)) return;
+            // Add all effects as a single stack element
+            const effect = (effectData: EffectData) => {
+                console.log(`${data.it.name} effect prevents combat damage on attack roll of ${roll.value}`);
+                damageArray[0] = 0; // remove all damage
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, `When ${data.it.name} is attacked, if the attack roll is ${rollValues.join(" or ")}, it takes no combat damage.`);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
+export function gainAttackOnDamageEffect(game: Game, amount: number): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        let offEndTurn: (() => void) | null = null;
+        let currentTotal = 0;
+        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target, source, damageArray }) => {
+            if (data.issuer !== eventIssuer) return;
+            // Add all effects as a single stack element
+            const effect = (effectData: EffectData) => {
+                (eventIssuer as Entity).addAttackPoints(amount);
+                currentTotal += amount;
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, `Each time ${data.it.name} takes damage, it gains +${amount} [ATK] till end of turn.`);
+        });
+        
+        offEndTurn = game.emitter.on("on:turn:end", ({ eventIssuer }) => {
+            (data.issuer as Entity).addAttackPoints(-currentTotal);
+            currentTotal = 0;
+            return true;
+            
+        });
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
+export function monstersGainDCEffect(game: Game, amount: number, includeSelf: boolean): EffectFunction {
+    return (data: EffectData) => {
+        game.addDCToEachMonster(data.issuer as Entity, amount);
+        if(!includeSelf) {
+            (data.issuer as Monster).addEvasion(-amount);
+        }
+        data.it.cleaners.push(() => {
+            game.addDCToEachMonster(data.issuer as Entity, -amount);
+            if(!includeSelf) {
+            (data.issuer as Monster).addEvasion(amount);
+        }
+        });
+        return true;
+    };
+}
+
+export function dieWhenAnotherMonsterDiesEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offDeath: (() => void) | null = null;
+        
+        offDeath = game.emitter.on("on:death:monster", ({ eventIssuer, target, source }) => {
+            if (data.issuer === eventIssuer) return;
+            
+            // Add all effects as a single stack element
+            const effect = (effectData: EffectData) => {
+                game.kill(eventIssuer, data.issuer as Monster, source);
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, `When another monster dies, ${data.it.name} dies.`);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDeath?.();
+            offDeath = null;
+        });
+        return true;
+    };
+}
+
+export function cantBeAttackedEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const monster = data.issuer as Entity;
+        monster.attackable = false;
+        return true;
+    };
+}
+
+export function damageAlsoPlayerToTheEffect(game: Game, direction: "left" | "right"): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        
+        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target, source, damageArray }) => {
+            if (data.issuer !== eventIssuer) return;
+            if(target instanceof Monster) return;
+            
+            // Add all effects as a single stack element
+            const effect = (effectData: EffectData) => {
+                const player = game.getPlayerToThe(direction);
+                game.dealDamage(eventIssuer as Entity, player as Entity, source, damageArray[0]);
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, `Damage dealt to ${data.it.name} is also dealt to the player to the active player's ${direction}.`);
+        });
+        
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+
         return true;
     };
 }

@@ -352,7 +352,7 @@ class Encounters {
     }
 
     /**
-     * Adds to the global DC (difficulty class) modifier.
+     * Adds to the global DC (dice) modifier.
      * This modifier affects the evasion value of all monsters.
      * Positive values make monsters harder to hit, negative values make them easier.
      * 

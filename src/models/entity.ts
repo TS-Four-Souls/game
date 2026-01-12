@@ -14,6 +14,15 @@ export abstract class Entity {
   private _attackDiceModifier: number = 0;
   private _damageTakenThisTurn: DamageObj[] = [];
   private _died: boolean = false;
+  private _attackable: boolean = true;
+
+  get attackable(): boolean {
+    return this._attackable;
+  }
+
+  set attackable(value: boolean) {
+    this._attackable = value;
+  }
 
   constructor(
     readonly id: string,
@@ -91,7 +100,7 @@ export abstract class Entity {
   
   addAttackPoints(amount: number): void {
     // Attack points cannot be negative.
-    if (this._attackPoints + amount < 1) {
+    if (this._attackPoints + amount < 0) {
       throw new Error("Attack points cannot be negative.");
     }
     this._attackPoints += amount;
