@@ -233,7 +233,6 @@ export function noCombatDamageOnAttackRollEffect(game: Game, rollValues: number[
             if(!rollValues.includes(roll.value)) return;
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
-                console.log(`${data.it.name} effect prevents combat damage on attack roll of ${roll.value}`);
                 damageArray[0] = 0; // remove all damage
                 return true;
             };
@@ -332,16 +331,17 @@ export function damageAlsoPlayerToTheEffect(game: Game, direction: "left" | "rig
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
-        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target, source, damageArray }) => {
+        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target, source, damage }) => {
             if (data.issuer !== eventIssuer) return;
-            if(target instanceof Monster) return;
             
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
                 const player = game.getPlayerToThe(direction);
-                game.dealDamage(eventIssuer as Entity, player as Entity, source, damageArray[0]);
+                console.log(`Applying ${data.it.name} effect: dealing ${damage} to player to the active player's ${direction}: ${player.id}`);
+                game.dealDamage(eventIssuer as Entity, player as Entity, source, damage);
                 return true;
             };
+            console.log(`${data.it.name} effect deals damage also to player to the active player's ${direction}`);
             addPassiveEffectToStack(game, effect, data, `Damage dealt to ${data.it.name} is also dealt to the player to the active player's ${direction}.`);
         });
         

@@ -715,7 +715,8 @@ export function eachPlayersVoteToDestroyItemEffect(game: Game): EffectFunction {
             player,
             count: 1,
             options: ListOfItems,
-            asMany: false
+            asMany: false,
+            description: "Vote for an item to be destroyed."
         }));
         const voteResults = await game.selectMultiple(voteRequests);
 

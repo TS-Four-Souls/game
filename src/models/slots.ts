@@ -249,7 +249,6 @@ class Encounters {
         }
         this._deck = deck;
         this._game = game;
-        this.fillEmptySpots(true);
     }
 
     /**

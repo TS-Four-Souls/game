@@ -218,9 +218,9 @@ const app = new Elysia()
       const partialChoices = request.body.targetChoices || [];
       const card = TargetBuilder.getCardFromPlayer(game, player, request.body.index, "hand");
       const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(game, player, card, partialChoices, request.body.effectIndex);
-      console.log("Play card target selection:", choices);
+      // console.log("Play card target selection:", choices);
       if (choices.complete) {
-        console.log("Card ready to be played");
+        // console.log("Card ready to be played");
         const targets = TargetBuilder.buildTargets(game, player, card, partialChoices, request.body.effectIndex);
         game.playCard(player, request.body.index, targets);
       }
@@ -339,20 +339,7 @@ const app = new Elysia()
   //     body: schemas.discardLootRequest,
   //   }
   // )
-  .post(
-    "/gaintreasure",
-    async (request) => {
-      return new Response(game.gainTreasure(request.body.issuer), {
-        status: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-        },
-      });
-    },
-    {
-      body: schemas.userProtectedRequest,
-    }
-  )
+
   // .post(
   //   "/discardmonster",
   //   async (request) => {
@@ -421,6 +408,17 @@ const app = new Elysia()
     "/loot",
     async (request) => {
       return new Response(game.loot(request.body.issuer), {
+        status: 200,
+      });
+    },
+    {
+      body: schemas.userProtectedRequest,
+    }
+  )
+    .post(
+    "/gaintreasure",
+    async (request) => {
+      return new Response(game.gainTreasure(request.body.issuer), {
         status: 200,
       });
     },
@@ -504,7 +502,7 @@ const app = new Elysia()
     // )! as CharacterCard;
     // const card = game.obtainCard("b2-remote_detonator")!;
     // const card2 = game.obtainCard("b2-xv_the_devil")! as LootCard;
-    const loots = ["b2-i_the_magician", "b2-gold_bomb"]
+    const loots = ["b2-i_the_magician", "b2-gold_bomb", "b2-ii_the_high_priestess"]
     for (const slug of loots) {
       const card = game.obtainCard(slug)! as LootCard;
       game.addCardToHand(p1, card);

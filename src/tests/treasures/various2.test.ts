@@ -617,24 +617,28 @@ describe("Tap/Paid effects 2", () => {
     it("shadow - handles death penalty when victim has no items", async () => {
         const shadow = game.shop.obtainCard("b2-shadow") as ItemCard;
         game.addInPlay(player1, shadow);
-        
+        expect(player2.hand.length).toBe(0);
+        game.loot(player2, 2);
         // Player2 has no non-eternal items (only character)
         // Give player2 coins and loot
         game.gainCoins(player2, 5);
         const lootCard = game.decks["loot"]!.draw() as LootCard;
         player2.hand.addToHand(lootCard);
+        expect(player2.hand.length).toBe(3);
         
         const player1CoinsBeforeDeath = player1.coins;
         const player1HandBeforeDeath = player1.hand.length;
         
         // Kill player2
         game.dealDamage(player1, player2, shadow, 999);
-        await game.resolveStack(); // Resolve the damage and death
-        await game.resolveStack(); // Resolve the damage and death
+        await game.resolveStack(); // Resolve damage
+        await game.resolveStack(); // Resolve death
         
         // Player1 should still gain coins and loot
+        expect(game.stack.size).toBe(0);
         expect(player1.coins).toBe(player1CoinsBeforeDeath + 2);
         expect(player1.hand.length).toBe(player1HandBeforeDeath + 1);
+        expect(player2.hand.length).toBe(2);
     });
 
     it("shadow - handles death penalty when victim has no loot cards", async () => {
@@ -743,6 +747,8 @@ describe("Force Attack Monster", () => {
 
         // Should be able to end turn now (mustAttackMonster was cleared)
         expect(game.currentPlayer.hasAttackRequirement()).toBe(false);
+        game.currentPlayer.combatEnded();
+        monster.combatEnded();
         expect(() => {
             game.endTurn();
         }).not.toThrow();
@@ -794,7 +800,8 @@ describe("Force Attack Monster", () => {
         game.declareAttackOnMonster(game.currentPlayer, monster);
 
         expect(game.currentPlayer.hasAttackRequirement()).toBe(false);
-
+        monster.combatEnded();
+        game.currentPlayer.combatEnded();
         // End turn
         game.endTurn();
 
@@ -893,7 +900,8 @@ describe("Force Attack Monster", () => {
             game.declareAttackOnMonster(game.currentPlayer, targetMonster);
 
             expect(game.currentPlayer.hasAttackRequirement()).toBe(false);
-
+            game.kill(targetMonster, targetMonster, monsterManual);
+            await game.resolveStack();
             // Should be able to end turn now
             expect(() => {
                 game.endTurn();
@@ -949,7 +957,9 @@ describe("Force Attack Monster", () => {
             // Attack the monster to satisfy constraint
             game.declareAttack(game.currentPlayer);
             game.declareAttackOnMonster(game.currentPlayer, targetMonster);
-
+            expect(game.currentPlayer.hasAttackRequirement()).toBe(false);
+            game.kill(targetMonster, targetMonster, monsterManual);
+            await game.resolveStack();
             // End turn
             game.endTurn();
             await game.resolveStack();
@@ -1080,6 +1090,9 @@ describe("Force Attack Monster", () => {
             game.declareAttack(game.currentPlayer);
             game.declareAttackOnMonster(game.currentPlayer, otherMonster);
 
+            game.currentPlayer.combatEnded();
+            expect(otherMonster.isEngagedInCombat).toBe(true);
+            otherMonster.combatEnded();
             expect(() => {
                 game.endTurn();
             }).not.toThrow();

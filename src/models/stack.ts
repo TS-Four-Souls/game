@@ -73,4 +73,8 @@ export class Stack {
             console.log(`  [${i}]: ${element.constructor.name}`);
         }
     }
+
+    peek(): StackElement | undefined {
+        return this._stack[this._stack.length - 1];
+    }
 }

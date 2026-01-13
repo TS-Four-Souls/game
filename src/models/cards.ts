@@ -990,6 +990,8 @@ export class EffectOnStack {
     protected _description: string;
 
     constructor(effectFunction: EffectFunction, data: EffectData, description: string) {
+        // if(!data)
+        //     throw new Error("EffectOnStack constructor: data is undefined or null.");
         this._effectFunction = effectFunction;
         this._data = data;
         this._description = description;

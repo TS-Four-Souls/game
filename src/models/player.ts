@@ -312,6 +312,7 @@ export class Player extends Entity {
    */
   removeInPlay(card: Card): boolean {
     const index = this._inPlay.indexOf(card);
+    if(index === -1) return false;
     if(card.eternal)
       throw new Error("Cannot remove eternal card from in play.");
     return this.removeInPlayByIndex(index);

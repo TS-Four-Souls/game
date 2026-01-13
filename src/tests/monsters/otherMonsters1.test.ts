@@ -321,8 +321,10 @@ describe("Monsters - Various 1 - 3 players", () => {
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
+        player3 = setup.player3!;
         mockGameSelections(game);
     });
+    // right = previous
     it("damage also dealt to player to the right", async () => {
         const card = game.obtainCard("b2-dople") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
@@ -332,6 +334,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         const monster = game.monsters[0]!;
         const initHPPlayer1 = player1.currentHealthPoints;
         const initHPPlayer2 = player2.currentHealthPoints;
+        const initHPPlayer3 = player3.currentHealthPoints;
 
         game.declareAttack(player1);
         game.declareAttackOnMonster(player1, monster);
@@ -352,7 +355,35 @@ describe("Monsters - Various 1 - 3 players", () => {
         expect(game.stack._stack.length).toBe(0);
         // Damage should be dealt to both monster and player2
         expect(monster.currentHealthPoints).toBe(monster.card.healthPoints - 1);
-        expect(player2.currentHealthPoints).toBe(initHPPlayer2 - 1);
         expect(player1.currentHealthPoints).toBe(initHPPlayer1);
+        expect(player2.currentHealthPoints).toBe(initHPPlayer2);
+        expect(player3.currentHealthPoints).toBe(initHPPlayer3-1);
     });
+
+    // // right = previous
+    // it("damage also dealt to player to the right (p1)", async () => {
+    //     const card = game.obtainCard("b2-dople") as MonsterCard;
+    //     expect(card).toBeInstanceOf(MonsterCard);
+        
+    //     game.monsterSlots.forceSetMonsterAtSlot(0, card);
+
+    //     const monster = game.monsters[0]!;
+    //     const initHPPlayer1 = player1.currentHealthPoints;
+    //     const initHPPlayer2 = player2.currentHealthPoints;
+    //     const initHPPlayer3 = player3.currentHealthPoints;
+
+    //     game.endTurn(); // to player2
+    //     game.dealDamage(monster, monster, card, 1);
+    //     await game.resolveStack(); // resolve damage
+    //     await game.resolveStack(); // resolve effect
+    //     await game.resolveStack(); // resolve damage
+    //     await game.resolveStack(); // resolve damage
+        
+    //     expect(game.stack._stack.length).toBe(0);
+    //     // Damage should be dealt to both monster and player2
+    //     expect(monster.currentHealthPoints).toBe(monster.card.healthPoints - 1);
+    //     expect(player2.currentHealthPoints).toBe(initHPPlayer2);
+    //     expect(player3.currentHealthPoints).toBe(initHPPlayer3);
+    //     expect(player1.currentHealthPoints).toBe(initHPPlayer1-1);
+    // });
 });

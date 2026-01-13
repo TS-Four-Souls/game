@@ -223,12 +223,12 @@ export function curseEffect(restEffectFunction: EffectFunction, game: Game): Eff
         restEffectFunction(new EffectData(data.it, owner, []));
         // Add Listener to remove the curse when the owner dies.
         let offDeath: (() => void) | null = null;
-        // offDeath = game.emitter.on("on:death:after-penalty", ({ eventIssuer }) => {
-        //     if (owner !== eventIssuer) return;
-        //     game.removeInPlay(owner, data.it as ItemCard);
-        //     offDeath?.();
-        //     offDeath = null;
-        // });
+        offDeath = game.emitter.on("on:death:after-penalty", ({ eventIssuer }) => {
+            if (owner !== eventIssuer) return;
+            game.removeInPlay(owner, data.it as ItemCard);
+            offDeath?.();
+            offDeath = null;
+        });
         data.it.cleaners.push(() => {
             offDeath?.();
             offDeath = null;
@@ -314,12 +314,12 @@ export function onDamageTakenEffect(
         //     throw new Error("permanentStatModifierEffect amount must be non-negative.");
         let offDamage: (() => void) | null = null;
 
-        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target: dealer, source, damage: dmg }) => {
+        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target: dealer, source, damage }) => {
             if (data.issuer !== eventIssuer) return;
             const index = data.targets.findIndex((c) => c.damageTaken !== undefined) < 0 
                 ? data.targets.length 
                 : data.targets.findIndex((c) => c.damageTaken !== undefined);
-            data.addTarget({damageTaken: dmg});
+            data.addTarget({damageTaken: damage});
             
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
@@ -328,7 +328,9 @@ export function onDamageTakenEffect(
                 }
                 return true;
             };
-            addPassiveEffectToStack(game, effect, data, "On damage taken effect");
+            // Should not work if damage is 0 or less
+            if(damage > 0) 
+                addPassiveEffectToStack(game, effect, data, "On damage taken effect");
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -823,11 +825,13 @@ export function becomeSoulInsteadOfDestructionEffect(game: Game): EffectFunction
             if (!(data.issuer instanceof Player)) return;
             if (!cards.includes(data.it)) return;
             data.it.soul = 1;
-            const index = game.destroyedCards.indexOf(data.it);
+            const index = cards.indexOf(data.it);
             if (index > -1) {
-                game.destroyedCards.splice(index, 1);
+                cards.splice(index, 1);
             }
+
             game.addSoul(data.issuer, data.it);
+            game.removeInPlay(data.issuer, data.it);
         });
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {

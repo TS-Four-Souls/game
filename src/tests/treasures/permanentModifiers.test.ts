@@ -184,6 +184,8 @@ describe("Treasure - Permanent Modifiers", () => {
 
             expect(monster.currentHealthPoints).toBe(initialMonsterHealth - baseAttack - baseAttack - 1);
             game.removeInPlay(player1, item);
+            player1.combatEnded();
+            monster.combatEnded();
             game.endTurn();
             await game.resolveStack();
             game.endTurn();

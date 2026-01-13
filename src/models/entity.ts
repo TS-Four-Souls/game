@@ -62,7 +62,7 @@ export abstract class Entity {
   }
 
   combatEnded(){
-    this._engagedInCombat -= 1;
+    this._engagedInCombat = Math.max(0, this._engagedInCombat - 1);
   }
 
   engageInCombat(): void {

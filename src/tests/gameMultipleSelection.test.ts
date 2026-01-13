@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach } from "bun:test";
 import { Game } from "@/models/game";
 import { Player } from "@/models/player";
+import { setTimeout } from "timers/promises";
 
 describe("Game.selectMultiple", () => {
   let game: Game;
@@ -41,9 +42,9 @@ describe("Game.selectMultiple", () => {
 
     // Start multiple selections
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: options1 },
-      { player: player2, count: 1, options: options2 },
-      { player: player3, count: 1, options: options3 },
+      { player: player1, count: 1, options: options1 , description: "Select an option"},
+      { player: player2, count: 1, options: options2 , description: "Select an option"},
+      { player: player3, count: 1, options: options3 , description: "Select an option"},
     ]);
 
     // Get state for each player
@@ -100,8 +101,8 @@ describe("Game.selectMultiple", () => {
     const options2 = [card3];
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 2, options: options1, asMany: true },
-      { player: player2, count: 1, options: options2, asMany: true },
+      { player: player1, count: 2, options: options1, asMany: true , description: "Select a card"},
+      { player: player2, count: 1, options: options2, asMany: true , description: "Select a card"},
     ]);
 
     const state1 = JSON.parse(game.detailedStateJSON(player1));
@@ -131,7 +132,7 @@ describe("Game.selectMultiple", () => {
     const card2 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 2, options: [card1, card2], asMany: false },
+      { player: player1, count: 2, options: [card1, card2], asMany: false , description: "Select a card"},
     ]);
 
     const state1 = JSON.parse(game.detailedStateJSON(player1));
@@ -153,7 +154,7 @@ describe("Game.selectMultiple", () => {
     const card3 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 2, options: [card1, card2, card3], asMany: true },
+      { player: player1, count: 2, options: [card1, card2, card3], asMany: true , description: "Select a card"},
     ]);
 
     const state1 = JSON.parse(game.detailedStateJSON(player1));
@@ -173,7 +174,7 @@ describe("Game.selectMultiple", () => {
     const card1 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: [card1] },
+      { player: player1, count: 1, options: [card1] , description: "Select a card"},
     ]);
 
     expect(() => {
@@ -190,7 +191,7 @@ describe("Game.selectMultiple", () => {
     const card1 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: [card1] },
+      { player: player1, count: 1, options: [card1] , description: "Select a card"},
     ]);
 
     const state1 = JSON.parse(game.detailedStateJSON(player1));
@@ -212,9 +213,9 @@ describe("Game.selectMultiple", () => {
     const card3 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: [card1] },
-      { player: player2, count: 1, options: [card2] },
-      { player: player3, count: 1, options: [card3] },
+      { player: player1, count: 1, options: [card1] , description: "Select a card"},
+      { player: player2, count: 1, options: [card2] , description: "Select a card"},
+      { player: player3, count: 1, options: [card3] , description: "Select a card"},
     ]);
 
     const state1 = JSON.parse(game.detailedStateJSON(player1));
@@ -241,7 +242,7 @@ describe("Game.selectMultiple", () => {
     const card1 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: [card1] },
+      { player: player1, count: 1, options: [card1] , description: "Select a card"},
     ]);
 
     const state1Before = JSON.parse(game.detailedStateJSON(player1));
@@ -267,8 +268,8 @@ describe("Game.selectMultiple", () => {
     ];
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: options1 },
-      { player: player2, count: 1, options: options2 },
+      { player: player1, count: 1, options: options1 , description: "Select an option"},
+      { player: player2, count: 1, options: options2 , description: "Select an option"},
     ]);
 
     const state1 = JSON.parse(game.detailedStateJSON(player1));
@@ -288,8 +289,8 @@ describe("Game.selectMultiple", () => {
     const card2 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: [card1] },
-      { player: player2, count: 1, options: [card2] },
+      { player: player1, count: 1, options: [card1] , description: "Select a card"},
+      { player: player2, count: 1, options: [card2] , description: "Select a card"},
     ]);
 
     const state1 = JSON.parse(game.detailedStateJSON(player1));
@@ -321,8 +322,8 @@ describe("Game.selectMultiple", () => {
     const card5 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: [card1, card2, card3] },
-      { player: player2, count: 2, options: [card4, card5] },
+      { player: player1, count: 1, options: [card1, card2, card3] , description: "Select a card"},
+      { player: player2, count: 2, options: [card4, card5] , description: "Select a card"},
     ]);
 
     const state1 = JSON.parse(game.detailedStateJSON(player1));
@@ -342,7 +343,7 @@ describe("Game.selectMultiple", () => {
 
   test("should handle empty options array", async () => {
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 0, options: [], asMany: true },
+      { player: player1, count: 0, options: [], asMany: true , description: "Select a card"},
     ]);
 
     const state1 = JSON.parse(game.detailedStateJSON(player1));
@@ -358,7 +359,7 @@ describe("Game.selectMultiple", () => {
     const card2 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 2, options: [card1, card2] },
+      { player: player1, count: 2, options: [card1, card2] , description: "Select a card"},
     ]);
 
     const state1 = JSON.parse(game.detailedStateJSON(player1));
@@ -380,10 +381,10 @@ describe("Game.selectMultiple", () => {
     });
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: [card1] },
-      { player: player2, count: 1, options: [card2] },
+      { player: player1, count: 1, options: [card1] , description: "Select a card"},
+      { player: player2, count: 1, options: [card2] , description: "Select a card"},
     ]);
-
+    await setTimeout(10); // slight delay to ensure state is updated before clients fetch it
     expect(stateChangeTriggered).toBe(true);
     
     // Complete the selections to avoid hanging promises
@@ -400,9 +401,9 @@ describe("Game.selectMultiple", () => {
     const card3 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: [card1] },
-      { player: player2, count: 1, options: [card2] },
-      { player: player3, count: 1, options: [card3] },
+      { player: player1, count: 1, options: [card1] , description: "Select a card"},
+      { player: player2, count: 1, options: [card2] , description: "Select a card"},
+      { player: player3, count: 1, options: [card3] , description: "Select a card"},
     ]);
 
     const state1 = JSON.parse(game.detailedStateJSON(player1));

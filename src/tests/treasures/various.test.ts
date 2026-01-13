@@ -296,7 +296,7 @@ describe("Treasure - Passive effects", () => {
         game.destroyCardsOrSouls([theChest]);
 
         // The chest should no longer be in play
-        expect(player1.inPlay).not.toContain(theChest);
+        expect(player1.inPlay.map((c) => c.slug)).not.toContain(theChest.slug);
 
         // The chest should now be a soul
         expect(player1.souls).toContain(theChest);

@@ -8,6 +8,7 @@ import type {
   MonsterPiles,
   State,
 } from "@/types/types";
+import { setTimeout } from "timers/promises";
 import { loadCards } from "@/utils/loadCards";
 import {
   Card,
@@ -276,9 +277,7 @@ export class Game {
       )).selected;
       if (lootToLose && lootToLose.length > 0) {
         for (const loot of lootToLose){
-          this.discardFromHandAtIndex(p, p.hand._hand.indexOf(loot));
-          this.removeCardFromHand(p, loot);
-          this.decks[loot.type]!.addDiscardTop(loot);
+          this.discardFromHandAtIndex(p, p.hand._hand.indexOf(loot) + 1);
         }
       }
     }
@@ -399,6 +398,7 @@ export class Game {
     player.attackThisTurn -= 1;
     player.engageInCombat();
     this.emit("on:attack:declared", { eventIssuer: player });
+    this._onStateChange.dispatch();
   }
 
   declareAttackOnMonster(player: Player, monster: Monster | "topDeck", drawInIndex: number = -1): void {
@@ -439,6 +439,8 @@ export class Game {
     }
     this.assertMonsterIsAlive(monster);
     monster.engageInCombat();
+    if(monster.isEngagedInCombat === false)
+      throw new Error("Monster should be engaged in combat now.");
     // Clear forced attack constraint if this monster satisfies it
     player.clearAttackRequirement(monster);
     this._onStateChange.dispatch();
@@ -684,6 +686,7 @@ export class Game {
     count: number;
     asMany: boolean;
     requestId: string;
+    description: string;
     resolve: (selection: any[]) => void;
   }> = new Map();
 
@@ -711,7 +714,8 @@ export class Game {
       player,
       count: n,
       options: Options,
-      asMany: anyNumber
+      asMany: anyNumber,
+      description: description,
     }]);
     return results[0]!;
   }
@@ -757,6 +761,7 @@ export class Game {
       count: number;
       options: any[];
       asMany?: boolean;
+      description: string;
     }>
   ): Promise<Array<{ playerId: string; selected: any[]; remaining: any[] }>> {
     // In multiplayer mode: create promises for all players
@@ -769,6 +774,7 @@ export class Game {
           options: sel.options,
           count: sel.count,
           asMany: asMany,
+          description: sel.description,
           requestId,
           resolve: (selection: any[]) => {
             const remaining = sel.options.filter(opt => !selection.includes(opt));
@@ -782,8 +788,9 @@ export class Game {
         });
       });
     });
-
+    
     // Notify clients of state change (so players see the selection requests via SSE)
+    await setTimeout(10); // slight delay to ensure state is updated before clients fetch it
     this._onStateChange.dispatch();
 
     // Wait for all selections to complete
@@ -957,6 +964,7 @@ export class Game {
   endTurn(): void {
     const player = this.assertIssuerSecret(this.currentPlayer);
     this.assertCurrentTurnIsPlayerTurn(player);
+    this.assertCurrentPlayerIsNotEngagedInCombat();
     this.assertNoOngoingAttack();
     this.assertForcedAttackSatisfied(player);
     this.healEveryone();
@@ -1046,6 +1054,8 @@ export class Game {
       this.decks["monster"]!,
       this
     );
+    // fill empty spot may call game.encounters, so it must be called after this._encounters initialization.
+    this._encounters.fillEmptySpots(true);
     this.emit("on:game:start:before", {});
     this.emit("on:game:start", {});
     this.healEveryone();
@@ -1505,18 +1515,18 @@ export class Game {
   destroyCardsOrSouls(cards: Card[]): boolean {
     if (cards.length === 0 || cards.every((card) => card === undefined))
       return false;
+    this.emit("on:item:destroyed", { eventIssuer: null, cards });
     cards.forEach((card) => {
       this.players.forEach((player) => {
-        player.removeInPlay(card);
+        this.removeInPlay(player, card);
       });
     });
     cards.forEach((card) => {
       this.players.forEach((player) => {
-        player.removeSoul(card);
+        this.removeSoul(player, card);
       });
     });
     this.destroyedCards.push(...cards);
-    this.emit("on:item:destroyed", { eventIssuer: null, cards: cards });
     return true;
   }
 
@@ -1538,6 +1548,7 @@ export class Game {
         currentAttackPoints: player.attackPoints,
         currentHealthPoints: player.currentHealthPoints,
         remainingLootPlay: player.remainingLootPlay,
+        isEngagedInCombat: player.isEngagedInCombat,
       },
       players: this.players
         .filter((p) => p.id !== player.id)
@@ -1550,6 +1561,7 @@ export class Game {
           currentAttackPoints: p.attackPoints,
           currentHealthPoints: p.currentHealthPoints,
           remainingLootPlay: p.remainingLootPlay,
+          isEngagedInCombat: p.isEngagedInCombat,
         })),
       topDiscards: {
         loot: this.decks["loot"]!.discard[0]
@@ -1564,11 +1576,13 @@ export class Game {
       },
       monsters: this.encounters._slots.map((m, index) => ({ card: m[m.length - 1]!, monster: this.encounters.monsterIn(index) })).map((m) => ({
         slug: m.card?.slug,
+        name: m.card?.name,
         ...(m.monster ? {
           stats: {
             healthPoints: m.monster.currentHealthPoints,
             attackPoints: m.monster.attackPoints,
             evasionPoints: m.monster.evasion,
+            isEngagedInCombat: m.monster.isEngagedInCombat,
           }
         } : {}),
       })),
@@ -1597,6 +1611,7 @@ export class Game {
               options: TargetBuilder.convertToStringIdentifiers(sel.options),
               count: sel.count,
               asMany: sel.asMany,
+              description: sel.description,
             };
           }
         }
@@ -1713,7 +1728,7 @@ export class Game {
     for (const p of this.players) {
       if (p !== player) {
         if (p.inPlay.includes(target)) {
-          p.inPlay.splice(p.inPlay.indexOf(target), 1);
+          this.removeInPlay(p, target);
           this.addInPlay(player, target);
           return true;
         }
@@ -1757,7 +1772,7 @@ export class Game {
     if (!owner.inPlay.includes(card)) {
       throw new Error("Owner does not have the specified card in play.");
     }
-    this.destroyedCards.push(card);
+    this.destroyCardsOrSouls([card]);
     owner.removeInPlay(card);
     this.gainTreasure(owner);
   }
@@ -1950,6 +1965,11 @@ export class Game {
     card.cleanup();
     return player.removeInPlay(card);
   }
+
+  removeSoul(player: Player, card: Card): boolean {
+    card.cleanup();
+    return player.removeSoul(card);
+  }
   /* PRIVATE METHODS */
 
   private removeMonster(monster: Monster): void {
@@ -2010,6 +2030,12 @@ export class Game {
   private assertCurrentTurnIsPlayerTurn(player: Player): void {
     if (this.currentPlayer !== player) {
       throw new Error("Not your turn");
+    }
+  }
+
+  private assertCurrentPlayerIsNotEngagedInCombat(): void {
+    if (this.currentPlayer!.isEngagedInCombat) {
+      throw new Error("You cannot end your turn while engaged in combat.");
     }
   }
 
@@ -2081,8 +2107,12 @@ export class Game {
 
   private assertNoOngoingAttack(): void {
     if (this._ongoingAttack !== null) {
-      throw new Error("An attack is already ongoing");
+      throw new Error("An attack is ongoing");
     }
+    this.monsters.forEach((e) => {
+      if(e.isEngagedInCombat)
+        throw new Error("An attack is ongoing");
+    });
   }
 
   assertNoPendingSelection(): void {

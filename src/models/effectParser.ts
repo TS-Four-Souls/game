@@ -968,9 +968,9 @@ function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null 
             return noTargetEffect(monster.dieWhenAnotherMonsterDiesEffect(game));
         case "this can't be attacked.":
             return noTargetEffect(monster.cantBeAttackedEffect(game));
-        case "Damage dealt to this is also dealt to the player to the active player's right.":
+        case "damage dealt to this is also dealt to the player to the active player's right.":
             return noTargetEffect(monster.damageAlsoPlayerToTheEffect(game, "right"));
-        case "Damage dealt to this is also dealt to the player to the active player's left.":
+        case "damage dealt to this is also dealt to the player to the active player's left.":
             return noTargetEffect(monster.damageAlsoPlayerToTheEffect(game, "left"));
         default:
             return null; // No match found

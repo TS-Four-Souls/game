@@ -1,0 +1,159 @@
+import { describe, it, expect, beforeEach } from "bun:test";
+import { Game } from "../models/game";
+import { DamageOnStack, DiceRoll, Player } from "../models/player";
+import { pl } from "zod/locales";
+import type { LootCard, ItemCard, Card } from "@/models/cards";
+import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
+import { setupStandardTestGame, dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "./testHelpers";
+
+describe("Loot Card", () => {
+    let game: Game;
+    let player1: Player;
+    let player2: Player;
+
+    beforeEach(() => {
+        const setup = setupStandardTestGame();
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+    });
+
+    it("discard 1 loots on death", async () => {
+        game.loot(player1, 10);
+        const handSize = player1.hand.length;
+        game.kill(player1, player1, player1.hand._hand[0] as Card);
+        await game.resolveEntireStack();
+        expect(game.stack.size).toBe(0);
+        expect(player1.hand.length).toBe(handSize - 1);
+    });
+
+    it("Swallowed Penny: should give one coin on player takes damage if player is issuer and damage > 0.", async () => {
+        const loot = game.decks["loot"]!.getCardFromSlug("b2-swallowed_penny")!;
+
+        player1.addHealthPoints(10);
+        const initialHealth = player1.currentHealthPoints;
+        const initialCoins = player1.coins;
+        const initialCoins2 = player2.coins;
+        player1.hand.addToHand(loot);
+        game.playCard(player1, 0);
+        await game.resolveStack();
+
+        game.dealDamage(player2, player1, loot, 1);
+        await game.resolveStack();
+        await game.resolveStack(); // resolve on damage taken
+        expect(player1.coins).toBe(initialCoins + 1);
+        expect(player1.currentHealthPoints).toBe(initialHealth - 1);
+
+        game.dealDamage(player2, player1, loot, 1);
+        const dmgOnStck = game.stack.peek()! as DamageOnStack;
+        dmgOnStck.damage = [0]; // modify damage to 0
+        await game.resolveStack();
+        await game.resolveStack(); // resolve on damage taken
+        expect(player1.coins).toBe(initialCoins + 1);
+        expect(player1.currentHealthPoints).toBe(initialHealth - 1);
+    });
+
+
+    it("stealing does not remove card correctly", async () => {
+        const payToPlay = game.shop.obtainCard("b2-pay_to_play") as ItemCard;
+        const targetItem = game.shop.obtainCard("b2-brimstone") as ItemCard;
+        expect(player1.attackPoints).toBe(1);
+        expect(player2.attackPoints).toBe(1);
+        game.addInPlay(player2, payToPlay);
+        game.addInPlay(player1, targetItem);
+        expect(player1.attackPoints).toBe(2);
+        expect(player2.attackPoints).toBe(1);
+
+        // Give player2 enough coins
+        player2.gainCoins(10);
+        const initialCoins = player2.coins;
+
+        // Activate pay_to_play (paid effect with effectId 0)
+        await game.activateItem(player2, payToPlay, [targetItem], 0);
+        await game.resolveStack();
+
+        expect(player1.attackPoints).toBe(1);
+        expect(player2.attackPoints).toBe(2);
+        // Item should be stolen and player should lose 10¢
+        expect(player2.coins).toBe(initialCoins - 10);
+        expect(player1.inPlay).not.toContain(targetItem);
+        expect(player2.inPlay).toContain(targetItem);
+
+        expect(player1.inPlay.length).toBe(2);
+        expect(player2.inPlay.length).toBe(4);
+        expect(player2.inPlay.map((c) => c.slug)).toContain("b2-brimstone");
+    });
+
+
+    it("curse removed on death", async () => {
+        const pain = game.obtainCard("b2-curse_of_pain") as MonsterCard;
+        const blank = game.obtainCard("b2-blank_card") as ItemCard;
+        game.addInPlay(player1, blank); // to discard on death
+        game.decks["monster"]?.addTopPosition(pain);
+
+        game.encounters.draw(0);
+        await game.resolveStack();
+
+        expect(player1.inPlay.length).toBe(4);
+        expect(player1.inPlay[3]!.slug).toBe("b2-curse_of_pain");
+        game.endTurn();
+        await game.resolveStack();
+
+        game.endTurn();
+        await game.resolveStack(); // end turn effect d6
+        await game.resolveStack(); // on turn start
+        await game.resolveStack(); // damage
+        expect(game.currentPlayer).toBe(player1);
+        expect(game.stack.size).toBe(0);
+        expect(player1.currentHealthPoints).toBe(1);
+
+        game.kill(player1, player1, pain);
+        await game.resolveStack(); // death on stack
+        expect(player1.inPlay.length).toBe(2);
+
+        game.endTurn();
+        await game.resolveStack();
+
+        game.endTurn();
+        await game.resolveStack(); // end turn effect d6
+        expect(game.stack.size).toBe(0);
+        expect(player1.currentHealthPoints).toBe(2);
+    });
+
+    it("curse removed on destruction (dagaz)", async () => {
+        const pain = game.obtainCard("b2-curse_of_pain") as MonsterCard;
+        const blank = game.obtainCard("b2-blank_card") as ItemCard;
+        const dagaz = game.obtainCard("b2-dagaz") as LootCard;
+        game.addInPlay(player1, blank); // to discard on death
+        game.decks["monster"]?.addTopPosition(pain);
+
+        game.encounters.draw(0);
+        await game.resolveStack();
+
+        expect(player1.inPlay.length).toBe(4);
+        expect(player1.inPlay[3]!.slug).toBe("b2-curse_of_pain");
+        game.endTurn();
+        await game.resolveStack();
+
+        game.endTurn();
+        await game.resolveStack(); // end turn effect d6
+        await game.resolveStack(); // on turn start
+        await game.resolveStack(); // damage
+        expect(game.currentPlayer).toBe(player1);
+        expect(game.stack.size).toBe(0);
+        expect(player1.currentHealthPoints).toBe(1);
+
+        game.addCardToHand(player1, dagaz);
+        game.playCard(player1, player1.hand.length - 1, ["destroy a curse.", pain]);
+        await game.resolveStack(); // death on stack
+        expect(player1.inPlay.length).toBe(3);
+
+        game.endTurn();
+        await game.resolveStack();
+
+        game.endTurn();
+        await game.resolveStack(); // end turn effect d6
+        expect(game.stack.size).toBe(0);
+        expect(player1.currentHealthPoints).toBe(2);
+    });
+});

@@ -46,10 +46,10 @@ describe("Monsters - On death effects", () => {
             const newmonster = game.encounters.monsterIn(0);
             await game.resolveStack(); // resolve death
             await game.resolveStack(); // resolve death effect - selection
-            // Check that the player has declared an attack
-            expect(player1.isEngagedInCombat).toBe(true);
             // Check that player attack the top deck and the monster has changed.
             expect(game.encounters.monsterIn(0)).not.toBe(newmonster);
+            // Check that the player has declared an attack
+            expect(player1.isEngagedInCombat).toBe(true);
         });
 
         it("active player can choose not to attack the monster deck when Big Spider dies", async () => {

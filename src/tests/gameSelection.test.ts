@@ -3,6 +3,7 @@ import { Game } from "../models/game";
 import { Player } from "../models/player";
 import type { CharacterCard } from "@/models/cards";
 import type { DetailedState } from "@/types/types";
+import { setTimeout } from "timers/promises";
 
 describe("Game Selection System", () => {
     let game: Game;
@@ -304,6 +305,8 @@ describe("Game Selection System", () => {
         const initialCount = stateChangeCount;
         const options = ["option1", "option2"];
         const selectionPromise = game.select(player1, 1, options, false);
+        
+        await setTimeout(10); // slight delay to ensure state is updated before clients fetch it
         
         // State change should have been triggered
         expect(stateChangeCount).toBeGreaterThan(initialCount);

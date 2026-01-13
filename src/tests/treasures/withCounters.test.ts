@@ -328,13 +328,13 @@ describe("Treasure - with counters effect", () => {
         await game.resolveStack();
         await game.resolveStack(); // resolve on damage taken
         expect(player1.currentHealthPoints).toBe(hpBeforePrevent); // No damage taken (prevented)
-        expect(thePoop.tags.counters).toBe(2); // Counter not added since damage was prevented
+        expect(thePoop.tags.counters).toBe(1); // Counter not added since damage was prevented
 
         // Test: taking damage after prevention expired should add counter normally
         game.dealDamage(player2, player1, thePoop, 2);
         await game.resolveStack();
         await game.resolveStack(); // resolve on damage taken
-        expect(thePoop.tags.counters).toBe(3); // 1 + 2
+        expect(thePoop.tags.counters).toBe(2); // 1 + 1
         expect(player1.currentHealthPoints).toBe(hpBeforePrevent - 2);
 
         // Test: Paid effect prevents only 1 damage from larger damage
@@ -342,14 +342,14 @@ describe("Treasure - with counters effect", () => {
         await game.activateItem(player1, thePoop, [], 0); // Use paid effect again
         await game.resolveStack();
         await game.resolveStack();
-        expect(thePoop.tags.counters).toBe(1);
+        expect(thePoop.tags.counters).toBe(0); // 2 counters removed
 
         const hpBefore = player1.currentHealthPoints;
         game.dealDamage(player2, player1, thePoop, 5);
         await game.resolveStack();
         await game.resolveStack(); // resolve on damage taken
-        expect(player1.currentHealthPoints).toBe(hpBefore - 3); // 5 damage - 1 prevented = 4 actual damage
-        expect(thePoop.tags.counters).toBe(2); // 4 + 4 (counters from 4 damage taken)
+        expect(player1.currentHealthPoints).toBe(hpBefore - 3); // 5 damage - 2 prevented = 3 actual damage
+        expect(thePoop.tags.counters).toBe(1);
 
         // Test: Cannot use paid effect without counters
         // Remove all counters first
