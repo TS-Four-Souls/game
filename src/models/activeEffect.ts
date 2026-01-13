@@ -8,7 +8,6 @@ import { Game } from "./game";
 import type { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
-import { it } from "zod/locales";
 import { effectParser, type ParsedEffect } from "./effectParser";
 import { deckSelector, visibleItemSelector, inplayUnchargedItemSelector } from "./targetSelector";
 import { TargetBuilder } from "./targetBuilder";
@@ -884,16 +883,6 @@ export function rerollDiceEffect(): EffectFunction {
     };
 }
 
-export function rollAndDealDamageEffect(game: Game): EffectFunction {
-    return (data: EffectData) => {
-        if (data.issuer instanceof Player === false) return false;
-        const target = data.next as Entity;
-        const roll = data.issuer.rollDice();
-        game.dealDamage(data.issuer, target, data.it, roll.value);
-        return true;
-    };
-}
-
 export function changeRollTo1Or6Effect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
@@ -1186,9 +1175,8 @@ export function rollEffect(s: string, game: Game): ParsedEffect {
     return {
         effectFunction: (data: EffectData) => {
             if (data.issuer instanceof Player === false) return false;
-            const result = data.issuer.rollDice();
+            const result = game.rollDice(data.issuer, false);
             result.attachEffect(effects, data.it, data.targets);
-            game.addToStack(result);
             return true;
         },
         targetSelectors: [] // roll has special target handling based on the roll result
@@ -1212,13 +1200,12 @@ export function dealRollDamageEffect(s: string, game: Game): ParsedEffect {
         effectFunction: (data: EffectData) => {
             if (data.issuer instanceof Player === false) return false;
             const target = data.next as Entity;
-            const roll = data.issuer.rollDice();
+            const roll = game.rollDice(data.issuer, false);
             roll.attachEffect([...Array(6).keys()].map((i) =>
                 (data: EffectData) => {
                     game.dealDamage(data.issuer, data.next as Entity, data.it, i + 1);
                     return true;
                 }), data.it, [target]);
-            game.addToStack(roll);
             return true;
         },
         targetSelectors: [] // Special roll damage handling

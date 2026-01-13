@@ -502,8 +502,9 @@ class Encounters {
     killTop(index: number) : Card | undefined {
         if (index >= 0) {
             const card = this._slots[index]!.pop();
+            if(this._slots[index]!.length > 0)
+                this.createMonsterAtSlot(index);
             this.fillEmptySpots(false);
-            // Call game to know what to do (give rewards,soul, discard card or not...)
             return card;
         }
     }

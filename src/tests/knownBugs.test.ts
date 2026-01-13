@@ -156,4 +156,14 @@ describe("Loot Card", () => {
         expect(game.stack.size).toBe(0);
         expect(player1.currentHealthPoints).toBe(2);
     });
+    
+    it("remove something on top of a monster work", async () => {
+        game.declareAttack(player1);
+        game.drawMonster(player1, 0);
+        const monster = game.monsters[0]!;
+        game.kill(player1, monster, player1.inPlay[0]!);
+        await game.resolveEntireStack();
+        expect(game.monsters[0]).not.toBe(monster);
+        expect(game.encounters.visible[0]?.slug).not.toBe(monster.card.slug);
+    });
 });
