@@ -446,7 +446,9 @@ describe("Treasure - Passive effects", () => {
         
         // Use both purchases this turn
         game.purchase(player1, 1);
+        game.removeInPlay(player1, player1.inPlay[3]!); // remove purchased item from inPlay to ensure basic second purchase.
         game.purchase(player1, 1);
+        game.removeInPlay(player1, player1.inPlay[3]!); // remove purchased item from inPlay to ensure basic second purchase.
         
         // Third purchase should fail
         expect(() => game.purchase(player1, 1)).toThrow();
@@ -455,14 +457,17 @@ describe("Treasure - Passive effects", () => {
         game.endTurn();
         await game.resolveStack(); // Resolve any stack effects
         await game.resolveStack(); // Resolve any stack effects
+        expect(game.currentPlayer.id).toBe(player2.id);
         game.endTurn();
         await game.resolveStack(); // Resolve any stack effects
         await game.resolveStack(); // Resolve any stack effects
 
+        expect(game.currentPlayer.id).toBe(player1.id);
         // Should be able to purchase twice again in new turn
         const result4 = game.purchase(player1, 1);
+        game.removeInPlay(player1, player1.inPlay[3]!); // remove purchased item from inPlay to ensure basic second purchase.
         const result5 = game.purchase(player1, 1);
-        
+        game.removeInPlay(player1, player1.inPlay[3]!); // remove purchased item from inPlay to ensure basic second purchase.
         expect(result4).toContain("successful");
         expect(result5).toContain("successful");
     });

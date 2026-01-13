@@ -153,15 +153,6 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
     dischargeEachItemsAndRemoveCoins(game);
     emptyHands(game);
 
-    // Add monsters to deck top (reverse order so last becomes top)
-    for (const slug of monsterDeck) {
-        const monsterCard = game.obtainCard(slug);
-        if (!monsterCard) {
-            throw new Error(`Monster card not found: ${slug}`);
-        }
-        game.decks["monster"]!.addTopPosition(monsterCard as MonsterCard);
-    }
-
     // Force specific monsters into slots
     for (let i = 0; i < monsters.length; i++) {
         const slug = monsters[i]!;
@@ -170,6 +161,15 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
             throw new Error(`Monster card not found: ${slug}`);
         }
         game.monsterSlots.forceSetMonsterAtSlot(i, monsterCard as MonsterCard);
+    }
+
+    // Add monsters to deck top (reverse order so last becomes top)
+    for (const slug of monsterDeck) {
+        const monsterCard = game.obtainCard(slug);
+        if (!monsterCard) {
+            throw new Error(`Monster card not found: ${slug}`);
+        }
+        game.decks["monster"]!.addTopPosition(monsterCard as MonsterCard);
     }
 
     // Add treasures to deck top (reverse order so last becomes top)
@@ -223,6 +223,7 @@ export function setupSamsonIsaacGame(): GameSetupResult {
         characters: ["b2-samson", "b2-isaac"],
         monsters: ["b2-fly", "b2-fatty"],
         monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+        treasureDeck: ["b2-blank_card", "b2-placebo", "b2-tech_x", "b2-crystal_ball", "b2-boomerang"],
     });
 }
 

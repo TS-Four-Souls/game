@@ -16,7 +16,7 @@ describe("Monster Rewards - Verification", () => {
             characters: ["b2-samson", "b2-isaac"],
             monsters: ["b2-fly", "b2-fatty"],
             monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
-            treasureDeck: ["b2-blank_card"],
+            treasureDeck: ["b2-blank_card", "b2-placebo", "b2-tech_x"],
         });
         game = setup.game;
         player1 = setup.player1;
@@ -59,7 +59,7 @@ describe("Monster Rewards - Verification", () => {
         // Resolve the death and rewards
         await game.resolveStack();
         if( game.stack.elements.length > 1) // black bony effect add effect on stack on death.
-            game.stack.cancel();
+            game.stack.removeAt(0);
 
         // If roll-based reward, set the roll value
         if (expectedReward.rollValue !== undefined) {
@@ -69,8 +69,6 @@ describe("Monster Rewards - Verification", () => {
                 await game.resolveStack();
             }
         }
-
-        
 
         // Verify rewards were granted
         if (expectedReward.coins !== undefined) {

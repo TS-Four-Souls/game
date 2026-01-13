@@ -284,6 +284,7 @@ export class Game {
     for(const item of p.inPlay)
       if(item.hasActiveEffect())
         item.charged = false;
+    this._onStateChange.dispatch();
   }
 
   death(receiver: Entity, from: Entity, source: DamageSource): void {
@@ -330,17 +331,17 @@ export class Game {
       this.gainTreasure(this.currentPlayer, rewards.treasure);
   }
 
-  obtainMonsterSoul(monster: Monster): void {
+  obtainMonsterSoulOrDiscard(monster: Monster): void {
     const card = monster.card;
+    if (this.encounters._deck.cards.includes(card))
+      return; // monster is back in the deck and does not give his soul.
     if (card.rewards?.soul !== undefined) {
-      if (this.encounters._deck.cards.includes(card))
-        return; // monster is back in the deck and does not give his soul.
       if (typeof card.rewards?.soul !== "number")
         throw new Error("Monster soul reward must be a number.");
       card.soul = card.rewards?.soul;
       this.currentPlayer.addSoul(monster.card);
       this._onStateChange.dispatch();
-    }
+    } else this.discard(monster.card);
   }
 
 
@@ -364,15 +365,15 @@ export class Game {
         for (const player of this.players) {
           player.clearAttackRequirement(receiver);
         }
-        this.monsterRewards(receiver);
         this.emit("on:death:monster", {
           eventIssuer: receiver,
           target: from,
           source: source,
         });
+        this.monsterRewards(receiver);
         this.encounters.kill(receiver);
         this.executeWhenStackEmpty(async () => {
-          this.obtainMonsterSoul(receiver);
+          this.obtainMonsterSoulOrDiscard(receiver);
         });
       }
       this.emit("on:death:after-penalty", {

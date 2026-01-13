@@ -54,34 +54,39 @@ describe("Before start effects", () => {
         // const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         // const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         expect(game.players.length).toBe(2);
+        const topTreas = game.obtainCard("b2-blank_card");
+        const topTreas2 = game.obtainCard("b2-placebo");
+        const topTreas3 = game.obtainCard("b2-tech_x");
+        game.decks["treasure"]!.addTopPosition(topTreas!);
+        game.decks["treasure"]!.addTopPosition(topTreas2!);
+        game.decks["treasure"]!.addTopPosition(topTreas3!);
         game.start(player1);
-      dischargeEachItemsAndRemoveCoins(game);
-      emptyHands(game);
-            expect(game.players.length).toBe(2);
+        dischargeEachItemsAndRemoveCoins(game);
+        emptyHands(game);
+        expect(game.players.length).toBe(2);
         const character1 = player1.inPlay[0] as CharacterCard;
         const character2 = player2.inPlay[0] as CharacterCard;
+        game.resolveEntireStack();
+        expect(game.stack.size).toBe(0);
         if(!character1 || !character2)
             throw new Error("Characters not found");
         const initialLootPlays1 = player1.remainingLootPlay;
         const initialLootPlays2 = player2.remainingLootPlay;
         character1.recharge();
         await game.activateItem(player1, character1, );
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.resolveEntireStack();
+        expect(game.stack.size).toBe(0);
         expect(player1.remainingLootPlay).toBe(initialLootPlays1 + 1);
         expect(game.activateItem(player1, character1, )).rejects.toThrow(); // uncharged tap should do nothing
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.resolveEntireStack();
         expect(player1.remainingLootPlay).toBe(initialLootPlays1 + 1);
         character2.recharge();
         await game.activateItem(player2, character2, );
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.resolveEntireStack();
         expect(player2.remainingLootPlay).toBe(initialLootPlays2 + 1);
 
         game.endTurn();
-        await game.resolveStack();
-
+        await game.resolveEntireStack();
         // Ensure the loot play resets at the start of the turn
         expect(game.players.filter(p => p.id !== game.currentPlayer.id)[0]!.remainingLootPlay).toBe(0);
         expect(game.currentPlayer.remainingLootPlay).toBeGreaterThanOrEqual(1);

@@ -48,6 +48,8 @@ describe("Monsters - On death effects", () => {
             await game.resolveStack(); // resolve death effect - selection
             // Check that player attack the top deck and the monster has changed.
             expect(game.encounters.monsterIn(0)).not.toBe(newmonster);
+            expect(game.encounters.monsterIn(0)).toBeDefined();
+            expect(game.encounters.monsterIn(0)?.card.slug).toBe("b2-pooter");
             // Check that the player has declared an attack
             expect(player1.isEngagedInCombat).toBe(true);
         });
@@ -532,6 +534,7 @@ describe("Monsters - On death effects", () => {
         
         game.kill(player1, monster, card);
         await game.resolveStack(); // resolve death
+        await game.resolveStack(); // resolve dice
         await game.resolveStack(); // resolve death effect 
         await game.resolveStack(); // resolve damage 
 
@@ -547,6 +550,8 @@ describe("Monsters - On death effects", () => {
         
         game.kill(player2, monster, card);
         await game.resolveStack(); // resolve death
+        await game.resolveStack(); // resolve dice
+
         await game.resolveStack(); // resolve death effect 
         await game.resolveStack(); // resolve damage 
 
@@ -611,8 +616,7 @@ describe("Monsters - On death effects", () => {
         const monster = game.monsters[0]!;
         
         game.kill(monster, monster, card);
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect 
+        await game.resolveEntireStack(); 
         expect(game.stack.size).toBe(0);
 
         expect(game.decks["monster"]?.cards[6]!.slug).toBe(card.slug);

@@ -700,6 +700,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
     it("the_d10", async () => {
         const correctValue = 3;
         const theD10 = game.shop.obtainCard("b2-the_d10")! as treasureCard;
+        const card = game.obtainCard("b2-pills") as LootCard;
         game.endTurn();
         await game.resolveStack();
         game.addInPlay(player1, theD10);
@@ -742,9 +743,9 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         expect(foundTopCard).toBe(true);
 
         // card roll
-        const card = game.obtainCard("b2-pills") as LootCard;
         player2.hand.addToHand(card);
         const playCard = game.playCard(player2, 1);
+        expect(playCard).toBeDefined();
         await game.resolveStack();
 
         const topMonsterCard2 = game.decks["monster"]!.cards[0];

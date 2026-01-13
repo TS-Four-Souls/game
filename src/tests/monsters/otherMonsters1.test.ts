@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, expectTypeOf } from "bun:test";
 import { Game } from "../../models/game";
-import { DiceRoll, Player } from "../../models/player";
+import { DamageOnStack, DiceRoll, Player } from "../../models/player";
 import type { ItemCard, LootCard } from "@/models/cards";
 import { MonsterCard } from "@/models/cards";
 import { setupTestGame, emptyHands, mockGameSelections } from "../testHelpers";
@@ -16,7 +16,7 @@ describe("Monsters - Various 1", () => {
             characters: ["b2-samson", "b2-isaac"],
             monsters: ["b2-fly", "b2-fatty"],
             monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
-            treasureDeck: ["b2-blank_card"],
+            treasureDeck: ["b2-blank_card", "b2-placebo", "b2-tech_x"],
         });
         game = setup.game;
         player1 = setup.player1;
@@ -138,8 +138,13 @@ describe("Monsters - Various 1", () => {
         expect(card).toBeInstanceOf(MonsterCard);
         const otherMonster = game.encounters.monsterIn(1)!;
         const initEvasion = otherMonster.evasion;
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
-
+        game.monsterSlots.forceSetMonsterAtSlot(0, card);        
+        // Rebuild the deck to ensure known order after forceSetMonsterAtSlot shuffles the replaced card
+        const monsterDeck = game.decks["monster"]!;
+        for (const slug of ["b2-gurdy", "b2-pooter", "b2-red_host"]) {
+            const monsterCard = game.obtainCard(slug);
+            monsterDeck.addTopPosition(monsterCard as MonsterCard);
+        }
         const monster = game.monsters[0]!;
         expect(monster.evasion).toBe(card.evasion);
         expect(monster.evasion).toBe(4);
@@ -168,7 +173,6 @@ describe("Monsters - Various 1", () => {
         game.kill(player1, monster, card);
         await game.resolveStack(); // resolve death
         await game.resolveStack(); // resolve effect
-
         game.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
         roll = game.stack._stack[0] as DiceRoll;
@@ -189,6 +193,7 @@ describe("Monsters - Various 1", () => {
     });
 
     it(" monsters have +1 evasion", async () => {
+        expect(game.decks["monster"]?.cards[0]?.slug).toBe("b2-gurdy");
         const card = game.obtainCard("b2-stoney") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         const otherMonster = game.encounters.monsterIn(1)!;
@@ -217,10 +222,14 @@ describe("Monsters - Various 1", () => {
         // No damage should be dealt
         expect(otherMonster.currentHealthPoints).toBe(otherMonster.card.healthPoints);
         expect(player1.currentHealthPoints).toBe(player1.healthPoints - 1); // took 1 damage for failed attack
+        expect(monster.card.slug).toBe("b2-stoney"); // sanity check
+        expect(otherMonster.card.slug).toBe("b2-fatty"); // sanity check
 
         game.kill(player1, monster, card);
+        
         await game.resolveStack(); // resolve death
         await game.resolveStack(); // resolve effect
+        expect(game.encounters.visible[0]!.slug).toBe("b2-gurdy"); // sanity check
 
         game.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
@@ -230,10 +239,15 @@ describe("Monsters - Various 1", () => {
         }
         // Force the roll to be 4 (should miss because of evasion +1)
         roll.value = initEvasion;
+
+        expect(game.stack._stack.length).toBe(1);
+
         await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve effect
+        expect(game.stack._stack.length).toBe(1);
+        expect(game.stack._stack[0]).toBeInstanceOf(DamageOnStack);
         await game.resolveStack(); // resolve damage
-        
+        expect(game.stack._stack.length).toBe(0);
+        await game.resolveStack(); // resolve damage
         expect(game.stack._stack.length).toBe(0);
         // No damage should be dealt
         expect(otherMonster.currentHealthPoints).toBe(otherMonster.card.healthPoints - 1);

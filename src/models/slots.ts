@@ -438,7 +438,7 @@ class Encounters {
     
     /**
      * Forces a specific monster card into a slot, replacing the current top card.
-     * The replaced card is shuffled back into the deck at a random position.
+     * The replaced card is moved back into the deck at the bottom position.
      * Used for debugging and testing.
      * 
      * @param index - The slot index to set
@@ -448,7 +448,7 @@ class Encounters {
         const previousCard = this._slots[index]![0]!;
         this._slots[index] = [monsterCard];
         this.createMonsterAtSlot(index);
-        this._deck.addRandomPosition(previousCard);
+        this._deck.addBottomPosition(previousCard);
     }
 
     /**

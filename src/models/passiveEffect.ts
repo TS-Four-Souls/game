@@ -173,7 +173,7 @@ export function onYourTurnModifier(
 ): EffectFunction {
     return (data: EffectData) => {
         if (amount < 0)
-            throw new Error("permanentStatModifierEffect amount must be non-negative.");
+            throw new Error("onYourTurnModifier amount must be non-negative.");
 
         if(game.currentPlayer === data.issuer) {
             // Apply the stat modification
