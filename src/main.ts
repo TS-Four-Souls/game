@@ -502,19 +502,19 @@ const app = new Elysia()
     // )! as CharacterCard;
     // const card = game.obtainCard("b2-remote_detonator")!;
     // const card2 = game.obtainCard("b2-xv_the_devil")! as LootCard;
-    const loots = ["b2-i_the_magician", "b2-gold_bomb", "b2-ii_the_high_priestess"]
+    const loots = ["b2-i_the_magician", "b2-gold_bomb", "b2-ii_the_high_priestess", "b2-bomb"]
     for (const slug of loots) {
-      // const card = game.obtainCard(slug)! as LootCard;
-      // game.addCardToHand(p1, card);
+      const card = game.obtainCard(slug)! as LootCard;
+      game.addCardToHand(p1, card);
     }
     // const card2 = game.obtainCard("b2-gold_bomb")! as LootCard;
     // // const card2 = game.obtainCard("b2-bomb")! as LootCard;
     // game.addCardToHand(p1, card2);
     game.start(p1);
-    const treas = ["b2-pandoras_box", "b2-placebo", "b2-the_d20", "b2-blank_card"]
+    const treas = ["b2-pandoras_box", "b2-placebo", "b2-the_d20", "b2-blank_card", "b2-cheese_grater"]
     for (const slug of treas) {
-      // const card = game.obtainCard(slug)!;
-      // game.addInPlay(p1, card);
+      const card = game.obtainCard(slug)!;
+      game.addInPlay(p1, card);
     }
     return new Response("Debug reset", {
       status: 200,

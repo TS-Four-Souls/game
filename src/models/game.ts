@@ -48,6 +48,7 @@ import { preventNextDamageUpToEffect } from "@/models/passiveEffect";
 import { bSoulEffectParser } from "@/models/bonusSoulHandling";
 import { ca, pl } from "zod/locales";
 import type { TriggerEvent } from "@/types/triggers";
+import { set } from "zod";
 
 // Type representing sources of damage - either a card ability or a dice roll
 export type DamageSource = Card | DiceRoll;
@@ -71,6 +72,7 @@ export const gameParameters = {
   lootOnStart: 3,
   coinsOnStart: 3,
   shopPrice: 10,
+  nbPlayerCardRestriction: false, // only cards with minimum player requirement satisfied in decks.
 };
 export class Game {
   private _players: Player[] = [];
@@ -370,8 +372,8 @@ export class Game {
           target: from,
           source: source,
         });
+        this.encounters.kill(receiver); // should only kill once its effects are resolved: should be moved in the resolvewhenstackempty
         this.monsterRewards(receiver);
-        this.encounters.kill(receiver);
         this.executeWhenStackEmpty(async () => {
           this.obtainMonsterSoulOrDiscard(receiver);
         });
@@ -381,6 +383,8 @@ export class Game {
         target: from,
         source: source,
       });
+      // if(receiver instanceof Player && this.currentPlayer === receiver)
+      //   this.executeWhenStackEmpty(() => {this.endTurn();});
     });
   }
 
@@ -453,12 +457,23 @@ export class Game {
     ];
     if (stat === "evasion")
       this.emit("on:get:monster:evasion", {
-        player: this.currentPlayer,
         eventIssuer: monster,
-        target: monster,
-        evasion: baseStat,
+        stat: baseStat,
+      });
+    else if (stat === "attackPoints")
+      this.emit("on:get:monster:attackPoints", {
+        eventIssuer: monster,
+        stat: baseStat,
       });
     return baseStat[0]!;
+  }
+
+  getAttack(monster: Monster): number {
+    return this.getMonsterStat(monster, "attackPoints");
+  }
+
+  getDC(monster: Monster): number {
+    return this.getMonsterStat(monster, "evasion");
   }
 
   obtainCard(slug: string): Card | undefined {
@@ -517,9 +532,11 @@ export class Game {
     if (!monster) {
       throw new Error("No monster is currently engaged in combat.");
     }
-    const damageDealt = [player.attackPoints];
-    const damageReceived = [monster.attackPoints];
-    const evasion = [this.getMonsterStat(monster, "evasion")];
+    // damageDealt and damageReceived will be increased by the attack 
+    // of the dealer and receiver respectively in getAttackRollEffect.
+    const damageDealt = [0];
+    const damageReceived = [0]; 
+    const evasion = [this.getDC(monster)];
     const dice = this.rollDice(player, true);
 
     this.emit("on:attack:roll", {
@@ -1025,7 +1042,7 @@ export class Game {
     }
   }
   setupGame(): void {
-    this._decks = LoadDecks(cards, this.players.length);
+    this._decks = LoadDecks(cards, this.players.length, gameParameters.nbPlayerCardRestriction);
     this.joinEffectsToCards();
   }
 
@@ -1325,9 +1342,6 @@ export class Game {
       return;
     }
 
-    // if(card.slug === "b2-blood_lust")
-    //   console.log("Debug blood lust effect parsing");
-
     for (const outcome of card.effectOutcomes) {
       const effectType = this.getEffectTypeFromOutcome(outcome, card);
 
@@ -1427,6 +1441,12 @@ export class Game {
 
   addDCToEachMonster(e: Entity, value: number): void {
     this.encounters.addDCModifier(value);
+  }
+
+  addDC(e: Entity, value: number): void {
+    if(!(e instanceof Monster))
+      throw new Error("DC modifier can only be added to monsters.");
+    e.addEvasion(value);
   }
 
   addLootPlay(e: Player, value: number): void {
@@ -1581,8 +1601,8 @@ export class Game {
         ...(m.monster ? {
           stats: {
             healthPoints: m.monster.currentHealthPoints,
-            attackPoints: m.monster.attackPoints,
-            evasionPoints: m.monster.evasion,
+            attackPoints: this.getAttack(m.monster),
+            evasionPoints: this.getDC(m.monster),
             isEngagedInCombat: m.monster.isEngagedInCombat,
           }
         } : {}),

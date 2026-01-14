@@ -649,8 +649,8 @@ export type cardDestination =
     | "just_watch"
     | "bottom"
     | "discard";
-    
-export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestination, selectionOnResolve = false): EffectFunction {
+
+export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestination, selectionOnResolve:boolean = false, reveal: boolean = false): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const deckName = selectionOnResolve 
@@ -666,7 +666,15 @@ export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestinati
             ? `Look at the top card of the ${deckName} deck.`
             : canPutWhere === "bottom" ? `Look at the top card of the ${deckName} deck. You may put it on the bottom of the deck.` 
             : `Look at the top card of the ${deckName} deck. You may put it on the bottom of the deck or discard it.`;
-        const selectionResult = await game.select(data.issuer, justWatch ? 0 : 1, [topCard!], true, description);
+        const selectionResult = reveal
+         ? (await game.selectMultiple(game.players.map(player => ({
+                player,
+                count: (justWatch || player !== data.issuer) ? 0 : 1,
+                options: [topCard!],
+                asMany: true,
+                description: description
+            })))).find(p => p.playerId === data.issuer.id)!
+        : await game.select(data.issuer, justWatch ? 0 : 1, [topCard!], true, description);
         if (selectionResult.selected[0] === topCard) {
         switch (canPutWhere) {
             case "just_watch":
@@ -921,11 +929,11 @@ export function getAttackRollEffect(damageDealt: number, damageReceived: number,
     for (let i = 0; i < 6; i++) {
         effects.push((data: EffectData) => {
             const diceRoll = data.next; // First target is the DiceRoll itself
-            const target = data.next as Entity; // Second target is the monster
+            const target = data.next as Monster; // Second target is the monster
             if (i + 1 >= evasion) {
-                game.dealCombatDamage(data.issuer, target, diceRoll, damageDealt);
+                game.dealCombatDamage(data.issuer, target, diceRoll, damageDealt + data.issuer.attackPoints);
             } else {
-                game.dealCombatDamage(target, data.issuer, diceRoll, damageReceived);
+                game.dealCombatDamage(target, data.issuer, diceRoll, damageReceived + game.getAttack(target));
             }
             return true;
         });
@@ -973,8 +981,17 @@ export function loot1PutCardOnTopEffect(game: Game): EffectFunction {
 
 export function healEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
-        if (data.issuer instanceof Player === false) return false;
+        // if (data.issuer instanceof Player === false) return false;
         game.heal(data.issuer, amount);
+        return true;
+    };
+}
+
+export function eachPlayerLosesCoinsEffect(game: Game, amount: number): EffectFunction {
+    return (data: EffectData) => {
+        for (const player of game.players) {
+                game.loseCoins(player, amount, true);
+        }
         return true;
     };
 }
@@ -1102,6 +1119,13 @@ export function addInPlayEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         // console.log("adding in play loot card from effect:", data.it.name);
         // game.addInPlay(data.issuer, data.it);
+        return true;
+    };
+}
+
+export function throwEffect(game: Game): EffectFunction {
+    throw new Error("Function not parsed correctly.");
+    return (data: EffectData) => {
         return true;
     };
 }
@@ -1312,9 +1336,10 @@ export function eachPlayerLootsEffect(game: Game, amount: number): EffectFunctio
     };
 }
 
-export function dealDamageToEachPlayerEffect(game: Game, amount: number): EffectFunction {
+export function dealDamageToEachPlayerEffect(game: Game, amount: number, includeActivePlayer: boolean = true): EffectFunction {
     return (data: EffectData) => {
         for (const player of game.players) {
+            if (!includeActivePlayer && player === game.currentPlayer) continue;
             game.dealDamage(data.issuer, player, data.it, amount);
         }
         return true;

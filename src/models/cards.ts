@@ -1238,7 +1238,7 @@ class Hand {
     }
 }
 
-function LoadDecks(json_array: GenericCardType[], numPlayers: number) : {[key: string]: Deck} {
+function LoadDecks(json_array: GenericCardType[], numPlayers: number, nbPlayerCardRestriction: boolean) : {[key: string]: Deck} {
     // Create fresh CardSets from JSON to ensure independent card instances
     const decks_cardSets = LoadsCardSets(json_array);
     
@@ -1250,8 +1250,7 @@ function LoadDecks(json_array: GenericCardType[], numPlayers: number) : {[key: s
         }
         let range = [];
         for (let i = 0; i < set.length; i++) {
-            // TODO: re-enable minimum players filtering. It is disable to be able to test all cards.
-            // if(set.get(i)!.minimumPlayers <= numPlayers) 
+            if(set.get(i)!.minimumPlayers <= numPlayers || !nbPlayerCardRestriction) 
             {
                 range.push(i);
             }

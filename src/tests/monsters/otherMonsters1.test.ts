@@ -375,29 +375,290 @@ describe("Monsters - Various 1 - 3 players", () => {
     });
 
     // // right = previous
-    // it("damage also dealt to player to the right (p1)", async () => {
-    //     const card = game.obtainCard("b2-dople") as MonsterCard;
-    //     expect(card).toBeInstanceOf(MonsterCard);
+    it("damage also dealt to player to the right (p1)", async () => {
+        const card = game.obtainCard("b2-dople") as MonsterCard;
+        expect(card).toBeInstanceOf(MonsterCard);
         
-    //     game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.monsterSlots.forceSetMonsterAtSlot(0, card);
 
-    //     const monster = game.monsters[0]!;
-    //     const initHPPlayer1 = player1.currentHealthPoints;
-    //     const initHPPlayer2 = player2.currentHealthPoints;
-    //     const initHPPlayer3 = player3.currentHealthPoints;
+        const monster = game.monsters[0]!;
+        const initHPPlayer1 = player1.currentHealthPoints;
+        const initHPPlayer2 = player2.currentHealthPoints;
+        const initHPPlayer3 = player3.currentHealthPoints;
 
-    //     game.endTurn(); // to player2
-    //     game.dealDamage(monster, monster, card, 1);
-    //     await game.resolveStack(); // resolve damage
-    //     await game.resolveStack(); // resolve effect
-    //     await game.resolveStack(); // resolve damage
-    //     await game.resolveStack(); // resolve damage
+        game.endTurn(); // to player2
+        await game.resolveStack(); // resolve damage
+        game.dealDamage(monster, monster, card, 1);
+        await game.resolveStack(); // resolve damage
+        await game.resolveStack(); // resolve effect
+        await game.resolveStack(); // resolve damage
+        await game.resolveStack(); // resolve damage
         
-    //     expect(game.stack._stack.length).toBe(0);
-    //     // Damage should be dealt to both monster and player2
-    //     expect(monster.currentHealthPoints).toBe(monster.card.healthPoints - 1);
-    //     expect(player2.currentHealthPoints).toBe(initHPPlayer2);
-    //     expect(player3.currentHealthPoints).toBe(initHPPlayer3);
-    //     expect(player1.currentHealthPoints).toBe(initHPPlayer1-1);
-    // });
+        expect(game.stack._stack.length).toBe(0);
+        // Damage should be dealt to both monster and player2
+        expect(monster.currentHealthPoints).toBe(monster.card.healthPoints - 1);
+        expect(player2.currentHealthPoints).toBe(initHPPlayer2);
+        expect(player3.currentHealthPoints).toBe(initHPPlayer3);
+        expect(player1.currentHealthPoints).toBe(initHPPlayer1-1);
+    });
+
+    it("damage also dealt to player to the left", async () => {
+        const card = game.obtainCard("b2-evil_twin") as MonsterCard;
+        expect(card).toBeInstanceOf(MonsterCard);
+        
+        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+
+        const monster = game.monsters[0]!;
+        const initHPPlayer1 = player1.currentHealthPoints;
+        const initHPPlayer2 = player2.currentHealthPoints;
+        const initHPPlayer3 = player3.currentHealthPoints;
+
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, monster);
+        
+        game.attackRoll(player1);
+        expect(game.stack._stack.length).toBe(1);
+        let roll = game.stack._stack[0] as DiceRoll;
+        if(!(roll instanceof DiceRoll)) {
+            throw new Error("Expected a DiceRoll on the stack.");
+        }
+        roll.value = 6;
+        await game.resolveStack(); // resolve dice
+        await game.resolveStack(); // resolve effect
+        await game.resolveStack(); // resolve damage
+        await game.resolveStack(); // resolve damage
+        await game.resolveStack(); // resolve damage
+        
+        expect(game.stack._stack.length).toBe(0);
+        // Damage should be dealt to both monster and player2
+        expect(monster.currentHealthPoints).toBe(monster.card.healthPoints - 1);
+        expect(player1.currentHealthPoints).toBe(initHPPlayer1);
+        expect(player2.currentHealthPoints).toBe(initHPPlayer2-1);
+        expect(player3.currentHealthPoints).toBe(initHPPlayer3);
+    });
+
+    // // right = previous
+    it("damage also dealt to player to the left (p2)", async () => {
+        const card = game.obtainCard("b2-evil_twin") as MonsterCard;
+        expect(card).toBeInstanceOf(MonsterCard);
+        
+        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        const monster = game.monsters[0]!;
+
+        const initHPPlayer1 = player1.currentHealthPoints;
+        const initHPPlayer2 = player2.currentHealthPoints;
+        const initHPPlayer3 = player3.currentHealthPoints;
+
+        game.endTurn(); // to player2
+        await game.resolveStack(); // resolve damage
+        game.endTurn(); // to player2
+        await game.resolveStack(); // resolve damage
+        game.dealDamage(monster, monster, card, 1);
+        await game.resolveStack(); // resolve damage
+        await game.resolveStack(); // resolve effect
+        await game.resolveStack(); // resolve damage
+        await game.resolveStack(); // resolve damage
+        
+        expect(game.stack._stack.length).toBe(0);
+        // Damage should be dealt to both monster and player2
+        expect(monster.currentHealthPoints).toBe(monster.card.healthPoints - 1);
+        expect(player2.currentHealthPoints).toBe(initHPPlayer2);
+        expect(player3.currentHealthPoints).toBe(initHPPlayer3);
+        expect(player1.currentHealthPoints).toBe(initHPPlayer1-1);
+    });
+
+    it("While this is at 1 [HP] , it has +1 [ATK] . (Gemini)", async () => {
+        const card = game.obtainCard("b2-gemini") as MonsterCard;
+        expect(card).toBeInstanceOf(MonsterCard);
+        
+        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        const monster = game.monsters[0]!;
+        expect(monster.attackPoints).toBe(card.attackPoints);
+
+        game.dealDamage(player1, monster, card, card.healthPoints -1);
+        await game.resolveStack(); // resolve damage
+        await game.resolveStack(); // resolve effect
+        
+        expect(game.getMonsterStat(monster, "attackPoints")).toBe(card.attackPoints + 1);
+        game.heal(monster, 1);
+        expect(game.getMonsterStat(monster, "attackPoints")).toBe(card.attackPoints);
+        expect(game.getMonsterStat(monster, "attackPoints")).toBe(card.attackPoints);
+
+        game.dealDamage(player1, monster, card, 1);
+        await game.resolveStack(); // resolve damage
+        await game.resolveStack(); // resolve effect
+        
+        expect(game.getMonsterStat(monster, "attackPoints")).toBe(card.attackPoints + 1);
+        game.addHealth(player1, 10);
+        const initHealth = player1.currentHealthPoints;
+
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, monster);
+        game.attackRoll(player1);
+        const dice = game.stack._stack[0] as DiceRoll;
+        expect(dice).toBeInstanceOf(DiceRoll);
+        dice.value = 1; // fail
+        await game.resolveStack(); // Dice
+        await game.resolveStack(); // Damage
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(player1.currentHealthPoints).toBe(initHealth - 2);
+    });
+
+    it("While this is at 1 [HP] , it has +1 [DC] . (mask_of_infamy)", async () => {
+        const card = game.obtainCard("b2-mask_of_infamy") as MonsterCard;
+        expect(card).toBeInstanceOf(MonsterCard);
+        
+        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        const monster = game.monsters[0]!;
+        expect(game.getDC(monster)).toBe(card.evasion);
+
+        game.dealDamage(player1, monster, card, monster.currentHealthPoints -1);
+        await game.resolveStack(); // resolve damage
+        await game.resolveStack(); // resolve effect
+        
+        expect(game.getDC(monster)).toBe(card.evasion + 2);
+        game.heal(monster, 1);
+        expect(game.getDC(monster)).toBe(card.evasion);
+        expect(game.getDC(monster)).toBe(card.evasion);
+
+        game.dealDamage(player1, monster, card, 1);
+        await game.resolveStack(); // resolve damage
+        await game.resolveStack(); // resolve effect
+        
+        expect(game.getDC(monster)).toBe(card.evasion + 2);
+        game.addHealth(player1, 10);
+        const initHealth = player1.currentHealthPoints;
+
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, monster);
+        game.attackRoll(player1);
+        const dice = game.stack._stack[0] as DiceRoll;
+        expect(dice).toBeInstanceOf(DiceRoll);
+        dice.value = monster.card.evasion + 1;
+        await game.resolveStack(); // Dice
+        await game.resolveStack(); // Damage
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(player1.currentHealthPoints).toBeLessThan(initHealth);
+    });
+
+    it("While this is at 2 [HP] or less, it has +1 [DC] . (larry_jr)", async () => {
+        const card = game.obtainCard("b2-larry_jr") as MonsterCard;
+        expect(card).toBeInstanceOf(MonsterCard);
+        
+        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        const monster = game.monsters[0]!;
+        expect(game.getDC(monster)).toBe(card.evasion);
+
+        game.dealDamage(player1, monster, card, card.healthPoints -2);
+        await game.resolveStack(); // resolve damage
+        await game.resolveStack(); // resolve effect
+        
+        expect(game.getDC(monster)).toBe(card.evasion + 1);
+        game.heal(monster, 1);
+        expect(game.getDC(monster)).toBe(card.evasion);
+        game.dealDamage(player1, monster, card, card.healthPoints -2);
+        await game.resolveStack(); // resolve damage
+        await game.resolveStack(); // resolve effect
+        
+        expect(game.getDC(monster)).toBe(card.evasion + 1);
+        game.heal(monster, 2);
+        expect(monster.currentHealthPoints).toBe(3);
+        expect(game.getDC(monster)).toBe(card.evasion);
+        expect(game.getDC(monster)).toBe(card.evasion);
+
+        game.dealDamage(player1, monster, card, 1);
+        await game.resolveStack(); // resolve damage
+        await game.resolveStack(); // resolve effect
+        
+        expect(game.getDC(monster)).toBe(card.evasion + 1);
+        game.addHealth(player1, 10);
+        const initHealth = player1.currentHealthPoints;
+
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, monster);
+        game.attackRoll(player1);
+        const dice = game.stack._stack[0] as DiceRoll;
+        expect(dice).toBeInstanceOf(DiceRoll);
+        dice.value = monster.card.evasion;
+        await game.resolveStack(); // Dice
+        await game.resolveStack(); // Damage
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(player1.currentHealthPoints).toBeLessThan(initHealth);
+    });
+
+
+    it("damage dealt also dealt to player to the rage_creep", async () => {
+        const card = game.obtainCard("b2-rage_creep") as MonsterCard;
+        expect(card).toBeInstanceOf(MonsterCard);
+        game.addHealth(player1, 10);
+        game.addHealth(player2, 10);
+        game.addHealth(player3, 10);
+        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+
+        const monster = game.monsters[0]!;
+        const initHPPlayer1 = player1.currentHealthPoints;
+        const initHPPlayer2 = player2.currentHealthPoints;
+        const initHPPlayer3 = player3.currentHealthPoints;
+
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, monster);
+        
+        game.attackRoll(player1);
+        expect(game.stack._stack.length).toBe(1);
+        let roll = game.stack._stack[0] as DiceRoll;
+        if(!(roll instanceof DiceRoll)) {
+            throw new Error("Expected a DiceRoll on the stack.");
+        }
+        roll.value = 1;
+        await game.resolveStack(); // resolve dice
+        await game.resolveStack(); // resolve effect
+        await game.resolveStack(); // resolve damage
+        await game.resolveStack(); // resolve damage
+
+        expect(game.stack._stack.length).toBe(0);
+        // Damage should be dealt to both monster and player2
+        expect(monster.currentHealthPoints).toBe(monster.card.healthPoints);
+        expect(player1.currentHealthPoints).toBe(initHPPlayer1-1);
+        expect(player2.currentHealthPoints).toBe(initHPPlayer2-1);
+        expect(player3.currentHealthPoints).toBe(initHPPlayer3);
+    });
+
+    it("damage dealt also dealt to player to the rage_creep test 2", async () => {
+        const card = game.obtainCard("b2-rage_creep") as MonsterCard;
+        expect(card).toBeInstanceOf(MonsterCard);
+        game.addHealth(player1, 10);
+        game.addHealth(player2, 10);
+        game.addHealth(player3, 10);
+        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+
+        game.endTurn(); // to player2
+        await game.resolveStack(); // resolve damage
+
+        const monster = game.monsters[0]!;
+        const initHPPlayer1 = player1.currentHealthPoints;
+        const initHPPlayer2 = player2.currentHealthPoints;
+        const initHPPlayer3 = player3.currentHealthPoints;
+
+        game.declareAttack(player2);
+        game.declareAttackOnMonster(player2, monster);
+        
+        game.attackRoll(player2);
+        expect(game.stack._stack.length).toBe(1);
+        let roll = game.stack._stack[0] as DiceRoll;
+        if(!(roll instanceof DiceRoll)) {
+            throw new Error("Expected a DiceRoll on the stack.");
+        }
+        roll.value = 1;
+        await game.resolveStack(); // resolve dice
+        await game.resolveStack(); // resolve effect
+        await game.resolveStack(); // resolve damage
+        await game.resolveStack(); // resolve damage
+
+        expect(game.stack._stack.length).toBe(0);
+        // Damage should be dealt to both monster and player2
+        expect(monster.currentHealthPoints).toBe(monster.card.healthPoints);
+        expect(player1.currentHealthPoints).toBe(initHPPlayer1);
+        expect(player2.currentHealthPoints).toBe(initHPPlayer2-1);
+        expect(player3.currentHealthPoints).toBe(initHPPlayer3-1);
+    });
 });

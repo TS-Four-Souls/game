@@ -16,8 +16,9 @@ import * as active from "./activeEffect";
 import type { BonusSoulCardType } from "@/types/cardTypes";
 import { Monster } from "./monster";
 import { string } from "zod";
-import { addInPlayEffect, obtainRollResults } from "./activeEffect";
+import { addInPlayEffect, obtainRollResults, throwEffect } from "./activeEffect";
 import { addPassiveEffectToStack } from "./passiveEffect";
+import type { TriggerEvent } from "@/types/triggers";
 
 export function thisHealsEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
@@ -333,7 +334,33 @@ export function damageAlsoPlayerToTheEffect(game: Game, direction: "left" | "rig
         
         offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target, source, damage }) => {
             if (data.issuer !== eventIssuer) return;
+            if(eventIssuer !== data.issuer) return;
             
+            // Add all effects as a single stack element
+            const effect = (effectData: EffectData) => {
+                const player = game.getPlayerToThe(direction);
+                game.dealDamage(eventIssuer as Entity, player as Entity, source, damage);
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, `Damage dealt to ${data.it.name} is also dealt to the player to their ${direction}.`);
+        });
+        
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+
+        return true;
+    };
+}
+
+export function damageDealtToActivePlayerAlsoToTheEffect(game: Game, direction: "left" | "right"): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target, source, damage }) => {
+            if (data.issuer !== target) return;
+            if(game.currentPlayer !== eventIssuer) return;
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
                 const player = game.getPlayerToThe(direction);
@@ -349,6 +376,152 @@ export function damageAlsoPlayerToTheEffect(game: Game, direction: "left" | "rig
             offDamage = null;
         });
 
+        return true;
+    };
+}
+
+export function statModifierWhileAtHealthEffect(game: Game, s: string): EffectFunction
+{
+    const numbers = s.match(/\d+/g)?.map(numStr => parseInt(numStr, 10)) || [];
+    if(numbers.length != 2)
+        throw new Error("statModifierWhileAtHealthEffect could not parse numbers from string: " + s);
+    const healthThreshold = numbers[0]!;
+    const statAmount = numbers[1]!;
+    const orLess = s.includes("or less");
+    let event: TriggerEvent | null = s.includes("[dc]") 
+        ? "on:get:monster:evasion" 
+            : s.includes("[atk]") 
+            ? "on:get:monster:attackPoints" 
+        : null;
+    if(!event || (s.includes("[dc]") && s.includes("[atk]")))
+        throw new Error("statModifierWhileAtHealthEffect could not determine stat to modify from string: " + s);
+    
+    return (data: EffectData) => {
+        let offGetStat: (() => void) | null = null;
+        let statApplied = false;
+
+        offGetStat = game.emitter.on(event, ({ eventIssuer, stat }) => {
+            if (data.issuer !== eventIssuer) return;
+            const currentHP = (data.issuer as Entity).currentHealthPoints;
+            if((orLess && currentHP <= healthThreshold) || (currentHP === healthThreshold)) {
+                stat[0]! += statAmount;
+            }
+        });
+        return true;
+    };
+}
+
+export function OnDealsCombatDamageEffect(game: Game, s: string): EffectFunction {
+    const rest = s.substring("each time this deals combat damage to a player, they ".length).trim();
+    const effect = effectParser(rest, game, addInPlayEffect(game), true);
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        
+        offDamage = game.emitter.on("on:damage:taken", async ({ eventIssuer, target, source, damage }) => {
+            if (data.issuer !== target) return;
+            if (!(eventIssuer instanceof Player)) return;
+            const newData = new EffectData(data.it, eventIssuer as Player, []);
+            addPassiveEffectToStack(game, effect.effectFunction, newData, `Each time ${data.it.name} deals combat damage to a player, they ${rest}`);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
+export function OnDealsDamageEffect(game: Game, s: string): EffectFunction {
+    const rest = s.substring(s.indexOf(",")+1).trim();
+    const effect = effectParser(rest, game, addInPlayEffect(game), false);
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        
+        offDamage = game.emitter.on("on:damage:taken", async ({ eventIssuer, target, source, damageArray }) => {
+            if (data.issuer !== target) return;
+            if(!(eventIssuer instanceof Player)) return;
+            if(!(source instanceof DiceRoll)) return;
+            const newData = new EffectData(data.it, target as Player, []);
+            addPassiveEffectToStack(game, effect.effectFunction, newData, `Each time ${data.it.name} deals combat damage to a player, they ${rest}`);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
+export function combatDamageIsEffect(game: Game, s: string): EffectFunction {
+    const numbers =  s.match(/\d+/g)?.map(numStr => parseInt(numStr, 10)) || [];
+    const effectOnDamage = s.includes("doubled") ? "double" : numbers.shift();
+    if(numbers.length === 0)
+        throw new Error("combatDamageIsEffect could not parse number from string: " + s);
+    if(numbers.length > 1)
+        throw new Error("combatDamageIsEffect found too many numbers in string: " + s + " it is unexpected so far.");
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        
+        offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, target, source, damageArray }) => {
+            if (data.issuer !== target) return;
+            if(!(source instanceof DiceRoll)) return;
+            if(numbers.includes((source as DiceRoll).value) === false) return;
+            // Add all effects as a single stack element
+            const effect = (effectData: EffectData) => {
+                if(effectOnDamage === "double") {
+                    damageArray[0]! *= 2;
+                } else {
+                    damageArray[0]! += effectOnDamage!;
+                }
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, `Combat damage ${data.it.name} deals is ${effectOnDamage === "double" ? "doubled" : "increased by " + effectOnDamage}`);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
+export function onAttackingPlayerActivatesItemEffect(game: Game, s: string): EffectFunction {
+    const rest = s.substring("each time the attacking player activates an item, they ".length).trim();
+    const effect = effectParser(rest, game, addInPlayEffect(game), true);
+    return (data: EffectData) => {
+        let offActivate: (() => void) | null = null;
+        
+        offActivate = game.emitter.on("on:item:activated", async ({ eventIssuer, item }) => {
+            if (!(eventIssuer instanceof Player)) return;
+            if (!(eventIssuer.isEngagedInCombat)) return;
+            const newData = new EffectData(data.it, eventIssuer as Player, []);
+            addPassiveEffectToStack(game, effect.effectFunction, newData, `Each time the attacking player activates an item, they ${rest}`);
+        });
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offActivate?.();
+            offActivate = null;
+        });
+        return true;
+    };
+}
+
+export function playerWithMostCoinsLosesAllEffect(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        let maxCoins = -1;
+        game.players.forEach(p => {
+            if(p.coins > maxCoins)
+                maxCoins = p.coins;
+        });
+        const playersToLoseCoins = game.players.filter(p => p.coins === maxCoins);
+        const selection = (await game.select(game.currentPlayer as Player, 1, playersToLoseCoins, false, "Select a player who will lose all their coins.")).selected[0]!;
+        game.loseCoins(selection as Player, selection.coins, true);
         return true;
     };
 }
