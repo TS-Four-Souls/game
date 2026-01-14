@@ -857,6 +857,7 @@ export function lookAtHandAndStealLootEffect(game: Game): EffectFunction {
 export function endTurnAndResetStackEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         game.resetStack();
+        game.endCombat();
         game.endTurn();
         return true;
     };

@@ -525,3 +525,94 @@ export function playerWithMostCoinsLosesAllEffect(game: Game): EffectFunction {
         return true;
     };
 }
+
+export function onAttackingPlayerRollsEffect(game: Game, s: string): EffectFunction {
+    console.log("onAttackingPlayerRollsEffect called with string: ", s);
+    const roll = s.match(/\d+/g)?.map(numStr => parseInt(numStr, 10))[0];
+    const rest = s.substring("when the attacking player rolls an attack roll of ".length +2).trim();
+    const effect = effectParser(rest, game, addInPlayEffect(game), true);
+    return (data: EffectData) => {
+        let offRoll: (() => void) | null = null;
+        
+        offRoll = game.emitter.on("on:attack:roll", async ({ eventIssuer, roll: attackRoll }) => {
+            if (!(eventIssuer instanceof Player)) return;
+            if (!(eventIssuer.isEngagedInCombat)) return;
+            if(attackRoll.value !== roll) return;
+            const newData = new EffectData(data.it, eventIssuer as Player, []);
+            addPassiveEffectToStack(game, effect.effectFunction, newData, `When the attacking player rolls an attack roll of ${roll}, they ${rest}`);
+        });
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offRoll?.();
+            offRoll = null;
+        });
+        return true;
+    };
+}
+
+export function activePlayerChoosePlayerDiscard2Effect(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        const player = game.currentPlayer as Player;
+        
+        const targetSelection = await game.select(player, 1, game.players, false, "Select a player to discard 2 loot cards.");
+        const targetPlayer = targetSelection.selected[0] as Player;
+        if(!targetPlayer){
+            throw new Error("No player selected for activePlayerChoosePlayerDiscard2Effect.");
+        }
+        active.discardNLootCardsEffect(2, game, true)(new EffectData(data.it, targetPlayer, []));
+        return true;
+    };
+}
+
+export function onAttackDeclaredEffect(game: Game, s: string): EffectFunction {
+    const rest = s.substring("when an attack is declared on this, ".length).trim();
+    const effect = effectParser(rest, game, addInPlayEffect(game), true);
+    return (data: EffectData) => {
+        let offAttackDeclared: (() => void) | null = null;
+        offAttackDeclared = game.emitter.on("on:attack:declared:monster", async ({ eventIssuer, monster }) => {
+            if (data.issuer !== monster) return;
+            if (!(eventIssuer instanceof Player)) return;
+            const newData = new EffectData(data.it, eventIssuer as Player, []);
+            addPassiveEffectToStack(game, effect.effectFunction, newData, `When an attack is declared on ${data.it.name}, the active player ${rest}`);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offAttackDeclared?.();
+            offAttackDeclared = null;
+        });
+        return true;
+    };
+}
+
+export function preventDamageOnRollEffect(game: Game, rolls: number[]): EffectFunction {
+    return (data: EffectData) => {
+
+        let offDamage: (() => void) | null = null;
+        
+        offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, target, source, damageArray }) => {
+            if (data.issuer !== eventIssuer) return;
+            if(!(eventIssuer instanceof Monster)) return;
+            // Add all effects as a single stack element
+            const effect = (effectData: EffectData) => {
+                const dice = game.rollDice(game.currentPlayer as Player, false); // to get the roll value
+                dice.attachEffect([1,2,3,4,5,6].map(n => (data:EffectData) => {
+                    if(rolls.includes(n)) {
+                        damageArray[0] = 0; // remove all damage
+                        return true;
+                    }
+                    return false;
+                }), data.it, []);
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, `Each time ${data.it.name} would take damage, if the active player rolls ${rolls.join(" or ")}, prevent that damage.`);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}

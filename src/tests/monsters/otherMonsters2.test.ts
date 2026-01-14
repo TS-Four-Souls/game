@@ -342,4 +342,86 @@ describe("Monsters - Various 2", () => {
         expect(player1.coins).toBe(0);
         expect(player2.coins).toBe(coin2);
     });
+
+    it("When an attack is declared on this, the active player chooses a player. That player discards 2 loot cards. (pride)", async () => {
+        const card = game.obtainCard("b2-pride") as MonsterCard;
+        expect(card).toBeInstanceOf(MonsterCard);
+
+        game.loot(player1, 4);
+        game.loot(player2, 4);
+        const loot1 = player1.hand.length;
+        const loot2 = player2.hand.length;
+        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        const monster = game.monsters[0]!;
+
+        game.declareAttack(player1);
+        expect(game.stack._stack.length).toBe(0); 
+        game.declareAttackOnMonster(player1, monster);
+        expect(game.stack._stack.length).toBe(1); 
+
+        await game.resolveStack(); // resolve effect
+        expect(game.stack._stack.length).toBe(0); 
+        expect(player1.hand.length).toBe(loot1-2);
+        expect(player2.hand.length).toBe(loot2);
+    });
+
+    it("When the attacking player rolls an attack roll of 6, cancel everything that hasn't resolved and end the turn. (cursed_moms_hand)", async () => {
+        const card = game.obtainCard("b2-cursed_moms_hand") as MonsterCard;
+        expect(card).toBeInstanceOf(MonsterCard);
+
+        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        const monster = game.monsters[0]!;
+
+        expect(game.currentPlayer).toBe(player1);
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, monster);
+
+        game.attackRoll(player1);
+        const dice = game.stack._stack[0] as DiceRoll;
+        expect(dice).toBeInstanceOf(DiceRoll);
+        dice.value = 6; // should cancel everything and end turn
+        await game.resolveStack(); // resolve effect
+        await game.resolveStack(); // resolve effect
+        await game.resolveStack(); // resolve effect
+        expect(game.stack._stack.length).toBe(0); 
+        expect(game.currentPlayer.id).toBe(player2.id);
+    });
+
+    it("Each time this would take damage, the active player rolls-1: Prevent that damage. (the_duke_of_flies)", async () => {
+        const card = game.obtainCard("b2-the_duke_of_flies") as MonsterCard;
+        expect(card).toBeInstanceOf(MonsterCard);
+        
+        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        const monster = game.monsters[0]!;
+
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, monster);
+        const init = monster.currentHealthPoints;
+
+        game.attackRoll(player1);
+        let dice = game.stack._stack[0] as DiceRoll;
+        expect(dice).toBeInstanceOf(DiceRoll);
+        dice.value = 6; 
+        await game.resolveStack(); // resolve effect
+        await game.resolveStack(); // resolve effect
+        expect(game.stack.peek()).toBeInstanceOf(DiceRoll);
+        (game.stack.peek() as DiceRoll).value = 1; // Prevent damage
+        await game.resolveStack();
+        await game.resolveStack();
+        expect(game.stack._stack.length).toBe(0); 
+        expect(monster.currentHealthPoints).toBe(init);
+
+        game.attackRoll(player1);
+        dice = game.stack._stack[0] as DiceRoll;
+        expect(dice).toBeInstanceOf(DiceRoll);
+        dice.value = 6; 
+        await game.resolveStack(); // resolve effect
+        await game.resolveStack(); // resolve effect
+        expect(game.stack.peek()).toBeInstanceOf(DiceRoll);
+        (game.stack.peek() as DiceRoll).value = 2; // Prevent damage
+        await game.resolveStack();
+        await game.resolveStack();
+        expect(game.stack._stack.length).toBe(0); 
+        expect(monster.currentHealthPoints).toBe(init-1);
+    });
 });

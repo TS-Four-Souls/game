@@ -448,6 +448,7 @@ export class Game {
       throw new Error("Monster should be engaged in combat now.");
     // Clear forced attack constraint if this monster satisfies it
     player.clearAttackRequirement(monster);
+    this.emit("on:attack:declared:monster", { eventIssuer: player, monster });
     this._onStateChange.dispatch();
   }
 
@@ -977,6 +978,15 @@ export class Game {
 
   recharge(item: Card): void {
     item.recharge();
+  }
+
+  endCombat(): void {
+    for (const entity of this.Entities) {
+      if (entity.isEngagedInCombat) {
+        entity.combatEnded();
+      }
+    }
+    this._onStateChange.dispatch();
   }
 
   endTurn(): void {

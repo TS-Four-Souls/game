@@ -338,6 +338,8 @@ export function parseTheActivePlayerEffect(s: string, game: Game): ParsedEffect 
             return noTargetEffect(monster.activePlayerSelectAndCallEffect(game, active.destroyOneOfYourSoulEffect(game)));
         case "the active player rolls-\n1-3: each player takes 1 damage.\n4-6: each player takes 2 damage.":
             return noTargetEffect(monster.activePlayerRollsEffect(game, s));
+        case "the active player chooses a player. that player discards 2 loot cards.":
+            return noTargetEffect(monster.activePlayerChoosePlayerDiscard2Effect(game));
         default:
             return noTargetEffect(active.addInPlayEffect(game));
             // throw new Error(`Could not parse 'The active player ...' effect: ${s}`);
@@ -474,7 +476,6 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             targetSelectors: [...firstParsed.targetSelectors, ...secondParsed.targetSelectors]
         };
     }
-
     const gainAmount = parseNumber(s, /^gain\s+(\d+)\u00A2\.?,?$/u);
     if (gainAmount !== null)
         return { effectFunction: active.gainCoinsEffect(game, gainAmount), targetSelectors: noTargets }; 
@@ -482,7 +483,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     if (coinStolen !== null)
         return { effectFunction: active.stealCoinsEffect(game, coinStolen), targetSelectors: selectAnotherPlayer(game) };
         
-    const deckName = parseText(s, /look at the top 5 cards of the (\w+) deck\. put 1 on top and the rest on the bottom\./u);
+    const deckName = parseText(s, /^look at the top 5 cards of the (\w+) deck\. put 1 on top and the rest on the bottom\./u);
     if (deckName !== "")
     {
         return { effectFunction: active.look5Put1TopRestBottomEffect(deckName, game), targetSelectors: noTargets };
@@ -557,7 +558,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     }
     let countersToRemove = parseNumber(s, /^remove (\d+) counters? from this\.?$/u);
     if (countersToRemove === null)
-        countersToRemove = /remove a counter from this.?/.test(s) ? 1 : null;
+        countersToRemove = /^remove a counter from this.?/.test(s) ? 1 : null;
     if( countersToRemove !== null)
         return { effectFunction: active.removeCountersEffect(game, countersToRemove), targetSelectors: noTargets };
     const toAdd = parseNumber(s, /^add \+? ?(\d+) to a dice roll\.?$/u);
@@ -942,11 +943,15 @@ function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null 
 
     // if(s === "each time this deals combat damage to a player, they discard a loot card.")
     //     console.log("parsing blablbala");
+    
     if(s.startsWith("this takes no combat damage on attack rolls of"))
     {
         const numbers = s.match(/\d+/g)?.map(numStr => parseInt(numStr, 10)) || [];
         return noTargetEffect(monster.noCombatDamageOnAttackRollEffect(game, numbers));
     }
+    if(s.startsWith("when an attack is declared on this, "))
+        return noTargetEffect(monster.onAttackDeclaredEffect(game, s));
+
     if(s.startsWith("while this is at"))
         return noTargetEffect(monster.statModifierWhileAtHealthEffect(game, s));
     if(s.startsWith("each time this deals combat damage to a player, they "))
@@ -959,7 +964,7 @@ function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null 
 
     if(s.startsWith("each time the attacking player activates an item, they "))
             return noTargetEffect(monster.onAttackingPlayerActivatesItemEffect(game, s));
-    switch (s.toLowerCase()) {
+    switch (s) {
         case "when this dies, it deals 1 damage to the player who killed it.":
             return noTargetEffect(monster.dealDamageToKillerOnDeathEffect(game, 1));
         case "put it in the monster deck 6 cards from the top.":
@@ -996,6 +1001,10 @@ function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null 
             return noTargetEffect(monster.damageDealtToActivePlayerAlsoToTheEffect(game, "left"));
         case "choose the player with the most ¢ or tied for the most. that player loses all their ¢.":
             return noTargetEffect(monster.playerWithMostCoinsLosesAllEffect(game));
+        case "when the attacking player rolls an attack roll of ":
+            return noTargetEffect(monster.onAttackingPlayerRollsEffect(game, s));
+        case "each time this would take damage, the active player rolls-\n1: prevent that damage.":
+            return noTargetEffect(monster.preventDamageOnRollEffect(game, [1]));
         default:
             return null; // No match found
     }

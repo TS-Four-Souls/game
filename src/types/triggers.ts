@@ -12,6 +12,7 @@ export type TriggerEvent =
     | "on:combatdamage:dealt:to-monster"
     | "on:combatdamage:dealt:to-player"
     | "on:attack:declared"
+    | "on:attack:declared:monster"
     | "on:attack:roll:first-time-each-turn"
     | "on:attack:roll"
     | "on:coin:gained"
