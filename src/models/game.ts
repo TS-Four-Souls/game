@@ -452,29 +452,22 @@ export class Game {
     this._onStateChange.dispatch();
   }
 
-  getMonsterStat(monster: Monster, stat: "attackPoints" | "evasion"): number {
-    let baseStat = [
-      stat === "attackPoints" ? monster.attackPoints : monster.evasion,
-    ];
-    if (stat === "evasion")
-      this.emit("on:get:monster:evasion", {
-        eventIssuer: monster,
-        stat: baseStat,
-      });
-    else if (stat === "attackPoints")
-      this.emit("on:get:monster:attackPoints", {
-        eventIssuer: monster,
-        stat: baseStat,
-      });
+  getAttack(monster: Monster): number {
+    let baseStat = [monster.attackPoints];
+    this.emit("on:get:monster:attackPoints", {
+      eventIssuer: monster,
+      stat: baseStat,
+    });
     return baseStat[0]!;
   }
 
-  getAttack(monster: Monster): number {
-    return this.getMonsterStat(monster, "attackPoints");
-  }
-
   getDC(monster: Monster): number {
-    return this.getMonsterStat(monster, "evasion");
+    let baseStat = [monster.evasion];
+    this.emit("on:get:monster:evasion", {
+      eventIssuer: monster,
+      stat: baseStat,
+    });
+    return Math.max(1, Math.min(6, baseStat[0]!));
   }
 
   obtainCard(slug: string): Card | undefined {

@@ -961,7 +961,10 @@ function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null 
     if(s.startsWith("each time this deals damage, ") ||
         s.startsWith("each time this deals combat damage, ")) 
             return noTargetEffect(monster.OnDealsDamageEffect(game, s));
-
+    if(s.startsWith("each time this takes combat damage on an attack roll of 6, "))
+        return noTargetEffect(monster.onTakesCombatDamageEffect(game, s, [6]));
+    if(s.startsWith("each time this takes combat damage, "))
+        return noTargetEffect(monster.onTakesCombatDamageEffect(game, s));
     if(s.startsWith("each time the attacking player activates an item, they "))
             return noTargetEffect(monster.onAttackingPlayerActivatesItemEffect(game, s));
     switch (s) {
@@ -1005,6 +1008,12 @@ function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null 
             return noTargetEffect(monster.onAttackingPlayerRollsEffect(game, s));
         case "each time this would take damage, the active player rolls-\n1: prevent that damage.":
             return noTargetEffect(monster.preventDamageOnRollEffect(game, [1]));
+        case "it deals 1 damage to the attacking player.":
+            return noTargetEffect(monster.dealDamageToAttackingPlayerEffect(game, 1));
+        case "every other time this takes damage each turn, it gains +1 [dc] till end of turn.":
+            return noTargetEffect(monster.onEveryOtherDamageEffect(game, passive.temporaryStatModifierEffect([game.addDC.bind(game)], 1, game)));
+        case "deal 1 damage to the player to the active player's left.":
+            return noTargetEffect(monster.dealDamageToPlayerToTheEffect(game, 1, "left"));
         default:
             return null; // No match found
     }

@@ -527,7 +527,6 @@ export function playerWithMostCoinsLosesAllEffect(game: Game): EffectFunction {
 }
 
 export function onAttackingPlayerRollsEffect(game: Game, s: string): EffectFunction {
-    console.log("onAttackingPlayerRollsEffect called with string: ", s);
     const roll = s.match(/\d+/g)?.map(numStr => parseInt(numStr, 10))[0];
     const rest = s.substring("when the attacking player rolls an attack roll of ".length +2).trim();
     const effect = effectParser(rest, game, addInPlayEffect(game), true);
@@ -613,6 +612,69 @@ export function preventDamageOnRollEffect(game: Game, rolls: number[]): EffectFu
             offDamage?.();
             offDamage = null;
         });
+        return true;
+    };
+}
+
+export function dealDamageToAttackingPlayerEffect(game: Game, damage: number): EffectFunction {
+    return (data: EffectData) => {
+        game.dealDamage(data.issuer as Entity, game.currentPlayer as Player, data.it, damage);
+        return true;
+    };
+}
+
+export function onTakesCombatDamageEffect(game: Game, s: string, rolls: number[] = []): EffectFunction {
+    const rest = s.substring(s.indexOf(",")+1).trim();
+    const effect = effectParser(rest, game, addInPlayEffect(game), false);
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        
+        offDamage = game.emitter.on("on:damage:taken", async ({ eventIssuer, target, source, damageArray }) => {
+            if (data.issuer !== eventIssuer) return;
+            if(!(eventIssuer instanceof Monster)) return;
+            if(!(source instanceof DiceRoll)) return;
+            if(rolls.length > 0 && !rolls.includes((source as DiceRoll).value)) return;
+            const newData = new EffectData(data.it, data.issuer, []);
+            addPassiveEffectToStack(game, effect.effectFunction, newData, `Each time ${data.it.name} takes combat damage, it ${rest}`);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
+export function onEveryOtherDamageEffect(game: Game, effect: EffectFunction): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        let damageCount = 0;
+
+        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target, source, damageArray }) => {
+            if (data.issuer !== eventIssuer) return;
+            // Add all effects as a single stack element
+            damageCount += 1;
+            if(damageCount % 2 === 0) {
+                addPassiveEffectToStack(game, effect, data, `Every other time ${data.it.name} takes damage, ${effect.name}`);
+            }
+            return true;
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
+export function dealDamageToPlayerToTheEffect(game: Game, damage: number, direction: "left" | "right"): EffectFunction {
+    return (data: EffectData) => {
+        const player = game.getPlayerToThe(direction);
+        game.dealDamage(data.issuer as Entity, player as Entity, data.it, damage);
         return true;
     };
 }

@@ -479,16 +479,16 @@ describe("Monsters - Various 1 - 3 players", () => {
         await game.resolveStack(); // resolve damage
         await game.resolveStack(); // resolve effect
         
-        expect(game.getMonsterStat(monster, "attackPoints")).toBe(card.attackPoints + 1);
+        expect(game.getAttack(monster)).toBe(card.attackPoints + 1);
         game.heal(monster, 1);
-        expect(game.getMonsterStat(monster, "attackPoints")).toBe(card.attackPoints);
-        expect(game.getMonsterStat(monster, "attackPoints")).toBe(card.attackPoints);
+        expect(game.getAttack(monster)).toBe(card.attackPoints);
+        expect(game.getAttack(monster)).toBe(card.attackPoints);
 
         game.dealDamage(player1, monster, card, 1);
         await game.resolveStack(); // resolve damage
         await game.resolveStack(); // resolve effect
         
-        expect(game.getMonsterStat(monster, "attackPoints")).toBe(card.attackPoints + 1);
+        expect(game.getAttack(monster)).toBe(card.attackPoints + 1);
         game.addHealth(player1, 10);
         const initHealth = player1.currentHealthPoints;
 
@@ -660,5 +660,117 @@ describe("Monsters - Various 1 - 3 players", () => {
         expect(player1.currentHealthPoints).toBe(initHPPlayer1);
         expect(player2.currentHealthPoints).toBe(initHPPlayer2-1);
         expect(player3.currentHealthPoints).toBe(initHPPlayer3-1);
+    });
+
+
+    it("Each time this takes combat damage on an attack roll of 6, deal 1 damage to the player to the active player's left. (gluttony)", async () => {
+        const card = game.obtainCard("b2-gluttony") as MonsterCard;
+        expect(card).toBeInstanceOf(MonsterCard);
+        game.addHealth(player1, 10);
+        game.addHealth(player2, 10);
+        game.addHealth(player3, 10);
+        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+
+        
+        game.endTurn(); // to player2
+        await game.resolveStack(); // resolve damage
+        
+
+        const monster = game.monsters[0]!;
+        game.addHealth(monster, 10);
+        const initHPPlayer1 = player1.currentHealthPoints;
+        const initHPPlayer2 = player2.currentHealthPoints;
+        const initHPPlayer3 = player3.currentHealthPoints;
+
+        game.declareAttack(player2);
+        game.declareAttackOnMonster(player2, monster);
+        
+        game.attackRoll(player2);
+        expect(game.stack._stack.length).toBe(1);
+        let roll = game.stack._stack[0] as DiceRoll;
+        if(!(roll instanceof DiceRoll)) {
+            throw new Error("Expected a DiceRoll on the stack.");
+        }
+        roll.value = 6;
+        await game.resolveStack(); // resolve dice
+        await game.resolveStack(); // resolve effect
+        await game.resolveStack(); // resolve damage
+        await game.resolveStack(); // resolve damage
+
+        expect(game.stack._stack.length).toBe(0);
+        // Damage should be dealt to both monster and player2
+        expect(player1.currentHealthPoints).toBe(initHPPlayer1);
+        expect(player2.currentHealthPoints).toBe(initHPPlayer2);
+        expect(player3.currentHealthPoints).toBe(initHPPlayer3-1);
+
+
+        game.attackRoll(player2);
+        expect(game.stack._stack.length).toBe(1);
+        roll = game.stack._stack[0] as DiceRoll;
+        if(!(roll instanceof DiceRoll)) {
+            throw new Error("Expected a DiceRoll on the stack.");
+        }
+        roll.value = 5;
+        await game.resolveStack(); // resolve dice
+        await game.resolveStack(); // resolve effect
+
+        expect(game.stack._stack.length).toBe(0);
+        // Damage should be dealt to both monster and player2
+        expect(player1.currentHealthPoints).toBe(initHPPlayer1);
+        expect(player2.currentHealthPoints).toBe(initHPPlayer2);
+        expect(player3.currentHealthPoints).toBe(initHPPlayer3-1);
+    });
+
+    it("Each time this takes combat damage on an attack roll of 6, deal 1 damage to the player to the active player's left. (gluttony) test 2", async () => {
+        const card = game.obtainCard("b2-gluttony") as MonsterCard;
+        expect(card).toBeInstanceOf(MonsterCard);
+        game.addHealth(player1, 10);
+        game.addHealth(player2, 10);
+        game.addHealth(player3, 10);
+        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+
+        const monster = game.monsters[0]!;
+        game.addHealth(monster, 10);
+        const initHPPlayer1 = player1.currentHealthPoints;
+        const initHPPlayer2 = player2.currentHealthPoints;
+        const initHPPlayer3 = player3.currentHealthPoints;
+
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, monster);
+        
+        game.attackRoll(player1);
+        expect(game.stack._stack.length).toBe(1);
+        let roll = game.stack._stack[0] as DiceRoll;
+        if(!(roll instanceof DiceRoll)) {
+            throw new Error("Expected a DiceRoll on the stack.");
+        }
+        roll.value = 6;
+        await game.resolveStack(); // resolve dice
+        await game.resolveStack(); // resolve effect
+        await game.resolveStack(); // resolve damage
+        await game.resolveStack(); // resolve damage
+
+        expect(game.stack._stack.length).toBe(0);
+        // Damage should be dealt to both monster and player2
+        expect(player1.currentHealthPoints).toBe(initHPPlayer1);
+        expect(player2.currentHealthPoints).toBe(initHPPlayer2-1);
+        expect(player3.currentHealthPoints).toBe(initHPPlayer3);
+
+
+        game.attackRoll(player1);
+        expect(game.stack._stack.length).toBe(1);
+        roll = game.stack._stack[0] as DiceRoll;
+        if(!(roll instanceof DiceRoll)) {
+            throw new Error("Expected a DiceRoll on the stack.");
+        }
+        roll.value = 5;
+        await game.resolveStack(); // resolve dice
+        await game.resolveStack(); // resolve effect
+
+        expect(game.stack._stack.length).toBe(0);
+        // Damage should be dealt to both monster and player2
+        expect(player1.currentHealthPoints).toBe(initHPPlayer1);
+        expect(player2.currentHealthPoints).toBe(initHPPlayer2-1);
+        expect(player3.currentHealthPoints).toBe(initHPPlayer3);
     });
 });

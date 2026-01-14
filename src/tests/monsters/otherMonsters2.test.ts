@@ -424,4 +424,56 @@ describe("Monsters - Various 2", () => {
         expect(game.stack._stack.length).toBe(0); 
         expect(monster.currentHealthPoints).toBe(init-1);
     });
+
+    it("Each time this takes combat damage, it deals 1 damage to the attacking player. (lust) test 2.", async () => {
+        const card = game.obtainCard("b2-lust") as MonsterCard;
+        expect(card).toBeInstanceOf(MonsterCard);
+
+        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        const monster = game.monsters[0]!;
+
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, monster);
+
+        const init = player1.currentHealthPoints;
+
+        game.attackRoll(player1);
+        let dice = game.stack._stack[0] as DiceRoll;
+        expect(dice).toBeInstanceOf(DiceRoll);
+        dice.value = 6; 
+        await game.resolveStack(); // resolve dice
+        await game.resolveStack(); // resolve damage
+        await game.resolveStack(); // resolve effect
+        await game.resolveStack(); // resolve damage
+
+        expect(game.stack._stack.length).toBe(0);
+        expect(player1.currentHealthPoints).toBe(init - 1);
+    });
+
+    it("Every other time this takes damage each turn, it gains +1 [DC] till end of turn. (the_haunt)", async () => {
+        const card = game.obtainCard("b2-the_haunt") as MonsterCard;
+        expect(card).toBeInstanceOf(MonsterCard);
+
+        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        const monster = game.monsters[0]!;
+
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, monster);
+
+        game.addHealth(monster, 100); // Prevent death by damage
+        const init = game.getDC(monster);
+
+        for(let i=0; i<10; i++)
+        {
+            game.attackRoll(player1);
+            const dice = game.stack._stack[0] as DiceRoll;
+            expect(dice).toBeInstanceOf(DiceRoll);
+            dice.value = 6; 
+            await game.resolveStack(); // resolve dice
+            await game.resolveStack(); // resolve damage
+            await game.resolveStack(); // resolve damage
+            expect(game.stack._stack.length).toBe(0);
+            expect(game.getDC(monster)).toBe(Math.min(6, init + Math.floor((i+1)/2)));
+        }
+    });
 });
