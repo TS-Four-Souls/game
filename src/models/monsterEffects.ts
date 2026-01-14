@@ -177,7 +177,7 @@ return (data: EffectData) => {
                 for(let i=0; i < handSize; i++)
                 {
 
-                    game.discardFromHandAtIndex(target as Player, 1);
+                    game.discardFromHandAtIndex(target as Player, 0);
                 }
                 return true;
             };

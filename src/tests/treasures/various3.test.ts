@@ -286,7 +286,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Make sure player2 has no cards
         while (player2.hand.length > 0) {
-            game.discardFromHandAtIndex(player2, 1);
+            game.discardFromHandAtIndex(player2, 0);
         }
 
         const player1HandSize = player1.hand.length;
@@ -399,7 +399,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Make sure player2 has no cards
         while (player2.hand.length > 0) {
-            game.discardFromHandAtIndex(player2, 1);
+            game.discardFromHandAtIndex(player2, 0);
         }
 
         const player1InitialHandSize = player1.hand.length;

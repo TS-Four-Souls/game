@@ -114,7 +114,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Test: Player drops below 8 cards - should not trigger
         while (player1.hand.length > 6) {
-            game.discardFromHandAtIndex(player1, 1);
+            game.discardFromHandAtIndex(player1, 0);
         }
         expect(player1.hand.length).toBe(6);
 
@@ -144,7 +144,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Test: Empty hand - should trigger and loot 2
         while (player1.hand.length > 0) {
-            game.discardFromHandAtIndex(player1, 1);
+            game.discardFromHandAtIndex(player1, 0);
         }
         expect(player1.hand.length).toBe(0);
 
@@ -166,16 +166,16 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         expect(player1.hand.length).toBe(3); // Should not gain more
 
         // Test: Works again when back to 0 cards
-        game.discardFromHandAtIndex(player1, 1);
-        game.discardFromHandAtIndex(player1, 1);
-        game.discardFromHandAtIndex(player1, 1);
+        game.discardFromHandAtIndex(player1, 0);
+        game.discardFromHandAtIndex(player1, 0);
+        game.discardFromHandAtIndex(player1, 0);
         expect(player1.hand.length).toBe(0);
 
         game.endTurn();// end of turn of p2
         await game.resolveStack(); // Resolve any stack effects
 
         expect(player1.hand.length).toBe(1); // Loot 1 start turn
-        game.discardFromHandAtIndex(player1, 1);
+        game.discardFromHandAtIndex(player1, 0);
         game.endTurn();// end of turn of p1
         await game.resolveStack(); // Resolve any stack effects
         await game.resolveStack(); // Resolve any stack effects
@@ -214,7 +214,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Test: With 3 cards
         while (player1.hand.length > 3) {
-            game.discardFromHandAtIndex(player1, 1);
+            game.discardFromHandAtIndex(player1, 0);
         }
         expect(player1.hand.length).toBe(3);
 
@@ -235,7 +235,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Test: With 1 card
         while (player1.hand.length > 1) {
-            game.discardFromHandAtIndex(player1, 1);
+            game.discardFromHandAtIndex(player1, 0);
         }
         expect(player1.hand.length).toBe(1);
 
@@ -254,7 +254,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Test: With empty hand, no cards to discard
         while (player1.hand.length > 0) {
-            game.discardFromHandAtIndex(player1, 1);
+            game.discardFromHandAtIndex(player1, 0);
         }
         expect(player1.hand.length).toBe(0);
 

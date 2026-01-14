@@ -538,9 +538,12 @@ export function discardAnyNumberOfLootCardsEffect(game: Game): EffectFunction {
         const maxToDiscard = player.hand.length;
         const selectionResult = await game.select(player, maxToDiscard, player.hand.cards, true, "Select any number of loot cards to discard from your hand.");
         const nbDiscarded = selectionResult.selected.length;
-        for (const card of selectionResult.selected) {
-            const index = player.hand.cards.indexOf(card);
-            game.discardFromHandAtIndex(player, index + 1);
+        // Get indices and sort them in descending order to avoid index shifting
+        const indices = selectionResult.selected.map(card => player.hand.cards.indexOf(card)).sort((a, b) => b - a);
+        for (const index of indices) {
+            if (index >= 0) {
+                game.discardFromHandAtIndex(player, index);
+            }
         }
         data.addTarget(nbDiscarded);
         return true;
@@ -798,9 +801,12 @@ export function discardNLootCardsEffect(n: number, game: Game, selectionOnResolv
             for (let i = 0; i < n; i++) {
                 toDiscard.push(data.next as LootCard);
             }
-        for (const card of toDiscard) {
-            const index = data.issuer.hand.cards.indexOf(card);
-            game.discardFromHandAtIndex(data.issuer, index + 1);
+        // Get indices and sort them in descending order to avoid index shifting
+        const indices = toDiscard.map(card => data.issuer.hand.cards.indexOf(card)).sort((a, b) => b - a);
+        for (const index of indices) {
+            if (index >= 0) {
+                game.discardFromHandAtIndex(data.issuer, index);
+            }
         }
         return true;
     };

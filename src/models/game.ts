@@ -279,7 +279,7 @@ export class Game {
       )).selected;
       if (lootToLose && lootToLose.length > 0) {
         for (const loot of lootToLose){
-          this.discardFromHandAtIndex(p, p.hand._hand.indexOf(loot) + 1);
+          this.discardFromHandAtIndex(p, p.hand._hand.indexOf(loot));
         }
       }
     }
@@ -406,10 +406,10 @@ export class Game {
     this._onStateChange.dispatch();
   }
 
-  declareAttackOnMonster(player: Player, monster: Monster | "topDeck", drawInIndex: number = -1): void {
-    if (drawInIndex !== -1 && monster !== "topDeck")
+  declareAttackOnMonster(player: Player, monster: Monster | "topDeck", drawInIndex: number = - 1): void {
+    if (drawInIndex !== - 1 && monster !== "topDeck")
       throw new Error("drawInIndex can only be specified when drawing from topDeck");
-    if (drawInIndex === -1 && monster === "topDeck")
+    if (drawInIndex === - 1 && monster === "topDeck")
       throw new Error("drawInIndex must be specified when drawing from topDeck");
     if(monster !== "topDeck" && !monster.attackable)
     {
@@ -1236,18 +1236,6 @@ export class Game {
     return await this.activateItem(player, item, choices, effectId);
   }
 
-  // getEffectTarget(
-  //   player: Player,
-  //   index: number,
-  //   effectId: number | "tap" = "tap"
-  // ): TargetsSelector[] {
-  //   const item = player.inPlay[index - 1];
-  //   if (!item || !(item instanceof ItemCard)) {
-  //     return [];
-  //   }
-  //   return item.getEffectTarget(effectId);
-  // return true;
-  // }
   async activateItem(
     player: Player,
     item: ItemCard,
@@ -1356,7 +1344,7 @@ export class Game {
           .trim();
         const idx = s2.indexOf(":");
 
-        if (idx === -1) {
+        if (idx === - 1) {
           throw new Error(
             `Invalid paid effect format (missing ':'): ${outcome}`
           );
@@ -1416,7 +1404,7 @@ export class Game {
     const json = card.json;
 
     // Create the appropriate card type using the helper function
-    const copiedCard = createCardFromJson(-1, json);
+    const copiedCard = createCardFromJson(- 1, json);
 
     // Parse and attach effects to the copied card
     this.attachEffectsToCard(copiedCard);
@@ -1728,11 +1716,11 @@ export class Game {
     this.assertPositiveNumber(index);
 
     const inPlayCards = player.inPlay;
-    if (index < 1 || index > inPlayCards.length) {
+    if (index < 0 || index > inPlayCards.length - 1) {
       throw new Error("Invalid card position.");
     }
-    const discardedCard: Card = inPlayCards[index - 1]!;
-    if (player.removeInPlayByIndex(index - 1)) {
+    const discardedCard: Card = inPlayCards[index]!;
+    if (player.removeInPlayByIndex(index)) {
       this.decks[discardedCard.type]!.addDiscardTop(discardedCard);
       return `You have discarded the card: ${discardedCard.name} from your in-play area.\n`;
     } else {
@@ -1806,11 +1794,11 @@ export class Game {
     const player = this.assertIssuerSecret(issuer);
     this.assertPositiveNumber(position);
 
-    if (position < 1 || position > this.encounters._slots.length) {
+    if (position < 0 || position > this.encounters._slots.length - 1) {
       throw new Error("Invalid monster position.");
     }
 
-    this.encounters.discardTop(position - 1);
+    this.encounters.discardTop(position);
 
     return `You have discarded the monster at position ${position}.\n`;
   }
@@ -1818,13 +1806,6 @@ export class Game {
     this.assertGameStarted();
     this.assertEntityIsInPlay(entity);
     this.death(entity, killer, source);
-  }
-
-  discardInPlayByCard(player: Player, card: Card): void {
-    const index = player.inPlay.indexOf(card);
-    if (index >= 0) {
-      player.inPlay.splice(index, 1);
-    }
   }
 
   drawMonster(issuer: Issuer, position: number): string {
@@ -1846,21 +1827,6 @@ export class Game {
     this.encounters.draw(position);
 
     return `You have drawn a new monster at position ${position}.\n`;
-  }
-  killMonster(issuer: Issuer, position: number): string {
-    this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
-    this.assertPlayerIsAlive(player);
-    this.assertPositiveNumber(position);
-
-    if (position < 1 || position > this.encounters._slots.length) {
-      throw new Error("Invalid monster position.");
-    }
-    const monsterPosition = this.encounters._slots[position - 1]!;
-    const monsterCard: Card = monsterPosition[monsterPosition.length - 1]!;
-    if (monsterCard.soul > 0) player.addSoul(monsterCard);
-    else this.encounters.discardTop(position - 1);
-    return `You have killed the monster at position ${position}.\n`;
   }
 
   getCardFromHand(issuer: Issuer, card: Card): Card {
@@ -1906,11 +1872,11 @@ export class Game {
     this.assertPositiveNumber(position);
 
     const hand = player.hand;
-    if (position < 1 || position > hand.cards.length) {
+    if (position < 0 || position > hand.cards.length - 1) {
       return "Invalid card position.";
     }
 
-    const discardedCard: LootCard = hand.cards[position - 1] as LootCard;
+    const discardedCard: LootCard = hand.cards[position] as LootCard;
     this.removeCardFromHand(player, discardedCard);
     const lootDeck: Deck = this.decks["loot"]!;
     lootDeck.addDiscardTop(discardedCard);
@@ -2026,7 +1992,7 @@ export class Game {
 
   private findMonsterIndex(id: string): number {
     const index = this.monsters.findIndex((m) => m.id === id);
-    if (index === -1) {
+    if (index === - 1) {
       throw new Error("Monster not found");
     }
     return index;
@@ -2034,7 +2000,7 @@ export class Game {
 
   private findPlayerIndex(id: string): number {
     const index = this.players.findIndex((p) => p.id === id);
-    if (index === -1) {
+    if (index === - 1) {
       throw new Error("Player not found");
     }
     return index;

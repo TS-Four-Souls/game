@@ -94,7 +94,7 @@ describe("Treasure - with counters effect", () => {
         const monster = game.monsters[0]!;
         game.endTurn();
         await game.resolveStack();
-        game.discardFromHandAtIndex(player2, 1);
+        game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
         game.declareAttackOnMonster(player2, monster);
 

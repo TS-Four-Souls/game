@@ -294,7 +294,7 @@ describe("Tap/Paid effects 2", () => {
         
         // Clear player1's hand first (game already started and player looted)
         while (player1.hand.length > 0) {
-            game.discardFromHandAtIndex(player1, 1);
+            game.discardFromHandAtIndex(player1, 0);
         }
         
         game.addInPlay(player1, emptyVessel);
@@ -351,7 +351,7 @@ describe("Tap/Paid effects 2", () => {
         expect(player1.attackPoints).toBe(1); // No bonus
         
         // Discard the card using game method
-        game.discardFromHandAtIndex(player1, 1);
+        game.discardFromHandAtIndex(player1, 0);
         await game.resolveStack();
 
         expect(player1.hand.length).toBe(0);
@@ -519,7 +519,7 @@ describe("Tap/Paid effects 2", () => {
         
         // Discard all cards
         while (player1.hand.length > 0) {
-            game.discardFromHandAtIndex(player1, 1);
+            game.discardFromHandAtIndex(player1, 0);
         }
         await game.resolveStack();
         
@@ -533,7 +533,7 @@ describe("Tap/Paid effects 2", () => {
         
         // Clear player1's hand
         while (player1.hand.length > 0) {
-            game.discardFromHandAtIndex(player1, 1);
+            game.discardFromHandAtIndex(player1, 0);
         }
         
         // Add empty vessel
@@ -1007,7 +1007,7 @@ describe("Force Attack Monster", () => {
             game.addInPlay(player1, monsterManual);
 
             const targetMonster = game.monsters[0]!;
-            const monsterPosition = game.monsters.indexOf(targetMonster) + 1;
+            const monsterPosition = game.monsters.indexOf(targetMonster);
 
             game.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);

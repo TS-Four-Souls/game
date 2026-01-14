@@ -36,7 +36,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         game.endTurn();
         await game.resolveStack();
-        game.discardFromHandAtIndex(player2, 1);
+        game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
         game.declareAttackOnMonster(player2, monster);
 
@@ -92,7 +92,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         game.endTurn();
         await game.resolveStack();
-        game.discardFromHandAtIndex(player2, 1);
+        game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
         game.declareAttackOnMonster(player2, monster);
 
@@ -149,7 +149,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         game.endTurn();
         await game.resolveStack();
-        game.discardFromHandAtIndex(player2, 1);
+        game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
         game.declareAttackOnMonster(player2, monster);
 
@@ -208,7 +208,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         game.endTurn();
         await game.resolveStack();
-        game.discardFromHandAtIndex(player2, 1);
+        game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
         game.declareAttackOnMonster(player2, monster);
 
@@ -264,7 +264,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         game.endTurn();
         await game.resolveStack();
-        game.discardFromHandAtIndex(player2, 1);
+        game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
         game.declareAttackOnMonster(player2, monster);
 
@@ -336,7 +336,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         game.endTurn();
         await game.resolveStack();
-        game.discardFromHandAtIndex(player2, 1);
+        game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
         game.declareAttackOnMonster(player2, monster);
 
@@ -404,7 +404,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         
         game.endTurn();
         await game.resolveStack();
-        game.discardFromHandAtIndex(player2, 1);
+        game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
         game.declareAttackOnMonster(player2, monster);
         
@@ -469,7 +469,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         game.endTurn();
         await game.resolveStack();
-        game.discardFromHandAtIndex(player2, 1);
+        game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
         game.declareAttackOnMonster(player2, monster);
         
@@ -535,7 +535,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         
         game.endTurn();
         await game.resolveStack();
-        game.discardFromHandAtIndex(player2, 1);
+        game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
         game.declareAttackOnMonster(player2, monster);
 
@@ -638,7 +638,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         game.endTurn();
         await game.resolveStack();
-        game.discardFromHandAtIndex(player2, 1);
+        game.discardFromHandAtIndex(player2, 0);
 
         game.addAttackThisTurn(player2, 1); // Ensure player can attack
         game.declareAttack(player2);
