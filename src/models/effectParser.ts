@@ -11,7 +11,7 @@ import * as monster from "./monsterEffects";
 import type { BonusSoulCardType } from "@/types/cardTypes";
 import { parse } from "zod";
 import type { Monster } from "./monster";
-import { inAnotherplayItemSelector, anotherPlayerSelector, playerSelector, activeEntitySelector, deckSelector, rollSelector, inplayUnchargedItemSelector, inplayCurseSelector, inplayItemSelector, visibleItemSelector, stackElementSelector, YourItemSelector } from "./targetSelector";
+import { inAnotherplayItemSelector, anotherPlayerSelector, playerSelector, activeEntitySelector, deckSelector, rollSelector, inplayUnchargedItemSelector, inplayCurseSelector, inplayItemSelector, visibleItemSelector, stackElementSelector, YourItemSelector, inplayItemAndSoulSelector } from "./targetSelector";
 
 /**
  * Represents a parsed effect with both its execution function and target selectors.
@@ -68,10 +68,13 @@ const selectCurse = (game: Game, count: number = 1, asMany: boolean = false): Ta
     [createSelector("Select a curse", inplayCurseSelector((player, card) => true, game), count, asMany)];
 
 const selectNonEternalItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose any non-eternal item", inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), count, asMany)];
+    [createSelector("Choose a non-eternal item", inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), count, asMany)];
+
+const selectNonEternalItemOrASoul = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
+    [createSelector("Choose a non-eternal item or a soul", inplayItemAndSoulSelector((player: Player, card: ItemCard) => card.eternal === false, game), count, asMany)];
 
 const selectNonEternalTapItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose any non-eternal item", inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false && card.hasActiveEffect() && card.slug != "b2-placebo", game), count, asMany)];
+    [createSelector("Choose a non-eternal item", inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false && card.hasActiveEffect() && card.slug != "b2-placebo", game), count, asMany)];
 
 const selectAnotherPlayerNonEternalItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
     [createSelector("Choose another player's non-eternal item", inAnotherplayItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), count, asMany)];
@@ -787,7 +790,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         case "choose a player at random. that player destroys an item they control.":
             return { effectFunction: active.destroyItemOfRandomPlayerEffect(game), targetSelectors: noTargets };
         case "destroy an item or soul.":
-            return { effectFunction: active.destroyOneEffect(game), targetSelectors: selectNonEternalItem(game) };
+            return { effectFunction: active.destroyOneEffect(game), targetSelectors: selectNonEternalItemOrASoul(game) };
         case "destroy another item":
             return { effectFunction: active.destroyOneEffect(game), targetSelectors: selectNonEternalItem(game) };
         case "destroy an item you control.":

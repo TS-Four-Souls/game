@@ -111,6 +111,12 @@ export function inplayItemSelector(filter: (player: Player, card: ItemCard) => b
     };
 }
 
+export function inplayItemAndSoulSelector(filter: (player: Player, card: ItemCard) => boolean, game: Game): (issuer: Player) => any[] {
+    return (issuer: Player) => {
+        return [...game.inPlayItems.filter(({ player, card }) => filter(player, card)).map(({ card }) => card), ...game.players.flatMap(p => p.souls)];
+    };
+}
+
 export function YourItemSelector(filter: (player: Player, card: ItemCard) => boolean, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
         return game.inPlayItems.filter(({ player, card }) => player === issuer &&filter(player, card)).map(({ card }) => card);
