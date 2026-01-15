@@ -934,6 +934,7 @@ export function getAttackRollEffect(damageDealt: number, damageReceived: number,
         effects.push((data: EffectData) => {
             const diceRoll = data.next; // First target is the DiceRoll itself
             const target = data.next as Monster; // Second target is the monster
+            if(data.issuer.isDead || target.isDead) return false;
             if (i + 1 >= evasion) {
                 game.dealCombatDamage(data.issuer, target, diceRoll, damageDealt + data.issuer.attackPoints);
             } else {

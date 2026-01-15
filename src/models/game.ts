@@ -987,10 +987,11 @@ export class Game {
     this.assertCurrentTurnIsPlayerTurn(player);
     this.assertCurrentPlayerIsNotEngagedInCombat();
     this.assertNoOngoingAttack();
+    this.assertEmptyStack();
     this.assertForcedAttackSatisfied(player);
-    this.healEveryone();
     this.emit("on:turn:end", { eventIssuer: player });
     this.executeWhenStackEmpty(() => {
+      this.healEveryone();
       for (const player of this.players) {
         player.resetTurnFlags();
       }

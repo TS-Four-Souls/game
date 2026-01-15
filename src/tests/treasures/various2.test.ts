@@ -804,9 +804,11 @@ describe("Force Attack Monster", () => {
         game.currentPlayer.combatEnded();
         // End turn
         game.endTurn();
+        await game.resolveStack();
 
         // Go back to player1's turn
         game.endTurn();
+        await game.resolveStack();
 
         // mustAttackMonster should still be null
         expect(game.currentPlayer.hasAttackRequirement()).toBe(false);

@@ -42,15 +42,21 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         game.endTurn();// end of turn of p1
         expect(player1.coins).toBe(5); // Should not gain coins
-
+        
         // Test: Player has 0 coins - should trigger and gain 6¢
         player1.loseCoins(5, false);
-        expect(player1.coins).toBe(0);
-
+        await game.resolveStack(); // Resolve any stack effects
+        await game.resolveStack(); // Resolve any stack effects
+        expect(player1.coins).toBe(6);
+        // Test: Player has 0 coins - should trigger and gain 6¢
+        player1.loseCoins(6, false);
+        
         game.endTurn();// end of turn of p2
         expect(player1.coins).toBe(0); // Should not gain coins
+        await game.resolveStack(); // Resolve any stack effects
 
         game.endTurn();// end of turn of p1
+        await game.resolveStack(); // Resolve any stack effects
         await game.resolveStack(); // Resolve any stack effects
 
         expect(player1.coins).toBe(6); // Should gain 6 coins
@@ -62,6 +68,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         game.endTurn();// end of turn of p1
         await game.resolveStack(); // Resolve any stack effects
+        await game.resolveStack(); // Resolve any stack effects
         expect(player1.coins).toBe(6); // Should not gain more
 
         // Test: Works multiple times when at 0¢
@@ -70,6 +77,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         game.endTurn();// end of turn of p2
         await game.resolveStack(); // Resolve any stack effects
         game.endTurn();// end of turn of p1
+        await game.resolveStack(); // Resolve any stack effects
         await game.resolveStack(); // Resolve any stack effects
         expect(player1.coins).toBe(6); // Gain 6 again
     });

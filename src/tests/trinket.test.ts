@@ -63,6 +63,7 @@ describe("Loot Card", () => {
         expect(player2.coins).toBe(initialCoins2); // No effect for other players
 
         game.endTurn();
+        await game.resolveStack();
         player1.addHealthPoints(10); // Heal back for clarity
 
         game.dealDamage(player2, player1, loot, 2);
@@ -319,7 +320,9 @@ describe("Loot Card", () => {
 
         // Start new turn cycle
         game.endTurn(); // player2
+        await game.resolveStack();
         game.endTurn(); // back to player1
+        await game.resolveStack();
 
         // Effect should NOT trigger anymore
         expect(selectCalled).toBe(false);
@@ -427,7 +430,9 @@ describe("Loot Card", () => {
 
         // Start new turn cycle
         game.endTurn(); // player2
+        await game.resolveStack();
         game.endTurn(); // back to player1
+        await game.resolveStack();
 
         // Effect should NOT trigger anymore
         expect(selectCalled).toBe(false);
@@ -538,7 +543,10 @@ describe("Loot Card", () => {
 
         // Start new turn cycle
         game.endTurn(); // player2
+        await game.resolveStack();
+
         game.endTurn(); // back to player1
+        await game.resolveStack();
 
         // Effect should NOT trigger anymore
         expect(selectCalled).toBe(false);

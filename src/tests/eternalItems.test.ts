@@ -86,6 +86,8 @@ describe("Eternal Items", () => {
         expect(player2.inPlay[0]!.slug).toBe("b2-isaac");
         
         const theCurse = player1.inPlay[1]! as ItemCard;
+        await game.resolveStack();
+
         game.endTurn();
         await game.resolveStack();
         expect(theCurse.charged).toBe(false);
@@ -125,6 +127,7 @@ describe("Eternal Items", () => {
         expect(player1.inPlay[1]!.slug).toBe("b2-the_curse");
         expect(player1.inPlay[1]!.eternal).toBe(true);
         expect(player2.inPlay[0]!.slug).toBe("b2-isaac");
+        await game.resolveStack();
 
         game.endTurn(); // Isaac's turn
         await game.resolveStack(); // Resolve any stack effects

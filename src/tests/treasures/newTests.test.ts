@@ -493,6 +493,8 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
 
         // Turn changes - both effects persist
         game.endTurn();
+        await game.resolveStack();
+        
         game.endTurn();
 
         // Both players keep their HP bonuses (modeling_clay is permanent)
@@ -603,7 +605,8 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // End turn
         game.endTurn();
-
+        await game.resolveStack();
+        
         // Should revert back to diplopia
         expect(diplopia.name).toBe("Diplopia");
         expect(diplopia.slug).toBe("b2-diplopia");
@@ -673,13 +676,17 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         await game.activateItem(player1, diplopia, [breakfast]);
         await game.resolveStack();
         expect(diplopia.name).toBe("Breakfast");
+        expect(game.currentPlayer).toBe(player1);
 
         // End turn
         game.endTurn();
+        await game.resolveStack();
         expect(diplopia.name).toBe("Diplopia");
+        expect(game.currentPlayer).toBe(player2);
 
         // Back to player1's turn
         game.endTurn();
+        await game.resolveStack();
         expect(game.currentPlayer).toBe(player1);
 
         // Second turn - copy dinner
@@ -809,6 +816,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // End turn - reverts again
         // Note: The second reversion may have edge cases with stat restoration
+        await game.resolveStack();
         game.endTurn();
         
         // Verify original items on player2 still work properly
@@ -845,6 +853,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         expect(diplopia.name).toBe("Brimstone");
         expect(player1.attackPoints).toBe(initialATK + 1);
+        await game.resolveStack();
 
         // End turn - reverts again
         game.endTurn();
@@ -934,6 +943,7 @@ describe("b2-trinity_shield - prevents other players from priority actions", () 
 
         // End turn and start new turn
         game.endTurn();
+        await game.resolveStack(); // Resolve any stack effects
         game.endTurn();
 
         // Verify effect doesn't persist across turns
