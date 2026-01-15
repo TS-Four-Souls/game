@@ -397,7 +397,7 @@ export class Game {
     if (player.isEngagedInCombat) {
       throw new Error("Player is already engaged in combat.");
     }
-    if (player.attackThisTurn < 0)
+    if (player.attackThisTurn <= 0 && !player.hasAttackRequirement)
       throw new Error("Player has no remaining attacks this turn.");
 
     player.attackThisTurn -= 1;
@@ -457,7 +457,7 @@ export class Game {
     this.emit("on:get:monster:attackPoints", {
       eventIssuer: monster,
       stat: baseStat,
-    });
+    }, false);
     return baseStat[0]!;
   }
 
@@ -466,7 +466,7 @@ export class Game {
     this.emit("on:get:monster:evasion", {
       eventIssuer: monster,
       stat: baseStat,
-    });
+    }, false);
     return Math.max(1, Math.min(6, baseStat[0]!));
   }
 
@@ -1682,8 +1682,8 @@ export class Game {
     return `You have drawn ${toLoot} loot card(s).\n`;
   }
 
-  emit(event: TriggerEvent, data: any = {}): void {
-    if (this.emitter.emit(event, data) > 0)
+  emit(event: TriggerEvent, data: any = {}, dispatch:boolean = true): void {
+    if (this.emitter.emit(event, data) > 0 && dispatch)
       this._onStateChange.dispatch();
   }
 
