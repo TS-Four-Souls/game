@@ -42,6 +42,9 @@ const noTargets: TargetsSelector[] = [];
 const selectPlayer = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
     [createSelector("Choose a player", playerSelector(() => true, game), count, asMany)];
 
+const selectAlivePlayer = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
+    [createSelector("Choose a player", playerSelector((player) => !player.isDead, game), count, asMany)];
+
 const selectAnotherPlayer = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
     [createSelector("Choose another player", anotherPlayerSelector(() => true, game), count, asMany)];
 
@@ -758,7 +761,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         case "recharge your character.":
             return { effectFunction: active.rechargeCharaEffect(game), targetSelectors: noTargets };
         case "choose a living player. that player dies.":
-            return { effectFunction: active.deathTargetEffect(game, true), targetSelectors: selectPlayer(game) };
+            return { effectFunction: active.deathTargetEffect(game, true), targetSelectors: selectAlivePlayer(game) };
         case "put a card from your hand on top of the loot deck.":
             return { effectFunction: active.putCardFromHandOnTopOfDeckEffect(game), targetSelectors: noTargets };
         case "recharge an item.":

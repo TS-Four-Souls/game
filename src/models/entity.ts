@@ -40,7 +40,6 @@ export abstract class Entity {
     this._currentHealthPoints -= damage;
     if (this._currentHealthPoints < 0) {
       this._currentHealthPoints = 0;
-      this._died = true;
       return false;
     }
     return true;
@@ -80,10 +79,10 @@ export abstract class Entity {
     this._currentHealthPoints = 0;
     this._died = true;
   }
-  
+  /** An entity if it has been marked as dead. 
+   * Note that an entity may have 0 health points but not be dead if their death has not been resolved.
+  */
   get isDead(): boolean {
-    if( this._currentHealthPoints <= 0 )
-      this.die();
     return this._died;
   }
 

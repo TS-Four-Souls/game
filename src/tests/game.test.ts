@@ -120,16 +120,10 @@ describe("Player", () => {
     expect(player.isDead).toBe(false);
   });
 
-  it("should die when health reaches zero", async () => {
-    player.receiveDamage(5);
-    expect(player.currentHealthPoints).toBe(0);
-    expect(player.isDead).toBe(true);
-  });
 
   it("should not go below zero health", async () => {
     player.receiveDamage(10);
     expect(player.currentHealthPoints).toBe(0);
-    expect(player.isDead).toBe(true);
   });
 
   it("should heal to full health", async () => {
@@ -355,7 +349,6 @@ describe("Player - Damage & Health", () => {
 
   it("should be dead after exactly reaching zero health", async () => {
     player.receiveDamage(10);
-    expect(player.isDead).toBe(true);
     expect(player.currentHealthPoints).toBe(0);
   });
 

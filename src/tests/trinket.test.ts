@@ -164,6 +164,7 @@ describe("Loot Card", () => {
         game.dealDamage(player1, player2, loot, player2.currentHealthPoints); // Kill player 2 again
         await game.resolveStack();
         expect(player1.hand.cards.length).toBe(handSizeTurn3); // Looted 1
+        await game.resolveStack();
         expect(player2.isDead).toBe(true);
     });
 

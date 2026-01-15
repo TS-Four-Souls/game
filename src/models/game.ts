@@ -290,15 +290,16 @@ export class Game {
   }
 
   death(receiver: Entity, from: Entity, source: DamageSource): void {
+    this.assertGameStarted();
+    this.assertEntityIsInPlay(receiver);
+    if(receiver.isDead) return;
+
     const deathOnStack = new DeathOnStack(
       receiver,
       from,
       source,
       this
     );
-    this.assertGameStarted();
-    this.assertEntityIsInPlay(receiver);
-
     this.addToStack(deathOnStack);
     this.emit("on:death:would-death", {
       eventIssuer: receiver,
