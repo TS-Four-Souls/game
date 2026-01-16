@@ -94,67 +94,87 @@ export type State = {
   }[];
 };
 
+
 export type DetailedState = {
-  me: {
-    name: string;
-    hand: GenericCardType[];
-    inPlay: (GenericCardType & { charged: boolean } & { effects: {
-        index: "tap" | number;
-        description: string;
-      }[] })[];
-    souls: GenericCardType[];
-    coins: number;
-    currentHealthPoints: number;
-    currentAttackPoints: number;
-    remainingLootPlay: number;
-    isEngagedInCombat: boolean;
+  me: PlayerMe;
+  players: Player[];
+
+  monsters: {
+    discard: Card[];
+    deckSize: number;
+    inPlay: { top: MonsterCard; covered: Card[] }[];
   };
-  players: {
-    name: string;
-    handSize: number;
-    inPlay: (GenericCardType & { charged: boolean })[];
-    souls: GenericCardType[];
-    coins: number;
-    currentHealthPoints: number;
-    currentAttackPoints: number;
-    remainingLootPlay: number;
-    isEngagedInCombat: boolean;
-  }[];
-  topDiscards: {
-    loot?: GenericCardType;
-    treasure?: GenericCardType;
-    monster?: GenericCardType;
+
+  treasure: {
+    discard: Card[];
+    deckSize: number;
+    inPlay: Card[];
   };
-  monsters: MonsterCardType[];
-  shop: GenericCardType[];
+
+  loot: {
+    discard: Card[];
+    deckSize: number;
+  };
+
+  bonusSouls: BonusSoulCard[];
+
   turn: string;
   stack: string[];
-  firstCardTreasureDeck?: GenericCardType;
-  pendingSelection?: {
-    requestId: string;
-    options: string[];
-    count: number;
-    description: string;
-    asMany: boolean;
-  };
+  pendingSelection?: PendingSelection;
 };
 
-
-type MonsterCardType = {
-  slug: string;
+export type Player = {
   name: string;
+  handSize: number;
+  inPlay: InPlayCard[];
+  souls: number;
+  soulCards: Card[];
+  coins: number;
+  currentHealthPoints: number;
+  currentAttackPoints: number;
+  remainingLootPlay: number;
+  isEngagedInCombat: boolean;
+};
+
+export type PlayerMe = Player & {
+  hand: Card[];
+  inPlay: InPlayMeCard[];
+};
+
+export type Card = {
+  slug: string;
+};
+
+export type MonsterCard = Card & {
   stats?: {
     healthPoints: number;
     attackPoints: number;
     evasionPoints: number;
     isEngagedInCombat: boolean;
-  }
-}
-
-export type DiscardCards = {
-  cards: GenericCardType[];
+  };
 };
 
-export type MonsterPiles = {
-  cards: GenericCardType[][];
+export type InPlayCard = Card & {
+  charged?: boolean;
+};
+
+export type InPlayMeCard = InPlayCard & {
+  effects?: ActiveEffectEntry[];
+};
+
+export type BonusSoulCard = Card & {
+  granted: boolean;
+};
+
+export type PendingSelection = {
+  requestId: string;
+  description: string;
+  options: string[];
+  count: number;
+  asMany: boolean;
+};
+
+export type ActiveEffectEntry = {
+  index: "tap" | number;
+  description: string;
 };

@@ -881,6 +881,8 @@ class MonsterCard extends Card {
 }
 
 class BsoulCard extends Card {
+    granted: boolean = false;
+    
     constructor(id: number, json: BonusSoulCardType) {
         super(id, json);
         if (json.rewards && json.rewards.soul) {

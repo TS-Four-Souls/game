@@ -3,9 +3,7 @@ import { DamageOnStack, DeathOnStack, DiceRoll, Player } from "@/models/player";
 import { TargetBuilder } from "@/models/targetBuilder";
 import type {
   DetailedState,
-  DiscardCards,
   Issuer,
-  MonsterPiles,
   State,
 } from "@/types/types";
 import { setTimeout } from "timers/promises";
@@ -863,6 +861,8 @@ export class Game {
   }
 
   addSoul(player: Player, soulCard: Card): void {
+    if(soulCard instanceof BsoulCard)
+      soulCard.granted = true;
     player.addSoul(soulCard);
   }
 
@@ -1557,7 +1557,9 @@ export class Game {
           charged: c.charged,
           effects: c.activeEffectList,
         })),
-        souls: player.souls.map((c) => c.json),
+        handSize: player.hand.cards.length,
+        souls: player.totalSouls,
+        soulCards: player.souls.map((c) => c.json),
         coins: player.coins,
         currentAttackPoints: player.attackPoints,
         currentHealthPoints: player.currentHealthPoints,
@@ -1570,37 +1572,45 @@ export class Game {
           name: p.id,
           handSize: p.hand.cards.length,
           inPlay: p.inPlay.map((c) => ({ ...c.json, charged: c.charged })),
-          souls: p.souls.map((c) => c.json),
+          souls: p.totalSouls,
+          soulCards: p.souls.map((c) => c.json),
           coins: p.coins,
           currentAttackPoints: p.attackPoints,
           currentHealthPoints: p.currentHealthPoints,
           remainingLootPlay: p.remainingLootPlay,
           isEngagedInCombat: p.isEngagedInCombat,
         })),
-      topDiscards: {
-        loot: this.decks["loot"]!.discard[0]
-          ? this.decks["loot"]!.discard[0]!.json
-          : undefined,
-        treasure: this.decks["treasure"]!.discard[0]
-          ? this.decks["treasure"]!.discard[0]!.json
-          : undefined,
-        monster: this.decks["monster"]!.discard[0]
-          ? this.decks["monster"]!.discard[0]!.json
-          : undefined,
+      monsters: 
+      {
+        discard: this.decks["monster"]!.discard.map((c) => ({slug: c.slug})),
+        deckSize: this.decks["monster"]!.cards.length,
+        inPlay: this.encounters._slots.map((m, index) => ({ card: m[m.length - 1]!, monster: this.encounters.monsterIn(index), covered: this.encounters._slots[index]!.slice(0, -1).map(c => ({slug: c.slug})) })).map((m) => ({
+          
+          top: {slug: m.card?.slug,
+            name: m.card?.name,
+            ...(m.monster ? {
+              stats: {
+                healthPoints: m.monster.currentHealthPoints,
+                attackPoints: this.getAttack(m.monster),
+                evasionPoints: this.getDC(m.monster),
+                isEngagedInCombat: m.monster.isEngagedInCombat,
+              }
+            } : {})},
+          covered: m.covered,
+        })),
       },
-      monsters: this.encounters._slots.map((m, index) => ({ card: m[m.length - 1]!, monster: this.encounters.monsterIn(index) })).map((m) => ({
-        slug: m.card?.slug,
-        name: m.card?.name,
-        ...(m.monster ? {
-          stats: {
-            healthPoints: m.monster.currentHealthPoints,
-            attackPoints: this.getAttack(m.monster),
-            evasionPoints: this.getDC(m.monster),
-            isEngagedInCombat: m.monster.isEngagedInCombat,
-          }
-        } : {}),
-      })),
-      shop: this.shop._slots.map((m) => m!.json),
+      bonusSouls: this._bonusSouls.map((c) => ({slug: c.slug, granted: c.granted })),
+      loot: 
+      {
+        discard: this.decks["loot"]!.discard.map((c) => ({slug: c.slug})),
+        deckSize: this.decks["loot"]!.cards.length,
+      },
+      treasure: 
+      {
+        discard: this.decks["treasure"]!.discard.map((c) => ({slug: c.slug})),
+        deckSize: this.decks["treasure"]!.cards.length,
+        inPlay: this.shop._slots.map((c) => ({slug: c!.slug})),
+      },
       turn: this.currentPlayer.id,
       stack: this.stack.elements.map((el) => {
         if (el instanceof LootCard) {
@@ -1613,9 +1623,9 @@ export class Game {
           return json;
         }
       }),
-      firstCardTreasureDeck: player.canSeeTopOfTreasureDeck
-        ? this.decks["treasure"]!.cards[0]?.json
-        : undefined,
+      // firstCardTreasureDeck: player.canSeeTopOfTreasureDeck
+        // ? this.decks["treasure"]!.cards[0]?.json
+        // : undefined,
       pendingSelection: (() => {
         // Check if player has a pending selection from selectMultiple
         for (const sel of this.pendingMultipleSelections.values()) {
@@ -1688,15 +1698,6 @@ export class Game {
       this._onStateChange.dispatch();
   }
 
-  get monsterSlotsJSON(): string {
-    if (!this.turnHandler.isInitialized) {
-      return "Game not started";
-    }
-    const res: MonsterPiles = {
-      cards: this.encounters._slots.map((m) => m.map((c) => c!.json)),
-    };
-    return JSON.stringify(res);
-  }
   getInPlay(issuer: Issuer): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -1888,25 +1889,6 @@ export class Game {
 
   playerSkipNextTurn(player: Player): void {
     this.turnHandler.skipNextTurn(player);
-  }
-
-
-
-  getDiscard(deckType: string): string {
-    try {
-      this.assertGameStarted();
-    } catch {
-      return "Game not started";
-    }
-
-    const deck: Deck = this.decks[deckType]!;
-    if (!deck) {
-      throw new Error("Invalid deck type.");
-    }
-    const discardCards: DiscardCards = {
-      cards: deck.discard.map((c) => c!.json),
-    };
-    return JSON.stringify(discardCards);
   }
 
   loseCoins(issuer: Issuer, coins: number, asMany: boolean): number {
