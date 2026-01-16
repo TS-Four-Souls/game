@@ -110,6 +110,50 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("attackMonster", (payload, callback) => {
+    const validated = schemas.attackMonsterRequest.safeParse(payload);
+    if (!validated.success) {
+      return callback({ status: 400, error: validated.error });
+    }
+    try {
+      const player = game.getPlayerById(validated.data.issuer.id);
+      const monster = 
+        validated.data.index === "top" 
+        ? "topDeck" 
+        : game.encounters.monsterIn(validated.data.index);
+      if (!monster) {
+        return new Response(`No monster at index ${validated.data.index}`, {
+          status: 400,
+        });
+      }
+    const drawInIndex = 
+      validated.data.index === "top" 
+      ? validated.data.replaceIndex 
+      : -1;
+      game.declareAttackOnMonster(player, monster, drawInIndex);
+      game.declareAttackOnMonster(player, monster);
+
+    } catch (error) {
+      console.error("Failed to declare attack", error);
+      return callback({ status: 400, error });
+    }
+  });
+
+  socket.on("attackRoll", (payload, callback) => {
+    const validated = schemas.attackRollRequest.safeParse(payload);
+    if (!validated.success) {
+      return callback({ status: 400, error: validated.error });
+    }
+    try {
+      const player = game.getPlayerByIssuer(validated.data);
+      game.attackRoll(player);
+      return callback({ status: 200 });
+    } catch (error) {
+      console.error("Failed to declare attack", error);
+      return callback({ status: 400, error });
+    }
+  });
+
   socket.on("resolve", (payload, callback) => {
     const validated = schemas.resolveRequest.safeParse(payload);
     if (!validated.success) {
@@ -212,13 +256,83 @@ io.on("connection", (socket) => {
       return callback({ status: 400, error });
     }
   });
+
+// ------------- DEBUG EVENTS -------------
+
+  socket.on("debugLoot", (payload, callback) => {
+    const validated = schemas.debugLootRequest.safeParse(payload);
+    if (!validated.success) {
+      return callback({ status: 400, error: validated.error });
+    }
+    try {
+      const player = game.getPlayerByIssuer(validated.data);
+      return callback({ response: game.loot(player), status: 200 });
+    } catch (error) {
+      console.error("Failed to debug loot", error);
+      return callback({ status: 400, error });
+    }
 });
 
-
-
+  socket.on("debugGainTreasure", (payload, callback) => {
+    const validated = schemas.debugGainTreasureRequest.safeParse(payload);
+    if (!validated.success) {
+      return callback({ status: 400, error: validated.error });
+    }
+    try {
+      const player = game.getPlayerByIssuer(validated.data);
+      return callback({ response: game.gainTreasure(player), status: 200 });
+    } catch (error) {
+      console.error("Failed to debug gain treasure", error);
+      return callback({ status: 400, error });
+    }
+  });
+  socket.on("debugReset", (payload, callback) => {
+    const validated = schemas.debugResetRequest.safeParse(payload);
+    if (!validated.success) {
+      return callback({ status: 400, error: validated.error });
+    }
+    try {
+      game.reset();
+      const p1 = new Player("DrMint", 1, 2, 0, "");
+      const p2 = new Player("slichau", 1, 2, 0, "");
+      game.addPlayer(p1);
+      game.addPlayer(p2);
+      game.setupGame();
+      // const isaac = game.decks["character"]!.getCardFromSlug(
+      //   "b2-isaac"
+      // )! as CharacterCard;
+      // const samson = game.decks["character"]!.getCardFromSlug(
+      //   "b2-samson"
+      // )! as CharacterCard;
+      // const card = game.obtainCard("b2-remote_detonator")!;
+      // const card2 = game.obtainCard("b2-xv_the_devil")! as LootCard;
+      const loots = ["b2-i_the_magician", "b2-gold_bomb", "b2-ii_the_high_priestess", "b2-bomb"]
+      for (const slug of loots) {
+        // const card = game.obtainCard(slug)! as LootCard;
+        // game.addCardToHand(p1, card);
+      }
+      // const card2 = game.obtainCard("b2-gold_bomb")! as LootCard;
+      // // const card2 = game.obtainCard("b2-bomb")! as LootCard;
+      // game.addCardToHand(p1, card2);
+      game.start(p1);
+      const treas = ["b2-pandoras_box", "b2-placebo", "b2-the_d20", "b2-blank_card", "b2-chaos_card"]
+      for (const slug of treas) {
+        // const card = game.obtainCard(slug)!;
+        // game.addInPlay(p1, card);
+      }
+      return new Response("Debug reset", {
+        status: 200,
+      });
+      return callback({ status: 200 });
+    } catch (error) {
+      console.error("Failed to debug reset", error);
+      return callback({ status: 400, error });
+    }
+  });
 
 io.on("disconnect", (socket) => {
   console.log("Client disconnected");
+});
 });
 
 export default {

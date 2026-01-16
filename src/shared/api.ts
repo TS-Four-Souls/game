@@ -12,6 +12,20 @@ const indexSchema = z.object({
   index: z.number(),
 });
 
+const AttackMonsterSchema = z.union([
+  z.object({
+    issuer: issuerSchema,
+    index: z.number(),
+  }),
+  z.object({
+    issuer: issuerSchema,
+    index: z.literal("top"),
+    replaceIndex: z.number(),
+  }),
+]);
+
+
+
 const joinRequestSchema = z.string();
 
 type JoinResponse =
@@ -40,18 +54,9 @@ const startRequestSchema = z.object({
   issuer: issuerSchema,
 });
 
-type StartResponse =
-  | {
-    status: 200;
-  }
-  | {
-    status: 400;
-    error: any;
-  };
-
 const resetRequestSchema = z.void();
 
-type ResetResponse =
+type BasicResponse =
   | {
     status: 200;
   }
@@ -60,7 +65,7 @@ type ResetResponse =
     error: any;
   };
 
-  type EndTurnResponse =
+  type StringResponse =
   | {
     status: 200;
     response: string;
@@ -81,10 +86,9 @@ type ResetResponse =
   };
 
 const resolveRequestSchema = startRequestSchema
-type resolveResponse = ResetResponse;
 
 const declareAttackRequestSchema = startRequestSchema;
-type DeclareAttackResponse = ResetResponse
+type DeclareAttackResponse = BasicResponse
 const submitSelectionSchema = z.object({
   issuer: issuerSchema,
   requestId: z.string(),
@@ -191,6 +195,11 @@ export const schemas = {
   startRequest: startRequestSchema,
   resetRequest: resetRequestSchema,
   declareAttackRequest: declareAttackRequestSchema,
+  attackMonsterRequest: AttackMonsterSchema,
+  attackRollRequest: issuerSchema,
+  debugLootRequest: issuerSchema,
+  debugGainTreasureRequest: issuerSchema,
+  debugResetRequest: startRequestSchema,
   resolveRequest: resolveRequestSchema,
   submitSelectionRequest: submitSelectionSchema,
   playCardRequest: cardActivationSchema,
@@ -212,20 +221,31 @@ export namespace Requests {
   export type EndTurn = z.infer<typeof NextTurnRequestSchema>;
   export type Activate = z.infer<typeof cardActivationSchema>;
   export type Purchase = z.infer<typeof indexSchema>;
+
+  export type AttackMonster = z.infer<typeof AttackMonsterSchema>;
+  export type AttackRoll = z.infer<typeof issuerSchema>;
+  export type DebugLoot = z.infer<typeof issuerSchema>;
+  export type DebugGainTreasure = z.infer<typeof issuerSchema>;
+  export type DebugReset = z.infer<typeof startRequestSchema>;
 }
 
 export namespace Responses {
   export type Join = JoinResponse;
   export type Rejoin = RejoinResponse;
-  export type Start = StartResponse;
-  export type Reset = ResetResponse;
+  export type Start = BasicResponse;
+  export type Reset = BasicResponse;
   export type DeclareAttack = DeclareAttackResponse;
-  export type resolve = resolveResponse;
-  export type submitSelection = ResetResponse;
+  export type resolve = BasicResponse;
+  export type submitSelection = BasicResponse;
   export type PlayCard = NextTargetSelectorResponse;
-  export type EndTurn = EndTurnResponse;
+  export type EndTurn = StringResponse;
   export type Activate = NextTargetSelectorResponse;
-  export type Purchase = ResetResponse;
+  export type Purchase = BasicResponse;
+  export type AttackMonster = BasicResponse;
+  export type AttackRoll = BasicResponse;
+  export type DebugLoot = StringResponse;
+  export type DebugGainTreasure = StringResponse;
+  export type DebugReset = BasicResponse;
 }
 
 export interface ServerToClientEvents {
@@ -284,6 +304,31 @@ export interface ClientToServerEvents {
   purchase: (
     request: Requests.Purchase,
     callback: (response: Responses.Purchase) => void,
+  ) => void;
+
+  attackMonster: (
+    request: Requests.AttackMonster,
+    callback: (response: Responses.AttackMonster) => void,
+  ) => void;
+
+  attackRoll: (
+    request: Requests.AttackRoll,
+    callback: (response: Responses.AttackRoll) => void,
+  ) => void;
+
+  debugLoot: (
+    request: Requests.DebugLoot,
+    callback: (response: Responses.DebugLoot) => void,
+  ) => void;
+
+  debugGainTreasure: (
+    request: Requests.DebugGainTreasure,
+    callback: (response: Responses.DebugGainTreasure) => void,
+  ) => void;
+
+  debugReset: (
+    request: Requests.Start,
+    callback: (response: Responses.DebugReset) => void,
   ) => void;
 }
 
