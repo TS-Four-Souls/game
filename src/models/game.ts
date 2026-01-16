@@ -2,7 +2,6 @@ import { Monster } from "@/models/monster";
 import { DamageOnStack, DeathOnStack, DiceRoll, Player } from "@/models/player";
 import { TargetBuilder } from "@/models/targetBuilder";
 import type {
-  DetailedState,
   Issuer,
   State,
 } from "@/types/types";
@@ -36,7 +35,11 @@ import {
 } from "@/models/cards";
 import { Stack, type StackElement } from "@/models/stack";
 import { effectParser, type ParsedEffect } from "@/models/effectParser";
-import { getAttackRollEffect, targetGetCoinRollEffect, targetGetLootRollEffect } from "@/models/activeEffect";
+import {
+  getAttackRollEffect,
+  targetGetCoinRollEffect,
+  targetGetLootRollEffect,
+} from "@/models/activeEffect";
 import { Shop, Encounters } from "@/models/slots";
 import { Entity } from "@/models/entity";
 import { TurnHandler } from "./turnHandler";
@@ -47,6 +50,7 @@ import { bSoulEffectParser } from "@/models/bonusSoulHandling";
 import { ca, pl } from "zod/locales";
 import type { TriggerEvent } from "@/types/triggers";
 import { set } from "zod";
+import type { DetailedState } from "@/shared/api";
 
 // Type representing sources of damage - either a card ability or a dice roll
 export type DamageSource = Card | DiceRoll;
@@ -102,6 +106,9 @@ export class Game {
     };
   }
 
+  get isStarted(): boolean {
+    return this._turnHandler.isInitialized;
+  }
   get players(): Player[] {
     return this._players;
   }
@@ -253,13 +260,17 @@ export class Game {
         c.eternal === false
     );
     if (gameParameters.deathPenaltyItem > 0 && setOfLosableItems.length > 0) {
-      const itemToLose = (await this.select(
-        p,
-        gameParameters.deathPenaltyItem,
-        setOfLosableItems,
-        false,
-        gameParameters.deathPenaltyItem > 1 ? "Select items to lose." : "Select an item to lose."
-      )).selected;
+      const itemToLose = (
+        await this.select(
+          p,
+          gameParameters.deathPenaltyItem,
+          setOfLosableItems,
+          false,
+          gameParameters.deathPenaltyItem > 1
+            ? "Select items to lose."
+            : "Select an item to lose."
+        )
+      ).selected;
       if (itemToLose && itemToLose.length > 0) {
         for (const item of itemToLose) {
           this.removeInPlay(p, item);
@@ -268,36 +279,34 @@ export class Game {
       }
     }
     if (gameParameters.deathPenaltyLoot > 0 && p.hand.cards.length > 0) {
-      const lootToLose = (await this.select(
-        p,
-        gameParameters.deathPenaltyLoot,
-        p.hand.cards,
-        false,
-        gameParameters.deathPenaltyLoot > 1 ? "Select loot cards to lose." : "Select a loot card to lose."
-      )).selected;
+      const lootToLose = (
+        await this.select(
+          p,
+          gameParameters.deathPenaltyLoot,
+          p.hand.cards,
+          false,
+          gameParameters.deathPenaltyLoot > 1
+            ? "Select loot cards to lose."
+            : "Select a loot card to lose."
+        )
+      ).selected;
       if (lootToLose && lootToLose.length > 0) {
-        for (const loot of lootToLose){
+        for (const loot of lootToLose) {
           this.discardFromHandAtIndex(p, p.hand._hand.indexOf(loot));
         }
       }
     }
-    for(const item of p.inPlay)
-      if(item.hasActiveEffect())
-        item.charged = false;
+    for (const item of p.inPlay)
+      if (item.hasActiveEffect()) item.charged = false;
     this._onStateChange.dispatch();
   }
 
   death(receiver: Entity, from: Entity, source: DamageSource): void {
     this.assertGameStarted();
     this.assertEntityIsInPlay(receiver);
-    if(receiver.isDead) return;
+    if (receiver.isDead) return;
 
-    const deathOnStack = new DeathOnStack(
-      receiver,
-      from,
-      source,
-      this
-    );
+    const deathOnStack = new DeathOnStack(receiver, from, source, this);
     this.addToStack(deathOnStack);
     this.emit("on:death:would-death", {
       eventIssuer: receiver,
@@ -312,20 +321,20 @@ export class Game {
     if (rewards?.coin) {
       if (rewards.coin === "roll") {
         const roll = this.rollDice(this.currentPlayer, false);
-        roll.attachEffect(targetGetCoinRollEffect(this), monster.card, [this.currentPlayer]);
-
-      }
-      else if (typeof rewards.coin === "number") {
+        roll.attachEffect(targetGetCoinRollEffect(this), monster.card, [
+          this.currentPlayer,
+        ]);
+      } else if (typeof rewards.coin === "number") {
         this.gainCoins(this.currentPlayer, rewards.coin);
       }
     }
     if (rewards?.loot) {
       if (rewards.loot === "roll") {
         const roll = this.rollDice(this.currentPlayer, false);
-        roll.attachEffect(targetGetLootRollEffect(this), monster.card, [this.currentPlayer]);
-
-      }
-      else if (typeof rewards.loot === "number")
+        roll.attachEffect(targetGetLootRollEffect(this), monster.card, [
+          this.currentPlayer,
+        ]);
+      } else if (typeof rewards.loot === "number")
         this.loot(this.currentPlayer, rewards.loot);
     }
     if (rewards?.treasure && typeof rewards.treasure === "number")
@@ -334,8 +343,7 @@ export class Game {
 
   obtainMonsterSoulOrDiscard(monster: Monster): void {
     const card = monster.card;
-    if (this.encounters._deck.cards.includes(card))
-      return; // monster is back in the deck and does not give his soul.
+    if (this.encounters._deck.cards.includes(card)) return; // monster is back in the deck and does not give his soul.
     if (card.rewards?.soul !== undefined) {
       if (typeof card.rewards?.soul !== "number")
         throw new Error("Monster soul reward must be a number.");
@@ -345,7 +353,6 @@ export class Game {
     } else this.discard(monster.card);
   }
 
-
   // Should only be called by DeathOnStack objects.
   resolveDeath(receiver: Entity, from: Entity, source: DamageSource): void {
     this.emit("on:death:before-penalty", {
@@ -354,10 +361,10 @@ export class Game {
       source: source,
     });
     this.executeWhenStackEmpty(async () => {
-    receiver.die();
-    if (receiver.isEngagedInCombat) {
-      this.Entities.forEach((e) => e.combatEnded());
-    }
+      receiver.die();
+      if (receiver.isEngagedInCombat) {
+        this.Entities.forEach((e) => e.combatEnded());
+      }
       if (receiver instanceof Player) {
         receiver.clearAttackRequirement(); // clear any forced attack constraints on this player.
         await this.deathPenalty(receiver);
@@ -405,13 +412,20 @@ export class Game {
     this._onStateChange.dispatch();
   }
 
-  declareAttackOnMonster(player: Player, monster: Monster | "topDeck", drawInIndex: number = - 1): void {
-    if (drawInIndex !== - 1 && monster !== "topDeck")
-      throw new Error("drawInIndex can only be specified when drawing from topDeck");
-    if (drawInIndex === - 1 && monster === "topDeck")
-      throw new Error("drawInIndex must be specified when drawing from topDeck");
-    if(monster !== "topDeck" && !monster.attackable)
-    {
+  declareAttackOnMonster(
+    player: Player,
+    monster: Monster | "topDeck",
+    drawInIndex: number = -1
+  ): void {
+    if (drawInIndex !== -1 && monster !== "topDeck")
+      throw new Error(
+        "drawInIndex can only be specified when drawing from topDeck"
+      );
+    if (drawInIndex === -1 && monster === "topDeck")
+      throw new Error(
+        "drawInIndex must be specified when drawing from topDeck"
+      );
+    if (monster !== "topDeck" && !monster.attackable) {
       player.clearAttackRequirement(monster);
       throw new Error("This monster cannot be attacked.");
     }
@@ -433,17 +447,18 @@ export class Game {
     if (monster === "topDeck") {
       this.drawMonster(player, drawInIndex);
       player.clearAttackRequirement("topDeck");
-      if (this.encounters.monsterIn(drawInIndex) === undefined ||
-        !this.encounters.monsterIn(drawInIndex)!.attackable)
-        {
-          player.combatEnded();
-          return; // drawn event.
-        }
+      if (
+        this.encounters.monsterIn(drawInIndex) === undefined ||
+        !this.encounters.monsterIn(drawInIndex)!.attackable
+      ) {
+        player.combatEnded();
+        return; // drawn event.
+      }
       monster = this.encounters.monsterIn(drawInIndex)!;
     }
     this.assertMonsterIsAlive(monster);
     monster.engageInCombat();
-    if(monster.isEngagedInCombat === false)
+    if (monster.isEngagedInCombat === false)
       throw new Error("Monster should be engaged in combat now.");
     // Clear forced attack constraint if this monster satisfies it
     player.clearAttackRequirement(monster);
@@ -453,19 +468,27 @@ export class Game {
 
   getAttack(monster: Monster): number {
     let baseStat = [monster.attackPoints];
-    this.emit("on:get:monster:attackPoints", {
-      eventIssuer: monster,
-      stat: baseStat,
-    }, false);
+    this.emit(
+      "on:get:monster:attackPoints",
+      {
+        eventIssuer: monster,
+        stat: baseStat,
+      },
+      false
+    );
     return baseStat[0]!;
   }
 
   getDC(monster: Monster): number {
     let baseStat = [monster.evasion];
-    this.emit("on:get:monster:evasion", {
-      eventIssuer: monster,
-      stat: baseStat,
-    }, false);
+    this.emit(
+      "on:get:monster:evasion",
+      {
+        eventIssuer: monster,
+        stat: baseStat,
+      },
+      false
+    );
     return Math.max(1, Math.min(6, baseStat[0]!));
   }
 
@@ -525,10 +548,10 @@ export class Game {
     if (!monster) {
       throw new Error("No monster is currently engaged in combat.");
     }
-    // damageDealt and damageReceived will be increased by the attack 
+    // damageDealt and damageReceived will be increased by the attack
     // of the dealer and receiver respectively in getAttackRollEffect.
     const damageDealt = [0];
-    const damageReceived = [0]; 
+    const damageReceived = [0];
     const evasion = [this.getDC(monster)];
     const dice = this.rollDice(player, true);
 
@@ -683,7 +706,13 @@ export class Game {
     amount: number,
     treasures: treasureCard[]
   ): Promise<{ selected: treasureCard[]; remaining: treasureCard[] }> {
-    const selection = await this.select(player, amount, treasures, false, "Select treasures to gain");
+    const selection = await this.select(
+      player,
+      amount,
+      treasures,
+      false,
+      "Select treasures to gain"
+    );
     for (const card of selection.selected) {
       this.addInPlay(player, card);
     }
@@ -691,15 +720,18 @@ export class Game {
   }
 
   // Pending selection tracking for multiplayer (handles both single and multiple selections)
-  private pendingMultipleSelections: Map<string, {
-    playerId: string;
-    options: any[];
-    count: number;
-    asMany: boolean;
-    requestId: string;
-    description: string;
-    resolve: (selection: any[]) => void;
-  }> = new Map();
+  private pendingMultipleSelections: Map<
+    string,
+    {
+      playerId: string;
+      options: any[];
+      count: number;
+      asMany: boolean;
+      requestId: string;
+      description: string;
+      resolve: (selection: any[]) => void;
+    }
+  > = new Map();
 
   get hasPendingSelections(): boolean {
     return this.pendingMultipleSelections.size > 0;
@@ -715,25 +747,30 @@ export class Game {
     if (n === 1 && !anyNumber && Options.length === 1) {
       return {
         selected: Options,
-        remaining: []
+        remaining: [],
       };
     }
-    if(Options.length === 0)
-      return {selected: [], remaining: []};
-    
-    const results = await this.selectMultiple([{
-      player,
-      count: n,
-      options: Options,
-      asMany: anyNumber,
-      description: description,
-    }]);
+    if (Options.length === 0) return { selected: [], remaining: [] };
+
+    const results = await this.selectMultiple([
+      {
+        player,
+        count: n,
+        options: Options,
+        asMany: anyNumber,
+        description: description,
+      },
+    ]);
     return results[0]!;
   }
 
   // Select from multiple players in parallel (useful for voting)
   // Method to submit a selection from the client
-  submitSelection(issuer: Issuer, requestId: string, selectedIdentifiers: string[]): void {
+  submitSelection(
+    issuer: Issuer,
+    requestId: string,
+    selectedIdentifiers: string[]
+  ): void {
     const player = this.assertIssuerSecret(issuer);
 
     // Check if this is from a selectMultiple() call
@@ -749,8 +786,8 @@ export class Game {
       }
 
       // Resolve identifiers back to actual options
-      const selected = selectedIdentifiers.map(id => {
-        const option = TargetBuilder['resolveIdentifier'](id, pending.options);
+      const selected = selectedIdentifiers.map((id) => {
+        const option = TargetBuilder["resolveIdentifier"](id, pending.options);
         if (option === undefined) {
           throw new Error(`Invalid selection identifier: ${id}`);
         }
@@ -776,8 +813,12 @@ export class Game {
     }>
   ): Promise<Array<{ playerId: string; selected: any[]; remaining: any[] }>> {
     // In multiplayer mode: create promises for all players
-    const promises = selections.map(sel => {
-      return new Promise<{ playerId: string; selected: any[]; remaining: any[] }>((resolve) => {
+    const promises = selections.map((sel) => {
+      return new Promise<{
+        playerId: string;
+        selected: any[];
+        remaining: any[];
+      }>((resolve) => {
         const requestId = `${sel.player.id}_${Date.now()}_${Math.random()}`;
         const asMany = sel.asMany ?? false; // Use ?? instead of || to handle explicit false
         this.pendingMultipleSelections.set(requestId, {
@@ -788,18 +829,20 @@ export class Game {
           description: sel.description,
           requestId,
           resolve: (selection: any[]) => {
-            const remaining = sel.options.filter(opt => !selection.includes(opt));
+            const remaining = sel.options.filter(
+              (opt) => !selection.includes(opt)
+            );
             resolve({
               playerId: sel.player.id,
               selected: selection,
-              remaining
+              remaining,
             });
             this.pendingMultipleSelections.delete(requestId);
-          }
+          },
         });
       });
     });
-    
+
     // Notify clients of state change (so players see the selection requests via SSE)
     await setTimeout(10); // slight delay to ensure state is updated before clients fetch it
     this._onStateChange.dispatch();
@@ -811,14 +854,17 @@ export class Game {
   // Called when client provides selection to continue paused resolution
   provideSelection(playerId: string, selection: any[]): void {
     // Check if this is a parallel selection
-    for (const [requestId, pending] of this.pendingMultipleSelections.entries()) {
+    for (const [
+      requestId,
+      pending,
+    ] of this.pendingMultipleSelections.entries()) {
       if (pending.playerId === playerId) {
         pending.resolve(selection);
         return;
       }
     }
 
-    throw new Error('Not waiting for selection');
+    throw new Error("Not waiting for selection");
   }
 
   // Get all pending selections (for server to send to clients)
@@ -841,7 +887,7 @@ export class Game {
         playerId: selection.playerId,
         options: selection.options,
         count: selection.count,
-        asMany: selection.asMany
+        asMany: selection.asMany,
       });
     }
 
@@ -861,7 +907,7 @@ export class Game {
   }
 
   addSoul(player: Player, soulCard: Card): void {
-    if(soulCard instanceof BsoulCard)
+    if (soulCard instanceof BsoulCard)
       soulCard.granted = true;
     player.addSoul(soulCard);
   }
@@ -891,7 +937,9 @@ export class Game {
     }
   }
 
-  async executeWhenStackEmpty(callback: () => void | Promise<void>): Promise<void> {
+  async executeWhenStackEmpty(
+    callback: () => void | Promise<void>
+  ): Promise<void> {
     if (this.stack.isEmpty()) {
       // Stack is already empty, execute immediately
       await callback();
@@ -1047,7 +1095,11 @@ export class Game {
     }
   }
   setupGame(): void {
-    this._decks = LoadDecks(cards, this.players.length, gameParameters.nbPlayerCardRestriction);
+    this._decks = LoadDecks(
+      cards,
+      this.players.length,
+      gameParameters.nbPlayerCardRestriction
+    );
     this.joinEffectsToCards();
   }
 
@@ -1096,7 +1148,7 @@ export class Game {
   }
 
   give(from: Player, to: Player, card: Card): boolean {
-    if(from.souls.includes(card)){
+    if (from.souls.includes(card)) {
       from.removeSoul(card);
       to.addSoul(card);
       return true;
@@ -1200,9 +1252,20 @@ export class Game {
       }
     });
   }
-  reset(issuer: Issuer): void {
-    this.assertIssuerSecret(issuer);
-    this.debugReset();
+
+  reset(): void {
+    this.turnHandler.reset();
+    this._players = [];
+    this._monsters = [];
+    this._decks = {};
+    this._ongoingAttack = null;
+    this._shop = null!;
+    this._encounters = null!;
+    this._stack.clear();
+    this._emitter = new GameEventEmitter();
+    this._bonusSouls = [];
+    this._destroyedCards = [];
+    this.pendingMultipleSelections.clear();
   }
 
   addInPlay(player: Player, card: Card): void {
@@ -1253,21 +1316,6 @@ export class Game {
       });
     }
     return true;
-  }
-
-  debugReset(): void {
-    this.turnHandler.reset();
-    this._players = [];
-    this._monsters = [];
-    this._decks = {};
-    this._ongoingAttack = null;
-    this._shop = null!;
-    this._encounters = null!;
-    this._stack.clear();
-    this._emitter = new GameEventEmitter();
-    this._bonusSouls = [];
-    this._destroyedCards = [];
-    this.pendingMultipleSelections.clear();
   }
 
   nextTurn(issuer: Issuer): string {
@@ -1346,7 +1394,7 @@ export class Game {
           .trim();
         const idx = s2.indexOf(":");
 
-        if (idx === - 1) {
+        if (idx === -1) {
           throw new Error(
             `Invalid paid effect format (missing ':'): ${outcome}`
           );
@@ -1406,7 +1454,7 @@ export class Game {
     const json = card.json;
 
     // Create the appropriate card type using the helper function
-    const copiedCard = createCardFromJson(- 1, json);
+    const copiedCard = createCardFromJson(-1, json);
 
     // Parse and attach effects to the copied card
     this.attachEffectsToCard(copiedCard);
@@ -1418,7 +1466,7 @@ export class Game {
     e.addAttackPoints(value);
   }
 
-  addAttackThisTurn(e: Entity, value: number=1): void {
+  addAttackThisTurn(e: Entity, value: number = 1): void {
     if (e instanceof Player) {
       e.addAttackThisTurn(value);
     }
@@ -1437,7 +1485,7 @@ export class Game {
   }
 
   addDC(e: Entity, value: number): void {
-    if(!(e instanceof Monster))
+    if (!(e instanceof Monster))
       throw new Error("DC modifier can only be added to monsters.");
     e.addEvasion(value);
   }
@@ -1544,11 +1592,11 @@ export class Game {
     return true;
   }
 
-  detailedStateJSON(issuer: Issuer): string {
+  detailedStateJSON(issuer: Issuer): DetailedState {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
 
-    const res: DetailedState = {
+    return {
       me: {
         name: player.id,
         hand: player.hand.cards.map((c) => c.json),
@@ -1580,13 +1628,14 @@ export class Game {
           remainingLootPlay: p.remainingLootPlay,
           isEngagedInCombat: p.isEngagedInCombat,
         })),
-      monsters: 
+      monsters:
       {
-        discard: this.decks["monster"]!.discard.map((c) => ({slug: c.slug})),
+        discard: this.decks["monster"]!.discard.map((c) => ({ slug: c.slug })),
         deckSize: this.decks["monster"]!.cards.length,
-        inPlay: this.encounters._slots.map((m, index) => ({ card: m[m.length - 1]!, monster: this.encounters.monsterIn(index), covered: this.encounters._slots[index]!.slice(0, -1).map(c => ({slug: c.slug})) })).map((m) => ({
-          
-          top: {slug: m.card?.slug,
+        inPlay: this.encounters._slots.map((m, index) => ({ card: m[m.length - 1]!, monster: this.encounters.monsterIn(index), covered: this.encounters._slots[index]!.slice(0, -1).map(c => ({ slug: c.slug })) })).map((m) => ({
+
+          top: {
+            slug: m.card?.slug,
             name: m.card?.name,
             ...(m.monster ? {
               stats: {
@@ -1595,21 +1644,22 @@ export class Game {
                 evasionPoints: this.getDC(m.monster),
                 isEngagedInCombat: m.monster.isEngagedInCombat,
               }
-            } : {})},
+            } : {})
+          },
           covered: m.covered,
         })),
       },
-      bonusSouls: this._bonusSouls.map((c) => ({slug: c.slug, granted: c.granted })),
-      loot: 
+      bonusSouls: this._bonusSouls.map((c) => ({ slug: c.slug, granted: c.granted })),
+      loot:
       {
-        discard: this.decks["loot"]!.discard.map((c) => ({slug: c.slug})),
+        discard: this.decks["loot"]!.discard.map((c) => ({ slug: c.slug })),
         deckSize: this.decks["loot"]!.cards.length,
       },
-      treasure: 
+      treasure:
       {
-        discard: this.decks["treasure"]!.discard.map((c) => ({slug: c.slug})),
+        discard: this.decks["treasure"]!.discard.map((c) => ({ slug: c.slug })),
         deckSize: this.decks["treasure"]!.cards.length,
-        inPlay: this.shop._slots.map((c) => ({slug: c!.slug})),
+        inPlay: this.shop._slots.map((c) => ({ slug: c!.slug })),
       },
       turn: this.currentPlayer.id,
       stack: this.stack.elements.map((el) => {
@@ -1624,8 +1674,8 @@ export class Game {
         }
       }),
       // firstCardTreasureDeck: player.canSeeTopOfTreasureDeck
-        // ? this.decks["treasure"]!.cards[0]?.json
-        // : undefined,
+      // ? this.decks["treasure"]!.cards[0]?.json
+      // : undefined,
       pendingSelection: (() => {
         // Check if player has a pending selection from selectMultiple
         for (const sel of this.pendingMultipleSelections.values()) {
@@ -1642,8 +1692,6 @@ export class Game {
         return undefined;
       })(),
     };
-
-    return JSON.stringify(res);
   }
 
   purchase(issuer: Issuer, index: number): string {
@@ -1656,14 +1704,18 @@ export class Game {
     const price = [gameParameters.shopPrice];
     this.emit("on:item:purchase", { eventIssuer: player, cost: price });
     if (player.remainingPurchaseThisTurn <= 0) {
-      throw new Error(`Purchase failed. You have no remaining purchases this turn.\n`);
+      throw new Error(
+        `Purchase failed. You have no remaining purchases this turn.\n`
+      );
     }
     if (this.shop.purchase(player, index, price[0]!, this)) {
       player.remainingPurchaseThisTurn -= 1;
       this._onStateChange.dispatch();
       return `Purchase successful. You have now ${player.coins} coins.\n`;
     } else {
-      throw new Error(`Purchase failed. You need ${price[0]! - player.coins} more coins.\n`);
+      throw new Error(
+        `Purchase failed. You need ${price[0]! - player.coins} more coins.\n`
+      );
     }
   }
 
@@ -1693,7 +1745,7 @@ export class Game {
     return `You have drawn ${toLoot} loot card(s).\n`;
   }
 
-  emit(event: TriggerEvent, data: any = {}, dispatch:boolean = true): void {
+  emit(event: TriggerEvent, data: any = {}, dispatch: boolean = true): void {
     if (this.emitter.emit(event, data) > 0 && dispatch)
       this._onStateChange.dispatch();
   }
@@ -1862,7 +1914,7 @@ export class Game {
       if (!this.monsters.includes(monster)) {
         player.clearAttackRequirement(monster);
       }
-      if(monster.attackable === false) {
+      if (monster.attackable === false) {
         player.clearAttackRequirement(monster);
       }
     }
@@ -1976,7 +2028,7 @@ export class Game {
 
   private findMonsterIndex(id: string): number {
     const index = this.monsters.findIndex((m) => m.id === id);
-    if (index === - 1) {
+    if (index === -1) {
       throw new Error("Monster not found");
     }
     return index;
@@ -1984,7 +2036,7 @@ export class Game {
 
   private findPlayerIndex(id: string): number {
     const index = this.players.findIndex((p) => p.id === id);
-    if (index === - 1) {
+    if (index === -1) {
       throw new Error("Player not found");
     }
     return index;
@@ -2020,8 +2072,7 @@ export class Game {
   }
 
   private assertEmptyStack(): void {
-    if (this._stack.size > 0)
-      throw new Error(`Stack is not empty.`);
+    if (this._stack.size > 0) throw new Error(`Stack is not empty.`);
   }
 
   private assertIssuerSecret(issuer: Issuer): Player {
@@ -2084,8 +2135,7 @@ export class Game {
       throw new Error("An attack is ongoing");
     }
     this.monsters.forEach((e) => {
-      if(e.isEngagedInCombat)
-        throw new Error("An attack is ongoing");
+      if (e.isEngagedInCombat) throw new Error("An attack is ongoing");
     });
   }
 
@@ -2110,7 +2160,7 @@ export class Game {
 
     // Filter monsters that are still in play
     const validMonsters = requirement.filter(
-      m => m === "topDeck" || this.monsters.includes(m as Monster)
+      (m) => m === "topDeck" || this.monsters.includes(m as Monster)
     );
 
     if (validMonsters.length === 0) {
