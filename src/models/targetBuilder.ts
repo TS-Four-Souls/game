@@ -3,23 +3,7 @@ import type { Player } from "./player";
 import { Card, ItemCard, type TargetsSelector } from "./cards";
 import { isChooseOneOptions, type ChooseOneOptions } from "./targetSelector";
 import { isStackElement } from "./stack";
-/**
- * Represents the server's response when building targets progressively
- */
-export interface TargetSelectorResponse {
-    /** Description of what to select */
-    description: string;
-    /** How many targets to select */
-    count: number;
-    /** Whether the player can select fewer targets than count (asMany) */
-    asMany: boolean;
-    /** Available options as string identifiers */
-    options: string[];
-    /** Whether target building is complete */
-    complete: boolean;
-    /** For choose-one selectors: true = picking option description, false = picking actual targets */
-    isChooseOne: boolean;
-}
+import type { TargetSelectorResponse } from "../shared/api";
 
 /**
  * Target Builder - Standalone utility for progressive target selection

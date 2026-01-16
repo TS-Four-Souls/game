@@ -2173,6 +2173,12 @@ export class Game {
       "You must attack the required monster(s) before ending your turn"
     );
   }
+  
+  getPlayerByIssuer(issuer: Issuer): Player {
+    this.assertIssuerSecret(issuer);
+    return this.getPlayerById(issuer.id);
+  }
+
   getPlayerById(id: string): Player {
     for (const p of this.players) {
       if (p.id === id) {

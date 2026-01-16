@@ -1,3 +1,4 @@
+import { t } from "elysia";
 import { z } from "zod";
 
 const issuerSchema = z.object({
@@ -5,6 +6,11 @@ const issuerSchema = z.object({
   secret: z.string(),
 });
 export type Issuer = z.infer<typeof issuerSchema>;
+
+const indexSchema = z.object({
+  issuer: issuerSchema,
+  index: z.number(),
+});
 
 const joinRequestSchema = z.string();
 
@@ -54,6 +60,46 @@ type ResetResponse =
     error: any;
   };
 
+  type EndTurnResponse =
+  | {
+    status: 200;
+    response: string;
+  }
+  | {
+    status: 400;
+    error: any;
+  };
+
+  type NextTargetSelectorResponse =
+  | {
+    response: TargetSelectorResponse;
+    status: 200;
+  }
+  | {
+    status: 400;
+    error: any;
+  };
+
+const resolveRequestSchema = startRequestSchema
+type resolveResponse = ResetResponse;
+
+const declareAttackRequestSchema = startRequestSchema;
+type DeclareAttackResponse = ResetResponse
+const submitSelectionSchema = z.object({
+  issuer: issuerSchema,
+  requestId: z.string(),
+  selections: z.array(z.string()),
+})
+
+
+const cardActivationSchema = z.object({
+  issuer: issuerSchema,
+  index: z.number(),
+  effectIndex: z.union([z.number(), z.literal("tap")]),
+  targetChoices: z.array(z.string()).optional(),
+});
+
+const NextTurnRequestSchema = startRequestSchema;
 
 export type DetailedState = {
   me: PlayerMe;
@@ -144,6 +190,13 @@ export const schemas = {
   rejoinRequest: rejoinRequestSchema,
   startRequest: startRequestSchema,
   resetRequest: resetRequestSchema,
+  declareAttackRequest: declareAttackRequestSchema,
+  resolveRequest: resolveRequestSchema,
+  submitSelectionRequest: submitSelectionSchema,
+  playCardRequest: cardActivationSchema,
+  endTurnRequest: NextTurnRequestSchema,
+  activateRequest: cardActivationSchema,
+  purchaseRequest: indexSchema,
   issuer: issuerSchema,
 };
 
@@ -152,6 +205,13 @@ export namespace Requests {
   export type Rejoin = z.infer<typeof rejoinRequestSchema>;
   export type Start = z.infer<typeof startRequestSchema>;
   export type Reset = z.infer<typeof resetRequestSchema>;
+  export type DeclareAttack = z.infer<typeof declareAttackRequestSchema>;
+  export type resolve = z.infer<typeof resolveRequestSchema>;
+  export type submitSelection = z.infer<typeof submitSelectionSchema>;
+  export type PlayCard = z.infer<typeof cardActivationSchema>;
+  export type EndTurn = z.infer<typeof NextTurnRequestSchema>;
+  export type Activate = z.infer<typeof cardActivationSchema>;
+  export type Purchase = z.infer<typeof indexSchema>;
 }
 
 export namespace Responses {
@@ -159,6 +219,13 @@ export namespace Responses {
   export type Rejoin = RejoinResponse;
   export type Start = StartResponse;
   export type Reset = ResetResponse;
+  export type DeclareAttack = DeclareAttackResponse;
+  export type resolve = resolveResponse;
+  export type submitSelection = ResetResponse;
+  export type PlayCard = NextTargetSelectorResponse;
+  export type EndTurn = EndTurnResponse;
+  export type Activate = NextTargetSelectorResponse;
+  export type Purchase = ResetResponse;
 }
 
 export interface ServerToClientEvents {
@@ -183,4 +250,57 @@ export interface ClientToServerEvents {
     request: Requests.Reset,
     callback: (response: Responses.Reset) => void,
   ) => void;
+
+  declareAttack: (
+    request: Requests.DeclareAttack,
+    callback: (response: Responses.DeclareAttack) => void,
+  ) => void;
+
+  resolve: (
+    request: Requests.resolve,
+    callback: (response: Responses.resolve) => void,
+  ) => void;
+
+  submitSelection: (
+    request: Requests.submitSelection,
+    callback: (response: Responses.submitSelection) => void,
+  ) => void;
+
+  playCard: (
+    request: Requests.PlayCard,
+    callback: (response: Responses.PlayCard) => void,
+  ) => void;
+
+  endTurn: (
+    request: Requests.EndTurn,
+    callback: (response: Responses.EndTurn) => void,
+  ) => void;
+
+  activate: (
+    request: Requests.Activate,
+    callback: (response: Responses.Activate) => void,
+  ) => void;
+
+  purchase: (
+    request: Requests.Purchase,
+    callback: (response: Responses.Purchase) => void,
+  ) => void;
+}
+
+/**
+ * Represents the server's response when building targets progressively
+ */
+export interface TargetSelectorResponse {
+    /** Description of what to select */
+    description: string;
+    /** How many targets to select */
+    count: number;
+    /** Whether the player can select fewer targets than count (asMany) */
+    asMany: boolean;
+    /** Available options as string identifiers */
+    options: string[];
+    /** Whether target building is complete */
+    complete: boolean;
+    /** For choose-one selectors: true = picking option description, false = picking actual targets */
+    isChooseOne: boolean;
 }
