@@ -782,7 +782,7 @@ export class LootCardEffect {
             type: "LootCardEffect",
             slug: this.card.slug,
             targets: TargetBuilder.convertToStringIdentifiers(this.targets),
-            issuer: this.issuer.id
+            issuer: this.issuer.entityTypeFromEntity()
          } ;
     }
 }
@@ -1024,9 +1024,9 @@ export class EffectOnStack {
     }
     get json(): EffectOnStackJson {
         return { 
-            issuer: this._data.issuer.id, 
+            issuer: this._data.issuer.entityTypeFromEntity(), 
             targets: TargetBuilder.convertToStringIdentifiers(this._data.targets), 
-            card: this._data.it.name, 
+            card: this._data.it.slug, 
             effect: this._description 
         };
     }

@@ -57,6 +57,10 @@ export class Monster extends Entity {
     return super.attackPoints + this._encounters.attackModifier;
   }
   
+  get name(): string {
+    return this._card.name;
+  }
+  
   /**
    * Gets the effective evasion value for this monster.
    * This includes the base evasion plus any DC modifiers from the encounters manager.

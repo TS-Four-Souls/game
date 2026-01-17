@@ -1,6 +1,7 @@
-import type { temporaryEffect } from "@/shared/api";
+import type { entityType, temporaryEffect } from "@/shared/api";
 import type { Card } from "./cards";
-import type { DamageOnStack, DiceRoll } from "./player";
+import { Player, type DamageOnStack, type DiceRoll } from "./player";
+import { Monster } from "./monster";
 
 type DamageObj = {
   dealer: Entity | null;
@@ -120,18 +121,35 @@ export abstract class Entity {
   }
 
   addTemporaryEffect(effect: temporaryEffect): void {
-      // Add temporary effect to the list
-      this._temporaryEffects.push(effect) ;
+    // Add temporary effect to the list
+    this._temporaryEffects.push(effect) ;
+  }
+
+  removeTemporaryEffect(effect: temporaryEffect): void {
+    const index = this._temporaryEffects.indexOf(effect);
+    if (index !== -1) {
+      this._temporaryEffects.splice(index, 1);
     }
-  
-    removeTemporaryEffect(effect: temporaryEffect): void {
-      const index = this._temporaryEffects.indexOf(effect);
-      if (index !== -1) {
-        this._temporaryEffects.splice(index, 1);
+  }
+
+  get temporaryEffects(): temporaryEffect[] {
+    return this._temporaryEffects;
+  }
+  entityTypeFromEntity(): entityType {
+    if(this instanceof Player) {
+      return {
+        type: "player",
+        name: this.id,
+        slug: this.inPlay[0]!.slug
       }
     }
-  
-    get temporaryEffects(): temporaryEffect[] {
-      return this._temporaryEffects;
+    if(this instanceof Monster){
+      return {
+        type: "monster",
+        name: this.name,
+        slug: this.card.slug
+      }
     }
+    throw new Error("Unknown entity type");
+  }
 }
