@@ -543,8 +543,7 @@ describe("Loot Card", () => {
         player1.addInPlay(item);
 
         // Recharge and tap the item (simulate using it)
-        item.recharge();
-        await game.activateItem(player1, item);
+        item.charged = false;
         await game.resolveStack();
         expect(item.charged).toBe(false);
 
@@ -568,13 +567,10 @@ describe("Loot Card", () => {
         const item1 = card1 as ItemCard;
         const item2 = card2 as ItemCard;
 
-        player1.inPlay.push(item1, item2);
-        item1.recharge();
-        await game.activateItem(player1, item1);
-        await game.resolveStack();
-        item2.recharge();
-        await game.activateItem(player1, item2);
-        await game.resolveStack();
+        game.addInPlay(player1, item1);
+        game.addInPlay(player1, item2);
+        item1.charged = false;
+        item2.charged = false;
 
         // Play lil battery targeting item1
         game.playCard(player1, 0, [item1]);

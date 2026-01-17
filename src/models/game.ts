@@ -51,7 +51,7 @@ import { ca, pl } from "zod/locales";
 import type { TriggerEvent } from "@/types/triggers";
 import { set } from "zod";
 import type { DetailedState } from "@/shared/api";
-import { HistoricHandler, type HistoricEntry, type UserRequest } from "./historicHandler";
+import { HistoricHandler, type HistoricEntry, type UserRequest } from "./historyHandler";
 
 // Type representing sources of damage - either a card ability or a dice roll
 export type DamageSource = Card | DiceRoll;
@@ -152,44 +152,6 @@ export class Game {
     ];
   }
 
-  get state(): string {
-    let result = "";
-    result += `Players:\n`;
-    for (const p of this.players) {
-      result += ` |- ${p.id}: ${p.currentHealthPoints} HP, ${p.attackPoints} ATK, ${p.coins} Coins, ${p.score} Souls\n`;
-      result += `      In-Play Cards:\n`;
-      const inPlayCards = p.inPlay;
-      for (let j = 0; j < inPlayCards.length; j++) {
-        const card = inPlayCards[j]!;
-        result += `       Card ${j + 1}: ${card.name}\n`;
-      }
-    }
-    result += "\n";
-    if (this.turnHandler.isInitialized) {
-      result += `Monsters:\n`;
-      let i: number = 0;
-      result += ` |- ${i++} top deck\n`;
-      result +=
-        this.encounters._slots
-          .map((m) => ` |- ${i++} ${m[m.length - 1]!.name}`)
-          .join("\n") + "\n\n";
-      result += `Shop:\n`;
-      i = 0;
-      result += ` |- ${i++} top deck\n`;
-      result +=
-        this.shop._slots.map((m) => ` |- ${i++} ${m!.name}`).join("\n") +
-        "\n\n";
-    }
-    result += this.turnHandler.isInitialized
-      ? "Game started\n"
-      : "Game not started\n";
-    if (this.turnHandler.isInitialized) {
-      result += `It's ${this.currentPlayer.id}'s turn\n`;
-    }
-
-    return result;
-  }
-
   get currentPlayer(): Player {
     return this.turnHandler.current;
   }
@@ -198,10 +160,15 @@ export class Game {
     return this.turnHandler.getPlayerTo(this.currentPlayer, direction);
   }
 
-  get history(): (UserRequest | StackElement)[] {
+  /* 
+   * This function returns the game history, excluding private data entries
+   */
+  get history(): HistoricEntry[] {
     return this._historicHandler.history;
   }
-
+  /* 
+   * This function returns the game history, including private data entries
+   */
   get log(): HistoricEntry[] {
     return this._historicHandler.log;
   }
@@ -916,6 +883,9 @@ export class Game {
     return this.players.filter((player) => player.totalSouls === maxSouls);
   }
   addToStack(item: StackElement): void {
+    if (item instanceof EffectOnStack && !item.data.issuer) {
+      throw new Error("EffectOnStack must have an issuer.");
+    }
     this.stack.push(item);
     this._onStateChange.dispatch();
   }
@@ -2066,17 +2036,6 @@ export class Game {
       throw new Error("Player not found");
     }
     return index;
-  }
-
-  private findWinningPlayer(): Player | null {
-    const playerWithMostPoints = this.players.reduce(
-      (max, p) => (p.score > max.score ? p : max),
-      this.players[0]!
-    );
-    if (this.monsters.length === 0 || playerWithMostPoints.score >= 4) {
-      return playerWithMostPoints;
-    }
-    return null;
   }
 
   private assertCurrentTurnIsPlayerTurn(player: Player): void {

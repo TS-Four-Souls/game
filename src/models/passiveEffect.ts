@@ -6,7 +6,16 @@ import { deckSelector } from "./targetSelector";
 import { Monster } from "./monster";
 import { TargetBuilder } from "./targetBuilder";
 import * as active from "./activeEffect";
+import type { temporaryEffect } from "@/shared/api";
 
+function getTemporaryEffect(data: EffectData, description: string): temporaryEffect {
+    return{
+            slug: data.it.slug,
+            issuer: data.issuer.id,
+            targets: TargetBuilder.convertToStringIdentifiers(data.targets),
+            description: description
+        };
+}
 export function addPassiveEffectToStack(
     game: Game,
     effectFunction: EffectFunction,
@@ -23,8 +32,14 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): EffectF
     return (data:EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
+        const temp: temporaryEffect = getTemporaryEffect(data, `Prevent the next instance of up to ${amount} damage they would take this turn.`);
+        let target = data.peek();
+        if(data.targets.length == 0)
+            target = data.issuer;
+        target.addTemporaryEffect(temp);
 
         const cleanup = () => {
+            target.removeTemporaryEffect(temp);
             offDamage?.();
             offTurn?.();
             offDamage = null;
@@ -33,9 +48,9 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): EffectF
 
         // Listen for the next damage event on this player
         offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
-            let target = data.peek();
-            if(data.targets.length == 0)
-                target = data.issuer;
+            // let target = data.peek();
+            // if(data.targets.length == 0)
+            //     target = data.issuer;
             // const target = data.targets.length > 0 ? data.peek() : data.issuer;
             if (target !== eventIssuer) return;
             const current = damageArray[0] ?? 0;
@@ -65,17 +80,21 @@ export function temporaryStatModifierEffect(
             throw new Error("temporaryStatModifierEffect amount must be non-negative.");
         // Apply the stat modification
         const target = data.targets.length > 0 ? data.peek() : data.issuer;
+        const temp: temporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
+        target.addTemporaryEffect(temp);
+
+        for(const adder of adders)
+            adder(target, amount);
+        
+        // Register cleanup to reverse at end of turn
+        let offTurn = game.emitter.on("on:turn:end", () => {
             for(const adder of adders)
-                adder(target, amount);
-            
-            // Register cleanup to reverse at end of turn
-            let offTurn = game.emitter.on("on:turn:end", () => {
-                for(const adder of adders)
-                    adder(target, -amount);
-                offTurn();
-            });
-            
-            return true;
+                adder(target, -amount);
+            target.removeTemporaryEffect(temp);
+            offTurn();
+        });
+        
+        return true;
     };
 }
 
@@ -146,7 +165,12 @@ export function setNextDamageToXEffect(setTo: number, game: Game): EffectFunctio
     return (data:EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
+        const temp: temporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
+        const target = data.targets.length > 0 ? data.peek() : data.issuer;
+        target.addTemporaryEffect(temp);
+
         const cleanup = () => {
+            target.removeTemporaryEffect(temp);
             offDamage?.();
             offTurn?.();
             offDamage = null;
@@ -154,7 +178,6 @@ export function setNextDamageToXEffect(setTo: number, game: Game): EffectFunctio
         };
         // Listen for the next damage event on this player
         offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
-            const target = data.targets.length > 0 ? data.peek() : data.issuer;
             if (target !== eventIssuer) return;
             damageArray[0] = setTo;
             cleanup(); // One-shot: remove listeners after first use
@@ -512,6 +535,9 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): Effec
     return (data: EffectData) => {
         let offLoot: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
+        const temp: temporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
+        data.issuer.addTemporaryEffect(temp);
+
         // Listen for the next loot event on this player
         offLoot = game.emitter.on("on:loot:played", ({ eventIssuer, card, targets }) => {
             card = card as LootCard;
@@ -539,7 +565,7 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): Effec
             
             // Add to stack instead of executing immediately
             addPassiveEffectToStack(game, effect, data, "Copy loot card effect");
-            
+            data.issuer.removeTemporaryEffect(temp);
             offLoot?.();
             offLoot = null;
             offTurn?.();
@@ -547,6 +573,7 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): Effec
         });
         
         offTurn = game.emitter.on("on:turn:end", () => {
+            data.issuer.removeTemporaryEffect(temp);
             offLoot?.();
             offLoot = null;
             offTurn?.();
@@ -690,8 +717,11 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
+        const temp: temporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
+        data.issuer.addTemporaryEffect(temp);
 
         const cleanup = () => {
+            data.issuer.removeTemporaryEffect(temp);
             offDamage?.();
             offTurn?.();
             offDamage = null;
@@ -1220,6 +1250,8 @@ export function lootDoubleThisTurnEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         let offEndTurn: (() => void) | null = null;
+        const temp: temporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
+        data.issuer.addTemporaryEffect(temp);
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:loot:would", ({ eventIssuer, numberOfCards }) => {
             const target = data.next;
@@ -1228,6 +1260,7 @@ export function lootDoubleThisTurnEffect(game: Game): EffectFunction {
         });
 
         offEndTurn = game.emitter.on("on:turn:end", ({ eventIssuer }) => {
+            data.issuer.removeTemporaryEffect(temp);
             offEffect?.();
             offEffect = null;
             offEndTurn?.();

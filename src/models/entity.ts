@@ -1,3 +1,4 @@
+import type { temporaryEffect } from "@/shared/api";
 import type { Card } from "./cards";
 import type { DamageOnStack, DiceRoll } from "./player";
 
@@ -15,6 +16,7 @@ export abstract class Entity {
   private _damageTakenThisTurn: DamageObj[] = [];
   private _died: boolean = false;
   private _attackable: boolean = true;
+  private _temporaryEffects: temporaryEffect[] = [];
 
   get attackable(): boolean {
     return this._attackable;
@@ -116,4 +118,20 @@ export abstract class Entity {
   get attackDiceModifier(): number {
     return this._attackDiceModifier;
   }
+
+  addTemporaryEffect(effect: temporaryEffect): void {
+      // Add temporary effect to the list
+      this._temporaryEffects.push(effect) ;
+    }
+  
+    removeTemporaryEffect(effect: temporaryEffect): void {
+      const index = this._temporaryEffects.indexOf(effect);
+      if (index !== -1) {
+        this._temporaryEffects.splice(index, 1);
+      }
+    }
+  
+    get temporaryEffects(): temporaryEffect[] {
+      return this._temporaryEffects;
+    }
 }

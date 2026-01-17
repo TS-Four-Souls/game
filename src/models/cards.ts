@@ -5,7 +5,7 @@ import { Player } from './player';
 import { assert } from 'console';
 import type { Entity } from './entity';
 import { TargetBuilder } from './targetBuilder';
-import { type LootCardOnStackJson } from '@/shared/api'
+import { type EffectOnStackJson, type LootCardOnStackJson } from '@/shared/api'
 
 export type EffectType =
     | "passive"
@@ -318,6 +318,8 @@ class EffectInterface {
     
     tapEffect(issuer: Entity, targets: any[]): EffectOnStack {
         const effect = this.activeEffects.getActiveEffect();
+        if(!issuer)
+            throw new Error("EffectInterface.tapEffect: issuer is undefined or null.");
         const data = new EffectData(this.it, issuer as Player, targets);
         return new EffectOnStack(effect.effectFunction, data, effect.description);
     }
@@ -746,6 +748,7 @@ class LootCard extends ItemCard {
     }
 
     onPlay(issuer: Player, targets: any[] = []): (() => void | Promise<void>) {
+        // this._owner = issuer;
         // Return a resolve function that captures trinket state
         const resolveFunction = this._effectInterface.onPlay(issuer, targets);
         return () => {
@@ -764,7 +767,7 @@ export class LootCardEffect {
     private targets: any[];
     private issuer: Player;
 
-    constructor(issuer:Player, card: LootCard, targets: any[]) {
+    constructor(issuer: Player, card: LootCard, targets: any[]) {
         this.card = card;
         this.targets = targets;
         this.issuer = issuer;
@@ -1019,8 +1022,13 @@ export class EffectOnStack {
         // Reset the consumption index when targets are set externally
         (this._data as any)._nextIndex = 0;
     }
-    get json(): string {
-        return JSON.stringify({ issuer: this._data.issuer.id, targets: TargetBuilder.convertToStringIdentifiers(this._data.targets), card: this._data.it.name, effect: this._description });
+    get json(): EffectOnStackJson {
+        return { 
+            issuer: this._data.issuer.id, 
+            targets: TargetBuilder.convertToStringIdentifiers(this._data.targets), 
+            card: this._data.it.name, 
+            effect: this._description 
+        };
     }
 }
 class Deck {

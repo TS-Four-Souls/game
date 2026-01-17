@@ -365,6 +365,14 @@ export interface TargetSelectorResponse {
     isChooseOne: boolean;
 }
 
+export type temporaryEffect =
+{
+    slug: string,
+    issuer: string,
+    targets: string[],
+    description: string
+}
+
 export type LootCardOnStackJson = 
 {
     type: "LootCardEffect",
@@ -372,3 +380,30 @@ export type LootCardOnStackJson =
     targets: string[],
     issuer: string
 }
+
+export type DiceRollJson = {
+  diceRoll: number;
+  issuer: string;
+  card?: string;
+  targets?: string[];
+};
+
+export type DeathOnStackJson = {
+  receiver: string, 
+  from: string, 
+  source: DiceRollJson | string
+};
+
+export type DamageOnStackJson = {
+  receiver: string, 
+  from: string, 
+  damage: number,
+  source: DiceRollJson | string
+};
+
+export type EffectOnStackJson = { 
+  issuer: string, 
+  targets: string[], 
+  card: string, 
+  effect: string 
+};

@@ -135,13 +135,12 @@ io.on("connection", (socket) => {
       ? validated.data.replaceIndex 
       : -1;
       game.declareAttackOnMonster(player, monster, drawInIndex);
-      // game.declareAttackOnMonster(player, monster);
       game.addToHistory(validated.data);
-      return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to declare attack", error);
       return callback({ status: 400, error });
     }
+    return callback({ status: 200 });
   });
 
   socket.on("attackRoll", (payload, callback) => {

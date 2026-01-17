@@ -2,7 +2,8 @@ import { Entity } from "@/models/entity";
 import { CharacterCard, Hand, InplayType, ItemCard, treasureCard, Card, type EffectFunction, EffectOnStack, EffectData } from "./cards";
 import type { Game } from "./game";
 import type { Monster } from "./monster";
-
+import { TargetBuilder } from "./targetBuilder";
+import type { DamageOnStackJson, DeathOnStackJson, DiceRollJson, temporaryEffect } from "@/shared/api";
 /**
  * Represents a player in the Four Souls game.
  * 
@@ -26,9 +27,6 @@ export class Player extends Entity {
    * The player receives this token when they join the game.
    */
   readonly secret: string;
-  
-  /** @private Number of souls collected. Temporary. Will be replaced by list of soul cards. */
-  private _score: number;
   
   /** @private Current number of coins the player has */
   private _coin: number;
@@ -87,7 +85,6 @@ export class Player extends Entity {
     secret: string = crypto.randomUUID()
   ) {
     super(id, attackPoints, healthPoints);
-    this._score = 0;
     this._coin = coins;
     this._hand = new Hand();
     this.secret = secret;
@@ -480,21 +477,8 @@ export class Player extends Entity {
   verifySecret(secret: string): boolean {
     return this.secret === secret;
   }
-
- 
-  addScore(score: number): void {
-    this._score += score;
-  }
-
-  get score(): number {
-    return this._score;
-  }
 }
 
-type DiceRollJSON = {
-  diceRoll: number;
-  issuer: string;
-};
 export class DiceRoll {
   private _value: number;
   private _issuer: Player;
@@ -539,8 +523,13 @@ export class DiceRoll {
     }
     this.value = this.value - modifier;
   }
-  get json(): DiceRollJSON {
-    return { diceRoll: this.value, issuer: this.issuer.id };
+  get json(): DiceRollJson {
+    return { 
+      diceRoll: this.value, 
+      issuer: this.issuer.id, 
+      card: !this._attackRoll ? this._card?.name : undefined, 
+      targets: !this._attackRoll ? TargetBuilder.convertToStringIdentifiers(this._targets) : undefined
+    }
   }
   set value(v: number) {
     this._value = Math.max(1, Math.min(6, v));
@@ -603,9 +592,9 @@ export class DamageOnStack {
       await this._effect(new EffectData(card, this.from as Player, [this, this._targets]));
     }
   }
-  get json(): string {
-    const sourceName = this._source instanceof DiceRoll ? `Dice Roll (${this._source.card?.name})` : this._source.name;
-    return JSON.stringify({from: this.from.id, receiver: this.receiver.id, damage: this.damage, source: sourceName});
+  get json(): DamageOnStackJson {
+    const sourceName = this._source instanceof DiceRoll ? this._source.json : this._source.slug;
+    return {from: this.from.id, receiver: this.receiver.id, damage: this.damage[0]!, source: sourceName};
   }
 };
 
@@ -632,8 +621,8 @@ export class DeathOnStack {
     await this.game.resolveDeath(this.receiver, this.from, this.source);
   }
 
-  get json(): string {
-    const sourceName = this.source instanceof DiceRoll ? `Dice Roll (${this.source.card?.name})` : this.source.name;
-    return JSON.stringify({receiver: this.receiver.id, from: this.from.id, source: sourceName});
+  get json(): DeathOnStackJson {
+    const sourceName = this.source instanceof DiceRoll ? this.source.json : this.source.slug;
+    return {receiver: this.receiver.id, from: this.from.id, source: sourceName};
   }
 };

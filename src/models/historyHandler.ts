@@ -30,20 +30,32 @@ export type UserRequest =
   | Requests.DebugReset;
 
   export type PrivateData = {
+    private: true;
     type: "character";
     slug: string;
     playerId: string;
   }[] | {
+    private: true;
     type: "shuffle";
     deckName: string;
     discard: boolean;
     order: number[];
   } | {
+    private: true;
     type: "randomNumber";
     min: number;
     max: number;
     result: number;
   };
+
+const isPrivateData = (entry: HistoricEntry): entry is PrivateData => {
+  return (
+    typeof entry === "object" &&
+    entry !== null &&
+    "private" in entry &&
+    entry.private === true
+  );
+};
 
 export type HistoricEntry = UserRequest | StackElement | PrivateData;
 export class HistoricHandler {
@@ -54,8 +66,8 @@ export class HistoricHandler {
     this._history.push(entry);
   }
   
-  get history(): (UserRequest | StackElement)[] {
-    return this.history.filter((e): e is UserRequest | StackElement => true);
+  get history(): HistoricEntry[] {
+    return this._history.filter((e) => !isPrivateData(e));
   }
 
   get log(): HistoricEntry[] {

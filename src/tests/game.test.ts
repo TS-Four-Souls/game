@@ -140,14 +140,6 @@ describe("Player", () => {
     expect(player.isDead).toBe(true);
   });
 
-  it("should add to score", async () => {
-    expect(player.score).toBe(0);
-    player.addScore(3);
-    expect(player.score).toBe(3);
-    player.addScore(2);
-    expect(player.score).toBe(5);
-  });
-
   it("should verify secret token correctly", async () => {
     expect(player.verifySecret(player.secret)).toBe(true);
     expect(player.verifySecret("wrongSecret")).toBe(false);
@@ -893,26 +885,6 @@ describe("Player - Edge Cases & Combinations", () => {
     
     player.gainCoins(30);
     expect(player.coins).toBe(30);
-  });
-
-  it("should accumulate score over time", async () => {
-    expect(player.score).toBe(0);
-    
-    player.addScore(1);
-    player.addScore(2);
-    player.addScore(3);
-    player.addScore(4);
-    player.addScore(5);
-    
-    expect(player.score).toBe(15);
-  });
-
-  it("should handle negative score additions", async () => {
-    player.addScore(10);
-    expect(player.score).toBe(10);
-    
-    player.addScore(-3);
-    expect(player.score).toBe(7);
   });
 
   it("should handle max dice value properly", async () => {
