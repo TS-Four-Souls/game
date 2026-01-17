@@ -1,4 +1,3 @@
-import { t } from "elysia";
 import { z } from "zod";
 
 const issuerSchema = z.object({
@@ -49,7 +48,7 @@ const rejoinRequestSchema = issuerSchema;
 type RejoinResponse =
   | {
     status: 200;
-    gameState: DetailedState;
+    gameState?: DetailedState;
   }
   | {
     status: 400;

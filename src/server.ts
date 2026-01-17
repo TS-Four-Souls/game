@@ -24,7 +24,7 @@ io.bind(engine);
 game.onStateChange.add(() => {
   game.players.map((player) => {
     io.to(player.id).emit("on:game:changed", game.detailedStateJSON(player));
-  }) 
+  })
 });
 
 io.on("connection", (socket) => {
@@ -61,7 +61,7 @@ io.on("connection", (socket) => {
       }
       socket.join(player.id);
       game.addToHistory(validated.data);
-      return callback({ status: 200, gameState: game.detailedStateJSON(validated.data) });
+      return callback({ status: 200, gameState: game.isStarted ? game.detailedStateJSON(validated.data) : undefined });
     } catch (error) {
       console.error("Failed to rejoin the game", error);
       return callback({ status: 400, error });
@@ -121,19 +121,19 @@ io.on("connection", (socket) => {
     }
     try {
       const player = game.getPlayerById(validated.data.issuer.id);
-      const monster = 
-        validated.data.index === "top" 
-        ? "topDeck" 
-        : game.encounters.monsterIn(validated.data.index);
+      const monster =
+        validated.data.index === "top"
+          ? "topDeck"
+          : game.encounters.monsterIn(validated.data.index);
       if (!monster) {
         return new Response(`No monster at index ${validated.data.index}`, {
           status: 400,
         });
       }
-    const drawInIndex = 
-      validated.data.index === "top" 
-      ? validated.data.replaceIndex 
-      : -1;
+      const drawInIndex =
+        validated.data.index === "top"
+          ? validated.data.replaceIndex
+          : -1;
       game.declareAttackOnMonster(player, monster, drawInIndex);
       game.addToHistory(validated.data);
     } catch (error) {
@@ -233,7 +233,7 @@ io.on("connection", (socket) => {
         await game.activateItemAtIndex(player, validated.data.index, targets, validated.data.effectIndex);
         game.addToHistory(validated.data);
       }
-      return callback({ response: choices,status: 200 });
+      return callback({ response: choices, status: 200 });
     } catch (error) {
       console.error("Failed to play card", error);
       return callback({ status: 400, error });
@@ -302,7 +302,7 @@ io.on("connection", (socket) => {
       console.error("Failed to debug loot", error);
       return callback({ status: 400, error });
     }
-});
+  });
 
   socket.on("debugGainTreasure", (payload, callback) => {
     const validated = schemas.debugGainTreasureRequest.safeParse(payload);
@@ -363,9 +363,9 @@ io.on("connection", (socket) => {
     }
   });
 
-io.on("disconnect", (socket) => {
-  console.log("Client disconnected");
-});
+  io.on("disconnect", (socket) => {
+    console.log("Client disconnected");
+  });
 });
 
 export default {
