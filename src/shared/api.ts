@@ -12,6 +12,12 @@ const indexSchema = z.object({
   index: z.number(),
 });
 
+const giveCoinsSchema = z.object({
+  issuer: issuerSchema,
+  target: z.string(),
+  coins: z.number(),
+});
+
 const AttackMonsterSchema = z.union([
   z.object({
     issuer: issuerSchema,
@@ -206,6 +212,7 @@ export const schemas = {
   endTurnRequest: NextTurnRequestSchema,
   activateRequest: cardActivationSchema,
   purchaseRequest: indexSchema,
+  giveCoinsRequest: giveCoinsSchema,
   issuer: issuerSchema,
 };
 
@@ -221,7 +228,7 @@ export namespace Requests {
   export type EndTurn = z.infer<typeof NextTurnRequestSchema>;
   export type Activate = z.infer<typeof cardActivationSchema>;
   export type Purchase = z.infer<typeof indexSchema>;
-
+  export type GiveCoins = z.infer<typeof giveCoinsSchema>;
   export type AttackMonster = z.infer<typeof AttackMonsterSchema>;
   export type AttackRoll = z.infer<typeof issuerSchema>;
   export type DebugLoot = z.infer<typeof issuerSchema>;
@@ -246,6 +253,7 @@ export namespace Responses {
   export type DebugLoot = StringResponse;
   export type DebugGainTreasure = StringResponse;
   export type DebugReset = BasicResponse;
+  export type GiveCoins = BasicResponse;
 }
 
 export interface ServerToClientEvents {
@@ -327,8 +335,13 @@ export interface ClientToServerEvents {
   ) => void;
 
   debugReset: (
-    request: Requests.Start,
+    request: Requests.DebugReset,
     callback: (response: Responses.DebugReset) => void,
+  ) => void;
+
+  giveCoins: (
+    request: Requests.GiveCoins,
+    callback: (response: Responses.GiveCoins) => void,
   ) => void;
 }
 

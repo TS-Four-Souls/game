@@ -257,6 +257,24 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("giveCoins", (payload, callback) => {
+    const validated = schemas.giveCoinsRequest.safeParse(payload);
+    if (!validated.success) {
+      return callback({ status: 400, error: validated.error });
+    }
+    try {
+      const player = game.getPlayerByIssuer(validated.data.issuer);
+      const target = game.getPlayerById(validated.data.target);
+      const amount = validated.data.coins;
+      if(!game.giveCoins(player, target, amount))
+        throw new Error("amount of coins invalid");
+      return callback({ status: 200 });
+    } catch (error) {
+      console.error("Failed to give coins", error);
+      return callback({ status: 400, error });
+    }
+  });
+
 // ------------- DEBUG EVENTS -------------
 
   socket.on("debugLoot", (payload, callback) => {

@@ -1173,6 +1173,16 @@ export class Game {
     return true;
   }
 
+  giveCoins(from: Player, to: Player, amount: number): boolean {
+    if (from.coins < amount || amount <= 0) {
+      return false;
+    }
+    this.loseCoins(from, amount, true);
+    this.gainCoins(to, amount);
+    this._onStateChange.dispatch();
+    return true;
+  }
+
   /**
    * Add a card to a player's hand and emit the appropriate event.
    * This is the centralized method for all hand additions.
