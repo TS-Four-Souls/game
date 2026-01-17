@@ -522,8 +522,7 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): Effec
             const effect = async (effectData: EffectData) => {
                 if (!(effectData.issuer instanceof Player)) return false;
                 const newTargets = await TargetBuilder.buildTargetsOnResolve(game, eventIssuer, card);
-                const resolveFunction = card.onPlay(eventIssuer, newTargets);
-                const lootCardEffect = new LootCardEffect(card, resolveFunction);
+                const lootCardEffect = new LootCardEffect(eventIssuer, card, newTargets);
                 game.addToStack(lootCardEffect);
                 return true;
             };

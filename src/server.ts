@@ -41,6 +41,7 @@ io.on("connection", (socket) => {
       game.addPlayer(player);
       console.log(`Player ${name} joined the game`);
       socket.join(player.id);
+      game.addToHistory(validated.data);
       return callback({ status: 200, secret: player.secret });
     } catch (error) {
       console.error("Failed to join the game", error);
@@ -59,6 +60,7 @@ io.on("connection", (socket) => {
         return callback({ status: 400, error: "Invalid secret" });
       }
       socket.join(player.id);
+      game.addToHistory(validated.data);
       return callback({ status: 200, gameState: game.detailedStateJSON(validated.data) });
     } catch (error) {
       console.error("Failed to rejoin the game", error);
@@ -74,6 +76,7 @@ io.on("connection", (socket) => {
     try {
       game.start(validated.data.issuer);
       io.emit("on:game:start");
+      game.addToHistory(validated.data);
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to start the game", error);
@@ -88,6 +91,7 @@ io.on("connection", (socket) => {
     }
     try {
       game.reset();
+      game.addToHistory(validated.data);
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to reset the game", error);
@@ -131,8 +135,9 @@ io.on("connection", (socket) => {
       ? validated.data.replaceIndex 
       : -1;
       game.declareAttackOnMonster(player, monster, drawInIndex);
-      game.declareAttackOnMonster(player, monster);
-
+      // game.declareAttackOnMonster(player, monster);
+      game.addToHistory(validated.data);
+      return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to declare attack", error);
       return callback({ status: 400, error });
@@ -147,6 +152,7 @@ io.on("connection", (socket) => {
     try {
       const player = game.getPlayerByIssuer(validated.data);
       game.attackRoll(player);
+      game.addToHistory(validated.data);
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to declare attack", error);
@@ -162,6 +168,7 @@ io.on("connection", (socket) => {
     try {
       const player = game.getPlayerByIssuer(validated.data.issuer);
       game.resolveStack();
+      game.addToHistory(validated.data);
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to resolve the stack", error);
@@ -181,6 +188,7 @@ io.on("connection", (socket) => {
           validated.data.requestId,
           validated.data.selections
         );
+      game.addToHistory(validated.data);
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to submit selection", error);
@@ -202,6 +210,7 @@ io.on("connection", (socket) => {
               const targets = TargetBuilder.buildTargets(game, player, card, partialChoices, validated.data.effectIndex);
               game.playCard(player, validated.data.index, targets);
             }
+      game.addToHistory(validated.data);
       return callback({ response: choices,status: 200 });
     } catch (error) {
       console.error("Failed to play card", error);
@@ -223,6 +232,7 @@ io.on("connection", (socket) => {
         console.log("Activation complete");
         const targets = TargetBuilder.buildTargets(game, player, item, partialChoices, validated.data.effectIndex);
         await game.activateItemAtIndex(player, validated.data.index, targets, validated.data.effectIndex);
+        game.addToHistory(validated.data);
       }
       return callback({ response: choices,status: 200 });
     } catch (error) {
@@ -238,6 +248,7 @@ io.on("connection", (socket) => {
     try {
       const player = game.getPlayerByIssuer(validated.data.issuer);
       game.purchase(player, validated.data.index);
+      game.addToHistory(validated.data);
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to play card", error);
@@ -250,6 +261,7 @@ io.on("connection", (socket) => {
       return callback({ status: 400, error: validated.error });
     }
     try {
+      game.addToHistory(validated.data);
       return callback({ response: game.nextTurn(validated.data.issuer), status: 200 });
     } catch (error) {
       console.error("Failed to play card", error);
@@ -268,6 +280,7 @@ io.on("connection", (socket) => {
       const amount = validated.data.coins;
       if(!game.giveCoins(player, target, amount))
         throw new Error("amount of coins invalid");
+      game.addToHistory(validated.data);
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to give coins", error);
@@ -284,6 +297,7 @@ io.on("connection", (socket) => {
     }
     try {
       const player = game.getPlayerByIssuer(validated.data);
+      game.addToHistory(validated.data);
       return callback({ response: game.loot(player), status: 200 });
     } catch (error) {
       console.error("Failed to debug loot", error);
@@ -298,6 +312,7 @@ io.on("connection", (socket) => {
     }
     try {
       const player = game.getPlayerByIssuer(validated.data);
+      game.addToHistory(validated.data);
       return callback({ response: game.gainTreasure(player), status: 200 });
     } catch (error) {
       console.error("Failed to debug gain treasure", error);
@@ -338,6 +353,7 @@ io.on("connection", (socket) => {
         // const card = game.obtainCard(slug)!;
         // game.addInPlay(p1, card);
       }
+      game.addToHistory(validated.data);
       return new Response("Debug reset", {
         status: 200,
       });

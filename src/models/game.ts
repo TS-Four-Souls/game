@@ -51,6 +51,7 @@ import { ca, pl } from "zod/locales";
 import type { TriggerEvent } from "@/types/triggers";
 import { set } from "zod";
 import type { DetailedState } from "@/shared/api";
+import { HistoricHandler, type HistoricEntry, type UserRequest } from "./historicHandler";
 
 // Type representing sources of damage - either a card ability or a dice roll
 export type DamageSource = Card | DiceRoll;
@@ -89,6 +90,7 @@ export class Game {
   private _emitter: GameEventEmitter;
   private _bonusSouls: BsoulCard[] = [];
   private _stackEmptyCallbacks: (() => void)[] = [];
+  private _historicHandler: HistoricHandler = new HistoricHandler();
 
   private _onStateChange: Signal<void> = new Signal();
   onStateChange: ReadableSignal<void> = this._onStateChange.readOnly();
@@ -105,7 +107,7 @@ export class Game {
       })),
     };
   }
-
+  
   get isStarted(): boolean {
     return this._turnHandler.isInitialized;
   }
@@ -194,6 +196,18 @@ export class Game {
 
   getPlayerToThe(direction: "left" | "right"): Player {
     return this.turnHandler.getPlayerTo(this.currentPlayer, direction);
+  }
+
+  get history(): (UserRequest | StackElement)[] {
+    return this._historicHandler.history;
+  }
+
+  get log(): HistoricEntry[] {
+    return this._historicHandler.log;
+  }
+
+  addToHistory(entry: HistoricEntry): void {
+    this._historicHandler.addToHistory(entry);
   }
 
   get inPlayItems(): { player: Player; card: ItemCard }[] {
@@ -915,6 +929,8 @@ export class Game {
   async resolveStack(): Promise<void> {
     let elem = this.stack.resolve();
     if (!elem) return;
+    // Add to history
+    this.addToHistory(elem);
     await elem.onResolve();
     this._onStateChange.dispatch();
     if (elem instanceof DiceRoll)
@@ -1076,8 +1092,7 @@ export class Game {
         if (playedCard.getTargetSelectors()[0]?.selector(player).length === 1)
           targets = playedCard.getTargetSelectors()[0]!.selector(player)[0];
     }
-    const resolveFunction = playedCard.onPlay(player, targets);
-    const lootCardEffect = new LootCardEffect(playedCard, resolveFunction);
+    const lootCardEffect = new LootCardEffect(player, playedCard, targets);
     this.addToStack(lootCardEffect);
 
     this.emit("on:loot:played", {

@@ -5,6 +5,7 @@ import { Player } from './player';
 import { assert } from 'console';
 import type { Entity } from './entity';
 import { TargetBuilder } from './targetBuilder';
+import { type LootCardOnStackJson } from '@/shared/api'
 
 export type EffectType =
     | "passive"
@@ -760,19 +761,26 @@ class LootCard extends ItemCard {
 // Wrapper class to hold loot card effect resolution on the stack
 export class LootCardEffect {
     private card: LootCard;
-    private resolve: () => void | Promise<void>;
+    private targets: any[];
+    private issuer: Player;
 
-    constructor(card: LootCard, resolveFunction: () => void | Promise<void>) {
+    constructor(issuer:Player, card: LootCard, targets: any[]) {
         this.card = card;
-        this.resolve = resolveFunction;
+        this.targets = targets;
+        this.issuer = issuer;
     }
 
     async onResolve(): Promise<void> {
-        await this.resolve();
+        await this.card.onPlay(this.issuer, this.targets)();
     }
 
-    get json() {
-        return this.card.json;
+    get json(): LootCardOnStackJson {
+        return {
+            type: "LootCardEffect",
+            slug: this.card.slug,
+            targets: TargetBuilder.convertToStringIdentifiers(this.targets),
+            issuer: this.issuer.id
+         } ;
     }
 }
 

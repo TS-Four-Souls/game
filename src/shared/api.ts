@@ -364,3 +364,11 @@ export interface TargetSelectorResponse {
     /** For choose-one selectors: true = picking option description, false = picking actual targets */
     isChooseOne: boolean;
 }
+
+export type LootCardOnStackJson = 
+{
+    type: "LootCardEffect",
+    slug: string,
+    targets: string[],
+    issuer: string
+}
