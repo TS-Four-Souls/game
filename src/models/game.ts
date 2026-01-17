@@ -1024,6 +1024,7 @@ export class Game {
     this.assertNoOngoingAttack();
     this.assertEmptyStack();
     this.assertForcedAttackSatisfied(player);
+    this.assertNoPendingSelection();
     this.emit("on:turn:end", { eventIssuer: player });
     this.executeWhenStackEmpty(() => {
       this.healEveryone();
@@ -1038,7 +1039,36 @@ export class Game {
       this.startTurn();
     });
   }
+  nextTurn(issuer: Issuer): string {
+    const roundIndex = this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+    this.assertCurrentTurnIsPlayerTurn(player);
+    this.assertCurrentPlayerIsNotEngagedInCombat();
+    this.assertEmptyStack();
+    this.assertNoOngoingAttack();
+    this.assertForcedAttackSatisfied(player);
+    this.assertNoPendingSelection();
+    this.endTurn();
 
+    return `It's ${this.currentPlayer!.id}'s turn. Round ${roundIndex}.\n`;
+  }
+
+  canEndTurn(issuer: Issuer): boolean {
+    try {
+      const roundIndex = this.assertGameStarted();
+      const player = this.assertIssuerSecret(issuer);
+      this.assertCurrentTurnIsPlayerTurn(player);
+      this.assertCurrentPlayerIsNotEngagedInCombat();
+      this.assertEmptyStack();
+      this.assertNoOngoingAttack();
+      this.assertForcedAttackSatisfied(player);
+      this.assertNoPendingSelection();
+    }
+    catch {
+      return false;
+    }
+    return true;
+  }
   // Get target selectors for a card that a player wants to play
   getSelectors(player: Player, card: LootCard): TargetsSelector[] {
     return card.getTargetSelectors();
@@ -1313,19 +1343,7 @@ export class Game {
     return true;
   }
 
-  nextTurn(issuer: Issuer): string {
-    const roundIndex = this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
-    this.assertCurrentTurnIsPlayerTurn(player);
-    this.assertEmptyStack();
-    this.assertNoOngoingAttack();
-    this.assertForcedAttackSatisfied(player);
-    this.assertNoPendingSelection();
-    this.healEveryone();
-    this.endTurn();
-
-    return `It's ${this.currentPlayer!.id}'s turn. Round ${roundIndex}.\n`;
-  }
+  
 
   // An active effect goes on the stack immediately, a passive effect register a listener.
   // A loot card is always an active effect, as even trinket goes to the stack before becoming an item.
@@ -1604,6 +1622,7 @@ export class Game {
         souls: player.totalSouls,
         soulCards: player.souls.map((c) => c.json),
         coins: player.coins,
+        canEndTurn: this.canEndTurn(issuer),
         currentAttackPoints: player.attackPoints,
         currentHealthPoints: player.currentHealthPoints,
         remainingLootPlay: player.remainingLootPlay,

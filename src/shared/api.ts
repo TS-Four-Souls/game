@@ -156,6 +156,7 @@ export type Player = {
 export type PlayerMe = Player & {
   hand: Card[];
   inPlay: InPlayMeCard[];
+  canEndTurn: boolean;
 };
 
 export type Card = {
