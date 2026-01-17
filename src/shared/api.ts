@@ -136,6 +136,8 @@ export type DetailedState = {
 
   turn: string;
   stack: string[];
+
+  firstCardTreasureDeck?: Card;
   pendingSelection?: PendingSelection;
 };
 

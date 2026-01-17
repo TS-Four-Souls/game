@@ -35,19 +35,19 @@ describe("Game Selection System", () => {
         const selectionPromise = game.select(player1, count, options, false);
         
         // Check that pending selection was created via state JSON
-        const state = JSON.parse(game.detailedStateJSON({ id: player1.id, secret: player1.secret }));
+        const state = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
         expect(state.pendingSelection).toBeDefined();
-        expect(state.pendingSelection.count).toBe(count);
-        expect(state.pendingSelection.asMany).toBe(false);
-        expect(state.pendingSelection.requestId).toBeDefined();
-        expect(state.pendingSelection.options).toHaveLength(options.length);
+        expect(state.pendingSelection!.count).toBe(count);
+        expect(state.pendingSelection!.asMany).toBe(false);
+        expect(state.pendingSelection!.requestId).toBeDefined();
+        expect(state.pendingSelection!.options).toHaveLength(options.length);
         
         // Resolve manually to avoid hanging
-        const requestId = state.pendingSelection.requestId;
+        const requestId = state.pendingSelection!.requestId;
         game.submitSelection(
             { id: player1.id, secret: player1.secret },
             requestId,
-            [state.pendingSelection.options[0]!, state.pendingSelection.options[1]!]
+            [state.pendingSelection!.options[0]!, state.pendingSelection!.options[1]!]
         );
         
         const result = await selectionPromise;
@@ -64,7 +64,7 @@ describe("Game Selection System", () => {
         
         // Get state for player1
         const state1Str = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
-        const state1: DetailedState = JSON.parse(state1Str);
+        const state1: DetailedState = state1Str;
         
         // Player1 should see the pending selection
         expect(state1.pendingSelection).toBeDefined();
@@ -75,14 +75,14 @@ describe("Game Selection System", () => {
         
         // Get state for player2
         const state2Str = game.detailedStateJSON({ id: player2.id, secret: player2.secret });
-        const state2: DetailedState = JSON.parse(state2Str);
+        const state2: DetailedState = state2Str;
         
         // Player2 should NOT see the pending selection
         expect(state2.pendingSelection).toBeUndefined();
         
         // Get state for player3
         const state3Str = game.detailedStateJSON({ id: player3.id, secret: player3.secret });
-        const state3: DetailedState = JSON.parse(state3Str);
+        const state3: DetailedState = state3Str;
         
         // Player3 should NOT see the pending selection
         expect(state3.pendingSelection).toBeUndefined();
@@ -102,14 +102,14 @@ describe("Game Selection System", () => {
         const count = 2;
         
         const selectionPromise = game.select(player1, count, options, false);
-        const state = JSON.parse(game.detailedStateJSON({ id: player1.id, secret: player1.secret }));
-        const requestId = state.pendingSelection.requestId;
+        const state = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
+        const requestId = state.pendingSelection!.requestId;
         
         // Submit selection
         game.submitSelection(
             { id: player1.id, secret: player1.secret },
             requestId,
-            [state.pendingSelection.options[1]!, state.pendingSelection.options[3]!] // Select "blue" and "yellow"
+            [state.pendingSelection!.options[1]!, state.pendingSelection!.options[3]!] // Select "blue" and "yellow"
         );
         
         const result = await selectionPromise;
@@ -122,21 +122,21 @@ describe("Game Selection System", () => {
         const count = 1;
         
         const selectionPromise = game.select(player1, count, options, false);
-        const stateBefore = JSON.parse(game.detailedStateJSON({ id: player1.id, secret: player1.secret }));
-        const requestId = stateBefore.pendingSelection.requestId;
+        const stateBefore = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
+        const requestId = stateBefore.pendingSelection!.requestId;
         
         expect(stateBefore.pendingSelection).toBeDefined();
         
         game.submitSelection(
             { id: player1.id, secret: player1.secret },
             requestId,
-            [stateBefore.pendingSelection.options[2]!]
+            [stateBefore.pendingSelection!.options[2]!]
         );
         
         await selectionPromise;
         
         // Pending selection should be cleared
-        const stateAfter = JSON.parse(game.detailedStateJSON({ id: player1.id, secret: player1.secret }));
+        const stateAfter = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
         expect(stateAfter.pendingSelection).toBeUndefined();
     });
 
@@ -145,8 +145,8 @@ describe("Game Selection System", () => {
         const count = 1;
         
         const selectionPromise = game.select(player1, count, options, false);
-        const state = JSON.parse(game.detailedStateJSON({ id: player1.id, secret: player1.secret }));
-        const requestId = state.pendingSelection.requestId;
+        const state = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
+        const requestId = state.pendingSelection!.requestId;
         
         // Try to submit as different player
         expect(() => {
@@ -161,7 +161,7 @@ describe("Game Selection System", () => {
         game.submitSelection(
             { id: player1.id, secret: player1.secret },
             requestId,
-            [state.pendingSelection.options[0]!]
+            [state.pendingSelection!.options[0]!]
         );
         await selectionPromise;
     });
@@ -182,12 +182,12 @@ describe("Game Selection System", () => {
         }).toThrow("No pending selection found for this request ID");
         
         // Clean up
-        const state = JSON.parse(game.detailedStateJSON({ id: player1.id, secret: player1.secret }));
-        const requestId = state.pendingSelection.requestId;
+        const state = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
+        const requestId = state.pendingSelection!.requestId;
         game.submitSelection(
             { id: player1.id, secret: player1.secret },
             requestId,
-            [state.pendingSelection.options[0]!]
+            [state.pendingSelection!.options[0]!]
         );
         await selectionPromise;
     });
@@ -197,15 +197,15 @@ describe("Game Selection System", () => {
         const count = 2;
         
         const selectionPromise = game.select(player1, count, options, false);
-        const state = JSON.parse(game.detailedStateJSON({ id: player1.id, secret: player1.secret }));
-        const requestId = state.pendingSelection.requestId;
+        const state = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
+        const requestId = state.pendingSelection!.requestId;
         
         // Try with too few selections
         expect(() => {
             game.submitSelection(
                 { id: player1.id, secret: player1.secret },
                 requestId,
-                [state.pendingSelection.options[0]!]
+                [state.pendingSelection!.options[0]!]
             );
         }).toThrow("Must select exactly 2 option(s)");
         
@@ -214,7 +214,7 @@ describe("Game Selection System", () => {
             game.submitSelection(
                 { id: player1.id, secret: player1.secret },
                 requestId,
-                [state.pendingSelection.options[0]!, state.pendingSelection.options[1]!, state.pendingSelection.options[2]!]
+                [state.pendingSelection!.options[0]!, state.pendingSelection!.options[1]!, state.pendingSelection!.options[2]!]
             );
         }).toThrow("Must select exactly 2 option(s)");
         
@@ -222,7 +222,7 @@ describe("Game Selection System", () => {
         game.submitSelection(
             { id: player1.id, secret: player1.secret },
             requestId,
-            [state.pendingSelection.options[0]!, state.pendingSelection.options[1]!]
+            [state.pendingSelection!.options[0]!, state.pendingSelection!.options[1]!]
         );
         await selectionPromise;
     });
@@ -233,14 +233,14 @@ describe("Game Selection System", () => {
         
         // Select with asMany = true
         const selectionPromise = game.select(player1, count, options, true);
-        const state = JSON.parse(game.detailedStateJSON({ id: player1.id, secret: player1.secret }));
-        const requestId = state.pendingSelection.requestId;
+        const state = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
+        const requestId = state.pendingSelection!.requestId;
         
         // Should allow selecting fewer than count
         game.submitSelection(
             { id: player1.id, secret: player1.secret },
             requestId,
-            [state.pendingSelection.options[1]!] // Only 1 selection out of max 3
+            [state.pendingSelection!.options[1]!] // Only 1 selection out of max 3
         );
         
         const result = await selectionPromise;
@@ -253,15 +253,15 @@ describe("Game Selection System", () => {
         const count = 2;
         
         const selectionPromise = game.select(player1, count, options, true);
-        const state = JSON.parse(game.detailedStateJSON({ id: player1.id, secret: player1.secret }));
-        const requestId = state.pendingSelection.requestId;
+        const state = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
+        const requestId = state.pendingSelection!.requestId;
         
         // Try with too many selections
         expect(() => {
             game.submitSelection(
                 { id: player1.id, secret: player1.secret },
                 requestId,
-                [state.pendingSelection.options[0]!, state.pendingSelection.options[1]!, state.pendingSelection.options[2]!]
+                [state.pendingSelection!.options[0]!, state.pendingSelection!.options[1]!, state.pendingSelection!.options[2]!]
             );
         }).toThrow("Must select at most 2 option(s)");
         
@@ -269,7 +269,7 @@ describe("Game Selection System", () => {
         game.submitSelection(
             { id: player1.id, secret: player1.secret },
             requestId,
-            [state.pendingSelection.options[0]!, state.pendingSelection.options[1]!]
+            [state.pendingSelection!.options[0]!, state.pendingSelection!.options[1]!]
         );
         await selectionPromise;
     });
@@ -279,8 +279,8 @@ describe("Game Selection System", () => {
         const count = 2;
         
         const selectionPromise = game.select(player1, count, options, true);
-        const state = JSON.parse(game.detailedStateJSON({ id: player1.id, secret: player1.secret }));
-        const requestId = state.pendingSelection.requestId;
+        const state = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
+        const requestId = state.pendingSelection!.requestId;
         
         // Should allow selecting 0
         game.submitSelection(
@@ -312,12 +312,12 @@ describe("Game Selection System", () => {
         expect(stateChangeCount).toBeGreaterThan(initialCount);
         
         // Clean up
-        const state = JSON.parse(game.detailedStateJSON({ id: player1.id, secret: player1.secret }));
-        const requestId = state.pendingSelection.requestId;
+        const state = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
+        const requestId = state.pendingSelection!.requestId;
         game.submitSelection(
             { id: player1.id, secret: player1.secret },
             requestId,
-            [state.pendingSelection.options[0]!]
+            [state.pendingSelection!.options[0]!]
         );
         await selectionPromise;
         game.onStateChange.remove(listener);
@@ -327,13 +327,13 @@ describe("Game Selection System", () => {
         // First selection
         const options1 = ["a", "b", "c"];
         const promise1 = game.select(player1, 1, options1, false);
-        const state1 = JSON.parse(game.detailedStateJSON({ id: player1.id, secret: player1.secret }));
-        const requestId1 = state1.pendingSelection.requestId;
+        const state1 = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
+        const requestId1 = state1.pendingSelection!.requestId;
         
         game.submitSelection(
             { id: player1.id, secret: player1.secret },
             requestId1,
-            [state1.pendingSelection.options[1]!]
+            [state1.pendingSelection!.options[1]!]
         );
         const result1 = await promise1;
         expect(result1.selected).toEqual(["b"]);
@@ -341,13 +341,13 @@ describe("Game Selection System", () => {
         // Second selection (different player)
         const options2 = ["x", "y", "z"];
         const promise2 = game.select(player2, 2, options2, false);
-        const state2 = JSON.parse(game.detailedStateJSON({ id: player2.id, secret: player2.secret }));
-        const requestId2 = state2.pendingSelection.requestId;
+        const state2 = game.detailedStateJSON({ id: player2.id, secret: player2.secret });
+        const requestId2 = state2.pendingSelection!.requestId;
         
         game.submitSelection(
             { id: player2.id, secret: player2.secret },
             requestId2,
-            [state2.pendingSelection.options[0]!, state2.pendingSelection.options[2]!]
+            [state2.pendingSelection!.options[0]!, state2.pendingSelection!.options[2]!]
         );
         const result2 = await promise2;
         expect(result2.selected).toEqual(["x", "z"]);
@@ -355,13 +355,13 @@ describe("Game Selection System", () => {
         // Third selection (back to player1)
         const options3 = ["red", "green"];
         const promise3 = game.select(player1, 1, options3, false);
-        const state3 = JSON.parse(game.detailedStateJSON({ id: player1.id, secret: player1.secret }));
-        const requestId3 = state3.pendingSelection.requestId;
+        const state3 = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
+        const requestId3 = state3.pendingSelection!.requestId;
         
         game.submitSelection(
             { id: player1.id, secret: player1.secret },
             requestId3,
-            [state3.pendingSelection.options[0]!]
+            [state3.pendingSelection!.options[0]!]
         );
         const result3 = await promise3;
         expect(result3.selected).toEqual(["red"]);
@@ -372,20 +372,20 @@ describe("Game Selection System", () => {
         const selectionPromise = game.select(player1, 1, options, false);
         
         // Check state has pending selection
-        const stateBefore = JSON.parse(game.detailedStateJSON({ id: player1.id, secret: player1.secret }));
+        const stateBefore = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
         expect(stateBefore.pendingSelection).toBeDefined();
         
         // Submit selection
-        const requestId = stateBefore.pendingSelection.requestId;
+        const requestId = stateBefore.pendingSelection!.requestId;
         game.submitSelection(
             { id: player1.id, secret: player1.secret },
             requestId,
-            [stateBefore.pendingSelection.options[0]!]
+            [stateBefore.pendingSelection!.options[0]!]
         );
         await selectionPromise;
         
         // Check state no longer has pending selection
-        const stateAfter = JSON.parse(game.detailedStateJSON({ id: player1.id, secret: player1.secret }));
+        const stateAfter = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
         expect(stateAfter.pendingSelection).toBeUndefined();
     });
 
@@ -395,13 +395,13 @@ describe("Game Selection System", () => {
         const options = [card1, card2, null];
         
         const selectionPromise = game.select(player1, 2, options, false);
-        const state = JSON.parse(game.detailedStateJSON({ id: player1.id, secret: player1.secret }));
-        const requestId = state.pendingSelection.requestId;
+        const state = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
+        const requestId = state.pendingSelection!.requestId;
         
         game.submitSelection(
             { id: player1.id, secret: player1.secret },
             requestId,
-            [state.pendingSelection.options[0]!, state.pendingSelection.options[2]!]
+            [state.pendingSelection!.options[0]!, state.pendingSelection!.options[2]!]
         );
         
         const result = await selectionPromise;
@@ -424,21 +424,21 @@ describe("Game Selection System", () => {
         
         // First selection
         const promise1 = game.select(player1, 1, options, false);
-        const state1 = JSON.parse(game.detailedStateJSON({ id: player1.id, secret: player1.secret }));
-        const requestId1 = state1.pendingSelection.requestId;
-        game.submitSelection({ id: player1.id, secret: player1.secret }, requestId1, [state1.pendingSelection.options[0]!]);
+        const state1 = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
+        const requestId1 = state1.pendingSelection!.requestId;
+        game.submitSelection({ id: player1.id, secret: player1.secret }, requestId1, [state1.pendingSelection!.options[0]!]);
         await promise1;
         
         // Second selection
         const promise2 = game.select(player1, 1, options, false);
-        const state2 = JSON.parse(game.detailedStateJSON({ id: player1.id, secret: player1.secret }));
-        const requestId2 = state2.pendingSelection.requestId;
+        const state2 = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
+        const requestId2 = state2.pendingSelection!.requestId;
         
         // RequestIds should be different
         expect(requestId1).not.toBe(requestId2);
         
         // Clean up
-        game.submitSelection({ id: player1.id, secret: player1.secret }, requestId2, [state2.pendingSelection.options[1]!]);
+        game.submitSelection({ id: player1.id, secret: player1.secret }, requestId2, [state2.pendingSelection!.options[1]!]);
         await promise2;
     });
 });

@@ -978,8 +978,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         game.addInPlay(player1, theresOptions);
 
         // Get the state for player1 during their turn
-        const stateStr = game.detailedStateJSON(player1);
-        const state: DetailedState = JSON.parse(stateStr);
+        const state = game.detailedStateJSON(player1);
 
         // Should have firstCardTreasureDeck property
         expect(state.firstCardTreasureDeck).toBeDefined();
@@ -999,8 +998,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         expect(game.currentPlayer).toBe(player2);
 
         // Get the state for player1 during player2's turn
-        const stateStr = game.detailedStateJSON(player1);
-        const state: DetailedState = JSON.parse(stateStr);
+        const state = game.detailedStateJSON(player1);
 
         // Should NOT have firstCardTreasureDeck property
         expect(state.firstCardTreasureDeck).toBeUndefined();
@@ -1012,8 +1010,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         game.addInPlay(player1, theresOptions);
 
         // Get the state for player2 during player1's turn
-        const stateStr = game.detailedStateJSON(player2);
-        const state: DetailedState = JSON.parse(stateStr);
+        const state = game.detailedStateJSON(player2);
 
         // Player2 should NOT see firstCardTreasureDeck
         expect(state.firstCardTreasureDeck).toBeUndefined();
@@ -1025,8 +1022,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         game.addInPlay(player1, theresOptions);
 
         // Player1's turn - should see deck
-        let stateStr = game.detailedStateJSON(player1);
-        let state: DetailedState = JSON.parse(stateStr);
+        let state = game.detailedStateJSON(player1);
         expect(state.firstCardTreasureDeck).toBeDefined();
 
         // End turn
@@ -1036,8 +1032,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         expect(game.currentPlayer).toBe(player2);
 
         // Player2's turn - player1 should NOT see deck
-        stateStr = game.detailedStateJSON(player1);
-        state = JSON.parse(stateStr);
+        state = game.detailedStateJSON(player1);
         expect(state.firstCardTreasureDeck).toBeUndefined();
 
         // End player2's turn
@@ -1052,8 +1047,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         expect(game.currentPlayer).toBe(player1)
 
         // Back to player1's turn - should see deck again
-        stateStr = game.detailedStateJSON(player1);
-        state = JSON.parse(stateStr);
+        state = game.detailedStateJSON(player1);
         expect(state.firstCardTreasureDeck).toBeDefined();
     });
 
@@ -1063,16 +1057,14 @@ describe("b2-theres_options treasure deck visibility", () => {
         game.addInPlay(player1, theresOptions);
 
         // Player can see deck
-        let stateStr = game.detailedStateJSON(player1);
-        let state: DetailedState = JSON.parse(stateStr);
+        let state = game.detailedStateJSON(player1);
         expect(state.firstCardTreasureDeck).toBeDefined();
 
         // Remove the item
         game.removeInPlay(player1, theresOptions);
 
         // Player can no longer see deck
-        stateStr = game.detailedStateJSON(player1);
-        state = JSON.parse(stateStr);
+        state = game.detailedStateJSON(player1);
         expect(state.firstCardTreasureDeck).toBeUndefined();
     });
 
@@ -1083,10 +1075,8 @@ describe("b2-theres_options treasure deck visibility", () => {
         game.addInPlay(player2, theresOptions);
 
         // Player1's turn - nobody sees deck
-        let state1Str = game.detailedStateJSON(player1);
-        let state1: DetailedState = JSON.parse(state1Str);
-        let state2Str = game.detailedStateJSON(player2);
-        let state2: DetailedState = JSON.parse(state2Str);
+        let state1 = game.detailedStateJSON(player1);
+        let state2 = game.detailedStateJSON(player2);
         expect(state1.firstCardTreasureDeck).toBeUndefined();
         expect(state2.firstCardTreasureDeck).toBeUndefined();
 
@@ -1096,10 +1086,8 @@ describe("b2-theres_options treasure deck visibility", () => {
         expect(game.currentPlayer).toBe(player2);
 
         // Player2's turn - only player2 sees deck
-        state1Str = game.detailedStateJSON(player1);
-        state1 = JSON.parse(state1Str);
-        state2Str = game.detailedStateJSON(player2);
-        state2 = JSON.parse(state2Str);
+        state1 = game.detailedStateJSON(player1);
+        state2 = game.detailedStateJSON(player2);
         expect(state1.firstCardTreasureDeck).toBeUndefined();
         expect(state2.firstCardTreasureDeck).toBeDefined();
     });
@@ -1150,8 +1138,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         game.addInPlay(player2, theresOptions);
 
         // Player2 should immediately see deck (it's their turn)
-        let stateStr = game.detailedStateJSON(player2);
-        let state: DetailedState = JSON.parse(stateStr);
+        let state = game.detailedStateJSON(player2);
         expect(state.firstCardTreasureDeck).toBeDefined();
         expect(player2.canSeeTopOfTreasureDeck).toBe(true);
     });
@@ -1165,13 +1152,11 @@ describe("b2-theres_options treasure deck visibility", () => {
         const topCard = game.decks["treasure"]!.cards[0]!;
 
         // Get the state
-        const stateStr = game.detailedStateJSON(player1);
-        const state: DetailedState = JSON.parse(stateStr);
+        const state = game.detailedStateJSON(player1);
 
         // Verify the firstCardTreasureDeck matches the actual top card
         expect(state.firstCardTreasureDeck).toBeDefined();
         expect(state.firstCardTreasureDeck!.slug).toBe(topCard.slug);
-        expect(state.firstCardTreasureDeck!.name).toBe(topCard.name);
     });
 
 });

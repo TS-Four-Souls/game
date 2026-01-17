@@ -1672,6 +1672,7 @@ export class Game {
         inPlay: this.shop._slots.map((c) => ({ slug: c!.slug })),
       },
       turn: this.currentPlayer.id,
+      firstCardTreasureDeck: player.canSeeTopOfTreasureDeck ? this.decks["treasure"]!.cards[0]?.json : undefined,
       stack: this.stack.elements.map((el) => {
         if (el instanceof LootCard) {
           return el.slug;
