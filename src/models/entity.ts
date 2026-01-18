@@ -135,21 +135,5 @@ export abstract class Entity {
   get temporaryEffects(): temporaryEffect[] {
     return this._temporaryEffects;
   }
-  entityTypeFromEntity(): entityType {
-    if(this instanceof Player) {
-      return {
-        type: "player",
-        name: this.id,
-        slug: this.inPlay[0]!.slug
-      }
-    }
-    if(this instanceof Monster){
-      return {
-        type: "monster",
-        name: this.name,
-        slug: this.card.slug
-      }
-    }
-    throw new Error("Unknown entity type");
-  }
+  abstract get json(): entityType;
 }

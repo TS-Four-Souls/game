@@ -464,7 +464,7 @@ describe("DiceRoll", () => {
     const dice = player.rollDice();
     const json = dice.json;
     
-    expect(json.issuer).toBe("testPlayer");
+    expect(json.issuer.name).toBe("testPlayer");
     expect(json.diceRoll >= 1 && json.diceRoll <= 6).toBe(true);
   });
 

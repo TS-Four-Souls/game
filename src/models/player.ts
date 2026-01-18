@@ -3,6 +3,7 @@ import { CharacterCard, Hand, InplayType, ItemCard, treasureCard, Card, type Eff
 import type { Game } from "./game";
 import type { Monster } from "./monster";
 import { TargetBuilder } from "./targetBuilder";
+import type { entityType } from "@/shared/api";
 import type { DamageOnStackJson, DeathOnStackJson, DiceRollJson, temporaryEffect } from "@/shared/api";
 /**
  * Represents a player in the Four Souls game.
@@ -477,6 +478,14 @@ export class Player extends Entity {
   verifySecret(secret: string): boolean {
     return this.secret === secret;
   }
+
+  get json(): entityType {
+    return {
+        type: "player",
+        name: this.id,
+        slug: this.inPlay.length > 0 ? this.inPlay[0]!.slug : ""
+      }
+    }
 }
 
 export class DiceRoll {
@@ -526,7 +535,7 @@ export class DiceRoll {
   get json(): DiceRollJson {
     return { 
       diceRoll: this.value, 
-      issuer: this.issuer.entityTypeFromEntity(), 
+      issuer: this.issuer.json, 
       card: !this._attackRoll ? this._card?.name : undefined, 
       targets: !this._attackRoll ? TargetBuilder.convertToStringIdentifiers(this._targets) : undefined
     }
@@ -595,8 +604,8 @@ export class DamageOnStack {
   get json(): DamageOnStackJson {
     const sourceName = this._source instanceof DiceRoll ? this._source.json : this._source.slug;
     return {
-      from: this.from.entityTypeFromEntity(), 
-      receiver: this.receiver.entityTypeFromEntity(), 
+      from: this.from.json, 
+      receiver: this.receiver.json, 
       damage: this.damage[0]!, 
       source: sourceName};
   }

@@ -1,6 +1,7 @@
 import { Entity } from "@/models/entity";
 import type { MonsterCard } from "./cards";
 import type { Encounters } from "./slots";
+import type { entityType } from "@/shared/api";
 
 /**
  * Represents a monster entity in the Four Souls game.
@@ -60,7 +61,7 @@ export class Monster extends Entity {
   get name(): string {
     return this._card.name;
   }
-  
+
   /**
    * Gets the effective evasion value for this monster.
    * This includes the base evasion plus any DC modifiers from the encounters manager.
@@ -74,5 +75,13 @@ export class Monster extends Entity {
     if(this._evasion + amount < 0)
       throw new Error("Monster evasion cannot be negative.");
     this._evasion += amount;
+  }
+
+  get json(): entityType {
+    return {
+      type: "monster",
+      name: this.name,
+      slug: this.card.slug
+    }
   }
 }
