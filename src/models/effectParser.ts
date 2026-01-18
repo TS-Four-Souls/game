@@ -241,7 +241,7 @@ export function parseAtTheEndOfYourTurnEffect(s: string, game: Game): ParsedEffe
     const restOfEffect = s.substring("at the end of your turn, ".length).trim();
     const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
     return {
-        effectFunction: passive.onYourEventEffect("on:turn:end", [restParsed.effectFunction], game),
+        effectFunction: passive.onYourEventEffect("on:turn:end", [restParsed.effectFunction], game, s),
         targetSelectors: restParsed.targetSelectors
     };
 }
@@ -250,7 +250,7 @@ export function parseWhenThisDiesEffect(s: string, game: Game): ParsedEffect {
     const restOfEffect = s.substring("When this dies, ".length).trim();
     const restParsed = effectParser(restOfEffect, game, (data:EffectData) => {throw new Error("Not implemented");}, true);
     return {
-        effectFunction: passive.onYourEventEffect("on:death:monster", [restParsed.effectFunction], game),
+        effectFunction: passive.onYourEventEffect("on:death:monster", [restParsed.effectFunction], game, s),
         targetSelectors: restParsed.targetSelectors
     };
 }
@@ -259,7 +259,7 @@ export function parseAtTheStartOfYourTurnEffect(s: string, game: Game): ParsedEf
     const restOfEffect = s.substring("at the start of your turn, ".length).trim();
     const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
     return {
-        effectFunction: passive.onYourEventEffect("on:turn:start", [restParsed.effectFunction], game),
+        effectFunction: passive.onYourEventEffect("on:turn:start", [restParsed.effectFunction], game, s),
         targetSelectors: restParsed.targetSelectors
     };
 }
@@ -277,7 +277,7 @@ export function parseEachTimeDeclareAttackEffect(s: string, game: Game): ParsedE
     const restOfEffect = s.substring("each time you declare an attack, ".length).trim();
     const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
     return {
-        effectFunction: passive.onYourEventEffect("on:attack:declared", [restParsed.effectFunction], game),
+        effectFunction: passive.onYourEventEffect("on:attack:declared", [restParsed.effectFunction], game, s),
         targetSelectors: restParsed.targetSelectors
     };
 }
@@ -367,7 +367,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     if (s.startsWith("when you die, ") && s !== "when you die, before paying penalties, give this to another player.") {
         const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, defaultEffect, true);
         return {
-            effectFunction: passive.onYourEventEffect("on:death:before-penalty", [restParsed.effectFunction], game),
+            effectFunction: passive.onYourEventEffect("on:death:before-penalty", [restParsed.effectFunction], game, s),
             targetSelectors: restParsed.targetSelectors
         };
     }
@@ -376,7 +376,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     if (s.startsWith("each time you deal combat damage to a monster,")) {
         const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, defaultEffect, true);
         return {
-            effectFunction: passive.onYourEventEffect("on:combatdamage:dealt:to-monster", [restParsed.effectFunction], game),
+            effectFunction: passive.onYourEventEffect("on:combatdamage:dealt:to-monster", [restParsed.effectFunction], game, s),
             targetSelectors: restParsed.targetSelectors
         };
     }
@@ -386,7 +386,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     if (s.startsWith("each time you die, after paying penalties, ")) {
         const restParsed = effectParser(s.substring(s.indexOf(",", s.indexOf(",")+1) + 1).trim(), game, defaultEffect, true);
         return {
-            effectFunction: passive.onYourEventEffect("on:death:after-penalty", [restParsed.effectFunction], game),
+            effectFunction: passive.onYourEventEffect("on:death:after-penalty", [restParsed.effectFunction], game, s),
             targetSelectors: restParsed.targetSelectors
         };
     }
@@ -395,14 +395,14 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     if (s.startsWith("each time you activate an item, ")) {
         const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, defaultEffect, true);
         return {
-            effectFunction: passive.onYourEventEffect("on:item:activated", [restParsed.effectFunction], game),
+            effectFunction: passive.onYourEventEffect("on:item:activated", [restParsed.effectFunction], game, s),
             targetSelectors: restParsed.targetSelectors
         };
     }
     if (s.startsWith("when you would die, ") || s.startsWith("each time you would die, ")) {
         const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, defaultEffect, true);
         return {
-            effectFunction: passive.onYourEventEffect("on:death:would-death", [restParsed.effectFunction], game),
+            effectFunction: passive.onYourEventEffect("on:death:would-death", [restParsed.effectFunction], game, s),
             targetSelectors: restParsed.targetSelectors
         };
     }

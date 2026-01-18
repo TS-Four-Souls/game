@@ -407,7 +407,8 @@ Each time triggerEvent triggers, if you are the eventIssuer, call effectFunction
 export function onYourEventEffect(
     triggerEvent: TriggerEvent,
     effectFunctions: EffectFunction[],
-    game: Game
+    game: Game,
+    description: string
 ): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
@@ -422,7 +423,7 @@ export function onYourEventEffect(
                 }
                 return true;
             };
-            addPassiveEffectToStack(game, effect, data, `On event: ${triggerEvent}`);
+            addPassiveEffectToStack(game, effect, data, description);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
