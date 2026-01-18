@@ -326,6 +326,7 @@ const playerSchema = z.object({
   currentAttackPoints: z.number(),
   remainingLootPlay: z.number(),
   isEngagedInCombat: z.boolean(),
+  pendingSelection: z.boolean(),
 });
 export type Player = z.infer<typeof playerSchema>;
 
@@ -340,6 +341,7 @@ const playerMeSchema = playerSchema.extend({
     useLoot: z.boolean(),
     resolve: z.boolean(),
   }),
+  pendingSelection: pendingSelectionSchema.optional(),
 });
 export type PlayerMe = z.infer<typeof playerMeSchema>;
 
@@ -367,7 +369,6 @@ const detailedStateSchema = z.object({
   turn: z.string(),
   stack: z.array(z.lazy(() => stackElementSchema)),
   firstCardTreasureDeck: cardSchema.optional(),
-  pendingSelection: pendingSelectionSchema.optional(),
 });
 export type DetailedState = z.infer<typeof detailedStateSchema>;
 

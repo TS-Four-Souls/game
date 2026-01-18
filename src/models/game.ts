@@ -1665,6 +1665,21 @@ export class Game {
         currentHealthPoints: player.currentHealthPoints,
         remainingLootPlay: player.remainingLootPlay,
         isEngagedInCombat: player.isEngagedInCombat,
+        pendingSelection: (() => {
+        // Check if player has a pending selection from selectMultiple
+        for (const sel of this.pendingMultipleSelections.values()) {
+          if (sel.playerId === player.id) {
+            return {
+              requestId: sel.requestId,
+              options: TargetBuilder.convertToSelectionItems(sel.options),
+              count: sel.count,
+              asMany: sel.asMany,
+              description: sel.description,
+            };
+          }
+        }
+        return undefined;
+      })(),
         capabilities: {
           endTurn: this.canEndTurn(player),
           declareAttack: this.canDeclareAttack(player),
@@ -1690,6 +1705,7 @@ export class Game {
           currentHealthPoints: p.currentHealthPoints,
           remainingLootPlay: p.remainingLootPlay,
           isEngagedInCombat: p.isEngagedInCombat,
+          pendingSelection: this.pendingMultipleSelections.values().some(sel => sel.playerId === p.id),
         })),
       monsters:
       {
@@ -1734,21 +1750,6 @@ export class Game {
       // firstCardTreasureDeck: player.canSeeTopOfTreasureDeck
       // ? this.decks["treasure"]!.cards[0]?.json
       // : undefined,
-      pendingSelection: (() => {
-        // Check if player has a pending selection from selectMultiple
-        for (const sel of this.pendingMultipleSelections.values()) {
-          if (sel.playerId === player.id) {
-            return {
-              requestId: sel.requestId,
-              options: TargetBuilder.convertToSelectionItems(sel.options),
-              count: sel.count,
-              asMany: sel.asMany,
-              description: sel.description,
-            };
-          }
-        }
-        return undefined;
-      })(),
     };
   }
   canPurchase(issuer: Issuer, shouldThrow: boolean = false): boolean {
