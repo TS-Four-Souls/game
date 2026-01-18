@@ -318,7 +318,7 @@ describe("Loot Card", () => {
         const diceShard = game.decks["loot"]!.getCardFromSlug("b2-dice_shard");
 
         // Place a dice roll on the stack
-        const roll = player1.rollDice();
+        const roll = player1.rollDice(false, diceShard);
         game.stack.push(roll);
 
         const initialRollValue = roll.value;
@@ -380,7 +380,7 @@ describe("Loot Card", () => {
         player1.hand.addToHand(magician!);
 
         // Place a dice roll on the stack
-        const roll = player1.rollDice();
+        const roll = player1.rollDice(false, magician);
         game.stack.push(roll);
         roll.value = 6; // initial value
         // Play magician to change the roll
@@ -395,7 +395,7 @@ describe("Loot Card", () => {
         player1.hand.addToHand(magician!);
 
         // Place a dice roll on the stack
-        const roll = player2.rollDice();
+        const roll = player2.rollDice(false, magician);
         game.stack.push(roll);
 
         // Force the roll to be different from what we want

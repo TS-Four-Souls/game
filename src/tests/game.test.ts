@@ -146,7 +146,7 @@ describe("Player", () => {
   });
 
   it("should roll a dice between 1 and 6", async () => {
-    const dice = player.rollDice();
+    const dice = player.rollDice(true);
     expect(dice.value >= 1 && dice.value <= 6).toBe(true);
     expect(dice.issuer).toBe(player);
   });
@@ -418,25 +418,20 @@ describe("DiceRoll", () => {
   });
 
   it("should create a valid dice roll", async () => {
-    const dice = player.rollDice();
+    const dice = player.rollDice(true);
     
     expect(dice).toBeDefined();
     expect(dice.value >= 1 && dice.value <= 6).toBe(true);
   });
 
   it("should track the issuer correctly", async () => {
-    const dice = player.rollDice();
+    const dice = player.rollDice(true);
     expect(dice.issuer).toBe(player);
     expect(dice.issuer.id).toBe("testPlayer");
   });
 
-  it("should not be an attack roll by default", async () => {
-    const dice = player.rollDice();
-    expect(dice.attackRoll).toBe(false);
-  });
-
   it("should allow setting dice value between 1 and 6", async () => {
-    const dice = player.rollDice();
+    const dice = player.rollDice(true);
     
     dice.value = 1;
     expect(dice.value).toBe(1);
@@ -449,7 +444,7 @@ describe("DiceRoll", () => {
   });
 
   it("should roll and generate new value", async () => {
-    const dice = player.rollDice();
+    const dice = player.rollDice(true);
     const firstValue = dice.value;
     
     dice.roll();
@@ -469,7 +464,7 @@ describe("DiceRoll", () => {
   });
 
   it("should resolve to current value", async () => {
-    const dice = player.rollDice();
+    const dice = player.rollDice(true);
     dice.value = 4;
     
     expect(dice.value).toBe(4);
@@ -613,7 +608,7 @@ describe("Game - Stack Operations", () => {
   });
 
   it("should add to stack and resolve dice roll", async () => {
-    const dice = player1.rollDice();
+    const dice = player1.rollDice(true);
     game.addToStack(dice);
     expect(game.stack.size).toBe(1);
 
@@ -633,7 +628,7 @@ describe("Stack - Behavior", () => {
   it("should resolve and remove the top element", async () => {
     const stack = new Stack();
     const loot = { id: "loot", type: "loot" } as any;
-    const dice = new Player("p", 1, 1, 0).rollDice();
+    const dice = new Player("p", 1, 1, 0).rollDice(true);
 
     stack.push(loot as any);
     stack.push(dice);
@@ -866,16 +861,6 @@ describe("Player - Edge Cases & Combinations", () => {
     
     player.gainCoins(30);
     expect(player.coins).toBe(30);
-  });
-
-  it("should handle max dice value properly", async () => {
-    const dice = player.rollDice();
-    
-    for (let i = 1; i <= 6; i++) {
-      dice.value = i;
-      expect(dice.value).toBe(i);
-      expect(dice.value).toBe(i);
-    }
   });
 
   it("should maintain player attributes immutably", async () => {

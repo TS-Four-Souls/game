@@ -75,7 +75,7 @@ export function activePlayerRollsEffect(game: Game, s: string): EffectFunction {
     const effects: EffectFunction[] = parsedEffects.map(p => p.effectFunction);
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
-        const result = game.rollDice(player, false);
+        const result = game.rollDice(player, false, data.it);
         result.attachEffect(effects, data.it, data.targets);
         return true;
     };
@@ -151,7 +151,7 @@ export function searchForBloatEffect(game: Game): EffectFunction {
 
 export function putOnTopOfMonsterDeckOnRollEffect(game: Game, rolls: number[]): EffectFunction {
     return (data: EffectData) => {
-        const roll = game.rollDice(game.currentPlayer as Player, false);
+        const roll = game.rollDice(game.currentPlayer as Player, false, data.it);
         roll.attachEffect([1,2,3,4,5,6].map(n => (data:EffectData) => {
             if(rolls.includes(n)) {
                 game.decks["monster"]!.addTopPosition(data.it);
@@ -594,7 +594,7 @@ export function preventDamageOnRollEffect(game: Game, rolls: number[]): EffectFu
             if(!(eventIssuer instanceof Monster)) return;
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
-                const dice = game.rollDice(game.currentPlayer as Player, false); // to get the roll value
+                const dice = game.rollDice(game.currentPlayer as Player, false, data.it); // to get the roll value
                 dice.attachEffect([1,2,3,4,5,6].map(n => (data:EffectData) => {
                     if(rolls.includes(n)) {
                         damageArray[0] = 0; // remove all damage

@@ -291,7 +291,7 @@ export class Game {
     const rewards = monster.card.rewards;
     if (rewards?.coin) {
       if (rewards.coin === "roll") {
-        const roll = this.rollDice(this.currentPlayer, false);
+        const roll = this.rollDice(this.currentPlayer, false, monster.card);
         roll.attachEffect(targetGetCoinRollEffect(this), monster.card, [
           this.currentPlayer,
         ]);
@@ -301,7 +301,7 @@ export class Game {
     }
     if (rewards?.loot) {
       if (rewards.loot === "roll") {
-        const roll = this.rollDice(this.currentPlayer, false);
+        const roll = this.rollDice(this.currentPlayer, false, monster.card);
         roll.attachEffect(targetGetLootRollEffect(this), monster.card, [
           this.currentPlayer,
         ]);
@@ -2029,12 +2029,12 @@ export class Game {
     return coinLost;
   }
 
-  rollDice(issuer: Issuer, attackRoll: boolean): DiceRoll {
+  rollDice(issuer: Issuer, attackRoll: boolean, card: Card | null = null): DiceRoll {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     if (attackRoll) this.assertPlayerIsAlive(player);
 
-    let diceRoll = player.rollDice(attackRoll);
+    let diceRoll = player.rollDice(attackRoll, card);
     this.addToStack(diceRoll);
     this.emit("on:dice:would-roll", { eventIssuer: player, diceRoll });
     return diceRoll;

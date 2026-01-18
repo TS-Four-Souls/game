@@ -454,10 +454,10 @@ export class Player extends Entity {
     this._coin += coins;
   }
 
-  rollDice(attackRoll: boolean = false): DiceRoll {
+  rollDice(attackRoll: boolean = false, card: Card | null = null): DiceRoll {
     if(attackRoll)
       this._attackRollThisTurn += 1;
-    return new DiceRoll(this, attackRoll);
+    return new DiceRoll(this, attackRoll, card);
   }
 
   /* This methods tries to remove n coins to the player and return true if it does.
@@ -497,10 +497,14 @@ export class DiceRoll {
   private _targets: any[] = [];
   private _stackId: number = -1;
 
-  constructor(issuer: Player, attackRoll: boolean = false) {
+  constructor(issuer: Player, attackRoll: boolean = false, card: Card | null = null) {
+    if(!attackRoll && !card) {
+      throw new Error("Non-attack dice rolls must be associated with a card.");
+    }
     this._value = Math.floor(Math.random() * 6) + 1;
     this._issuer = issuer;
     this._attackRoll = attackRoll;
+    this._card = card;
   }
   set stackId(id: number) {
         this._stackId = id;

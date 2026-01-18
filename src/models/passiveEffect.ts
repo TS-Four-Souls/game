@@ -10,7 +10,7 @@ import type { temporaryEffect } from "@/shared/api";
 
 function getTemporaryEffect(data: EffectData, description: string): temporaryEffect {
     return{
-            slug: data.it.slug,
+            card: {slug: data.it.slug, name: data.it.name},
             issuer: data.issuer.id,
             targets: TargetBuilder.convertToSelectionItems(data.targets),
             description: description
@@ -1350,7 +1350,7 @@ export function preventDamageOnRollEffect(
         offEffect = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
             if (data.issuer !== eventIssuer) return;
             if (!(data.issuer instanceof Player)) return;
-            const roll:DiceRoll = game.rollDice(data.issuer, false);
+            const roll:DiceRoll = game.rollDice(data.issuer, false, data.it);
             const effects: EffectFunction[] = new Array<EffectFunction>(6).fill((data:EffectData) => { return true; });
             for (const val of diceValues) {
                 effects[val - 1] = (data:EffectData) => { 

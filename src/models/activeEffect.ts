@@ -1204,7 +1204,7 @@ export function rollEffect(s: string, game: Game): ParsedEffect {
     return {
         effectFunction: (data: EffectData) => {
             if (data.issuer instanceof Player === false) return false;
-            const result = game.rollDice(data.issuer, false);
+            const result = game.rollDice(data.issuer, false, data.it);
             result.attachEffect(effects, data.it, data.targets);
             return true;
         },
@@ -1229,7 +1229,7 @@ export function dealRollDamageEffect(s: string, game: Game): ParsedEffect {
         effectFunction: (data: EffectData) => {
             if (data.issuer instanceof Player === false) return false;
             const target = data.next as Entity;
-            const roll = game.rollDice(data.issuer, false);
+            const roll = game.rollDice(data.issuer, false, data.it);
             roll.attachEffect([...Array(6).keys()].map((i) =>
                 (data: EffectData) => {
                     game.dealDamage(data.issuer, data.next as Entity, data.it, i + 1);
