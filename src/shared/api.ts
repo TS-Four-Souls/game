@@ -156,7 +156,14 @@ export type Player = {
 export type PlayerMe = Player & {
   hand: Card[];
   inPlay: InPlayMeCard[];
-  canEndTurn: boolean;
+  capabilities: {
+    endTurn: boolean;
+    declareAttack: boolean;
+    rollDice: boolean;
+    buyTreasure: boolean;
+    useLoot: boolean;
+    resolve: boolean;
+  };
 };
 
 export type Card = {
@@ -169,11 +176,17 @@ export type MonsterCard = Card & {
     attackPoints: number;
     evasionPoints: number;
     isEngagedInCombat: boolean;
+    capabilities: {
+      targetable: boolean;
+    };
   };
 };
 
 export type InPlayCard = Card & {
   charged?: boolean;
+  capabilities: {
+    activate?: boolean;
+  };
 };
 
 export type InPlayMeCard = InPlayCard & {
