@@ -255,7 +255,7 @@ io.on("connection", (socket) => {
     }
   });
   socket.on("endTurn", async (payload, callback) => {
-    const validated = schemas.purchaseRequest.safeParse(payload);
+    const validated = schemas.endTurnRequest.safeParse(payload);
     if (!validated.success) {
       return callback({ status: 400, error: validated.error });
     }
@@ -263,7 +263,7 @@ io.on("connection", (socket) => {
       game.addToHistory(validated.data);
       return callback({ response: game.nextTurn(validated.data.issuer), status: 200 });
     } catch (error) {
-      console.error("Failed to play card", error);
+      console.error("Failed to end turn", error);
       return callback({ status: 400, error });
     }
   });
