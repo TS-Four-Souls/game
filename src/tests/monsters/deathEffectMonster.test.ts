@@ -435,6 +435,7 @@ describe("Monsters - On death effects", () => {
         const soul = game.obtainCard("b2-lost_soul") as LootCard;
         game.addCardToHand(player2, soul);
         expect(player2.hand.length).toBe(1);
+        game.addLootPlay(player2, 1);
         game.playCard(player2, 0);
         await game.resolveStack(); // resolve playing lost soul
 
@@ -460,6 +461,7 @@ describe("Monsters - On death effects", () => {
         const soul = game.obtainCard("b2-lost_soul") as LootCard;
         game.addCardToHand(player2, soul);
         expect(player2.hand.length).toBe(1);
+        game.addLootPlay(player2, 1);
         game.playCard(player2, 0);
         await game.resolveStack(); // resolve playing lost soul
 

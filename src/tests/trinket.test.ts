@@ -697,6 +697,7 @@ describe("Loot Card", () => {
         const curvedHorn = game.decks["loot"]!.getCardFromSlug("b2-curved_horn")!;
         const baseAttack = player1.attackPoints;
         player2.hand.addToHand(curvedHorn);
+        game.addLootPlay(player2, 1);
         game.playCard(player2, 0);
         await game.resolveStack(); // add curvedHorn to in play
 

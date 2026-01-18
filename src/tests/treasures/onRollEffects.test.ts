@@ -68,6 +68,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         // card roll
         player1.hand.addToHand(card);
+        game.addLootPlay(player1, 1);
         const playCard = game.playCard(player1, 0);
         await game.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
@@ -125,6 +126,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         expect(game.stack.size).toBe(0);
 
         // card roll
+        game.addLootPlay(player1, 1);
         const playCard = game.playCard(player1, 0);
         await game.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
@@ -183,6 +185,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         sack.charged = false;
 
         // card roll
+        game.addLootPlay(player1, 1);
         const playCard = game.playCard(player1, 0);
         await game.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
@@ -242,6 +245,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         recharged.charged = false;
 
         // card roll
+        game.addLootPlay(player1, 1);
         const playCard = game.playCard(player1, 0);
         await game.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
@@ -308,6 +312,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         cardToDiscard = player1.hand.cards[1]!;
         cardToAdd = game.decks["loot"]!.cards[0]!;
         expect(game.stack.size).toBe(0);
+        game.addLootPlay(player1, 1);
         const playCard = game.playCard(player1, 0);
         await game.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
@@ -607,6 +612,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         // card roll
         player2.hand.addToHand(card);
+        game.addLootPlay(player2, 1);
         const playCard = game.playCard(player2, 0);
         await game.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;

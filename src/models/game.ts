@@ -365,23 +365,63 @@ export class Game {
     });
   }
 
-  declareAttack(player: Player): void {
-    this.assertCurrentTurnIsPlayerTurn(player);
-    this.assertNoOngoingAttack();
-    this.assertPlayerIsAlive(player);
-    this.assertNoPendingSelection();
+  canDeclareAttack(player: Player, shouldThrow: boolean = false): boolean {
+    try {
+      this.assertCurrentTurnIsPlayerTurn(player);
+      this.assertNoOngoingAttack();
+      this.assertPlayerIsAlive(player);
+      this.assertNoPendingSelection();
 
-    if (player.isEngagedInCombat) {
-      throw new Error("Player is already engaged in combat.");
+      if (player.isEngagedInCombat) {
+        throw new Error("Player is already engaged in combat.");
+      }
+      if (player.attackThisTurn <= 0 && !player.hasAttackRequirement)
+        throw new Error("Player has no remaining attacks this turn.");
+    } catch (e) {
+      if (shouldThrow) throw e;
+      return false;
     }
-    if (player.attackThisTurn <= 0 && !player.hasAttackRequirement)
-      throw new Error("Player has no remaining attacks this turn.");
+    return true;
+  }
+
+  declareAttack(player: Player): void {
+    this.canDeclareAttack(player, true);
 
     player.attackThisTurn -= 1;
     player.engageInCombat();
     this.emit("on:attack:declared", { eventIssuer: player });
     this._onStateChange.dispatch();
   }
+
+  canDeclareAttackOnMonster(player: Player,
+    monster: Monster | "topDeck", shouldThrow: boolean = false): boolean {
+    try {
+      if (monster !== "topDeck" && !monster.attackable) {
+        throw new Error("This monster cannot be attacked.");
+      }
+      this.assertCurrentTurnIsPlayerTurn(player);
+      this.assertNoOngoingAttack();
+      this.assertPlayerIsAlive(player);
+      if (!player.isEngagedInCombat) {
+      player.clearAttackRequirement(monster);
+        throw new Error("Player has not declared an attack.");
+      }
+      const isMonsterAlreadyEngaged = this.monsters.some(
+        (m): m is Monster => m !== undefined && m.isEngagedInCombat
+      );
+      if (isMonsterAlreadyEngaged) {
+        throw new Error("Another monster is already engaged in combat.");
+      }
+      if (!player.canAttackThisMonster(monster)) {
+        throw new Error("Player must attack a specific monster.");
+      }
+    } catch (e) {
+      if (shouldThrow) throw e;
+      return false;
+    }
+    return true;
+  }
+
 
   declareAttackOnMonster(
     player: Player,
@@ -396,25 +436,7 @@ export class Game {
       throw new Error(
         "drawInIndex must be specified when drawing from topDeck"
       );
-    if (monster !== "topDeck" && !monster.attackable) {
-      player.clearAttackRequirement(monster);
-      throw new Error("This monster cannot be attacked.");
-    }
-    this.assertCurrentTurnIsPlayerTurn(player);
-    this.assertNoOngoingAttack();
-    this.assertPlayerIsAlive(player);
-    if (!player.isEngagedInCombat) {
-      throw new Error("Player has not declared an attack.");
-    }
-    const isMonsterAlreadyEngaged = this.monsters.some(
-      (m): m is Monster => m !== undefined && m.isEngagedInCombat
-    );
-    if (isMonsterAlreadyEngaged) {
-      throw new Error("Another monster is already engaged in combat.");
-    }
-    if (!player.canAttackThisMonster(monster)) {
-      throw new Error("Player must attack a specific monster.");
-    }
+    this.canDeclareAttackOnMonster(player, monster, true);
     if (monster === "topDeck") {
       this.drawMonster(player, drawInIndex);
       player.clearAttackRequirement("topDeck");
@@ -508,10 +530,29 @@ export class Game {
     return undefined;
   }
 
+  canRollDice(player: Player, shouldThrow: boolean = false): boolean {
+    try {
+      this.assertCurrentTurnIsPlayerTurn(player);
+      this.assertPlayerIsAlive(player);
+      this.assertNoPendingSelection();
+      // todo force player to have declared attack.
+      const monster = [...this.monsters].find(
+        (m): m is Monster => m !== undefined && m.isEngagedInCombat
+      );
+      if (!monster) {
+        throw new Error("No monster is currently engaged in combat.");
+      }
+    } catch (e) {
+      if (shouldThrow) throw e;
+      return false;
+    }
+    return true;
+  }
+
+
+
   attackRoll(player: Player): void {
-    this.assertCurrentTurnIsPlayerTurn(player);
-    this.assertPlayerIsAlive(player);
-    this.assertNoPendingSelection();
+    this.canRollDice(player, true);
     // todo force player to have declared attack.
     const monster = [...this.monsters].find(
       (m): m is Monster => m !== undefined && m.isEngagedInCombat
@@ -1009,12 +1050,7 @@ export class Game {
 
   endTurn(): void {
     const player = this.assertIssuerSecret(this.currentPlayer);
-    this.assertCurrentTurnIsPlayerTurn(player);
-    this.assertCurrentPlayerIsNotEngagedInCombat();
-    this.assertNoOngoingAttack();
-    this.assertEmptyStack();
-    this.assertForcedAttackSatisfied(player);
-    this.assertNoPendingSelection();
+    this.canEndTurn(player, true);
     this.emit("on:turn:end", { eventIssuer: player });
     this.executeWhenStackEmpty(() => {
       this.healEveryone();
@@ -1032,18 +1068,13 @@ export class Game {
   nextTurn(issuer: Issuer): string {
     const roundIndex = this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
-    this.assertCurrentTurnIsPlayerTurn(player);
-    this.assertCurrentPlayerIsNotEngagedInCombat();
-    this.assertEmptyStack();
-    this.assertNoOngoingAttack();
-    this.assertForcedAttackSatisfied(player);
-    this.assertNoPendingSelection();
+    this.canEndTurn(player, true);
     this.endTurn();
 
     return `It's ${this.currentPlayer!.id}'s turn. Round ${roundIndex}.\n`;
   }
 
-  canEndTurn(issuer: Issuer): boolean {
+  canEndTurn(issuer: Issuer, shouldThrow: boolean = false): boolean {
     try {
       const roundIndex = this.assertGameStarted();
       const player = this.assertIssuerSecret(issuer);
@@ -1054,7 +1085,8 @@ export class Game {
       this.assertForcedAttackSatisfied(player);
       this.assertNoPendingSelection();
     }
-    catch {
+    catch (e) {
+      if (shouldThrow) throw e;
       return false;
     }
     return true;
@@ -1064,14 +1096,27 @@ export class Game {
     return card.getTargetSelectors();
   }
 
+  canPlayCard(issuer: Issuer, shouldThrow: boolean = false): boolean {
+    try {
+      this.assertGameStarted();
+      const player = this.assertIssuerSecret(issuer);
+      this.assertNoPendingSelection();
+      if (player.remainingLootPlay <= 0) {
+        throw new Error("Player has no remaining loot play this turn.");
+      }
+    } catch (e) {
+      if (shouldThrow) throw e;
+      return false;
+    }
+    return true;
+  }
+
   // temporary method to play a card from hand to in-play area.
   // targets must be explicitly provided by the caller using getSelectors()
   playCard(issuer: Issuer, index: number, targets: any[] = []): string {
-    this.assertGameStarted();
+    this.canPlayCard(issuer, true);
     const player = this.assertIssuerSecret(issuer);
-    // this.assertPlayerIsAlive(player);
     this.assertPositiveNumber(index);
-    this.assertNoPendingSelection();
     if (index < 0 || index > player.hand.cards.length) {
       return "Invalid card position.";
     }
@@ -1607,23 +1652,37 @@ export class Game {
           ...c.json,
           charged: c.charged,
           effects: c.activeEffectList,
+          capabilities: 
+          {
+            activateItem: c.charged && c instanceof ItemCard && c.activeEffectList.length > 0
+          },
         })),
         handSize: player.hand.cards.length,
         souls: player.totalSouls,
         soulCards: player.souls.map((c) => c.json),
         coins: player.coins,
-        canEndTurn: this.canEndTurn(issuer),
         currentAttackPoints: player.attackPoints,
         currentHealthPoints: player.currentHealthPoints,
         remainingLootPlay: player.remainingLootPlay,
         isEngagedInCombat: player.isEngagedInCombat,
+        capabilities: {
+          endTurn: this.canEndTurn(player),
+          declareAttack: this.canDeclareAttack(player),
+          rollDice: this.canRollDice(player),
+          buyTreasure: this.canPurchase(player),
+          useLoot: this.canPlayCard(player),
+          resolve: this.stack.elements.length > 0,
+        }
       },
       players: this.players
         .filter((p) => p.id !== player.id)
         .map((p) => ({
           name: p.id,
           handSize: p.hand.cards.length,
-          inPlay: p.inPlay.map((c) => ({ ...c.json, charged: c.charged })),
+          inPlay: p.inPlay.map((c) => ({ slug: c.json.slug, charged: c.charged, capabilities: 
+          {
+            activate: c.charged && c instanceof ItemCard && c.activeEffectList.length > 0
+          }})),
           souls: p.totalSouls,
           soulCards: p.souls.map((c) => c.json),
           coins: p.coins,
@@ -1647,7 +1706,11 @@ export class Game {
                 attackPoints: this.getAttack(m.monster),
                 evasionPoints: this.getDC(m.monster),
                 isEngagedInCombat: m.monster.isEngagedInCombat,
+                capabilities: {
+                  targetable: this.canDeclareAttackOnMonster(player, m.monster),
+                }
               }
+              
             } : {})
           },
           covered: m.covered,
@@ -1688,13 +1751,30 @@ export class Game {
       })(),
     };
   }
+  canPurchase(issuer: Issuer, shouldThrow: boolean = false): boolean {
+    try {
+      this.assertGameStarted();
+      const player = this.assertIssuerSecret(issuer);
+      this.assertPlayerIsAlive(player);
+      this.assertNoPendingSelection();
+      this.assertNoOngoingAttack();
+      const price = [gameParameters.shopPrice];
+      if (player.remainingPurchaseThisTurn <= 0) {
+        throw new Error(
+          `Purchase failed. You have no remaining purchases this turn.\n`
+        );
+      }
+    } catch (error) {
+      if (shouldThrow) throw error;
+      return false;
+    }
+    return true;
+  }
 
   purchase(issuer: Issuer, index: number): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
-    this.assertPlayerIsAlive(player);
-    this.assertNoPendingSelection();
-    this.assertNoOngoingAttack();
+    this.canPurchase(player, true);
     this.assertPositiveNumber(index);
     const price = [gameParameters.shopPrice];
     this.emit("on:item:purchase", { eventIssuer: player, cost: price });

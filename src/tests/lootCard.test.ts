@@ -76,6 +76,7 @@ describe("Loot Card", () => {
         const nbLootCardsTarget = player1.hand.cards.length;
 
         player2.hand.addToHand(lootCard!);
+        game.addLootPlay(player2, 1);
         game.playCard(player2, 0, [player1]);
         await game.resolveStack();
 
@@ -97,6 +98,7 @@ describe("Loot Card", () => {
         const nbCoinsTarget = player1.coins;
         const nbLootCardsTarget = player1.hand.cards.length;
 
+        game.addLootPlay(player2, 1);
         game.playCard(player2, 0, [player1]);
 
         const nbCoins = player2.coins;
@@ -118,6 +120,7 @@ describe("Loot Card", () => {
         const player1InitialCoins = player1.coins;
         const player2InitialCoins = player2.coins;
 
+        game.addLootPlay(player2, 1);
         game.playCard(player2, 0);
         await game.resolveStack();
 
@@ -136,6 +139,7 @@ describe("Loot Card", () => {
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-blank_rune");
         player2.hand.addToHand(lootCard!);
 
+        game.addLootPlay(player2, 1);
         game.playCard(player2, 0);
         await game.resolveStack();
 
@@ -151,6 +155,7 @@ describe("Loot Card", () => {
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-blank_rune");
         player2.hand.addToHand(lootCard!);
 
+        game.addLootPlay(player2, 1);
         game.playCard(player2, 0);
         await game.resolveStack();
 
@@ -171,6 +176,7 @@ describe("Loot Card", () => {
         const player1InitialCoins = player1.coins;
         const player2InitialCoins = player2.coins;
 
+        game.addLootPlay(player2, 1);
         game.playCard(player2, 0);
         await game.resolveStack();
 
@@ -188,7 +194,8 @@ describe("Loot Card", () => {
 
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-blank_rune");
         player2.hand.addToHand(lootCard!);
-
+        
+        game.addLootPlay(player2, 1);
         game.playCard(player2, 0);
         await game.resolveStack();
 
@@ -205,7 +212,8 @@ describe("Loot Card", () => {
         player2.hand.addToHand(lootCard!);
         const player1InitialCoins = player1.coins;
         const player2InitialCoins = player2.coins;
-
+        
+        game.addLootPlay(player2, 1);
         game.playCard(player2, 0);
         await game.resolveStack();
 
@@ -269,7 +277,7 @@ describe("Loot Card", () => {
         player2.hand.addToHand(butterBean!);
 
         const initialStackSize = game.stack.size;
-
+        game.addLootPlay(player2, 1);
         game.playCard(player2, 0);
         await game.resolveStack();
 
