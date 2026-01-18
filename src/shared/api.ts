@@ -134,7 +134,7 @@ export type DetailedState = {
   bonusSouls: BonusSoulCard[];
 
   turn: string;
-  stack: string[];
+  stack: StackElement[];
 
   firstCardTreasureDeck?: Card;
   pendingSelection?: PendingSelection;
@@ -375,37 +375,38 @@ export type temporaryEffect =
 
 export type LootCardOnStackJson = 
 {
-    type: "LootCardEffect",
+    onStackType: "LootCardEffect",
     slug: string,
     targets: string[],
     issuer: entityType
 }
 
 export type DiceRollJson = {
+  onStackType: "diceRoll";
   diceRoll: number;
   issuer: entityType;
   card?: string;
   targets?: string[];
 };
 
-export type entityType = 
-{
-  type: "player";
+export type IdentifierType = {
   name: string;
   slug: string;
-} | {
-  type: "monster";
-  name: string;
-  slug: string;
-}
+};
+
+export type entityType = IdentifierType & {
+  type: "player" | "monster";
+};
 
 export type DeathOnStackJson = {
+  onStackType: "death",
   receiver: entityType,
   from: entityType,
   source: DiceRollJson | string
 };
 
 export type DamageOnStackJson = {
+  onStackType: "damage",
   receiver: entityType, 
   from: entityType, 
   damage: number,
@@ -413,8 +414,28 @@ export type DamageOnStackJson = {
 };
 
 export type EffectOnStackJson = { 
+  onStackType: "effect",
   issuer: entityType, 
   targets: string[], 
   card: string, 
   effect: string 
 };
+
+export type StackElement = LootCardOnStackJson 
+  | DeathOnStackJson 
+  | DamageOnStackJson 
+  | EffectOnStackJson;
+
+export type DisplayType = {type: "card", payload: Card} | 
+  {type: "stackElement", payload: StackElement} | 
+  {type: "player", payload: IdentifierType} |
+  {type: "monster", payload: IdentifierType} |
+  {type: "number", payload: number} |
+  {type: "boolean", payload: boolean} |
+  {type: "string", payload: string} |
+  {type: "couplePlayerHand", payload: {player: IdentifierType, hand: Card[]}} |
+  {type: "array", payload: DisplayType[]} |
+  {type: "object", payload: {[key: string]: DisplayType}} |
+  {type: "null"} |
+  {type: "unknown"};
+
