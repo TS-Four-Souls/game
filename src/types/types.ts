@@ -87,94 +87,94 @@ export const schemas = {
 
 export type Issuer = z.infer<typeof IssuerSchema>;
 
-export type State = {
-  players: {
-    name: string;
-    inPlay: { slug: string }[];
-  }[];
-};
+// export type State = {
+//   players: {
+//     name: string;
+//     inPlay: { slug: string }[];
+//   }[];
+// };
 
 
-export type DetailedState = {
-  me: PlayerMe;
-  players: Player[];
+// export type DetailedState = {
+//   me: PlayerMe;
+//   players: Player[];
 
-  monsters: {
-    discard: Card[];
-    deckSize: number;
-    inPlay: { top: MonsterCard; covered: Card[] }[];
-  };
+//   monsters: {
+//     discard: Card[];
+//     deckSize: number;
+//     inPlay: { top: MonsterCard; covered: Card[] }[];
+//   };
 
-  treasure: {
-    discard: Card[];
-    deckSize: number;
-    inPlay: Card[];
-  };
+//   treasure: {
+//     discard: Card[];
+//     deckSize: number;
+//     inPlay: Card[];
+//   };
 
-  loot: {
-    discard: Card[];
-    deckSize: number;
-  };
+//   loot: {
+//     discard: Card[];
+//     deckSize: number;
+//   };
 
-  bonusSouls: BonusSoulCard[];
+//   bonusSouls: BonusSoulCard[];
 
-  turn: string;
-  stack: string[];
-  pendingSelection?: PendingSelection;
-};
+//   turn: string;
+//   stack: string[];
+//   pendingSelection?: PendingSelection;
+// };
 
-export type Player = {
-  name: string;
-  handSize: number;
-  inPlay: InPlayCard[];
-  souls: number;
-  soulCards: Card[];
-  coins: number;
-  currentHealthPoints: number;
-  currentAttackPoints: number;
-  remainingLootPlay: number;
-  isEngagedInCombat: boolean;
-};
+// export type Player = {
+//   name: string;
+//   handSize: number;
+//   inPlay: InPlayCard[];
+//   souls: number;
+//   soulCards: Card[];
+//   coins: number;
+//   currentHealthPoints: number;
+//   currentAttackPoints: number;
+//   remainingLootPlay: number;
+//   isEngagedInCombat: boolean;
+// };
 
-export type PlayerMe = Player & {
-  hand: Card[];
-  inPlay: InPlayMeCard[];
-};
+// export type PlayerMe = Player & {
+//   hand: Card[];
+//   inPlay: InPlayMeCard[];
+// };
 
-export type Card = {
-  slug: string;
-};
+// export type Card = {
+//   slug: string;
+// };
 
-export type MonsterCard = Card & {
-  stats?: {
-    healthPoints: number;
-    attackPoints: number;
-    evasionPoints: number;
-    isEngagedInCombat: boolean;
-  };
-};
+// export type MonsterCard = Card & {
+//   stats?: {
+//     healthPoints: number;
+//     attackPoints: number;
+//     evasionPoints: number;
+//     isEngagedInCombat: boolean;
+//   };
+// };
 
-export type InPlayCard = Card & {
-  charged?: boolean;
-};
+// export type InPlayCard = Card & {
+//   charged?: boolean;
+// };
 
-export type InPlayMeCard = InPlayCard & {
-  effects?: ActiveEffectEntry[];
-};
+// export type InPlayMeCard = InPlayCard & {
+//   effects?: ActiveEffectEntry[];
+// };
 
-export type BonusSoulCard = Card & {
-  granted: boolean;
-};
+// export type BonusSoulCard = Card & {
+//   granted: boolean;
+// };
 
-export type PendingSelection = {
-  requestId: string;
-  description: string;
-  options: string[];
-  count: number;
-  asMany: boolean;
-};
+// export type PendingSelection = {
+//   requestId: string;
+//   description: string;
+//   options: string[];
+//   count: number;
+//   asMany: boolean;
+// };
 
-export type ActiveEffectEntry = {
-  index: "tap" | number;
-  description: string;
-};
+// export type ActiveEffectEntry = {
+//   index: "tap" | number;
+//   description: string;
+// };

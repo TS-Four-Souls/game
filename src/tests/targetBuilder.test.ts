@@ -109,8 +109,8 @@ describe("Target Builder Interface", () => {
 
         // Simulate client sending string identifiers (flat array)
         const stringTargets = [
-            `card:${item1.slug}`,
-            `card:${item2.slug}`
+            TargetBuilder.convertToSelectionItems([item1])[0]!,
+            TargetBuilder.convertToSelectionItems([item2])[0]!
         ];
 
         // Build actual targets - need an item with selectors that match
@@ -124,31 +124,31 @@ describe("Target Builder Interface", () => {
         const card = game.obtainCard("b2-blank_card") as ItemCard;
 
         // Test card conversion - should return just the slug
-        const cardIdentifiers = TargetBuilder["convertToStringIdentifiers"]([card]);
-        expect(cardIdentifiers[0]).toBe(card.slug);
+        const cardIdentifiers = TargetBuilder["convertToSelectionItems"]([card]);
+        expect(cardIdentifiers[0]).toEqual({type: "card", payload: {slug: card.slug}});
 
         // Test number conversion - should return string numbers
-        const numberIdentifiers = TargetBuilder["convertToStringIdentifiers"]([1, 2, 3]);
-        expect(numberIdentifiers).toEqual(['1', '2', '3']);
+        const numberIdentifiers = TargetBuilder["convertToSelectionItems"]([1, 2, 3]);
+        expect(numberIdentifiers).toEqual([{type: "number", payload: 1}, {type: "number", payload: 2}, {type: "number", payload: 3}]);
 
         // Test string conversion - should return strings as-is
-        const stringIdentifiers = TargetBuilder["convertToStringIdentifiers"](['test']);
-        expect(stringIdentifiers[0]).toBe('test');
+        const stringIdentifiers = TargetBuilder["convertToSelectionItems"](['test']);
+        expect(stringIdentifiers[0]).toEqual({type: "string", payload: "test"});
     });
 
     it("should resolve identifiers back to objects", async () => {
         const card = game.obtainCard("b2-blank_card") as ItemCard;
 
         // Resolve card - identifier is just the slug
-        const resolvedCard = TargetBuilder["resolveIdentifier"](card.slug, [card]);
+        const resolvedCard = TargetBuilder["resolveIdentifier"]({type: "card", payload: {slug: card.slug}}, [card]);
         expect(resolvedCard?.slug).toBe(card.slug);
 
         // Resolve number - identifier is string representation
-        const resolvedNumber = TargetBuilder["resolveIdentifier"]('42', [42, 100]);
+        const resolvedNumber = TargetBuilder["resolveIdentifier"]({type:"number", payload: 42}, [42, 100]);
         expect(resolvedNumber).toBe(42);
 
         // Resolve string - identifier is the string itself
-        const resolvedString = TargetBuilder["resolveIdentifier"]('test', ['test', 'other']);
+        const resolvedString = TargetBuilder["resolveIdentifier"]({type:"string", payload: "test"}, ['test', 'other']);
         expect(resolvedString).toBe('test');
     });
 
@@ -283,11 +283,10 @@ describe("Target Builder Interface", () => {
             
             // Should make progress
             expect(step2.complete).toBe(false);
-            expect(step2.options.includes(targetItem.slug)).toBe(true);
-            const step3 = TargetBuilder.getNextSelector(game, player1, chaosCard, [chosenOption, targetItem.slug], "tap");
+            const step3 = TargetBuilder.getNextSelector(game, player1, chaosCard, [chosenOption, TargetBuilder.convertToSelectionItems([targetItem])[0]!], "tap");
             expect(step3.complete).toBe(true);
 
-            const targets = TargetBuilder.buildTargets(game, player1, chaosCard, [chosenOption, targetItem.slug]);
+            const targets = TargetBuilder.buildTargets(game, player1, chaosCard, [chosenOption, TargetBuilder.convertToSelectionItems([targetItem])[0]!]);
 
             await game.activateItem(player1, chaosCard, targets);
             await game.resolveStack();

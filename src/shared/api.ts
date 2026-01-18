@@ -187,7 +187,7 @@ export type BonusSoulCard = Card & {
 export type PendingSelection = {
   requestId: string;
   description: string;
-  options: string[];
+  options: SelectionItem[];
   count: number;
   asMany: boolean;
 };
@@ -358,7 +358,7 @@ export interface TargetSelectorResponse {
     /** Whether the player can select fewer targets than count (asMany) */
     asMany: boolean;
     /** Available options as string identifiers */
-    options: string[];
+    options: SelectionItem[];
     /** Whether target building is complete */
     complete: boolean;
     /** For choose-one selectors: true = picking option description, false = picking actual targets */
@@ -369,24 +369,24 @@ export type temporaryEffect =
 {
     slug: string,
     issuer: string,
-    targets: string[],
+    targets: SelectionItem[],
     description: string
 }
 
 export type LootCardOnStackJson = 
 {
-    onStackType: "LootCardEffect",
+    type: "LootCardEffect",
     slug: string,
-    targets: string[],
+    targets: SelectionItem[],
     issuer: entityType
 }
 
 export type DiceRollJson = {
-  onStackType: "diceRoll";
+  type: "diceRoll";
   diceRoll: number;
   issuer: entityType;
   card?: string;
-  targets?: string[];
+  targets?: SelectionItem[];
 };
 
 export type IdentifierType = {
@@ -399,14 +399,14 @@ export type entityType = IdentifierType & {
 };
 
 export type DeathOnStackJson = {
-  onStackType: "death",
+  type: "death",
   receiver: entityType,
   from: entityType,
   source: DiceRollJson | string
 };
 
 export type DamageOnStackJson = {
-  onStackType: "damage",
+  type: "damage",
   receiver: entityType, 
   from: entityType, 
   damage: number,
@@ -414,9 +414,9 @@ export type DamageOnStackJson = {
 };
 
 export type EffectOnStackJson = { 
-  onStackType: "effect",
+  type: "effect",
   issuer: entityType, 
-  targets: string[], 
+  targets: SelectionItem[], 
   card: string, 
   effect: string 
 };
@@ -424,9 +424,10 @@ export type EffectOnStackJson = {
 export type StackElement = LootCardOnStackJson 
   | DeathOnStackJson 
   | DamageOnStackJson 
+  | DiceRollJson
   | EffectOnStackJson;
 
-export type DisplayType = {type: "card", payload: Card} | 
+export type SelectionItem = {type: "card", payload: Card} | 
   {type: "stackElement", payload: StackElement} | 
   {type: "player", payload: IdentifierType} |
   {type: "monster", payload: IdentifierType} |
@@ -434,8 +435,10 @@ export type DisplayType = {type: "card", payload: Card} |
   {type: "boolean", payload: boolean} |
   {type: "string", payload: string} |
   {type: "couplePlayerHand", payload: {player: IdentifierType, hand: Card[]}} |
-  {type: "array", payload: DisplayType[]} |
-  {type: "object", payload: {[key: string]: DisplayType}} |
-  {type: "null"} |
-  {type: "unknown"};
+  {type: "array", payload: SelectionItem[]} |
+  {type: "object", payload: {[key: string]: SelectionItem}} |
+  {type: "null", payload: null} |
+  {type: "unknown", payload: null};
+
+  export type SelectionItemType = SelectionItem["type"];
 

@@ -4,6 +4,8 @@ import { Card, ItemCard, type TargetsSelector } from "./cards";
 import { isChooseOneOptions, type ChooseOneOptions } from "./targetSelector";
 import { isStackElement } from "./stack";
 import type { TargetSelectorResponse } from "../shared/api";
+import type { Entity } from "./entity";
+import type { SelectionItem, SelectionItemType } from "../shared/api";
 
 /**
  * Target Builder - Standalone utility for progressive target selection
@@ -46,7 +48,7 @@ export class TargetBuilder {
         game: Game,
         player: Player,
         item: ItemCard,
-        partialChoices: string[] = [],
+        partialChoices: SelectionItem[] = [],
         effectId: number | "tap" = "tap",
         throwIfNotCharged: boolean = true
     ): TargetSelectorResponse {
@@ -83,7 +85,7 @@ export class TargetBuilder {
             if (possibleTargets.length > 0 && isChooseOneOptions(possibleTargets[0])) {
                 // Choose-one: find the chosen option
                 const chosenOption = (possibleTargets as ChooseOneOptions[]).find(
-                    opt => opt.description === choice
+                    opt => opt.description === choice.payload
                 );
 
                 if (!chosenOption) {
@@ -159,7 +161,7 @@ export class TargetBuilder {
                 description: selector.description,
                 count: 1,
                 asMany: false,
-                options,
+                options: TargetBuilder.convertToSelectionItems(options),
                 complete: false,
                 isChooseOne: true
             };
@@ -169,7 +171,7 @@ export class TargetBuilder {
                 description: selector.description,
                 count: selector.count,
                 asMany: selector.asMany,
-                options: TargetBuilder.convertToStringIdentifiers(possibleTargets),
+                options: TargetBuilder.convertToSelectionItems(possibleTargets),
                 complete: false,
                 isChooseOne: false
             };
@@ -202,47 +204,88 @@ export class TargetBuilder {
      * @param options Array of target options (Cards, Players, Monsters, numbers, etc.)
      * @returns Array of string identifiers
      */
-    static convertToStringIdentifiers(options: any[]): string[] {
-        // console.log("Converting options to string identifiers:", options);
-        return options.map(option => {
+    // static convertToSelectionItems(options: any[]): string[] {
+    //     return this.convertToSelectionItems(options).map(item => JSON.stringify(item.payload));
+    //     // console.log("Converting options to string identifiers:", options);
+    //     // return options.map(option => {
 
-            // Handle Cards
+    //     //     // Handle Cards
+    //     //     if (typeof option === 'object' && option !== null && 'slug' in option) {
+    //     //         return option.slug;
+    //     //     }
+
+    //     //     // Handle Entities (by ID)
+    //     //     if (typeof option === 'object' && option !== null && 'id' in option) {
+    //     //         return option.id;
+    //     //     }
+
+    //     //     // Handle Stack Elements
+    //     //     if (isStackElement(option)) {
+    //     //         // console.log("Stack element json:", JSON.stringify(option.json));
+    //     //         return JSON.stringify(option.json);
+    //     //     }
+
+    //     //     // Handle primitive types (numbers, strings, booleans)
+    //     //     if (typeof option === 'number' || typeof option === 'string' || typeof option === 'boolean') {
+    //     //         return `${option}`;
+    //     //     }
+
+    //     //     // Handle null explicitly
+    //     //     if (option === null) {
+    //     //         return 'null';
+    //     //     }
+            
+    //     //     // { player: Player; hand: Hand }
+    //     //     if( typeof option === 'object' && 'player' in option && 'hand' in option)
+    //     //         return option.player.id + ': ' + option.hand.cards.map((c: Card) => c.slug).join(',');
+
+    //     //     // Handle arrays and plain objects with JSON stringification
+    //     //     if (Array.isArray(option) || typeof option === 'object') {
+    //     //         return JSON.stringify(option);
+    //     //     }
+
+    //     //     // Fallback for unknown types
+    //     //     return option?.constructor?.name || 'undefined';
+    //     // });
+    // }
+
+    // "card" | "player" | "monster" | "number" | "boolean" | "stackElement" | "chooseOneOption" | "array" | "object" | "null" | "unknown";
+
+    static convertToSelectionItems(options: any[]): SelectionItem[] {
+         return options.map(option => {
+
             if (typeof option === 'object' && option !== null && 'slug' in option) {
-                return option.slug;
+                return { payload: {slug: option.slug}, type: "card" };
             }
 
-            // Handle Entities (by ID)
             if (typeof option === 'object' && option !== null && 'id' in option) {
-                return option.id;
+                const entity = option as Entity;
+                return {type: entity.json.type, payload: {name: entity.json.name, slug: entity.json.slug}};
             }
 
-            // Handle Stack Elements
             if (isStackElement(option)) {
-                // console.log("Stack element json:", JSON.stringify(option.json));
-                return JSON.stringify(option.json);
+                return { type: "stackElement", payload: option.json };
             }
 
-            // Handle primitive types (numbers, strings, booleans)
-            if (typeof option === 'number' || typeof option === 'string' || typeof option === 'boolean') {
-                return `${option}`;
-            }
-
-            // Handle null explicitly
+            if (typeof option === 'number')
+                return {type: "number", payload: option};
+            if (typeof option === 'string')
+                return {type: "string", payload: option};
+            if (typeof option === 'boolean')
+                return {type: "boolean", payload: option};
             if (option === null) {
-                return 'null';
+                return {type: "null", payload: null};
             }
             
             // { player: Player; hand: Hand }
             if( typeof option === 'object' && 'player' in option && 'hand' in option)
-                return option.player.id + ': ' + option.hand.cards.map((c: Card) => c.slug).join(',');
-
-            // Handle arrays and plain objects with JSON stringification
+                return {type: "couplePlayerHand", payload: {player: {name: option.player.name, slug: option.player.slug}, hand: option.hand.cards.map((c: Card) => c.slug)}};
             if (Array.isArray(option) || typeof option === 'object') {
-                return JSON.stringify(option);
+                return {type: "array", payload: option.map((item: any) => TargetBuilder.convertToSelectionItems([item]))};
             }
 
-            // Fallback for unknown types
-            return option?.constructor?.name || 'undefined';
+            return {type: "unknown", payload: null};
+            // throw new Error("Not implemented yet");
         });
     }
 
@@ -256,70 +299,103 @@ export class TargetBuilder {
      * @param possibleTargets The array of possible targets from the selector
      * @returns The matched target object, or undefined if not found
      */
-    private static resolveIdentifier(identifier: string, possibleTargets: any[]): any {
+    private static resolveIdentifier(identifier: SelectionItem, possibleTargets: any[]): any {
         if (possibleTargets.length === 0) return undefined;
 
-        // Special case: if identifier is 'null', find null in the array
-        if (identifier === 'null') {
-            return possibleTargets.find(t => t === null);
-        }
-
-        const firstTarget = possibleTargets[0];
-
-        // Null - skip to next target if first is null
-        if (firstTarget === null) {
-            // Find first non-null target to determine type
-            const nonNullTarget = possibleTargets.find(t => t !== null);
-            if (!nonNullTarget) {
-                // All null array, already handled above
+        switch(identifier.type) {
+            case "card":
+                return possibleTargets.find(t => t && t.slug === identifier.payload.slug);
+            case "player":
+            case "monster":
+                return possibleTargets.find(t => t && t.json.name === identifier.payload.name);
+            case "stackElement":
+                return possibleTargets.find(t => isStackElement(t) && JSON.stringify(t.json) === JSON.stringify(identifier.payload));
+            case "number":
+            case "string":
+            case "boolean":
+                return possibleTargets.find(t => t === identifier.payload);
+            case "null":
+                return possibleTargets.find(t => t === null);
+            case "couplePlayerHand":
+                return possibleTargets.find(t => 
+                    typeof t === 'object' && 'player' in t && 'hand' in t &&
+                    t.player.slug === identifier.payload.player.slug &&
+                    JSON.stringify(t.hand.cards.map((c: Card) => c.slug)) === JSON.stringify(identifier.payload.hand)
+                );
+            case "array":
+                try {
+                    const parsed = identifier.payload.map((item: SelectionItem) => {
+                        return TargetBuilder.resolveIdentifier(item, possibleTargets);
+                    });
+                    return possibleTargets.find(t => JSON.stringify(t) === JSON.stringify(parsed));
+                } catch {
+                    return undefined;
+                }
+            default:
                 return undefined;
-            }
-            // Use the non-null target as firstTarget for type detection
-            return TargetBuilder.resolveIdentifier(identifier, [nonNullTarget, ...possibleTargets.filter(t => t !== nonNullTarget)]);
         }
 
-        // Cards - match by slug
-        if (firstTarget && typeof firstTarget === 'object' && 'slug' in firstTarget) {
-            return possibleTargets.find(t => t && t.slug === identifier);
-        }
+        // // Special case: if identifier is 'null', find null in the array
+        // if (identifier.type === 'null') {
+        //     return possibleTargets.find(t => t === null);
+        // }
 
-        // Entities - match by ID
-        if (firstTarget && typeof firstTarget === 'object' && 'id' in firstTarget) {
-            return possibleTargets.find(t => t && t.id === identifier);
-        }
+        // const firstTarget = possibleTargets[0];
 
-        // Stack Elements - match by json
-        if (isStackElement(firstTarget)) {
-            return possibleTargets.find(t => `${JSON.stringify(t.json)}` === identifier);
-        }
+        // // Null - skip to next target if first is null
+        // if (firstTarget === null) {
+        //     // Find first non-null target to determine type
+        //     const nonNullTarget = possibleTargets.find(t => t !== null);
+        //     if (!nonNullTarget) {
+        //         // All null array, already handled above
+        //         return undefined;
+        //     }
+        //     // Use the non-null target as firstTarget for type detection
+        //     return TargetBuilder.resolveIdentifier(identifier, [nonNullTarget, ...possibleTargets.filter(t => t !== nonNullTarget)]);
+        // }
 
-        // Primitives - try parsing and direct match
-        if (typeof firstTarget === 'number') {
-            const parsed = parseFloat(identifier);
-            return possibleTargets.find(t => t === parsed);
-        }
+        // // Cards - match by slug
+        // if (firstTarget && typeof firstTarget === 'object' && 'slug' in firstTarget) {
+        //     return possibleTargets.find(t => t && t.slug === identifier);
+        // }
 
-        if (typeof firstTarget === 'boolean') {
-            const parsed = identifier === 'true';
-            return possibleTargets.find(t => t === parsed);
-        }
+        // // Entities - match by ID
+        // if (firstTarget && typeof firstTarget === 'object' && 'id' in firstTarget) {
+        //     return possibleTargets.find(t => t && JSON.stringify(t.json) === identifier);
+        // }
 
-        if (typeof firstTarget === 'string') {
-            return possibleTargets.find(t => t === identifier);
-        }
+        // // Stack Elements - match by json
+        // if (isStackElement(firstTarget)) {
+        //     return possibleTargets.find(t => `${JSON.stringify(t.json)}` === identifier);
+        // }
 
-        // Arrays and plain objects - match by JSON stringification
-        if (Array.isArray(firstTarget) || typeof firstTarget === 'object') {
-            try {
-                const parsed = JSON.parse(identifier);
-                return possibleTargets.find(t => JSON.stringify(t) === JSON.stringify(parsed));
-            } catch {
-                return undefined;
-            }
-        }
+        // // Primitives - try parsing and direct match
+        // if (typeof firstTarget === 'number') {
+        //     const parsed = parseFloat(identifier);
+        //     return possibleTargets.find(t => t === parsed);
+        // }
 
-        // Fallback - direct match
-        return possibleTargets.find(t => t === identifier || String(t) === identifier);
+        // if (typeof firstTarget === 'boolean') {
+        //     const parsed = identifier === 'true';
+        //     return possibleTargets.find(t => t === parsed);
+        // }
+
+        // if (typeof firstTarget === 'string') {
+        //     return possibleTargets.find(t => t === identifier);
+        // }
+
+        // // Arrays and plain objects - match by JSON stringification
+        // if (Array.isArray(firstTarget) || typeof firstTarget === 'object') {
+        //     try {
+        //         const parsed = JSON.parse(identifier);
+        //         return possibleTargets.find(t => JSON.stringify(t) === JSON.stringify(parsed));
+        //     } catch {
+        //         return undefined;
+        //     }
+        // }
+
+        // // Fallback - direct match
+        // return possibleTargets.find(t => t === identifier || String(t) === identifier);
     }
 
     /**
@@ -337,7 +413,7 @@ export class TargetBuilder {
         game: Game,
         player: Player,
         item: ItemCard,
-        partialChoices: string[],
+        partialChoices: SelectionItem[],
         effectId: number | "tap" = "tap"
     ): any[] {
         game.assertNoPendingSelection();
@@ -357,7 +433,7 @@ export class TargetBuilder {
             if (possibleTargets.length > 0 && isChooseOneOptions(possibleTargets[0])) {
                 const choice = partialChoices[choiceIndex]!;
                 const chosenOption = (possibleTargets as ChooseOneOptions[]).find(
-                    opt => opt.description === choice
+                    opt => opt.description === choice.payload
                 );
 
                 if (!chosenOption) {

@@ -12,7 +12,7 @@ function getTemporaryEffect(data: EffectData, description: string): temporaryEff
     return{
             slug: data.it.slug,
             issuer: data.issuer.id,
-            targets: TargetBuilder.convertToStringIdentifiers(data.targets),
+            targets: TargetBuilder.convertToSelectionItems(data.targets),
             description: description
         };
 }

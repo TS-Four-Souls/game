@@ -3,7 +3,6 @@ import { DamageOnStack, DeathOnStack, DiceRoll, Player } from "@/models/player";
 import { TargetBuilder } from "@/models/targetBuilder";
 import type {
   Issuer,
-  State,
 } from "@/types/types";
 import { setTimeout } from "timers/promises";
 import { loadCards } from "@/utils/loadCards";
@@ -50,7 +49,7 @@ import { bSoulEffectParser } from "@/models/bonusSoulHandling";
 import { ca, pl } from "zod/locales";
 import type { TriggerEvent } from "@/types/triggers";
 import { set } from "zod";
-import type { DetailedState } from "@/shared/api";
+import type { DetailedState, SelectionItem } from "@/shared/api";
 import { HistoricHandler, type HistoricEntry, type UserRequest } from "./historyHandler";
 
 // Type representing sources of damage - either a card ability or a dice roll
@@ -97,15 +96,6 @@ export class Game {
 
   constructor() {
     this._emitter = new GameEventEmitter();
-  }
-
-  get stateJson(): State {
-    return {
-      players: this._players.map((p) => ({
-        name: p.id,
-        inPlay: p.inPlay.map((c) => ({ slug: c.slug })),
-      })),
-    };
   }
   
   get isStarted(): boolean {
@@ -750,7 +740,7 @@ export class Game {
   submitSelection(
     issuer: Issuer,
     requestId: string,
-    selectedIdentifiers: string[]
+    selectedIdentifiers: SelectionItem[]
   ): void {
     const player = this.assertIssuerSecret(issuer);
 
@@ -770,7 +760,7 @@ export class Game {
       const selected = selectedIdentifiers.map((id) => {
         const option = TargetBuilder["resolveIdentifier"](id, pending.options);
         if (option === undefined) {
-          throw new Error(`Invalid selection identifier: ${id}`);
+          throw new Error(`Invalid selection identifier: ${id.payload}`);
         }
         return option;
       });
@@ -1677,17 +1667,7 @@ export class Game {
       },
       turn: this.currentPlayer.id,
       firstCardTreasureDeck: player.canSeeTopOfTreasureDeck ? this.decks["treasure"]!.cards[0]?.json : undefined,
-      stack: this.stack.elements.map((el) => {
-        if (el instanceof LootCard) {
-          return el.slug;
-        } else {
-          const json = el.json;
-          if (typeof json === "object") {
-            return JSON.stringify(json);
-          }
-          return json;
-        }
-      }),
+      stack: this.stack.elements.map((el) => el.json),
       // firstCardTreasureDeck: player.canSeeTopOfTreasureDeck
       // ? this.decks["treasure"]!.cards[0]?.json
       // : undefined,
@@ -1697,7 +1677,7 @@ export class Game {
           if (sel.playerId === player.id) {
             return {
               requestId: sel.requestId,
-              options: TargetBuilder.convertToStringIdentifiers(sel.options),
+              options: TargetBuilder.convertToSelectionItems(sel.options),
               count: sel.count,
               asMany: sel.asMany,
               description: sel.description,

@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../models/game";
 import { Player } from "../models/player";
 import type { CharacterCard } from "@/models/cards";
-import type { DetailedState } from "@/types/types";
+import type { DetailedState } from "@/shared/api";
 import { setTimeout } from "timers/promises";
+import { TargetBuilder } from "@/models/targetBuilder";
 
 describe("Game Selection System", () => {
     let game: Game;
@@ -63,12 +64,12 @@ describe("Game Selection System", () => {
         const selectionPromise = game.select(player1, count, options, false);
         
         // Get state for player1
-        const state1Str = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
+        const state1Str: DetailedState = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
         const state1: DetailedState = state1Str;
         
         // Player1 should see the pending selection
         expect(state1.pendingSelection).toBeDefined();
-        expect(state1.pendingSelection?.options).toEqual(options);
+        expect(state1.pendingSelection?.options).toEqual(TargetBuilder.convertToSelectionItems(options));
         expect(state1.pendingSelection?.count).toBe(count);
         expect(state1.pendingSelection?.asMany).toBe(false);
         expect(state1.pendingSelection?.requestId).toBeDefined();
@@ -153,7 +154,7 @@ describe("Game Selection System", () => {
             game.submitSelection(
                 { id: player2.id, secret: player2.secret },
                 requestId,
-                ["wrong-identifier"] // This should fail before identifier validation
+                TargetBuilder.convertToSelectionItems(["wrong-identifier"]) // This should fail before identifier validation
             );
         }).toThrow("No pending selection found for this request ID");
         
@@ -177,7 +178,7 @@ describe("Game Selection System", () => {
             game.submitSelection(
                 { id: player1.id, secret: player1.secret },
                 "wrong-request-id",
-                ["any-identifier"] // This should fail before identifier validation
+                TargetBuilder.convertToSelectionItems(["any-identifier"]) // This should fail before identifier validation
             );
         }).toThrow("No pending selection found for this request ID");
         
@@ -414,7 +415,7 @@ describe("Game Selection System", () => {
             game.submitSelection(
                 { id: player1.id, secret: player1.secret },
                 "any-request-id",
-                ["any-identifier"]
+                [{type:"string", payload: "any-identifier"}]
             );
         }).toThrow("No pending selection found for this request ID");
     });
@@ -426,7 +427,8 @@ describe("Game Selection System", () => {
         const promise1 = game.select(player1, 1, options, false);
         const state1 = game.detailedStateJSON({ id: player1.id, secret: player1.secret });
         const requestId1 = state1.pendingSelection!.requestId;
-        game.submitSelection({ id: player1.id, secret: player1.secret }, requestId1, [state1.pendingSelection!.options[0]!]);
+        game.submitSelection({ id: player1.id, secret: player1.secret }, requestId1, 
+            [state1.pendingSelection!.options[0]!]);
         await promise1;
         
         // Second selection

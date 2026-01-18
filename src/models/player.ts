@@ -534,10 +534,11 @@ export class DiceRoll {
   }
   get json(): DiceRollJson {
     return { 
+      type: "diceRoll",
       diceRoll: this.value, 
       issuer: this.issuer.json, 
       card: !this._attackRoll ? this._card?.name : undefined, 
-      targets: !this._attackRoll ? TargetBuilder.convertToStringIdentifiers(this._targets) : undefined
+      targets: !this._attackRoll ? TargetBuilder.convertToSelectionItems(this._targets) : undefined
     }
   }
   set value(v: number) {
@@ -604,6 +605,7 @@ export class DamageOnStack {
   get json(): DamageOnStackJson {
     const sourceName = this._source instanceof DiceRoll ? this._source.json : this._source.slug;
     return {
+      type: "damage",
       from: this.from.json, 
       receiver: this.receiver.json, 
       damage: this.damage[0]!, 
@@ -636,30 +638,11 @@ export class DeathOnStack {
 
   get json(): DeathOnStackJson {
     const sourceName = this.source instanceof DiceRoll ? this.source.json : this.source.slug;
+    this.receiver.json;
     return {
-      receiver: this.receiver instanceof Player ? 
-      {
-        type: "player",
-        name: this.receiver.id,
-        slug: this.receiver.inPlay[0]!.slug
-      }
-      : {
-        type: "monster",
-        name: (this.receiver as Monster).name,
-        slug: (this.receiver as Monster).card.slug
-      }
-      ,
-      from: this.from instanceof Player ? 
-      {
-        type: "player",
-        name: this.from.id,
-        slug: this.from.inPlay[0]!.slug
-      }
-      : {
-        type: "monster",
-        name: (this.from as Monster).name,
-        slug: (this.from as Monster).card.slug
-      },
+      type: "death",
+      receiver: this.receiver.json,
+      from: this.from.json,
       source: sourceName
     };
   }

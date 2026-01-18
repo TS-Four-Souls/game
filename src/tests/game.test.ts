@@ -674,14 +674,6 @@ describe("Game - Game State", () => {
     game.addPlayer(player2);
   });
 
-  it("should get game state JSON", async () => {
-    const stateJson = game.stateJson;
-    
-    expect(stateJson).toBeDefined();
-    expect(stateJson.players).toBeDefined();
-    expect(stateJson.players.length).toBe(2);
-  });
-
   it("should get decks", async () => {
     const decks = game.decks;
     expect(decks).toBeDefined();
@@ -778,17 +770,6 @@ describe("Game - Souls & State", () => {
     expect(leaders.length).toBe(2);
     expect(leaders).toContain(player1);
     expect(leaders).toContain(player2);
-  });
-
-  it("stateJson should include in-play slugs", async () => {
-    const card = { slug: "card-1", name: "Card", type: "item" } as any;
-    player1.addInPlay(card);
-
-    const state = game.stateJson;
-    expect(state.players.length).toBe(2);
-    const p1 = state.players.find((p) => p.name === "player1");
-    expect(p1).toBeDefined();
-    expect(p1?.inPlay[0]?.slug).toBe("card-1");
   });
 
   it("should return both players when no souls are present", async () => {
