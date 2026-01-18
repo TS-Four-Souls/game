@@ -1,5 +1,199 @@
 import { z } from "zod";
 
+export const IdentifierTypeSchema = z.object({
+  name: z.string(),
+  slug: z.string(),
+});
+export type IdentifierType = z.infer<typeof IdentifierTypeSchema>;
+
+export const entityTypeSchema = IdentifierTypeSchema.extend({
+  type: z.union([z.literal("player"), z.literal("monster")])
+}); 
+export type entityType = z.infer<typeof entityTypeSchema>;
+
+const cardSchema = z.object({
+  slug: z.string(),
+});
+export type Card = z.infer<typeof cardSchema>;
+
+const activeEffectEntrySchema = z.object({
+  index: z.union([z.literal("tap"), z.number()]),
+  description: z.string(),
+});
+export type ActiveEffectEntry = z.infer<typeof activeEffectEntrySchema>;
+
+// Forward declare types for circular references
+export type SelectionItem = 
+  | {type: "card", payload: Card}
+  | {type: "stackElement", payload: StackElement}
+  | {type: "player", payload: IdentifierType}
+  | {type: "monster", payload: IdentifierType}
+  | {type: "number", payload: number}
+  | {type: "boolean", payload: boolean}
+  | {type: "string", payload: string}
+  | {type: "couplePlayerHand", payload: {player: IdentifierType, hand: Card[]}}
+  | {type: "array", payload: SelectionItem[]}
+  | {type: "object", payload: {[key: string]: SelectionItem}}
+  | {type: "null", payload: null}
+  | {type: "unknown", payload: null};
+
+export type StackElement = 
+  | LootCardOnStackJson
+  | DeathOnStackJson
+  | DamageOnStackJson
+  | DiceRollJson
+  | EffectOnStackJson;
+
+const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() => z.union([
+  z.object({ type: z.literal("card"), payload: cardSchema }),
+  z.object({ type: z.literal("stackElement"), payload: stackElementSchema }),
+  z.object({ type: z.literal("player"), payload: IdentifierTypeSchema }),
+  z.object({ type: z.literal("monster"), payload: IdentifierTypeSchema }),
+  z.object({ type: z.literal("number"), payload: z.number() }),
+  z.object({ type: z.literal("boolean"), payload: z.boolean() }),
+  z.object({ type: z.literal("string"), payload: z.string() }),
+  z.object({ type: z.literal("couplePlayerHand"), payload: z.object({ player: IdentifierTypeSchema, hand: z.array(cardSchema) }) }),
+  z.object({ type: z.literal("array"), payload: z.array(selectionItemSchema) }),
+  z.object({ type: z.literal("object"), payload: z.record(z.string(), selectionItemSchema) }),
+  z.object({ type: z.literal("null"), payload: z.null() }),
+  z.object({ type: z.literal("unknown"), payload: z.null() }),
+]));
+
+const pendingSelectionSchema = z.object({
+  requestId: z.string(),
+  description: z.string(),
+  options: z.array(selectionItemSchema),
+  count: z.number(),
+  asMany: z.boolean(),
+});
+export type PendingSelection = z.infer<typeof pendingSelectionSchema>;
+
+const monsterCardSchema = cardSchema.extend({
+  stats: z.object({
+    healthPoints: z.number(),
+    attackPoints: z.number(),
+    evasionPoints: z.number(),
+    isEngagedInCombat: z.boolean(),
+    capabilities: z.object({
+      targetable: z.boolean(),
+    }),
+  }).optional(),
+});
+export type MonsterCard = z.infer<typeof monsterCardSchema>;
+
+const inPlayCardSchema = cardSchema.extend({
+  charged: z.boolean().optional(),
+  capabilities: z.object({
+    activate: z.boolean().optional(),
+  }),
+});
+export type InPlayCard = z.infer<typeof inPlayCardSchema>;
+
+const inPlayMeCardSchema = inPlayCardSchema.extend({
+  effects: z.array(activeEffectEntrySchema).optional(),
+});
+export type InPlayMeCard = z.infer<typeof inPlayMeCardSchema>;
+
+const bonusSoulCardSchema = cardSchema.extend({
+  granted: z.boolean(),
+});
+export type BonusSoulCard = z.infer<typeof bonusSoulCardSchema>;
+
+/**
+ * Represents the server's response when building targets progressively
+ */
+const targetSelectorResponseSchema = z.object({
+  /** Description of what to select */
+  description: z.string(),
+  /** How many targets to select */
+  count: z.number(),
+  /** Whether the player can select fewer targets than count (asMany) */
+  asMany: z.boolean(),
+  /** Available options as string identifiers */
+  options: z.array(selectionItemSchema),
+  /** Whether target building is complete */
+  complete: z.boolean(),
+  /** For choose-one selectors: true = picking option description, false = picking actual targets */
+  isChooseOne: z.boolean(),
+});
+export type TargetSelectorResponse = z.infer<typeof targetSelectorResponseSchema>;
+
+const temporaryEffectSchema = z.object({
+  slug: z.string(),
+  issuer: z.string(),
+  targets: z.array(selectionItemSchema),
+  description: z.string(),
+});
+export type temporaryEffect = z.infer<typeof temporaryEffectSchema>;
+
+const lootCardOnStackJsonSchema = z.object({
+  type: z.literal("LootCardEffect"),
+  slug: z.string(),
+  targets: z.array(selectionItemSchema),
+  issuer: entityTypeSchema,
+});
+export type LootCardOnStackJson = z.infer<typeof lootCardOnStackJsonSchema>;
+
+const diceRollJsonSchema = z.object({
+  type: z.literal("diceRoll"),
+  diceRoll: z.number(),
+  issuer: entityTypeSchema,
+  card: z.string().optional(),
+  targets: z.array(selectionItemSchema).optional(),
+});
+export type DiceRollJson = z.infer<typeof diceRollJsonSchema>;
+
+const deathOnStackJsonSchema = z.object({
+  type: z.literal("death"),
+  receiver: entityTypeSchema,
+  from: entityTypeSchema,
+  source: z.union([z.lazy(() => diceRollJsonSchema), z.string()]),
+});
+export type DeathOnStackJson = z.infer<typeof deathOnStackJsonSchema>;
+
+const damageOnStackJsonSchema = z.object({
+  type: z.literal("damage"),
+  receiver: entityTypeSchema,
+  from: entityTypeSchema,
+  damage: z.number(),
+  source: z.union([z.lazy(() => diceRollJsonSchema), z.string()]),
+});
+export type DamageOnStackJson = z.infer<typeof damageOnStackJsonSchema>;
+
+const effectOnStackJsonSchema = z.object({
+  type: z.literal("effect"),
+  issuer: entityTypeSchema,
+  targets: z.array(selectionItemSchema),
+  card: z.string(),
+  effect: z.string(),
+});
+export type EffectOnStackJson = z.infer<typeof effectOnStackJsonSchema>;
+
+const stackElementSchema: z.ZodType<StackElement> = z.lazy(() => z.union([
+  lootCardOnStackJsonSchema,
+  deathOnStackJsonSchema,
+  damageOnStackJsonSchema,
+  diceRollJsonSchema,
+  effectOnStackJsonSchema,
+]));
+
+const selectionItemTypeSchema = z.union([
+  z.literal("card"),
+  z.literal("stackElement"),
+  z.literal("player"),
+  z.literal("monster"),
+  z.literal("number"),
+  z.literal("boolean"),
+  z.literal("string"),
+  z.literal("couplePlayerHand"),
+  z.literal("array"),
+  z.literal("object"),
+  z.literal("null"),
+  z.literal("unknown"),
+]);
+export type SelectionItemType = z.infer<typeof selectionItemTypeSchema>;
+
+
 const issuerSchema = z.object({
   id: z.string(),
   secret: z.string(),
@@ -33,27 +227,31 @@ const AttackMonsterSchema = z.union([
 
 const joinRequestSchema = z.string();
 
-type JoinResponse =
-  | {
-    status: 200;
-    secret: string;
-  }
-  | {
-    status: 400;
-    error: string;
-  };
+const joinResponseSchema = z.union([
+  z.object({
+    status: z.literal(200),
+    secret: z.string(),
+  }),
+  z.object({
+    status: z.literal(400),
+    error: z.string(),
+  }),
+]);
+export type JoinResponse = z.infer<typeof joinResponseSchema>;
 
 const rejoinRequestSchema = issuerSchema;
 
-type RejoinResponse =
-  | {
-    status: 200;
-    gameState?: DetailedState;
-  }
-  | {
-    status: 400;
-    error: string;
-  };
+const rejoinResponseSchema = z.union([
+  z.object({
+    status: z.literal(200),
+    gameState: z.lazy(() => detailedStateSchema).optional(),
+  }),
+  z.object({
+    status: z.literal(400),
+    error: z.string(),
+  }),
+]);
+export type RejoinResponse = z.infer<typeof rejoinResponseSchema>;
 
 const startRequestSchema = z.object({
   issuer: issuerSchema,
@@ -61,43 +259,50 @@ const startRequestSchema = z.object({
 
 const resetRequestSchema = z.void();
 
-type BasicResponse =
-  | {
-    status: 200;
-  }
-  | {
-    status: 400;
-    error: string;
-  };
+const basicResponseSchema = z.union([
+  z.object({
+    status: z.literal(200),
+  }),
+  z.object({
+    status: z.literal(400),
+    error: z.string(),
+  }),
+]);
+export type BasicResponse = z.infer<typeof basicResponseSchema>;
 
-  type StringResponse =
-  | {
-    status: 200;
-    response: string;
-  }
-  | {
-    status: 400;
-    error: string;
-  };
+const stringResponseSchema = z.union([
+  z.object({
+    status: z.literal(200),
+    response: z.string(),
+  }),
+  z.object({
+    status: z.literal(400),
+    error: z.string(),
+  }),
+]);
+export type StringResponse = z.infer<typeof stringResponseSchema>;
 
-  type NextTargetSelectorResponse =
-  | {
-    response: TargetSelectorResponse;
-    status: 200;
-  }
-  | {
-    status: 400;
-    error: string;
-  };
+const nextTargetSelectorResponseSchema = z.union([
+  z.object({
+    response: z.lazy(() => targetSelectorResponseSchema),
+    status: z.literal(200),
+  }),
+  z.object({
+    status: z.literal(400),
+    error: z.string(),
+  }),
+]);
+export type NextTargetSelectorResponse = z.infer<typeof nextTargetSelectorResponseSchema>;
 
 const resolveRequestSchema = startRequestSchema
 
 const declareAttackRequestSchema = startRequestSchema;
-type DeclareAttackResponse = BasicResponse
+const declareAttackResponseSchema = basicResponseSchema;
+export type DeclareAttackResponse = z.infer<typeof declareAttackResponseSchema>;
 const submitSelectionSchema = z.object({
   issuer: issuerSchema,
   requestId: z.string(),
-  selections: z.array(z.string()),
+  selections: z.array(selectionItemSchema),
 })
 
 
@@ -105,110 +310,66 @@ const cardActivationSchema = z.object({
   issuer: issuerSchema,
   index: z.number(),
   effectIndex: z.union([z.number(), z.literal("tap")]),
-  targetChoices: z.array(z.string()).optional(),
+  targetChoices: z.array(selectionItemSchema).optional(),
 });
 
 const NextTurnRequestSchema = startRequestSchema;
 
-export type DetailedState = {
-  me: PlayerMe;
-  players: Player[];
+const playerSchema = z.object({
+  name: z.string(),
+  handSize: z.number(),
+  inPlay: z.array(inPlayCardSchema),
+  souls: z.number(),
+  soulCards: z.array(cardSchema),
+  coins: z.number(),
+  currentHealthPoints: z.number(),
+  currentAttackPoints: z.number(),
+  remainingLootPlay: z.number(),
+  isEngagedInCombat: z.boolean(),
+});
+export type Player = z.infer<typeof playerSchema>;
 
-  monsters: {
-    discard: Card[];
-    deckSize: number;
-    inPlay: { top: MonsterCard; covered: Card[] }[];
-  };
+const playerMeSchema = playerSchema.extend({
+  hand: z.array(cardSchema),
+  inPlay: z.array(inPlayMeCardSchema),
+  capabilities: z.object({
+    endTurn: z.boolean(),
+    declareAttack: z.boolean(),
+    rollDice: z.boolean(),
+    buyTreasure: z.boolean(),
+    useLoot: z.boolean(),
+    resolve: z.boolean(),
+  }),
+});
+export type PlayerMe = z.infer<typeof playerMeSchema>;
 
-  treasure: {
-    discard: Card[];
-    deckSize: number;
-    inPlay: Card[];
-  };
-
-  loot: {
-    discard: Card[];
-    deckSize: number;
-  };
-
-  bonusSouls: BonusSoulCard[];
-
-  turn: string;
-  stack: StackElement[];
-
-  firstCardTreasureDeck?: Card;
-  pendingSelection?: PendingSelection;
-};
-
-export type Player = {
-  name: string;
-  handSize: number;
-  inPlay: InPlayCard[];
-  souls: number;
-  soulCards: Card[];
-  coins: number;
-  currentHealthPoints: number;
-  currentAttackPoints: number;
-  remainingLootPlay: number;
-  isEngagedInCombat: boolean;
-};
-
-export type PlayerMe = Player & {
-  hand: Card[];
-  inPlay: InPlayMeCard[];
-  capabilities: {
-    endTurn: boolean;
-    declareAttack: boolean;
-    rollDice: boolean;
-    buyTreasure: boolean;
-    useLoot: boolean;
-    resolve: boolean;
-  };
-};
-
-export type Card = {
-  slug: string;
-};
-
-export type MonsterCard = Card & {
-  stats?: {
-    healthPoints: number;
-    attackPoints: number;
-    evasionPoints: number;
-    isEngagedInCombat: boolean;
-    capabilities: {
-      targetable: boolean;
-    };
-  };
-};
-
-export type InPlayCard = Card & {
-  charged?: boolean;
-  capabilities: {
-    activate?: boolean;
-  };
-};
-
-export type InPlayMeCard = InPlayCard & {
-  effects?: ActiveEffectEntry[];
-};
-
-export type BonusSoulCard = Card & {
-  granted: boolean;
-};
-
-export type PendingSelection = {
-  requestId: string;
-  description: string;
-  options: SelectionItem[];
-  count: number;
-  asMany: boolean;
-};
-
-export type ActiveEffectEntry = {
-  index: "tap" | number;
-  description: string;
-};
+const detailedStateSchema = z.object({
+  me: playerMeSchema,
+  players: z.array(playerSchema),
+  monsters: z.object({
+    discard: z.array(cardSchema),
+    deckSize: z.number(),
+    inPlay: z.array(z.object({
+      top: monsterCardSchema,
+      covered: z.array(cardSchema),
+    })),
+  }),
+  treasure: z.object({
+    discard: z.array(cardSchema),
+    deckSize: z.number(),
+    inPlay: z.array(cardSchema),
+  }),
+  loot: z.object({
+    discard: z.array(cardSchema),
+    deckSize: z.number(),
+  }),
+  bonusSouls: z.array(bonusSoulCardSchema),
+  turn: z.string(),
+  stack: z.array(z.lazy(() => stackElementSchema)),
+  firstCardTreasureDeck: cardSchema.optional(),
+  pendingSelection: pendingSelectionSchema.optional(),
+});
+export type DetailedState = z.infer<typeof detailedStateSchema>;
 
 export const schemas = {
   joinRequest: joinRequestSchema,
@@ -359,99 +520,3 @@ export interface ClientToServerEvents {
     callback: (response: Responses.GiveCoins) => void,
   ) => void;
 }
-
-/**
- * Represents the server's response when building targets progressively
- */
-export interface TargetSelectorResponse {
-    /** Description of what to select */
-    description: string;
-    /** How many targets to select */
-    count: number;
-    /** Whether the player can select fewer targets than count (asMany) */
-    asMany: boolean;
-    /** Available options as string identifiers */
-    options: SelectionItem[];
-    /** Whether target building is complete */
-    complete: boolean;
-    /** For choose-one selectors: true = picking option description, false = picking actual targets */
-    isChooseOne: boolean;
-}
-
-export type temporaryEffect =
-{
-    slug: string,
-    issuer: string,
-    targets: SelectionItem[],
-    description: string
-}
-
-export type LootCardOnStackJson = 
-{
-    type: "LootCardEffect",
-    slug: string,
-    targets: SelectionItem[],
-    issuer: entityType
-}
-
-export type DiceRollJson = {
-  type: "diceRoll";
-  diceRoll: number;
-  issuer: entityType;
-  card?: string;
-  targets?: SelectionItem[];
-};
-
-export type IdentifierType = {
-  name: string;
-  slug: string;
-};
-
-export type entityType = IdentifierType & {
-  type: "player" | "monster";
-};
-
-export type DeathOnStackJson = {
-  type: "death",
-  receiver: entityType,
-  from: entityType,
-  source: DiceRollJson | string
-};
-
-export type DamageOnStackJson = {
-  type: "damage",
-  receiver: entityType, 
-  from: entityType, 
-  damage: number,
-  source: DiceRollJson | string
-};
-
-export type EffectOnStackJson = { 
-  type: "effect",
-  issuer: entityType, 
-  targets: SelectionItem[], 
-  card: string, 
-  effect: string 
-};
-
-export type StackElement = LootCardOnStackJson 
-  | DeathOnStackJson 
-  | DamageOnStackJson 
-  | DiceRollJson
-  | EffectOnStackJson;
-
-export type SelectionItem = {type: "card", payload: Card} | 
-  {type: "stackElement", payload: StackElement} | 
-  {type: "player", payload: IdentifierType} |
-  {type: "monster", payload: IdentifierType} |
-  {type: "number", payload: number} |
-  {type: "boolean", payload: boolean} |
-  {type: "string", payload: string} |
-  {type: "couplePlayerHand", payload: {player: IdentifierType, hand: Card[]}} |
-  {type: "array", payload: SelectionItem[]} |
-  {type: "object", payload: {[key: string]: SelectionItem}} |
-  {type: "null", payload: null} |
-  {type: "unknown", payload: null};
-
-  export type SelectionItemType = SelectionItem["type"];
-

@@ -495,13 +495,19 @@ export class DiceRoll {
   private _effect: EffectFunction[] | null = null;
   private _card: Card | null = null;
   private _targets: any[] = [];
+  private _stackId: number = -1;
 
   constructor(issuer: Player, attackRoll: boolean = false) {
     this._value = Math.floor(Math.random() * 6) + 1;
     this._issuer = issuer;
     this._attackRoll = attackRoll;
   }
-  
+  set stackId(id: number) {
+        this._stackId = id;
+    }
+    get stackId(): number {
+        return this._stackId;
+    }
   set targets(targets: any[]) {
     this._targets = targets;
   }
@@ -574,6 +580,7 @@ export class DamageOnStack {
   _targets: any[] = [];
   _effect: EffectFunction | null = null;
   game: Game;
+  _stackId: number = -1;
 
   constructor(
     from: Entity,
@@ -588,7 +595,12 @@ export class DamageOnStack {
     this._source = source;
     this.game = game;
   }
-
+  set stackId(id: number) {
+      this._stackId = id;
+  }
+  get stackId(): number {
+      return this._stackId;
+  }
   attachEffect(effect: EffectFunction, source: Card | DiceRoll, targets: any[] = []): void {
     this._effect = effect;
     this._source = source;
@@ -618,6 +630,7 @@ export class DeathOnStack {
   receiver: Entity;
   from: Entity;
   source: Card | DiceRoll; 
+  _stackId: number = -1;
   game: Game;
 
   constructor(
@@ -631,7 +644,12 @@ export class DeathOnStack {
     this.source = source;
     this.game = game;
   }
-
+  set stackId(id: number) {
+      this._stackId = id;
+  }
+  get stackId(): number {
+      return this._stackId;
+  }
   async onResolve(): Promise<void> {
     await this.game.resolveDeath(this.receiver, this.from, this.source);
   }

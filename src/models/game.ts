@@ -1649,12 +1649,12 @@ export class Game {
         name: player.id,
         hand: player.hand.cards.map((c) => c.json),
         inPlay: player.inPlay.map((c) => ({
-          ...c.json,
+          slug: c.slug,
           charged: c.charged,
           effects: c.activeEffectList,
           capabilities: 
           {
-            activateItem: c.charged && c instanceof ItemCard && c.activeEffectList.length > 0
+            activate: c.charged && c instanceof ItemCard && c.activeEffectList.length > 0
           },
         })),
         handSize: player.hand.cards.length,

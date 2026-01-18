@@ -13,10 +13,12 @@ export function isStackElement(obj: any): obj is StackElement {
 }
 export class Stack {
     _stack: StackElement[] = [];
+    _nextId: number = 0;
     
     constructor() {}
 
     push(item: StackElement) : void {
+        item.stackId = this._nextId++;
         this._stack.push(item);
     }
 

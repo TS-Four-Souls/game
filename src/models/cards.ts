@@ -766,11 +766,18 @@ export class LootCardEffect {
     private card: LootCard;
     private targets: any[];
     private issuer: Player;
+    private _stackId: number = -1;
 
     constructor(issuer: Player, card: LootCard, targets: any[]) {
         this.card = card;
         this.targets = targets;
         this.issuer = issuer;
+    }
+    set stackId(id: number) {
+        this._stackId = id;
+    }
+    get stackId(): number {
+        return this._stackId;
     }
 
     async onResolve(): Promise<void> {
@@ -1001,6 +1008,7 @@ export class EffectOnStack {
     protected _effectFunction: EffectFunction
     protected _data: EffectData;
     protected _description: string;
+    private _stackId: number = -1;
 
     constructor(effectFunction: EffectFunction, data: EffectData, description: string) {
         // if(!data)
@@ -1009,7 +1017,12 @@ export class EffectOnStack {
         this._data = data;
         this._description = description;
     }
-
+    set stackId(id: number) {
+        this._stackId = id;
+    }
+    get stackId(): number {
+        return this._stackId;
+    }
     async onResolve(): Promise<boolean> {
         return await this._effectFunction(this._data);
     }
