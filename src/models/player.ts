@@ -543,7 +543,7 @@ export class DiceRoll {
       type: "diceRoll",
       diceRoll: this.value, 
       issuer: this.issuer.json, 
-      card: !this._attackRoll ? this._card?.name : undefined, 
+      card: !this._attackRoll ? {name: this._card!.name, slug: this._card!.slug} : undefined, 
       targets: !this._attackRoll ? TargetBuilder.convertToSelectionItems(this._targets) : undefined
     }
   }
@@ -615,7 +615,7 @@ export class DamageOnStack {
     }
   }
   get json(): DamageOnStackJson {
-    const sourceName = this._source instanceof DiceRoll ? this._source.json : this._source.slug;
+    const sourceName = this._source instanceof DiceRoll ? this._source.json : {slug: this._source.slug, name: this._source.name};
     return {
       type: "damage",
       from: this.from.json, 
@@ -655,7 +655,7 @@ export class DeathOnStack {
   }
 
   get json(): DeathOnStackJson {
-    const sourceName = this.source instanceof DiceRoll ? this.source.json : this.source.slug;
+    const sourceName = this.source instanceof DiceRoll ? this.source.json : {slug: this.source.slug, name: this.source.name};
     this.receiver.json;
     return {
       type: "death",

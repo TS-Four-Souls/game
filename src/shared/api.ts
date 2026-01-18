@@ -119,7 +119,7 @@ const targetSelectorResponseSchema = z.object({
 export type TargetSelectorResponse = z.infer<typeof targetSelectorResponseSchema>;
 
 const temporaryEffectSchema = z.object({
-  slug: z.string(),
+  card: IdentifierTypeSchema.optional(),
   issuer: z.string(),
   targets: z.array(selectionItemSchema),
   description: z.string(),
@@ -128,7 +128,7 @@ export type temporaryEffect = z.infer<typeof temporaryEffectSchema>;
 
 const lootCardOnStackJsonSchema = z.object({
   type: z.literal("LootCardEffect"),
-  slug: z.string(),
+  card: IdentifierTypeSchema.optional(),
   targets: z.array(selectionItemSchema),
   issuer: entityTypeSchema,
 });
@@ -138,7 +138,7 @@ const diceRollJsonSchema = z.object({
   type: z.literal("diceRoll"),
   diceRoll: z.number(),
   issuer: entityTypeSchema,
-  card: z.string().optional(),
+  card: IdentifierTypeSchema.optional(),
   targets: z.array(selectionItemSchema).optional(),
 });
 export type DiceRollJson = z.infer<typeof diceRollJsonSchema>;
@@ -147,7 +147,7 @@ const deathOnStackJsonSchema = z.object({
   type: z.literal("death"),
   receiver: entityTypeSchema,
   from: entityTypeSchema,
-  source: z.union([z.lazy(() => diceRollJsonSchema), z.string()]),
+  source: z.union([z.lazy(() => diceRollJsonSchema), IdentifierTypeSchema]),
 });
 export type DeathOnStackJson = z.infer<typeof deathOnStackJsonSchema>;
 
@@ -156,7 +156,7 @@ const damageOnStackJsonSchema = z.object({
   receiver: entityTypeSchema,
   from: entityTypeSchema,
   damage: z.number(),
-  source: z.union([z.lazy(() => diceRollJsonSchema), z.string()]),
+  source: z.union([z.lazy(() => diceRollJsonSchema), IdentifierTypeSchema]),
 });
 export type DamageOnStackJson = z.infer<typeof damageOnStackJsonSchema>;
 
@@ -164,7 +164,7 @@ const effectOnStackJsonSchema = z.object({
   type: z.literal("effect"),
   issuer: entityTypeSchema,
   targets: z.array(selectionItemSchema),
-  card: z.string(),
+  card: IdentifierTypeSchema,
   effect: z.string(),
 });
 export type EffectOnStackJson = z.infer<typeof effectOnStackJsonSchema>;

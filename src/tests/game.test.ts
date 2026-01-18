@@ -461,7 +461,7 @@ describe("DiceRoll", () => {
   });
 
   it("should return json representation correctly", async () => {
-    const dice = player.rollDice();
+    const dice = player.rollDice(true);
     const json = dice.json;
     
     expect(json.issuer.name).toBe("testPlayer");

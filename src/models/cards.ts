@@ -787,7 +787,7 @@ export class LootCardEffect {
     get json(): LootCardOnStackJson {
         return {
             type: "LootCardEffect",
-            slug: this.card.slug,
+            card: {slug: this.card.slug, name: this.card.name},
             targets: TargetBuilder.convertToSelectionItems(this.targets),
             issuer: this.issuer.json
          } ;
@@ -1040,7 +1040,7 @@ export class EffectOnStack {
             type: "effect",
             issuer: this._data.issuer.json, 
             targets: TargetBuilder.convertToSelectionItems(this._data.targets), 
-            card: this._data.it.slug, 
+            card: {slug: this.data.it.slug, name: this.data.it.name}, 
             effect: this._description 
         };
     }
