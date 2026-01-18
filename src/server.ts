@@ -33,7 +33,7 @@ io.on("connection", (socket) => {
   socket.on("join", (payload, callback) => {
     const validated = schemas.joinRequest.safeParse(payload);
     if (!validated.success) {
-      return callback({ status: 400, error: validated.error });
+      return callback({ status: 400, error: validated.error.message });
     }
     try {
       const name = validated.data;
@@ -45,14 +45,17 @@ io.on("connection", (socket) => {
       return callback({ status: 200, secret: player.secret });
     } catch (error) {
       console.error("Failed to join the game", error);
-      return callback({ status: 400, error });
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
     }
   });
 
   socket.on("rejoin", (payload, callback) => {
     const validated = schemas.rejoinRequest.safeParse(payload);
     if (!validated.success) {
-      return callback({ status: 400, error: validated.error });
+      return callback({ status: 400, error: validated.error.message });
     }
     try {
       const player = game.getPlayerById(validated.data.id);
@@ -64,14 +67,17 @@ io.on("connection", (socket) => {
       return callback({ status: 200, gameState: game.isStarted ? game.detailedStateJSON(validated.data) : undefined });
     } catch (error) {
       console.error("Failed to rejoin the game", error);
-      return callback({ status: 400, error });
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
     }
   });
 
   socket.on("start", (payload, callback) => {
     const validated = schemas.startRequest.safeParse(payload);
     if (!validated.success) {
-      return callback({ status: 400, error: validated.error });
+      return callback({ status: 400, error: validated.error.message });
     }
     try {
       game.start(validated.data.issuer);
@@ -80,14 +86,17 @@ io.on("connection", (socket) => {
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to start the game", error);
-      return callback({ status: 400, error });
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
     }
   });
 
   socket.on("reset", (payload, callback) => {
     const validated = schemas.resetRequest.safeParse(payload);
     if (!validated.success) {
-      return callback({ status: 400, error: validated.error });
+      return callback({ status: 400, error: validated.error.message });
     }
     try {
       game.reset();
@@ -95,14 +104,17 @@ io.on("connection", (socket) => {
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to reset the game", error);
-      return callback({ status: 400, error });
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
     }
   });
 
   socket.on("declareAttack", (payload, callback) => {
     const validated = schemas.declareAttackRequest.safeParse(payload);
     if (!validated.success) {
-      return callback({ status: 400, error: validated.error });
+      return callback({ status: 400, error: validated.error.message });
     }
     try {
       const player = game.getPlayerByIssuer(validated.data.issuer);
@@ -110,14 +122,17 @@ io.on("connection", (socket) => {
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to declare attack", error);
-      return callback({ status: 400, error });
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
     }
   });
 
   socket.on("attackMonster", (payload, callback) => {
     const validated = schemas.attackMonsterRequest.safeParse(payload);
     if (!validated.success) {
-      return callback({ status: 400, error: validated.error });
+      return callback({ status: 400, error: validated.error.message });
     }
     try {
       const player = game.getPlayerById(validated.data.issuer.id);
@@ -138,7 +153,10 @@ io.on("connection", (socket) => {
       game.addToHistory(validated.data);
     } catch (error) {
       console.error("Failed to declare attack", error);
-      return callback({ status: 400, error });
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
     }
     return callback({ status: 200 });
   });
@@ -146,7 +164,7 @@ io.on("connection", (socket) => {
   socket.on("attackRoll", (payload, callback) => {
     const validated = schemas.attackRollRequest.safeParse(payload);
     if (!validated.success) {
-      return callback({ status: 400, error: validated.error });
+      return callback({ status: 400, error: validated.error.message });
     }
     try {
       const player = game.getPlayerByIssuer(validated.data);
@@ -155,14 +173,17 @@ io.on("connection", (socket) => {
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to declare attack", error);
-      return callback({ status: 400, error });
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
     }
   });
 
   socket.on("resolve", (payload, callback) => {
     const validated = schemas.resolveRequest.safeParse(payload);
     if (!validated.success) {
-      return callback({ status: 400, error: validated.error });
+      return callback({ status: 400, error: validated.error.message });
     }
     try {
       const player = game.getPlayerByIssuer(validated.data.issuer);
@@ -171,14 +192,17 @@ io.on("connection", (socket) => {
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to resolve the stack", error);
-      return callback({ status: 400, error });
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
     }
   });
 
   socket.on("submitSelection", (payload, callback) => {
     const validated = schemas.submitSelectionRequest.safeParse(payload);
     if (!validated.success) {
-      return callback({ status: 400, error: validated.error });
+      return callback({ status: 400, error: validated.error.message });
     }
     try {
       const player = game.getPlayerByIssuer(validated.data.issuer);
@@ -191,14 +215,17 @@ io.on("connection", (socket) => {
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to submit selection", error);
-      return callback({ status: 400, error });
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
     }
   });
 
   socket.on("playCard", (payload, callback) => {
     const validated = schemas.playCardRequest.safeParse(payload);
     if (!validated.success) {
-      return callback({ status: 400, error: validated.error });
+      return callback({ status: 400, error: validated.error.message });
     }
     try {
       const player = game.getPlayerByIssuer(validated.data.issuer);
@@ -213,14 +240,17 @@ io.on("connection", (socket) => {
       return callback({ response: choices,status: 200 });
     } catch (error) {
       console.error("Failed to play card", error);
-      return callback({ status: 400, error });
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
     }
   });
 
   socket.on("activate", async (payload, callback) => {
     const validated = schemas.activateRequest.safeParse(payload);
     if (!validated.success) {
-      return callback({ status: 400, error: validated.error });
+      return callback({ status: 400, error: validated.error.message });
     }
     try {
       const player = game.getPlayerByIssuer(validated.data.issuer);
@@ -236,13 +266,16 @@ io.on("connection", (socket) => {
       return callback({ response: choices, status: 200 });
     } catch (error) {
       console.error("Failed to play card", error);
-      return callback({ status: 400, error });
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
     }
   });
   socket.on("purchase", async (payload, callback) => {
     const validated = schemas.purchaseRequest.safeParse(payload);
     if (!validated.success) {
-      return callback({ status: 400, error: validated.error });
+      return callback({ status: 400, error: validated.error.message });
     }
     try {
       const player = game.getPlayerByIssuer(validated.data.issuer);
@@ -251,27 +284,33 @@ io.on("connection", (socket) => {
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to play card", error);
-      return callback({ status: 400, error });
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
     }
   });
   socket.on("endTurn", async (payload, callback) => {
     const validated = schemas.endTurnRequest.safeParse(payload);
     if (!validated.success) {
-      return callback({ status: 400, error: validated.error });
+      return callback({ status: 400, error: validated.error.message });
     }
     try {
       game.addToHistory(validated.data);
       return callback({ response: game.nextTurn(validated.data.issuer), status: 200 });
     } catch (error) {
       console.error("Failed to end turn", error);
-      return callback({ status: 400, error });
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
     }
   });
 
   socket.on("giveCoins", (payload, callback) => {
     const validated = schemas.giveCoinsRequest.safeParse(payload);
     if (!validated.success) {
-      return callback({ status: 400, error: validated.error });
+      return callback({ status: 400, error: validated.error.message });
     }
     try {
       const player = game.getPlayerByIssuer(validated.data.issuer);
@@ -283,7 +322,10 @@ io.on("connection", (socket) => {
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to give coins", error);
-      return callback({ status: 400, error });
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
     }
   });
 
@@ -292,7 +334,7 @@ io.on("connection", (socket) => {
   socket.on("debugLoot", (payload, callback) => {
     const validated = schemas.debugLootRequest.safeParse(payload);
     if (!validated.success) {
-      return callback({ status: 400, error: validated.error });
+      return callback({ status: 400, error: validated.error.message });
     }
     try {
       const player = game.getPlayerByIssuer(validated.data);
@@ -300,14 +342,17 @@ io.on("connection", (socket) => {
       return callback({ response: game.loot(player), status: 200 });
     } catch (error) {
       console.error("Failed to debug loot", error);
-      return callback({ status: 400, error });
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
     }
   });
 
   socket.on("debugGainTreasure", (payload, callback) => {
     const validated = schemas.debugGainTreasureRequest.safeParse(payload);
     if (!validated.success) {
-      return callback({ status: 400, error: validated.error });
+      return callback({ status: 400, error: validated.error.message });
     }
     try {
       const player = game.getPlayerByIssuer(validated.data);
@@ -315,13 +360,16 @@ io.on("connection", (socket) => {
       return callback({ response: game.gainTreasure(player), status: 200 });
     } catch (error) {
       console.error("Failed to debug gain treasure", error);
-      return callback({ status: 400, error });
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
     }
   });
   socket.on("debugReset", (payload, callback) => {
     const validated = schemas.debugResetRequest.safeParse(payload);
     if (!validated.success) {
-      return callback({ status: 400, error: validated.error });
+      return callback({ status: 400, error: validated.error.message });
     }
     try {
       game.reset();
@@ -359,7 +407,10 @@ io.on("connection", (socket) => {
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to debug reset", error);
-      return callback({ status: 400, error });
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
     }
   });
 

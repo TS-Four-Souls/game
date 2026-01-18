@@ -40,7 +40,7 @@ type JoinResponse =
   }
   | {
     status: 400;
-    error: any;
+    error: string;
   };
 
 const rejoinRequestSchema = issuerSchema;
@@ -52,7 +52,7 @@ type RejoinResponse =
   }
   | {
     status: 400;
-    error: any;
+    error: string;
   };
 
 const startRequestSchema = z.object({
@@ -67,7 +67,7 @@ type BasicResponse =
   }
   | {
     status: 400;
-    error: any;
+    error: string;
   };
 
   type StringResponse =
@@ -77,7 +77,7 @@ type BasicResponse =
   }
   | {
     status: 400;
-    error: any;
+    error: string;
   };
 
   type NextTargetSelectorResponse =
@@ -87,7 +87,7 @@ type BasicResponse =
   }
   | {
     status: 400;
-    error: any;
+    error: string;
   };
 
 const resolveRequestSchema = startRequestSchema
