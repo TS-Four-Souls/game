@@ -97,7 +97,7 @@ export class Game {
   constructor() {
     this._emitter = new GameEventEmitter();
   }
-  
+
   get isStarted(): boolean {
     return this._turnHandler.isInitialized;
   }
@@ -394,7 +394,7 @@ export class Game {
   }
 
   canDeclareAttackOnMonster(player: Player,
-    monster: Monster | "topDeck", shouldThrow: boolean = false): boolean {
+    monster: Monster | "topDeck", shouldThrow: boolean = false): string | true {
     try {
       if (monster !== "topDeck" && !monster.attackable) {
         throw new Error("This monster cannot be attacked.");
@@ -417,7 +417,10 @@ export class Game {
       }
     } catch (e) {
       if (shouldThrow) throw e;
-      return false;
+      if (e instanceof Error) {
+        return e.message;
+      }
+      return "Unknown reason"
     }
     return true;
   }
@@ -934,7 +937,7 @@ export class Game {
     // Add to history
     this.addToHistory(elem);
     await elem.onResolve();
-    if(elem instanceof LootCardEffect && elem.card instanceof LootCard && !elem.card.trinket)
+    if (elem instanceof LootCardEffect && elem.card instanceof LootCard && !elem.card.trinket)
       this.discard(elem.card);
     this._onStateChange.dispatch();
     if (elem instanceof DiceRoll)
@@ -1382,7 +1385,7 @@ export class Game {
     return true;
   }
 
-  
+
 
   // An active effect goes on the stack immediately, a passive effect register a listener.
   // A loot card is always an active effect, as even trinket goes to the stack before becoming an item.
@@ -1657,7 +1660,7 @@ export class Game {
           slug: c.slug,
           charged: c.charged,
           effects: c.activeEffectList,
-          capabilities: 
+          capabilities:
           {
             activate: c.charged && c instanceof ItemCard && c.activeEffectList.length > 0
           },
@@ -1671,20 +1674,20 @@ export class Game {
         remainingLootPlay: player.remainingLootPlay,
         isEngagedInCombat: player.isEngagedInCombat,
         pendingSelection: (() => {
-        // Check if player has a pending selection from selectMultiple
-        for (const sel of this.pendingMultipleSelections.values()) {
-          if (sel.playerId === player.id) {
-            return {
-              requestId: sel.requestId,
-              options: TargetBuilder.convertToSelectionItems(sel.options),
-              count: sel.count,
-              asMany: sel.asMany,
-              description: sel.description,
-            };
+          // Check if player has a pending selection from selectMultiple
+          for (const sel of this.pendingMultipleSelections.values()) {
+            if (sel.playerId === player.id) {
+              return {
+                requestId: sel.requestId,
+                options: TargetBuilder.convertToSelectionItems(sel.options),
+                count: sel.count,
+                asMany: sel.asMany,
+                description: sel.description,
+              };
+            }
           }
-        }
-        return undefined;
-      })(),
+          return undefined;
+        })(),
         capabilities: {
           endTurn: this.canEndTurn(player),
           declareAttack: this.canDeclareAttack(player),
@@ -1699,10 +1702,12 @@ export class Game {
         .map((p) => ({
           name: p.id,
           handSize: p.hand.cards.length,
-          inPlay: p.inPlay.map((c) => ({ name: c.name, slug: c.json.slug, charged: c.charged, capabilities: 
-          {
-            activate: c.charged && c instanceof ItemCard && c.activeEffectList.length > 0
-          }})),
+          inPlay: p.inPlay.map((c) => ({
+            name: c.name, slug: c.json.slug, charged: c.charged, capabilities:
+            {
+              activate: c.charged && c instanceof ItemCard && c.activeEffectList.length > 0
+            }
+          })),
           souls: p.totalSouls,
           soulCards: p.souls.map((c) => c.json),
           coins: p.coins,
@@ -1734,7 +1739,7 @@ export class Game {
                   targetable: this.canDeclareAttackOnMonster(player, m.monster),
                 }
               }
-              
+
             } : {})
           },
           covered: m.covered,
@@ -1784,7 +1789,7 @@ export class Game {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.canPurchase(player, true);
-    if( index !== "top" && (index < 0 || index >= this.shop._slots.length))
+    if (index !== "top" && (index < 0 || index >= this.shop._slots.length))
       throw new Error("Invalid shop index.");
     const price = [gameParameters.shopPrice];
     this.emit("on:item:purchase", { eventIssuer: player, cost: price });
@@ -2247,7 +2252,7 @@ export class Game {
       "You must attack the required monster(s) before ending your turn"
     );
   }
-  
+
   getPlayerByIssuer(issuer: Issuer): Player {
     this.assertIssuerSecret(issuer);
     return this.getPlayerById(issuer.id);

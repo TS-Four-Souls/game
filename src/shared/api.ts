@@ -66,6 +66,8 @@ const pendingSelectionSchema = z.object({
 });
 export type PendingSelection = z.infer<typeof pendingSelectionSchema>;
 
+const capabilitySchema = z.union([z.literal(true), z.string()]);
+
 const monsterCardSchema = cardSchema.extend({
   stats: z.object({
     healthPoints: z.number(),
@@ -73,7 +75,7 @@ const monsterCardSchema = cardSchema.extend({
     evasionPoints: z.number(),
     isEngagedInCombat: z.boolean(),
     capabilities: z.object({
-      targetable: z.boolean(),
+      targetable: capabilitySchema,
     }),
   }).optional(),
 });
@@ -391,7 +393,7 @@ const detailedStateSchema = z.object({
     discard: z.array(cardSchema),
     deckSize: z.number(),
     capabilities: z.object({
-      targetableDeck: z.boolean(),
+      targetableDeck: z.union([z.literal(true), z.string()]),
     }),
     inPlay: z.array(z.object({
       top: monsterCardSchema,
