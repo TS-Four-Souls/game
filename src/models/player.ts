@@ -94,6 +94,9 @@ export class Player extends Entity {
     this._remainingLootPlay = 0;
   }
 
+  get slug(): string {
+    return this.inPlay.length > 0 ? this.inPlay[0]!.slug : "";
+  }
   /**
    * Gets the list of monsters or deck positions this player must attack.
    * @returns Array of required attack targets
