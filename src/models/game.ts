@@ -1649,6 +1649,7 @@ export class Game {
         name: player.id,
         hand: player.hand.cards.map((c) => c.json),
         inPlay: player.inPlay.map((c) => ({
+          name: c.name,
           slug: c.slug,
           charged: c.charged,
           effects: c.activeEffectList,
@@ -1694,7 +1695,7 @@ export class Game {
         .map((p) => ({
           name: p.id,
           handSize: p.hand.cards.length,
-          inPlay: p.inPlay.map((c) => ({ slug: c.json.slug, charged: c.charged, capabilities: 
+          inPlay: p.inPlay.map((c) => ({ name: c.name, slug: c.json.slug, charged: c.charged, capabilities: 
           {
             activate: c.charged && c instanceof ItemCard && c.activeEffectList.length > 0
           }})),
@@ -1709,12 +1710,12 @@ export class Game {
         })),
       monsters:
       {
-        discard: this.decks["monster"]!.discard.map((c) => ({ slug: c.slug })).toReversed(),
+        discard: this.decks["monster"]!.discard.map((c) => ({ name: c.name, slug: c.slug })).toReversed(),
         deckSize: this.decks["monster"]!.cards.length,
         capabilities: {
           targetableDeck: this.canDeclareAttackOnMonster(player, "topDeck", false),
         },
-        inPlay: this.encounters._slots.map((m, index) => ({ card: m[m.length - 1]!, monster: this.encounters.monsterIn(index), covered: this.encounters._slots[index]!.slice(0, -1).map(c => ({ slug: c.slug })) })).map((m) => ({
+        inPlay: this.encounters._slots.map((m, index) => ({ card: m[m.length - 1]!, monster: this.encounters.monsterIn(index), covered: this.encounters._slots[index]!.slice(0, -1).map(c => ({ name: c.name, slug: c.slug })) })).map((m) => ({
 
           top: {
             slug: m.card?.slug,
@@ -1735,17 +1736,17 @@ export class Game {
           covered: m.covered,
         })),
       },
-      bonusSouls: this._bonusSouls.map((c) => ({ slug: c.slug, granted: c.granted })),
+      bonusSouls: this._bonusSouls.map((c) => ({ name: c.name, slug: c.slug, granted: c.granted })),
       loot:
       {
-        discard: this.decks["loot"]!.discard.map((c) => ({ slug: c.slug })).toReversed(),
+        discard: this.decks["loot"]!.discard.map((c) => ({ name: c.name, slug: c.slug })).toReversed(),
         deckSize: this.decks["loot"]!.cards.length,
       },
       treasure:
       {
-        discard: this.decks["treasure"]!.discard.map((c) => ({ slug: c.slug })).toReversed(),
+        discard: this.decks["treasure"]!.discard.map((c) => ({ name: c.name, slug: c.slug })).toReversed(),
         deckSize: this.decks["treasure"]!.cards.length,
-        inPlay: this.shop._slots.map((c) => ({ slug: c!.slug })),
+        inPlay: this.shop._slots.map((c) => ({ name: c!.name, slug: c!.slug })),
       },
       turn: this.currentPlayer.id,
       firstCardTreasureDeck: player.canSeeTopOfTreasureDeck ? this.decks["treasure"]!.cards[0]?.json : undefined,

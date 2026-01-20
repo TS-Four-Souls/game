@@ -255,7 +255,7 @@ export class TargetBuilder {
          return options.map(option => {
 
             if (typeof option === 'object' && option !== null && 'slug' in option) {
-                return { payload: {slug: option.slug}, type: "card" };
+                return { payload: {name: option.name, slug: option.slug}, type: "card" };
             }
 
             if (typeof option === 'object' && option !== null && 'id' in option) {
@@ -279,7 +279,7 @@ export class TargetBuilder {
             
             // { player: Player; hand: Hand }
             if( typeof option === 'object' && 'player' in option && 'hand' in option)
-                return {type: "couplePlayerHand", payload: {player: {name: option.player.name, slug: option.player.slug}, hand: option.hand.cards.map((c: Card) => c.slug)}};
+                return {type: "couplePlayerHand", payload: {player: {name: option.player.name, slug: option.player.slug}, hand: option.hand.cards.map((c: Card) => {return {name: c.name, slug: c.slug}})}};
             if (Array.isArray(option) || typeof option === 'object') {
                 return {type: "array", payload: option.map((item: any) => TargetBuilder.convertToSelectionItems([item]))};
             }

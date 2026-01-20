@@ -11,9 +11,7 @@ export const entityTypeSchema = IdentifierTypeSchema.extend({
 }); 
 export type entityType = z.infer<typeof entityTypeSchema>;
 
-const cardSchema = z.object({
-  slug: z.string(),
-});
+const cardSchema = IdentifierTypeSchema;
 export type Card = z.infer<typeof cardSchema>;
 
 const activeEffectEntrySchema = z.object({
