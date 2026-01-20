@@ -763,13 +763,13 @@ class LootCard extends ItemCard {
 
 // Wrapper class to hold loot card effect resolution on the stack
 export class LootCardEffect {
-    private card: LootCard;
+    private _card: LootCard;
     private targets: any[];
     private issuer: Player;
     private _stackId: number = -1;
 
     constructor(issuer: Player, card: LootCard, targets: any[]) {
-        this.card = card;
+        this._card = card;
         this.targets = targets;
         this.issuer = issuer;
     }
@@ -780,8 +780,12 @@ export class LootCardEffect {
         return this._stackId;
     }
 
+    get card(): Card {
+        return this._card;
+    }
+
     async onResolve(): Promise<void> {
-        await this.card.onPlay(this.issuer, this.targets)();
+        await this._card.onPlay(this.issuer, this.targets)();
     }
 
     get json(): LootCardOnStackJson {

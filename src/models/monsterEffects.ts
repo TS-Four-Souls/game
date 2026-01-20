@@ -533,7 +533,7 @@ export function onAttackingPlayerRollsEffect(game: Game, s: string): EffectFunct
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         
-        offRoll = game.emitter.on("on:attack:roll", async ({ eventIssuer, dice: attackRoll }) => {
+        offRoll = game.emitter.on("on:dice:rolled", async ({ eventIssuer, dice: attackRoll }) => {
             if (!(eventIssuer instanceof Player)) return;
             if (!(eventIssuer.isEngagedInCombat)) return;
             if(attackRoll.value !== roll) return;
