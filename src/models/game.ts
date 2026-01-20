@@ -808,9 +808,10 @@ export class Game {
 
       // Resolve the pending promise
       pending.resolve(selected);
+      this._onStateChange.dispatch();
       return;
     }
-
+    this._onStateChange.dispatch();
     // No matching pending selection found
     throw new Error("No pending selection found for this request ID");
   }
