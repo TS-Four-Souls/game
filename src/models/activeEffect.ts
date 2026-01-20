@@ -110,7 +110,7 @@ export function look1EachDeckEffect(game: Game): EffectFunction {
         if (data.issuer instanceof Player === false) return false;
         let topCards: Card[] = [];
         for (const deckName of ["loot", "treasure", "monster"]) {
-            const topCard = game.getFirstCardsOfDeck(deckName, 1)[0];
+            const topCard = game.decks[deckName]?.cards[0];
             topCards.push(topCard!);
         }
         const selectResult = await game.select(data.issuer, 3, topCards, true, "Select any number of cards to put on the bottom of their respective decks.");
