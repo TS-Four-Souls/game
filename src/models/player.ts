@@ -95,7 +95,7 @@ export class Player extends Entity {
   }
 
   get slug(): string {
-    return this.inPlay.length > 0 ? this.inPlay[0]!.slug : "";
+    return this.inPlay.find(c => c instanceof CharacterCard) ? this.inPlay.find(c => c instanceof CharacterCard)!.slug : "";
   }
   /**
    * Gets the list of monsters or deck positions this player must attack.

@@ -254,7 +254,7 @@ export class TargetBuilder {
     static convertToSelectionItems(options: any[]): SelectionItem[] {
          return options.map(option => {
 
-            if (typeof option === 'object' && option !== null && 'slug' in option) {
+            if (typeof option === 'object' && option !== null && 'slug' in option && option instanceof Card) {
                 return { payload: {name: option.name, slug: option.slug}, type: "card" };
             }
 
