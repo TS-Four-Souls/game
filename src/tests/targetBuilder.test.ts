@@ -125,7 +125,7 @@ describe("Target Builder Interface", () => {
 
         // Test card conversion - should return just the slug
         const cardIdentifiers = TargetBuilder["convertToSelectionItems"]([card]);
-        expect(cardIdentifiers[0]).toEqual({type: "card", payload: {slug: card.slug}});
+        expect(cardIdentifiers[0]).toEqual({type: "card", payload: {name: card.name, slug: card.slug}});
 
         // Test number conversion - should return string numbers
         const numberIdentifiers = TargetBuilder["convertToSelectionItems"]([1, 2, 3]);
@@ -140,7 +140,7 @@ describe("Target Builder Interface", () => {
         const card = game.obtainCard("b2-blank_card") as ItemCard;
 
         // Resolve card - identifier is just the slug
-        const resolvedCard = TargetBuilder["resolveIdentifier"]({type: "card", payload: {slug: card.slug}}, [card]);
+        const resolvedCard = TargetBuilder["resolveIdentifier"]({type: "card", payload: {name: card.name, slug: card.slug}}, [card]);
         expect(resolvedCard?.slug).toBe(card.slug);
 
         // Resolve number - identifier is string representation

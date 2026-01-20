@@ -1384,12 +1384,12 @@ export function giveItemToAnotherPlayerEffect(game: Game): EffectFunction {
     };
 }
 
-export function lookAndReorderTopCardsEffect(game: Game): EffectFunction {
+export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, deckNameParam: string | undefined = undefined): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const deckName = data.next as string;
-        const top5Cards = game.getFirstCardsOfDeck(deckName, 5);
-        const selectionResult = await game.select(data.issuer, 5, top5Cards, false, "Select the order to put back the cards (first selected will be on top).");
+        const deckName = deckNameParam === undefined ? data.next as string : deckNameParam;
+        const top5Cards = game.getFirstCardsOfDeck(deckName, numberCards);
+        const selectionResult = await game.select(data.issuer, numberCards, top5Cards, false, "Select the order to put back the cards (first selected will be on top).");
         for (let i = selectionResult.selected.length - 1; i >= 0; i--) {
             game.addTopPosition(deckName, selectionResult.selected[i]!);
         }

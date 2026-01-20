@@ -30,26 +30,33 @@ describe("Event Monsters - Other Events", () => {
         const iCanSeeForever = game.obtainCard("b2-i_can_see_forever") as MonsterCard;
         game.decks["monster"]!.addTopPosition(iCanSeeForever);
         
-        const top6Cards = game.decks["loot"]!.cards.slice(0, 6);
+        const top5Cards = game.decks["loot"]!.cards.slice(0, 5);
+        const six = game.decks["loot"]!.cards[5];
         const initialHandSize = player1.hand.length;
         const initialDeckSize = game.decks["loot"]!.cards.length;
         
+        game.select = async (player: Player, n: number, options: Card[], optional?: boolean) => {
+            // Simulate selecting the first card to loot
+            return { selected: options.slice(0, n).reverse(), remaining: options.slice(1) };
+        };
         // Draw the event to trigger its effect
         game.monsterSlots.discardTop(0);
         await game.resolveStack(); // resolve the event addition
-        await game.resolveStack();
         
         // Check that player looted 1 card
         expect(player1.hand.length).toBe(initialHandSize + 1);
         
         // Check that exactly 1 card was removed from the deck
         expect(game.decks["loot"]!.cards.length).toBe(initialDeckSize - 1);
-        
+        const newtop5Cards = game.decks["loot"]!.cards.slice(0, 5).toReversed();
+        for (let i = 0; i < 5; i++) {
+            expect(top5Cards[i]!.slug).toBe(newtop5Cards[i]!.slug);
+        }
         // The effect allows reordering, but without user interaction we can't verify the reordering happened
         // We can only verify that the card looted was one of the original top 6
         const lootedCards = player1.hand.cards.slice(initialHandSize);
         expect(lootedCards.length).toBe(1);
-        expect(top6Cards).toContain(lootedCards[0]!);
+        expect(six).toBe(lootedCards[0]!);
     });
 
     // b2-ambush: The active player must attack the monster deck 2 times this turn.

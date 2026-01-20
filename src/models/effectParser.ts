@@ -749,7 +749,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         case "give another non-eternal item you control to another player": 
             return { effectFunction: active.giveItemToAnotherPlayerEffect(game), targetSelectors: [selectItemYouControl(game)[0]!, selectAnotherPlayer(game)[0]!] };
         case "look at the top 5 cards of a deck. put them back in any order.":
-            return { effectFunction: active.lookAndReorderTopCardsEffect(game), targetSelectors: selectDeck(game) };
+            return { effectFunction: active.lookAndReorderTopCardsEffect(game, 5), targetSelectors: selectDeck(game) };
         case "put the top card of any discard on top of its deck.":
             return { effectFunction: active.putTopCardFromDiscardOnTopEffect(game), targetSelectors: selectDeck(game) };
         case "choose a dice roll. its controller rerolls it.":
@@ -1020,6 +1020,8 @@ function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null 
             return noTargetEffect(monster.onEveryOtherDamageEffect(game, passive.temporaryStatModifierEffect([game.addDC.bind(game)], 1, game)));
         case "deal 1 damage to the player to the active player's left.":
             return noTargetEffect(monster.dealDamageToPlayerToTheEffect(game, 1, "left"));
+        case "look at the top 6 cards of the loot deck. put them back in any order":
+            return noTargetEffect(active.lookAndReorderTopCardsEffect(game, 6, "loot"));
         default:
             return null; // No match found
     }

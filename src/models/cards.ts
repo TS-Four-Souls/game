@@ -958,7 +958,7 @@ class CardSet {
             throw new Error(`Card id ${id} is out of bounds for card set of length ${this._set.length}`);
         }
         if(typeof this._set[id] === "undefined" || this._set[id] === null) {
-            throw new Error(`Card lllll id ${id} is undefined or null in card set of type ${this._type}.`);
+            throw new Error(`Card id ${id} is undefined or null in card set of type ${this._type}.`);
         }
         return this._set[id];
     }
