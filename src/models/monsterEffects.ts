@@ -533,12 +533,12 @@ export function onAttackingPlayerRollsEffect(game: Game, s: string): EffectFunct
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         
-        offRoll = game.emitter.on("on:attack:roll", async ({ eventIssuer, roll: attackRoll }) => {
+        offRoll = game.emitter.on("on:attack:roll", async ({ eventIssuer, dice: attackRoll }) => {
             if (!(eventIssuer instanceof Player)) return;
             if (!(eventIssuer.isEngagedInCombat)) return;
             if(attackRoll.value !== roll) return;
             const newData = new EffectData(data.it, eventIssuer as Player, []);
-            addPassiveEffectToStack(game, effect.effectFunction, newData, `When the attacking player rolls an attack roll of ${roll}, they ${rest}`);
+            addPassiveEffectToStack(game, effect.effectFunction, newData, `When the attacking player rolls an attack roll of ${roll} ${rest}`);
         });
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {

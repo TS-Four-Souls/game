@@ -973,6 +973,8 @@ function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null 
         return noTargetEffect(monster.onTakesCombatDamageEffect(game, s));
     if(s.startsWith("each time the attacking player activates an item, they "))
             return noTargetEffect(monster.onAttackingPlayerActivatesItemEffect(game, s));
+    if(s.startsWith("when the attacking player rolls an attack roll of "))
+            return noTargetEffect(monster.onAttackingPlayerRollsEffect(game, s));
     switch (s) {
         case "when this dies, it deals 1 damage to the player who killed it.":
             return noTargetEffect(monster.dealDamageToKillerOnDeathEffect(game, 1));
@@ -1010,8 +1012,6 @@ function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null 
             return noTargetEffect(monster.damageDealtToActivePlayerAlsoToTheEffect(game, "left"));
         case "choose the player with the most ¢ or tied for the most. that player loses all their ¢.":
             return noTargetEffect(monster.playerWithMostCoinsLosesAllEffect(game));
-        case "when the attacking player rolls an attack roll of ":
-            return noTargetEffect(monster.onAttackingPlayerRollsEffect(game, s));
         case "each time this would take damage, the active player rolls-\n1: prevent that damage.":
             return noTargetEffect(monster.preventDamageOnRollEffect(game, [1]));
         case "it deals 1 damage to the attacking player.":
