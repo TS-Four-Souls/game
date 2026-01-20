@@ -934,6 +934,8 @@ export class Game {
     // Add to history
     this.addToHistory(elem);
     await elem.onResolve();
+    if(elem instanceof LootCardEffect && elem.card instanceof LootCard && !elem.card.trinket)
+      this.discard(elem.card);
     this._onStateChange.dispatch();
     if (elem instanceof DiceRoll)
       this.emit("on:dice:rolled", { diceRoll: elem });
