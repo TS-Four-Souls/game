@@ -339,6 +339,11 @@ const submitSelectionSchema = z.object({
   selections: z.array(selectionItemSchema),
 })
 
+const purchaseSchema = z.object({
+  issuer: issuerSchema,
+  index: z.union([z.number(), z.literal("top")])
+});
+
 
 const cardActivationSchema = z.object({
   issuer: issuerSchema,
@@ -427,7 +432,7 @@ export const schemas = {
   playCardRequest: cardActivationSchema,
   endTurnRequest: NextTurnRequestSchema,
   activateRequest: cardActivationSchema,
-  purchaseRequest: indexSchema,
+  purchaseRequest: purchaseSchema,
   giveCoinsRequest: giveCoinsSchema,
   issuer: issuerSchema,
 };
@@ -443,7 +448,7 @@ export namespace Requests {
   export type PlayCard = z.infer<typeof cardActivationSchema>;
   export type EndTurn = z.infer<typeof NextTurnRequestSchema>;
   export type Activate = z.infer<typeof cardActivationSchema>;
-  export type Purchase = z.infer<typeof indexSchema>;
+  export type Purchase = z.infer<typeof purchaseSchema>;
   export type GiveCoins = z.infer<typeof giveCoinsSchema>;
   export type AttackMonster = z.infer<typeof AttackMonsterSchema>;
   export type AttackRoll = z.infer<typeof issuerSchema>;

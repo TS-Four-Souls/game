@@ -1780,11 +1780,12 @@ export class Game {
     return true;
   }
 
-  purchase(issuer: Issuer, index: number): string {
+  purchase(issuer: Issuer, index: number | "top"): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.canPurchase(player, true);
-    this.assertPositiveNumber(index);
+    if( index !== "top" && (index < 0 || index >= this.shop._slots.length))
+      throw new Error("Invalid shop index.");
     const price = [gameParameters.shopPrice];
     this.emit("on:item:purchase", { eventIssuer: player, cost: price });
     if (player.remainingPurchaseThisTurn <= 0) {

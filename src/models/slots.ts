@@ -130,19 +130,14 @@ class Shop {
      * @param game - The game instance
      * @returns True if purchase was successful
      */
-    purchase(player: Player, index: number, price: number, game: Game): boolean {
-        if(index === 0)
-        {
+    purchase(player: Player, index: number | "top", price: number, game: Game): boolean {
+        if(index === "top")
             return this.purchaseTopDeck(player, price, game);
-        }
-        if (index > 0) {
-            index -= 1;
-            if (game.loseCoins(player, price, false) === price) {
-                game.addInPlay(player, this._slots[index]!);
-                this._slots[index] = undefined;
-                this.fillEmptySpots();
-                return true;
-            }
+        if (game.loseCoins(player, price, false) === price) {
+            game.addInPlay(player, this._slots[index]!);
+            this._slots[index] = undefined;
+            this.fillEmptySpots();
+            return true;
         }
         return false;
     }
