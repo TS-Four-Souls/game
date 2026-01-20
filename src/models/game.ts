@@ -2216,7 +2216,7 @@ export class Game {
 
   private assertForcedAttackSatisfied(player: Player): void {
     // Check if there's a forced attack constraint
-    if (!player.hasAttackRequirement()) {
+    if (!player.hasAttackRequirement) {
       return; // No constraint, all good
     }
 
