@@ -351,6 +351,9 @@ const detailedStateSchema = z.object({
   monsters: z.object({
     discard: z.array(cardSchema),
     deckSize: z.number(),
+    capabilities: z.object({
+      targetableDeck: z.boolean(),
+    }),
     inPlay: z.array(z.object({
       top: monsterCardSchema,
       covered: z.array(cardSchema),

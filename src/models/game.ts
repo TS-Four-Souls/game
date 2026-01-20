@@ -403,7 +403,7 @@ export class Game {
       this.assertNoOngoingAttack();
       this.assertPlayerIsAlive(player);
       if (!player.isEngagedInCombat) {
-      player.clearAttackRequirement(monster);
+        player.clearAttackRequirement(monster);
         throw new Error("Player has not declared an attack.");
       }
       const isMonsterAlreadyEngaged = this.monsters.some(
@@ -1711,6 +1711,9 @@ export class Game {
       {
         discard: this.decks["monster"]!.discard.map((c) => ({ slug: c.slug })).toReversed(),
         deckSize: this.decks["monster"]!.cards.length,
+        capabilities: {
+          targetableDeck: this.canDeclareAttackOnMonster(player, "topDeck", false),
+        },
         inPlay: this.encounters._slots.map((m, index) => ({ card: m[m.length - 1]!, monster: this.encounters.monsterIn(index), covered: this.encounters._slots[index]!.slice(0, -1).map(c => ({ slug: c.slug })) })).map((m) => ({
 
           top: {
