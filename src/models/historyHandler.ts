@@ -26,6 +26,8 @@ export type UserRequest =
   | Requests.AttackMonster
   | Requests.AttackRoll
   | Requests.DebugLoot
+  | Requests.DebugListLoot
+  | Requests.DebugListTreasure
   | Requests.DebugGainTreasure
   | Requests.DebugReset;
 

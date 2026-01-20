@@ -2,9 +2,10 @@ import { Server as Engine } from "@socket.io/bun-engine";
 import { Server } from "socket.io";
 import { Game } from "./models/game";
 import { Player } from "./models/player";
-import type { ClientToServerEvents, Issuer, ServerToClientEvents, TargetSelectorResponse } from "./shared/api";
+import type { ClientToServerEvents, ServerToClientEvents, TargetSelectorResponse } from "./shared/api";
 import { schemas } from "./shared/api";
 import { TargetBuilder } from "./models/targetBuilder";
+import type { Card, LootCard } from "./models/cards";
 
 const PORT = process.env.PORT || 3000;
 const HOSTNAME = process.env.HOSTNAME || "localhost";
@@ -100,6 +101,7 @@ io.on("connection", (socket) => {
     }
     try {
       game.reset();
+      io.emit("on:game:reset");
       game.addToHistory(validated.data);
       return callback({ status: 200 });
     } catch (error) {
@@ -207,10 +209,10 @@ io.on("connection", (socket) => {
     try {
       const player = game.getPlayerByIssuer(validated.data.issuer);
       game.submitSelection(
-          validated.data.issuer,
-          validated.data.requestId,
-          validated.data.selections
-        );
+        validated.data.issuer,
+        validated.data.requestId,
+        validated.data.selections
+      );
       game.addToHistory(validated.data);
       return callback({ status: 200 });
     } catch (error) {
@@ -230,14 +232,14 @@ io.on("connection", (socket) => {
     try {
       const player = game.getPlayerByIssuer(validated.data.issuer);
       const partialChoices = validated.data.targetChoices || [];
-            const card = TargetBuilder.getCardFromPlayer(game, player, validated.data.index, "hand");
-            const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(game, player, card, partialChoices, validated.data.effectIndex);
-            if (choices.complete) {
-              const targets = TargetBuilder.buildTargets(game, player, card, partialChoices, validated.data.effectIndex);
-              game.playCard(player, validated.data.index, targets);
-            }
+      const card = TargetBuilder.getCardFromPlayer(game, player, validated.data.index, "hand");
+      const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(game, player, card, partialChoices, validated.data.effectIndex);
+      if (choices.complete) {
+        const targets = TargetBuilder.buildTargets(game, player, card, partialChoices, validated.data.effectIndex);
+        game.playCard(player, validated.data.index, targets);
+      }
       game.addToHistory(validated.data);
-      return callback({ response: choices,status: 200 });
+      return callback({ response: choices, status: 200 });
     } catch (error) {
       console.error("Failed to play card", error);
       if (error instanceof Error) {
@@ -316,7 +318,7 @@ io.on("connection", (socket) => {
       const player = game.getPlayerByIssuer(validated.data.issuer);
       const target = game.getPlayerById(validated.data.target);
       const amount = validated.data.coins;
-      if(!game.giveCoins(player, target, amount))
+      if (!game.giveCoins(player, target, amount))
         throw new Error("amount of coins invalid");
       game.addToHistory(validated.data);
       return callback({ status: 200 });
@@ -329,7 +331,7 @@ io.on("connection", (socket) => {
     }
   });
 
-// ------------- DEBUG EVENTS -------------
+  // ------------- DEBUG EVENTS -------------
 
   socket.on("debugLoot", (payload, callback) => {
     const validated = schemas.debugLootRequest.safeParse(payload);
@@ -339,9 +341,71 @@ io.on("connection", (socket) => {
     try {
       const player = game.getPlayerByIssuer(validated.data);
       game.addToHistory(validated.data);
+      const slugs = validated.data.slugs;
+      if (slugs && slugs.length > 0) {
+        const lootDeck = game.decks["loot"];
+        if (!lootDeck) {
+          return callback({ status: 400, error: "Loot deck not available" });
+        }
+        for (const slug of slugs) {
+          const card = game.obtainCard(slug)! as LootCard;
+          game.addCardToHand(player, card);
+        }
+        return callback({ response: `Obtained ${slugs.length} loot card(s).`, status: 200 });
+      }
       return callback({ response: game.loot(player), status: 200 });
     } catch (error) {
       console.error("Failed to debug loot", error);
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
+    }
+  });
+
+  socket.on("debugListLoot", (payload, callback) => {
+    const validated = schemas.debugListLootRequest.safeParse(payload);
+    if (!validated.success) {
+      return callback({ status: 400, error: validated.error.message });
+    }
+    try {
+      game.getPlayerByIssuer(validated.data);
+      game.addToHistory(validated.data);
+
+      const lootDeck = game.decks["loot"];
+      if (!lootDeck) {
+        return callback({ status: 400, error: "Loot deck not available" });
+      }
+      const cards = lootDeck.cards.toSorted((a, b) => a.slug.localeCompare(b.slug)).map((c) => ({ name: c.name, slug: c.slug }));
+
+      return callback({ status: 200, cards });
+    } catch (error) {
+      console.error("Failed to debug list loot", error);
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
+    }
+  });
+
+  socket.on("debugListTreasure", (payload, callback) => {
+    const validated = schemas.debugListTreasureRequest.safeParse(payload);
+    if (!validated.success) {
+      return callback({ status: 400, error: validated.error.message });
+    }
+    try {
+      game.getPlayerByIssuer(validated.data);
+      game.addToHistory(validated.data);
+
+      const treasureDeck = game.decks["treasure"];
+      if (!treasureDeck) {
+        return callback({ status: 400, error: "Treasure deck not available" });
+      }
+      const cards = treasureDeck.cards.toSorted((a, b) => a.slug.localeCompare(b.slug)).map((c) => ({ name: c.name, slug: c.slug }));
+
+      return callback({ status: 200, cards });
+    } catch (error) {
+      console.error("Failed to debug list treasure", error);
       if (error instanceof Error) {
         return callback({ status: 400, error: error.message });
       }
@@ -357,6 +421,18 @@ io.on("connection", (socket) => {
     try {
       const player = game.getPlayerByIssuer(validated.data);
       game.addToHistory(validated.data);
+      const slugs = validated.data.slugs;
+      if (slugs && slugs.length > 0) {
+        const treasureDeck = game.decks["treasure"];
+        if (!treasureDeck) {
+          return callback({ status: 400, error: "Treasure deck not available" });
+        }
+        for (const slug of slugs) {
+          const card = game.obtainCard(slug)!;
+          game.addInPlay(player, card);
+        }
+        return callback({ response: `Obtained ${slugs.length} treasure card(s).`, status: 200 });
+      }
       return callback({ response: game.gainTreasure(player), status: 200 });
     } catch (error) {
       console.error("Failed to debug gain treasure", error);

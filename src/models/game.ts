@@ -1243,6 +1243,7 @@ export class Game {
   addCardToHand(player: Player, card: LootCard): void {
     player.hand.addToHand(card);
     this.emit("on:loot:added:after", { eventIssuer: player, card });
+    this._onStateChange.dispatch();
   }
 
   /**
