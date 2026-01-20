@@ -789,7 +789,8 @@ export class LootCardEffect {
             type: "LootCardEffect",
             card: {slug: this.card.slug, name: this.card.name},
             targets: TargetBuilder.convertToSelectionItems(this.targets),
-            issuer: this.issuer.json
+            issuer: this.issuer.json,
+            id: this._stackId,
          } ;
     }
 }
@@ -1041,7 +1042,8 @@ export class EffectOnStack {
             issuer: this._data.issuer.json, 
             targets: TargetBuilder.convertToSelectionItems(this._data.targets), 
             card: {slug: this.data.it.slug, name: this.data.it.name}, 
-            effect: this._description 
+            effect: this._description,
+            id: this._stackId,
         };
     }
 }

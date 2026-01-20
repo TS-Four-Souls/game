@@ -548,7 +548,8 @@ export class DiceRoll {
       diceRoll: this.value, 
       issuer: this.issuer.json, 
       card: !this._attackRoll ? {name: this._card!.name, slug: this._card!.slug} : undefined, 
-      targets: !this._attackRoll ? TargetBuilder.convertToSelectionItems(this._targets) : undefined
+      targets: !this._attackRoll ? TargetBuilder.convertToSelectionItems(this._targets) : undefined,
+      id: this._stackId
     }
   }
   set value(v: number) {
@@ -625,7 +626,9 @@ export class DamageOnStack {
       from: this.from.json, 
       receiver: this.receiver.json, 
       damage: this.damage[0]!, 
-      source: sourceName};
+      source: sourceName,
+      id: this._stackId,
+    };
   }
 };
 
@@ -665,7 +668,8 @@ export class DeathOnStack {
       type: "death",
       receiver: this.receiver.json,
       from: this.from.json,
-      source: sourceName
+      source: sourceName,
+      id: this._stackId,
     };
   }
 };

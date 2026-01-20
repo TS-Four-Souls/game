@@ -129,6 +129,7 @@ const lootCardOnStackJsonSchema = z.object({
   card: IdentifierTypeSchema.optional(),
   targets: z.array(selectionItemSchema),
   issuer: entityTypeSchema,
+  id: z.number(),
 });
 export type LootCardOnStackJson = z.infer<typeof lootCardOnStackJsonSchema>;
 
@@ -138,6 +139,7 @@ const diceRollJsonSchema = z.object({
   issuer: entityTypeSchema,
   card: IdentifierTypeSchema.optional(),
   targets: z.array(selectionItemSchema).optional(),
+  id: z.number(),
 });
 export type DiceRollJson = z.infer<typeof diceRollJsonSchema>;
 
@@ -146,6 +148,7 @@ const deathOnStackJsonSchema = z.object({
   receiver: entityTypeSchema,
   from: entityTypeSchema,
   source: z.union([z.lazy(() => diceRollJsonSchema), IdentifierTypeSchema]),
+  id: z.number(),
 });
 export type DeathOnStackJson = z.infer<typeof deathOnStackJsonSchema>;
 
@@ -155,6 +158,7 @@ const damageOnStackJsonSchema = z.object({
   from: entityTypeSchema,
   damage: z.number(),
   source: z.union([z.lazy(() => diceRollJsonSchema), IdentifierTypeSchema]),
+  id: z.number(),
 });
 export type DamageOnStackJson = z.infer<typeof damageOnStackJsonSchema>;
 
@@ -164,6 +168,7 @@ const effectOnStackJsonSchema = z.object({
   targets: z.array(selectionItemSchema),
   card: IdentifierTypeSchema,
   effect: z.string(),
+  id: z.number(),
 });
 export type EffectOnStackJson = z.infer<typeof effectOnStackJsonSchema>;
 

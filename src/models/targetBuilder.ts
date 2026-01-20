@@ -301,15 +301,12 @@ export class TargetBuilder {
      */
     private static resolveIdentifier(identifier: SelectionItem, possibleTargets: any[]): any {
         if (possibleTargets.length === 0) return undefined;
-
         switch(identifier.type) {
             case "card":
                 return possibleTargets.find(t => t && t.slug === identifier.payload.slug);
             case "player":
             case "monster":
                 return possibleTargets.find(t => t && t.json.name === identifier.payload.name);
-            case "stackElement":
-                return possibleTargets.find(t => isStackElement(t) && JSON.stringify(t.json) === JSON.stringify(identifier.payload));
             case "number":
             case "string":
             case "boolean":
@@ -322,6 +319,8 @@ export class TargetBuilder {
                     t.player.slug === identifier.payload.player.slug &&
                     JSON.stringify(t.hand.cards.map((c: Card) => c.slug)) === JSON.stringify(identifier.payload.hand)
                 );
+            case "stackElement":
+                return possibleTargets.find(t => isStackElement(t) && t.stackId === identifier.payload.id);
             case "array":
                 try {
                     const parsed = identifier.payload.map((item: SelectionItem) => {
