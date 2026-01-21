@@ -1690,7 +1690,6 @@ export class Game {
   detailedStateJSON(issuer: Issuer): DetailedState {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
-    console.log(player.id, "is requesting detailed state JSON", player.inPlay.length, "cards in play", player.isEngagedInPurchase);
     return {
       me: {
         name: player.id,
