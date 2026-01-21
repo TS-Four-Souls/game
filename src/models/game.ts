@@ -1691,6 +1691,17 @@ export class Game {
   detailedStateJSON(issuer: Issuer): DetailedState {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
+
+    const players = [...this.players];
+
+    // Rotate the array until the player is at the front
+    const playerIndex = players.findIndex(p => p.id === player.id);
+    for (let i = 0; i < playerIndex; i++) {
+      players.push(players.shift()!);
+    }
+    
+    const otherPlayers = players.slice(1);
+
     return {
       me: {
         name: player.id,
@@ -1740,8 +1751,7 @@ export class Game {
           resolve: this.canResolve(),
         }
       },
-      players: this.turnHandler.priorityOrder
-        .filter((p) => p.id !== player.id)
+      players: otherPlayers
         .map((p) => ({
           name: p.id,
           handSize: p.hand.cards.length,
