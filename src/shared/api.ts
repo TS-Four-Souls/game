@@ -214,11 +214,6 @@ const debugGainTreasureRequestSchema = issuerSchema.extend({
   slugs: z.array(z.string()).optional(),
 });
 
-const indexSchema = z.object({
-  issuer: issuerSchema,
-  index: z.number(),
-});
-
 const giveCoinsSchema = z.object({
   issuer: issuerSchema,
   target: z.string(),
