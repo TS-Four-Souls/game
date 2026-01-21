@@ -1790,7 +1790,7 @@ export class Game {
         inPlay: this.shop._slots.map((c) => ({ name: c!.name, slug: c!.slug })),
       },
       turn: this.currentPlayer.id,
-      firstCardTreasureDeck: player.canSeeTopOfTreasureDeck ? this.decks["treasure"]!.cards[0]?.json : undefined,
+      firstCardTreasureDeck: player.canSeeTopOfTreasureDeck ? {name: this.decks["treasure"]!.cards[0]!.name, slug: this.decks["treasure"]!.cards[0]!.slug} : undefined,
       stack: this.stack.elements.map((el) => el.json).toReversed(),
       // firstCardTreasureDeck: player.canSeeTopOfTreasureDeck
       // ? this.decks["treasure"]!.cards[0]?.json
