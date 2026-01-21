@@ -364,6 +364,7 @@ export class Game {
     try {
       this.assertCurrentTurnIsPlayerTurn(player);
       this.assertNoOngoingAttack();
+      this.assertCurrentPlayerIsNotEngagedInPurchase();
       this.assertPlayerIsAlive(player);
       this.assertNoPendingSelection();
 
@@ -536,7 +537,8 @@ export class Game {
       this.assertCurrentTurnIsPlayerTurn(player);
       this.assertPlayerIsAlive(player);
       this.assertNoPendingSelection();
-      // todo force player to have declared attack.
+      this.assertCurrentPlayerIsEngagedInCombat();
+      
       const monster = [...this.monsters].find(
         (m): m is Monster => m !== undefined && m.isEngagedInCombat
       );
@@ -557,7 +559,7 @@ export class Game {
 
   attackRoll(player: Player): void {
     this.canRollDice(player, true);
-    // todo force player to have declared attack.
+    
     const monster = [...this.monsters].find(
       (m): m is Monster => m !== undefined && m.isEngagedInCombat
     );
@@ -1688,7 +1690,7 @@ export class Game {
   detailedStateJSON(issuer: Issuer): DetailedState {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
-
+    console.log(player.id, "is requesting detailed state JSON", player.inPlay.length, "cards in play", player.isEngagedInPurchase);
     return {
       me: {
         name: player.id,
@@ -1711,6 +1713,7 @@ export class Game {
         currentHealthPoints: player.currentHealthPoints,
         remainingLootPlay: player.remainingLootPlay,
         isEngagedInCombat: player.isEngagedInCombat,
+        isEngagedInPurchase: player.isEngagedInPurchase,
         pendingSelection: (() => {
           // Check if player has a pending selection from selectMultiple
           for (const sel of this.pendingMultipleSelections.values()) {
@@ -1729,6 +1732,7 @@ export class Game {
         capabilities: {
           endTurn: this.canEndTurn(player),
           declareAttack: this.canDeclareAttack(player),
+          declarePurchase: this.canDeclarePurchase(player),
           rollDice: this.canRollDice(player),
           buyTreasure: this.canPurchase(player),
           useLoot: this.canPlayCard(player),
@@ -1753,6 +1757,7 @@ export class Game {
           currentHealthPoints: p.currentHealthPoints,
           remainingLootPlay: p.remainingLootPlay,
           isEngagedInCombat: p.isEngagedInCombat,
+          isEngagedInPurchase: p.isEngagedInPurchase,
           pendingSelection: this.pendingMultipleSelections.values().some(sel => sel.playerId === p.id),
         })),
       monsters:
@@ -1803,10 +1808,8 @@ export class Game {
       // : undefined,
     };
   }
-  
-  // TODO: When a player declares a purchase, before they choose what to purchase, priority passes
   // We should implement declaring a purchase
-  canPurchase(issuer: Issuer, shouldThrow: boolean = false): Capability {
+  canDeclarePurchase(issuer: Issuer, shouldThrow: boolean = false): Capability {
     try {
       this.assertGameStarted();
       const player = this.assertIssuerSecret(issuer);
@@ -1819,8 +1822,54 @@ export class Game {
         throw new Error(
           `Purchase failed. You have no remaining purchases this turn.\n`
         );
+      } 
+    } catch (error) {
+      if (shouldThrow) throw error;
+      if (error instanceof Error) {
+        return error.message;
       }
-      // TODO: Also check if the player has enough coins to purchase the card      
+      return "Unknown reason";
+    }
+    return true;
+  }
+
+  declarePurchase(player: Player): void {
+    this.canDeclarePurchase(player, true);
+
+    player.remainingPurchaseThisTurn -= 1;
+    player.engageInPurchase();
+    this._onStateChange.dispatch();
+  }
+
+  cancelPurchase(player: Player): void {
+    if(this.canPurchase(player, false) !== true)
+      {
+        player.purchaseEnded();
+        this._onStateChange.dispatch();
+      }
+    else 
+      throw new Error("You have to purchase an item.");
+  }
+
+  // We should implement declaring a purchase
+  canPurchase(player: Player, shouldThrow: boolean = false): Capability {
+    try {
+      this.assertGameStarted();
+      this.assertCurrentTurnIsPlayerTurn(player);
+      this.assertPlayerIsAlive(player);
+      this.assertCurrentPlayerIsEngagedInPurchase();
+      if (player.remainingPurchaseThisTurn <= 0) {
+        throw new Error(
+          `Purchase failed. You have no remaining purchases this turn.\n`
+        );
+      } 
+      const price = [gameParameters.shopPrice];
+      this.emit("on:item:purchase", { eventIssuer: player, cost: price });
+      if (player.coins < price[0]!) {
+        throw new Error(
+          `Purchase failed. You need ${price[0]! - player.coins} more coins.\n`
+        );
+      }
     } catch (error) {
       if (shouldThrow) throw error;
       if (error instanceof Error) {
@@ -1834,19 +1883,16 @@ export class Game {
   purchase(issuer: Issuer, index: number | "top"): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
+    this.assertEmptyStack();
+    this.assertNoPendingSelection();
     this.canPurchase(player, true);
     if (index !== "top" && (index < 0 || index >= this.shop._slots.length))
       throw new Error("Invalid shop index.");
-    // TODO: Isn't there a treasure that reduce the shop price?
     const price = [gameParameters.shopPrice];
     this.emit("on:item:purchase", { eventIssuer: player, cost: price });
-    if (player.remainingPurchaseThisTurn <= 0) {
-      throw new Error(
-        `Purchase failed. You have no remaining purchases this turn.\n`
-      );
-    }
     if (this.shop.purchase(player, index, price[0]!, this)) {
       player.remainingPurchaseThisTurn -= 1;
+      player.purchaseEnded();
       this._onStateChange.dispatch();
       return `Purchase successful. You have now ${player.coins} coins.\n`;
     } else {
@@ -2191,6 +2237,23 @@ export class Game {
     }
   }
 
+  private assertCurrentPlayerIsEngagedInCombat(): void {
+    if (!this.currentPlayer!.isEngagedInCombat) {
+      throw new Error("You are not currently engaged in combat");
+    }
+  }
+
+  private assertCurrentPlayerIsEngagedInPurchase(): void {
+    if (!this.currentPlayer!.isEngagedInPurchase) {
+      throw new Error("You are not currently engaged in purchase");
+    }
+  }
+
+  private assertCurrentPlayerIsNotEngagedInPurchase(): void {
+    if (this.currentPlayer!.isEngagedInPurchase) {
+      throw new Error("You are currently engaged in purchase");
+    }
+  }
   private assertPlayerIdAvailable(id: string): void {
     if (this.players.some((p) => p.id === id)) {
       throw new Error(`Player ${id} already exists`);

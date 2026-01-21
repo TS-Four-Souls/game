@@ -63,6 +63,8 @@ export class Player extends Entity {
   
   private _otherPlayerCanUseLootOrActivateOnMyTurn: boolean = true;
 
+  private _engagedInPurchase: number = 0;
+
   /**
    * Creates a new Player instance.
    * 
@@ -163,6 +165,18 @@ export class Player extends Entity {
     this._otherPlayerCanUseLootOrActivateOnMyTurn = value;
   }
 
+  get isEngagedInPurchase(): boolean {
+    return this._engagedInPurchase > 0;
+  }
+
+  purchaseEnded(){
+    this._engagedInPurchase = Math.max(0, this._engagedInPurchase - 1);
+
+  }
+
+  engageInPurchase(): void {
+    this._engagedInPurchase += 1;
+  }
   get diceModifier(): number {
     return this._diceModifier;
   }

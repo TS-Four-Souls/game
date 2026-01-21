@@ -334,6 +334,9 @@ export type NextTargetSelectorResponse = z.infer<typeof nextTargetSelectorRespon
 const resolveRequestSchema = startRequestSchema
 
 const declareAttackRequestSchema = startRequestSchema;
+const declarePurchaseRequestSchema = startRequestSchema;
+const cancelPurchaseRequestSchema = startRequestSchema;
+
 const declareAttackResponseSchema = basicResponseSchema;
 export type DeclareAttackResponse = z.infer<typeof declareAttackResponseSchema>;
 const submitSelectionSchema = z.object({
@@ -368,6 +371,7 @@ const playerSchema = z.object({
   currentAttackPoints: z.number(),
   remainingLootPlay: z.number(),
   isEngagedInCombat: z.boolean(),
+  isEngagedInPurchase: z.boolean(),
   pendingSelection: z.boolean(),
 });
 export type Player = z.infer<typeof playerSchema>;
@@ -378,6 +382,7 @@ const playerMeSchema = playerSchema.extend({
   capabilities: z.object({
     endTurn: capabilitySchema,
     declareAttack: capabilitySchema,
+    declarePurchase: capabilitySchema,
     rollDice: capabilitySchema,
     buyTreasure: capabilitySchema,
     useLoot: capabilitySchema,
@@ -423,6 +428,8 @@ export const schemas = {
   startRequest: startRequestSchema,
   resetRequest: resetRequestSchema,
   declareAttackRequest: declareAttackRequestSchema,
+  declarePurchaseRequest: declarePurchaseRequestSchema,
+  cancelPurchaseRequest: cancelPurchaseRequestSchema,
   attackMonsterRequest: AttackMonsterSchema,
   attackRollRequest: issuerSchema,
   debugLootRequest: debugLootRequestSchema,
@@ -446,6 +453,8 @@ export namespace Requests {
   export type Start = z.infer<typeof startRequestSchema>;
   export type Reset = z.infer<typeof resetRequestSchema>;
   export type DeclareAttack = z.infer<typeof declareAttackRequestSchema>;
+  export type DeclarePurchase = z.infer<typeof declarePurchaseRequestSchema>;
+  export type CancelPurchase = z.infer<typeof cancelPurchaseRequestSchema>;
   export type resolve = z.infer<typeof resolveRequestSchema>;
   export type submitSelection = z.infer<typeof submitSelectionSchema>;
   export type PlayCard = z.infer<typeof cardActivationSchema>;
@@ -474,6 +483,8 @@ export namespace Responses {
   export type EndTurn = StringResponse;
   export type Activate = NextTargetSelectorResponse;
   export type Purchase = BasicResponse;
+  export type DeclarePurchase = BasicResponse;
+  export type CancelPurchase = BasicResponse;
   export type AttackMonster = BasicResponse;
   export type AttackRoll = BasicResponse;
   export type DebugLoot = StringResponse;
@@ -581,5 +592,15 @@ export interface ClientToServerEvents {
   giveCoins: (
     request: Requests.GiveCoins,
     callback: (response: Responses.GiveCoins) => void,
+  ) => void;
+
+  declarePurchase: (
+    request: Requests.DeclarePurchase,
+    callback: (response: Responses.DeclarePurchase) => void,
+  ) => void;
+
+  cancelPurchase: (
+    request: Requests.CancelPurchase,
+    callback: (response: Responses.CancelPurchase) => void,
   ) => void;
 }

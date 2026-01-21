@@ -5,7 +5,7 @@ import { Player } from "./models/player";
 import type { ClientToServerEvents, ServerToClientEvents, TargetSelectorResponse } from "./shared/api";
 import { schemas } from "./shared/api";
 import { TargetBuilder } from "./models/targetBuilder";
-import type { Card, LootCard } from "./models/cards";
+import type { Card, ItemCard, LootCard } from "./models/cards";
 
 const PORT = process.env.PORT || 3000;
 const HOSTNAME = process.env.HOSTNAME || "localhost";
@@ -82,6 +82,16 @@ io.on("connection", (socket) => {
     }
     try {
       game.start(validated.data.issuer);
+      // const loots = ["b2-i_the_magician", "b2-gold_bomb", "b2-ii_the_high_priestess", "b2-bomb"]
+      // for (const slug of loots) {
+      //   const card = game.obtainCard(slug)! as LootCard;
+      //   game.addCardToHand(game.players[0]!, card);
+      // }
+      // const treas = ["b2-theres_options", "b2-trinity_shield"];
+      // for (const slug of treas) {
+      //   const card = game.obtainCard(slug)! as ItemCard;
+      //   game.addInPlay(game.players[0]!, card);
+      // }
       io.emit("on:game:start");
       game.addToHistory(validated.data);
       return callback({ status: 200 });
@@ -268,6 +278,42 @@ io.on("connection", (socket) => {
       return callback({ response: choices, status: 200 });
     } catch (error) {
       console.error("Failed to play card", error);
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
+    }
+  });
+
+  socket.on("declarePurchase", (payload, callback) => {
+    const validated = schemas.declarePurchaseRequest.safeParse(payload);
+    if (!validated.success) {
+      return callback({ status: 400, error: validated.error.message });
+    }
+    try {
+      const player = game.getPlayerByIssuer(validated.data.issuer);
+      game.declarePurchase(player);
+      return callback({ status: 200 });
+    } catch (error) {
+      console.error("Failed to declare purchase", error);
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
+    }
+  });
+
+  socket.on("cancelPurchase", (payload, callback) => {
+    const validated = schemas.cancelPurchaseRequest.safeParse(payload);
+    if (!validated.success) {
+      return callback({ status: 400, error: validated.error.message });
+    }
+    try {
+      const player = game.getPlayerByIssuer(validated.data.issuer);
+      game.cancelPurchase(player);
+      return callback({ status: 200 });
+    } catch (error) {
+      console.error("Failed to cancel purchase", error);
       if (error instanceof Error) {
         return callback({ status: 400, error: error.message });
       }
