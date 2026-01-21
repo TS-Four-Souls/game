@@ -1713,6 +1713,7 @@ export class Game {
         currentHealthPoints: player.currentHealthPoints,
         remainingLootPlay: player.remainingLootPlay,
         isEngagedInCombat: player.isEngagedInCombat,
+        temporaryEffect: player.temporaryEffects,
         isEngagedInPurchase: player.isEngagedInPurchase,
         pendingSelection: (() => {
           // Check if player has a pending selection from selectMultiple
@@ -1755,6 +1756,7 @@ export class Game {
           coins: p.coins,
           currentAttackPoints: p.attackPoints,
           currentHealthPoints: p.currentHealthPoints,
+          temporaryEffect: p.temporaryEffects,
           remainingLootPlay: p.remainingLootPlay,
           isEngagedInCombat: p.isEngagedInCombat,
           isEngagedInPurchase: p.isEngagedInPurchase,
@@ -1780,7 +1782,9 @@ export class Game {
                 isEngagedInCombat: m.monster.isEngagedInCombat,
                 capabilities: {
                   targetable: this.canDeclareAttackOnMonster(player, m.monster),
-                }
+                },
+                temporaryEffect: m.monster.temporaryEffects,
+
               }
 
             } : {})
