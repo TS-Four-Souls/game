@@ -1088,6 +1088,7 @@ export class Game {
       this.assertGameStarted();
       const player = this.assertIssuerSecret(issuer);
       this.assertCurrentTurnIsPlayerTurn(player);
+      this.assertCurrentPlayerIsNotEngagedInPurchase();
       this.assertCurrentPlayerIsNotEngagedInCombat();
       this.assertEmptyStack();
       this.assertNoOngoingAttack();
@@ -1857,11 +1858,6 @@ export class Game {
       this.assertCurrentTurnIsPlayerTurn(player);
       this.assertPlayerIsAlive(player);
       this.assertCurrentPlayerIsEngagedInPurchase();
-      if (player.remainingPurchaseThisTurn <= 0) {
-        throw new Error(
-          `Purchase failed. You have no remaining purchases this turn.\n`
-        );
-      } 
       const price = [gameParameters.shopPrice];
       this.emit("on:item:purchase", { eventIssuer: player, cost: price });
       if (player.coins < price[0]!) {
