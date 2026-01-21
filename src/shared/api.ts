@@ -67,6 +67,7 @@ const pendingSelectionSchema = z.object({
 export type PendingSelection = z.infer<typeof pendingSelectionSchema>;
 
 const capabilitySchema = z.union([z.literal(true), z.string()]);
+export type Capability = z.infer<typeof capabilitySchema>;
 
 const monsterCardSchema = cardSchema.extend({
   stats: z.object({
@@ -84,7 +85,7 @@ export type MonsterCard = z.infer<typeof monsterCardSchema>;
 const inPlayCardSchema = cardSchema.extend({
   charged: z.boolean().optional(),
   capabilities: z.object({
-    activate: z.boolean().optional(),
+    activate: capabilitySchema,
   }),
 });
 export type InPlayCard = z.infer<typeof inPlayCardSchema>;
@@ -375,12 +376,12 @@ const playerMeSchema = playerSchema.extend({
   hand: z.array(cardSchema),
   inPlay: z.array(inPlayMeCardSchema),
   capabilities: z.object({
-    endTurn: z.boolean(),
-    declareAttack: z.boolean(),
-    rollDice: z.boolean(),
-    buyTreasure: z.boolean(),
-    useLoot: z.boolean(),
-    resolve: z.boolean(),
+    endTurn: capabilitySchema,
+    declareAttack: capabilitySchema,
+    rollDice: capabilitySchema,
+    buyTreasure: capabilitySchema,
+    useLoot: capabilitySchema,
+    resolve: capabilitySchema,
   }),
   pendingSelection: pendingSelectionSchema.optional(),
 });

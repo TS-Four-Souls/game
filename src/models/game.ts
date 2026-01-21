@@ -13,7 +13,6 @@ import {
   Hand,
   LoadsCardSets,
   LoadDecks,
-  randomCardFromSet,
   isSameSlug,
   CharacterCard,
   MonsterCard,
@@ -21,7 +20,6 @@ import {
   LootCard,
   LootCardEffect,
   EffectOnStack,
-  InplayType,
   treasureCard,
   BsoulCard,
   Effect,
@@ -33,7 +31,7 @@ import {
   MonsterType,
 } from "@/models/cards";
 import { Stack, type StackElement } from "@/models/stack";
-import { effectParser, type ParsedEffect } from "@/models/effectParser";
+import { effectParser } from "@/models/effectParser";
 import {
   getAttackRollEffect,
   targetGetCoinRollEffect,
@@ -44,12 +42,9 @@ import { Entity } from "@/models/entity";
 import { TurnHandler } from "./turnHandler";
 import { type ReadableSignal, Signal } from "micro-signals";
 import { GameEventEmitter } from "./eventEmmitter";
-import { preventNextDamageUpToEffect } from "@/models/passiveEffect";
 import { bSoulEffectParser } from "@/models/bonusSoulHandling";
-import { ca, pl } from "zod/locales";
 import type { TriggerEvent } from "@/types/triggers";
-import { set } from "zod";
-import type { DetailedState, SelectionItem } from "@/shared/api";
+import type { Capability, DetailedState, SelectionItem } from "@/shared/api";
 import { HistoricHandler, type HistoricEntry, type UserRequest } from "./historyHandler";
 
 // Type representing sources of damage - either a card ability or a dice roll
@@ -365,7 +360,7 @@ export class Game {
     });
   }
 
-  canDeclareAttack(player: Player, shouldThrow: boolean = false): boolean {
+  canDeclareAttack(player: Player, shouldThrow: boolean = false): Capability {
     try {
       this.assertCurrentTurnIsPlayerTurn(player);
       this.assertNoOngoingAttack();
@@ -379,7 +374,10 @@ export class Game {
         throw new Error("Player has no remaining attacks this turn.");
     } catch (e) {
       if (shouldThrow) throw e;
-      return false;
+      if (e instanceof Error) {
+        return e.message;
+      }
+      return "Unknown reason";
     }
     return true;
   }
@@ -394,7 +392,7 @@ export class Game {
   }
 
   canDeclareAttackOnMonster(player: Player,
-    monster: Monster | "topDeck", shouldThrow: boolean = false): string | true {
+    monster: Monster | "topDeck", shouldThrow: boolean = false): Capability {
     try {
       if (monster !== "topDeck" && !monster.attackable) {
         throw new Error("This monster cannot be attacked.");
@@ -533,7 +531,7 @@ export class Game {
     return undefined;
   }
 
-  canRollDice(player: Player, shouldThrow: boolean = false): boolean {
+  canRollDice(player: Player, shouldThrow: boolean = false): Capability {
     try {
       this.assertCurrentTurnIsPlayerTurn(player);
       this.assertPlayerIsAlive(player);
@@ -547,7 +545,10 @@ export class Game {
       }
     } catch (e) {
       if (shouldThrow) throw e;
-      return false;
+      if (e instanceof Error) {
+        return e.message;
+      }
+      return "Unknown reason";
     }
     return true;
   }
@@ -1080,9 +1081,9 @@ export class Game {
     return `It's ${this.currentPlayer!.id}'s turn. Round ${roundIndex}.\n`;
   }
 
-  canEndTurn(issuer: Issuer, shouldThrow: boolean = false): boolean {
+  canEndTurn(issuer: Issuer, shouldThrow: boolean = false): Capability {
     try {
-      const roundIndex = this.assertGameStarted();
+      this.assertGameStarted();
       const player = this.assertIssuerSecret(issuer);
       this.assertCurrentTurnIsPlayerTurn(player);
       this.assertCurrentPlayerIsNotEngagedInCombat();
@@ -1093,7 +1094,10 @@ export class Game {
     }
     catch (e) {
       if (shouldThrow) throw e;
-      return false;
+      if (e instanceof Error) {
+        return e.message;
+      }
+      return "Unknown reason";
     }
     return true;
   }
@@ -1102,7 +1106,7 @@ export class Game {
     return card.getTargetSelectors();
   }
 
-  canPlayCard(issuer: Issuer, shouldThrow: boolean = false): boolean {
+  canPlayCard(issuer: Issuer, shouldThrow: boolean = false): Capability {
     try {
       this.assertGameStarted();
       const player = this.assertIssuerSecret(issuer);
@@ -1112,7 +1116,25 @@ export class Game {
       }
     } catch (e) {
       if (shouldThrow) throw e;
-      return false;
+      if (e instanceof Error) {
+        return e.message;
+      }
+      return "Unknown reason";
+    }
+    return true;
+  }
+
+  canResolve(shouldThrow: boolean = false): Capability {
+    try {
+      this.assertGameStarted();
+      this.assertStackNotEmpty();
+      this.assertNoPendingSelection();
+    } catch (e) {
+      if (shouldThrow) throw e;
+      if (e instanceof Error) {
+        return e.message;
+      }
+      return "Unknown reason";
     }
     return true;
   }
@@ -1647,6 +1669,16 @@ export class Game {
     return true;
   }
 
+  canActivate(card: Card): Capability {
+    if (card.charged === false) {
+      return "This card is not charged, it cannot be activated.";
+    }
+    if (card instanceof ItemCard && card.activeEffectList.length === 0) {
+      return "This card has no active effects, there is nothing to activate.";
+    }
+    return true;
+  }
+
   detailedStateJSON(issuer: Issuer): DetailedState {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -1662,7 +1694,7 @@ export class Game {
           effects: c.activeEffectList,
           capabilities:
           {
-            activate: c.charged && c instanceof ItemCard && c.activeEffectList.length > 0
+            activate: this.canActivate(c)
           },
         })),
         handSize: player.hand.cards.length,
@@ -1694,7 +1726,7 @@ export class Game {
           rollDice: this.canRollDice(player),
           buyTreasure: this.canPurchase(player),
           useLoot: this.canPlayCard(player),
-          resolve: this.stack.elements.length > 0,
+          resolve: this.canResolve(),
         }
       },
       players: this.players
@@ -1705,7 +1737,7 @@ export class Game {
           inPlay: p.inPlay.map((c) => ({
             name: c.name, slug: c.json.slug, charged: c.charged, capabilities:
             {
-              activate: c.charged && c instanceof ItemCard && c.activeEffectList.length > 0
+              activate: this.canActivate(c)
             }
           })),
           souls: p.totalSouls,
@@ -1765,22 +1797,30 @@ export class Game {
       // : undefined,
     };
   }
-  canPurchase(issuer: Issuer, shouldThrow: boolean = false): boolean {
+  
+  // TODO: When a player declares a purchase, before they choose what to purchase, priority passes
+  // We should implement declaring a purchase
+  canPurchase(issuer: Issuer, shouldThrow: boolean = false): Capability {
     try {
       this.assertGameStarted();
       const player = this.assertIssuerSecret(issuer);
+      this.assertCurrentTurnIsPlayerTurn(player);
       this.assertPlayerIsAlive(player);
+      this.assertCurrentPlayerIsNotEngagedInCombat();
+      this.assertEmptyStack();
       this.assertNoPendingSelection();
-      this.assertNoOngoingAttack();
-      const price = [gameParameters.shopPrice];
       if (player.remainingPurchaseThisTurn <= 0) {
         throw new Error(
           `Purchase failed. You have no remaining purchases this turn.\n`
         );
       }
+      // TODO: Also check if the player has enough coins to purchase the card      
     } catch (error) {
       if (shouldThrow) throw error;
-      return false;
+      if (error instanceof Error) {
+        return error.message;
+      }
+      return "Unknown reason";
     }
     return true;
   }
@@ -1791,6 +1831,7 @@ export class Game {
     this.canPurchase(player, true);
     if (index !== "top" && (index < 0 || index >= this.shop._slots.length))
       throw new Error("Invalid shop index.");
+    // TODO: Isn't there a treasure that reduce the shop price?
     const price = [gameParameters.shopPrice];
     this.emit("on:item:purchase", { eventIssuer: player, cost: price });
     if (player.remainingPurchaseThisTurn <= 0) {
@@ -2140,7 +2181,7 @@ export class Game {
 
   private assertCurrentPlayerIsNotEngagedInCombat(): void {
     if (this.currentPlayer!.isEngagedInCombat) {
-      throw new Error("You cannot end your turn while engaged in combat.");
+      throw new Error("You are currently engaged in combat");
     }
   }
 
@@ -2165,6 +2206,12 @@ export class Game {
   private assertGameNotStarted(): void {
     if (this.turnHandler.isInitialized) {
       throw new Error("Game already started");
+    }
+  }
+
+  private assertStackNotEmpty(): void {
+    if (this._stack.size === 0) {
+      throw new Error("The stack is empty");
     }
   }
 
