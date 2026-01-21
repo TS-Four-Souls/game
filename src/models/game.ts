@@ -368,10 +368,10 @@ export class Game {
       this.assertNoPendingSelection();
 
       if (player.isEngagedInCombat) {
-        throw new Error("Player is already engaged in combat.");
+        throw new Error("You are already engaged in combat.");
       }
       if (player.attackThisTurn <= 0 && !player.hasAttackRequirement)
-        throw new Error("Player has no remaining attacks this turn.");
+        throw new Error("You have no remaining attacks this turn.");
     } catch (e) {
       if (shouldThrow) throw e;
       if (e instanceof Error) {
@@ -402,7 +402,7 @@ export class Game {
       this.assertPlayerIsAlive(player);
       if (!player.isEngagedInCombat) {
         player.clearAttackRequirement(monster);
-        throw new Error("Player has not declared an attack.");
+        throw new Error("You have not declared an attack.");
       }
       const isMonsterAlreadyEngaged = this.monsters.some(
         (m): m is Monster => m !== undefined && m.isEngagedInCombat
@@ -411,7 +411,7 @@ export class Game {
         throw new Error("Another monster is already engaged in combat.");
       }
       if (!player.canAttackThisMonster(monster)) {
-        throw new Error("Player must attack a specific monster.");
+        throw new Error("You must attack a specific monster.");
       }
     } catch (e) {
       if (shouldThrow) throw e;
@@ -1111,8 +1111,11 @@ export class Game {
       this.assertGameStarted();
       const player = this.assertIssuerSecret(issuer);
       this.assertNoPendingSelection();
+      if( this.currentPlayer !== player && this.currentPlayer.otherPlayerCanUseLootOrActivateOnMyTurn === false) {
+        throw new Error(`You cannot play loot cards during ${this.currentPlayer.id}'s turn.`);
+      }
       if (player.remainingLootPlay <= 0) {
-        throw new Error("Player has no remaining loot play this turn.");
+        throw new Error("You have no remaining loot play this turn.");
       }
     } catch (e) {
       if (shouldThrow) throw e;
@@ -1669,12 +1672,15 @@ export class Game {
     return true;
   }
 
-  canActivate(card: Card): Capability {
-    if (card.charged === false) {
-      return "This card is not charged, it cannot be activated.";
-    }
+  canActivate(card: Card, owner: Player): Capability {
     if (card instanceof ItemCard && card.activeEffectList.length === 0) {
       return "This card has no active effects, there is nothing to activate.";
+    }
+    if(owner !== this.currentPlayer && !this.currentPlayer.otherPlayerCanUseLootOrActivateOnMyTurn) {
+      return `You cannot activate cards during ${this.currentPlayer.id}'s turn.`;
+    }
+    if (card.charged === false) {
+      return "This card is not charged, it cannot be activated.";
     }
     return true;
   }
@@ -1694,7 +1700,7 @@ export class Game {
           effects: c.activeEffectList,
           capabilities:
           {
-            activate: this.canActivate(c)
+            activate: this.canActivate(c, player),
           },
         })),
         handSize: player.hand.cards.length,
@@ -1737,7 +1743,7 @@ export class Game {
           inPlay: p.inPlay.map((c) => ({
             name: c.name, slug: c.json.slug, charged: c.charged, capabilities:
             {
-              activate: this.canActivate(c)
+              activate: this.canActivate(c, p)
             }
           })),
           souls: p.totalSouls,
@@ -2246,7 +2252,7 @@ export class Game {
 
   private assertPlayerIsAlive(player: Player): void {
     if (player.isDead) {
-      throw new Error("Player is already dead");
+      throw new Error(`${player.id} is already dead`);
     }
   }
 

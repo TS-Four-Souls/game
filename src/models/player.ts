@@ -60,14 +60,8 @@ export class Player extends Entity {
   private _mustAttackMonster: (Monster | "topDeck")[] = [];
 
   private _diceModifier: number = 0;
-
-  get diceModifier(): number {
-    return this._diceModifier;
-  }
-
-  addDiceModifier(value: number): void {
-    this._diceModifier += value;
-  }
+  
+  private _otherPlayerCanUseLootOrActivateOnMyTurn: boolean = true;
 
   /**
    * Creates a new Player instance.
@@ -161,6 +155,22 @@ export class Player extends Entity {
     return this._canSeeTopOfTreasureDeck > 0;
   }
   
+  get otherPlayerCanUseLootOrActivateOnMyTurn(): boolean {
+    return this._otherPlayerCanUseLootOrActivateOnMyTurn;
+  }
+
+  set otherPlayerCanUseLootOrActivateOnMyTurn(value: boolean) {
+    this._otherPlayerCanUseLootOrActivateOnMyTurn = value;
+  }
+
+  get diceModifier(): number {
+    return this._diceModifier;
+  }
+
+  addDiceModifier(value: number): void {
+    this._diceModifier += value;
+  }
+
   /**
    * Modifies the player's ability to see the top of the treasure deck.
    * @param value - Modifier to add (+1 to enable, -1 to disable)
