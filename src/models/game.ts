@@ -1740,7 +1740,7 @@ export class Game {
           resolve: this.canResolve(),
         }
       },
-      players: this.players
+      players: this.turnHandler.priorityOrder
         .filter((p) => p.id !== player.id)
         .map((p) => ({
           name: p.id,
