@@ -1,17 +1,17 @@
 import { z } from "zod";
 
-export const IdentifierTypeSchema = z.object({
+export const identifierTypeSchema = z.object({
   name: z.string(),
   slug: z.string(),
 });
-export type IdentifierType = z.infer<typeof IdentifierTypeSchema>;
+export type IdentifierType = z.infer<typeof identifierTypeSchema>;
 
-export const entityTypeSchema = IdentifierTypeSchema.extend({
+export const entityTypeSchema = identifierTypeSchema.extend({
   type: z.union([z.literal("player"), z.literal("monster")])
 }); 
-export type entityType = z.infer<typeof entityTypeSchema>;
+export type EntityType = z.infer<typeof entityTypeSchema>;
 
-const cardSchema = IdentifierTypeSchema;
+const cardSchema = identifierTypeSchema;
 export type Card = z.infer<typeof cardSchema>;
 
 const activeEffectEntrySchema = z.object({
@@ -45,12 +45,12 @@ export type StackElement =
 const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() => z.union([
   z.object({ type: z.literal("card"), payload: cardSchema }),
   z.object({ type: z.literal("stackElement"), payload: stackElementSchema }),
-  z.object({ type: z.literal("player"), payload: IdentifierTypeSchema }),
-  z.object({ type: z.literal("monster"), payload: IdentifierTypeSchema }),
+  z.object({ type: z.literal("player"), payload: identifierTypeSchema }),
+  z.object({ type: z.literal("monster"), payload: identifierTypeSchema }),
   z.object({ type: z.literal("number"), payload: z.number() }),
   z.object({ type: z.literal("boolean"), payload: z.boolean() }),
   z.object({ type: z.literal("string"), payload: z.string() }),
-  z.object({ type: z.literal("couplePlayerHand"), payload: z.object({ player: IdentifierTypeSchema, hand: z.array(cardSchema) }) }),
+  z.object({ type: z.literal("couplePlayerHand"), payload: z.object({ player: identifierTypeSchema, hand: z.array(cardSchema) }) }),
   z.object({ type: z.literal("array"), payload: z.array(selectionItemSchema) }),
   z.object({ type: z.literal("object"), payload: z.record(z.string(), selectionItemSchema) }),
   z.object({ type: z.literal("null"), payload: z.null() }),
@@ -67,12 +67,12 @@ const pendingSelectionSchema = z.object({
 export type PendingSelection = z.infer<typeof pendingSelectionSchema>;
 
 const temporaryEffectSchema = z.object({
-  card: IdentifierTypeSchema,
+  card: identifierTypeSchema,
   issuer: z.string(),
   targets: z.array(selectionItemSchema),
   description: z.string(),
 });
-export type temporaryEffect = z.infer<typeof temporaryEffectSchema>;
+export type TemporaryEffect = z.infer<typeof temporaryEffectSchema>;
 
 const capabilitySchema = z.union([z.literal(true), z.string()]);
 export type Capability = z.infer<typeof capabilitySchema>;
@@ -131,7 +131,7 @@ export type TargetSelectorResponse = z.infer<typeof targetSelectorResponseSchema
 
 const lootCardOnStackJsonSchema = z.object({
   type: z.literal("LootCardEffect"),
-  card: IdentifierTypeSchema.optional(),
+  card: identifierTypeSchema.optional(),
   targets: z.array(selectionItemSchema),
   issuer: entityTypeSchema,
   id: z.number(),
@@ -142,7 +142,7 @@ const diceRollJsonSchema = z.object({
   type: z.literal("diceRoll"),
   diceRoll: z.number(),
   issuer: entityTypeSchema,
-  card: IdentifierTypeSchema.optional(),
+  card: identifierTypeSchema.optional(),
   targets: z.array(selectionItemSchema).optional(),
   id: z.number(),
 });
@@ -152,7 +152,7 @@ const deathOnStackJsonSchema = z.object({
   type: z.literal("death"),
   receiver: entityTypeSchema,
   from: entityTypeSchema,
-  source: z.union([z.lazy(() => diceRollJsonSchema), IdentifierTypeSchema]),
+  source: z.union([z.lazy(() => diceRollJsonSchema), identifierTypeSchema]),
   id: z.number(),
 });
 export type DeathOnStackJson = z.infer<typeof deathOnStackJsonSchema>;
@@ -162,7 +162,7 @@ const damageOnStackJsonSchema = z.object({
   receiver: entityTypeSchema,
   from: entityTypeSchema,
   damage: z.number(),
-  source: z.union([z.lazy(() => diceRollJsonSchema), IdentifierTypeSchema]),
+  source: z.union([z.lazy(() => diceRollJsonSchema), identifierTypeSchema]),
   id: z.number(),
 });
 export type DamageOnStackJson = z.infer<typeof damageOnStackJsonSchema>;
@@ -171,7 +171,7 @@ const effectOnStackJsonSchema = z.object({
   type: z.literal("effect"),
   issuer: entityTypeSchema,
   targets: z.array(selectionItemSchema),
-  card: IdentifierTypeSchema,
+  card: identifierTypeSchema,
   effect: z.string(),
   id: z.number(),
 });
@@ -221,7 +221,7 @@ const giveCoinsSchema = z.object({
   coins: z.number(),
 });
 
-const AttackMonsterSchema = z.union([
+const attackMonsterSchema = z.union([
   z.object({
     issuer: issuerSchema,
     index: z.number(),
@@ -355,7 +355,7 @@ const cardActivationSchema = z.object({
   targetChoices: z.array(selectionItemSchema).optional(),
 });
 
-const NextTurnRequestSchema = startRequestSchema;
+const nextTurnRequestSchema = startRequestSchema;
 
 const playerSchema = z.object({
   name: z.string(),
@@ -428,7 +428,7 @@ export const schemas = {
   declareAttackRequest: declareAttackRequestSchema,
   declarePurchaseRequest: declarePurchaseRequestSchema,
   cancelPurchaseRequest: cancelPurchaseRequestSchema,
-  attackMonsterRequest: AttackMonsterSchema,
+  attackMonsterRequest: attackMonsterSchema,
   attackRollRequest: issuerSchema,
   debugLootRequest: debugLootRequestSchema,
   debugListLootRequest: issuerSchema,
@@ -438,7 +438,7 @@ export const schemas = {
   resolveRequest: resolveRequestSchema,
   submitSelectionRequest: submitSelectionSchema,
   playCardRequest: cardActivationSchema,
-  endTurnRequest: NextTurnRequestSchema,
+  endTurnRequest: nextTurnRequestSchema,
   activateRequest: cardActivationSchema,
   purchaseRequest: purchaseSchema,
   giveCoinsRequest: giveCoinsSchema,
@@ -453,14 +453,14 @@ export namespace Requests {
   export type DeclareAttack = z.infer<typeof declareAttackRequestSchema>;
   export type DeclarePurchase = z.infer<typeof declarePurchaseRequestSchema>;
   export type CancelPurchase = z.infer<typeof cancelPurchaseRequestSchema>;
-  export type resolve = z.infer<typeof resolveRequestSchema>;
-  export type submitSelection = z.infer<typeof submitSelectionSchema>;
+  export type Resolve = z.infer<typeof resolveRequestSchema>;
+  export type SubmitSelection = z.infer<typeof submitSelectionSchema>;
   export type PlayCard = z.infer<typeof cardActivationSchema>;
-  export type EndTurn = z.infer<typeof NextTurnRequestSchema>;
+  export type EndTurn = z.infer<typeof nextTurnRequestSchema>;
   export type Activate = z.infer<typeof cardActivationSchema>;
   export type Purchase = z.infer<typeof purchaseSchema>;
   export type GiveCoins = z.infer<typeof giveCoinsSchema>;
-  export type AttackMonster = z.infer<typeof AttackMonsterSchema>;
+  export type AttackMonster = z.infer<typeof attackMonsterSchema>;
   export type AttackRoll = z.infer<typeof issuerSchema>;
   export type DebugLoot = z.infer<typeof debugLootRequestSchema>;
   export type DebugListLoot = z.infer<typeof issuerSchema>;
@@ -475,8 +475,8 @@ export namespace Responses {
   export type Start = BasicResponse;
   export type Reset = BasicResponse;
   export type DeclareAttack = DeclareAttackResponse;
-  export type resolve = BasicResponse;
-  export type submitSelection = BasicResponse;
+  export type Resolve = BasicResponse;
+  export type SubmitSelection = BasicResponse;
   export type PlayCard = NextTargetSelectorResponse;
   export type EndTurn = StringResponse;
   export type Activate = NextTargetSelectorResponse;
@@ -523,13 +523,13 @@ export interface ClientToServerEvents {
   ) => void;
 
   resolve: (
-    request: Requests.resolve,
-    callback: (response: Responses.resolve) => void,
+    request: Requests.Resolve,
+    callback: (response: Responses.Resolve) => void,
   ) => void;
 
   submitSelection: (
-    request: Requests.submitSelection,
-    callback: (response: Responses.submitSelection) => void,
+    request: Requests.SubmitSelection,
+    callback: (response: Responses.SubmitSelection) => void,
   ) => void;
 
   playCard: (

@@ -6,9 +6,9 @@ import { deckSelector } from "./targetSelector";
 import { Monster } from "./monster";
 import { TargetBuilder } from "./targetBuilder";
 import * as active from "./activeEffect";
-import type { temporaryEffect } from "@/shared/api";
+import type { TemporaryEffect } from "@/shared/api";
 
-function getTemporaryEffect(data: EffectData, description: string): temporaryEffect {
+function getTemporaryEffect(data: EffectData, description: string): TemporaryEffect {
     return{
             card: {slug: data.it.slug, name: data.it.name},
             issuer: data.issuer.id,
@@ -32,7 +32,7 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): EffectF
     return (data:EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
-        const temp: temporaryEffect = getTemporaryEffect(data, `Prevent the next instance of up to ${amount} damage they would take this turn.`);
+        const temp: TemporaryEffect = getTemporaryEffect(data, `Prevent the next instance of up to ${amount} damage they would take this turn.`);
         let target = data.peek();
         if(data.targets.length == 0)
             target = data.issuer;
@@ -80,7 +80,7 @@ export function temporaryStatModifierEffect(
             throw new Error("temporaryStatModifierEffect amount must be non-negative.");
         // Apply the stat modification
         const target = data.targets.length > 0 ? data.peek() : data.issuer;
-        const temp: temporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
+        const temp: TemporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
         target.addTemporaryEffect(temp);
 
         for(const adder of adders)
@@ -158,7 +158,7 @@ export function setNextDamageToXEffect(setTo: number, game: Game): EffectFunctio
     return (data:EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
-        const temp: temporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
+        const temp: TemporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
         const target = data.targets.length > 0 ? data.peek() : data.issuer;
         target.addTemporaryEffect(temp);
 
@@ -529,7 +529,7 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): Effec
     return (data: EffectData) => {
         let offLoot: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
-        const temp: temporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
+        const temp: TemporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
         data.issuer.addTemporaryEffect(temp);
 
         // Listen for the next loot event on this player
@@ -711,7 +711,7 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
-        const temp: temporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
+        const temp: TemporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
         data.issuer.addTemporaryEffect(temp);
 
         const cleanup = () => {
@@ -1244,7 +1244,7 @@ export function lootDoubleThisTurnEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         let offEndTurn: (() => void) | null = null;
-        const temp: temporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
+        const temp: TemporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
         data.issuer.addTemporaryEffect(temp);
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:loot:would", ({ eventIssuer, numberOfCards }) => {

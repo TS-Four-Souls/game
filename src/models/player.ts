@@ -3,8 +3,8 @@ import { CharacterCard, Hand, InplayType, ItemCard, treasureCard, Card, type Eff
 import type { Game } from "./game";
 import type { Monster } from "./monster";
 import { TargetBuilder } from "./targetBuilder";
-import type { entityType } from "@/shared/api";
-import type { DamageOnStackJson, DeathOnStackJson, DiceRollJson, temporaryEffect } from "@/shared/api";
+import type { EntityType } from "@/shared/api";
+import type { DamageOnStackJson, DeathOnStackJson, DiceRollJson, TemporaryEffect } from "@/shared/api";
 /**
  * Represents a player in the Four Souls game.
  * 
@@ -506,7 +506,7 @@ export class Player extends Entity {
     return this.secret === secret;
   }
 
-  get json(): entityType {
+  get json(): EntityType {
     return {
         type: "player",
         name: this.id,

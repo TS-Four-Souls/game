@@ -1,7 +1,7 @@
 import { Entity } from "@/models/entity";
 import type { MonsterCard } from "./cards";
 import type { Encounters } from "./slots";
-import type { entityType } from "@/shared/api";
+import type { EntityType } from "@/shared/api";
 
 /**
  * Represents a monster entity in the Four Souls game.
@@ -77,7 +77,7 @@ export class Monster extends Entity {
     this._evasion += amount;
   }
 
-  get json(): entityType {
+  get json(): EntityType {
     return {
       type: "monster",
       name: this.name,

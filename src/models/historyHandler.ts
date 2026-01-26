@@ -16,8 +16,8 @@ export type UserRequest =
   | Requests.Start 
   | Requests.Reset 
   | Requests.DeclareAttack 
-  | Requests.resolve 
-  | Requests.submitSelection 
+  | Requests.Resolve 
+  | Requests.SubmitSelection 
   | Requests.EndTurn 
   | Requests.PlayCard 
   | Requests.Activate 

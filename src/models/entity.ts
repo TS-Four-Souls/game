@@ -1,4 +1,4 @@
-import type { entityType, temporaryEffect } from "@/shared/api";
+import type { EntityType, TemporaryEffect } from "@/shared/api";
 import type { Card } from "./cards";
 import { Player, type DamageOnStack, type DiceRoll } from "./player";
 import { Monster } from "./monster";
@@ -17,7 +17,7 @@ export abstract class Entity {
   private _damageTakenThisTurn: DamageObj[] = [];
   private _died: boolean = false;
   private _attackable: boolean = true;
-  private _temporaryEffects: temporaryEffect[] = [];
+  private _temporaryEffects: TemporaryEffect[] = [];
 
   get attackable(): boolean {
     return this._attackable;
@@ -120,20 +120,20 @@ export abstract class Entity {
     return this._attackDiceModifier;
   }
 
-  addTemporaryEffect(effect: temporaryEffect): void {
+  addTemporaryEffect(effect: TemporaryEffect): void {
     // Add temporary effect to the list
     this._temporaryEffects.push(effect) ;
   }
 
-  removeTemporaryEffect(effect: temporaryEffect): void {
+  removeTemporaryEffect(effect: TemporaryEffect): void {
     const index = this._temporaryEffects.indexOf(effect);
     if (index !== -1) {
       this._temporaryEffects.splice(index, 1);
     }
   }
 
-  get temporaryEffects(): temporaryEffect[] {
+  get temporaryEffects(): TemporaryEffect[] {
     return this._temporaryEffects;
   }
-  abstract get json(): entityType;
+  abstract get json(): EntityType;
 }
