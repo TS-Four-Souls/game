@@ -7,8 +7,8 @@ export const identifierTypeSchema = z.object({
 export type IdentifierType = z.infer<typeof identifierTypeSchema>;
 
 export const entityTypeSchema = identifierTypeSchema.extend({
-  type: z.union([z.literal("player"), z.literal("monster")])
-}); 
+  type: z.union([z.literal("player"), z.literal("monster")]),
+});
 export type EntityType = z.infer<typeof entityTypeSchema>;
 
 const cardSchema = identifierTypeSchema;
@@ -21,41 +21,58 @@ const activeEffectEntrySchema = z.object({
 export type ActiveEffectEntry = z.infer<typeof activeEffectEntrySchema>;
 
 // Forward declare types for circular references
-export type SelectionItem = 
-  | {type: "card", payload: Card}
-  | {type: "stackElement", payload: StackElement}
-  | {type: "player", payload: IdentifierType}
-  | {type: "monster", payload: IdentifierType}
-  | {type: "number", payload: number}
-  | {type: "boolean", payload: boolean}
-  | {type: "string", payload: string}
-  | {type: "couplePlayerHand", payload: {player: IdentifierType, hand: Card[]}}
-  | {type: "array", payload: SelectionItem[]}
-  | {type: "object", payload: {[key: string]: SelectionItem}}
-  | {type: "null", payload: null}
-  | {type: "unknown", payload: null};
+export type SelectionItem =
+  | { type: "card"; payload: Card }
+  | { type: "stackElement"; payload: StackElement }
+  | { type: "player"; payload: IdentifierType }
+  | { type: "monster"; payload: IdentifierType }
+  | { type: "number"; payload: number }
+  | { type: "boolean"; payload: boolean }
+  | { type: "string"; payload: string }
+  | {
+      type: "couplePlayerHand";
+      payload: { player: IdentifierType; hand: Card[] };
+    }
+  | { type: "array"; payload: SelectionItem[] }
+  | { type: "object"; payload: { [key: string]: SelectionItem } }
+  | { type: "null"; payload: null }
+  | { type: "unknown"; payload: null };
 
-export type StackElement = 
+export type StackElement =
   | LootCardOnStackJson
   | DeathOnStackJson
   | DamageOnStackJson
   | DiceRollJson
   | EffectOnStackJson;
 
-const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() => z.union([
-  z.object({ type: z.literal("card"), payload: cardSchema }),
-  z.object({ type: z.literal("stackElement"), payload: stackElementSchema }),
-  z.object({ type: z.literal("player"), payload: identifierTypeSchema }),
-  z.object({ type: z.literal("monster"), payload: identifierTypeSchema }),
-  z.object({ type: z.literal("number"), payload: z.number() }),
-  z.object({ type: z.literal("boolean"), payload: z.boolean() }),
-  z.object({ type: z.literal("string"), payload: z.string() }),
-  z.object({ type: z.literal("couplePlayerHand"), payload: z.object({ player: identifierTypeSchema, hand: z.array(cardSchema) }) }),
-  z.object({ type: z.literal("array"), payload: z.array(selectionItemSchema) }),
-  z.object({ type: z.literal("object"), payload: z.record(z.string(), selectionItemSchema) }),
-  z.object({ type: z.literal("null"), payload: z.null() }),
-  z.object({ type: z.literal("unknown"), payload: z.null() }),
-]));
+const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
+  z.union([
+    z.object({ type: z.literal("card"), payload: cardSchema }),
+    z.object({ type: z.literal("stackElement"), payload: stackElementSchema }),
+    z.object({ type: z.literal("player"), payload: identifierTypeSchema }),
+    z.object({ type: z.literal("monster"), payload: identifierTypeSchema }),
+    z.object({ type: z.literal("number"), payload: z.number() }),
+    z.object({ type: z.literal("boolean"), payload: z.boolean() }),
+    z.object({ type: z.literal("string"), payload: z.string() }),
+    z.object({
+      type: z.literal("couplePlayerHand"),
+      payload: z.object({
+        player: identifierTypeSchema,
+        hand: z.array(cardSchema),
+      }),
+    }),
+    z.object({
+      type: z.literal("array"),
+      payload: z.array(selectionItemSchema),
+    }),
+    z.object({
+      type: z.literal("object"),
+      payload: z.record(z.string(), selectionItemSchema),
+    }),
+    z.object({ type: z.literal("null"), payload: z.null() }),
+    z.object({ type: z.literal("unknown"), payload: z.null() }),
+  ]),
+);
 
 const pendingSelectionSchema = z.object({
   requestId: z.string(),
@@ -78,22 +95,23 @@ const capabilitySchema = z.union([z.literal(true), z.string()]);
 export type Capability = z.infer<typeof capabilitySchema>;
 
 const monsterCardSchema = cardSchema.extend({
-  stats: z.object({
-    healthPoints: z.number(),
-    attackPoints: z.number(),
-    evasionPoints: z.number(),
-    isEngagedInCombat: z.boolean(),
-    temporaryEffect: z.array(temporaryEffectSchema),
-    capabilities: z.object({
-      targetable: capabilitySchema,
-    }),
-  }).optional(),
+  stats: z
+    .object({
+      healthPoints: z.number(),
+      attackPoints: z.number(),
+      evasionPoints: z.number(),
+      isEngagedInCombat: z.boolean(),
+      temporaryEffect: z.array(temporaryEffectSchema),
+      capabilities: z.object({
+        targetable: capabilitySchema,
+      }),
+    })
+    .optional(),
 });
 export type MonsterCard = z.infer<typeof monsterCardSchema>;
 
 const inPlayCardSchema = cardSchema.extend({
   charged: z.boolean().optional(),
-  counter: z.number().optional(),
   capabilities: z.object({
     activate: capabilitySchema,
   }),
@@ -127,7 +145,9 @@ const targetSelectorResponseSchema = z.object({
   /** For choose-one selectors: true = picking option description, false = picking actual targets */
   isChooseOne: z.boolean(),
 });
-export type TargetSelectorResponse = z.infer<typeof targetSelectorResponseSchema>;
+export type TargetSelectorResponse = z.infer<
+  typeof targetSelectorResponseSchema
+>;
 
 const lootCardOnStackJsonSchema = z.object({
   type: z.literal("LootCardEffect"),
@@ -177,13 +197,15 @@ const effectOnStackJsonSchema = z.object({
 });
 export type EffectOnStackJson = z.infer<typeof effectOnStackJsonSchema>;
 
-const stackElementSchema: z.ZodType<StackElement> = z.lazy(() => z.union([
-  lootCardOnStackJsonSchema,
-  deathOnStackJsonSchema,
-  damageOnStackJsonSchema,
-  diceRollJsonSchema,
-  effectOnStackJsonSchema,
-]));
+const stackElementSchema: z.ZodType<StackElement> = z.lazy(() =>
+  z.union([
+    lootCardOnStackJsonSchema,
+    deathOnStackJsonSchema,
+    damageOnStackJsonSchema,
+    diceRollJsonSchema,
+    effectOnStackJsonSchema,
+  ]),
+);
 
 const selectionItemTypeSchema = z.union([
   z.literal("card"),
@@ -200,7 +222,6 @@ const selectionItemTypeSchema = z.union([
   z.literal("unknown"),
 ]);
 export type SelectionItemType = z.infer<typeof selectionItemTypeSchema>;
-
 
 const issuerSchema = z.object({
   id: z.string(),
@@ -232,8 +253,6 @@ const attackMonsterSchema = z.union([
     replaceIndex: z.number(),
   }),
 ]);
-
-
 
 const joinRequestSchema = z.string();
 
@@ -314,7 +333,9 @@ const debugListTreasureResponseSchema = z.union([
     error: z.string(),
   }),
 ]);
-export type DebugListTreasureResponse = z.infer<typeof debugListTreasureResponseSchema>;
+export type DebugListTreasureResponse = z.infer<
+  typeof debugListTreasureResponseSchema
+>;
 
 const nextTargetSelectorResponseSchema = z.union([
   z.object({
@@ -326,9 +347,11 @@ const nextTargetSelectorResponseSchema = z.union([
     error: z.string(),
   }),
 ]);
-export type NextTargetSelectorResponse = z.infer<typeof nextTargetSelectorResponseSchema>;
+export type NextTargetSelectorResponse = z.infer<
+  typeof nextTargetSelectorResponseSchema
+>;
 
-const resolveRequestSchema = startRequestSchema
+const resolveRequestSchema = startRequestSchema;
 
 const declareAttackRequestSchema = startRequestSchema;
 const declarePurchaseRequestSchema = startRequestSchema;
@@ -340,13 +363,12 @@ const submitSelectionSchema = z.object({
   issuer: issuerSchema,
   requestId: z.string(),
   selections: z.array(selectionItemSchema),
-})
+});
 
 const purchaseSchema = z.object({
   issuer: issuerSchema,
-  index: z.union([z.number(), z.literal("top")])
+  index: z.union([z.number(), z.literal("top")]),
 });
-
 
 const cardActivationSchema = z.object({
   issuer: issuerSchema,
@@ -399,10 +421,12 @@ const detailedStateSchema = z.object({
     capabilities: z.object({
       targetableDeck: z.union([z.literal(true), z.string()]),
     }),
-    inPlay: z.array(z.object({
-      top: monsterCardSchema,
-      covered: z.array(cardSchema),
-    })),
+    inPlay: z.array(
+      z.object({
+        top: monsterCardSchema,
+        covered: z.array(cardSchema),
+      }),
+    ),
   }),
   treasure: z.object({
     discard: z.array(cardSchema),
@@ -465,7 +489,9 @@ export namespace Requests {
   export type DebugLoot = z.infer<typeof debugLootRequestSchema>;
   export type DebugListLoot = z.infer<typeof issuerSchema>;
   export type DebugListTreasure = z.infer<typeof issuerSchema>;
-  export type DebugGainTreasure = z.infer<typeof debugGainTreasureRequestSchema>;
+  export type DebugGainTreasure = z.infer<
+    typeof debugGainTreasureRequestSchema
+  >;
   export type DebugReset = z.infer<typeof startRequestSchema>;
 }
 
