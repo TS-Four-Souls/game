@@ -250,17 +250,17 @@ class Encounters {
      * Fills all empty encounter slots by drawing from the monster deck.
      * Creates Monster entities for each drawn card.
      * 
-     * @param discardEvent - If true, filters out EVENT type encounters during filling.
+     * @param eventsBottom - If true, filters out EVENT type encounters during filling.
      *                       This is used during initial setup to ensure only monsters appear.
      *                       If false, events are added to the stack and resolved.
      */
-    fillEmptySpots(discardEvent = false) : void {
+    fillEmptySpots(eventsBottom = false) : void {
         for (let i = 0; i < this._slots.length; i++) {
             if (this._slots[i]!.length == 0) {
                 let card = this._deck.draw() as MonsterCard;
-                if (discardEvent) {
+                if (eventsBottom) {
                     while (card!.encounterType === MonsterType.EVENT) {
-                        this._deck.addDiscardTop(card!);
+                        this._deck.addBottomPosition(card!);
                         card = this._deck.draw() as MonsterCard;
                     }
                     if(!(card instanceof MonsterCard))
