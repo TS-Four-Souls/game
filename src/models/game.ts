@@ -1712,6 +1712,7 @@ export class Game {
           slug: c.slug,
           charged: c.charged,
           counter: c.tags["counter"] as number | undefined,
+          eternal: c.eternal,
           effects: c.activeEffectList,
           capabilities:
           {
@@ -1764,6 +1765,7 @@ export class Game {
               
             },
             counter: c.tags["counter"] as number | undefined,
+            eternal: c.eternal,
           })),
           souls: p.totalSouls,
           soulCards: p.souls.map((c) => c.json),
