@@ -93,6 +93,7 @@ export type MonsterCard = z.infer<typeof monsterCardSchema>;
 
 const inPlayCardSchema = cardSchema.extend({
   charged: z.boolean().optional(),
+  counter: z.number().optional(),
   capabilities: z.object({
     activate: capabilitySchema,
   }),

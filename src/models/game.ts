@@ -1711,6 +1711,7 @@ export class Game {
           name: c.name,
           slug: c.slug,
           charged: c.charged,
+          counter: c.tags["counter"] as number | undefined,
           effects: c.activeEffectList,
           capabilities:
           {
@@ -1759,8 +1760,10 @@ export class Game {
           inPlay: p.inPlay.map((c) => ({
             name: c.name, slug: c.json.slug, charged: c.charged, capabilities:
             {
-              activate: this.canActivate(c, p)
-            }
+              activate: this.canActivate(c, p),
+              
+            },
+            counter: c.tags["counter"] as number | undefined,
           })),
           souls: p.totalSouls,
           soulCards: p.souls.map((c) => c.json),
