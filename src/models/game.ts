@@ -932,6 +932,7 @@ export class Game {
     if (soulCard instanceof BsoulCard)
       soulCard.granted = true;
     player.addSoul(soulCard);
+    this._onStateChange.dispatch();
   }
 
   async resolveStack(): Promise<void> {
