@@ -502,4 +502,36 @@ export class TargetBuilder {
         }
         return TargetBuilder.buildTargets(game, player, item, targets, "tap");
     }
+
+
+    static validTargetExists(
+        game: Game,
+        player: Player,
+        item: ItemCard,
+        effectId: number | "tap" = "tap"
+    ): string | true {
+        if(!item)
+            return "Item not found.";
+        // The next target is expected to be an array of targets for the copied effect
+        let targets: any[] = [];
+        let options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false);
+        const backtrackingIndices: number[] = [];
+        while(!options.complete)
+        {
+
+            const selection = options.options.slice(0, options.count);
+            if(selection.length !== options.count && !options.asMany)
+            {
+                if(backtrackingIndices.length === 0)
+                    return "No valid targets.";
+                const lastIndex = backtrackingIndices.pop()!;
+                targets = targets.slice(0, lastIndex);
+                options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false);
+                continue;
+            }
+            targets.push(...selection);
+            options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false);
+        }
+        return options.complete;
+    }
 }

@@ -1717,7 +1717,7 @@ export class Game {
           effects: c.activeEffectList,
           capabilities:
           {
-            activate: this.canActivate(c, player),
+            activate: (c as ItemCard).activeEffectList.some(p => p.index != "tap") || this.canActivate(c, player),
           },
         })),
         handSize: player.hand.cards.length,
