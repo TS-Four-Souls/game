@@ -488,6 +488,7 @@ io.on("connection", (socket) => {
       return callback({ status: 400, error: "Unknown error" });
     }
   });
+
   socket.on("debugReset", (payload, callback) => {
     const validated = schemas.debugResetRequest.safeParse(payload);
     if (!validated.success) {
@@ -536,7 +537,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  io.on("disconnect", (socket) => {
+  socket.on("disconnect", () => {
     console.log("Client disconnected");
   });
 });
