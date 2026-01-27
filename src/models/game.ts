@@ -1711,7 +1711,7 @@ export class Game {
           name: c.name,
           slug: c.slug,
           charged: c.charged,
-          counter: c.tags["counter"] as number | undefined,
+          counter: (c.tags["counters"] === undefined ? c.tags["levels"] : c.tags["counters"]) as number | undefined,
           eternal: c.eternal,
           effects: c.activeEffectList,
           capabilities:
@@ -1906,7 +1906,6 @@ export class Game {
     const price = [gameParameters.shopPrice];
     this.emit("on:item:purchase", { eventIssuer: player, cost: price });
     if (this.shop.purchase(player, index, price[0]!, this)) {
-      player.remainingPurchaseThisTurn -= 1;
       player.purchaseEnded();
       this._onStateChange.dispatch();
       return `Purchase successful. You have now ${player.coins} coins.\n`;

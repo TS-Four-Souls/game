@@ -80,6 +80,7 @@ describe("Treasure - with counters effect", () => {
     it("bum_bo - leveling system and level effects", async () => {
         const bumBo = game.shop.obtainCard("b2-bum_bo") as treasureCard;
         game.addInPlay(player1, bumBo);
+        game.gainCoins(player1, 1);
         const baseAttack = player1.attackPoints;
         // Initial state - no counters
         expect(bumBo.tags.levels).toBe(1);

@@ -161,13 +161,14 @@ describe("Treasure - Passive effects", () => {
 
         // Purchase the item - normal price is 10¢, should be 5¢ with steamy sale
         game.addPurchaseThisTurn(player1, 1); // allow purchase
-        game.purchase(player1, 1); // index 1 is first shop slot
+        game.declarePurchase(player1);
+        game.purchase(player1, 0); // index 0 is first shop slot
 
         // Should have spent 5¢ instead of 10¢
         expect(player1.coins).toBe(initialCoins - 5);
 
         // Item should be in player's inPlay
-        expect(player1.inPlay).toContain(shopItem);
+        expect(player1.inPlay.map(card => card.slug)).toContain(shopItem.slug);
     });
 
     it("steamy_sale - purchasing with exact coins", async () => {
@@ -179,6 +180,7 @@ describe("Treasure - Passive effects", () => {
 
         // Should be able to purchase with reduced price
         game.addPurchaseThisTurn(player1, 1); // allow purchase
+        game.declarePurchase(player1);
         const result = game.purchase(player1, 1);
 
         expect(result).toContain("successful");
@@ -400,11 +402,13 @@ describe("Treasure - Passive effects", () => {
         const shopItemsBefore = game.shop._slots.filter(s => s !== undefined).length;
         
         // Purchase first item
+        game.declarePurchase(player1);
         const result1 = game.purchase(player1, 1);
         expect(result1).toContain("successful");
         game.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // remove purchased item from inPlay to ensure basic second purchase.
         // Without theres_options, second purchase would fail
         // With theres_options, it should succeed
+        game.declarePurchase(player1);
         const result2 = game.purchase(player1, 1);
         expect(result2).toContain("successful");
         
@@ -424,13 +428,15 @@ describe("Treasure - Passive effects", () => {
         player1.gainCoins(40);
         
         // Purchase first two items should succeed
+        game.declarePurchase(player1);
         game.purchase(player1, 1);
         game.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // remove purchased item from inPlay to ensure basic second purchase.
+        game.declarePurchase(player1);
         game.purchase(player1, 1);
         
         const initInplayCount = player1.inPlay.length;
         // Third purchase should fail (only +1 additional purchase)
-        expect(() => game.purchase(player1, 1)).toThrow();
+        expect(() => game.declarePurchase(player1)).toThrow();
         expect(player1.inPlay.length).toBe(initInplayCount); // no new item added
         
         // Should only have spent 20¢ (2 purchases)
@@ -445,13 +451,16 @@ describe("Treasure - Passive effects", () => {
         player1.gainCoins(50);
         
         // Use both purchases this turn
+        game.declarePurchase(player1);
         game.purchase(player1, 1);
         game.removeInPlay(player1, player1.inPlay[3]!); // remove purchased item from inPlay to ensure basic second purchase.
+        game.declarePurchase(player1);
         game.purchase(player1, 1);
         game.removeInPlay(player1, player1.inPlay[3]!); // remove purchased item from inPlay to ensure basic second purchase.
         
         // Third purchase should fail
-        expect(() => game.purchase(player1, 1)).toThrow();
+        
+        expect(() => game.declarePurchase(player1)).toThrow();
         
         // End turn and start new turn
         game.endTurn();
@@ -464,8 +473,10 @@ describe("Treasure - Passive effects", () => {
 
         expect(game.currentPlayer.id).toBe(player1.id);
         // Should be able to purchase twice again in new turn
+        game.declarePurchase(player1);
         const result4 = game.purchase(player1, 1);
         game.removeInPlay(player1, player1.inPlay[3]!); // remove purchased item from inPlay to ensure basic second purchase.
+        game.declarePurchase(player1);
         const result5 = game.purchase(player1, 1);
         game.removeInPlay(player1, player1.inPlay[3]!); // remove purchased item from inPlay to ensure basic second purchase.
         expect(result4).toContain("successful");

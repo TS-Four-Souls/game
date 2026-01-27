@@ -1305,7 +1305,7 @@ export function gainCoinsLevelUpEffect(
             offEffect?.();
             offEffect = null;
         };
-        data.it.tags.levels = data.it.tags.levels ?? 1; // At least level 1.
+        data.it.tags.levels = data.it.tags.levels ?? 0; // At least level 0.
 
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:coin:gained", ({ eventIssuer, coinGained }) => {

@@ -892,79 +892,128 @@ describe("b2-trinity_shield - prevents other players from priority actions", () 
         game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
     });
 
-    it("trinity_shield prevents other players from getting priority", async () => {
+    it("trinity_shield prevents other players from activating items on current player's turn", async () => {
         const trinityShield = game.obtainCard("b2-trinity_shield") as ItemCard;
+        const sackOfPennies = game.obtainCard("b2-sack_of_pennies") as ItemCard;
         
-        // Without trinity_shield, priority passes should return non-empty array
-        const priorityBeforeAdd = game.priorityPasses();
-        expect(priorityBeforeAdd.length).toBeGreaterThan(0);
+        game.addInPlay(player2, sackOfPennies);
+        game.recharge(sackOfPennies);
+
+        // Without trinity_shield, player2 can activate items on player1's turn
+        const canActivateWithout = game.canActivate(sackOfPennies, player2);
+        expect(canActivateWithout).toBe(true);
 
         // Add trinity_shield to player1
         game.addInPlay(player1, trinityShield);
 
-        // With trinity_shield, priority passes should return empty array (on player1's turn)
-        const priorityWithShield = game.priorityPasses();
-        expect(priorityWithShield.length).toBe(0);
+        // With trinity_shield, player2 cannot activate items on player1's turn
+        const canActivateWith = game.canActivate(sackOfPennies, player2);
+        expect(canActivateWith).not.toBe(true);
+        expect(typeof canActivateWith).toBe("string");
+        expect(canActivateWith).toContain("cannot activate cards during");
 
         // Remove trinity_shield from play
         game.removeInPlay(player1, trinityShield);
 
-        // After removal, priority passes should return non-empty array again
-        const priorityAfterRemoval = game.priorityPasses();
-        expect(priorityAfterRemoval.length).toBeGreaterThan(0);
+        // After removal, player2 can activate items again
+        const canActivateAfter = game.canActivate(sackOfPennies, player2);
+        expect(canActivateAfter).toBe(true);
+    });
+
+    it("trinity_shield prevents other players from playing loot cards on current player's turn", async () => {
+        const trinityShield = game.obtainCard("b2-trinity_shield") as ItemCard;
+        
+        // Give player2 a loot card and loot play ability
+        game.loot(player2, 1);
+        player2.addLootPlay(1); // Give player2 ability to play loot
+
+        // Without trinity_shield, player2 can play loot on player1's turn
+        const canPlayWithout = game.canPlayCard(player2);
+        expect(canPlayWithout).toBe(true);
+
+        // Add trinity_shield to player1
+        game.addInPlay(player1, trinityShield);
+
+        // With trinity_shield, player2 cannot play loot on player1's turn
+        const canPlayWith = game.canPlayCard(player2);
+        expect(canPlayWith).not.toBe(true);
+        expect(typeof canPlayWith).toBe("string");
+        expect(canPlayWith).toContain("cannot play loot cards during");
+
+        // Remove trinity_shield from play
+        game.removeInPlay(player1, trinityShield);
+
+        // After removal, player2 can play loot again
+        const canPlayAfter = game.canPlayCard(player2);
+        expect(canPlayAfter).toBe(true);
     });
 
     it("trinity_shield only affects current player's turn", async () => {
         const trinityShield = game.obtainCard("b2-trinity_shield") as ItemCard;
+        const sackOfPennies = game.obtainCard("b2-sack_of_pennies") as ItemCard;
+        
         game.addInPlay(player1, trinityShield);
+        game.addInPlay(player2, sackOfPennies);
+        game.recharge(sackOfPennies);
 
-        // On player1's turn, no priority passes
-        const priorityOnPlayer1Turn = game.priorityPasses();
-        expect(priorityOnPlayer1Turn.length).toBe(0);
+        // On player1's turn, player2 cannot activate items
+        expect(game.currentPlayer).toBe(player1);
+        const canActivateOnP1Turn = game.canActivate(sackOfPennies, player2);
+        expect(canActivateOnP1Turn).not.toBe(true);
 
         // End player1's turn
         game.endTurn();
         await game.resolveStack();
 
-        // On player2's turn, priority should pass normally (trinity_shield doesn't affect player2's turn)
-        const priorityOnPlayer2Turn = game.priorityPasses();
-        expect(priorityOnPlayer2Turn.length).toBeGreaterThan(0);
+        // On player2's turn, player2 can activate items normally (trinity_shield doesn't affect player2's turn)
+        expect(game.currentPlayer).toBe(player2);
+        const canActivateOnP2Turn = game.canActivate(sackOfPennies, player2);
+        expect(canActivateOnP2Turn).toBe(true);
     });
 
     it("trinity_shield effect is cleaned up when removed", async () => {
         const trinityShield = game.obtainCard("b2-trinity_shield") as ItemCard;
+        const sackOfPennies = game.obtainCard("b2-sack_of_pennies") as ItemCard;
+        
+        game.addInPlay(player2, sackOfPennies);
+        game.recharge(sackOfPennies);
         game.addInPlay(player1, trinityShield);
 
         // Verify effect is active
-        expect(game.priorityPasses().length).toBe(0);
+        expect(game.canActivate(sackOfPennies, player2)).not.toBe(true);
 
         // Remove and verify cleanup
         game.removeInPlay(player1, trinityShield);
-        expect(game.priorityPasses().length).toBeGreaterThan(0);
+        expect(game.canActivate(sackOfPennies, player2)).toBe(true);
 
         // End turn and start new turn
         game.endTurn();
         await game.resolveStack(); // Resolve any stack effects
         game.endTurn();
+        await game.resolveStack();
 
         // Verify effect doesn't persist across turns
-        expect(game.priorityPasses().length).toBeGreaterThan(0);
+        game.recharge(sackOfPennies);
+        expect(game.canActivate(sackOfPennies, player2)).toBe(true);
     });
 
-    it("multiple trinity_shields still prevent priority", async () => {
-        const trinityShield1 = game.obtainCard("b2-trinity_shield") as ItemCard;
-        const trinityShield2 = game.obtainCard("b2-book_of_sin") as ItemCard; // Use different card
+    it("trinity_shield doesn't prevent current player from using items", async () => {
+        const trinityShield = game.obtainCard("b2-trinity_shield") as ItemCard;
+        const sackOfPennies = game.obtainCard("b2-sack_of_pennies") as ItemCard;
         
-        game.addInPlay(player1, trinityShield1);
+        game.addInPlay(player1, trinityShield);
+        game.addInPlay(player1, sackOfPennies);
+        game.recharge(sackOfPennies);
 
-        // One shield prevents priority
-        expect(game.priorityPasses().length).toBe(0);
+        // Player1 (current player) can still activate their own items
+        expect(game.currentPlayer).toBe(player1);
+        const canActivate = game.canActivate(sackOfPennies, player1);
+        expect(canActivate).toBe(true);
 
-        // Remove first shield
-        game.removeInPlay(player1, trinityShield1);
-
-        // Priority returns
-        expect(game.priorityPasses().length).toBeGreaterThan(0);
+        const initialCoins = player1.coins;
+        await game.activateItem(player1, sackOfPennies);
+        await game.resolveStack();
+        expect(player1.coins).toBe(initialCoins + 1);
     });
 });
 
