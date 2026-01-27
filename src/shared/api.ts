@@ -153,7 +153,7 @@ export type TargetSelectorResponse = z.infer<
 
 const lootCardOnStackJsonSchema = z.object({
   type: z.literal("LootCardEffect"),
-  card: identifierTypeSchema.optional(),
+  card: identifierTypeSchema,
   targets: z.array(selectionItemSchema),
   issuer: entityTypeSchema,
   id: z.number(),

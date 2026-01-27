@@ -355,6 +355,7 @@ export class Game {
         target: from,
         source: source,
       });
+      this._onStateChange.dispatch();
       // if(receiver instanceof Player && this.currentPlayer === receiver)
       //   this.executeWhenStackEmpty(() => {this.endTurn();});
     });
