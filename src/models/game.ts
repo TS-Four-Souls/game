@@ -1764,7 +1764,7 @@ export class Game {
               activate: this.canActivate(c, p),
               
             },
-            counter: c.tags["counter"] as number | undefined,
+            counter: (c.tags["counters"] === undefined ? c.tags["levels"] : c.tags["counters"]) as number | undefined,
             eternal: c.eternal,
           })),
           souls: p.totalSouls,
