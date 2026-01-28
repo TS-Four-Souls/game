@@ -576,7 +576,8 @@ export class DiceRoll {
       issuer: this.issuer.json, 
       card: !this._attackRoll ? {name: this._card!.name, slug: this._card!.slug} : undefined, 
       targets: !this._attackRoll ? TargetBuilder.convertToSelectionItems(this._targets) : undefined,
-      id: this._stackId
+      id: this._stackId,
+      modifier: (this._attackRoll ? this._issuer.attackDiceModifier : 0) + this._issuer.diceModifier,
     }
   }
   set value(v: number) {

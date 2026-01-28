@@ -167,6 +167,7 @@ const diceRollJsonSchema = z.object({
   card: identifierTypeSchema.optional(),
   targets: z.array(selectionItemSchema).optional(),
   id: z.number(),
+  modifier: z.number(),
 });
 export type DiceRollJson = z.infer<typeof diceRollJsonSchema>;
 
