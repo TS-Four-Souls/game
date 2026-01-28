@@ -46,6 +46,7 @@ import { bSoulEffectParser } from "@/models/bonusSoulHandling";
 import type { TriggerEvent } from "@/types/triggers";
 import type { Capability, DetailedState, SelectionItem } from "@/shared/api";
 import { HistoricHandler, type HistoricEntry, type UserRequest } from "./historyHandler";
+import { GameParameters } from "./gameParameters";
 
 // Type representing sources of damage - either a card ability or a dice roll
 export type DamageSource = Card | DiceRoll;
@@ -59,21 +60,9 @@ const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
 //   // for (const cardEffect of card.json.rewards) {
 //     console.log(card.slug, card.json.rewards);
 // }
-export const gameParameters = {
-  nbItemsInShop: 2,
-  nbEncounters: 2,
-  deathPenaltyCoins: 2,
-  deathPenaltyItem: 1,
-  deathPenaltyLoot: 1,
-  treasuresOnStart: 0,
-  lootOnStart: 3,
-  coinsOnStart: 3,
-  shopPrice: 10,
-  nbPlayerCardRestriction: false, // only cards with minimum player requirement satisfied in decks.
-};
+
 export class Game {
   private _players: Player[] = [];
-  private _monsters: Monster[] = [];
   private _turnHandler: TurnHandler = new TurnHandler();
   private _decks: { [key: string]: Deck } = {};
   private _ongoingAttack: { player: Player; monster: Monster } | null = null;
@@ -85,6 +74,7 @@ export class Game {
   private _bonusSouls: BsoulCard[] = [];
   private _stackEmptyCallbacks: (() => void)[] = [];
   private _historicHandler: HistoricHandler = new HistoricHandler();
+  readonly gameParameters = new GameParameters();
 
   private _onStateChange: Signal<void> = new Signal();
   onStateChange: ReadableSignal<void> = this._onStateChange.readOnly();
@@ -219,20 +209,20 @@ export class Game {
     player.addSoul(soul);
   }
   async deathPenalty(p: Player): Promise<void> {
-    this.loseCoins(p, gameParameters.deathPenaltyCoins, true);
+    this.loseCoins(p, this.gameParameters.deathPenaltyCoins.value, true);
     const setOfLosableItems = p.inPlay.filter(
       (c) =>
         (c instanceof treasureCard || (c instanceof LootCard && c.trinket)) &&
         c.eternal === false
     );
-    if (gameParameters.deathPenaltyItem > 0 && setOfLosableItems.length > 0) {
+    if (this.gameParameters.deathPenaltyItem.value > 0 && setOfLosableItems.length > 0) {
       const itemToLose = (
         await this.select(
           p,
-          gameParameters.deathPenaltyItem,
+          this.gameParameters.deathPenaltyItem.value,
           setOfLosableItems,
           false,
-          gameParameters.deathPenaltyItem > 1
+          this.gameParameters.deathPenaltyItem.value > 1
             ? "Select items to lose."
             : "Select an item to lose."
         )
@@ -244,14 +234,14 @@ export class Game {
         }
       }
     }
-    if (gameParameters.deathPenaltyLoot > 0 && p.hand.cards.length > 0) {
+    if (this.gameParameters.deathPenaltyLoot.value > 0 && p.hand.cards.length > 0) {
       const lootToLose = (
         await this.select(
           p,
-          gameParameters.deathPenaltyLoot,
+          this.gameParameters.deathPenaltyLoot.value,
           p.hand.cards,
           false,
-          gameParameters.deathPenaltyLoot > 1
+          this.gameParameters.deathPenaltyLoot.value > 1
             ? "Select loot cards to lose."
             : "Select a loot card to lose."
         )
@@ -1184,7 +1174,7 @@ export class Game {
     this._decks = LoadDecks(
       cards,
       this.players.length,
-      gameParameters.nbPlayerCardRestriction
+      this.gameParameters.nbPlayerCardRestriction.value
     );
     this.joinEffectsToCards();
   }
@@ -1207,11 +1197,11 @@ export class Game {
     }
     this.initializeBonusSouls();
     this._shop = new Shop(
-      gameParameters.nbItemsInShop,
+      this.gameParameters.nbItemsInShop.value,
       this.decks["treasure"]!
     );
     this._encounters = new Encounters(
-      gameParameters.nbEncounters,
+      this.gameParameters.nbEncounters.value,
       this.decks["monster"]!,
       this
     );
@@ -1227,9 +1217,9 @@ export class Game {
 
   startOfGameSetup(): void {
     for (const player of this.players) {
-      this.gainTreasure(player, gameParameters.treasuresOnStart);
-      this.loot(player, gameParameters.lootOnStart);
-      this.gainCoins(player, gameParameters.coinsOnStart);
+      this.gainTreasure(player, this.gameParameters.treasuresOnStart.value);
+      this.loot(player, this.gameParameters.lootOnStart.value);
+      this.gainCoins(player, this.gameParameters.coinsOnStart.value);
     }
   }
 
@@ -1353,7 +1343,6 @@ export class Game {
   reset(): void {
     this.turnHandler.reset();
     this._players = [];
-    this._monsters = [];
     this._decks = {};
     this._ongoingAttack = null;
     this._shop = null!;
@@ -1363,6 +1352,7 @@ export class Game {
     this._bonusSouls = [];
     this._destroyedCards = [];
     this.pendingMultipleSelections.clear();
+    this.gameParameters.reset();
   }
 
   addInPlay(player: Player, card: Card): void {
@@ -1879,7 +1869,7 @@ export class Game {
       this.assertCurrentTurnIsPlayerTurn(player);
       this.assertPlayerIsAlive(player);
       this.assertCurrentPlayerIsEngagedInPurchase();
-      const price = [gameParameters.shopPrice];
+      const price = [this.gameParameters.shopPrice.value];
       this.emit("on:item:purchase", { eventIssuer: player, cost: price });
       if (player.coins < price[0]!) {
         throw new Error(
@@ -1904,7 +1894,7 @@ export class Game {
     this.canPurchase(player, true);
     if (index !== "top" && (index < 0 || index >= this.shop._slots.length))
       throw new Error("Invalid shop index.");
-    const price = [gameParameters.shopPrice];
+    const price = [this.gameParameters.shopPrice.value];
     this.emit("on:item:purchase", { eventIssuer: player, cost: price });
     if (this.shop.purchase(player, index, price[0]!, this)) {
       player.purchaseEnded();

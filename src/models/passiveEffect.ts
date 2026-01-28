@@ -1,11 +1,9 @@
 import { DiceRoll, Player } from "./player";
-import { type Card, EffectData, LootCard, type EffectFunction, type TargetsSelector, ItemCard, InplayType, treasureCard, LootCardEffect, EffectOnStack } from "./cards";
-import { Game, gameParameters } from "./game";
+import { EffectData, LootCard, type EffectFunction, ItemCard, treasureCard, LootCardEffect, EffectOnStack } from "./cards";
+import { Game } from "./game";
 import type { TriggerEvent } from "@/types/triggers";
-import { deckSelector } from "./targetSelector";
 import { Monster } from "./monster";
 import { TargetBuilder } from "./targetBuilder";
-import * as active from "./activeEffect";
 import type { TemporaryEffect } from "@/shared/api";
 
 function getTemporaryEffect(data: EffectData, description: string): TemporaryEffect {
@@ -591,26 +589,26 @@ export function replaceDeathPenaltyEffect(game: Game): EffectFunction {
                 return;
             }
 
-            const lostCoins = game.loseCoins(player, gameParameters.deathPenaltyCoins, true);
+            const lostCoins = game.loseCoins(player, game.gameParameters.deathPenaltyCoins.value, true);
             game.gainCoins(data.issuer as Player, lostCoins);
             const setOfLosableItems = (player.inPlay).filter((c) => (c instanceof treasureCard || (c instanceof LootCard && c.trinket))
             && c.eternal === false)
-            if (gameParameters.deathPenaltyItem > 0) {
+            if (game.gameParameters.deathPenaltyItem.value > 0) {
             const itemToLose = (await game.select(
                 data.issuer as Player,
-                gameParameters.deathPenaltyItem,
+                game.gameParameters.deathPenaltyItem.value,
                 setOfLosableItems,
                 false,
-                gameParameters.deathPenaltyItem > 1 ? "Select items " + player.id + " will lose." : "Select an item " + player.id + " will lose."
+                game.gameParameters.deathPenaltyItem.value > 1 ? "Select items " + player.id + " will lose." : "Select an item " + player.id + " will lose."
             )).selected[0];
             if (itemToLose) {
                 game.removeInPlay(player, itemToLose);
                 game.decks[itemToLose.type]!.addDiscardTop(itemToLose);
             }
             }
-            if(gameParameters.deathPenaltyLoot > 0) {
-                const lootToLose = (await game.select(player, gameParameters.deathPenaltyLoot, player.hand.cards, false,
-                     gameParameters.deathPenaltyLoot > 1 ? "Select loot cards " + player.id + " will lose." : "Select a loot card " + player.id + " will lose.")).selected[0];
+            if(game.gameParameters.deathPenaltyLoot.value > 0) {
+                const lootToLose = (await game.select(player, game.gameParameters.deathPenaltyLoot.value, player.hand.cards, false,
+                     game.gameParameters.deathPenaltyLoot.value > 1 ? "Select loot cards " + player.id + " will lose." : "Select a loot card " + player.id + " will lose.")).selected[0];
                 if (lootToLose) {
                     const card = game.getCardFromHand(player, lootToLose);
                     game.addCardToHand(data.issuer as Player, lootToLose);

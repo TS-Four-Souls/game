@@ -257,12 +257,27 @@ const attackMonsterSchema = z.union([
   }),
 ]);
 
+const gameParametersSchema = z.object({
+  nbItemsInShop: z.number(),
+  nbEncounters: z.number(),
+  deathPenaltyCoins: z.number(),
+  deathPenaltyItem: z.number(),
+  deathPenaltyLoot: z.number(),
+  treasuresOnStart: z.number(),
+  lootOnStart: z.number(),
+  coinsOnStart: z.number(),
+  shopPrice: z.number(),
+  nbPlayerCardRestriction: z.boolean(),
+});
+export type GameParametersJson = z.infer<typeof gameParametersSchema>;
+
 const joinRequestSchema = z.string();
 
 const joinResponseSchema = z.union([
   z.object({
     status: z.literal(200),
     secret: z.string(),
+    gameParameters: gameParametersSchema,
   }),
   z.object({
     status: z.literal(400),
@@ -277,6 +292,7 @@ const rejoinResponseSchema = z.union([
   z.object({
     status: z.literal(200),
     gameState: z.lazy(() => detailedStateSchema).optional(),
+    gameParameters: gameParametersSchema,
   }),
   z.object({
     status: z.literal(400),
@@ -382,6 +398,32 @@ const cardActivationSchema = z.object({
 
 const nextTurnRequestSchema = startRequestSchema;
 
+const setGameParameterRequestSchema = z.discriminatedUnion("parameter", [
+  z.object({
+    parameter: z.enum([
+      "nbItemsInShop",
+      "nbEncounters",
+      "deathPenaltyCoins",
+      "deathPenaltyItem",
+      "deathPenaltyLoot",
+      "treasuresOnStart",
+      "lootOnStart",
+      "coinsOnStart",
+      "shopPrice",
+    ]),
+    value: z.number(),
+    issuer: issuerSchema,
+  }),
+  z.object({
+    parameter: z.enum(["nbPlayerCardRestriction"]),
+    value: z.boolean(),
+    issuer: issuerSchema,
+  }),
+]);
+export type SetGameParameterRequest = z.infer<
+  typeof setGameParameterRequestSchema
+>;
+
 const playerSchema = z.object({
   name: z.string(),
   handSize: z.number(),
@@ -470,11 +512,13 @@ export const schemas = {
   purchaseRequest: purchaseSchema,
   giveCoinsRequest: giveCoinsSchema,
   issuer: issuerSchema,
+  setGameParameterRequest: setGameParameterRequestSchema,
 };
 
 export namespace Requests {
   export type Join = z.infer<typeof joinRequestSchema>;
   export type Rejoin = z.infer<typeof rejoinRequestSchema>;
+  export type SetGameParameter = z.infer<typeof setGameParameterRequestSchema>;
   export type Start = z.infer<typeof startRequestSchema>;
   export type Reset = z.infer<typeof resetRequestSchema>;
   export type DeclareAttack = z.infer<typeof declareAttackRequestSchema>;
@@ -501,6 +545,7 @@ export namespace Requests {
 export namespace Responses {
   export type Join = JoinResponse;
   export type Rejoin = RejoinResponse;
+  export type SetGameParameter = BasicResponse;
   export type Start = BasicResponse;
   export type Reset = BasicResponse;
   export type DeclareAttack = DeclareAttackResponse;
@@ -526,6 +571,7 @@ export interface ServerToClientEvents {
   "on:game:start": () => void;
   "on:game:reset": () => void;
   "on:game:changed": (state: DetailedState) => void;
+  "on:game:parameters:changed": (parameters: GameParametersJson) => void;
 }
 
 export interface ClientToServerEvents {
@@ -629,5 +675,10 @@ export interface ClientToServerEvents {
   cancelPurchase: (
     request: Requests.CancelPurchase,
     callback: (response: Responses.CancelPurchase) => void,
+  ) => void;
+
+  setGameParameter: (
+    request: Requests.SetGameParameter,
+    callback: (response: Responses.SetGameParameter) => void,
   ) => void;
 }

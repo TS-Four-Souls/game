@@ -5,7 +5,7 @@ import { Player } from "./models/player";
 import type { ClientToServerEvents, ServerToClientEvents, TargetSelectorResponse } from "./shared/api";
 import { schemas } from "./shared/api";
 import { TargetBuilder } from "./models/targetBuilder";
-import type { Card, ItemCard, LootCard } from "./models/cards";
+import type { LootCard } from "./models/cards";
 
 const PORT = process.env.PORT || 3000;
 const HOSTNAME = process.env.HOSTNAME || "localhost";
@@ -43,7 +43,11 @@ io.on("connection", (socket) => {
       console.log(`Player ${name} joined the game`);
       socket.join(player.id);
       game.addToHistory(validated.data);
-      return callback({ status: 200, secret: player.secret });
+      return callback({
+        status: 200,
+        secret: player.secret,
+        gameParameters: game.gameParameters.toJson()
+      });
     } catch (error) {
       console.error("Failed to join the game", error);
       if (error instanceof Error) {
@@ -65,9 +69,33 @@ io.on("connection", (socket) => {
       }
       socket.join(player.id);
       game.addToHistory(validated.data);
-      return callback({ status: 200, gameState: game.isStarted ? game.detailedStateJSON(validated.data) : undefined });
+      return callback({
+        status: 200,
+        gameState: game.isStarted ? game.detailedStateJSON(validated.data) : undefined,
+        gameParameters: game.gameParameters.toJson()
+      });
     } catch (error) {
       console.error("Failed to rejoin the game", error);
+      if (error instanceof Error) {
+        return callback({ status: 400, error: error.message });
+      }
+      return callback({ status: 400, error: "Unknown error" });
+    }
+  });
+
+  socket.on("setGameParameter", (payload, callback) => {
+    const validated = schemas.setGameParameterRequest.safeParse(payload);
+    if (!validated.success) {
+      return callback({ status: 400, error: validated.error.message });
+    }
+    try {
+      game.getPlayerByIssuer(validated.data.issuer);
+      game.gameParameters[validated.data.parameter].value = validated.data.value;
+      io.emit("on:game:parameters:changed", game.gameParameters.toJson());
+      return callback({ status: 200 });
+    }
+    catch (error) {
+      console.error("Failed to set game parameter", error);
       if (error instanceof Error) {
         return callback({ status: 400, error: error.message });
       }
