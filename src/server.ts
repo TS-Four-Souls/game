@@ -113,19 +113,19 @@ io.on("connection", (socket) => {
       return callback({ status: 400, error: validated.error.message });
     }
     try {
-      game.setupGame();
-      const eden = game.decks["character"]!.getCardFromSlug(
-        "b2-eden"
-      )! as CharacterCard;
-      const samson = game.decks["character"]!.getCardFromSlug(
-        "b2-samson"
-      )! as CharacterCard;
-      const treas = ["b2-chaos_card", "b2-placebo", "b2-blank_card"];
-      for (const slug of treas) {
-        const card = game.obtainCard(slug)! as ItemCard;
-        game.decks["treasure"]?.addTopPosition( card);
-      }
-      game.start(validated.data.issuer, [eden, samson]);
+      // game.setupGame();
+      // const eden = game.decks["character"]!.getCardFromSlug(
+      //   "b2-eden"
+      // )! as CharacterCard;
+      // const samson = game.decks["character"]!.getCardFromSlug(
+      //   "b2-samson"
+      // )! as CharacterCard;
+      // const treas = ["b2-chaos_card", "b2-placebo", "b2-blank_card"];
+      // for (const slug of treas) {
+      //   const card = game.obtainCard(slug)! as ItemCard;
+      //   game.decks["treasure"]?.addTopPosition( card);
+      // }
+      game.start(validated.data.issuer);
       // const mob = game.obtainCard("b2-moms_eye") as MonsterCard;
       // game.encounters.forceSetMonsterAtSlot(0, mob);
       // const loots = ["b2-i_the_magician", "b2-gold_bomb", "b2-ii_the_high_priestess", "b2-bomb"]
