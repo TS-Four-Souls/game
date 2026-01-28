@@ -305,8 +305,8 @@ export class Game {
         throw new Error("Monster soul reward must be a number.");
       card.soul = card.rewards?.soul;
       this.currentPlayer.addSoul(monster.card);
-      this._onStateChange.dispatch();
     } else this.discard(monster.card);
+    this._onStateChange.dispatch();
   }
 
   // Should only be called by DeathOnStack objects.
@@ -1153,6 +1153,7 @@ export class Game {
     }
     const lootCardEffect = new LootCardEffect(player, playedCard, targets);
     this.addToStack(lootCardEffect);
+    player.remainingLootPlay -= 1;
 
     this.emit("on:loot:played", {
       eventIssuer: player,
@@ -1662,6 +1663,7 @@ export class Game {
       });
     });
     this.destroyedCards.push(...cards);
+    this._onStateChange.dispatch();
     return true;
   }
 

@@ -107,6 +107,7 @@ export class Player extends Entity {
    */
   mustAttack(value: Monster | "topDeck") {
     this._mustAttackMonster.push(value);
+    this.attackThisTurn = Math.max(this.attackThisTurn, this._mustAttackMonster.length); // Ensure at least 1 attack this turn
   }
   
   /**
