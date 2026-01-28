@@ -1379,8 +1379,9 @@ export function startingItemEffect(game: Game): EffectFunction {
         let offEffect: (() => void) | null = game.emitter.on("on:game:start:before", async () => {
             if (!(data.issuer instanceof Player)) return;
             const options: treasureCard[] = game.decks["treasure"]!.drawSeveral(3) as treasureCard[];
-            const selection = await game.gainTreasureAmongs(data.issuer, 1, options);
+            const selection = await game.select( data.issuer, 1, options, false, "Select a starting eternal treasure.");
             selection.selected[0]?.setEternal(true);
+            game.addInPlay(data.issuer, selection.selected[0]!); 
             offEffect?.();
             offEffect = null;
         });

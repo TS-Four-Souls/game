@@ -760,7 +760,7 @@ export class Game {
       };
     }
     if (Options.length === 0) return { selected: [], remaining: [] };
-
+    
     const results = await this.selectMultiple([
       {
         player,
@@ -770,7 +770,7 @@ export class Game {
         description: description,
       },
     ]);
-    return results[0]!;
+    return results.find(r => r.playerId === player.id)!;
   }
 
   // Select from multiple players in parallel (useful for voting)
@@ -853,8 +853,6 @@ export class Game {
       });
     });
 
-    // Notify clients of state change (so players see the selection requests via SSE)
-    await setTimeout(10); // slight delay to ensure state is updated before clients fetch it
     this._onStateChange.dispatch();
 
     // Wait for all selections to complete
