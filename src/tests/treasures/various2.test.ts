@@ -1021,7 +1021,7 @@ describe("Force Attack Monster", () => {
             game.discardMonster(player1, monsterPosition);
 
             // Constraint should be cleared (monster no longer in play)
-            expect(game.playerMustAttackList(player1).length).toBe(0);
+            expect(player1.hasAttackRequirement).toBe(false);
 
             // Should be able to end turn
             expect(() => {

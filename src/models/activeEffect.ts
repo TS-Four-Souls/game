@@ -83,7 +83,7 @@ export function makeAPlayerWithMostSoulsDestroyASoulEffect(game: Game): EffectFu
 export function forceAttackMonsterEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         const targetMonster = data.next as Monster;
-        game.currentPlayer.mustAttack(targetMonster);
+        game.playerMustAttack(data.issuer as Player, targetMonster);
         return true;
     };
 }
@@ -1071,7 +1071,7 @@ export function rechargeThisEffect(game: Game): EffectFunction {
 export function forceAttackMonsterDeckEffect(game: Game, times: number): EffectFunction {
     return (data: EffectData) => {
         for (let i = 0; i < times; i++) {
-            game.playerMustAttackList(data.issuer as Player).push("topDeck");
+            game.playerMustAttack(data.issuer as Player, "topDeck");
         }
         return true;
     };

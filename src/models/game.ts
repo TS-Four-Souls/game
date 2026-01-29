@@ -393,7 +393,6 @@ export class Game {
       this.assertNoOngoingAttack();
       this.assertPlayerIsAlive(player);
       if (!player.isEngagedInCombat) {
-        player.clearAttackRequirement(monster);
         throw new Error("You have not declared an attack.");
       }
       const isMonsterAlreadyEngaged = this.monsters.some(
@@ -2086,11 +2085,10 @@ export class Game {
     return card;
   }
 
-  playerMustAttackList(player: Player): (Monster | "topDeck")[] {
+  playerMustAttack(player: Player, target: (Monster | "topDeck")): void {
     // Check if player is dead - constraint doesn't apply
     if (player.isDead) {
       player.clearAttackRequirement();
-      return [];
     }
 
     const mustAttackPlayers: (Monster | "topDeck")[] = player.mustAttackMonster;
@@ -2106,7 +2104,7 @@ export class Game {
         player.clearAttackRequirement(monster);
       }
     }
-    return player.mustAttackMonster;
+    player.mustAttack(target);
   }
 
   discardFromHandAtIndex(issuer: Issuer, position: number): string {
