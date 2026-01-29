@@ -11,11 +11,7 @@ import type { Stack, StackElement } from "./stack";
 import { effectParser, type ParsedEffect } from "./effectParser";
 import { deckSelector, visibleItemSelector, inplayUnchargedItemSelector } from "./targetSelector";
 import { TargetBuilder } from "./targetBuilder";
-// import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, goFirstInTurnOrderEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, startingItemEffect, temporaryStatModifierEffect, gainTreasureOnDeathEffect } from "./abilities";
-import *  as passive from "./passiveEffect";
-import type { BonusSoulCardType } from "@/types/cardTypes";
 import type { Monster } from "./monster";
-import { string } from "zod";
 
 export function gainCoinsEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
@@ -436,7 +432,7 @@ export function flushMonsterSlotsToBottomEffect(game: Game): EffectFunction {
 export function lookAtHands(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        await game.select(data.issuer, 0, game.allHands(), true, "Here are all players' hands:");
+        await game.select(data.issuer, 0, game.allHands(), true, "You can see each players' hands:");
         return true;
     };
 }
@@ -464,7 +460,7 @@ export function lookAtAPlayerHand(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const target = data.next as Player;
-        await game.select(data.issuer, 0, target.hand.cards.map(card => card.slug), true, `Here is ${target.id}'s hand:`);
+        await game.select(data.issuer, 0, [{ player: target, hand: target.hand }], true, `You can see ${target.id}'s hand:`);
         return true;
     };
 }
