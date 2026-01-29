@@ -745,6 +745,11 @@ export class Game {
     return this.pendingMultipleSelections.size > 0;
   }
 
+  /* select is used to obtain a selection from a single player
+   * If n=1 and only one option is available, it is automatically selected
+   * If anyNumber is true, the player can select up to n options (including 0)
+   * Returns a Promise that resolves to an object containing the selected and remaining options
+  */
   async select(
     player: Player,
     n: number,
