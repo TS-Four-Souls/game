@@ -1295,7 +1295,6 @@ function LoadDecks(json_array: GenericCardType[], numPlayers: number, nbPlayerCa
         }
         shuffle<number>(range);
         const firstCard = set.get(0)!;
-        assert(range.length === set.length, `LoadDecks: range length ${range.length} does not match set length ${set.length} for deck type ${type}.`);
         decks[type] = new Deck(set, firstCard.type, range);
     }
     return decks;
