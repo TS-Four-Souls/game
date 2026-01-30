@@ -700,7 +700,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         case "if you would gain any amount of ¢, this levels up by that much instead.":
             return { effectFunction: passive.gainCoinsLevelUpEffect(game), targetSelectors: noTargets };
         case "[lv1 effect] you have +2 to your first attack roll each turn.":
-            return { effectFunction: passive.firstAttackRollStatModifierEffect(2, 0, 0, game), targetSelectors: noTargets };
+            return { effectFunction: passive.lvlXaddListenerEffect([passive.firstAttackRollDiceModifier(2, game)], 1, game), targetSelectors: noTargets };
         case "[lv10 effect] you have +1 [atk] .":
             return { effectFunction: passive.lvlXaddListenerEffect([passive.permanentStatModifierEffect([game.addAttack.bind(game)], 1, game)], 10, game), targetSelectors: noTargets };
         case "[lv25 effect] you may attack any number of times on your turn.":

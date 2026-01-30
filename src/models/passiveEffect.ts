@@ -251,6 +251,51 @@ export function curseEffect(restEffectFunction: EffectFunction, game: Game): Eff
     }
 }
 
+// REPLACEMENT EFFECT: Continuous stat modification on your turn - does not use the stack.
+export function firstAttackRollDiceModifier(
+    amount: number,
+    game: Game
+): EffectFunction {
+    return (data: EffectData) => {
+        if (amount < 0)
+            throw new Error("firstAttackRollDiceModifier amount must be non-negative.");
+        let active = (data.issuer as Player).attackRollThisTurn ===  0;
+        if(active)
+            game.addAttackDiceModifier(data.issuer, amount);
+
+        let offTurn = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
+            if (eventIssuer !== data.issuer) return;
+            if(active) return;
+            game.addAttackDiceModifier(data.issuer, amount);
+        });
+
+        let offTurnEnd = game.emitter.on("on:attack:roll", ({ eventIssuer }) => {
+            if (eventIssuer !== data.issuer) return;
+            if(!active) return
+            if((data.issuer as Player).attackRollThisTurn !==  0)
+            {
+                active = false;
+                game.addAttackDiceModifier(data.issuer, -amount);
+            }
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+
+        data.it.cleaners.push(() => {            
+            if(active)
+            {
+                active = false;
+                game.addAttackDiceModifier(data.issuer, -amount);
+            }
+            offTurn();
+            offTurnEnd();
+        });
+
+        return true;
+    };
+}
+
+
 // TRIGGERED EFFECT: Uses the stack.
 // Card text: "Each time a monster dies, gain X¢."
 export function gainCoinsOnMonsterDeathEffect(
