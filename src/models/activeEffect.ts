@@ -1213,9 +1213,7 @@ export function preventDeathEndTurnEffect(game: Game): EffectFunction {
         if(data.issuer instanceof Player === false) return false;
         game.preventDeath(data.issuer);
         if (game.currentPlayer === data.issuer) {
-            game.resetStack();
-            game.endCombat();
-            game.endTurn();
+            return endTurnAndResetStackEffect(game)(data);
         }
         return true;
     };
