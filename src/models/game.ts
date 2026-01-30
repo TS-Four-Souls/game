@@ -528,6 +528,7 @@ export class Game {
       this.assertIsAlive(player);
       this.assertNoPendingSelection();
       this.assertCurrentPlayerIsEngagedInCombat();
+      this.assertEmptyStack();
       
       const monster = [...this.monsters].find(
         (m): m is Monster => m !== undefined && m.isEngagedInCombat
