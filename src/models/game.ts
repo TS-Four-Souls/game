@@ -1,10 +1,6 @@
 import { Monster } from "@/models/monster";
 import { DamageOnStack, DeathOnStack, DiceRoll, Player } from "@/models/player";
 import { TargetBuilder } from "@/models/targetBuilder";
-import type {
-  Issuer,
-} from "@/types/types";
-import { setTimeout } from "timers/promises";
 import { loadCards } from "@/utils/loadCards";
 import {
   Card,
@@ -44,7 +40,7 @@ import { type ReadableSignal, Signal } from "micro-signals";
 import { GameEventEmitter } from "./eventEmmitter";
 import { bSoulEffectParser } from "@/models/bonusSoulHandling";
 import type { TriggerEvent } from "@/types/triggers";
-import type { Capability, DetailedState, SelectionItem } from "@/shared/api";
+import type { Capability, DetailedState, Issuer, SelectionItem } from "@/shared/api";
 import { HistoricHandler, type HistoricEntry, type UserRequest } from "./historyHandler";
 import { GameParameters } from "./gameParameters";
 
@@ -74,7 +70,7 @@ export class Game {
   private _bonusSouls: BsoulCard[] = [];
   private _stackEmptyCallbacks: (() => void)[] = [];
   private _historicHandler: HistoricHandler = new HistoricHandler();
-  readonly gameParameters = new GameParameters();
+  readonly gameParameters = new GameParameters(() => this._onStateChange.dispatch());
 
   private _onStateChange: Signal<void> = new Signal();
   onStateChange: ReadableSignal<void> = this._onStateChange.readOnly();
@@ -709,6 +705,7 @@ export class Game {
     this.assertPlayerIdAvailable(newPlayer.id);
     this.assertGameNotStarted();
     this.players.push(newPlayer);
+    this._onStateChange.dispatch();
   }
 
   async gainTreasureAmongs(
@@ -1070,13 +1067,11 @@ export class Game {
       this.startTurn();
     });
   }
-  nextTurn(issuer: Issuer): string {
+  nextTurn(issuer: Issuer): void {
     const roundIndex = this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.canEndTurn(player, true);
     this.endTurn();
-
-    return `It's ${this.currentPlayer!.id}'s turn. Round ${roundIndex}.\n`;
   }
 
   canEndTurn(issuer: Issuer, shouldThrow: boolean = false): Capability {
@@ -1641,7 +1636,7 @@ export class Game {
     this.stack.cancelPreviousDeath(player);
     if (player.currentHealthPoints === 0) player.addHealthPoints(1);
   }
-  gainTreasure(issuer: Issuer, number: number = 1): string {
+  gainTreasure(issuer: Issuer, number: number = 1): void {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.assertPositiveNumber(number);
@@ -1651,7 +1646,6 @@ export class Game {
       const drawnCard: Card = treasureDeck.draw()!;
       this.addInPlay(player, drawnCard);
     }
-    return `You have drawn ${number} treasure card(s).\n`;
   }
 
   destroyCardsOrSouls(cards: Card[]): boolean {
@@ -1913,7 +1907,7 @@ export class Game {
     }
   }
 
-  loot(issuer: Issuer, number: number = 1): string {
+  loot(issuer: Issuer, number: number = 1): void {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.assertPositiveNumber(number);
@@ -1935,8 +1929,6 @@ export class Game {
       numberOfCards: toLoot,
     });
     this._onStateChange.dispatch();
-
-    return `You have drawn ${toLoot} loot card(s).\n`;
   }
 
   emit(event: TriggerEvent, data: any = {}, dispatch: boolean = true): void {
