@@ -274,33 +274,7 @@ export type GameParametersJson = z.infer<typeof gameParametersSchema>;
 
 const joinRequestSchema = z.string();
 
-const joinResponseSchema = z.union([
-  z.object({
-    status: z.literal(200),
-    secret: z.string(),
-    gameParameters: gameParametersSchema,
-  }),
-  z.object({
-    status: z.literal(400),
-    error: z.string(),
-  }),
-]);
-export type JoinResponse = z.infer<typeof joinResponseSchema>;
-
 const rejoinRequestSchema = issuerSchema;
-
-const rejoinResponseSchema = z.union([
-  z.object({
-    status: z.literal(200),
-    gameState: z.lazy(() => detailedStateSchema).optional(),
-    gameParameters: gameParametersSchema,
-  }),
-  z.object({
-    status: z.literal(400),
-    error: z.string(),
-  }),
-]);
-export type RejoinResponse = z.infer<typeof rejoinResponseSchema>;
 
 const startRequestSchema = z.object({
   issuer: issuerSchema,
@@ -318,18 +292,6 @@ const basicResponseSchema = z.union([
   }),
 ]);
 export type BasicResponse = z.infer<typeof basicResponseSchema>;
-
-const stringResponseSchema = z.union([
-  z.object({
-    status: z.literal(200),
-    response: z.string(),
-  }),
-  z.object({
-    status: z.literal(400),
-    error: z.string(),
-  }),
-]);
-export type StringResponse = z.infer<typeof stringResponseSchema>;
 
 const debugListLootResponseSchema = z.union([
   z.object({
@@ -377,8 +339,6 @@ const declareAttackRequestSchema = startRequestSchema;
 const declarePurchaseRequestSchema = startRequestSchema;
 const cancelPurchaseRequestSchema = startRequestSchema;
 
-const declareAttackResponseSchema = basicResponseSchema;
-export type DeclareAttackResponse = z.infer<typeof declareAttackResponseSchema>;
 const submitSelectionSchema = z.object({
   issuer: issuerSchema,
   requestId: z.string(),
@@ -411,6 +371,7 @@ const setGameParameterRequestSchema = z.discriminatedUnion("parameter", [
       "lootOnStart",
       "coinsOnStart",
       "shopPrice",
+      "lootPlayPerTurn"
     ]),
     value: z.number(),
     issuer: issuerSchema,
@@ -490,7 +451,17 @@ const detailedStateSchema = z.object({
 });
 export type DetailedState = z.infer<typeof detailedStateSchema>;
 
+const roomSchema = z.object({
+  issuer: issuerSchema,
+  players: z.array(z.string()),
+  gameParameters: gameParametersSchema,
+  gameState: detailedStateSchema.optional(),
+});
+export type Room = z.infer<typeof roomSchema>;
+
 export const schemas = {
+  issuer: issuerSchema,
+  room: roomSchema,
   joinRequest: joinRequestSchema,
   rejoinRequest: rejoinRequestSchema,
   startRequest: startRequestSchema,
@@ -512,7 +483,6 @@ export const schemas = {
   activateRequest: cardActivationSchema,
   purchaseRequest: purchaseSchema,
   giveCoinsRequest: giveCoinsSchema,
-  issuer: issuerSchema,
   setGameParameterRequest: setGameParameterRequestSchema,
 };
 
@@ -544,35 +514,32 @@ export namespace Requests {
 }
 
 export namespace Responses {
-  export type Join = JoinResponse;
-  export type Rejoin = RejoinResponse;
+  export type Join = BasicResponse;
+  export type Rejoin = BasicResponse;
   export type SetGameParameter = BasicResponse;
   export type Start = BasicResponse;
   export type Reset = BasicResponse;
-  export type DeclareAttack = DeclareAttackResponse;
+  export type DeclareAttack = BasicResponse;
   export type Resolve = BasicResponse;
   export type SubmitSelection = BasicResponse;
   export type PlayCard = NextTargetSelectorResponse;
-  export type EndTurn = StringResponse;
+  export type EndTurn = BasicResponse;
   export type Activate = NextTargetSelectorResponse;
   export type Purchase = BasicResponse;
   export type DeclarePurchase = BasicResponse;
   export type CancelPurchase = BasicResponse;
   export type AttackMonster = BasicResponse;
   export type AttackRoll = BasicResponse;
-  export type DebugLoot = StringResponse;
+  export type DebugLoot = BasicResponse;
   export type DebugListLoot = DebugListLootResponse;
   export type DebugListTreasure = DebugListTreasureResponse;
-  export type DebugGainTreasure = StringResponse;
+  export type DebugGainTreasure = BasicResponse;
   export type DebugReset = BasicResponse;
   export type GiveCoins = BasicResponse;
 }
 
 export interface ServerToClientEvents {
-  "on:game:start": () => void;
-  "on:game:reset": () => void;
-  "on:game:changed": (state: DetailedState) => void;
-  "on:game:parameters:changed": (parameters: GameParametersJson) => void;
+  "on:room:changed": (room: Room | null) => void;
 }
 
 export interface ClientToServerEvents {

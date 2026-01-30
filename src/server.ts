@@ -4,12 +4,13 @@ import { Game } from "./models/game";
 import { Player } from "./models/player";
 import type {
   ClientToServerEvents,
+  DetailedState,
   ServerToClientEvents,
   TargetSelectorResponse,
 } from "./shared/api";
 import { schemas } from "./shared/api";
 import { TargetBuilder } from "./models/targetBuilder";
-import type { Card, ItemCard, LootCard, MonsterCard, CharacterCard} from "./models/cards";
+import type { Card, ItemCard, LootCard, MonsterCard, CharacterCard } from "./models/cards";
 
 const PORT = process.env.PORT || 3000;
 const HOSTNAME = process.env.HOSTNAME || "localhost";
@@ -27,10 +28,36 @@ const engine = new Engine({
 io.bind(engine);
 
 game.onStateChange.add(() => {
-  game.players.map((player) => {
-    io.to(player.id).emit("on:game:changed", game.detailedStateJSON(player));
-  });
+  game.players.forEach((player) => sendRoomChanged(player.id));
 });
+
+const sendRoomChanged = (playerId: string) => {
+  let player: Player;
+  try {
+    player = game.getPlayerById(playerId);
+  } catch (error) {
+    console.error("Failed to get player", error);
+    io.to(playerId).emit("on:room:changed", null);
+    return;
+  }
+
+  let gameState: DetailedState | undefined;
+  try {
+    gameState = game.detailedStateJSON(player);
+  } catch (error) {
+    console.error("Failed to get game state", error);
+  }
+
+  io.to(player.id).emit("on:room:changed", {
+    issuer: {
+      id: player.id,
+      secret: player.secret,
+    },
+    players: game.players.map((player) => player.id),
+    gameParameters: game.gameParameters.toJson(),
+    gameState,
+  });
+};
 
 io.on("connection", (socket) => {
   console.log("Client connected");
@@ -40,17 +67,16 @@ io.on("connection", (socket) => {
     if (!validated.success) {
       return callback({ status: 400, error: validated.error.message });
     }
+    const name = validated.data;
     try {
-      const name = validated.data;
       const player = new Player(name);
       game.addPlayer(player);
       console.log(`Player ${name} joined the game`);
       socket.join(player.id);
+      sendRoomChanged(player.id);
       game.addToHistory(validated.data);
       return callback({
         status: 200,
-        secret: player.secret,
-        gameParameters: game.gameParameters.toJson()
       });
     } catch (error) {
       console.error("Failed to join the game", error);
@@ -72,11 +98,10 @@ io.on("connection", (socket) => {
         return callback({ status: 400, error: "Invalid secret" });
       }
       socket.join(player.id);
+      sendRoomChanged(player.id);
       game.addToHistory(validated.data);
       return callback({
         status: 200,
-        gameState: game.isStarted ? game.detailedStateJSON(validated.data) : undefined,
-        gameParameters: game.gameParameters.toJson()
       });
     } catch (error) {
       console.error("Failed to rejoin the game", error);
@@ -95,7 +120,6 @@ io.on("connection", (socket) => {
     try {
       game.getPlayerByIssuer(validated.data.issuer);
       game.gameParameters[validated.data.parameter].value = validated.data.value;
-      io.emit("on:game:parameters:changed", game.gameParameters.toJson());
       return callback({ status: 200 });
     }
     catch (error) {
@@ -138,7 +162,6 @@ io.on("connection", (socket) => {
       // }
       // } 
       // const treas = ["b2-theres_options", "b2-trinity_shield"];
-      io.emit("on:game:start");
       game.addToHistory(validated.data);
       return callback({ status: 200 });
     } catch (error) {
@@ -156,8 +179,9 @@ io.on("connection", (socket) => {
       return callback({ status: 400, error: validated.error.message });
     }
     try {
+      const players = game.players;
       game.reset();
-      io.emit("on:game:reset");
+      players.forEach((player) => sendRoomChanged(player.id));
       game.addToHistory(validated.data);
       return callback({ status: 200 });
     } catch (error) {
@@ -428,10 +452,8 @@ io.on("connection", (socket) => {
     }
     try {
       game.addToHistory(validated.data);
-      return callback({
-        response: game.nextTurn(validated.data.issuer),
-        status: 200,
-      });
+      game.nextTurn(validated.data.issuer);
+      return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to end turn", error);
       if (error instanceof Error) {
@@ -484,11 +506,11 @@ io.on("connection", (socket) => {
           game.addCardToHand(player, card);
         }
         return callback({
-          response: `Obtained ${slugs.length} loot card(s).`,
           status: 200,
         });
       }
-      return callback({ response: game.loot(player), status: 200 });
+      game.loot(player);
+      return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to debug loot", error);
       if (error instanceof Error) {
@@ -574,11 +596,11 @@ io.on("connection", (socket) => {
           game.addInPlay(player, card);
         }
         return callback({
-          response: `Obtained ${slugs.length} treasure card(s).`,
           status: 200,
         });
       }
-      return callback({ response: game.gainTreasure(player), status: 200 });
+      game.gainTreasure(player);
+      return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to debug gain treasure", error);
       if (error instanceof Error) {

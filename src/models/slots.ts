@@ -220,7 +220,7 @@ class Encounters {
     _deck: Deck;
     
     /** @private Reference to the game instance */
-    _game: any; // Game type
+    _game: Game; // Game type
     
     /** Global modifier to all monster evasion values (DC = difficulty class) */
     dcModifier: number = 0;
@@ -236,7 +236,7 @@ class Encounters {
      * @param deck - The monster deck to draw from
      * @param game - The game instance
      */
-    constructor(nbEncounterSlots: number, deck: Deck, game: any) {
+    constructor(nbEncounterSlots: number, deck: Deck, game: Game) {
         this._slots = new Array(nbEncounterSlots);
         this._monstersInPlay = new Array(nbEncounterSlots);
         for (let i = 0; i < nbEncounterSlots; i++) {
