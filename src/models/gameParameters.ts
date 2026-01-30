@@ -62,6 +62,7 @@ export class GameParameters {
   readonly lootOnStart: NumericGameParameter;
   readonly coinsOnStart: NumericGameParameter;
   readonly shopPrice: NumericGameParameter;
+  readonly lootPlayPerTurn: NumericGameParameter;
   /** only cards with minimum player requirement satisfied in decks. */
   readonly nbPlayerCardRestriction: BooleanGameParameter;
 
@@ -75,6 +76,7 @@ export class GameParameters {
     this.lootOnStart = new NumericGameParameter(0, 3, 10);
     this.coinsOnStart = new NumericGameParameter(0, 3, 20);
     this.shopPrice = new NumericGameParameter(1, 10, 20);
+    this.lootPlayPerTurn = new NumericGameParameter(1, 1, 10);
     this.nbPlayerCardRestriction = new BooleanGameParameter(true);
   }
 
@@ -89,6 +91,7 @@ export class GameParameters {
       lootOnStart: this.lootOnStart.value,
       coinsOnStart: this.coinsOnStart.value,
       shopPrice: this.shopPrice.value,
+      lootPlayPerTurn: this.lootPlayPerTurn.value,
       nbPlayerCardRestriction: this.nbPlayerCardRestriction.value,
     };
   }

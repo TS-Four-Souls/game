@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, expectTypeOf } from "bun:test";
 import { Game } from "../../models/game";
 import { DiceRoll, Player } from "../../models/player";
-import type { LootCard } from "@/models/cards";
+import type { Hand, LootCard } from "@/models/cards";
 import { MonsterCard } from "@/models/cards";
 import { setupTestGame, emptyHands, mockGameSelections } from "../testHelpers";
 import { he, pl } from "zod/locales";
@@ -356,9 +356,9 @@ describe("Monsters - On death effects", () => {
                 return { selected: [player2], remaining: opts.filter(o => o !== player2) };
             if(count === 2){
                 for(const slug of handSlugs){
-                    expect(opts).toContain(slug);
+                    expect((opts[0].hand as Hand).cards.map(card => card.slug)).toContain(slug);
                 }
-                expect(opts.length).toBe(handSlugs.length);
+                expect((opts[0].hand as Hand).cards.length).toBe(handSlugs.length);
                 return { selected: [], remaining: opts.filter(o => o !== player2) };
             }
             return { selected: opts.slice(0, n), remaining: opts.slice(n) };

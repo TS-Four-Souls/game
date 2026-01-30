@@ -4,7 +4,7 @@ import { DiceRoll, Player } from "../../models/player";
 import { CharacterCard, ItemCard, treasureCard, MonsterCard } from "@/models/cards";
 import { Monster } from "@/models/monster";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "@/tests/testHelpers";
-import { pl } from "zod/locales";
+import { setupTestGame } from "../testHelpers";
 
 describe("b2-placebo - copies tap ability of non-eternal item", () => {
     let game: Game;
@@ -13,16 +13,15 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
     beforeEach(() => {
 
-        game = new Game();
-        mockGameSelections(game);
-        player1 = new Player("Player 1");
-        player2 = new Player("Player 2");
-        game.addPlayer(player1);
-        game.addPlayer(player2);
-        game.setupGame();
-        const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [samson, isaac]);
+        const setup = setupTestGame({
+            characters: ["b2-samson", "b2-isaac"],
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card"],
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
             for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -278,15 +277,16 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
     let player2: Player;
 
     beforeEach(() => {
-        game = new Game();
-        player1 = new Player("Player 1");
-        player2 = new Player("Player 2");
-        game.addPlayer(player1);
-        game.addPlayer(player2);
-        game.setupGame();
-        const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [samson, isaac]);
+        const setup = setupTestGame({
+            characters: ["b2-samson", "b2-isaac"],
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card"],
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        mockGameSelections(game);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
             for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -545,15 +545,16 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
     let player2: Player;
 
     beforeEach(() => {
-        game = new Game();
-        player1 = new Player("Player 1");
-        player2 = new Player("Player 2");
-        game.addPlayer(player1);
-        game.addPlayer(player2);
-        game.setupGame();
-        const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [samson, isaac]);
+        const setup = setupTestGame({
+            characters: ["b2-samson", "b2-isaac"],
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card"],
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        mockGameSelections(game);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
             for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -871,15 +872,16 @@ describe("b2-trinity_shield - prevents other players from priority actions", () 
     let player2: Player;
 
     beforeEach(() => {
-        game = new Game();
-        player1 = new Player("Player 1");
-        player2 = new Player("Player 2");
-        game.addPlayer(player1);
-        game.addPlayer(player2);
-        game.setupGame();
-        const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [samson, isaac]);
+        const setup = setupTestGame({
+            characters: ["b2-samson", "b2-isaac"],
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card"],
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        mockGameSelections(game);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
             for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -1023,15 +1025,16 @@ describe("b2-no - Cancel the ↷ or $ ability of an item", () => {
     let player2: Player;
 
     beforeEach(() => {
-        game = new Game();
-        player1 = new Player("Player 1");
-        player2 = new Player("Player 2");
-        game.addPlayer(player1);
-        game.addPlayer(player2);
-        game.setupGame();
-        const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [samson, isaac]);
+        const setup = setupTestGame({
+            characters: ["b2-samson", "b2-isaac"],
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card"],
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        mockGameSelections(game);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
             for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){

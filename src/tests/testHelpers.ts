@@ -1,6 +1,7 @@
 import { Game } from "../models/game";
 import { Player } from "../models/player";
 import type { MonsterCard, CharacterCard } from "../models/cards";
+import { GameParameters } from "@/models/gameParameters";
 
 
 export function emptyHands(game: Game): void {
@@ -116,8 +117,11 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
     } = config;
 
     // Create game instance
+    
     const game = new Game();
     mockGameSelections(game);
+    game.gameParameters.nbPlayerCardRestriction.value = false;
+    game.gameParameters.lootPlayPerTurn.value = 10;
     // Create players
     const players: Player[] = [];
     for (let i = 0; i < playerCount; i++) {

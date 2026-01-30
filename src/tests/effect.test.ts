@@ -3,33 +3,22 @@ import { Game } from "@/models/game";
 import { Player } from "@/models/player";
 import { gainCoinsEffect } from "@/models/activeEffect";
 import { CharacterCard, MonsterCard, EffectData } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame } from "@/tests/testHelpers";
 
 // Minimal loot card stub
 const dummyLoot = { slug: "dummy-loot", name: "Dummy", type: "loot" } as any;
 
 function setupGame() {
-    const game = new Game();
-    const p1 = new Player("Player 1");
-    const p2 = new Player("Player 2");
-    game.addPlayer(p1);
-    game.addPlayer(p2);
-    game.setupGame();
-    const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-    const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-    game.start(p1, [isaac, samson]);
-    dischargeEachItemsAndRemoveCoins(game);
-    emptyHands(game);
-        
-    for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-        const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-        game.decks["monster"]!.addTopPosition(monsterCardTop);
-    }
-    const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-    const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-    game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-    game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
-    game.decks["treasure"]?.addTopPosition(game.shop.obtainCard("b2-blank_card")!);
+
+    const setup = setupTestGame({
+            characters: ["b2-samson", "b2-isaac"],
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card"],
+        });
+    const game = setup.game;
+    const p1 = setup.player1;
+    const p2 = setup.player2!;
   return { game, p1, p2 };
 }
 

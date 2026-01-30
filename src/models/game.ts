@@ -356,7 +356,7 @@ export class Game {
       this.assertCurrentTurnIsPlayerTurn(player);
       this.assertNoOngoingAttack();
       this.assertCurrentPlayerIsNotEngagedInPurchase();
-      this.assertPlayerIsAlive(player);
+      this.assertIsAlive(player);
       this.assertNoPendingSelection();
 
       if (player.isEngagedInCombat) {
@@ -391,7 +391,7 @@ export class Game {
       }
       this.assertCurrentTurnIsPlayerTurn(player);
       this.assertNoOngoingAttack();
-      this.assertPlayerIsAlive(player);
+      this.assertIsAlive(player);
       if (!player.isEngagedInCombat) {
         throw new Error("You have not declared an attack.");
       }
@@ -525,7 +525,7 @@ export class Game {
   canRollDice(player: Player, shouldThrow: boolean = false): Capability {
     try {
       this.assertCurrentTurnIsPlayerTurn(player);
-      this.assertPlayerIsAlive(player);
+      this.assertIsAlive(player);
       this.assertNoPendingSelection();
       this.assertCurrentPlayerIsEngagedInCombat();
       
@@ -634,6 +634,7 @@ export class Game {
     source: DamageSource,
     damage: number
   ): void {
+    this.assertIsAlive(receiver);
     this.healthLoss(dealer, receiver, source, damage);
 
     if (receiver.damageTakenThisTurn.length === 1)
@@ -1014,7 +1015,7 @@ export class Game {
       p.attackThisTurn = 0;
       p.remainingPurchaseThisTurn = 0;
       if (p === this.currentPlayer) {
-        p.remainingLootPlay = 1;
+        p.remainingLootPlay = this.gameParameters.lootPlayPerTurn.value;
         p.attackThisTurn = 1;
         p.remainingPurchaseThisTurn = 1;
       }
@@ -1829,7 +1830,7 @@ export class Game {
       this.assertGameStarted();
       const player = this.assertIssuerSecret(issuer);
       this.assertCurrentTurnIsPlayerTurn(player);
-      this.assertPlayerIsAlive(player);
+      this.assertIsAlive(player);
       this.assertCurrentPlayerIsNotEngagedInCombat();
       this.assertEmptyStack();
       this.assertNoPendingSelection();
@@ -1871,7 +1872,7 @@ export class Game {
     try {
       this.assertGameStarted();
       this.assertCurrentTurnIsPlayerTurn(player);
-      this.assertPlayerIsAlive(player);
+      this.assertIsAlive(player);
       this.assertCurrentPlayerIsEngagedInPurchase();
       const price = [this.gameParameters.shopPrice.value];
       this.emit("on:item:purchase", { eventIssuer: player, cost: price });
@@ -1959,7 +1960,7 @@ export class Game {
   discardInPlay(issuer: Issuer, index: number): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
-    this.assertPlayerIsAlive(player);
+    this.assertIsAlive(player);
     this.assertPositiveNumber(index);
 
     const inPlayCards = player.inPlay;
@@ -1978,7 +1979,7 @@ export class Game {
   stealItemAnywhere(issuer: Issuer, target: Card): boolean {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
-    this.assertPlayerIsAlive(player);
+    this.assertIsAlive(player);
 
     if (this.shop.removeCard(target)) {
       this.addInPlay(player, target);
@@ -1998,7 +1999,6 @@ export class Game {
   stealCoins(issuer: Issuer, target: Player, amount: number): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
-    this.assertPlayerIsAlive(player);
     this.assertPositiveNumber(amount);
 
     const stolenCoins = this.loseCoins(target, amount, true);
@@ -2009,7 +2009,6 @@ export class Game {
   stealLootCard(issuer: Issuer, target: Player, card: LootCard): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
-    this.assertPlayerIsAlive(player);
 
     const position = target.hand.cards.indexOf(card);
     this.assertPositiveNumber(position);
@@ -2045,8 +2044,8 @@ export class Game {
       throw new Error("Invalid monster position.");
     }
 
+    player.clearAttackRequirement(this.monsters[position]!);
     this.encounters.discardTop(position);
-
     return `You have discarded the monster at position ${position}.\n`;
   }
   kill(killer: Entity, entity: Entity, source: DamageSource): void {
@@ -2058,7 +2057,7 @@ export class Game {
   drawMonster(issuer: Issuer, position: number): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
-    this.assertPlayerIsAlive(player);
+    this.assertIsAlive(player);
     this.assertPositiveNumber(position);
     this.assertCurrentTurnIsPlayerTurn(player);
     this.assertNoPendingSelection();
@@ -2148,7 +2147,7 @@ export class Game {
   rollDice(issuer: Issuer, attackRoll: boolean, card: Card | null = null): DiceRoll {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
-    if (attackRoll) this.assertPlayerIsAlive(player);
+    if (attackRoll) this.assertIsAlive(player);
 
     let diceRoll = player.rollDice(attackRoll, card);
     this.addToStack(diceRoll);
@@ -2321,9 +2320,9 @@ export class Game {
     }
   }
 
-  private assertPlayerIsAlive(player: Player): void {
-    if (player.isDead) {
-      throw new Error(`${player.id} is already dead`);
+  private assertIsAlive(ent: Entity): void {
+    if (ent.isDead) {
+      throw new Error(`${ent.id} is already dead`);
     }
   }
 

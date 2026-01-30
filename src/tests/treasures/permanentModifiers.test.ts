@@ -99,7 +99,7 @@ describe("Treasure - Permanent Modifiers", () => {
         game.endTurn(); // back to player1
         await game.resolveStack();
         const initialLootPlay = player1.remainingLootPlay;
-        expect(initialLootPlay).toBe(1); // because it's his turn
+        expect(initialLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value); // because it's his turn
         game.addInPlay(player1, cb);
         expect(player1.remainingLootPlay).toBe(initialLootPlay + 1);
         game.endTurn();
@@ -107,15 +107,15 @@ describe("Treasure - Permanent Modifiers", () => {
         expect(player1.remainingLootPlay).toBe(0);
         game.endTurn();
         await game.resolveStack();
-        expect(player1.remainingLootPlay).toBe(2);
+        expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value+1);
         game.removeInPlay(player1, cb);
-        expect(player1.remainingLootPlay).toBe(1);
+        expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value);
         game.endTurn();
         await game.resolveStack();
         expect(player1.remainingLootPlay).toBe(0);
         game.endTurn();
         await game.resolveStack();
-        expect(player1.remainingLootPlay).toBe(1);
+        expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value);
     });
 
     it("+1 Loot play on your turn", async () => {
@@ -125,7 +125,7 @@ describe("Treasure - Permanent Modifiers", () => {
         game.endTurn(); // back to player1
         await game.resolveStack();
         const initialLootPlay = player1.remainingLootPlay;
-        expect(initialLootPlay).toBe(1); // because it's his turn
+        expect(initialLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value); // because it's his turn
         game.addInPlay(player1, cb);
         expect(player1.remainingLootPlay).toBe(initialLootPlay + 1);
         game.endTurn();
@@ -133,16 +133,16 @@ describe("Treasure - Permanent Modifiers", () => {
         expect(player1.remainingLootPlay).toBe(0);
         game.endTurn();
         await game.resolveStack();
-        expect(player1.remainingLootPlay).toBe(2);
+        expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value + 1);
         game.removeInPlay(player1, cb);
         await game.resolveStack();
-        expect(player1.remainingLootPlay).toBe(1);
+        expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value);
         game.endTurn();
         await game.resolveStack();
         expect(player1.remainingLootPlay).toBe(0);
         game.endTurn();
         await game.resolveStack();
-        expect(player1.remainingLootPlay).toBe(1);
+        expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value);
     });
 
 
