@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, expectTypeOf } from "bun:test";
 import { Game } from "@/models/game";
 import { Player } from "@/models/player";
 import { TurnHandler } from "@/models/turnHandler";
 import { Stack } from "@/models/stack";
-import type { CharacterCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "@/tests/testHelpers";
+import type { CharacterCard, ItemCard, LootCard } from "@/models/cards";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupStandardTestGame } from "@/tests/testHelpers";
 
 describe("Game", () => {
   let game: Game;
@@ -408,6 +408,38 @@ describe("Player - Coins", () => {
     expect(lost).toBe(100);
     expect(player.coins).toBe(0);
   });
+});
+
+describe("Multi death things", () => {
+  let game: Game;
+    let player1: Player;
+    let player2: Player;
+
+    beforeEach(() => {
+        const setup = setupStandardTestGame();
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+    });
+
+    it("should handle multiple deaths in a row", async () => {
+      const card = game.obtainCard("b2-gold_bomb") as LootCard;
+      const card2 = game.obtainCard("b2-bomb-2") as LootCard;
+
+      game.addCardToHand(player1, card);
+      game.addCardToHand(player1, card2);
+
+      game.playCard(player1, 1, [player2]); // play bomb
+      game.playCard(player1, 0, [player2]); // play gold bomb
+
+      game.resolveStack(); // resolve card
+      game.resolveStack(); // resolve damage
+      game.resolveStack(); // resolve death
+
+      expect(player2.isDead).toBe(true);
+      game.resolveStack(); // resolve card
+      expect(game.stack.size).toBe(0);
+    });
 });
 
 describe("DiceRoll", () => {

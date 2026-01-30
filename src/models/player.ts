@@ -596,6 +596,9 @@ export class DiceRoll {
     this._targets = targets;
   }
   async onResolve(): Promise<void> {
+    if(this.attackRoll)
+      if(this._issuer.isDead || this._targets.length === 0 || this._targets[0].isDead)
+        return; // No effect if attacker or target is dead
     this.value += (this._attackRoll ? this._issuer.attackDiceModifier : 0) + this._issuer.diceModifier;
     if (this._effect?.length === 6) {
       // For attack rolls, prepend the dice roll itself to targets so effects can use it as the damage source

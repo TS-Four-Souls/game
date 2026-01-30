@@ -245,8 +245,8 @@ describe("Treasure - Passive effects", () => {
         const babyHaunt = game.shop.obtainCard("b2-baby_haunt") as treasureCard;
         game.addInPlay(player1, babyHaunt);
 
-        expect(player1.inPlay).toContain(babyHaunt);
-        expect(player2.inPlay).not.toContain(babyHaunt);
+        expect(player1.inPlay.map((c) => c.slug)).toContain(babyHaunt.slug);
+        expect(player2.inPlay.map((c) => c.slug)).not.toContain(babyHaunt.slug);
 
         // Kill player1
         game.kill(player1, player1, babyHaunt);
@@ -254,8 +254,8 @@ describe("Treasure - Passive effects", () => {
         await game.resolveStack();
 
         // baby_haunt should now be with player2
-        expect(player1.inPlay).not.toContain(babyHaunt);
-        expect(player2.inPlay).toContain(babyHaunt);
+        expect(player1.inPlay.map((c) => c.slug)).not.toContain(babyHaunt.slug);
+        expect(player2.inPlay.map((c) => c.slug)).toContain(babyHaunt.slug);
     });
 
     // b2-daddy_haunt    "When you die, before paying penalties, give this to another player."
@@ -264,8 +264,8 @@ describe("Treasure - Passive effects", () => {
         const daddyHaunt = game.shop.obtainCard("b2-daddy_haunt") as treasureCard;
         game.addInPlay(player1, daddyHaunt);
 
-        expect(player1.inPlay).toContain(daddyHaunt);
-        expect(player2.inPlay).not.toContain(daddyHaunt);
+        expect(player1.inPlay.map((c) => c.slug)).toContain(daddyHaunt.slug);
+        expect(player2.inPlay.map((c) => c.slug)).not.toContain(daddyHaunt.slug);
 
         // Kill player1
         game.kill(player1, player1, daddyHaunt);
@@ -273,8 +273,8 @@ describe("Treasure - Passive effects", () => {
         await game.resolveStack();
 
         // daddy_haunt should now be with player2
-        expect(player1.inPlay).not.toContain(daddyHaunt);
-        expect(player2.inPlay).toContain(daddyHaunt);
+        expect(player1.inPlay.map((c) => c.slug)).not.toContain(daddyHaunt.slug);
+        expect(player2.inPlay.map((c) => c.slug)).toContain(daddyHaunt.slug);
 
         // Kill player1
         game.kill(player2, player2, daddyHaunt);
@@ -282,8 +282,8 @@ describe("Treasure - Passive effects", () => {
         await game.resolveStack();
 
         // daddy_haunt should now be with player2
-        expect(player2.inPlay).not.toContain(daddyHaunt);
-        expect(player1.inPlay).toContain(daddyHaunt);
+        expect(player2.inPlay.map((c) => c.slug)).not.toContain(daddyHaunt.slug);
+        expect(player1.inPlay.map((c) => c.slug)).toContain(daddyHaunt.slug);
     });
 
     // b2-the_chest    "if this would be destroyed, it becomes a soul instead."

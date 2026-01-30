@@ -316,8 +316,8 @@ export class Game {
       target: from,
       source: source,
     });
+    receiver.die();
     this.executeWhenStackEmpty(async () => {
-      receiver.die();
       if (receiver.isEngagedInCombat) {
         this.Entities.forEach((e) => e.combatEnded());
       }
