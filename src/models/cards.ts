@@ -355,17 +355,11 @@ class EffectInterface {
 
         // Return a resolve function to be called later
         return async () => {
-            const trinket = (this.it as LootCard).trinket
             if(this._issuer) {
-                if(trinket) {
-                    this._issuer.addInPlay(this.it);
+                // Validate targets before calling effect function
+                if (effect.targetStillValid(this._issuer!, targets)) {
+                    await effect.effectFunction(new EffectData(this.it, this._issuer!, targets));
                 }
-                   // Validate targets before calling effect function
-                   if (effect.targetStillValid(this._issuer!, targets)) {
-                       await effect.effectFunction(new EffectData(this.it, this._issuer!, targets));
-                   } else {
-                    //    console.log("EffectInterface.onPlay resolve: targetStillValid() returned false for", (this.it as any).name);
-                   }
                 this.subscribeAll(this._issuer!);
             }
         };
@@ -492,6 +486,12 @@ class Card {
     }
     get cleaners(): (() => void)[] {
         return this._cleanup;
+    }
+    get owner(): Entity {
+        return this._owner;
+    }
+    set owner(value: Entity) {
+        this._owner = value;
     }
 
     cleanup(): void {
@@ -748,7 +748,7 @@ class LootCard extends ItemCard {
     }
 
     onPlay(issuer: Player, targets: any[] = []): (() => void | Promise<void>) {
-        // this._owner = issuer;
+        this._owner = issuer;
         // Return a resolve function that captures trinket state
         const resolveFunction = this._effectInterface.onPlay(issuer, targets);
         return () => {

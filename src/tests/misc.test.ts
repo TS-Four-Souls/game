@@ -180,15 +180,15 @@ describe("Bonus Soul effects", () => {
 
     it("Guppy combination 3", async () => {
         const initSoul = player1.totalSouls;
-        const guppyItem1 = game.decks["loot"]!.getCardFromSlug("b2-guppys_hairball");
+        const guppyItem1 = game.obtainCard("b2-guppys_hairball");
         const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
         if (!guppyItem1 || !guppyItem2)
             throw new Error("Guppy items not found in treasure deck");
         player1.hand.addToHand(guppyItem1);
+        game.addInPlay(player1, guppyItem2);
+        expect(player1.totalSouls).toBe(initSoul);
         game.playCard(player1, 0); // Play guppy's hairball
         await game.resolveStack();
-        expect(player1.totalSouls).toBe(initSoul);
-        game.addInPlay(player1, guppyItem2);
         expect(player1.totalSouls).toBe(initSoul + 1);
     });
 });
