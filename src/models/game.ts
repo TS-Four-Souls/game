@@ -938,7 +938,7 @@ export class Game {
     await elem.onResolve();
     if (elem instanceof LootCardEffect && elem.card instanceof LootCard)
     {
-      if(!elem.card.trinket)
+      if(!elem.card.trinket && !this.decks["loot"]!.cards.includes(elem.card)) // the sun is put below the deck on play
         this.discard(elem.card);
       else 
         this.addInPlay(elem.card.owner as Player, elem.card);

@@ -940,7 +940,7 @@ describe("Loot Card", () => {
         // Card placed on bottom of loot deck
         // expect(lootDeck.length).toBe(beforeSize + 1);
         expect(lootDeck.cards[lootDeck.cards.length - 1]).toBe(sun);
-
+        expect(lootDeck.discard.length).toBe(0);
         // Extra turn should be scheduled (player1 gets immediate next turn again)
         game.turnHandler.endTurn();
         expect(game.turnHandler.current).toBe(player1);
