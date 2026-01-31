@@ -298,9 +298,10 @@ class Encounters {
                     const stackIds = this._game.stack.elements.map(e => e.stackId);
                     card.onPlay(data.issuer as Player, data.targets);
                     // card.onAddInPlay(data.issuer);
-                    if(!card.isCurse)
-                        this._game.executeWhenStackSubset(stackIds, () => {
-                            this.discardTop(index); // remove the card once the effect is resolved.
+                    this._game.executeWhenStackSubset(stackIds, () => {
+                        this.discardTop(index); // remove the card once the effect is resolved.
+                        if(card.isCurse)
+                            this._deck.drawTopDiscard();
                         });
                     return true;
                 }, 
