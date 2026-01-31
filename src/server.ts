@@ -156,13 +156,12 @@ io.on("connection", (socket) => {
       // for (const slug of loots) {
       //   const card = game.obtainCard(slug)! as LootCard;
       //   game.addCardToHand(game.players[0]!, card);
-      // }
-      // const treas = ["b2-theres_options", "b2-trinity_shield"];
       // for (const slug of treas) {
       //   const card = game.obtainCard(slug)! as ItemCard;
       //   game.addInPlay(game.players[0]!, card);
+      // }
       // } 
-      
+      // const treas = ["b2-theres_options", "b2-trinity_shield"];
       game.addToHistory(validated.data);
       return callback({ status: 200 });
     } catch (error) {
@@ -182,7 +181,10 @@ io.on("connection", (socket) => {
     try {
       const players = game.players;
       game.reset();
-      players.forEach((player) => sendRoomChanged(player.id));
+      players.forEach((player) => {
+        sendRoomChanged(player.id);
+        io.socketsLeave(player.id);
+      });
       game.addToHistory(validated.data);
       return callback({ status: 200 });
     } catch (error) {
