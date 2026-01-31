@@ -56,8 +56,8 @@ export class Player extends Entity {
   /** @private Counter for effects that let player see top of treasure deck (0 or 1) */
   private _canSeeTopOfTreasureDeck: number = 0;
   
-  /** @private Monsters or deck that this player must attack */
-  private _mustAttackMonster: (Monster | "topDeck")[] = [];
+  /** @private Monsters or deck that this player must attack, with the card that gave the requirement */
+  private _mustAttackMonster: { target: Monster | "topDeck", source: Card }[] = [];
 
   private _diceModifier: number = 0;
   
@@ -94,19 +94,20 @@ export class Player extends Entity {
     return this.inPlay.find(c => c instanceof CharacterCard) ? this.inPlay.find(c => c instanceof CharacterCard)!.slug : "";
   }
   /**
-   * Gets the list of monsters or deck positions this player must attack.
-   * @returns Array of required attack targets
+   * Gets the list of monsters or deck positions this player must attack, with source cards.
+   * @returns Array of required attack targets with their source cards
    */
-  get mustAttackMonster(): (Monster | "topDeck")[] {
+  get mustAttackMonster(): { target: Monster | "topDeck", source: Card }[] {
     return this._mustAttackMonster;
   }
   
   /**
    * Adds a monster or deck position to the list of required attack targets.
    * @param value - The monster or "topDeck" that must be attacked
+   * @param source - The card that gave this requirement
    */
-  mustAttack(value: Monster | "topDeck") {
-    this._mustAttackMonster.push(value);
+  mustAttack(value: Monster | "topDeck", source: Card) {
+    this._mustAttackMonster.push({ target: value, source });
     this.attackThisTurn = Math.max(this.attackThisTurn, this._mustAttackMonster.length); // Ensure at least 1 attack this turn
   }
   
@@ -121,7 +122,7 @@ export class Player extends Entity {
    * Returns true if player must attack the top of the monster deck
    */
   mustAttackTopDeck(): boolean {
-    return this._mustAttackMonster.includes("topDeck");
+    return this._mustAttackMonster.some(req => req.target === "topDeck");
   }
   
   /**
@@ -129,7 +130,7 @@ export class Player extends Entity {
    */
   canAttackThisMonster(elem: (Monster | "topDeck")): boolean {
     if (this._mustAttackMonster.length === 0) return true; // No requirement
-    return this._mustAttackMonster.includes(elem); // Must be in the list
+    return this._mustAttackMonster.some(req => req.target === elem); // Must be in the list
   }
   
   /**
@@ -144,7 +145,7 @@ export class Player extends Entity {
     }
 
     // Otherwise, remove the specific monster from the list
-    const index = this._mustAttackMonster.indexOf(elem);
+    const index = this._mustAttackMonster.findIndex(req => req.target === elem);
     if (index !== -1) {
       this._mustAttackMonster.splice(index, 1);
     }

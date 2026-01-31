@@ -1719,6 +1719,11 @@ export class Game {
         souls: player.totalSouls,
         soulCards: player.souls.map((c) => c.json),
         coins: player.coins,
+        attackRequirements: player.mustAttackMonster.map((req) => (req.target === "topDeck" ? {monster: "top", source: {name: req.source.name, slug: req.source.slug}} : {
+          monster: {name: (req.target as Monster).name,
+                    slug: (req.target as Monster).card.slug},
+          source: {name: req.source.name, slug: req.source.slug}
+        })),
         currentAttackPoints: player.attackPoints,
         currentHealthPoints: player.currentHealthPoints,
         remainingLootPlay: player.remainingLootPlay,
@@ -1772,6 +1777,11 @@ export class Game {
           remainingLootPlay: p.remainingLootPlay,
           isEngagedInCombat: p.isEngagedInCombat,
           isEngagedInPurchase: p.isEngagedInPurchase,
+          attackRequirements: p.mustAttackMonster.map((req) => (req.target === "topDeck" ? {monster: "top", source: {name: req.source.name, slug: req.source.slug}} : {
+          monster: {name: (req.target as Monster).name,
+                    slug: (req.target as Monster).card.slug},
+          source: {name: req.source.name, slug: req.source.slug}
+         })),
           pendingSelection: this.pendingMultipleSelections.values().some(sel => sel.playerId === p.id),
         })),
       monsters:
@@ -2087,17 +2097,17 @@ export class Game {
     return card;
   }
 
-  playerMustAttack(player: Player, target: (Monster | "topDeck")): void {
+  playerMustAttack(player: Player, target: (Monster | "topDeck"), source: Card): void {
     // Check if player is dead - constraint doesn't apply
     if (player.isDead) {
       player.clearAttackRequirement();
     }
 
-    const mustAttackPlayers: (Monster | "topDeck")[] = player.mustAttackMonster;
+    const mustAttackPlayers = player.mustAttackMonster;
 
     for (const req of mustAttackPlayers) {
-      if (req === "topDeck") continue;
-      const monster = req as Monster;
+      if (req.target === "topDeck") continue;
+      const monster = req.target as Monster;
       // If any required monster is no longer in play, clear the requirement
       if (!this.monsters.includes(monster)) {
         player.clearAttackRequirement(monster);
@@ -2106,7 +2116,7 @@ export class Game {
         player.clearAttackRequirement(monster);
       }
     }
-    player.mustAttack(target);
+    player.mustAttack(target, source);
   }
 
   discardFromHandAtIndex(issuer: Issuer, position: number): string {
@@ -2360,7 +2370,7 @@ export class Game {
 
     // Filter monsters that are still in play
     const validMonsters = requirement.filter(
-      (m) => m === "topDeck" || this.monsters.includes(m as Monster)
+      (req) => req.target === "topDeck" || this.monsters.includes(req.target as Monster)
     );
 
     if (validMonsters.length === 0) {

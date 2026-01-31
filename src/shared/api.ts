@@ -350,6 +350,12 @@ const purchaseSchema = z.object({
   index: z.union([z.number(), z.literal("top")]),
 });
 
+const attackRequirementSchema = z.object({
+  monster: z.union([cardSchema, z.literal("top")]),
+  source: cardSchema,
+});
+
+export type AttackRequirement = z.infer<typeof attackRequirementSchema>;
 const cardActivationSchema = z.object({
   issuer: issuerSchema,
   index: z.number(),
@@ -398,6 +404,7 @@ const playerSchema = z.object({
   temporaryEffect: z.array(temporaryEffectSchema),
   remainingLootPlay: z.number(),
   isEngagedInCombat: z.boolean(),
+  attackRequirements: z.array(attackRequirementSchema),
   isEngagedInPurchase: z.boolean(),
   pendingSelection: z.boolean(),
 });
