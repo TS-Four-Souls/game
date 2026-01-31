@@ -1,5 +1,5 @@
 import { DiceRoll, Player } from "./player";
-import { EffectData, LootCard, type EffectFunction, ItemCard, treasureCard, LootCardEffect, EffectOnStack } from "./cards";
+import { EffectData, LootCard, type EffectFunction, ItemCard, treasureCard, LootCardEffect, EffectOnStack, MonsterCard, Card } from "./cards";
 import { Game } from "./game";
 import type { TriggerEvent } from "@/types/triggers";
 import { Monster } from "./monster";
@@ -240,6 +240,7 @@ export function curseEffect(restEffectFunction: EffectFunction, game: Game): Eff
         offDeath = game.emitter.on("on:death:after-penalty", ({ eventIssuer }) => {
             if (owner !== eventIssuer) return;
             game.removeInPlay(owner, data.it as ItemCard);
+            game.discard(data.it);
             offDeath?.();
             offDeath = null;
         });

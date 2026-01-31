@@ -726,7 +726,7 @@ describe("Force Attack Monster", () => {
         const monster = game.monsters[0]!;
 
         // Set forced attack
-        game.currentPlayer.mustAttack(monster);
+        game.currentPlayer.mustAttack(monster, monster.card);
 
         // Try to end turn without attacking
         expect(() => {
@@ -738,7 +738,7 @@ describe("Force Attack Monster", () => {
         const monster = game.monsters[0]!;
 
         // Set forced attack
-        game.currentPlayer.mustAttack(monster);
+        game.currentPlayer.mustAttack(monster, monster.card);
 
         // Attack the forced monster
         game.declareAttack(game.currentPlayer);
@@ -757,7 +757,7 @@ describe("Force Attack Monster", () => {
         const monster = game.monsters[0]!;
 
         // Set forced attack
-        game.currentPlayer.mustAttack(monster);
+        game.currentPlayer.mustAttack(monster, monster.card);
 
         // Kill the monster
         game.death(monster, game.currentPlayer, monster.card);
@@ -773,7 +773,7 @@ describe("Force Attack Monster", () => {
         const monster = game.monsters[0]!;
 
         // Set forced attack
-        game.currentPlayer.mustAttack(monster);
+        game.currentPlayer.mustAttack(monster, monster.card);
         game.addAttackThisTurn(game.currentPlayer, 1); // Ensure player can attack
 
         // Kill the player
@@ -793,7 +793,7 @@ describe("Force Attack Monster", () => {
         const monster = game.monsters[0]!;
 
         // Set forced attack and satisfy it
-        game.currentPlayer.mustAttack(monster);
+        game.currentPlayer.mustAttack(monster, monster.card);
         game.addAttackThisTurn(game.currentPlayer, 1); // Ensure player can attack
         game.declareAttack(game.currentPlayer);
         game.declareAttackOnMonster(game.currentPlayer, monster);
@@ -817,7 +817,7 @@ describe("Force Attack Monster", () => {
         const monster = game.monsters[0]!;
 
         // Set forced attack
-        game.currentPlayer.mustAttack(monster);
+        game.currentPlayer.mustAttack(monster, monster.card);
 
         // Discard the monster (remove it from play)
         game.encounters.discardTop(0);
@@ -866,7 +866,7 @@ describe("Force Attack Monster", () => {
             await game.resolveStack();
 
             // Active player (player1) should have forced attack constraint
-            expect(game.currentPlayer.mustAttackMonster![0]).toBe(targetMonster);
+            expect(game.currentPlayer.mustAttackMonster![0]!.target).toBe(targetMonster);
         });
 
         it("prevents ending turn without attacking the forced monster", async () => {
@@ -933,7 +933,7 @@ describe("Force Attack Monster", () => {
             await game.resolveStack();
 
             // Player should still be forced to attack despite having 0 or negative attacks
-            expect(game.currentPlayer.mustAttackMonster![0]).toBe(targetMonster);
+            expect(game.currentPlayer.mustAttackMonster![0]!.target).toBe(targetMonster);
 
             // Player can still attack the forced monster (bypasses limit)
             game.declareAttack(game.currentPlayer);
@@ -952,7 +952,7 @@ describe("Force Attack Monster", () => {
             await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.resolveStack();
 
-            expect(game.currentPlayer.mustAttackMonster![0]).toBe(targetMonster);
+            expect(game.currentPlayer.mustAttackMonster![0]!.target).toBe(targetMonster);
 
             // Attack the monster to satisfy constraint
             game.declareAttack(game.currentPlayer);
@@ -987,7 +987,7 @@ describe("Force Attack Monster", () => {
             await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.resolveStack();
 
-            expect(game.currentPlayer.mustAttackMonster![0]).toBe(targetMonster);
+            expect(game.currentPlayer.mustAttackMonster![0]!.target).toBe(targetMonster);
 
             // Kill the monster directly
             game.kill(player1, targetMonster, monsterManual);
@@ -1013,7 +1013,7 @@ describe("Force Attack Monster", () => {
             await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.resolveStack();
 
-            expect(game.currentPlayer.mustAttackMonster![0]).toBe(targetMonster);
+            expect(game.currentPlayer.mustAttackMonster![0]!.target).toBe(targetMonster);
 
             // Discard the monster
             game.discardMonster(player1, monsterPosition);
@@ -1037,7 +1037,7 @@ describe("Force Attack Monster", () => {
             await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.resolveStack();
 
-            expect(game.currentPlayer.mustAttackMonster![0]).toBe(
+            expect(game.currentPlayer.mustAttackMonster![0]!.target).toBe(
               targetMonster
             );
 
@@ -1060,7 +1060,7 @@ describe("Force Attack Monster", () => {
             await game.resolveStack();
 
             // Only current player (player1) should have the constraint
-            expect(player1.mustAttackMonster![0]).toBe(targetMonster);
+            expect(player1.mustAttackMonster![0]!.target).toBe(targetMonster);
             expect(player2.mustAttackMonster.length).toBe(0);
         });
 

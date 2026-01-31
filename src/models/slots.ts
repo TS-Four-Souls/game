@@ -297,9 +297,10 @@ class Encounters {
                 (data:EffectData) => {
                     card.onPlay(data.issuer as Player, data.targets);
                     // card.onAddInPlay(data.issuer);
-                    this._game.executeWhenStackEmpty(() => {
-                        this.discardTop(index); // remove the card once the effect is resolved.
-                    });
+                    if(!card.isCurse)
+                        this._game.executeWhenStackEmpty(() => {
+                            this.discardTop(index); // remove the card once the effect is resolved.
+                        });
                     return true;
                 }, 
                 new EffectData(card, this._game.currentPlayer, []), 
