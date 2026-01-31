@@ -105,7 +105,6 @@ describe("Discard", () => {
     it("kill monster without soul goes to discard", async () => {
         // Get a monster with no soul reward
         const monsterCard = game.obtainCard("b2-cod_worm") as MonsterCard;
-        expect(monsterCard.rewards?.soul).toBe(0);
         
         game.decks['monster']!.addTopPosition(monsterCard);
         

@@ -68,7 +68,7 @@ export class Game {
   private _destroyedCards: Card[] = [];
   private _emitter: GameEventEmitter;
   private _bonusSouls: BsoulCard[] = [];
-  private _stackEmptyCallbacks: (() => void)[] = [];
+  private _stackEmptyCallbacks: {stackIds: number[], callback: () => void}[] = [];
   private _historicHandler: HistoricHandler = new HistoricHandler();
   readonly gameParameters = new GameParameters(() => this._onStateChange.dispatch());
 
@@ -307,13 +307,16 @@ export class Game {
 
   // Should only be called by DeathOnStack objects.
   resolveDeath(receiver: Entity, from: Entity, source: DamageSource): void {
+    const stackIds = this.stack.elements.map(e => e.stackId);
+
     this.emit("on:death:before-penalty", {
       eventIssuer: receiver,
       target: from,
       source: source,
     });
     receiver.die();
-    this.executeWhenStackEmpty(async () => {
+    this.executeWhenStackSubset(stackIds, async () => {
+      const stackIds = this.stack.elements.map(e => e.stackId);
       if (receiver.isEngagedInCombat) {
         this.Entities.forEach((e) => e.combatEnded());
       }
@@ -332,7 +335,7 @@ export class Game {
         });
         this.encounters.kill(receiver); // should only kill once its effects are resolved: should be moved in the resolvewhenstackempty
         this.monsterRewards(receiver);
-        this.executeWhenStackEmpty(async () => {
+        this.executeWhenStackSubset(stackIds, async () => {
           this.obtainMonsterSoulOrDiscard(receiver);
         });
       }
@@ -944,13 +947,21 @@ export class Game {
     if (elem instanceof DiceRoll)
       this.emit("on:dice:rolled", { diceRoll: elem });
 
-    // If stack is now empty, execute any pending callbacks
-    if (this.stack.isEmpty() && this._stackEmptyCallbacks.length > 0) {
-      const callbacks = [...this._stackEmptyCallbacks];
-      this._stackEmptyCallbacks = [];
-      for (const callback of callbacks) {
-        await callback();
+    
+
+    // Collect callbacks that should execute (where all their stackIds are resolved)
+    const callbacksToExecute: {stackIds: number[], callback: () => void | Promise<void>}[] = [];
+    for(let i = this._stackEmptyCallbacks.length - 1; i >= 0; i--){
+      const e = this._stackEmptyCallbacks[i]!;
+      if (this.stack.elements.every((el) => e.stackIds.includes(el.stackId))) {
+        callbacksToExecute.push(e);
+        this._stackEmptyCallbacks.splice(i, 1);
       }
+    }
+    
+    // Execute collected callbacks
+    for (const cb of callbacksToExecute) {
+      await cb.callback();
       this._onStateChange.dispatch();
     }
   }
@@ -964,20 +975,27 @@ export class Game {
   async executeWhenStackEmpty(
     callback: () => void | Promise<void>
   ): Promise<void> {
-    if (this.stack.isEmpty()) {
+    this.executeWhenStackSubset([], callback);
+  }
+
+  async executeWhenStackSubset(
+    ids: number[],
+    callback: () => void | Promise<void>
+  ): Promise<void> {
+    if (this.stack.elements.every((el) => ids.includes(el.stackId))) {
       // Stack is already empty, execute immediately
       await callback();
     } else {
       // Queue the callback to be executed when stack becomes empty
-      this._stackEmptyCallbacks.push(callback);
+      this._stackEmptyCallbacks.push({stackIds: ids, callback});
     }
 
     // If stack is now empty, execute any pending callbacks
-    if (this.stack.isEmpty() && this._stackEmptyCallbacks.length > 0) {
+    if (this.stack.elements.every((el) => ids.includes(el.stackId)) && this._stackEmptyCallbacks.length > 0) {
       const callbacks = [...this._stackEmptyCallbacks];
       this._stackEmptyCallbacks = [];
       for (const callback of callbacks) {
-        await callback();
+        await callback.callback();
       }
       this._onStateChange.dispatch();
     }

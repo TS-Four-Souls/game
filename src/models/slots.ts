@@ -295,10 +295,11 @@ class Encounters {
             this._monstersInPlay[index] = undefined!;
             const effect: EffectOnStack = new EffectOnStack(
                 (data:EffectData) => {
+                    const stackIds = this._game.stack.elements.map(e => e.stackId);
                     card.onPlay(data.issuer as Player, data.targets);
                     // card.onAddInPlay(data.issuer);
                     if(!card.isCurse)
-                        this._game.executeWhenStackEmpty(() => {
+                        this._game.executeWhenStackSubset(stackIds, () => {
                             this.discardTop(index); // remove the card once the effect is resolved.
                         });
                     return true;
