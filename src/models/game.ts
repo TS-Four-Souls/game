@@ -938,10 +938,13 @@ export class Game {
     await elem.onResolve();
     if (elem instanceof LootCardEffect && elem.card instanceof LootCard)
     {
-      if(!elem.card.trinket && !this.decks["loot"]!.cards.includes(elem.card)) // the sun is put below the deck on play
-        this.discard(elem.card);
-      else 
-        this.addInPlay(elem.card.owner as Player, elem.card);
+      if(!this.decks["loot"]!.cards.includes(elem.card)) // the sun is put below the deck on play
+      {
+        if(!elem.card.trinket)
+          this.discard(elem.card);
+        else 
+          this.addInPlay(elem.card.owner as Player, elem.card);
+      }
     }
     this._onStateChange.dispatch();
     if (elem instanceof DiceRoll)

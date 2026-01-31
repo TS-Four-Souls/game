@@ -498,6 +498,7 @@ class Card {
         for (const cleaner of this._cleanup) {
             cleaner();
         }
+        this._cleanup = [];
     }
 
     recharge(): boolean {
