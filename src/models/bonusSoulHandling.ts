@@ -37,7 +37,7 @@ function soulOfGluttonyEffect(game: Game, card: Card): OffEffectFunction {
     };
 
     // Listen for the next damage event on this player
-    offEffect = game.emitter.on("on:loot:after", ({ eventIssuer, numberOfCards }) => {
+    offEffect = game.emitter.on("on:loot:added:after", ({ eventIssuer, numberOfCards }) => {
         if (eventIssuer.hand.length < 10) return;
         game.addSoul(eventIssuer, card);
         cleanup();
