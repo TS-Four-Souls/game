@@ -89,7 +89,7 @@ export class GameParameters {
         this.coinsOnStart = new NumericGameParameter(0, 3, 20, onChange);
         this.shopPrice = new NumericGameParameter(1, 10, 20, onChange);
         this.maxHandSize = new NumericGameParameter(1, 10, 100, onChange);
-        this.allowCoinDonation = new BooleanGameParameter(false, onChange);
+        this.allowCoinDonation = new BooleanGameParameter(true, onChange);
         this.lootPlayPerTurn = new NumericGameParameter(1, 1, 10, onChange);
         this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
     }
@@ -108,7 +108,7 @@ export class GameParameters {
             maxHandSize: {text: "Max hand size", value: this.maxHandSize.value},
             allowCoinDonation: {text: "Allow coin donation", value: this.allowCoinDonation.value},
             lootPlayPerTurn: {text: "Loot play per turn", value: this.lootPlayPerTurn.value},
-            nbPlayerCardRestriction: {text: "Player card restriction", value: this.nbPlayerCardRestriction.value},
+            nbPlayerCardRestriction: {text: "Number player card restriction", value: this.nbPlayerCardRestriction.value},
         };
     }
 
