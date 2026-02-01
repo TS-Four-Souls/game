@@ -934,7 +934,7 @@ export class Game {
     let elem = this.stack.resolve();
     if (!elem) return;
     // Add to history
-    this.addToHistory(elem);
+    this.addToHistory(elem.json);
     await elem.onResolve();
     if (elem instanceof LootCardEffect && elem.card instanceof LootCard)
     {

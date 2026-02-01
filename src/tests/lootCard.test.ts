@@ -1775,7 +1775,7 @@ describe("Loot Cards - 3 players tests", () => {
         const s2 = game.decks["loot"]!.cards[1]!; s2.soul = 1; game.addSoul(player1, s2);
         const s3 = game.decks["loot"]!.cards[2]!; s3.soul = 1; game.addSoul(player2, s3);
 
-        game.playCard(player1, 0);
+        game.playCard(player1, 0, [player1]);
         s1.soul = 0; // Invalidate target during resolution
         await game.resolveStack();
 

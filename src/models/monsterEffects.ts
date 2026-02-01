@@ -104,13 +104,13 @@ export function dealDamageToKillerOnDeathEffect(game: Game, damage: number = 1):
 return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
-        offDamage = game.emitter.on("on:death:monster", ({ eventIssuer, target, ability }) => {
+        offDamage = game.emitter.on("on:death:monster", ({ eventIssuer, target, source }) => {
             if (data.issuer !== eventIssuer) return;
             if(!(target instanceof Player)) return;
             
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
-                game.dealDamage(eventIssuer as Entity, target as Entity, ability, damage);
+                game.dealDamage(eventIssuer as Entity, target as Entity, data.it, damage);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `When ${data.it.name} dies, it deals ${damage} damage to the player who killed it.`);

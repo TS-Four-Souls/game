@@ -74,7 +74,7 @@ io.on("connection", (socket) => {
       console.log(`Player ${name} joined the game`);
       socket.join(player.id);
       sendRoomChanged(player.id);
-      game.addToHistory(validated.data);
+      game.addToHistory({type: "Join", payload: validated.data});
       return callback({
         status: 200,
       });
@@ -99,7 +99,7 @@ io.on("connection", (socket) => {
       }
       socket.join(player.id);
       sendRoomChanged(player.id);
-      game.addToHistory(validated.data);
+      game.addToHistory({type: "Rejoin", payload: validated.data});
       return callback({
         status: 200,
       });
@@ -162,7 +162,7 @@ io.on("connection", (socket) => {
       // }
       // } 
       // const treas = ["b2-theres_options", "b2-trinity_shield"];
-      game.addToHistory(validated.data);
+      game.addToHistory({type: "Start", payload: validated.data});
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to start the game", error);
@@ -185,7 +185,7 @@ io.on("connection", (socket) => {
         sendRoomChanged(player.id);
         io.socketsLeave(player.id);
       });
-      game.addToHistory(validated.data);
+      game.addToHistory({type: "Reset", payload: validated.data});
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to reset the game", error);
@@ -233,7 +233,7 @@ io.on("connection", (socket) => {
       const drawInIndex =
         validated.data.index === "top" ? validated.data.replaceIndex : -1;
       game.declareAttackOnMonster(player, monster, drawInIndex);
-      game.addToHistory(validated.data);
+      game.addToHistory({type: "AttackMonster", payload: validated.data});
     } catch (error) {
       console.error("Failed to declare attack", error);
       if (error instanceof Error) {
@@ -252,7 +252,7 @@ io.on("connection", (socket) => {
     try {
       const player = game.getPlayerByIssuer(validated.data);
       game.attackRoll(player);
-      game.addToHistory(validated.data);
+      game.addToHistory({type: "AttackRoll", payload: validated.data});
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to declare attack", error);
@@ -271,7 +271,7 @@ io.on("connection", (socket) => {
     try {
       const player = game.getPlayerByIssuer(validated.data.issuer);
       game.resolveStack();
-      game.addToHistory(validated.data);
+      game.addToHistory({type: "Resolve", payload: validated.data});
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to resolve the stack", error);
@@ -294,7 +294,7 @@ io.on("connection", (socket) => {
         validated.data.requestId,
         validated.data.selections,
       );
-      game.addToHistory(validated.data);
+      game.addToHistory({type: "SubmitSelection", payload: validated.data});
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to submit selection", error);
@@ -336,7 +336,7 @@ io.on("connection", (socket) => {
         );
         game.playCard(player, validated.data.index, targets);
       }
-      game.addToHistory(validated.data);
+      game.addToHistory({type: "PlayCard", payload: validated.data});
       return callback({ response: choices, status: 200 });
     } catch (error) {
       console.error("Failed to play card", error);
@@ -383,7 +383,7 @@ io.on("connection", (socket) => {
           targets,
           validated.data.effectIndex,
         );
-        game.addToHistory(validated.data);
+        game.addToHistory({type: "Activate", payload: validated.data});
       }
       return callback({ response: choices, status: 200 });
     } catch (error) {
@@ -438,7 +438,7 @@ io.on("connection", (socket) => {
     try {
       const player = game.getPlayerByIssuer(validated.data.issuer);
       game.purchase(player, validated.data.index);
-      game.addToHistory(validated.data);
+      game.addToHistory({type: "Purchase", payload: validated.data});
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to play card", error);
@@ -454,7 +454,7 @@ io.on("connection", (socket) => {
       return callback({ status: 400, error: validated.error.message });
     }
     try {
-      game.addToHistory(validated.data);
+      game.addToHistory({type: "EndTurn", payload: validated.data});
       game.nextTurn(validated.data.issuer);
       return callback({ status: 200 });
     } catch (error) {
@@ -477,7 +477,7 @@ io.on("connection", (socket) => {
       const amount = validated.data.coins;
       if (!game.giveCoins(player, target, amount))
         throw new Error("amount of coins invalid");
-      game.addToHistory(validated.data);
+      game.addToHistory({type: "GiveCoins", payload: validated.data});
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to give coins", error);
@@ -497,7 +497,7 @@ io.on("connection", (socket) => {
     }
     try {
       const player = game.getPlayerByIssuer(validated.data);
-      game.addToHistory(validated.data);
+      game.addToHistory({type: "DebugLoot", payload: validated.data});
       const slugs = validated.data.slugs;
       if (slugs && slugs.length > 0) {
         const lootDeck = game.decks["loot"];
@@ -530,7 +530,7 @@ io.on("connection", (socket) => {
     }
     try {
       game.getPlayerByIssuer(validated.data);
-      game.addToHistory(validated.data);
+      game.addToHistory({type: "DebugListLoot", payload: validated.data});
 
       const lootDeck = game.decks["loot"];
       if (!lootDeck) {
@@ -557,7 +557,7 @@ io.on("connection", (socket) => {
     }
     try {
       game.getPlayerByIssuer(validated.data);
-      game.addToHistory(validated.data);
+      game.addToHistory({type: "DebugListTreasure", payload: validated.data});
 
       const treasureDeck = game.decks["treasure"];
       if (!treasureDeck) {
@@ -584,7 +584,7 @@ io.on("connection", (socket) => {
     }
     try {
       const player = game.getPlayerByIssuer(validated.data);
-      game.addToHistory(validated.data);
+      game.addToHistory({type: "DebugGainTreasure", payload: validated.data});
       const slugs = validated.data.slugs;
       if (slugs && slugs.length > 0) {
         const treasureDeck = game.decks["treasure"];
@@ -660,7 +660,7 @@ io.on("connection", (socket) => {
         // const card = game.obtainCard(slug)!;
         // game.addInPlay(p1, card);
       }
-      game.addToHistory(validated.data);
+      game.addToHistory({type: "DebugReset", payload: validated.data});
       return new Response("Debug reset", {
         status: 200,
       });

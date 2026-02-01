@@ -1,5 +1,5 @@
 import { TargetBuilder } from "./targetBuilder";
-import { type Requests } from "../shared/api";
+import { type Requests, type StackElementJson } from "../shared/api";
 import type { StackElement } from "./stack";
 
 
@@ -11,25 +11,25 @@ import type { StackElement } from "./stack";
 *    Log solely contains user actions and random resolutions (shuffle, random number generation)
 */
 export type UserRequest = 
-    Requests.Join 
-  | Requests.Rejoin 
-  | Requests.Start 
-  | Requests.Reset 
-  | Requests.DeclareAttack 
-  | Requests.Resolve 
-  | Requests.SubmitSelection 
-  | Requests.EndTurn 
-  | Requests.PlayCard 
-  | Requests.Activate 
-  | Requests.Purchase
-  | Requests.GiveCoins
-  | Requests.AttackMonster
-  | Requests.AttackRoll
-  | Requests.DebugLoot
-  | Requests.DebugListLoot
-  | Requests.DebugListTreasure
-  | Requests.DebugGainTreasure
-  | Requests.DebugReset;
+    {type: "Join", payload: Requests.Join } 
+  | {type: "Rejoin", payload: Requests.Rejoin }
+  | {type: "Start", payload: Requests.Start }
+  | {type: "Reset", payload: Requests.Reset }
+  | {type: "DeclareAttack", payload: Requests.DeclareAttack }
+  | {type: "Resolve", payload: Requests.Resolve }
+  | {type: "SubmitSelection", payload: Requests.SubmitSelection }
+  | {type: "EndTurn", payload: Requests.EndTurn }
+  | {type: "PlayCard", payload: Requests.PlayCard }
+  | {type: "Activate", payload: Requests.Activate }
+  | {type: "Purchase", payload: Requests.Purchase }
+  | {type: "GiveCoins", payload: Requests.GiveCoins }
+  | {type: "AttackMonster", payload: Requests.AttackMonster }
+  | {type: "AttackRoll", payload: Requests.AttackRoll }
+  | {type: "DebugLoot", payload: Requests.DebugLoot }
+  | {type: "DebugListLoot", payload: Requests.DebugListLoot }
+  | {type: "DebugListTreasure", payload: Requests.DebugListTreasure }
+  | {type: "DebugGainTreasure", payload: Requests.DebugGainTreasure }
+  | {type: "DebugReset", payload: Requests.DebugReset };
 
   export type PrivateData = {
     private: true;
@@ -59,7 +59,7 @@ const isPrivateData = (entry: HistoricEntry): entry is PrivateData => {
   );
 };
 
-export type HistoricEntry = UserRequest | StackElement | PrivateData;
+export type HistoricEntry = UserRequest | StackElementJson | PrivateData;
 export class HistoricHandler {
 
   private _history: HistoricEntry[] = []

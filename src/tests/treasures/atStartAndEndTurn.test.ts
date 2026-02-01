@@ -85,7 +85,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
     it("starter_deck - loot 2 at end of turn if you have 8+ loot cards", async () => {
         const starterDeck = game.shop.obtainCard("b2-starter_deck") as treasureCard;
         game.addInPlay(player1, starterDeck);
-
+        game.gameParameters.maxHandSize.value = 20; // increase max hand size to avoid forced discards
         // Test: Player has fewer than 8 cards - should not trigger
         const initialHandSize = player1.hand.length;
         expect(initialHandSize).toBeLessThan(8);

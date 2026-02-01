@@ -209,6 +209,7 @@ const stackElementSchema: z.ZodType<StackElement> = z.lazy(() =>
     effectOnStackJsonSchema,
   ]),
 );
+export type StackElementJson = z.infer<typeof stackElementSchema>;
 
 const selectionItemTypeSchema = z.union([
   z.literal("card"),

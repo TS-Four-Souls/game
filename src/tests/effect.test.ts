@@ -193,13 +193,13 @@ describe("Loot deck integration", () => {
     
     game.decks["loot"]!.remove(gainCoinCard!);
     p1.hand.addToHand(gainCoinCard!);
-    game.playCard(p1, p1.hand.cards.length - 1);
+    game.playCard(p1, p1.hand.cards.length - 1); // Play gain coin card
     expect(game.stack.size).toBe(1);
 
     // Then play the cancel card
     game.decks["loot"]!.remove(cancelCard!);
     p1.hand.addToHand(cancelCard!);
-    game.playCard(p1, p1.hand.cards.length - 1);
+    game.playCard(p1, p1.hand.cards.length - 1, [game.stack.elements[0]]); // Play cancel card
     expect(game.stack.size).toBe(2);
 
     // Resolve cancel effect first (LIFO)
