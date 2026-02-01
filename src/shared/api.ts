@@ -267,6 +267,8 @@ const gameParametersSchema = z.object({
   lootOnStart: z.number(),
   coinsOnStart: z.number(),
   shopPrice: z.number(),
+  maxHandSize: z.number(),
+  allowCoinDonation: z.boolean(),
   lootPlayPerTurn: z.number(),
   nbPlayerCardRestriction: z.boolean(),
 });

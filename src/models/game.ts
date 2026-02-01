@@ -1076,11 +1076,28 @@ export class Game {
     this._onStateChange.dispatch();
   }
 
+  async verifyHandSize(player: Player): Promise<void> {
+    const toDiscard = player.hand.cards.length - this.gameParameters.maxHandSize.value;
+    if (toDiscard > 0){
+      const selection = await this.select(
+        player,
+        toDiscard,
+        player.hand.cards,
+        false,
+        `You must discard ${toDiscard} card(s) to reach your maximum hand size of ${this.gameParameters.maxHandSize.value}.`
+      );
+      for (const card of selection.selected) {
+        this.discardFromHandAtIndex(player, player.hand._hand.indexOf(card));
+      }
+    }
+  }
+
   endTurn(): void {
     const player = this.assertIssuerSecret(this.currentPlayer);
     this.canEndTurn(player, true);
     this.emit("on:turn:end", { eventIssuer: player });
-    this.executeWhenStackEmpty(() => {
+    this.executeWhenStackEmpty(async () => {
+      await this.verifyHandSize(player);
       this.healEveryone();
       for (const player of this.players) {
         player.resetTurnFlags();
@@ -1276,6 +1293,8 @@ export class Game {
   }
 
   giveCoins(from: Player, to: Player, amount: number): boolean {
+    if(this.gameParameters.allowCoinDonation.value === false)
+      throw new Error("Giving coins is not allowed in this game.");
     if (from.coins < amount || amount <= 0) {
       return false;
     }
