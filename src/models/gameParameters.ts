@@ -96,19 +96,19 @@ export class GameParameters {
 
     toJson(): GameParametersJson {
         return {
-            nbItemsInShop: this.nbItemsInShop.value,
-            nbEncounters: this.nbEncounters.value,
-            deathPenaltyCoins: this.deathPenaltyCoins.value,
-            deathPenaltyItem: this.deathPenaltyItem.value,
-            deathPenaltyLoot: this.deathPenaltyLoot.value,
-            treasuresOnStart: this.treasuresOnStart.value,
-            lootOnStart: this.lootOnStart.value,
-            coinsOnStart: this.coinsOnStart.value,
-            shopPrice: this.shopPrice.value,
-            maxHandSize: this.maxHandSize.value,
-            allowCoinDonation: this.allowCoinDonation.value,
-            lootPlayPerTurn: this.lootPlayPerTurn.value,
-            nbPlayerCardRestriction: this.nbPlayerCardRestriction.value,
+            nbItemsInShop: {text: "Number of items in the shop", value: this.nbItemsInShop.value},
+            nbEncounters: {text: "Number of encounters", value: this.nbEncounters.value},
+            deathPenaltyCoins: {text: "Death penalty coins", value: this.deathPenaltyCoins.value},
+            deathPenaltyItem: {text: "Death penalty item", value: this.deathPenaltyItem.value},
+            deathPenaltyLoot: {text: "Death penalty loot", value: this.deathPenaltyLoot.value},
+            treasuresOnStart: {text: "Treasures on start", value: this.treasuresOnStart.value},
+            lootOnStart: {text: "Loot on start", value: this.lootOnStart.value},
+            coinsOnStart: {text: "Coins on start", value: this.coinsOnStart.value},
+            shopPrice: {text: "Shop price", value: this.shopPrice.value},
+            maxHandSize: {text: "Max hand size", value: this.maxHandSize.value},
+            allowCoinDonation: {text: "Allow coin donation", value: this.allowCoinDonation.value},
+            lootPlayPerTurn: {text: "Loot play per turn", value: this.lootPlayPerTurn.value},
+            nbPlayerCardRestriction: {text: "Player card restriction", value: this.nbPlayerCardRestriction.value},
         };
     }
 

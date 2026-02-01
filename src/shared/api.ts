@@ -257,22 +257,41 @@ const attackMonsterSchema = z.union([
   }),
 ]);
 
+const booleanGameParameterSchema = z.object({
+  text: z.string(),
+  value: z.boolean(),
+});
+
+const numberGameParameterSchema = z.object({
+  text: z.string(),
+  value: z.number(),
+});
+
 const gameParametersSchema = z.object({
-  nbItemsInShop: z.number(),
-  nbEncounters: z.number(),
-  deathPenaltyCoins: z.number(),
-  deathPenaltyItem: z.number(),
-  deathPenaltyLoot: z.number(),
-  treasuresOnStart: z.number(),
-  lootOnStart: z.number(),
-  coinsOnStart: z.number(),
-  shopPrice: z.number(),
-  maxHandSize: z.number(),
-  allowCoinDonation: z.boolean(),
-  lootPlayPerTurn: z.number(),
-  nbPlayerCardRestriction: z.boolean(),
+  nbItemsInShop: numberGameParameterSchema,
+  nbEncounters: numberGameParameterSchema,
+  deathPenaltyCoins: numberGameParameterSchema,
+  deathPenaltyItem: numberGameParameterSchema,
+  deathPenaltyLoot: numberGameParameterSchema,
+  treasuresOnStart: numberGameParameterSchema,
+  lootOnStart: numberGameParameterSchema,
+  coinsOnStart: numberGameParameterSchema,
+  shopPrice: numberGameParameterSchema,
+  maxHandSize: numberGameParameterSchema,
+  allowCoinDonation: booleanGameParameterSchema,
+  lootPlayPerTurn: numberGameParameterSchema,
+  nbPlayerCardRestriction: booleanGameParameterSchema,
 });
 export type GameParametersJson = z.infer<typeof gameParametersSchema>;
+
+// Utility types to extract keys based on parameter value type
+type NumberParameterKeys = {
+  [K in keyof GameParametersJson]: GameParametersJson[K]["value"] extends number ? K : never;
+}[keyof GameParametersJson];
+
+type BooleanParameterKeys = {
+  [K in keyof GameParametersJson]: GameParametersJson[K]["value"] extends boolean ? K : never;
+}[keyof GameParametersJson];
 
 const joinRequestSchema = z.string();
 
@@ -369,23 +388,21 @@ const nextTurnRequestSchema = startRequestSchema;
 
 const setGameParameterRequestSchema = z.discriminatedUnion("parameter", [
   z.object({
-    parameter: z.enum([
-      "nbItemsInShop",
-      "nbEncounters",
-      "deathPenaltyCoins",
-      "deathPenaltyItem",
-      "deathPenaltyLoot",
-      "treasuresOnStart",
-      "lootOnStart",
-      "coinsOnStart",
-      "shopPrice",
-      "lootPlayPerTurn"
-    ]),
+    parameter: z.enum(
+      
+      Object.keys(gameParametersSchema.shape).filter(
+        (key) => gameParametersSchema.shape[key as keyof typeof gameParametersSchema.shape] === numberGameParameterSchema
+      ) as [NumberParameterKeys, ...NumberParameterKeys[]]
+    ),
     value: z.number(),
     issuer: issuerSchema,
   }),
   z.object({
-    parameter: z.enum(["nbPlayerCardRestriction"]),
+    parameter: z.enum(
+      Object.keys(gameParametersSchema.shape).filter(
+        (key) => gameParametersSchema.shape[key as keyof typeof gameParametersSchema.shape] === booleanGameParameterSchema
+      ) as [BooleanParameterKeys, ...BooleanParameterKeys[]]
+    ),
     value: z.boolean(),
     issuer: issuerSchema,
   }),
