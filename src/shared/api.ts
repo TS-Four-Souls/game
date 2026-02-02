@@ -433,6 +433,7 @@ export type Player = z.infer<typeof playerSchema>;
 const playerMeSchema = playerSchema.extend({
   hand: z.array(cardSchema),
   inPlay: z.array(inPlayMeCardSchema),
+  numberOfCardsOverMaxHandSize: z.number(),
   capabilities: z.object({
     endTurn: capabilitySchema,
     declareAttack: capabilitySchema,
@@ -441,6 +442,7 @@ const playerMeSchema = playerSchema.extend({
     buyTreasure: capabilitySchema,
     useLoot: capabilitySchema,
     resolve: capabilitySchema,
+    canDonateCoins: capabilitySchema,
   }),
   pendingSelection: pendingSelectionSchema.optional(),
 });

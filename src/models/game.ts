@@ -1770,6 +1770,7 @@ export class Game {
         isEngagedInCombat: player.isEngagedInCombat,
         temporaryEffect: player.temporaryEffects,
         isEngagedInPurchase: player.isEngagedInPurchase,
+        numberOfCardsOverMaxHandSize: Math.max(0, player.hand.cards.length - this.gameParameters.maxHandSize.value),
         pendingSelection: (() => {
           // Check if player has a pending selection from selectMultiple
           for (const sel of this.pendingMultipleSelections.values()) {
@@ -1793,6 +1794,7 @@ export class Game {
           buyTreasure: this.canPurchase(player),
           useLoot: this.canPlayCard(player),
           resolve: this.canResolve(),
+          canDonateCoins: this.gameParameters.allowCoinDonation.value ? true : "Giving coins is not allowed in this game.",
         }
       },
       players: otherPlayers
