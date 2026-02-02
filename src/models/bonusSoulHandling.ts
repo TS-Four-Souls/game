@@ -3,7 +3,12 @@ import { type Card, type LootCard, ItemCard, InplayType, BsoulCard } from "./car
 import type { EffectFunction, TargetsSelector } from "./types/cardTypes";
 import { Game } from "./game";
 import type { Stack, StackElement } from "./stack";// One-shot shield: prevent up to `amount` damage on the next instance to issuer this turn
-import type { TriggerEvent } from "@/types/triggers";
+import { type TriggerEvent } from '@/models/types/eventTypes';
+import type {
+    OnLootAddedAfterData,
+    OnCoinGainedData,
+    OnEnterPlayAfterData,
+} from "./types/eventTypes";
 export type OffEffectFunction = () => void;
 
 // Bsouls are particular for several reasons.
@@ -38,7 +43,8 @@ function soulOfGluttonyEffect(game: Game, card: Card): OffEffectFunction {
     };
 
     // Listen for the next damage event on this player
-    offEffect = game.emitter.on("on:loot:added:after", ({ eventIssuer, numberOfCards }) => {
+    offEffect = game.emitter.on("on:loot:added:after", (eventData: OnLootAddedAfterData) => {
+        const { eventIssuer, card: lootCard } = eventData;
         if (eventIssuer.hand.length < 10) return;
         game.addSoul(eventIssuer, card);
         cleanup();
@@ -55,7 +61,8 @@ function soulOfGreedEffect(game: Game, card: Card): OffEffectFunction {
     };
 
     // Listen for the next damage event on this player
-    offEffect = game.emitter.on("on:coin:gained:after", ({ eventIssuer, coinGained }) => {
+    offEffect = game.emitter.on("on:coin:gained:after", (eventData: OnCoinGainedData) => {
+        const { eventIssuer, coinGained } = eventData;
         if (eventIssuer.coins < 25) return;
         game.addSoul(eventIssuer, card);
         cleanup();
@@ -72,7 +79,8 @@ function soulOfGuppyEffect(game: Game, card: Card): OffEffectFunction {
     };
 
     // Listen for the next damage event on this player
-    offEffect = game.emitter.on("on:enter:play:after", ({ eventIssuer, card: item }) => {
+    offEffect = game.emitter.on("on:enter:play:after", (eventData: OnEnterPlayAfterData) => {
+        const { eventIssuer, card: item } = eventData;
         if (eventIssuer.inPlay.filter((c: Card) => c instanceof ItemCard && c.isGuppy()).length < 2)
             return;
         game.addSoul(eventIssuer, card);

@@ -8,6 +8,17 @@ import { Game } from "./game";
 import type { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
+import type {
+    OnDeathMonsterData,
+    OnDamageWouldTakeData,
+    OnDamageTakenData,
+    OnTurnEndData,
+    OnItemActivatedData,
+    OnDiceRolledData,
+    OnAttackDeclaredMonsterData,
+    OnGetMonsterAttackPointsData,
+    OnGetMonsterEvasionData,
+} from "./types/eventTypes";
 import { it } from "zod/locales";
 import { effectParser, type ParsedEffect } from "./effectParser";
 import { deckSelector, visibleItemSelector, inplayUnchargedItemSelector } from "./targetSelector";
@@ -19,7 +30,7 @@ import { Monster } from "./monster";
 import { string } from "zod";
 import { addInPlayEffect, obtainRollResults, throwEffect } from "./activeEffect";
 import { addPassiveEffectToStack } from "./passiveEffect";
-import type { TriggerEvent } from "@/types/triggers";
+import { type TriggerEvent } from '@/models/types/eventTypes';
 
 export function thisHealsEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
@@ -105,7 +116,8 @@ export function dealDamageToKillerOnDeathEffect(game: Game, damage: number = 1):
 return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
-        offDamage = game.emitter.on("on:death:monster", ({ eventIssuer, target, source }) => {
+        offDamage = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
+            const { eventIssuer, target, source } = eventData;
             if (data.issuer !== eventIssuer) return;
             if(!(target instanceof Player)) return;
             
@@ -172,7 +184,8 @@ export function killerDiscardsHandOnDeathEffect(game: Game, damage: number = 1):
 return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
-        offDamage = game.emitter.on("on:death:monster", ({ eventIssuer, target, ability }) => {
+        offDamage = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
+            const { eventIssuer, target, ability } = eventData;
             if (data.issuer !== eventIssuer) return;
             if(!(target instanceof Player)) return;
             
@@ -203,7 +216,8 @@ export function doubleRewardsOnDeathRollEffect(game: Game, rollValues: number[])
     return (data: EffectData) => {
         let offDeath: (() => void) | null = null;
         
-        offDeath = game.emitter.on("on:death:monster", ({ eventIssuer, target, source }) => {
+        offDeath = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
+            const { eventIssuer, target, source } = eventData;
             if (data.issuer !== eventIssuer) return;
             if(source instanceof Card) return;
             const roll = source as DiceRoll;
@@ -230,7 +244,8 @@ export function noCombatDamageOnAttackRollEffect(game: Game, rollValues: number[
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
-        offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, target, source, damageArray }) => {
+        offDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
+            const { eventIssuer, target, source, damageArray } = eventData;
             if(!(target instanceof Player)) return;
             if(!(eventIssuer instanceof Monster)) return;
             if(source instanceof Card) return;
@@ -259,7 +274,8 @@ export function gainAttackOnDamageEffect(game: Game, amount: number): EffectFunc
         let offDamage: (() => void) | null = null;
         let offEndTurn: (() => void) | null = null;
         let currentTotal = 0;
-        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target, source, damageArray }) => {
+        offDamage = game.emitter.on("on:damage:taken", (eventData: OnDamageTakenData) => {
+            const { eventIssuer, target, source, damageArray } = eventData;
             if (data.issuer !== eventIssuer) return;
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
@@ -270,7 +286,8 @@ export function gainAttackOnDamageEffect(game: Game, amount: number): EffectFunc
             addPassiveEffectToStack(game, effect, data, `Each time ${data.it.name} takes damage, it gains +${amount} [ATK] till end of turn.`);
         });
         
-        offEndTurn = game.emitter.on("on:turn:end", ({ eventIssuer }) => {
+        offEndTurn = game.emitter.on("on:turn:end", (eventData: OnTurnEndData) => {
+            const { eventIssuer } = eventData;
             (data.issuer as Entity).addAttackPoints(-currentTotal);
             currentTotal = 0;
             return true;
@@ -305,7 +322,8 @@ export function dieWhenAnotherMonsterDiesEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offDeath: (() => void) | null = null;
         
-        offDeath = game.emitter.on("on:death:monster", ({ eventIssuer, target, source }) => {
+        offDeath = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
+            const { eventIssuer, target, source } = eventData;
             if (data.issuer === eventIssuer) return;
             
             // Add all effects as a single stack element
@@ -337,10 +355,12 @@ export function damageAlsoPlayerToTheEffect(game: Game, direction: "left" | "rig
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
-        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target, source, damage }) => {
+        offDamage = game.emitter.on("on:damage:taken", (eventData: OnDamageTakenData) => {
+            const { eventIssuer, target, source, damage } = eventData;
             if (data.issuer !== eventIssuer) return;
             if(eventIssuer !== data.issuer) return;
-            
+            if(damage === undefined)
+                throw new Error("damageAlsoPlayerToTheEffect: damage is undefined.");
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
                 const player = game.getPlayerToThe(direction);
@@ -363,9 +383,12 @@ export function damageAlsoPlayerToTheEffect(game: Game, direction: "left" | "rig
 export function damageDealtToActivePlayerAlsoToTheEffect(game: Game, direction: "left" | "right"): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
-        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target, source, damage }) => {
+        offDamage = game.emitter.on("on:damage:taken", (eventData: OnDamageTakenData) => {
+            const { eventIssuer, target, source, damage } = eventData;
             if (data.issuer !== target) return;
             if(game.currentPlayer !== eventIssuer) return;
+            if(damage === undefined)
+                throw new Error("damageAlsoPlayerToTheEffect: damage is undefined.");
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
                 const player = game.getPlayerToThe(direction);
@@ -405,11 +428,14 @@ export function statModifierWhileAtHealthEffect(game: Game, s: string): EffectFu
         let offGetStat: (() => void) | null = null;
         let statApplied = false;
 
-        offGetStat = game.emitter.on(event, ({ eventIssuer, stat }) => {
+        offGetStat = game.emitter.on(event, (eventData: OnGetMonsterAttackPointsData | OnGetMonsterEvasionData) => {
+            const { eventIssuer, stat } = eventData;
             if (data.issuer !== eventIssuer) return;
             const currentHP = (data.issuer as Entity).currentHealthPoints;
             if((orLess && currentHP <= healthThreshold) || (currentHP === healthThreshold)) {
-                stat[0]! += statAmount;
+                if (stat) {
+                    stat[0]! += statAmount;
+                }
             }
         });
         return true;
@@ -422,7 +448,8 @@ export function OnDealsCombatDamageEffect(game: Game, s: string): EffectFunction
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
-        offDamage = game.emitter.on("on:damage:taken", async ({ eventIssuer, target, source, damage }) => {
+        offDamage = game.emitter.on("on:damage:taken", async (eventData: OnDamageTakenData) => {
+            const { eventIssuer, target, source, damage } = eventData;
             if (data.issuer !== target) return;
             if (!(eventIssuer instanceof Player)) return;
             const newData = new EffectData(data.it, eventIssuer as Player, []);
@@ -444,7 +471,8 @@ export function OnDealsDamageEffect(game: Game, s: string): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
-        offDamage = game.emitter.on("on:damage:taken", async ({ eventIssuer, target, source, damageArray }) => {
+        offDamage = game.emitter.on("on:damage:taken", async (eventData: OnDamageTakenData) => {
+            const { eventIssuer, target, source, damageArray } = eventData;
             if (data.issuer !== target) return;
             if(!(eventIssuer instanceof Player)) return;
             if(!(source instanceof DiceRoll)) return;
@@ -471,7 +499,8 @@ export function combatDamageIsEffect(game: Game, s: string): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
-        offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, target, source, damageArray }) => {
+        offDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
+            const { eventIssuer, target, source, damageArray } = eventData;
             if (data.issuer !== target) return;
             if(!(source instanceof DiceRoll)) return;
             if(numbers.includes((source as DiceRoll).value) === false) return;
@@ -502,7 +531,8 @@ export function onAttackingPlayerActivatesItemEffect(game: Game, s: string): Eff
     return (data: EffectData) => {
         let offActivate: (() => void) | null = null;
         
-        offActivate = game.emitter.on("on:item:activated", async ({ eventIssuer, item }) => {
+        offActivate = game.emitter.on("on:item:activated", async (eventData: OnItemActivatedData) => {
+            const { eventIssuer, item } = eventData;
             if (!(eventIssuer instanceof Player)) return;
             if (!(eventIssuer.isEngagedInCombat)) return;
             const newData = new EffectData(data.it, eventIssuer as Player, []);
@@ -538,10 +568,11 @@ export function onAttackingPlayerRollsEffect(game: Game, s: string): EffectFunct
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         
-        offRoll = game.emitter.on("on:dice:rolled", async ({ eventIssuer, dice: attackRoll }) => {
+        offRoll = game.emitter.on("on:dice:rolled", async (eventData: OnDiceRolledData) => {
+            const { eventIssuer, dice: attackRoll } = eventData;
             if (!(eventIssuer instanceof Player)) return;
             if (!(eventIssuer.isEngagedInCombat)) return;
-            if(attackRoll.value !== roll) return;
+            if(attackRoll?.value !== roll) return;
             const newData = new EffectData(data.it, eventIssuer as Player, []);
             addPassiveEffectToStack(game, effect.effectFunction, newData, `When the attacking player rolls an attack roll of ${roll} ${rest}`);
         });
@@ -573,7 +604,8 @@ export function onAttackDeclaredEffect(game: Game, s: string): EffectFunction {
     const effect = effectParser(rest, game, addInPlayEffect(game), true);
     return (data: EffectData) => {
         let offAttackDeclared: (() => void) | null = null;
-        offAttackDeclared = game.emitter.on("on:attack:declared:monster", async ({ eventIssuer, monster }) => {
+        offAttackDeclared = game.emitter.on("on:attack:declared:monster", async (eventData: OnAttackDeclaredMonsterData) => {
+            const { eventIssuer, monster } = eventData;
             if (data.issuer !== monster) return;
             if (!(eventIssuer instanceof Player)) return;
             const newData = new EffectData(data.it, eventIssuer as Player, []);
@@ -594,7 +626,8 @@ export function preventDamageOnRollEffect(game: Game, rolls: number[]): EffectFu
 
         let offDamage: (() => void) | null = null;
         
-        offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, target, source, damageArray }) => {
+        offDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
+            const { eventIssuer, target, source, damageArray } = eventData;
             if (data.issuer !== eventIssuer) return;
             if(!(eventIssuer instanceof Monster)) return;
             // Add all effects as a single stack element
@@ -634,7 +667,8 @@ export function onTakesCombatDamageEffect(game: Game, s: string, rolls: number[]
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
-        offDamage = game.emitter.on("on:damage:taken", async ({ eventIssuer, target, source, damageArray }) => {
+        offDamage = game.emitter.on("on:damage:taken", async (eventData: OnDamageTakenData) => {
+            const { eventIssuer, target, source, damageArray } = eventData;
             if (data.issuer !== eventIssuer) return;
             if(!(eventIssuer instanceof Monster)) return;
             if(!(source instanceof DiceRoll)) return;
@@ -657,7 +691,8 @@ export function onEveryOtherDamageEffect(game: Game, effect: EffectFunction): Ef
         let offDamage: (() => void) | null = null;
         let damageCount = 0;
 
-        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target, source, damageArray }) => {
+        offDamage = game.emitter.on("on:damage:taken", (eventData: OnDamageTakenData) => {
+            const { eventIssuer, target, source, damageArray } = eventData;
             if (data.issuer !== eventIssuer) return;
             // Add all effects as a single stack element
             damageCount += 1;

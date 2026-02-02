@@ -40,7 +40,7 @@ import { TurnHandler } from "./turnHandler";
 import { type ReadableSignal, Signal } from "micro-signals";
 import { GameEventEmitter } from "./eventEmmitter";
 import { bSoulEffectParser } from "@/models/bonusSoulHandling";
-import type { TriggerEvent } from "@/types/triggers";
+import { type TriggerEvent } from '@/models/types/eventTypes';
 import type { Capability, DetailedState, Issuer, SelectionItem } from "@/shared/api";
 import { HistoricHandler, type HistoricEntry, type UserRequest } from "./historyHandler";
 import { GameParameters } from "./gameParameters";

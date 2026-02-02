@@ -305,8 +305,8 @@ describe("Treasure - Permanent Modifiers", () => {
         game.attackRoll(player1);
         const attackRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll).toBeDefined();
-        if (attackRoll?.value != 6) {
-            attackRoll!.value = 6; // Roll a 6
+        if (attackRoll?.value != 6 && attackRoll) {
+            attackRoll.value = 6; // Roll a 6
             game.emitter.emit("on:attack:roll", {
                 eventIssuer: player1,
                 target: monster,

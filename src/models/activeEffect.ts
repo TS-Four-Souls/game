@@ -8,6 +8,7 @@ import { EffectData, type EffectFunction, type TargetsSelector, type DeckType } 
 import { Game } from "./game";
 import type { Entity } from "./entity";
 import { effect } from "zod/v3";
+import type { OnTurnEndData } from "./types/eventTypes";
 import type { Stack, StackElement } from "./stack";
 import { effectParser, type ParsedEffect } from "./effectParser";
 import { deckSelector, visibleItemSelector, inplayUnchargedItemSelector } from "./targetSelector";
@@ -324,8 +325,8 @@ export function becomesCopyOfItemUntilEndOfTurnEffect(game: Game): EffectFunctio
         thisItem.onAddInPlay(owner);
         
         // Subscribe to end of turn event to restore the original card
-        const unsubscribe = game.emitter.on("on:turn:end", (event) => {
-            if (event.eventIssuer === owner) {
+        const unsubscribe = game.emitter.on("on:turn:end", (eventData: OnTurnEndData) => {
+            if (eventData.eventIssuer === owner) {
                 restore(); // restore() will call cleanup() internally
                 unsubscribe();
             }

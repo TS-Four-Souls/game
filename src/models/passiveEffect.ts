@@ -2,10 +2,28 @@ import { DiceRoll, Player } from "./player";
 import { LootCard, ItemCard, TreasureCard, LootCardEffect, EffectOnStack, MonsterCard, Card } from "./cards";
 import { EffectData, type EffectFunction } from "./types/cardTypes";
 import { Game } from "./game";
-import type { TriggerEvent } from "@/types/triggers";
+import { type TriggerEvent } from '@/models/types/eventTypes';
 import { Monster } from "./monster";
 import { TargetBuilder } from "./targetBuilder";
 import type { TemporaryEffect } from "@/shared/api";
+import type {
+    OnDamageWouldTakeData,
+    OnTurnEndData,
+    OnTurnStartData,
+    OnCoinGainedData,
+    OnDeathAfterPenaltyData,
+    OnDeathBeforePenaltyData,
+    OnDeathMonsterData,
+    OnAttackRollData,
+    OnDamageTakenData,
+    OnDiceRolledData,
+    OnDiceWouldRollData,
+    OnLootPlayedData,
+    OnItemDestroyedData,
+    OnItemPurchaseData,
+    OnLootStepData,
+    OnLootWouldData
+} from "./types/eventTypes";
 
 function getTemporaryEffect(data: EffectData, description: string): TemporaryEffect {
     return{
@@ -46,7 +64,8 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): EffectF
         };
 
         // Listen for the next damage event on this player
-        offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
+        offDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
+            const { eventIssuer, damageArray } = eventData;
             // let target = data.peek();
             // if(data.targets.length == 0)
             //     target = data.issuer;
@@ -104,7 +123,8 @@ export function lvlXaddListenerEffect(
     game: Game): EffectFunction {
 
     return (data: EffectData) => {
-        let offTurn = game.emitter.on("on:coin:gained:after", ({ eventIssuer }) => {
+        let offTurn = game.emitter.on("on:coin:gained:after", (eventData: OnCoinGainedData) => {
+            const { eventIssuer } = eventData;
             if (data.issuer !== eventIssuer) return;
             if (data.it.tags.levels === undefined || data.it.tags.levels < lvl) return;
 
@@ -169,7 +189,8 @@ export function setNextDamageToXEffect(setTo: number, game: Game): EffectFunctio
             offTurn = null;
         };
         // Listen for the next damage event on this player
-        offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
+        offDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
+            const { eventIssuer, damageArray } = eventData;
             if (target !== eventIssuer) return;
             damageArray[0] = setTo;
             cleanup(); // One-shot: remove listeners after first use
@@ -197,14 +218,16 @@ export function onYourTurnModifier(
                 adder(target, amount);
         }
 
-        let offTurn = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
+        let offTurn = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
+            const { eventIssuer } = eventData;
             if (eventIssuer !== data.issuer) return;
             const target = data.targets.length > 0 ? data.peek() : data.issuer;
             for (const adder of adders)
                 adder(target, amount);
         });
 
-        let offTurnEnd = game.emitter.on("on:turn:end", ({ eventIssuer }) => {
+        let offTurnEnd = game.emitter.on("on:turn:end", (eventData: OnTurnEndData) => {
+            const { eventIssuer } = eventData;
             if (eventIssuer !== data.issuer) return;
             const target = data.targets.length > 0 ? data.peek() : data.issuer;
             for (const adder of adders)
@@ -238,7 +261,8 @@ export function curseEffect(restEffectFunction: EffectFunction, game: Game): Eff
         restEffectFunction(new EffectData(data.it, owner, []));
         // Add Listener to remove the curse when the owner dies.
         let offDeath: (() => void) | null = null;
-        offDeath = game.emitter.on("on:death:after-penalty", ({ eventIssuer }) => {
+        offDeath = game.emitter.on("on:death:after-penalty", (eventData: OnDeathAfterPenaltyData) => {
+            const { eventIssuer } = eventData;
             if (owner !== eventIssuer) return;
             game.removeInPlay(owner, data.it as ItemCard);
             game.discard(data.it);
@@ -265,13 +289,15 @@ export function firstAttackRollDiceModifier(
         if(active)
             game.addAttackDiceModifier(data.issuer, amount);
 
-        let offTurn = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
+        let offTurn = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
+            const { eventIssuer } = eventData;
             if (eventIssuer !== data.issuer) return;
             if(active) return;
             game.addAttackDiceModifier(data.issuer, amount);
         });
 
-        let offTurnEnd = game.emitter.on("on:attack:roll", ({ eventIssuer }) => {
+        let offTurnEnd = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
+            const { eventIssuer } = eventData;
             if (eventIssuer !== data.issuer) return;
             if(!active) return
             if((data.issuer as Player).attackRollThisTurn !==  0)
@@ -307,7 +333,8 @@ export function gainCoinsOnMonsterDeathEffect(
     return (data:EffectData) => {
         let offDeath: (() => void) | null = null;
         // Listen for monster death events
-        offDeath = game.emitter.on("on:death:monster", ({ eventIssuer }) => {
+        offDeath = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
+            const { eventIssuer } = eventData;
             if (!(eventIssuer instanceof Monster)) return;
             
             // Create the effect that will execute when the stack resolves
@@ -345,7 +372,8 @@ export function firstAttackRollStatModifierEffect(
             offAttack = null;
         };
         // Register cleanup to reverse at end of turn
-        offAttack = game.emitter.on("on:attack:roll:first-time-each-turn", ({ eventIssuer, target, dice, damageDealt, damageReceived, evasion } ) => {
+        offAttack = game.emitter.on("on:attack:roll:first-time-each-turn", (eventData: OnAttackRollData) => {
+            const { eventIssuer, target, dice, damageDealt, damageReceived, evasion } = eventData;
             if (data.issuer !== eventIssuer) return;
             damageDealt[0]! += damageDealtModifier;
             damageReceived[0]! += damageReceivedModifier;
@@ -375,7 +403,8 @@ export function onDamageTakenEffect(
         //     throw new Error("permanentStatModifierEffect amount must be non-negative.");
         let offDamage: (() => void) | null = null;
 
-        offDamage = game.emitter.on("on:damage:taken", ({ eventIssuer, target: dealer, source, damage }) => {
+        offDamage = game.emitter.on("on:damage:taken", (eventData: OnDamageTakenData) => {
+            const { eventIssuer, target: dealer, source, damage } = eventData;
             if (data.issuer !== eventIssuer) return;
             const index = data.targets.findIndex((c) => c.damageTaken !== undefined) < 0 
                 ? data.targets.length 
@@ -390,7 +419,7 @@ export function onDamageTakenEffect(
                 return true;
             };
             // Should not work if damage is 0 or less
-            if(damage > 0) 
+            if(damage != null && damage > 0) 
                 addPassiveEffectToStack(game, effect, data, "On damage taken effect");
         });
 
@@ -416,7 +445,8 @@ export function beforeDeathPenaltyEffect(
         //     throw new Error("permanentStatModifierEffect amount must be non-negative.");
         let offDamage: (() => void) | null = null;
 
-        offDamage = game.emitter.on("on:death:before-penalty", ({ eventIssuer, target: dealer, source, damage: dmg }) => {
+        offDamage = game.emitter.on("on:death:before-penalty", (eventData: OnDeathBeforePenaltyData) => {
+            const { eventIssuer, target: dealer, source } = eventData;
             if (data.issuer !== eventIssuer) return;
             
             // Add all effects as a single stack element
@@ -486,7 +516,9 @@ export function onAnyEventEffect(
         let offDamage: (() => void) | null = null;
         
         offDamage = game.emitter.on(triggerEvent, ({ eventIssuer }) => {
-            data.issuer = eventIssuer;
+            if (eventIssuer) {
+                data.issuer = eventIssuer;
+            }
             
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
@@ -512,7 +544,8 @@ export function reduceDamageToOneEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         // Listen for the next damage event on this player
-        offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
+        offDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
+            const { eventIssuer, damageArray } = eventData;
             if (data.issuer !== eventIssuer) return;
             
             // Create the effect that will execute when the stack resolves
@@ -547,7 +580,8 @@ export function lootOnNextRollEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         // Listen for the next roll event on this player
-        offRoll = game.emitter.on("on:dice:rolled", ({ diceRoll }) => {
+        offRoll = game.emitter.on("on:dice:rolled", (eventData: OnDiceRolledData) => {
+            const { diceRoll } = eventData;
             const guess = data.next as number;
             if(guess < 1 || guess > 6) {
                 throw new Error("lootOnNextRollEffect target must be a number between 1 and 6.");
@@ -578,10 +612,11 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): Effec
         data.issuer.addTemporaryEffect(temp);
 
         // Listen for the next loot event on this player
-        offLoot = game.emitter.on("on:loot:played", ({ eventIssuer, card, targets }) => {
+        offLoot = game.emitter.on("on:loot:played", (eventData: OnLootPlayedData) => {
+            let { eventIssuer, card, targets } = eventData;
             card = card as LootCard;
             if (data.issuer !== eventIssuer) return;
-            if( card.trinket || card.ambush) return;
+            if( card.trinket) return;
             
             // Create the effect that will execute when the stack resolves
             const effect = async (effectData: EffectData) => {
@@ -801,8 +836,9 @@ export function changeRollOneToSixEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         // Listen for the next would roll event on this player
-        offRoll = game.emitter.on("on:dice:would-roll", ({ diceRoll }) => {
-            if (data.issuer !== diceRoll._issuer) return;
+        offRoll = game.emitter.on("on:dice:would-roll", (eventData: OnDiceWouldRollData) => {
+            const { diceRoll } = eventData;
+            if (data.issuer !== diceRoll.issuer) return;
             if (diceRoll.value === 1) {
                 // Create the effect that will execute when the stack resolves
                 const effect = async (effectData: EffectData) => {
@@ -829,7 +865,8 @@ export function giveThisToAnotherPlayerOnDeathEffect(game: Game): EffectFunction
     return (data: EffectData) => {
         let offDeath: (() => void) | null = null;
         // Listen for the next damage event on this player
-        offDeath = game.emitter.on("on:death:before-penalty", ({ eventIssuer }) => {
+        offDeath = game.emitter.on("on:death:before-penalty", (eventData: OnDeathBeforePenaltyData) => {
+            const { eventIssuer } = eventData;
             if (data.issuer !== eventIssuer) return;
             if (!(data.issuer instanceof Player)) return;
             
@@ -862,7 +899,8 @@ export function giveThisToAnotherPlayerOnDeathEffect(game: Game): EffectFunction
 export function onFirstDamageEachTurnEffect(functions: EffectFunction[], game: Game): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
-        offDamage = game.emitter.on("on:damage:taken:first-time-each-turn", ({ eventIssuer, damage: dmg }) => {
+        offDamage = game.emitter.on("on:damage:taken:first-time-each-turn", (eventData: OnDamageTakenData) => {
+            const { eventIssuer, damage: dmg } = eventData;
             if (data.issuer !== eventIssuer) return;
             
             // Create the effect that will execute when the stack resolves
@@ -891,7 +929,8 @@ export function becomeSoulInsteadOfDestructionEffect(game: Game): EffectFunction
     return (data: EffectData) => {
         let offDestroy: (() => void) | null = null;
         // Listen for the next damage event on this player
-        offDestroy = game.emitter.on("on:item:destroyed", ({ eventIssuer, cards }) => {
+        offDestroy = game.emitter.on("on:item:destroyed", (eventData: OnItemDestroyedData) => {
+            const { eventIssuer, cards } = eventData;
             if (!(data.issuer instanceof Player)) return;
             if (!cards.includes(data.it)) return;
             data.it.soul = 1;
@@ -918,7 +957,8 @@ export function shopItemsCostLessEffect(discount: number, game: Game): EffectFun
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
 
-        offDamage = game.emitter.on("on:item:purchase", ({ eventIssuer, cost }) => {
+        offDamage = game.emitter.on("on:item:purchase", (eventData: OnItemPurchaseData) => {
+            const { eventIssuer, cost } = eventData;
             if (data.issuer !== eventIssuer) return;
             cost[0] = Math.max(0, (cost[0] ?? 0) - discount);
         });
@@ -939,7 +979,8 @@ export function lootStepEffect(
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
 
-        offDamage = game.emitter.on("on:loot:step", ({ eventIssuer }) => {
+        offDamage = game.emitter.on("on:loot:step", (eventData: OnLootStepData) => {
+            const { eventIssuer } = eventData;
             if (data.issuer !== eventIssuer) return;
             for (const func of effectFunctions)
                 func(data);
@@ -968,7 +1009,8 @@ export function lootOnPlayerDeathEffect(
         };
 
         // Listen for damage events on this player
-        offDeath = game.emitter.on("on:death:before-penalty", ({ eventIssuer, target: from, source, damage: dmg }) => {
+        offDeath = game.emitter.on("on:death:before-penalty", (eventData: OnDeathBeforePenaltyData) => {
+            const { eventIssuer, target: from, source } = eventData;
             if (eventIssuer instanceof Player) {
                 // Create the effect that will execute when the stack resolves
                 const effect = (effectData: EffectData) => {
@@ -1005,7 +1047,8 @@ export function gainPlusCoinsEffect(
         };
 
         // Listen for the next damage event on this player
-        offGainCoin = game.emitter.on("on:coin:gained", ({ eventIssuer, coinGained }) => {
+        offGainCoin = game.emitter.on("on:coin:gained", (eventData: OnCoinGainedData) => {
+            const { eventIssuer, coinGained } = eventData;
             if (data.issuer !== eventIssuer) return;
             const current = coinGained[0] ?? 0;
             coinGained[0] = current + amount;
@@ -1029,7 +1072,8 @@ export function onAttackRollEffect(
     return (data:EffectData) => {
         let offEffect: (() => void) | null = null;
         // Listen for the next damage event on this player
-        offEffect = game.emitter.on("on:attack:roll", ({ eventIssuer, target, dice, damageDealt, damageReceived, evasion }) => {
+        offEffect = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
+            const { eventIssuer, target, dice, damageDealt, damageReceived, evasion } = eventData;
             if (data.issuer !== eventIssuer) return;
             if (rollValues.includes((dice as DiceRoll).value)) {
                 // Create the effect that will execute when the stack resolves
@@ -1062,7 +1106,8 @@ export function onAttackingPlayerRollEffect(
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         
-        offEffect = game.emitter.on("on:dice:rolled", ({ diceRoll }) => {
+        offEffect = game.emitter.on("on:dice:rolled", (eventData: OnDiceRolledData) => {
+            const { diceRoll } = eventData;
             const dice = diceRoll as DiceRoll;
             if( !dice.issuer.engageInCombat || !dice.attackRoll)
                 return;
@@ -1099,7 +1144,8 @@ export function onWouldRollEffect(
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
 
-        offDamage = game.emitter.on("on:dice:would-roll", ({ eventIssuer, diceRoll }) => {
+        offDamage = game.emitter.on("on:dice:would-roll", (eventData: OnDiceWouldRollData) => {
+            const { eventIssuer, diceRoll } = eventData;
             if (data.issuer !== eventIssuer) return;
             if (!values.includes(diceRoll.value)) return;
             const index = data.targets.findIndex((c) => c.diceOwner !== undefined) < 0
@@ -1137,7 +1183,8 @@ export function onRollEffect(
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         // Listen for the next damage event on this player
-        offEffect = game.emitter.on("on:dice:rolled", ({ diceRoll }) => {
+        offEffect = game.emitter.on("on:dice:rolled", (eventData: OnDiceRolledData) => {
+            const { diceRoll } = eventData;
             // For monsters, only trigger if the monster is currently engaged in combat
             // if (data.issuer instanceof Monster && !data.issuer.isEngagedInCombat) {
             //     return;
@@ -1145,7 +1192,7 @@ export function onRollEffect(
             
             if (rollValues.includes((diceRoll as DiceRoll).value))
             {
-                data.targets = [diceRoll._issuer];
+                data.targets = [diceRoll.issuer];
                 
                 // Create the effect that will execute when the stack resolves
                 const stackEffect = (effectData: EffectData) => {
@@ -1153,8 +1200,8 @@ export function onRollEffect(
                     return true;
                 };
                 
-                if (diceIssuerIssueTheEvent && diceRoll._issuer !== undefined) {
-                    data.issuer = diceRoll._issuer;
+                if (diceIssuerIssueTheEvent && diceRoll.issuer !== undefined) {
+                    data.issuer = diceRoll.issuer;
                     data.targets = [];
                 }
                 // Add to stack instead of executing immediately
@@ -1180,9 +1227,10 @@ export function onActivePlayerRollEffect(
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         
-        offEffect = game.emitter.on("on:dice:rolled", ({ diceRoll }) => {
+        offEffect = game.emitter.on("on:dice:rolled", (eventData: OnDiceRolledData) => {
+            const { diceRoll } = eventData;
             // Only trigger if the roll issuer is the active player
-            if (diceRoll._issuer !== game.currentPlayer) {
+            if (diceRoll.issuer !== game.currentPlayer) {
                 return;
             }
             
@@ -1233,7 +1281,8 @@ export function preventDamageByRemovingCountersEffect(
         };
 
         // Listen for the next damage event on this player
-        offEffect = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
+        offEffect = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
+            const { eventIssuer, damageArray } = eventData;
             if (data.issuer !== eventIssuer) return;
             const counters = data.it.tags.counters ?? 0;
             if(counters < 0) 
@@ -1270,7 +1319,8 @@ export function takeDamagePlusEffect(
         };
 
         // Listen for the next damage event on this player
-        offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
+        offDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
+            const { eventIssuer, damageArray } = eventData;
             if (data.issuer !== eventIssuer) return;
             const current = damageArray[0] ?? 0;
             damageArray[0] = current + amount;
@@ -1294,13 +1344,15 @@ export function lootDoubleThisTurnEffect(game: Game): EffectFunction {
         const temp: TemporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
         data.issuer.addTemporaryEffect(temp);
         // Listen for the next damage event on this player
-        offEffect = game.emitter.on("on:loot:would", ({ eventIssuer, numberOfCards }) => {
+        offEffect = game.emitter.on("on:loot:would", (eventData: OnLootWouldData) => {
+            const { eventIssuer, numberOfCards } = eventData;
             const target = data.next;
             if (target !== eventIssuer) return;
             numberOfCards[0]! *= 2;
         });
 
-        offEndTurn = game.emitter.on("on:turn:end", ({ eventIssuer }) => {
+        offEndTurn = game.emitter.on("on:turn:end", (eventData: OnTurnEndData) => {
+            const { eventIssuer } = eventData;
             data.issuer.removeTemporaryEffect(temp);
             offEffect?.();
             offEffect = null;
@@ -1321,7 +1373,8 @@ export function lootFromDiscardEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         // Listen for the next damage event on this player
-        offEffect = game.emitter.on("on:loot:would", ({ eventIssuer, numberOfCards }) => {
+        offEffect = game.emitter.on("on:loot:would", (eventData: OnLootWouldData) => {
+            const { eventIssuer, numberOfCards } = eventData;
             const target = data.next;
             if (target !== eventIssuer) return;
             while(numberOfCards[0]! > 0)
@@ -1355,7 +1408,8 @@ export function gainCoinsLevelUpEffect(
         data.it.tags.levels = data.it.tags.levels ?? 0; // At least level 0.
 
         // Listen for the next damage event on this player
-        offEffect = game.emitter.on("on:coin:gained", ({ eventIssuer, coinGained }) => {
+        offEffect = game.emitter.on("on:coin:gained", (eventData: OnCoinGainedData) => {
+            const { eventIssuer, coinGained } = eventData;
             if (data.issuer !== eventIssuer) return;
             const current = coinGained[0] ?? 0;
             data.it.tags.levels += current;
