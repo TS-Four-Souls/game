@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../../models/game";
 import { DiceRoll, Player } from "../../models/player";
 import type { LootCard, Card, EffectOnStack } from "@/models/cards";
-import { InplayType, MonsterCard, CharacterCard, ItemCard, treasureCard } from "@/models/cards";
+import { InplayType, MonsterCard, CharacterCard, ItemCard, TreasureCard } from "@/models/cards";
 import { setupTestGame, mockGameSelections } from "../testHelpers";
 import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
 
@@ -163,10 +163,10 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         game.decks["monster"]!.addTopPosition(cursedChest);
         
         // Add a Guppy item to treasure deck
-        const guppyItem = game.obtainCard("b2-guppys_head") as treasureCard;
+        const guppyItem = game.obtainCard("b2-guppys_head") as TreasureCard;
         game.decks["treasure"]!.addTopPosition(guppyItem);
         
-        const initialTreasures = player1.inPlay.filter(c => c instanceof treasureCard).length;
+        const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
         
         game.monsterSlots.discardTop(0);
         await game.resolveStack(); // resolve the event addition
@@ -175,7 +175,7 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         dice.value = 6;
         
         await game.resolveStack();
-        expect(player1.inPlay.filter(c => c instanceof treasureCard).length).toBe(initialTreasures + 1);
+        expect(player1.inPlay.filter(c => c instanceof TreasureCard).length).toBe(initialTreasures + 1);
         expect(player1.inPlay.find(c => c.slug === "b2-guppys_head")).toBeDefined();
         // Search the treasure deck for a Guppy item, gain it, then shuffle the treasure deck.
     });
@@ -286,7 +286,7 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         game.decks["monster"]!.addTopPosition(goldChest);
         
         const topTreasure = game.decks["treasure"]!.cards[0]!;
-        const initialTreasures = player1.inPlay.filter(c => c instanceof treasureCard).length;
+        const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
         
         game.monsterSlots.discardTop(0);
         await game.resolveStack(); // resolve the event addition
@@ -295,7 +295,7 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         dice.value = 2;
         
         await game.resolveStack();
-        expect(player1.inPlay.filter(c => c instanceof treasureCard).length).toBe(initialTreasures + 1);
+        expect(player1.inPlay.filter(c => c instanceof TreasureCard).length).toBe(initialTreasures + 1);
         expect(player1.inPlay).toContain(topTreasure);
     });
 
@@ -337,7 +337,7 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         game.decks["monster"]!.addTopPosition(goldChest2);
         
         const topTreasure = game.decks["treasure"]!.cards[0]!;
-        const initialTreasures = player1.inPlay.filter(c => c instanceof treasureCard).length;
+        const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
         
         game.monsterSlots.discardTop(0);
         await game.resolveStack(); // resolve the event addition
@@ -346,7 +346,7 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         dice.value = 1;
         
         await game.resolveStack();
-        expect(player1.inPlay.filter(c => c instanceof treasureCard).length).toBe(initialTreasures + 1);
+        expect(player1.inPlay.filter(c => c instanceof TreasureCard).length).toBe(initialTreasures + 1);
         expect(player1.inPlay).toContain(topTreasure);
     });
 
@@ -441,7 +441,7 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         game.decks["monster"]!.addTopPosition(secretRoom);
         
         const topTreasure = game.decks["treasure"]!.cards[0]!;
-        const initialTreasures = player1.inPlay.filter(c => c instanceof treasureCard).length;
+        const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
         
         game.monsterSlots.discardTop(0);
         await game.resolveStack(); // resolve the event addition
@@ -450,7 +450,7 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         dice.value = 6;
         
         await game.resolveStack();
-        expect(player1.inPlay.filter(c => c instanceof treasureCard).length).toBe(initialTreasures + 1);
+        expect(player1.inPlay.filter(c => c instanceof TreasureCard).length).toBe(initialTreasures + 1);
         expect(player1.inPlay).toContain(topTreasure);
     });
 });

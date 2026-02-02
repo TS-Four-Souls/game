@@ -384,7 +384,7 @@ class Card {
     protected _id: number;
     protected _slug: string;
     protected _name: string;
-    protected _type: string;
+    protected _type: DeckType;
     protected _subtype: string;
     protected _origin: string;
     protected _quote: string | undefined;
@@ -399,7 +399,6 @@ class Card {
     protected _charged: boolean = true;
     protected _owner!: Entity;
     protected _eternal: boolean = false;
-    protected _position: Deck | null | Hand | Card[];
     protected _cleanup: (() => void)[] = [];
     constructor(id: number, 
         json: GenericCardType) {
@@ -416,7 +415,6 @@ class Card {
         this._keywords = [];
         this._tags = {};
         this._effectInterface = new EffectInterface(this);
-        this._position = null;
         // this._tags = json.tags || {};
         this._minimumPlayers = json.minimumPlayers || 1;
         this._effectOutcomes = json.effectOutcome || [];
@@ -650,7 +648,7 @@ export class ItemCard extends Card {
   protected _cost: string;
   constructor(id: number, json: InPlayCardType) {
     super(id, json);
-    this._guppy = (json as GuppyCard).guppy === true;
+    this._guppy = json.guppy === true;
     this._cost = "";
     this._inplayType = InplayType.PASSIVE;
     if (json.effectOutcome !== undefined) {
@@ -781,7 +779,7 @@ export class LootCardEffect {
         return this._stackId;
     }
 
-    get card(): Card {
+    get card(): LootCard {
         return this._card;
     }
 
@@ -800,7 +798,7 @@ export class LootCardEffect {
     }
 }
 
-class treasureCard extends ItemCard {
+class TreasureCard extends ItemCard {
 
     constructor(id: number, json: TreasureCardType) {
         super(id, json);
@@ -808,7 +806,7 @@ class treasureCard extends ItemCard {
     }
 }
 
-class eternalCard extends ItemCard {
+class EternalCard extends ItemCard {
     constructor(id: number, json: EternalCardType) {
         super(id, json);
         this._eternal = true;
@@ -875,7 +873,7 @@ class MonsterCard extends Card {
                 if (json.rewards.soul) {
                     this._monsterType = MonsterType.BOSS;
                     if (typeof json.rewards.soul === "number") {
-                        this._souls = json.rewards.soul as number;
+                        this._souls = json.rewards.soul;
                     }
                 }
             }
@@ -886,6 +884,9 @@ class MonsterCard extends Card {
     }
     get isCurse(): boolean {
         return this.subtype === "curse";
+    }
+    get isEvent(): boolean {
+        return this._monsterType === MonsterType.EVENT;
     }
     get healthPoints(): number {
         return this._healthPoints;
@@ -917,21 +918,37 @@ class BsoulCard extends Card {
         }
     }
 }
+/**
+ * Type mapping from Card classes to their corresponding JSON types
+ */
+type CardToJsonType<T extends Card> = 
+    T extends LootCard ? LootCardType :
+    T extends EternalCard ? EternalCardType :
+    T extends CharacterCard ? CharacterCardType :
+    T extends TreasureCard ? TreasureCardType :
+    T extends MonsterCard ? MonsterCardType :
+    T extends BsoulCard ? BonusSoulCardType :
+    GenericCardType;
 
 /**
  * Creates a card instance from JSON data based on its type.
- * @param id - The card ID to assign
- * @param json - The JSON data for the card
- * @returns A new card instance of the appropriate type
+ * Overloaded signatures provide type inference based on JSON type.
  */
+function createCardFromJson(id: number, json: LootCardType): LootCard;
+function createCardFromJson(id: number, json: TreasureCardType): TreasureCard;
+function createCardFromJson(id: number, json: EternalCardType): EternalCard;
+function createCardFromJson(id: number, json: CharacterCardType): CharacterCard;
+function createCardFromJson(id: number, json: MonsterCardType): MonsterCard;
+function createCardFromJson(id: number, json: BonusSoulCardType): BsoulCard;
+function createCardFromJson(id: number, json: GenericCardType): Card;
 function createCardFromJson(id: number, json: GenericCardType): Card {
     switch (json.type) {
         case "loot":
             return new LootCard(id, json);
         case "treasure":
-            return new treasureCard(id, json);
+            return new TreasureCard(id, json);
         case "eternal":
-            return new eternalCard(id, json);
+            return new EternalCard(id, json);
         case "character":
             return new CharacterCard(id, json);
         case "monster":
@@ -944,18 +961,18 @@ function createCardFromJson(id: number, json: GenericCardType): Card {
     }
 }
 
-class CardSet {
-    protected _set: Card[];
+class CardSet<T extends Card> {
+    protected _set: T[];
     protected _type: string;
     constructor(type: string) {
         this._type = type
         this._set = []
     }
     addCard(json: GenericCardType) : void{
-        this._set.push(createCardFromJson(this._set.length, json));
+        this._set.push(createCardFromJson(this._set.length, json) as T);
         return;
     }
-    get(id: number) : Card {
+    get(id: number) : T {
         if(this._set === undefined) {
             throw new Error(`Card set of type ${this._type} is undefined.`);
         }
@@ -968,7 +985,7 @@ class CardSet {
         return this._set[id];
     }
 
-    id(card: Card) : number {
+    id(card: T) : number {
         const index = this._set.indexOf(card);
         if (index === -1) {
             throw new Error(`Card not found in card set.`);
@@ -979,7 +996,7 @@ class CardSet {
         return this._type; }
     get length() : number{ 
         return this._set.length; }
-    get cards() : Card[] { 
+    get cards() : T[] { 
         return this._set; 
     }
     showAllCards() : void {
@@ -992,20 +1009,54 @@ class CardSet {
 * Loads card sets from an array of json cards.
 * Returns a dictionary of card sets indexed by their type.
 */
-function LoadsCardSets(json_array: GenericCardType[]) : {[key: string]: CardSet} {
-    const sets: {[key: string]: CardSet} = {};
+type CardSetsCollection = {
+    loot: CardSet<LootCard>;
+    treasure: CardSet<TreasureCard>;
+    eternal: CardSet<EternalCard>;
+    character: CardSet<CharacterCard>;
+    monster: CardSet<MonsterCard>;
+    bsoul: CardSet<BsoulCard>;
+};
+
+function LoadsCardSets(json_array: GenericCardType[]) : CardSetsCollection {
+    const sets: CardSetsCollection = {
+        loot: new CardSet<LootCard>('loot'),
+        treasure: new CardSet<TreasureCard>('treasure'),
+        eternal: new CardSet<EternalCard>('eternal'),
+        character: new CardSet<CharacterCard>('character'),
+        monster: new CardSet<MonsterCard>('monster'),
+        bsoul: new CardSet<BsoulCard>('bsoul'),
+    };
+    
     for(let index:number = 0; index < json_array.length; index++) {
         const card_json = json_array[index];
         if (typeof card_json === "undefined" || card_json === null) {
             throw new Error(`Card id ${card_json} is undefined or null in card set.`);
         }
         const type: string = String(card_json.type);
-        let set = sets[type];
-        if (!set) {
-            set = new CardSet(type);
-            sets[type] = set;
+        
+        switch(type) {
+            case "loot":
+                sets.loot.addCard(card_json);
+                break;
+            case "treasure":
+                sets.treasure.addCard(card_json);
+                break;
+            case "eternal":
+                sets.eternal.addCard(card_json);
+                break;
+            case "character":
+                sets.character.addCard(card_json);
+                break;
+            case "monster":
+                sets.monster.addCard(card_json);
+                break;
+            case "bsoul":
+                sets.bsoul.addCard(card_json);
+                break;
+            default:
+                throw new Error(`Unknown card type: ${type}. Only loot, treasure, eternal, character, monster, and bsoul are allowed.`);
         }
-        set.addCard(card_json);
     }
     return sets;
 }
@@ -1052,13 +1103,13 @@ export class EffectOnStack {
         };
     }
 }
-class Deck {
+class Deck<T extends Card> {
     _type: string;
-    _set: CardSet
+    _set: CardSet<T>
     _order: number[];
     _discard: number[];
 
-    constructor(set: CardSet, type: string, order: number[]) {
+    constructor(set: CardSet<T>, type: string, order: number[]) {
         // Type of cards in the deck.
         this._type = type;
         // Set of all the cards that can belong to the deck.
@@ -1081,7 +1132,7 @@ class Deck {
         shuffle<number>(this._order)
     }
 
-    remove(card:Card)
+    remove(card:T)
     {
         const cardId = card.id;
         const setCardId = this._set.id(card);
@@ -1106,14 +1157,14 @@ class Deck {
         }
     }
 
-    draw(): Card {
+    draw(): T {
         // console.log(`Drawing card from deck of type ${this._type}.`);
         return this.drawCardAt(0);
     }
-    get cards(): Card[] {
+    get cards(): T[] {
         return this._order.map((id) => this._set.get(id)).reverse();
     }
-    drawSeveral(n: number): Card[] {
+    drawSeveral(n: number): T[] {
         const cards = Array(n)
         for (let i = 0; i < n; i++) {
             if (this._order.length == 0) {
@@ -1124,7 +1175,7 @@ class Deck {
         return cards;
     }
 
-    drawCardAt(positionFromTop: number): Card {
+    drawCardAt(positionFromTop: number): T {
         if (this._order.length < positionFromTop + 1) {
             this.resetDiscard();
         }
@@ -1145,27 +1196,27 @@ class Deck {
         return result;
     }
 
-    addTopPosition(card: Card): void {
+    addTopPosition(card: T): void {
         this.addCardAtPosFromTop(card, 0);
     }
 
-    addBottomPosition(card: Card): void {
+    addBottomPosition(card: T): void {
         this.addCardAtPosFromTop(card, this._order.length);
     }
-    addCardAtPosFromTop(card: Card, positionFromTop: number): void {
+    addCardAtPosFromTop(card: T, positionFromTop: number): void {
         const posFromEnd = Math.max(this._order.length - positionFromTop, 0);
         this._order.splice(posFromEnd, 0, card.id);
     }
-    addRandomPosition(card: Card): void {
+    addRandomPosition(card: T): void {
         const randomIdx = Math.floor(Math.random() * this._order.length);
         this.addCardAtPosFromTop(card, randomIdx);
     }
 
-    addDiscardTop(card: Card): void {
+    addDiscardTop(card: T): void {
         this._discard.push(card.id);
     }
 
-    drawTopDiscard(): Card {
+    drawTopDiscard(): T {
         if (this._discard.length === 0) {
             throw new Error(`Cannot draw from empty discard pile of deck type ${this._type}.`);
         }
@@ -1176,7 +1227,7 @@ class Deck {
         return this._set.get(id);
     }
 
-    get discard(): Card[] {
+    get discard(): T[] {
         const result = []
         for (let i = this._discard.length - 1; i >= 0; i--) {
             const id = this._discard[i];
@@ -1197,7 +1248,7 @@ class Deck {
         this._order = this._discard.concat(this._order);
         this._discard = [];
     }
-    getCardFromSlug(slug: string) : Card|undefined {
+    getCardFromSlug(slug: string) : T|undefined {
         const res = this.getCards((card) => card.slug === slug);
         if( res.length > 1 ) {
             throw new Error(`Multiple cards with slug ${slug} found in deck of type ${this._type}.`);
@@ -1207,8 +1258,8 @@ class Deck {
         }
         return  res[0];
     }
-    getCards(filter: (card: Card) => boolean) : Card[] {
-        const result: Card[] = [];
+    getCards(filter: (card: T) => boolean) : T[] {
+        const result: T[] = [];
         for (let i = 0; i < this._order.length; i++) {
             const id = this._order[i];
             if (typeof id !== "undefined" && id !== null) {
@@ -1236,17 +1287,17 @@ class Deck {
 }
 
 class Hand {
-    _hand: Card[];
+    _hand: LootCard[];
     constructor() {
         this._hand = []
     }
     get length(): number {
         return this._hand.length;
     }
-    get cards(): Card[] {
+    get cards(): LootCard[] {
         return this._hand;
     }
-    addToHand(card: Card) {
+    addToHand(card: LootCard) {
         if (card.type !== "loot") {
             print("Error, hand should only contain loot cards.")
             throw new Error("Hand can only contain loot cards.");
@@ -1254,16 +1305,16 @@ class Hand {
         this._hand.push(card);
     }
     moveCardToPos(from: number, to: number) {
-        const card: Card = this._hand[from]!;
+        const card: LootCard = this._hand[from]!;
         this._hand.splice(from, 1);
         this._hand.splice(to, 0, card);
     }
-    removeFromHandByPos(pos: number) : Card {
-        const card: Card = this._hand[pos]!;
+    removeFromHandByPos(pos: number) : LootCard {
+        const card: LootCard = this._hand[pos]!;
         this._hand.splice(pos, 1);
         return card;
     }
-    removeCard(target: Card): boolean{
+    removeCard(target: LootCard): boolean{
         const index = this._hand.indexOf(target);
         if(index >= 0)
         {
@@ -1272,32 +1323,86 @@ class Hand {
         }
         return false;
     }
-    playCard(index: number) : Card {
+    playCard(index: number) : LootCard {
         return this.removeFromHandByPos(index);
     }
 }
 
-function LoadDecks(json_array: GenericCardType[], numPlayers: number, nbPlayerCardRestriction: boolean) : {[key: string]: Deck} {
+type DecksCollection = {
+    loot: Deck<LootCard>;
+    treasure: Deck<TreasureCard>;
+    eternal: Deck<EternalCard>;
+    character: Deck<CharacterCard>;
+    monster: Deck<MonsterCard>;
+    bsoul: Deck<BsoulCard>;
+};
+
+type DeckType = keyof DecksCollection;
+
+type DeckTypeToCardType = {
+    loot: LootCard;
+    treasure: TreasureCard;
+    eternal: EternalCard;
+    character: CharacterCard;
+    monster: MonsterCard;
+    bsoul: BsoulCard;
+};
+
+export function isDeckType(value: string): value is DeckType {
+    return ['loot', 'treasure', 'eternal', 'character', 'monster', 'bsoul'].includes(value);
+}
+
+export function assertCardMatchesDeck<T extends DeckType>(
+    deckName: T,
+    card: Card
+): asserts card is DeckTypeToCardType[T] {
+    if (card.type !== deckName) {
+        throw new Error(`Card type ${card.type} doesn't match deck ${deckName}`);
+    }
+}
+
+function createEmptyDecksCollection(): DecksCollection {
+    const emptyCardSets = {
+        loot: new CardSet<LootCard>('loot'),
+        treasure: new CardSet<TreasureCard>('treasure'),
+        eternal: new CardSet<EternalCard>('eternal'),
+        character: new CardSet<CharacterCard>('character'),
+        monster: new CardSet<MonsterCard>('monster'),
+        bsoul: new CardSet<BsoulCard>('bsoul'),
+    };
+    return {
+        loot: new Deck(emptyCardSets.loot, 'loot', []),
+        treasure: new Deck(emptyCardSets.treasure, 'treasure', []),
+        eternal: new Deck(emptyCardSets.eternal, 'eternal', []),
+        character: new Deck(emptyCardSets.character, 'character', []),
+        monster: new Deck(emptyCardSets.monster, 'monster', []),
+        bsoul: new Deck(emptyCardSets.bsoul, 'bsoul', []),
+    };
+}
+
+function LoadDecks(json_array: GenericCardType[], numPlayers: number, nbPlayerCardRestriction: boolean) : DecksCollection {
     // Create fresh CardSets from JSON to ensure independent card instances
     const decks_cardSets = LoadsCardSets(json_array);
     
-    const decks: {[key: string]: Deck} = {};
-    for (const type of Object.keys(decks_cardSets)) {
-        const set = decks_cardSets[type];
-        if (!set || set.length === 0) {
+    const decks = {} as DecksCollection;
+    const cardTypes: (keyof CardSetsCollection)[] = ['loot', 'treasure', 'eternal', 'character', 'monster', 'bsoul'];
+    
+    for (const type of cardTypes) {
+        const set = decks_cardSets[type] as CardSet<any>;
+        if (set.length === 0) {
             continue;
         }
+        
         let range = [];
         for (let i = 0; i < set.length; i++) {
-            if(set.get(i)!.minimumPlayers <= numPlayers || !nbPlayerCardRestriction) 
-            {
+            if(set.get(i)!.minimumPlayers <= numPlayers || !nbPlayerCardRestriction) {
                 range.push(i);
             }
         }
         shuffle<number>(range);
-        const firstCard = set.get(0)!;
-        decks[type] = new Deck(set, firstCard.type, range);
+        (decks as any)[type] = new Deck(set, type, range);
     }
+    
     return decks;
 }
 
@@ -1306,7 +1411,7 @@ function isSameSlug(slug: string, card: Card) : boolean
     return card.slug === slug;
 }
 
-function randomCardFromSet(set: CardSet) : Card {
+function randomCardFromSet<T extends Card>(set: CardSet<T>) : T {
     const randomIndex = Math.floor(Math.random() * set.length);
     const card = set.get(randomIndex);
     if (card === undefined) {
@@ -1315,4 +1420,4 @@ function randomCardFromSet(set: CardSet) : Card {
     return card;
 }
 
-export { Card, LootCard, treasureCard, MonsterCard, BsoulCard, CharacterCard, eternalCard, MonsterType, InplayType, CardSet, Deck, Hand, LoadsCardSets, LoadDecks, randomCardFromSet, isSameSlug, createCardFromJson };
+export { Card, LootCard, TreasureCard as TreasureCard, MonsterCard, BsoulCard, CharacterCard, EternalCard, MonsterType, InplayType, CardSet, Deck, Hand, LoadsCardSets, type CardSetsCollection, type DecksCollection, type DeckType, type DeckTypeToCardType, LoadDecks, createEmptyDecksCollection, randomCardFromSet, isSameSlug, createCardFromJson };

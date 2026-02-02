@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../../models/game";
 import { DiceRoll, Player } from "../../models/player";
 import { pl } from "zod/locales";
-import type { LootCard, ItemCard, treasureCard, Card } from "@/models/cards";
+import type { LootCard, ItemCard, TreasureCard, Card } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
 import { inplayUnchargedItemSelector } from "@/models/targetSelector";
 import { dischargeEachItemsAndRemoveCoins, setupTestGame } from "@/tests/testHelpers";
@@ -27,7 +27,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
     // "Each time a player rolls a ❺, gain 3¢."
     it("eye_of_greed", async () => {
 
-        const eyeOfGreed = game.shop.obtainCard("b2-eye_of_greed")! as treasureCard;
+        const eyeOfGreed = game.shop.obtainCard("b2-eye_of_greed")! as TreasureCard;
         const card = game.obtainCard("b2-pills") as LootCard;
 
         game.addInPlay(player1, eyeOfGreed);
@@ -84,7 +84,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
     // "Each time a player rolls a ❶, loot 1."
     it("the_relic", async () => {
         const correctValue = 1;
-        const theRelic = game.shop.obtainCard("b2-the_relic")! as treasureCard;
+        const theRelic = game.shop.obtainCard("b2-the_relic")! as TreasureCard;
         game.addInPlay(player1, theRelic);
         const card = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(card);
@@ -142,7 +142,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
     // "Each time a player rolls a ❶, you may recharge this."
     it("sack_of_pennies", async () => {
         const correctValue = 1;
-        const sack = game.shop.obtainCard("b2-sack_of_pennies")! as treasureCard;
+        const sack = game.shop.obtainCard("b2-sack_of_pennies")! as TreasureCard;
         game.addInPlay(player1, sack);
         sack.charged = false;
         const card = game.obtainCard("b2-pills") as LootCard;
@@ -201,7 +201,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
     // "Each time a player rolls a ❷, you may recharge an item."
     it("charged_baby", async () => {
         const correctValue = 2;
-        const baby = game.shop.obtainCard("b2-charged_baby")! as treasureCard;
+        const baby = game.shop.obtainCard("b2-charged_baby")! as TreasureCard;
         const recharged = (await game.select(player1, 1, inplayUnchargedItemSelector(game)(player1), true)).selected[0] as Card;
         game.addInPlay(player1, baby);
         recharged.charged = false;
@@ -262,7 +262,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
     it("moms_box", async () => {
         const correctValue = 4;
         const card = game.obtainCard("b2-pills") as LootCard;
-        const item = game.shop.obtainCard("b2-moms_box")! as treasureCard;
+        const item = game.shop.obtainCard("b2-moms_box")! as TreasureCard;
         game.addInPlay(player1, item);
         const monster = game.monsters[0]!;
 
@@ -334,7 +334,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         const correctValue = 4;
         const card = game.obtainCard("b2-pills") as LootCard;
-        const item = game.shop.obtainCard("b2-tarot_cloth")! as treasureCard;
+        const item = game.shop.obtainCard("b2-tarot_cloth")! as TreasureCard;
         game.loot(player2, 1);
         game.addInPlay(player1, item);
         const monster = game.monsters[0]!;
@@ -403,7 +403,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         const correctValue = 6;
         const card = game.obtainCard("b2-pills") as LootCard;
-        const item = game.shop.obtainCard("b2-moms_razor")! as treasureCard;
+        const item = game.shop.obtainCard("b2-moms_razor")! as TreasureCard;
         game.addInPlay(player1, item);
         const monster = game.monsters[0]!;
         
@@ -468,7 +468,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         const correctValue = 6;
         const card = game.obtainCard("b2-pills") as LootCard;
-        const item = game.shop.obtainCard("b2-cheese_grater")! as treasureCard;
+        const item = game.shop.obtainCard("b2-cheese_grater")! as TreasureCard;
         game.addInPlay(player1, item);
         const monster = game.monsters[0]!;
 
@@ -480,7 +480,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         
         game.addHealth(monster, 10);
         game.addHealth(player2, 10);
-        let topTreasure = game.decks["treasure"]!.cards[0]!;
+        let topTreasure = game.decks["loot"]!.cards[0]!;
 
         // First attack roll - should not trigger the effect
         game.attackRoll(player2);
@@ -493,7 +493,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         await game.resolveStack(); // dmg resolution
         await game.resolveStack(); // dies ?
 
-        expect(topTreasure).toBe(game.decks["treasure"]!.cards[0]!);
+        expect(topTreasure).toBe(game.decks["loot"]!.cards[0]!);
         expect(game.stack.size).toBe(0);
 
         // Second attack roll - should trigger the effect
@@ -508,9 +508,9 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         await game.resolveStack(); // damage resolution
         await game.resolveStack(); // dies ?
         expect(game.stack.size).toBe(0);
-        expect(game.decks["treasure"]!.cards[0]!).not.toBe(topTreasure);
-        expect(game.decks["treasure"]!.discard).toContain(topTreasure);
-        topTreasure = game.decks["treasure"]!.cards[0]!;
+        expect(game.decks["loot"]!.cards[0]!.slug).not.toBe(topTreasure.slug);
+        expect(game.decks["loot"]!.discard).toContain(topTreasure);
+        topTreasure = game.decks["loot"]!.cards[0]!;
 
         // card roll
         player2.hand.addToHand(card);
@@ -533,7 +533,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         const correctValue = 3;
         const card = game.obtainCard("b2-pills") as LootCard;
-        const item = game.shop.obtainCard("b2-dead_bird")! as treasureCard;
+        const item = game.shop.obtainCard("b2-dead_bird")! as TreasureCard;
         game.loot(player2, 1);
         game.addInPlay(player1, item);
         const monster = game.monsters[0]!;
@@ -602,9 +602,9 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         const correctValue = 2;
         const card = game.obtainCard("b2-pills") as LootCard;
-        const item1 = game.shop.obtainCard("b2-blank_card")! as treasureCard;
-        const item2 = game.shop.obtainCard("b2-dry_baby")! as treasureCard;
-        const item = game.shop.obtainCard("b2-finger")! as treasureCard;
+        const item1 = game.shop.obtainCard("b2-blank_card")! as TreasureCard;
+        const item2 = game.shop.obtainCard("b2-dry_baby")! as TreasureCard;
+        const item = game.shop.obtainCard("b2-finger")! as TreasureCard;
 
         game.addInPlay(player1, item1);
         game.addInPlay(player1, item);
@@ -632,7 +632,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
     // "Each time a player rolls a ❺, you may put a monster not being attacked into discard and replace it with the top card of the monster deck."
     it("spider_mod", async () => {
         const correctValue = 5;
-        const spiderMod = game.shop.obtainCard("b2-spider_mod")! as treasureCard;
+        const spiderMod = game.shop.obtainCard("b2-spider_mod")! as TreasureCard;
         const card = game.obtainCard("b2-pills") as LootCard;
         game.addInPlay(player1, spiderMod);
 
@@ -705,7 +705,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
     // "Each time a player rolls a ❸, you may put the top card of the Monster Deck in a monster slot not being attacked."
     it("the_d10", async () => {
         const correctValue = 3;
-        const theD10 = game.shop.obtainCard("b2-the_d10")! as treasureCard;
+        const theD10 = game.shop.obtainCard("b2-the_d10")! as TreasureCard;
         const card = game.obtainCard("b2-pills") as LootCard;
         game.endTurn();
         await game.resolveStack();

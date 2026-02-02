@@ -1,5 +1,5 @@
 import { DiceRoll, Player } from "./player";
-import { EffectData, LootCard, type EffectFunction, ItemCard, treasureCard, LootCardEffect, EffectOnStack, MonsterCard, Card } from "./cards";
+import { EffectData, LootCard, type EffectFunction, ItemCard, TreasureCard, LootCardEffect, EffectOnStack, MonsterCard, Card } from "./cards";
 import { Game } from "./game";
 import type { TriggerEvent } from "@/types/triggers";
 import { Monster } from "./monster";
@@ -637,7 +637,7 @@ export function replaceDeathPenaltyEffect(game: Game): EffectFunction {
 
             const lostCoins = game.loseCoins(player, game.gameParameters.deathPenaltyCoins.value, true);
             game.gainCoins(data.issuer as Player, lostCoins);
-            const setOfLosableItems = (player.inPlay).filter((c) => (c instanceof treasureCard || (c instanceof LootCard && c.trinket))
+            const setOfLosableItems = (player.inPlay).filter((c) => (c instanceof TreasureCard || (c instanceof LootCard && c.trinket))
             && c.eternal === false)
             if (game.gameParameters.deathPenaltyItem.value > 0) {
             const itemToLose = (await game.select(
@@ -648,8 +648,10 @@ export function replaceDeathPenaltyEffect(game: Game): EffectFunction {
                 game.gameParameters.deathPenaltyItem.value > 1 ? "Select items " + player.id + " will lose." : "Select an item " + player.id + " will lose."
             )).selected[0];
             if (itemToLose) {
+                if(!(itemToLose instanceof ItemCard))
+                    throw new Error("Death penalty item to lose is not an ItemCard.");
                 game.removeInPlay(player, itemToLose);
-                game.decks[itemToLose.type]!.addDiscardTop(itemToLose);
+                game.discard(itemToLose);
             }
             }
             if(game.gameParameters.deathPenaltyLoot.value > 0) {
@@ -1424,7 +1426,7 @@ export function startingItemEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = game.emitter.on("on:game:start:before", async () => {
             if (!(data.issuer instanceof Player)) return;
-            const options: treasureCard[] = game.decks["treasure"]!.drawSeveral(3) as treasureCard[];
+            const options: TreasureCard[] = game.decks["treasure"]!.drawSeveral(3) as TreasureCard[];
             const selection = await game.select( data.issuer, 1, options, false, "Select a starting eternal treasure.");
             selection.selected[0]?.setEternal(true);
             game.addInPlay(data.issuer, selection.selected[0]!); 

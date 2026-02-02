@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../../models/game";
 import { DiceRoll, Player } from "../../models/player";
 import type { LootCard, Card, EffectOnStack } from "@/models/cards";
-import { InplayType, MonsterCard, CharacterCard, ItemCard, treasureCard } from "@/models/cards";
+import { InplayType, MonsterCard, CharacterCard, ItemCard, TreasureCard } from "@/models/cards";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame } from "@/tests/testHelpers";
 
 describe("Event Monsters - Other Events", () => {
@@ -272,11 +272,11 @@ describe("Event Monsters - Other Events", () => {
         game.decks["monster"]!.addTopPosition(devilDeal);
         
         // Add a Guppy item to treasure deck
-        const guppyItem = game.obtainCard("b2-guppys_head") as treasureCard;
+        const guppyItem = game.obtainCard("b2-guppys_head") as TreasureCard;
         game.decks["treasure"]!.addTopPosition(guppyItem);
         
         const initialHP = player1.currentHealthPoints;
-        const initialTreasures = player1.inPlay.filter(c => c instanceof treasureCard).length;
+        const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
         
         // Draw the event
         game.monsterSlots.discardTop(0);
@@ -286,7 +286,7 @@ describe("Event Monsters - Other Events", () => {
         await game.resolveStack(); // damage resolution
         
         expect(player1.currentHealthPoints).toBe(initialHP - 2);
-        expect(player1.inPlay.filter(c => c instanceof treasureCard).length).toBe(initialTreasures + 1);
+        expect(player1.inPlay.filter(c => c instanceof TreasureCard).length).toBe(initialTreasures + 1);
         expect(player1.inPlay.find(c => c.slug === "b2-guppys_head")).toBeDefined();
         
     });

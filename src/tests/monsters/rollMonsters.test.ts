@@ -2,7 +2,7 @@
 // import { Game } from "../../models/game";
 // import { DiceRoll, Player } from "../../models/player";
 // import type { LootCard, Card, EffectOnStack } from "@/models/cards";
-// import { InplayType, MonsterCard, CharacterCard, ItemCard, treasureCard } from "@/models/cards";
+// import { InplayType, MonsterCard, CharacterCard, ItemCard, TreasureCard } from "@/models/cards";
 // import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
 
 // describe("Event Monsters - Roll Trigger Effects", () => {

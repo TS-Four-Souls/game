@@ -3,7 +3,7 @@ import { Game } from "../models/game";
 import { DiceRoll, Player } from "../models/player";
 import { pl } from "zod/locales";
 import type { LootCard, ItemCard } from "@/models/cards";
-import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
+import { InplayType, MonsterCard, CharacterCard, TreasureCard } from "@/models/cards";
 import { setupStandardTestGame, dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "./testHelpers";
 
 describe("Loot Card", () => {
@@ -477,7 +477,7 @@ describe("Loot Card", () => {
         }
         // Verify the unchosen cards are at the end of the deck
         for (const card of initialOthers) {
-            expect(bottomCards).toContain(card);
+            expect(bottomCards).toContain(card as MonsterCard);
         }
     });
 
@@ -507,7 +507,7 @@ describe("Loot Card", () => {
         }
         // Verify the unchosen cards are at the end of the deck
         for (const card of initialOthers) {
-            expect(bottomCards).toContain(card);
+            expect(bottomCards).toContain(card as TreasureCard);
         }
     });
 
@@ -538,7 +538,7 @@ describe("Loot Card", () => {
         }
         // Verify the unchosen cards are at the end of the deck
         for (const card of initialOthers) {
-            expect(bottomCards).toContain(card);
+            expect(bottomCards).toContain(card as LootCard);
         }
     });
 
@@ -1533,8 +1533,8 @@ describe("Loot Card", () => {
 
         const pill = game.obtainCard("b2-pills")!;
         expect(pill).toBeDefined();
-        player1.hand.addToHand(pill);
-        game.playCard(player1, player1.hand.cards.indexOf(pill));
+        player1.hand.addToHand(pill as LootCard);
+        game.playCard(player1, player1.hand.cards.indexOf(pill as LootCard));
         await game.resolveStack();
         expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
@@ -1767,7 +1767,8 @@ describe("Loot Cards - 3 players tests", () => {
 
     it("b2-xx_judgement: issuer with most souls destroys one of their souls invalid target", async () => {
 
-        const judgement = game.decks["loot"]!.getCardFromSlug("b2-xx_judgement");
+        const judgement = game.decks.loot?.getCardFromSlug("b2-xx_judgement");
+        // ["loot"]!.getCardFromSlug("b2-xx_judgement");
         player1.hand.addToHand(judgement!);
 
         // player1 has 2 souls, others have 1

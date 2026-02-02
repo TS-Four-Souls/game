@@ -98,13 +98,15 @@ export type Card = CardMeta & {
 
 /* Card types */
 
-export type CharacterCardType = Card & {
+export type CharacterCardType = Card & 
+GuppyCard & {
   type: CardType.Character;
   eternalCard?: CardMeta;
   stats: PartialRequired<CardStats, "healthPoints" | "attackPoints">;
 };
 
-export type EternalCardType = Card & {
+export type EternalCardType = Card &
+GuppyCard & {
   type: CardType.Eternal;
 };
 

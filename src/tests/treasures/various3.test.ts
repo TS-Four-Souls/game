@@ -1,7 +1,7 @@
 import { describe, it, beforeEach, expect } from "bun:test";
 import { Game } from "../../models/game";
 import { DiceRoll, Player } from "../../models/player";
-import { CharacterCard, ItemCard, treasureCard, MonsterCard } from "@/models/cards";
+import { CharacterCard, ItemCard, TreasureCard, MonsterCard } from "@/models/cards";
 import { Monster } from "@/models/monster";
 import { dischargeEachItemsAndRemoveCoins, setupTestGame } from "@/tests/testHelpers";
 
@@ -974,7 +974,7 @@ describe("b2-theres_options treasure deck visibility", () => {
     it("player can see top of treasure deck during their turn", async () => {
 
         // Give player1 theres_options
-        const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
+        const theresOptions = game.shop.obtainCard("b2-theres_options") as TreasureCard;
         game.addInPlay(player1, theresOptions);
 
         // Get the state for player1 during their turn
@@ -987,7 +987,7 @@ describe("b2-theres_options treasure deck visibility", () => {
 
     it("player cannot see top of treasure deck when not their turn", async () => {
         // Give player1 theres_options
-        const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
+        const theresOptions = game.shop.obtainCard("b2-theres_options") as TreasureCard;
         game.addInPlay(player1, theresOptions);
 
         // End player1's turn
@@ -1006,7 +1006,7 @@ describe("b2-theres_options treasure deck visibility", () => {
 
     it("other players cannot see top of treasure deck even when someone has the item", async () => {
         // Give player1 theres_options
-        const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
+        const theresOptions = game.shop.obtainCard("b2-theres_options") as TreasureCard;
         game.addInPlay(player1, theresOptions);
 
         // Get the state for player2 during player1's turn
@@ -1018,7 +1018,7 @@ describe("b2-theres_options treasure deck visibility", () => {
 
     it("visibility updates when turn changes", async () => {
         // Give player1 theres_options
-        const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
+        const theresOptions = game.shop.obtainCard("b2-theres_options") as TreasureCard;
         game.addInPlay(player1, theresOptions);
 
         // Player1's turn - should see deck
@@ -1053,7 +1053,7 @@ describe("b2-theres_options treasure deck visibility", () => {
 
     it("removing the item removes visibility", async () => {
         // Give player1 theres_options
-        const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
+        const theresOptions = game.shop.obtainCard("b2-theres_options") as TreasureCard;
         game.addInPlay(player1, theresOptions);
 
         // Player can see deck
@@ -1071,7 +1071,7 @@ describe("b2-theres_options treasure deck visibility", () => {
     it("visibility is specific to player who owns the item", async () => {
 
         // Give player2 theres_options
-        const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
+        const theresOptions = game.shop.obtainCard("b2-theres_options") as TreasureCard;
         game.addInPlay(player2, theresOptions);
 
         // Player1's turn - nobody sees deck
@@ -1097,7 +1097,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         expect(player1.canSeeTopOfTreasureDeck).toBe(false);
 
         // Give player1 theres_options
-        const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
+        const theresOptions = game.shop.obtainCard("b2-theres_options") as TreasureCard;
         game.addInPlay(player1, theresOptions);
 
         // Now player1 can see top of deck (during their turn)
@@ -1134,7 +1134,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         expect(game.currentPlayer).toBe(player2);
 
         // Give player2 theres_options during their turn
-        const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
+        const theresOptions = game.shop.obtainCard("b2-theres_options") as TreasureCard;
         game.addInPlay(player2, theresOptions);
 
         // Player2 should immediately see deck (it's their turn)
@@ -1145,7 +1145,7 @@ describe("b2-theres_options treasure deck visibility", () => {
 
     it("correct top card is returned in state", async () => {
         // Give player1 theres_options
-        const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
+        const theresOptions = game.shop.obtainCard("b2-theres_options") as TreasureCard;
         game.addInPlay(player1, theresOptions);
 
         // Get the actual top card from the deck

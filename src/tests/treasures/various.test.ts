@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../../models/game";
 import { DiceRoll, Player } from "../../models/player";
 import { pl } from "zod/locales";
-import type { LootCard, treasureCard, Card } from "@/models/cards";
+import type { LootCard, TreasureCard, Card } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard, ItemCard } from "@/models/cards";
 import { setupSamsonIsaacGame } from "../testHelpers";
 
@@ -38,7 +38,7 @@ describe("Treasure - Passive effects", () => {
     // b2-moms_purse    "Loot +1 during your loot step."
 
     it("moms_coin_purse - loot +1 during loot step", async () => {
-        const momsCoinPurse = game.shop.obtainCard("b2-moms_coin_purse") as treasureCard;
+        const momsCoinPurse = game.shop.obtainCard("b2-moms_coin_purse") as TreasureCard;
         game.addInPlay(player1, momsCoinPurse);
 
         const initialHandSize = player1.hand.length;
@@ -54,7 +54,7 @@ describe("Treasure - Passive effects", () => {
     });
 
     it("moms_purse - loot +1 during loot step", async () => {
-        const momsPurse = game.shop.obtainCard("b2-moms_purse") as treasureCard;
+        const momsPurse = game.shop.obtainCard("b2-moms_purse") as TreasureCard;
         game.addInPlay(player1, momsPurse);
 
         const initialHandSize = player1.hand.length;
@@ -69,8 +69,8 @@ describe("Treasure - Passive effects", () => {
     });
 
     it("moms_coin_purse + moms_purse - stack to loot +2", async () => {
-        const momsCoinPurse = game.shop.obtainCard("b2-moms_coin_purse") as treasureCard;
-        const momsPurse = game.shop.obtainCard("b2-moms_purse") as treasureCard;
+        const momsCoinPurse = game.shop.obtainCard("b2-moms_coin_purse") as TreasureCard;
+        const momsPurse = game.shop.obtainCard("b2-moms_purse") as TreasureCard;
         game.addInPlay(player1, momsCoinPurse);
         game.addInPlay(player1, momsPurse);
 
@@ -88,7 +88,7 @@ describe("Treasure - Passive effects", () => {
     // b2-dry_baby    "Damage you would take is reduced to 1."
 
     it("dry_baby - reduce damage to 1", async () => {
-        const dryBaby = game.shop.obtainCard("b2-dry_baby") as treasureCard;
+        const dryBaby = game.shop.obtainCard("b2-dry_baby") as TreasureCard;
         game.addInPlay(player1, dryBaby);
 
         const initialHP = player1.currentHealthPoints;
@@ -102,7 +102,7 @@ describe("Treasure - Passive effects", () => {
     });
 
     it("dry_baby - 1 damage stays as 1", async () => {
-        const dryBaby = game.shop.obtainCard("b2-dry_baby") as treasureCard;
+        const dryBaby = game.shop.obtainCard("b2-dry_baby") as TreasureCard;
         game.addInPlay(player1, dryBaby);
 
         const initialHP = player1.currentHealthPoints;
@@ -116,7 +116,7 @@ describe("Treasure - Passive effects", () => {
     });
 
     it("dry_baby - multiple damage instances each reduced to 1", async () => {
-        const dryBaby = game.shop.obtainCard("b2-dry_baby") as treasureCard;
+        const dryBaby = game.shop.obtainCard("b2-dry_baby") as TreasureCard;
         game.addInPlay(player1, dryBaby);
 
         const initialHP = player1.currentHealthPoints;
@@ -148,7 +148,7 @@ describe("Treasure - Passive effects", () => {
     // b2-steamy_sale    "Shop items you purchase cost 5¢ less."
 
     it("steamy_sale - shop items cost 5¢ less", async () => {
-        const steamySale = game.shop.obtainCard("b2-steamy_sale") as treasureCard;
+        const steamySale = game.shop.obtainCard("b2-steamy_sale") as TreasureCard;
         game.addInPlay(player1, steamySale);
 
         // Give player enough coins
@@ -172,7 +172,7 @@ describe("Treasure - Passive effects", () => {
     });
 
     it("steamy_sale - purchasing with exact coins", async () => {
-        const steamySale = game.shop.obtainCard("b2-steamy_sale") as treasureCard;
+        const steamySale = game.shop.obtainCard("b2-steamy_sale") as TreasureCard;
         game.addInPlay(player1, steamySale);
 
         // Give player exactly 5 coins (reduced price)
@@ -191,7 +191,7 @@ describe("Treasure - Passive effects", () => {
     // Note: These tests may need adjustment based on actual implementation
 
     it("sacred_heart - change roll of 1 to 6", async () => {
-        const sacredHeart = game.shop.obtainCard("b2-sacred_heart") as treasureCard;
+        const sacredHeart = game.shop.obtainCard("b2-sacred_heart") as TreasureCard;
         game.addInPlay(player1, sacredHeart);
 
         // Roll a dice and set it to 1
@@ -209,7 +209,7 @@ describe("Treasure - Passive effects", () => {
     });
 
     it("sacred_heart - choose not to change roll of 1", async () => {
-        const sacredHeart = game.shop.obtainCard("b2-sacred_heart") as treasureCard;
+        const sacredHeart = game.shop.obtainCard("b2-sacred_heart") as TreasureCard;
         game.addInPlay(player1, sacredHeart);
 
         // Roll a dice and set it to 1
@@ -224,7 +224,7 @@ describe("Treasure - Passive effects", () => {
     });
 
     it("sacred_heart - doesn't affect rolls other than 1", async () => {
-        const sacredHeart = game.shop.obtainCard("b2-sacred_heart") as treasureCard;
+        const sacredHeart = game.shop.obtainCard("b2-sacred_heart") as TreasureCard;
         game.addInPlay(player1, sacredHeart);
 
         // Roll a dice and set it to 3
@@ -242,7 +242,7 @@ describe("Treasure - Passive effects", () => {
     // Note: Transfer mechanism needs verification
 
     it("baby_haunt - transfers to another player on death", async () => {
-        const babyHaunt = game.shop.obtainCard("b2-baby_haunt") as treasureCard;
+        const babyHaunt = game.shop.obtainCard("b2-baby_haunt") as TreasureCard;
         game.addInPlay(player1, babyHaunt);
 
         expect(player1.inPlay.map((c) => c.slug)).toContain(babyHaunt.slug);
@@ -261,7 +261,7 @@ describe("Treasure - Passive effects", () => {
     // b2-daddy_haunt    "When you die, before paying penalties, give this to another player."
 
     it("daddy_haunt - transfers to another player on death", async () => {
-        const daddyHaunt = game.shop.obtainCard("b2-daddy_haunt") as treasureCard;
+        const daddyHaunt = game.shop.obtainCard("b2-daddy_haunt") as TreasureCard;
         game.addInPlay(player1, daddyHaunt);
 
         expect(player1.inPlay.map((c) => c.slug)).toContain(daddyHaunt.slug);
@@ -289,7 +289,7 @@ describe("Treasure - Passive effects", () => {
     // b2-the_chest    "if this would be destroyed, it becomes a soul instead."
 
     it("the_chest - becomes a soul when destroyed", async () => {
-        const theChest = game.shop.obtainCard("b2-the_chest") as treasureCard;
+        const theChest = game.shop.obtainCard("b2-the_chest") as TreasureCard;
         game.addInPlay(player1, theChest);
 
         const initialSouls = player1.totalSouls;
@@ -308,7 +308,7 @@ describe("Treasure - Passive effects", () => {
     // b2-the_habit    "The first time you take damage each turn, you may recharge an item."
 
     it("the_habit - recharge item on first damage each turn", async () => {
-        const theHabit = game.shop.obtainCard("b2-the_habit") as treasureCard;
+        const theHabit = game.shop.obtainCard("b2-the_habit") as TreasureCard;
         const battery = game.shop.obtainCard("b2-the_battery") as ItemCard;
         game.addInPlay(player1, theHabit);
         game.addInPlay(player1, battery);
@@ -332,7 +332,7 @@ describe("Treasure - Passive effects", () => {
     });
 
     it("the_habit - only triggers once per turn", async () => {
-        const theHabit = game.shop.obtainCard("b2-the_habit") as treasureCard;
+        const theHabit = game.shop.obtainCard("b2-the_habit") as TreasureCard;
         const battery1 = game.shop.obtainCard("b2-the_battery") as ItemCard;
         const battery2 = game.shop.obtainCard("b2-sack_of_pennies") as ItemCard;
         game.addInPlay(player1, theHabit);
@@ -389,7 +389,7 @@ describe("Treasure - Passive effects", () => {
     // b2-theres_options    "You may purchase an additional time on your turn."
     
     it("theres_options - allows purchasing twice in one turn", async () => {
-        const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
+        const theresOptions = game.shop.obtainCard("b2-theres_options") as TreasureCard;
         game.endTurn(); // end p1 turn
         await game.resolveStack(); // Resolve any stack effects
         game.endTurn(); // end p2 turn, p1's turn starts
@@ -417,7 +417,7 @@ describe("Treasure - Passive effects", () => {
     });
 
     it("theres_options - cannot purchase three times", async () => {
-        const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
+        const theresOptions = game.shop.obtainCard("b2-theres_options") as TreasureCard;
         game.endTurn(); // end p1 turn
         await game.resolveStack(); // Resolve any stack effects
         game.endTurn(); // end p2 turn, p1's turn starts
@@ -444,7 +444,7 @@ describe("Treasure - Passive effects", () => {
     });
 
     it("theres_options - resets each turn", async () => {
-        const theresOptions = game.shop.obtainCard("b2-theres_options") as treasureCard;
+        const theresOptions = game.shop.obtainCard("b2-theres_options") as TreasureCard;
         game.addInPlay(player1, theresOptions);
         
         // Give player enough coins

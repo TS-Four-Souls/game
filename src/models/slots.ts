@@ -1,7 +1,7 @@
-import { type Card, type LootCard, type eternalCard, type treasureCard, MonsterCard, type CharacterCard, MonsterType, type Deck, EffectOnStack, EffectData } from "./cards";
+import { type Card, type LootCard, type EternalCard, type TreasureCard, MonsterCard, type CharacterCard, MonsterType, type Deck, EffectOnStack, EffectData } from "./cards";
 import type { Game } from "./game";
 import { Monster } from "./monster";
-import type { Player } from "./player";
+import { Player } from "./player";
 import type { Entity } from "./entity"
 
 /**
@@ -20,10 +20,10 @@ import type { Entity } from "./entity"
  */
 class Shop {
     /** @private Array of cards currently available in shop slots (undefined = empty slot) */
-    _slots: (undefined | Card)[];
+    _slots: (undefined | TreasureCard)[];
     
     /** @private The treasure deck to draw cards from */
-    _deck: Deck;
+    _deck: Deck<TreasureCard>;
 
     /**
      * Creates a new Shop instance.
@@ -31,7 +31,7 @@ class Shop {
      * @param nbItemsInShop - Number of slots in the shop
      * @param deck - The treasure deck to draw cards from
      */
-    constructor(nbItemsInShop: number, deck: Deck) {
+    constructor(nbItemsInShop: number, deck: Deck<TreasureCard>) {
         this._slots = new Array(nbItemsInShop);
         this._deck = deck;
         this.fillEmptySpots();
@@ -74,7 +74,7 @@ class Shop {
      * @param slug - The unique identifier of the card to obtain
      * @returns The card if found, undefined otherwise
      */
-    obtainCard(slug: string): Card | undefined{
+    obtainCard(slug: string): TreasureCard | undefined{
         const index = this._slots.findIndex(card => card?.slug === slug);
         if (index >= 0) {
             const card = this._slots[index];
@@ -211,13 +211,13 @@ class Shop {
  */
 class Encounters {
     /** @private 2D array of cards in each encounter slot (stacks of monsters) */
-    _slots: Card[][];
+    _slots: MonsterCard[][];
     
     /** @private Array of active Monster entities (one per slot, undefined if event or empty) */
     _monstersInPlay: (Monster | undefined)[];
     
     /** @private The monster deck to draw cards from */
-    _deck: Deck;
+    _deck: Deck<MonsterCard>;
     
     /** @private Reference to the game instance */
     _game: Game; // Game type
@@ -236,7 +236,7 @@ class Encounters {
      * @param deck - The monster deck to draw from
      * @param game - The game instance
      */
-    constructor(nbEncounterSlots: number, deck: Deck, game: Game) {
+    constructor(nbEncounterSlots: number, deck: Deck<MonsterCard>, game: Game) {
         this._slots = new Array(nbEncounterSlots);
         this._monstersInPlay = new Array(nbEncounterSlots);
         for (let i = 0; i < nbEncounterSlots; i++) {
@@ -257,11 +257,11 @@ class Encounters {
     fillEmptySpots(eventsBottom = false) : void {
         for (let i = 0; i < this._slots.length; i++) {
             if (this._slots[i]!.length == 0) {
-                let card = this._deck.draw() as MonsterCard;
+                let card = this._deck.draw();
                 if (eventsBottom) {
                     while (card!.encounterType === MonsterType.EVENT) {
                         this._deck.addBottomPosition(card!);
-                        card = this._deck.draw() as MonsterCard;
+                        card = this._deck.draw();
                     }
                     if(!(card instanceof MonsterCard))
                     {
@@ -286,7 +286,7 @@ class Encounters {
         if (toClean !== undefined) {
             toClean.card.cleanup();
         }
-        const card = this._slots[index]![this._slots[index]!.length - 1] as MonsterCard;
+        const card = this._slots[index]![this._slots[index]!.length - 1]!;
         if (card.encounterType !== MonsterType.EVENT) {
             const monster = new Monster(card, this);
             card.onAddInPlay(monster);
@@ -296,7 +296,9 @@ class Encounters {
             const effect: EffectOnStack = new EffectOnStack(
                 (data:EffectData) => {
                     const stackIds = this._game.stack.elements.map(e => e.stackId);
-                    card.onPlay(data.issuer as Player, data.targets);
+                    if(!(data.issuer instanceof Player))
+                        throw new Error("Event encounter effect issuer is not a player");
+                    card.onPlay(data.issuer, data.targets);
                     // card.onAddInPlay(data.issuer);
                     this._game.executeWhenStackSubset(stackIds, () => {
                         this.discardTop(index); // remove the card once the effect is resolved.
@@ -526,12 +528,12 @@ class Encounters {
      * 
      * @returns 2D array of cards in slots
      */
-    get slots(): Card[][] {
+    get slots(): MonsterCard[][] {
         return this._slots;
     }
 
     get visible(): MonsterCard[] {
-        return this.slots.map(slot => slot[slot.length - 1] as MonsterCard);
+        return this.slots.map(slot => slot[slot.length - 1]!);
     }
 
     get nonEngagedInCombat(): MonsterCard[] {

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../models/game";
 import { DiceRoll, Player } from "../models/player";
 import { pl } from "zod/locales";
-import type { LootCard, ItemCard, treasureCard } from "@/models/cards";
+import type { LootCard, ItemCard, TreasureCard } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "./testHelpers";
 
@@ -87,25 +87,29 @@ describe("Eternal Items", () => {
         
         const theCurse = player1.inPlay[1]! as ItemCard;
         await game.resolveStack();
-
+        expect(game.decks["loot"]!.discard.length).toBe(1); // eve starts, discard 1.
+        
         game.endTurn();
-        await game.resolveStack();
         expect(theCurse.charged).toBe(false);
+        expect(game.stack.size).toBe(0);
         game.endTurn();
-        await game.resolveStack();
+        await game.resolveStack(); // isaac D6 recharge.
+        await game.resolveStack(); // eve turn start, discard 1.
         await game.resolveStack();
         expect(theCurse.charged).toBe(true);
+        expect(game.decks["loot"]!.discard.length).toBe(2);
 
         const cards = game.decks["loot"]!.drawSeveral(5) as LootCard[]
         for(const c of cards)
             game.decks["loot"]!.addDiscardTop(c);
         const topDiscardCard = game.decks["loot"]!.discard[0];
+        expect(game.decks["loot"]!.discard.length).toBe(7);
 
         await game.activateItem(player1, theCurse, ["loot"]);
         await game.resolveStack();
         await game.resolveStack(); // resolve the curse effect
-        expect(game.decks["loot"]!.discard.length).toBe(4); // top of loot deck should be the previous top of discard
         expect(game.decks["loot"]!.cards[0]).toBe(topDiscardCard); // top of loot deck should be the previous top of discard
+        expect(game.decks["loot"]!.discard.length).toBe(6); // top of loot deck should be the previous top of discard
     });
 
     it("The Curse - passive", async () => {
@@ -132,13 +136,13 @@ describe("Eternal Items", () => {
         game.endTurn(); // Isaac's turn
         await game.resolveStack(); // Resolve any stack effects
         const theCurse = player1.inPlay[1]! as ItemCard;
-        const shouldBeDiscarded = game.decks["treasure"]!.cards[0];
+        const shouldBeDiscarded = game.decks["loot"]!.cards[0];
         game.endTurn(); // back to Eve's turn
         await game.resolveStack(); // Resolve any stack effects
         await game.resolveStack();
-        // treasure by default.
-        expect(game.decks["treasure"]!.discard[0]).toBe(shouldBeDiscarded);
-        expect(game.decks["treasure"]!.cards[0]).not.toBe(shouldBeDiscarded);
+        // loot by default.
+        expect(game.decks["loot"]!.discard[0]).toBe(shouldBeDiscarded);
+        expect(game.decks["loot"]!.cards[0]).not.toBe(shouldBeDiscarded);
     });
 
     // "[Tap Effect] Put a counter on this.",
@@ -595,7 +599,7 @@ describe("Eternal Items", () => {
         await game.resolveStack(); // resolve death
         expect(player1.inPlay.length).toBe(2);
 
-        const blankcard = game.obtainCard("b2-blank_card") as treasureCard; 
+        const blankcard = game.obtainCard("b2-blank_card") as TreasureCard; 
         game.decks["treasure"]!.addTopPosition(blankcard); // ensure blank card is on top of treasure deck, to avoid random death prevention items.
         // Kill Lazarus, verify treasure gained
         game.kill(player2, player2, dummyLoot);

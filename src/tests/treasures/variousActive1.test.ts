@@ -1,7 +1,7 @@
 import { describe, it, beforeEach, expect } from "bun:test";
 import { Game } from "../../models/game";
 import { DiceRoll, Player } from "../../models/player";
-import { CharacterCard, ItemCard, treasureCard, MonsterCard } from "@/models/cards";
+import { CharacterCard, ItemCard, TreasureCard, MonsterCard } from "@/models/cards";
 import { Monster } from "@/models/monster";
 import { dischargeEachItemsAndRemoveCoins, setupTestGame } from "@/tests/testHelpers";
 

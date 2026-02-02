@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../models/game";
 import { Player } from "../models/player";
-import { type ItemCard, type LootCard, type CharacterCard, treasureCard } from "@/models/cards";
+import { type ItemCard, type LootCard, type CharacterCard, TreasureCard } from "@/models/cards";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "@/tests/testHelpers";
 
 
@@ -47,16 +47,17 @@ describe("Before start effects", () => {
         expect(player2.inPlay.length).toBe(2);
         expect(player2.inPlay[0]!.eternal).toBe(true);
         expect(player2.inPlay[1]!.eternal).toBe(true);
-        expect(player2.inPlay[1]! instanceof treasureCard).toBe(true);
+        expect(player2.inPlay[1]! instanceof TreasureCard).toBe(true);
     });
 
     it("Character card activation gives a loot play (random characters)", async () => {
         // const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         // const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         expect(game.players.length).toBe(2);
-        const topTreas = game.obtainCard("b2-blank_card");
-        const topTreas2 = game.obtainCard("b2-placebo");
-        const topTreas3 = game.obtainCard("b2-tech_x");
+        game.setupGame();
+        const topTreas = game.decks.treasure.getCardFromSlug("b2-blank_card");
+        const topTreas2 = game.decks.treasure.getCardFromSlug("b2-placebo");
+        const topTreas3 = game.decks.treasure.getCardFromSlug("b2-tech_x");
         game.decks["treasure"]!.addTopPosition(topTreas!);
         game.decks["treasure"]!.addTopPosition(topTreas2!);
         game.decks["treasure"]!.addTopPosition(topTreas3!);
@@ -180,7 +181,7 @@ describe("Bonus Soul effects", () => {
 
     it("Guppy combination 3", async () => {
         const initSoul = player1.totalSouls;
-        const guppyItem1 = game.obtainCard("b2-guppys_hairball");
+        const guppyItem1 = game.obtainCard("b2-guppys_hairball") as LootCard;
         const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
         if (!guppyItem1 || !guppyItem2)
             throw new Error("Guppy items not found in treasure deck");

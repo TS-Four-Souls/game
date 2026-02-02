@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../../models/game";
 import { DiceRoll, Player } from "../../models/player";
 import { pl } from "zod/locales";
-import type { LootCard, treasureCard, Card } from "@/models/cards";
+import { LootCard, type TreasureCard, type Card } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard, ItemCard } from "@/models/cards";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame } from "@/tests/testHelpers";
 
@@ -33,7 +33,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
     // b2 - the_polaroid    "At the end of your turn, if you have 0 loot cards in your hand, loot 2."
 
     it("edens_blessing - gain 6¢ at end of turn if you have 0¢", async () => {
-        const edensBlessing = game.shop.obtainCard("b2-edens_blessing") as treasureCard;
+        const edensBlessing = game.shop.obtainCard("b2-edens_blessing") as TreasureCard;
         game.addInPlay(player1, edensBlessing);
 
         // Test: Player has coins - should not trigger
@@ -83,7 +83,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
     });
 
     it("starter_deck - loot 2 at end of turn if you have 8+ loot cards", async () => {
-        const starterDeck = game.shop.obtainCard("b2-starter_deck") as treasureCard;
+        const starterDeck = game.shop.obtainCard("b2-starter_deck") as TreasureCard;
         game.addInPlay(player1, starterDeck);
         game.gameParameters.maxHandSize.value = 20; // increase max hand size to avoid forced discards
         // Test: Player has fewer than 8 cards - should not trigger
@@ -135,7 +135,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
     });
 
     it("the_polaroid - loot 2 at end of turn if you have 0 loot cards", async () => {
-        const thePolaroid = game.shop.obtainCard("b2-the_polaroid") as treasureCard;
+        const thePolaroid = game.shop.obtainCard("b2-the_polaroid") as TreasureCard;
         game.addInPlay(player1, thePolaroid);
 
         // Test: Player has cards in hand - should not trigger
@@ -192,7 +192,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
     });
 
     it("goat_head - discard any number of cards at end of turn, then loot that many", async () => {
-        const goatHead = game.shop.obtainCard("b2-goat_head") as treasureCard;
+        const goatHead = game.shop.obtainCard("b2-goat_head") as TreasureCard;
         game.addInPlay(player1, goatHead);
 
         // Give player some cards to work with
@@ -302,7 +302,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         deckName: "treasure" | "loot" | "monster",
         cardName: string
     ) => {
-        const card = game.shop.obtainCard(cardSlug) as treasureCard;
+        const card = game.shop.obtainCard(cardSlug) as TreasureCard;
         game.addInPlay(player1, card);
 
         const deck = game.decks[deckName]!;
@@ -322,9 +322,9 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         await game.resolveStack();
         await game.resolveStack();
 
-        if (deckName === "loot") {
+        if (top4Before[0] instanceof LootCard) {
             const c = game.getCardFromHand(player2, top4Before[0]!); // simulate using the effect
-            game.decks[deckName]!.addTopPosition(c); // put back on top
+            game.decks.loot.addTopPosition(c); // put back on top
         }
         // Get the current top 4 after the effect
         expect(deck.cards.length).toBeGreaterThanOrEqual(4); // Verify cards still exist
@@ -409,7 +409,7 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
     // b2-dark_bum    "At the start of your turn, roll-\n1-2: Gain 3¢.\n3-4: Loot 1.\n5-6: Take 1 damage."
 
     it("dark_bum - roll 1-2: gain 3¢", async () => {
-        const darkBum = game.shop.obtainCard("b2-dark_bum") as treasureCard;
+        const darkBum = game.shop.obtainCard("b2-dark_bum") as TreasureCard;
         game.addInPlay(player1, darkBum);
 
         const initialCoins = player1.coins;
@@ -435,7 +435,7 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
     });
 
     it("dark_bum - roll 2: gain 3¢", async () => {
-        const darkBum = game.shop.obtainCard("b2-dark_bum") as treasureCard;
+        const darkBum = game.shop.obtainCard("b2-dark_bum") as TreasureCard;
         game.addInPlay(player1, darkBum);
 
         const initialCoins = player1.coins;
@@ -454,7 +454,7 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
     });
 
     it("dark_bum - roll 3-4: loot 1", async () => {
-        const darkBum = game.shop.obtainCard("b2-dark_bum") as treasureCard;
+        const darkBum = game.shop.obtainCard("b2-dark_bum") as TreasureCard;
         game.addInPlay(player1, darkBum);
 
         const initialHandSize = player1.hand.length;
@@ -474,7 +474,7 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
     });
 
     it("dark_bum - roll 4: loot 1", async () => {
-        const darkBum = game.shop.obtainCard("b2-dark_bum") as treasureCard;
+        const darkBum = game.shop.obtainCard("b2-dark_bum") as TreasureCard;
         game.addInPlay(player1, darkBum);
 
         const initialHandSize = player1.hand.length;
@@ -501,7 +501,7 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
     });
 
     it("dark_bum - roll 5-6: take 1 damage", async () => {
-        const darkBum = game.shop.obtainCard("b2-dark_bum") as treasureCard;
+        const darkBum = game.shop.obtainCard("b2-dark_bum") as TreasureCard;
         game.addInPlay(player1, darkBum);
 
         const initialHP = player1.currentHealthPoints;
@@ -521,7 +521,7 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
     });
 
     it("dark_bum - roll 6: take 1 damage", async () => {
-        const darkBum = game.shop.obtainCard("b2-dark_bum") as treasureCard;
+        const darkBum = game.shop.obtainCard("b2-dark_bum") as TreasureCard;
         game.addInPlay(player1, darkBum);
 
         const initialHP = player1.currentHealthPoints;
@@ -542,7 +542,7 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
 
     // b2-monstros_tooth    "At the start of your turn, choose a player at random. That player destroys an item they control."
     it("monstros_tooth - random player destroys an item", async () => {
-        const monstrosTooth = game.shop.obtainCard("b2-monstros_tooth") as treasureCard;
+        const monstrosTooth = game.shop.obtainCard("b2-monstros_tooth") as TreasureCard;
         game.addInPlay(player1, monstrosTooth);
 
         // Give both players some non-eternal items
@@ -573,7 +573,7 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
     // b2-restock    "At the start of your turn, you may put any number of shop items into discard."
 
     it("restock - discard multiple shop items", async () => {
-        const restock = game.shop.obtainCard("b2-restock") as treasureCard;
+        const restock = game.shop.obtainCard("b2-restock") as TreasureCard;
         game.addInPlay(player1, restock);
 
         const shopItems = game.shop._slots.filter(s => s !== undefined);

@@ -8,7 +8,13 @@ import {
   Deck,
   Hand,
   LoadsCardSets,
+  type CardSetsCollection,
+  type DecksCollection,
+  type DeckType,
+  type DeckTypeToCardType,
   LoadDecks,
+  createEmptyDecksCollection,
+  assertCardMatchesDeck,
   isSameSlug,
   CharacterCard,
   MonsterCard,
@@ -16,15 +22,16 @@ import {
   LootCard,
   LootCardEffect,
   EffectOnStack,
-  treasureCard,
+  TreasureCard,
   BsoulCard,
   Effect,
   EffectData,
   type EffectType,
   type TargetsSelector,
-  eternalCard,
+  EternalCard,
   createCardFromJson,
   MonsterType,
+  isDeckType
 } from "@/models/cards";
 import { Stack, type StackElement } from "@/models/stack";
 import { effectParser } from "@/models/effectParser";
@@ -49,18 +56,12 @@ export type DamageSource = Card | DiceRoll;
 
 const LOG_GAME = false;
 export const cards = await loadCards(process.cwd() + "/data/cards");
-const cardSets: { [key: string]: CardSet } = LoadsCardSets(cards);
-
-// for(const card of cardSets["monster"]!.cards.toSorted((a, b) => a.slug.localeCompare(b.slug)) as MonsterCard[]){
-//   // if((card as LootCard).trinket)
-//   // for (const cardEffect of card.json.rewards) {
-//     console.log(card.slug, card.json.rewards);
-// }
+const cardSets: CardSetsCollection = LoadsCardSets(cards);
 
 export class Game {
   private _players: Player[] = [];
   private _turnHandler: TurnHandler = new TurnHandler();
-  private _decks: { [key: string]: Deck } = {};
+  private _decks: DecksCollection = createEmptyDecksCollection();
   private _ongoingAttack: { player: Player; monster: Monster } | null = null;
   private _shop!: Shop;
   private _encounters!: Encounters;
@@ -94,7 +95,7 @@ export class Game {
   get turnHandler(): TurnHandler {
     return this._turnHandler;
   }
-  get decks(): { [key: string]: Deck } {
+  get decks(): DecksCollection {
     return this._decks;
   }
   get shop(): Shop {
@@ -208,7 +209,7 @@ export class Game {
     this.loseCoins(p, this.gameParameters.deathPenaltyCoins.value, true);
     const setOfLosableItems = p.inPlay.filter(
       (c) =>
-        (c instanceof treasureCard || (c instanceof LootCard && c.trinket)) &&
+        (c instanceof TreasureCard || (c instanceof LootCard && c.trinket)) &&
         c.eternal === false
     );
     if (this.gameParameters.deathPenaltyItem.value > 0 && setOfLosableItems.length > 0) {
@@ -225,8 +226,10 @@ export class Game {
       ).selected;
       if (itemToLose && itemToLose.length > 0) {
         for (const item of itemToLose) {
+          if(!(item instanceof ItemCard))
+            throw new Error("Selected card is not an ItemCard.");
           this.removeInPlay(p, item);
-          this.decks[item.type]!.addDiscardTop(item);
+          this.discard(item);
         }
       }
     }
@@ -496,6 +499,8 @@ export class Game {
     // Search in all decks
     for (const deckKey in this.decks) {
       try {
+        if(!isDeckType(deckKey))
+            throw new Error(`Invalid deck type: ${deckKey}`);
         const card = this.decks[deckKey]!.getCardFromSlug(slug);
         if (card) return card;
       } catch {
@@ -714,8 +719,8 @@ export class Game {
   async gainTreasureAmongs(
     player: Player,
     amount: number,
-    treasures: treasureCard[]
-  ): Promise<{ selected: treasureCard[]; remaining: treasureCard[] }> {
+    treasures: TreasureCard[]
+  ): Promise<{ selected: TreasureCard[]; remaining: TreasureCard[] }> {
     const selection = await this.select(
       player,
       amount,
@@ -943,7 +948,11 @@ export class Game {
         if(!elem.card.trinket)
           this.discard(elem.card);
         else 
-          this.addInPlay(elem.card.owner as Player, elem.card);
+        {
+          if(!(elem.card.owner instanceof Player))
+            throw new Error("Trinket can only be owned by a player");
+          this.addInPlay(elem.card.owner, elem.card);
+        }
       }
     }
     this._onStateChange.dispatch();
@@ -1021,14 +1030,8 @@ export class Game {
     return this.players.map((player) => ({ player, hand: player.hand }));
   }
 
-  // addMonster(monster: Monster): void {
-  //   this.assertMonsterIdAvailable(monster.id);
-  //   this.monsters.push(monster);
-  // }
-
   lootStep(): void {
     const player = this.currentPlayer;
-    // this.emit("on:loot:step:before", { eventIssuer: player });
     this.emit("on:loot:step", { eventIssuer: player });
     this.loot(player, 1);
   }
@@ -1188,7 +1191,7 @@ export class Game {
     if (index < 0 || index > player.hand.cards.length) {
       return "Invalid card position.";
     }
-    const playedCard: LootCard = player.hand.playCard(index) as LootCard;
+    const playedCard: LootCard = player.hand.playCard(index);
 
     if (targets.length === 0) {
       if (playedCard.getTargetSelectors().length === 1)
@@ -1208,7 +1211,7 @@ export class Game {
   }
 
   initializeBonusSouls(): void {
-    this._bonusSouls = this.decks["bsoul"]!.drawSeveral(3) as BsoulCard[];
+    this._bonusSouls = this.decks["bsoul"]!.drawSeveral(3);
     for (const soul of this._bonusSouls) {
       soul.cleanup = bSoulEffectParser(soul, this);
     }
@@ -1228,7 +1231,7 @@ export class Game {
     this.assertMinimumPlayerCount();
     this.pendingMultipleSelections.clear();
 
-    if (this._decks["character"] === undefined) {
+    if (this._decks.character.length === 0) {
       this.setupGame();
     }
     this.turnHandler.initialize(this.players);
@@ -1328,10 +1331,10 @@ export class Game {
     if (!characterDeck) {
       throw new Error("No character deck found");
     }
-    // const characters: CharacterCard[] = characterDeck.drawSeveral(this.players.length) as CharacterCard[];
+    
     const characters: CharacterCard[] = characterDeck.drawSeveral(
       this.players.length
-    ) as CharacterCard[];
+    );
     this.assignCharactersToPlayers(characters);
   }
 
@@ -1388,7 +1391,7 @@ export class Game {
   reset(): void {
     this.turnHandler.reset();
     this._players = [];
-    this._decks = {};
+    this._decks = createEmptyDecksCollection();
     this._ongoingAttack = null;
     this._shop = null!;
     this._encounters = null!;
@@ -1404,8 +1407,8 @@ export class Game {
     this.emit("on:enter:play", { eventIssuer: player, card: card });
     if (
       card instanceof CharacterCard ||
-      card instanceof eternalCard ||
-      card instanceof treasureCard
+      card instanceof EternalCard ||
+      card instanceof TreasureCard
     ) {
       card.onAddInPlay(player);
     }
@@ -1461,7 +1464,7 @@ export class Game {
     if (
       outcome.startsWith("[Tap Effect]") ||
       card.type === "loot" ||
-      (card.type === "monster" &&
+      (card instanceof MonsterCard &&
         (card as MonsterCard).encounterType === MonsterType.EVENT &&
         outcome !==
         "The active player may attack an additional time this turn.")
@@ -1557,6 +1560,8 @@ export class Game {
       "treasure",
       "monster",
     ]) {
+      if(!isDeckType(deckName))
+        throw new Error(`Invalid deck type: ${deckName}`);
       const deck = this.decks[deckName]!;
       deck.cards.forEach((card: Card) => {
         this.attachEffectsToCard(card);
@@ -1652,14 +1657,16 @@ export class Game {
     return `New amount of coins: ${player.coins} coins.\n`;
   }
 
-  getFirstCardsOfDeck(deckName: string, number: number): Card[] {
-    return this.decks[deckName]!.drawSeveral(number);
+  getFirstCardsOfDeck<T extends DeckType>(deckName: T, number: number): DeckTypeToCardType[T][] {
+    return this.decks[deckName]!.drawSeveral(number) as DeckTypeToCardType[T][];
   }
-  addTopPosition(deckName: string, card: Card): void {
-    this.decks[deckName]!.addTopPosition(card);
+  addTopPosition<T extends DeckType>(deckName: T, card: Card): void {
+    assertCardMatchesDeck(deckName, card);
+    this.decks[deckName]!.addTopPosition(card as any);
   }
-  addBottomPosition(deckName: string, card: Card): void {
-    this.decks[deckName]!.addBottomPosition(card);
+  addBottomPosition<T extends DeckType>(deckName: T, card: Card): void {
+    assertCardMatchesDeck(deckName, card);
+    this.decks[deckName]!.addBottomPosition(card as any);
   }
 
   addExtraTurn(player: Player): void {
@@ -1687,7 +1694,7 @@ export class Game {
     this.assertPositiveNumber(number);
 
     for (let i = 0; i < number; i++) {
-      const treasureDeck: Deck = this.decks["treasure"]!;
+      const treasureDeck = this.decks["treasure"]!;
       const drawnCard: Card = treasureDeck.draw()!;
       this.addInPlay(player, drawnCard);
     }
@@ -1760,8 +1767,8 @@ export class Game {
         soulCards: player.souls.map((c) => c.json),
         coins: player.coins,
         attackRequirements: player.mustAttackMonster.map((req) => (req.target === "topDeck" ? {monster: "top", source: {name: req.source.name, slug: req.source.slug}} : {
-          monster: {name: (req.target as Monster).name,
-                    slug: (req.target as Monster).card.slug},
+          monster: {name: req.target.name,
+                    slug: req.target.card.slug},
           source: {name: req.source.name, slug: req.source.slug}
         })),
         currentAttackPoints: player.attackPoints,
@@ -1820,8 +1827,8 @@ export class Game {
           isEngagedInCombat: p.isEngagedInCombat,
           isEngagedInPurchase: p.isEngagedInPurchase,
           attackRequirements: p.mustAttackMonster.map((req) => (req.target === "topDeck" ? {monster: "top", source: {name: req.source.name, slug: req.source.slug}} : {
-          monster: {name: (req.target as Monster).name,
-                    slug: (req.target as Monster).card.slug},
+          monster: {name: req.target.name,
+                    slug: req.target.card.slug},
           source: {name: req.source.name, slug: req.source.slug}
          })),
           pendingSelection: this.pendingMultipleSelections.values().some(sel => sel.playerId === p.id),
@@ -1970,7 +1977,7 @@ export class Game {
     this.assertPositiveNumber(number);
 
     const n = [number];
-    const lootDeck: Deck = this.decks["loot"]!;
+    const lootDeck = this.decks["loot"]!;
     this.emit("on:loot:would", {
       eventIssuer: player,
       numberOfCards: n,
@@ -1978,8 +1985,8 @@ export class Game {
     const toLoot = n[0]!;
     if (toLoot > 0)
       for (let i = 0; i < toLoot; i++) {
-        const drawnCard: Card = lootDeck.draw()!;
-        this.addCardToHand(player, drawnCard as LootCard);
+        const drawnCard: LootCard = lootDeck.draw()!;
+        this.addCardToHand(player, drawnCard);
       }
     this.emit("on:loot:after", {
       eventIssuer: player,
@@ -2019,7 +2026,7 @@ export class Game {
     }
     const discardedCard: Card = inPlayCards[index]!;
     if (player.removeInPlayByIndex(index)) {
-      this.decks[discardedCard.type]!.addDiscardTop(discardedCard);
+      this.discard(discardedCard);
       return `You have discarded the card: ${discardedCard.name} from your in-play area.\n`;
     } else {
       return `Cannot discard ${discardedCard.name} from in-play area as it is a ${discardedCard.type} card.\n`;
@@ -2125,17 +2132,18 @@ export class Game {
     return `You have drawn a new monster at position ${position}.\n`;
   }
 
-  getCardFromHand(issuer: Issuer, card: Card): Card {
+  getCardFromHand(issuer: Issuer, card: LootCard): LootCard {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
-    const position = player.hand.cards.indexOf(card);
+    const lootCard = card;
+    const position = player.hand.cards.indexOf(lootCard);
     this.assertPositiveNumber(position);
 
     if (position < 0 || position > player.hand.cards.length) {
       throw new Error("Invalid card position.");
     }
 
-    this.removeCardFromHand(player, card as LootCard);
+    this.removeCardFromHand(player, card);
     return card;
   }
 
@@ -2149,7 +2157,7 @@ export class Game {
 
     for (const req of mustAttackPlayers) {
       if (req.target === "topDeck") continue;
-      const monster = req.target as Monster;
+      const monster = req.target;
       // If any required monster is no longer in play, clear the requirement
       if (!this.monsters.includes(monster)) {
         player.clearAttackRequirement(monster);
@@ -2171,9 +2179,9 @@ export class Game {
       return "Invalid card position.";
     }
 
-    const discardedCard: LootCard = hand.cards[position] as LootCard;
+    const discardedCard: LootCard = hand.cards[position]!;
     this.removeCardFromHand(player, discardedCard);
-    const lootDeck: Deck = this.decks["loot"]!;
+    const lootDeck = this.decks["loot"]!;
     lootDeck.addDiscardTop(discardedCard);
 
     return `You have discarded the card: ${discardedCard.name}.\n`;
@@ -2221,10 +2229,7 @@ export class Game {
 
   discard(card: Card): void {
     const deck = this.decks[card.type];
-    if (!deck) {
-      throw new Error("No deck found for card type: " + card.type);
-    }
-    deck.addDiscardTop(card);
+    deck.addDiscardTop(card as any);
   }
 
   removeInPlay(player: Player, card: Card): boolean {
@@ -2412,7 +2417,7 @@ export class Game {
 
     // Filter monsters that are still in play
     const validMonsters = requirement.filter(
-      (req) => req.target === "topDeck" || this.monsters.includes(req.target as Monster)
+      (req) => req.target === "topDeck" || this.monsters.includes(req.target)
     );
 
     if (validMonsters.length === 0) {

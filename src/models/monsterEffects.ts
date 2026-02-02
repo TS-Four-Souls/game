@@ -127,7 +127,9 @@ return (data: EffectData) => {
 
 export function putInMonsterDeck6FromTopEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
-        const monsterDeck = game.decks["monster"]!;
+        const monsterDeck = game.decks.monster;
+        if(!(data.it instanceof MonsterCard))
+            throw new Error("putInMonsterDeck6FromTopEffect can only be applied to monster cards.");
         monsterDeck.addCardAtPosFromTop(data.it, 6);
         return true
     }
@@ -154,7 +156,9 @@ export function putOnTopOfMonsterDeckOnRollEffect(game: Game, rolls: number[]): 
         const roll = game.rollDice(game.currentPlayer as Player, false, data.it);
         roll.attachEffect([1,2,3,4,5,6].map(n => (data:EffectData) => {
             if(rolls.includes(n)) {
-                game.decks["monster"]!.addTopPosition(data.it);
+                if(!(data.it instanceof MonsterCard))
+                    throw new Error("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards.");
+                game.decks.monster.addTopPosition(data.it);
                 return true;
             }
             return false;

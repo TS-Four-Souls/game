@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../../models/game";
 import { DiceRoll, Player } from "../../models/player";
 import { pl } from "zod/locales";
-import type { LootCard, ItemCard, treasureCard } from "@/models/cards";
+import type { LootCard, ItemCard, TreasureCard } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame} from "@/tests/testHelpers";
 
@@ -24,8 +24,8 @@ describe("Treasure - Permanent Modifiers", () => {
     });
     // [tap effect] look at the top 5 cards of a deck. put them back in any order.
     it("+1 HP", async () => {
-        const breakfast = game.shop.obtainCard("b2-breakfast") as treasureCard;
-        const dinner = game.shop.obtainCard("b2-dinner") as treasureCard;
+        const breakfast = game.shop.obtainCard("b2-breakfast") as TreasureCard;
+        const dinner = game.shop.obtainCard("b2-dinner") as TreasureCard;
         const initialHealth = player1.currentHealthPoints;
         game.addInPlay(player1, breakfast);
         expect(player1.currentHealthPoints).toBe(initialHealth + 1);
@@ -39,8 +39,8 @@ describe("Treasure - Permanent Modifiers", () => {
     });
 
     it("+1 ATK", async () => {
-        const brimstone = game.shop.obtainCard("b2-brimstone") as treasureCard;
-        const ipecac = game.shop.obtainCard("b2-ipecac") as treasureCard;
+        const brimstone = game.shop.obtainCard("b2-brimstone") as TreasureCard;
+        const ipecac = game.shop.obtainCard("b2-ipecac") as TreasureCard;
         const initialAttack = player1.attackPoints;
         game.addInPlay(player1, brimstone);
         expect(player1.attackPoints).toBe(initialAttack + 1);
@@ -53,8 +53,8 @@ describe("Treasure - Permanent Modifiers", () => {
     });
 
     it("+1 ATK roll", async () => {
-        const meat = game.shop.obtainCard("b2-meat") as treasureCard;
-        const synthoil = game.shop.obtainCard("b2-synthoil") as treasureCard;
+        const meat = game.shop.obtainCard("b2-meat") as TreasureCard;
+        const synthoil = game.shop.obtainCard("b2-synthoil") as TreasureCard;
         const initialRoll = player1.attackDiceModifier;
         game.addInPlay(player1, meat);
         expect(player1.attackDiceModifier).toBe(initialRoll + 1);
@@ -194,7 +194,7 @@ describe("Treasure - Permanent Modifiers", () => {
     });
 
     it("b2-belly_button: Each time you take damage, you may recharge your character", async () => {
-        const bellyButton = game.shop.obtainCard("b2-belly_button") as treasureCard;
+        const bellyButton = game.shop.obtainCard("b2-belly_button") as TreasureCard;
         const dummyCard = { slug: "test", name: "Test" } as any;
         game.addHealth(player1, 10); // Ensure player has enough health
         game.addInPlay(player1, bellyButton);
@@ -259,7 +259,7 @@ describe("Treasure - Permanent Modifiers", () => {
         testGame.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
 
         // IMPORTANT: Get the card from testGame, not from the global game instance!
-        const brimstone = testGame.shop.obtainCard("b2-brimstone") as treasureCard;
+        const brimstone = testGame.shop.obtainCard("b2-brimstone") as TreasureCard;
         
         testGame.addInPlay(p1, brimstone);
         
@@ -290,7 +290,7 @@ describe("Treasure - Permanent Modifiers", () => {
     });
 
     it("b2-ipecac: Each time you roll an attack roll of 6, deal 1 damage to each other player", async () => {
-        const ipecac = game.shop.obtainCard("b2-ipecac") as treasureCard;
+        const ipecac = game.shop.obtainCard("b2-ipecac") as TreasureCard;
         
         game.addInPlay(player1, ipecac);
         

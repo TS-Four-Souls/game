@@ -3,7 +3,7 @@
 
 
 import { DamageOnStack, DiceRoll, Player } from "./player";
-import { type Card, LootCard, type EffectFunction, type TargetsSelector, ItemCard, MonsterCard, InplayType, BsoulCard, EffectData, EffectOnStack } from "./cards";
+import { type Card, LootCard, type EffectFunction, type TargetsSelector, ItemCard, MonsterCard, InplayType, BsoulCard, EffectData, EffectOnStack, type DeckType, isDeckType } from "./cards";
 import { Game } from "./game";
 import type { Entity } from "./entity";
 import { effect } from "zod/v3";
@@ -89,6 +89,8 @@ export function forceAttackMonsterEffect(game: Game): EffectFunction {
 }
 
 export function look5Put1TopRestBottomEffect(deckName: string, game: Game): EffectFunction {
+    if(!isDeckType(deckName))
+        throw new Error(`Invalid deck type: ${deckName}`);
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         let cards = game.getFirstCardsOfDeck(deckName, 5);
@@ -106,6 +108,8 @@ export function look1EachDeckEffect(game: Game): EffectFunction {
         if (data.issuer instanceof Player === false) return false;
         let topCards: Card[] = [];
         for (const deckName of ["loot", "treasure", "monster"]) {
+            if(!isDeckType(deckName))
+                throw new Error(`Invalid deck type: ${deckName}`);
             const topCard = game.decks[deckName]?.cards[0];
             topCards.push(topCard!);
         }
@@ -204,7 +208,7 @@ export function expandSlotsEffect(slotText: string, numberToExpand: number, game
     };
 }
 
-export function shuffleDeckEffect(game: Game, deckName: string): EffectFunction {
+export function shuffleDeckEffect(game: Game, deckName: DeckType): EffectFunction {
     return (data: EffectData) => {
         game.decks[deckName]!.shuffle();
         return true;
@@ -565,19 +569,21 @@ export function discardTopOfDeckEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const deckName = (await game.select(data.issuer, 1, deckSelector(undefined, game)(data.issuer), false, "Select a deck to discard the top card of.")).selected[0];
+        if(!isDeckType(deckName))
+            throw new Error(`Invalid deck type: ${deckName}`);
         const deck = game.decks[deckName];
         if (!deck) {
             throw new Error(`Deck ${deckName} does not exist.`);
         }
         const topCard = deck.draw();
-        deck.addDiscardTop(topCard);
+        game.discard(topCard);
         return true;
     };
 }
 
 // Look at the top card of a deck. You may put it back.
 export function LookAndPutBottomEffect(
-    deckName: string,
+    deckName: DeckType,
     game: Game
 ): EffectFunction {
     return async (data:EffectData) => {
@@ -589,9 +595,9 @@ export function LookAndPutBottomEffect(
         const topCard = deck.draw();
         const res = await game.select(data.issuer, 1, [topCard], true, `Look at the top card of the ${deckName} deck. You may put it on the bottom of the deck.`);
         if (res.selected.length > 0) {
-            deck.addBottomPosition(topCard);
+            game.addBottomPosition(deckName, topCard);
         } else {
-            deck.addTopPosition(topCard);
+            game.addTopPosition(deckName, topCard);
         }   
         return true;
     };
@@ -624,6 +630,8 @@ export function discardAnyNumberOfShopItemsEffect(game: Game): EffectFunction {
 }
 
 export function lookAndOrderEffect(deckName: string, numberOfCards: number, game: Game): EffectFunction {
+    if(!isDeckType(deckName))
+        throw new Error(`Invalid deck type: ${deckName}`);
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         let cards = game.getFirstCardsOfDeck(deckName, numberOfCards);
@@ -650,8 +658,10 @@ export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestinati
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const deckName = selectionOnResolve 
-            ? (await game.select(data.issuer, 1, deckSelector(undefined, game)(data.issuer), false, "Select a deck to look at the top card of.")).selected[0] as string
-            : data.next as string;
+            ? (await game.select(data.issuer, 1, deckSelector(undefined, game)(data.issuer), false, "Select a deck to look at the top card of.")).selected[0]
+            : data.next;
+        if(!isDeckType(deckName))
+            throw new Error(`Invalid deck type: ${deckName}`);
         const deck = game.decks[deckName];
         if (!deck)
             throw new Error(`Deck ${deckName} not found`);
@@ -680,7 +690,7 @@ export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestinati
                 const topCard2 = deck.draw();
                 if (topCard2 !== topCard)
                     throw new Error("Top card mismatch");
-                game.addBottomPosition(deckName, topCard!);
+                game.addBottomPosition(deckName, topCard);
                 break;
             }
             case "discard":
@@ -865,8 +875,10 @@ export function endTurnAndResetStackEffect(game: Game): EffectFunction {
 export function putTopCardOfEachDeckIntoDiscardEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         for (const deckName of ["loot", "treasure", "monster"]) {
-            const topCard = game.getFirstCardsOfDeck(deckName, 1)[0];
-            game.decks[deckName]!.addDiscardTop(topCard!);
+            if(!isDeckType(deckName))
+                throw new Error(`Invalid deck type: ${deckName}`);
+            const topCard = game.getFirstCardsOfDeck(deckName, 1)[0]!;
+            game.discard(topCard);
         }
         return true;
     };
@@ -1028,8 +1040,8 @@ export function playerGivesLootCardEffect(game: Game): EffectFunction {
 export function putMonsterFromDiscardOnTopEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const monsterToPutBack = (await game.select(data.issuer, 1, game.decks["monster"]!.discard.filter((card) => card.type !== "event"), false, 
-            "Select a discarded monster to put on top of the monster deck.")).selected[0] as Card;
+        const monsterToPutBack = (await game.select(data.issuer, 1, game.decks["monster"]!.discard.filter((card) => card.isEvent === false), false, 
+            "Select a discarded monster to put on top of the monster deck.")).selected[0] as MonsterCard;
         game.decks["monster"]!.remove(monsterToPutBack);
         game.decks["monster"]!.addTopPosition(monsterToPutBack);
         return true;
@@ -1037,7 +1049,9 @@ export function putMonsterFromDiscardOnTopEffect(game: Game): EffectFunction {
 }
 export function putTopCardFromDiscardOnTopEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
-        const deckName = data.next as string;
+        const deckName = data.next;
+        if(!isDeckType(deckName)) 
+            throw new Error("Invalid deck type for putTopCardFromDiscardOnTopEffect");
         const deck = game.decks[deckName];
         if (!deck) {
             throw new Error(`Deck ${deckName} does not exist.`);
@@ -1045,9 +1059,8 @@ export function putTopCardFromDiscardOnTopEffect(game: Game): EffectFunction {
         if (deck.discard.length === 0) {
             return false;
         }
-        const card = deck.discard[0]!;
-        deck.remove(card);
-        deck.addTopPosition(card);
+        const card = deck.drawTopDiscard();
+        game.addTopPosition(deckName, card);
         return true;
     };
 }
@@ -1131,7 +1144,7 @@ export function throwEffect(game: Game): EffectFunction {
     };
 }
 
-export function putAnyNumberFromDiscardOnTopEffect(deckName: string, game: Game): EffectFunction {
+export function putAnyNumberFromDiscardOnTopEffect(deckName: DeckType, game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const deck = game.decks[deckName];
@@ -1382,7 +1395,7 @@ export function giveItemToAnotherPlayerEffect(game: Game): EffectFunction {
 export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, deckNameParam: string | undefined = undefined): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const deckName = deckNameParam === undefined ? data.next as string : deckNameParam;
+        const deckName = (deckNameParam === undefined ? data.next : deckNameParam);
         const top5Cards = game.getFirstCardsOfDeck(deckName, numberCards);
         const selectionResult = await game.select(data.issuer, numberCards, top5Cards, false, "Select the order to put back the cards (first selected will be on top).");
         for (let i = selectionResult.selected.length - 1; i >= 0; i--) {
@@ -1408,7 +1421,7 @@ export function putThisIntoDiscardEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         if (data.it.subtype !== "event") {
             const type = data.it.type;
-            game.decks[type]?.addDiscardTop(data.it);
+            game.discard(data.it);
         }
         return true;
     };
@@ -1442,6 +1455,8 @@ export function playUnlimitedLootCardsThisTurnEffect(game: Game): EffectFunction
 
 export function putThisOnBottomOfLootDeckEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
+        if(data.it instanceof LootCard === false)
+            throw new Error("Card is not a loot card for putThisOnBottomOfLootDeckEffect");
         game.addBottomPosition("loot", data.it);
         return true;
     };

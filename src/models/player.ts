@@ -1,5 +1,5 @@
 import { Entity } from "@/models/entity";
-import { CharacterCard, Hand, InplayType, ItemCard, treasureCard, Card, type EffectFunction, EffectOnStack, EffectData } from "./cards";
+import { CharacterCard, Hand, InplayType, ItemCard, TreasureCard, Card, type EffectFunction, EffectOnStack, EffectData } from "./cards";
 import type { Game } from "./game";
 import type { Monster } from "./monster";
 import { TargetBuilder } from "./targetBuilder";
@@ -284,8 +284,8 @@ export class Player extends Entity {
    */
   get character(): CharacterCard {
     for (const card of this._inPlay) {
-      if (card.type === "character") {
-        return card as CharacterCard;
+      if (card instanceof CharacterCard) {
+        return card;
       }
     }
     throw new Error("No character card in play for this player.");
@@ -649,7 +649,9 @@ export class DamageOnStack {
     this.game.resolveDamage(this.from, this.receiver, this._source, this.damage[0]!);
     if(this._effect) {
       const card = this._source instanceof DiceRoll ? this._source.card! : this._source;
-      await this._effect(new EffectData(card, this.from as Player, [this, this._targets]));
+      if(this.from instanceof Player === false)
+        throw new Error("Damage effect issuer is not a player");
+      await this._effect(new EffectData(card, this.from, [this, this._targets]));
     }
   }
   get json(): DamageOnStackJson {

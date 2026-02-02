@@ -1,7 +1,7 @@
 import { describe, it, beforeEach, expect } from "bun:test";
 import { Game } from "../../models/game";
 import { Player } from "../../models/player";
-import { CharacterCard, ItemCard, treasureCard, LootCard, MonsterCard } from "@/models/cards";
+import { CharacterCard, ItemCard, TreasureCard, LootCard, MonsterCard } from "@/models/cards";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame, mockGameSelections } from "@/tests/testHelpers";
 
 describe("Tap/Paid effects 2", () => {

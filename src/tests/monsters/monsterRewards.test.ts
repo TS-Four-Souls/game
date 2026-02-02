@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../../models/game";
 import { DiceRoll, Player } from "../../models/player";
 import type { MonsterCard } from "@/models/cards";
-import { treasureCard } from "@/models/cards";
+import { TreasureCard } from "@/models/cards";
 import { setupTestGame, dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
 import type { Monster } from "@/models/monster";
 
@@ -49,7 +49,7 @@ describe("Monster Rewards - Verification", () => {
         // Capture initial state
         const initialCoins = player1.coins;
         const initialHandSize = player1.hand.length;
-        const initialTreasures = player1.inPlay.filter(c => c instanceof treasureCard).length;
+        const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
         const initialSouls = player1.souls.length;
         const initialHealthPoints = player1.currentHealthPoints;
         const initialInPlayCount = player1.inPlay.length;
@@ -84,10 +84,10 @@ describe("Monster Rewards - Verification", () => {
         }
 
         if (expectedReward.treasures !== undefined) {
-            const currentTreasures = player1.inPlay.filter(c => c instanceof treasureCard).length;
+            const currentTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
             expect(currentTreasures).toBe(initialTreasures + expectedReward.treasures);
         } else {
-            const currentTreasures = player1.inPlay.filter(c => c instanceof treasureCard).length;
+            const currentTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
             expect(currentTreasures).toBe(initialTreasures);
         }
 
@@ -194,14 +194,14 @@ describe("Monster Rewards - Verification", () => {
             const monsterEntity = game.monsters[0]!;
 
             const initialCoins = player1.coins;
-            const initialTreasures = player1.inPlay.filter(c => c instanceof treasureCard).length;
+            const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
             const initialSouls = player1.souls.length;
 
             game.kill(player1, monsterEntity, monster);
             await game.resolveStack();
 
             // Should have both treasure and soul
-            expect(player1.inPlay.filter(c => c instanceof treasureCard).length).toBe(initialTreasures + 1);
+            expect(player1.inPlay.filter(c => c instanceof TreasureCard).length).toBe(initialTreasures + 1);
             expect(player1.souls.length).toBe(initialSouls + 1);
             // Should not have gained coins
             expect(player1.coins).toBe(initialCoins);
@@ -235,7 +235,7 @@ describe("Monster Rewards - Verification", () => {
 
     //         const initialCoins = player1.coins;
     //         const initialHandSize = player1.hand.length;
-    //         const initialTreasures = player1.inPlay.filter(c => c instanceof treasureCard).length;
+    //         const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
     //         const initialSouls = player1.souls.length;
 
     //         game.kill(player1, monsterEntity, monster);
@@ -244,7 +244,7 @@ describe("Monster Rewards - Verification", () => {
     //         // Nothing should have changed
     //         expect(player1.coins).toBe(initialCoins);
     //         expect(player1.hand.length).toBe(initialHandSize);
-    //         expect(player1.inPlay.filter(c => c instanceof treasureCard).length).toBe(initialTreasures);
+    //         expect(player1.inPlay.filter(c => c instanceof TreasureCard).length).toBe(initialTreasures);
     //         expect(player1.souls.length).toBe(initialSouls);
     //     });
     // });
@@ -256,7 +256,7 @@ describe("Monster Rewards - Verification", () => {
             const monsterEntity = game.monsters[0]!;
 
             const initialHandSize = player1.hand.length;
-            const initialTreasures = player1.inPlay.filter(c => c instanceof treasureCard).length;
+            const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
             const initialSouls = player1.souls.length;
 
             game.kill(player1, monsterEntity, monster);
@@ -264,7 +264,7 @@ describe("Monster Rewards - Verification", () => {
 
             // Should only gain coins, nothing else
             expect(player1.hand.length).toBe(initialHandSize); // No loot
-            expect(player1.inPlay.filter(c => c instanceof treasureCard).length).toBe(initialTreasures); // No treasures
+            expect(player1.inPlay.filter(c => c instanceof TreasureCard).length).toBe(initialTreasures); // No treasures
             expect(player1.souls.length).toBe(initialSouls); // No souls
         });
 
@@ -274,7 +274,7 @@ describe("Monster Rewards - Verification", () => {
             const monsterEntity = game.monsters[0]!;
 
             const initialCoins = player1.coins;
-            const initialTreasures = player1.inPlay.filter(c => c instanceof treasureCard).length;
+            const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
             const initialSouls = player1.souls.length;
 
             game.kill(player1, monsterEntity, monster);
@@ -282,7 +282,7 @@ describe("Monster Rewards - Verification", () => {
 
             // Should only gain loot, nothing else
             expect(player1.coins).toBe(initialCoins); // No coins
-            expect(player1.inPlay.filter(c => c instanceof treasureCard).length).toBe(initialTreasures); // No treasures
+            expect(player1.inPlay.filter(c => c instanceof TreasureCard).length).toBe(initialTreasures); // No treasures
             expect(player1.souls.length).toBe(initialSouls); // No souls
         });
 

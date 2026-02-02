@@ -1,7 +1,7 @@
 import { describe, it, beforeEach, expect } from "bun:test";
 import { Game } from "../models/game";
 import { Player } from "../models/player";
-import { CharacterCard, ItemCard, MonsterCard } from "@/models/cards";
+import { CharacterCard, ItemCard, LootCard, MonsterCard } from "@/models/cards";
 import { TargetBuilder } from "@/models/targetBuilder";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame, mockGameSelections} from "@/tests/testHelpers";
 
@@ -353,7 +353,7 @@ describe("Target Builder - validTargetExists", () => {
             game.recharge(boomerang);
 
             // Add loot card to player2's hand so there's a valid target
-            const lootCard = game.obtainCard("b2-a_penny") as ItemCard;
+            const lootCard = game.obtainCard("b2-a_penny") as LootCard;
             player2.hand.addToHand(lootCard);
 
             const result = TargetBuilder.validTargetExists(game, player1, boomerang, "tap");
@@ -560,7 +560,7 @@ describe("Target Builder - validTargetExists", () => {
             game.addInPlay(player1, boomerang);
             game.recharge(boomerang);
 
-            const lootCard = game.obtainCard("b2-a_penny") as ItemCard;
+            const lootCard = game.obtainCard("b2-a_penny") as LootCard;
             player2.hand.addToHand(lootCard);
 
             const result = TargetBuilder.validTargetExists(game, player1, boomerang, "tap");
@@ -593,7 +593,7 @@ describe("Target Builder - validTargetExists", () => {
             game.addInPlay(player1, boomerang);
             // Don't recharge
 
-            const lootCard = game.obtainCard("b2-a_penny") as ItemCard;
+            const lootCard = game.obtainCard("b2-a_penny") as LootCard;
             player2.hand.addToHand(lootCard);
 
             // Should not throw since throwIfNotCharged defaults to false in validTargetExists
@@ -635,7 +635,7 @@ describe("Target Builder - validTargetExists", () => {
             expect(result).toBe(true);
 
             // With loot cards - still valid
-            const lootCard = game.obtainCard("b2-a_penny") as ItemCard;
+            const lootCard = game.obtainCard("b2-a_penny") as LootCard;
             player2.hand.addToHand(lootCard);
 
             result = TargetBuilder.validTargetExists(game, player1, boomerang, "tap");
@@ -675,7 +675,7 @@ describe("Target Builder - validTargetExists", () => {
             game.addInPlay(player1, boomerang);
             game.recharge(boomerang);
 
-            const lootCard = game.obtainCard("b2-a_penny") as ItemCard;
+            const lootCard = game.obtainCard("b2-a_penny") as LootCard;
             player2.hand.addToHand(lootCard);
 
             const result = TargetBuilder.validTargetExists(game, player1, boomerang, "tap");

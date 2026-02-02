@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../../models/game";
 import { DiceRoll, Player } from "../../models/player";
-import type { ItemCard, MonsterCard, treasureCard } from "@/models/cards";
+import type { ItemCard, MonsterCard, TreasureCard } from "@/models/cards";
 import { CharacterCard } from "@/models/cards";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame, mockGameSelections } from "@/tests/testHelpers";
 
@@ -77,7 +77,7 @@ describe("Treasure - with counters effect", () => {
     // "[LV10 Effect] You have +1 [ATK]."
     // "[LV25 Effect] You may attack any number of times on your turn."
     it("bum_bo - leveling system and level effects", async () => {
-        const bumBo = game.shop.obtainCard("b2-bum_bo") as treasureCard;
+        const bumBo = game.shop.obtainCard("b2-bum_bo") as TreasureCard;
         game.addInPlay(player1, bumBo);
         game.gainCoins(player1, 1);
         const baseAttack = player1.attackPoints;
@@ -142,7 +142,7 @@ describe("Treasure - with counters effect", () => {
 
     // "Each time you take damage, put counters on this equal to the amount of damage taken. Then, if this has 6+ counters, remove 6 counters from this and gain +1 treasure."
     it("cambion_conception - damage counter and treasure gain", async () => {
-        const cambionConception = game.shop.obtainCard("b2-cambion_conception") as treasureCard;
+        const cambionConception = game.shop.obtainCard("b2-cambion_conception") as TreasureCard;
         game.addInPlay(player1, cambionConception);
         game.addHealth(player1, 200); // Give player enough health to take damage
 
@@ -292,7 +292,7 @@ describe("Treasure - with counters effect", () => {
     // "Each time you take damage, put a counter on this."
     // "[Paid Effect] Remove a counter from this:\nPrevent the next 1 damage you would take this turn."
     it("the_poop - gain counters on damage, paid effect to prevent damage", async () => {
-        const thePoop = game.shop.obtainCard("b2-the_poop") as treasureCard;
+        const thePoop = game.shop.obtainCard("b2-the_poop") as TreasureCard;
         game.addInPlay(player1, thePoop);
         game.addHealth(player1, 20); // Give player enough health
 
