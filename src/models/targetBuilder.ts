@@ -1,6 +1,6 @@
 import type { Game } from "./game";
 import type { Player } from "./player";
-import { Card, ItemCard, type TargetsSelector } from "./cards";
+import { Card, ItemCard, LootCard, type TargetsSelector } from "./cards";
 import { isChooseOneOptions, type ChooseOneOptions } from "./targetSelector";
 import { isStackElement } from "./stack";
 import type { TargetSelectorResponse } from "../shared/api";
@@ -55,6 +55,8 @@ export class TargetBuilder {
         game.assertNoPendingSelection();
         if(!item)
             throw new Error(`Item not found.`);
+        if(item instanceof LootCard && item.trinket)
+                throw new Error("Trinket items cannot be activated.");
         if(throwIfNotCharged && effectId === "tap" && !item.charged)
             throw new Error(`Item ${item.name} is not charged.`);
         // console.log("TargetBuilder.getNextSelector for item:", item.name, "effectId:", effectId, "partialChoices:", partialChoices);

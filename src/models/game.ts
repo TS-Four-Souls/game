@@ -2222,8 +2222,8 @@ export class Game {
   }
 
   discard(card: Card): void {
-    const deck = this.decks[card.type];
-    deck.addDiscardTop(card as any);
+    const deck: Deck<Card> = this.decks[card.type];
+    deck.addDiscardTop(card);
   }
 
   removeInPlay(player: Player, card: Card): boolean {

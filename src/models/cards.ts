@@ -427,6 +427,8 @@ class Card {
     }
 
     get activeEffectList(): {index: "tap" | number, description: string}[] {
+        if(this instanceof LootCard && this.trinket)
+            return [];
         return this._effectInterface.activeEffectList;
     }
 
@@ -1038,12 +1040,12 @@ export class EffectOnStack {
     }
 }
 class Deck<T extends Card> {
-    _type: string;
+    _type: DeckType;
     _set: CardSet<T>
     _order: number[];
     _discard: number[];
 
-    constructor(set: CardSet<T>, type: string, order: number[]) {
+    constructor(set: CardSet<T>, type: DeckType, order: number[]) {
         // Type of cards in the deck.
         this._type = type;
         // Set of all the cards that can belong to the deck.
@@ -1068,6 +1070,7 @@ class Deck<T extends Card> {
 
     remove(card:T)
     {
+        assertCardMatchesDeck(this._type, card);
         const cardId = card.id;
         const setCardId = this._set.id(card);
         if(cardId !== setCardId)
@@ -1131,22 +1134,27 @@ class Deck<T extends Card> {
     }
 
     addTopPosition(card: T): void {
+        assertCardMatchesDeck(this._type, card);
         this.addCardAtPosFromTop(card, 0);
     }
 
     addBottomPosition(card: T): void {
+        assertCardMatchesDeck(this._type, card);
         this.addCardAtPosFromTop(card, this._order.length);
     }
     addCardAtPosFromTop(card: T, positionFromTop: number): void {
+        assertCardMatchesDeck(this._type, card);
         const posFromEnd = Math.max(this._order.length - positionFromTop, 0);
         this._order.splice(posFromEnd, 0, card.id);
     }
     addRandomPosition(card: T): void {
+        assertCardMatchesDeck(this._type, card);
         const randomIdx = Math.floor(Math.random() * this._order.length);
         this.addCardAtPosFromTop(card, randomIdx);
     }
 
     addDiscardTop(card: T): void {
+        assertCardMatchesDeck(this._type, card);
         this._discard.push(card.id);
     }
 
