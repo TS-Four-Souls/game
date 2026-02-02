@@ -1,5 +1,6 @@
 import { DamageOnStack, DiceRoll, Player } from "./player";
-import { type Card, LootCard, type EffectFunction, type TargetsSelector, ItemCard, MonsterCard, InplayType, BsoulCard, EffectData, EffectOnStack, LootCardEffect } from "./cards";
+import { type Card, LootCard, ItemCard, MonsterCard, InplayType, BsoulCard, EffectOnStack, LootCardEffect } from "./cards";
+import { EffectData, type EffectFunction, type TargetsSelector } from "./types/cardTypes";
 import { Game } from "./game";
 import type { Entity } from "./entity";
 import { effect } from "zod/v3";

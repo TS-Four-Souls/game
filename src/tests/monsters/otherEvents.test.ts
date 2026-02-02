@@ -136,9 +136,9 @@ describe("Event Monsters - Other Events", () => {
         const weNeedToGoDeeper = game.obtainCard("b2-we_need_to_go_deeper") as MonsterCard;
         
         // Add some monsters to discard
-        const monster1 = game.obtainCard("b2-fly");
-        const monster2 = game.obtainCard("b2-fatty");
-        const eventMonster = game.obtainCard("b2-chest");
+        const monster1 = game.obtainCard("b2-fly") as MonsterCard;
+        const monster2 = game.obtainCard("b2-fatty") as MonsterCard;
+        const eventMonster = game.obtainCard("b2-chest") as MonsterCard;
         
         // Skip test if we couldn't obtain the required cards (edge case with deck randomization)
         if (!monster1 || !monster2 || !eventMonster) {
@@ -148,14 +148,14 @@ describe("Event Monsters - Other Events", () => {
         // Measure discard size after obtaining cards (since obtaining may trigger more discards)
         const initialDiscardSize = game.decks["monster"]!.discard.length;
         
-        game.decks["monster"]!.addDiscardTop(monster1 as MonsterCard);
-        game.decks["monster"]!.addDiscardTop(monster2 as MonsterCard);
+        game.decks["monster"]!.addDiscardTop(monster1);
+        game.decks["monster"]!.addDiscardTop(monster2);
         for(const slot of game.encounters.slots)
         {
             expect(!slot.includes(monster1)).toBe(true);
             expect(!slot.includes(monster2)).toBe(true);
         }
-        game.decks["monster"]!.addDiscardTop(eventMonster as MonsterCard);
+        game.decks["monster"]!.addDiscardTop(eventMonster);
         expect(game.decks["monster"]?.discard.length).toBe(initialDiscardSize + 3);
         game.decks["monster"]!.addTopPosition(weNeedToGoDeeper);
         // expect(game.decks["monster"]!.cards.length).toBe(initialDeckSize - 3); // 2 added, put -1 cause event is replaced

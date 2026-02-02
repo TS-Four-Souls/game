@@ -1,5 +1,6 @@
 import { DiceRoll, Player } from "./player";
-import { type Card, type LootCard, type EffectFunction, type TargetsSelector, ItemCard, InplayType, BsoulCard } from "./cards";
+import { type Card, type LootCard, ItemCard, InplayType, BsoulCard } from "./cards";
+import type { EffectFunction, TargetsSelector } from "./types/cardTypes";
 import { Game } from "./game";
 import type { Stack, StackElement } from "./stack";// One-shot shield: prevent up to `amount` damage on the next instance to issuer this turn
 import type { TriggerEvent } from "@/types/triggers";

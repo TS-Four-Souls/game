@@ -6,11 +6,7 @@ import { assert } from 'console';
 import type { Entity } from './entity';
 import { TargetBuilder } from './targetBuilder';
 import { type EffectOnStackJson, type LootCardOnStackJson } from '@/shared/api'
-
-export type EffectType =
-    | "passive"
-    | "active"
-    | "paid";
+import { EffectData, type EffectType, type EffectFunction, type TargetsSelector, type CardSetsCollection, type DecksCollection, type DeckType, type DeckTypeToCardType } from './types/cardTypes';
 
 export class Effect {
     protected _description: string;
@@ -587,59 +583,6 @@ class Card {
     }
 }
 
-export type TargetsSelector = 
-{
-    description: string;
-    selector: (player: Player) => any[];
-    count: number;
-    asMany: boolean;
-};
-
-export class EffectData {
-    it: Card;
-    issuer: Entity;
-    private _targets: any[];
-    private _nextIndex: number = 0;
-
-    constructor(it: Card, issuer: Entity, targets: any[]) {
-        this.it = it;
-        this.issuer = issuer;
-        this._targets = targets;
-    }
-
-    get targets(): any[] {
-        return this._targets;
-    }
-
-    set targets(targets: any[]) {
-        this._targets = targets;
-        this._nextIndex = 0;
-    }
-
-    get next(): any {
-        if (this._nextIndex >= this._targets.length) {
-            return undefined;
-        }
-        return this._targets[this._nextIndex++];
-    }
-    
-    peek(index: number = -1): any {
-        if (index === -1)
-            index = this._nextIndex;
-        return this._targets[index];
-    }
-    
-    get remaining(): any[] {
-        return this._targets.slice(this._nextIndex);
-    }
-
-    addTarget(target: any): void {
-        this._targets.push(target);
-    }
-}
-
-export type EffectFunction = (data: EffectData) => boolean | Promise<boolean>;
-
 enum InplayType { CHARGED, UNCHARGED, PASSIVE, PAID, PLAYABLE }
 export class ItemCard extends Card {
   protected _inplayType: InplayType;
@@ -1009,15 +952,6 @@ class CardSet<T extends Card> {
 * Loads card sets from an array of json cards.
 * Returns a dictionary of card sets indexed by their type.
 */
-type CardSetsCollection = {
-    loot: CardSet<LootCard>;
-    treasure: CardSet<TreasureCard>;
-    eternal: CardSet<EternalCard>;
-    character: CardSet<CharacterCard>;
-    monster: CardSet<MonsterCard>;
-    bsoul: CardSet<BsoulCard>;
-};
-
 function LoadsCardSets(json_array: GenericCardType[]) : CardSetsCollection {
     const sets: CardSetsCollection = {
         loot: new CardSet<LootCard>('loot'),
@@ -1328,26 +1262,6 @@ class Hand {
     }
 }
 
-type DecksCollection = {
-    loot: Deck<LootCard>;
-    treasure: Deck<TreasureCard>;
-    eternal: Deck<EternalCard>;
-    character: Deck<CharacterCard>;
-    monster: Deck<MonsterCard>;
-    bsoul: Deck<BsoulCard>;
-};
-
-type DeckType = keyof DecksCollection;
-
-type DeckTypeToCardType = {
-    loot: LootCard;
-    treasure: TreasureCard;
-    eternal: EternalCard;
-    character: CharacterCard;
-    monster: MonsterCard;
-    bsoul: BsoulCard;
-};
-
 export function isDeckType(value: string): value is DeckType {
     return ['loot', 'treasure', 'eternal', 'character', 'monster', 'bsoul'].includes(value);
 }
@@ -1420,4 +1334,6 @@ function randomCardFromSet<T extends Card>(set: CardSet<T>) : T {
     return card;
 }
 
-export { Card, LootCard, TreasureCard as TreasureCard, MonsterCard, BsoulCard, CharacterCard, EternalCard, MonsterType, InplayType, CardSet, Deck, Hand, LoadsCardSets, type CardSetsCollection, type DecksCollection, type DeckType, type DeckTypeToCardType, LoadDecks, createEmptyDecksCollection, randomCardFromSet, isSameSlug, createCardFromJson };
+export { Card, LootCard, TreasureCard as TreasureCard, MonsterCard, BsoulCard, CharacterCard, EternalCard, MonsterType, InplayType, CardSet, Deck, Hand, LoadsCardSets, LoadDecks, createEmptyDecksCollection, randomCardFromSet, isSameSlug, createCardFromJson };
+export type { CardSetsCollection, DecksCollection, DeckType, DeckTypeToCardType, EffectType, EffectFunction, TargetsSelector } from './types/cardTypes';
+export { EffectData } from './types/cardTypes';

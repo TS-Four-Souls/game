@@ -8,10 +8,6 @@ import {
   Deck,
   Hand,
   LoadsCardSets,
-  type CardSetsCollection,
-  type DecksCollection,
-  type DeckType,
-  type DeckTypeToCardType,
   LoadDecks,
   createEmptyDecksCollection,
   assertCardMatchesDeck,
@@ -25,14 +21,12 @@ import {
   TreasureCard,
   BsoulCard,
   Effect,
-  EffectData,
-  type EffectType,
-  type TargetsSelector,
   EternalCard,
   createCardFromJson,
   MonsterType,
   isDeckType
 } from "@/models/cards";
+import type { CardSetsCollection, DecksCollection, DeckType, DeckTypeToCardType, EffectData, EffectType, TargetsSelector } from "@/models/types/cardTypes";
 import { Stack, type StackElement } from "@/models/stack";
 import { effectParser } from "@/models/effectParser";
 import {

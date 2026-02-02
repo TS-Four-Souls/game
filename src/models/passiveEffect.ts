@@ -1,5 +1,6 @@
 import { DiceRoll, Player } from "./player";
-import { EffectData, LootCard, type EffectFunction, ItemCard, TreasureCard, LootCardEffect, EffectOnStack, MonsterCard, Card } from "./cards";
+import { LootCard, ItemCard, TreasureCard, LootCardEffect, EffectOnStack, MonsterCard, Card } from "./cards";
+import { EffectData, type EffectFunction } from "./types/cardTypes";
 import { Game } from "./game";
 import type { TriggerEvent } from "@/types/triggers";
 import { Monster } from "./monster";
