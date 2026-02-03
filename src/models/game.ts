@@ -1453,7 +1453,7 @@ export class Game {
       outcome.startsWith("[Tap Effect]") ||
       card.type === "loot" ||
       (card instanceof MonsterCard &&
-        (card as MonsterCard).encounterType === MonsterType.EVENT &&
+        card.encounterType === MonsterType.EVENT &&
         outcome !==
         "The active player may attack an additional time this turn.")
     )
@@ -1764,7 +1764,7 @@ export class Game {
           effects: c.activeEffectList,
           capabilities:
           {
-            activate: (c as ItemCard).activeEffectList.some(p => p.index != "tap") || this.canActivate(c, player),
+            activate: c.activeEffectList.some(p => p.index != "tap") || this.canActivate(c, player),
           },
         })).concat(
           player.curses.map((c) => ({
@@ -2250,9 +2250,8 @@ export class Game {
     return target.inPlay.filter(
       (card) =>
         card.type !== "eternal" &&
-        card.type !== "character" &&
-        card instanceof ItemCard
-    ) as ItemCard[];
+        card.type !== "character"
+    );
   }
 
   discard(card: Card): void {

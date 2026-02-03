@@ -4,7 +4,7 @@ import { Card, ItemCard, LootCard, type TargetsSelector } from "./cards";
 import { isChooseOneOptions, type ChooseOneOptions } from "./targetSelector";
 import { isStackElement } from "./stack";
 import type { TargetSelectorResponse } from "../shared/api";
-import type { Entity } from "./entity";
+import { Entity } from "./entity";
 import type { SelectionItem, SelectionItemType } from "../shared/api";
 
 /**
@@ -258,8 +258,8 @@ export class TargetBuilder {
                 return { payload: {name: option.name, slug: option.slug}, type: "card" };
             }
 
-            if (typeof option === 'object' && option !== null && 'id' in option) {
-                const entity = option as Entity;
+            if (typeof option === 'object' && option !== null && 'id' in option && option instanceof Entity) {
+                const entity = option;
                 return {type: entity.json.type, payload: {name: entity.json.name, slug: entity.json.slug}};
             }
 
