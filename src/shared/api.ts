@@ -286,13 +286,33 @@ const gameParametersSchema = z.object({
 export type GameParametersJson = z.infer<typeof gameParametersSchema>;
 
 // Utility types to extract keys based on parameter value type
-type NumberParameterKeys = {
-  [K in keyof GameParametersJson]: GameParametersJson[K]["value"] extends number ? K : never;
+export type NumberParameterKeys = {
+  [K in keyof GameParametersJson]: GameParametersJson[K]["value"] extends number
+    ? K
+    : never;
 }[keyof GameParametersJson];
 
-type BooleanParameterKeys = {
-  [K in keyof GameParametersJson]: GameParametersJson[K]["value"] extends boolean ? K : never;
+export type BooleanParameterKeys = {
+  [K in keyof GameParametersJson]: GameParametersJson[K]["value"] extends boolean
+    ? K
+    : never;
 }[keyof GameParametersJson];
+
+export function isBooleanParameterKey(
+  key: keyof GameParametersJson,
+): key is BooleanParameterKeys {
+  return gameParametersSchema.shape[key] === booleanGameParameterSchema;
+}
+
+export function isNumberParameterKey(
+  key: keyof GameParametersJson,
+): key is NumberParameterKeys {
+  return gameParametersSchema.shape[key] === numberGameParameterSchema;
+}
+
+export function isParameterKey(key: string): key is keyof GameParametersJson {
+  return key in gameParametersSchema.shape;
+}
 
 const joinRequestSchema = z.string();
 
