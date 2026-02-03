@@ -141,7 +141,9 @@ export function removeCountersEffect(game: Game, amount: number): EffectFunction
 export function BecomesSoulEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        (data.it as ItemCard).setEternal(false);
+        if(!(data.it instanceof ItemCard))
+            throw new Error(`Card should be an ItemCard to become a soul: ${data.it.name}`);
+        data.it.setEternal(false);
         game.removeInPlay(data.issuer, data.it);
         data.it.soul = 1;
         game.addSoul(data.issuer, data.it);
@@ -1113,16 +1115,6 @@ export function cancelAtIndexEffect(game: Game): EffectFunction {
     };
 }
 
-export function becomesSoulAndGainEffect(game: Game): EffectFunction {
-    return (data: EffectData) => {
-        if (data.issuer instanceof Player === false) return false;
-        game.removeInPlay(data.issuer, data.it);
-        data.it.soul = 1;
-        game.addSoul(data.issuer, data.it);
-        return true;
-    };
-}
-
 // deal 1 damage to each other player.
 export function dealDamageToEachOtherPlayerEffect(game: Game, dmg: number): EffectFunction {
     return (data: EffectData) => {
@@ -1514,6 +1506,8 @@ export function putLootCardFromHandOnTopOfDeckEffect(game: Game): EffectFunction
 export function thisBecomeSoulGainItEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
+        if(data.it instanceof ItemCard === false)
+            throw new Error("Card is not an item card for thisBecomeSoulGainItEffect");
         game.removeInPlay(data.issuer, data.it);
         data.it.soul = 1;
         game.addSoul(data.issuer, data.it);

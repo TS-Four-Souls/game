@@ -944,6 +944,8 @@ export function becomeSoulInsteadOfDestructionEffect(game: Game): EffectFunction
             }
 
             game.addSoul(data.issuer, data.it);
+            if(!(data.it instanceof ItemCard))
+                throw new Error("becomeSoulInsteadOfDestructionEffect can only be applied to ItemCards.");
             game.removeInPlay(data.issuer, data.it);
         });
         // Store cleanup function on the card for when it's removed/destroyed

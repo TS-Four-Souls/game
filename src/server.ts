@@ -10,7 +10,7 @@ import type {
 } from "./shared/api";
 import { schemas } from "./shared/api";
 import { TargetBuilder } from "./models/targetBuilder";
-import type { Card, ItemCard, LootCard, MonsterCard, CharacterCard } from "./models/cards";
+import { Card, ItemCard, LootCard, MonsterCard, CharacterCard } from "./models/cards";
 
 const PORT = process.env.PORT || 3000;
 const HOSTNAME = process.env.HOSTNAME || "localhost";
@@ -596,6 +596,8 @@ io.on("connection", (socket) => {
         }
         for (const slug of slugs) {
           const card = game.obtainCard(slug)!;
+          if(card instanceof ItemCard === false)
+            throw new Error(`Card ${card.name} is not an ItemCard`);
           game.addInPlay(player, card);
         }
         return callback({

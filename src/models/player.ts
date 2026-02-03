@@ -1,5 +1,5 @@
 import { Entity } from "@/models/entity";
-import { CharacterCard, Hand, InplayType, ItemCard, TreasureCard, Card, type EffectFunction, EffectOnStack, EffectData, MonsterCard } from "./cards";
+import { CharacterCard, Hand, InplayType, ItemCard, TreasureCard, Card, type EffectFunction, EffectOnStack, EffectData, MonsterCard, LootCard } from "./cards";
 import type { Game } from "./game";
 import type { Monster } from "./monster";
 import { TargetBuilder } from "./targetBuilder";
@@ -36,7 +36,7 @@ export class Player extends Entity {
   private _hand: Hand;
   
   /** @private Cards currently in play for this player (items, trinkets, etc.) */
-  private _inPlay: Card[];
+  private _inPlay: ItemCard[];
   
   /** @private Soul cards collected by the player */
   private _souls: Card[];
@@ -336,7 +336,7 @@ export class Player extends Entity {
    * Adds a card to the player's in-play area.
    * @param card - The card to add to play
    */
-  addInPlay(card: Card): void {
+  addInPlay(card: ItemCard): void {
     this._inPlay.push(card);
   }
   
@@ -344,7 +344,7 @@ export class Player extends Entity {
    * Gets all cards currently in the player's play area.
    * @returns Array of cards in play
    */
-  get inPlay(): Card[] {
+  get inPlay(): ItemCard[] {
     return this._inPlay;
   }
   
@@ -354,7 +354,7 @@ export class Player extends Entity {
    * @returns True if the card was successfully removed
    * @throws {Error} If the card is eternal and cannot be removed
    */
-  removeInPlay(card: Card): boolean {
+  removeInPlay(card: ItemCard): boolean {
     const index = this._inPlay.indexOf(card);
     if(index === -1) return false;
     if(card.eternal)
@@ -369,7 +369,7 @@ export class Player extends Entity {
    * @returns The played card, or null if invalid
    * @throws {Error} If index is out of bounds or card is not a loot card
    */
-  playLootCard(index: number): Card | null {
+  playLootCard(index: number): LootCard | null {
     if (index < 0 || index >= this._hand.cards.length) {
       throw new Error("Index out of bounds");
     }

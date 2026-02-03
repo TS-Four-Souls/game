@@ -144,15 +144,7 @@ export class Game {
   }
 
   get inPlayItems(): { player: Player; card: ItemCard }[] {
-    const items: { player: Player; card: ItemCard }[] = [];
-    for (const player of this.players) {
-      for (const card of player.inPlay) {
-        if (card instanceof ItemCard) {
-          items.push({ player, card });
-        }
-      }
-    }
-    return items;
+    return this.players.flatMap(p => p.inPlay.map(c => ({player: p, card: c})));
   }
 
   get inPlayCurses(): { player: Player; card: MonsterCard }[] {this.players.flatMap(p => p.curses.map(c => ({player: p, card: c})));
@@ -1262,11 +1254,12 @@ export class Game {
     if (card instanceof LootCard) {
       return this.giveCard(from, to, card);
     }
-    if (from.inPlay.includes(card) && !card.eternal) {
-      from.removeInPlay(card);
-      to.addInPlay(card);
-      return true;
-    }
+    if (card instanceof ItemCard) 
+      if (from.inPlay.includes(card) && !card.eternal) {
+        from.removeInPlay(card);
+        to.addInPlay(card);
+        return true;
+      }
     return false;
   }
 
@@ -1387,7 +1380,7 @@ export class Game {
     this.gameParameters.reset();
   }
 
-  addInPlay(player: Player, card: Card): void {
+  addInPlay(player: Player, card: ItemCard): void {
     this.emit("on:enter:play", { eventIssuer: player, card: card });
     if (
       card instanceof CharacterCard ||
@@ -1690,7 +1683,7 @@ export class Game {
 
     for (let i = 0; i < number; i++) {
       const treasureDeck = this.decks["treasure"]!;
-      const drawnCard: Card = treasureDeck.draw()!;
+      const drawnCard: TreasureCard = treasureDeck.draw()!;
       this.addInPlay(player, drawnCard);
     }
   }
@@ -1713,9 +1706,10 @@ export class Game {
       return false;
     this.emit("on:item:destroyed", { eventIssuer: null, cards });
     cards.forEach((card) => {
-      this.players.forEach((player) => {
-        this.removeInPlay(player, card);
-      });
+      if(card instanceof ItemCard)
+        this.players.forEach((player) => {
+          this.removeInPlay(player, card);
+        });
     });
     cards.forEach((card) => {
       this.players.forEach((player) => {
@@ -2067,7 +2061,7 @@ export class Game {
     }
   }
 
-  stealItemAnywhere(issuer: Issuer, target: Card): boolean {
+  stealItemAnywhere(issuer: Issuer, target: ItemCard): boolean {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.assertIsAlive(player);
@@ -2266,7 +2260,7 @@ export class Game {
     deck.addDiscardTop(card);
   }
 
-  removeInPlay(player: Player, card: Card): boolean {
+  removeInPlay(player: Player, card: ItemCard): boolean {
     card.cleanup();
     return player.removeInPlay(card);
   }
