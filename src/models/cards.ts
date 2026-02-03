@@ -429,6 +429,8 @@ class Card {
     get activeEffectList(): {index: "tap" | number, description: string}[] {
         if(this instanceof LootCard && this.trinket)
             return [];
+        if(this instanceof MonsterCard && this.isCurse)
+            return [];
         return this._effectInterface.activeEffectList;
     }
 
@@ -675,6 +677,7 @@ export class ItemCard extends Card {
 class LootCard extends ItemCard {
     protected _reward: CardRewards | undefined;
     protected _trinket: boolean = false;
+    protected _afterEffect: "discard" | "addInPlay" | "nothing" = "discard";
 
     constructor(id: number, json: LootCardType) {
         super(id, json);
@@ -684,7 +687,16 @@ class LootCard extends ItemCard {
         if (json.trinket) {
             this._trinket = json.trinket;
             this._inplayType = InplayType.PASSIVE;
+            this._afterEffect = "addInPlay";
         }
+    }
+
+    get afterEffect(): "discard" | "addInPlay" | "nothing" {
+        return this._afterEffect;
+    }
+
+    set afterEffect(value: "discard" | "addInPlay" | "nothing") {
+        this._afterEffect = value;
     }
 
     get trinket(): boolean {

@@ -1394,7 +1394,7 @@ describe("Loot Card", () => {
         const dagaz = game.decks["loot"]!.getCardFromSlug("b2-dagaz");
         const curses = game.decks["monster"]!.cards.filter((c) => c instanceof MonsterCard && c.isCurse);
         expect(curses.length).toBeGreaterThan(0);
-        player1.inPlay.push(curses[0]!);
+        game.addCurse(player1, curses[0]!);
         // console.log("Player1 curses before: ", inplayCurseSelector((player, card) => true, game)(player1));
         // console.log("Player1 in play before: ", player1.inPlay);
         player1.hand.addToHand(dagaz!);
@@ -1405,7 +1405,7 @@ describe("Loot Card", () => {
         game.playCard(player1, 0, debugTarget);
         await game.resolveStack();
 
-        expect(player1.inPlay).not.toContain(curses[0]!);
+        expect(player1.curses).not.toContain(curses[0]!);
         expect(game.destroyedCards).toContain(curses[0]!);
     });
 
@@ -1413,9 +1413,9 @@ describe("Loot Card", () => {
         const dagaz = game.decks["loot"]!.getCardFromSlug("b2-dagaz");
         const curses = game.decks["monster"]!.cards.filter((c) => c instanceof MonsterCard && c.isCurse);
         expect(curses.length).toBeGreaterThan(2); // This might be false if curses are drawn at the start of the game.
-        player1.inPlay.push(curses[0]!);
-        player1.inPlay.push(curses[1]!);
-        player1.inPlay.push(curses[2]!);
+        game.addCurse(player1, curses[0]!);
+        game.addCurse(player1, curses[1]!);
+        game.addCurse(player1, curses[2]!);
         // console.log("Player1 curses before: ", inplayCurseSelector((player, card) => true, game)(player1));
         // console.log("Player1 in play before: ", player1.inPlay);
         player1.hand.addToHand(dagaz!);
@@ -1424,23 +1424,23 @@ describe("Loot Card", () => {
         // console.log("debugTarget: ", debugTarget);
         // console.log("curse: ", curses[0]!);
         game.playCard(player1, 0, debugTarget);
-        player1.removeInPlay(curses[1]!); // Simulate curse being removed before resolution
-        player2.inPlay.push(curses[1]!); // Simulate curse being removed before resolution
+        player1.removeCurse(curses[1]!); // Simulate curse being removed before resolution
+        player2.addCurse(curses[1]!); // Simulate curse being removed before resolution
         await game.resolveStack();
 
-        expect(player1.inPlay).not.toContain(curses[1]!);
-        expect(player1.inPlay).toContain(curses[0]!);
-        expect(player1.inPlay).toContain(curses[2]!);
-        expect(player2.inPlay).not.toContain(curses[1]!);
-        expect(game.destroyedCards).toContain(curses[1]!);
+        expect(player1.curses.map(card => card.slug)).not.toContain(curses[1]!.slug);
+        expect(player1.curses.map(card => card.slug)).toContain(curses[0]!.slug);
+        expect(player1.curses.map(card => card.slug)).toContain(curses[2]!.slug);
+        expect(player2.curses.map(card => card.slug)).not.toContain(curses[1]!.slug);
+        expect(game.destroyedCards.map(card => card.slug)).toContain(curses[1]!.slug);
     });
 
     it("b2-dagaz: destroys nothing when the curse is not available anymore.", async () => {
         const dagaz = game.decks["loot"]!.getCardFromSlug("b2-dagaz");
         const curses = game.decks["monster"]!.cards.filter((c) => c instanceof MonsterCard && c.isCurse);
         expect(curses.length).toBeGreaterThan(2);
-        player1.inPlay.push(curses[0]!);
-        player1.inPlay.push(curses[1]!);
+        game.addCurse(player1, curses[0]!);
+        game.addCurse(player1, curses[1]!);
         player1.hand.addToHand(dagaz!);
 
         const debugTarget = ["Destroy a curse.", curses[2]!];
@@ -1450,8 +1450,8 @@ describe("Loot Card", () => {
 
         await game.resolveStack();
 
-        expect(player1.inPlay).toContain(curses[0]!);
-        expect(player1.inPlay).toContain(curses[1]!);
+        expect(player1.curses).toContain(curses[0]!);
+        expect(player1.curses).toContain(curses[1]!);
     });
 
     it("b2-dagaz: prevents the next 1 damage to the chosen player when that option is selected", async () => {

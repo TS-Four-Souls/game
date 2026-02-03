@@ -728,13 +728,15 @@ describe("Loot Card", () => {
         // Stub select to choose the first option
 
         const beforeSouls = player1.totalSouls;
-
+        const initInPlay = player1.inPlay.length;
         game.playCard(player1, 0);
         await game.resolveStack();
         
         expect(card!.soul).toBe(1);
         expect(player1.totalSouls).toBe(beforeSouls + 1);
         expect(player1.souls.length).not.toBe(0);
+        expect(player1.inPlay.length).toBe(initInPlay);
+        
     });
 
     it("b2-guppys_hairball: prevent damage on a 6.", async () => {

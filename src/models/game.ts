@@ -155,16 +155,9 @@ export class Game {
     return items;
   }
 
-  get inPlayCurses(): { player: Player; card: MonsterCard }[] {
-    const curses: { player: Player; card: MonsterCard }[] = [];
-    for (const player of this.players) {
-      for (const card of player.inPlay) {
-        if (card instanceof MonsterCard && card.isCurse) {
-          curses.push({ player, card });
-        }
-      }
-    }
-    return curses;
+  get inPlayCurses(): { player: Player; card: MonsterCard }[] {this.players.flatMap(p => p.curses.map(c => ({player: p, card: c})));
+    return this.players.flatMap(p => p.curses.map(c => ({player: p, card: c})));
+
   }
 
   get visibleItems(): ItemCard[] {
@@ -937,17 +930,14 @@ export class Game {
     await elem.onResolve();
     if (elem instanceof LootCardEffect && elem.card instanceof LootCard)
     {
-      if(!this.decks["loot"]!.cards.includes(elem.card)) // the sun is put below the deck on play
-      {
-        if(!elem.card.trinket)
+      if(elem.card.afterEffect === "discard")
           this.discard(elem.card);
-        else 
+      if(elem.card.afterEffect === "addInPlay")
         {
           if(!(elem.card.owner instanceof Player))
             throw new Error("Trinket can only be owned by a player");
           this.addInPlay(elem.card.owner, elem.card);
         }
-      }
     }
     this._onStateChange.dispatch();
     if (elem instanceof DiceRoll)
@@ -1413,6 +1403,17 @@ export class Game {
     });
   }
 
+  addCurse(player: Player, card: MonsterCard): void {
+    player.addCurse(card);
+    this._onStateChange.dispatch();
+  }
+
+  removeCurse(player: Player, card: MonsterCard): void {
+    card.cleanup();
+    player.removeCurse(card);
+    this._onStateChange.dispatch();
+  }
+
   async activateItemAtIndex(
     player: Player,
     index: number,
@@ -1694,6 +1695,19 @@ export class Game {
     }
   }
 
+  destroyCurse(cards: MonsterCard[]): boolean {
+    this.players.forEach((player) => {
+      player.curses.forEach((card) => {
+        if (cards.includes(card)) {
+          this.removeCurse(player, card);
+          this.destroyedCards.push(card);
+        }
+      })
+    });
+    this._onStateChange.dispatch();
+    return true;
+  }
+
   destroyCardsOrSouls(cards: Card[]): boolean {
     if (cards.length === 0 || cards.every((card) => card === undefined))
       return false;
@@ -1716,6 +1730,9 @@ export class Game {
   canActivate(card: Card, owner: Player): Capability {
     if (card instanceof ItemCard && card.activeEffectList.length === 0) {
       return "This card has no active effects, there is nothing to activate.";
+    }
+    if(card instanceof MonsterCard && card.encounterType === MonsterType.EVENT) {
+      return "You can not activate monster cards.";
     }
     if(owner !== this.currentPlayer && !this.currentPlayer.otherPlayerCanUseLootOrActivateOnMyTurn) {
       return `You cannot activate cards during ${this.currentPlayer.id}'s turn.`;
@@ -1755,7 +1772,19 @@ export class Game {
           {
             activate: (c as ItemCard).activeEffectList.some(p => p.index != "tap") || this.canActivate(c, player),
           },
-        })),
+        })).concat(
+          player.curses.map((c) => ({
+          name: c.name,
+          slug: c.slug,
+          charged: true,
+          counter: undefined,
+          eternal: false,
+          effects: c.activeEffectList,
+          capabilities:
+          {
+            activate: this.canActivate(c, player),
+          },
+        }))),
         handSize: player.hand.cards.length,
         souls: player.totalSouls,
         soulCards: player.souls.map((c) => c.json),
@@ -1810,7 +1839,18 @@ export class Game {
             },
             counter: (c.tags["counters"] === undefined ? c.tags["levels"] : c.tags["counters"]) as number | undefined,
             eternal: c.eternal,
-          })),
+          })).concat(p.curses.map((c) => ({
+          name: c.name,
+          slug: c.slug,
+          charged: true,
+          counter: undefined,
+          eternal: false,
+          effects: c.activeEffectList,
+          capabilities:
+          {
+            activate: "you can not activate curse cards",
+          },
+        }))),
           souls: p.totalSouls,
           soulCards: p.souls.map((c) => c.json),
           coins: p.coins,

@@ -55,8 +55,6 @@ export class TargetBuilder {
         game.assertNoPendingSelection();
         if(!item)
             throw new Error(`Item not found.`);
-        if(item instanceof LootCard && item.trinket)
-                throw new Error("Trinket items cannot be activated.");
         if(throwIfNotCharged && effectId === "tap" && !item.charged)
             throw new Error(`Item ${item.name} is not charged.`);
         // console.log("TargetBuilder.getNextSelector for item:", item.name, "effectId:", effectId, "partialChoices:", partialChoices);

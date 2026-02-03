@@ -217,11 +217,25 @@ export function shuffleDeckEffect(game: Game, deckName: DeckType): EffectFunctio
     };
 }
 
-export function destroyOneEffect(game: Game, selectionOnResolve: boolean=false): EffectFunction {
+export function destroyCurseEffect(game: Game, selectionOnResolve: boolean=false): EffectFunction {
+    return async (data: EffectData) => {
+        let toDestroy = data.next;
+        if(selectionOnResolve) {
+            toDestroy = (await game.select(data.issuer as Player, 1, data.targets, false, "Select a curse to destroy.")).selected[0];
+        }
+        if(!(toDestroy instanceof MonsterCard && toDestroy.isCurse))
+            throw new Error(`Card to destroy is not a curse: ${toDestroy.name}`);
+        return game.destroyCurse([toDestroy]);
+    };
+}
+
+export function destroyOneEffect(game: Game, selector: TargetsSelector|undefined = undefined): EffectFunction {
     return async (data: EffectData) => {
         let toDestroy = data.next as Card;
-        if(selectionOnResolve) {
-            toDestroy = (await game.select(data.issuer as Player, 1, data.targets, false, "Select a card to destroy.")).selected[0] as Card;
+        if(selector !== undefined) {
+            if(data.issuer instanceof Player === false)
+                throw new Error("Effect issuer is not a player in destroyOneEffect.");
+            toDestroy = (await game.select(data.issuer as Player, 1, selector.selector(data.issuer), false, "Select a card to destroy.")).selected[0] as Card;
         }
         return game.destroyCardsOrSouls([toDestroy]);
     };
@@ -1440,7 +1454,9 @@ export function killMonsterEffect(game: Game): EffectFunction {
 export function enterPlayBecomeSoulEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        game.removeInPlay(data.issuer, data.it);
+        if(data.it instanceof LootCard === false)
+            throw new Error("Card is not a loot card for enterPlayBecomeSoulEffect");
+        data.it.afterEffect = "nothing"; // card placement is handled by the effect itself.
         data.it.soul = 1;
         game.addSoul(data.issuer, data.it);
         return true;
@@ -1459,7 +1475,9 @@ export function putThisOnBottomOfLootDeckEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         if(data.it instanceof LootCard === false)
             throw new Error("Card is not a loot card for putThisOnBottomOfLootDeckEffect");
+        data.it.afterEffect = "nothing"; // card placement is handled by the effect itself.
         game.addBottomPosition("loot", data.it);
+        
         return true;
     };
 }

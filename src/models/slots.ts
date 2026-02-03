@@ -302,7 +302,7 @@ class Encounters {
                     // card.onAddInPlay(data.issuer);
                     this._game.executeWhenStackSubset(stackIds, () => {
                         this.discardTop(index); // remove the card once the effect is resolved.
-                        if(card.isCurse)
+                        if(card.isCurse) // if the event is a curse, remove it from discard.
                             this._deck.drawTopDiscard();
                         });
                     return true;

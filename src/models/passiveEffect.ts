@@ -255,8 +255,10 @@ export function curseEffect(restEffectFunction: EffectFunction, game: Game): Eff
         // select owner of the curse.
         const owner = (await game.select(game.currentPlayer, 1, game.players, false, "Select a target for the curse.")).selected[0];
         if (!owner) return false;
+        if(!(data.it instanceof MonsterCard))
+            throw new Error("Curse effect can only be applied by MonsterCards.");
         // Add the curse to their in play area.
-        game.addInPlay(owner, data.it as ItemCard);
+        game.addCurse(owner, data.it);
         // Apply the rest of the effect.
         restEffectFunction(new EffectData(data.it, owner, []));
         // Add Listener to remove the curse when the owner dies.
@@ -264,7 +266,9 @@ export function curseEffect(restEffectFunction: EffectFunction, game: Game): Eff
         offDeath = game.emitter.on("on:death:after-penalty", (eventData: OnDeathAfterPenaltyData) => {
             const { eventIssuer } = eventData;
             if (owner !== eventIssuer) return;
-            game.removeInPlay(owner, data.it as ItemCard);
+            if(!(data.it instanceof MonsterCard))
+                throw new Error("Curse effect can only be applied by MonsterCards.");
+            game.removeCurse(owner, data.it);
             game.discard(data.it);
             offDeath?.();
             offDeath = null;

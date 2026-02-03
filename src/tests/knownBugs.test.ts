@@ -94,8 +94,8 @@ describe("Loot Card", () => {
         game.encounters.draw(0);
         await game.resolveStack();
 
-        expect(player1.inPlay.length).toBe(4);
-        expect(player1.inPlay[3]!.slug).toBe("b2-curse_of_pain");
+        expect(player1.curses.length).toBe(1);
+        expect(player1.curses[0]!.slug).toBe("b2-curse_of_pain");
         game.endTurn();
         await game.resolveStack();
 
@@ -109,7 +109,7 @@ describe("Loot Card", () => {
 
         game.kill(player1, player1, pain);
         await game.resolveStack(); // death on stack
-        expect(player1.inPlay.length).toBe(2);
+        expect(player1.curses.length).toBe(0);
 
         game.endTurn();
         await game.resolveStack();
@@ -130,8 +130,8 @@ describe("Loot Card", () => {
         game.encounters.draw(0);
         await game.resolveStack();
 
-        expect(player1.inPlay.length).toBe(4);
-        expect(player1.inPlay[3]!.slug).toBe("b2-curse_of_pain");
+        expect(player1.curses.length).toBe(1);
+        expect(player1.curses[0]!.slug).toBe("b2-curse_of_pain");
         game.endTurn();
         await game.resolveStack();
 
@@ -144,9 +144,9 @@ describe("Loot Card", () => {
         expect(player1.currentHealthPoints).toBe(1);
 
         game.addCardToHand(player1, dagaz);
-        game.playCard(player1, player1.hand.length - 1, ["destroy a curse.", pain]);
+        game.playCard(player1, player1.hand.length - 1, ["Destroy a curse.", pain]);
         await game.resolveStack(); // death on stack
-        expect(player1.inPlay.length).toBe(3);
+        expect(player1.curses.length).toBe(0);
 
         game.endTurn();
         await game.resolveStack();
@@ -166,4 +166,5 @@ describe("Loot Card", () => {
         expect(game.monsters[0]).not.toBe(monster);
         expect(game.encounters.visible[0]?.slug).not.toBe(monster.card.slug);
     });
+    
 });

@@ -784,7 +784,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         case "force that player to reroll it.":
             return { effectFunction: active.forcePlayerRerollDiceEffect(game), targetSelectors: noTargets };
         case "destroy a curse.":
-            return { effectFunction: active.destroyOneEffect(game), targetSelectors: selectCurse(game) };
+            return { effectFunction: active.destroyCurseEffect(game), targetSelectors: selectCurse(game) };
         case "shuffle the monster deck.":
             return { effectFunction: active.shuffleDeckEffect(game, "monster"), targetSelectors: noTargets };
         case "shuffle the treasure deck.":
@@ -800,7 +800,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         case "destroy an item you control.":
             return { effectFunction: active.destroyOneEffect(game), targetSelectors: selectItemYouControl(game) };
         case "destroy a soul you control.":
-            return { effectFunction: active.destroyOneEffect(game, true), targetSelectors: selectSoulYouControl(game) };
+            return { effectFunction: active.destroyOneEffect(game, selectSoulYouControl(game)[0]), targetSelectors: noTargets };
         case "each player votes on an item in play. destroy the item with the most votes. if there is a tie, nothing happens.":
             return { effectFunction: active.eachPlayersVoteToDestroyItemEffect(game), targetSelectors: noTargets };
         case "swap this with a non-eternal item another player controls.":

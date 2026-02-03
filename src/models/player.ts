@@ -1,5 +1,5 @@
 import { Entity } from "@/models/entity";
-import { CharacterCard, Hand, InplayType, ItemCard, TreasureCard, Card, type EffectFunction, EffectOnStack, EffectData } from "./cards";
+import { CharacterCard, Hand, InplayType, ItemCard, TreasureCard, Card, type EffectFunction, EffectOnStack, EffectData, MonsterCard } from "./cards";
 import type { Game } from "./game";
 import type { Monster } from "./monster";
 import { TargetBuilder } from "./targetBuilder";
@@ -65,6 +65,7 @@ export class Player extends Entity {
 
   private _engagedInPurchase: number = 0;
 
+  private _curses: MonsterCard[] = [];
   /**
    * Creates a new Player instance.
    * 
@@ -299,6 +300,22 @@ export class Player extends Entity {
     this._attackRollThisTurn = value;
   }
 
+  get curses(): MonsterCard[] {
+    return this._curses;
+  }
+
+  addCurse(curse: MonsterCard): void {
+    this._curses.push(curse);
+  }
+
+  removeCurse(curse: MonsterCard): boolean {
+    const index = this._curses.indexOf(curse);
+    if (index !== -1) {
+      this._curses.splice(index, 1);
+      return true;
+    }
+    return false;
+  }
   /**
    * Increments the number of attacks made this turn.
    * @param value - Amount to add to attack count
