@@ -61,6 +61,10 @@ const sendRoomChanged = (playerId: string) => {
 
 io.on("connection", (socket) => {
   console.log("Client connected");
+  
+  socket.on("isGameOngoing", (callback) => {
+    return callback({ gameOngoing: game.isStarted });
+  });
 
   socket.on("join", (payload, callback) => {
     const validated = schemas.joinRequest.safeParse(payload);
