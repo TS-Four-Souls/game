@@ -167,4 +167,26 @@ describe("Loot Card", () => {
         expect(game.encounters.visible[0]?.slug).not.toBe(monster.card.slug);
     });
     
+    it("start of the turn resolve after loot", async () => {
+
+        const loot = game.obtainCard("b2-cains_eye") as LootCard;
+        game.addCardToHand(player1, loot);
+        game.playCard(player1, player1.hand.length - 1, []);
+        await game.resolveStack();
+        game.endTurn();
+        await game.resolveEntireStack();
+        const initcard = player1.hand.length;
+        game.endTurn();
+        await game.resolveStack();
+        expect(player1.hand.length).toBe(initcard);
+        const card = game.decks.loot.cards[0] as LootCard;
+        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+            await new Promise(resolve => setTimeout(resolve, 0));
+            return {selected: [], remaining: []};
+        };
+        expect(player1.hand._hand.map((c) => c.slug)).not.toContain(card.slug);
+        await game.resolveStack();
+        expect(player1.hand.length).toBe(initcard + 1);
+        expect(player1.hand._hand.map((c) => c.slug)).toContain(card.slug);
+    });
 });

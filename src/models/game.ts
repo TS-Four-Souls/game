@@ -63,7 +63,7 @@ export class Game {
   private _destroyedCards: Card[] = [];
   private _emitter: GameEventEmitter;
   private _bonusSouls: BsoulCard[] = [];
-  private _stackEmptyCallbacks: {stackIds: number[], callback: () => void}[] = [];
+  private _stackSubsetCallbacks: {stackIds: number[], callback: () => void}[] = [];
   private _historicHandler: HistoricHandler = new HistoricHandler();
   readonly gameParameters = new GameParameters(() => this._onStateChange.dispatch());
 
@@ -936,23 +936,7 @@ export class Game {
     if (elem instanceof DiceRoll)
       this.emit("on:dice:rolled", { diceRoll: elem });
 
-    
-
-    // Collect callbacks that should execute (where all their stackIds are resolved)
-    const callbacksToExecute: {stackIds: number[], callback: () => void | Promise<void>}[] = [];
-    for(let i = this._stackEmptyCallbacks.length - 1; i >= 0; i--){
-      const e = this._stackEmptyCallbacks[i]!;
-      if (this.stack.elements.every((el) => e.stackIds.includes(el.stackId))) {
-        callbacksToExecute.push(e);
-        this._stackEmptyCallbacks.splice(i, 1);
-      }
-    }
-    
-    // Execute collected callbacks
-    for (const cb of callbacksToExecute) {
-      await cb.callback();
-      this._onStateChange.dispatch();
-    }
+    await this.resolveCallbacks();
   }
 
   async resolveEntireStack(): Promise<void> {
@@ -971,21 +955,22 @@ export class Game {
     ids: number[],
     callback: () => void | Promise<void>
   ): Promise<void> {
-    if (this.stack.elements.every((el) => ids.includes(el.stackId))) {
-      // Stack is already empty, execute immediately
-      await callback();
-    } else {
-      // Queue the callback to be executed when stack becomes empty
-      this._stackEmptyCallbacks.push({stackIds: ids, callback});
-    }
+    this._stackSubsetCallbacks.push({stackIds: ids, callback});
+    this.resolveCallbacks();
+  }
 
-    // If stack is now empty, execute any pending callbacks
-    if (this.stack.elements.every((el) => ids.includes(el.stackId)) && this._stackEmptyCallbacks.length > 0) {
-      const callbacks = [...this._stackEmptyCallbacks];
-      this._stackEmptyCallbacks = [];
-      for (const callback of callbacks) {
-        await callback.callback();
+  async resolveCallbacks(): Promise<void> {
+    const callbacksToExecute: {stackIds: number[], callback: () => void | Promise<void>}[] = [];
+    for(let i = this._stackSubsetCallbacks.length - 1; i >= 0; i--){
+      const e = this._stackSubsetCallbacks[i]!;
+      if (this.stack.elements.every((el) => e.stackIds.includes(el.stackId))) {
+        callbacksToExecute.push(e);
+        this._stackSubsetCallbacks.splice(i, 1);
       }
+    }
+    // Execute collected callbacks
+    for (const cb of callbacksToExecute) {
+      await cb.callback();
       this._onStateChange.dispatch();
     }
   }
@@ -1000,7 +985,6 @@ export class Game {
 
   resetStack(): void {
     this.stack.clear();
-    // this.resolveStack();
   }
 
   allHands(): { player: Player; hand: Hand }[] {

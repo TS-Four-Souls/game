@@ -123,13 +123,13 @@ export function lvlXaddListenerEffect(
     game: Game): EffectFunction {
 
     return (data: EffectData) => {
-        let offTurn = game.emitter.on("on:coin:gained:after", (eventData: OnCoinGainedData) => {
+        let offTurn = game.emitter.on("on:coin:gained:after", async (eventData: OnCoinGainedData) => {
             const { eventIssuer } = eventData;
             if (data.issuer !== eventIssuer) return;
             if (data.it.tags.levels === undefined || data.it.tags.levels < lvl) return;
 
             for (const func of functions)
-                func(data);
+                await func(data);
             offTurn();
         });
         return true;
@@ -422,9 +422,9 @@ export function onDamageTakenEffect(
             data.addTarget({damageTaken: damage});
             
             // Add all effects as a single stack element
-            const effect = (effectData: EffectData) => {
+            const effect = async (effectData: EffectData) => {
                 for (const func of effectFunctions) {
-                    func(effectData);
+                    await func(effectData);
                 }
                 return true;
             };
@@ -460,9 +460,9 @@ export function beforeDeathPenaltyEffect(
             if (data.issuer !== eventIssuer) return;
             
             // Add all effects as a single stack element
-            const effect = (effectData: EffectData) => {
+            const effect = async (effectData: EffectData) => {
                 for (const func of effectFunctions) {
-                    func(effectData);
+                    await func(effectData);
                 }
                 return true;
             };
@@ -495,9 +495,9 @@ export function onYourEventEffect(
             if (data.issuer !== eventIssuer) return;
             
             // Add all effects as a single stack element
-            const effect = (effectData: EffectData) => {
+            const effect = async (effectData: EffectData) => {
                 for (const func of effectFunctions) {
-                    func(effectData);
+                    await func(effectData);
                 }
                 return true;
             };
@@ -531,9 +531,9 @@ export function onAnyEventEffect(
             }
             
             // Add all effects as a single stack element
-            const effect = (effectData: EffectData) => {
+            const effect = async (effectData: EffectData) => {
                 for (const func of effectFunctions) {
-                    func(effectData);
+                    await func(effectData);
                 }
                 return true;
             };
@@ -915,9 +915,9 @@ export function onFirstDamageEachTurnEffect(functions: EffectFunction[], game: G
             if (data.issuer !== eventIssuer) return;
             
             // Create the effect that will execute when the stack resolves
-            const effect = (effectData: EffectData) => {
+            const effect = async (effectData: EffectData) => {
                 for (const func of functions)
-                    func(effectData);
+                    await func(effectData);
                 return true;
             };
             
@@ -1170,9 +1170,9 @@ export function onWouldRollEffect(
             data.addTarget({ diceThatWouldRoll: diceRoll});
             
             // Create the effect that will execute when the stack resolves
-            const effect = (effectData: EffectData) => {
+            const effect = async (effectData: EffectData) => {
                 for (const func of effectFunctions)
-                    func(effectData);
+                    await func(effectData);
                 return true;
             };
             
