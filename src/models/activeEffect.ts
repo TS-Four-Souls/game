@@ -1166,7 +1166,7 @@ export function throwEffect(game: Game): EffectFunction {
     };
 }
 
-export function putAnyNumberFromDiscardOnTopEffect(deckName: DeckType, game: Game): EffectFunction {
+export function putAnyNumberFromDiscardOnTopEffect(deckName: DeckType, game: Game, condition: (card: Card) => boolean): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const deck: Deck<Card> = game.decks[deckName];
@@ -1174,7 +1174,7 @@ export function putAnyNumberFromDiscardOnTopEffect(deckName: DeckType, game: Gam
             throw new Error(`Deck ${deckName} does not exist.`);
         }
         const maxToPutBack = deck.discard.length;
-        const selectionResult = await game.select(data.issuer, maxToPutBack, deck.discard, true, "Select cards to put back on top of the deck (first selected will be on top).");
+        const selectionResult = await game.select(data.issuer, maxToPutBack, deck.discard.filter(condition), true, "Select cards to put back on top of the deck (first selected will be on top).");
         for (let i = 0; i < selectionResult.selected.length; i++) {
             const card = selectionResult.selected[i]!;
             assertCardMatchesDeck(deckName, card);

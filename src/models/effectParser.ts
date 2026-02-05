@@ -1,5 +1,5 @@
 import { DamageOnStack, DiceRoll, Player } from "./player";
-import { type Card, LootCard, ItemCard, MonsterCard, InplayType, BsoulCard, EffectOnStack, LootCardEffect } from "./cards";
+import { type Card, LootCard, ItemCard, MonsterCard, InplayType, BsoulCard, EffectOnStack, LootCardEffect, MonsterType } from "./cards";
 import { EffectData, type EffectFunction, type TargetsSelector } from "./types/cardTypes";
 import { Game } from "./game";
 import type { Entity } from "./entity";
@@ -11,7 +11,7 @@ import * as active from "./activeEffect";
 import * as monster from "./monsterEffects";
 import type { BonusSoulCardType } from "@/types/cardTypes";
 import { parse } from "zod";
-import type { Monster } from "./monster";
+import { Monster } from "./monster";
 import { inAnotherplayItemSelector, anotherPlayerSelector, playerSelector, activeEntitySelector, deckSelector, rollSelector, inplayUnchargedItemSelector, inplayCurseSelector, inplayItemSelector, visibleItemSelector, stackElementSelector, YourItemSelector, inplayItemAndSoulSelector } from "./targetSelector";
 
 /**
@@ -833,7 +833,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         case "cancel the ↷ or $ ability of an item.":
             return { effectFunction: active.cancelStackElementEffect(game), targetSelectors: selectUsableAbilityStackElement(game) };
         case "put any number of non-event monster cards in discard on top of the monster deck.":
-            return { effectFunction: active.putAnyNumberFromDiscardOnTopEffect("monster", game), targetSelectors: noTargets };
+            return { effectFunction: active.putAnyNumberFromDiscardOnTopEffect("monster", game, (card) => card instanceof MonsterCard && card.encounterType !== MonsterType.EVENT), targetSelectors: noTargets };
         case "steal a soul from another player.":
             return { effectFunction: active.stealSoulEffect(game), targetSelectors: selectAnotherPlayer(game) };
         case "put this into discard.": // this should be only used in events

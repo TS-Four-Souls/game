@@ -1567,6 +1567,7 @@ export class Game {
   addAttackThisTurn(e: Entity, value: number = 1): void {
     if (e instanceof Player) {
       e.addAttackThisTurn(value);
+      this._onStateChange.dispatch();
     }
   }
 
