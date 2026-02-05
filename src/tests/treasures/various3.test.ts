@@ -379,7 +379,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Mock game.select to return the loot card
         game.select = async (issuer, n, opts, optional) => {
-            return { selected: [opts[0]], remaining: [] };
+            return { selected: [opts[0]], remaining: [] } as any;
         };
 
         // Recharge and activate guppys_head targeting player2
@@ -550,7 +550,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Mock game.select to choose monster2
         game.select = async (issuer, n, opts, optional) => {
-            return { selected: [opts[0]], remaining: [] };
+            return { selected: [opts[0]], remaining: [] }as any;
         };
 
         game.recharge(theShovel);
@@ -661,7 +661,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Mock game.select to choose the soul
         game.select = async (issuer, n, opts, optional) => {
-            return { selected: [soul], remaining: [] };
+            return { selected: [soul], remaining: [] }as any;
         };
 
         game.recharge(momsShovel);
@@ -690,7 +690,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Mock game.select to choose the monster
         game.select = async (issuer, n, opts, optional) => {
-            return { selected: [monster], remaining: [] };
+            return { selected: [monster], remaining: [] } as any;
         };
 
         game.recharge(momsBra);
@@ -801,7 +801,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Mock game.select to choose number 4
         game.select = async (issuer, n, opts, optional) => {
-            return { selected: [4], remaining: [] };
+            return { selected: [4], remaining: [] } as any;
         };
 
         game.recharge(crystalBall);

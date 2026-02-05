@@ -161,7 +161,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Mock game.select to choose to force reroll
         game.select = async (_issuer, _n, opts, _optional) => {
-            return { selected: [opts[0]], remaining: [] };
+            return { selected: [opts[0]], remaining: [] } as any;
         };
 
         // Player2 rolls a dice

@@ -35,9 +35,9 @@ describe("Event Monsters - Other Events", () => {
         const initialHandSize = player1.hand.length;
         const initialDeckSize = game.decks["loot"]!.cards.length;
         
-        game.select = async (player: Player, n: number, options: Card[], optional?: boolean) => {
+        game.select = async <T>(player: Player, n: number, options: T[], optional?: boolean) => {
             // Simulate selecting the first card to loot
-            return { selected: options.slice(0, n).reverse(), remaining: options.slice(1) };
+            return { selected: options.slice(0, n).reverse(), remaining: options.slice(n) };
         };
         // Draw the event to trigger its effect
         game.monsterSlots.discardTop(0);
@@ -182,9 +182,9 @@ describe("Event Monsters - Other Events", () => {
          
         // Mock select to choose no monsters to move
         const originalSelect = game.select.bind(game);
-        game.select = async (player: Player, n: number, options: any[], optional?: boolean) => {
+        game.select = async <T>(player: Player, n: number, options: T[], optional?: boolean) => {
             if (optional) {
-                return { selected: [], remaining: options };
+                return { selected: [] as T[], remaining: options };
             }
             return originalSelect(player, n, options, optional);
         };

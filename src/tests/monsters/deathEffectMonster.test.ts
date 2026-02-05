@@ -37,7 +37,7 @@ describe("Monsters - On death effects", () => {
             
             // Mock selection to choose "Yes" for attacking monster deck
             game.select = async (_p, n, opts) => {
-                    return { selected: [opts[0]], remaining: opts.slice(1) };
+                    return { selected: [opts[0]], remaining: opts.slice(1) } as any;
             };
             
             // Kill the Big Spider by dealing lethal damage
@@ -89,7 +89,7 @@ describe("Monsters - On death effects", () => {
             let selectionCount = 0;
             game.select = async (_p, n, opts) => {
                 selectionCount += 1;
-                return { selected: [opts[0]], remaining: opts.slice(1) };
+                return { selected: [opts[0]], remaining: opts.slice(1) } as any;
             };
             game.dealDamage(player1, spiderMonster, bigSpider, 1);
             await game.resolveStack();
@@ -118,7 +118,7 @@ describe("Monsters - On death effects", () => {
             
             // Mock selection to choose "Yes" for attacking monster deck
             game.select = async (_p, n, opts) => {
-                    return { selected: [opts[0]], remaining: opts.slice(1) };
+                    return { selected: [opts[0]], remaining: opts.slice(1) } as any;
             };
             
                 game.kill(conquestMonster, conquestMonster, conquestCard);
@@ -157,8 +157,8 @@ describe("Monsters - On death effects", () => {
         game.loot( player2, 4); // give some loot cards to player2
         game.select = async (p, n, opts) => {
             if (p.id === player1.id)
-                return { selected: [player2], remaining: opts.filter(o => o !== player2) };
-            return { selected: opts.slice(0, n), remaining: opts.slice(n) };
+                return { selected: [player2], remaining: opts.filter(o => o !== player2) } as any;
+            return { selected: opts.slice(0, n), remaining: opts.slice(n) } as any;
         };
         game.kill(monster, monster, card);
         
@@ -178,8 +178,8 @@ describe("Monsters - On death effects", () => {
         
         game.select = async (p, n, opts) => {
             if (p.id === player1.id)
-                return { selected: [player2], remaining: opts.filter(o => o !== player2) };
-            return { selected: opts.slice(0, n), remaining: opts.slice(n) };
+                return { selected: [player2], remaining: opts.filter(o => o !== player2) } as any;
+            return { selected: opts.slice(0, n), remaining: opts.slice(n) } as any;
         };
         game.kill(monster, monster, card);
         
@@ -231,8 +231,8 @@ describe("Monsters - On death effects", () => {
 
         game.select = async (p, n, opts) => {
             if (p.id === player1.id)
-                return { selected: [player2], remaining: opts.filter(o => o !== player2) };
-            return { selected: opts.slice(0, n), remaining: opts.slice(n) };
+                return { selected: [player2], remaining: opts.filter(o => o !== player2) } as any;
+            return { selected: opts.slice(0, n), remaining: opts.slice(n) } as any;
         };
         game.kill(monster, monster, card);
         
@@ -255,7 +255,7 @@ describe("Monsters - On death effects", () => {
 
         game.select = async (p, n, opts) => {
             if (p.id === player1.id)
-                return { selected: [player2], remaining: opts.filter(o => o !== player2) };
+                return { selected: [player2], remaining: opts.filter(o => o !== player2) } as any;
             return { selected: opts.slice(0, n), remaining: opts.slice(n) };
         };
         game.kill(monster, monster, card);
@@ -305,8 +305,8 @@ describe("Monsters - On death effects", () => {
         game.kill(monster, monster, card);
         game.select = async (p, n, opts) => {
             if (p.id === player1.id)
-                return { selected: [item1], remaining: opts.filter(o => o !== player2) };
-            return { selected: opts.slice(0, n), remaining: opts.slice(n) };
+                return { selected: [item1], remaining: opts.filter(o => o !== player2) } as any;
+            return { selected: opts.slice(0, n), remaining: opts.slice(n) } as any;
         };
         await game.resolveStack(); // resolve death
         await game.resolveStack(); // resolve death effect - selection
@@ -353,15 +353,16 @@ describe("Monsters - On death effects", () => {
         game.select = async (p, n, opts) => {
             count += 1;
             if(count === 1)
-                return { selected: [player2], remaining: opts.filter(o => o !== player2) };
+                return { selected: [player2], remaining: opts.filter(o => o !== player2) } as any;
             if(count === 2){
+                const selectedPlayer = opts[0] as Player;
                 for(const slug of handSlugs){
-                    expect((opts[0].hand as Hand).cards.map(card => card.slug)).toContain(slug);
+                    expect(selectedPlayer.hand.cards.map(card => card.slug)).toContain(slug);
                 }
-                expect((opts[0].hand as Hand).cards.length).toBe(handSlugs.length);
-                return { selected: [], remaining: opts.filter(o => o !== player2) };
+                expect(selectedPlayer.hand.cards.length).toBe(handSlugs.length);
+                return { selected: [], remaining: opts.filter(o => o !== player2) } as any;
             }
-            return { selected: opts.slice(0, n), remaining: opts.slice(n) };
+            return { selected: opts.slice(0, n), remaining: opts.slice(n) } as any;
         };
         await game.resolveStack(); // resolve death
         await game.resolveStack(); // resolve death effect - selection
@@ -383,8 +384,8 @@ describe("Monsters - On death effects", () => {
         game.select = async (p, n, opts) => {
             count += 1;
             if(count === 1)
-                return { selected: [], remaining: opts.filter(o => o !== player2) };
-            return { selected: opts.slice(0, n), remaining: opts.slice(n) };
+                return { selected: [], remaining: opts.filter(o => o !== player2) } as any;
+            return { selected: opts.slice(0, n), remaining: opts.slice(n) } as any;
         };
         await game.resolveStack(); // resolve death
         await game.resolveStack(); // resolve death effect - selection
@@ -402,7 +403,7 @@ describe("Monsters - On death effects", () => {
         
         game.kill(monster, monster, card);
         game.select = async (p, n, opts) => {
-            return { selected: [player2], remaining: opts.filter(o => o !== player2) };
+            return { selected: [player2], remaining: opts.filter(o => o !== player2) } as any;
         };
         await game.resolveStack(); // resolve death
         await game.resolveStack(); // resolve death effect - selection
@@ -421,7 +422,7 @@ describe("Monsters - On death effects", () => {
         
         game.kill(monster, monster, card);
         game.select = async (p, n, opts) => {
-            return { selected: [player2, game.encounters.monsterIn(1)], remaining: opts.filter(o => o !== player2) };
+            return { selected: [player2, game.encounters.monsterIn(1)], remaining: opts.filter(o => o !== player2) } as any;
         };
         await game.resolveStack(); // resolve death
         await game.resolveStack(); // resolve death effect - selection
@@ -447,7 +448,7 @@ describe("Monsters - On death effects", () => {
         game.kill(monster, monster, card);
         game.select = async (p, n, opts) => {
             if( p.id === player1.id)
-                return { selected: [player2], remaining: opts.filter(o => o !== player2) };
+                return { selected: [player2], remaining: opts.filter(o => o !== player2) } as any;
             return { selected: opts.slice(0, n), remaining: opts.slice(n)};
         };
         await game.resolveStack(); // resolve death
@@ -473,8 +474,8 @@ describe("Monsters - On death effects", () => {
         game.kill(monster, monster, card);
         game.select = async (p, n, opts) => {
             if( p.id === player1.id)
-                return { selected: [player2], remaining: opts.filter(o => o !== player2) };
-            return { selected: opts.slice(0, n), remaining: opts.slice(n)};
+                return { selected: [player2], remaining: opts.filter(o => o !== player2) } as any;
+            return { selected: opts.slice(0, n), remaining: opts.slice(n) } as any;
         };
         await game.resolveStack(); // resolve death
         await game.resolveStack(); // resolve death effect - selection

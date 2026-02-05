@@ -81,7 +81,7 @@ describe("Tap/Paid effects 2", () => {
                 { playerId: player1.id, selected: [breakfast], remaining: selections[0].options.filter((i: any) => i !== breakfast) },
                 { playerId: player2.id, selected: [dinner], remaining: selections[1].options.filter((i: any) => i !== dinner) },
                 { playerId: player3.id, selected: [brimstone], remaining: selections[2].options.filter((i: any) => i !== brimstone) }
-            ];
+            ] as any;
         };
         
         const initialInPlay1 = [...player1.inPlay];

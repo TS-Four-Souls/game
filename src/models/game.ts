@@ -160,12 +160,13 @@ export class Game {
     return result;
   }
 
-  getOwner(item: ItemCard): Player | null {
-    for (const player of this.players) {
-      if (player.inPlay.includes(item)) {
-        return player;
+  getOwner(item: Card): Player | null {
+    if(item instanceof ItemCard)
+      for (const player of this.players) {
+        if (player.inPlay.includes(item)) {
+          return player;
+        }
       }
-    }
     for (const player of this.players) {
       if (player.souls.includes(item)) {
         return player;
@@ -736,13 +737,13 @@ export class Game {
    * If anyNumber is true, the player can select up to n options (including 0)
    * Returns a Promise that resolves to an object containing the selected and remaining options
   */
-  async select(
+  async select<T>(
     player: Player,
     n: number,
-    Options: any[],
+    Options: T[],
     anyNumber: boolean = false,
     description: string = "UNDEFINED SHOULD NOT HAPPEN"
-  ): Promise<{ selected: any[]; remaining: any[] }> {
+  ): Promise<{ selected: T[]; remaining: T[] }> {
     if (n === 1 && !anyNumber && Options.length === 1) {
       return {
         selected: Options,
@@ -803,21 +804,21 @@ export class Game {
     throw new Error("No pending selection found for this request ID");
   }
 
-  async selectMultiple(
+  async selectMultiple<T>(
     selections: Array<{
       player: Player;
       count: number;
-      options: any[];
+      options: T[];
       asMany?: boolean;
       description: string;
     }>
-  ): Promise<Array<{ playerId: string; selected: any[]; remaining: any[] }>> {
+  ): Promise<Array<{ playerId: string; selected: T[]; remaining: T[] }>> {
     // In multiplayer mode: create promises for all players
     const promises = selections.map((sel) => {
       return new Promise<{
         playerId: string;
-        selected: any[];
-        remaining: any[];
+        selected: T[];
+        remaining: T[];
       }>((resolve) => {
         const requestId = `${sel.player.id}_${Date.now()}_${Math.random()}`;
         const asMany = sel.asMany ?? false; // Use ?? instead of || to handle explicit false
@@ -1042,7 +1043,7 @@ export class Game {
     }
   }
 
-  recharge(item: Card): void {
+  recharge(item: ItemCard): void {
     item.recharge();
   }
 

@@ -227,7 +227,7 @@ describe("Loot Card", () => {
         
         // Player chooses to put it on bottom
         game.select = async (_issuer, _n, _opts, _optional) => ({ 
-            selected: [_opts[0]], 
+            selected: [_opts[0]!], 
             remaining: [] 
         });
         
@@ -250,7 +250,7 @@ describe("Loot Card", () => {
         
         game.select = async (_issuer, _n, _opts, _optional) => ({ 
             selected: [], 
-            remaining: [_opts[0]] 
+            remaining: [_opts[0]!] 
         });
         
         game.endTurn(); // End player1's turn
@@ -341,7 +341,7 @@ describe("Loot Card", () => {
 
         // Player chooses to put it on bottom
         game.select = async (_issuer, _n, _opts, _optional) => ({
-            selected: [_opts[0]],
+            selected: [_opts[0]!],
             remaining: []
         });
 
@@ -362,7 +362,7 @@ describe("Loot Card", () => {
 
         game.select = async (_issuer, _n, _opts, _optional) => ({
             selected: [],
-            remaining: [_opts[0]]
+            remaining: [_opts[0]!]
         });
 
         game.endTurn(); // End player1's turn
@@ -453,7 +453,7 @@ describe("Loot Card", () => {
 
         // Player chooses to put it on bottom
         game.select = async (_issuer, _n, _opts, _optional) => ({
-            selected: [_opts[0]],
+            selected: [_opts[0]!],
             remaining: []
         });
 
@@ -474,7 +474,7 @@ describe("Loot Card", () => {
 
         game.select = async (_issuer, _n, _opts, _optional) => ({
             selected: [],
-            remaining: [_opts[0]]
+            remaining: [_opts[0]!]
         });
 
         game.endTurn(); // End player1's turn

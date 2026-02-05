@@ -319,7 +319,7 @@ describe("Treasure - Passive effects", () => {
 
         // Mock game.select to choose the battery to recharge
         game.select = async (_issuer, _n, opts, _optional) => {
-            return { selected: [battery], remaining: [] };
+            return { selected: [battery], remaining: [] } as any;
         };
 
         // Take damage
@@ -347,9 +347,9 @@ describe("Treasure - Passive effects", () => {
         game.select = async (_issuer, _n, opts, _optional) => {
             selectCount++;
             if (selectCount === 1) {
-                return { selected: [battery1], remaining: [] };
+                return { selected: [battery1], remaining: [] } as any;
             }
-            return { selected: [battery2], remaining: [] };
+            return { selected: [battery2], remaining: [] } as any;
         };
 
         // Take damage twice

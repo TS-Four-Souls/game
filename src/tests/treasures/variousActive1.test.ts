@@ -43,7 +43,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Mock game.select to choose to put card on bottom
         game.select = async (_issuer, _n, opts, _optional) => {
-            return { selected: [opts[0]], remaining: [] };
+            return { selected: [opts[0]], remaining: [] } as any;
         };
 
         // Get the top card of the loot deck before activating
@@ -66,7 +66,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Mock game.select to choose to keep card on top
         game.select = async (_issuer, _n, opts, _optional) => {
-            return { selected: [], remaining: [opts[0]] };
+            return { selected: [], remaining: [opts[0]] } as any;
         };
 
         // Get the top card of the loot deck before activating
@@ -115,7 +115,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Mock game.select to choose which card to put on top
         game.select = async (_issuer, _n, opts, _optional) => {
-            return { selected: [opts[0]], remaining: [] };
+            return { selected: [opts[0]], remaining: [] } as any;
         };
 
         // Recharge and activate the item
@@ -179,7 +179,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Mock game.select to choose 1
         game.select = async (_issuer, _n, opts, _optional) => {
-            return { selected: [1], remaining: [] };
+            return { selected: [1], remaining: [] } as any;
         };
 
         // Recharge and activate godhead with the dice as target
@@ -202,7 +202,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Mock game.select to choose 6
         game.select = async (_issuer, _n, opts, _optional) => {
-            return { selected: [6], remaining: [] };
+            return { selected: [6], remaining: [] } as any;
         };
 
         // Recharge and activate godhead with the dice as target
@@ -266,7 +266,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Mock game.select to choose player2
         game.select = async (_issuer, _n, opts, _optional) => {
-            return { selected: [opts.find((opt: any) => opt === player2)], remaining: [] };
+            return { selected: [opts.find((opt: any) => opt === player2)], remaining: [] } as any;
         };
 
         // Recharge and activate the item
@@ -290,7 +290,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Mock game.select to choose player2
         game.select = async (_issuer, _n, opts, _optional) => {
-            return { selected: [opts.find((opt: any) => opt === player2)], remaining: [] };
+            return { selected: [opts.find((opt: any) => opt === player2)], remaining: [] } as any;
         };
 
         // Recharge and activate the item

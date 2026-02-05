@@ -3,7 +3,7 @@
 
 
 import { DamageOnStack, DiceRoll, Player } from "./player";
-import { type Card, LootCard, ItemCard, MonsterCard, InplayType, BsoulCard, EffectOnStack, isDeckType } from "./cards";
+import { type Card, LootCard, ItemCard, MonsterCard, InplayType, BsoulCard, EffectOnStack, isDeckType, assertCardMatchesDeck, Deck } from "./cards";
 import { EffectData, type EffectFunction, type TargetsSelector, type DeckType } from "./types/cardTypes";
 import { Game } from "./game";
 import type { Entity } from "./entity";
@@ -13,7 +13,7 @@ import type { Stack, StackElement } from "./stack";
 import { effectParser, type ParsedEffect } from "./effectParser";
 import { deckSelector, visibleItemSelector, inplayUnchargedItemSelector } from "./targetSelector";
 import { TargetBuilder } from "./targetBuilder";
-import type { Monster } from "./monster";
+import { Monster } from "./monster";
 
 export function gainCoinsEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
@@ -37,12 +37,16 @@ export function rechargeItemsEffect(game: Game, selectionOnResolve: boolean = fa
         if (selectionOnResolve) {
             const selectionResult = await game.select(data.issuer, 1, inplayUnchargedItemSelector(game)(data.issuer), true, "Select an item to recharge.");
             if (selectionResult.selected.length > 0) {
-                game.recharge(selectionResult.selected[0] as ItemCard);
+                if(!(selectionResult.selected[0] instanceof ItemCard))
+                    throw new Error(`Card to recharge is not an ItemCard: ${selectionResult.selected[0].name}`);
+                game.recharge(selectionResult.selected[0]);
             }
         }
         else {
             // data.targets is the array of items to recharge
-            for (const card of data.targets as ItemCard[]) {
+            for (const card of data.targets) {
+                if(!(card instanceof ItemCard))
+                    throw new Error(`Card to recharge is not an ItemCard: ${card.name}`);
                 game.recharge(card);
             }
         }
@@ -53,10 +57,12 @@ export function rechargeItemsEffect(game: Game, selectionOnResolve: boolean = fa
 export function makePlayerGiveLootCardEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const targetPlayer = data.next as Player;
+        const targetPlayer = data.next;
+        if(!(targetPlayer instanceof Player))
+            throw new Error("Target of makePlayerGiveLootCardEffect must be a Player.");
         if(targetPlayer === data.issuer) return true;
         if (targetPlayer.hand.length > 0) {
-            const cardToGive = (await game.select(targetPlayer, 1, targetPlayer.hand.cards, false, "Select a card to give.")).selected[0] as LootCard;
+            const cardToGive = (await game.select(targetPlayer, 1, targetPlayer.hand.cards, false, "Select a card to give.")).selected[0]!;
             return game.give(targetPlayer, data.issuer, cardToGive);
         }
         return false;
@@ -65,7 +71,9 @@ export function makePlayerGiveLootCardEffect(game: Game): EffectFunction {
 
 export function rechargeEachItemsOfTargetEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
-        const player = data.next as Player;
+        const player = data.next;
+        if(!(player instanceof Player))
+            throw new Error("Target of rechargeEachItemsOfTargetEffect must be a Player.");
         game.rechargeEachItem(player);
         return true;
     };
@@ -73,7 +81,9 @@ export function rechargeEachItemsOfTargetEffect(game: Game): EffectFunction {
 
 export function makeAPlayerWithMostSoulsDestroyASoulEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
-        const target = data.next as Player;
+        const target = data.next;
+        if(!(target instanceof Player))
+            throw new Error("Target of makeAPlayerWithMostSoulsDestroyASoulEffect must be a Player.");
         if (game.playersWithMostSouls.includes(target)) {
             const card = (await game.select(target, 1, target.souls, false, "Select a soul to destroy.")).selected[0]!;
             return game.destroyCardsOrSouls([card]);
@@ -84,8 +94,12 @@ export function makeAPlayerWithMostSoulsDestroyASoulEffect(game: Game): EffectFu
 
 export function forceAttackMonsterEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
-        const targetMonster = data.next as Monster;
-        game.playerMustAttack(data.issuer as Player, targetMonster, data.it);
+        const targetMonster = data.next;
+        if(!(targetMonster instanceof Monster))
+            throw new Error("Target of forceAttackMonsterEffect must be a Monster.");
+        if(data.issuer instanceof Player === false) 
+            throw new Error("Effect issuer is not a player in forceAttackMonsterEffect.");
+        game.playerMustAttack(data.issuer, targetMonster, data.it);
         return true;
     };
 }
@@ -97,7 +111,7 @@ export function look5Put1TopRestBottomEffect(deckName: string, game: Game): Effe
         if (data.issuer instanceof Player === false) return false;
         let cards = game.getFirstCardsOfDeck(deckName, 5);
         let selectionResult = await game.select(data.issuer, 1, cards, false, "Select a card to put on top of the deck.");
-        game.addTopPosition(deckName, selectionResult.selected[0]);
+        game.addTopPosition(deckName, selectionResult.selected[0]!);
         selectionResult.remaining.forEach((c) => {
             game.addBottomPosition(deckName, c);
         });
@@ -523,7 +537,7 @@ export function putTopMonsterInValidSlotEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const nonAttackedSlots = game.monsterSlots.nonAttackedSlots;
-        const index = (await game.select(data.issuer, 1, nonAttackedSlots, false, "Select a slot to put the top monster in.")).selected[0];
+        const index = (await game.select(data.issuer, 1, nonAttackedSlots, false, "Select a slot to put the top monster in.")).selected[0]!;
         game.monsterSlots.draw(index);
         return true;
     };
@@ -1155,7 +1169,7 @@ export function throwEffect(game: Game): EffectFunction {
 export function putAnyNumberFromDiscardOnTopEffect(deckName: DeckType, game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const deck = game.decks[deckName];
+        const deck: Deck<Card> = game.decks[deckName];
         if (!deck) {
             throw new Error(`Deck ${deckName} does not exist.`);
         }
@@ -1163,6 +1177,7 @@ export function putAnyNumberFromDiscardOnTopEffect(deckName: DeckType, game: Gam
         const selectionResult = await game.select(data.issuer, maxToPutBack, deck.discard, true, "Select cards to put back on top of the deck (first selected will be on top).");
         for (let i = 0; i < selectionResult.selected.length; i++) {
             const card = selectionResult.selected[i]!;
+            assertCardMatchesDeck(deckName, card);
             deck.remove(card);
             deck.addTopPosition(card);
         }

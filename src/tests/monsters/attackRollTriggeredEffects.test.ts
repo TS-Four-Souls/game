@@ -285,7 +285,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             expect(dice).toBeInstanceOf(DiceRoll);
             dice.value = 6; // Triggering value
             
-            game.select = async (_p, n, opts) => ({ selected: [player2], remaining: [] });
+            game.select = async (_p, n, opts) => ({ selected: [player2], remaining: [] } as any);
             await game.resolveStack(); // resolve the dice roll 
             await game.resolveStack(); // resolve effect
             await game.resolveStack(); // resolve player death
@@ -360,7 +360,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             game4.attackRoll(player1_4);
             const dice1 = game4.stack.elements[0] as DiceRoll;
             dice1.value = 6;
-            game4.select = async (_p, n, opts) => ({ selected: [player2_4], remaining: [] });
+            game4.select = async (_p, n, opts) => ({ selected: [player2_4], remaining: [] } as any);
             
             await game4.resolveStack();
             await game4.resolveStack(); // resolve death
@@ -373,7 +373,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             game4.attackRoll(player1_4);
             const dice2 = game4.stack.elements[0] as DiceRoll;
             dice2.value = 6;
-            game4.select = async (_p, n, opts) => ({ selected: [player3], remaining: [] });
+            game4.select = async (_p, n, opts) => ({ selected: [player3], remaining: [] } as any);
             
             await game4.resolveStack();
             await game4.resolveStack(); // resolve death
@@ -403,7 +403,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const dice = game.stack.elements[0] as DiceRoll;
             dice.value = 6;
             
-            game.select = async (_p, n, opts) => ({ selected: [player1], remaining: [] });
+            game.select = async (_p, n, opts) => ({ selected: [player1], remaining: [] } as any);
             await game.resolveStack();
             await game.resolveStack(); // resolve player death
             await game.resolveStack(); // resolve player death
