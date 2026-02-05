@@ -1257,10 +1257,14 @@ export class Game {
     return true;
   }
 
-  giveCoins(from: Player, to: Player, amount: number): boolean {
+  async giveCoins(from: Player, to: Player, amount: number): Promise<boolean> {
     if(this.gameParameters.allowCoinDonation.value === false)
       throw new Error("Giving coins is not allowed in this game.");
     if (from.coins < amount || amount <= 0) {
+      return false;
+    }
+    const response = await this.select(to, 1, ['Accept', 'Decline'], false, `${from.id} wants to give you ${amount} coins. Do you accept?`);
+    if (response.selected[0] !== 'Accept') {
       return false;
     }
     this.loseCoins(from, amount, true);
