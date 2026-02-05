@@ -156,14 +156,14 @@ io.on("connection", (socket) => {
       game.start(validated.data.issuer);
       // const mob = game.obtainCard("b2-moms_eye") as MonsterCard;
       // game.encounters.forceSetMonsterAtSlot(0, mob);
-      // const loots = ["b2-i_the_magician", "b2-gold_bomb", "b2-ii_the_high_priestess", "b2-bomb"]
+      // const loots = ["b2-i_the_magician", "b2-gold_bomb", "b2-ii_the_high_priestess", "b2-cains_eye"]
       // for (const slug of loots) {
       //   const card = game.obtainCard(slug)! as LootCard;
       //   game.addCardToHand(game.players[0]!, card);
+      //   }
       // for (const slug of treas) {
       //   const card = game.obtainCard(slug)! as ItemCard;
       //   game.addInPlay(game.players[0]!, card);
-      // }
       // } 
       // const treas = ["b2-theres_options", "b2-trinity_shield"];
       game.addToHistory({type: "Start", payload: validated.data});
@@ -516,7 +516,6 @@ io.on("connection", (socket) => {
           status: 200,
         });
       }
-      game.loot(player);
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to debug loot", error);
@@ -608,7 +607,6 @@ io.on("connection", (socket) => {
           status: 200,
         });
       }
-      game.gainTreasure(player);
       return callback({ status: 200 });
     } catch (error) {
       console.error("Failed to debug gain treasure", error);
