@@ -1722,10 +1722,40 @@ export class Game {
     if(owner !== this.currentPlayer && !this.currentPlayer.otherPlayerCanUseLootOrActivateOnMyTurn) {
       return `You cannot activate cards during ${this.currentPlayer.id}'s turn.`;
     }
-    if (card.charged === false) {
+    if (card.charged === false && card.activeEffectList.every(e => e.index === "tap")) {
       return "This card is not charged, it cannot be activated.";
     }
+
+    if(card instanceof ItemCard &&
+       !card.activeEffectList.some(e => TargetBuilder.validTargetExists(this, owner, card, e.index) === true))
+      return "No valid target for this card's effects, it cannot be activated.";
     return true;
+  }
+
+  /**
+   * Check if a paid effect can be executed without actually paying the cost.
+   * This validates whether the player has sufficient resources (coins, health, counters, etc.)
+   * to pay for the effect, but doesn't deduct them.
+   * 
+   * @param card - The card with the paid effect
+   * @param owner - The player who owns the card
+   * @param effectId - The index of the paid effect (0 for first paid effect, etc.)
+   * @param targets - The targets for the effect (if any)
+   * @returns Promise<boolean> - true if payment would succeed, false otherwise
+   */
+  async canPayForEffect(card: ItemCard, owner: Player, effectId: number, targets: any[] = []): Promise<boolean> {
+    try {
+      // First check basic activation requirements
+      const canActivateResult = this.canActivate(card, owner);
+      if (canActivateResult !== true) {
+        return false;
+      }
+
+      // Then check if the payment specifically would succeed
+      return await card.canPayForEffect(effectId, targets);
+    } catch (error) {
+      return false;
+    }
   }
 
   detailedStateJSON(issuer: Issuer): DetailedState {
@@ -1755,7 +1785,7 @@ export class Game {
           effects: c.activeEffectList,
           capabilities:
           {
-            activate: c.activeEffectList.some(p => p.index != "tap") || this.canActivate(c, player),
+            activate: this.canActivate(c, player),
           },
         })).concat(
           player.curses.map((c) => ({
@@ -2376,11 +2406,11 @@ export class Game {
       throw new Error("Entity is not currently in play.");
   }
 
-  // private assertMonsterIdAvailable(id: string): void {
-  //   if (this.monsters.some((m) => m.id === id)) {
-  //     throw new Error(`Monster ${id} already exists`);
-  //   }
-  // }
+  private assertCardTargetsAvailable(player: Player, card: ItemCard, effectId: "tap" | number): void {
+    const valid = TargetBuilder.validTargetExists(this, player, card, effectId);
+    if(valid !== true)
+      throw new Error(valid);
+  }
 
   private assertMinimumPlayerCount(): void {
     if (this.players.length < 2) {

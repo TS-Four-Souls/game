@@ -50,9 +50,11 @@ export class TargetBuilder {
         item: ItemCard,
         partialChoices: SelectionItem[] = [],
         effectId: number | "tap" = "tap",
-        throwIfNotCharged: boolean = true
+        throwIfNotCharged: boolean = true,
+        bypassAsserPendingSelection: boolean = false
     ): TargetSelectorResponse {
-        game.assertNoPendingSelection();
+        if(!bypassAsserPendingSelection)
+            game.assertNoPendingSelection();
         if(!item)
             throw new Error(`Item not found.`);
         if(throwIfNotCharged && effectId === "tap" && !item.charged)
@@ -518,7 +520,7 @@ export class TargetBuilder {
             return "Item not found.";
         // The next target is expected to be an array of targets for the copied effect
         let targets: any[] = [];
-        let options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false);
+        let options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
         const backtrackingIndices: number[] = [];
         while(!options.complete)
         {
@@ -530,11 +532,11 @@ export class TargetBuilder {
                     return "No valid targets.";
                 const lastIndex = backtrackingIndices.pop()!;
                 targets = targets.slice(0, lastIndex);
-                options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false);
+                options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
                 continue;
             }
             targets.push(...selection);
-            options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false);
+            options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
         }
         return options.complete;
     }
