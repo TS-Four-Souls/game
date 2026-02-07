@@ -31,12 +31,14 @@ export type UserRequest =
   | {type: "DebugGainTreasure", payload: Requests.DebugGainTreasure }
   | {type: "DebugReset", payload: Requests.DebugReset };
 
+
+// Important historic information: purchase, DebugLoot, DebugListLoot, DebugListTreasure, DebugGainTreasure, GiveCoins, AttackMonster, EndTurn
   export type PrivateData = {
     private: true;
     type: "character";
     slug: string;
     playerId: string;
-  }[] | {
+  } | {
     private: true;
     type: "shuffle";
     deckName: string;
@@ -59,6 +61,12 @@ const isPrivateData = (entry: HistoricEntry): entry is PrivateData => {
   );
 };
 
+const isStackElementJson = (entry: HistoricEntry): entry is StackElementJson => {
+  return (
+    ["death", "damage", "effect", "LootCardEffect", "diceRoll"].includes(entry.type)
+  );
+};
+
 export type HistoricEntry = UserRequest | StackElementJson | PrivateData;
 export class HistoricHandler {
 
@@ -68,8 +76,9 @@ export class HistoricHandler {
     this._history.push(entry);
   }
   
-  get history(): HistoricEntry[] {
-    return this._history.filter((e) => !isPrivateData(e));
+  get history(): StackElementJson[] {
+    return this._history.filter(isStackElementJson).slice(-20);
+    // return this._history.filter((e) => !isPrivateData(e));
   }
 
   get log(): HistoricEntry[] {

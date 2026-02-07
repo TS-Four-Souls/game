@@ -41,7 +41,7 @@ import { type ReadableSignal, Signal } from "micro-signals";
 import { GameEventEmitter } from "./eventEmmitter";
 import { bSoulEffectParser } from "@/models/bonusSoulHandling";
 import { type TriggerEvent } from '@/models/types/eventTypes';
-import type { Capability, DetailedState, Issuer, SelectionItem } from "@/shared/api";
+import type { Capability, DetailedState, Issuer, SelectionItem, StackElementJson } from "@/shared/api";
 import { HistoricHandler, type HistoricEntry, type UserRequest } from "./historyHandler";
 import { GameParameters } from "./gameParameters";
 
@@ -129,7 +129,7 @@ export class Game {
   /* 
    * This function returns the game history, excluding private data entries
    */
-  get history(): HistoricEntry[] {
+  get history(): StackElementJson[] {
     return this._historicHandler.history;
   }
   /* 
@@ -1894,6 +1894,7 @@ export class Game {
         inPlay: this.shop._slots.map((c) => ({ name: c!.name, slug: c!.slug })),
       },
       turn: this.currentPlayer.id,
+      history: this.history,
       firstCardTreasureDeck: player.canSeeTopOfTreasureDeck ? {name: this.decks["treasure"]!.cards[0]!.name, slug: this.decks["treasure"]!.cards[0]!.slug} : undefined,
       stack: this.stack.elements.map((el) => el.json).toReversed(),
       // firstCardTreasureDeck: player.canSeeTopOfTreasureDeck
