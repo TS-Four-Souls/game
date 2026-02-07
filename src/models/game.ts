@@ -1367,6 +1367,7 @@ export class Game {
     this._destroyedCards = [];
     this.pendingMultipleSelections.clear();
     this.gameParameters.reset();
+    this._historicHandler = new HistoricHandler();
   }
 
   addInPlay(player: Player, card: ItemCard): void {
