@@ -31,11 +31,13 @@ export function loseCoinsEffect(game: Game, amount: number): EffectFunction {
     };
 }
 
-export function rechargeItemsEffect(game: Game, selectionOnResolve: boolean = false): EffectFunction {
+export function rechargeItemsEffect(game: Game, selectionOnResolve: boolean = false, youMayEffectHanging: boolean[] = [false]): EffectFunction {
+    const allowZero = youMayEffectHanging[0];
+    youMayEffectHanging[0] = false;
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         if (selectionOnResolve) {
-            const selectionResult = await game.select(data.issuer, 1, inplayUnchargedItemSelector(game)(data.issuer), true, "Select an item to recharge.");
+            const selectionResult = await game.select(data.issuer, 1, inplayUnchargedItemSelector(game)(data.issuer), allowZero, "Select an item to recharge.");
             if (selectionResult.selected.length > 0) {
                 if(!(selectionResult.selected[0] instanceof ItemCard))
                     throw new Error(`Card to recharge is not an ItemCard: ${selectionResult.selected[0].name}`);
@@ -500,12 +502,15 @@ export function lookAtAPlayerHand(game: Game): EffectFunction {
         return true;
     };
 }
-export function swapNonEternalItemsEffect(game: Game): EffectFunction {
+export function swapNonEternalItemsEffect(game: Game, youMayEffectHanging: boolean[] = [false]): EffectFunction {
+    const allowZero = youMayEffectHanging[0];
+    youMayEffectHanging[0] = false;
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const otherPlayer = data.next as Player;
         if(otherPlayer === data.issuer) return true;
-        const itemToSwapFromIssuer = (await game.select(data.issuer, 1, data.issuer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false), false, "Select an item to swap from your in-play.")).selected[0] as ItemCard;
+        const itemToSwapFromIssuer = (await game.select(data.issuer, 1, data.issuer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false), allowZero, "Select an item to swap from your in-play.")).selected[0] as ItemCard;
+        if(itemToSwapFromIssuer === undefined) return true;
         const itemToSwapFromOtherPlayer = (await game.select(data.issuer, 1, otherPlayer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false), false, "Select an item to swap from the other player's in-play.")).selected[0] as ItemCard;
         return game.swapItems(itemToSwapFromIssuer, itemToSwapFromOtherPlayer);
     }
@@ -563,7 +568,9 @@ export function lootXIfYEffect(cardsToHave: number, atLeast: boolean, cardsToLoo
     };
 }
 
-export function discardAnyNumberOfLootCardsEffect(game: Game): EffectFunction {
+export function discardAnyNumberOfLootCardsEffect(game: Game, youMayEffectHanging: boolean[] = [false]): EffectFunction {
+    const allowZero = youMayEffectHanging[0];
+    youMayEffectHanging[0] = false;
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const player = data.issuer;

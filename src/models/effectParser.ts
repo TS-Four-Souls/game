@@ -223,12 +223,16 @@ export function parseWhenActivePlayerRollsEffect(s: string, game: Game): ParsedE
 
 export function parseYouMayEffect(s: string, game: Game): ParsedEffect {
     const restOfEffect = s.substring("you may".length).trim();
-    const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
+    const shouldHandleYouMay = [true];
+    const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true, shouldHandleYouMay);
     return {
         effectFunction: async (data:EffectData) => {
             if (data.issuer instanceof Player === false) return false;
-            const selection = await game.select(data.issuer, 1, [data.it], true, "Use " + data.it.name + "'s effect?");
-            const choice = selection.selected.length > 0;
+            let choice = !shouldHandleYouMay[0];
+            if(!choice){
+                const selection = await game.select(data.issuer, 1, [data.it], true, "Use " + data.it.name + "'s effect?");
+                choice = selection.selected.length > 0;
+            }
             if (choice) {
                 return restParsed.effectFunction(data);
             }
@@ -353,8 +357,10 @@ export function parseTheActivePlayerEffect(s: string, game: Game): ParsedEffect 
     }
 }
 
-
-export function effectParser(s: string, game: Game, defaultEffect: EffectFunction = active.addInPlayEffect(game), selectionOnResolve = false): ParsedEffect {
+// youMayEffectHanging: true if we are currently parsing a "you may" effect and haven't yet handled the "you may" part. 
+// Some effects can handle the you may part by allowing selection of 0 items. In that case, we set youMayEffectHanging to false and let the rest of the effect handle the choice.
+//  For other effects, we need to handle the "you may" part at this level by prompting the user for a choice, and then if they choose yes, we parse and execute the rest of the effect.
+export function effectParser(s: string, game: Game, defaultEffect: EffectFunction = active.addInPlayEffect(game), selectionOnResolve = false, youMayEffectHanging = [false]): ParsedEffect {
     const originalS = s;
     // if (originalS == "Each time this deals combat damage to a player, they lose 2¢."){
     //     console.log("parsing special roll effect:", originalS);
@@ -427,7 +433,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     // exceptions where "you may" is not a choice, but an extra action
         !s.startsWith("you may put") &&
         !s.startsWith("you may purchase") && 
-        s !== "you may play an additional loot card on your turn." &&
+        !s.startsWith("you may play") && 
+        // s !== "you may play an additional loot card on your turn." &&
         s !== "you may attack an additional time on your turn." &&
         s !== "you may look at the top card of the treasure deck at any time on your turn."
         )
@@ -444,7 +451,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         return { effectFunction: active.killTargetEffect(game, selector, selectionOnResolve), targetSelectors: selector };
     }
     if (s.startsWith("destroy this.")) {
-        const restParsed = effectParser(s.substring(12).trim(), game, defaultEffect, selectionOnResolve);
+        const restParsed = effectParser(s.substring(12).trim(), game, defaultEffect, selectionOnResolve, youMayEffectHanging);
         return {
             effectFunction: (data:EffectData) => { 
                 game.destroyCardsOrSouls([data.it]); 
@@ -459,11 +466,11 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         const parts = s.split(", then");
         const firstTrimmed = parts[0]!.trim();
         const secondTrimmed = parts[1]!.trim();
-        const firstParsed = effectParser(firstTrimmed, game, defaultEffect, selectionOnResolve);
-        const secondParsed = effectParser(secondTrimmed, game, defaultEffect, selectionOnResolve);
+        const firstParsed = effectParser(firstTrimmed, game, defaultEffect, selectionOnResolve, youMayEffectHanging);
+        const secondParsed = effectParser(secondTrimmed, game, defaultEffect, selectionOnResolve, youMayEffectHanging);
         return {
             effectFunction: async (data:EffectData) => {
-                await firstParsed.effectFunction(data);
+                await firstParsed.effectFunction(data); 
                 await secondParsed.effectFunction(data);
                 return true;
             },
@@ -573,7 +580,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         return { effectFunction: active.addToDiceRollEffect(game, toAdd), targetSelectors: selectRoll(game) };
     
     // Parse standard string-matched effects
-    const standardEffect = parseStandardEffect(s, game, selectionOnResolve);
+    const standardEffect = parseStandardEffect(s, game, selectionOnResolve, youMayEffectHanging);
     if (standardEffect !== null) {
         return standardEffect;
     }
@@ -588,7 +595,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     if (s.indexOf(".") !== s.length - 1 && s.indexOf(".") !== -1) 
     {
         s = s.replace(".", ", then ");
-        return effectParser(s, game, defaultEffect, selectionOnResolve);
+        return effectParser(s, game, defaultEffect, selectionOnResolve, youMayEffectHanging);
     }
     return { effectFunction: defaultEffect, targetSelectors: noTargets };
 }
@@ -598,7 +605,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
  * Returns null if no match is found.
  * Returns a complete ParsedEffect with inline target selectors.
  */
-function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean): ParsedEffect | null {
+function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean, youMayEffectHanging: boolean[]): ParsedEffect | null {
     switch (s) {
         // passive effects
         case "the next time a player would loot, they loot from the top of the loot discard instead.":
@@ -746,7 +753,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         case "prevent death. if it's your turn, cancel everything that hasn't resolved and end your turn.":
             return { effectFunction: active.preventDeathEndTurnEffect(game), targetSelectors: noTargets };
         case "discard any number of loot cards":
-            return { effectFunction: active.discardAnyNumberOfLootCardsEffect(game), targetSelectors: noTargets };
+            return { effectFunction: active.discardAnyNumberOfLootCardsEffect(game, youMayEffectHanging), targetSelectors: noTargets };
         case "give another non-eternal item you control to another player": 
             return { effectFunction: active.giveItemToAnotherPlayerEffect(game), targetSelectors: [selectItemYouControl(game)[0]!, selectAnotherPlayer(game)[0]!] };
         case "look at the top 5 cards of a deck. put them back in any order.":
@@ -766,7 +773,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         case "put a card from your hand on top of the loot deck.":
             return { effectFunction: active.putCardFromHandOnTopOfDeckEffect(game), targetSelectors: noTargets };
         case "recharge an item.":
-            return { effectFunction: active.rechargeItemsEffect(game, selectionOnResolve), targetSelectors: selectItem(game) };
+            return { effectFunction: active.rechargeItemsEffect(game, selectionOnResolve, youMayEffectHanging), targetSelectors: selectItem(game) };
         case "put the top card of a deck into discard.":
             return { effectFunction: active.discardTopOfDeckEffect(game), targetSelectors: selectDeck(game) };
         case "look at the top card of the loot deck. you may put it on the bottom.":
@@ -853,7 +860,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean)
         case "add 1 to a roll.":
             return { effectFunction: active.add1ToRollEffect(), targetSelectors: selectRoll(game) };
         case "swap a non-eternal item you control with a non-eternal item they control.":
-            return { effectFunction: active.swapNonEternalItemsEffect(game), targetSelectors: [selectItemYouControl(game)[0]!, selectAnotherPlayerNonEternalItem(game)[0]!] };
+            return { effectFunction: active.swapNonEternalItemsEffect(game, youMayEffectHanging), targetSelectors: [selectItemYouControl(game)[0]!, selectAnotherPlayerNonEternalItem(game)[0]!] };
         case "choose a player. loot and gain ¢ until you have the same number of each as they do.":
             return { effectFunction: active.lootAndGainAsPlayerEffect(game), targetSelectors: selectPlayer(game) };
         case "you may put a monster not being attacked into discard and replace it with the top card of the monster deck.":
