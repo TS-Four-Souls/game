@@ -1517,7 +1517,7 @@ export class Game {
         card.addEffect(effect);
       } else {
         // Regular effects (passive/active)
-        const parsed = effectParser(outcome, this);
+        const parsed = effectParser(outcome, this, (data:EffectData) => {return true;}, card instanceof MonsterCard);
         const effect: Effect = new Effect(
           outcome,
           effectType,
@@ -1730,32 +1730,6 @@ export class Game {
        !card.activeEffectList.some(e => TargetBuilder.validTargetExists(this, owner, card, e.index) === true))
       return "No valid target for this card's effects, it cannot be activated.";
     return true;
-  }
-
-  /**
-   * Check if a paid effect can be executed without actually paying the cost.
-   * This validates whether the player has sufficient resources (coins, health, counters, etc.)
-   * to pay for the effect, but doesn't deduct them.
-   * 
-   * @param card - The card with the paid effect
-   * @param owner - The player who owns the card
-   * @param effectId - The index of the paid effect (0 for first paid effect, etc.)
-   * @param targets - The targets for the effect (if any)
-   * @returns Promise<boolean> - true if payment would succeed, false otherwise
-   */
-  async canPayForEffect(card: ItemCard, owner: Player, effectId: number, targets: any[] = []): Promise<boolean> {
-    try {
-      // First check basic activation requirements
-      const canActivateResult = this.canActivate(card, owner);
-      if (canActivateResult !== true) {
-        return false;
-      }
-
-      // Then check if the payment specifically would succeed
-      return await card.canPayForEffect(effectId, targets);
-    } catch (error) {
-      return false;
-    }
   }
 
   detailedStateJSON(issuer: Issuer): DetailedState {

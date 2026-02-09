@@ -236,8 +236,11 @@ describe("Event Monsters - Other Events", () => {
         
         // Draw the event
         game.monsterSlots.discardTop(0);
+        game.select = async <T>(player: Player, n: number, options: T[], optional?: boolean) => {
+            // Simulate selecting the first option (put into discard)
+            return { selected: options.slice(0, n), remaining: options.slice(n) };
+        };
         const effect = game.stack._stack[game.stack._stack.length - 1] as EffectOnStack;
-        effect.targets = ["Put this into discard."];
         await game.resolveStack(); // resolve the event addition
         await game.resolveStack();
         
@@ -251,11 +254,13 @@ describe("Event Monsters - Other Events", () => {
         
         const initialHandSize = player1.hand.length;
         const initialHP = player1.currentHealthPoints;
-
+        game.select = async <T>(player: Player, n: number, options: T[], optional?: boolean) => {
+            // Simulate selecting the first option (put into discard)
+            return { selected: options.slice(1, n+1), remaining: options.slice(n) };
+        };
         // Draw the event
         game.monsterSlots.discardTop(0);
         const effect = game.stack._stack[game.stack._stack.length - 1] as EffectOnStack;
-        effect.targets = ["Loot 2. Take 1 damage."];
         await game.resolveStack(); // resolve the event addition
         await game.resolveStack();
         await game.resolveStack(); // damage resolution
@@ -277,17 +282,21 @@ describe("Event Monsters - Other Events", () => {
         
         const initialHP = player1.currentHealthPoints;
         const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
-        
+        game.select = async <T>(player: Player, n: number, options: T[], optional?: boolean) => {
+            // Simulate selecting the first option (put into discard)
+            return { selected: options.slice(2, n+2), remaining: options.slice(n) };
+        };        
         // Draw the event
         game.monsterSlots.discardTop(0);
         const effect = game.stack._stack[game.stack._stack.length - 1] as EffectOnStack;
-        effect.targets = ["Take 2 damage. Search the treasure deck for a guppy item, gain it, then shuffle the treasure deck."];
         await game.resolveStack(); // resolve the event addition
+        game.select = async <T>(player: Player, n: number, options: T[], optional?: boolean) => {
+            // Simulate selecting the first option (put into discard)
+            return { selected: options.slice(0, n), remaining: options.slice(n) };
+        };     
         await game.resolveStack(); // damage resolution
-        
         expect(player1.currentHealthPoints).toBe(initialHP - 2);
         expect(player1.inPlay.filter(c => c instanceof TreasureCard).length).toBe(initialTreasures + 1);
-        expect(player1.inPlay.find(c => c.slug === "b2-guppys_head")).toBeDefined();
-        
+        expect(player1.inPlay.some(c => c.isGuppy())).toBe(true);
     });
 });

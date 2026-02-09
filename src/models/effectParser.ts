@@ -440,7 +440,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         )
         return parseYouMayEffect(s, game);
     if (s.startsWith("choose one-"))
-        return active.chooseOneEffect(s, game);
+        return active.chooseOneEffect(s, game, selectionOnResolve);
     if (s.startsWith("roll-"))
         return active.rollEffect(s, game);
     if (s.startsWith("destroy 2 items you control")) {
@@ -803,7 +803,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
         case "destroy an item or soul.":
             return { effectFunction: active.destroyOneEffect(game), targetSelectors: selectNonEternalItemOrASoul(game) };
         case "destroy another item":
-            return { effectFunction: active.destroyOneEffect(game), targetSelectors: selectNonEternalItem(game) };
+            return { effectFunction: active.destroyOneEffect(game), targetSelectors: selectNonEternalItemFromAnywhere(game) };
         case "destroy an item you control.":
             return { effectFunction: active.destroyOneEffect(game), targetSelectors: selectItemYouControl(game) };
         case "destroy a soul you control.":
@@ -832,7 +832,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
         // }]};
         selectNonEternalTapItem(game) };
         case "choose a non-eternal item. this becomes a copy of that item.\n(this change is indefinite.)":
-            return { effectFunction: active.becomesCopyOfItemIndefinitelyEffect(game), targetSelectors: selectNonEternalItem(game) };
+            return { effectFunction: active.becomesCopyOfItemIndefinitelyEffect(game), targetSelectors: selectNonEternalItemFromAnywhere(game) };
         case "choose a non-eternal passive item. this becomes a copy of that item till end of turn.":
             return { effectFunction: active.becomesCopyOfItemUntilEndOfTurnEffect(game), targetSelectors: selectNonEternalPassiveItem(game) };
         case "you may put any number of shop items into discard.":
@@ -935,7 +935,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
             return { effectFunction: active.putLootCardFromHandOnTopOfDeckEffect(game), targetSelectors: noTargets };
         case "reroll an item. (destroy that item and replace it with the top card of the treasure deck.)":
         case "reroll an item.\n(destroy that item and replace it with the top card of the treasure deck.)":
-            return { effectFunction: active.rerollItemEffect(game), targetSelectors: selectNonEternalItem(game) };
+            return { effectFunction: active.rerollItemEffect(game), targetSelectors: selectNonEternalItemFromAnywhere(game) };
         case "put each shop item on the bottom of the treasure deck.":
             return { effectFunction: active.flushShopToBottomEffect(game), targetSelectors: noTargets };
         case "that player gives you a loot card.":

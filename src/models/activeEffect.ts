@@ -175,7 +175,7 @@ export function addToDiceRollEffect(game: Game, toAdd: number): EffectFunction {
     };
 }
 
-export function chooseOneEffect(s: string, game: Game): ParsedEffect {
+export function chooseOneEffect(s: string, game: Game, selectionOnResolve: boolean=false): ParsedEffect {
     const lines = s.split("\n");
     if (lines.length < 3) {
         throw new Error(`invalid 'choose one' effect format. s=${s}$ lines=${lines}$`);
@@ -184,7 +184,11 @@ export function chooseOneEffect(s: string, game: Game): ParsedEffect {
     
     return {
         effectFunction: async (data: EffectData) => {
-            const description = (data.next as string).toLowerCase();
+            if(!(data.issuer instanceof Player))
+                throw new Error("Effect issuer is not a player in chooseOneEffect.");
+            const description = selectionOnResolve ?
+                (await game.select(data.issuer, 1, lines.slice(1), false, "Select an effect to resolve.")).selected[0] :
+                (data.next as string).toLowerCase();
             for(let i = 0; i < effects.length; i++) {
                 if (description === lines[i+1]) {
                     // Create new EffectData with chosen options as targets
@@ -212,7 +216,8 @@ export function chooseOneEffect(s: string, game: Game): ParsedEffect {
 export function searchGuppyItemEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const guppyItems = game.decks["treasure"]!.cards.filter(card => card instanceof ItemCard && (card as ItemCard).isGuppy);
+        const guppyItems = game.decks["treasure"]!.cards.filter(card => card instanceof ItemCard && (card as ItemCard).isGuppy());
+        console.log("Guppy items in treasure deck:", guppyItems.map(c => c.name));
         if (guppyItems.length === 0) return false;
         const selectedGuppyItem = (await game.select(data.issuer, 1, guppyItems, false, "Select a Guppy item to add to your in-play.")).selected[0] as ItemCard;
         game.addInPlay(data.issuer, selectedGuppyItem);
