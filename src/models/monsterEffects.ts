@@ -169,7 +169,7 @@ export function putOnTopOfMonsterDeckOnRollEffect(game: Game, rolls: number[]): 
     return (data: EffectData) => {
         if(!(data.it instanceof MonsterCard))
             throw new Error("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards.");
-        data.it.afterEffect = "discard"; // Card placement is handled by this effect
+        data.it.afterEffect = "discard"; // Card placement is handled by the game by default
         
         const roll = game.rollDice(game.currentPlayer as Player, false, data.it);
         roll.attachEffect([1,2,3,4,5,6].map(n => (data:EffectData) => {

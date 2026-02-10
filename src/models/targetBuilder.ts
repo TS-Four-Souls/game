@@ -5,6 +5,7 @@ import { isChooseOneOptions, type ChooseOneOptions } from "./targetSelector";
 import { isStackElement } from "./stack";
 import type { TargetSelectorResponse } from "../shared/api";
 import { Entity } from "./entity";
+import { parseNumber } from "./effectParser";
 import type { SelectionItem, SelectionItemType } from "../shared/api";
 
 /**
@@ -421,6 +422,10 @@ export class TargetBuilder {
         partialChoices: SelectionItem[],
         effectId: number | "tap" = "tap"
     ): any[] {
+        const validTargets = TargetBuilder.validTargetExists(game, player, item, effectId);
+        if(validTargets !== true)
+            throw new Error(`Cannot build targets: ${validTargets}`);
+
         game.assertNoPendingSelection();
         if(!item)
             throw new Error(`Item not found.`);
@@ -509,6 +514,35 @@ export class TargetBuilder {
         return TargetBuilder.buildTargets(game, player, item, targets, "tap");
     }
 
+    /* verifyPaiementCanBeMade checks if the player can pay the cost described by string s. 
+    * It specifically handle non-decision based cost (money, health, counters).
+    * It returns true if the payment can be made, or a string error message if it cannot.
+    */
+    static verifyPaiementCanBeMade(game: Game, player: Player, card: ItemCard, s: string): string | true {
+        s = s.trim().toLowerCase();
+        const coins = parseNumber(s, /^\[paid effect\] pay\s+(\d+)\u00A2:?/u);
+        if (coins !== null) {
+            if (player.coins < coins) {
+                console.log("Checking coin payment:", coins, "player coins:", player.coins);
+                return `You don't have enough coins to pay this cost.`;
+            }
+        }
+        const health = parseNumber(s, /^\[paid effect\] pay\s+(\d+)\s+[hp]:?/u);
+        if (health !== null) {
+            if (player.currentHealthPoints < health) {
+                return `You don't have enough health to pay this cost.`;
+            }
+        }
+        console.log("Checking counter payment for card:", card.name, "description:", s);
+        let countersToRemove = parseNumber(s, /^\[paid effect\] remove (\d+) counters? from this\.?/u);
+        if (countersToRemove === null)
+            countersToRemove = /^\[paid effect\] remove a counter from this.?/.test(s) ? 1 : null;
+        if( countersToRemove !== null)
+            if (card.tags.counters === undefined || card.tags.counters < countersToRemove) {
+                return `You don't have enough counters to pay this cost.`;
+            }
+        return true;
+    }
 
     static validTargetExists(
         game: Game,
@@ -518,6 +552,16 @@ export class TargetBuilder {
     ): string | true {
         if(!item)
             return "Item not found.";
+        if(item.slug === "b2-tech_x" && effectId !== "tap")
+            console.log(`Checking valid targets for card: ${item.name}, effectId: ${effectId} description: ${item.activeEffectList[effectId as number]?.description}`);
+        // console.log(`Checking valid targets for item: ${item.name}, effectId: ${effectId} descr ${item.activeEffectList[effectId as number]?.description}`);
+        if(effectId !== "tap")
+            {
+                const id = effectId + (item.hasTapEffect() ? 1 : 0); // if the item has a tap effect, the paid effects start at index 1, otherwise at index 0
+                const paiement = TargetBuilder.verifyPaiementCanBeMade(game, player, item, item.activeEffectList[id]?.description || "");
+                if(paiement !== true)
+                    return paiement;
+            }
         // The next target is expected to be an array of targets for the copied effect
         let targets: any[] = [];
         let options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);

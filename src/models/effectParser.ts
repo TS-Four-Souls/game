@@ -78,7 +78,7 @@ const selectNonEternalItemOrASoul = (game: Game, count: number = 1, asMany: bool
     [createSelector("Choose a non-eternal item or a soul", inplayItemAndSoulSelector((player: Player, card: ItemCard) => card.eternal === false, game), count, asMany)];
 
 const selectNonEternalTapItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose a non-eternal item", inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false && card.hasActiveEffect() && card.slug != "b2-placebo", game), count, asMany)];
+    [createSelector("Choose a non-eternal item", inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false && card.hasTapEffect() && card.slug != "b2-placebo", game), count, asMany)];
 
 const selectAnotherPlayerNonEternalItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
     [createSelector("Choose another player's non-eternal item", inAnotherplayItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), count, asMany)];

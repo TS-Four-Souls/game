@@ -218,7 +218,7 @@ class ActiveEffectHandler extends EffectHandler {
         return await effect.effectFunction(new EffectData(it, issuer as Player, targets));
     }
 
-    hasActiveEffect(): boolean {
+    hasTapEffect(): boolean {
         return this._activeEffect !== null;
     }
 
@@ -289,8 +289,8 @@ class EffectInterface {
         }
     }
     
-    hasActiveEffect(): boolean {
-        return this.activeEffects.hasActiveEffect();
+    hasTapEffect(): boolean {
+        return this.activeEffects.hasTapEffect();
     }
 
     subscribeAll(owner: Entity): void {
@@ -325,7 +325,7 @@ class EffectInterface {
 
     get activeEffectList(): {index: ("tap" | number), description: string}[] {
         let effects: {index: ("tap" | number), description: string}[] = [];
-        if( this.activeEffects.hasActiveEffect() )
+        if( this.activeEffects.hasTapEffect() )
             effects.push({index: "tap" as const, description: this.activeEffects.getActiveEffect().description});
         for (const [index, effect] of this.activeEffects.effectNames.entries()) 
             effects.push({index: index, description: effect});
@@ -519,8 +519,8 @@ class Card {
         return this._effectInterface.getActiveEffect();
     }
 
-    hasActiveEffect(): boolean {
-        return this._effectInterface.hasActiveEffect();
+    hasTapEffect(): boolean {
+        return this._effectInterface.hasTapEffect();
     }
 
     /**

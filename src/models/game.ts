@@ -232,7 +232,7 @@ export class Game {
       }
     }
     for (const item of p.inPlay)
-      if (item.hasActiveEffect()) item.charged = false;
+      if (item.hasTapEffect()) item.charged = false;
     this._onStateChange.dispatch();
   }
 
@@ -1727,9 +1727,15 @@ export class Game {
       return "This card is not charged, it cannot be activated.";
     }
 
-    if(card instanceof ItemCard &&
-       !card.activeEffectList.some(e => TargetBuilder.validTargetExists(this, owner, card, e.index) === true))
-      return "No valid target for this card's effects, it cannot be activated.";
+    if(card instanceof ItemCard)
+      {
+        if(card.activeEffectList.length === 1){
+          console.log("Checking single effect activation for card:", card.name);
+          return TargetBuilder.validTargetExists(this, owner, card, card.activeEffectList[0]!.index);
+        }
+        else if(!card.activeEffectList.some(e => TargetBuilder.validTargetExists(this, owner, card, e.index) === true && (card.charged || e.index !== "tap")))
+          return "No valid target for this card's effects, it cannot be activated.";
+      }
     return true;
   }
 
