@@ -812,6 +812,7 @@ class MonsterCard extends Card {
     protected _attackPoints:number = 0;
     protected _evasion: number = 0;
     protected _reward: CardRewards;
+    protected _afterEffect: "discard" | "nothing" = "discard";
 
     constructor(id: number, json: MonsterCardType) {
         super(id, json);
@@ -821,6 +822,10 @@ class MonsterCard extends Card {
         }
         this._subtype = json.subtype;
         this._reward = json.rewards || {soul: 0, coin: 0, loot: 0, treasure: 0};
+        // Curses handle their own placement in player.curses
+        if(this.isCurse) {
+            this._afterEffect = "nothing";
+        }
         if(json.stats) {
             this._healthPoints = json.stats.healthPoints || 0;
             this._attackPoints = json.stats.attackPoints || 0;
@@ -856,6 +861,12 @@ class MonsterCard extends Card {
     }
     get rewards(): CardRewards | undefined {
         return this._json.rewards;
+    }
+    get afterEffect(): "discard" | "nothing" {
+        return this._afterEffect;
+    }
+    set afterEffect(value: "discard" | "nothing") {
+        this._afterEffect = value;
     }
     onPlay(issuer: Player, targets: any[] = []): void{
         this._effectInterface.onPlay(issuer, targets)();

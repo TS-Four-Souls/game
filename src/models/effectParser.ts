@@ -252,7 +252,7 @@ export function parseAtTheEndOfYourTurnEffect(s: string, game: Game): ParsedEffe
 }
 
 export function parseWhenThisDiesEffect(s: string, game: Game): ParsedEffect {
-    const restOfEffect = s.substring("When this dies, ".length).trim();
+    const restOfEffect = s.substring("when this dies, ".length).trim();
     const restParsed = effectParser(restOfEffect, game, (data:EffectData) => {throw new Error("Not implemented");}, true);
     return {
         effectFunction: passive.onYourEventEffect("on:death:monster", [restParsed.effectFunction], game, s),

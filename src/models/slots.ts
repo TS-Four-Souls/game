@@ -301,16 +301,17 @@ class Encounters {
                     card.onPlay(data.issuer, data.targets);
                     // card.onAddInPlay(data.issuer);
                     this._game.executeWhenStackSubset(stackIds, () => {
-                        this.discardTop(index); // remove the card once the effect is resolved.
-                        if(card.isCurse) // if the event is a curse, remove it from discard.
-                            this._deck.drawTopDiscard();
+                        if(card.afterEffect === "discard")
+                            this.discardTop(index); // remove the card once the effect is resolved.
                         });
                     return true;
                 }, 
                 new EffectData(card, this._game.currentPlayer, []), 
                 card.effectOutcomes.join('\n')
             );
-            this._game.addToStack(effect);
+            this._game.executeWhenStackEmpty(() => {
+                this._game.addToStack(effect);
+            });
         }
     }
 

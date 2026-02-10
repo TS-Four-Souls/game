@@ -143,6 +143,7 @@ export function putInMonsterDeck6FromTopEffect(game: Game): EffectFunction {
         const monsterDeck = game.decks.monster;
         if(!(data.it instanceof MonsterCard))
             throw new Error("putInMonsterDeck6FromTopEffect can only be applied to monster cards.");
+        data.it.afterEffect = "nothing"; // Card placement is handled by this effect
         monsterDeck.addCardAtPosFromTop(data.it, 6);
         return true
     }
@@ -166,11 +167,16 @@ export function searchForBloatEffect(game: Game): EffectFunction {
 
 export function putOnTopOfMonsterDeckOnRollEffect(game: Game, rolls: number[]): EffectFunction {
     return (data: EffectData) => {
+        if(!(data.it instanceof MonsterCard))
+            throw new Error("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards.");
+        data.it.afterEffect = "discard"; // Card placement is handled by this effect
+        
         const roll = game.rollDice(game.currentPlayer as Player, false, data.it);
         roll.attachEffect([1,2,3,4,5,6].map(n => (data:EffectData) => {
             if(rolls.includes(n)) {
                 if(!(data.it instanceof MonsterCard))
                     throw new Error("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards.");
+                data.it.afterEffect = "nothing"; // Card placement is handled by this effect
                 game.decks.monster.addTopPosition(data.it);
                 return true;
             }

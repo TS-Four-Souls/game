@@ -217,7 +217,6 @@ export function searchGuppyItemEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const guppyItems = game.decks["treasure"]!.cards.filter(card => card instanceof ItemCard && (card as ItemCard).isGuppy());
-        console.log("Guppy items in treasure deck:", guppyItems.map(c => c.name));
         if (guppyItems.length === 0) return false;
         const selectedGuppyItem = (await game.select(data.issuer, 1, guppyItems, false, "Select a Guppy item to add to your in-play.")).selected[0] as ItemCard;
         game.addInPlay(data.issuer, selectedGuppyItem);

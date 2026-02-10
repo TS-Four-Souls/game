@@ -189,4 +189,22 @@ describe("Loot Card", () => {
         expect(player1.hand.length).toBe(initcard + 1);
         expect(player1.hand._hand.map((c) => c.slug)).toContain(card.slug);
     });
+
+    it("Psy horf dies into gold chest order in stack", async () => {
+        const psy = game.obtainCard("b2-psy_horf") as MonsterCard;
+        const chest = game.obtainCard("b2-gold_chest") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, psy);
+        game.decks.monster.addTopPosition(chest);
+
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, game.monsters[0]!);
+        game.kill(player1, game.monsters[0]!, player1.inPlay[0]!);
+        await game.resolveStack(); // when this dies 
+        expect(game.stack.size).toBe(1);
+        await game.resolveStack(); // gold chest top deck
+        expect(game.stack.size).toBe(1);
+        await game.resolveStack(); // gold chest dice
+        expect(game.stack.size).toBe(1);
+        expect(game.stack.peek()).toBeInstanceOf(DiceRoll);
+    });
 });

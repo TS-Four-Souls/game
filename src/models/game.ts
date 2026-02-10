@@ -278,7 +278,8 @@ export class Game {
 
   obtainMonsterSoulOrDiscard(monster: Monster): void {
     const card = monster.card;
-    if (this.encounters._deck.cards.includes(card)) return; // monster is back in the deck and does not give his soul.
+    if(card.afterEffect === "nothing")
+      return; // Card is already handled by its afterEffect, so do nothing here.
     if (card.rewards?.soul !== undefined) {
       if (typeof card.rewards?.soul !== "number")
         throw new Error("Monster soul reward must be a number.");
