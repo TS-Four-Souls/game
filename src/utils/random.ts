@@ -6,3 +6,7 @@ export function generateRoomId(): string {
 export function generateUserId(): string {
   return crypto.randomUUID();
 }
+
+export function generateHistoryId(): string {
+  return crypto.randomUUID();
+}

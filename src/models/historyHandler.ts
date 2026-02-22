@@ -1,4 +1,6 @@
+import { generateHistoryId } from "@/utils/random";
 import { type Requests, type StackElementJson } from "../shared/api";
+import fs from "fs";
 
 
 /* This class is responsible for handling historic data.
@@ -74,10 +76,17 @@ const isStackElementJson = (entry: HistoricEntry): entry is StackElementJson => 
 export type HistoricEntry = UserRequest | StackElementJson | PrivateData;
 export class HistoricHandler {
 
+  private historyId = generateHistoryId();
+
   private _history: HistoricEntry[] = []
   
   addToHistory(entry: HistoricEntry): void {
     this._history.push(entry);
+    try {
+      this.appendToFile("history.json", entry);
+    } catch (error) {
+      console.error("Error appending to history file", error);
+    }
   }
   
   get history(): StackElementJson[] {
@@ -87,5 +96,9 @@ export class HistoricHandler {
 
   get log(): HistoricEntry[] {
     return this._history;
+  }
+
+  appendToFile(filename: string, entry: HistoricEntry): void {
+    fs.appendFileSync(filename, `${new Date().toISOString()} - ${this.historyId} - ${JSON.stringify(entry)}\n`, "utf8");
   }
 }
