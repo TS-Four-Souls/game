@@ -748,7 +748,5 @@ export interface ClientToServerEvents {
     callback: (response: Responses.JoinRoom) => void,
   ) => void;
 
-  leaveRoom: (
-    callback: (response: Responses.LeaveRoom) => void,
-  ) => void;
+  leaveRoom: (callback: (response: Responses.LeaveRoom) => void) => void;
 }

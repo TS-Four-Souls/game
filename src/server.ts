@@ -181,6 +181,9 @@ io.on("connection", (socket) => {
       schemas.joinRequest,
       callback,
       (payload) => {
+        if (payload.length === 0) {
+          return callback({ status: 400, error: "Name is required" });
+        }
         roomGuardedEndpoint(userId, callback, (game, room) => {
           try {
             const player = new Player(payload);
