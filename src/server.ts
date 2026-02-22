@@ -192,40 +192,40 @@ io.on("connection", (socket) => {
         });
       },
     );
+  });
 
-    socket.on("rejoin", (payload, callback) => {
-      payloadGuardedEndpoint(
-        payload,
-        schemas.rejoinRequest,
-        callback,
-        (payload) => {
-          userId = payload.userId;
-          roomGuardedEndpoint(userId, callback, (game, room) => {
-            if (payload.issuer) {
-              try {
-                const player = room.game.getPlayerById(payload.issuer.id);
-                if (player.verifySecret(payload.issuer.secret)) {
-                  socket.join(player.id);
-                  sendRoomChanged(room, player.id);
-                  game.addToHistory({ type: "Rejoin", payload });
-                  return callback({
-                    status: 200,
-                  });
-                }
-              } catch {}
-            }
+  socket.on("rejoin", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.rejoinRequest,
+      callback,
+      (payload) => {
+        userId = payload.userId;
+        roomGuardedEndpoint(userId, callback, (game, room) => {
+          if (payload.issuer) {
+            try {
+              const player = room.game.getPlayerById(payload.issuer.id);
+              if (player.verifySecret(payload.issuer.secret)) {
+                socket.join(player.id);
+                sendRoomChanged(room, player.id);
+                game.addToHistory({ type: "Rejoin", payload });
+                return callback({
+                  status: 200,
+                });
+              }
+            } catch {}
+          }
 
-            socket.emit("on:room:changed", {
-              room: {
-                id: room.id,
-                state: "created",
-              },
-            });
-            return callback({ status: 200 });
+          socket.emit("on:room:changed", {
+            room: {
+              id: room.id,
+              state: "created",
+            },
           });
-        },
-      );
-    });
+          return callback({ status: 200 });
+        });
+      },
+    );
   });
 
   socket.on("setGameParameter", (payload, callback) => {
