@@ -30,6 +30,14 @@ const engine = new Engine({
 
 io.bind(engine);
 
+io.use((socket, next) => {
+  const apiKey = socket.handshake.auth.apiKey;
+  if (apiKey !== process.env.FRONT_API_KEY) {
+    return next(new Error("Invalid API key"));
+  }
+  next();
+});
+
 const sendRoomChanged = (room: Room, playerId: string) => {
   let player: Player;
   try {
