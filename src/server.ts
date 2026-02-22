@@ -158,6 +158,16 @@ io.on("connection", (socket) => {
     );
   });
 
+  socket.on("leaveRoom", (callback) => {
+    roomGuardedEndpoint(userId, callback, (game, room) => {
+      room.users = room.users.filter((userId) => userId !== userId);
+      socket.emit("on:user:assigned", null);
+      socket.emit("on:room:changed", null);
+      game.addToHistory({ type: "LeaveRoom" });
+      return callback({ status: 200 });
+    });
+  });
+
   socket.on("isGameOngoing", (callback) => {
     roomGuardedEndpoint(userId, callback, (game) => {
       game.addToHistory({ type: "IsGameOngoing" });

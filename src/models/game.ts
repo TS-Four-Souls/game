@@ -26,7 +26,7 @@ import {
   MonsterType,
   isDeckType
 } from "@/models/cards";
-import type { CardSetsCollection, DecksCollection, DeckType, DeckTypeToCardType, EffectData, EffectType, TargetsSelector } from "@/models/types/cardTypes";
+import type { DecksCollection, DeckType, DeckTypeToCardType, EffectData, EffectType, TargetsSelector } from "@/models/types/cardTypes";
 import { Stack, type StackElement } from "@/models/stack";
 import { effectParser } from "@/models/effectParser";
 import {
@@ -50,7 +50,6 @@ export type DamageSource = Card | DiceRoll;
 
 const LOG_GAME = false;
 export const cards = await loadCards(process.cwd() + "/data/cards");
-const cardSets: CardSetsCollection = LoadsCardSets(cards);
 
 export class Game {
   private _players: Player[] = [];

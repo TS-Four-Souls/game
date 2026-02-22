@@ -33,6 +33,7 @@ export type UserRequest =
   | {type: "IsGameOngoing" }
   | {type: "CreateRoom" }
   | {type: "JoinRoom", payload: Requests.JoinRoom }
+  | {type: "LeaveRoom" }
 
 
 // Important historic information: purchase, DebugLoot, DebugListLoot, DebugListTreasure, DebugGainTreasure, GiveCoins, AttackMonster, EndTurn

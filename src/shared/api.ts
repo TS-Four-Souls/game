@@ -623,11 +623,12 @@ export namespace Responses {
   export type CreateRoom = BasicResponse;
   export type JoinRoom = BasicResponse;
   export type JoinAsUser = BasicResponse;
+  export type LeaveRoom = BasicResponse;
 }
 
 export interface ServerToClientEvents {
   "on:room:changed": (room: Room | null) => void;
-  "on:user:assigned": (userId: string) => void;
+  "on:user:assigned": (userId: string | null) => void;
 }
 
 export interface ClientToServerEvents {
@@ -745,5 +746,9 @@ export interface ClientToServerEvents {
   joinRoom: (
     request: Requests.JoinRoom,
     callback: (response: Responses.JoinRoom) => void,
+  ) => void;
+
+  leaveRoom: (
+    callback: (response: Responses.LeaveRoom) => void,
   ) => void;
 }
