@@ -1,6 +1,4 @@
-import { TargetBuilder } from "./targetBuilder";
 import { type Requests, type StackElementJson } from "../shared/api";
-import type { StackElement } from "./stack";
 
 
 /* This class is responsible for handling historic data.
@@ -13,13 +11,16 @@ import type { StackElement } from "./stack";
 export type UserRequest = 
     {type: "Join", payload: Requests.Join } 
   | {type: "Rejoin", payload: Requests.Rejoin }
+  | {type: "SetGameParameter", payload: Requests.SetGameParameter }
   | {type: "Start", payload: Requests.Start }
   | {type: "Reset", payload: Requests.Reset }
   | {type: "DeclareAttack", payload: Requests.DeclareAttack }
+  | {type: "DeclarePurchase", payload: Requests.DeclarePurchase }
+  | {type: "CancelPurchase", payload: Requests.CancelPurchase }
   | {type: "Resolve", payload: Requests.Resolve }
   | {type: "SubmitSelection", payload: Requests.SubmitSelection }
-  | {type: "EndTurn", payload: Requests.EndTurn }
   | {type: "PlayCard", payload: Requests.PlayCard }
+  | {type: "EndTurn", payload: Requests.EndTurn }
   | {type: "Activate", payload: Requests.Activate }
   | {type: "Purchase", payload: Requests.Purchase }
   | {type: "GiveCoins", payload: Requests.GiveCoins }
@@ -29,7 +30,9 @@ export type UserRequest =
   | {type: "DebugListLoot", payload: Requests.DebugListLoot }
   | {type: "DebugListTreasure", payload: Requests.DebugListTreasure }
   | {type: "DebugGainTreasure", payload: Requests.DebugGainTreasure }
-  | {type: "DebugReset", payload: Requests.DebugReset };
+  | {type: "IsGameOngoing" }
+  | {type: "CreateRoom" }
+  | {type: "JoinRoom", payload: Requests.JoinRoom }
 
 
 // Important historic information: purchase, DebugLoot, DebugListLoot, DebugListTreasure, DebugGainTreasure, GiveCoins, AttackMonster, EndTurn

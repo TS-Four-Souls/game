@@ -10,13 +10,16 @@ import type {
 } from "./shared/api";
 import { schemas } from "./shared/api";
 import { TargetBuilder } from "./models/targetBuilder";
-import { Card, ItemCard, LootCard, MonsterCard, CharacterCard } from "./models/cards";
+import { ItemCard, LootCard } from "./models/cards";
+import { generateRoomId, generateUserId } from "./utils/random";
+import type { z, ZodType } from "zod";
 
 const PORT = process.env.PORT || 3000;
 const HOSTNAME = process.env.HOSTNAME || "localhost";
 const io = new Server<ClientToServerEvents, ServerToClientEvents>();
 
-const game = new Game();
+type Room = { id: string; users: string[]; game: Game };
+const rooms: Map<string, Room> = new Map();
 
 const engine = new Engine({
   path: "/socket.io/",
@@ -27,655 +30,810 @@ const engine = new Engine({
 
 io.bind(engine);
 
-game.onStateChange.add(() => {
-  game.players.forEach((player) => sendRoomChanged(player.id));
-});
-
-const sendRoomChanged = (playerId: string) => {
+const sendRoomChanged = (room: Room, playerId: string) => {
   let player: Player;
   try {
-    player = game.getPlayerById(playerId);
+    player = room.game.getPlayerById(playerId);
   } catch (error) {
     console.error("Failed to get player", error);
-    io.to(playerId).emit("on:room:changed", null);
+    io.to(playerId).emit("on:room:changed", {
+      room: { id: room.id, state: "created" },
+    });
     return;
   }
 
   let gameState: DetailedState | undefined;
   try {
-    gameState = game.detailedStateJSON(player);
+    gameState = room.game.detailedStateJSON(player);
   } catch (error) {
     console.error("Failed to get game state", error);
   }
 
   io.to(player.id).emit("on:room:changed", {
-    issuer: {
-      id: player.id,
-      secret: player.secret,
+    room: {
+      id: room.id,
+      state: "joined",
+      issuer: {
+        id: player.id,
+        secret: player.secret,
+      },
+      players: room.game.players.map((player) => player.id),
+      gameParameters: room.game.gameParameters.toJson(),
     },
-    players: game.players.map((player) => player.id),
-    gameParameters: game.gameParameters.toJson(),
     gameState,
   });
 };
 
+const getRoomFromUserId = (userId: string) => {
+  const result = rooms
+    .entries()
+    .find(([_, room]) => room.users.includes(userId));
+  if (!result) {
+    return undefined;
+  }
+  const [roomId, room] = result;
+  return { roomId, room };
+};
+
+const roomGuardedEndpoint = (
+  userId: string | undefined,
+  callback: (response: { status: 400; error: string }) => void,
+  onSuccess: (game: Game, room: Room) => void,
+): void => {
+  if (!userId) {
+    return callback({ status: 400, error: "User not found" });
+  }
+  const roomFound = getRoomFromUserId(userId);
+  if (!roomFound) {
+    return callback({ status: 400, error: "User not found" });
+  }
+  const { room } = roomFound;
+  onSuccess(room.game, room);
+};
+
+const payloadGuardedEndpoint = <T extends ZodType>(
+  payload: unknown,
+  schema: T,
+  callback: (response: { status: 400; error: string }) => void,
+  onSuccess: (payload: z.infer<T>) => void,
+): void => {
+  const validated = schema.safeParse(payload);
+  if (!validated.success) {
+    return callback({ status: 400, error: validated.error.message });
+  }
+  onSuccess(validated.data);
+};
+
 io.on("connection", (socket) => {
   console.log("Client connected");
-  
-  socket.on("isGameOngoing", (callback) => {
-    return callback({ gameOngoing: game.isStarted });
-  });
+  let userId: string | undefined;
 
-  socket.on("join", (payload, callback) => {
-    const validated = schemas.joinRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    const name = validated.data;
-    try {
-      const player = new Player(name);
-      game.addPlayer(player);
-      console.log(`Player ${name} joined the game`);
-      socket.join(player.id);
-      sendRoomChanged(player.id);
-      game.addToHistory({type: "Join", payload: validated.data});
-      return callback({
-        status: 200,
-      });
-    } catch (error) {
-      console.error("Failed to join the game", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
-  });
-
-  socket.on("rejoin", (payload, callback) => {
-    const validated = schemas.rejoinRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      const player = game.getPlayerById(validated.data.id);
-      if (!player.verifySecret(validated.data.secret)) {
-        return callback({ status: 400, error: "Invalid secret" });
-      }
-      socket.join(player.id);
-      sendRoomChanged(player.id);
-      game.addToHistory({type: "Rejoin", payload: validated.data});
-      return callback({
-        status: 200,
-      });
-    } catch (error) {
-      console.error("Failed to rejoin the game", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
-  });
-
-  socket.on("setGameParameter", (payload, callback) => {
-    const validated = schemas.setGameParameterRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      game.getPlayerByIssuer(validated.data.issuer);
-      game.gameParameters[validated.data.parameter].value = validated.data.value;
-      return callback({ status: 200 });
-    }
-    catch (error) {
-      console.error("Failed to set game parameter", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
-  });
-
-  socket.on("start", (payload, callback) => {
-    const validated = schemas.startRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      // game.setupGame();
-      // const eden = game.decks["character"]!.getCardFromSlug(
-      //   "b2-eden"
-      // )! as CharacterCard;
-      // const samson = game.decks["character"]!.getCardFromSlug(
-      //   "b2-samson"
-      // )! as CharacterCard;
-      // const treas = ["b2-chaos_card", "b2-placebo", "b2-blank_card"];
-      // for (const slug of treas) {
-      //   const card = game.obtainCard(slug)! as ItemCard;
-      //   game.decks["treasure"]?.addTopPosition( card);
-      // }
-      game.start(validated.data.issuer);
-      // const mob = game.obtainCard("b2-moms_eye") as MonsterCard;
-      // game.encounters.forceSetMonsterAtSlot(0, mob);
-      // const loots = ["b2-i_the_magician", "b2-gold_bomb", "b2-ii_the_high_priestess", "b2-cains_eye"]
-      // for (const slug of loots) {
-      //   const card = game.obtainCard(slug)! as LootCard;
-      //   game.addCardToHand(game.players[0]!, card);
-      //   }
-      // for (const slug of treas) {
-      //   const card = game.obtainCard(slug)! as ItemCard;
-      //   game.addInPlay(game.players[0]!, card);
-      // } 
-      // const treas = ["b2-theres_options", "b2-trinity_shield"];
-      game.addToHistory({type: "Start", payload: validated.data});
-      return callback({ status: 200 });
-    } catch (error) {
-      console.error("Failed to start the game", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
-  });
-
-  socket.on("reset", (payload, callback) => {
-    const validated = schemas.resetRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      const players = game.players;
-      game.reset();
-      players.forEach((player) => {
-        sendRoomChanged(player.id);
-        io.socketsLeave(player.id);
-      });
-      game.addToHistory({type: "Reset", payload: validated.data});
-      return callback({ status: 200 });
-    } catch (error) {
-      console.error("Failed to reset the game", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
-  });
-
-  socket.on("declareAttack", (payload, callback) => {
-    const validated = schemas.declareAttackRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      const player = game.getPlayerByIssuer(validated.data.issuer);
-      game.declareAttack(player);
-      return callback({ status: 200 });
-    } catch (error) {
-      console.error("Failed to declare attack", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
-  });
-
-  socket.on("attackMonster", (payload, callback) => {
-    const validated = schemas.attackMonsterRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      const player = game.getPlayerById(validated.data.issuer.id);
-      const monster =
-        validated.data.index === "top"
-          ? "topDeck"
-          : game.encounters.monsterIn(validated.data.index);
-      if (!monster) {
-        return new Response(`No monster at index ${validated.data.index}`, {
-          status: 400,
-        });
-      }
-      const drawInIndex =
-        validated.data.index === "top" ? validated.data.replaceIndex : -1;
-      game.declareAttackOnMonster(player, monster, drawInIndex);
-      game.addToHistory({type: "AttackMonster", payload: validated.data});
-    } catch (error) {
-      console.error("Failed to declare attack", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
+  socket.on("createRoom", (callback) => {
+    const roomId = generateRoomId();
+    userId = generateUserId();
+    const game = new Game();
+    const room = { id: roomId, users: [userId], game };
+    game.onStateChange.add(() => {
+      game.players.forEach((player) => sendRoomChanged(room, player.id));
+    });
+    rooms.set(roomId, room);
+    socket.emit("on:user:assigned", userId);
+    socket.emit("on:room:changed", {
+      room: {
+        id: roomId,
+        state: "created",
+      },
+    });
+    game.addToHistory({ type: "CreateRoom" });
     return callback({ status: 200 });
   });
 
+  socket.on("joinRoom", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.joinRoomRequest,
+      callback,
+      (payload) => {
+        const roomId = payload.roomId;
+        const room = rooms.get(roomId);
+
+        if (!room) {
+          return callback({ status: 400, error: "Room not found" });
+        }
+
+        userId = generateUserId();
+        room.users.push(userId);
+
+        socket.emit("on:user:assigned", userId);
+        socket.emit("on:room:changed", {
+          room: {
+            id: roomId,
+            state: "created",
+          },
+        });
+
+        room.game.addToHistory({ type: "JoinRoom", payload });
+        return callback({ status: 200 });
+      },
+    );
+  });
+
+  socket.on("isGameOngoing", (callback) => {
+    roomGuardedEndpoint(userId, callback, (game) => {
+      game.addToHistory({ type: "IsGameOngoing" });
+      return callback({ status: 200, gameOngoing: game.isStarted });
+    });
+  });
+
+  socket.on("join", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.joinRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game, room) => {
+          try {
+            const player = new Player(payload);
+            game.addPlayer(player);
+            console.log(`Player ${payload} joined the game`);
+            socket.join(player.id);
+            sendRoomChanged(room, player.id);
+            game.addToHistory({ type: "Join", payload });
+            return callback({
+              status: 200,
+            });
+          } catch (error) {
+            console.error("Failed to join the game", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+
+    socket.on("rejoin", (payload, callback) => {
+      payloadGuardedEndpoint(
+        payload,
+        schemas.rejoinRequest,
+        callback,
+        (payload) => {
+          userId = payload.userId;
+          roomGuardedEndpoint(userId, callback, (game, room) => {
+            if (payload.issuer) {
+              try {
+                const player = room.game.getPlayerById(payload.issuer.id);
+                if (player.verifySecret(payload.issuer.secret)) {
+                  socket.join(player.id);
+                  sendRoomChanged(room, player.id);
+                  game.addToHistory({ type: "Rejoin", payload });
+                  return callback({
+                    status: 200,
+                  });
+                }
+              } catch {}
+            }
+
+            socket.emit("on:room:changed", {
+              room: {
+                id: room.id,
+                state: "created",
+              },
+            });
+            return callback({ status: 200 });
+          });
+        },
+      );
+    });
+  });
+
+  socket.on("setGameParameter", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.setGameParameterRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            game.getPlayerByIssuer(payload.issuer);
+            game.gameParameters[payload.parameter].value = payload.value;
+            game.addToHistory({ type: "SetGameParameter", payload });
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to set game parameter", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
+
+  socket.on("start", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.startRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            // game.setupGame();
+            // const eden = game.decks["character"]!.getCardFromSlug(
+            //   "b2-eden"
+            // )! as CharacterCard;
+            // const samson = game.decks["character"]!.getCardFromSlug(
+            //   "b2-samson"
+            // )! as CharacterCard;
+            // const treas = ["b2-chaos_card", "b2-placebo", "b2-blank_card"];
+            // for (const slug of treas) {
+            //   const card = game.obtainCard(slug)! as ItemCard;
+            //   game.decks["treasure"]?.addTopPosition( card);
+            // }
+            game.start(payload.issuer);
+            // const mob = game.obtainCard("b2-moms_eye") as MonsterCard;
+            // game.encounters.forceSetMonsterAtSlot(0, mob);
+            // const loots = ["b2-i_the_magician", "b2-gold_bomb", "b2-ii_the_high_priestess", "b2-cains_eye"]
+            // for (const slug of loots) {
+            //   const card = game.obtainCard(slug)! as LootCard;
+            //   game.addCardToHand(game.players[0]!, card);
+            //   }
+            // for (const slug of treas) {
+            //   const card = game.obtainCard(slug)! as ItemCard;
+            //   game.addInPlay(game.players[0]!, card);
+            // }
+            // const treas = ["b2-theres_options", "b2-trinity_shield"];
+            game.addToHistory({ type: "Start", payload });
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to start the game", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
+
+  socket.on("reset", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.resetRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game, room) => {
+          try {
+            const players = game.players;
+            game.reset();
+            players.forEach((player) => {
+              sendRoomChanged(room, player.id);
+              io.socketsLeave(player.id);
+            });
+            game.addToHistory({ type: "Reset", payload });
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to reset the game", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
+
+  socket.on("declareAttack", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.declareAttackRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            const player = game.getPlayerByIssuer(payload.issuer);
+            game.declareAttack(player);
+            game.addToHistory({ type: "DeclareAttack", payload });
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to declare attack", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
+
+  socket.on("attackMonster", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.attackMonsterRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            const player = game.getPlayerById(payload.issuer.id);
+            const monster =
+              payload.index === "top"
+                ? "topDeck"
+                : game.encounters.monsterIn(payload.index);
+            if (!monster) {
+              return new Response(`No monster at index ${payload.index}`, {
+                status: 400,
+              });
+            }
+            const drawInIndex =
+              payload.index === "top" ? payload.replaceIndex : -1;
+            game.declareAttackOnMonster(player, monster, drawInIndex);
+            game.addToHistory({ type: "AttackMonster", payload });
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to declare attack", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
+
   socket.on("attackRoll", (payload, callback) => {
-    const validated = schemas.attackRollRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      const player = game.getPlayerByIssuer(validated.data);
-      game.attackRoll(player);
-      game.addToHistory({type: "AttackRoll", payload: validated.data});
-      return callback({ status: 200 });
-    } catch (error) {
-      console.error("Failed to declare attack", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
+    payloadGuardedEndpoint(
+      payload,
+      schemas.attackRollRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            const player = game.getPlayerByIssuer(payload);
+            game.attackRoll(player);
+            game.addToHistory({ type: "AttackRoll", payload });
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to declare attack", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
   });
 
   socket.on("resolve", (payload, callback) => {
-    const validated = schemas.resolveRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      const player = game.getPlayerByIssuer(validated.data.issuer);
-      game.resolveStack();
-      game.addToHistory({type: "Resolve", payload: validated.data});
-      return callback({ status: 200 });
-    } catch (error) {
-      console.error("Failed to resolve the stack", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
+    payloadGuardedEndpoint(
+      payload,
+      schemas.resolveRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            game.resolveStack();
+            game.addToHistory({ type: "Resolve", payload });
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to resolve the stack", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
   });
 
   socket.on("submitSelection", (payload, callback) => {
-    const validated = schemas.submitSelectionRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      const player = game.getPlayerByIssuer(validated.data.issuer);
-      game.submitSelection(
-        validated.data.issuer,
-        validated.data.requestId,
-        validated.data.selections,
-      );
-      game.addToHistory({type: "SubmitSelection", payload: validated.data});
-      return callback({ status: 200 });
-    } catch (error) {
-      console.error("Failed to submit selection", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
+    payloadGuardedEndpoint(
+      payload,
+      schemas.submitSelectionRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            game.submitSelection(
+              payload.issuer,
+              payload.requestId,
+              payload.selections,
+            );
+            game.addToHistory({ type: "SubmitSelection", payload });
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to submit selection", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
   });
 
   socket.on("playCard", (payload, callback) => {
-    const validated = schemas.playCardRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      const player = game.getPlayerByIssuer(validated.data.issuer);
-      const partialChoices = validated.data.targetChoices || [];
-      const card = TargetBuilder.getCardFromPlayer(
-        game,
-        player,
-        validated.data.index,
-        "hand",
-      );
-      const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(
-        game,
-        player,
-        card,
-        partialChoices,
-        validated.data.effectIndex,
-      );
-      if (choices.complete) {
-        const targets = TargetBuilder.buildTargets(
-          game,
-          player,
-          card,
-          partialChoices,
-          validated.data.effectIndex,
-        );
-        game.playCard(player, validated.data.index, targets);
-      }
-      game.addToHistory({type: "PlayCard", payload: validated.data});
-      return callback({ response: choices, status: 200 });
-    } catch (error) {
-      console.error("Failed to play card", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
+    payloadGuardedEndpoint(
+      payload,
+      schemas.playCardRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            const player = game.getPlayerByIssuer(payload.issuer);
+            const partialChoices = payload.targetChoices || [];
+            const card = TargetBuilder.getCardFromPlayer(
+              game,
+              player,
+              payload.index,
+              "hand",
+            );
+            const choices: TargetSelectorResponse =
+              TargetBuilder.getNextSelector(
+                game,
+                player,
+                card,
+                partialChoices,
+                payload.effectIndex,
+              );
+            if (choices.complete) {
+              const targets = TargetBuilder.buildTargets(
+                game,
+                player,
+                card,
+                partialChoices,
+                payload.effectIndex,
+              );
+              game.playCard(player, payload.index, targets);
+            }
+            game.addToHistory({ type: "PlayCard", payload });
+            return callback({ response: choices, status: 200 });
+          } catch (error) {
+            console.error("Failed to play card", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
   });
 
   socket.on("activate", async (payload, callback) => {
-    const validated = schemas.activateRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      const player = game.getPlayerByIssuer(validated.data.issuer);
-      const partialChoices = validated.data.targetChoices || [];
-      const item = TargetBuilder.getCardFromPlayer(
-        game,
-        player,
-        validated.data.index,
-        "inPlay",
-      );
-      const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(
-        game,
-        player,
-        item,
-        partialChoices,
-        validated.data.effectIndex,
-      );
-      if (choices.complete) {
-        console.log("Activation complete");
-        const targets = TargetBuilder.buildTargets(
-          game,
-          player,
-          item,
-          partialChoices,
-          validated.data.effectIndex,
-        );
-        await game.activateItemAtIndex(
-          player,
-          validated.data.index,
-          targets,
-          validated.data.effectIndex,
-        );
-        game.addToHistory({type: "Activate", payload: validated.data});
-      }
-      return callback({ response: choices, status: 200 });
-    } catch (error) {
-      console.error("Failed to play card", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
+    payloadGuardedEndpoint(
+      payload,
+      schemas.activateRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, async (game) => {
+          try {
+            const player = game.getPlayerByIssuer(payload.issuer);
+            const partialChoices = payload.targetChoices || [];
+            const item = TargetBuilder.getCardFromPlayer(
+              game,
+              player,
+              payload.index,
+              "inPlay",
+            );
+            const choices: TargetSelectorResponse =
+              TargetBuilder.getNextSelector(
+                game,
+                player,
+                item,
+                partialChoices,
+                payload.effectIndex,
+              );
+            if (choices.complete) {
+              console.log("Activation complete");
+              const targets = TargetBuilder.buildTargets(
+                game,
+                player,
+                item,
+                partialChoices,
+                payload.effectIndex,
+              );
+              await game.activateItemAtIndex(
+                player,
+                payload.index,
+                targets,
+                payload.effectIndex,
+              );
+              game.addToHistory({ type: "Activate", payload });
+            }
+            return callback({ response: choices, status: 200 });
+          } catch (error) {
+            console.error("Failed to play card", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
   });
 
   socket.on("declarePurchase", (payload, callback) => {
-    const validated = schemas.declarePurchaseRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      const player = game.getPlayerByIssuer(validated.data.issuer);
-      game.declarePurchase(player);
-      return callback({ status: 200 });
-    } catch (error) {
-      console.error("Failed to declare purchase", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
+    payloadGuardedEndpoint(
+      payload,
+      schemas.declarePurchaseRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            const player = game.getPlayerByIssuer(payload.issuer);
+            game.declarePurchase(player);
+            game.addToHistory({ type: "DeclarePurchase", payload });
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to declare purchase", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
   });
 
   socket.on("cancelPurchase", (payload, callback) => {
-    const validated = schemas.cancelPurchaseRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      const player = game.getPlayerByIssuer(validated.data.issuer);
-      game.cancelPurchase(player);
-      return callback({ status: 200 });
-    } catch (error) {
-      console.error("Failed to cancel purchase", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
+    payloadGuardedEndpoint(
+      payload,
+      schemas.cancelPurchaseRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            const player = game.getPlayerByIssuer(payload.issuer);
+            game.cancelPurchase(player);
+            game.addToHistory({ type: "CancelPurchase", payload });
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to cancel purchase", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
   });
+
   socket.on("purchase", async (payload, callback) => {
-    const validated = schemas.purchaseRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      const player = game.getPlayerByIssuer(validated.data.issuer);
-      game.purchase(player, validated.data.index);
-      game.addToHistory({type: "Purchase", payload: validated.data});
-      return callback({ status: 200 });
-    } catch (error) {
-      console.error("Failed to play card", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
+    payloadGuardedEndpoint(
+      payload,
+      schemas.purchaseRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, async (game) => {
+          try {
+            const player = game.getPlayerByIssuer(payload.issuer);
+            game.purchase(player, payload.index);
+            game.addToHistory({ type: "Purchase", payload });
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to purchase", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
   });
+
   socket.on("endTurn", async (payload, callback) => {
-    const validated = schemas.endTurnRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      game.addToHistory({type: "EndTurn", payload: validated.data});
-      game.nextTurn(validated.data.issuer);
-      return callback({ status: 200 });
-    } catch (error) {
-      console.error("Failed to end turn", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
+    payloadGuardedEndpoint(
+      payload,
+      schemas.endTurnRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            game.addToHistory({ type: "EndTurn", payload });
+            game.nextTurn(payload.issuer);
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to end turn", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
   });
 
   socket.on("giveCoins", (payload, callback) => {
-    const validated = schemas.giveCoinsRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      const player = game.getPlayerByIssuer(validated.data.issuer);
-      const target = game.getPlayerById(validated.data.target);
-      const amount = validated.data.coins;
-      if (!game.giveCoins(player, target, amount))
-        throw new Error("amount of coins invalid");
-      game.addToHistory({type: "GiveCoins", payload: validated.data});
-      return callback({ status: 200 });
-    } catch (error) {
-      console.error("Failed to give coins", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
+    payloadGuardedEndpoint(
+      payload,
+      schemas.giveCoinsRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            const player = game.getPlayerByIssuer(payload.issuer);
+            const target = game.getPlayerById(payload.target);
+            const amount = payload.coins;
+            if (!game.giveCoins(player, target, amount))
+              throw new Error("amount of coins invalid");
+            game.addToHistory({ type: "GiveCoins", payload });
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to give coins", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
   });
 
   // ------------- DEBUG EVENTS -------------
 
   socket.on("debugLoot", (payload, callback) => {
-    const validated = schemas.debugLootRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      const player = game.getPlayerByIssuer(validated.data);
-      game.addToHistory({type: "DebugLoot", payload: validated.data});
-      const slugs = validated.data.slugs;
-      if (slugs && slugs.length > 0) {
-        const lootDeck = game.decks["loot"];
-        if (!lootDeck) {
-          return callback({ status: 400, error: "Loot deck not available" });
-        }
-        for (const slug of slugs) {
-          const card = game.obtainCard(slug)! as LootCard;
-          game.addCardToHand(player, card);
-        }
-        return callback({
-          status: 200,
+    payloadGuardedEndpoint(
+      payload,
+      schemas.debugLootRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            const player = game.getPlayerByIssuer(payload);
+            game.addToHistory({ type: "DebugLoot", payload });
+            const slugs = payload.slugs;
+            if (slugs && slugs.length > 0) {
+              const lootDeck = game.decks["loot"];
+              if (!lootDeck) {
+                return callback({
+                  status: 400,
+                  error: "Loot deck not available",
+                });
+              }
+              for (const slug of slugs) {
+                const card = game.obtainCard(slug)! as LootCard;
+                game.addCardToHand(player, card);
+              }
+              return callback({ status: 200 });
+            }
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to debug loot", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
         });
-      }
-      return callback({ status: 200 });
-    } catch (error) {
-      console.error("Failed to debug loot", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
+      },
+    );
   });
 
   socket.on("debugListLoot", (payload, callback) => {
-    const validated = schemas.debugListLootRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      game.getPlayerByIssuer(validated.data);
-      game.addToHistory({type: "DebugListLoot", payload: validated.data});
+    payloadGuardedEndpoint(
+      payload,
+      schemas.debugListLootRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            game.getPlayerByIssuer(payload);
+            game.addToHistory({ type: "DebugListLoot", payload });
 
-      const lootDeck = game.decks["loot"];
-      if (!lootDeck) {
-        return callback({ status: 400, error: "Loot deck not available" });
-      }
-      const cards = lootDeck.cards
-        .toSorted((a, b) => a.slug.localeCompare(b.slug))
-        .map((c) => ({ name: c.name, slug: c.slug }));
+            const lootDeck = game.decks["loot"];
+            if (!lootDeck) {
+              return callback({
+                status: 400,
+                error: "Loot deck not available",
+              });
+            }
+            const cards = lootDeck.cards
+              .toSorted((a, b) => a.slug.localeCompare(b.slug))
+              .map((c) => ({ name: c.name, slug: c.slug }));
 
-      return callback({ status: 200, cards });
-    } catch (error) {
-      console.error("Failed to debug list loot", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
+            return callback({ status: 200, cards });
+          } catch (error) {
+            console.error("Failed to debug list loot", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
   });
 
   socket.on("debugListTreasure", (payload, callback) => {
-    const validated = schemas.debugListTreasureRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      game.getPlayerByIssuer(validated.data);
-      game.addToHistory({type: "DebugListTreasure", payload: validated.data});
+    payloadGuardedEndpoint(
+      payload,
+      schemas.debugListTreasureRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            game.getPlayerByIssuer(payload);
+            game.addToHistory({ type: "DebugListTreasure", payload });
 
-      const treasureDeck = game.decks["treasure"];
-      if (!treasureDeck) {
-        return callback({ status: 400, error: "Treasure deck not available" });
-      }
-      const cards = treasureDeck.cards
-        .toSorted((a, b) => a.slug.localeCompare(b.slug))
-        .map((c) => ({ name: c.name, slug: c.slug }));
+            const treasureDeck = game.decks["treasure"];
+            if (!treasureDeck) {
+              return callback({
+                status: 400,
+                error: "Treasure deck not available",
+              });
+            }
+            const cards = treasureDeck.cards
+              .toSorted((a, b) => a.slug.localeCompare(b.slug))
+              .map((c) => ({ name: c.name, slug: c.slug }));
 
-      return callback({ status: 200, cards });
-    } catch (error) {
-      console.error("Failed to debug list treasure", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
+            return callback({ status: 200, cards });
+          } catch (error) {
+            console.error("Failed to debug list treasure", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
   });
 
   socket.on("debugGainTreasure", (payload, callback) => {
-    const validated = schemas.debugGainTreasureRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      const player = game.getPlayerByIssuer(validated.data);
-      game.addToHistory({type: "DebugGainTreasure", payload: validated.data});
-      const slugs = validated.data.slugs;
-      if (slugs && slugs.length > 0) {
-        const treasureDeck = game.decks["treasure"];
-        if (!treasureDeck) {
-          return callback({
-            status: 400,
-            error: "Treasure deck not available",
-          });
-        }
-        for (const slug of slugs) {
-          const card = game.obtainCard(slug)!;
-          if(card instanceof ItemCard === false)
-            throw new Error(`Card ${card.name} is not an ItemCard`);
-          game.addInPlay(player, card);
-        }
-        return callback({
-          status: 200,
+    payloadGuardedEndpoint(
+      payload,
+      schemas.debugGainTreasureRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            const player = game.getPlayerByIssuer(payload);
+            game.addToHistory({ type: "DebugGainTreasure", payload });
+            const slugs = payload.slugs;
+            if (slugs && slugs.length > 0) {
+              const treasureDeck = game.decks["treasure"];
+              if (!treasureDeck) {
+                return callback({
+                  status: 400,
+                  error: "Treasure deck not available",
+                });
+              }
+              for (const slug of slugs) {
+                const card = game.obtainCard(slug)!;
+                if (card instanceof ItemCard === false)
+                  throw new Error(`Card ${card.name} is not an ItemCard`);
+                game.addInPlay(player, card);
+              }
+              return callback({
+                status: 200,
+              });
+            }
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to debug gain treasure", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
         });
-      }
-      return callback({ status: 200 });
-    } catch (error) {
-      console.error("Failed to debug gain treasure", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
-  });
-
-  socket.on("debugReset", (payload, callback) => {
-    const validated = schemas.debugResetRequest.safeParse(payload);
-    if (!validated.success) {
-      return callback({ status: 400, error: validated.error.message });
-    }
-    try {
-      game.reset();
-      const p1 = new Player("DrMint", 1, 2, 0, "");
-      const p2 = new Player("slichau", 1, 2, 0, "");
-      game.addPlayer(p1);
-      game.addPlayer(p2);
-      game.setupGame();
-      // const isaac = game.decks["character"]!.getCardFromSlug(
-      //   "b2-isaac"
-      // )! as CharacterCard;
-      // const samson = game.decks["character"]!.getCardFromSlug(
-      //   "b2-samson"
-      // )! as CharacterCard;
-      // const card = game.obtainCard("b2-remote_detonator")!;
-      // const card2 = game.obtainCard("b2-xv_the_devil")! as LootCard;
-      const mob = game.obtainCard("b2-mom") as MonsterCard;
-      game.encounters.forceSetMonsterAtSlot(0, mob);
-      const loots = [
-        "b2-i_the_magician",
-        "b2-gold_bomb",
-        "b2-ii_the_high_priestess",
-        "b2-bomb",
-      ];
-      for (const slug of loots) {
-        // const card = game.obtainCard(slug)! as LootCard;
-        // game.addCardToHand(p1, card);
-      }
-      // const card2 = game.obtainCard("b2-gold_bomb")! as LootCard;
-      // // const card2 = game.obtainCard("b2-bomb")! as LootCard;
-      // game.addCardToHand(p1, card2);
-      game.start(p1);
-      const treas = [
-        "b2-pandoras_box",
-        "b2-placebo",
-        "b2-the_d20",
-        "b2-blank_card",
-        "b2-chaos_card",
-      ];
-      for (const slug of treas) {
-        // const card = game.obtainCard(slug)!;
-        // game.addInPlay(p1, card);
-      }
-      game.addToHistory({type: "DebugReset", payload: validated.data});
-      return new Response("Debug reset", {
-        status: 200,
-      });
-      return callback({ status: 200 });
-    } catch (error) {
-      console.error("Failed to debug reset", error);
-      if (error instanceof Error) {
-        return callback({ status: 400, error: error.message });
-      }
-      return callback({ status: 400, error: "Unknown error" });
-    }
+      },
+    );
   });
 
   socket.on("disconnect", () => {
