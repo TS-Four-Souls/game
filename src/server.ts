@@ -160,7 +160,7 @@ io.on("connection", (socket) => {
 
   socket.on("leaveRoom", (callback) => {
     roomGuardedEndpoint(userId, callback, (game, room) => {
-      room.users = room.users.filter((userId) => userId !== userId);
+      room.users = room.users.filter((id) => id !== userId);
       socket.emit("on:user:assigned", null);
       socket.emit("on:room:changed", null);
       game.addToHistory({ type: "LeaveRoom" });
