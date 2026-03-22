@@ -533,7 +533,6 @@ export class TargetBuilder {
                 return `You don't have enough health to pay this cost.`;
             }
         }
-        console.log("Checking counter payment for card:", card.name, "description:", s);
         let countersToRemove = parseNumber(s, /^\[paid effect\] remove (\d+) counters? from this\.?/u);
         if (countersToRemove === null)
             countersToRemove = /^\[paid effect\] remove a counter from this.?/.test(s) ? 1 : null;

@@ -64,7 +64,7 @@ describe("Loot Card", () => {
 
         game.endTurn();
         await game.resolveStack();
-        player1.addHealthPoints(10); // Heal back for clarity
+        player1.heal(10); // Heal back for clarity
 
         game.dealDamage(player2, player1, loot, 2);
         await game.resolveStack();

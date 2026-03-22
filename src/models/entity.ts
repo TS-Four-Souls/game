@@ -30,10 +30,10 @@ export abstract class Entity {
   constructor(
     readonly id: string,
     private _attackPoints: number,
-    readonly healthPoints: number
+    private _healthPoints: number
   ) {
     this.id = id;
-    this._currentHealthPoints = healthPoints;
+    this._currentHealthPoints = this._healthPoints;
     this._engagedInCombat = 0;
   }
 
@@ -73,9 +73,9 @@ export abstract class Entity {
 
   heal(amount:number|"full" = "full"): void {
     if(amount === "full")
-      this._currentHealthPoints = this.healthPoints;
+      this._currentHealthPoints = this._healthPoints;
     else
-      this._currentHealthPoints = Math.min(this._currentHealthPoints + amount, this.healthPoints);
+      this._currentHealthPoints = Math.min(this._currentHealthPoints + amount, this._healthPoints);
   }
 
   die(): void {
@@ -92,11 +92,17 @@ export abstract class Entity {
   get currentHealthPoints(): number {
     return this._currentHealthPoints;
   }
+  
+  get healthPoints(): number {
+    return this._healthPoints;
+  }
 
   addHealthPoints(amount: number): void {
-    this._currentHealthPoints += amount;
-  if (amount < 0 && this._currentHealthPoints < this.healthPoints) {
-      this._currentHealthPoints = this.healthPoints;
+    this._healthPoints += amount;
+    if(amount > 0)
+      this._currentHealthPoints += amount;
+    if (amount < 0 && this._currentHealthPoints > this._healthPoints) {
+      this._currentHealthPoints = this._healthPoints;
     }
   }
   

@@ -614,8 +614,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         expect(diplopia.slug).toBe("b2-diplopia");
 
         // HP returns to base (without breakfast bonus) after reversion
-        // This is because HP modifications work differently than ATK modifications
-        expect(player1.currentHealthPoints).toBe(initialHP - 1);
+        expect(player1.currentHealthPoints).toBe(initialHP);
     });
 
     it("diplopia can copy passive items from other players", async () => {

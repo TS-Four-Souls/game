@@ -1568,7 +1568,7 @@ describe("Loot Card", () => {
         await game.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(initialHp + 2);
-        expect(player1.healthPoints).toBe(initialHp);
+        expect(player1.healthPoints).toBe(initialHp+2);
         game.endTurn();
         await game.resolveStack();
 
@@ -1591,7 +1591,7 @@ describe("Loot Card", () => {
 
         expect(player1.currentHealthPoints).toBe(initialHplayer1);
         expect(player2.currentHealthPoints).toBe(initialHp + 2);
-        expect(player2.healthPoints).toBe(initialHp);
+        expect(player2.healthPoints).toBe(initialHp + 2);
         game.endTurn();
         await game.resolveStack();
 
@@ -1685,7 +1685,7 @@ describe("Loot Card", () => {
         await game.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk + 1);
-        expect(player1.healthPoints).toBe(initialHP);
+        expect(player1.healthPoints).toBe(initialHP + 1);
         expect(player1.currentHealthPoints).toBe(initialHP + 1);
         game.endTurn();
         await game.resolveStack();
@@ -1714,7 +1714,7 @@ describe("Loot Card", () => {
         expect(player2.attackPoints).toBe(initialAtk + 1);
         expect(player1.attackPoints).toBe(initialAtk1);
         expect(player2.currentHealthPoints).toBe(initialHP + 1);
-        expect(player2.healthPoints).toBe(initialHP);
+        expect(player2.healthPoints).toBe(initialHP+1);
         expect(player1.currentHealthPoints).toBe(initialHP1);
         game.endTurn();
         await game.resolveStack();

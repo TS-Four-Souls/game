@@ -34,6 +34,11 @@ describe("Treasure - Permanent Modifiers", () => {
 
         game.removeInPlay(player1, breakfast);
         expect(player1.currentHealthPoints).toBe(initialHealth + 1);
+        
+        game.endTurn();
+        await game.resolveStack();
+        
+        expect(player1.currentHealthPoints).toBe(initialHealth + 1);
         game.removeInPlay(player1, dinner);
         expect(player1.currentHealthPoints).toBe(initialHealth);
     });

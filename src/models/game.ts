@@ -1735,7 +1735,6 @@ export class Game {
     if(card instanceof ItemCard)
       {
         if(card.activeEffectList.length === 1){
-          console.log("Checking single effect activation for card:", card.name);
           return TargetBuilder.validTargetExists(this, owner, card, card.activeEffectList[0]!.index);
         }
         else if(!card.activeEffectList.some(e => TargetBuilder.validTargetExists(this, owner, card, e.index) === true && (card.charged || e.index !== "tap")))
