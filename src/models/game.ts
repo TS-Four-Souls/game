@@ -1244,8 +1244,8 @@ export class Game {
     }
     if (card instanceof ItemCard) 
       if (from.inPlay.includes(card) && !card.eternal) {
-        from.removeInPlay(card);
-        to.addInPlay(card);
+        this.removeInPlay(from, card);
+        this.addInPlay(to, card);
         return true;
       }
     return false;

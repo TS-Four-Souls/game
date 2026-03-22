@@ -242,20 +242,26 @@ describe("Treasure - Passive effects", () => {
     // Note: Transfer mechanism needs verification
 
     it("baby_haunt - transfers to another player on death", async () => {
+        const initEvastion = game.getDC(game.monsters[0]!);
         const babyHaunt = game.shop.obtainCard("b2-baby_haunt") as TreasureCard;
         game.addInPlay(player1, babyHaunt);
 
         expect(player1.inPlay.map((c) => c.slug)).toContain(babyHaunt.slug);
         expect(player2.inPlay.map((c) => c.slug)).not.toContain(babyHaunt.slug);
-
+        expect(game.getDC(game.monsters[0]!)).toBe(initEvastion + 1);
         // Kill player1
         game.kill(player1, player1, babyHaunt);
         await game.resolveStack();
         await game.resolveStack();
+        expect(game.getDC(game.monsters[0]!)).toBe(initEvastion);
 
         // baby_haunt should now be with player2
         expect(player1.inPlay.map((c) => c.slug)).not.toContain(babyHaunt.slug);
         expect(player2.inPlay.map((c) => c.slug)).toContain(babyHaunt.slug);
+
+        game.endTurn();
+        await game.resolveStack();
+        expect(game.getDC(game.monsters[0]!)).toBe(initEvastion + 1);
     });
 
     // b2-daddy_haunt    "When you die, before paying penalties, give this to another player."
