@@ -606,7 +606,31 @@ describe("Event Monsters - Curse Effects", () => {
         await game.resolveStack();
         
         expect(player1.hand.length).toBe(initialHandSize - 2);
-        expect(game.monsterSlots._slots[0]).not.toBe(curseOfAmnesia); // Curse should still be in monster slot
+        expect(game.monsterSlots._slots[0]).not.toBe(curseOfAmnesia); // Curse should not be in monster slot
+    });
+
+    // b2-curse_of_amnesia: remove curse once drawn
+    it("curse_of_amnesia - remove curse once drawn", async () => {
+        const curseOfAmnesia = game.obtainCard("b2-curse_of_amnesia") as MonsterCard;
+        game.decks["monster"]!.addTopPosition(curseOfAmnesia);
+        
+        // Add loot cards to hand
+        game.loot(player1, 5);
+        const initialHandSize = player1.hand.length;
+        
+        // Draw the curse to trigger its effect
+        game.declareAttack(game.currentPlayer);
+        game.declareAttackOnMonster(game.currentPlayer, "topDeck", 0);
+        await game.resolveStack(); // resolve the event addition
+        
+        // End player's turn to trigger curse effect
+        game.endTurn();
+        await game.resolveStack();
+        await game.resolveStack();
+        
+        expect(player1.hand.length).toBe(initialHandSize - 2);
+        // expect(false).toBe(true);
+        expect(game.monsterSlots._slots[0]).not.toContain(curseOfAmnesia); // Curse should not be in monster slot
     });
 
     // b2-curse_of_greed: At the end of your turn, lose 4¢

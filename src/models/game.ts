@@ -1293,6 +1293,7 @@ export class Game {
    */
   removeCardFromHand(player: Player, card: LootCard): void {
     player.hand.removeCard(card);
+    this._onStateChange.dispatch();
     this.emit("on:loot:removed:after", { eventIssuer: player, card });
   }
 

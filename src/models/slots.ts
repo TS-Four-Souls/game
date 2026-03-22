@@ -303,6 +303,8 @@ class Encounters {
                     this._game.executeWhenStackSubset(stackIds, () => {
                         if(card.afterEffect === "discard")
                             this.discardTop(index); // remove the card once the effect is resolved.
+                        else
+                            this.removeTop(index); // remove from encounter slot without discarding (e.g. curses).
                         });
                     return true;
                 }, 
@@ -385,6 +387,25 @@ class Encounters {
     }
 
     /**
+     * Removes the top card from a slot without sending it to discard.
+     * Refills or reveals the next card in the slot as needed.
+     *
+     * @param index - The slot index to remove the top card from
+     * @returns The removed card, if any
+     */
+    removeTop(index: number) : MonsterCard | undefined {
+        if (index < 0) {
+            return undefined;
+        }
+        const card = this._slots[index]!.pop();
+        if(this._slots[index]!.length === 0) {
+            this.fillEmptySpots(false);
+        }else{
+            this.createMonsterAtSlot(index);
+        }
+        return card;
+    }
+    /**
      * Discards the top monster card from a slot and refills the slot.
      * The card goes to the discard pile of the monster deck.
      * 
@@ -392,12 +413,7 @@ class Encounters {
      */
     discardTop(index: number) : void {
         if (index >= 0) {
-            const card = this._slots[index]!.pop();
-            if(this._slots[index]!.length === 0) {
-                this.fillEmptySpots(false);
-            }else{
-                this.createMonsterAtSlot(index);
-            }
+            const card = this.removeTop(index);
             this._deck.addDiscardTop(card!);
         }
     }
