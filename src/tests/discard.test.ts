@@ -77,6 +77,25 @@ describe("Discard", () => {
         expect(game.decks['monster']!.discard.length).toBe(1);
     });
 
+    it("curse discard 2", async () => {
+        const card: MonsterCard = game.obtainCard("b2-curse_of_loss") as MonsterCard;
+        const card2: MonsterCard = game.obtainCard("b2-moms_hand") as MonsterCard;
+        const ewaz: LootCard = game.obtainCard("b2-ehwaz") as LootCard;
+        game.decks['monster']!.addTopPosition(card2);
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, "topDeck", 0);
+        const mobster = game.monsters[0]!;
+        game.kill(mobster, player1, ewaz);
+        await game.resolveStack();
+        game.endTurn();
+        await game.resolveStack();
+        game.addCardToHand(player2, ewaz);
+        game.playCard(player2, player2.hand.length - 1);
+        game.resolveStack();
+        expect(game.encounters.visible[0]!.slug).not.toBe("b2-moms_hand");
+    });
+
+
     it("kill monster with soul becomes player's soul (not discarded)", async () => {
         // Use Gurdy which has a soul in the monster deck
         const gurdy = game.decks['monster']!.getCardFromSlug("b2-gurdy") as MonsterCard;

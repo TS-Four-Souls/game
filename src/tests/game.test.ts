@@ -597,20 +597,6 @@ describe("Game - Guardrails", () => {
   });
 });
 
-describe("Game - Monsters", () => {
-  let game: Game;
-  let player1: Player;
-  let player2: Player;
-
-  beforeEach(() => {
-    game = new Game();
-    player1 = new Player("player1", 2, 4, 10);
-    player2 = new Player("player2", 3, 5, 15);
-    game.addPlayer(player1);
-    game.addPlayer(player2);
-  });
-});
-
 describe("Game - Stack Operations", () => {
   let game: Game;
   let player1: Player;

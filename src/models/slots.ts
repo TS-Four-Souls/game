@@ -421,7 +421,8 @@ class Encounters {
      */
     flush() : void {
         for (let i = 0; i < this._slots.length; i++) {
-            this.discardTop(i);
+            if(this.monsterIn(i) !== undefined && !this.monsterIn(i)?.isEngagedInCombat)
+                this.discardTop(i);
         }
         this.fillEmptySpots(false);
     }

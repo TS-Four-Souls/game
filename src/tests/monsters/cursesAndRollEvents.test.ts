@@ -596,7 +596,8 @@ describe("Event Monsters - Curse Effects", () => {
         const initialHandSize = player1.hand.length;
         
         // Draw the curse to trigger its effect
-        game.monsterSlots.discardTop(0);
+        game.declareAttack(game.currentPlayer);
+        game.declareAttackOnMonster(game.currentPlayer, "topDeck", 0);
         await game.resolveStack(); // resolve the event addition
         
         // End player's turn to trigger curse effect
@@ -605,6 +606,7 @@ describe("Event Monsters - Curse Effects", () => {
         await game.resolveStack();
         
         expect(player1.hand.length).toBe(initialHandSize - 2);
+        expect(game.monsterSlots._slots[0]).not.toBe(curseOfAmnesia); // Curse should still be in monster slot
     });
 
     // b2-curse_of_greed: At the end of your turn, lose 4¢

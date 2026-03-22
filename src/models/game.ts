@@ -414,6 +414,7 @@ export class Game {
     if (monster === "topDeck") {
       this.drawMonster(player, drawInIndex);
       player.clearAttackRequirement("topDeck");
+      player.attackThisId("topDeck");
       if (
         this.encounters.monsterIn(drawInIndex) === undefined ||
         !this.encounters.monsterIn(drawInIndex)!.attackable
@@ -429,6 +430,7 @@ export class Game {
       throw new Error("Monster should be engaged in combat now.");
     // Clear forced attack constraint if this monster satisfies it
     player.clearAttackRequirement(monster);
+    player.attackThisId("monster");
     this.emit("on:attack:declared:monster", { eventIssuer: player, monster });
     this._onStateChange.dispatch();
   }
@@ -1087,6 +1089,7 @@ export class Game {
       const player = this.assertIssuerSecret(issuer);
       this.assertCurrentTurnIsPlayerTurn(player);
       this.assertCurrentPlayerIsNotEngagedInPurchase();
+      this.assertNoMonsterIsEngagedInCombat();
       this.assertCurrentPlayerIsNotEngagedInCombat();
       this.assertEmptyStack();
       this.assertNoOngoingAttack();
@@ -1279,6 +1282,7 @@ export class Game {
    */
   addCardToHand(player: Player, card: LootCard): void {
     player.hand.addToHand(card);
+    this._onStateChange.dispatch();
     this.emit("on:loot:added:after", { eventIssuer: player, card });
     this._onStateChange.dispatch();
   }

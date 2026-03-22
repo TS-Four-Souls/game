@@ -92,6 +92,34 @@ describe("Event Monsters - Other Events", () => {
         expect(player1.isEngagedInCombat).toBe(false);
     });
 
+    // b2-ambush: The active player must attack the monster deck 2 times this turn.
+    it("ambush - add only 1 additional attack if already attacked top deck.", async () => {
+        const initialAttacks = player1.mustAttackMonster.length;
+        const ambush = game.obtainCard("b2-ambush") as MonsterCard;
+        game.decks["monster"]!.addTopPosition(ambush);
+        
+        
+        // Draw the event to trigger its effect
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.resolveStack();
+        
+        // Player should be forced to attack the monster deck 2 additional times
+        expect(player1.mustAttackMonster.length).toBe(initialAttacks + 1);
+        expect(() => {game.nextTurn(player1)}).toThrow()
+
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, "topDeck", 0);
+        game.kill(player1, game.monsters[0]!, ambush);
+        game.resolveStack();
+        
+        expect(player1.mustAttackMonster.length).toBe(0);
+        expect(player1.isEngagedInCombat).toBe(false);
+        expect(player1.mustAttackMonster.length).toBe(initialAttacks);
+        expect(player1.isEngagedInCombat).toBe(false);
+        expect(() => {game.nextTurn(player1)}).not.toThrow()
+    });
+
     // b2-mega_troll_bomb: Each player takes 2 damage!
     it("mega_troll_bomb - each player takes 2 damage", async () => {
         const megaTrollBomb = game.obtainCard("b2-mega_troll_bomb") as MonsterCard;

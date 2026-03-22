@@ -896,7 +896,7 @@ export function lookAtPlayerHandAndSwapEffect(game: Game): EffectFunction {
 export function lookAtHandAndStealLootEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const otherPlayer = (await game.select(data.issuer, 1, game.players.filter((p) => p !== data.issuer), false, "Select a player to look at their hand, and steal a loot card.")).selected[0] as Player;
+        const otherPlayer = data.next as Player;
         const canSteal = otherPlayer.hand.length > 0;
         const selection = await game.select(data.issuer, canSteal ? 1 : 0, otherPlayer.hand.cards, true, "Select a loot card to steal.");
         if (selection.selected.length === 0)
@@ -1124,9 +1124,11 @@ export function rechargeThisEffect(game: Game): EffectFunction {
         return true;
     };
 }
-export function forceAttackMonsterDeckEffect(game: Game, times: number): EffectFunction {
+export function forceAttackMonsterDeckEffect(game: Game, times: number, type: "total" | "additional"): EffectFunction {
     return (data: EffectData) => {
-        for (let i = 0; i < times; i++) {
+        if(data.issuer instanceof Player === false) return false;
+        const additionalTimes = type === "additional" ? times : times - data.issuer.attackedIdsThisTurn.filter((id) => id === "topDeck").length;
+        for (let i = 0; i < additionalTimes; i++) {
             game.playerMustAttack(data.issuer as Player, "topDeck", data.it);
         }
         return true;

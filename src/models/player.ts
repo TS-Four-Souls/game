@@ -65,6 +65,8 @@ export class Player extends Entity {
 
   private _engagedInPurchase: number = 0;
 
+  private _attackedIdsThisTurn: ("monster" | "topDeck")[] = [];
+
   private _curses: MonsterCard[] = [];
   /**
    * Creates a new Player instance.
@@ -170,6 +172,14 @@ export class Player extends Entity {
 
   get isEngagedInPurchase(): boolean {
     return this._engagedInPurchase > 0;
+  }
+
+  attackThisId(id: "monster" | "topDeck"): void {
+    this._attackedIdsThisTurn.push(id);
+  }
+  
+  get attackedIdsThisTurn(): ("monster" | "topDeck")[] {
+    return this._attackedIdsThisTurn;
   }
 
   purchaseEnded(){
@@ -457,6 +467,7 @@ export class Player extends Entity {
     this._attackThisTurn = 0;
     this._attackRollThisTurn = 0;
     this._remainingPurchaseThisTurn = 0;
+    this._attackedIdsThisTurn = [];
     this._mustAttackMonster = [];
     this.resetEntityFlags();
   }

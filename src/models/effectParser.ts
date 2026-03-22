@@ -947,7 +947,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
         case "this becomes a soul. gain it.":
             return { effectFunction: active.thisBecomeSoulGainItEffect(game), targetSelectors: noTargets };
         case "the active player must attack the monster deck 2 times this turn.":
-            return { effectFunction: active.forceAttackMonsterDeckEffect(game, 2), targetSelectors: noTargets };
+            return { effectFunction: active.forceAttackMonsterDeckEffect(game, 2, "total"), targetSelectors: noTargets };
         default:
             return null; // No match found
         }

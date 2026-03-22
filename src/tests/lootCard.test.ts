@@ -360,6 +360,91 @@ describe("Loot Card", () => {
         expect(newMonster1).not.toBe(initialMonster1);
     });
 
+    it("b2-ehwaz: player dies fighting a monster, ehwaz can flush it next turn.", async () => {
+        const ehwaz = game.decks["loot"]!.getCardFromSlug("b2-ehwaz");
+        player2.hand.addToHand(ehwaz!);
+        game.encounters.draw(0);
+        // Get initial monsters
+        const initialMonster0 = game.monsterSlots.monsterIn(0)!;
+        const initialMonster1 = game.monsterSlots.monsterIn(1)!;
+
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, initialMonster0);
+        game.attackRoll(player1);
+        const dice = game.stack.elements[game.stack.size - 1] as DiceRoll;
+        expect(dice).toBeDefined();
+        dice.value = 1;
+        await game.resolveStack(); 
+        await game.resolveStack(); 
+
+        game.attackRoll(player1);
+        const dice2 = game.stack.elements[game.stack.size - 1] as DiceRoll;
+        expect(dice2).toBeDefined();
+        dice2.value = 1;
+        await game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
+        expect(player1.currentHealthPoints).toBe(0); // player should be dead
+        expect(player1.isDead).toBe(true);
+        expect(game.currentPlayer.id).toBe(player1.id); // should be player2's turn
+        game.endTurn(); // end player1's turn to move to player2's turn
+        await game.resolveStack();
+        expect(game.currentPlayer.id).toBe(player2.id); // should be player2's turn
+        
+
+        // Play ehwaz to flush monsters
+        game.playCard(player2, 0);
+        await game.resolveStack();
+
+        // Get new monsters
+        const newMonster0 = game.monsterSlots.monsterIn(0)!;
+        const newMonster1 = game.monsterSlots.monsterIn(1)!;
+
+        // Verify monsters were replaced
+        expect(newMonster0).not.toBe(initialMonster0);
+        expect(newMonster1).not.toBe(initialMonster1);
+
+    });
+
+    it("b2-ehwaz: ehwaz can flush monsters that have been uncovered.", async () => {
+        const ehwaz = game.decks["loot"]!.getCardFromSlug("b2-ehwaz");
+        player2.hand.addToHand(ehwaz!);
+        
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, "topDeck", 0);
+        for (let i = 0; i < 5; i++) {
+            game.attackRoll(player1);
+            const dice = game.stack.elements[game.stack.size - 1] as DiceRoll;
+            expect(dice).toBeDefined();
+            dice.value = 6;
+            await game.resolveStack(); 
+            await game.resolveStack();             
+        }
+        await game.resolveStack();
+
+        game.endTurn(); // end player1's turn to move to player2's turn
+        await game.resolveStack();
+        expect(game.currentPlayer.id).toBe(player2.id); // should be player2's turn
+        
+        // Get initial monsters
+        const initialMonster0 = game.monsterSlots.monsterIn(0)!.id;
+        const initialMonster1 = game.monsterSlots.monsterIn(1)!.id;
+        
+        // Play ehwaz to flush monsters
+        game.playCard(player2, 0);
+        await game.resolveStack();
+
+        // Get new monsters
+        const newMonster0 = game.monsterSlots.monsterIn(0)!.id;
+        const newMonster1 = game.monsterSlots.monsterIn(1)!.id;
+
+        // Verify monsters were replaced
+        expect(newMonster0).not.toBe(initialMonster0);
+        expect(newMonster1).not.toBe(initialMonster1);
+
+    });
+
+
     it("b2-ehwaz: should replace old monsters with new deck cards", async () => {
         const ehwaz = game.decks["loot"]!.getCardFromSlug("b2-ehwaz");
         player1.hand.addToHand(ehwaz!);
