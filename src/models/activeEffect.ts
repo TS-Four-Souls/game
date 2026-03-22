@@ -457,9 +457,9 @@ export function cancelPreviousNonRollEffect(game: Game): EffectFunction {
     };
 }
 
-export function flushMonsterSlotsEffect(game: Game): EffectFunction {
+export function flushMonsterSlotsAndReplaceEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
-        game.monsterSlots.flush();
+        game.monsterSlots.flushAndDraw();
         return true;
     };
 }

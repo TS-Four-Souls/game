@@ -486,6 +486,14 @@ class Encounters {
             throw new Error("Monster not found in encounters");
     }
 
+    flushAndDraw(): void {
+        this.flush();
+        for (let i = 0; i < this._slots.length; i++) {
+            if(this._slots[i]!.length > 1)
+                this.draw(i);
+        }
+    }
+
     /**
      * Moves all top cards from all slots to the bottom of the deck.
      * Different from flush as cards go to bottom instead of discard.

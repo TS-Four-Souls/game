@@ -1295,6 +1295,7 @@ export class Game {
     player.hand.removeCard(card);
     this._onStateChange.dispatch();
     this.emit("on:loot:removed:after", { eventIssuer: player, card });
+    this._onStateChange.dispatch();
   }
 
   assignRandomCharacterToPlayers(): void {

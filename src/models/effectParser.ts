@@ -872,7 +872,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
         case "cancel the ↷ or $ ability of an item or a loot being played.":
             return { effectFunction: active.cancelPreviousNonRollEffect(game), targetSelectors: selectStackElementOrLoot(game) };
         case "put each monster not being attacked into discard and replace each with the top card of the monster deck.":
-            return { effectFunction: active.flushMonsterSlotsEffect(game), targetSelectors: noTargets };
+            return { effectFunction: active.flushMonsterSlotsAndReplaceEffect(game), targetSelectors: noTargets };
         case "put each monster not being attacked on the bottom of the monster deck.":
             return { effectFunction: active.flushMonsterSlotsToBottomEffect(game), targetSelectors: noTargets };
         case "look at each player's hand":
