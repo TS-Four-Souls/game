@@ -2338,6 +2338,12 @@ export class Game {
     }
   }
 
+  private assertNoMonsterIsEngagedInCombat(): void {
+    if (this.monsters.some((m) => m.isEngagedInCombat)) {
+      throw new Error("A monster is currently engaged in combat");
+    }
+  }
+
   private assertCurrentPlayerIsEngagedInPurchase(): void {
     if (!this.currentPlayer!.isEngagedInPurchase) {
       throw new Error("You are not currently engaged in purchase");
