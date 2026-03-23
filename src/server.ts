@@ -780,6 +780,61 @@ io.on("connection", (socket) => {
     );
   });
 
+  socket.on("debugListCardsICanRemove", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.debugListCardsICanRemoveRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            const player = game.getPlayerByIssuer(payload);
+            game.addToHistory({ type: "DebugListCardsICanRemove", payload });
+            const cards = game.playerCardsAndGameOwnedCards(player).map((c) => ({ name: c.name, slug: c.slug }));
+            return callback({ status: 200, cards });
+          } catch (error) {
+            console.error("Failed to debug list cards I can remove", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
+
+  socket.on("debugRemoveCards", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.debugRemoveCardsRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            const player = game.getPlayerByIssuer(payload);
+            game.addToHistory({ type: "DebugRemoveCards", payload });
+            if(payload.slugs !== undefined)
+            {
+              const cardsToRemove = game.playerCardsAndGameOwnedCards(player).filter((c) => payload.slugs!.includes(c.slug));
+              game.debugRemoveCards(player, cardsToRemove);
+              console.log(game.detailedStateJSON(player));
+            }
+            return callback({
+              status: 200,
+            });
+          } catch (error) {
+            console.error("Failed to debug remove treasure", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
+
   socket.on("debugListTreasure", (payload, callback) => {
     payloadGuardedEndpoint(
       payload,

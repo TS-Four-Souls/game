@@ -158,6 +158,68 @@ export class Game {
     );
     return result;
   }
+  /**
+   * This function returns the cards owned by a player (his hand and in-play, non-eternal cards), and game owned cards (shop and encounters).
+   * @param player 
+   */
+  playerCardsAndGameOwnedCards(player: Player): Card[] {
+    // player's hand
+    const cards: Card[] = [];
+    cards.push(...player.hand._hand);
+    // player's inPlay
+    cards.push(...this.inPlayTargetableCards(player));
+    // shop
+    cards.push(...this.shop._slots.filter((c) => c !== undefined));
+    // events and monsters not in combat
+    cards.push(...this.encounters.nonEngagedInCombat);
+    return cards;
+  }
+
+  debugRemoveCards(player: Player, cards: Card[]): void {
+    // verify that the cards are actually owned by the player or in the shop/encounters.
+    for (const card of cards) {
+      if (!this.playerCardsAndGameOwnedCards(player).some(c => c === card)) {
+        throw new Error(`Card ${card.name} is not owned by player ${player.id}`);
+      }
+    }
+    for (const card of cards) {
+      console.log(`Debug removing card ${card.name} from player ${player.id}`);
+      switch(card.type)
+      {
+        case "loot":
+          const loot = card as LootCard;
+          if(!loot)
+            throw new Error(`Card ${card.name} is not a LootCard.`);
+          this.removeCardFromHand(player, loot);
+          if(loot.trinket)
+            this.removeInPlay(player, loot);
+          this.discard(loot);
+          break;
+        case "treasure":
+          const treasure = card as TreasureCard;
+          if(!treasure)
+            throw new Error(`Card ${card.name} is not a TreasureCard.`);
+          if(this.shop._slots.includes(treasure))
+            this.shop.removeCard(treasure);
+          else
+            this.removeInPlay(player, treasure);
+          this.discard(treasure);
+          break;
+        case "monster":
+          const monster = card as MonsterCard;
+          if(!monster)            
+            throw new Error(`Card ${card.name} is not a MonsterCard.`);
+          const toDiscard = this.encounters.obtainCard(monster.slug);
+          if(toDiscard)
+            this.discard(toDiscard);
+          break;
+        default:
+          throw new Error(`Card ${card.name} is of type ${card.type} which cannot be removed with debugRemoveCards.`);
+          break;
+      }
+    }
+    this._onStateChange.dispatch();
+  }
 
   getOwner(item: Card): Player | null {
     if(item instanceof ItemCard)

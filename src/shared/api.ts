@@ -240,6 +240,10 @@ const debugGainTreasureRequestSchema = issuerSchema.extend({
   slugs: z.array(z.string()).optional(),
 });
 
+const debugRemoveCardsRequestSchema = issuerSchema.extend({
+  slugs: z.array(z.string()).optional(),
+});
+
 const giveCoinsSchema = z.object({
   issuer: issuerSchema,
   target: z.string(),
@@ -350,6 +354,20 @@ const debugListLootResponseSchema = z.union([
 ]);
 export type DebugListLootResponse = z.infer<typeof debugListLootResponseSchema>;
 
+const debugListCardsICanRemoveResponseSchema = z.union([
+  z.object({
+    status: z.literal(200),
+    cards: z.array(cardSchema),
+  }),
+  z.object({
+    status: z.literal(400),
+    error: z.string(),
+  }),
+]);
+export type DebugListCardsICanRemoveResponse = z.infer<typeof debugListCardsICanRemoveResponseSchema>;
+
+// const debugRemoveCardsResponseSchema = z.union([
+//   z.object({
 const debugListTreasureResponseSchema = z.union([
   z.object({
     status: z.literal(200),
@@ -557,6 +575,8 @@ export const schemas = {
   attackRollRequest: issuerSchema,
   debugLootRequest: debugLootRequestSchema,
   debugListLootRequest: issuerSchema,
+  debugListCardsICanRemoveRequest: issuerSchema,
+  debugRemoveCardsRequest: debugRemoveCardsRequestSchema,
   debugListTreasureRequest: issuerSchema,
   debugGainTreasureRequest: debugGainTreasureRequestSchema,
   resolveRequest: resolveRequestSchema,
@@ -590,6 +610,8 @@ export namespace Requests {
   export type AttackRoll = z.infer<typeof issuerSchema>;
   export type DebugLoot = z.infer<typeof debugLootRequestSchema>;
   export type DebugListLoot = z.infer<typeof issuerSchema>;
+  export type DebugListCardsICanRemove = z.infer<typeof issuerSchema>;
+  export type DebugRemoveCards = z.infer<typeof debugRemoveCardsRequestSchema>;
   export type DebugListTreasure = z.infer<typeof issuerSchema>;
   export type DebugGainTreasure = z.infer<
     typeof debugGainTreasureRequestSchema
@@ -616,6 +638,8 @@ export namespace Responses {
   export type AttackRoll = BasicResponse;
   export type DebugLoot = BasicResponse;
   export type DebugListLoot = DebugListLootResponse;
+  export type DebugListCardsICanRemove = DebugListCardsICanRemoveResponse;
+  export type DebugRemoveCards = BasicResponse;
   export type DebugListTreasure = DebugListTreasureResponse;
   export type DebugGainTreasure = BasicResponse;
   export type GiveCoins = BasicResponse;
@@ -707,6 +731,16 @@ export interface ClientToServerEvents {
     callback: (response: Responses.DebugListLoot) => void,
   ) => void;
 
+  debugListCardsICanRemove: (
+    request: Requests.DebugListCardsICanRemove,
+    callback: (response: Responses.DebugListCardsICanRemove) => void,
+  ) => void;
+
+  debugRemoveCards: (
+    request: Requests.DebugRemoveCards,
+    callback: (response: Responses.DebugRemoveCards) => void,
+  ) => void;
+  
   debugListTreasure: (
     request: Requests.DebugListTreasure,
     callback: (response: Responses.DebugListTreasure) => void,

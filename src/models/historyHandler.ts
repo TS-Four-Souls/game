@@ -30,6 +30,8 @@ export type UserRequest =
   | {type: "AttackRoll", payload: Requests.AttackRoll }
   | {type: "DebugLoot", payload: Requests.DebugLoot }
   | {type: "DebugListLoot", payload: Requests.DebugListLoot }
+  | {type: "DebugListCardsICanRemove", payload: Requests.DebugListCardsICanRemove }
+  | {type: "DebugRemoveCards", payload: Requests.DebugRemoveCards }
   | {type: "DebugListTreasure", payload: Requests.DebugListTreasure }
   | {type: "DebugGainTreasure", payload: Requests.DebugGainTreasure }
   | {type: "IsGameOngoing" }
