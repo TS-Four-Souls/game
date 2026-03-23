@@ -1,14 +1,12 @@
 function shuffle<T>(array: T[]): void {
     let currentIndex = array.length;
 
-    // While there remain elements to shuffle...
+    // For each elements starting from the end.
     while (currentIndex != 0) {
-
-        // Pick a remaining element...
-        const randomIndex = Math.floor(Math.random() * currentIndex);
+        // Pick a random element from the remaining elements.
+        const randomIndex = Math.floor(currentIndex * Math.random());
         currentIndex--;
-
-        // And swap it with the current element.
+        // Swap the current element with the random element.
         [array[currentIndex]!, array[randomIndex]!] = [
             array[randomIndex]!, array[currentIndex]!];
     }

@@ -2,6 +2,7 @@ import { Server as Engine } from "@socket.io/bun-engine";
 import { Server } from "socket.io";
 import { Game } from "./models/game";
 import { Player } from "./models/player";
+import { shuffle } from "./utils/auxiliary";
 import type {
   ClientToServerEvents,
   DetailedState,
@@ -293,6 +294,7 @@ io.on("connection", (socket) => {
             //   const card = game.obtainCard(slug)! as ItemCard;
             //   game.decks["treasure"]?.addTopPosition( card);
             // }
+            shuffle(game.players);
             game.start(payload.issuer);
             // const mob = game.obtainCard("b2-moms_eye") as MonsterCard;
             // game.encounters.forceSetMonsterAtSlot(0, mob);
