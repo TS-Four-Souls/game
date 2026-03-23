@@ -251,6 +251,7 @@ export type TriggerEventDataMap = {
   "on:dice:would-roll": OnDiceWouldRollData;
   "on:turn:start": OnTurnStartData;
   "on:turn:end": OnTurnEndData;
+  "till:turn:end": OnTurnEndData;
   "on:loot:step": OnLootStepData;
   "on:loot:would": OnLootWouldData;
   "on:loot:after": OnLootAfterData;

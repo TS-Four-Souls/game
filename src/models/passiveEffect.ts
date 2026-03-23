@@ -105,7 +105,7 @@ export function temporaryStatModifierEffect(
             adder(target, amount);
         
         // Register cleanup to reverse at end of turn
-        let offTurn = game.emitter.on("on:turn:end", () => {
+        let offTurn = game.emitter.on("till:turn:end", () => {
             for(const adder of adders)
                 adder(target, -amount);
             target.removeTemporaryEffect(temp);
@@ -1366,7 +1366,7 @@ export function lootDoubleThisTurnEffect(game: Game): EffectFunction {
             numberOfCards[0]! *= 2;
         });
 
-        offEndTurn = game.emitter.on("on:turn:end", (eventData: OnTurnEndData) => {
+        offEndTurn = game.emitter.on("till:turn:end", (eventData: OnTurnEndData) => {
             const { eventIssuer } = eventData;
             data.issuer.removeTemporaryEffect(temp);
             offEffect?.();

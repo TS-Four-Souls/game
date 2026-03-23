@@ -698,6 +698,8 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // End turn
         game.endTurn();
+        await game.resolveStack();
+        
         expect(diplopia.name).toBe("Diplopia");
     });
 
@@ -719,7 +721,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // End turn - diplopia reverts
         game.endTurn();
-        
+        await game.resolveStack();
         // Attack bonus should be removed
         expect(player1.attackPoints).toBe(initialAttack);
     });
@@ -743,6 +745,8 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // End turn - diplopia reverts
         game.endTurn();
+        await game.resolveStack();
+
         expect(diplopia.name).toBe("Diplopia");
     });
 
@@ -779,7 +783,8 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // End turn - diplopia reverts
         game.endTurn();
-
+        await game.resolveStack();
+        
         // Player1 loses the temporary HP bonus
         expect(player1.currentHealthPoints).toBe(player1InitialHP);
         
@@ -807,6 +812,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // End turn - reverts
         game.endTurn();
+        await game.resolveStack();
         expect(player1.currentHealthPoints).toBe(player1InitialHP);
 
         // Second use: copy brimstone
@@ -846,7 +852,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // End turn - reverts
         game.endTurn();
-
+        await game.resolveStack();
         // Second transformation: brimstone  
         game.recharge(diplopia);
         await game.activateItem(player1, diplopia, [brimstone]);

@@ -1063,6 +1063,7 @@ export class Game {
     this.canEndTurn(player, true);
     this.emit("on:turn:end", { eventIssuer: player });
     this.executeWhenStackEmpty(async () => {
+      this.emit("till:turn:end", { eventIssuer: player });
       await this.verifyHandSize(player);
       this.healEveryone();
       for (const player of this.players) {

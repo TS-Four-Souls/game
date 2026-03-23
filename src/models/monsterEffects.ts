@@ -292,7 +292,7 @@ export function gainAttackOnDamageEffect(game: Game, amount: number): EffectFunc
             addPassiveEffectToStack(game, effect, data, `Each time ${data.it.name} takes damage, it gains +${amount} [ATK] till end of turn.`);
         });
         
-        offEndTurn = game.emitter.on("on:turn:end", (eventData: OnTurnEndData) => {
+        offEndTurn = game.emitter.on("till:turn:end", (eventData: OnTurnEndData) => {
             const { eventIssuer } = eventData;
             (data.issuer as Entity).addAttackPoints(-currentTotal);
             currentTotal = 0;

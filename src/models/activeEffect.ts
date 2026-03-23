@@ -361,7 +361,7 @@ export function becomesCopyOfItemUntilEndOfTurnEffect(game: Game): EffectFunctio
         thisItem.onAddInPlay(owner);
         
         // Subscribe to end of turn event to restore the original card
-        const unsubscribe = game.emitter.on("on:turn:end", (eventData: OnTurnEndData) => {
+        const unsubscribe = game.emitter.on("till:turn:end", (eventData: OnTurnEndData) => {
             if (eventData.eventIssuer === owner) {
                 restore(); // restore() will call cleanup() internally
                 unsubscribe();
