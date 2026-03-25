@@ -534,7 +534,9 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     const eachPlayerLoots = parseNumber(s, /^each player loots\s+(\d+)\.?$/u);
     if (eachPlayerLoots !== null)
         return { effectFunction: active.eachPlayerLootsEffect(game, eachPlayerLoots), targetSelectors: noTargets };
-    const deckName1 = parseText(s, /^look at the top 4 cards of the (\w+) deck\. you may put them back in any order\.?$/u);
+    var deckName1 = parseText(s, /^look at the top 4 cards of the (\w+) deck\. you may put them back in any order\.?$/u);
+    if (deckName1 === "")
+        deckName1 = parseText(s, /^look at the top 4 cards of the (\w+) deck\. put them back in any order\.?$/u);
     if (deckName1 !== "")
         return { effectFunction: active.lookAndOrderEffect(deckName1, 4, game), targetSelectors: noTargets };
     const coinsLostByEachPlayer = parseNumber(s, /^each player loses (\d+)\u00A2\.?$/u);
