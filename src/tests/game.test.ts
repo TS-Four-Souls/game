@@ -3,8 +3,32 @@ import { Game } from "@/models/game";
 import { Player } from "@/models/player";
 import { TurnHandler } from "@/models/turnHandler";
 import { Stack } from "@/models/stack";
+import { StackElement } from "@/models/stackElement";
+import { GameEventEmitter } from "@/models/eventEmmitter";
 import type { CharacterCard, ItemCard, LootCard } from "@/models/cards";
+import type { StackElementJson } from "@/shared/api";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupStandardTestGame } from "@/tests/testHelpers";
+
+class DummyStackElement extends StackElement {
+  constructor(private readonly label: string) {
+    super();
+  }
+
+  get json(): StackElementJson {
+    return {
+      type: "effect",
+      issuer: { type: "player", name: "dummy", slug: "dummy" },
+      targets: [],
+      card: { name: this.label, slug: this.label },
+      effect: this.label,
+      id: this.stackId,
+    };
+  }
+
+  async onResolve(): Promise<boolean> {
+    return true;
+  }
+}
 
 describe("Game", () => {
   let game: Game;
@@ -670,6 +694,88 @@ describe("Stack - Behavior", () => {
     expect(stack.size).toBe(2);
     expect(stack.elements[0]).toBe(a);
     expect(stack.elements[1]).toBe(c);
+  });
+
+  it("should insert a stack element before another in same reordering group", async () => {
+    const stack = new Stack();
+    const a = new DummyStackElement("A");
+    const b = new DummyStackElement("B");
+    const c = new DummyStackElement("C");
+
+    a.reordering = { groupId: "g1" };
+    b.reordering = { groupId: "g1" };
+    c.reordering = { groupId: "g1" };
+
+    stack.push(a);
+    stack.push(b);
+    stack.push(c);
+
+    stack.insertStackElementBefore(c, b);
+
+    expect(stack.elements[0]).toBe(a);
+    expect(stack.elements[1]).toBe(c);
+    expect(stack.elements[2]).toBe(b);
+  });
+
+  it("should throw when trying to reorder elements from different groups", async () => {
+    const stack = new Stack();
+    const a = new DummyStackElement("A");
+    const b = new DummyStackElement("B");
+
+    a.reordering = { groupId: "g1" };
+    b.reordering = { groupId: "g2" };
+
+    stack.push(a);
+    stack.push(b);
+
+    expect(() => stack.insertStackElementBefore(b, a)).toThrow("Cannot reorder elements from different groups.");
+  });
+
+  it("should throw when one of the elements has no reordering group", async () => {
+    const stack = new Stack();
+    const a = new DummyStackElement("A");
+    const b = new DummyStackElement("B");
+
+    a.reordering = { groupId: "g1" };
+
+    stack.push(a);
+    stack.push(b);
+
+    expect(() => stack.insertStackElementBefore(a, b)).toThrow("Both elements must belong to a reordering group.");
+  });
+});
+
+describe("GameEventEmitter - listener reordering", () => {
+  it("should reorder only the provided listener subset", async () => {
+    const emitter = new GameEventEmitter();
+    const issuer = new Player("p1");
+    const seenOrder: string[] = [];
+    let idA = -1;
+    let idC = -1;
+
+    emitter.on("on:turn:start", () => {
+      seenOrder.push("A");
+      idA = emitter.getCurrentEmissionContext()?.listenerId ?? idA;
+    });
+    emitter.on("on:turn:start", () => {
+      seenOrder.push("B");
+    });
+    emitter.on("on:turn:start", () => {
+      seenOrder.push("C");
+      idC = emitter.getCurrentEmissionContext()?.listenerId ?? idC;
+    });
+
+    emitter.emit("on:turn:start", { eventIssuer: issuer });
+    expect(seenOrder).toEqual(["A", "B", "C"]);
+    expect(idA).toBeGreaterThan(0);
+    expect(idC).toBeGreaterThan(0);
+
+    seenOrder.length = 0;
+    emitter.reorderListenersBySubset("on:turn:start", [idC, idA]);
+    emitter.emit("on:turn:start", { eventIssuer: issuer });
+
+    // A and C were swapped while B stayed in the middle position.
+    expect(seenOrder).toEqual(["C", "B", "A"]);
   });
 });
 

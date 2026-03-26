@@ -151,12 +151,21 @@ export type TargetSelectorResponse = z.infer<
   typeof targetSelectorResponseSchema
 >;
 
+const stackReorderingInfoSchema = z.object({
+  groupId: z.string(),
+  ownerId: z.string().optional(),
+  event: z.string().optional(),
+  listenerId: z.number().optional(),
+});
+export type StackReorderingInfo = z.infer<typeof stackReorderingInfoSchema>;
+
 const lootCardOnStackJsonSchema = z.object({
   type: z.literal("LootCardEffect"),
   card: identifierTypeSchema,
   targets: z.array(selectionItemSchema),
   issuer: entityTypeSchema,
   id: z.number(),
+  reordering: stackReorderingInfoSchema.optional(),
 });
 export type LootCardOnStackJson = z.infer<typeof lootCardOnStackJsonSchema>;
 
@@ -168,6 +177,7 @@ const diceRollJsonSchema = z.object({
   targets: z.array(selectionItemSchema).optional(),
   id: z.number(),
   modifier: z.number(),
+  reordering: stackReorderingInfoSchema.optional(),
 });
 export type DiceRollJson = z.infer<typeof diceRollJsonSchema>;
 
@@ -177,6 +187,7 @@ const deathOnStackJsonSchema = z.object({
   from: entityTypeSchema,
   source: z.union([z.lazy(() => diceRollJsonSchema), identifierTypeSchema]),
   id: z.number(),
+  reordering: stackReorderingInfoSchema.optional(),
 });
 export type DeathOnStackJson = z.infer<typeof deathOnStackJsonSchema>;
 
@@ -187,6 +198,7 @@ const damageOnStackJsonSchema = z.object({
   damage: z.number(),
   source: z.union([z.lazy(() => diceRollJsonSchema), identifierTypeSchema]),
   id: z.number(),
+  reordering: stackReorderingInfoSchema.optional(),
 });
 export type DamageOnStackJson = z.infer<typeof damageOnStackJsonSchema>;
 
@@ -197,6 +209,7 @@ const effectOnStackJsonSchema = z.object({
   card: identifierTypeSchema,
   effect: z.string(),
   id: z.number(),
+  reordering: stackReorderingInfoSchema.optional(),
 });
 export type EffectOnStackJson = z.infer<typeof effectOnStackJsonSchema>;
 
@@ -408,6 +421,12 @@ const submitSelectionSchema = z.object({
   selections: z.array(selectionItemSchema),
 });
 
+const insertStackElementBeforeSchema = z.object({
+  issuer: issuerSchema,
+  elementToMoveStackId: z.number(),
+  targetStackId: z.number(),
+});
+
 const purchaseSchema = z.object({
   issuer: issuerSchema,
   index: z.union([z.number(), z.literal("top")]),
@@ -581,6 +600,7 @@ export const schemas = {
   debugGainTreasureRequest: debugGainTreasureRequestSchema,
   resolveRequest: resolveRequestSchema,
   submitSelectionRequest: submitSelectionSchema,
+  insertStackElementBeforeRequest: insertStackElementBeforeSchema,
   playCardRequest: cardActivationSchema,
   endTurnRequest: nextTurnRequestSchema,
   activateRequest: cardActivationSchema,
@@ -601,6 +621,9 @@ export namespace Requests {
   export type CancelPurchase = z.infer<typeof cancelPurchaseRequestSchema>;
   export type Resolve = z.infer<typeof resolveRequestSchema>;
   export type SubmitSelection = z.infer<typeof submitSelectionSchema>;
+  export type InsertStackElementBefore = z.infer<
+    typeof insertStackElementBeforeSchema
+  >;
   export type PlayCard = z.infer<typeof cardActivationSchema>;
   export type EndTurn = z.infer<typeof nextTurnRequestSchema>;
   export type Activate = z.infer<typeof cardActivationSchema>;
@@ -628,6 +651,7 @@ export namespace Responses {
   export type DeclareAttack = BasicResponse;
   export type Resolve = BasicResponse;
   export type SubmitSelection = BasicResponse;
+  export type InsertStackElementBefore = BasicResponse;
   export type PlayCard = NextTargetSelectorResponse;
   export type EndTurn = BasicResponse;
   export type Activate = NextTargetSelectorResponse;
@@ -689,6 +713,11 @@ export interface ClientToServerEvents {
   submitSelection: (
     request: Requests.SubmitSelection,
     callback: (response: Responses.SubmitSelection) => void,
+  ) => void;
+
+  insertStackElementBefore: (
+    request: Requests.InsertStackElementBefore,
+    callback: (response: Responses.InsertStackElementBefore) => void,
   ) => void;
 
   playCard: (

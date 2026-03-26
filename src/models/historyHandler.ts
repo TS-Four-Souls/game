@@ -21,6 +21,7 @@ export type UserRequest =
   | {type: "CancelPurchase", payload: Requests.CancelPurchase }
   | {type: "Resolve", payload: Requests.Resolve }
   | {type: "SubmitSelection", payload: Requests.SubmitSelection }
+  | {type: "InsertStackElementBefore", payload: Requests.InsertStackElementBefore }
   | {type: "PlayCard", payload: Requests.PlayCard }
   | {type: "EndTurn", payload: Requests.EndTurn }
   | {type: "Activate", payload: Requests.Activate }

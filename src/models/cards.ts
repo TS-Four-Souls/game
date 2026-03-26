@@ -5,6 +5,7 @@ import { Player } from './player';
 import { assert } from 'console';
 import type { Entity } from './entity';
 import { TargetBuilder } from './targetBuilder';
+import { StackElement } from './stackElement';
 import { type EffectOnStackJson, type LootCardOnStackJson } from '@/shared/api'
 import { EffectData, type EffectType, type EffectFunction, type TargetsSelector, type CardSetsCollection, type DecksCollection, type DeckType, type DeckTypeToCardType } from './types/cardTypes';
 
@@ -718,22 +719,16 @@ class LootCard extends ItemCard {
 }
 
 // Wrapper class to hold loot card effect resolution on the stack
-export class LootCardEffect {
+export class LootCardEffect extends StackElement {
     private _card: LootCard;
     private targets: any[];
     private issuer: Player;
-    private _stackId: number = -1;
 
     constructor(issuer: Player, card: LootCard, targets: any[]) {
+        super();
         this._card = card;
         this.targets = targets;
         this.issuer = issuer;
-    }
-    set stackId(id: number) {
-        this._stackId = id;
-    }
-    get stackId(): number {
-        return this._stackId;
     }
 
     get card(): LootCard {
@@ -744,13 +739,13 @@ export class LootCardEffect {
         await this._card.onPlay(this.issuer, this.targets)();
     }
 
-    get json(): LootCardOnStackJson {
+    override get json(): LootCardOnStackJson {
         return {
             type: "LootCardEffect",
             card: {slug: this.card.slug, name: this.card.name},
             targets: TargetBuilder.convertToSelectionItems(this.targets),
             issuer: this.issuer.json,
-            id: this._stackId,
+            ...super.baseJson,
          } ;
     }
 }
@@ -862,6 +857,12 @@ class MonsterCard extends Card {
     get rewards(): CardRewards | undefined {
         return this._json.rewards;
     }
+    /**
+     * Determines what happens to the card after its effect is resolved.
+     * Some cards handle their own placement after resolution.
+     * For instance, curses are placed in the player's curse area and are not discarded.
+     * Another example is "Delirium", that goes back into the deck 6 cards from the top.
+     */
     get afterEffect(): "discard" | "nothing" {
         return this._afterEffect;
     }
@@ -1020,24 +1021,18 @@ function LoadsCardSets(json_array: GenericCardType[]) : CardSetsCollection {
     return sets;
 }
 
-export class EffectOnStack {
+export class EffectOnStack extends StackElement {
     protected _effectFunction: EffectFunction
     protected _data: EffectData;
     protected _description: string;
-    private _stackId: number = -1;
 
     constructor(effectFunction: EffectFunction, data: EffectData, description: string) {
+        super();
         // if(!data)
         //     throw new Error("EffectOnStack constructor: data is undefined or null.");
         this._effectFunction = effectFunction;
         this._data = data;
         this._description = description;
-    }
-    set stackId(id: number) {
-        this._stackId = id;
-    }
-    get stackId(): number {
-        return this._stackId;
     }
     async onResolve(): Promise<boolean> {
         return await this._effectFunction(this._data);
@@ -1051,14 +1046,14 @@ export class EffectOnStack {
         // Reset the consumption index when targets are set externally
         (this._data as any)._nextIndex = 0;
     }
-    get json(): EffectOnStackJson {
+    override get json(): EffectOnStackJson {
         return { 
             type: "effect",
             issuer: this._data.issuer.json, 
             targets: TargetBuilder.convertToSelectionItems(this._data.targets), 
             card: {slug: this.data.it.slug, name: this.data.it.name}, 
             effect: this._description,
-            id: this._stackId,
+            ...super.baseJson,
         };
     }
 }

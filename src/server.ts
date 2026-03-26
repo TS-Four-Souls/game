@@ -483,6 +483,33 @@ io.on("connection", (socket) => {
     );
   });
 
+  socket.on("insertStackElementBefore", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.insertStackElementBeforeRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            game.insertStackElementBefore(
+              payload.issuer,
+              payload.elementToMoveStackId,
+              payload.targetStackId,
+            );
+            game.addToHistory({ type: "InsertStackElementBefore", payload });
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to reorder stack element", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
+
   socket.on("playCard", (payload, callback) => {
     payloadGuardedEndpoint(
       payload,

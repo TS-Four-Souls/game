@@ -3,6 +3,7 @@ import { CharacterCard, Hand, InplayType, ItemCard, TreasureCard, Card, type Eff
 import type { Game } from "./game";
 import type { Monster } from "./monster";
 import { TargetBuilder } from "./targetBuilder";
+import { StackElement } from "./stackElement";
 import type { EntityType } from "@/shared/api";
 import type { DamageOnStackJson, DeathOnStackJson, DiceRollJson, TemporaryEffect } from "@/shared/api";
 /**
@@ -545,16 +546,16 @@ export class Player extends Entity {
     }
 }
 
-export class DiceRoll {
+export class DiceRoll extends StackElement {
   private _value: number;
   private _issuer: Player;
   private _attackRoll;
   private _effect: EffectFunction[] | null = null;
   private _card: Card | null = null;
   private _targets: any[] = [];
-  private _stackId: number = -1;
 
   constructor(issuer: Player, attackRoll: boolean = false, card: Card | null = null) {
+    super();
     if(!attackRoll && !card) {
       throw new Error("Non-attack dice rolls must be associated with a card.");
     }
@@ -563,12 +564,6 @@ export class DiceRoll {
     this._attackRoll = attackRoll;
     this._card = card;
   }
-  set stackId(id: number) {
-        this._stackId = id;
-    }
-    get stackId(): number {
-        return this._stackId;
-    }
   set targets(targets: any[]) {
     this._targets = targets;
   }
@@ -599,14 +594,14 @@ export class DiceRoll {
     }
     this.value = this.value - modifier;
   }
-  get json(): DiceRollJson {
+  override get json(): DiceRollJson {
     return { 
       type: "diceRoll",
       diceRoll: this.value, 
       issuer: this.issuer.json, 
       card: !this._attackRoll ? {name: this._card!.name, slug: this._card!.slug} : undefined, 
       targets: !this._attackRoll ? TargetBuilder.convertToSelectionItems(this._targets) : undefined,
-      id: this._stackId,
+      ...super.baseJson,
       modifier: (this._attackRoll ? this._issuer.attackDiceModifier : 0) + this._issuer.diceModifier,
     }
   }
@@ -637,7 +632,7 @@ export class DiceRoll {
   }
 }
 
-export class DamageOnStack {
+export class DamageOnStack extends StackElement {
 
   from: Entity;
   receiver: Entity;
@@ -646,7 +641,6 @@ export class DamageOnStack {
   _targets: any[] = [];
   _effect: EffectFunction | null = null;
   game: Game;
-  _stackId: number = -1;
 
   constructor(
     from: Entity,
@@ -655,17 +649,12 @@ export class DamageOnStack {
     source: Card | DiceRoll,
     game: Game
   ) {
+    super();
     this.receiver = receiver;
     this.from = from;
     this.damage = damage;
     this._source = source;
     this.game = game;
-  }
-  set stackId(id: number) {
-      this._stackId = id;
-  }
-  get stackId(): number {
-      return this._stackId;
   }
   attachEffect(effect: EffectFunction, source: Card | DiceRoll, targets: any[] = []): void {
     this._effect = effect;
@@ -682,7 +671,7 @@ export class DamageOnStack {
       await this._effect(new EffectData(card, this.from, [this, this._targets]));
     }
   }
-  get json(): DamageOnStackJson {
+  override get json(): DamageOnStackJson {
     const sourceName = this._source instanceof DiceRoll ? this._source.json : {slug: this._source.slug, name: this._source.name};
     return {
       type: "damage",
@@ -690,17 +679,16 @@ export class DamageOnStack {
       receiver: this.receiver.json, 
       damage: this.damage[0]!, 
       source: sourceName,
-      id: this._stackId,
+      ...super.baseJson,
     };
   }
 };
 
-export class DeathOnStack {
+export class DeathOnStack extends StackElement {
 
   receiver: Entity;
   from: Entity;
   source: Card | DiceRoll; 
-  _stackId: number = -1;
   game: Game;
 
   constructor(
@@ -709,22 +697,17 @@ export class DeathOnStack {
     source: Card | DiceRoll,
     game: Game
   ) {
+    super();
     this.receiver = receiver;
     this.from = from;
     this.source = source;
     this.game = game;
   }
-  set stackId(id: number) {
-      this._stackId = id;
-  }
-  get stackId(): number {
-      return this._stackId;
-  }
   async onResolve(): Promise<void> {
     await this.game.resolveDeath(this.receiver, this.from, this.source);
   }
 
-  get json(): DeathOnStackJson {
+  override get json(): DeathOnStackJson {
     const sourceName = this.source instanceof DiceRoll ? this.source.json : {slug: this.source.slug, name: this.source.name};
     this.receiver.json;
     return {
@@ -732,7 +715,7 @@ export class DeathOnStack {
       receiver: this.receiver.json,
       from: this.from.json,
       source: sourceName,
-      id: this._stackId,
+      ...super.baseJson,
     };
   }
 };

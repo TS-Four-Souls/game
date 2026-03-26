@@ -50,7 +50,10 @@ export type DamageSource = Card | DiceRoll;
 
 const LOG_GAME = false;
 export const cards = await loadCards(process.cwd() + "/data/cards");
-
+/*
+ * The Game class is the central hub of the game logic, managing the state of the game, players, monsters, decks, shop, encounters, stack, and more. 
+ * It also handles all player actions such as declaring attacks, dealing damage, resolving deaths, and managing the game history. 
+ */
 export class Game {
   private _players: Player[] = [];
   private _turnHandler: TurnHandler = new TurnHandler();
@@ -72,7 +75,9 @@ export class Game {
   constructor() {
     this._emitter = new GameEventEmitter();
   }
-
+/*
+ * Check if that game is started.
+ */
   get isStarted(): boolean {
     return this._turnHandler.isInitialized;
   }
@@ -125,19 +130,22 @@ export class Game {
     return this.turnHandler.getPlayerTo(this.currentPlayer, direction);
   }
 
-  /* 
+  /**
    * This function returns the game history, excluding private data entries
    */
   get history(): StackElementJson[] {
     return this._historicHandler.history;
   }
-  /* 
+  /**
    * This function returns the game history, including private data entries
    */
   get log(): HistoricEntry[] {
     return this._historicHandler.log;
   }
 
+  /**
+   * Appends an entry to the game history/log handler.
+   */
   addToHistory(entry: HistoricEntry): void {
     this._historicHandler.addToHistory(entry);
   }
@@ -151,6 +159,9 @@ export class Game {
 
   }
 
+  /**
+   * This function returns all visible treasure and trinkets: each players inPlay and the shop items.
+   */
   get visibleItems(): ItemCard[] {
     let result: ItemCard[] = this.inPlayItems.map(({ card }) => card);
     result.push(
@@ -175,6 +186,11 @@ export class Game {
     return cards;
   }
 
+  /**
+   * This function allows a player to remove a cards. 
+   * It is not part of the game, but can be used to debug situations.
+   * A player can remove: any card owned by the game (shop and encounters) and any card that he owns (hand and inPlay).
+   */
   debugRemoveCards(player: Player, cards: Card[]): void {
     // verify that the cards are actually owned by the player or in the shop/encounters.
     for (const card of cards) {
@@ -221,6 +237,9 @@ export class Game {
     this._onStateChange.dispatch();
   }
 
+  /**
+   * Finds the owner of a soul or in-play item card.
+   */
   getOwner(item: Card): Player | null {
     if(item instanceof ItemCard)
       for (const player of this.players) {
@@ -235,10 +254,16 @@ export class Game {
     }
     return null;
   }
+  /**
+   * Removes a specific element from the stack, wherever it is.
+   */
   cancelStackElement(element: StackElement): void {
     this.stack.cancelElement(element);
   }
 
+  /**
+   * Transfers a soul card from a target player to another player.
+   */
   stealSoul(player: Player, target: Player, soul: Card) {
     if (!target.souls.includes(soul)) {
       throw new Error("Target player does not have the specified soul.");
@@ -246,17 +271,24 @@ export class Game {
     target.removeSoul(soul);
     player.addSoul(soul);
   }
-  async deathPenalty(p: Player): Promise<void> {
-    this.loseCoins(p, this.gameParameters.deathPenaltyCoins.value, true);
-    const setOfLosableItems = p.inPlay.filter(
+  /**
+   * Applies all death penalties configured for a player.
+   * It can be override by a specific passive effect.
+   */
+  async deathPenalty(player: Player): Promise<void> {
+    // remove coins.
+    this.loseCoins(player, this.gameParameters.deathPenaltyCoins.value, true);
+    // obtain set of items that can be lost.
+    const setOfLosableItems = player.inPlay.filter(
       (c) =>
         (c instanceof TreasureCard || (c instanceof LootCard && c.trinket)) &&
         c.eternal === false
     );
+    // If at least one item can be lost, ask the player to select one.
     if (this.gameParameters.deathPenaltyItem.value > 0 && setOfLosableItems.length > 0) {
       const itemToLose = (
         await this.select(
-          p,
+          player,
           this.gameParameters.deathPenaltyItem.value,
           setOfLosableItems,
           false,
@@ -269,17 +301,18 @@ export class Game {
         for (const item of itemToLose) {
           if(!(item instanceof ItemCard))
             throw new Error("Selected card is not an ItemCard.");
-          this.removeInPlay(p, item);
+          this.removeInPlay(player, item);
           this.discard(item);
         }
       }
     }
-    if (this.gameParameters.deathPenaltyLoot.value > 0 && p.hand.cards.length > 0) {
+    // lose loot cards
+    if (this.gameParameters.deathPenaltyLoot.value > 0 && player.hand.cards.length > 0) {
       const lootToLose = (
         await this.select(
-          p,
+          player,
           this.gameParameters.deathPenaltyLoot.value,
-          p.hand.cards,
+          player.hand.cards,
           false,
           this.gameParameters.deathPenaltyLoot.value > 1
             ? "Select loot cards to lose."
@@ -288,15 +321,19 @@ export class Game {
       ).selected;
       if (lootToLose && lootToLose.length > 0) {
         for (const loot of lootToLose) {
-          this.discardFromHandAtIndex(p, p.hand._hand.indexOf(loot));
+          this.discardFromHandAtIndex(player, player.hand._hand.indexOf(loot));
         }
       }
     }
-    for (const item of p.inPlay)
+    // discharge every items. 
+    for (const item of player.inPlay)
       if (item.hasTapEffect()) item.charged = false;
     this._onStateChange.dispatch();
   }
 
+  /**
+   * Queues a death resolution sequence for an entity.
+   */
   death(receiver: Entity, from: Entity, source: DamageSource): void {
     this.assertGameStarted();
     this.assertEntityIsInPlay(receiver);
@@ -312,6 +349,9 @@ export class Game {
     });
   }
 
+  /**
+   * Grants coin/loot/treasure rewards when a monster dies to the current player.
+   */
   monsterRewards(monster: Monster): void {
     const rewards = monster.card.rewards;
     if (rewards?.coin) {
@@ -337,6 +377,9 @@ export class Game {
       this.gainTreasure(this.currentPlayer, rewards.treasure);
   }
 
+  /**
+   * Applies post-death monster card destination (soul or discard).
+   */
   obtainMonsterSoulOrDiscard(monster: Monster): void {
     const card = monster.card;
     if(card.afterEffect === "nothing")
@@ -350,7 +393,10 @@ export class Game {
     this._onStateChange.dispatch();
   }
 
-  // Should only be called by DeathOnStack objects.
+  /**
+   * Resolves a pending death and its before/after trigger windows.
+   * Should only be called by DeathOnStack objects.
+   */
   resolveDeath(receiver: Entity, from: Entity, source: DamageSource): void {
     const stackIds = this.stack.elements.map(e => e.stackId);
 
@@ -395,6 +441,9 @@ export class Game {
     });
   }
 
+  /**
+   * Validates whether a player can declare an attack right now.
+   */
   canDeclareAttack(player: Player, shouldThrow: boolean = false): Capability {
     try {
       this.assertCurrentTurnIsPlayerTurn(player);
@@ -418,6 +467,11 @@ export class Game {
     return true;
   }
 
+  /**
+   * Declares combat intent for the current player.
+   * Note that the player first declare an attack, and then select what to attack.
+   * This let other players react to the attack declaration before the target is selected.
+   */
   declareAttack(player: Player): void {
     this.canDeclareAttack(player, true);
 
@@ -427,6 +481,9 @@ export class Game {
     this._onStateChange.dispatch();
   }
 
+  /**
+   * Validates whether a specific monster/top-deck can be attacked.
+   */
   canDeclareAttackOnMonster(player: Player,
     monster: Monster | "topDeck", shouldThrow: boolean = false): Capability {
     try {
@@ -459,6 +516,9 @@ export class Game {
   }
 
 
+  /**
+   * Binds the current attack to a monster target (or top-deck draw slot).
+   */
   declareAttackOnMonster(
     player: Player,
     monster: Monster | "topDeck",
@@ -497,6 +557,9 @@ export class Game {
     this._onStateChange.dispatch();
   }
 
+  /**
+   * Computes current monster attack after replacement/modifier effects.
+   */
   getAttack(monster: Monster): number {
     let baseStat = [monster.attackPoints];
     this.emit(
@@ -510,6 +573,9 @@ export class Game {
     return baseStat[0]!;
   }
 
+  /**
+   * Computes current monster evasion/DC clamped to [1, 6].
+   */
   getDC(monster: Monster): number {
     let baseStat = [monster.evasion];
     this.emit(
@@ -523,6 +589,9 @@ export class Game {
     return Math.max(1, Math.min(6, baseStat[0]!));
   }
 
+  /**
+   * Finds and removes a card by slug from all reachable game zones.
+   */
   obtainCard(slug: string): Card | undefined {
     // Search in shop
     try {
@@ -570,6 +639,9 @@ export class Game {
     return undefined;
   }
 
+  /**
+   * Validates whether the player can perform a combat attack roll.
+   */
   canRollDice(player: Player, shouldThrow: boolean = false): Capability {
     try {
       this.assertCurrentTurnIsPlayerTurn(player);
@@ -596,6 +668,9 @@ export class Game {
 
 
 
+  /**
+   * Creates and configures an attack dice roll for the current combat.
+   */
   attackRoll(player: Player): void {
     this.canRollDice(player, true);
     
@@ -642,6 +717,9 @@ export class Game {
     );
   }
 
+  /**
+   * Routes combat damage through triggers then queues stack damage.
+   */
   dealCombatDamage(
     dealer: Entity,
     receiver: Entity,
@@ -668,6 +746,9 @@ export class Game {
   }
 
   // on health loss trigger can be added here. Be careful, in case of pay HP to verify that all the HP are actually lost.
+  /**
+   * Applies raw damage to an entity's health pool.
+   */
   healthLoss(
     dealer: Entity,
     receiver: Entity,
@@ -677,6 +758,9 @@ export class Game {
     return receiver.receiveDamage(damage, dealer, source);
   }
 
+  /**
+   * Resolves queued damage and emits taken-damage/death triggers.
+   */
   resolveDamage(
     dealer: Entity,
     receiver: Entity,
@@ -706,9 +790,15 @@ export class Game {
     }
   }
 
+  /**
+   * Heals an entity by a fixed amount.
+   */
   heal(receiver: Entity, amount: number): void {
     receiver.heal(amount);
   }
+  /**
+   * Pushes damage on stack and opens the "would take damage" window.
+   */
   dealDamage(
     dealer: Entity,
     receiver: Entity,
@@ -740,6 +830,9 @@ export class Game {
     });
   }
 
+  /**
+   * Swaps two in-play items between their owners.
+   */
   swapItems(item1: ItemCard, item2: ItemCard): boolean {
     const owner1 = this.getOwner(item1);
     const owner2 = this.getOwner(item2);
@@ -753,6 +846,9 @@ export class Game {
     return false;
   }
 
+  /**
+   * Adds a new player before game start.
+   */
   addPlayer(newPlayer: Player): void {
     this.assertPlayerIdAvailable(newPlayer.id);
     this.assertGameNotStarted();
@@ -760,6 +856,9 @@ export class Game {
     this._onStateChange.dispatch();
   }
 
+  /**
+   * Lets a player choose treasure cards from a candidate set.
+   */
   async gainTreasureAmongs(
     player: Player,
     amount: number,
@@ -796,7 +895,7 @@ export class Game {
     return this.pendingMultipleSelections.size > 0;
   }
 
-  /* select is used to obtain a selection from a single player
+  /** Select is used to obtain a selection from a single player
    * If n=1 and only one option is available, it is automatically selected
    * If anyNumber is true, the player can select up to n options (including 0)
    * Returns a Promise that resolves to an object containing the selected and remaining options
@@ -830,6 +929,9 @@ export class Game {
 
   // Select from multiple players in parallel (useful for voting)
   // Method to submit a selection from the client
+  /**
+   * Submits a player's answer for a pending selection request.
+   */
   submitSelection(
     issuer: Issuer,
     requestId: string,
@@ -868,6 +970,9 @@ export class Game {
     throw new Error("No pending selection found for this request ID");
   }
 
+  /**
+   * Opens multiple simultaneous selection prompts and waits for all.
+   */
   async selectMultiple<T>(
     selections: Array<{
       player: Player;
@@ -915,6 +1020,9 @@ export class Game {
   }
 
   // Called when client provides selection to continue paused resolution
+  /**
+   * Legacy helper to resolve pending selections by player id.
+   */
   provideSelection(playerId: string, selection: any[]): void {
     // Check if this is a parallel selection
     for (const [
@@ -931,6 +1039,9 @@ export class Game {
   }
 
   // Get all pending selections (for server to send to clients)
+  /**
+   * Returns all currently pending selection payloads.
+   */
   getPendingSelections(): Array<{
     playerId: string;
     options: any[];
@@ -964,14 +1075,32 @@ export class Game {
     let maxSouls = Math.max(...this.players.map((player) => player.totalSouls));
     return this.players.filter((player) => player.totalSouls === maxSouls);
   }
+  /**
+   * Adds an element to the stack and enriches reordering metadata when needed.
+   */
   addToStack(item: StackElement): void {
     if (item instanceof EffectOnStack && !item.data.issuer) {
       throw new Error("EffectOnStack must have an issuer.");
     }
+//  EffectOnStack can be reordered on the stack by their owner.
+    if (item instanceof EffectOnStack) {
+      const emissionContext = this.emitter.getCurrentEmissionContext();
+      if (emissionContext) {
+        item.reordering = {
+          ...(item.reordering ?? { groupId: "" }),
+          event: emissionContext.event,
+          listenerId: emissionContext.listenerId,
+        };
+      }
+    }
+
     this.stack.push(item);
     this._onStateChange.dispatch();
   }
 
+  /**
+   * Gives a soul card to a player.
+   */
   addSoul(player: Player, soulCard: Card): void {
     if (soulCard instanceof BsoulCard)
       soulCard.granted = true;
@@ -979,6 +1108,9 @@ export class Game {
     this._onStateChange.dispatch();
   }
 
+  /**
+   * Resolves the top stack element, then triggers follow-up callbacks.
+   */
   async resolveStack(): Promise<void> {
     let elem = this.stack.resolve();
     if (!elem) return;
@@ -1003,18 +1135,30 @@ export class Game {
     await this.resolveCallbacks();
   }
 
+  /**
+   * Resolves stack elements until the stack is empty.
+   */
   async resolveEntireStack(): Promise<void> {
     while (!this.stack.isEmpty()) {
       await this.resolveStack();
     }
   }
 
+  /**
+   * Schedules a callback to run once the stack becomes empty.
+   */
   async executeWhenStackEmpty(
     callback: () => void | Promise<void>
   ): Promise<void> {
     this.executeWhenStackSubset([], callback);
   }
 
+  /**
+   * Schedules a callback once only the provided stack ids remain.
+   * It is used to "wait" for additional effects to resolve before executing the callback, without needing to know exactly what those effects are.
+   * Example: A monster dies, it has an on death effect. To trigger, the monster must be dead, and when a monster dies, its card is dicarded (usually).
+   * But we want to keep the card in the slot while its death effect is not resolved. It is possible to do so with this function.
+   */
   async executeWhenStackSubset(
     ids: number[],
     callback: () => void | Promise<void>
@@ -1023,6 +1167,9 @@ export class Game {
     this.resolveCallbacks();
   }
 
+  /**
+   * Executes stack-subset callbacks whose condition is currently met.
+   */
   async resolveCallbacks(): Promise<void> {
     const callbacksToExecute: {stackIds: number[], callback: () => void | Promise<void>}[] = [];
     for(let i = this._stackSubsetCallbacks.length - 1; i >= 0; i--){
@@ -1039,28 +1186,46 @@ export class Game {
     }
   }
 
+  /**
+   * Cancels the current top stack element.
+   */
   cancelStack(): void {
     this.stack.cancel();
   }
 
+  /**
+   * Removes one stack element at a specific stack index.
+   */
   cancelAt(index: number): void {
     this.stack.removeAt(index);
   }
 
+  /**
+   * Clears the full stack state.
+   */
   resetStack(): void {
     this.stack.clear();
   }
 
+  /**
+   * Returns all player hands paired with their owner.
+   */
   allHands(): { player: Player; hand: Hand }[] {
     return this.players.map((player) => ({ player, hand: player.hand }));
   }
 
+  /**
+   * Executes the standard loot step at turn start.
+   */
   lootStep(): void {
     const player = this.currentPlayer;
     this.emit("on:loot:step", { eventIssuer: player });
     this.loot(player, 1);
   }
 
+  /**
+   * Initializes turn counters and emits turn-start triggers.
+   */
   startTurn(): void {
     this.players.forEach((p) => {
       p.remainingLootPlay = 0;
@@ -1081,20 +1246,32 @@ export class Game {
     });
   }
 
+  /**
+   * Discards a shop card at a given slot index.
+   */
   discardFromShop(index: number): void {
     return this.shop.discard(index);
   }
 
+  /**
+   * Recharges every in-play item for a player.
+   */
   rechargeEachItem(player: Player): void {
     for (const card of player.inPlay) {
       this.recharge(card);
     }
   }
 
+  /**
+   * Recharges a single item.
+   */
   recharge(item: ItemCard): void {
     item.recharge();
   }
 
+  /**
+   * Ends combat for all currently engaged entities.
+   */
   endCombat(): void {
     for (const entity of this.Entities) {
       if (entity.isEngagedInCombat) {
@@ -1104,6 +1281,9 @@ export class Game {
     this._onStateChange.dispatch();
   }
 
+  /**
+   * Enforces max-hand-size discard rules for a player.
+   */
   async verifyHandSize(player: Player): Promise<void> {
     const toDiscard = player.hand.cards.length - this.gameParameters.maxHandSize.value;
     if (toDiscard > 0){
@@ -1120,6 +1300,9 @@ export class Game {
     }
   }
 
+  /**
+   * Runs turn-end sequence, then advances to next turn.
+   */
   endTurn(): void {
     const player = this.assertIssuerSecret(this.currentPlayer);
     this.canEndTurn(player, true);
@@ -1139,6 +1322,9 @@ export class Game {
       this.startTurn();
     });
   }
+  /**
+   * Alias entrypoint used by API to end current turn.
+   */
   nextTurn(issuer: Issuer): void {
     const roundIndex = this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -1146,6 +1332,9 @@ export class Game {
     this.endTurn();
   }
 
+  /**
+   * Validates if the active player can legally end the turn.
+   */
   canEndTurn(issuer: Issuer, shouldThrow: boolean = false): Capability {
     try {
       this.assertGameStarted();
@@ -1173,6 +1362,9 @@ export class Game {
     return card.getTargetSelectors();
   }
 
+  /**
+   * Validates whether issuer can play a loot card.
+   */
   canPlayCard(issuer: Issuer, shouldThrow: boolean = false): Capability {
     try {
       this.assertGameStarted();
@@ -1194,6 +1386,9 @@ export class Game {
     return true;
   }
 
+  /**
+   * Validates whether stack resolution is currently allowed.
+   */
   canResolve(shouldThrow: boolean = false): Capability {
     try {
       this.assertGameStarted();
@@ -1209,8 +1404,9 @@ export class Game {
     return true;
   }
 
-  // temporary method to play a card from hand to in-play area.
-  // targets must be explicitly provided by the caller using getSelectors()
+  /**
+   * Plays one loot card from hand and pushes its effect on stack.
+   */
   playCard(issuer: Issuer, index: number, targets: any[] = []): string {
     this.canPlayCard(issuer, true);
     const player = this.assertIssuerSecret(issuer);
@@ -1237,12 +1433,18 @@ export class Game {
     return `You have played the card: ${playedCard.name} to your in-play area.\n`;
   }
 
+  /**
+   * Draws and initializes the three bonus soul cards.
+   */
   initializeBonusSouls(): void {
     this._bonusSouls = this.decks["bsoul"]!.drawSeveral(3);
     for (const soul of this._bonusSouls) {
       soul.cleanup = bSoulEffectParser(soul, this);
     }
   }
+  /**
+   * Creates decks and attaches parsed effects to all cards.
+   */
   setupGame(): void {
     this._decks = LoadDecks(
       cards,
@@ -1252,6 +1454,9 @@ export class Game {
     this.joinEffectsToCards();
   }
 
+  /**
+   * Starts the game lifecycle and executes initial setup.
+   */
   start(issuer: Issuer, characters: CharacterCard[] | null = null): void {
     this.assertIssuerSecret(issuer);
     this.assertGameNotStarted();
@@ -1288,6 +1493,9 @@ export class Game {
     this.startTurn();
   }
 
+  /**
+   * Distributes starting resources to each player.
+   */
   startOfGameSetup(): void {
     for (const player of this.players) {
       this.gainTreasure(player, this.gameParameters.treasuresOnStart.value);
@@ -1296,6 +1504,9 @@ export class Game {
     }
   }
 
+  /**
+   * Transfers a card between players when legal.
+   */
   give(from: Player, to: Player, card: Card): boolean {
     if (from.souls.includes(card)) {
       from.removeSoul(card);
@@ -1314,6 +1525,9 @@ export class Game {
     return false;
   }
 
+  /**
+   * Transfers a loot card from one hand to another.
+   */
   giveCard(from: Player, to: Player, card: LootCard): boolean {
     if (!from.hand.cards.includes(card)) {
       return false;
@@ -1323,6 +1537,9 @@ export class Game {
     return true;
   }
 
+  /**
+   * Proposes a coin transfer that target player may accept/decline.
+   */
   async giveCoins(from: Player, to: Player, amount: number): Promise<boolean> {
     if(this.gameParameters.allowCoinDonation.value === false)
       throw new Error("Giving coins is not allowed in this game.");
@@ -1361,6 +1578,9 @@ export class Game {
     this._onStateChange.dispatch();
   }
 
+  /**
+   * Draws random character cards and assigns them to players.
+   */
   assignRandomCharacterToPlayers(): void {
     const characterDeck = this.decks["character"];
     if (!characterDeck) {
@@ -1373,6 +1593,9 @@ export class Game {
     this.assignCharactersToPlayers(characters);
   }
 
+  /**
+   * Assigns provided character cards (and matching eternals) to players.
+   */
   assignCharactersToPlayers(characters: CharacterCard[]): void {
     const characterDeck = this.decks["character"];
     if (!characterDeck) {
@@ -1423,6 +1646,9 @@ export class Game {
     });
   }
 
+  /**
+   * Resets the full game state to a fresh pre-start state.
+   */
   reset(): void {
     this.turnHandler.reset();
     this._players = [];
@@ -1439,6 +1665,9 @@ export class Game {
     this._historicHandler = new HistoricHandler();
   }
 
+  /**
+   * Adds an item to play and emits enter-play trigger.
+   */
   addInPlay(player: Player, card: ItemCard): void {
     this.emit("on:enter:play", { eventIssuer: player, card: card });
     if (
@@ -1455,17 +1684,26 @@ export class Game {
     });
   }
 
+  /**
+   * Adds a curse card to a player.
+   */
   addCurse(player: Player, card: MonsterCard): void {
     player.addCurse(card);
     this._onStateChange.dispatch();
   }
 
+  /**
+   * Removes a curse card from a player and runs cleanup.
+   */
   removeCurse(player: Player, card: MonsterCard): void {
     card.cleanup();
     player.removeCurse(card);
     this._onStateChange.dispatch();
   }
 
+  /**
+   * Activates a player item by in-play index.
+   */
   async activateItemAtIndex(
     player: Player,
     index: number,
@@ -1483,6 +1721,9 @@ export class Game {
     return await this.activateItem(player, item, choices, effectId);
   }
 
+  /**
+   * Activates a specific item and pushes resulting effect to stack.
+   */
   async activateItem(
     player: Player,
     item: ItemCard,
@@ -1634,10 +1875,12 @@ export class Game {
     return copiedCard;
   }
 
+  /** Adds a temporary/permanent attack modifier to an entity. */
   addAttack(e: Entity, value: number): void {
     e.addAttackPoints(value);
   }
 
+  /** Increases the number of attacks available this turn for a player. */
   addAttackThisTurn(e: Entity, value: number = 1): void {
     if (e instanceof Player) {
       e.addAttackThisTurn(value);
@@ -1645,46 +1888,56 @@ export class Game {
     }
   }
 
+  /** Adds max/current health points to an entity according to entity logic. */
   addHealth(e: Entity, value: number): void {
     e.addHealthPoints(value);
   }
 
+  /** Applies a global attack modifier to encounter monsters. */
   addAttackToEachMonster(e: Entity, value: number): void {
     this.encounters.addAttackModifier(value);
   }
 
+  /** Applies a global evasion/DC modifier to encounter monsters. */
   addDCToEachMonster(e: Entity, value: number): void {
     this.encounters.addDCModifier(value);
   }
 
+  /** Adds an evasion/DC modifier to a monster entity. */
   addDC(e: Entity, value: number): void {
     if (!(e instanceof Monster))
       throw new Error("DC modifier can only be added to monsters.");
     e.addEvasion(value);
   }
 
+  /** Grants extra loot plays this turn. */
   addLootPlay(e: Player, value: number): void {
     e.addLootPlay(value);
   }
 
+  /** Toggles/updates permission to see the treasure deck top card. */
   addCanSeeTopOfTreasureDeck(e: Player, value: number): void {
     e.addCanSeeTopOfTreasureDeck(value);
   }
 
+  /** Applies attack-roll specific dice modifier to an entity. */
   addAttackDiceModifier(e: Entity, value: number): void {
     e.addAttackDiceModifier(value);
   }
 
+  /** Applies generic dice modifier to a player. */
   addDiceModifier(e: Entity, value: number): void {
     if (!(e instanceof Player))
       throw new Error("Dice modifier can only be added to players.");
     e.addDiceModifier(value);
   }
 
+  /** Grants additional purchases for the current turn. */
   addPurchaseThisTurn(p: Player, value: number): void {
     p.remainingPurchaseThisTurn += value;
   }
 
+  /** Grants coins to a player and emits coin gained triggers. */
   gainCoins(issuer: Issuer, coins: number): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -1705,24 +1958,30 @@ export class Game {
     return `New amount of coins: ${player.coins} coins.\n`;
   }
 
+  /** Draws the first N cards from a typed deck. */
   getFirstCardsOfDeck<T extends DeckType>(deckName: T, number: number): DeckTypeToCardType[T][] {
     return this.decks[deckName]!.drawSeveral(number) as DeckTypeToCardType[T][];
   }
+  /** Inserts a card on top of a typed deck. */
   addTopPosition<T extends DeckType>(deckName: T, card: Card): void {
     assertCardMatchesDeck(deckName, card);
     this.decks[deckName]!.addTopPosition(card as any);
   }
+  /** Inserts a card at the bottom of a typed deck. */
   addBottomPosition<T extends DeckType>(deckName: T, card: Card): void {
     assertCardMatchesDeck(deckName, card);
     this.decks[deckName]!.addBottomPosition(card as any);
   }
 
+  /** Schedules an extra turn for a player. */
   addExtraTurn(player: Player): void {
     this.turnHandler.InsertPlayerAtNextTurn(player);
   }
+  /** Replaces a player's hand and returns the previous one. */
   setHand(player: Player, hand: Hand): Hand {
     return player.setHand(hand);
   }
+  /** Emits priority pass ordering and returns current priority order. */
   priorityPasses(): Player[] {
     const order = this.turnHandler.priorityOrder;
     this.emit("on:priority:passes", {
@@ -1732,10 +1991,12 @@ export class Game {
     // todo handle priority passing effects
     return order;
   }
+  /** Cancels previous death entry for a player and stabilizes at 1 HP if needed. */
   preventDeath(player: Player): void {
     this.stack.cancelPreviousDeath(player);
     if (player.currentHealthPoints === 0) player.addHealthPoints(1);
   }
+  /** Draws treasure cards and puts them directly in play for the player. */
   gainTreasure(issuer: Issuer, number: number = 1): void {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -1748,6 +2009,7 @@ export class Game {
     }
   }
 
+  /** Removes curse cards from players and marks them destroyed. */
   destroyCurse(cards: MonsterCard[]): boolean {
     this.players.forEach((player) => {
       player.curses.forEach((card) => {
@@ -1761,6 +2023,7 @@ export class Game {
     return true;
   }
 
+  /** Destroys cards by removing them from in-play/soul zones and tracks destruction. */
   destroyCardsOrSouls(cards: Card[]): boolean {
     if (cards.length === 0 || cards.every((card) => card === undefined))
       return false;
@@ -1781,6 +2044,7 @@ export class Game {
     return true;
   }
 
+  /** Validates whether a card can currently be activated by its owner. */
   canActivate(card: Card, owner: Player): Capability {
     if (card instanceof ItemCard && card.activeEffectList.length === 0) {
       return "This card has no active effects, there is nothing to activate.";
@@ -1806,10 +2070,11 @@ export class Game {
     return true;
   }
 
+  /** Builds a full player-scoped game state payload for API/UI clients. */
   detailedStateJSON(issuer: Issuer): DetailedState {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
-
+    
     const players = [...this.players];
 
     // Rotate the array until the player is at the front
@@ -1820,43 +2085,82 @@ export class Game {
     
     const otherPlayers = players.slice(1);
 
+    const getCardCounter = (card: ItemCard | MonsterCard): number | undefined =>
+      (card.tags["counters"] === undefined ? card.tags["levels"] : card.tags["counters"]) as number | undefined;
+
+    const mapAttackRequirements = (p: Player) =>
+      p.mustAttackMonster.map((req) =>
+        req.target === "topDeck"
+          ? {
+              monster: "top" as const,
+              source: { name: req.source.name, slug: req.source.slug },
+            }
+          : {
+              monster: { name: req.target.name, slug: req.target.card.slug },
+              source: { name: req.source.name, slug: req.source.slug },
+            },
+      );
+
+    const getPendingSelectionDetailsForPlayer = (playerId: string) => {
+      for (const sel of this.pendingMultipleSelections.values()) {
+        if (sel.playerId === playerId) {
+          return {
+            requestId: sel.requestId,
+            options: TargetBuilder.convertToSelectionItems(sel.options),
+            count: sel.count,
+            asMany: sel.asMany,
+            description: sel.description,
+          };
+        }
+      }
+      return undefined;
+    };
+
+    const mapInPlayItem = (item: ItemCard, owner: Player) => ({
+      name: item.name,
+      slug: item.slug,
+      charged: item.charged,
+      counter: getCardCounter(item),
+      eternal: item.eternal,
+      effects: item.activeEffectList,
+      capabilities: {
+        activate: this.canActivate(item, owner),
+      },
+    });
+
+    const mapOtherInPlayItem = (item: ItemCard, owner: Player) => ({
+      name: item.name,
+      slug: item.json.slug,
+      charged: item.charged,
+      capabilities: {
+        activate: this.canActivate(item, owner),
+      },
+      counter: getCardCounter(item),
+      eternal: item.eternal,
+    });
+
+    const mapCurse = (curse: MonsterCard, owner: Player) => ({
+      name: curse.name,
+      slug: curse.slug,
+      charged: true,
+      counter: undefined,
+      eternal: false,
+      effects: curse.activeEffectList,
+      capabilities: {
+        activate: this.canActivate(curse, owner),
+      },
+    });
+
     return {
       me: {
         name: player.id,
         hand: player.hand.cards.map((c) => c.json),
-        inPlay: player.inPlay.map((c) => ({
-          name: c.name,
-          slug: c.slug,
-          charged: c.charged,
-          counter: (c.tags["counters"] === undefined ? c.tags["levels"] : c.tags["counters"]) as number | undefined,
-          eternal: c.eternal,
-          effects: c.activeEffectList,
-          capabilities:
-          {
-            activate: this.canActivate(c, player),
-          },
-        })).concat(
-          player.curses.map((c) => ({
-          name: c.name,
-          slug: c.slug,
-          charged: true,
-          counter: undefined,
-          eternal: false,
-          effects: c.activeEffectList,
-          capabilities:
-          {
-            activate: this.canActivate(c, player),
-          },
-        }))),
+        inPlay: player.inPlay.map((c) => mapInPlayItem(c, player)).concat(player.curses.map((c) => mapCurse(c, player))),
         handSize: player.hand.cards.length,
         souls: player.totalSouls,
         soulCards: player.souls.map((c) => c.json),
         coins: player.coins,
-        attackRequirements: player.mustAttackMonster.map((req) => (req.target === "topDeck" ? {monster: "top", source: {name: req.source.name, slug: req.source.slug}} : {
-          monster: {name: req.target.name,
-                    slug: req.target.card.slug},
-          source: {name: req.source.name, slug: req.source.slug}
-        })),
+        attackRequirements: mapAttackRequirements(player),
         currentAttackPoints: player.attackPoints,
         currentHealthPoints: player.currentHealthPoints,
         remainingLootPlay: player.remainingLootPlay,
@@ -1864,21 +2168,7 @@ export class Game {
         temporaryEffect: player.temporaryEffects,
         isEngagedInPurchase: player.isEngagedInPurchase,
         numberOfCardsOverMaxHandSize: Math.max(0, player.hand.cards.length - this.gameParameters.maxHandSize.value),
-        pendingSelection: (() => {
-          // Check if player has a pending selection from selectMultiple
-          for (const sel of this.pendingMultipleSelections.values()) {
-            if (sel.playerId === player.id) {
-              return {
-                requestId: sel.requestId,
-                options: TargetBuilder.convertToSelectionItems(sel.options),
-                count: sel.count,
-                asMany: sel.asMany,
-                description: sel.description,
-              };
-            }
-          }
-          return undefined;
-        })(),
+        pendingSelection: getPendingSelectionDetailsForPlayer(player.id),
         capabilities: {
           endTurn: this.canEndTurn(player),
           declareAttack: this.canDeclareAttack(player),
@@ -1894,26 +2184,7 @@ export class Game {
         .map((p) => ({
           name: p.id,
           handSize: p.hand.cards.length,
-          inPlay: p.inPlay.map((c) => ({
-            name: c.name, slug: c.json.slug, charged: c.charged, capabilities:
-            {
-              activate: this.canActivate(c, p),
-              
-            },
-            counter: (c.tags["counters"] === undefined ? c.tags["levels"] : c.tags["counters"]) as number | undefined,
-            eternal: c.eternal,
-          })).concat(p.curses.map((c) => ({
-          name: c.name,
-          slug: c.slug,
-          charged: true,
-          counter: undefined,
-          eternal: false,
-          effects: c.activeEffectList,
-          capabilities:
-          {
-            activate: "you can not activate curse cards",
-          },
-        }))),
+          inPlay: p.inPlay.map((c) => mapOtherInPlayItem(c, p)).concat(p.curses.map((c) => mapCurse(c, p))),
           souls: p.totalSouls,
           soulCards: p.souls.map((c) => c.json),
           coins: p.coins,
@@ -1923,11 +2194,7 @@ export class Game {
           remainingLootPlay: p.remainingLootPlay,
           isEngagedInCombat: p.isEngagedInCombat,
           isEngagedInPurchase: p.isEngagedInPurchase,
-          attackRequirements: p.mustAttackMonster.map((req) => (req.target === "topDeck" ? {monster: "top", source: {name: req.source.name, slug: req.source.slug}} : {
-          monster: {name: req.target.name,
-                    slug: req.target.card.slug},
-          source: {name: req.source.name, slug: req.source.slug}
-         })),
+          attackRequirements: mapAttackRequirements(p),
           pendingSelection: this.pendingMultipleSelections.values().some(sel => sel.playerId === p.id),
         })),
       monsters:
@@ -1982,6 +2249,7 @@ export class Game {
     };
   }
   // We should implement declaring a purchase
+  /** Validates whether current player can declare purchase mode. */
   canDeclarePurchase(issuer: Issuer, shouldThrow: boolean = false): Capability {
     try {
       this.assertGameStarted();
@@ -2006,6 +2274,7 @@ export class Game {
     return true;
   }
 
+  /** Enters purchase mode and consumes one purchase allowance. */
   declarePurchase(player: Player): void {
     this.canDeclarePurchase(player, true);
 
@@ -2014,6 +2283,7 @@ export class Game {
     this._onStateChange.dispatch();
   }
 
+  /** Cancels purchase mode when purchasing is no longer valid. */
   cancelPurchase(player: Player): void {
     if(this.canPurchase(player, false) !== true)
       {
@@ -2025,6 +2295,7 @@ export class Game {
   }
 
   // We should implement declaring a purchase
+  /** Validates whether the active player can buy from the shop now. */
   canPurchase(player: Player, shouldThrow: boolean = false): Capability {
     try {
       this.assertGameStarted();
@@ -2048,6 +2319,7 @@ export class Game {
     return true;
   }
 
+  /** Purchases a shop slot (or top deck) item if affordable. */
   purchase(issuer: Issuer, index: number | "top"): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -2069,6 +2341,7 @@ export class Game {
     }
   }
 
+  /** Draws loot cards for a player and emits pre/post loot triggers. */
   loot(issuer: Issuer, number: number = 1): void {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -2093,11 +2366,102 @@ export class Game {
     this._onStateChange.dispatch();
   }
 
+  /** Emits a game trigger event and schedules stack reordering if needed. */
   emit(event: TriggerEvent, data: any = {}, dispatch: boolean = true): void {
-    if (this.emitter.emit(event, data) > 0 && dispatch)
+    const count = this.emitter.emit(event, data);
+    if (count > 0 && dispatch)
       this._onStateChange.dispatch();
+    // If count > 1 calls stack reordering. 
+    // Players can reorder their own effects if they have multiple. 
+    // Current player can also reorder game effects if multiple are triggered at the same time.
+    // Game effects are always resolved before player effects, and player effects are resolved in turn order starting from the current player.
+    if(count > 2)
+      this.reorderStack(count);
   }
 
+  /** Tags simultaneously-added top stack effects into reorderable owner groups. */
+  async reorderStack(count: number): Promise<void> {
+    const topElements = this.stack.elements.slice(-count);
+    if(topElements.some(el => el.json.type !== "effect"))
+      throw new Error("Only effects can be reordered on the stack.");
+    // Group by issuer
+    const groups: {[issuer: string]: StackElement[]} = {};
+    const playerIds = this.players.map(p => p.id);
+    topElements.forEach((el) => {
+      const effect = el as EffectOnStack;
+      const issuerId = playerIds.includes(effect.json.issuer.name) ? effect.json.issuer.name: "game";
+      if (!groups[issuerId]) {
+        groups[issuerId] = [];
+      }
+      groups[issuerId].push(el); 
+    });
+
+    const batchMarker = `batch-${Date.now()}-${topElements[0]?.stackId ?? 0}`;
+    Object.entries(groups).forEach(([issuerId, elements]) => {
+      if (elements.length <= 1) {
+        elements.forEach((el) => {
+          el.reordering = null;
+        });
+        return;
+      }
+      // Game effects can be reordered by the current player.
+      const ownerId = issuerId === "game" ? this.currentPlayer.id : issuerId;
+      const groupId = `${batchMarker}:${issuerId}`;
+      elements.forEach((el) => {
+        el.reordering = {
+          ...(el.reordering ?? { groupId }),
+          groupId,
+          ownerId,
+        };
+      });
+    });
+    
+  }
+
+  /** Moves one stack element before another within the same reordering group. */
+  insertStackElementBefore(issuer: Issuer, elementToMoveStackId: number, targetStackId: number): void {
+    this.assertGameStarted();
+    const player = this.assertIssuerSecret(issuer);
+
+    const elementToMove = this.stack.elements.find((el) => el.stackId === elementToMoveStackId);
+    const targetElement = this.stack.elements.find((el) => el.stackId === targetStackId);
+    if (!elementToMove || !targetElement) {
+      throw new Error("Stack elements to reorder were not found.");
+    }
+
+    const moveInfo = elementToMove.reordering;
+    const targetInfo = targetElement.reordering;
+    if (!moveInfo || !targetInfo) {
+      throw new Error("Both stack elements must be reorderable.");
+    }
+    if (moveInfo.groupId !== targetInfo.groupId) {
+      throw new Error("Cannot reorder stack elements from different groups.");
+    }
+    if (!moveInfo.ownerId || moveInfo.ownerId !== player.id) {
+      throw new Error("You are not allowed to reorder this trigger group.");
+    }
+
+    this.stack.insertStackElementBefore(elementToMove, targetElement);
+
+    const event = moveInfo.event;
+    if (!event) {
+      this._onStateChange.dispatch();
+      return;
+    }
+
+    const orderedListenerIds = this.stack.elements
+      .filter((el) => el.reordering?.groupId === moveInfo.groupId)
+      .map((el) => el.reordering?.listenerId)
+      .filter((id): id is number => typeof id === "number");
+
+    if (orderedListenerIds.length > 1) {
+      this.emitter.reorderListenersBySubset(event as TriggerEvent, orderedListenerIds);
+    }
+
+    this._onStateChange.dispatch();
+  }
+
+  /** Returns a readable string listing a player's in-play cards. */
   getInPlay(issuer: Issuer): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -2112,6 +2476,7 @@ export class Game {
     return result;
   }
 
+  /** Discards one in-play card by index when discard is legal. */
   discardInPlay(issuer: Issuer, index: number): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -2131,6 +2496,7 @@ export class Game {
     }
   }
 
+  /** Attempts to steal an item from shop or another player's in-play area. */
   stealItemAnywhere(issuer: Issuer, target: ItemCard): boolean {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -2151,6 +2517,7 @@ export class Game {
     }
     return false;
   }
+  /** Steals up to the requested number of coins from target player. */
   stealCoins(issuer: Issuer, target: Player, amount: number): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -2161,6 +2528,7 @@ export class Game {
 
     return `You have stolen ${stolenCoins} coins from ${target.id}.\n`;
   }
+  /** Steals one specific loot card from target player's hand. */
   stealLootCard(issuer: Issuer, target: Player, card: LootCard): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -2178,6 +2546,7 @@ export class Game {
     return `You have stolen the card: ${card.name} from ${target.id}.\n`;
   }
 
+  /** Destroys an owned item and replaces it by gaining treasure. */
   reroll(owner: Player, card: Card): void {
     if (!(card instanceof ItemCard)) {
       throw new Error("Can only reroll with an item card.");
@@ -2190,6 +2559,7 @@ export class Game {
     this.gainTreasure(owner);
   }
 
+  /** Discards the top monster card from an encounter slot. */
   discardMonster(issuer: Issuer, position: number): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -2203,12 +2573,14 @@ export class Game {
     this.encounters.discardTop(position);
     return `You have discarded the monster at position ${position}.\n`;
   }
+  /** Shortcut to queue death for an entity from a given source. */
   kill(killer: Entity, entity: Entity, source: DamageSource): void {
     this.assertGameStarted();
     this.assertEntityIsInPlay(entity);
     this.death(entity, killer, source);
   }
 
+  /** Draws a new monster into the chosen encounter slot during combat. */
   drawMonster(issuer: Issuer, position: number): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -2230,6 +2602,7 @@ export class Game {
     return `You have drawn a new monster at position ${position}.\n`;
   }
 
+  /** Removes and returns a specific loot card from issuer hand. */
   getCardFromHand(issuer: Issuer, card: LootCard): LootCard {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -2245,6 +2618,7 @@ export class Game {
     return card;
   }
 
+  /** Adds or refreshes a forced-attack requirement for a player. */
   playerMustAttack(player: Player, target: (Monster | "topDeck"), source: Card): void {
     // Check if player is dead - constraint doesn't apply
     if (player.isDead) {
@@ -2267,6 +2641,7 @@ export class Game {
     player.mustAttack(target, source);
   }
 
+  /** Discards one hand card by index to the loot discard pile. */
   discardFromHandAtIndex(issuer: Issuer, position: number): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -2285,10 +2660,12 @@ export class Game {
     return `You have discarded the card: ${discardedCard.name}.\n`;
   }
 
+  /** Marks a player to skip their next turn. */
   playerSkipNextTurn(player: Player): void {
     this.turnHandler.skipNextTurn(player);
   }
 
+  /** Removes coins from a player and emits coin lost trigger. */
   loseCoins(issuer: Issuer, coins: number, asMany: boolean): number {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -2300,6 +2677,7 @@ export class Game {
     return coinLost;
   }
 
+  /** Creates a dice roll stack element and emits pre-roll triggers. */
   rollDice(issuer: Issuer, attackRoll: boolean, card: Card | null = null): DiceRoll {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
@@ -2311,11 +2689,13 @@ export class Game {
     return diceRoll;
   }
 
+  /** Resolves a dice roll immediately and emits rolled event. */
   resolveDiceRoll(diceRoll: DiceRoll): void {
     diceRoll.onResolve();
     this.emit("on:dice:rolled", { diceRoll });
   }
 
+  /** Lists targetable in-play cards (excluding eternal/character). */
   inPlayTargetableCards(target: Player): ItemCard[] {
     return target.inPlay.filter(
       (card) =>
@@ -2324,16 +2704,19 @@ export class Game {
     );
   }
 
+  /** Sends a card to its owner deck discard pile. */
   discard(card: Card): void {
     const deck: Deck<Card> = this.decks[card.type];
     deck.addDiscardTop(card);
   }
 
+  /** Removes an in-play card from player and runs cleanup triggers. */
   removeInPlay(player: Player, card: ItemCard): boolean {
     card.cleanup();
     return player.removeInPlay(card);
   }
 
+  /** Removes a soul card from player and runs cleanup triggers. */
   removeSoul(player: Player, card: Card): boolean {
     card.cleanup();
     return player.removeSoul(card);
@@ -2534,11 +2917,13 @@ export class Game {
     );
   }
 
+  /** Resolves a player from issuer credentials. */
   getPlayerByIssuer(issuer: Issuer): Player {
     this.assertIssuerSecret(issuer);
     return this.getPlayerById(issuer.id);
   }
 
+  /** Finds a player by id or throws. */
   getPlayerById(id: string): Player {
     for (const p of this.players) {
       if (p.id === id) {
