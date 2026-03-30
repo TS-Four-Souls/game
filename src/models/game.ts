@@ -57,7 +57,9 @@ export const cards = await loadCards(process.cwd() + "/data/cards");
 export class Game {
   private _players: Player[] = [];
   private _turnHandler: TurnHandler = new TurnHandler();
-  private _decks: DecksCollection = createEmptyDecksCollection();
+  private _random: () => number = () => {throw new Error("Random generator not initialized yet.");};
+  private _seed: string = "";
+  private _decks: DecksCollection;
   private _ongoingAttack: { player: Player; monster: Monster } | null = null;
   private _shop!: Shop;
   private _encounters!: Encounters;
@@ -72,7 +74,9 @@ export class Game {
   private _onStateChange: Signal<void> = new Signal();
   onStateChange: ReadableSignal<void> = this._onStateChange.readOnly();
 
-  constructor() {
+  constructor(seed: string = "") {
+    this.seed = seed; // if seed is empty, it will be set to a random value.
+    this._decks = createEmptyDecksCollection(this.random);
     this._emitter = new GameEventEmitter();
   }
 /*
@@ -141,6 +145,28 @@ export class Game {
    */
   get log(): HistoricEntry[] {
     return this._historicHandler.log;
+  }
+
+  set seed(seed: string) {
+    if (seed === "") {
+      seed = crypto.randomUUID(); // generate a random seed if none is provided
+    }
+    this._seed = seed;
+    this._historicHandler.addToHistory({ private: true, type: "randomSeed", seed: seed });
+    this._random = require("seedrandom")(this._seed);
+  }
+  /**
+   * Seeded random number generator for reproducible randomness in effects, dice rolls and shuffling.
+   */
+  random = (): number => {
+    return this._random();
+  }
+
+  /**
+   * Returns the active RNG seed used to initialize the current game generator.
+   */
+  get seed(): string {
+    return this._seed;
   }
 
   /**
@@ -989,6 +1015,7 @@ export class Game {
         selected: T[];
         remaining: T[];
       }>((resolve) => {
+        // Non-seeded random used here for requestId generation since it doesn't affect game logic and just needs to be unique enough to avoid collisions.
         const requestId = `${sel.player.id}_${Date.now()}_${Math.random()}`;
         const asMany = sel.asMany ?? false; // Use ?? instead of || to handle explicit false
         this.pendingMultipleSelections.set(requestId, {
@@ -1449,7 +1476,8 @@ export class Game {
     this._decks = LoadDecks(
       cards,
       this.players.length,
-      this.gameParameters.nbPlayerCardRestriction.value
+      this.gameParameters.nbPlayerCardRestriction.value,
+      this.random
     );
     this.joinEffectsToCards();
   }
@@ -1473,6 +1501,8 @@ export class Game {
     } else {
       this.assignRandomCharacterToPlayers();
     }
+    this._historicHandler.recordInitialGameState(this);
+    
     this.initializeBonusSouls();
     this._shop = new Shop(
       this.gameParameters.nbItemsInShop.value,
@@ -1650,11 +1680,13 @@ export class Game {
    * Resets the full game state to a fresh pre-start state.
    */
   reset(): void {
+    this._historicHandler = new HistoricHandler();
     this.turnHandler.reset();
     this._players = [];
-    this._decks = createEmptyDecksCollection();
+    this._decks = createEmptyDecksCollection(this.random);
     this._ongoingAttack = null;
     this._shop = null!;
+    this.seed = ""; // It is set to a random value in the setter.
     this._encounters = null!;
     this._stack.clear();
     this._emitter = new GameEventEmitter();
@@ -1662,7 +1694,6 @@ export class Game {
     this._destroyedCards = [];
     this.pendingMultipleSelections.clear();
     this.gameParameters.reset();
-    this._historicHandler = new HistoricHandler();
   }
 
   /**
@@ -2688,7 +2719,7 @@ export class Game {
     const player = this.assertIssuerSecret(issuer);
     if (attackRoll) this.assertIsAlive(player);
 
-    let diceRoll = player.rollDice(attackRoll, card);
+    let diceRoll = player.rollDice(this.random, attackRoll, card);
     this.addToStack(diceRoll);
     this.emit("on:dice:would-roll", { eventIssuer: player, diceRoll });
     return diceRoll;

@@ -650,7 +650,7 @@ export function destroyItemOfRandomPlayerEffect(game: Game): EffectFunction {
 
     return async (data: EffectData) => {
         const players = game.players;
-        const randomIndex = Math.floor(Math.random() * players.length);
+        const randomIndex = Math.floor(game.random() * players.length);
         const targetPlayer = players[randomIndex]!;
         const item = (await game.select(targetPlayer, 1, targetPlayer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false), false, "Select an item to destroy.")).selected[0]!;
         return game.destroyCardsOrSouls([item]);
@@ -806,7 +806,7 @@ export function stealRandomLootCardEffect(game: Game): EffectFunction {
         if (data.issuer instanceof Player === false) return false;
         const targetPlayer = data.next as Player;
         if (targetPlayer.hand.length > 0) {
-            const randomIndex = Math.floor(Math.random() * targetPlayer.hand.length);
+            const randomIndex = Math.floor(game.random() * targetPlayer.hand.length);
             const cardToSteal = targetPlayer.hand.cards[randomIndex]!;
             game.stealLootCard(data.issuer, targetPlayer, cardToSteal as LootCard);
         }
@@ -819,7 +819,7 @@ export function stealAPlayerRandomLootCardEffect(game: Game): EffectFunction {
         if (data.issuer instanceof Player === false) return false;
         const targetPlayer = (await game.select(data.issuer, 1, game.players.filter((p) => p !== data.issuer), false, "Select a player to steal a random loot card from.")).selected[0] as Player;
         if (targetPlayer.hand.length > 0) {
-            const randomIndex = Math.floor(Math.random() * targetPlayer.hand.length);
+            const randomIndex = Math.floor(game.random() * targetPlayer.hand.length);
             const cardToSteal = targetPlayer.hand.cards[randomIndex]!;
             game.stealLootCard(data.issuer, targetPlayer, cardToSteal as LootCard);
         }

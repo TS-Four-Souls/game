@@ -1,6 +1,8 @@
 import { generateHistoryId } from "@/utils/random";
 import { type Requests, type StackElementJson } from "../shared/api";
 import fs from "fs";
+import type { GameParameters } from "./gameParameters";
+import type { Game } from "./game";
 
 
 /* This class is responsible for handling historic data.
@@ -8,7 +10,7 @@ import fs from "fs";
 * 1. History that is available for the user to check.
 *    History contains stack information
 * 2. Log that is used for record-keeping and auditing purposes.
-*    Log solely contains user actions and random resolutions (shuffle, random number generation)
+*    Log solely contains user actions and random seed
 */
 export type UserRequest = 
     {type: "Join", payload: Requests.Join } 
@@ -49,16 +51,12 @@ export type UserRequest =
     playerId: string;
   } | {
     private: true;
-    type: "shuffle";
-    deckName: string;
-    discard: boolean;
-    order: number[];
+    type: "randomSeed";
+    seed: string;
   } | {
     private: true;
-    type: "randomNumber";
-    min: number;
-    max: number;
-    result: number;
+    type: "GameParameters";
+    gameParameters: GameParameters;
   };
 
 const isPrivateData = (entry: HistoricEntry): entry is PrivateData => {
@@ -89,6 +87,22 @@ export class HistoricHandler {
       this.appendToFile("history.json", entry);
     } catch (error) {
       console.error("Error appending to history file", error);
+    }
+  }
+
+  recordInitialGameState(game: Game): void {
+    this.addToHistory({
+    private: true,
+    type: "GameParameters",
+    gameParameters: game.gameParameters,
+    });
+    for (const player of game.players) {
+      this.addToHistory({
+        private: true,
+        type: "character",
+        slug: player.character.slug,
+        playerId: player.id,
+      });
     }
   }
   

@@ -512,10 +512,10 @@ export class Player extends Entity {
     this._coin += coins;
   }
 
-  rollDice(attackRoll: boolean = false, card: Card | null = null): DiceRoll {
+  rollDice(random: () => number, attackRoll: boolean = false, card: Card | null = null): DiceRoll {
     if(attackRoll)
       this._attackRollThisTurn += 1;
-    return new DiceRoll(this, attackRoll, card);
+    return new DiceRoll(random, this, attackRoll, card);
   }
 
   /* This methods tries to remove n coins to the player and return true if it does.
@@ -553,16 +553,18 @@ export class DiceRoll extends StackElement {
   private _effect: EffectFunction[] | null = null;
   private _card: Card | null = null;
   private _targets: any[] = [];
+  private _random: () => number;
 
-  constructor(issuer: Player, attackRoll: boolean = false, card: Card | null = null) {
+  constructor(random: () => number, issuer: Player, attackRoll: boolean = false, card: Card | null = null) {
     super();
     if(!attackRoll && !card) {
       throw new Error("Non-attack dice rolls must be associated with a card.");
     }
-    this._value = Math.floor(Math.random() * 6) + 1;
+    this._random = random;
     this._issuer = issuer;
     this._attackRoll = attackRoll;
     this._card = card;
+    this._value = this.roll();
   }
   set targets(targets: any[]) {
     this._targets = targets;
@@ -609,7 +611,7 @@ export class DiceRoll extends StackElement {
     this._value = Math.max(1, Math.min(6, v));
   }
   roll(): number {
-    this._value = Math.floor(Math.random() * 6) + 1;
+    this._value = Math.floor(this._random() * 6) + 1;
     return this._value;
   }
   attachEffect(effect: EffectFunction[], card: Card, targets: any[]=[]): void {

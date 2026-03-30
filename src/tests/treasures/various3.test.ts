@@ -602,7 +602,7 @@ describe("Tap/Paid effects 1", () => {
         game.addInPlay(player1, luckyFoot);
 
         // Create a dice roll
-        const dice = player1.rollDice(false, luckyFoot);
+        const dice = player1.rollDice(Math.random, false, luckyFoot);
         game.addToStack(dice);
         dice.value = 3;
 
@@ -619,7 +619,7 @@ describe("Tap/Paid effects 1", () => {
         game.addInPlay(player1, miniMush);
 
         // Create a dice roll
-        const dice = player1.rollDice(false, miniMush);
+        const dice = player1.rollDice(Math.random, false, miniMush);
         game.addToStack(dice);
         dice.value = 5;
 
@@ -636,7 +636,7 @@ describe("Tap/Paid effects 1", () => {
         game.addInPlay(player1, miniMush);
 
         // Create a dice roll
-        const dice = player1.rollDice(false, miniMush);
+        const dice = player1.rollDice(Math.random, false, miniMush);
         game.addToStack(dice);
         dice.value = 5;
 
@@ -784,7 +784,7 @@ describe("Tap/Paid effects 1", () => {
         await game.resolveStack();
 
         // Roll a 4 - should loot 3
-        const dice = player1.rollDice(false, crystalBall);
+        const dice = player1.rollDice(Math.random, false, crystalBall);
         dice.value = 4;
         game.addToStack(dice);
         await game.resolveStack();
@@ -810,7 +810,7 @@ describe("Tap/Paid effects 1", () => {
         await game.resolveStack();
 
         // Roll a 5 (not 4) - should not loot
-        const dice = player1.rollDice(false, crystalBall);
+        const dice = player1.rollDice(Math.random, false, crystalBall);
         dice.value = 5;
         game.addToStack(dice);
         await game.resolveStack();

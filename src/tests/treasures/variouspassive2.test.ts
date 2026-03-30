@@ -165,7 +165,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         };
 
         // Player2 rolls a dice
-        const dice = player2.rollDice(false, dadsLostCoin);
+        const dice = player2.rollDice(Math.random, false, dadsLostCoin);
         dice.value = 1;
 
         game.addToStack(dice);
@@ -187,7 +187,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         };
 
         // Player2 rolls a dice
-        const dice = player2.rollDice(false, dadsLostCoin);
+        const dice = player2.rollDice(Math.random, false, dadsLostCoin);
         dice.value = 1;
 
         game.addToStack(dice);

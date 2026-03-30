@@ -170,7 +170,7 @@ describe("Player", () => {
   });
 
   it("should roll a dice between 1 and 6", async () => {
-    const dice = player.rollDice(true);
+    const dice = player.rollDice(Math.random, true);
     expect(dice.value >= 1 && dice.value <= 6).toBe(true);
     expect(dice.issuer).toBe(player);
   });
@@ -474,20 +474,20 @@ describe("DiceRoll", () => {
   });
 
   it("should create a valid dice roll", async () => {
-    const dice = player.rollDice(true);
+    const dice = player.rollDice(Math.random, true);
     
     expect(dice).toBeDefined();
     expect(dice.value >= 1 && dice.value <= 6).toBe(true);
   });
 
   it("should track the issuer correctly", async () => {
-    const dice = player.rollDice(true);
+    const dice = player.rollDice(Math.random, true);
     expect(dice.issuer).toBe(player);
     expect(dice.issuer.id).toBe("testPlayer");
   });
 
   it("should allow setting dice value between 1 and 6", async () => {
-    const dice = player.rollDice(true);
+    const dice = player.rollDice(Math.random, true);
     
     dice.value = 1;
     expect(dice.value).toBe(1);
@@ -500,7 +500,7 @@ describe("DiceRoll", () => {
   });
 
   it("should roll and generate new value", async () => {
-    const dice = player.rollDice(true);
+    const dice = player.rollDice(Math.random, true);
     const firstValue = dice.value;
     
     dice.roll();
@@ -512,7 +512,7 @@ describe("DiceRoll", () => {
   });
 
   it("should return json representation correctly", async () => {
-    const dice = player.rollDice(true);
+    const dice = player.rollDice(Math.random, true);
     const json = dice.json;
     
     expect(json.issuer.name).toBe("testPlayer");
@@ -520,7 +520,7 @@ describe("DiceRoll", () => {
   });
 
   it("should resolve to current value", async () => {
-    const dice = player.rollDice(true);
+    const dice = player.rollDice(Math.random, true);
     dice.value = 4;
     
     expect(dice.value).toBe(4);
@@ -650,7 +650,7 @@ describe("Game - Stack Operations", () => {
   });
 
   it("should add to stack and resolve dice roll", async () => {
-    const dice = player1.rollDice(true);
+    const dice = player1.rollDice(Math.random, true);
     game.addToStack(dice);
     expect(game.stack.size).toBe(1);
 
@@ -670,7 +670,7 @@ describe("Stack - Behavior", () => {
   it("should resolve and remove the top element", async () => {
     const stack = new Stack();
     const loot = { id: "loot", type: "loot" } as any;
-    const dice = new Player("p", 1, 1, 0).rollDice(true);
+    const dice = new Player("p", 1, 1, 0).rollDice(Math.random, true);
 
     stack.push(loot as any);
     stack.push(dice);

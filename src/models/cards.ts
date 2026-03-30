@@ -1062,8 +1062,9 @@ class Deck<T extends Card> {
     _set: CardSet<T>
     _order: number[];
     _discard: number[];
+    _random: () => number;
 
-    constructor(set: CardSet<T>, type: DeckType, order: number[]) {
+    constructor(set: CardSet<T>, type: DeckType, order: number[], random: () => number) {
         // Type of cards in the deck.
         this._type = type;
         // Set of all the cards that can belong to the deck.
@@ -1072,6 +1073,7 @@ class Deck<T extends Card> {
         this._order = order.reverse();
         // Set of discarded cards of the deck.
         this._discard = [];
+        this._random = random;
 
         order.forEach((id) => {
             const card = this._set.get(id);
@@ -1083,7 +1085,7 @@ class Deck<T extends Card> {
     }
 
     shuffle(): void {
-        shuffle<number>(this._order)
+        shuffle<number>(this._random, this._order)
     }
 
     remove(card:T)
@@ -1167,7 +1169,7 @@ class Deck<T extends Card> {
     }
     addRandomPosition(card: T): void {
         assertCardMatchesDeck(this._type, card);
-        const randomIdx = Math.floor(Math.random() * this._order.length);
+        const randomIdx = Math.floor(this._random() * this._order.length);
         this.addCardAtPosFromTop(card, randomIdx);
     }
 
@@ -1200,7 +1202,7 @@ class Deck<T extends Card> {
     }
 
     shuffleDiscard(): void {
-        shuffle<number>(this._discard);
+        shuffle<number>(this._random, this._discard);
     }
 
     resetDiscard(): void {
@@ -1301,7 +1303,7 @@ export function assertCardMatchesDeck<T extends DeckType>(
     }
 }
 
-function createEmptyDecksCollection(): DecksCollection {
+function createEmptyDecksCollection(random: () => number): DecksCollection {
     const emptyCardSets = {
         loot: new CardSet<LootCard>('loot'),
         treasure: new CardSet<TreasureCard>('treasure'),
@@ -1311,16 +1313,16 @@ function createEmptyDecksCollection(): DecksCollection {
         bsoul: new CardSet<BsoulCard>('bsoul'),
     };
     return {
-        loot: new Deck(emptyCardSets.loot, 'loot', []),
-        treasure: new Deck(emptyCardSets.treasure, 'treasure', []),
-        eternal: new Deck(emptyCardSets.eternal, 'eternal', []),
-        character: new Deck(emptyCardSets.character, 'character', []),
-        monster: new Deck(emptyCardSets.monster, 'monster', []),
-        bsoul: new Deck(emptyCardSets.bsoul, 'bsoul', []),
+        loot: new Deck(emptyCardSets.loot, 'loot', [], random),
+        treasure: new Deck(emptyCardSets.treasure, 'treasure', [], random),
+        eternal: new Deck(emptyCardSets.eternal, 'eternal', [], random),
+        character: new Deck(emptyCardSets.character, 'character', [], random),
+        monster: new Deck(emptyCardSets.monster, 'monster', [], random),
+        bsoul: new Deck(emptyCardSets.bsoul, 'bsoul', [], random),
     };
 }
 
-function LoadDecks(json_array: GenericCardType[], numPlayers: number, nbPlayerCardRestriction: boolean) : DecksCollection {
+function LoadDecks(json_array: GenericCardType[], numPlayers: number, nbPlayerCardRestriction: boolean, random: () => number) : DecksCollection {
     // Create fresh CardSets from JSON to ensure independent card instances
     const decks_cardSets = LoadsCardSets(json_array);
     
@@ -1339,8 +1341,8 @@ function LoadDecks(json_array: GenericCardType[], numPlayers: number, nbPlayerCa
                 range.push(i);
             }
         }
-        shuffle<number>(range);
-        (decks as any)[type] = new Deck(set, type, range);
+        shuffle<number>(random, range);
+        (decks as any)[type] = new Deck(set, type, range, random);
     }
     
     return decks;
@@ -1351,11 +1353,11 @@ function isSameSlug(slug: string, card: Card) : boolean
     return card.slug === slug;
 }
 
-function randomCardFromSet<T extends Card>(set: CardSet<T>) : T {
-    const randomIndex = Math.floor(Math.random() * set.length);
+function randomCardFromSet<T extends Card>(set: CardSet<T>, random: () => number) : T {
+    const randomIndex = Math.floor(random() * set.length);
     const card = set.get(randomIndex);
     if (card === undefined) {
-        throw new Error(`Card id ${randomIndex} is out of bounds for card set of length ${set.length}`);
+    throw new Error(`Card id ${randomIndex} is out of bounds for card set of length ${set.length}`);
     }
     return card;
 }

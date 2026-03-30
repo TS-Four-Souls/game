@@ -294,20 +294,25 @@ io.on("connection", (socket) => {
             //   const card = game.obtainCard(slug)! as ItemCard;
             //   game.decks["treasure"]?.addTopPosition( card);
             // }
-            shuffle(game.players);
+            // if(game.players.length === 1) {
+            //   const second = new Player("The other", 2, 1, 0, game.players[0]!.secret);
+            //   game.addPlayer(second);
+            // }
+            shuffle(game.random, game.players);
             game.start(payload.issuer);
-            // const mob = game.obtainCard("b2-moms_eye") as MonsterCard;
+            // const mob = game.obtainCard("b2-curse_of_amnesia")!;
+            // game.decks.monster?.addTopPosition(mob as any);
             // game.encounters.forceSetMonsterAtSlot(0, mob);
             // const loots = ["b2-i_the_magician", "b2-gold_bomb", "b2-ii_the_high_priestess", "b2-cains_eye"]
             // for (const slug of loots) {
             //   const card = game.obtainCard(slug)! as LootCard;
             //   game.addCardToHand(game.players[0]!, card);
             //   }
+            // const treas = ["b2-goat_head", "b2-the_blue_map", "b2-the_map"];
             // for (const slug of treas) {
             //   const card = game.obtainCard(slug)! as ItemCard;
             //   game.addInPlay(game.players[0]!, card);
             // }
-            // const treas = ["b2-theres_options", "b2-trinity_shield"];
             game.addToHistory({ type: "Start", payload });
             return callback({ status: 200 });
           } catch (error) {

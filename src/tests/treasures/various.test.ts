@@ -213,7 +213,7 @@ describe("Treasure - Passive effects", () => {
         game.addInPlay(player1, sacredHeart);
 
         // Roll a dice and set it to 1
-        const dice = player1.rollDice(false, sacredHeart);
+        const dice = player1.rollDice(Math.random, false, sacredHeart);
         dice.value = 1;
 
         game.addToStack(dice);
@@ -228,7 +228,7 @@ describe("Treasure - Passive effects", () => {
         game.addInPlay(player1, sacredHeart);
 
         // Roll a dice and set it to 3
-        const dice = player1.rollDice(false, sacredHeart);
+        const dice = player1.rollDice(Math.random, false, sacredHeart);
         dice.value = 3;
 
         game.addToStack(dice);
