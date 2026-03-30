@@ -2419,12 +2419,15 @@ export class Game {
   }
 
   /** Moves one stack element before another within the same reordering group. */
-  insertStackElementBefore(issuer: Issuer, elementToMoveStackId: number, targetStackId: number): void {
+  insertStackElementBefore(issuer: Issuer, elementToMoveStackId: number, targetStackId: number | "start"): void {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
 
     const elementToMove = this.stack.elements.find((el) => el.stackId === elementToMoveStackId);
-    const targetElement = this.stack.elements.find((el) => el.stackId === targetStackId);
+    const targetElement = 
+      targetStackId === "start"
+        ? this.stack.elements.filter((el) => el.reordering?.groupId === elementToMove?.reordering?.groupId).at(-1)
+        : this.stack.elements.find((el) => el.stackId === targetStackId);
     if (!elementToMove || !targetElement) {
       throw new Error("Stack elements to reorder were not found.");
     }
@@ -2441,8 +2444,10 @@ export class Game {
       throw new Error("You are not allowed to reorder this trigger group.");
     }
 
+    // If the target is the start of the group, we first put the element to move second, and then swap with the first.
     this.stack.insertStackElementBefore(elementToMove, targetElement);
-
+    if(targetStackId === "start")
+      this.stack.insertStackElementBefore(targetElement, elementToMove);
     const event = moveInfo.event;
     if (!event) {
       this._onStateChange.dispatch();

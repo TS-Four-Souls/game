@@ -424,7 +424,7 @@ const submitSelectionSchema = z.object({
 const insertStackElementBeforeSchema = z.object({
   issuer: issuerSchema,
   elementToMoveStackId: z.number(),
-  targetStackId: z.number(),
+  targetStackId: z.union([z.number(), z.literal("start")]),
 });
 
 const purchaseSchema = z.object({
