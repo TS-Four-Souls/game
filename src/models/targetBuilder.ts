@@ -124,7 +124,7 @@ export class TargetBuilder {
             } else {
                 // Regular selector - validate choice by matching against possibleTargets
                 const resolved = TargetBuilder.resolveIdentifier(choice, possibleTargets);
-                if (!resolved) {
+                if (resolved === undefined) {
                     throw new Error(`Invalid target choice: ${choice}`);
                 }
 
