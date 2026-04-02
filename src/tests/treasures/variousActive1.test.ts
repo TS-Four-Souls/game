@@ -177,14 +177,9 @@ describe("Tap/Paid effects 1", () => {
         dice.value = 3; // Set to some value
         game.addToStack(dice);
 
-        // Mock game.select to choose 1
-        game.select = async (_issuer, _n, opts, _optional) => {
-            return { selected: [1], remaining: [] } as any;
-        };
-
         // Recharge and activate godhead with the dice as target
         game.recharge(godhead);
-        await game.activateItem(player1, godhead, [dice]);
+        await game.activateItem(player1, godhead, [dice, 1]);
         await game.resolveStack();
 
         // Dice value should be changed to 1
@@ -200,14 +195,9 @@ describe("Tap/Paid effects 1", () => {
         dice.value = 2; // Set to some value
         game.addToStack(dice);
 
-        // Mock game.select to choose 6
-        game.select = async (_issuer, _n, opts, _optional) => {
-            return { selected: [6], remaining: [] } as any;
-        };
-
         // Recharge and activate godhead with the dice as target
         game.recharge(godhead);
-        await game.activateItem(player1, godhead, [dice]);
+        await game.activateItem(player1, godhead, [dice, 6]);
         await game.resolveStack();
 
         // Dice value should be changed to 6
@@ -785,6 +775,24 @@ describe("Tap/Paid effects 1", () => {
 
         // Replacement card should be in player2's play area
         expect(player2.inPlay).toContain(replacementCard);
+    });
+
+    it("the_d20 - reroll an item from the shop (destroy and replace)", async () => {
+        const theD20 = game.shop.obtainCard("b2-the_d20") as ItemCard;
+        const targetItem = game.shop._slots[0] as ItemCard;
+        game.addInPlay(player1, theD20);
+
+        // Get the top card of treasure deck (replacement card)
+        const replacementCard = game.decks["treasure"]!.cards[0]!;
+
+        // Recharge and activate the_d20 with target item (needs {player, card} format for reroll)
+        game.recharge(theD20);
+        await game.activateItem(player1, theD20, [targetItem]);
+        await game.resolveStack();
+
+        // Target item should be destroyed
+        expect(game.destroyedCards).toContain(targetItem);
+        expect(game.shop._slots[0]).toBe(replacementCard);
     });
 
     it("spoon_bender - add 1 to a roll", async () => {

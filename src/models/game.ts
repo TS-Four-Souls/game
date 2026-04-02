@@ -44,6 +44,7 @@ import { type TriggerEvent } from '@/models/types/eventTypes';
 import type { Capability, DetailedState, Issuer, SelectionItem, StackElementJson } from "@/shared/api";
 import { HistoricHandler, type HistoricEntry, type UserRequest } from "./historyHandler";
 import { GameParameters } from "./gameParameters";
+import { shuffle } from "@/utils/auxiliary";
 
 // Type representing sources of damage - either a card ability or a dice roll
 export type DamageSource = Card | DiceRoll;
@@ -176,6 +177,13 @@ export class Game {
     this._historicHandler.addToHistory(entry);
   }
 
+  /**
+   * Load history after loading a game.
+   */
+  loadHistory(logs: HistoricEntry[]): void {
+    this._historicHandler.loadHistory(logs);
+  }
+
   get inPlayItems(): { player: Player; card: ItemCard }[] {
     return this.players.flatMap(p => p.inPlay.map(c => ({player: p, card: c})));
   }
@@ -225,7 +233,6 @@ export class Game {
       }
     }
     for (const card of cards) {
-      console.log(`Debug removing card ${card.name} from player ${player.id}`);
       switch(card.type)
       {
         case "loot":
@@ -1350,7 +1357,7 @@ export class Game {
     });
   }
   /**
-   * Alias entrypoint used by API to end current turn.
+   * End the turn of the current player if issuer is the current player and all conditions are satisfied.
    */
   nextTurn(issuer: Issuer): void {
     const roundIndex = this.assertGameStarted();
@@ -1485,12 +1492,15 @@ export class Game {
   /**
    * Starts the game lifecycle and executes initial setup.
    */
-  start(issuer: Issuer, characters: CharacterCard[] | null = null): void {
+  start(issuer: Issuer, characters: CharacterCard[] | null = null, shufflePlayerOrder: boolean = true): void {
     this.assertIssuerSecret(issuer);
     this.assertGameNotStarted();
     this.assertMinimumPlayerCount();
     this.pendingMultipleSelections.clear();
-
+    if (shufflePlayerOrder) {
+      shuffle(this.random, this.players);
+    }
+    
     if (this._decks.character.length === 0) {
       this.setupGame();
     }
@@ -1679,14 +1689,14 @@ export class Game {
   /**
    * Resets the full game state to a fresh pre-start state.
    */
-  reset(): void {
+  reset(newSeed: boolean = true): void {
     this._historicHandler = new HistoricHandler();
     this.turnHandler.reset();
     this._players = [];
     this._decks = createEmptyDecksCollection(this.random);
     this._ongoingAttack = null;
     this._shop = null!;
-    this.seed = ""; // It is set to a random value in the setter.
+    this.seed = (newSeed ? "" : this.seed); // If newSeed is true, set to a random value in the setter.
     this._encounters = null!;
     this._stack.clear();
     this._emitter = new GameEventEmitter();
@@ -2054,7 +2064,7 @@ export class Game {
     return true;
   }
 
-  /** Destroys cards by removing them from in-play/soul zones and tracks destruction. */
+  /** Destroys cards by removing them from in-play/soul zones and shop and tracks destruction. */
   destroyCardsOrSouls(cards: Card[]): boolean {
     if (cards.length === 0 || cards.every((card) => card === undefined))
       return false;
@@ -2069,6 +2079,9 @@ export class Game {
       this.players.forEach((player) => {
         this.removeSoul(player, card);
       });
+    });
+    cards.forEach((card) => {
+      this.shop.removeCard(card);
     });
     this.destroyedCards.push(...cards);
     this._onStateChange.dispatch();
@@ -2583,16 +2596,20 @@ export class Game {
   }
 
   /** Destroys an owned item and replaces it by gaining treasure. */
-  reroll(owner: Player, card: Card): void {
+  reroll(card: Card): void {
+    const owner = this.getOwner(card);
     if (!(card instanceof ItemCard)) {
       throw new Error("Can only reroll with an item card.");
     }
-    if (!owner.inPlay.includes(card)) {
+    if (owner && !owner.inPlay.includes(card)) {
       throw new Error("Owner does not have the specified card in play.");
     }
     this.destroyCardsOrSouls([card]);
-    owner.removeInPlay(card);
-    this.gainTreasure(owner);
+    if(owner)
+    {
+      owner.removeInPlay(card);
+      this.gainTreasure(owner);
+    }
   }
 
   /** Discards the top monster card from an encounter slot. */

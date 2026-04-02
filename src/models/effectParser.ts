@@ -65,6 +65,18 @@ const selectDeck = (game: Game, count: number = 1, asMany: boolean = false): Tar
 const selectRoll = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
     [createSelector("Choose a dice roll", rollSelector(() => true, game), count, asMany)];
 
+const selectRollAndNumber = (game: Game, numbers: number[], count: number = 1, asMany: boolean = false, onlyNonAttackRolls: boolean = false): TargetsSelector[] => 
+    [createSelector("Choose a dice roll", rollSelector((roll: DiceRoll) => {
+        if (onlyNonAttackRolls && roll.attackRoll) {
+            return false;
+        }
+        return true;
+    }, game), count, asMany),
+    createSelector(`Choose a number (${Math.min(...numbers)}-${Math.max(...numbers)})`, () => {
+        return numbers;
+    }, count, asMany)];
+
+
 const selectItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
     [createSelector("Select a rechargeable item", inplayUnchargedItemSelector(game), count, asMany)];
 
@@ -854,9 +866,9 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
         case "loot equal to the number of cards discarded in this way.":
             return { effectFunction: active.lootEqualToCardsDiscardedEffect(game), targetSelectors: noTargets };
         case "subtract up to 2 from a roll.":
-            return { effectFunction: active.subtractUpTo2FromRollEffect(game), targetSelectors: selectRoll(game) };
+            return { effectFunction: active.subtractUpTo2FromRollEffect(game), targetSelectors: selectRollAndNumber(game, [0, 1, 2]) };
         case "add up to 2 to a non-attack roll.":
-            return { effectFunction: active.addUpTo2ToNonAtkRollEffect(game), targetSelectors: selectRoll(game) };
+            return { effectFunction: active.addUpTo2ToNonAtkRollEffect(game), targetSelectors: selectRollAndNumber(game, [0, 1, 2], 1, false, true) };
         case "each player votes on an item in play. destroy the item with the most votes. If there is a tie, nothing happens.":
             return { effectFunction: active.eachPlayersVoteToDestroyItemEffect(game), targetSelectors: noTargets };
         case "add 1 to a roll.":
@@ -928,10 +940,10 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
             return { effectFunction: active.rerollDiceByControllerEffect(game), targetSelectors: selectRoll(game) };
 
         case "change the result of a dice roll to a number of your choosing.":
-            return { effectFunction: active.changeRollDiceResultEffect(game), targetSelectors: selectRoll(game) };
+            return { effectFunction: active.changeRollDiceResultEffect(game), targetSelectors: selectRollAndNumber(game, [1, 2, 3, 4, 5, 6]) };
 
         case "change the result of a dice roll to a 1 or 6.":
-            return { effectFunction: active.changeRollTo1Or6Effect(game), targetSelectors: selectRoll(game) };
+            return { effectFunction: active.changeRollTo1Or6Effect(game), targetSelectors: selectRollAndNumber(game, [1, 6]) };
 
         case "put a loot card from your hand on top of the loot deck.":
             return { effectFunction: active.putLootCardFromHandOnTopOfDeckEffect(game), targetSelectors: noTargets };

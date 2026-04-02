@@ -251,7 +251,7 @@ describe("Treasure - Permanent Modifiers", () => {
         const samson = testGame.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = testGame.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const the_forgotten = testGame.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
-        testGame.start(p1, [samson, isaac, the_forgotten]);
+        testGame.start(p1, [samson, isaac, the_forgotten], false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
             for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {

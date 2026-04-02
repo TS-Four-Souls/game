@@ -614,6 +614,23 @@ describe("Tap/Paid effects 1", () => {
         expect(dice.value).toBe(5);
     });
 
+    it("lucky_foot - add up to 2 to a non-attack roll should not work for attack rolls", async () => {
+        const luckyFoot = game.shop.obtainCard("b2-lucky_foot") as ItemCard;
+        game.addInPlay(player1, luckyFoot);
+
+        // Create a dice roll
+        const dice = player1.rollDice(Math.random, true, luckyFoot);
+        game.addToStack(dice);
+        dice.value = 3;
+
+        game.recharge(luckyFoot);
+        await game.activateItem(player1, luckyFoot, [dice, 2]);
+        await game.resolveStack();
+        await game.resolveStack();
+
+        expect(dice.value).toBe(3);
+    });
+
     it("mini_mush - subtract 2 from a roll", async () => {
         const miniMush = game.shop.obtainCard("b2-mini_mush") as ItemCard;
         game.addInPlay(player1, miniMush);

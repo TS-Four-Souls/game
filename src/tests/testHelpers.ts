@@ -153,7 +153,7 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
     }
 
     // Start the game
-    game.start(players[0]!, characterCards);
+    game.start(players[0]!, characterCards, false);
     dischargeEachItemsAndRemoveCoins(game);
     emptyHands(game);
 

@@ -60,7 +60,7 @@ describe("Game", () => {
     
     expect(game.players.length).toBe(2);
     expect(() => {
-      game.start(player1);
+      game.start(player1, null, false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
         }).not.toThrow();
@@ -606,7 +606,7 @@ describe("Game - Guardrails", () => {
   });
 
   it("should not allow adding players after game start", async () => {
-    game.start(player1);
+    game.start(player1, null, false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
         const latePlayer = new Player("late", 1, 1, 0);
@@ -805,7 +805,7 @@ describe("Game - Game State", () => {
   });
 
   it("should get shop", async () => {
-    game.start(player1);
+    game.start(player1, null, false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
         const shop = game.shop;
@@ -813,7 +813,7 @@ describe("Game - Game State", () => {
   });
 
   it("should get encounters", async () => {
-    game.start(player1);
+    game.start(player1, null, false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
         const encounters = game.encounters;
@@ -821,7 +821,7 @@ describe("Game - Game State", () => {
   });
 
   it("should get monster slots", async () => {
-    game.start(player1);
+    game.start(player1, null, false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
         const slots = game.monsterSlots;
@@ -914,7 +914,7 @@ describe("Game - Damage System", () => {
     game.setupGame();
     const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
     const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-    game.start(player1, [samson, isaac]);
+    game.start(player1, [samson, isaac], false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
       });

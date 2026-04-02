@@ -275,8 +275,9 @@ export function changeRollDiceResultEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const choosenDiceRoll: DiceRoll = data.next as DiceRoll;
-        const selectionResult = await game.select(data.issuer, 1, [1, 2, 3, 4, 5, 6], false, "Select a value to change the roll to.");
-        const newValue = selectionResult.selected[0] as number;
+        // const selectionResult = await game.select(data.issuer, 1, [1, 2, 3, 4, 5, 6], false, "Select a value to change the roll to.");
+        // const newValue = selectionResult.selected[0] as number;
+        const newValue: number = data.next as number;
         choosenDiceRoll.value = newValue;
         return true;
     };
@@ -755,7 +756,7 @@ export function rerollEachItemEffect(game: Game): EffectFunction {
         const player = data.next as Player;
         const inplayItems = player.inPlay.filter((card) => card instanceof ItemCard && !card.eternal) as ItemCard[];
         for (const card of inplayItems) {
-            game.reroll(player, card);
+            game.reroll(card);
         }
         return true;
     };
@@ -950,8 +951,9 @@ export function changeRollTo1Or6Effect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const choosenDiceRoll: DiceRoll = data.next as DiceRoll;
-        const selectionResult = await game.select(data.issuer, 1, [1, 6], false, "Select the value to change the roll to.");
-        const newValue = selectionResult.selected[0] as number;
+        const newValue: number = data.next as number;
+        // const selectionResult = await game.select(data.issuer, 1, [1, 6], false, "Select the value to change the roll to.");
+        // const newValue = selectionResult.selected[0] as number;
         choosenDiceRoll.value = newValue;
         return true;
     };
@@ -1055,8 +1057,7 @@ export function eachPlayerLosesCoinsEffect(game: Game, amount: number): EffectFu
 export function rerollItemEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         const card = data.next;
-        const p: Player = game.getOwner(card)!;
-        game.reroll(p, card);
+        game.reroll(card);
         return true;
     };
 }

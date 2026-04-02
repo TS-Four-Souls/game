@@ -41,6 +41,7 @@ export type UserRequest =
   | {type: "CreateRoom" }
   | {type: "JoinRoom", payload: Requests.JoinRoom }
   | {type: "LeaveRoom" }
+  | {type: "LoadGame", payload: Requests.LoadGame }
 
 
 // Important historic information: purchase, DebugLoot, DebugListLoot, DebugListTreasure, DebugGainTreasure, GiveCoins, AttackMonster, EndTurn
@@ -113,6 +114,10 @@ export class HistoricHandler {
 
   get log(): HistoricEntry[] {
     return this._history;
+  }
+
+  loadHistory(entries: HistoricEntry[]): void {
+    this._history = entries;
   }
 
   appendToFile(filename: string, entry: HistoricEntry): void {

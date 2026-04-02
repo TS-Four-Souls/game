@@ -25,7 +25,7 @@ describe("Game Selection System", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        game.start(player1, [isaac, judas, samson]);
+        game.start(player1, [isaac, judas, samson], false);
     });
 
     it("select() creates a pending selection with correct data", async () => {

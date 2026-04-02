@@ -469,10 +469,10 @@ describe("Loot Card", () => {
         game.stack.push(roll);
         roll.value = 6; // initial value
         // Play magician to change the roll
-        game.playCard(player1, 0, [game.stack.elements[0]]);
+        game.playCard(player1, 0, [game.stack.elements[0], 2]);
         await game.resolveStack();
 
-        expect(roll.value).toBe(1);
+        expect(roll.value).toBe(2);
     });
 
     it("b2-i_the_magician: should allow choosing specific roll value", async () => {
@@ -486,13 +486,13 @@ describe("Loot Card", () => {
         // Force the roll to be different from what we want
         roll.value = 5;
 
-        // Play magician to change roll to 6
-        game.playCard(player1, 0, [roll]);
+        // Play magician to change roll to 1
+        game.playCard(player1, 0, [roll, 2]);
         await game.resolveStack();
 
         // Should be able to choose any value 1-6
         expect(typeof roll.value).toBe("number");
-        expect(roll.value).toBe(1);
+        expect(roll.value).toBe(2);
     });
 
     it("b2-ii_the_high_priestess: should roll and deal damage to a player", async () => {
@@ -1806,7 +1806,7 @@ describe("Loot Cards - 3 players tests", () => {
         const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        game.start(player1, [isaac, judas, samson]);
+        game.start(player1, [isaac, judas, samson], false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
         });

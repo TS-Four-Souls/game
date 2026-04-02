@@ -24,7 +24,7 @@ describe("Eternal Items", () => {
     it("The D6", async () => {
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [samson, isaac]);
+        game.start(player1, [samson, isaac], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -68,7 +68,7 @@ describe("Eternal Items", () => {
     it("The Curse - active", async () => {
         const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [eve, isaac]);
+        game.start(player1, [eve, isaac], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -115,7 +115,7 @@ describe("Eternal Items", () => {
     it("The Curse - passive", async () => {
         const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [eve, isaac]);
+        game.start(player1, [eve, isaac], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -149,7 +149,7 @@ describe("Eternal Items", () => {
     it("The Bone: active effect (put a counter on this)", async () => {
         const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [theForgotten, isaac]);
+        game.start(player1, [theForgotten, isaac], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -193,7 +193,7 @@ describe("Eternal Items", () => {
     it("The Bone: paid effect 1 (remove 1 counter to add +1 to dice roll)", async () => {
         const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [theForgotten, isaac]);
+        game.start(player1, [theForgotten, isaac], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -240,7 +240,7 @@ describe("Eternal Items", () => {
     it("The Bone: paid effect 2 (remove 2 counters to deal 1 damage to player)", async () => {
         const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [theForgotten, isaac]);
+        game.start(player1, [theForgotten, isaac], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -276,7 +276,7 @@ describe("Eternal Items", () => {
     it("The Bone: paid effect 2 (remove 2 counters to deal 1 damage to monster)", async () => {
         const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [theForgotten, isaac]);
+        game.start(player1, [theForgotten, isaac], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -316,7 +316,7 @@ describe("Eternal Items", () => {
     it("The Bone: paid effect 3 (remove 5 counters to become a soul)", async () => {
         const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [theForgotten, isaac]);
+        game.start(player1, [theForgotten, isaac], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -356,7 +356,7 @@ describe("Eternal Items", () => {
     it("The Bone: paid effect 3 cannot be used with less than 5 counters", async () => {
         const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [theForgotten, isaac]);
+        game.start(player1, [theForgotten, isaac], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -410,7 +410,7 @@ describe("Eternal Items", () => {
     it("Book of Belial: add ", async () => {
         const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [judas, isaac]);
+        game.start(player1, [judas, isaac], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -452,7 +452,7 @@ describe("Eternal Items", () => {
     it("Book of Belial: subtract ", async () => {
         const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [judas, isaac]);
+        game.start(player1, [judas, isaac], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -495,7 +495,7 @@ describe("Eternal Items", () => {
     it("Sleight of Hand ", async () => {
         const cain = game.decks["character"]!.getCardFromSlug("b2-cain")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [cain, isaac]);
+        game.start(player1, [cain, isaac], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -529,7 +529,7 @@ describe("Eternal Items", () => {
     it("Yum Heart", async () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const maggy = game.decks["character"]!.getCardFromSlug("b2-maggy")! as CharacterCard;
-        game.start(player1, [isaac, maggy]);
+        game.start(player1, [isaac, maggy], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -573,7 +573,7 @@ describe("Eternal Items", () => {
     it("Lazarus Rags", async () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const lazarus = game.decks["character"]!.getCardFromSlug("b2-lazarus")! as CharacterCard;
-        game.start(player1, [isaac, lazarus]);
+        game.start(player1, [isaac, lazarus], false);
         // Wait for async event handlers to complete
         await new Promise(resolve => setTimeout(resolve, 10));
         dischargeEachItemsAndRemoveCoins(game);
@@ -627,7 +627,7 @@ describe("Eternal Items", () => {
     it("Blood Lust", async () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        game.start(player1, [isaac, samson]);
+        game.start(player1, [isaac, samson], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -695,7 +695,7 @@ describe("Eternal Items", () => {
     it("Forever Alone - Option 1: Steal 1\u00A2 from another player", async () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
-        game.start(player1, [isaac, blueBaby]);
+        game.start(player1, [isaac, blueBaby], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -733,7 +733,7 @@ describe("Eternal Items", () => {
     it("Forever Alone - Option 2: Look at the top card of a deck", async () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
-        game.start(player1, [isaac, blueBaby]);
+        game.start(player1, [isaac, blueBaby], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -762,7 +762,7 @@ describe("Eternal Items", () => {
     it("Forever Alone - Option 3: Discard a loot card, then loot 1", async () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
-        game.start(player1, [isaac, blueBaby]);
+        game.start(player1, [isaac, blueBaby], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -807,7 +807,7 @@ describe("Eternal Items", () => {
     it("Forever Alone - Recharges when taking damage", async () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
-        game.start(player1, [isaac, blueBaby]);
+        game.start(player1, [isaac, blueBaby], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -843,7 +843,7 @@ describe("Eternal Items", () => {
     it("Forever Alone - Multiple damage instances recharge each time", async () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
-        game.start(player1, [isaac, blueBaby]);
+        game.start(player1, [isaac, blueBaby], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -887,7 +887,7 @@ describe("Eternal Items", () => {
     it("Incubus - Option 1: Look at a player's hand and swap a card", async () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
-        game.start(player1, [isaac, lilith]);
+        game.start(player1, [isaac, lilith], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -932,7 +932,7 @@ describe("Eternal Items", () => {
     it("Incubus - Option 2: Loot 1, then put a card from your hand on top of the loot deck", async () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
-        game.start(player1, [isaac, lilith]);
+        game.start(player1, [isaac, lilith], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -971,7 +971,7 @@ describe("Eternal Items", () => {
     it("Incubus - Option 2: Does nothing with empty hand", async () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
-        game.start(player1, [isaac, lilith]);
+        game.start(player1, [isaac, lilith], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -1005,7 +1005,7 @@ describe("Eternal Items", () => {
     it("Incubus - Charges at start of turn", async () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
-        game.start(player1, [isaac, lilith]);
+        game.start(player1, [isaac, lilith], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
@@ -1051,7 +1051,7 @@ describe("Eternal Items - 3 players tests", () => {
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
-        game.start(player1, [isaac, samson, judas]);
+        game.start(player1, [isaac, samson, judas], false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){

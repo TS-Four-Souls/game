@@ -7,13 +7,18 @@ import type {
   ClientToServerEvents,
   DetailedState,
   ServerToClientEvents,
-  TargetSelectorResponse,
 } from "./shared/api";
 import { schemas } from "./shared/api";
-import { TargetBuilder } from "./models/targetBuilder";
 import { ItemCard, LootCard } from "./models/cards";
 import { generateRoomId, generateUserId } from "./utils/random";
+import {
+  executeActivateRequest,
+  executeAttackMonsterRequest,
+  executePlayCardRequest,
+} from "./utils/gameRequestHelpers";
+import { loadGameFromLogs } from "./utils/loadGameFromLogs";
 import type { z, ZodType } from "zod";
+import type { HistoricEntry } from "./models/historyHandler";
 
 const PORT = process.env.PORT || 3000;
 const HOSTNAME = process.env.HOSTNAME || "localhost";
@@ -184,6 +189,71 @@ io.on("connection", (socket) => {
     });
   });
 
+  socket.on("getGameLogs", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.getGameLogsRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            game.getPlayerByIssuer(payload);
+            const logs = JSON.stringify(game.log, null, 2);
+            console.log(`Game logs:`, logs);
+            return callback({ status: 200, logs });
+          } catch (error) {
+            console.error("Failed to get game logs", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
+
+  socket.on("loadGame", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.loadGameRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, async (game, room) => {
+          try {
+            // Ensure requester is an authorized player in the current room game.
+            game.getPlayerByIssuer(payload.issuer);
+            const logs: HistoricEntry[] = JSON.parse(payload.logs);
+            if (!logs)
+              throw new Error(
+                "Logs are not valid JSON or not in the expected format.",
+              );
+            const loadedGame = await loadGameFromLogs(logs);
+            room.game.addToHistory({ type: "LoadGame", payload }); // Add the load game action to the current game history for traceability, even though it won't affect the loaded game state.
+            loadedGame.onStateChange.add(() => {
+              loadedGame.players.forEach((player) =>
+                sendRoomChanged(room, player.id),
+              );
+            });
+
+            room.game = loadedGame;
+
+            loadedGame.players.forEach((player) =>
+              sendRoomChanged(room, player.id),
+            );
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to load game from logs", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
+
   socket.on("join", (payload, callback) => {
     payloadGuardedEndpoint(
       payload,
@@ -298,8 +368,8 @@ io.on("connection", (socket) => {
             //   const second = new Player("The other", 2, 1, 0, game.players[0]!.secret);
             //   game.addPlayer(second);
             // }
-            shuffle(game.random, game.players);
-            game.start(payload.issuer);
+
+            game.start(payload.issuer, null);
             // const mob = game.obtainCard("b2-curse_of_amnesia")!;
             // game.decks.monster?.addTopPosition(mob as any);
             // game.encounters.forceSetMonsterAtSlot(0, mob);
@@ -308,7 +378,9 @@ io.on("connection", (socket) => {
             //   const card = game.obtainCard(slug)! as LootCard;
             //   game.addCardToHand(game.players[0]!, card);
             //   }
-            // const treas = ["b2-goat_head", "b2-the_blue_map", "b2-the_map"];
+            // const treas = [
+            //   // "b2-mini_mush", 
+            //   "b2-spoon_bender"];
             // for (const slug of treas) {
             //   const card = game.obtainCard(slug)! as ItemCard;
             //   game.addInPlay(game.players[0]!, card);
@@ -336,12 +408,14 @@ io.on("connection", (socket) => {
         roomGuardedEndpoint(userId, callback, (game, room) => {
           try {
             const players = game.players;
+            // Reset is added to the previous game history. 
+            // The new game instance created in the next line will start a new history.
+            game.addToHistory({ type: "Reset", payload }); 
             game.reset();
             players.forEach((player) => {
               sendRoomChanged(room, player.id);
               io.socketsLeave(player.id);
             });
-            game.addToHistory({ type: "Reset", payload });
             return callback({ status: 200 });
           } catch (error) {
             console.error("Failed to reset the game", error);
@@ -354,6 +428,36 @@ io.on("connection", (socket) => {
       },
     );
   });
+
+  // socket.on("rollback", (payload, callback) => {
+  //   payloadGuardedEndpoint(
+  //     payload,
+  //     schemas.resetRequest,
+  //     callback,
+  //     (payload) => {
+  //       roomGuardedEndpoint(userId, callback, (game, room) => {
+  //         try {
+  //           const players = game.players;
+  //           // Reset is added to the previous game history. 
+  //           // The new game instance created in the next line will start a new history.
+  //           game.addToHistory({ type: "Rollback", payload }); 
+  //           game.rollback();
+  //           players.forEach((player) => {
+  //             sendRoomChanged(room, player.id);
+  //             io.socketsLeave(player.id);
+  //           });
+  //           return callback({ status: 200 });
+  //         } catch (error) {
+  //           console.error("Failed to rollback.", error);
+  //           if (error instanceof Error) {
+  //             return callback({ status: 400, error: error.message });
+  //           }
+  //           return callback({ status: 400, error: "Unknown error" });
+  //         }
+  //       });
+  //     },
+  //   );
+  // });
 
   socket.on("declareAttack", (payload, callback) => {
     payloadGuardedEndpoint(
@@ -387,19 +491,7 @@ io.on("connection", (socket) => {
       (payload) => {
         roomGuardedEndpoint(userId, callback, (game) => {
           try {
-            const player = game.getPlayerById(payload.issuer.id);
-            const monster =
-              payload.index === "top"
-                ? "topDeck"
-                : game.encounters.monsterIn(payload.index);
-            if (!monster) {
-              return new Response(`No monster at index ${payload.index}`, {
-                status: 400,
-              });
-            }
-            const drawInIndex =
-              payload.index === "top" ? payload.replaceIndex : -1;
-            game.declareAttackOnMonster(player, monster, drawInIndex);
+            executeAttackMonsterRequest(game, payload);
             game.addToHistory({ type: "AttackMonster", payload });
             return callback({ status: 200 });
           } catch (error) {
@@ -523,32 +615,7 @@ io.on("connection", (socket) => {
       (payload) => {
         roomGuardedEndpoint(userId, callback, (game) => {
           try {
-            const player = game.getPlayerByIssuer(payload.issuer);
-            const partialChoices = payload.targetChoices || [];
-            const card = TargetBuilder.getCardFromPlayer(
-              game,
-              player,
-              payload.index,
-              "hand",
-            );
-            const choices: TargetSelectorResponse =
-              TargetBuilder.getNextSelector(
-                game,
-                player,
-                card,
-                partialChoices,
-                payload.effectIndex,
-              );
-            if (choices.complete) {
-              const targets = TargetBuilder.buildTargets(
-                game,
-                player,
-                card,
-                partialChoices,
-                payload.effectIndex,
-              );
-              game.playCard(player, payload.index, targets);
-            }
+            const choices = executePlayCardRequest(game, payload);
             game.addToHistory({ type: "PlayCard", payload });
             return callback({ response: choices, status: 200 });
           } catch (error) {
@@ -571,37 +638,8 @@ io.on("connection", (socket) => {
       (payload) => {
         roomGuardedEndpoint(userId, callback, async (game) => {
           try {
-            const player = game.getPlayerByIssuer(payload.issuer);
-            const partialChoices = payload.targetChoices || [];
-            const item = TargetBuilder.getCardFromPlayer(
-              game,
-              player,
-              payload.index,
-              "inPlay",
-            );
-            const choices: TargetSelectorResponse =
-              TargetBuilder.getNextSelector(
-                game,
-                player,
-                item,
-                partialChoices,
-                payload.effectIndex,
-              );
+            const choices = await executeActivateRequest(game, payload);
             if (choices.complete) {
-              console.log("Activation complete");
-              const targets = TargetBuilder.buildTargets(
-                game,
-                player,
-                item,
-                partialChoices,
-                payload.effectIndex,
-              );
-              await game.activateItemAtIndex(
-                player,
-                payload.index,
-                targets,
-                payload.effectIndex,
-              );
               game.addToHistory({ type: "Activate", payload });
             }
             return callback({ response: choices, status: 200 });
@@ -824,7 +862,9 @@ io.on("connection", (socket) => {
           try {
             const player = game.getPlayerByIssuer(payload);
             game.addToHistory({ type: "DebugListCardsICanRemove", payload });
-            const cards = game.playerCardsAndGameOwnedCards(player).map((c) => ({ name: c.name, slug: c.slug }));
+            const cards = game
+              .playerCardsAndGameOwnedCards(player)
+              .map((c) => ({ name: c.name, slug: c.slug }));
             return callback({ status: 200, cards });
           } catch (error) {
             console.error("Failed to debug list cards I can remove", error);
@@ -848,11 +888,11 @@ io.on("connection", (socket) => {
           try {
             const player = game.getPlayerByIssuer(payload);
             game.addToHistory({ type: "DebugRemoveCards", payload });
-            if(payload.slugs !== undefined)
-            {
-              const cardsToRemove = game.playerCardsAndGameOwnedCards(player).filter((c) => payload.slugs!.includes(c.slug));
+            if (payload.slugs !== undefined) {
+              const cardsToRemove = game
+                .playerCardsAndGameOwnedCards(player)
+                .filter((c) => payload.slugs!.includes(c.slug));
               game.debugRemoveCards(player, cardsToRemove);
-              console.log(game.detailedStateJSON(player));
             }
             return callback({
               status: 200,

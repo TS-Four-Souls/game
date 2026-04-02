@@ -22,7 +22,7 @@ describe("card activations", () => {
     const isaac = game.decks["character"]!.getCardFromSlug(
       "b2-isaac"
     )! as CharacterCard;
-    game.start(player1, [samson, isaac]);
+    game.start(player1, [samson, isaac], false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
           dischargeEachItemsAndRemoveCoins(game);

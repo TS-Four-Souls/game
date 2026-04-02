@@ -78,11 +78,10 @@ describe("Effect - additional unique implementations", () => {
   it("changeRollDiceResultEffect sets dice value", async () => {
     const { game, p1 } = setupGame();
     const dice = { value: 3 };
-    game.select = async (_p, n, opts) => ({ selected: [6], remaining: [] }) as any;
     const fn = active.changeRollDiceResultEffect(game);
     // Use a real loot card
     const card = game.decks["loot"]!.cards[0]!;
-    await fn(new EffectData(card, p1, [dice]));
+    await fn(new EffectData(card, p1, [dice, 6]));
     expect(dice.value).toBe(6);
   });
 

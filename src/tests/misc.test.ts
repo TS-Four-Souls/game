@@ -29,7 +29,7 @@ describe("Before start effects", () => {
     it("Cain plays first", async () => {
         const cain = game.decks["character"]!.getCardFromSlug("b2-cain")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [isaac, cain]);
+        game.start(player1, [isaac, cain], false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
             expect(game.currentPlayer).toBe(player2);
@@ -38,7 +38,7 @@ describe("Before start effects", () => {
     it("Eden gets a treasure and set it eternal", async () => {
         const eden = game.decks["character"]!.getCardFromSlug("b2-eden")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [isaac, eden]);
+        game.start(player1, [isaac, eden], false);
         // Wait for async event handlers to complete
         await new Promise(resolve => setTimeout(resolve, 10));
       dischargeEachItemsAndRemoveCoins(game);
@@ -61,7 +61,7 @@ describe("Before start effects", () => {
         game.decks["treasure"]!.addTopPosition(topTreas!);
         game.decks["treasure"]!.addTopPosition(topTreas2!);
         game.decks["treasure"]!.addTopPosition(topTreas3!);
-        game.start(player1);
+        game.start(player1, null, false);
         dischargeEachItemsAndRemoveCoins(game);
         emptyHands(game);
         expect(game.players.length).toBe(2);
@@ -110,7 +110,7 @@ describe("Bonus Soul effects", () => {
         game.setupGame();
         const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [isaac, judas]);
+        game.start(player1, [isaac, judas], false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
         });
