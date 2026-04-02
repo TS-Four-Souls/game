@@ -638,6 +638,7 @@ export namespace Requests {
   export type SetGameParameter = z.infer<typeof setGameParameterRequestSchema>;
   export type Start = z.infer<typeof startRequestSchema>;
   export type Reset = z.infer<typeof resetRequestSchema>;
+  export type Rollback = z.infer<typeof rollbackRequestSchema>;
   export type DeclareAttack = z.infer<typeof declareAttackRequestSchema>;
   export type DeclarePurchase = z.infer<typeof declarePurchaseRequestSchema>;
   export type CancelPurchase = z.infer<typeof cancelPurchaseRequestSchema>;
@@ -672,6 +673,7 @@ export namespace Responses {
   export type SetGameParameter = BasicResponse;
   export type Start = BasicResponse;
   export type Reset = BasicResponse;
+  export type Rollback = BasicResponse;
   export type DeclareAttack = BasicResponse;
   export type Resolve = BasicResponse;
   export type SubmitSelection = BasicResponse;
@@ -724,6 +726,11 @@ export interface ClientToServerEvents {
   reset: (
     request: Requests.Reset,
     callback: (response: Responses.Reset) => void,
+  ) => void;
+
+  rollback: (
+    request: Requests.Rollback,
+    callback: (response: Responses.Rollback) => void,
   ) => void;
 
   declareAttack: (

@@ -229,7 +229,7 @@ io.on("connection", (socket) => {
                 "Logs are not valid JSON or not in the expected format.",
               );
             const loadedGame = await loadGameFromLogs(logs);
-            room.game.addToHistory({ type: "LoadGame", payload }); // Add the load game action to the current game history for traceability, even though it won't affect the loaded game state.
+            // room.game.addToHistory({ type: "LoadGame", payload }); // Add the load game action to the current game history for traceability, even though it won't affect the loaded game state.
             loadedGame.onStateChange.add(() => {
               loadedGame.players.forEach((player) =>
                 sendRoomChanged(room, player.id),
@@ -429,35 +429,43 @@ io.on("connection", (socket) => {
     );
   });
 
-  // socket.on("rollback", (payload, callback) => {
-  //   payloadGuardedEndpoint(
-  //     payload,
-  //     schemas.resetRequest,
-  //     callback,
-  //     (payload) => {
-  //       roomGuardedEndpoint(userId, callback, (game, room) => {
-  //         try {
-  //           const players = game.players;
-  //           // Reset is added to the previous game history. 
-  //           // The new game instance created in the next line will start a new history.
-  //           game.addToHistory({ type: "Rollback", payload }); 
-  //           game.rollback();
-  //           players.forEach((player) => {
-  //             sendRoomChanged(room, player.id);
-  //             io.socketsLeave(player.id);
-  //           });
-  //           return callback({ status: 200 });
-  //         } catch (error) {
-  //           console.error("Failed to rollback.", error);
-  //           if (error instanceof Error) {
-  //             return callback({ status: 400, error: error.message });
-  //           }
-  //           return callback({ status: 400, error: "Unknown error" });
-  //         }
-  //       });
-  //     },
-  //   );
-  // });
+  socket.on("rollback", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.rollbackRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, async (game, room) => {
+          try {
+            const logs: HistoricEntry[] = game.rollbackLog;
+            if (!logs)
+              throw new Error(
+                "Logs are not valid JSON or not in the expected format.",
+              );
+            const loadedGame = await loadGameFromLogs(logs);
+            loadedGame.onStateChange.add(() => {
+              loadedGame.players.forEach((player) =>
+                sendRoomChanged(room, player.id),
+              );
+            });
+
+            room.game = loadedGame;
+
+            loadedGame.players.forEach((player) =>
+              sendRoomChanged(room, player.id),
+            );
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to rollback.", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
 
   socket.on("declareAttack", (payload, callback) => {
     payloadGuardedEndpoint(

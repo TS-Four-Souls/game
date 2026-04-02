@@ -148,6 +148,10 @@ export class Game {
     return this._historicHandler.log;
   }
 
+  get rollbackLog(): HistoricEntry[] {
+    return this._historicHandler.rollbackLog;
+  }
+
   set seed(seed: string) {
     if (seed === "") {
       seed = crypto.randomUUID(); // generate a random seed if none is provided

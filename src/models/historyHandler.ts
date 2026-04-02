@@ -3,6 +3,7 @@ import { type Requests, type StackElementJson } from "../shared/api";
 import fs from "fs";
 import type { GameParameters } from "./gameParameters";
 import type { Game } from "./game";
+import { en } from "zod/locales";
 
 
 /* This class is responsible for handling historic data.
@@ -18,6 +19,7 @@ export type UserRequest =
   | {type: "SetGameParameter", payload: Requests.SetGameParameter }
   | {type: "Start", payload: Requests.Start }
   | {type: "Reset", payload: Requests.Reset }
+  | {type: "Rollback", payload: Requests.Rollback }
   | {type: "DeclareAttack", payload: Requests.DeclareAttack }
   | {type: "DeclarePurchase", payload: Requests.DeclarePurchase }
   | {type: "CancelPurchase", payload: Requests.CancelPurchase }
@@ -43,7 +45,31 @@ export type UserRequest =
   | {type: "LeaveRoom" }
   | {type: "LoadGame", payload: Requests.LoadGame }
 
-
+  /**
+   * 
+   * @param request 
+   * @returns True if and only if the request is a non-revertable (i.e. not a rollback or InsertStackElementBefore) user action that should be recorded in the history and log.
+   */
+function isGameAction(entry: HistoricEntry): boolean {
+  if(isPrivateData(entry) || isStackElementJson(entry))
+    return false;
+  return !["Join",
+         "Rejoin", 
+         "SetGameParameter", 
+         "Start", 
+         "Reset",
+         "Rollback", 
+         "InsertStackElementBefore", 
+         "DebugListLoot", 
+         "DebugListCardsICanRemove",
+         "DebugListTreasure",
+        "IsGameOngoing",
+        "CreateRoom",
+        "JoinRoom",
+        "LeaveRoom",
+        "LoadGame"
+      ].includes(entry.type);
+  }
 // Important historic information: purchase, DebugLoot, DebugListLoot, DebugListTreasure, DebugGainTreasure, GiveCoins, AttackMonster, EndTurn
   export type PrivateData = {
     private: true;
@@ -113,6 +139,30 @@ export class HistoricHandler {
   }
 
   get log(): HistoricEntry[] {
+    return this._history;
+  }
+  /** Returns the history entries until the last user request (exluded).
+   * If no user request is found, returns the entire history.
+   */
+  get rollbackLog(): HistoricEntry[] {
+    var lastUserRequestIndex = -1;
+    var secondLastUserRequestIndex = -1;
+    // We look for the second last user request in the history.
+    // If there is only one user request, we use it instead.
+    this._history.findLastIndex((entry, index) => {
+      if(isGameAction(entry)) {
+        if(lastUserRequestIndex === -1)
+          lastUserRequestIndex = index;
+        else if(secondLastUserRequestIndex === -1)
+          secondLastUserRequestIndex = index;
+        if(secondLastUserRequestIndex !== -1)
+          return true; // stop searching once we found the second last user request
+      }
+    });
+    if(secondLastUserRequestIndex !== -1)
+      return this._history.slice(0, secondLastUserRequestIndex + 1);
+    if(lastUserRequestIndex !== -1)
+      return this._history.slice(0, lastUserRequestIndex);
     return this._history;
   }
 
