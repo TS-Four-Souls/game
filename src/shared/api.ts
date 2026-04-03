@@ -26,6 +26,7 @@ export type SelectionItem =
   | { type: "stackElement"; payload: StackElement }
   | { type: "player"; payload: IdentifierType }
   | { type: "monster"; payload: IdentifierType }
+  | { type: "deck"; payload: string }
   | { type: "number"; payload: number }
   | { type: "boolean"; payload: boolean }
   | { type: "string"; payload: string }
@@ -51,6 +52,7 @@ const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
     z.object({ type: z.literal("stackElement"), payload: stackElementSchema }),
     z.object({ type: z.literal("player"), payload: identifierTypeSchema }),
     z.object({ type: z.literal("monster"), payload: identifierTypeSchema }),
+    z.object({ type: z.literal("deck"), payload: z.string() }),
     z.object({ type: z.literal("number"), payload: z.number() }),
     z.object({ type: z.literal("boolean"), payload: z.boolean() }),
     z.object({ type: z.literal("string"), payload: z.string() }),
@@ -236,6 +238,7 @@ const selectionItemTypeSchema = z.union([
   z.literal("array"),
   z.literal("object"),
   z.literal("null"),
+  z.literal("deck"),
   z.literal("unknown"),
 ]);
 export type SelectionItemType = z.infer<typeof selectionItemTypeSchema>;

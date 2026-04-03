@@ -12,7 +12,7 @@ import * as monster from "./monsterEffects";
 import type { BonusSoulCardType } from "@/types/cardTypes";
 import { parse } from "zod";
 import { Monster } from "./monster";
-import { inAnotherplayItemSelector, anotherPlayerSelector, playerSelector, activeEntitySelector, deckSelector, rollSelector, inplayUnchargedItemSelector, inplayCurseSelector, inplayItemSelector, visibleItemSelector, stackElementSelector, YourItemSelector, inplayItemAndSoulSelector } from "./targetSelector";
+import { inAnotherplayItemSelector, anotherPlayerSelector, playerSelector, activeEntitySelector, deckSelector, rollSelector, inplayUnchargedItemSelector, inplayCurseSelector, inplayItemSelector, visibleItemSelector, stackElementSelector, YourItemSelector, inplayItemAndSoulSelector, topAnyDiscardSelector } from "./targetSelector";
 
 /**
  * Represents a parsed effect with both its execution function and target selectors.
@@ -61,6 +61,9 @@ const selectPlayerOrMonster = (game: Game, count: number = 1, asMany: boolean = 
 
 const selectDeck = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
     [createSelector("Select a deck", deckSelector(() => true, game), count, asMany)];
+
+const selectTopAnyDiscard = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] =>
+    [createSelector("Select the top card of any discard pile", topAnyDiscardSelector(() => true, game), count, asMany)];
 
 const selectRoll = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
     [createSelector("Choose a dice roll", rollSelector(() => true, game), count, asMany)];
@@ -773,7 +776,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
         case "look at the top 5 cards of a deck. put them back in any order.":
             return { effectFunction: active.lookAndReorderTopCardsEffect(game, 5), targetSelectors: selectDeck(game) };
         case "put the top card of any discard on top of its deck.":
-            return { effectFunction: active.putTopCardFromDiscardOnTopEffect(game), targetSelectors: selectDeck(game) };
+            return { effectFunction: active.putTopCardFromDiscardOnTopEffect(game), targetSelectors: selectTopAnyDiscard(game) };
         case "choose a dice roll. its controller rerolls it.":
             return { effectFunction: active.rerollDiceEffect(), targetSelectors: selectRoll(game) };
         case "they must give you a loot card.":

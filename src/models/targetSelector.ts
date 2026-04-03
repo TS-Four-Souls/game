@@ -83,13 +83,29 @@ export const isChooseOneOptions = (x: any): x is ChooseOneOptions => {
 //         return selectors;
 //     };
 // }
-export function deckSelector(filter: (deckName: string) => boolean = () => true, game: Game): (issuer: Player) => any[] {
+export function deckSelector(filter: (name: string) => boolean = () => true, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
+        return [game.decks.loot, game.decks.treasure, game.decks.monster].filter((deck) => filter(deck._type));
         return Object.keys(game.decks).filter((deckName) => filter(deckName)
             && deckName !== "character"
             && deckName !== "eternal"
             && deckName !== "bsoul"
         );
+    }
+}
+
+export function topAnyDiscardSelector(filter: (card: Card) => boolean = () => true, game: Game): (issuer: Player) => any[] {
+    return (issuer: Player) => {
+        const cards = [] as Card[];
+        for (const deckName of ["loot", "treasure", "monster"] as const) {
+            const deck = game.decks[deckName];
+            if(deck && deck.discard.length > 0){
+                const topCard = deck.discard[0];
+                if(filter(topCard as Card))
+                    cards.push(topCard as Card);
+            }
+        }
+        return cards;
     }
 }
 

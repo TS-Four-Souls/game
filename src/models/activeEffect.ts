@@ -612,13 +612,9 @@ export function lootEqualToCardsDiscardedEffect(game: Game): EffectFunction {
 export function discardTopOfDeckEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const deckName = (await game.select(data.issuer, 1, deckSelector(undefined, game)(data.issuer), false, "Select a deck to discard the top card of.")).selected[0];
-        if(!isDeckType(deckName))
-            throw new Error(`Invalid deck type: ${deckName}`);
-        const deck = game.decks[deckName];
-        if (!deck) {
-            throw new Error(`Deck ${deckName} does not exist.`);
-        }
+        const deck = (await game.select(data.issuer, 1, deckSelector(undefined, game)(data.issuer), false, "Select a deck to discard the top card of.")).selected[0];
+        if(!isDeckType(deck._type))
+            throw new Error(`Invalid deck type: ${deck._type}`);
         const topCard = deck.draw();
         game.discard(topCard);
         return true;
@@ -701,21 +697,20 @@ export type cardDestination =
 export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestination, selectionOnResolve:boolean = false, reveal: boolean = false): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const deckName = selectionOnResolve 
+        const deck = selectionOnResolve 
             ? (await game.select(data.issuer, 1, deckSelector(undefined, game)(data.issuer), false, "Select a deck to look at the top card of.")).selected[0]
             : data.next;
-        if(!isDeckType(deckName))
-            throw new Error(`Invalid deck type: ${deckName}`);
-        const deck = game.decks[deckName];
+        if(!isDeckType(deck._type))
+            throw new Error(`Invalid deck type: ${deck._type}`);
         if (!deck)
-            throw new Error(`Deck ${deckName} not found`);
+            throw new Error(`Deck not found`);
         const topCard = deck.cards[0];
         // getFirstCardsOfDeck(deckName, 1)[0];
         const justWatch = canPutWhere === "just_watch";
         const description = canPutWhere === "just_watch"
-            ? `Look at the top card of the ${deckName} deck.`
-            : canPutWhere === "bottom" ? `Look at the top card of the ${deckName} deck. You may put it on the bottom of the deck.` 
-            : `Look at the top card of the ${deckName} deck. You may put it on the bottom of the deck or discard it.`;
+            ? `Look at the top card of the ${deck._type} deck.`
+            : canPutWhere === "bottom" ? `Look at the top card of the ${deck._type} deck. You may put it on the bottom of the deck.` 
+            : `Look at the top card of the ${deck._type} deck. You may put it on the bottom of the deck or discard it.`;
         const selectionResult = reveal
          ? (await game.selectMultiple(game.players.map(player => ({
                 player,
@@ -734,7 +729,7 @@ export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestinati
                 const topCard2 = deck.draw();
                 if (topCard2 !== topCard)
                     throw new Error("Top card mismatch");
-                game.addBottomPosition(deckName, topCard);
+                game.addBottomPosition(deck._type, topCard);
                 break;
             }
             case "discard":
@@ -1093,7 +1088,12 @@ export function putMonsterFromDiscardOnTopEffect(game: Game): EffectFunction {
 }
 export function putTopCardFromDiscardOnTopEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
-        const deckName = data.next;
+        const cardToDraw = data.next as Card;
+        if(!cardToDraw)
+            throw new Error("No card to draw for putTopCardFromDiscardOnTopEffect");
+        if(!cardToDraw.type)
+            throw new Error("Invalid card type for putTopCardFromDiscardOnTopEffect");
+        const deckName = cardToDraw.type;
         if(!isDeckType(deckName)) 
             throw new Error("Invalid deck type for putTopCardFromDiscardOnTopEffect");
         const deck = game.decks[deckName];
@@ -1104,6 +1104,8 @@ export function putTopCardFromDiscardOnTopEffect(game: Game): EffectFunction {
             return false;
         }
         const card = deck.drawTopDiscard();
+        if(card !== cardToDraw)
+            throw new Error("Drawn card does not match the expected card for putTopCardFromDiscardOnTopEffect");
         game.addTopPosition(deckName, card);
         return true;
     };
@@ -1432,7 +1434,15 @@ export function giveItemToAnotherPlayerEffect(game: Game): EffectFunction {
 export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, deckNameParam: string | undefined = undefined): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const deckName = (deckNameParam === undefined ? data.next : deckNameParam);
+        var deckName = deckNameParam;
+        if(deckName === undefined) {
+            const deck = data.next as Deck<Card>;
+            if(!deck)
+                throw new Error("No deck provided for lookAndReorderTopCardsEffect");
+            deckName = deck._type;
+        }
+        if(!isDeckType(deckName))
+            throw new Error("Invalid deck type for lookAndReorderTopCardsEffect");
         const top5Cards = game.getFirstCardsOfDeck(deckName, numberCards);
         const selectionResult = await game.select(data.issuer, numberCards, top5Cards, false, "Select the order to put back the cards (first selected will be on top).");
         for (let i = selectionResult.selected.length - 1; i >= 0; i--) {

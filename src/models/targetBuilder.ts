@@ -125,7 +125,7 @@ export class TargetBuilder {
                 // Regular selector - validate choice by matching against possibleTargets
                 const resolved = TargetBuilder.resolveIdentifier(choice, possibleTargets);
                 if (resolved === undefined) {
-                    throw new Error(`Invalid target choice: ${choice}`);
+                    throw new Error(`Invalid target choice: ${choice} for item ${item.name}, selector: ${selector.description}`);
                 }
 
                 choicesProcessed++;
@@ -280,6 +280,11 @@ export class TargetBuilder {
                 return {type: "null", payload: null};
             }
             
+            if (typeof option === 'object' && option !== null && '_type' in option && '_order' in option && '_discard' in option) {
+                // Deck object
+                return { type: "deck", payload: option._type };
+            }
+            
             // { player: Player; hand: Hand }
             if( typeof option === 'object' && 'player' in option && 'hand' in option)
                 return {type: "couplePlayerHand", payload: {player: {name: (option.player as Player).id, slug: (option.player as Player).slug}, hand: option.hand.cards.map((c: Card) => {return {name: c.name, slug: c.slug}})}};
@@ -314,6 +319,8 @@ export class TargetBuilder {
             case "player":
             case "monster":
                 return possibleTargets.find(t => t && t.json.name === identifier.payload.name);
+            case "deck":
+                return possibleTargets.find(t => t && t._type === identifier.payload);
             case "number":
             case "string":
             case "boolean":
