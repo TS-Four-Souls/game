@@ -222,6 +222,8 @@ export class Game {
     cards.push(...player.hand._hand);
     // player's inPlay
     cards.push(...this.inPlayTargetableCards(player));
+    // player's curses
+    cards.push(...player.curses);
     // shop
     cards.push(...this.shop._slots.filter((c) => c !== undefined));
     // events and monsters not in combat
@@ -267,9 +269,14 @@ export class Game {
           const monster = card as MonsterCard;
           if(!monster)            
             throw new Error(`Card ${card.name} is not a MonsterCard.`);
-          const toDiscard = this.encounters.obtainCard(monster.slug, monster.globalId);
-          if(toDiscard)
-            this.discard(toDiscard);
+          if(monster.isCurse)
+            this.removeCurse(player, monster);
+          else
+          {
+            const toDiscard = this.encounters.obtainCard(monster.slug, monster.globalId);
+            if(toDiscard)
+              this.discard(toDiscard);
+          }
           break;
         default:
           throw new Error(`Card ${card.name} is of type ${card.type} which cannot be removed with debugRemoveCards.`);
