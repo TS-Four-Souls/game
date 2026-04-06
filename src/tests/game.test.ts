@@ -17,9 +17,9 @@ class DummyStackElement extends StackElement {
   get json(): StackElementJson {
     return {
       type: "effect",
-      issuer: { type: "player", name: "dummy", slug: "dummy" },
+      issuer: { type: "player", name: "dummy", slug: "dummy", globalId: 0 },
       targets: [],
-      card: { name: this.label, slug: this.label },
+      card: { name: this.label, slug: this.label, globalId: 0 },
       effect: this.label,
       id: this.stackId,
     };

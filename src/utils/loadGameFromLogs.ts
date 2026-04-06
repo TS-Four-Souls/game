@@ -2,7 +2,7 @@ import { Game } from "@/models/game";
 import { Player } from "@/models/player";
 import { ItemCard, LootCard, CharacterCard } from "@/models/cards";
 import type { HistoricEntry, UserRequest } from "@/models/historyHandler";
-import { isParameterKey, type Issuer } from "@/shared/api";
+import { isParameterKey, type Issuer, type IdentifierType } from "@/shared/api";
 import {
   executeActivateRequest,
   executeAttackMonsterRequest,
@@ -55,7 +55,6 @@ function remapSubmitSelectionRequestId(
   requestIdMap.set(loggedRequestId, pendingRequestId);
   return pendingRequestId;
 }
-
 function applySetGameParameter(game: Game, payload: HistoricEntry & { type: "GameParameters" }): void {
   for (const key of Object.keys(payload.gameParameters)) {
     if (!isParameterKey(key)) {
@@ -386,10 +385,10 @@ export async function loadGameFromLogs(logs: HistoricEntry[]): Promise<Game> {
 
       case "DebugLoot": {
         const player = game.getPlayerByIssuer(remapIssuer(game, entry.payload));
-        const slugs = entry.payload.slugs;
-        if (slugs && slugs.length > 0) {
-          for (const slug of slugs) {
-            const card = game.obtainCard(slug) as LootCard;
+        const cards = (entry.payload as any).cards;
+        if (cards && cards.length > 0) {
+          for (const ref of cards) {
+            const card = game.obtainCard(ref.slug, ref.globalId) as LootCard;
             game.addCardToHand(player, card);
           }
         }
@@ -398,12 +397,12 @@ export async function loadGameFromLogs(logs: HistoricEntry[]): Promise<Game> {
 
       case "DebugGainTreasure": {
         const player = game.getPlayerByIssuer(remapIssuer(game, entry.payload));
-        const slugs = entry.payload.slugs;
-        if (slugs && slugs.length > 0) {
-          for (const slug of slugs) {
-            const card = game.obtainCard(slug);
+        const cards = (entry.payload as any).cards;
+        if (cards && cards.length > 0) {
+          for (const ref of cards) {
+            const card = game.obtainCard(ref.slug, ref.globalId);
             if (!(card instanceof ItemCard)) {
-              throw new Error(`Card ${slug} is not an ItemCard`);
+              throw new Error(`Card ${ref.slug} is not an ItemCard`);
             }
             game.addInPlay(player, card);
           }
@@ -414,11 +413,12 @@ export async function loadGameFromLogs(logs: HistoricEntry[]): Promise<Game> {
       
       case "DebugRemoveCards":
         const player = game.getPlayerByIssuer(remapIssuer(game, entry.payload));
-        const payload = entry.payload;
-        if (payload.slugs !== undefined) {
+        const payload = entry.payload as any;
+        if (payload.cards !== undefined || payload.slugs !== undefined) {
+              const refs = (payload.cards ?? payload.slugs)!;
               const cardsToRemove = game
                 .playerCardsAndGameOwnedCards(player)
-                .filter((c) => payload.slugs!.includes(c.slug));
+                .filter((c) => refs.some((ref: IdentifierType) => c.slug === ref.slug && c.globalId === ref.globalId));
               game.debugRemoveCards(player, cardsToRemove);
             }
         break;

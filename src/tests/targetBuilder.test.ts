@@ -83,7 +83,7 @@ describe("Target Builder Interface", () => {
 
   it("select dice and then select number", async () => {
     // Get an item with a simple selector
-    const item = game.obtainCard("b2-lucky_foot") as ItemCard;
+    const item = game.obtainCard("b2-mini_mush") as ItemCard;
 
     game.addInPlay(player1, item);
     if (item.isActiveItem()) {
@@ -170,11 +170,11 @@ describe("Target Builder Interface", () => {
   it("should convert various object types to string identifiers", async () => {
     const card = game.obtainCard("b2-blank_card") as ItemCard;
 
-    // Test card conversion - should return just the slug
+    // Test card conversion - should include the global id for disambiguation
     const cardIdentifiers = TargetBuilder["convertToSelectionItems"]([card]);
     expect(cardIdentifiers[0]).toEqual({
       type: "card",
-      payload: { name: card.name, slug: card.slug },
+      payload: { name: card.name, slug: card.slug, globalId: card.globalId },
     });
 
     // Test number conversion - should return string numbers
@@ -197,9 +197,9 @@ describe("Target Builder Interface", () => {
   it("should resolve identifiers back to objects", async () => {
     const card = game.obtainCard("b2-blank_card") as ItemCard;
 
-    // Resolve card - identifier is just the slug
+    // Resolve card - identifier includes slug + global id
     const resolvedCard = TargetBuilder["resolveIdentifier"](
-      { type: "card", payload: { name: card.name, slug: card.slug } },
+      { type: "card", payload: { name: card.name, slug: card.slug, globalId: card.globalId } },
       [card],
     );
     expect(resolvedCard?.slug).toBe(card.slug);

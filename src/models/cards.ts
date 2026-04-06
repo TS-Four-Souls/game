@@ -379,6 +379,7 @@ class EffectInterface {
 class Card {
     protected _json: GenericCardType;
     protected _id: number;
+    protected _globalId: number;
     protected _slug: string;
     protected _name: string;
     protected _type: DeckType;
@@ -397,10 +398,12 @@ class Card {
     protected _owner!: Entity;
     protected _eternal: boolean = false;
     protected _cleanup: (() => void)[] = [];
-    constructor(id: number, 
+    constructor(id: number,
+        globalId: number,
         json: GenericCardType) {
         this._json = json;
         this._id = id;
+        this._globalId = globalId;
         this._slug = json.slug;
         this._name = json.name;
         this._type = json.type;
@@ -459,6 +462,9 @@ class Card {
     get id() {
         return this._id;
     }
+    get globalId(): number {
+        return this._globalId;
+    }
     get name() {
         return this._name;
     }
@@ -476,6 +482,13 @@ class Card {
     }
     get json() {
         return this._json;
+    }
+    get jsonAPI() {
+        return {
+            slug: this._slug,
+            name: this._name,
+            globalId: this._globalId,
+        };
     }
     get subtype(): string {
         return this._subtype;
@@ -594,8 +607,8 @@ export class ItemCard extends Card {
   protected _guppy: boolean = false;
 
   protected _cost: string;
-  constructor(id: number, json: InPlayCardType) {
-    super(id, json);
+    constructor(id: number, globalId: number, json: InPlayCardType) {
+        super(id, globalId, json);
     this._guppy = json.guppy === true;
     this._cost = "";
     this._inplayType = InplayType.PASSIVE;
@@ -680,8 +693,8 @@ class LootCard extends ItemCard {
     protected _trinket: boolean = false;
     protected _afterEffect: "discard" | "addInPlay" | "nothing" = "discard";
 
-    constructor(id: number, json: LootCardType) {
-        super(id, json);
+    constructor(id: number, globalId: number, json: LootCardType) {
+        super(id, globalId, json);
         this._inplayType = InplayType.PLAYABLE;
         this._reward = json.rewards;
         this._effectInterface = new EffectInterface(this);
@@ -742,7 +755,7 @@ export class LootCardEffect extends StackElement {
     override get json(): LootCardOnStackJson {
         return {
             type: "LootCardEffect",
-            card: {slug: this.card.slug, name: this.card.name},
+            card: this.card.jsonAPI,
             targets: TargetBuilder.convertToSelectionItems(this.targets),
             issuer: this.issuer.json,
             ...super.baseJson,
@@ -752,15 +765,15 @@ export class LootCardEffect extends StackElement {
 
 class TreasureCard extends ItemCard {
 
-    constructor(id: number, json: TreasureCardType) {
-        super(id, json);
+    constructor(id: number, globalId: number, json: TreasureCardType) {
+        super(id, globalId, json);
         this._subtype = json.subtype;
     }
 }
 
 class EternalCard extends ItemCard {
-    constructor(id: number, json: EternalCardType) {
-        super(id, json);
+    constructor(id: number, globalId: number, json: EternalCardType) {
+        super(id, globalId, json);
         this._eternal = true;
     }
 }
@@ -770,8 +783,8 @@ class CharacterCard extends ItemCard {
     protected _healthPoints: number = 0;
     protected _attackPoints: number = 0;
 
-    constructor(id: number, json: CharacterCardType) {
-        super(id, json);
+    constructor(id: number, globalId: number, json: CharacterCardType) {
+        super(id, globalId, json);
         if(json.eternalCard) {
             this._eternalCard = json.eternalCard.slug;
         }
@@ -809,8 +822,8 @@ class MonsterCard extends Card {
     protected _reward: CardRewards;
     protected _afterEffect: "discard" | "nothing" = "discard";
 
-    constructor(id: number, json: MonsterCardType) {
-        super(id, json);
+    constructor(id: number, globalId: number, json: MonsterCardType) {
+        super(id, globalId, json);
         this._monsterType = MonsterType.MONSTER;
         if(["gevent", "bevent", "curse"].includes(json.subtype)) {
             this._monsterType = MonsterType.EVENT;
@@ -876,9 +889,18 @@ class MonsterCard extends Card {
 
 class BsoulCard extends Card {
     granted: boolean = false;
+
+    override get jsonAPI() {
+        return {
+            slug: this._slug,
+            name: this._name,
+            globalId: this._globalId,
+            granted: this.granted,
+        };
+    }
     
-    constructor(id: number, json: BonusSoulCardType) {
-        super(id, json);
+    constructor(id: number, globalId: number, json: BonusSoulCardType) {
+        super(id, globalId, json);
         if (json.rewards && json.rewards.soul) {
             if(typeof json.rewards.soul === "number")
             {
@@ -903,30 +925,30 @@ type CardToJsonType<T extends Card> =
  * Creates a card instance from JSON data based on its type.
  * Overloaded signatures provide type inference based on JSON type.
  */
-function createCardFromJson(id: number, json: LootCardType): LootCard;
-function createCardFromJson(id: number, json: TreasureCardType): TreasureCard;
-function createCardFromJson(id: number, json: EternalCardType): EternalCard;
-function createCardFromJson(id: number, json: CharacterCardType): CharacterCard;
-function createCardFromJson(id: number, json: MonsterCardType): MonsterCard;
-function createCardFromJson(id: number, json: BonusSoulCardType): BsoulCard;
-function createCardFromJson(id: number, json: GenericCardType): Card;
-function createCardFromJson(id: number, json: GenericCardType): Card {
+function createCardFromJson(id: number, globalId: number, json: LootCardType): LootCard;
+function createCardFromJson(id: number, globalId: number, json: TreasureCardType): TreasureCard;
+function createCardFromJson(id: number, globalId: number, json: EternalCardType): EternalCard;
+function createCardFromJson(id: number, globalId: number, json: CharacterCardType): CharacterCard;
+function createCardFromJson(id: number, globalId: number, json: MonsterCardType): MonsterCard;
+function createCardFromJson(id: number, globalId: number, json: BonusSoulCardType): BsoulCard;
+function createCardFromJson(id: number, globalId: number, json: GenericCardType): Card;
+function createCardFromJson(id: number, globalId: number, json: GenericCardType): Card {
     switch (json.type) {
         case "loot":
-            return new LootCard(id, json);
+            return new LootCard(id, globalId, json);
         case "treasure":
-            return new TreasureCard(id, json);
+            return new TreasureCard(id, globalId, json);
         case "eternal":
-            return new EternalCard(id, json);
+            return new EternalCard(id, globalId, json);
         case "character":
-            return new CharacterCard(id, json);
+            return new CharacterCard(id, globalId, json);
         case "monster":
-            return new MonsterCard(id, json);
+            return new MonsterCard(id, globalId, json);
         case "bsoul":
-            return new BsoulCard(id, json);
+            return new BsoulCard(id, globalId, json);
         default:
             console.log(`Unknown card: ${json}, adding as generic Card.`);
-            return new Card(id, json);
+            return new Card(id, globalId, json);
     }
 }
 
@@ -937,8 +959,8 @@ class CardSet<T extends Card> {
         this._type = type
         this._set = []
     }
-    addCard(json: GenericCardType) : void{
-        this._set.push(createCardFromJson(this._set.length, json) as T);
+    addCard(json: GenericCardType, globalId: number) : void{
+        this._set.push(createCardFromJson(this._set.length, globalId, json) as T);
         return;
     }
     get(id: number) : T {
@@ -988,6 +1010,7 @@ function LoadsCardSets(json_array: GenericCardType[]) : CardSetsCollection {
         bsoul: new CardSet<BsoulCard>('bsoul'),
     };
     
+    let globalId = 0;
     for(let index:number = 0; index < json_array.length; index++) {
         const card_json = json_array[index];
         if (typeof card_json === "undefined" || card_json === null) {
@@ -997,22 +1020,22 @@ function LoadsCardSets(json_array: GenericCardType[]) : CardSetsCollection {
         
         switch(type) {
             case "loot":
-                sets.loot.addCard(card_json);
+                sets.loot.addCard(card_json, globalId++);
                 break;
             case "treasure":
-                sets.treasure.addCard(card_json);
+                sets.treasure.addCard(card_json, globalId++);
                 break;
             case "eternal":
-                sets.eternal.addCard(card_json);
+                sets.eternal.addCard(card_json, globalId++);
                 break;
             case "character":
-                sets.character.addCard(card_json);
+                sets.character.addCard(card_json, globalId++);
                 break;
             case "monster":
-                sets.monster.addCard(card_json);
+                sets.monster.addCard(card_json, globalId++);
                 break;
             case "bsoul":
-                sets.bsoul.addCard(card_json);
+                sets.bsoul.addCard(card_json, globalId++);
                 break;
             default:
                 throw new Error(`Unknown card type: ${type}. Only loot, treasure, eternal, character, monster, and bsoul are allowed.`);
@@ -1051,7 +1074,7 @@ export class EffectOnStack extends StackElement {
             type: "effect",
             issuer: this._data.issuer.json, 
             targets: TargetBuilder.convertToSelectionItems(this._data.targets), 
-            card: {slug: this.data.it.slug, name: this.data.it.name}, 
+            card: this.data.it.jsonAPI, 
             effect: this._description,
             ...super.baseJson,
         };
@@ -1210,13 +1233,23 @@ class Deck<T extends Card> {
         this._order = this._discard.concat(this._order);
         this._discard = [];
     }
-    getCardFromSlug(slug: string) : T|undefined {
-        const res = this.getCards((card) => card.slug === slug);
+    getCardFromSlug(slug: string, globalId?: number) : T|undefined {
+        const res = this.getCards((card) =>
+            card.slug === slug && (globalId === undefined || card.globalId === globalId)
+        );
         if( res.length > 1 ) {
-            throw new Error(`Multiple cards with slug ${slug} found in deck of type ${this._type}.`);
+            throw new Error(
+                globalId === undefined
+                    ? `Multiple cards with slug ${slug} found in deck of type ${this._type}.`
+                    : `Multiple cards with slug ${slug} and global id ${globalId} found in deck of type ${this._type}.`
+            );
         }
         if( res.length === 0 ) {
-            throw new Error(`No card with slug ${slug} found in deck of type ${this._type}.`);
+            throw new Error(
+                globalId === undefined
+                    ? `No card with slug ${slug} found in deck of type ${this._type}.`
+                    : `No card with slug ${slug} and global id ${globalId} found in deck of type ${this._type}.`
+            );
         }
         return  res[0];
     }

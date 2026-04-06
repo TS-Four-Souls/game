@@ -27,7 +27,7 @@ import type {
 
 function getTemporaryEffect(data: EffectData, description: string): TemporaryEffect {
     return{
-            card: {slug: data.it.slug, name: data.it.name},
+            card: data.it.jsonAPI,
             issuer: data.issuer.id,
             targets: TargetBuilder.convertToSelectionItems(data.targets),
             description: description

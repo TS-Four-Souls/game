@@ -3,6 +3,7 @@ import { z } from "zod";
 export const identifierTypeSchema = z.object({
   name: z.string(),
   slug: z.string(),
+  globalId: z.number(),
 });
 export type IdentifierType = z.infer<typeof identifierTypeSchema>;
 
@@ -250,14 +251,14 @@ const issuerSchema = z.object({
 export type Issuer = z.infer<typeof issuerSchema>;
 
 const debugLootRequestSchema = issuerSchema.extend({
-  slugs: z.array(z.string()).optional(),
+  cards: z.array(identifierTypeSchema),
 });
 const debugGainTreasureRequestSchema = issuerSchema.extend({
-  slugs: z.array(z.string()).optional(),
+  cards: z.array(identifierTypeSchema),
 });
 
 const debugRemoveCardsRequestSchema = issuerSchema.extend({
-  slugs: z.array(z.string()).optional(),
+  cards: z.array(identifierTypeSchema),
 });
 
 const giveCoinsSchema = z.object({

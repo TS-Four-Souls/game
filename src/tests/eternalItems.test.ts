@@ -105,7 +105,7 @@ describe("Eternal Items", () => {
         const topDiscardCard = game.decks["loot"]!.discard[0];
         expect(game.decks["loot"]!.discard.length).toBe(7);
 
-        await game.activateItem(player1, theCurse, ["loot"]);
+        await game.activateItem(player1, theCurse, [game.decks["loot"].discard[0]]); // put top of discard on top of loot deck
         await game.resolveStack();
         await game.resolveStack(); // resolve the curse effect
         expect(game.decks["loot"]!.cards[0]).toBe(topDiscardCard); // top of loot deck should be the previous top of discard
@@ -517,7 +517,7 @@ describe("Eternal Items", () => {
         expect(sleightOfHand.charged).toBe(true);
 
         const top5reverse = game.decks["loot"]!.cards.slice(0, 5).map(c => c.slug);
-        await game.activateItem(player1, sleightOfHand, ["loot"]);
+        await game.activateItem(player1, sleightOfHand, [game.decks.loot]);
         await game.resolveStack();
         await game.resolveStack(); // resolve sleight of hand effect
         const top5After = game.getFirstCardsOfDeck("loot", 5).map(c => c.slug);
@@ -753,7 +753,7 @@ describe("Eternal Items", () => {
         let peekCalled = false;
         // Mock game.select to choose option 2 (look at top card)
         await game.activateItem(player2,
-            foreverAlone, ["Look at the top card of a deck.", "treasure"]);
+            foreverAlone, ["Look at the top card of a deck.", game.decks.treasure]);
         await game.resolveStack();
         
         expect(foreverAlone.charged).toBe(false);

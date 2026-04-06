@@ -258,12 +258,12 @@ export class TargetBuilder {
          return options.map(option => {
 
             if (typeof option === 'object' && option !== null && 'slug' in option && option instanceof Card) {
-                return { payload: {name: option.name, slug: option.slug}, type: "card" };
+                return { payload: {name: option.name, slug: option.slug, globalId: option.globalId}, type: "card" };
             }
 
             if (typeof option === 'object' && option !== null && 'id' in option && option instanceof Entity) {
                 const entity = option;
-                return {type: entity.json.type, payload: {name: entity.json.name, slug: entity.json.slug}};
+                return {type: entity.json.type, payload: {name: entity.json.name, slug: entity.json.slug, globalId: entity.json.globalId}};
             }
 
             if (isStackElement(option)) {
@@ -287,7 +287,7 @@ export class TargetBuilder {
             
             // { player: Player; hand: Hand }
             if( typeof option === 'object' && 'player' in option && 'hand' in option)
-                return {type: "couplePlayerHand", payload: {player: {name: (option.player as Player).id, slug: (option.player as Player).slug}, hand: option.hand.cards.map((c: Card) => {return {name: c.name, slug: c.slug}})}};
+                return {type: "couplePlayerHand", payload: {player: {name: (option.player as Player).id, slug: (option.player as Player).slug, globalId: (option.player as Player).globalId}, hand: option.hand.cards.map((c: Card) => {return {name: c.name, slug: c.slug, globalId: c.globalId}})}};
             if (Array.isArray(option) || typeof option === 'object') {
                 try {
                     return {type: "array", payload: option.map((item: any) => TargetBuilder.convertToSelectionItems([item]))};
@@ -315,10 +315,16 @@ export class TargetBuilder {
         if (possibleTargets.length === 0) return undefined;
         switch(identifier.type) {
             case "card":
-                return possibleTargets.find(t => t && t.slug === identifier.payload.slug);
+                return possibleTargets.find(t =>
+                    t && t.slug === identifier.payload.slug &&
+                    (identifier.payload.globalId === undefined || t.globalId === identifier.payload.globalId)
+                );
             case "player":
             case "monster":
-                return possibleTargets.find(t => t && t.json.name === identifier.payload.name);
+                return possibleTargets.find(t =>
+                    t && t.json.name === identifier.payload.name &&
+                    t.json.globalId === identifier.payload.globalId
+                );
             case "deck":
                 return possibleTargets.find(t => t && t._type === identifier.payload);
             case "number":
@@ -331,7 +337,8 @@ export class TargetBuilder {
                 return possibleTargets.find(t => 
                     typeof t === 'object' && 'player' in t && 'hand' in t &&
                     t.player.slug === identifier.payload.player.slug &&
-                    JSON.stringify(t.hand.cards.map((c: Card) => c.slug)) === JSON.stringify(identifier.payload.hand)
+                    t.player.globalId === identifier.payload.player.globalId &&
+                    JSON.stringify(t.hand.cards.map((c: Card) => ({ slug: c.slug, globalId: c.globalId }))) === JSON.stringify(identifier.payload.hand)
                 );
             case "stackElement":
                 return possibleTargets.find(t => isStackElement(t) && t.stackId === identifier.payload.id);
@@ -558,8 +565,6 @@ export class TargetBuilder {
     ): string | true {
         if(!item)
             return "Item not found.";
-        if(item.slug === "b2-tech_x" && effectId !== "tap")
-            console.log(`Checking valid targets for card: ${item.name}, effectId: ${effectId} description: ${item.activeEffectList[effectId as number]?.description}`);
         // console.log(`Checking valid targets for item: ${item.name}, effectId: ${effectId} descr ${item.activeEffectList[effectId as number]?.description}`);
         if(effectId !== "tap")
             {

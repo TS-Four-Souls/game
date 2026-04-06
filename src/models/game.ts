@@ -70,6 +70,8 @@ export class Game {
   private _bonusSouls: BsoulCard[] = [];
   private _stackSubsetCallbacks: {stackIds: number[], callback: () => void}[] = [];
   private _historicHandler: HistoricHandler = new HistoricHandler();
+  private _cardMapping: Map<number, Card> = new Map();
+  private _nextCardGlobalId: number = 0;
   readonly gameParameters = new GameParameters(() => this._onStateChange.dispatch());
 
   private _onStateChange: Signal<void> = new Signal();
@@ -109,6 +111,9 @@ export class Game {
   }
   get destroyedCards(): Card[] {
     return this._destroyedCards;
+  }
+  get cardMapping(): ReadonlyMap<number, Card> {
+    return this._cardMapping;
   }
   get stack() {
     return this._stack;
@@ -262,7 +267,7 @@ export class Game {
           const monster = card as MonsterCard;
           if(!monster)            
             throw new Error(`Card ${card.name} is not a MonsterCard.`);
-          const toDiscard = this.encounters.obtainCard(monster.slug);
+          const toDiscard = this.encounters.obtainCard(monster.slug, monster.globalId);
           if(toDiscard)
             this.discard(toDiscard);
           break;
@@ -628,11 +633,16 @@ export class Game {
 
   /**
    * Finds and removes a card by slug from all reachable game zones.
+   * If a global ID is provided, it is used to disambiguate duplicate slugs.
+   * Otherwise, the first matching card found in the search order is removed and returned.
+   * Note that the search order is: shop, encounters, decks, players' hands, players' in-play areas. 
+   * This means that if there are multiple cards with the same slug, the one in the shop will be removed first, then the one in encounters, then in decks and finally in players' possession.
+   * Only tests should not provide a global ID.
    */
-  obtainCard(slug: string): Card | undefined {
+  obtainCard(slug: string, globalId?: number): Card | undefined {
     // Search in shop
     try {
-      const card = this.shop.obtainCard(slug);
+      const card = this.shop.obtainCard(slug, globalId);
       if (card) return card;
     } catch {
       // Card not found in shop, continue searching
@@ -640,7 +650,7 @@ export class Game {
 
     // Search in encounters
     try {
-      const card = this.encounters.obtainCard(slug);
+      const card = this.encounters.obtainCard(slug, globalId);
       if (card) return card;
     } catch {
       // Card not found in encounters, continue searching
@@ -651,7 +661,8 @@ export class Game {
       try {
         if(!isDeckType(deckKey))
             throw new Error(`Invalid deck type: ${deckKey}`);
-        const card = this.decks[deckKey]!.getCardFromSlug(slug);
+        const deck = this.decks[deckKey]!;
+        const card = deck.getCardFromSlug(slug, globalId);
         if (card) return card;
       } catch {
         // Card not found in this deck, continue searching
@@ -660,13 +671,17 @@ export class Game {
 
     // Search in all players' hands and in-play areas
     for (const player of this.players) {
-      const handCard = player.hand.cards.find((c) => c.slug === slug);
+      const handCard = player.hand.cards.find((c) =>
+        c.slug === slug && (globalId === undefined || c.globalId === globalId)
+      );
       if (handCard) {
         player.hand.removeCard(handCard);
         return handCard;
       }
 
-      const inPlayCard = player.inPlay.find((c) => c.slug === slug);
+      const inPlayCard = player.inPlay.find((c) =>
+        c.slug === slug && (globalId === undefined || c.globalId === globalId)
+      );
       if (inPlayCard) {
         player.removeInPlay(inPlayCard);
         return inPlayCard;
@@ -1490,6 +1505,7 @@ export class Game {
       this.gameParameters.nbPlayerCardRestriction.value,
       this.random
     );
+    this.rebuildCardMapping();
     this.joinEffectsToCards();
   }
 
@@ -1706,6 +1722,8 @@ export class Game {
     this._emitter = new GameEventEmitter();
     this._bonusSouls = [];
     this._destroyedCards = [];
+    this._cardMapping.clear();
+    this._nextCardGlobalId = 0;
     this.pendingMultipleSelections.clear();
     this.gameParameters.reset();
   }
@@ -1912,12 +1930,47 @@ export class Game {
     const json = card.json;
 
     // Create the appropriate card type using the helper function
-    const copiedCard = createCardFromJson(-1, json);
+    const copiedCard = createCardFromJson(-1, this.allocateCardGlobalId(), json);
 
     // Parse and attach effects to the copied card
     this.attachEffectsToCard(copiedCard);
+    this.registerCard(copiedCard);
 
     return copiedCard;
+  }
+
+  getCardByGlobalId(globalId: number): Card | undefined {
+    return this._cardMapping.get(globalId);
+  }
+
+  private registerCard(card: Card): void {
+    if (this._cardMapping.has(card.globalId)) {
+      throw new Error(`Duplicate global card id detected: ${card.globalId}.`);
+    }
+    this._cardMapping.set(card.globalId, card);
+    this._nextCardGlobalId = Math.max(this._nextCardGlobalId, card.globalId + 1);
+  }
+
+  private rebuildCardMapping(): void {
+    this._cardMapping.clear();
+    this._nextCardGlobalId = 0;
+    for (const deckName of [
+      "loot",
+      "bsoul",
+      "character",
+      "eternal",
+      "treasure",
+      "monster",
+    ]) {
+      if(!isDeckType(deckName))
+        throw new Error(`Invalid deck type: ${deckName}`);
+      const deck = this.decks[deckName]!;
+      deck.cards.forEach((c: Card) => this.registerCard(c));
+    }
+  }
+
+  private allocateCardGlobalId(): number {
+    return this._nextCardGlobalId++;
   }
 
   /** Adds a temporary/permanent attack modifier to an entity. */
@@ -2141,11 +2194,11 @@ export class Game {
         req.target === "topDeck"
           ? {
               monster: "top" as const,
-              source: { name: req.source.name, slug: req.source.slug },
+              source: req.source.jsonAPI,
             }
           : {
-              monster: { name: req.target.name, slug: req.target.card.slug },
-              source: { name: req.source.name, slug: req.source.slug },
+              monster: req.target.json,
+              source: req.source.jsonAPI,
             },
       );
 
@@ -2167,6 +2220,7 @@ export class Game {
     const mapInPlayItem = (item: ItemCard, owner: Player) => ({
       name: item.name,
       slug: item.slug,
+      globalId: item.globalId,
       charged: item.charged,
       counter: getCardCounter(item),
       eternal: item.eternal,
@@ -2179,6 +2233,7 @@ export class Game {
     const mapOtherInPlayItem = (item: ItemCard, owner: Player) => ({
       name: item.name,
       slug: item.json.slug,
+      globalId: item.globalId,
       charged: item.charged,
       capabilities: {
         activate: this.canActivate(item, owner),
@@ -2190,6 +2245,7 @@ export class Game {
     const mapCurse = (curse: MonsterCard, owner: Player) => ({
       name: curse.name,
       slug: curse.slug,
+      globalId: curse.globalId,
       charged: true,
       counter: undefined,
       eternal: false,
@@ -2202,11 +2258,11 @@ export class Game {
     return {
       me: {
         name: player.id,
-        hand: player.hand.cards.map((c) => c.json),
+        hand: player.hand.cards.map((c) => c.jsonAPI),
         inPlay: player.inPlay.map((c) => mapInPlayItem(c, player)).concat(player.curses.map((c) => mapCurse(c, player))),
         handSize: player.hand.cards.length,
         souls: player.totalSouls,
-        soulCards: player.souls.map((c) => c.json),
+        soulCards: player.souls.map((c) => c.jsonAPI),
         coins: player.coins,
         attackRequirements: mapAttackRequirements(player),
         currentAttackPoints: player.attackPoints,
@@ -2234,7 +2290,7 @@ export class Game {
           handSize: p.hand.cards.length,
           inPlay: p.inPlay.map((c) => mapOtherInPlayItem(c, p)).concat(p.curses.map((c) => mapCurse(c, p))),
           souls: p.totalSouls,
-          soulCards: p.souls.map((c) => c.json),
+          soulCards: p.souls.map((c) => c.jsonAPI),
           coins: p.coins,
           currentAttackPoints: p.attackPoints,
           currentHealthPoints: p.currentHealthPoints,
@@ -2247,16 +2303,17 @@ export class Game {
         })),
       monsters:
       {
-        discard: this.decks["monster"]!.discard.map((c) => ({ name: c.name, slug: c.slug })).toReversed(),
+        discard: this.decks["monster"]!.discard.map((c) => c.jsonAPI).toReversed(),
         deckSize: this.decks["monster"]!.cards.length,
         capabilities: {
           targetableDeck: this.canDeclareAttackOnMonster(player, "topDeck", false),
         },
-        inPlay: this.encounters._slots.map((m, index) => ({ card: m[m.length - 1]!, monster: this.encounters.monsterIn(index), covered: this.encounters._slots[index]!.slice(0, -1).map(c => ({ name: c.name, slug: c.slug })) })).map((m) => ({
+        inPlay: this.encounters._slots.map((m, index) => ({ card: m[m.length - 1]!, monster: this.encounters.monsterIn(index), covered: this.encounters._slots[index]!.slice(0, -1).map(c => c.jsonAPI) })).map((m) => ({
 
           top: {
             slug: m.card?.slug,
             name: m.card?.name,
+            globalId: m.card?.globalId,
             ...(m.monster ? {
               stats: {
                 healthPoints: m.monster.currentHealthPoints,
@@ -2275,21 +2332,21 @@ export class Game {
           covered: m.covered,
         })),
       },
-      bonusSouls: this._bonusSouls.map((c) => ({ name: c.name, slug: c.slug, granted: c.granted })),
+      bonusSouls: this._bonusSouls.map((c) => c.jsonAPI),
       loot:
       {
-        discard: this.decks["loot"]!.discard.map((c) => ({ name: c.name, slug: c.slug })).toReversed(),
+        discard: this.decks["loot"]!.discard.map((c) => c.jsonAPI).toReversed(),
         deckSize: this.decks["loot"]!.cards.length,
       },
       treasure:
       {
-        discard: this.decks["treasure"]!.discard.map((c) => ({ name: c.name, slug: c.slug })).toReversed(),
+        discard: this.decks["treasure"]!.discard.map((c) => c.jsonAPI).toReversed(),
         deckSize: this.decks["treasure"]!.cards.length,
-        inPlay: this.shop._slots.map((c) => ({ name: c!.name, slug: c!.slug })),
+        inPlay: this.shop._slots.map((c) => c!.jsonAPI),
       },
       turn: this.currentPlayer.id,
       history: this.history,
-      firstCardTreasureDeck: player.canSeeTopOfTreasureDeck ? {name: this.decks["treasure"]!.cards[0]!.name, slug: this.decks["treasure"]!.cards[0]!.slug} : undefined,
+      firstCardTreasureDeck: player.canSeeTopOfTreasureDeck ? this.decks["treasure"]!.cards[0]!.jsonAPI : undefined,
       stack: this.stack.elements.map((el) => el.json).toReversed(),
       // firstCardTreasureDeck: player.canSeeTopOfTreasureDeck
       // ? this.decks["treasure"]!.cards[0]?.json

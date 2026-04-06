@@ -97,6 +97,11 @@ export class Player extends Entity {
   get slug(): string {
     return this.inPlay.find(c => c instanceof CharacterCard) ? this.inPlay.find(c => c instanceof CharacterCard)!.slug : "";
   }
+
+  get globalId(): number {
+    const character = this.inPlay.find((c) => c instanceof CharacterCard) as CharacterCard | undefined;
+    return character?.globalId ?? -1;
+  }
   /**
    * Gets the list of monsters or deck positions this player must attack, with source cards.
    * @returns Array of required attack targets with their source cards
@@ -541,7 +546,8 @@ export class Player extends Entity {
     return {
         type: "player",
         name: this.id,
-        slug: this.inPlay.length > 0 ? this.inPlay[0]!.slug : ""
+        slug: this.inPlay.length > 0 ? this.inPlay[0]!.slug : "",
+        globalId: this.globalId,
       }
     }
 }
@@ -601,7 +607,7 @@ export class DiceRoll extends StackElement {
       type: "diceRoll",
       diceRoll: this.value, 
       issuer: this.issuer.json, 
-      card: !this._attackRoll ? {name: this._card!.name, slug: this._card!.slug} : undefined, 
+      card: !this._attackRoll ? {name: this._card!.name, slug: this._card!.slug, globalId: this._card!.globalId} : undefined, 
       targets: !this._attackRoll ? TargetBuilder.convertToSelectionItems(this._targets) : undefined,
       ...super.baseJson,
       modifier: (this._attackRoll ? this._issuer.attackDiceModifier : 0) + this._issuer.diceModifier,
@@ -674,7 +680,7 @@ export class DamageOnStack extends StackElement {
     }
   }
   override get json(): DamageOnStackJson {
-    const sourceName = this._source instanceof DiceRoll ? this._source.json : {slug: this._source.slug, name: this._source.name};
+    const sourceName = this._source instanceof DiceRoll ? this._source.json : this._source.jsonAPI;
     return {
       type: "damage",
       from: this.from.json, 
@@ -710,7 +716,7 @@ export class DeathOnStack extends StackElement {
   }
 
   override get json(): DeathOnStackJson {
-    const sourceName = this.source instanceof DiceRoll ? this.source.json : {slug: this.source.slug, name: this.source.name};
+    const sourceName = this.source instanceof DiceRoll ? this.source.json : this.source.jsonAPI;
     this.receiver.json;
     return {
       type: "death",

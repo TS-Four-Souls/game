@@ -36,7 +36,7 @@ export function thisHealsEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
         let target = data.issuer;
         if(!(data.issuer instanceof Monster))
-            target = game.monsters.find((m => m.id === data.it.slug))!;
+            target = game.monsters.find((m) => m.json.globalId === data.it.globalId)!;
         if(!target)
             throw new Error("thisHealsEffect effect could not find the monster to heal.");
         target.heal(amount);

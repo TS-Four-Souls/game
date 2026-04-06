@@ -773,23 +773,23 @@ export function eachPlayersVoteToDestroyItemEffect(game: Game): EffectFunction {
         const voteResults = await game.selectMultiple(voteRequests);
 
         // Count the votes
-        const votes: Record<string, number> = {};
+        const votes: Record<number, number> = {};
         for (const result of voteResults) {
-            const vote = result.selected[0].slug as string;
+            const vote = result.selected[0].globalId;
             votes[vote] = (votes[vote] || 0) + 1;
         }
 
         // Find the item with most votes
         let itemToDestroy: ItemCard | null = null;
         let votesToDestroy = 0;
-        for (const [itemSlug, voteCount] of Object.entries(votes)) {
+        for (const [itemGlobalId, voteCount] of Object.entries(votes)) {
             if(voteCount === votesToDestroy) itemToDestroy = null;
             if (voteCount > votesToDestroy) {
                 votesToDestroy = voteCount;
-                itemToDestroy = ListOfItems.find((item) => item.slug === itemSlug)!;
+                itemToDestroy = ListOfItems.find((item) => item.globalId === Number(itemGlobalId))!;
             }
         }
-        if (itemToDestroy !== null) {
+        if (itemToDestroy !== null && itemToDestroy !== undefined) {
             game.destroyCardsOrSouls([itemToDestroy]);
         }
         return true;

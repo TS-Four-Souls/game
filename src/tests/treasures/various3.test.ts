@@ -624,11 +624,7 @@ describe("Tap/Paid effects 1", () => {
         dice.value = 3;
 
         game.recharge(luckyFoot);
-        await game.activateItem(player1, luckyFoot, [dice, 2]);
-        await game.resolveStack();
-        await game.resolveStack();
-
-        expect(dice.value).toBe(3);
+        expect( game.activateItem(player1, luckyFoot, [dice, 2]) ).rejects.toThrowError("Targets are not valid for this effect.");
     });
 
     it("mini_mush - subtract 2 from a roll", async () => {

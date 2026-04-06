@@ -797,8 +797,8 @@ io.on("connection", (socket) => {
           try {
             const player = game.getPlayerByIssuer(payload);
             game.addToHistory({ type: "DebugLoot", payload });
-            const slugs = payload.slugs;
-            if (slugs && slugs.length > 0) {
+            const cards = payload.cards;
+            if (cards && cards.length > 0) {
               const lootDeck = game.decks["loot"];
               if (!lootDeck) {
                 return callback({
@@ -806,9 +806,9 @@ io.on("connection", (socket) => {
                   error: "Loot deck not available",
                 });
               }
-              for (const slug of slugs) {
-                const card = game.obtainCard(slug)! as LootCard;
-                game.addCardToHand(player, card);
+              for (const card of cards) {
+                const targetCard = game.obtainCard(card.slug, card.globalId)! as LootCard;
+                game.addCardToHand(player, targetCard);
               }
               return callback({ status: 200 });
             }
@@ -845,7 +845,7 @@ io.on("connection", (socket) => {
             }
             const cards = lootDeck.cards
               .toSorted((a, b) => a.slug.localeCompare(b.slug))
-              .map((c) => ({ name: c.name, slug: c.slug }));
+              .map((c) => c.jsonAPI);
 
             return callback({ status: 200, cards });
           } catch (error) {
@@ -872,7 +872,7 @@ io.on("connection", (socket) => {
             game.addToHistory({ type: "DebugListCardsICanRemove", payload });
             const cards = game
               .playerCardsAndGameOwnedCards(player)
-              .map((c) => ({ name: c.name, slug: c.slug }));
+              .map((c) => c.jsonAPI);
             return callback({ status: 200, cards });
           } catch (error) {
             console.error("Failed to debug list cards I can remove", error);
@@ -896,10 +896,10 @@ io.on("connection", (socket) => {
           try {
             const player = game.getPlayerByIssuer(payload);
             game.addToHistory({ type: "DebugRemoveCards", payload });
-            if (payload.slugs !== undefined) {
+            if (payload.cards !== undefined) {
               const cardsToRemove = game
                 .playerCardsAndGameOwnedCards(player)
-                .filter((c) => payload.slugs!.includes(c.slug));
+                .filter((c) => payload.cards.map((card)=>card.globalId)!.includes(c.globalId));
               game.debugRemoveCards(player, cardsToRemove);
             }
             return callback({
@@ -937,7 +937,7 @@ io.on("connection", (socket) => {
             }
             const cards = treasureDeck.cards
               .toSorted((a, b) => a.slug.localeCompare(b.slug))
-              .map((c) => ({ name: c.name, slug: c.slug }));
+              .map((c) => c.jsonAPI);
 
             return callback({ status: 200, cards });
           } catch (error) {
@@ -962,8 +962,8 @@ io.on("connection", (socket) => {
           try {
             const player = game.getPlayerByIssuer(payload);
             game.addToHistory({ type: "DebugGainTreasure", payload });
-            const slugs = payload.slugs;
-            if (slugs && slugs.length > 0) {
+            const cards = payload.cards;
+            if (cards && cards.length > 0) {
               const treasureDeck = game.decks["treasure"];
               if (!treasureDeck) {
                 return callback({
@@ -971,11 +971,11 @@ io.on("connection", (socket) => {
                   error: "Treasure deck not available",
                 });
               }
-              for (const slug of slugs) {
-                const card = game.obtainCard(slug)!;
-                if (card instanceof ItemCard === false)
-                  throw new Error(`Card ${card.name} is not an ItemCard`);
-                game.addInPlay(player, card);
+              for (const card of cards) {
+                const targetCard = game.obtainCard(card.slug, card.globalId)!;
+                if (targetCard instanceof ItemCard === false)
+                  throw new Error(`Card ${targetCard.name} is not an ItemCard`);
+                game.addInPlay(player, targetCard);
               }
               return callback({
                 status: 200,

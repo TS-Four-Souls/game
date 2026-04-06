@@ -2,7 +2,6 @@ import { type Card, type LootCard, type EternalCard, type TreasureCard, MonsterC
 import type { Game } from "./game";
 import { Monster } from "./monster";
 import { Player } from "./player";
-import type { Entity } from "./entity"
 
 /**
  * Manages the shop where players can purchase treasure cards.
@@ -74,15 +73,17 @@ class Shop {
      * @param slug - The unique identifier of the card to obtain
      * @returns The card if found, undefined otherwise
      */
-    obtainCard(slug: string): TreasureCard | undefined{
-        const index = this._slots.findIndex(card => card?.slug === slug);
+    obtainCard(slug: string, globalId?: number): TreasureCard | undefined{
+        const index = this._slots.findIndex(card =>
+            card !== undefined && card.slug === slug && (globalId === undefined || card.globalId === globalId)
+        );
         if (index >= 0) {
             const card = this._slots[index];
             this._slots[index] = undefined;
             this.fillEmptySpots();
             return card;
         }
-        return this._deck.getCardFromSlug(slug);
+        return this._deck.getCardFromSlug(slug, globalId);
     }
 
     /**
@@ -325,9 +326,11 @@ class Encounters {
      * @param slug - The unique identifier of the card to obtain
      * @returns The card if found, undefined otherwise
      */
-    obtainCard(slug: string): Card | undefined{
+    obtainCard(slug: string, globalId?: number): Card | undefined{
         for (let i = 0; i < this._slots.length; i++) {
-            const indexInSlot = this._slots[i]!.findIndex(card => card.slug === slug);
+            const indexInSlot = this._slots[i]!.findIndex(card =>
+                card.slug === slug && (globalId === undefined || card.globalId === globalId)
+            );
             if (indexInSlot >= 0) {
                 const card = this._slots[i]![indexInSlot];
                 this._slots[i]!.splice(indexInSlot, 1);
@@ -335,12 +338,14 @@ class Encounters {
                 return card;
             }
         }
-        const card = this._deck.discard.find(card => card.slug === slug);
+        const card = globalId === undefined
+            ? this._deck.discard.find(card => card.slug === slug)
+            : this._deck.discard.find(card => card.slug === slug && card.globalId === globalId);
         if (card) {
             this._deck.remove(card);
             return card;
         }
-        return this._deck.getCardFromSlug(slug);
+        return this._deck.getCardFromSlug(slug, globalId);
     }
 
     /**

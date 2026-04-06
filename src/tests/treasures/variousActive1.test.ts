@@ -52,7 +52,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Recharge and activate the item with deck name as target
         game.recharge(sackHead);
-        await game.activateItem(player1, sackHead, ["loot"]);
+        await game.activateItem(player1, sackHead, [game.decks["loot"]]);
         await game.resolveStack();
 
         // The top card should now be at the bottom
@@ -74,7 +74,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Recharge and activate the item with deck name as target
         game.recharge(sackHead);
-        await game.activateItem(player1, sackHead, ["loot"]);
+        await game.activateItem(player1, sackHead, [game.decks.loot]);
         await game.resolveStack();
 
         // The top card should still be on top

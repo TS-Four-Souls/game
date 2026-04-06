@@ -65,7 +65,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         const initialHP = monster.currentHealthPoints;
 
         game.select = async (_issuer, _n, opts, _optional) => {
-            return { selected: [{type: "monster", payload: {name: monster.json.name, slug: monster.json.slug}}], remaining: [] } as any;
+            return { selected: [{type: "monster", payload: {name: monster.json.name, slug: monster.json.slug, globalId: monster.json.globalId}}], remaining: [] } as any;
         };
         // Recharge placebo and activate it to copy mr_boom
         game.recharge(placebo);
@@ -88,7 +88,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         const initialHP = player2.currentHealthPoints;
 
         game.select = async (_issuer, _n, opts, _optional) => {
-            return { selected: [{type: "player", payload: {name: player2.json.name, slug: player2.json.slug}} as any], remaining: [] };
+            return { selected: [{type: "player", payload: {name: player2.json.name, slug: player2.json.slug, globalId: player2.json.globalId}} as any], remaining: [] };
         };
         // Recharge placebo and activate it to copy razor_blade
         game.recharge(placebo);
@@ -140,7 +140,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         const initialP2Hand = player2.hand.length;
 
         game.select = async (_issuer, _n, opts, _optional) => {
-            return { selected: [{type: "player", payload: {name: player2.json.name, slug: player2.json.slug}}], remaining: [] } as any;
+            return { selected: [{type: "player", payload: {name: player2.json.name, slug: player2.json.slug, globalId: player2.json.globalId}}], remaining: [] } as any;
         };
         // Recharge placebo and activate it to copy boomerang
         game.recharge(placebo);
@@ -167,7 +167,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         // Recharge placebo and activate it to copy jawbone
         game.recharge(placebo);
         game.select = async (_issuer, _n, opts, _optional) => {
-            return { selected: [{type: "player", payload: {name: player2.json.name, slug: player2.json.slug}}], remaining: [] } as any;
+            return { selected: [{type: "player", payload: {name: player2.json.name, slug: player2.json.slug, globalId: player2.json.globalId}}], remaining: [] } as any;
         };
         await game.activateItem(player1, placebo, [jawbone]);
         await game.resolveStack();
@@ -261,7 +261,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         // Second use - copy razor_blade
         game.recharge(placebo);
         game.select = async (_issuer, _n, opts, _optional) => {
-            return { selected: [{type: "player", payload: {name: player2.json.name, slug: player2.json.slug}}], remaining: [] } as any;
+            return { selected: [{type: "player", payload: {name: player2.json.name, slug: player2.json.slug, globalId: player2.json.globalId}}], remaining: [] } as any;
         };
         await game.activateItem(player1, placebo, [razorBlade]);
         await game.resolveStack();
