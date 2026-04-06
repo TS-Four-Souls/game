@@ -310,7 +310,7 @@ export function firstAttackRollDiceModifier(
             const { eventIssuer } = eventData;
             if (eventIssuer !== issuer) return;
             if(!active) return
-            if(issuer.attackRollThisTurn !==  0)
+            if(issuer.attackRollThisTurn > 1)
             {
                 active = false;
                 game.addAttackDiceModifier(issuer, -amount);
