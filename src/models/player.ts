@@ -368,13 +368,13 @@ export class Player extends Entity {
    * Removes a card from the player's in-play area.
    * @param card - The card to remove
    * @returns True if the card was successfully removed
-   * @throws {Error} If the card is eternal and cannot be removed
+   * Note that eternal cards cannot be removed from play by this method and will return false.
    */
   removeInPlay(card: ItemCard): boolean {
     const index = this._inPlay.indexOf(card);
     if(index === -1) return false;
     if(card.eternal)
-      throw new Error("Cannot remove eternal card from in play.");
+      return false;
     return this.removeInPlayByIndex(index);
   }
   
