@@ -571,17 +571,19 @@ io.on("connection", (socket) => {
       callback,
       (payload) => {
         roomGuardedEndpoint(userId, callback, (game) => {
-          try {
-            game.resolveStack();
-            game.addToHistory({ type: "Resolve", payload });
-            return callback({ status: 200 });
-          } catch (error) {
-            console.error("Failed to resolve the stack", error);
-            if (error instanceof Error) {
-              return callback({ status: 400, error: error.message });
+          void (async () => {
+            try {
+              await game.resolveStack();
+              game.addToHistory({ type: "Resolve", payload });
+              return callback({ status: 200 });
+            } catch (error) {
+              console.error("Failed to resolve the stack", error);
+              if (error instanceof Error) {
+                return callback({ status: 400, error: error.message });
+              }
+              return callback({ status: 400, error: "Unknown error" });
             }
-            return callback({ status: 400, error: "Unknown error" });
-          }
+          })();
         });
       },
     );
