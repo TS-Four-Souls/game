@@ -398,19 +398,19 @@ io.on("connection", (socket) => {
             // const mob = game.obtainCard("b2-curse_of_amnesia")!;
             // game.decks.monster?.addTopPosition(mob as any);
             // game.encounters.forceSetMonsterAtSlot(0, mob);
-            const loots = ["b2-i_the_magician", "b2-gold_bomb", "b2-ii_the_high_priestess", "b2-cains_eye"]
-            for (const slug of loots) {
-              const card = game.obtainCard(slug)! as LootCard;
-              game.addCardToHand(game.players[0]!, card);
-              }
-            const treas = [
-              // "b2-mini_mush", 
-              "b2-dads_lost_coin",
-              "b2-bum_bo"];
-            for (const slug of treas) {
-              const card = game.obtainCard(slug)! as ItemCard;
-              game.addInPlay(game.players[0]!, card);
-            }
+            // const loots = ["b2-i_the_magician", "b2-gold_bomb", "b2-ii_the_high_priestess", "b2-cains_eye"]
+            // for (const slug of loots) {
+            //   const card = game.obtainCard(slug)! as LootCard;
+            //   game.addCardToHand(game.players[0]!, card);
+            //   }
+            // const treas = [
+            //   // "b2-mini_mush", 
+            //   "b2-dads_lost_coin",
+            //   "b2-bum_bo"];
+            // for (const slug of treas) {
+            //   const card = game.obtainCard(slug)! as ItemCard;
+            //   game.addInPlay(game.players[0]!, card);
+            // }
             game.addToHistory({ type: "Start", payload });
             return callback({ status: 200 });
           } catch (error) {
