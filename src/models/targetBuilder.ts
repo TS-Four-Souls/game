@@ -136,7 +136,7 @@ export class TargetBuilder {
                     selectorIndex++;
                     selector = rootSelectors[selectorIndex];
                     choicesProcessed = 0;
-
+                    
                     if (!selector) {
                         return {
                             description: "",
@@ -151,9 +151,27 @@ export class TargetBuilder {
             }
         }
 
+        // While the next selector is a select one option, with one target, with asMany = false, we can skip it and directly return the next selector with the correct options
+        while(selector && selector.selector(player).length === 1 && selector.count === 1 && !selector.asMany) {
+            partialChoices.push(TargetBuilder.convertToSelectionItems(selector.selector(player))[0]!);
+            selector = rootSelectors[selectorIndex + 1];
+            selectorIndex++;
+        }
+
+        if (!selector) {
+                        return {
+                            description: "",
+                            count: 0,
+                            asMany: false,
+                            options: [],
+                            complete: true,
+                            isChooseOne: false
+                        };
+                    }
+
         // Get the next selector to display
         const possibleTargets = selector.selector(player);
-
+        
         // Check if this is a choose-one selector
         const isChooseOne = possibleTargets.length > 0 && isChooseOneOptions(possibleTargets[0]);
 
