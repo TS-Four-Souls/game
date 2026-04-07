@@ -34,6 +34,8 @@
 //         loaded.me.pendingSelection!.requestId = requestId;
 //       }
 //     }
+
+//   console.log("Loaded state:", JSON.stringify(loaded, null, 2));
 //   expect(loaded).toEqual(original);
 // }
 
@@ -71,17 +73,17 @@
 //     expect(loadedGame.decks.loot._discard.length).toBe(1);
 //   });
 
-//   // it("Correctly load game in the middle of attack.", async () => {
-//   //   await compareGameStateFromFolder("src/tests/loadGame/data/attack");
-//   // });
+//   it("Correctly load game in the middle of attack.", async () => {
+//     await compareGameStateFromFolder("src/tests/loadGame/data/attack");
+//   });
 
 //   it("Correctly load game with purchase", async () => {
 //     await compareGameStateFromFolder("src/tests/loadGame/data/purchase");
 //   });
 
-//   // it("Correctly load long game 1", async () => {
-//   //   await compareGameStateFromFolder("src/tests/loadGame/data/long1");
-//   // });
+//   it("Correctly load long game 1", async () => {
+//     await compareGameStateFromFolder("src/tests/loadGame/data/long1");
+//   });
 
 //   it("Correctly with custom params", async () => {
 //     await compareGameStateFromFolder("src/tests/loadGame/data/customGameParam");

@@ -9,7 +9,7 @@ import type {
   ServerToClientEvents,
 } from "./shared/api";
 import { schemas } from "./shared/api";
-import { ItemCard, LootCard } from "./models/cards";
+import { ItemCard, LootCard, CharacterCard } from "./models/cards";
 import { generateRoomId, generateUserId } from "./utils/random";
 import {
   executeActivateRequest,
@@ -254,6 +254,31 @@ io.on("connection", (socket) => {
     );
   });
 
+  // socket.on("getListOfPlayersFromLogs", (payload, callback) => {
+  //   payloadGuardedEndpoint(
+  //     payload,
+  //     schemas.getListOfPlayersFromLogsRequest,
+  //     callback,
+  //     (payload) => {
+  //       roomGuardedEndpoint(userId, callback, async (game, room) => {
+  //         try {
+  //           // Ensure requester is an authorized player in the current room game.
+  //           game.getPlayerByIssuer(payload.issuer);
+  //           const logs: HistoricEntry[] = JSON.parse(payload.logs);
+            
+  //           return callback({ status: 200 });
+  //         } catch (error) {
+  //           console.error("Failed to load game from logs", error);
+  //           if (error instanceof Error) {
+  //             return callback({ status: 400, error: error.message });
+  //           }
+  //           return callback({ status: 400, error: "Unknown error" });
+  //         }
+  //       });
+  //     },
+  //   );
+  // });
+
   socket.on("join", (payload, callback) => {
     payloadGuardedEndpoint(
       payload,
@@ -353,11 +378,11 @@ io.on("connection", (socket) => {
         roomGuardedEndpoint(userId, callback, (game) => {
           try {
             // game.setupGame();
-            // const eden = game.decks["character"]!.getCardFromSlug(
-            //   "b2-eden"
+            // const char1 = game.decks["character"]!.getCardFromSlug(
+            //   "b2-cain"
             // )! as CharacterCard;
-            // const samson = game.decks["character"]!.getCardFromSlug(
-            //   "b2-samson"
+            // const char2 = game.decks["character"]!.getCardFromSlug(
+            //   "b2-eve"
             // )! as CharacterCard;
             // const treas = ["b2-chaos_card", "b2-placebo", "b2-blank_card"];
             // for (const slug of treas) {
@@ -373,18 +398,19 @@ io.on("connection", (socket) => {
             // const mob = game.obtainCard("b2-curse_of_amnesia")!;
             // game.decks.monster?.addTopPosition(mob as any);
             // game.encounters.forceSetMonsterAtSlot(0, mob);
-            // const loots = ["b2-i_the_magician", "b2-gold_bomb", "b2-ii_the_high_priestess", "b2-cains_eye"]
-            // for (const slug of loots) {
-            //   const card = game.obtainCard(slug)! as LootCard;
-            //   game.addCardToHand(game.players[0]!, card);
-            //   }
-            // const treas = [
-            //   // "b2-mini_mush", 
-            //   "b2-spoon_bender"];
-            // for (const slug of treas) {
-            //   const card = game.obtainCard(slug)! as ItemCard;
-            //   game.addInPlay(game.players[0]!, card);
-            // }
+            const loots = ["b2-i_the_magician", "b2-gold_bomb", "b2-ii_the_high_priestess", "b2-cains_eye"]
+            for (const slug of loots) {
+              const card = game.obtainCard(slug)! as LootCard;
+              game.addCardToHand(game.players[0]!, card);
+              }
+            const treas = [
+              // "b2-mini_mush", 
+              "b2-dads_lost_coin",
+              "b2-bum_bo"];
+            for (const slug of treas) {
+              const card = game.obtainCard(slug)! as ItemCard;
+              game.addInPlay(game.players[0]!, card);
+            }
             game.addToHistory({ type: "Start", payload });
             return callback({ status: 200 });
           } catch (error) {

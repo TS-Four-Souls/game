@@ -729,7 +729,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
         case "[lv10 effect] you have +1 [atk] .":
             return { effectFunction: passive.lvlXaddListenerEffect([passive.permanentStatModifierEffect([game.addAttack.bind(game)], 1, game)], 10, game), targetSelectors: noTargets };
         case "[lv25 effect] you may attack any number of times on your turn.":
-            return { effectFunction: passive.lvlXaddListenerEffect([passive.onYourTurnModifier([game.addAttackThisTurn.bind(game)], 1, game)], 25, game), targetSelectors: noTargets };
+            return { effectFunction: passive.lvlXaddListenerEffect([passive.onYourTurnModifier([game.addAttackThisTurn.bind(game)], Infinity, game)], 25, game), targetSelectors: noTargets };
         case "you have +1 to attack rolls.":
             return { effectFunction: passive.permanentStatModifierEffect([game.addAttackDiceModifier.bind(game)], 1, game), targetSelectors: noTargets };
         case "monsters have +1 [dc] on your turn.":

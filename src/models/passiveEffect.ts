@@ -97,7 +97,10 @@ export function temporaryStatModifierEffect(
         if(amount < 0)
             throw new Error("temporaryStatModifierEffect amount must be non-negative.");
         // Apply the stat modification
-        const target = data.targets.length > 0 ? data.peek() : data.issuer;
+        let next = data.peek();
+        if (next && next instanceof DiceRoll)
+            next = next.issuer;
+        const target = data.targets.length > 0 ? next : data.issuer;
         const temp: TemporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
         target.addTemporaryEffect(temp);
 
@@ -1161,13 +1164,10 @@ export function onWouldRollEffect(
 
         offDamage = game.emitter.on("on:dice:would-roll", (eventData: OnDiceWouldRollData) => {
             const { eventIssuer, diceRoll } = eventData;
-            if (data.issuer !== eventIssuer) return;
+            // if (data.issuer !== eventIssuer) return;
             if (!values.includes(diceRoll.value)) return;
-            const index = data.targets.findIndex((c) => c.diceOwner !== undefined) < 0
-                ? data.targets.length
-                : data.targets.findIndex((c) => c.diceThatWouldRoll !== undefined);
             
-            data.addTarget({ diceThatWouldRoll: diceRoll});
+            data.addTarget(diceRoll);
             
             // Create the effect that will execute when the stack resolves
             const effect = async (effectData: EffectData) => {
@@ -1207,7 +1207,7 @@ export function onRollEffect(
             
             if (rollValues.includes(diceRoll.value))
             {
-                data.targets = [diceRoll.issuer];
+                data.targets = [diceRoll];
                 
                 // Create the effect that will execute when the stack resolves
                 const stackEffect = (effectData: EffectData) => {

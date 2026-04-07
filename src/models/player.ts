@@ -607,7 +607,7 @@ export class DiceRoll extends StackElement {
       type: "diceRoll",
       diceRoll: this.value, 
       issuer: this.issuer.json, 
-      card: !this._attackRoll ? {name: this._card!.name, slug: this._card!.slug, globalId: this._card!.globalId} : undefined, 
+      card: !this._attackRoll ? this._card!.jsonAPI : undefined, 
       targets: !this._attackRoll ? TargetBuilder.convertToSelectionItems(this._targets) : undefined,
       ...super.baseJson,
       modifier: (this._attackRoll ? this._issuer.attackDiceModifier : 0) + this._issuer.diceModifier,
@@ -619,6 +619,12 @@ export class DiceRoll extends StackElement {
   roll(): number {
     this._value = Math.floor(this._random() * 6) + 1;
     return this._value;
+  }
+  /**
+   * Modify the random function used for this dice roll (for testing purposes only)
+   */
+  _TEST_setRandom(random: () => number): void {
+    this._random = random;
   }
   attachEffect(effect: EffectFunction[], card: Card, targets: any[]=[]): void {
     if(effect.length != 6)

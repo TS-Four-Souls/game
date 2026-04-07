@@ -163,16 +163,14 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         game.select = async (_issuer, _n, opts, _optional) => {
             return { selected: [opts[0]], remaining: [] } as any;
         };
-
+        const rand = game.random;
+        game.random = () => 0.1; // Force dice rolls to be 1
         // Player2 rolls a dice
-        const dice = player2.rollDice(Math.random, false, dadsLostCoin);
-        dice.value = 1;
-
-        game.addToStack(dice);
+        const dice = game.rollDice(player2, false, dadsLostCoin);
+        dice._TEST_setRandom( () => 0.6); // Force dice rolls to be 4
+        
         await game.resolveStack();
-
-        // The dice should have been rerolled (value changed from 1)
-        // Note: This test might be tricky as reroll is random, so we just verify the mechanism works
+        expect(dice.value).not.toBe(1); // The dice should have been rerolled (value changed from 1)
         expect(dice.value).toBeGreaterThanOrEqual(1);
         expect(dice.value).toBeLessThanOrEqual(6);
     });
@@ -185,10 +183,10 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         game.select = async (_issuer, _n, opts, _optional) => {
             return { selected: [], remaining: opts };
         };
-
+        game.random = () => 0.1; // Force dice rolls to be 1
         // Player2 rolls a dice
-        const dice = player2.rollDice(Math.random, false, dadsLostCoin);
-        dice.value = 1;
+        const dice = game.rollDice(player2, false, dadsLostCoin);
+        dice._TEST_setRandom( () => 0.6); // Force dice rolls to be 4
 
         game.addToStack(dice);
         await game.resolveStack();

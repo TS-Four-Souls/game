@@ -623,10 +623,10 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         await game.resolveStack();
         await game.resolveStack();
         expect(game.stack.size).toBe(0);
-        expect(player1.inPlay).toContain(item2);
+        expect(player1.inPlay.map((c) => c.slug)).toContain(item2.slug);
         expect(player1.inPlay).not.toContain(item1);
-        expect(player2.inPlay).toContain(item1);
-        expect(player2.inPlay).not.toContain(item2);
+        expect(player2.inPlay.map((c) => c.slug)).toContain(item1.slug);
+        expect(player2.inPlay.map((c) => c.slug)).not.toContain(item2.slug);
     });
 
     // "Each time a player rolls a ❺, you may put a monster not being attacked into discard and replace it with the top card of the monster deck."

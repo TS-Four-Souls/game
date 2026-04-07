@@ -6,7 +6,7 @@ import { DamageOnStack, DiceRoll, Player } from "./player";
 import { type Card, LootCard, ItemCard, MonsterCard, InplayType, BsoulCard, EffectOnStack, isDeckType, assertCardMatchesDeck, Deck } from "./cards";
 import { EffectData, type EffectFunction, type TargetsSelector, type DeckType } from "./types/cardTypes";
 import { Game } from "./game";
-import type { Entity } from "./entity";
+import { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { OnTurnEndData } from "./types/eventTypes";
 import type { Stack, StackElement } from "./stack";
@@ -59,7 +59,9 @@ export function rechargeItemsEffect(game: Game, selectionOnResolve: boolean = fa
 export function makePlayerGiveLootCardEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const targetPlayer = data.next;
+        let targetPlayer = data.next;
+        if (targetPlayer instanceof DiceRoll)
+            targetPlayer = targetPlayer.issuer;
         if(!(targetPlayer instanceof Player))
             throw new Error("Target of makePlayerGiveLootCardEffect must be a Player.");
         if(targetPlayer === data.issuer) return true;
@@ -512,7 +514,11 @@ export function swapNonEternalItemsEffect(game: Game, youMayEffectHanging: boole
     youMayEffectHanging[0] = false;
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const otherPlayer = data.next as Player;
+        let otherPlayer = data.next;
+        if(otherPlayer instanceof DiceRoll)
+            otherPlayer = otherPlayer.issuer;
+        if(!(otherPlayer instanceof Player))
+            throw new Error("Invalid target player for swapNonEternalItemsEffect");
         if(otherPlayer === data.issuer) return true;
         const itemToSwapFromIssuer = (await game.select(data.issuer, 1, data.issuer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false), allowZero, "Select an item to swap from your in-play.")).selected[0] as ItemCard;
         if(itemToSwapFromIssuer === undefined) return true;
@@ -593,8 +599,9 @@ export function discardAnyNumberOfLootCardsEffect(game: Game, youMayEffectHangin
 
 export function forcePlayerRerollDiceEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
-        const dice = data.targets.find((t) => t.diceThatWouldRoll !== undefined);
-        const diceRoll: DiceRoll = data.next as DiceRoll;
+        const diceRoll = data.next;
+        if(!(diceRoll instanceof DiceRoll))
+            throw new Error("Expected a DiceRoll instance.");
         diceRoll.roll();
         return true;
     };
@@ -892,7 +899,11 @@ export function lookAtPlayerHandAndSwapEffect(game: Game): EffectFunction {
 export function lookAtHandAndStealLootEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const otherPlayer = data.next as Player;
+        let otherPlayer = data.next;
+        if(otherPlayer instanceof DiceRoll)
+            otherPlayer = otherPlayer.issuer;
+        if(!(otherPlayer instanceof Player))
+            throw new Error("Invalid target player");
         const canSteal = otherPlayer.hand.length > 0;
         const selection = await game.select(data.issuer, canSteal ? 1 : 0, otherPlayer.hand.cards, true, "Select a loot card to steal.");
         if (selection.selected.length === 0)
@@ -905,6 +916,7 @@ export function lookAtHandAndStealLootEffect(game: Game): EffectFunction {
 export function endTurnAndResetStackEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         game.resetStack();
+        game.resetCallbacks();
         game.endCombat();
         game.endTurn();
         return true;
@@ -1416,7 +1428,11 @@ export function takeDamageEffect(game: Game, amount: number): EffectFunction {
 
 export function dealDamageToTargetEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
-        const target = data.next as Entity;
+        let target = data.next;
+        if(target instanceof DiceRoll)
+            target = target.issuer;
+        if(!(target instanceof Entity))
+            throw new Error("Invalid target for dealDamageToTargetEffect");
         game.dealDamage(data.issuer, target, data.it, amount);
         return true;
     };

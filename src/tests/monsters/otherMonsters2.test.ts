@@ -380,7 +380,7 @@ describe("Monsters - Various 2", () => {
         const dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 6; // should cancel everything and end turn
-        await game.resolveStack(); // resolve effect
+        await game.resolveStack(); // resolve dice
         await game.resolveStack(); // resolve effect
         await game.resolveStack(); // resolve effect
         expect(game.stack._stack.length).toBe(0); 

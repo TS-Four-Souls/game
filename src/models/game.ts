@@ -1172,28 +1172,55 @@ export class Game {
    * Resolves the top stack element, then triggers follow-up callbacks.
    */
   async resolveStack(): Promise<void> {
+    if(this.stack.peek() instanceof DiceRoll)
+      return this.resolveDiceRoll();
     let elem = this.stack.resolve();
     if (!elem) return;
+
     // Add to history
     this.addToHistory(elem.json);
     await elem.onResolve();
     if (elem instanceof LootCardEffect && elem.card instanceof LootCard)
-    {
-      if(elem.card.afterEffect === "discard")
-          this.discard(elem.card);
-      if(elem.card.afterEffect === "addInPlay")
-        {
-          if(!(elem.card.owner instanceof Player))
-            throw new Error("Trinket can only be owned by a player");
-          this.addInPlay(elem.card.owner, elem.card);
-        }
-    }
+      this.handleLootCardEffectResolution(elem);
     this._onStateChange.dispatch();
-    if (elem instanceof DiceRoll)
-      this.emit("on:dice:rolled", { diceRoll: elem });
 
     await this.resolveCallbacks();
   }
+
+  async resolveDiceRoll(): Promise<void> {
+    const stackIds = this.stack.elements.map(e => e.stackId);
+    let elem = this.stack.peek() as DiceRoll;
+    if (!elem || !(elem instanceof DiceRoll)) return;
+
+    const prevValue = elem.value;
+    this.emit("on:dice:rolled", { diceRoll: elem });
+    this.executeWhenStackSubset(stackIds, async () => {
+      // If the value has changed, the roll stays in the stack.
+      if (elem.value !== prevValue)
+      {
+        this._onStateChange.dispatch();
+        return;
+      }
+      // Add to history
+      this.stack.resolve();
+      this.addToHistory(elem.json);
+      await elem.onResolve();
+      this._onStateChange.dispatch();
+      await this.resolveCallbacks();
+    });
+    this.resolveCallbacks();
+  }
+
+  handleLootCardEffectResolution(elem: LootCardEffect): void {
+    if(elem.card.afterEffect === "discard")
+        this.discard(elem.card);
+    if(elem.card.afterEffect === "addInPlay")
+      {
+        if(!(elem.card.owner instanceof Player))
+          throw new Error("Trinket can only be owned by a player");
+        this.addInPlay(elem.card.owner, elem.card);
+      }
+    }
 
   /**
    * Resolves stack elements until the stack is empty.
@@ -1244,6 +1271,10 @@ export class Game {
       await cb.callback();
       this._onStateChange.dispatch();
     }
+  }
+
+  resetCallbacks(): void {
+    this._stackSubsetCallbacks = [];
   }
 
   /**
@@ -2808,12 +2839,6 @@ export class Game {
     this.addToStack(diceRoll);
     this.emit("on:dice:would-roll", { eventIssuer: player, diceRoll });
     return diceRoll;
-  }
-
-  /** Resolves a dice roll immediately and emits rolled event. */
-  resolveDiceRoll(diceRoll: DiceRoll): void {
-    diceRoll.onResolve();
-    this.emit("on:dice:rolled", { diceRoll });
   }
 
   /** Lists targetable in-play cards (excluding eternal/character). */

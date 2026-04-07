@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../../models/game";
-import { DiceRoll, Player } from "../../models/player";
-import type { ItemCard, MonsterCard, TreasureCard } from "@/models/cards";
+import { DamageOnStack, DiceRoll, Player } from "../../models/player";
+import { MonsterCard, type ItemCard, type TreasureCard } from "@/models/cards";
 import { CharacterCard } from "@/models/cards";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame, mockGameSelections } from "@/tests/testHelpers";
 
@@ -92,27 +92,39 @@ describe("Treasure - with counters effect", () => {
 
         // Test: LV1 Effect - +2 to first attack roll each turn
         const monster = game.monsters[0]!;
-        game.endTurn();
-        await game.resolveStack();
-        game.discardFromHandAtIndex(player2, 0);
-        game.declareAttack(player2);
-        game.declareAttackOnMonster(player2, monster);
+        game.discardFromHandAtIndex(player1, 0);
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, monster);
 
         game.addHealth(monster, 20);
 
         // First attack roll of the turn
-        game.attackRoll(player2);
+        game.attackRoll(player1);
         const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
-        expect(attackRoll1).toBeDefined();
+        expect(attackRoll1).toBeDefined();  
         if (attackRoll1) {
-            attackRoll1.value = 3; // Base roll
+            attackRoll1.value = 1; // Base roll but will receive +2
         }
         await game.resolveStack(); // Roll resolution
+        expect(game.stack.peek()).toBeInstanceOf(DamageOnStack);
+        expect((game.stack.peek() as DamageOnStack).from).toBeInstanceOf(Player);
+        await game.resolveStack(); // Damage resolution
+        
 
-        // Check if the roll was modified by +2 (LV1 effect)
-        expect(attackRoll1?.value).toBeGreaterThanOrEqual(3);
+        // Second attack roll of the turn
+        expect(player1.diceModifier).toBe(0); // Should have no more attack rolls allowed from LV1 effect
+        game.attackRoll(player1);
+        const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
+        expect(attackRoll2).toBeDefined();
+        if (attackRoll2) {
+            attackRoll2.value = 1; // Base roll but will receive +2
+        }
+        await game.resolveStack(); // Roll resolution
+        expect(game.stack.peek()).toBeInstanceOf(DamageOnStack);
+        expect((game.stack.peek() as DamageOnStack).receiver).toBeInstanceOf(Player);
 
         await game.resolveStack(); // Damage resolution
+
 
         // Test: gaining more coins levels up further
         game.gainCoins(player1, 7);
@@ -132,7 +144,7 @@ describe("Treasure - with counters effect", () => {
         const attacksAllowedBefore = player1.attackThisTurn;
         // At LV25, player should be able to attack unlimited times
         // This is represented by a very high number or no limit
-        // The exact implementation may vary
+        expect(attacksAllowedBefore).toBe(Infinity);
 
         // Verify the leveling mechanic continues to work
         game.gainCoins(player1, 10); // Should add 10 more levels
