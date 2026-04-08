@@ -150,7 +150,7 @@ export class Game {
    * This function returns the game history, including private data entries
    */
   get log(): HistoricEntry[] {
-    return this._historicHandler.log;
+    return this._historicHandler.log(this);
   }
 
   get rollbackLog(): HistoricEntry[] {

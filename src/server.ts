@@ -575,6 +575,7 @@ io.on("connection", (socket) => {
             try {
               await game.resolveStack();
               game.addToHistory({ type: "Resolve", payload });
+              await game.resolveStack();
               return callback({ status: 200 });
             } catch (error) {
               console.error("Failed to resolve the stack", error);

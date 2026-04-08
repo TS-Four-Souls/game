@@ -1,5 +1,5 @@
 import { generateHistoryId } from "@/utils/random";
-import { type Requests, type StackElementJson } from "../shared/api";
+import { type DetailedState, type Requests, type StackElementJson } from "../shared/api";
 import fs from "fs";
 import type { GameParameters } from "./gameParameters";
 import type { Game } from "./game";
@@ -84,6 +84,10 @@ function isGameAction(entry: HistoricEntry): boolean {
     private: true;
     type: "GameParameters";
     gameParameters: GameParameters;
+  } | {
+    private: true;
+    type: "GameState";
+    gameState: DetailedState;
   };
 
 const isPrivateData = (entry: HistoricEntry): entry is PrivateData => {
@@ -138,8 +142,18 @@ export class HistoricHandler {
     // return this._history.filter((e) => !isPrivateData(e));
   }
 
-  get log(): HistoricEntry[] {
-    return this._history;
+  /**
+   * 
+   * @param game is used to obtain the current game state for comparisons when reloading a game.
+   * @returns History of the game, appended with the current game state to check the loader.
+   */
+  log(game: Game): HistoricEntry[] {
+    const state:HistoricEntry ={
+      private: true,
+      type: "GameState",
+      gameState: game.detailedStateJSON(game.players[0]!)
+     }
+    return [...this._history, state];
   }
   /** Returns the history entries until the last user request (exluded).
    * If no user request is found, returns the entire history.

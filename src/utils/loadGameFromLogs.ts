@@ -2,7 +2,7 @@ import { Game } from "@/models/game";
 import { Player } from "@/models/player";
 import { ItemCard, LootCard, CharacterCard } from "@/models/cards";
 import type { HistoricEntry, UserRequest } from "@/models/historyHandler";
-import { isParameterKey, type Issuer, type IdentifierType } from "@/shared/api";
+import { isParameterKey, type Issuer, type IdentifierType, type DetailedState } from "@/shared/api";
 import {
   executeActivateRequest,
   executeAttackMonsterRequest,
@@ -91,6 +91,137 @@ function verifyRecordedCharactersAfterStart(
       );
     }
   }
+}
+
+type GameStateComparison = {
+  equal: boolean;
+  differences: string[];
+};
+
+function normalizeDetailedStateForComparison(state: DetailedState): DetailedState {
+  const normalized = structuredClone(state);
+  if (normalized.me.pendingSelection) {
+    // Request IDs are generated at runtime and can differ between replay and recorded logs.
+    normalized.me.pendingSelection.requestId = "<ignored>";
+  }
+  return normalized;
+}
+
+function formatDiffValue(value: unknown): string {
+  if (value === undefined) {
+    return "undefined";
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function collectDifferences(
+  left: unknown,
+  right: unknown,
+  path: string,
+  differences: string[],
+  maxDifferences: number,
+): void {
+  if (differences.length >= maxDifferences) {
+    return;
+  }
+
+  if (Object.is(left, right)) {
+    return;
+  }
+
+  const leftIsArray = Array.isArray(left);
+  const rightIsArray = Array.isArray(right);
+  if (leftIsArray || rightIsArray) {
+    if (!leftIsArray || !rightIsArray) {
+      differences.push(
+        `${path}: type mismatch (left=${leftIsArray ? "array" : typeof left}, right=${rightIsArray ? "array" : typeof right})`,
+      );
+      return;
+    }
+
+    const leftArray = left as unknown[];
+    const rightArray = right as unknown[];
+    if (leftArray.length !== rightArray.length) {
+      differences.push(`${path}: array length mismatch (left=${leftArray.length}, right=${rightArray.length})`);
+      if (differences.length >= maxDifferences) {
+        return;
+      }
+    }
+
+    const minLength = Math.min(leftArray.length, rightArray.length);
+    for (let index = 0; index < minLength; index++) {
+      collectDifferences(leftArray[index], rightArray[index], `${path}[${index}]`, differences, maxDifferences);
+      if (differences.length >= maxDifferences) {
+        return;
+      }
+    }
+    return;
+  }
+
+  const leftIsObject = isObject(left);
+  const rightIsObject = isObject(right);
+  if (leftIsObject || rightIsObject) {
+    if (!leftIsObject || !rightIsObject) {
+      differences.push(
+        `${path}: type mismatch (left=${leftIsObject ? "object" : typeof left}, right=${rightIsObject ? "object" : typeof right})`,
+      );
+      return;
+    }
+
+    const leftRecord = left as Record<string, unknown>;
+    const rightRecord = right as Record<string, unknown>;
+    const keys = new Set<string>([...Object.keys(leftRecord), ...Object.keys(rightRecord)]);
+
+    for (const key of Array.from(keys).sort()) {
+      const leftHasKey = Object.prototype.hasOwnProperty.call(leftRecord, key);
+      const rightHasKey = Object.prototype.hasOwnProperty.call(rightRecord, key);
+      const leftValue = leftRecord[key];
+      const rightValue = rightRecord[key];
+
+      if (!leftHasKey  || !rightHasKey) {
+        // Treat missing and explicit undefined as equivalent: JSON serialization
+        // frequently drops undefined fields.
+        if ((!leftHasKey && rightValue === undefined) || (!rightHasKey && leftValue === undefined)) {
+          continue;
+        }
+
+        differences.push(
+          `${path}.${key}: ${leftHasKey ? "missing on right" : "missing on left"} (left=${formatDiffValue(leftValue)}, right=${formatDiffValue(rightValue)})`,
+        );
+        if (differences.length >= maxDifferences) {
+          return;
+        }
+        continue;
+      }
+
+      collectDifferences(leftValue, rightValue, `${path}.${key}`, differences, maxDifferences);
+      if (differences.length >= maxDifferences) {
+        return;
+      }
+    }
+    return;
+  }
+
+  differences.push(`${path}: value mismatch (left=${formatDiffValue(left)}, right=${formatDiffValue(right)})`);
+}
+
+function compareGameState(original: DetailedState, loaded: DetailedState): GameStateComparison {
+  const normalizedOriginal = normalizeDetailedStateForComparison(original);
+  const normalizedLoaded = normalizeDetailedStateForComparison(loaded);
+  const differences: string[] = [];
+  const maxDifferences = 25;
+
+  collectDifferences(normalizedOriginal, normalizedLoaded, "gameState", differences, maxDifferences);
+
+  return {
+    equal: differences.length === 0,
+    differences,
+  };
 }
 
 function parseLogLine(line: string): unknown | null {
@@ -260,6 +391,23 @@ export async function loadGameFromLogs(logs: HistoricEntry[]): Promise<Game> {
           ...entry.payload,
           issuer: remapIssuer(game, entry.payload.issuer),
         });
+        break;
+      }
+
+      case "GameState": {
+        const state = entry.gameState;
+        if (!state) {
+          throw new Error("GameState entry is missing gameState payload");
+        }
+        const comparison = compareGameState(game.detailedStateJSON(game.players[0]!), state);
+        if (!comparison.equal) {
+          const differencesMessage = comparison.differences
+            .map((difference, index) => `${index + 1}. ${difference}`)
+            .join("\n");
+          throw new Error(
+            `Current game state does not match GameState entry from logs. Differences:\n${differencesMessage}`,
+          );
+        }
         break;
       }
 
