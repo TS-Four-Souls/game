@@ -997,7 +997,6 @@ export class Game {
     selectedIdentifiers: SelectionItem[]
   ): void {
     const player = this.assertIssuerSecret(issuer);
-
     // Check if this is from a selectMultiple() call
     const pending = this.pendingMultipleSelections.get(requestId);
     if (pending && pending.playerId === player.id) {
@@ -1174,22 +1173,21 @@ export class Game {
   async resolveStack(): Promise<void> {
     if(this.stack.peek() instanceof DiceRoll)
       return this.resolveDiceRoll();
-    let elem = this.stack.resolve();
+    const elem = this.stack.resolve();
     if (!elem) return;
 
+    await elem.onResolve();
     // Add to history
     this.addToHistory(elem.json);
-    await elem.onResolve();
     if (elem instanceof LootCardEffect && elem.card instanceof LootCard)
       this.handleLootCardEffectResolution(elem);
     this._onStateChange.dispatch();
-
     await this.resolveCallbacks();
   }
 
   async resolveDiceRoll(): Promise<void> {
     const stackIds = this.stack.elements.map(e => e.stackId);
-    let elem = this.stack.peek() as DiceRoll;
+    const elem = this.stack.peek() as DiceRoll;
     if (!elem || !(elem instanceof DiceRoll)) return;
 
     const prevValue = elem.value;
@@ -1201,14 +1199,13 @@ export class Game {
         this._onStateChange.dispatch();
         return;
       }
-      // Add to history
       this.stack.resolve();
-      this.addToHistory(elem.json);
       await elem.onResolve();
+      // Add to history
+      this.addToHistory(elem.json);
       this._onStateChange.dispatch();
       await this.resolveCallbacks();
     });
-    this.resolveCallbacks();
   }
 
   handleLootCardEffectResolution(elem: LootCardEffect): void {
@@ -2525,8 +2522,8 @@ export class Game {
   /** Tags simultaneously-added top stack effects into reorderable owner groups. */
   async reorderStack(count: number): Promise<void> {
     const topElements = this.stack.elements.slice(-count);
-    if(topElements.some(el => el.json.type !== "effect"))
-      throw new Error("Only effects can be reordered on the stack.");
+    if(topElements.some(el => el.json.type !== "effect")) // Only effects can be reordered.
+      return;
     // Group by issuer
     const groups: {[issuer: string]: StackElement[]} = {};
     const playerIds = this.players.map(p => p.id);

@@ -573,7 +573,6 @@ io.on("connection", (socket) => {
         roomGuardedEndpoint(userId, callback, (game) => {
           void (async () => {
             try {
-              await game.resolveStack();
               game.addToHistory({ type: "Resolve", payload });
               await game.resolveStack();
               return callback({ status: 200 });

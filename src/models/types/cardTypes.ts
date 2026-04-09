@@ -1,6 +1,7 @@
 import type { Player } from '../player';
 import type { Entity } from '../entity';
 import type { Card, LootCard, TreasureCard, EternalCard, CharacterCard, MonsterCard, BsoulCard } from '../cards';
+import type { Game } from '../game';
 
 /**
  * Type of effect execution - how the effect is triggered
@@ -27,6 +28,7 @@ export class EffectData {
     it: Card;
     issuer: Entity;
     private _targets: any[];
+    private _selectedOnResolve: any[] = [];
     private _nextIndex: number = 0;
 
     constructor(it: Card, issuer: Entity, targets: any[]) {
@@ -63,6 +65,51 @@ export class EffectData {
 
     addTarget(target: any): void {
         this._targets.push(target);
+    }
+
+    get selectedOnResolve(): any[] {
+        return [...this._selectedOnResolve];
+    }
+
+    recordSelection(selection: any[]): void {
+        this._selectedOnResolve.push(...selection);
+    }
+
+    clearSelectionRecord(): void {
+        this._selectedOnResolve = [];
+    }
+
+    async selectAndRecord<T>(
+        game: Game,
+        player: Player,
+        n: number,
+        options: T[],
+        anyNumber: boolean = false,
+        description: string = "UNDEFINED SHOULD NOT HAPPEN",
+        record: boolean = true
+    ): Promise<{ selected: T[]; remaining: T[] }> {
+        const selection = await game.select(player, n, options, anyNumber, description);
+        if (record) {
+            this.recordSelection(selection.selected as any[]);
+        }
+        return selection;
+    }
+
+    async selectMultipleAndRecord<T>(
+        game: Game,
+        selections: Array<{
+            player: Player;
+            count: number;
+            options: T[];
+            asMany?: boolean;
+            description: string;
+        }>
+    ): Promise<Array<{ playerId: string; selected: T[]; remaining: T[] }>> {
+        const results = await game.selectMultiple(selections);
+        for (const result of results) {
+            this.recordSelection(result.selected as any[]);
+        }
+        return results;
     }
 }
 

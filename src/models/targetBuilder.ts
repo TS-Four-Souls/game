@@ -33,6 +33,105 @@ import type { SelectionItem, SelectionItemType } from "../shared/api";
  * ```
  */
 export class TargetBuilder {
+    private static shouldAutofillSelector(selector: TargetsSelector, possibleTargets: any[]): boolean {
+        return possibleTargets.length === 1 && selector.count === 1 && !selector.asMany;
+    }
+
+    private static completeResponse(): TargetSelectorResponse {
+        return {
+            description: "",
+            count: 0,
+            asMany: false,
+            options: [],
+            complete: true,
+            isChooseOne: false
+        };
+    }
+
+    private static normalizeSelectorForPrompt(
+        rootSelectors: TargetsSelector[],
+        selectorIndex: number,
+        selector: TargetsSelector | undefined,
+        player: Player
+    ): { selector: TargetsSelector | undefined; selectorIndex: number } {
+        while (selector) {
+            const possibleTargets = selector.selector(player);
+            if (!TargetBuilder.shouldAutofillSelector(selector, possibleTargets)) {
+                break;
+            }
+
+            const isChooseOne = possibleTargets.length > 0 && isChooseOneOptions(possibleTargets[0]);
+            if (isChooseOne) {
+                const chosenOption = (possibleTargets as ChooseOneOptions[])[0]!;
+
+                // Fully deterministic choose-one (option and target both implied): advance.
+                if (chosenOption.admissibleTargets.length <= 1) {
+                    selectorIndex++;
+                    selector = rootSelectors[selectorIndex];
+                    continue;
+                }
+
+                // Deterministic choose-one option, but target still needs user input.
+                selector = {
+                    description: chosenOption.description,
+                    selector: () => chosenOption.admissibleTargets,
+                    count: selector.count,
+                    asMany: selector.asMany,
+                };
+                break;
+            }
+
+            // Regular deterministic selector.
+            selectorIndex++;
+            selector = rootSelectors[selectorIndex];
+        }
+
+        return { selector, selectorIndex };
+    }
+
+    private static advanceFullyDeterministicSelectorsForBuild(
+        rootSelectors: TargetsSelector[],
+        selectorIndex: number,
+        selector: TargetsSelector | undefined,
+        player: Player,
+        result: any[]
+    ): { selector: TargetsSelector | undefined; selectorIndex: number } {
+        while (selector) {
+            const possibleTargets = selector.selector(player);
+            if (!TargetBuilder.shouldAutofillSelector(selector, possibleTargets)) {
+                break;
+            }
+
+            const isChooseOne = possibleTargets.length > 0 && isChooseOneOptions(possibleTargets[0]);
+            if (isChooseOne) {
+                const chosenOption = (possibleTargets as ChooseOneOptions[])[0]!;
+                result.push(chosenOption.description);
+
+                if (chosenOption.admissibleTargets.length === 1) {
+                    result.push(chosenOption.admissibleTargets[0]);
+                    selectorIndex++;
+                    selector = rootSelectors[selectorIndex];
+                    continue;
+                }
+
+                if (chosenOption.admissibleTargets.length === 0) {
+                    selectorIndex++;
+                    selector = rootSelectors[selectorIndex];
+                    continue;
+                }
+
+                // Option is deterministic but target is not; stop here.
+                break;
+            }
+
+            result.push(possibleTargets[0]);
+            selectorIndex++;
+            selector = rootSelectors[selectorIndex];
+        }
+
+        return { selector, selectorIndex };
+    }
+
     /**
      * Walk through selectors following the user's choices, handling choose-one nesting.
      * Returns the current selector to display based on the partial choices made so far.
@@ -68,19 +167,23 @@ export class TargetBuilder {
         let selector: TargetsSelector | undefined = rootSelectors[selectorIndex];
 
         if (!selector) {
-            return {
-                description: "",
-                count: 0,
-                asMany: false,
-                options: [],
-                complete: true,
-                isChooseOne: false
-            };
+            return TargetBuilder.completeResponse();
         }
 
         // Walk through choices using for loop
         let choicesProcessed = 0;
         for (let i = 0; i < partialChoices.length; i++) {
+            const normalized = TargetBuilder.normalizeSelectorForPrompt(rootSelectors, selectorIndex, selector, player);
+            if (normalized.selectorIndex !== selectorIndex) {
+                choicesProcessed = 0;
+            }
+            selectorIndex = normalized.selectorIndex;
+            selector = normalized.selector;
+
+            if (!selector) {
+                return TargetBuilder.completeResponse();
+            }
+
             const possibleTargets: any[] = selector.selector(player);
             const choice = partialChoices[i]!;
 
@@ -102,14 +205,7 @@ export class TargetBuilder {
                     choicesProcessed = 0;
                     
                     if (!selector) {
-                        return {
-                            description: "",
-                            count: 0,
-                            asMany: false,
-                            options: [],
-                            complete: true,
-                            isChooseOne: false
-                        };
+                        return TargetBuilder.completeResponse();
                     }
                 } else {
                     // Create a temporary selector for the admissible targets
@@ -138,36 +234,23 @@ export class TargetBuilder {
                     choicesProcessed = 0;
                     
                     if (!selector) {
-                        return {
-                            description: "",
-                            count: 0,
-                            asMany: false,
-                            options: [],
-                            complete: true,
-                            isChooseOne: false
-                        };
+                        return TargetBuilder.completeResponse();
                     }
                 }
             }
         }
 
-        // While the next selector is a select one option, with one target, with asMany = false, we can skip it and directly return the next selector with the correct options
-        while(selector && selector.selector(player).length === 1 && selector.count === 1 && !selector.asMany) {
-            partialChoices.push(TargetBuilder.convertToSelectionItems(selector.selector(player))[0]!);
-            selector = rootSelectors[selectorIndex + 1];
-            selectorIndex++;
+        if (!selector) {
+            return TargetBuilder.completeResponse();
         }
 
+        const normalized = TargetBuilder.normalizeSelectorForPrompt(rootSelectors, selectorIndex, selector, player);
+        selectorIndex = normalized.selectorIndex;
+        selector = normalized.selector;
+
         if (!selector) {
-                        return {
-                            description: "",
-                            count: 0,
-                            asMany: false,
-                            options: [],
-                            complete: true,
-                            isChooseOne: false
-                        };
-                    }
+            return TargetBuilder.completeResponse();
+        }
 
         // Get the next selector to display
         const possibleTargets = selector.selector(player);
@@ -468,11 +551,26 @@ export class TargetBuilder {
         let choiceIndex = 0;
         let selector: TargetsSelector | undefined = rootSelectors[selectorIndex];
 
-        while (selector && choiceIndex < partialChoices.length) {
+        while (selector) {
+            const advanced = TargetBuilder.advanceFullyDeterministicSelectorsForBuild(
+                rootSelectors,
+                selectorIndex,
+                selector,
+                player,
+                result
+            );
+            selectorIndex = advanced.selectorIndex;
+            selector = advanced.selector;
+            if (!selector) break;
+
             const possibleTargets = selector.selector(player);
 
             // Check if this is a choose-one selector
             if (possibleTargets.length > 0 && isChooseOneOptions(possibleTargets[0])) {
+                if (choiceIndex >= partialChoices.length) {
+                    break;
+                }
+
                 const choice = partialChoices[choiceIndex]!;
                 const chosenOption = (possibleTargets as ChooseOneOptions[]).find(
                     opt => opt.description === choice.payload
@@ -501,6 +599,10 @@ export class TargetBuilder {
                 // Push description and spread targets into flat array
                 result.push(chosenOption.description, ...chosenTargets);
             } else {
+                if (choiceIndex >= partialChoices.length) {
+                    break;
+                }
+
                 // Regular selector - collect count targets
                 for (let i = 0; i < selector.count && choiceIndex < partialChoices.length; i++) {
                     const targetId = partialChoices[choiceIndex]!;

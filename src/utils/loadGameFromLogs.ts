@@ -254,8 +254,8 @@ function findInitialSeed(logs: unknown[]): string {
   return entry.seed;
 }
 
-export async function loadGameFromLogs(logs: HistoricEntry[]): Promise<Game> {
-  const verbose = 0;
+export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 0): Promise<Game> {
+  console.log(`Loading game from logs with ${logs.length} entries...`);
   const game = new Game(findInitialSeed(logs));
   const characterByPlayer = new Map<string, string>();
   const submitSelectionRequestIdMap = new Map<string, string>();
@@ -316,13 +316,13 @@ export async function loadGameFromLogs(logs: HistoricEntry[]): Promise<Game> {
     });
   };
 
-  for (const entry of logs) {
+  for (const [index, entry] of logs.entries()) {
     if (!isUserRequestEntry(entry) && !isPrivateEntry(entry)) {
       // Stack element snapshots are not replayed directly.
       continue;
     }
     if(verbose >= 1)
-      console.log(`Replaying log entry: ${JSON.stringify(entry)}\n`);
+      console.log(`Replaying log entry ${index}: ${JSON.stringify(entry)}\n`);
     switch (entry.type) {
       case "CreateRoom":
       case "JoinRoom":
@@ -421,6 +421,10 @@ export async function loadGameFromLogs(logs: HistoricEntry[]): Promise<Game> {
         // Start resolution and track the promise so we can wait for it after selections are submitted
         activeResolutionPromise = game.resolveStack();
         await Promise.resolve(); // Ensure any synchronous effects are processed before potentially awaiting resolution
+        await Promise.resolve(); // Ensure any synchronous effects are processed before potentially awaiting resolution
+        await Promise.resolve(); // Ensure any synchronous effects are processed before potentially awaiting resolution
+        await Promise.resolve(); // Ensure any synchronous effects are processed before potentially awaiting resolution
+        await Promise.resolve(); // Ensure any synchronous effects are processed before potentially awaiting resolution
         if(!game.hasPendingSelections) {
           await activeResolutionPromise;
           activeResolutionPromise = null;
@@ -470,6 +474,8 @@ export async function loadGameFromLogs(logs: HistoricEntry[]): Promise<Game> {
       }
 
       case "PlayCard": {
+        if(entry.payload.index === 11)
+          console.warn("Warning: Detected PlayCard request with index 11 in logs.");
         executePlayCardRequest(game, {
           ...entry.payload,
           issuer: remapIssuer(game, entry.payload.issuer),

@@ -37,7 +37,7 @@ export function rechargeItemsEffect(game: Game, selectionOnResolve: boolean = fa
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         if (selectionOnResolve) {
-            const selectionResult = await game.select(data.issuer, 1, inplayUnchargedItemSelector(game)(data.issuer), allowZero, "Select an item to recharge.");
+            const selectionResult = await data.selectAndRecord(game, data.issuer, 1, inplayUnchargedItemSelector(game)(data.issuer), allowZero, "Select an item to recharge.");
             if (selectionResult.selected.length > 0) {
                 if(!(selectionResult.selected[0] instanceof ItemCard))
                     throw new Error(`Card to recharge is not an ItemCard: ${selectionResult.selected[0].name}`);
@@ -66,7 +66,7 @@ export function makePlayerGiveLootCardEffect(game: Game): EffectFunction {
             throw new Error("Target of makePlayerGiveLootCardEffect must be a Player.");
         if(targetPlayer === data.issuer) return true;
         if (targetPlayer.hand.length > 0) {
-            const cardToGive = (await game.select(targetPlayer, 1, targetPlayer.hand.cards, false, "Select a card to give.")).selected[0]!;
+            const cardToGive = (await data.selectAndRecord(game, targetPlayer, 1, targetPlayer.hand.cards, false, "Select a card to give.", false)).selected[0]!;
             return game.give(targetPlayer, data.issuer, cardToGive);
         }
         return false;
@@ -89,7 +89,7 @@ export function makeAPlayerWithMostSoulsDestroyASoulEffect(game: Game): EffectFu
         if(!(target instanceof Player))
             throw new Error("Target of makeAPlayerWithMostSoulsDestroyASoulEffect must be a Player.");
         if (game.playersWithMostSouls.includes(target)) {
-            const card = (await game.select(target, 1, target.souls, false, "Select a soul to destroy.")).selected[0]!;
+            const card = (await data.selectAndRecord(game, target, 1, target.souls, false, "Select a soul to destroy.")).selected[0]!;
             return game.destroyCardsOrSouls([card]);
         }
         return false;
@@ -114,7 +114,7 @@ export function look5Put1TopRestBottomEffect(deckName: string, game: Game): Effe
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         let cards = game.getFirstCardsOfDeck(deckName, 5);
-        let selectionResult = await game.select(data.issuer, 1, cards, false, "Select a card to put on top of the deck.");
+        let selectionResult = await data.selectAndRecord(game, data.issuer, 1, cards, false, "Select a card to put on top of the deck.", false);
         game.addTopPosition(deckName, selectionResult.selected[0]!);
         selectionResult.remaining.forEach((c) => {
             game.addBottomPosition(deckName, c);
@@ -133,7 +133,7 @@ export function look1EachDeckEffect(game: Game): EffectFunction {
             const topCard = game.decks[deckName]?.cards[0];
             topCards.push(topCard!);
         }
-        const selectResult = await game.select(data.issuer, 3, topCards, true, "Select any number of cards to put on the bottom of their respective decks.");
+        const selectResult = await data.selectAndRecord(game, data.issuer, 3, topCards, true, "Select any number of cards to put on the bottom of their respective decks.", false);
         for (const card of selectResult.selected as Card[]) {
             game.getFirstCardsOfDeck(card.type, 1)[0];
             game.addBottomPosition(card.type, card);
@@ -189,7 +189,7 @@ export function chooseOneEffect(s: string, game: Game, selectionOnResolve: boole
             if(!(data.issuer instanceof Player))
                 throw new Error("Effect issuer is not a player in chooseOneEffect.");
             const description = selectionOnResolve ?
-                (await game.select(data.issuer, 1, lines.slice(1), false, "Select an effect to resolve.")).selected[0] :
+                (await data.selectAndRecord(game, data.issuer, 1, lines.slice(1), false, "Select an effect to resolve.")).selected[0] :
                 (data.next as string).toLowerCase();
             for(let i = 0; i < effects.length; i++) {
                 if (description === lines[i+1]) {
@@ -220,7 +220,7 @@ export function searchGuppyItemEffect(game: Game): EffectFunction {
         if (data.issuer instanceof Player === false) return false;
         const guppyItems = game.decks["treasure"]!.cards.filter(card => card instanceof ItemCard && (card as ItemCard).isGuppy());
         if (guppyItems.length === 0) return false;
-        const selectedGuppyItem = (await game.select(data.issuer, 1, guppyItems, false, "Select a Guppy item to add to your in-play.")).selected[0] as ItemCard;
+        const selectedGuppyItem = (await data.selectAndRecord(game, data.issuer, 1, guppyItems, false, "Select a Guppy item to add to your in-play.")).selected[0] as ItemCard;
         game.addInPlay(data.issuer, selectedGuppyItem);
         return true;
     };
@@ -245,7 +245,7 @@ export function destroyCurseEffect(game: Game, selectionOnResolve: boolean=false
     return async (data: EffectData) => {
         let toDestroy = data.next;
         if(selectionOnResolve) {
-            toDestroy = (await game.select(data.issuer as Player, 1, data.targets, false, "Select a curse to destroy.")).selected[0];
+            toDestroy = (await data.selectAndRecord(game, data.issuer as Player, 1, data.targets, false, "Select a curse to destroy.")).selected[0];
         }
         if(!(toDestroy instanceof MonsterCard && toDestroy.isCurse))
             throw new Error(`Card to destroy is not a curse: ${toDestroy.name}`);
@@ -259,7 +259,7 @@ export function destroyOneEffect(game: Game, selector: TargetsSelector|undefined
         if(selector !== undefined) {
             if(data.issuer instanceof Player === false)
                 throw new Error("Effect issuer is not a player in destroyOneEffect.");
-            toDestroy = (await game.select(data.issuer as Player, 1, selector.selector(data.issuer), false, "Select a card to destroy.")).selected[0] as Card;
+            toDestroy = (await data.selectAndRecord(game, data.issuer as Player, 1, selector.selector(data.issuer), false, "Select a card to destroy.")).selected[0] as Card;
         }
         return game.destroyCardsOrSouls([toDestroy]);
     };
@@ -277,7 +277,7 @@ export function changeRollDiceResultEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const choosenDiceRoll: DiceRoll = data.next as DiceRoll;
-        // const selectionResult = await game.select(data.issuer, 1, [1, 2, 3, 4, 5, 6], false, "Select a value to change the roll to.");
+        // const selectionResult = await data.selectAndRecord(game, data.issuer, 1, [1, 2, 3, 4, 5, 6], false, "Select a value to change the roll to.");
         // const newValue = selectionResult.selected[0] as number;
         const newValue: number = data.next as number;
         choosenDiceRoll.value = newValue;
@@ -385,7 +385,7 @@ export function cancelStackElementEffect(game: Game): EffectFunction {
 export function stealSoulEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const soulToSteal = (await game.select(data.issuer, 1, game.soulsOwned, false, "Select a soul to steal.")).selected[0]!;
+        const soulToSteal = (await data.selectAndRecord(game, data.issuer, 1, game.soulsOwned, false, "Select a soul to steal.")).selected[0]!;
         const target = game.getOwner(soulToSteal);
         game.stealSoul(data.issuer, target!, soulToSteal);
         return true;
@@ -477,7 +477,7 @@ export function flushMonsterSlotsToBottomEffect(game: Game): EffectFunction {
 export function lookAtHands(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        await game.select(data.issuer, 0, game.allHands(), true, "You can see each players' hands:");
+        await data.selectAndRecord(game, data.issuer, 0, game.allHands(), true, "You can see each players' hands:", false);
         return true;
     };
 }
@@ -505,7 +505,7 @@ export function lookAtAPlayerHand(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const target = data.next as Player;
-        await game.select(data.issuer, 0, [{ player: target, hand: target.hand }], true, `You can see ${target.id}'s hand:`);
+        await data.selectAndRecord(game, data.issuer, 0, [{ player: target, hand: target.hand }], true, `You can see ${target.id}'s hand:`, false);
         return true;
     };
 }
@@ -520,16 +520,16 @@ export function swapNonEternalItemsEffect(game: Game, youMayEffectHanging: boole
         if(!(otherPlayer instanceof Player))
             throw new Error("Invalid target player for swapNonEternalItemsEffect");
         if(otherPlayer === data.issuer) return true;
-        const itemToSwapFromIssuer = (await game.select(data.issuer, 1, data.issuer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false), allowZero, "Select an item to swap from your in-play.")).selected[0] as ItemCard;
+        const itemToSwapFromIssuer = (await data.selectAndRecord(game, data.issuer, 1, data.issuer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false), allowZero, "Select an item to swap from your in-play.", false)).selected[0] as ItemCard;
         if(itemToSwapFromIssuer === undefined) return true;
-        const itemToSwapFromOtherPlayer = (await game.select(data.issuer, 1, otherPlayer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false), false, "Select an item to swap from the other player's in-play.")).selected[0] as ItemCard;
+        const itemToSwapFromOtherPlayer = (await data.selectAndRecord(game, data.issuer, 1, otherPlayer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false), false, "Select an item to swap from the other player's in-play.", false)).selected[0] as ItemCard;
         return game.swapItems(itemToSwapFromIssuer, itemToSwapFromOtherPlayer);
     }
 }
 export function flushOneMonsterSlotEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const monsterToFlush = (await game.select(data.issuer, 1, game.monsters.filter((m) => m !== null && !m.isEngagedInCombat), true, "Select a monster to flush.")).selected[0] as Monster;
+        const monsterToFlush = (await data.selectAndRecord(game, data.issuer, 1, game.monsters.filter((m) => m !== null && !m.isEngagedInCombat), true, "Select a monster to flush.")).selected[0] as Monster;
         if(monsterToFlush === undefined) return true;
         game.monsterSlots.flushMonster(monsterToFlush);
         return true;
@@ -553,7 +553,7 @@ export function putTopMonsterInValidSlotEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const nonAttackedSlots = game.monsterSlots.nonAttackedSlots;
-        const index = (await game.select(data.issuer, 1, nonAttackedSlots, false, "Select a slot to put the top monster in.")).selected[0]!;
+        const index = (await data.selectAndRecord(game, data.issuer, 1, nonAttackedSlots, false, "Select a slot to put the top monster in.")).selected[0]!;
         game.monsterSlots.draw(index);
         return true;
     };
@@ -586,7 +586,7 @@ export function discardAnyNumberOfLootCardsEffect(game: Game, youMayEffectHangin
         if (data.issuer instanceof Player === false) return false;
         const player = data.issuer;
         const maxToDiscard = player.hand.length;
-        const selectionResult = await game.select(player, maxToDiscard, player.hand.cards, true, "Select any number of loot cards to discard from your hand.");
+        const selectionResult = await data.selectAndRecord(game, player, maxToDiscard, player.hand.cards, true, "Select any number of loot cards to discard from your hand.");
         const nbDiscarded = selectionResult.selected.length;
         for (const card of selectionResult.selected) {
             const index = player.hand.cards.indexOf(card);
@@ -612,6 +612,7 @@ export function lootEqualToCardsDiscardedEffect(game: Game): EffectFunction {
         if (data.issuer instanceof Player === false) return false;
         const nbToLoot = data.next as number;
         game.loot(data.issuer, nbToLoot);
+        data.targets = []; // reset targets for displaying purposes.
         return true;
     };
 }
@@ -619,7 +620,7 @@ export function lootEqualToCardsDiscardedEffect(game: Game): EffectFunction {
 export function discardTopOfDeckEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const deck = (await game.select(data.issuer, 1, deckSelector(undefined, game)(data.issuer), false, "Select a deck to discard the top card of.")).selected[0];
+        const deck = (await data.selectAndRecord(game, data.issuer, 1, deckSelector(undefined, game)(data.issuer), false, "Select a deck to discard the top card of.")).selected[0];
         if(!isDeckType(deck._type))
             throw new Error(`Invalid deck type: ${deck._type}`);
         const topCard = deck.draw();
@@ -640,7 +641,7 @@ export function LookAndPutBottomEffect(
             throw new Error(`Deck ${deckName} does not exist.`);
         }
         const topCard = deck.draw();
-        const res = await game.select(data.issuer, 1, [topCard], true, `Look at the top card of the ${deckName} deck. You may put it on the bottom of the deck.`);
+        const res = await data.selectAndRecord(game, data.issuer, 1, [topCard], true, `Look at the top card of the ${deckName} deck. You may put it on the bottom of the deck.`, false);
         if (res.selected.length > 0) {
             game.addBottomPosition(deckName, topCard);
         } else {
@@ -656,7 +657,7 @@ export function destroyItemOfRandomPlayerEffect(game: Game): EffectFunction {
         const players = game.players;
         const randomIndex = Math.floor(game.random() * players.length);
         const targetPlayer = players[randomIndex]!;
-        const item = (await game.select(targetPlayer, 1, targetPlayer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false), false, "Select an item to destroy.")).selected[0]!;
+        const item = (await data.selectAndRecord(game, targetPlayer, 1, targetPlayer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false), false, "Select an item to destroy.")).selected[0]!;
         return game.destroyCardsOrSouls([item]);
     };
 }
@@ -666,7 +667,7 @@ export function discardAnyNumberOfShopItemsEffect(game: Game): EffectFunction {
         if (data.issuer instanceof Player === false) return false;
         const shop = game.shop;
         const maxToDiscard = shop._slots.filter((slot) => slot !== undefined).length;
-        const selectionResult = await game.select(data.issuer, maxToDiscard, shop._slots.filter((slot) => slot !== undefined) as ItemCard[], true, "Select any number of items to discard from the shop.");
+        const selectionResult = await data.selectAndRecord(game, data.issuer, maxToDiscard, shop._slots.filter((slot) => slot !== undefined) as ItemCard[], true, "Select any number of items to discard from the shop.");
         for (const card of selectionResult.selected) {
             const index = shop._slots.indexOf(card);
             game.discardFromShop(index);
@@ -682,7 +683,7 @@ export function lookAndOrderEffect(deckName: string, numberOfCards: number, game
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         let cards = game.getFirstCardsOfDeck(deckName, numberOfCards);
-        let selectionResult = await game.select(data.issuer, numberOfCards, cards, false, `Select the order to put back the ${numberOfCards} cards on top of the ${deckName} deck (first selected will be on top).`);
+        let selectionResult = await data.selectAndRecord(game, data.issuer, numberOfCards, cards, false, `Select the order to put back the ${numberOfCards} cards on top of the ${deckName} deck (first selected will be on top).`, false);
         for (let i = 0; i < selectionResult.selected.length; i++) {
             game.addTopPosition(deckName, selectionResult.selected[numberOfCards - 1 - i]!);
         }
@@ -705,7 +706,7 @@ export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestinati
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const deck = selectionOnResolve 
-            ? (await game.select(data.issuer, 1, deckSelector(undefined, game)(data.issuer), false, "Select a deck to look at the top card of.")).selected[0]
+            ? (await data.selectAndRecord(game, data.issuer, 1, deckSelector(undefined, game)(data.issuer), false, "Select a deck to look at the top card of.", false)).selected[0]
             : data.next;
         if(!isDeckType(deck._type))
             throw new Error(`Invalid deck type: ${deck._type}`);
@@ -719,14 +720,14 @@ export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestinati
             : canPutWhere === "bottom" ? `Look at the top card of the ${deck._type} deck. You may put it on the bottom of the deck.` 
             : `Look at the top card of the ${deck._type} deck. You may put it on the bottom of the deck or discard it.`;
         const selectionResult = reveal
-         ? (await game.selectMultiple(game.players.map(player => ({
+         ? (await data.selectMultipleAndRecord(game, game.players.map(player => ({
                 player,
                 count: (justWatch || player !== data.issuer) ? 0 : 1,
                 options: [topCard!],
                 asMany: true,
                 description: description
             })))).find(p => p.playerId === data.issuer.id)!
-        : await game.select(data.issuer, justWatch ? 0 : 1, [topCard!], true, description);
+        : await data.selectAndRecord(game, data.issuer, justWatch ? 0 : 1, [topCard!], true, description, false);
         if (selectionResult.selected[0] === topCard) {
         switch (canPutWhere) {
             case "just_watch":
@@ -777,7 +778,7 @@ export function eachPlayersVoteToDestroyItemEffect(game: Game): EffectFunction {
             asMany: false,
             description: "Vote for an item to be destroyed."
         }));
-        const voteResults = await game.selectMultiple(voteRequests);
+        const voteResults = await data.selectMultipleAndRecord(game, voteRequests);
 
         // Count the votes
         const votes: Record<number, number> = {};
@@ -820,7 +821,7 @@ export function stealRandomLootCardEffect(game: Game): EffectFunction {
 export function stealAPlayerRandomLootCardEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const targetPlayer = (await game.select(data.issuer, 1, game.players.filter((p) => p !== data.issuer), false, "Select a player to steal a random loot card from.")).selected[0] as Player;
+        const targetPlayer = (await data.selectAndRecord(game, data.issuer, 1, game.players.filter((p) => p !== data.issuer), false, "Select a player to steal a random loot card from.")).selected[0] as Player;
         if (targetPlayer.hand.length > 0) {
             const randomIndex = Math.floor(game.random() * targetPlayer.hand.length);
             const cardToSteal = targetPlayer.hand.cards[randomIndex]!;
@@ -845,7 +846,7 @@ export function discardNLootCardsEffect(n: number, game: Game, selectionOnResolv
         if (data.issuer instanceof Player === false) return false;
         let toDiscard: LootCard[] = [];
         if (selectionOnResolve || !toDiscard) 
-            toDiscard = (await game.select(data.issuer, n, data.issuer.hand.cards, false, "Select a loot card to discard.")).selected as LootCard[];
+            toDiscard = (await data.selectAndRecord(game, data.issuer, n, data.issuer.hand.cards, false, `Select ${n} loot card${n > 1 ? 's' : ''} to discard.`)).selected as LootCard[];
         else 
             for (let i = 0; i < n; i++) {
                 toDiscard.push(data.next as LootCard);
@@ -864,7 +865,7 @@ export function discardNLootCardsEffect(n: number, game: Game, selectionOnResolv
 export function destroyOneOfYourSoulEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const soulToDestroy = (await game.select(data.issuer, 1, data.issuer.souls, false, "Select a soul to destroy.")).selected[0]!;
+        const soulToDestroy = (await data.selectAndRecord(game, data.issuer, 1, data.issuer.souls, false, "Select a soul to destroy.")).selected[0]!;
         return game.destroyCardsOrSouls([soulToDestroy]);
     };
 }
@@ -875,7 +876,7 @@ export function giveSoulEffect(game: Game): EffectFunction {
         const targetPlayer = data.next as Player;
         if(!targetPlayer)
             throw new Error("No target player to give soul to");
-        const soulToGive = (await game.select(data.issuer, 1, data.issuer.souls, false, "Select a soul to give.")).selected[0]!;
+        const soulToGive = (await data.selectAndRecord(game, data.issuer, 1, data.issuer.souls, false, "Select a soul to give.")).selected[0]!;
         game.give(data.issuer, targetPlayer, soulToGive);
         return true;
     };
@@ -884,12 +885,12 @@ export function giveSoulEffect(game: Game): EffectFunction {
 export function lookAtPlayerHandAndSwapEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const otherPlayer = (await game.select(data.issuer, 1, game.players.filter((p) => p !== data.issuer), false, "Select a player to look at their hand, and swap a loot card.")).selected[0] as Player;
+        const otherPlayer = (await data.selectAndRecord(game, data.issuer, 1, game.players.filter((p) => p !== data.issuer), false, "Select a player to look at their hand, and swap a loot card.")).selected[0] as Player;
         const canSwap = otherPlayer.hand.length > 0 && data.issuer.hand.length > 0;
-        const selection = await game.select(data.issuer, canSwap ? 1 : 0, otherPlayer.hand.cards, true, "Select a loot card to swap.");
+        const selection = await data.selectAndRecord(game, data.issuer, canSwap ? 1 : 0, otherPlayer.hand.cards, true, "Select a loot card to swap.", false);
         if (selection.selected.length === 0)
             return true;
-        const toGive = (await game.select(data.issuer, 1, data.issuer.hand.cards, false, "Select a loot card to give.")).selected[0] as LootCard;
+        const toGive = (await data.selectAndRecord(game, data.issuer, 1, data.issuer.hand.cards, false, "Select a loot card to give.", false)).selected[0] as LootCard;
         if (game.give(data.issuer, otherPlayer, toGive))
             game.give(otherPlayer, data.issuer, selection.selected[0] as LootCard);
         return true;
@@ -905,7 +906,7 @@ export function lookAtHandAndStealLootEffect(game: Game): EffectFunction {
         if(!(otherPlayer instanceof Player))
             throw new Error("Invalid target player");
         const canSteal = otherPlayer.hand.length > 0;
-        const selection = await game.select(data.issuer, canSteal ? 1 : 0, otherPlayer.hand.cards, true, "Select a loot card to steal.");
+        const selection = await data.selectAndRecord(game, data.issuer, canSteal ? 1 : 0, otherPlayer.hand.cards, true, "Select a loot card to steal.", false);
         if (selection.selected.length === 0)
             return true;
         game.give(otherPlayer, data.issuer, selection.selected[0] as LootCard);
@@ -959,7 +960,7 @@ export function changeRollTo1Or6Effect(game: Game): EffectFunction {
         if (data.issuer instanceof Player === false) return false;
         const choosenDiceRoll: DiceRoll = data.next as DiceRoll;
         const newValue: number = data.next as number;
-        // const selectionResult = await game.select(data.issuer, 1, [1, 6], false, "Select the value to change the roll to.");
+        // const selectionResult = await data.selectAndRecord(game, data.issuer, 1, [1, 6], false, "Select the value to change the roll to.");
         // const newValue = selectionResult.selected[0] as number;
         choosenDiceRoll.value = newValue;
         return true;
@@ -969,7 +970,7 @@ export function changeRollTo1Or6Effect(game: Game): EffectFunction {
 export function youMayRechargeThisEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const selectionResult = await game.select(data.issuer, 1, [data.it], true, "If you want to, you can recharge this item.");
+        const selectionResult = await data.selectAndRecord(game, data.issuer, 1, [data.it], true, "If you want to, you can recharge this item.");
         if (selectionResult.selected.length > 0) {
             game.recharge(data.it as ItemCard);
         }
@@ -980,7 +981,7 @@ export function youMayRechargeThisEffect(game: Game): EffectFunction {
 export function youMayRechargeAnItemEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const selectionResult = await game.select(data.issuer, 1, inplayUnchargedItemSelector(game)(data.issuer), true, "If you want to, select an item to recharge.");
+        const selectionResult = await data.selectAndRecord(game, data.issuer, 1, inplayUnchargedItemSelector(game)(data.issuer), true, "If you want to, select an item to recharge.");
         if (selectionResult.selected.length > 0) {
             game.recharge(selectionResult.selected[0] as ItemCard);
         }
@@ -1037,7 +1038,7 @@ export function loot1PutCardOnTopEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         game.loot(data.issuer, 1);
-        const cardToPutBack = (await game.select(data.issuer, 1, data.issuer.hand.cards, false, "Select a loot card to put on top of the loot deck.")).selected[0] as LootCard;
+        const cardToPutBack = (await data.selectAndRecord(game, data.issuer, 1, data.issuer.hand.cards, false, "Select a loot card to put on top of the loot deck.", false)).selected[0] as LootCard;
         const card = game.getCardFromHand(data.issuer, cardToPutBack);
         game.decks["loot"]!.addTopPosition(card);
         return true;
@@ -1081,7 +1082,7 @@ export function playerGivesLootCardEffect(game: Game): EffectFunction {
         if (data.issuer instanceof Player === false) return false;
         const targetPlayer = data.next as Player;
         if (targetPlayer.hand.length > 0) {
-            const cardToSteal = (await game.select(targetPlayer, 1, targetPlayer.hand.cards, false, "Select a loot card to steal.")).selected[0] as LootCard;
+            const cardToSteal = (await data.selectAndRecord(game, targetPlayer, 1, targetPlayer.hand.cards, false, "Select a loot card to steal.", false)).selected[0] as LootCard;
             game.stealLootCard(data.issuer, targetPlayer, cardToSteal);
         }
         return true;
@@ -1091,8 +1092,8 @@ export function playerGivesLootCardEffect(game: Game): EffectFunction {
 export function putMonsterFromDiscardOnTopEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const monsterToPutBack = (await game.select(data.issuer, 1, game.decks["monster"]!.discard.filter((card) => card.isEvent === false), false, 
-            "Select a discarded monster to put on top of the monster deck.")).selected[0] as MonsterCard;
+        const monsterToPutBack = (await data.selectAndRecord(game, data.issuer, 1, game.decks["monster"]!.discard.filter((card) => card.isEvent === false), false, 
+            "Select a discarded monster to put on top of the monster deck.", false)).selected[0] as MonsterCard;
         game.decks["monster"]!.remove(monsterToPutBack);
         game.decks["monster"]!.addTopPosition(monsterToPutBack);
         return true;
@@ -1126,7 +1127,7 @@ export function putTopCardFromDiscardOnTopEffect(game: Game): EffectFunction {
 export function putCardFromHandOnTopOfDeckEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const cardToPutBack = (await game.select(data.issuer, 1, data.issuer.hand.cards, false, "Select a loot card to put on top of the loot deck.")).selected[0] as LootCard;
+        const cardToPutBack = (await data.selectAndRecord(game, data.issuer, 1, data.issuer.hand.cards, false, "Select a loot card to put on top of the loot deck.", false)).selected[0] as LootCard;
         const card = game.getCardFromHand(data.issuer, cardToPutBack);
         game.decks["loot"]!.addTopPosition(card);
         return true;
@@ -1173,7 +1174,7 @@ export function dealDamageToAPlayerEffect(game: Game, dmg: number, canTargetSelf
     return async (data: EffectData) => {
         const issuer = issuerIsCurrentPlayer ? game.currentPlayer : data.issuer;
         if (issuer instanceof Player === false) return false;
-        const target = (await game.select(issuer, 1, game.players.filter((p) => (canTargetSelf ? true : p !== issuer)), false, "Select another player to deal damage to.")).selected[0] as Player;
+        const target = (await data.selectAndRecord(game, issuer, 1, game.players.filter((p) => (canTargetSelf ? true : p !== issuer)), false, "Select another player to deal damage to.")).selected[0] as Player;
         game.dealDamage(issuer, target, data.it, dmg);
         return true;
     };
@@ -1202,7 +1203,7 @@ export function putAnyNumberFromDiscardOnTopEffect(deckName: DeckType, game: Gam
             throw new Error(`Deck ${deckName} does not exist.`);
         }
         const maxToPutBack = deck.discard.length;
-        const selectionResult = await game.select(data.issuer, maxToPutBack, deck.discard.filter(condition), true, "Select cards to put back on top of the deck (first selected will be on top).");
+        const selectionResult = await data.selectAndRecord(game, data.issuer, maxToPutBack, deck.discard.filter(condition), true, "Select cards to put back on top of the deck (first selected will be on top).", false);
         for (let i = 0; i < selectionResult.selected.length; i++) {
             const card = selectionResult.selected[i]!;
             assertCardMatchesDeck(deckName, card);
@@ -1225,7 +1226,7 @@ export function rechargeCharaEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         if (data.issuer.character.charged === false) {
-            const selection = await game.select(data.issuer, 1, [data.issuer.character], true, "You may recharge your character.");
+            const selection = await data.selectAndRecord(game, data.issuer, 1, [data.issuer.character], true, "You may recharge your character.");
             if (selection.selected.length > 0)
                 game.recharge(data.issuer.character);
         }
@@ -1325,7 +1326,7 @@ export function killTargetEffect(game: Game, selectors: TargetsSelector[] = [], 
         if(selectionOnResolve){
             if(issuer instanceof Player === false) 
                 throw new Error("Issuer should be a player to select target for killTargetEffect.");
-            const target = await game.select(issuer as Player, 1, selectors[0]!.selector(issuer), false, "Select a target to kill.");
+            const target = await data.selectAndRecord(game, issuer as Player, 1, selectors[0]!.selector(issuer), false, "Select a target to kill.");
             game.kill(issuer, target.selected[0] as Entity, data.it);
             return true;
         }
@@ -1350,7 +1351,7 @@ export function deathTargetEffect(game: Game, selectionOnResolve: boolean = fals
         if(selectionOnResolve){
             if(data.issuer instanceof Player === false) 
                 throw new Error("Issuer should be a player to select target for deathTargetEffect.");
-            const target = await game.select(data.issuer as Player, 1, game.players, false, "Select a target to kill.");
+            const target = await data.selectAndRecord(game, data.issuer as Player, 1, game.players, false, "Select a target to kill.");
             game.death(target.selected[0] as Entity, data.issuer, data.it);
             return true;
         }
@@ -1460,7 +1461,7 @@ export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, de
         if(!isDeckType(deckName))
             throw new Error("Invalid deck type for lookAndReorderTopCardsEffect");
         const top5Cards = game.getFirstCardsOfDeck(deckName, numberCards);
-        const selectionResult = await game.select(data.issuer, numberCards, top5Cards, false, "Select the order to put back the cards (first selected will be on top).");
+        const selectionResult = await data.selectAndRecord(game, data.issuer, numberCards, top5Cards, false, "Select the order to put back the cards (first selected will be on top).", false);
         for (let i = selectionResult.selected.length - 1; i >= 0; i--) {
             game.addTopPosition(deckName, selectionResult.selected[i]!);
         }
@@ -1551,7 +1552,7 @@ export function rerollDiceByControllerEffect(game: Game): EffectFunction {
 export function putLootCardFromHandOnTopOfDeckEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const cardToPutBack = (await game.select(data.issuer, 1, data.issuer.hand.cards, false, "Select a loot card to put on top of the loot deck.")).selected[0] as LootCard;
+        const cardToPutBack = (await data.selectAndRecord(game, data.issuer, 1, data.issuer.hand.cards, false, "Select a loot card to put on top of the loot deck.", false)).selected[0] as LootCard;
         const card = game.getCardFromHand(data.issuer, cardToPutBack);
         game.decks["loot"]!.addTopPosition(card);
         return true;

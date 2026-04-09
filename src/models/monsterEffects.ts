@@ -47,7 +47,7 @@ export function thisHealsEffect(game: Game, amount: number): EffectFunction {
 export function activePlayerMayAttackMonsterDeckEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
-        const attack = await game.select(player, 1,[...game.encounters.visible.keys()], true, "Do you attack the monster deck ?");
+        const attack = await data.selectAndRecord(game, player, 1,[...game.encounters.visible.keys()], true, "Do you attack the monster deck ?");
         if(attack.selected.length > 0){
             player.attackThisTurn = Math.max(1, player.attackThisTurn);
             game.declareAttack(player);
@@ -70,7 +70,7 @@ export function activePlayerSelectAndCallEffect(game: Game, effectFunction: Effe
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
         
-        const targetSelection = await game.select(player, 1, game.players, false, "Select a player.");
+        const targetSelection = await data.selectAndRecord(game, player, 1, game.players, false, "Select a player.");
         const targetPlayer = targetSelection.selected[0] as Player;
         if(!targetPlayer){
             throw new Error("No player selected for activePlayerForcesPlayerToDiscardLootEffect.");
@@ -105,7 +105,7 @@ export function activePlayerIsTargetedByEffect(game: Game, effectFunction: Effec
 export function activePlayerSelectTargetEffect(game: Game, effectFunction: EffectFunction, ts: TargetsSelector): EffectFunction {
     return async (data: EffectData) => {
         const issuer = game.currentPlayer as Player;
-        const target = (await game.select(issuer as Player, ts.count, ts.selector(issuer as Player), ts.asMany, ts.description)).selected;
+        const target = (await data.selectAndRecord(game, issuer as Player, ts.count, ts.selector(issuer as Player), ts.asMany, ts.description)).selected;
         if(target.length > 0)
             await effectFunction(new EffectData(data.it, issuer, target));
         return true;
@@ -155,7 +155,7 @@ export function searchForBloatEffect(game: Game): EffectFunction {
         const theBloat = game.decks["monster"]!.cards.find(c => c.slug === "b2-the_bloat") as MonsterCard | undefined;
         if(!theBloat)
             return false;
-        const selection = (await game.select(player, 1, game.encounters.nonEngagedInCombat, false, "Where do you want to put The Bloat?")).selected[0];
+        const selection = (await data.selectAndRecord(game, player, 1, game.encounters.nonEngagedInCombat, false, "Where do you want to put The Bloat?", false)).selected[0];
         if(selection === undefined)
             throw new Error("No selection made for searchForBloatEffect.");
         const index:number = game.encounters.visible.indexOf(selection as MonsterCard);
@@ -561,7 +561,7 @@ export function playerWithMostCoinsLosesAllEffect(game: Game): EffectFunction {
                 maxCoins = p.coins;
         });
         const playersToLoseCoins = game.players.filter(p => p.coins === maxCoins);
-        const selection = (await game.select(game.currentPlayer as Player, 1, playersToLoseCoins, false, "Select a player who will lose all their coins.")).selected[0]!;
+        const selection = (await data.selectAndRecord(game, game.currentPlayer as Player, 1, playersToLoseCoins, false, "Select a player who will lose all their coins.")).selected[0]!;
         game.loseCoins(selection as Player, selection.coins, true);
         return true;
     };
@@ -595,7 +595,7 @@ export function activePlayerChoosePlayerDiscard2Effect(game: Game): EffectFuncti
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
         
-        const targetSelection = await game.select(player, 1, game.players, false, "Select a player to discard 2 loot cards.");
+        const targetSelection = await data.selectAndRecord(game, player, 1, game.players, false, "Select a player to discard 2 loot cards.");
         const targetPlayer = targetSelection.selected[0] as Player;
         if(!targetPlayer){
             throw new Error("No player selected for activePlayerChoosePlayerDiscard2Effect.");

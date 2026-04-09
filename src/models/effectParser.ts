@@ -131,14 +131,6 @@ const selectLootOnStack = (game: Game, count: number = 1, asMany: boolean = fals
 const selectNumber1to6 = (): TargetsSelector[] => 
     [createSelector("Choose a number (1-6)", () => [1, 2, 3, 4, 5, 6], 1, false)];
 
-function prepareEffectString(s: string): string {
-    s.replace("[Tap Effect]", ""); // remove tap effect marker
-    s.replace("Paid Effect]", ""); // remove paid effect marker
-    s.trim();
-    s.toLowerCase();
-
-    return s;
-}
 
 function replaceDiceSymbols(s: string): string {
     return s
@@ -245,7 +237,7 @@ export function parseYouMayEffect(s: string, game: Game): ParsedEffect {
             if (data.issuer instanceof Player === false) return false;
             let choice = !shouldHandleYouMay[0];
             if(!choice){
-                const selection = await game.select(data.issuer, 1, [data.it], true, "Use " + data.it.name + "'s effect?");
+                const selection = await data.selectAndRecord(game, data.issuer, 1, [data.it], true, "Use " + data.it.name + "'s effect?", false);
                 choice = selection.selected.length > 0;
             }
             if (choice) {

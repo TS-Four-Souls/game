@@ -1044,6 +1044,13 @@ function LoadsCardSets(json_array: GenericCardType[]) : CardSetsCollection {
     return sets;
 }
 
+function prepareEffectString(s: string): string {
+    s = s.replace("[Tap Effect]", ""); // remove tap effect marker
+    s = s.replace("Paid Effect]", ""); // remove paid effect marker
+    s = s.replace("[Curse Effect] ", ""); // remove curse effect marker
+    s = s.trim();
+    return s;
+}
 export class EffectOnStack extends StackElement {
     protected _effectFunction: EffectFunction
     protected _data: EffectData;
@@ -1055,7 +1062,7 @@ export class EffectOnStack extends StackElement {
         //     throw new Error("EffectOnStack constructor: data is undefined or null.");
         this._effectFunction = effectFunction;
         this._data = data;
-        this._description = description;
+        this._description = prepareEffectString(description);
     }
     async onResolve(): Promise<boolean> {
         return await this._effectFunction(this._data);
@@ -1073,7 +1080,7 @@ export class EffectOnStack extends StackElement {
         return { 
             type: "effect",
             issuer: this._data.issuer.json, 
-            targets: TargetBuilder.convertToSelectionItems(this._data.targets), 
+            targets: TargetBuilder.convertToSelectionItems([...this._data.targets, ...this._data.selectedOnResolve]), 
             card: this.data.it.jsonAPI, 
             effect: this._description,
             ...super.baseJson,
