@@ -294,6 +294,15 @@ export function parseEachTimeDeclareAttackEffect(s: string, game: Game): ParsedE
     };
 }
 
+export function parseEachTimeAnotherPlayerDiesEffect(s: string, game: Game): ParsedEffect {
+    const restOfEffect = s.substring("each time another player dies, ".length).trim();
+    const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
+    return {
+        effectFunction: passive.onAnotherPlayerEventEffect("on:death:before-penalty", [restParsed.effectFunction], game, s),
+        targetSelectors: restParsed.targetSelectors
+    };
+}
+
 export function parseEachTimeWouldRollEffect(s: string, game: Game): ParsedEffect {
     const restOfEffect = s.substring("each time a player would roll a 1, ".length).trim();
     const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
@@ -422,6 +431,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     }
     if (s.startsWith("each time you declare an attack, "))
         return parseEachTimeDeclareAttackEffect(s, game);
+    if (s.startsWith("each time another player dies, "))
+        return parseEachTimeAnotherPlayerDiesEffect(s, game);
     if (s.startsWith("each time a player would roll a "))
         return parseEachTimeWouldRollEffect(s, game);
     if (s.startsWith("at the end of your turn, "))
@@ -474,7 +485,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         const firstTrimmed = parts[0]!.trim();
         const secondTrimmed = parts[1]!.trim();
         const firstParsed = effectParser(firstTrimmed, game, defaultEffect, selectionOnResolve, youMayEffectHanging);
-        const secondParsed = effectParser(secondTrimmed, game, defaultEffect, selectionOnResolve, youMayEffectHanging);
+        const secondParsed = effectParser(secondTrimmed, game, defaultEffect, true, youMayEffectHanging);
         return {
             effectFunction: async (data:EffectData) => {
                 await firstParsed.effectFunction(data); 
@@ -675,6 +686,8 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
         case "choose a player or monster. they gain +1 [atk] till end of turn.":
         case "gain +1 [atk] till end of turn.":
             return { effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game)], 1, game), targetSelectors: selectPlayerOrMonster(game) };
+        case "gain +2 [atk] till end of turn.":
+            return { effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game)], 2, game), targetSelectors: selectPlayerOrMonster(game) };
         case "each monster gains +1 [atk] till end of turn.":
             return { effectFunction: passive.temporaryStatModifierEffect([game.addAttackToEachMonster.bind(game)], 1, game), targetSelectors: noTargets };
         case "each monster gains +1 [dc] till end of turn.":

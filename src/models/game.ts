@@ -51,6 +51,7 @@ export type DamageSource = Card | DiceRoll;
 
 const LOG_GAME = false;
 export const cards = await loadCards(process.cwd() + "/data/cards");
+
 /*
  * The Game class is the central hub of the game logic, managing the state of the game, players, monsters, decks, shop, encounters, stack, and more. 
  * It also handles all player actions such as declaring attacks, dealing damage, resolving deaths, and managing the game history. 
@@ -1883,6 +1884,8 @@ export class Game {
       "b2-fatty",
       "b2-trite",
       "b2-pale_fatty",
+      "fsp2-nerve_ending",
+      "fsp2-widow",
     ];
     if (
       (!card.effectOutcomes || card.effectOutcomes.length === 0) &&
@@ -2044,7 +2047,9 @@ export class Game {
   }
 
   /** Grants extra loot plays this turn. */
-  addLootPlay(e: Player, value: number): void {
+  addLootPlay(e: Entity, value: number): void {
+    if(!(e instanceof Player))
+      throw new Error("Loot play modifier can only be added to players.");
     e.addLootPlay(value);
   }
 
@@ -3083,5 +3088,15 @@ export class Game {
     ) {
       throw new Error("An attack is already ongoing");
     }
+  }
+}
+export const cardsExtension = await loadCards(process.cwd() + "/data/extension");
+const game: Game = new Game();
+const decks:DecksCollection = LoadDecks(cardsExtension, 3, false, game.random);
+
+for (const card of decks["eternal"].cards.toSorted((a, b) => a.name.localeCompare(b.name))) {
+  if (card.type === "eternal") {
+    for(const effect of card.effectOutcomes)
+      console.log(`${card.slug} - ${effect}`);
   }
 }
