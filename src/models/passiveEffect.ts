@@ -24,6 +24,7 @@ import type {
     OnLootStepData,
     OnLootWouldData
 } from "./types/eventTypes";
+import { Entity } from "./entity";
 
 function getTemporaryEffect(data: EffectData, description: string): TemporaryEffect {
     return{
@@ -89,7 +90,7 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): EffectF
 // Card text examples: "+X [stat] till end of turn" or "Gain +X [stat] this turn."
 // This modifies the stat value directly rather than replacing an event.
 export function temporaryStatModifierEffect(
-    adders: ((player: Player, value: number) => void)[],
+    adders: ((entity: Entity, value: number) => void)[],
     amount: number,
     game: Game
 ): EffectFunction {
@@ -100,7 +101,9 @@ export function temporaryStatModifierEffect(
         let next = data.peek();
         if (next && next instanceof DiceRoll)
             next = next.issuer;
-        const target = data.targets.length > 0 ? next : data.issuer;
+        const target = (data.targets.length > 0 && next instanceof Player) ? next : data.issuer;
+        // if(!target || !(target instanceof Player))
+        //     throw new Error("temporaryStatModifierEffect target must be a Player.");
         const temp: TemporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
         target.addTemporaryEffect(temp);
 
@@ -496,6 +499,41 @@ export function onYourEventEffect(
         
         offDamage = game.emitter.on(triggerEvent, ({ eventIssuer }) => {
             if (data.issuer !== eventIssuer) return;
+            
+            // Add all effects as a single stack element
+            const effect = async (effectData: EffectData) => {
+                for (const func of effectFunctions) {
+                    await func(effectData);
+                }
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, description);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
+/*
+TRIGGERED EFFECT: Uses the stack.
+Each time triggerEvent triggers, if you are the eventIssuer, call effectFunctions.
+*/
+export function onAnotherPlayerEventEffect(
+    triggerEvent: TriggerEvent,
+    effectFunctions: EffectFunction[],
+    game: Game,
+    description: string
+): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        
+        offDamage = game.emitter.on(triggerEvent, ({ eventIssuer }) => {
+            if (data.issuer === eventIssuer) return;
             
             // Add all effects as a single stack element
             const effect = async (effectData: EffectData) => {
