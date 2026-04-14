@@ -15,7 +15,7 @@ describe("Monsters - On death effects", () => {
         const setup = setupTestGame({
             characters: ["b2-samson", "b2-isaac"],
             monsters: ["b2-fly", "b2-fatty"],
-            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            monsterDeck: ["b2-red_host", "b2-pooter"],
             treasureDeck: ["b2-blank_card"],
         });
         game = setup.game;
@@ -33,13 +33,12 @@ describe("Monsters - On death effects", () => {
             game.monsterSlots.forceSetMonsterAtSlot(0, bigSpider);
             const spiderMonster = game.monsters[0]!;
             
-            const initialAttacks = player1.attackThisTurn;
-            
             // Mock selection to choose "Yes" for attacking monster deck
             game.select = async (_p, n, opts) => {
                     return { selected: [opts[0]], remaining: opts.slice(1) } as any;
             };
-            
+            game.declareAttack(player1);
+            game.declareAttackOnMonster(player1, spiderMonster);
             // Kill the Big Spider by dealing lethal damage
             game.kill(spiderMonster, spiderMonster, bigSpider);
             
@@ -51,7 +50,10 @@ describe("Monsters - On death effects", () => {
             expect(game.encounters.monsterIn(0)).toBeDefined();
             expect(game.encounters.monsterIn(0)?.card.slug).toBe("b2-pooter");
             // Check that the player has declared an attack
-            expect(player1.isEngagedInCombat).toBe(true);
+            game.declareAttack(player1); // declare attack to engage in combat
+            expect(game.canDeclareAttackOnMonster(player1, game.monsters[0]!, false)).not.toBe(true);
+            expect(game.canDeclareAttackOnMonster(player1, game.monsters[0]!, false)).not.toBe(true);
+            expect(game.canDeclareAttackOnMonster(player1, "topDeck", false)).toBe(true);
         });
 
         it("active player can choose not to attack the monster deck when Big Spider dies", async () => {
@@ -87,10 +89,8 @@ describe("Monsters - On death effects", () => {
             
             
             let selectionCount = 0;
-            game.select = async (_p, n, opts) => {
-                selectionCount += 1;
-                return { selected: [opts[0]], remaining: opts.slice(1) } as any;
-            };
+            game.declareAttack(player1);
+            game.declareAttackOnMonster(player1, spiderMonster);
             game.dealDamage(player1, spiderMonster, bigSpider, 1);
             await game.resolveStack();
 
@@ -101,8 +101,10 @@ describe("Monsters - On death effects", () => {
             await game.resolveStack(); // resolve death effect - should ask player1
             
             // Verify that the selection was made (effect triggered)
-            expect(selectionCount).toBe(1);
-            expect(player1.isEngagedInCombat).toBe(true);
+            game.declareAttack(player1); // declare attack to engage in combat
+            expect(game.canDeclareAttackOnMonster(player1, game.monsters[0]!, false)).not.toBe(true);
+            expect(game.canDeclareAttackOnMonster(player1, game.monsters[0]!, false)).not.toBe(true);
+            expect(game.canDeclareAttackOnMonster(player1, "topDeck", false)).toBe(true);
 
         });
     });
@@ -127,7 +129,6 @@ describe("Monsters - On death effects", () => {
             await game.resolveStack(); // resolve death effect - selection
             // Check that the player has declared an attack
             expect(player1.isEngagedInCombat).toBe(true);
-            expect(player1.attackThisTurn).toBe(initialAttacks - 1);
         });
 
     it("active player choose a player that discard 2 loot cards when dank_globin dies.", async () => {

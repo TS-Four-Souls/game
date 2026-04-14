@@ -16,7 +16,7 @@ async function characterAdd1LootPlay(player1: Player, game: Game) {
     expect(player1.remainingLootPlay).toBe(lootPlay + 1);
 }
 
-describe("Eternal Items", () => {
+describe("Four Souls+2 Eternal Items", () => {
     let game: Game;
     let player1: Player;
     let player2: Player;

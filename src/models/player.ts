@@ -6,6 +6,7 @@ import { TargetBuilder } from "./targetBuilder";
 import { StackElement } from "./stackElement";
 import type { EntityType } from "@/shared/api";
 import type { DamageOnStackJson, DeathOnStackJson, DiceRollJson, TemporaryEffect } from "@/shared/api";
+
 /**
  * Represents a player in the Four Souls game.
  * 
@@ -60,9 +61,12 @@ export class Player extends Entity {
   /** @private Monsters or deck that this player must attack, with the card that gave the requirement */
   private _mustAttackMonster: { target: Monster | "topDeck", source: Card }[] = [];
 
+  /** @private List of monsters or deck positions the player may attack additionally. Note that non-free attacks are consumed first.*/
+  private _mayAttackForFree: { target: Monster | "topDeck", nb: number }[] = [];
+
   private _diceModifier: number = 0;
-  
-  private _otherPlayerCanUseLootOrActivateOnMyTurn: boolean = true;
+
+  private _canIUseLootOrActivateThisTurn: number = 0;
 
   private _engagedInPurchase: number = 0;
 
@@ -109,7 +113,27 @@ export class Player extends Entity {
   get mustAttackMonster(): { target: Monster | "topDeck", source: Card }[] {
     return this._mustAttackMonster;
   }
+
+  get mayAttackForFree(): { target: Monster | "topDeck", nb: number }[] {
+    return this._mayAttackForFree;
+  }
+
+  mayAttackForFreeThis(target: Monster | "topDeck", nb: number): void {
+    this._mayAttackForFree.push({ target, nb });
+  }
+
+  attackForFree(target: Monster | "topDeck"): boolean {
+    const freeAttack = this._mayAttackForFree.find(free => free.target === target && free.nb > 0);
+    if (freeAttack) {
+      freeAttack.nb -= 1;
+      return true;
+    }
+    return false;
+  }
   
+  get hasFreeAttackRemaining(): boolean {
+    return this._mayAttackForFree.some(free => free.nb > 0);
+  }
   /**
    * Adds a monster or deck position to the list of required attack targets.
    * @param value - The monster or "topDeck" that must be attacked
@@ -138,8 +162,11 @@ export class Player extends Entity {
    * Returns true if attacking this element satisfies the requirement
    */
   canAttackThisMonster(elem: (Monster | "topDeck")): boolean {
-    if (this._mustAttackMonster.length === 0) return true; // No requirement
-    return this._mustAttackMonster.some(req => req.target === elem); // Must be in the list
+    if (this._mustAttackMonster.length > 0)
+      return this._mustAttackMonster.some(req => req.target === elem); // Must be in the list
+    if (this.attackThisTurn > 0)
+      return true; // If no requirement, any attack is valid as long as player has attacks left
+    return this.mayAttackForFree.some(free => free.target === elem && free.nb > 0); // Check if it's a free attack
   }
   
   /**
@@ -160,6 +187,69 @@ export class Player extends Entity {
     }
   }
 
+  attackThisId(id: "monster" | "topDeck"): void {
+    this._attackedIdsThisTurn.push(id);
+  }
+  
+  get attackedIdsThisTurn(): ("monster" | "topDeck")[] {
+    return this._attackedIdsThisTurn;
+  }
+
+  /**
+   * Gets the number of attacks the player has made this turn.
+   * @returns Number of attacks this turn
+   */
+  get attackThisTurn(): number {
+    return this._attackThisTurn;
+  }
+  
+  /**
+   * Sets the number of attacks made this turn.
+   * @param value - New attack count
+   */
+  set attackThisTurn(value: number) {
+    this._attackThisTurn = value;
+  }
+
+  /**
+   * Gets the number of attack rolls made this turn.
+   * @returns Number of attack rolls this turn
+   */
+  get attackRollThisTurn(): number {
+    return this._attackRollThisTurn;
+  }  
+   
+  /**
+   * Sets the number of attack rolls made this turn.
+   * @param value - New attack roll count
+   */
+  set attackRollThisTurn(value: number) {
+    this._attackRollThisTurn = value;
+  }
+/**
+   * Increments the number of attacks made this turn.
+   * @param value - Amount to add to attack count
+   */
+  addAttackThisTurn(value: number): void {
+    this._attackThisTurn += value;
+  }
+
+  /**
+   * Records that this player completed attack declaration on a target.
+   */
+  registerAttackDeclaration(targetRequirement: Monster | "topDeck"): void {
+    const targetKind = targetRequirement === "topDeck" ? "topDeck" : "monster";
+    if(this.attackThisTurn <= 0 && !this.hasAttackRequirement)
+      if(!this.attackForFree(targetRequirement))
+        throw new Error("No attacks remaining for this player this turn.");
+    if (targetRequirement !== undefined) {
+      this.clearAttackRequirement(targetRequirement);
+    }
+    this.attackThisId(targetKind);
+    this.attackThisTurn = Math.max(0, this._attackThisTurn - 1);
+  }
+
+
   /**
    * Checks if the player can see the top card of the treasure deck.
    * @returns true if the player has this ability active
@@ -168,24 +258,25 @@ export class Player extends Entity {
     return this._canSeeTopOfTreasureDeck > 0;
   }
   
-  get otherPlayerCanUseLootOrActivateOnMyTurn(): boolean {
-    return this._otherPlayerCanUseLootOrActivateOnMyTurn;
+
+  get canIUseLootOrActivateThisTurn(): boolean {
+    return this._canIUseLootOrActivateThisTurn === 0;
   }
 
-  set otherPlayerCanUseLootOrActivateOnMyTurn(value: boolean) {
-    this._otherPlayerCanUseLootOrActivateOnMyTurn = value;
+  addToCanIUseLootOrActivateThisTurn(valueToAdd: number) {
+    this._canIUseLootOrActivateThisTurn += valueToAdd;
+    if(this._canIUseLootOrActivateThisTurn < 0) {
+      this._canIUseLootOrActivateThisTurn = 0;
+    }
   }
+
+  resetCanIUseLootOrActivateThisTurn() {
+    this._canIUseLootOrActivateThisTurn = 0;
+  }
+
 
   get isEngagedInPurchase(): boolean {
     return this._engagedInPurchase > 0;
-  }
-
-  attackThisId(id: "monster" | "topDeck"): void {
-    this._attackedIdsThisTurn.push(id);
-  }
-  
-  get attackedIdsThisTurn(): ("monster" | "topDeck")[] {
-    return this._attackedIdsThisTurn;
   }
 
   purchaseEnded(){
@@ -271,30 +362,6 @@ export class Player extends Entity {
   }
 
   /**
-   * Gets the number of attacks the player has made this turn.
-   * @returns Number of attacks this turn
-   */
-  get attackThisTurn(): number {
-    return this._attackThisTurn;
-  }
-  
-  /**
-   * Sets the number of attacks made this turn.
-   * @param value - New attack count
-   */
-  set attackThisTurn(value: number) {
-    this._attackThisTurn = value;
-  }
-
-  /**
-   * Gets the number of attack rolls made this turn.
-   * @returns Number of attack rolls this turn
-   */
-  get attackRollThisTurn(): number {
-    return this._attackRollThisTurn;
-  }  
-  
-  /**
    * Gets the player's character card.
    * @returns The character card in play
    * @throws {Error} If no character card is in play
@@ -307,15 +374,7 @@ export class Player extends Entity {
     }
     throw new Error("No character card in play for this player.");
   }
-  
-  /**
-   * Sets the number of attack rolls made this turn.
-   * @param value - New attack roll count
-   */
-  set attackRollThisTurn(value: number) {
-    this._attackRollThisTurn = value;
-  }
-
+ 
   get curses(): MonsterCard[] {
     return this._curses;
   }
@@ -332,12 +391,14 @@ export class Player extends Entity {
     }
     return false;
   }
+  
   /**
-   * Increments the number of attacks made this turn.
-   * @param value - Amount to add to attack count
+   * Initializes per-turn action counters for this player.
    */
-  addAttackThisTurn(value: number): void {
-    this._attackThisTurn += value;
+  initializeTurnCounters(isCurrentPlayer: boolean, lootPlayPerTurn: number): void {
+    this._remainingLootPlay = isCurrentPlayer ? lootPlayPerTurn : 0;
+    this._attackThisTurn = isCurrentPlayer ? 1 : 0;
+    this._remainingPurchaseThisTurn = isCurrentPlayer ? 1 : 0;
   }
 
   /**
@@ -473,8 +534,10 @@ export class Player extends Entity {
     this._attackThisTurn = 0;
     this._attackRollThisTurn = 0;
     this._remainingPurchaseThisTurn = 0;
+    this.resetCanIUseLootOrActivateThisTurn();
     this._attackedIdsThisTurn = [];
     this._mustAttackMonster = [];
+    this._mayAttackForFree = [];
     this.resetEntityFlags();
   }
   /**

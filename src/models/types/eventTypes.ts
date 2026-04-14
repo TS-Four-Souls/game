@@ -269,6 +269,7 @@ export type TriggerEventDataMap = {
   "on:loot:played": OnLootPlayedData;
   "on:game:start:before": OnGameStartBeforeData;
   "on:game:start": OnGameStartData;
+  "on:attack:roll:failed": OnAttackRollData;
 };
 
 export type TriggerEvent = keyof TriggerEventDataMap;

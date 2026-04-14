@@ -121,6 +121,52 @@ export function temporaryStatModifierEffect(
         return true;
     };
 }
+/**
+ * Set coin gain to 0, but add it as a target for other effects to reference.
+ * @param effectFunctions 
+ * @param game 
+ * @param description 
+ * @returns 
+ */
+export function interceptFirstGainCoinYourTurnEffect(effectFunctions: EffectFunction[],
+    game: Game, description: string): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        let offTurn: (() => void) | null = null;
+
+        let active = true;
+        offDamage = game.emitter.on("on:coin:gained", ({ eventIssuer, coinGained }) => {
+            if (data.issuer !== eventIssuer) return;
+            if(!active) return;
+            active = false;
+            data.addTarget([coinGained[0]]);
+            // Add all effects as a single stack element
+            const effect = async (effectData: EffectData) => {
+                for (const func of effectFunctions) {
+                    await func(effectData);
+                }
+                active = false;
+                return true;
+            };
+            coinGained[0] = 0;
+            addPassiveEffectToStack(game, effect, data, description);
+        });
+
+        offTurn = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
+            if (data.issuer !== eventIssuer) return;
+            active = true;
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offTurn?.();
+            offDamage = null;
+            offTurn = null;
+        });
+        return true;
+    };
+}
 
 // Associated with the coin gained replacement effect. It is therefore also considered as a replacement effect.
 export function lvlXaddListenerEffect(
@@ -171,10 +217,38 @@ export function noPriorityPassesOnYourTurnEffect(game: Game): EffectFunction {
         const issuer = data.issuer;
         if(!(issuer instanceof Player))
             throw new Error("noPriorityPassesOnYourTurnEffect can only be applied to Players.");
-        issuer.otherPlayerCanUseLootOrActivateOnMyTurn = false;
+
+        // Apply immediately if this effect starts during issuer's turn.
+        if (game.currentPlayer === issuer) {
+            game.applyLootOrActivateRestrictionForCurrentTurn(issuer);
+        }
+
+        let offStartTurn = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
+            if (eventIssuer !== issuer) return;
+            game.applyLootOrActivateRestrictionForCurrentTurn(issuer);
+        });
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
-            issuer.otherPlayerCanUseLootOrActivateOnMyTurn = true;
+            if(game.currentPlayer === issuer)
+                game.applyLootOrActivateRestrictionForCurrentTurn(issuer, -1);
+            offStartTurn();
+        });
+        return true;
+    };
+}
+
+// REPLACEMENT EFFECT: Continuous priority modification - does not use the stack.
+export function noPriorityPassesTillEndOfTurnEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offEndTurn: (() => void) | null = null;
+        const issuer = data.issuer;
+        if(!(issuer instanceof Player))
+            throw new Error("noPriorityPassesTillEndOfTurnEffect can only be applied to Players.");
+
+        game.applyLootOrActivateRestrictionForCurrentTurn(issuer);
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            game.applyLootOrActivateRestrictionForCurrentTurn(issuer, -1);
         });
         return true;
     };

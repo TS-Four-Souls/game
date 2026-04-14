@@ -44,15 +44,10 @@ export function thisHealsEffect(game: Game, amount: number): EffectFunction {
     };
 }
 
-export function activePlayerMayAttackMonsterDeckEffect(game: Game): EffectFunction {
+export function activePlayerMayAttackMonsterDeckEffect(game: Game, numberOfTimes: number): EffectFunction {
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
-        const attack = await data.selectAndRecord(game, player, 1,[...game.encounters.visible.keys()], true, "Do you attack the monster deck ?");
-        if(attack.selected.length > 0){
-            player.attackThisTurn = Math.max(1, player.attackThisTurn);
-            game.declareAttack(player);
-            game.declareAttackOnMonster(player, "topDeck", attack.selected[0]);
-        }
+        player.mayAttackForFreeThis("topDeck", numberOfTimes);
         return true;
     };
 }
