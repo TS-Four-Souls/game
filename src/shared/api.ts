@@ -486,6 +486,7 @@ export type SetGameParameterRequest = z.infer<
 const playerSchema = z.object({
   name: z.string(),
   handSize: z.number(),
+  hand: z.array(cardSchema).optional(),
   inPlay: z.array(inPlayCardSchema),
   souls: z.number(),
   soulCards: z.array(cardSchema),
