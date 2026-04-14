@@ -1,0 +1,460 @@
+import { describe, it, expect, beforeEach } from "bun:test";
+import { Game } from "../../models/game";
+import { DiceRoll, Player } from "../../models/player";
+import { pl } from "zod/locales";
+import type { LootCard, ItemCard, TreasureCard, TargetsSelector } from "@/models/cards";
+import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame } from "../testHelpers";
+import type { Target } from "bun";
+
+async function characterAdd1LootPlay(player1: Player, game: Game) {
+    // verify character card works.
+    const lootPlay = player1.remainingLootPlay;
+    game.recharge(player1.inPlay[0] as ItemCard);
+    await game.activateItem(player1, player1.inPlay[0]!, [], "tap");
+    await game.resolveStack();
+    await game.resolveStack();
+    expect(player1.remainingLootPlay).toBe(lootPlay + 1);
+}
+
+describe("Four Souls+2 Loot Cards", () => {
+    let game: Game;
+    let player1: Player;
+    let player2: Player;
+
+    beforeEach(() => {
+        const setup = setupTestGame({
+                    characters: ["fsp2-guppy", "b2-samson"],
+                    monsters: ["b2-fly", "b2-fatty"],
+                    monsterDeck: ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip","b2-leech","b2-gurdy"],
+                    treasureDeck: ["b2-boomerang", "b2-guppys_head", "b2-no", "b2-blank_card"],
+                    playerCount: 2
+                });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+    });
+ 
+it("fsp2-gold_key - The active player may attack the monster deck any number of times till end of turn.", async () => {
+        const card1 = game.obtainCard("fsp2-gold_key") as LootCard;
+        game.addCardToHand(player1, card1);
+        await game.playCard(player1, player1.hand.length - 1, []);
+        await game.resolveStack();
+        
+        for(let i = 0; i < 5; i++){
+            game.declareAttack(player1);
+            game.declareAttackOnMonster(player1, "topDeck", 0);
+            game.kill(player1, game.encounters.monsterIn(0)!, player1.inPlay[0] as ItemCard);
+            await game.resolveStack();
+        }
+        game.declareAttack(player1);
+
+        expect(game.canDeclareAttackOnMonster(player1, "topDeck", false)).toBe(true);
+    });
+
+it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another player.", async () => {
+        const card1 = game.obtainCard("fsp2-tape_worm") as LootCard;
+        game.addCardToHand(player1, card1);
+        await game.playCard(player1, player1.hand.length - 1, []);
+        await game.resolveStack();
+        
+        const hp = player2.currentHealthPoints;
+        game.declareAttack(player1);
+        game.declareAttackOnMonster(player1, game.monsters[0]!);
+        game.random = () => 1/6 - 0.001; // roll 1, so attack misses
+        game.select = (_issuer, _n, opts, _optional) => {
+            return { selected: [player2], remaining: [] } as any;
+        };
+        game.attackRoll(player1);
+        await game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
+
+        // Player1 should have 1 more card, player2 should have 1 less
+        expect(hp-1).toBe(player2.currentHealthPoints);
+    });
+
+
+    it("fsp2-questionmark_card - As you play this, choose an item. This copies one of that item's ↷ abilities.", async () => {
+        const card1 = game.obtainCard("fsp2-questionmark_card") as LootCard;
+        game.addCardToHand(player1, card1);
+        const boomerang = game.obtainCard("b2-boomerang") as ItemCard;
+        game.addInPlay(player2, boomerang);
+        await game.playCard(player1, player1.hand.length - 1, [boomerang]);
+        
+        // Give player2 some loot cards
+        game.loot(player2, 3);
+        const initialP1Hand = player1.hand.length;
+        const initialP2Hand = player2.hand.length;
+        
+        game.select = async (_issuer, _n, opts, _optional) => {
+            return { selected: [{type: "player", payload: {name: player2.json.name, slug: player2.json.slug, globalId: player2.json.globalId}}], remaining: [] } as any;
+        };
+        await game.resolveStack();
+        await game.resolveStack();
+        await game.resolveStack();
+
+        // Player1 should have 1 more card, player2 should have 1 less
+        expect(player1.hand.length).toBe(initialP1Hand + 1);
+        expect(player2.hand.length).toBe(initialP2Hand - 1);
+    });
+
+    it("fsp2-the_left_hand - Each time another player dies, you may recharge an item.", async () => {
+        const card1 = game.obtainCard("fsp2-the_left_hand") as LootCard;
+        game.addCardToHand(player1, card1);
+        game.gainTreasure(player1, 3);
+        await game.playCard(player1, player1.hand.length - 1, []);
+        await game.resolveStack();
+        player1.inPlay[1]!.charged = false;
+        player1.inPlay[2]!.charged = false;
+        player1.inPlay[3]!.charged = false;
+        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+            if(Options.includes(player1.inPlay[2]!))
+                return { selected: [player1.inPlay[2]!],
+                    remaining: []
+                };
+            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+        };
+        game.kill(player2, player2, player1.inPlay[1]!);
+        await game.resolveStack();
+        await game.resolveStack();
+        expect(player1.inPlay[1]!.charged).toBe(false);
+        expect(player1.inPlay[2]!.charged).toBe(true);
+        expect(player1.inPlay[3]!.charged).toBe(false);
+    });
+
+
+    it("fsp2-get_out_of_jail_card - Other players can't play loot cards or activate items till end of turn.", async () => {
+        const card1 = game.obtainCard("fsp2-get_out_of_jail_card") as LootCard;
+        game.addCardToHand(player1, card1);
+    
+        await game.playCard(player1, player1.hand.length - 1, []);
+        await game.resolveStack();
+        expect(player2.canIUseLootOrActivateThisTurn).toBe(false);
+        game.endTurn();
+        await game.resolveEntireStack();
+        expect(player2.canIUseLootOrActivateThisTurn).toBe(true);
+        game.endTurn();
+        await game.resolveEntireStack();
+        expect(player2.canIUseLootOrActivateThisTurn).toBe(true);
+    });
+
+    it("fsp2-perthro - Reroll an item.", async () => {
+        const card1 = game.obtainCard("fsp2-perthro") as LootCard;
+        game.gainTreasure(player1);
+        const treasure = player1.inPlay[2]!;
+        expect(treasure.slug).toBe("b2-blank_card");
+        game.addCardToHand(player1, card1);
+        await game.playCard(player1, player1.hand.length - 1, [treasure]);
+        await game.resolveStack();
+        expect(player1.inPlay[2]).not.toBe(treasure);
+        expect(player1.inPlay[2]?.slug).toBe("b2-no");
+    });
+
+    it("fsp2-pills_3 - 1-2: Deal 1 damage to a player.", async () => {
+        const card1 = game.obtainCard("fsp2-pills_3") as LootCard;
+        game.random = () => 2/6 - 0.001; // roll 2
+        const health = player2.currentHealthPoints;
+        game.addCardToHand(player1, card1);
+        await game.playCard(player1, player1.hand.length - 1, []);
+        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+            expect(Options.length).toBe(2);
+            if(Options[1] === player2)
+                return { selected: [player2],
+                    remaining: []
+                };
+            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+        };
+        await game.resolveStack(); // card
+        await game.resolveStack(); // roll
+        await game.resolveStack(); // damage
+        expect(player2.currentHealthPoints).toBe(health - 1);
+    });
+
+    it("fsp2-pills_3 - 3-4: Deal 1 damage to a monster.", async () => {
+        const card1 = game.obtainCard("fsp2-pills_3") as LootCard;
+        game.random = () => 4/6 - 0.001; // roll 4
+        const health = game.monsters[1]!.currentHealthPoints;
+        game.addCardToHand(player1, card1);
+        await game.playCard(player1, player1.hand.length - 1, []);
+        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+            expect(Options.length).toBe(2);
+            if(Options[1] === game.monsters[1]!)
+                return { selected: [game.monsters[1]!],
+                    remaining: []
+                };
+            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+        };
+        await game.resolveStack(); // card
+        await game.resolveStack(); // roll
+        await game.resolveStack(); // damage
+        expect(game.monsters[1]!.currentHealthPoints).toBe(health - 1);
+    });
+
+    it("fsp2-pills_3 - 5-6: Take 1 damage.", async () => {
+        const card1 = game.obtainCard("fsp2-pills_3") as LootCard;
+        game.random = () => 5/6 - 0.001; // roll 5
+        const health = player1.currentHealthPoints;
+        game.addCardToHand(player1, card1);
+        await game.playCard(player1, player1.hand.length - 1, []);
+        await game.resolveStack(); // card
+        await game.resolveStack(); // roll
+        await game.resolveStack(); // damage
+        expect(player1.currentHealthPoints).toBe(health - 1);
+    });
+
+    
+    it("fsp2-black_rune - 1-2: Deal 1 damage to each monster.", async () => {
+        const card1 = game.obtainCard("fsp2-black_rune") as LootCard;
+        game.random = () => 2/6 - 0.001; // roll 2
+        const monstersHP = game.monsters.map(m => m.currentHealthPoints);
+        game.addCardToHand(player1, card1);
+        await game.playCard(player1, player1.hand.length - 1, []);
+
+        await game.resolveStack(); // card
+        await game.resolveStack(); // roll
+        await game.resolveStack(); // damage
+        await game.resolveStack(); // damage
+        // Technically, fly dies but we don't resolve it.
+        expect(game.monsters.map(m => m.currentHealthPoints + 1)).toEqual(monstersHP);
+    });
+
+    it("fsp2-black_rune - 3-4: Reroll an item.", async () => {
+        const card1 = game.obtainCard("fsp2-black_rune") as LootCard;
+        game.random = () => 3/6 - 0.001; // roll 3
+        game.gainTreasure(player1, 2);
+        const treasure = player1.inPlay[2]!;
+        const treasure2 = player1.inPlay[3]!;
+        game.addCardToHand(player1, card1);
+        await game.playCard(player1, player1.hand.length - 1, []);
+        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+            if(Options[1] === treasure2)
+                return { selected: [treasure2],
+                    remaining: []
+                };
+            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+        };
+        await game.resolveStack(); // card
+        await game.resolveStack(); // roll
+        expect(player1.inPlay[3]).not.toBe(treasure2);
+        expect(player1.inPlay[2]).toBe(treasure);
+    });
+
+    it("fsp2-black_rune - 5-6: Discard your hand, then loot 3.", async () => {
+        const card1 = game.obtainCard("fsp2-black_rune") as LootCard;
+        game.random = () => 6/6 - 0.001; // roll 6
+        
+        game.addCardToHand(player1, card1);
+        await game.playCard(player1, player1.hand.length - 1, []);
+        game.loot(player1, 7);
+        const handSize = player1.hand.length;
+        const slugs = player1.hand.cards.map(c => c.slug);
+        expect(handSize).toBe(7);
+        await game.resolveStack(); // card
+        await game.resolveStack(); // roll
+        expect(player1.hand.length).toBe(3);
+        for(const slug of slugs)
+        {
+            expect(player1.hand.cards.find(c => c.slug === slug)).toBeUndefined();
+            expect(game.decks.loot.discard.findIndex(c => c.slug === slug)).toBeGreaterThanOrEqual(0);
+        }
+    });
+
+    it("fsp2-pills_2 - 1-2: Reroll an item you control.", async () => {
+        const card1 = game.obtainCard("fsp2-pills_2") as LootCard;
+        game.random = () => 1/6 - 0.001; // roll 1
+        game.gainTreasure(player1, 2);
+        const treasure = player1.inPlay[2]!;
+        expect(treasure.slug).toBe("b2-blank_card");
+        const treasure2 = player1.inPlay[3]!;
+        expect(treasure2.slug).toBe("b2-no");
+        game.addCardToHand(player1, card1);
+        await game.playCard(player1, player1.hand.length - 1, []);
+        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+            if(Options[1] === treasure2)
+                return { selected: [treasure2],
+                    remaining: []
+                };
+            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+        };
+        await game.resolveStack(); // card
+        await game.resolveStack(); // roll
+        expect(player1.inPlay[3]).not.toBe(treasure2);
+        expect(player1.inPlay[3]?.slug).toBe("b2-guppys_head");
+        expect(player1.inPlay[2]).toBe(treasure);
+    });
+
+    it("fsp2-pills_2 - 3-4: Reroll an item (from the shop).", async () => {
+        const card1 = game.obtainCard("fsp2-pills_2") as LootCard;
+        game.random = () => 3/6 - 0.001; // roll 3
+        const treasure = game.shop._slots[1]!;
+        game.addCardToHand(player1, card1);
+        await game.playCard(player1, player1.hand.length - 1, []);
+        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+            if(Options.includes(treasure))
+                return { selected: [treasure],
+                    remaining: []
+                };
+            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+        };
+        await game.resolveStack(); // card
+        await game.resolveStack(); // roll
+        expect(game.shop._slots[1]!).not.toBe(treasure);
+    });
+
+    it("fsp2-pills_2 - 5-6: Reroll each item you control.", async () => {
+        const card1 = game.obtainCard("fsp2-pills_2") as LootCard;
+        game.random = () => 5/6 - 0.001; // roll 1
+        game.gainTreasure(player1, 2);
+        const treasure = player1.inPlay[2]!;
+        expect(treasure.slug).toBe("b2-blank_card");
+        const treasure2 = player1.inPlay[3]!;
+        expect(treasure2.slug).toBe("b2-no");
+        game.addCardToHand(player1, card1);
+        await game.playCard(player1, player1.hand.length - 1, []);
+        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+            if(Options[1] === treasure2)
+                return { selected: [treasure2],
+                    remaining: []
+                };
+            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+        };
+        await game.resolveStack(); // card
+        await game.resolveStack(); // roll
+        expect(player1.inPlay[3]).not.toBe(treasure2);
+        expect(player1.inPlay[3]?.slug).toBe("b2-boomerang");
+        expect(player1.inPlay[2]).not.toBe(treasure);
+        expect(player1.inPlay[2]?.slug).toBe("b2-guppys_head");
+
+    });
+
+    it("fsp2-ansuz - Look at the top 4 cards of a deck and put them back in any order. ", async () => {
+        const card1 = game.obtainCard("fsp2-ansuz") as LootCard;
+        game.addCardToHand(player1, card1);
+        const top4reverse = game.decks["loot"]!.cards.slice(0, 4).map(c => c.slug);
+        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+            return { selected: Options.slice(0, n).toReversed(), remaining: Options.slice(n) };
+        };
+        await game.playCard(player1, player1.hand.length - 1, [game.decks["loot"]!]);
+
+        await game.resolveStack();
+        const top4After = game.decks["loot"]!.cards.slice(0, 4).map(c => c.slug).toReversed();
+        expect(top4After).toEqual(top4reverse); // order should be reversed
+    });
+
+    it("fsp2-aaa_battery - At the end of your turn, roll- 4-6: Recharge an item.", async () => {
+        const card1 = game.obtainCard("fsp2-aaa_battery") as LootCard;
+        game.addCardToHand(player1, card1);
+        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+        };
+        game.random = () => 4/6 - 0.001; // roll 4
+        await game.playCard(player1, player1.hand.length - 1, []);
+        await game.resolveStack();
+        expect(player1.inPlay[0]!.charged).toBe(false);
+        game.endTurn();
+        await game.resolveStack();
+        await game.resolveStack();
+        
+        expect(player1.inPlay[0]!.charged).toBe(true);
+    });
+
+    it("fsp2-aaa_battery - (roll 3) At the end of your turn, roll- 4-6: Recharge an item.", async () => {
+        const card1 = game.obtainCard("fsp2-aaa_battery") as LootCard;
+        game.addCardToHand(player1, card1);
+        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+        };
+        game.random = () => 3/6 - 0.001; // roll 3
+        await game.playCard(player1, player1.hand.length - 1, []);
+        await game.resolveStack();
+        expect(player1.inPlay[0]!.charged).toBe(false);
+        game.endTurn();
+        await game.resolveStack();
+        await game.resolveStack();
+        
+        expect(player1.inPlay[0]!.charged).toBe(false);
+    });
+
+    it("fsp2-pills - 1-2: Cancel the effect of a loot being played.", async () => {
+        const card1 = game.obtainCard("fsp2-pills") as LootCard;
+        const dime = game.obtainCard("b2-a_dime") as LootCard;
+        
+        game.recharge(player1.inPlay[0] as ItemCard);
+        await game.activateItem(player1, player1.inPlay[0]!, [], "tap");
+        game.addCardToHand(player1, dime);
+        game.playCard(player1, player1.hand.length - 1, []);
+        const toBeRemoved = game.stack.peek();
+        game.rollDice(player1, true);
+
+        game.addCardToHand(player1, card1);
+        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+            expect(Options.length).toBe(1);
+            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+        };
+        game.random = () => 1/6 - 0.001; // roll 1
+        await game.playCard(player1, player1.hand.length - 1, []);
+        await game.resolveStack();
+        await game.resolveStack();
+        expect(game.stack.elements).not.toContain(toBeRemoved);
+    });
+
+    it("fsp2-pills - 3-4: Each other player discards a loot card.", async () => {
+        const card1 = game.obtainCard("fsp2-pills") as LootCard;
+        
+        game.loot(player1, 3);
+        game.loot(player2, 3);
+        game.addCardToHand(player1, card1);
+        game.playCard(player1, player1.hand.length - 1, []);
+        game.random = () => 3/6 - 0.001; // roll 3
+        await game.resolveStack();
+        await game.resolveStack();
+        expect(player2.hand.cards.length).toBe(2);
+        expect(player1.hand.cards.length).toBe(3);
+    });
+
+    it("fsp2-poker_chip - 1-3: Gain 1 ¢ instead.", async () => {
+        const card1 = game.obtainCard("fsp2-poker_chip") as LootCard;
+        game.addCardToHand(player1, card1);
+        const coins = player1.coins;
+        game.random = () => 3/6 - 0.001; // roll 3
+        await game.playCard(player1, player1.hand.length - 1, []);
+        await game.resolveStack();
+        game.gainCoins(player1, 1000);
+        await game.resolveStack();
+        await game.resolveStack();
+        expect(player1.coins).toBe(coins + 1);
+        game.gainCoins(player1, 10);
+        await game.resolveStack();
+        await game.resolveStack();
+        expect(player1.coins).toBe(coins + 11);
+        game.endTurn();
+        game.gainCoins(player1, 10);
+        await game.resolveStack();
+        await game.resolveStack();
+        expect(player1.coins).toBe(coins + 21);
+        game.endTurn();
+        await game.resolveStack();
+        expect(game.currentPlayer).toBe(player1);
+        game.gainCoins(player1, 10);
+        await game.resolveStack();
+        await game.resolveStack();
+        expect(player1.coins).toBe(coins + 22);
+    });
+
+
+it("fsp2-poker_chip - 4-6: Gain double the number of ¢ you would've gained.", async () => {
+        const card1 = game.obtainCard("fsp2-poker_chip") as LootCard;
+        game.addCardToHand(player1, card1);
+        const coins = player1.coins;
+        game.random = () => 4/6 - 0.001; // roll 4
+        await game.playCard(player1, player1.hand.length - 1, []);
+        await game.resolveStack();
+        game.gainCoins(player1, 12);
+        await game.resolveStack();
+        await game.resolveStack();
+        expect(player1.coins).toBe(2 * (coins + 12));
+    });
+});
+

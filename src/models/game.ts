@@ -505,7 +505,7 @@ export class Game {
       if (player.isEngagedInCombat) {
         throw new Error("You are already engaged in combat.");
       }
-      if (player.attackThisTurn <= 0 && !player.hasAttackRequirement)
+      if (player.attackThisTurn <= 0 && !player.hasAttackRequirement && !player.hasFreeAttackRemaining)
         throw new Error("You have no remaining attacks this turn.");
     } catch (e) {
       if (shouldThrow) throw e;
@@ -525,7 +525,6 @@ export class Game {
   declareAttack(player: Player): void {
     this.canDeclareAttack(player, true);
 
-    player.attackThisTurn -= 1;
     player.engageInCombat();
     this.emit("on:attack:declared", { eventIssuer: player });
     this._onStateChange.dispatch();
@@ -574,6 +573,7 @@ export class Game {
     monster: Monster | "topDeck",
     drawInIndex: number = -1
   ): void {
+    const attackTopDeck = monster === "topDeck";
     if (drawInIndex !== -1 && monster !== "topDeck")
       throw new Error(
         "drawInIndex can only be specified when drawing from topDeck"
@@ -583,10 +583,9 @@ export class Game {
         "drawInIndex must be specified when drawing from topDeck"
       );
     this.canDeclareAttackOnMonster(player, monster, true);
+    player.registerAttackDeclaration(monster);
     if (monster === "topDeck") {
       this.drawMonster(player, drawInIndex);
-      player.clearAttackRequirement("topDeck");
-      player.attackThisId("topDeck");
       if (
         this.encounters.monsterIn(drawInIndex) === undefined ||
         !this.encounters.monsterIn(drawInIndex)!.attackable
@@ -595,15 +594,15 @@ export class Game {
         return; // drawn event.
       }
       monster = this.encounters.monsterIn(drawInIndex)!;
+      player.clearAttackRequirement(monster);
     }
     this.assertMonsterIsAlive(monster);
     monster.engageInCombat();
     if (monster.isEngagedInCombat === false)
       throw new Error("Monster should be engaged in combat now.");
-    // Clear forced attack constraint if this monster satisfies it
-    player.clearAttackRequirement(monster);
-    player.attackThisId("monster");
-    this.emit("on:attack:declared:monster", { eventIssuer: player, monster });
+    
+    if(!attackTopDeck)
+      this.emit("on:attack:declared:monster", { eventIssuer: player, monster });
     this._onStateChange.dispatch();
   }
 
@@ -967,7 +966,7 @@ export class Game {
     anyNumber: boolean = false,
     description: string = "UNDEFINED SHOULD NOT HAPPEN"
   ): Promise<{ selected: T[]; remaining: T[] }> {
-    if (n === 1 && !anyNumber && Options.length === 1) {
+    if ( !anyNumber && Options.length === n) {
       return {
         selected: Options,
         remaining: [],
@@ -1317,14 +1316,7 @@ export class Game {
    */
   startTurn(): void {
     this.players.forEach((p) => {
-      p.remainingLootPlay = 0;
-      p.attackThisTurn = 0;
-      p.remainingPurchaseThisTurn = 0;
-      if (p === this.currentPlayer) {
-        p.remainingLootPlay = this.gameParameters.lootPlayPerTurn.value;
-        p.attackThisTurn = 1;
-        p.remainingPurchaseThisTurn = 1;
-      }
+      p.initializeTurnCounters(p === this.currentPlayer, this.gameParameters.lootPlayPerTurn.value);
     });
     this.rechargeEachItem(this.currentPlayer);
     const player = this.currentPlayer;
@@ -1459,7 +1451,7 @@ export class Game {
       this.assertGameStarted();
       const player = this.assertIssuerSecret(issuer);
       this.assertNoPendingSelection();
-      if( this.currentPlayer !== player && this.currentPlayer.otherPlayerCanUseLootOrActivateOnMyTurn === false) {
+      if (!player.canIUseLootOrActivateThisTurn) {
         throw new Error(`You cannot play loot cards during ${this.currentPlayer.id}'s turn.`);
       }
       if (player.remainingLootPlay <= 0) {
@@ -2193,8 +2185,8 @@ export class Game {
     if(card instanceof MonsterCard && card.encounterType === MonsterType.EVENT) {
       return "You can not activate monster cards.";
     }
-    if(owner !== this.currentPlayer && !this.currentPlayer.otherPlayerCanUseLootOrActivateOnMyTurn) {
-      return `You cannot activate cards during ${this.currentPlayer.id}'s turn.`;
+    if (!owner.canIUseLootOrActivateThisTurn) {
+      return `You cannot activate cards this turn.`;
     }
     if (card.charged === false && card.activeEffectList.every(e => e.index === "tap")) {
       return "This card is not charged, it cannot be activated.";
@@ -2864,6 +2856,15 @@ export class Game {
     return player.removeInPlay(card);
   }
 
+  /** Applies the current turn player's loot/activation restriction to all other players. */
+  applyLootOrActivateRestrictionForCurrentTurn(player: Player, value: number = 1): void {
+    for (const p of this.players) {
+      if(p !== player)
+        p.addToCanIUseLootOrActivateThisTurn(value);
+    }
+    this._onStateChange.dispatch();
+  }
+
   /** Removes a soul card from player and runs cleanup triggers. */
   removeSoul(player: Player, card: Card): boolean {
     card.cleanup();
@@ -3088,15 +3089,5 @@ export class Game {
     ) {
       throw new Error("An attack is already ongoing");
     }
-  }
-}
-export const cardsExtension = await loadCards(process.cwd() + "/data/extension");
-const game: Game = new Game();
-const decks:DecksCollection = LoadDecks(cardsExtension, 3, false, game.random);
-
-for (const card of decks["eternal"].cards.toSorted((a, b) => a.name.localeCompare(b.name))) {
-  if (card.type === "eternal") {
-    for(const effect of card.effectOutcomes)
-      console.log(`${card.slug} - ${effect}`);
   }
 }

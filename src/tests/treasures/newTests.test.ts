@@ -917,7 +917,7 @@ describe("b2-trinity_shield - prevents other players from priority actions", () 
         const canActivateWith = game.canActivate(sackOfPennies, player2);
         expect(canActivateWith).not.toBe(true);
         expect(typeof canActivateWith).toBe("string");
-        expect(canActivateWith).toContain("cannot activate cards during");
+        expect(canActivateWith).toContain("cannot activate cards");
 
         // Remove trinity_shield from play
         game.removeInPlay(player1, trinityShield);
