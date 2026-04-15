@@ -5,6 +5,7 @@ import { Game } from "./game";
 import { type TriggerEvent } from '@/models/types/eventTypes';
 import { Monster } from "./monster";
 import { TargetBuilder } from "./targetBuilder";
+import * as active from "./activeEffect";
 import type { TemporaryEffect } from "@/shared/api";
 import type {
     OnDamageWouldTakeData,
@@ -25,7 +26,7 @@ import type {
     OnLootWouldData
 } from "./types/eventTypes";
 import { Entity } from "./entity";
-
+import { selectPlayerOrMonster, type ParsedEffect } from "./effectParser";
 function getTemporaryEffect(data: EffectData, description: string): TemporaryEffect {
     return{
             card: data.it.jsonAPI,
@@ -211,6 +212,121 @@ export function permanentStatModifierEffect(
     };
 }
 
+export function rollAndMayChangeNextRollForThis(game: Game): ParsedEffect {
+    return {
+        effectFunction:(data: EffectData) => {
+            if(!(data.issuer instanceof Player))
+                throw new Error("rollAndMayChangeNextRollForThis issuer should be a player.");
+            let offEndTurn: (() => void) | null = null;
+            let offRoll: (() => void) | null = null;
+
+            const savedRoll = game.rollDice(data.issuer, false, data.it);
+            offRoll = game.emitter.on("on:dice:rolled", async ({ diceRoll }) => {
+                if(!(data.issuer instanceof Player))
+                    throw new Error("rollAndMayChangeNextRollForThis issuer should be a player.");
+                if (diceRoll.issuer !== data.issuer) return;
+                if( savedRoll === diceRoll) return;
+                if(savedRoll.value !== diceRoll.value)
+                {
+                    const newValue = (await data.selectAndRecord(game, data.issuer, 1, [diceRoll.value, savedRoll.value], false, "Choose the value of this dice roll.", true)).selected[0]!;
+                    diceRoll.value = newValue;
+                }
+                offRoll!();
+                offEndTurn!();
+            });
+
+            offEndTurn = game.emitter.on("on:turn:end", async ({ eventIssuer }) => {
+                offRoll!();
+                offEndTurn!();
+            });
+            return true;
+        }, targetSelectors: []
+    };
+}
+
+export function combatDamageModifierOnAttackRollEffect(game: Game, attackRolls: number[], modifier: number) {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+
+        offDamage = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
+            const { eventIssuer, dice, damageDealt } = eventData;
+            if (eventIssuer !== data.issuer) return;
+            if (!attackRolls.includes(dice.value)) return;
+            damageDealt[0]! += modifier;
+        });
+
+        data.it.cleaners.push(() => {
+            offDamage?.();
+        });
+        return true;
+    };
+}
+
+export function endTurnOnAttackRollOneEffect(game: Game) {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+
+        offDamage = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
+            const { eventIssuer, dice, damageDealt } = eventData;
+            if (eventIssuer !== data.issuer) return;
+            if (dice.value !== 1) return;
+            addPassiveEffectToStack(game, active.endTurnAndResetStackEffect(game), data, "End your turn on attack roll of 1.");
+        });
+
+        data.it.cleaners.push(() => {
+            offDamage?.();
+        });
+        return true;
+    };
+}
+
+export function chooseMonsterWhenAnotherPlayerAttacksMonsterEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offAttack: (() => void) | null = null;
+        offAttack = game.emitter.on("on:attack:declared:monster", async ({ eventIssuer, monster }) => {
+            if (eventIssuer === data.issuer) return;
+            const effect: EffectFunction = async (effectData: EffectData) => {
+                const monsters = game.encounters.monsters.filter(m => game.canDeclareAttackOnMonster(eventIssuer, m, false));
+                if(monsters.length === 0) return false;
+                if(!data.issuer || !(data.issuer instanceof Player))
+                    throw new Error("chooseMonsterWhenAnotherPlayerAttacksMonsterEffect issuer should be a player.");
+                const selected = (await data.selectAndRecord(game, data.issuer, 1, monsters, true, "Select a monster to be attacked.", true)).selected;
+                if(selected.length === 0) return false;
+                const newMonster = selected[0]!;
+                monster[0] = newMonster;
+                return true;
+            }             
+            addPassiveEffectToStack(game, effect, data, `Choose which monster ${eventIssuer.id} attacks.`);
+        });
+        return true;
+    };
+}
+
+
+export function roll4Choose1Effect(game: Game) {
+    return (data: EffectData) => {
+        let offRoll: (() => void) | null = null;
+        offRoll = game.emitter.on("on:dice:would-roll", async ({ eventIssuer, diceRoll }) => {
+            const effect:EffectFunction = async (effectData: EffectData) => {
+                const values = [diceRoll.value];
+                for(let i = 0; i < 3; i++)
+                    values.push(eventIssuer.rollDice(game.random, diceRoll.attackRoll, diceRoll.card).value);
+                if(!(data.issuer instanceof Player))
+                    throw new Error("roll4Choose1Effect issuer should be a player.");
+                const newValue = (await data.selectAndRecord(game, data.issuer, 1, values, false, "Choose the result of this dice roll.", true)).selected[0]!;
+                diceRoll.value = newValue;
+                return true;
+            }
+
+            addPassiveEffectToStack(game, effect, data, "Select the result of the next dice roll among four results.");
+        });
+        data.it.cleaners.push(() => {
+            offRoll?.();
+        });
+        return true;
+    };
+}
+
 // REPLACEMENT EFFECT: Continuous priority modification - does not use the stack.
 export function noPriorityPassesOnYourTurnEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
@@ -333,33 +449,57 @@ export function onYourTurnModifier(
     };
 }
 
-export function curseEffect(restEffectFunction: EffectFunction, game: Game): EffectFunction {
-    return async (data: EffectData) => {
-        // select owner of the curse.
-        const owner = (await data.selectAndRecord(game, game.currentPlayer, 1, game.players, false, "Select a target for the curse.")).selected[0];
-        if (!owner) return false;
+export function giveCurseToEffect(restEffectFunction: EffectFunction, game: Game, data: EffectData, giveTo: Player){
+    if(!(data.it instanceof MonsterCard))
+            throw new Error("Curse effect can only be applied by MonsterCards.");
+            
+    // Add the curse to their in play area.
+    game.addCurse(giveTo, data.it);
+    // Apply the rest of the effect.
+    restEffectFunction(new EffectData(data.it, giveTo, []));
+    // Add Listener to remove the curse when the owner dies.
+    let offDeath: (() => void) | null = null;
+    offDeath = game.emitter.on("on:death:after-penalty", (eventData: OnDeathAfterPenaltyData) => {
+        const { eventIssuer } = eventData;
+        if (giveTo !== eventIssuer) return;
         if(!(data.it instanceof MonsterCard))
             throw new Error("Curse effect can only be applied by MonsterCards.");
-        // Add the curse to their in play area.
-        game.addCurse(owner, data.it);
-        // Apply the rest of the effect.
-        restEffectFunction(new EffectData(data.it, owner, []));
-        // Add Listener to remove the curse when the owner dies.
+        game.removeCurse(giveTo, data.it);
+        game.discard(data.it);
+        offDeath?.();
+        offDeath = null;
+    });
+    data.it.cleaners.push(() => {
+        offDeath?.();
+        offDeath = null;
+    });
+}
+
+export function curseEffect(restEffectFunction: EffectFunction, game: Game): EffectFunction {
+    return (data: EffectData) => {
+        if(!(data.issuer instanceof Player))
+            throw new Error("Curse effect can only be applied to Players.");
+
         let offDeath: (() => void) | null = null;
         offDeath = game.emitter.on("on:death:after-penalty", (eventData: OnDeathAfterPenaltyData) => {
             const { eventIssuer } = eventData;
-            if (owner !== eventIssuer) return;
+            if (data.issuer !== eventIssuer) return;
+            if(!(data.issuer instanceof Player))
+                throw new Error("Curse effect can only be applied to Players.");
             if(!(data.it instanceof MonsterCard))
                 throw new Error("Curse effect can only be applied by MonsterCards.");
-            game.removeCurse(owner, data.it);
+            game.removeCurse(data.issuer, data.it);
             game.discard(data.it);
             offDeath?.();
             offDeath = null;
         });
+
         data.it.cleaners.push(() => {
             offDeath?.();
             offDeath = null;
         });
+
+        restEffectFunction(new EffectData(data.it, data.issuer, []));
         return true;
     }
 }
@@ -558,6 +698,32 @@ export function beforeDeathPenaltyEffect(
     };
 }
 
+export function chooseNumberDamageOnRollThisTurnEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        let offTurn: (() => void) | null = null;
+        const nb = data.next as number;
+        if ([1,2,3,4,5,6].includes(nb) === false) {
+            throw new Error("chooseNumberDamageOnRollThisTurnEffect: nb must be a number between 1 and 6.");
+        }
+
+        offDamage = game.emitter.on("on:dice:rolled", async (eventData: OnDiceRolledData) => {
+            const { eventIssuer, diceRoll } = eventData;
+            if (diceRoll.value !== nb) return;
+            const effect = active.dealDamageToTargetEffect(game, 1, true, selectPlayerOrMonster(game));
+            addPassiveEffectToStack(game, effect, data, `Deal 1 damage to a target because a ${nb} was rolled.`);
+        });
+
+        offTurn = game.emitter.on("on:turn:end", ({ eventIssuer }) => {
+            offDamage?.();
+            offDamage = null;
+            offTurn?.();
+            offTurn = null;
+        });
+        return true;
+    };
+}
+
 /*
 TRIGGERED EFFECT: Uses the stack.
 Each time triggerEvent triggers, if you are the eventIssuer, call effectFunctions.
@@ -566,7 +732,8 @@ export function onYourEventEffect(
     triggerEvent: TriggerEvent,
     effectFunctions: EffectFunction[],
     game: Game,
-    description: string
+    description: string,
+    replacementEffects: boolean = false
 ): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
@@ -581,13 +748,180 @@ export function onYourEventEffect(
                 }
                 return true;
             };
-            addPassiveEffectToStack(game, effect, data, description);
+            if(replacementEffects)
+                effect(data);
+            else
+                addPassiveEffectToStack(game, effect, data, description);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
             offDamage?.();
             offDamage = null;
+        });
+        return true;
+    };
+}
+
+export function onYourKillEffect(
+    effectFunctions: EffectFunction[],
+    game: Game,
+    description: string,
+    replacementEffects: boolean = false
+): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        
+        offDamage = game.emitter.on("on:death:before-penalty", (eventData: OnDeathBeforePenaltyData) => {
+            if (data.issuer !== eventData.target) return;
+            
+            // Add all effects as a single stack element
+            const effect = async (effectData: EffectData) => {
+                for (const func of effectFunctions) {
+                    await func(effectData);
+                }
+                return true;
+            };
+            if(replacementEffects)
+                effect(data);
+            else
+                addPassiveEffectToStack(game, effect, data, description);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
+export function onDamageYouDealtEffect(
+    effectFunctions: EffectFunction[],
+    game: Game,
+    description: string,
+    replacementEffects: boolean = false
+): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        
+        offDamage = game.emitter.on("on:damage:taken", (eventData: OnDeathBeforePenaltyData) => {
+            if (data.issuer !== eventData.target) return;
+            
+            // Add all effects as a single stack element
+            const effect = async (effectData: EffectData) => {
+                for (const func of effectFunctions) {
+                    await func(effectData);
+                }
+                return true;
+            };
+            if(replacementEffects)
+                effect(data);
+            else
+                addPassiveEffectToStack(game, effect, data, description);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
+
+export function addToYourRollValueEffect(game: Game, values: number[], rollType: "attack" | "non-attack" | "any", youMayEffectHanging: boolean[]): EffectFunction {
+    const youMay = youMayEffectHanging[0];
+    youMayEffectHanging[0] = false;
+    return (data: EffectData) => {
+        let offRoll: (() => void) | null = null;
+        
+        offRoll = game.emitter.on("on:dice:rolled", async ({ diceRoll }) => {
+            const eventIssuer = diceRoll.issuer;
+            if(!(data.issuer instanceof Player)) {
+                throw new Error("addToYourRollValueEffect can only be applied to Players.");
+            }
+            if (data.issuer !== eventIssuer) return;
+            if(rollType === "attack" && !diceRoll.attackRoll) return;
+            if(rollType === "non-attack" && diceRoll.attackRoll) return;
+            
+            const selected = (await data.selectAndRecord(game, data.issuer, 1, values, youMay, "Select a value to add to your roll.")).selected;
+            if(selected.length === 0) return; // Player chose not to select a value
+            const toAdd = selected[0]!;
+            const effect = (effectData: EffectData) => {
+                diceRoll.value += toAdd;
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, `${toAdd < 0 ? "Subtract" : "Add"} ${Math.abs(toAdd)} to your roll`);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offRoll?.();
+            offRoll = null;
+        });
+        return true;
+    };
+}
+
+export function stealCoinOnGainEffect(amount: number, game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offCoinGain: (() => void) | null = null;
+        
+        offCoinGain = game.emitter.on("on:coin:gained:after", ({ eventIssuer, coinGained }) => {
+            if (data.issuer === eventIssuer) return;
+            if(!(data.issuer instanceof Player)) {
+                throw new Error("stealCoinOnGainEffect can only be applied to Players.");
+            }
+            const stealAmount = Math.min(coinGained[0] ?? 0, amount);
+            if(stealAmount <= 0) return;
+            game.giveCoins(eventIssuer, data.issuer, stealAmount, true);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offCoinGain?.();
+            offCoinGain = null;
+        });
+        return true;
+    };
+}
+
+export function noRechargeCharaDuringRechargeStepEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        if(!(data.issuer instanceof Player)) {
+            throw new Error("noRechargeCharaDuringRechargeStepEffect can only be applied to Players.");
+        }
+        let offBeforeRechargeStep: (() => void) | null = null;
+        let offAfterRechargeStep: (() => void) | null = null;
+        let savedRechargeFunction = data.issuer.character.recharge;
+        offBeforeRechargeStep = game.emitter.on("on:turn:start:before:recharge:step", ({ eventIssuer }) => {
+            if (data.issuer !== eventIssuer) return;
+            if(!(data.issuer instanceof Player)) {
+                throw new Error("noRechargeCharaDuringRechargeStepEffect can only be applied to Players.");
+            }
+            data.issuer.character.recharge = () => {return false;};
+        });
+
+        offAfterRechargeStep = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
+            if (data.issuer !== eventIssuer) return;
+            if(!(data.issuer instanceof Player)) {
+                throw new Error("noRechargeCharaDuringRechargeStepEffect can only be applied to Players.");
+            }
+            data.issuer.character.recharge = savedRechargeFunction;
+        });
+
+        data.it.cleaners.push(() => {
+            offBeforeRechargeStep?.();
+            offBeforeRechargeStep = null;
+            offAfterRechargeStep?.();
+            offAfterRechargeStep = null;
+            if(!(data.issuer instanceof Player)) {
+                throw new Error("noRechargeCharaDuringRechargeStepEffect can only be applied to Players.");
+            }
+            data.issuer.character.recharge = savedRechargeFunction;
         });
         return true;
     };
@@ -971,7 +1305,7 @@ export function changeRollOneToSixEffect(game: Game): EffectFunction {
                 // Create the effect that will execute when the stack resolves
                 const effect = async (effectData: EffectData) => {
                     if (!(effectData.issuer instanceof Player)) return false;
-                    const value = (await effectData.selectAndRecord(game, effectData.issuer, 1, [6], true, "Select a value to change the roll to.")).selected[0]!;
+                    const value = (await effectData.selectAndRecord(game, effectData.issuer, 1, [6], true, "Select a result to change the roll to.")).selected[0]!;
                     diceRoll.value = value;
                     return true;
                 };
@@ -1433,6 +1767,24 @@ export function preventDamageByRemovingCountersEffect(
     };
 }
 
+export function eachOtherPlayerRevealsHandEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        for(const player of game.players) {
+            if(player !== data.issuer) {
+                player.handRevealed = true;
+            }
+        }
+        data.it.cleaners.push(() => {
+            for(const player of game.players) {
+                if(player !== data.issuer) {
+                    player.handRevealed = false;
+                }
+            }
+        });
+        return true;
+    };
+}
+
 // REPLACEMENT EFFECT: Uses "if you would" and "instead" - does not use the stack.
 // Card text: "If you would take any amount of damage, take that much damage +X instead."
 export function takeDamagePlusEffect(
@@ -1491,6 +1843,34 @@ export function lootDoubleThisTurnEffect(game: Game): EffectFunction {
 
         // Store cleanup function on the card for when it's removed/destroyed
 
+        return true;
+    };
+}
+export function killOnDoubleAttackRollEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offEffect: (() => void) | null = null;
+        let offTurn: (() => void) | null = null;
+
+        let prevRollThisTurn: number | null = null;
+        // Listen for the next damage event on this player
+        offEffect = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
+            const { eventIssuer, target, dice, damageDealt, damageReceived, evasion } = eventData;
+            if(prevRollThisTurn === dice.value)
+                game.kill(data.issuer, target, data.it);
+            prevRollThisTurn = dice.value;
+        });
+
+        offTurn = game.emitter.on("on:turn:end", () => {
+            prevRollThisTurn = null;
+        });
+
+
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offEffect?.();
+            offEffect = null;
+        });
         return true;
     };
 }

@@ -521,6 +521,12 @@ class Card {
         return false;
     }
 
+    deactivate(): void {
+        if(this.hasTapEffect()) {
+             this._charged = false;
+        }
+    }
+
     onAddInPlay(owner: Entity): void {
         this._owner = owner;
         this._effectInterface.subscribeAll(owner);

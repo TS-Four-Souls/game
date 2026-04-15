@@ -282,9 +282,10 @@ describe("Monsters - Various 1", () => {
         const monster = game.monsters[0]!;
         expect(monster.attackable).toBe(false);
         game.declareAttack(player1);
-        expect(() => {
-            game.declareAttackOnMonster(player1, monster);
-        }).toThrowError("This monster cannot be attacked.");
+        await expect(game.declareAttackOnMonster(player1, monster)).rejects.toThrowError(
+        "This monster cannot be attacked."
+        );
+        // await expect(await game.declareAttackOnMonster(player1, monster)).rejects.toThrowError("This monster cannot be attacked.");
     });
 
     it("non attackable monster cannot be attacked: on the deck", async () => {
