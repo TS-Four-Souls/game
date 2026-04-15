@@ -1547,7 +1547,7 @@ export class Game {
 
   assignColorsToPlayers(): void {
     const colors = [
-      "#E6E420", "#700BE6", "#17E6C9", "#E65B20"];
+      "#E6E420", "#AE6DFA", "#17E6C9", "#FF6B2D"];
     if(this.players.length > colors.length)
       throw new Error("Too many players for the available colors.");
     for (let i = 0; i < this.players.length; i++) {
