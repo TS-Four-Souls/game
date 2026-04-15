@@ -34,6 +34,9 @@ export class Player extends Entity {
   /** @private Current number of coins the player has */
   private _coin: number;
   
+/** @private Whether the player play with their hand revealed */
+  private _handRevealed: number = 0;
+
   /** @private The player's hand of loot cards */
   private _hand: Hand;
   
@@ -293,6 +296,14 @@ export class Player extends Entity {
 
   addDiceModifier(value: number): void {
     this._diceModifier += value;
+  }
+
+  get handRevealed(): boolean {
+    return this._handRevealed > 0;
+  }
+  
+  set handRevealed(reveal: boolean) {
+    this._handRevealed += reveal ? 1 : -1;
   }
 
   /**

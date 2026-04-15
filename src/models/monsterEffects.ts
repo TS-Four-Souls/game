@@ -607,7 +607,7 @@ export function onAttackDeclaredEffect(game: Game, s: string): EffectFunction {
         let offAttackDeclared: (() => void) | null = null;
         offAttackDeclared = game.emitter.on("on:attack:declared:monster", async (eventData: OnAttackDeclaredMonsterData) => {
             const { eventIssuer, monster } = eventData;
-            if (data.issuer !== monster) return;
+            if (data.issuer !== monster[0]) return;
             if (!(eventIssuer instanceof Player)) return;
             const newData = new EffectData(data.it, eventIssuer as Player, []);
             addPassiveEffectToStack(game, effect.effectFunction, newData, `When an attack is declared on ${data.it.name}, the active player ${rest}`);

@@ -568,42 +568,47 @@ export class Game {
   /**
    * Binds the current attack to a monster target (or top-deck draw slot).
    */
-  declareAttackOnMonster(
+  async declareAttackOnMonster(
     player: Player,
     monster: Monster | "topDeck",
     drawInIndex: number = -1
-  ): void {
+  ): Promise<void> {
     const attackTopDeck = monster === "topDeck";
-    if (drawInIndex !== -1 && monster !== "topDeck")
-      throw new Error(
-        "drawInIndex can only be specified when drawing from topDeck"
-      );
-    if (drawInIndex === -1 && monster === "topDeck")
-      throw new Error(
-        "drawInIndex must be specified when drawing from topDeck"
-      );
-    this.canDeclareAttackOnMonster(player, monster, true);
-    player.registerAttackDeclaration(monster);
-    if (monster === "topDeck") {
-      this.drawMonster(player, drawInIndex);
-      if (
-        this.encounters.monsterIn(drawInIndex) === undefined ||
-        !this.encounters.monsterIn(drawInIndex)!.attackable
-      ) {
-        player.combatEnded();
-        return; // drawn event.
-      }
-      monster = this.encounters.monsterIn(drawInIndex)!;
-      player.clearAttackRequirement(monster);
-    }
-    this.assertMonsterIsAlive(monster);
-    monster.engageInCombat();
-    if (monster.isEngagedInCombat === false)
-      throw new Error("Monster should be engaged in combat now.");
-    
+    const attacked = [monster];
     if(!attackTopDeck)
-      this.emit("on:attack:declared:monster", { eventIssuer: player, monster });
-    this._onStateChange.dispatch();
+      this.emit("on:attack:declared:monster", { eventIssuer: player, monster:attacked });
+    await this.executeWhenStackEmpty(() => {
+      monster = attacked[0]!; // in case the monster is modified by the event.
+      if (drawInIndex !== -1 && monster !== "topDeck")
+        throw new Error(
+          "drawInIndex can only be specified when drawing from topDeck"
+        );
+      if (drawInIndex === -1 && monster === "topDeck")
+        throw new Error(
+          "drawInIndex must be specified when drawing from topDeck"
+        );
+      this.canDeclareAttackOnMonster(player, monster, true);
+      player.registerAttackDeclaration(monster);
+      if (monster === "topDeck") {
+        this.drawMonster(player, drawInIndex);
+        if (
+          this.encounters.monsterIn(drawInIndex) === undefined ||
+          !this.encounters.monsterIn(drawInIndex)!.attackable
+        ) {
+          player.combatEnded();
+          return; // drawn event.
+        }
+        monster = this.encounters.monsterIn(drawInIndex)!;
+        player.clearAttackRequirement(monster);
+      }
+      this.assertMonsterIsAlive(monster);
+      monster.engageInCombat();
+      if (monster.isEngagedInCombat === false)
+        throw new Error("Monster should be engaged in combat now.");
+      
+      
+      this._onStateChange.dispatch();
+    });
   }
 
   /**
@@ -786,22 +791,19 @@ export class Game {
     damage: number
   ): void {
     if (damage <= 0 || receiver.isDead) return;
-    if (receiver instanceof Player) {
-      this.emit("on:combatdamage:dealt:to-player", {
+    const content = {
         eventIssuer: dealer, // The dealer is the one dealing combat damage
         target: receiver,
         source: source,
         damage,
-      });
-    } else if (receiver instanceof Monster) {
-      this.emit("on:combatdamage:dealt:to-monster", {
-        eventIssuer: dealer, // The dealer is the one dealing combat damage
-        target: receiver,
-        source: source,
-        damage,
-      });
-    }
+      }
     this.dealDamage(dealer, receiver, source, damage);
+    this.emit("on:combatdamage:dealt", content);
+    if (receiver instanceof Player) {
+      this.emit("on:combatdamage:dealt:to-player", content);
+    } else if (receiver instanceof Monster) {
+      this.emit("on:combatdamage:dealt:to-monster", content);
+    }
   }
 
   // on health loss trigger can be added here. Be careful, in case of pay HP to verify that all the HP are actually lost.
@@ -1234,7 +1236,7 @@ export class Game {
   async executeWhenStackEmpty(
     callback: () => void | Promise<void>
   ): Promise<void> {
-    this.executeWhenStackSubset([], callback);
+    await this.executeWhenStackSubset([], callback);
   }
 
   /**
@@ -1248,7 +1250,7 @@ export class Game {
     callback: () => void | Promise<void>
   ): Promise<void> {
     this._stackSubsetCallbacks.push({stackIds: ids, callback});
-    this.resolveCallbacks();
+    await this.resolveCallbacks();
   }
 
   /**
@@ -1318,8 +1320,9 @@ export class Game {
     this.players.forEach((p) => {
       p.initializeTurnCounters(p === this.currentPlayer, this.gameParameters.lootPlayPerTurn.value);
     });
-    this.rechargeEachItem(this.currentPlayer);
     const player = this.currentPlayer;
+    this.emit("on:turn:start:before:recharge:step", { eventIssuer: player });
+    this.rechargeEachItem(player);
     this.emit("on:turn:start", { eventIssuer: player });
     this.executeWhenStackEmpty(() => {
       this.lootStep();
@@ -1348,6 +1351,13 @@ export class Game {
    */
   recharge(item: ItemCard): void {
     item.recharge();
+  }
+
+  /**
+   * Deactivates a single item.
+   */
+  deactivateItem(item: ItemCard): void {
+    item.deactivate();
   }
 
   /**
@@ -1628,15 +1638,17 @@ export class Game {
   /**
    * Proposes a coin transfer that target player may accept/decline.
    */
-  async giveCoins(from: Player, to: Player, amount: number): Promise<boolean> {
+  async giveCoins(from: Player, to: Player, amount: number, forced: boolean = false): Promise<boolean> {
     if(this.gameParameters.allowCoinDonation.value === false)
       throw new Error("Giving coins is not allowed in this game.");
     if (from.coins < amount || amount <= 0) {
       return false;
     }
-    const response = await this.select(to, 1, ['Accept', 'Decline'], false, `${from.id} wants to give you ${amount} coins. Do you accept?`);
-    if (response.selected[0] !== 'Accept') {
-      return false;
+    if(!forced) {
+      const response = await this.select(to, 1, ['Accept', 'Decline'], false, `${from.id} wants to give you ${amount} coins. Do you accept?`);
+      if (response.selected[0] !== 'Accept') {
+        return false;
+      }
     }
     this.loseCoins(from, amount, true);
     this.gainCoins(to, amount);
@@ -1780,6 +1792,7 @@ export class Game {
    */
   addCurse(player: Player, card: MonsterCard): void {
     player.addCurse(card);
+    card.onPlay(player, []);
     this._onStateChange.dispatch();
   }
 
@@ -2124,7 +2137,7 @@ export class Game {
   /** Cancels previous death entry for a player and stabilizes at 1 HP if needed. */
   preventDeath(player: Player): void {
     this.stack.cancelPreviousDeath(player);
-    if (player.currentHealthPoints === 0) player.addHealthPoints(1);
+    if (player.currentHealthPoints === 0) player.heal(1);
   }
   /** Draws treasure cards and puts them directly in play for the player. */
   gainTreasure(issuer: Issuer, number: number = 1): void {
@@ -2320,6 +2333,7 @@ export class Game {
         .map((p) => ({
           name: p.id,
           handSize: p.hand.cards.length,
+          hand: p.handRevealed ? p.hand.cards.map((c) => c.jsonAPI) : undefined,
           inPlay: p.inPlay.map((c) => mapOtherInPlayItem(c, p)).concat(p.curses.map((c) => mapCurse(c, p))),
           souls: p.totalSouls,
           soulCards: p.souls.map((c) => c.jsonAPI),

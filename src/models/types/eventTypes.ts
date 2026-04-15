@@ -72,6 +72,14 @@ export type OnCombatDamageDealtToPlayerData = {
   damage: number;
 };
 
+/** Data emitted when combat damage is dealt to a player */
+export type OnCombatDamageDealtData = {
+  eventIssuer: Entity;
+  target: Entity;
+  source: DamageSource;
+  damage: number;
+};
+
 /** Data emitted when a player declares an attack */
 export type OnAttackDeclaredData = {
   eventIssuer: Player;
@@ -80,7 +88,7 @@ export type OnAttackDeclaredData = {
 /** Data emitted when a player declares an attack on a specific monster */
 export type OnAttackDeclaredMonsterData = {
   eventIssuer: Player;
-  monster: Monster;
+  monster: Monster[];
 };
 
 /** Data emitted when an attack roll is made */
@@ -240,6 +248,7 @@ export type TriggerEventDataMap = {
   "on:damage:would-take": OnDamageWouldTakeData;
   "on:combatdamage:dealt:to-monster": OnCombatDamageDealtToMonsterData;
   "on:combatdamage:dealt:to-player": OnCombatDamageDealtToPlayerData;
+  "on:combatdamage:dealt": OnCombatDamageDealtData;
   "on:attack:declared": OnAttackDeclaredData;
   "on:attack:declared:monster": OnAttackDeclaredMonsterData;
   "on:attack:roll": OnAttackRollData;
@@ -250,6 +259,7 @@ export type TriggerEventDataMap = {
   "on:dice:rolled": OnDiceRolledData;
   "on:dice:would-roll": OnDiceWouldRollData;
   "on:turn:start": OnTurnStartData;
+  "on:turn:start:before:recharge:step": OnTurnStartData;
   "on:turn:end": OnTurnEndData;
   "till:turn:end": OnTurnEndData;
   "on:loot:step": OnLootStepData;

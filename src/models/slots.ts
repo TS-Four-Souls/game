@@ -295,12 +295,25 @@ class Encounters {
         } else {
             this._monstersInPlay[index] = undefined!;
             const effect: EffectOnStack = new EffectOnStack(
-                (data:EffectData) => {
+                async (data:EffectData) => {
                     const stackIds = this._game.stack.elements.map(e => e.stackId);
                     if(!(data.issuer instanceof Player))
                         throw new Error("Event encounter effect issuer is not a player");
-                    card.onPlay(data.issuer, data.targets);
-                    // card.onAddInPlay(data.issuer);
+                    if (card.isCurse) {
+                        const selection = await data.selectAndRecord(
+                            this._game,
+                            this._game.currentPlayer,
+                            1,
+                            this._game.players,
+                            false,
+                            `Select a player to receive ${card.name}.`
+                        );
+                        const owner = selection.selected[0];
+                        if (!owner) return false;
+                        this._game.addCurse(owner, card);
+                    } else {
+                        card.onPlay(data.issuer, data.targets);
+                    }
                     this._game.executeWhenStackSubset(stackIds, () => {
                         if(card.afterEffect === "discard")
                             this.discardTop(index); // remove the card once the effect is resolved.
