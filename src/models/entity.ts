@@ -11,7 +11,7 @@ type DamageObj = {
 
 export abstract class Entity {
   private _currentHealthPoints: number;
-  private _color: string = "#57534d";
+  private _color: string = "#D92D18";
   // Either attacking or being attacked.
   private _engagedInCombat: number;
   private _attackDiceModifier: number = 0;
