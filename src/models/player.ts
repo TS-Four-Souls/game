@@ -545,6 +545,7 @@ export class Player extends Entity {
   get json(): EntityType {
     return {
         type: "player",
+        color: this.color,
         name: this.id,
         slug: this.inPlay.length > 0 ? this.inPlay[0]!.slug : "",
         globalId: this.globalId,

@@ -81,6 +81,7 @@ export class Monster extends Entity {
     return {
       type: "monster",
       name: this.name,
+      color: this.color,
       slug: this.card.slug,
       globalId: this.card.globalId,
     }

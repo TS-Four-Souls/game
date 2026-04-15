@@ -758,6 +758,7 @@ export class LootCardEffect extends StackElement {
             card: this.card.jsonAPI,
             targets: TargetBuilder.convertToSelectionItems(this.targets),
             issuer: this.issuer.json,
+            color: this.issuer.color,
             ...super.baseJson,
          } ;
     }

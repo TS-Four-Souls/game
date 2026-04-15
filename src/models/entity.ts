@@ -11,6 +11,7 @@ type DamageObj = {
 
 export abstract class Entity {
   private _currentHealthPoints: number;
+  private _color: string = "#57534d";
   // Either attacking or being attacked.
   private _engagedInCombat: number;
   private _attackDiceModifier: number = 0;
@@ -136,6 +137,14 @@ export abstract class Entity {
     if (index !== -1) {
       this._temporaryEffects.splice(index, 1);
     }
+  }
+
+  get color(): string {
+    return this._color;
+  }
+
+  set color(value: string) {
+    this._color = value;
   }
 
   get temporaryEffects(): TemporaryEffect[] {

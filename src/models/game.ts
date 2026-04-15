@@ -45,6 +45,7 @@ import type { Capability, DetailedState, Issuer, SelectionItem, StackElementJson
 import { HistoricHandler, type HistoricEntry, type UserRequest } from "./historyHandler";
 import { GameParameters } from "./gameParameters";
 import { shuffle } from "@/utils/auxiliary";
+import { color } from "bun";
 
 // Type representing sources of damage - either a card ability or a dice roll
 export type DamageSource = Card | DiceRoll;
@@ -1544,6 +1545,16 @@ export class Game {
     this.joinEffectsToCards();
   }
 
+  assignColorsToPlayers(): void {
+    const colors = [
+      "#E6E420", "#700BE6", "#17E6C9", "#E65B20"];
+    if(this.players.length > colors.length)
+      throw new Error("Too many players for the available colors.");
+    for (let i = 0; i < this.players.length; i++) {
+      this.players[i]!.color = colors[i % colors.length]!;
+    }
+  }
+
   /**
    * Starts the game lifecycle and executes initial setup.
    */
@@ -1555,7 +1566,7 @@ export class Game {
     if (shufflePlayerOrder) {
       shuffle(this.random, this.players);
     }
-    
+    this.assignColorsToPlayers();
     if (this._decks.character.length === 0) {
       this.setupGame();
     }
@@ -2293,6 +2304,7 @@ export class Game {
     return {
       me: {
         name: player.id,
+        color: player.color,
         hand: player.hand.cards.map((c) => c.jsonAPI),
         inPlay: player.inPlay.map((c) => mapInPlayItem(c, player)).concat(player.curses.map((c) => mapCurse(c, player))),
         handSize: player.hand.cards.length,
@@ -2322,6 +2334,7 @@ export class Game {
       players: otherPlayers
         .map((p) => ({
           name: p.id,
+          color: p.color,
           handSize: p.hand.cards.length,
           inPlay: p.inPlay.map((c) => mapOtherInPlayItem(c, p)).concat(p.curses.map((c) => mapCurse(c, p))),
           souls: p.totalSouls,

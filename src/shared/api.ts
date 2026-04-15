@@ -8,6 +8,7 @@ export const identifierTypeSchema = z.object({
 export type IdentifierType = z.infer<typeof identifierTypeSchema>;
 
 export const entityTypeSchema = identifierTypeSchema.extend({
+  color: z.string(),
   type: z.union([z.literal("player"), z.literal("monster")]),
 });
 export type EntityType = z.infer<typeof entityTypeSchema>;
@@ -166,6 +167,7 @@ const lootCardOnStackJsonSchema = z.object({
   type: z.literal("LootCardEffect"),
   card: identifierTypeSchema,
   targets: z.array(selectionItemSchema),
+  color: z.string(),
   issuer: entityTypeSchema,
   id: z.number(),
   reordering: stackReorderingInfoSchema.optional(),
@@ -485,6 +487,7 @@ export type SetGameParameterRequest = z.infer<
 
 const playerSchema = z.object({
   name: z.string(),
+  color: z.string(),
   handSize: z.number(),
   hand: z.array(cardSchema).optional(),
   inPlay: z.array(inPlayCardSchema),
