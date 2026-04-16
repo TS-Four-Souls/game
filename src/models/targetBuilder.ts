@@ -364,7 +364,7 @@ export class TargetBuilder {
 
             if (typeof option === 'object' && option !== null && 'id' in option && option instanceof Entity) {
                 const entity = option;
-                return {type: entity.json.type, payload: {name: entity.json.name, slug: entity.json.slug, globalId: entity.json.globalId, color: entity.color}};
+                return {type: entity.json.type, payload: {name: entity.json.name, slug: entity.json.slug, globalId: entity.json.globalId, color: entity.color, type: entity.json.type}};
             }
 
             if (isStackElement(option)) {
