@@ -1053,7 +1053,7 @@ function LoadsCardSets(json_array: GenericCardType[]) : CardSetsCollection {
 
 function prepareEffectString(s: string): string {
     s = s.replace("[Tap Effect]", ""); // remove tap effect marker
-    s = s.replace("Paid Effect]", ""); // remove paid effect marker
+    s = s.replace("[Paid Effect]", ""); // remove paid effect marker
     s = s.replace("[Curse Effect] ", ""); // remove curse effect marker
     s = s.trim();
     return s;
