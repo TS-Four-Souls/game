@@ -93,7 +93,8 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): EffectF
 export function temporaryStatModifierEffect(
     adders: ((entity: Entity, value: number) => void)[],
     amount: number,
-    game: Game
+    game: Game,
+    targetIsCurrentPlayer: boolean = false
 ): EffectFunction {
     return (data:EffectData) => {
         if(amount < 0)
@@ -102,7 +103,11 @@ export function temporaryStatModifierEffect(
         let next = data.peek();
         if (next && next instanceof DiceRoll)
             next = next.issuer;
-        const target = (data.targets.length > 0 && next instanceof Player) ? next : data.issuer;
+        const target = targetIsCurrentPlayer 
+            ? game.currentPlayer 
+            : (data.targets.length > 0 && next instanceof Player) 
+                ? next 
+                : data.issuer;
         // if(!target || !(target instanceof Player))
         //     throw new Error("temporaryStatModifierEffect target must be a Player.");
         const temp: TemporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);

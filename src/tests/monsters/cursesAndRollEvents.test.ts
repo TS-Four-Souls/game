@@ -597,7 +597,7 @@ describe("Event Monsters - Curse Effects", () => {
         
         // Draw the curse to trigger its effect
         game.declareAttack(game.currentPlayer);
-        game.declareAttackOnMonster(game.currentPlayer, "topDeck", 0);
+        await game.declareAttackOnMonster(game.currentPlayer, "topDeck", 0);
         await game.resolveStack(); // resolve the event addition
         
         // End player's turn to trigger curse effect
@@ -620,7 +620,7 @@ describe("Event Monsters - Curse Effects", () => {
         
         // Draw the curse to trigger its effect
         game.declareAttack(game.currentPlayer);
-        game.declareAttackOnMonster(game.currentPlayer, "topDeck", 0);
+        await game.declareAttackOnMonster(game.currentPlayer, "topDeck", 0);
         await game.resolveStack(); // resolve the event addition
         
         // End player's turn to trigger curse effect

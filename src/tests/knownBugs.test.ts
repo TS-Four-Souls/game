@@ -6,7 +6,7 @@ import type { LootCard, ItemCard, Card } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
 import { setupStandardTestGame, dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "./testHelpers";
 
-describe("Loot Card", () => {
+describe("Known bugs that have be corrected", () => {
     let game: Game;
     let player1: Player;
     let player2: Player;
@@ -197,7 +197,7 @@ describe("Loot Card", () => {
         game.decks.monster.addTopPosition(chest);
 
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, game.monsters[0]!);
+        await game.declareAttackOnMonster(player1, game.monsters[0]!);
         game.kill(player1, game.monsters[0]!, player1.inPlay[0]!);
         await game.resolveStack(); // when this dies 
         expect(game.stack.size).toBe(1);
@@ -206,5 +206,35 @@ describe("Loot Card", () => {
         await game.resolveStack(); // gold chest dice
         expect(game.stack.size).toBe(1);
         expect(game.stack.peek()).toBeInstanceOf(DiceRoll);
+    });
+
+    it("b2-keeper_head - Prevented damage should not steal coins.", async () => {
+        const card = game.obtainCard("b2-keeper_head") as MonsterCard;
+        expect(card).toBeInstanceOf(MonsterCard);
+        game.addHealth(player1, 10); // Prevent death by damage
+
+        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        const monster = game.monsters[0]!;
+
+        game.declareAttack(player1);
+        await game.declareAttackOnMonster(player1, monster);
+        const loot = game.obtainCard("b2-soul_heart") as LootCard;
+        game.addCardToHand(player1, loot);
+        game.playCard(player1, player1.hand.length - 1, [player1]);
+        await game.resolveStack(); // damage
+        game.attackRoll(player1);
+        const dice = game.stack._stack[0] as DiceRoll;
+        expect(dice).toBeInstanceOf(DiceRoll);
+        dice.value = 1;
+
+        game.gainCoins(player1, 10); // Give some coins to lose
+        const init = player1.coins;
+        await game.resolveStack(); // dice
+        await game.resolveStack(); // damage
+        expect(game.stack.size).toBe(0);
+        
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(player1.coins).toBe(init);
+
     });
 });

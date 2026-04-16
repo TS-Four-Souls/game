@@ -1,7 +1,7 @@
 import { Entity } from "@/models/entity";
 import { CharacterCard, Hand, InplayType, ItemCard, TreasureCard, Card, type EffectFunction, EffectOnStack, EffectData, MonsterCard, LootCard } from "./cards";
 import type { Game } from "./game";
-import type { Monster } from "./monster";
+import { Monster } from "./monster";
 import { TargetBuilder } from "./targetBuilder";
 import { StackElement } from "./stackElement";
 import type { EntityType } from "@/shared/api";
@@ -62,7 +62,7 @@ export class Player extends Entity {
   private _canSeeTopOfTreasureDeck: number = 0;
   
   /** @private Monsters or deck that this player must attack, with the card that gave the requirement */
-  private _mustAttackMonster: { target: Monster | "topDeck", source: Card }[] = [];
+  private _mustAttackMonster: { target: Monster[] | "topDeck" | "any", source: Card }[] = [];
 
   /** @private List of monsters or deck positions the player may attack additionally. Note that non-free attacks are consumed first.*/
   private _mayAttackForFree: { target: Monster | "topDeck", nb: number }[] = [];
@@ -113,7 +113,7 @@ export class Player extends Entity {
    * Gets the list of monsters or deck positions this player must attack, with source cards.
    * @returns Array of required attack targets with their source cards
    */
-  get mustAttackMonster(): { target: Monster | "topDeck", source: Card }[] {
+  get mustAttackMonster(): { target: Monster[] | "topDeck" | "any", source: Card }[] {
     return this._mustAttackMonster;
   }
 
@@ -142,7 +142,7 @@ export class Player extends Entity {
    * @param value - The monster or "topDeck" that must be attacked
    * @param source - The card that gave this requirement
    */
-  mustAttack(value: Monster | "topDeck", source: Card) {
+  mustAttack(value: Monster[] | "topDeck" | "any", source: Card) {
     this._mustAttackMonster.push({ target: value, source });
     this.attackThisTurn = Math.max(this.attackThisTurn, this._mustAttackMonster.length); // Ensure at least 1 attack this turn
   }
@@ -166,16 +166,23 @@ export class Player extends Entity {
    */
   canAttackThisMonster(elem: (Monster | "topDeck")): boolean {
     if (this._mustAttackMonster.length > 0)
-      return this._mustAttackMonster.some(req => req.target === elem); // Must be in the list
+    {
+      // console.log("Attack requirements:", this._mustAttackMonster.map(req => req.target === "topDeck" ? req.target : req.target.card.slug));
+      return this._mustAttackMonster.some(req => req.target === elem || (Array.isArray(req.target) && elem instanceof Monster && req.target.includes(elem))) || this._mustAttackMonster.every(req => req.target === "any"); // Must be in the list
+    }
     if (this.attackThisTurn > 0)
+    {
+      // console.log("No attack requirements, any attack is valid.");
       return true; // If no requirement, any attack is valid as long as player has attacks left
+    }
+    // console.log("May attack only:" , this._mayAttackForFree.map(f => f.target === "topDeck" ? f.target : f.target.card.slug));
     return this.mayAttackForFree.some(free => free.target === elem && free.nb > 0); // Check if it's a free attack
   }
   
   /**
    * Remove a monster from the must-attack list (call after attacking it)
    */
-  clearAttackRequirement(elem?: Monster | "topDeck"): void {
+  clearAttackRequirement(elem?: Monster | "topDeck" | "any"): void {
     
     if (!elem) {
       // Clear all requirements
@@ -184,7 +191,7 @@ export class Player extends Entity {
     }
 
     // Otherwise, remove the specific monster from the list
-    const index = this._mustAttackMonster.findIndex(req => req.target === elem);
+    const index = this._mustAttackMonster.findIndex(req => req.target === elem || (Array.isArray(req.target) && elem instanceof Monster && req.target.includes(elem)));
     if (index !== -1) {
       this._mustAttackMonster.splice(index, 1);
     }
@@ -629,6 +636,7 @@ export class Player extends Entity {
 export class DiceRoll extends StackElement {
   private _value: number;
   private _issuer: Player;
+  private _effectIssuer: Entity | null = null;
   private _attackRoll;
   private _effect: EffectFunction[] | null = null;
   private _card: Card | null = null;
@@ -700,12 +708,13 @@ export class DiceRoll extends StackElement {
   _TEST_setRandom(random: () => number): void {
     this._random = random;
   }
-  attachEffect(effect: EffectFunction[], card: Card, targets: any[]=[]): void {
+  attachEffect(effect: EffectFunction[], card: Card, targets: any[]=[], effectIssuer: Entity | null = null): void {
     if(effect.length != 6)
       throw new Error("Effect must have 6 outcomes, one for each dice face.");
     this._effect = effect;
     this._card = card;
     this._targets = targets;
+    this._effectIssuer = effectIssuer;
   }
   async onResolve(): Promise<void> {
     if(this.attackRoll)
@@ -713,9 +722,10 @@ export class DiceRoll extends StackElement {
         return; // No effect if attacker or target is dead
     this.value += (this._attackRoll ? this._issuer.attackDiceModifier : 0) + this._issuer.diceModifier;
     if (this._effect?.length === 6) {
+      const effectIssuer = this._effectIssuer ?? this._issuer;
       // For attack rolls, prepend the dice roll itself to targets so effects can use it as the damage source
       const targetsWithDiceRoll = this._attackRoll ? [this, ...this._targets] : this._targets;
-      await this._effect[this._value - 1]!(new EffectData(this._card!, this._issuer, targetsWithDiceRoll));
+      await this._effect[this._value - 1]!(new EffectData(this._card!, effectIssuer, targetsWithDiceRoll));
     }
   }
 }

@@ -5,7 +5,7 @@ import { DamageOnStack, DiceRoll, Player } from "./player";
 import { Card, LootCard, ItemCard, MonsterCard, InplayType, BsoulCard } from "./cards";
 import { EffectData, type EffectFunction, type TargetsSelector } from "./types/cardTypes";
 import { Game } from "./game";
-import type { Entity } from "./entity";
+import { Entity } from "./entity";
 import { effect } from "zod/v3";
 import type { Stack, StackElement } from "./stack";
 import type {
@@ -18,6 +18,8 @@ import type {
     OnAttackDeclaredMonsterData,
     OnGetMonsterAttackPointsData,
     OnGetMonsterEvasionData,
+    OnDeathWouldDeathData,
+    OnSoulGainedData,
 } from "./types/eventTypes";
 import { it } from "zod/locales";
 import { effectParser, type ParsedEffect } from "./effectParser";
@@ -75,20 +77,6 @@ export function activePlayerSelectAndCallEffect(game: Game, effectFunction: Effe
     };
 }
 
-export function activePlayerRollsEffect(game: Game, s: string): EffectFunction {
-    s = "roll-" + s.substring(s.indexOf("the active player rolls-")).trim();
-    const rollResults = obtainRollResults(s);
-    const parsedEffects: ParsedEffect[] = rollResults.map(effectText => effectParser(effectText, game, addInPlayEffect(game), true));
-    const effects: EffectFunction[] = parsedEffects.map(p => p.effectFunction);
-    return async (data: EffectData) => {
-        const player = game.currentPlayer as Player;
-        const result = game.rollDice(player, false, data.it);
-        result.attachEffect(effects, data.it, data.targets);
-        return true;
-    };
-}
-
-
 export function activePlayerIsTargetedByEffect(game: Game, effectFunction: EffectFunction): EffectFunction {
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
@@ -103,6 +91,81 @@ export function activePlayerSelectTargetEffect(game: Game, effectFunction: Effec
         const target = (await data.selectAndRecord(game, issuer as Player, ts.count, ts.selector(issuer as Player), ts.asMany, ts.description)).selected;
         if(target.length > 0)
             await effectFunction(new EffectData(data.it, issuer, target));
+        return true;
+    };
+}
+
+export function whenThisReaches1HP(game: Game, effectFunctions: EffectFunction[], description: string): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        offDamage = game.emitter.on("on:damage:taken", (eventData: OnDamageTakenData) => {
+            const { eventIssuer, target, source, damage } = eventData;
+            if (data.issuer !== eventIssuer) return;
+            const currentHP = data.issuer.currentHealthPoints;
+            if (currentHP === 1) {
+
+               const effect = async (effectData: EffectData) => {
+                    for (const func of effectFunctions) {
+                        await func(effectData);
+                    }
+                    return true;
+                };
+                addPassiveEffectToStack(game, effect, data, description);
+            }
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };   
+}
+
+export function targetTakeDamageEffect(game: Game, damage: number): EffectFunction {
+    return (data: EffectData) => {
+        const target = data.next;
+        if(!(target instanceof Entity))
+            throw new Error("targetTakeDamageEffect can only be applied to entity targets.");
+        game.dealDamage(data.issuer as Entity, data.targets[0] as Entity, data.it, damage);
+        return true;
+    };
+}
+/**
+ * each time the active player deals damage to this, they roll-\n1-2: they take 1 damage.\n3-4: each player takes 1 damage.\n5-6: this takes 1 damage.
+ */
+export function OnDamageByActivePlayerRollDealDamageEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        offDamage = game.emitter.on("on:damage:taken", (eventData: OnDamageTakenData) => {
+            const { eventIssuer, target, source, damage } = eventData;
+            if (data.issuer !== eventIssuer) return;
+            if(!(eventIssuer instanceof Monster)) return;
+            if(!(target instanceof Player)) return;
+            if(game.currentPlayer !== target) return;
+            if(damage === undefined || damage < 1) return;
+            const effect = async (effectData: EffectData) => {
+                const roll = game.rollDice(target, false, data.it);
+                const targets: Entity[][] = [[target], [target], game.players, game.players, [data.issuer], [data.issuer]];
+                roll.attachEffect(
+                    targets.map((group) => () => {
+                        for (const t of group) {
+                            game.dealDamage(data.issuer as Entity, t as Entity, data.it, 1);
+                        }
+                        return true;
+                    }), data.it, []);
+                return true;
+            }
+            addPassiveEffectToStack(game, effect, data, `Each time the active player deals damage to ${data.it.name}, they roll a die: on 1-2, they take 1 damage; on 3-4, each player takes 1 damage; on 5-6, ${data.it.name} takes 1 damage.`);
+
+        }
+        );
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
         return true;
     };
 }
@@ -261,39 +324,6 @@ export function noCombatDamageOnAttackRollEffect(game: Game, rollValues: number[
             addPassiveEffectToStack(game, effect, data, `When ${data.it.name} is attacked, if the attack roll is ${rollValues.join(" or ")}, it takes no combat damage.`);
         });
 
-        // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleaners.push(() => {
-            offDamage?.();
-            offDamage = null;
-        });
-        return true;
-    };
-}
-
-export function gainAttackOnDamageEffect(game: Game, amount: number): EffectFunction {
-    return (data: EffectData) => {
-        let offDamage: (() => void) | null = null;
-        let offEndTurn: (() => void) | null = null;
-        let currentTotal = 0;
-        offDamage = game.emitter.on("on:damage:taken", (eventData: OnDamageTakenData) => {
-            const { eventIssuer, target, source, damageArray } = eventData;
-            if (data.issuer !== eventIssuer) return;
-            // Add all effects as a single stack element
-            const effect = (effectData: EffectData) => {
-                (eventIssuer as Entity).addAttackPoints(amount);
-                currentTotal += amount;
-                return true;
-            };
-            addPassiveEffectToStack(game, effect, data, `Each time ${data.it.name} takes damage, it gains +${amount} [ATK] till end of turn.`);
-        });
-        
-        offEndTurn = game.emitter.on("till:turn:end", (eventData: OnTurnEndData) => {
-            const { eventIssuer } = eventData;
-            (data.issuer as Entity).addAttackPoints(-currentTotal);
-            currentTotal = 0;
-            return true;
-            
-        });
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
             offDamage?.();
@@ -473,7 +503,7 @@ export function OnDealsDamageEffect(game: Game, s: string): EffectFunction {
         let offDamage: (() => void) | null = null;
         
         offDamage = game.emitter.on("on:damage:taken", async (eventData: OnDamageTakenData) => {
-            const { eventIssuer, target, source, damageArray } = eventData;
+            const { eventIssuer, target, source, damage } = eventData;
             if (data.issuer !== target) return;
             if(!(eventIssuer instanceof Player)) return;
             if(!(source instanceof DiceRoll)) return;
@@ -655,9 +685,207 @@ export function preventDamageOnRollEffect(game: Game, rolls: number[]): EffectFu
     };
 }
 
+export function preventDeathFirstTimeEachTurnHealAndStatModifierEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        let offTurnStart: (() => void) | null = null;
+        let hasPreventedDeathThisTurn = false;
+        
+        offDamage = game.emitter.on("on:death:would-death", (eventData: OnDeathWouldDeathData) => {
+            const { eventIssuer, target, source } = eventData;
+            if (data.issuer !== eventIssuer) return;
+            if(!(eventIssuer instanceof Monster)) return;
+            if(hasPreventedDeathThisTurn) return;
+            const effect = (effectData: EffectData) => {
+                if(data.issuer instanceof Monster === false)
+                    throw new Error("preventDeathFirstTimeEachTurnHealAndStatModifierEffect can only be applied to monsters.");
+                game.preventDeath(eventIssuer as Entity);
+                data.issuer.heal(1); // heal 1 + 1 from death prevention.
+                game.addDC(data.issuer, 1); // add +1 DC
+                game.addAttack(data.issuer, -1); // lose 1 attack
+                hasPreventedDeathThisTurn = true;
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, `The first time each turn ${data.it.name} would be reduced to 0 health, prevent that damage, heal 2 HP, and give it +2 attack.`);
+        });
+
+        offTurnStart = game.emitter.on("on:turn:start", (eventData: OnTurnEndData) => {
+            if (!hasPreventedDeathThisTurn) return;
+            // reset stats
+            game.addDC(data.issuer, -1);
+            game.addAttack(data.issuer, +1);
+            hasPreventedDeathThisTurn = false;
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            if(hasPreventedDeathThisTurn) {
+                // reset stats if needed
+                game.addDC(data.issuer, -1);
+                game.addAttack(data.issuer, +1);
+            }
+            offDamage?.();
+            offDamage = null;
+            offTurnStart?.();
+            offTurnStart = null;
+        });
+        return true;
+    };
+}
+
+export function forceAttackThisEachTurnEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offTurnStart: (() => void) | null = null;
+        if(!data.issuer || !(data.issuer instanceof Monster)) 
+            throw new Error("forceAttackThisEachTurnEffect can only be applied to monsters.");
+        game.playerMustAttack(game.currentPlayer, [data.issuer], data.it);
+        
+        offTurnStart = game.emitter.on("on:turn:start", (eventData: OnTurnEndData) => {
+            const { eventIssuer } = eventData;
+            if(!data.issuer || !(data.issuer instanceof Monster)) return;
+            if(!eventIssuer || !(eventIssuer instanceof Player)) return;
+            if(eventIssuer.mustAttackMonster.some(req => (req.target instanceof Array) && req.target.includes(data.issuer as Monster) && req.source === data.it)) return; // if the player already must attack this monster, do not add another requirement
+            game.playerMustAttack(eventIssuer, [data.issuer], data.it);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offTurnStart?.();
+            offTurnStart = null;
+            game.currentPlayer.clearAttackRequirement(data.issuer as Monster);
+        });
+        return true;
+    };
+}
+
+
+export function attackRequirementEachTurnEffect(game: Game, whom: "any" | "topDeck", times: number, type: "total" | "additional"): EffectFunction {
+    return (data: EffectData) => {
+        let offTurnStart: (() => void) | null = null;
+        if(data.issuer instanceof Player === false)
+            throw new Error("attackRequirementEachTurnEffect can only be applied to players.");
+        if(game.currentPlayer === data.issuer) {
+            const additionalTimes = type === "additional" ? times : times - game.currentPlayer.attackedIdsThisTurn.filter((id) => id === "topDeck" || whom === "any").length;
+            for (let i = 0; i < additionalTimes; i++) {
+                game.playerMustAttack(data.issuer as Player, whom, data.it);
+            }
+        }
+        offTurnStart = game.emitter.on("on:turn:start", (eventData: OnTurnEndData) => {
+            const { eventIssuer } = eventData;
+            if(data.issuer instanceof Player === false) return;
+            if(eventIssuer !== data.issuer) return;
+            const additionalTimes = type === "additional" ? times : times - data.issuer.attackedIdsThisTurn.filter((id) => id === "topDeck" || whom === "any").length;
+            for (let i = 0; i < additionalTimes; i++) {
+                game.playerMustAttack(data.issuer as Player, whom, data.it);
+            }
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offTurnStart?.();
+            offTurnStart = null;
+        });
+            if(data.issuer instanceof Player) {
+                data.issuer.clearAttackRequirement("topDeck");
+                data.issuer.clearAttackRequirement("any");
+            }
+        return true;
+    };
+}
+
+export function activePlayerChooseLivingPlayerTakeDamageEffect(game: Game, damage: number): EffectFunction {
+    return async (data: EffectData) => {
+        const player = game.currentPlayer as Player;
+        const livingPlayers = game.players.filter(p => p.currentHealthPoints > 0);
+        if(livingPlayers.length === 0)
+            return false;
+        const targetSelection = await data.selectAndRecord(game, player, 1, livingPlayers, false, "Select a living player to take damage.", true);
+        const targetPlayer = targetSelection.selected[0] as Player;
+        if(!targetPlayer){
+            throw new Error("No player selected for activePlayerChooseLivingPlayerTakeDamageEffect.");
+        }
+        game.dealDamage(data.issuer as Entity, targetPlayer as Entity, data.it, damage);
+        return true;
+    }
+};
+
+export function dealDamageToEachOtherMonsterEffect(game: Game, damage: number): EffectFunction {
+    return (data: EffectData) => {
+        game.monsters.forEach(monster => {
+            if(monster !== data.issuer) {
+                game.dealDamage(data.issuer as Entity, monster as Entity, data.it, damage);
+            }
+        });
+        return true;
+    };
+}
+
 export function dealDamageToAttackingPlayerEffect(game: Game, damage: number): EffectFunction {
     return (data: EffectData) => {
         game.dealDamage(data.issuer as Entity, game.currentPlayer as Player, data.it, damage);
+        return true;
+    };
+}
+
+export function bossRushEffect(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        let bosses = [];
+        if(!(data.it instanceof MonsterCard))
+            return false;
+        data.it.afterEffect = "handled"; 
+        // draw 2 boss cards 
+        while(bosses.length < 2 && game.decks.monster.cards.length > 0) {
+            const card = game.decks.monster.draw();
+            if(card instanceof MonsterCard && card.subtype === "boss") {
+                bosses.push(card);
+            } else {
+                game.discard(card);
+            }
+        }
+        for(const card of bosses)
+            game.addTopPosition("monster", card);
+        const options = [...game.encounters.nonEngagedInCombat, data.it];
+        const selection = await data.selectAndRecord(game, game.currentPlayer, 2, [...game.encounters.nonEngagedInCombat, data.it], true, "Select slots to place the bosses in.", false);
+        const selectedMonsters = selection.selected.length === 0 ? game.encounters.nonEngagedInCombat.slice(0,2) : selection.selected;
+        const selectedIndices = selectedMonsters.map(slot => game.encounters.visible.indexOf(slot));
+        for(let i=0; i < bosses.length; i++)
+        {
+            const slotIndex = selectedIndices[i%selectedIndices.length]!;
+            game.encounters.draw(slotIndex);
+        }
+        const monsters = selectedIndices.map(index => game.encounters.monsters[index]!);
+        game.encounters.removeFromSlot(data.it);
+        game.encounters._deck.addDiscardTop(data.it); 
+        game.playerMustAttack(game.currentPlayer, monsters, data.it);
+        return true;
+    };
+}
+
+export function playerWithMostSoulsWinsEffect(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        let offGainSoul: (() => void) | null = null;
+
+        offGainSoul = game.emitter.on("on:soul:gained", async (eventData: OnSoulGainedData) => {
+            const { eventIssuer, soul } = eventData;
+            if(soul !== data.it) return;
+            let maxSouls = -1;
+            game.players.forEach(p => {
+                if(p.totalSouls > maxSouls)
+                    maxSouls = p.totalSouls;
+            });
+            const playersWithMostSouls = game.players.filter(p => p.totalSouls === maxSouls);
+            const selectedPlayer = (await data.selectAndRecord(game, eventIssuer as Player, 1, playersWithMostSouls, false, "Select a player with most souls to win the game.", true)).selected[0];
+            game.win(selectedPlayer as Player);
+            offGainSoul?.();
+            offGainSoul = null;
+        });
+        data.it.cleaners.push(() => {
+            if(game.monsters.some(m => m.card === data.it && m.isDead)) // Don't clean if the monster is dead, as the effect is meant to trigger on soul gain which happens after death.
+                return
+            offGainSoul?.();
+            offGainSoul = null;
+        });
+
         return true;
     };
 }
@@ -669,7 +897,7 @@ export function onTakesCombatDamageEffect(game: Game, s: string, rolls: number[]
         let offDamage: (() => void) | null = null;
         
         offDamage = game.emitter.on("on:damage:taken", async (eventData: OnDamageTakenData) => {
-            const { eventIssuer, target, source, damageArray } = eventData;
+            const { eventIssuer, target, source, damage } = eventData;
             if (data.issuer !== eventIssuer) return;
             if(!(eventIssuer instanceof Monster)) return;
             if(!(source instanceof DiceRoll)) return;
@@ -693,7 +921,7 @@ export function onEveryOtherDamageEffect(game: Game, effect: EffectFunction): Ef
         let damageCount = 0;
 
         offDamage = game.emitter.on("on:damage:taken", (eventData: OnDamageTakenData) => {
-            const { eventIssuer, target, source, damageArray } = eventData;
+            const { eventIssuer, target, source, damage } = eventData;
             if (data.issuer !== eventIssuer) return;
             // Add all effects as a single stack element
             damageCount += 1;

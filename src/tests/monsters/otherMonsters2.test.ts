@@ -33,7 +33,7 @@ describe("Monsters - Various 2", () => {
         const monster = game.monsters[0]!;
 
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnMonster(player1, monster);
         
         for(let i=0; i<3; i++) {
             game.attackRoll(player1);
@@ -61,7 +61,7 @@ describe("Monsters - Various 2", () => {
         const monster = game.monsters[0]!;
 
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnMonster(player1, monster);
         
         for(let i=0; i<3; i++) {
             game.attackRoll(player1);
@@ -91,7 +91,7 @@ describe("Monsters - Various 2", () => {
         await game.resolveStack(); // damage
 
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnMonster(player1, monster);
         
         for(let i=0; i<3; i++) {
             game.attackRoll(player1);
@@ -121,7 +121,7 @@ describe("Monsters - Various 2", () => {
         await game.resolveStack(); // damage
 
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnMonster(player1, monster);
         
         for(let i=0; i<3; i++) {
             game.addHealth(player1, 10); // Prevent death by damage
@@ -155,7 +155,7 @@ describe("Monsters - Various 2", () => {
         await game.resolveStack(); // damage
 
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnMonster(player1, monster);
         
         for(let i=0; i<3; i++) {
             game.attackRoll(player1);
@@ -183,7 +183,7 @@ describe("Monsters - Various 2", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnMonster(player1, monster);
         
         // ATTACK 1 ~ NO DOUBLE DAMAGE
         const baseDamage = game.getAttack(monster);
@@ -239,7 +239,7 @@ describe("Monsters - Various 2", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnMonster(player1, monster);
         
         // ATTACK 1 ~ NO DOUBLE DAMAGE
         const baseDamage = game.getAttack(monster);
@@ -356,7 +356,7 @@ describe("Monsters - Various 2", () => {
 
         game.declareAttack(player1);
         expect(game.stack._stack.length).toBe(0); 
-        game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnMonster(player1, monster);
         expect(game.stack._stack.length).toBe(1); 
 
         await game.resolveStack(); // resolve effect
@@ -374,7 +374,7 @@ describe("Monsters - Various 2", () => {
 
         expect(game.currentPlayer).toBe(player1);
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnMonster(player1, monster);
 
         game.attackRoll(player1);
         const dice = game.stack._stack[0] as DiceRoll;
@@ -395,7 +395,7 @@ describe("Monsters - Various 2", () => {
         const monster = game.monsters[0]!;
 
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnMonster(player1, monster);
         const init = monster.currentHealthPoints;
 
         game.attackRoll(player1);
@@ -433,7 +433,7 @@ describe("Monsters - Various 2", () => {
         const monster = game.monsters[0]!;
 
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnMonster(player1, monster);
 
         const init = player1.currentHealthPoints;
 
@@ -458,7 +458,7 @@ describe("Monsters - Various 2", () => {
         const monster = game.monsters[0]!;
 
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnMonster(player1, monster);
 
         game.addHealth(monster, 100); // Prevent death by damage
         const init = game.getDC(monster);

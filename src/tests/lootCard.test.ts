@@ -369,7 +369,7 @@ describe("Loot Card", () => {
         const initialMonster1 = game.monsterSlots.monsterIn(1)!;
 
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, initialMonster0);
+        await game.declareAttackOnMonster(player1, initialMonster0);
         game.attackRoll(player1);
         const dice = game.stack.elements[game.stack.size - 1] as DiceRoll;
         expect(dice).toBeDefined();
@@ -411,7 +411,7 @@ describe("Loot Card", () => {
         player2.hand.addToHand(ehwaz!);
         
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnMonster(player1, "topDeck", 0);
         for (let i = 0; i < 5; i++) {
             game.attackRoll(player1);
             const dice = game.stack.elements[game.stack.size - 1] as DiceRoll;

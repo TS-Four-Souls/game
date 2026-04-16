@@ -826,7 +826,7 @@ class MonsterCard extends Card {
     protected _attackPoints:number = 0;
     protected _evasion: number = 0;
     protected _reward: CardRewards;
-    protected _afterEffect: "discard" | "nothing" = "discard";
+    protected _afterEffect: "discard" | "handled" | "nothing" = "discard";
 
     constructor(id: number, globalId: number, json: MonsterCardType) {
         super(id, globalId, json);
@@ -882,10 +882,10 @@ class MonsterCard extends Card {
      * For instance, curses are placed in the player's curse area and are not discarded.
      * Another example is "Delirium", that goes back into the deck 6 cards from the top.
      */
-    get afterEffect(): "discard" | "nothing" {
+    get afterEffect(): "discard" | "nothing" | "handled"{
         return this._afterEffect;
     }
-    set afterEffect(value: "discard" | "nothing") {
+    set afterEffect(value: "discard" | "nothing" | "handled") {
         this._afterEffect = value;
     }
     onPlay(issuer: Player, targets: any[] = []): void{

@@ -2,10 +2,10 @@ import type { Game } from "@/models/game";
 import { TargetBuilder } from "@/models/targetBuilder";
 import type { Requests, TargetSelectorResponse } from "@/shared/api";
 
-export function executeAttackMonsterRequest(
+export async function executeAttackMonsterRequest(
   game: Game,
   payload: Requests.AttackMonster,
-): void {
+): Promise<void> {
   const player = game.getPlayerById(payload.issuer.id);
   const monster =
     payload.index === "top" ? "topDeck" : game.encounters.monsterIn(payload.index);
@@ -15,7 +15,7 @@ export function executeAttackMonsterRequest(
   }
 
   const drawInIndex = payload.index === "top" ? payload.replaceIndex : -1;
-  game.declareAttackOnMonster(player, monster, drawInIndex);
+  await game.declareAttackOnMonster(player, monster, drawInIndex);
 }
 
 export function executePlayCardRequest(

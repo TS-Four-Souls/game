@@ -104,7 +104,7 @@ export function forceAttackMonsterEffect(game: Game): EffectFunction {
             throw new Error("Target of forceAttackMonsterEffect must be a Monster.");
         if(data.issuer instanceof Player === false) 
             throw new Error("Effect issuer is not a player in forceAttackMonsterEffect.");
-        game.playerMustAttack(data.issuer, targetMonster, data.it);
+        game.playerMustAttack(data.issuer, [targetMonster], data.it);
         return true;
     };
 }
@@ -707,6 +707,17 @@ export function destroyItemOfRandomPlayerEffect(game: Game): EffectFunction {
     };
 }
 
+export function deactivateAllYourItemsAndCharaEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        if (data.issuer instanceof Player === false) return false;
+        const player = data.issuer;
+        for (const card of player.inPlay) {
+            game.deactivateItem(card);
+        }
+        return true;
+    };
+}
+
 export function discardAnyNumberOfShopItemsEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
@@ -1171,6 +1182,16 @@ export function rerollItemEffect(game: Game, selectors: TargetsSelector[] = [], 
     };
 }
 
+export function healEachMonsterEffect(game: Game, amount: number): EffectFunction {
+    return (data: EffectData) => {
+        for (const monster of game.monsters) {
+            if(monster)
+                game.heal(monster, amount);
+        }
+        return true;
+    };
+}
+
 export function rerollItemTheyControlEffect(game: Game, youMayEffectHanging: boolean[] = [false]): EffectFunction {
     return async (data: EffectData) => {
         let targetPlayer = data.next;
@@ -1396,7 +1417,7 @@ export function obtainRollResults(s: string): string[] {
     return results;
 }
 
-export function rollEffect(s: string, game: Game): ParsedEffect {
+export function rollEffect(s: string, game: Game, issuerIsCurrentPlayer: boolean = false): ParsedEffect {
     if (s == "roll-\ndeal damage to them equal to the result.")
         return dealRollDamageEffect(s, game);
     if (s === "roll-\nyou may change the result of your next roll this turn to this result.")
@@ -1406,9 +1427,10 @@ export function rollEffect(s: string, game: Game): ParsedEffect {
     const effects: EffectFunction[] = parsedEffects.map(p => p.effectFunction);
     return {
         effectFunction: (data: EffectData) => {
-            if (data.issuer instanceof Player === false) return false;
-            const result = game.rollDice(data.issuer, false, data.it);
-            result.attachEffect(effects, data.it, data.targets);
+            const issuer = issuerIsCurrentPlayer ? game.currentPlayer : data.issuer;
+            if (issuer instanceof Player === false) return false;
+            const result = game.rollDice(issuer, false, data.it);
+            result.attachEffect(effects, data.it, data.targets, data.issuer);
             return true;
         },
         targetSelectors: [] // roll has special target handling based on the roll result
@@ -1641,9 +1663,18 @@ export function giveItemToAnotherPlayerEffect(game: Game): EffectFunction {
     };
 }
 
-export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, deckNameParam: string | undefined = undefined): EffectFunction {
+export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, deckNameParam: string | undefined | "selectOnResolve" = undefined, issuerType: "currentPlayer" | "dataIssuer" | "diceOwner" = "dataIssuer"): EffectFunction {
     return async (data: EffectData) => {
-        if (data.issuer instanceof Player === false) return false;
+        let issuer = data.issuer;
+        if(issuerType === "currentPlayer")
+            issuer = game.currentPlayer;
+        if(issuerType === "diceOwner") {
+            const roll = data.next as DiceRoll;
+            if(!roll || !(roll instanceof DiceRoll) || !roll.issuer)
+                throw new Error("Invalid dice roll for lookAndReorderTopCardsEffect");
+            issuer = roll.issuer;
+        }
+        if (issuer instanceof Player === false) return false;
         var deckName = deckNameParam;
         if(deckName === undefined) {
             const deck = data.next as Deck<Card>;
@@ -1651,10 +1682,12 @@ export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, de
                 throw new Error("No deck provided for lookAndReorderTopCardsEffect");
             deckName = deck._type;
         }
+        if(deckNameParam === "selectOnResolve")
+            deckName = (await data.selectAndRecord(game, issuer, 1, ["loot", "treasure", "monster"], false, "Select a deck to look at the top cards of.")).selected[0] as DeckType;
         if(!isDeckType(deckName))
             throw new Error("Invalid deck type for lookAndReorderTopCardsEffect");
         const top5Cards = game.getFirstCardsOfDeck(deckName, numberCards);
-        const selectionResult = await data.selectAndRecord(game, data.issuer, numberCards, top5Cards, false, "Select the order to put back the cards (first selected will be on top).", false);
+        const selectionResult = await data.selectAndRecord(game, issuer, numberCards, top5Cards, false, "Select the order to put back the cards (first selected will be on top).", false);
         for (let i = selectionResult.selected.length - 1; i >= 0; i--) {
             game.addTopPosition(deckName, selectionResult.selected[i]!);
         }
@@ -1767,9 +1800,8 @@ export function putLootCardFromHandOnTopOfDeckEffect(game: Game): EffectFunction
 export function thisBecomeSoulGainItEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        if(data.it instanceof ItemCard === false)
-            throw new Error("Card is not an item card for thisBecomeSoulGainItEffect");
-        game.removeInPlay(data.issuer, data.it);
+        if(data.it instanceof ItemCard === true)
+            game.removeInPlay(data.issuer, data.it);
         data.it.soul = 1;
         game.addSoul(data.issuer, data.it);
         return true;

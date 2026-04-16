@@ -666,7 +666,7 @@ describe("Loot Card", () => {
 
         // Attack monster
         game.declareAttack(game.currentPlayer);
-        game.declareAttackOnMonster(game.currentPlayer, monster);
+        await game.declareAttackOnMonster(game.currentPlayer, monster);
         game.attackRoll(player1)
         const attackRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll).toBeDefined();
@@ -707,7 +707,7 @@ describe("Loot Card", () => {
 
         // Attack monster
         game.declareAttack(game.currentPlayer);
-        game.declareAttackOnMonster(game.currentPlayer, monster);
+        await game.declareAttackOnMonster(game.currentPlayer, monster);
         game.attackRoll(player1)
         const attackRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll).toBeDefined();
