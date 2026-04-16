@@ -118,7 +118,8 @@ const selectRollAddOrSubtract = (game: Game): TargetsSelector[] => [
     createSelector("Choose to add or subtract 1", (issuer: Player) => [1, -1])
 ];
 
-const selectLootInYourHand = (game: Game, toDiscard: number = 1, asMany: boolean = false): TargetsSelector[] => 
+const selectLootInYourHand = (game: Game, toDiscard: number = 1, asMany: boolean = false, selectionOnResolve: boolean = false): TargetsSelector[] => 
+    selectionOnResolve ? noTargets :
     [createSelector("Select a loot card in your hand", (issuer: Player) => issuer.hand.cards, toDiscard, asMany)];
 
 const selectUsableAbilityStackElement = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
@@ -156,7 +157,7 @@ export function eachTimeActivateItemEffect(s: string, game: Game): ParsedEffect 
     const restOfEffect = s.substring("each time a player activates an item, they".length).trim();
     const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
     return {
-        effectFunction: passive.onAnyEventEffect("on:item:activated", [restParsed.effectFunction], game),
+        effectFunction: passive.onAnyEventEffect("on:item:activated", [restParsed.effectFunction], game, s),
         targetSelectors: restParsed.targetSelectors
     };
 }
@@ -474,7 +475,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         const firstTrimmed = parts[0]!.trim();
         const secondTrimmed = parts[1]!.trim();
         const firstParsed = effectParser(firstTrimmed, game, defaultEffect, selectionOnResolve, youMayEffectHanging);
-        const secondParsed = effectParser(secondTrimmed, game, defaultEffect, selectionOnResolve, youMayEffectHanging);
+        const secondParsed = effectParser(secondTrimmed, game, defaultEffect, true, youMayEffectHanging);
         return {
             effectFunction: async (data:EffectData) => {
                 await firstParsed.effectFunction(data); 
@@ -537,7 +538,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     if (toDiscard === null)
         toDiscard = parseNumber(s, /^discard (\d+) loot cards?\.?$/u);
     if( toDiscard !== null)
-        return { effectFunction: active.discardNLootCardsEffect(toDiscard, game, selectionOnResolve), targetSelectors: selectLootInYourHand(game, toDiscard)};
+        return { effectFunction: active.discardNLootCardsEffect(toDiscard, game, selectionOnResolve), targetSelectors: selectLootInYourHand(game, toDiscard, false, selectionOnResolve)};
     const eachPlayerLoots = parseNumber(s, /^each player loots\s+(\d+)\.?$/u);
     if (eachPlayerLoots !== null)
         return { effectFunction: active.eachPlayerLootsEffect(game, eachPlayerLoots), targetSelectors: noTargets };
