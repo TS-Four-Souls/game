@@ -176,8 +176,9 @@ export function parseEachTimeRollEffect(s: string, game: Game): ParsedEffect {
             restOfEffect = "you " + restOfEffect;
         }
         const restParsed = effectParser(restOfEffect, game, (data:EffectData) => {throw new Error("Not implemented");}, true);
+        const diceIssueTheEvent = !restOfEffect.startsWith("this");
         return {
-            effectFunction: passive.onAttackingPlayerRollEffect([rollValue], restParsed.effectFunction, game, true),
+            effectFunction: passive.onAttackingPlayerRollEffect([rollValue], restParsed.effectFunction, game, diceIssueTheEvent),
             targetSelectors: restParsed.targetSelectors
         };
     }
@@ -278,7 +279,7 @@ export function parseAtTheStartOfYourTurnEffect(s: string, game: Game): ParsedEf
 }
 
 export function parseOnDamageTakenEffect(s: string, game: Game): ParsedEffect {
-    const restOfEffect = s.substring("each time you take damage, ".length).trim();
+    const restOfEffect = s.substring(s.indexOf(",") + 1).trim();
     const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
     return {
         effectFunction: passive.onDamageTakenEffect([restParsed.effectFunction], game),
@@ -287,7 +288,7 @@ export function parseOnDamageTakenEffect(s: string, game: Game): ParsedEffect {
 }
 
 export function parseEachTimeDeclareAttackEffect(s: string, game: Game): ParsedEffect {
-    const restOfEffect = s.substring("each time you declare an attack, ".length).trim();
+    const restOfEffect = s.substring(s.indexOf(",") + 1).trim();
     const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
     return {
         effectFunction: passive.onYourEventEffect("on:attack:declared", [restParsed.effectFunction], game, s),
@@ -337,6 +338,11 @@ function noTargetEffect(effectFunction: EffectFunction): ParsedEffect {
     return { effectFunction, targetSelectors: noTargets };
 }
 export function parseTheActivePlayerEffect(s: string, game: Game): ParsedEffect {
+    if(s.startsWith("the active player rolls-"))
+    {
+        const rest = "roll" + s.substring("the active player rolls".length);
+        return active.rollEffect(rest, game, true);
+    }
     switch (s) {
         case "the active player may attack the monster deck any number of times till end of turn.":
             return noTargetEffect(monster.activePlayerMayAttackMonsterDeckEffect(game, Infinity));
@@ -366,10 +372,10 @@ export function parseTheActivePlayerEffect(s: string, game: Game): ParsedEffect 
             return noTargetEffect(monster.activePlayerSelectAndCallEffect(game, active.giveSoulEffect(game), true));
         case "the active player chooses a player. that player destroys a soul they control.":
             return noTargetEffect(monster.activePlayerSelectAndCallEffect(game, active.destroyOneOfYourSoulEffect(game)));
-        case "the active player rolls-\n1-3: each player takes 1 damage.\n4-6: each player takes 2 damage.":
-            return noTargetEffect(monster.activePlayerRollsEffect(game, s));
         case "the active player chooses a player. that player discards 2 loot cards.":
             return noTargetEffect(monster.activePlayerChoosePlayerDiscard2Effect(game));
+        case "the active player chooses a living player. this deals 1 damage to that player.":
+            return noTargetEffect(monster.activePlayerChooseLivingPlayerTakeDamageEffect(game, 1));
         default:
             return noTargetEffect(active.addInPlayEffect(game));
             // throw new Error(`Could not parse 'The active player ...' effect: ${s}`);
@@ -381,7 +387,7 @@ export function parseTheActivePlayerEffect(s: string, game: Game): ParsedEffect 
 //  For other effects, we need to handle the "you may" part at this level by prompting the user for a choice, and then if they choose yes, we parse and execute the rest of the effect.
 export function effectParser(s: string, game: Game, defaultEffect: EffectFunction = active.addInPlayEffect(game), selectionOnResolve = false, youMayEffectHanging = [false]): ParsedEffect {
     const originalS = s;
-    // if (originalS == "[Tap Effect] Destroy this. If you do, choose another player. They give you half of their ¢ and loot cards rounded down, then gives you an item."){
+    // if (originalS == "Each time the active player deals damage to this, they roll-\n1-2: They take 1 damage.\n3-4: Each player takes 1 damage.\n5-6: This takes 1 damage."){
     //     console.log("parsing special roll effect:", originalS);
     // }
     s = s.replace("[Tap Effect] ", ""); // remove tap effect marker
@@ -409,7 +415,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             targetSelectors: noTargets
         };
     }
-    if(s.startsWith("the active player ") && !s.includes("this turn"))
+    if(s.startsWith("the active player ") && !s.includes("this turn") && !s.includes("each turn"))
         return parseTheActivePlayerEffect(s, game);
     if (s.startsWith("each time you deal combat damage to a monster,")) {
         const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, defaultEffect, true);
@@ -467,6 +473,10 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     }
     if (s.startsWith("each time you declare an attack, "))
         return parseEachTimeDeclareAttackEffect(s, game);
+    if (s.startsWith("when this reaches 1 [hp] , ")) {
+        const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, defaultEffect, true);
+        return noTargetEffect(monster.whenThisReaches1HP(game, [restParsed.effectFunction], s))
+    }
     if (s.startsWith("the first time you would gain ¢ on each of your turns, ")) {
         const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, defaultEffect, true);
         return {
@@ -489,6 +499,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     if(s.startsWith("each time the attacking player rolls an attack roll of"))
         return parseEachTimeRollEffect(s, game);
     if (s.startsWith("each time you take damage, "))
+        return parseOnDamageTakenEffect(s, game);
+    if(s.startsWith("each time this takes damage, "))
         return parseOnDamageTakenEffect(s, game);
     if (s.startsWith("you may") &&
     // exceptions where "you may" is not a choice, but an extra action
@@ -569,7 +581,12 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     const treasureAmount = parseNumber(s, /^gain \+(\d+) treasures?\.?$/u);
     if (treasureAmount !== null)
         return { effectFunction: active.gainTreasuresEffect(game, treasureAmount), targetSelectors: noTargets };
-    const hpToHeal = parseNumber(s, /^heal (\d+) \[hp\] ?\.?$/u);
+    const hpToHealEachMonster = parseNumber(s, /^each monster heals (\d+) \[hp\] ?\.?$/u);
+    if( hpToHealEachMonster !== null)
+            return noTargetEffect(active.healEachMonsterEffect(game, hpToHealEachMonster));
+    let hpToHeal = parseNumber(s, /^heal (\d+) \[hp\] ?\.?$/u);
+    if( hpToHeal === null)
+        hpToHeal = parseNumber(s, /^this heals (\d+) \[hp\] ?\.?$/u);
     if (hpToHeal !== null)
         return { effectFunction: active.healEffect(game, hpToHeal), targetSelectors: noTargets };
     const thisHeals = parseNumber(s, /^this heals (\d+) \[hp\] ?\.?$/u);
@@ -619,7 +636,9 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         damageToEachMonster = parseNumber(s, /^deal (\d+) damage to each monster\.?$/u);
     if (damageToEachMonster !== null)
         return { effectFunction: active.dealDamageToEachMonsterEffect(game, damageToEachMonster), targetSelectors: noTargets };
-    const damageToTake = parseNumber(s, /^take (\d+) damage\.?!?$/u);
+    let damageToTake = parseNumber(s, /^take (\d+) damage\.?!?$/u);
+    if (damageToTake === null)
+        damageToTake = parseNumber(s, /^this takes (\d+) damage\.?$/u);
     if (damageToTake !== null)
         return { effectFunction: active.takeDamageEffect(game, damageToTake), targetSelectors: noTargets };
     const damageToTake2 = parseNumber(s, /^take (\d+) damage and gain \d+\u00A2\.?$/u);
@@ -635,10 +654,10 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         damageToDeal = 1;
     if (damageToDeal !== null)
         return { effectFunction: active.dealDamageToTargetEffect(game, damageToDeal, selectionOnResolve, decideEntitySelector(s, game)), targetSelectors: decideEntitySelector(s, game) };
-    const slot = parseText(s, /^expand (\w+)s? slot/u)
+    const slot = parseText(s, /^expand (\w+)s? slots by \d+\.?$/u)
     if (slot !== "")
     {
-        const numberToExpand = parseNumber(s, /^expand \w+ slots by (\d+)./u);
+        const numberToExpand = parseNumber(s, /^expand \w+ slots by (\d+)\.?$/u);
         if (numberToExpand === null)
             throw new Error(`Could not parse number of slots to expand in effect: ${s}`);
         return { effectFunction: active.expandSlotsEffect(slot, numberToExpand, game), targetSelectors: noTargets };
@@ -718,6 +737,9 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
             return { effectFunction: passive.lootStepEffect([active.lootCardsEffect(game, 1)], game), targetSelectors: noTargets };
         case "prevent the next 1 damage you would take this turn.":
             return { effectFunction: passive.preventNextDamageUpToEffect(1, game), targetSelectors: noTargets };
+        case "prevent the next 2 damage you would take this turn":
+        case "prevent the next 2 damage you would take this turn.":
+            return { effectFunction: passive.preventNextDamageUpToEffect(2, game), targetSelectors: noTargets };
         case "if another player would pay the death penalty, you choose what item they would destroy and you gain any loot cards and ¢ they would lose.":
             return { effectFunction: passive.replaceDeathPenaltyEffect(game), targetSelectors: noTargets };
         case "while you have 0¢, you have +1 to your attack rolls.":
@@ -776,7 +798,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
         case "choose a player.\nthey gain +1 [atk] till end of turn and may attack an additional time this turn.":
             return { effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game), game.addAttackThisTurn.bind(game)], 1, game), targetSelectors: selectPlayer(game) };
         case "the active player may attack an additional time this turn.":
-            return { effectFunction: passive.temporaryStatModifierEffect([game.addAttackThisTurn.bind(game)], 1, game), targetSelectors: noTargets };
+            return { effectFunction: passive.temporaryStatModifierEffect([game.addAttackThisTurn.bind(game)], 1, game, true), targetSelectors: noTargets };
         case "play an additional loot card this turn.":
             return { effectFunction: passive.temporaryStatModifierEffect([game.addLootPlay.bind(game)], 1, game), targetSelectors: noTargets };
         case "each time a player dies, before paying penalties, loot 1.":
@@ -906,6 +928,8 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
             return { effectFunction: active.shuffleDeckEffect(game, "treasure"), targetSelectors: noTargets };
         case "search the treasure deck for a guppy item, gain it":
             return { effectFunction: active.searchGuppyItemEffect(game), targetSelectors: noTargets };
+        case "deactivate each item you control and your character.":
+            return noTargetEffect(active.deactivateAllYourItemsAndCharaEffect(game));
         case "choose a player at random. that player destroys an item they control.":
             return { effectFunction: active.destroyItemOfRandomPlayerEffect(game), targetSelectors: noTargets };
         case "destroy an item or soul.":
@@ -1130,8 +1154,10 @@ function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null 
             return noTargetEffect(active.dealDamageToEachPlayerEffect(game, 1));
         case "it deals 1 damage to each non-active player.":
             return noTargetEffect(active.dealDamageToEachPlayerEffect(game, 1, false));
-        case "each time this takes damage, it gains +1 [atk] till end of turn.":
-            return noTargetEffect(monster.gainAttackOnDamageEffect(game, 1));
+        case "this gains +2 [atk] till end of turn.":
+            return noTargetEffect(passive.temporaryStatModifierEffect([game.addAttack.bind(game)], 2, game));
+        case "it gains +1 [atk] till end of turn.":
+            return noTargetEffect(passive.temporaryStatModifierEffect([game.addAttack.bind(game)], 1, game));
         case "other monsters have +1 [dc] .":
             return noTargetEffect(monster.monstersGainDCEffect(game, 1, false));
         case "monsters have +1 [dc] .":
@@ -1144,6 +1170,8 @@ function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null 
             return noTargetEffect(monster.cantBeAttackedEffect(game));
         case "damage dealt to this is also dealt to the player to the active player's right.":
             return noTargetEffect(monster.damageAlsoPlayerToTheEffect(game, "right"));
+        case "look at the top 5 cards of the monster deck and put them back in any order.":
+            return noTargetEffect(active.lookAndReorderTopCardsEffect(game, 5, "monster", "currentPlayer"));
         case "damage dealt to this is also dealt to the player to the active player's left.":
             return noTargetEffect(monster.damageAlsoPlayerToTheEffect(game, "left"));
         case "damage this deals to the active player is also dealt to the player to their left.":
@@ -1152,14 +1180,35 @@ function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null 
             return noTargetEffect(monster.playerWithMostCoinsLosesAllEffect(game));
         case "each time this would take damage, the active player rolls-\n1: prevent that damage.":
             return noTargetEffect(monster.preventDamageOnRollEffect(game, [1]));
+        case "it deals 1 damage to each other monster.":
+            return noTargetEffect(monster.dealDamageToEachOtherMonsterEffect(game, 1));
         case "it deals 1 damage to the attacking player.":
             return noTargetEffect(monster.dealDamageToAttackingPlayerEffect(game, 1));
         case "every other time this takes damage each turn, it gains +1 [dc] till end of turn.":
             return noTargetEffect(monster.onEveryOtherDamageEffect(game, passive.temporaryStatModifierEffect([game.addDC.bind(game)], 1, game)));
+        case "deal 1 damage to the player to your left.":
         case "deal 1 damage to the player to the active player's left.":
             return noTargetEffect(monster.dealDamageToPlayerToTheEffect(game, 1, "left"));
+        case "deal 1 damage to the player to your right.":
+            return noTargetEffect(monster.dealDamageToPlayerToTheEffect(game, 1, "right"));
         case "look at the top 6 cards of the loot deck. put them back in any order":
             return noTargetEffect(active.lookAndReorderTopCardsEffect(game, 6, "loot"));
+        case "you must attack on your turn if able.":
+            return noTargetEffect(monster.attackRequirementEachTurnEffect(game, "any", 1, "total"));
+        case "the active player must attack this once each turn if able.":
+            return noTargetEffect(monster.forceAttackThisEachTurnEffect(game));
+        case "the first time this would die each turn, prevent death. this heals 2 [hp] and gains +1 [dc] and -1 [atk] till end of turn.":
+            return noTargetEffect(monster.preventDeathFirstTimeEachTurnHealAndStatModifierEffect(game));
+        case "reveal cards from the top of the monster deck till you reveal 2 boss cards. put them in one or more monster slots not being attacked and the rest into discard. the active player must make an additional attack on one of them this turn.":
+            return noTargetEffect(monster.bossRushEffect(game));
+        case "look at the top 3 cards of a deck and put them back in any order.":
+            return noTargetEffect(active.lookAndReorderTopCardsEffect(game, 3, "selectOnResolve"));
+        case "when a player gains this soul, choose a player who controls the most souls or tied for the most. that player wins.":
+            return noTargetEffect(monster.playerWithMostSoulsWinsEffect(game));
+        case "each time the active player deals damage to this, they roll-\n1-2: they take 1 damage.\n3-4: each player takes 1 damage.\n5-6: this takes 1 damage.":
+            return noTargetEffect(monster.OnDamageByActivePlayerRollDealDamageEffect(game));
+        case "they take 1 damage.":
+            return noTargetEffect(monster.targetTakeDamageEffect(game, 1));
         default:
             return null; // No match found
     }

@@ -320,7 +320,7 @@ export class Game {
       throw new Error("Target player does not have the specified soul.");
     }
     target.removeSoul(soul);
-    player.addSoul(soul);
+    this.addSoul(player, soul);
   }
   /**
    * Applies all death penalties configured for a player.
@@ -439,8 +439,8 @@ export class Game {
       if (typeof card.rewards?.soul !== "number")
         throw new Error("Monster soul reward must be a number.");
       card.soul = card.rewards?.soul;
-      this.currentPlayer.addSoul(monster.card);
-    } else this.discard(monster.card);
+      this.addSoul(this.currentPlayer, card);
+    } else this.discard(card);
     this._onStateChange.dispatch();
   }
 
@@ -553,7 +553,7 @@ export class Game {
         throw new Error("Another monster is already engaged in combat.");
       }
       if (!player.canAttackThisMonster(monster)) {
-        throw new Error("You must attack a specific monster.");
+        throw new Error(`You must attack a specific monster.`);
       }
     } catch (e) {
       if (shouldThrow) throw e;
@@ -600,8 +600,9 @@ export class Game {
           return; // drawn event.
         }
         monster = this.encounters.monsterIn(drawInIndex)!;
-        player.clearAttackRequirement(monster);
       }
+      player.clearAttackRequirement(monster);
+      player.clearAttackRequirement("any");
       this.assertMonsterIsAlive(monster);
       monster.engageInCombat();
       if (monster.isEngagedInCombat === false)
@@ -832,20 +833,22 @@ export class Game {
     this.assertIsAlive(receiver);
     this.healthLoss(dealer, receiver, source, damage);
 
-    if (receiver.damageTakenThisTurn.length === 1)
-      this.emit("on:damage:taken:first-time-each-turn", {
+    if(damage > 0){
+        if (receiver.damageTakenThisTurn.length === 1)
+          this.emit("on:damage:taken:first-time-each-turn", {
+        eventIssuer: receiver,
+          target: dealer,
+          source: source,
+          damage: damage,
+        });
+        
+        this.emit("on:damage:taken", {
         eventIssuer: receiver,
         target: dealer,
         source: source,
         damage: damage,
       });
-
-    this.emit("on:damage:taken", {
-      eventIssuer: receiver,
-      target: dealer,
-      source: source,
-      damage: damage,
-    });
+    }
 
     if (receiver.currentHealthPoints <= 0) {
       this.death(receiver, dealer, source);
@@ -1167,6 +1170,7 @@ export class Game {
     if (soulCard instanceof BsoulCard)
       soulCard.granted = true;
     player.addSoul(soulCard);
+    this.emit("on:soul:gained", { eventIssuer: player, soul: soulCard });
     this._onStateChange.dispatch();
   }
 
@@ -1496,6 +1500,10 @@ export class Game {
     return true;
   }
 
+  win(player: Player): void {
+    console.log(`Player ${player.id} wins the game!`);
+  }
+
   /**
    * Plays one loot card from hand and pushes its effect on stack.
    */
@@ -1619,7 +1627,7 @@ export class Game {
   give(from: Player, to: Player, card: Card): boolean {
     if (from.souls.includes(card)) {
       from.removeSoul(card);
-      to.addSoul(card);
+      this.addSoul(to, card);
       return true;
     }
     if (card instanceof LootCard) {
@@ -2146,9 +2154,9 @@ export class Game {
     return order;
   }
   /** Cancels previous death entry for a player and stabilizes at 1 HP if needed. */
-  preventDeath(player: Player): void {
-    this.stack.cancelPreviousDeath(player);
-    if (player.currentHealthPoints === 0) player.heal(1);
+  preventDeath(entity: Entity): void {
+    this.stack.cancelPreviousDeath(entity);
+    if (entity.currentHealthPoints === 0) entity.heal(1);
   }
   /** Draws treasure cards and puts them directly in play for the player. */
   gainTreasure(issuer: Issuer, number: number = 1): void {
@@ -2252,8 +2260,13 @@ export class Game {
               monster: "top" as const,
               source: req.source.jsonAPI,
             }
+          : req.target === "any" 
+          ? {
+              monster: "any" as const,
+              source: req.source.jsonAPI,
+            }
           : {
-              monster: req.target.json,
+              monster: req.target.map((m) => m.json),
               source: req.source.jsonAPI,
             },
       );
@@ -2792,23 +2805,20 @@ export class Game {
   }
 
   /** Adds or refreshes a forced-attack requirement for a player. */
-  playerMustAttack(player: Player, target: (Monster | "topDeck"), source: Card): void {
+  playerMustAttack(player: Player, target: (Monster[] | "topDeck" | "any"), source: Card): void {
     // Check if player is dead - constraint doesn't apply
     if (player.isDead) {
       player.clearAttackRequirement();
+      return;
     }
 
-    const mustAttackPlayers = player.mustAttackMonster;
+    const mustAttackMonster = player.mustAttackMonster;
 
-    for (const req of mustAttackPlayers) {
+    for (const req of mustAttackMonster) {
       if (req.target === "topDeck") continue;
-      const monster = req.target;
-      // If any required monster is no longer in play, clear the requirement
-      if (!this.monsters.includes(monster)) {
-        player.clearAttackRequirement(monster);
-      }
-      if (monster.attackable === false) {
-        player.clearAttackRequirement(monster);
+      if (req.target === "any") continue;
+      if(req.target.every(m => !this.monsters.includes(m) || m.attackable === false)) {
+        player.clearAttackRequirement(req.target[0]);
       }
     }
     player.mustAttack(target, source);
@@ -3079,7 +3089,7 @@ export class Game {
 
     // Filter monsters that are still in play
     const validMonsters = requirement.filter(
-      (req) => req.target === "topDeck" || this.monsters.includes(req.target)
+      (req) => req.target === "topDeck" || req.target === "any" || req.target.some(target => this.monsters.includes(target))
     );
 
     if (validMonsters.length === 0) {

@@ -38,7 +38,7 @@ describe("Monsters - On death effects", () => {
                     return { selected: [opts[0]], remaining: opts.slice(1) } as any;
             };
             game.declareAttack(player1);
-            game.declareAttackOnMonster(player1, spiderMonster);
+            await game.declareAttackOnMonster(player1, spiderMonster);
             // Kill the Big Spider by dealing lethal damage
             game.kill(spiderMonster, spiderMonster, bigSpider);
             
@@ -90,7 +90,7 @@ describe("Monsters - On death effects", () => {
             
             let selectionCount = 0;
             game.declareAttack(player1);
-            game.declareAttackOnMonster(player1, spiderMonster);
+            await game.declareAttackOnMonster(player1, spiderMonster);
             game.dealDamage(player1, spiderMonster, bigSpider, 1);
             await game.resolveStack();
 
@@ -740,7 +740,7 @@ describe("Monsters - On death effects", () => {
         let currentcoins = player1.coins;
         game.addAttack(player1, 100); // ensure kill
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnMonster(player1, monster);
         game.attackRoll(player1); // ensure hit
         expect(game.stack._stack.length).toBe(1);
         const roll = game.stack._stack[0] as DiceRoll;

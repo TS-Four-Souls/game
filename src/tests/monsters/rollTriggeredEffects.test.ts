@@ -694,7 +694,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         // Declare attack
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, daddyMonster);
+        await game.declareAttackOnMonster(player1, daddyMonster);
         
         game.addHealth(daddyMonster, 10);
         
@@ -727,7 +727,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const initialDC = game.monsters.map(m => m?.evasion || 0);
         
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, daddyMonster);
+        await game.declareAttackOnMonster(player1, daddyMonster);
         
         game.addHealth(daddyMonster, 10);
         

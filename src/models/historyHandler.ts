@@ -115,7 +115,7 @@ export class HistoricHandler {
   addToHistory(entry: HistoricEntry): void {
     this._history.push(entry);
     try {
-      this.appendToFile("history.json", entry);
+      // this.appendToFile("history.json", entry);
     } catch (error) {
       console.error("Error appending to history file", error);
     }

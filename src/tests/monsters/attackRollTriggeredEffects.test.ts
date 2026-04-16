@@ -37,7 +37,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             
             // Declare attack
             game.declareAttack(player1);
-            game.declareAttackOnMonster(player1, swarmMonster);
+            await game.declareAttackOnMonster(player1, swarmMonster);
             
             game.addHealth(swarmMonster, 10); // Ensure monster has HP to survive
             
@@ -67,7 +67,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const initialHP = player1.currentHealthPoints;
             
             game.declareAttack(player1);
-            game.declareAttackOnMonster(player1, swarmMonster);
+            await game.declareAttackOnMonster(player1, swarmMonster);
             
             game.addHealth(swarmMonster, 10);
             
@@ -95,7 +95,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             
             // First attack
             game.declareAttack(player1);
-            game.declareAttackOnMonster(player1, swarmMonster);
+            await game.declareAttackOnMonster(player1, swarmMonster);
             game.addHealth(swarmMonster, 10);
             
             game.attackRoll(player1);
@@ -143,7 +143,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const initialMonsterHP = chubMonster.currentHealthPoints;
             
             game.declareAttack(player1);
-            game.declareAttackOnMonster(player1, chubMonster);
+            await game.declareAttackOnMonster(player1, chubMonster);
             
             // Make attack roll
             game.attackRoll(player1);
@@ -173,7 +173,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const initialMonsterHP = chubMonster.currentHealthPoints;
             
             game.declareAttack(player1);
-            game.declareAttackOnMonster(player1, chubMonster);
+            await game.declareAttackOnMonster(player1, chubMonster);
             
             game.attackRoll(player1);
             
@@ -202,7 +202,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             
             // First attack roll of 1
             game.declareAttack(player1);
-            game.declareAttackOnMonster(player1, chubMonster);
+            await game.declareAttackOnMonster(player1, chubMonster);
             
             game.attackRoll(player1);
             const dice1 = game.stack.elements[0] as DiceRoll;
@@ -243,7 +243,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
 
             
             game.declareAttack(player1);
-            game.declareAttackOnMonster(player1, chubMonster);
+            await game.declareAttackOnMonster(player1, chubMonster);
             
             game.attackRoll(player1);
             const dice = game.stack.elements[0] as DiceRoll;
@@ -274,7 +274,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             expect(player2.isDead).toBe(false);
             
             game.declareAttack(player1);
-            game.declareAttackOnMonster(player1, satanMonster);
+            await game.declareAttackOnMonster(player1, satanMonster);
             
             game.addHealth(satanMonster, 10);
             
@@ -307,7 +307,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             expect(player2.isDead).toBe(false);
             
             game.declareAttack(player1);
-            game.declareAttackOnMonster(player1, satanMonster);
+            await game.declareAttackOnMonster(player1, satanMonster);
             
             game.addHealth(satanMonster, 10);
             
@@ -354,7 +354,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             
             // First attack roll of 6 - kill player2
             game4.declareAttack(player1_4);
-            game4.declareAttackOnMonster(player1_4, satanMonster);
+            await game4.declareAttackOnMonster(player1_4, satanMonster);
             game4.addHealth(satanMonster, 10);
             
             game4.attackRoll(player1_4);
@@ -396,7 +396,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             expect(player1.isDead).toBe(false);
             
             game.declareAttack(player1);
-            game.declareAttackOnMonster(player1, satanMonster);
+            await game.declareAttackOnMonster(player1, satanMonster);
             game.addHealth(satanMonster, 10);
             
             game.attackRoll(player1);
@@ -435,7 +435,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const initialPlayer2HandSize = player2.hand.length;
             
             game.declareAttack(player1);
-            game.declareAttackOnMonster(player1, ringMonster);
+            await game.declareAttackOnMonster(player1, ringMonster);
             
             // Make attack roll
             game.attackRoll(player1);
@@ -469,7 +469,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const initialPlayer2HandSize = player2.hand.length;
             
             game.declareAttack(player1);
-            game.declareAttackOnMonster(player1, ringMonster);
+            await game.declareAttackOnMonster(player1, ringMonster);
             game.addHealth(ringMonster, 10);
             
             game.attackRoll(player1);
@@ -506,7 +506,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             
             // First attack roll of 3
             game.declareAttack(player1);
-            game.declareAttackOnMonster(player1, ringMonster);
+            await game.declareAttackOnMonster(player1, ringMonster);
             game.addHealth(ringMonster, 10);
             
             game.attackRoll(player1);
@@ -550,7 +550,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const initialPlayer1HandSize = player1.hand.length;
             
             game.declareAttack(player1);
-            game.declareAttackOnMonster(player1, ringMonster);
+            await game.declareAttackOnMonster(player1, ringMonster);
             game.addHealth(ringMonster, 10);
             
             game.attackRoll(player1);
@@ -596,7 +596,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const totalOtherPlayersCards = player2_3.hand.length + player3.hand.length;
             
             game3.declareAttack(player1_3);
-            game3.declareAttackOnMonster(player1_3, ringMonster);
+            await game3.declareAttackOnMonster(player1_3, ringMonster);
             game3.addHealth(ringMonster, 10);
             
             game3.attackRoll(player1_3);

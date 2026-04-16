@@ -1,4 +1,4 @@
-import { type Card, type LootCard, type EternalCard, type TreasureCard, MonsterCard, type CharacterCard, MonsterType, type Deck, EffectOnStack, EffectData } from "./cards";
+    import { type Card, type LootCard, type EternalCard, type TreasureCard, MonsterCard, type CharacterCard, MonsterType, type Deck, EffectOnStack, EffectData } from "./cards";
 import type { Game } from "./game";
 import { Monster } from "./monster";
 import { Player } from "./player";
@@ -315,11 +315,13 @@ class Encounters {
                         card.onPlay(data.issuer, data.targets);
                     }
                     this._game.executeWhenStackSubset(stackIds, () => {
-                        if(card.afterEffect === "discard")
-                            this.discardTop(index); // remove the card once the effect is resolved.
-                        else
-                            this.removeTop(index); // remove from encounter slot without discarding (e.g. curses).
-                        });
+                        if(card.afterEffect !== "handled")
+                        {
+                            this.removeFromSlot(card);
+                            if(card.afterEffect === "discard")
+                                this._deck.addDiscardTop(card); // remove the card once the effect is resolved.
+                        }
+                    });
                     return true;
                 }, 
                 new EffectData(card, this._game.currentPlayer, []), 
@@ -330,6 +332,25 @@ class Encounters {
             });
         }
     }
+
+    removeFromSlot(card: MonsterCard): boolean {
+        for (let i = 0; i < this._slots.length; i++) {
+            for (let j = this._slots[i]!.length - 1; j >= 0; j--) {
+                if (this._slots[i]![j] === card) {
+                    if(j === this._slots[i]!.length - 1)
+                        this.removeTop(i);
+                    else
+                    {
+                        this._slots[i]!.splice(j, 1);
+                        this.fillEmptySpots();
+                    }
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
 
     /**
      * Obtains a specific card from the encounter area by its slug.

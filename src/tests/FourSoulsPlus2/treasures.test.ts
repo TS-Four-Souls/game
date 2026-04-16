@@ -7,17 +7,7 @@ import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame } from "../testHelpers";
 import type { Target } from "bun";
 
-async function characterAdd1LootPlay(player1: Player, game: Game) {
-    // verify character card works.
-    const lootPlay = player1.remainingLootPlay;
-    game.recharge(player1.inPlay[0] as ItemCard);
-    await game.activateItem(player1, player1.inPlay[0]!, [], "tap");
-    await game.resolveStack();
-    await game.resolveStack();
-    expect(player1.remainingLootPlay).toBe(lootPlay + 1);
-}
-
-describe("Four Souls+2 Loot Cards", () => {
+describe("Four Souls+2 Treasures", () => {
     let game: Game;
     let player1: Player;
     let player2: Player;
@@ -43,7 +33,7 @@ describe("Four Souls+2 Loot Cards", () => {
         };
         await game.endTurn();
         game.declareAttack(player2);
-        game.declareAttackOnMonster(player2, game.encounters.monsterIn(0)!);
+        await game.declareAttackOnMonster(player2, game.encounters.monsterIn(0)!);
         expect(game.stack.size).toBe(1);
         await game.resolveStack();
         expect(game.encounters.monsterIn(1)!.isEngagedInCombat).toBe(true);
@@ -69,7 +59,7 @@ describe("Four Souls+2 Loot Cards", () => {
         const card1 = game.obtainCard("fsp2-cursed_eye") as TreasureCard;
         game.addInPlay(player1, card1);
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, game.encounters.monsterIn(1)!);
+        await game.declareAttackOnMonster(player1, game.encounters.monsterIn(1)!);
         game.random = () => 1/6-.00001;
         game.attackRoll(player1);
         expect(game.stack.size).toBe(2);
@@ -83,7 +73,7 @@ describe("Four Souls+2 Loot Cards", () => {
         const card1 = game.obtainCard("fsp2-cursed_eye") as TreasureCard;
         game.addInPlay(player1, card1);
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, game.encounters.monsterIn(1)!);
+        await game.declareAttackOnMonster(player1, game.encounters.monsterIn(1)!);
         game.random = () => 5/6-.00001;
         game.attackRoll(player1);
         await game.resolveStack();
@@ -221,7 +211,7 @@ describe("Four Souls+2 Loot Cards", () => {
         game.addInPlay(player1, card1);
         game.declareAttack(player1);
         const monster = game.encounters.monsterIn(1)!;
-        game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnMonster(player1, monster);
         game.random = () => 0.01;
         game.attackRoll(player1);
         await game.resolveStack();
@@ -235,7 +225,7 @@ describe("Four Souls+2 Loot Cards", () => {
         await game.endTurn();
         await game.resolveStack();
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, game.encounters.monsterIn(0)!);
+        await game.declareAttackOnMonster(player1, game.encounters.monsterIn(0)!);
         game.attackRoll(player1);
         expect(game.stack.size).toBe(1);
     });
@@ -244,7 +234,7 @@ describe("Four Souls+2 Loot Cards", () => {
         const card1 = game.obtainCard("fsp2-head_of_the_keeper") as TreasureCard;
         game.addInPlay(player1, card1);
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, game.encounters.monsterIn(1)!); // Fatty
+        await game.declareAttackOnMonster(player1, game.encounters.monsterIn(1)!); // Fatty
         game.random = () => 0.99;
         const initialCoins = player1.coins;
         game.attackRoll(player1);
@@ -268,7 +258,7 @@ describe("Four Souls+2 Loot Cards", () => {
         game.addInPlay(player1, card1);
         const hp = player1.currentHealthPoints;
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, game.encounters.monsterIn(0)!);
+        await game.declareAttackOnMonster(player1, game.encounters.monsterIn(0)!);
         game.dealDamage(player2, player1, card1, hp);
         await game.resolveStack();
         await game.resolveStack();
@@ -514,7 +504,7 @@ describe("Four Souls+2 Loot Cards", () => {
         expect(game.getDC(game.encounters.monsterIn(0)!)).toBe(evastion[0]!+1);
         expect(game.getDC(game.encounters.monsterIn(1)!)).toBe(evastion[1]!+1);
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, game.encounters.monsterIn(0)!);
+        await game.declareAttackOnMonster(player1, game.encounters.monsterIn(0)!);
         game.random = () => 0.99;
         game.attackRoll(player1);
         await game.resolveStack();
@@ -600,7 +590,7 @@ describe("Four Souls+2 Loot Cards", () => {
         const card1 = game.obtainCard("fsp2-rubber_cement") as TreasureCard;
         game.addInPlay(player1, card1);
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, game.encounters.monsterIn(0)!);
+        await game.declareAttackOnMonster(player1, game.encounters.monsterIn(0)!);
         game.random = () => 0.01;
         game.attackRoll(player1);
         game.select = (_issuer, _n, opts, _optional) => {
@@ -651,7 +641,7 @@ describe("Four Souls+2 Loot Cards", () => {
         game.addInPlay(player1, card1);
         game.declareAttack(player1);
         const monster = game.encounters.monsterIn(1)!;
-        game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnMonster(player1, monster);
         game.random = () => 0.01; // roll a 1
         game.attackRoll(player1);
         await game.activateItem(player1, card1, [game.stack.peek(), 2], "tap");

@@ -90,7 +90,7 @@ describe("Target Builder Interface", () => {
       game.recharge(item);
     }
     game.declareAttack(player1);
-    game.declareAttackOnMonster(player1, game.encounters.monsterIn(0)!);
+    await game.declareAttackOnMonster(player1, game.encounters.monsterIn(0)!);
     game.attackRoll(player1);
     expect(TargetBuilder.validTargetExists(game, player1, item, "tap")).toBe(true);
   });

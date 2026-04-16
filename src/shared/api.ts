@@ -441,7 +441,7 @@ const purchaseSchema = z.object({
 });
 
 const attackRequirementSchema = z.object({
-  monster: z.union([cardSchema, z.literal("top")]),
+  monster: z.union([z.array(cardSchema), z.literal("top"), z.literal("any")]),
   source: cardSchema,
 });
 

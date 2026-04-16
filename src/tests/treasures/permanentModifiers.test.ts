@@ -163,7 +163,7 @@ describe("Treasure - Permanent Modifiers", () => {
             expect(game.currentPlayer.id).toBe(player1.id);
             // Attack monster
             game.declareAttack(player1);
-            game.declareAttackOnMonster(player1, monster);
+            await game.declareAttackOnMonster(player1, monster);
             game.attackRoll(player1)
             const attackRoll = game.stack._stack[0] as DiceRoll | undefined;
             expect(attackRoll).toBeDefined();
@@ -276,7 +276,7 @@ describe("Treasure - Permanent Modifiers", () => {
         
         // Player1 attacks monster and deals combat damage
         testGame.declareAttack(testGame.currentPlayer);
-        testGame.declareAttackOnMonster(testGame.currentPlayer, monster);
+        await testGame.declareAttackOnMonster(testGame.currentPlayer, monster);
         testGame.attackRoll(p1);
         const attackRoll = testGame.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll).toBeDefined();
@@ -305,7 +305,7 @@ describe("Treasure - Permanent Modifiers", () => {
         
         const initialP2HP = player2.currentHealthPoints;
         game.declareAttack(game.currentPlayer);
-        game.declareAttackOnMonster(game.currentPlayer, monster);
+        await game.declareAttackOnMonster(game.currentPlayer, monster);
         // Player1 attacks monster and rolls a 6
         game.attackRoll(player1);
         const attackRoll = game.stack._stack[0] as DiceRoll | undefined;

@@ -44,8 +44,7 @@ export type OnDamageTakenData = {
   eventIssuer: Entity;
   target: Entity;
   source: DamageSource;
-  damage?: number;
-  damageArray?: number[];
+  damage: number;
 };
 
 /** Data emitted when an entity is about to take damage (can be modified) */
@@ -100,6 +99,13 @@ export type OnAttackRollData = {
   damageReceived: number[];
   evasion: number[];
 };
+
+/** Data emitted when a soul is gained */
+export type OnSoulGainedData = {
+  eventIssuer: Player;
+  soul: Card;
+};
+
 
 /** Data emitted when a player gains coins */
 export type OnCoinGainedData = {
@@ -280,6 +286,7 @@ export type TriggerEventDataMap = {
   "on:game:start:before": OnGameStartBeforeData;
   "on:game:start": OnGameStartData;
   "on:attack:roll:failed": OnAttackRollData;
+  "on:soul:gained": OnSoulGainedData;
 };
 
 export type TriggerEvent = keyof TriggerEventDataMap;
