@@ -1566,12 +1566,11 @@ export class Game {
     if (shufflePlayerOrder) {
       shuffle(this.random, this.players);
     }
-    this.assignColorsToPlayers();
     if (this._decks.character.length === 0) {
       this.setupGame();
     }
     this.turnHandler.initialize(this.players);
-
+    
     if (characters && characters.length > 0) {
       this.assignCharactersToPlayers(characters);
     } else {
@@ -1592,9 +1591,10 @@ export class Game {
     // fill empty spot may call game.encounters, so it must be called after this._encounters initialization.
     this._encounters.fillEmptySpots(true);
     this.emit("on:game:start:before", {});
+    this.assignColorsToPlayers();
     this.emit("on:game:start", {});
     this.healEveryone();
-
+    
     this.startOfGameSetup();
     this.startTurn();
   }
