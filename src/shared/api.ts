@@ -52,8 +52,8 @@ const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
   z.union([
     z.object({ type: z.literal("card"), payload: cardSchema }),
     z.object({ type: z.literal("stackElement"), payload: stackElementSchema }),
-    z.object({ type: z.literal("player"), payload: identifierTypeSchema }),
-    z.object({ type: z.literal("monster"), payload: identifierTypeSchema }),
+    z.object({ type: z.literal("player"), payload: entityTypeSchema }),
+    z.object({ type: z.literal("monster"), payload: entityTypeSchema }),
     z.object({ type: z.literal("deck"), payload: z.string() }),
     z.object({ type: z.literal("number"), payload: z.number() }),
     z.object({ type: z.literal("boolean"), payload: z.boolean() }),
