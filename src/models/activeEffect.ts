@@ -209,8 +209,8 @@ export function chooseOneEffect(s: string, game: Game, selectionOnResolve: boole
                     admissibleTargets: effect.targetSelectors.map(ts => ts.selector(issuer)).flat()
                 }));
             }, 
-            count: 1, 
-            asMany: false 
+            min: 1, 
+            max: 1, 
         }]
     };
 }

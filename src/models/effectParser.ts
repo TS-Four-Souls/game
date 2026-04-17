@@ -30,107 +30,107 @@ export type ParsedEffect = {
 const createSelector = (
     description: string,
     selector: (player: Player) => any[],
-    count: number = 1,
-    asMany: boolean = false
-): TargetsSelector => ({ description, selector, count, asMany });
+    min: number = 1,
+    max: number = 1,
+): TargetsSelector => ({ description, selector, min, max });
 
 const noTargets: TargetsSelector[] = [];
 
-const selectPlayer = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose a player", playerSelector(() => true, game), count, asMany)];
+const selectPlayer = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Choose a player", playerSelector(() => true, game), min, max)];
 
-const selectAlivePlayer = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose a player", playerSelector((player) => !player.isDead, game), count, asMany)];
+const selectAlivePlayer = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Choose a player", playerSelector((player) => !player.isDead, game), min, max)];
 
-const selectAnotherPlayer = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose another player", anotherPlayerSelector(() => true, game), count, asMany)];
+const selectAnotherPlayer = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Choose another player", anotherPlayerSelector(() => true, game), min, max)];
 
-const selectMonster = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose a monster", (issuer: Player) => game.monsters, count, asMany)];
+const selectMonster = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Choose a monster", (issuer: Player) => game.monsters, min, max)];
 
-const selectAttackableMonster = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose a monster", (issuer: Player) => game.monsters.filter(m => m.attackable), count, asMany)];
+const selectAttackableMonster = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Choose a monster", (issuer: Player) => game.monsters.filter(m => m.attackable), min, max)];
 
 
-export const selectPlayerOrMonster = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose a player or monster", activeEntitySelector(() => true, game), count, asMany)];
+export const selectPlayerOrMonster = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Choose a player or monster", activeEntitySelector(() => true, game), min, max)];
 
-const selectDeck = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Select a deck", deckSelector(() => true, game), count, asMany)];
+const selectDeck = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Select a deck", deckSelector(() => true, game), min, max)];
 
-const selectTopAnyDiscard = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] =>
-    [createSelector("Select the top card of any discard pile", topAnyDiscardSelector(() => true, game), count, asMany)];
+const selectTopAnyDiscard = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
+    [createSelector("Select the top card of any discard pile", topAnyDiscardSelector(() => true, game), min, max)];
 
-const selectRoll = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose a dice roll", rollSelector(() => true, game), count, asMany)];
+const selectRoll = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Choose a dice roll", rollSelector(() => true, game), min, max)];
 
-const selectRollAndNumber = (game: Game, numbers: number[], count: number = 1, asMany: boolean = false,  rollType: "attack" | "non-attack" | "any" = "any"): TargetsSelector[] => 
+const selectRollAndNumber = (game: Game, numbers: number[], min: number = 1, max: number = min,  rollType: "attack" | "non-attack" | "any" = "any"): TargetsSelector[] => 
     [createSelector("Choose a dice roll", rollSelector((roll: DiceRoll) => {
         if (roll.attackRoll && rollType === "non-attack" || 
            !roll.attackRoll && rollType === "attack") {
             return false;
         }
         return true;
-    }, game), count, asMany),
+    }, game), min, max),
     createSelector(`Choose a number (${Math.min(...numbers)}-${Math.max(...numbers)})`, () => {
         return numbers;
-    }, count, asMany)];
+    }, min, max)];
 
 
-const selectItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Select a rechargeable item", inplayUnchargedItemSelector(game), count, asMany)];
+const selectItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Select a rechargeable item", inplayUnchargedItemSelector(game), min, max)];
 
-const selectCurse = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Select a curse", inplayCurseSelector((player, card) => true, game), count, asMany)];
+const selectCurse = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Select a curse", inplayCurseSelector((player, card) => true, game), min, max)];
 
-const selectNonEternalItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose a non-eternal item", inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), count, asMany)];
+const selectNonEternalItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Choose a non-eternal item", inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), min, max)];
 
-const selectNonEternalItemOrASoul = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose a non-eternal item or a soul", inplayItemAndSoulSelector((player: Player, card: ItemCard) => card.eternal === false, game), count, asMany)];
+const selectNonEternalItemOrASoul = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Choose a non-eternal item or a soul", inplayItemAndSoulSelector((player: Player, card: ItemCard) => card.eternal === false, game), min, max)];
 
-const selectNonEternalTapItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose a non-eternal item", visibleItemSelector((card: ItemCard) => card.eternal === false && card.hasTapEffect() && card.slug != "b2-placebo", game), count, asMany)];
+const selectNonEternalTapItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Choose a non-eternal item", visibleItemSelector((card: ItemCard) => card.eternal === false && card.hasTapEffect() && card.slug != "b2-placebo", game), min, max)];
 
-const selectAnyTapItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose any tap item", visibleItemSelector((card: ItemCard) => card.hasTapEffect(), game), count, asMany)];
+const selectAnyTapItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Choose any tap item", visibleItemSelector((card: ItemCard) => card.hasTapEffect(), game), min, max)];
 
-const selectAnotherPlayerNonEternalItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose another player's non-eternal item", inAnotherplayItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), count, asMany)];
+const selectAnotherPlayerNonEternalItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Choose another player's non-eternal item", inAnotherplayItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), min, max)];
 
-const selectNonEternalPassiveItem = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose a non-eternal passive item", visibleItemSelector((card: ItemCard) => card.eternal === false && card.activeEffectList.length === 0, game), count, asMany)];
+const selectNonEternalPassiveItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Choose a non-eternal passive item", visibleItemSelector((card: ItemCard) => card.eternal === false && card.activeEffectList.length === 0, game), min, max)];
 
-const selectItemYouControl = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Select an item you control", YourItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), count, asMany)];
+const selectItemYouControl = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Select an item you control", YourItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), min, max)];
 
-const selectSoulYouControl = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Destroy a soul you control", (issuer: Player) => issuer.souls, count, asMany)];
+const selectSoulYouControl = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Destroy a soul you control", (issuer: Player) => issuer.souls, min, max)];
 
-const selectNonEternalItemFromAnywhere = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Select a non-eternal item from a player or from the shop", visibleItemSelector((card: ItemCard) => card.eternal === false, game), count, asMany)];
+const selectNonEternalItemFromAnywhere = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Select a non-eternal item from a player or from the shop", visibleItemSelector((card: ItemCard) => card.eternal === false, game), min, max)];
 
-const selectPlayerWithMostSouls = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Choose a player with the most souls or tied for the most", playerSelector((p) => p.souls.length === Math.max(...game.players.map(p => p.souls.length)), game), count, asMany)];
+const selectPlayerWithMostSouls = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Choose a player with the most souls or tied for the most", playerSelector((p) => p.souls.length === Math.max(...game.players.map(p => p.souls.length)), game), min, max)];
 
 const selectRollAddOrSubtract = (game: Game): TargetsSelector[] => [
     createSelector("Choose a dice roll", rollSelector(() => true, game)),
     createSelector("Choose to add or subtract 1", (issuer: Player) => [1, -1])
 ];
 
-const selectLootInYourHand = (game: Game, toDiscard: number = 1, asMany: boolean = false, selectionOnResolve: boolean = false): TargetsSelector[] => 
+const selectLootInYourHand = (game: Game, min: number = 1, max: number = min, selectionOnResolve: boolean = false): TargetsSelector[] => 
     selectionOnResolve ? noTargets :
-    [createSelector("Select a loot card in your hand", (issuer: Player) => issuer.hand.cards, toDiscard, asMany)];
+    [createSelector("Select a loot card in your hand", (issuer: Player) => issuer.hand.cards, min, max)];
 
-const selectUsableAbilityStackElement = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Select a loot card on the stack", stackElementSelector((element) => element instanceof EffectOnStack && element.data.it instanceof ItemCard, game), count, asMany)];
+const selectUsableAbilityStackElement = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Select a loot card on the stack", stackElementSelector((element) => element instanceof EffectOnStack && element.data.it instanceof ItemCard, game), min, max)];
 
-const selectStackElementOrLoot = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] => 
-    [createSelector("Select the ↷ or $ ability of an item or a loot card on the stack", stackElementSelector((element) => element instanceof LootCardEffect || element instanceof EffectOnStack, game), count, asMany)];
-const selectLootOnStack = (game: Game, count: number = 1, asMany: boolean = false): TargetsSelector[] =>
-    [createSelector("Select a loot card on the stack", stackElementSelector((element) => element instanceof LootCardEffect, game), count, asMany)];
+const selectStackElementOrLoot = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Select the ↷ or $ ability of an item or a loot card on the stack", stackElementSelector((element) => element instanceof LootCardEffect || element instanceof EffectOnStack, game), min, max)];
+const selectLootOnStack = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
+    [createSelector("Select a loot card on the stack", stackElementSelector((element) => element instanceof LootCardEffect, game), min, max)];
 const selectNumber1to6 = (): TargetsSelector[] => 
-    [createSelector("Choose a number (1-6)", () => [1, 2, 3, 4, 5, 6], 1, false)];
+    [createSelector("Choose a number (1-6)", () => [1, 2, 3, 4, 5, 6], 1, 1)];
 
 
 function replaceDiceSymbols(s: string): string {
@@ -356,13 +356,13 @@ export function parseTheActivePlayerEffect(s: string, game: Game): ParsedEffect 
         case "the active player chooses a player. they lose 7¢.":
             return noTargetEffect(monster.activePlayerSelectAndCallEffect(game, active.loseCoinsEffect(game, 7)));
         case "the active player may steal a non-eternal item another player controls.":
-            return noTargetEffect(monster.activePlayerSelectTargetEffect(game, active.stealNonEternalItemEffect(game), selectAnotherPlayerNonEternalItem(game, 1, true)[0]!));
+            return noTargetEffect(monster.activePlayerSelectTargetEffect(game, active.stealNonEternalItemEffect(game), selectAnotherPlayerNonEternalItem(game, 0, 1)[0]!));
         case "the active player may look at a player's hand.":
-            return noTargetEffect(monster.activePlayerSelectTargetEffect(game, active.lookAtAPlayerHand(game), selectPlayer(game, 1, true)[0]!, false));
+            return noTargetEffect(monster.activePlayerSelectTargetEffect(game, active.lookAtAPlayerHand(game), selectPlayer(game, 0, 1)[0]!, false));
         case "the active player deals 3 damage to a player.":
             return noTargetEffect(active.dealDamageToAPlayerEffect(game, 3, true, true));
         case "the active player deals 2 damage divided as they choose to any number of monsters or players.":
-            return noTargetEffect(monster.activePlayerSelectTargetEffect(game, active.deal2DamageDividedAsYouChooseEffect(game), selectPlayerOrMonster(game, 2, true)[0]!));
+            return noTargetEffect(monster.activePlayerSelectTargetEffect(game, active.deal2DamageDividedAsYouChooseEffect(game), selectPlayerOrMonster(game, 1, 2)[0]!));
         case "the active player recharges each item they control.":
             return noTargetEffect(monster.activePlayerIsTargetedByEffect(game, active.rechargeEachItemsOfTargetEffect(game)));
         case "the active player may choose another player. they give you a soul they control.":
@@ -611,7 +611,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     if( forceDiscard !== null)
         return { effectFunction: active.discardNLootCardsEffect(forceDiscard, game, true, true), targetSelectors: selectPlayer(game) };
     if( toDiscard !== null)
-        return { effectFunction: active.discardNLootCardsEffect(toDiscard, game, selectionOnResolve), targetSelectors: selectLootInYourHand(game, toDiscard, false, selectionOnResolve)};
+        return { effectFunction: active.discardNLootCardsEffect(toDiscard, game, selectionOnResolve), targetSelectors: selectLootInYourHand(game, toDiscard, toDiscard, selectionOnResolve)};
     const eachPlayerLoots = parseNumber(s, /^each player loots\s+(\d+)\.?$/u);
     if (eachPlayerLoots !== null)
         return { effectFunction: active.eachPlayerLootsEffect(game, eachPlayerLoots), targetSelectors: noTargets };
@@ -975,9 +975,9 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
         case "subtract up to 2 from a roll.":
             return { effectFunction: active.subtractUpTo2FromRollEffect(game), targetSelectors: selectRollAndNumber(game, [0, 1, 2]) };
         case "add up to 2 to an attack roll.":
-            return { effectFunction: active.addUpTo2ToRollEffect(game, "attack"), targetSelectors: selectRollAndNumber(game, [0, 1, 2], 1, false, "attack") };
+            return { effectFunction: active.addUpTo2ToRollEffect(game, "attack"), targetSelectors: selectRollAndNumber(game, [0, 1, 2], 1, 1, "attack") };
         case "add up to 2 to a non-attack roll.":
-            return { effectFunction: active.addUpTo2ToRollEffect(game, "non-attack"), targetSelectors: selectRollAndNumber(game, [0, 1, 2], 1, false, "non-attack") };
+            return { effectFunction: active.addUpTo2ToRollEffect(game, "non-attack"), targetSelectors: selectRollAndNumber(game, [0, 1, 2], 1, 1, "non-attack") };
         case "each player votes on an item in play. destroy the item with the most votes. If there is a tie, nothing happens.":
             return { effectFunction: active.eachPlayersVoteToDestroyItemEffect(game), targetSelectors: noTargets };
         case "add or subtract 1 from any of your non-attack rolls.":

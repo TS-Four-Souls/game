@@ -405,8 +405,8 @@ io.on("connection", (socket) => {
             //   }
             // const treas = [
             //   // "b2-mini_mush", 
-            //   "b2-dads_lost_coin",
-            //   "b2-bum_bo"];
+            //   // "b2-dads_lost_coin",
+            //   "b2-placebo"];
             // for (const slug of treas) {
             //   const card = game.obtainCard(slug)! as ItemCard;
             //   game.addInPlay(game.players[0]!, card);
@@ -872,7 +872,7 @@ io.on("connection", (socket) => {
               });
             }
             const cards = lootDeck.cards
-              .toSorted((a, b) => a.slug.localeCompare(b.slug))
+              .toSorted((a, b) => (a.name+a.slug).localeCompare(b.name+b.slug))
               .map((c) => c.jsonAPI);
 
             return callback({ status: 200, cards });
@@ -964,7 +964,7 @@ io.on("connection", (socket) => {
               });
             }
             const cards = treasureDeck.cards
-              .toSorted((a, b) => a.slug.localeCompare(b.slug))
+              .toSorted((a, b) => (a.name+a.slug).localeCompare(b.name+b.slug))
               .map((c) => c.jsonAPI);
 
             return callback({ status: 200, cards });

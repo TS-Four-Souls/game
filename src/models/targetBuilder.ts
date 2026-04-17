@@ -34,14 +34,14 @@ import type { SelectionItem, SelectionItemType } from "../shared/api";
  */
 export class TargetBuilder {
     private static shouldAutofillSelector(selector: TargetsSelector, possibleTargets: any[]): boolean {
-        return possibleTargets.length === 1 && selector.count === 1 && !selector.asMany;
+        return selector.min === possibleTargets.length && selector.max === possibleTargets.length;
     }
 
     private static completeResponse(): TargetSelectorResponse {
         return {
             description: "",
-            count: 0,
-            asMany: false,
+            min: 0,
+            max: 0,
             options: [],
             complete: true,
             isChooseOne: false
@@ -75,8 +75,8 @@ export class TargetBuilder {
                 selector = {
                     description: chosenOption.description,
                     selector: () => chosenOption.admissibleTargets,
-                    count: selector.count,
-                    asMany: selector.asMany,
+                    min: selector.min,
+                    max: selector.max,
                 };
                 break;
             }
@@ -134,7 +134,8 @@ export class TargetBuilder {
 
     /**
      * Walk through selectors following the user's choices, handling choose-one nesting.
-     * Returns the current selector to display based on the partial choices made so far.
+     * Returns the current selector to display based on the partial choices made so far non serialized.
+     * 
      * 
      * @param game The game instance
      * @param player The player building the targets
@@ -142,9 +143,9 @@ export class TargetBuilder {
      * @param partialChoices Flat array of all string identifiers chosen so far
      * @param effectId Which effect to activate ("tap" or paid effect index)
      * @param throwIfNotCharged Whether to throw an error if the item is not charged (default: true)
-     * @returns Information about the next selector to fill, or completion status
+     * @returns Information about the next selector to fill, or completion status non serialized
      */
-    static getNextSelector(
+    static getNextSelectorRaw(
         game: Game,
         player: Player,
         item: ItemCard,
@@ -152,7 +153,14 @@ export class TargetBuilder {
         effectId: number | "tap" = "tap",
         throwIfNotCharged: boolean = true,
         bypassAsserPendingSelection: boolean = false
-    ): TargetSelectorResponse {
+    ): {
+                description: string,
+                min: number,
+                max: number,
+                options: any[],
+                complete: boolean,
+                isChooseOne: boolean,
+            } {
         if(!bypassAsserPendingSelection)
             game.assertNoPendingSelection();
         if(!item)
@@ -212,8 +220,8 @@ export class TargetBuilder {
                     selector = {
                         description: chosenOption.description,
                         selector: () => chosenOption.admissibleTargets,
-                        count: selector.count,
-                        asMany: selector.asMany
+                        min: selector.min,
+                        max: selector.max
                     };
                     choicesProcessed = 0; // Reset for the sub-selector
                 }
@@ -227,7 +235,7 @@ export class TargetBuilder {
                 choicesProcessed++;
 
                 // Check if we've filled this selector's count
-                if (choicesProcessed >= selector.count) {
+                if (choicesProcessed >= selector.max) {
                     // Move to next selector
                     selectorIndex++;
                     selector = rootSelectors[selectorIndex];
@@ -263,9 +271,9 @@ export class TargetBuilder {
             const options = (possibleTargets as ChooseOneOptions[]).map(opt => opt.description);
             return {
                 description: selector.description,
-                count: 1,
-                asMany: false,
-                options: TargetBuilder.convertToSelectionItems(options),
+                min: 1,
+                max: 1,
+                options: options,
                 complete: false,
                 isChooseOne: true
             };
@@ -273,13 +281,45 @@ export class TargetBuilder {
             // Return regular targets as string identifiers
             return {
                 description: selector.description,
-                count: selector.count,
-                asMany: selector.asMany,
-                options: TargetBuilder.convertToSelectionItems(possibleTargets),
+                min: selector.min,
+                max: selector.max,
+                options: possibleTargets,
                 complete: false,
                 isChooseOne: false
             };
         }
+    }
+
+    /**
+     * Walk through selectors following the user's choices, handling choose-one nesting.
+     * Returns the current selector to display based on the partial choices made so far.
+     * 
+     * @param game The game instance
+     * @param player The player building the targets
+     * @param item The item card whose effect is being activated
+     * @param partialChoices Flat array of all string identifiers chosen so far
+     * @param effectId Which effect to activate ("tap" or paid effect index)
+     * @param throwIfNotCharged Whether to throw an error if the item is not charged (default: true)
+     * @returns Information about the next selector to fill, or completion status, serialized
+     */
+    static getNextSelector(
+        game: Game,
+        player: Player,
+        item: ItemCard,
+        partialChoices: SelectionItem[] = [],
+        effectId: number | "tap" = "tap",
+        throwIfNotCharged: boolean = true,
+        bypassAsserPendingSelection: boolean = false
+    ): TargetSelectorResponse {
+        const selectorRaw = TargetBuilder.getNextSelectorRaw(game, player, item, partialChoices, effectId, throwIfNotCharged, bypassAsserPendingSelection);
+        return {
+            description: selectorRaw.description,
+            min: selectorRaw.min,
+            max: selectorRaw.max,
+            options: TargetBuilder.convertToSelectionItems(selectorRaw.options),
+            complete: selectorRaw.complete,
+            isChooseOne: selectorRaw.isChooseOne
+        };
     }
     /**
      * Return an item from a player's inPlay or hand by its index.
@@ -300,60 +340,6 @@ export class TargetBuilder {
             throw new Error(`Item not found in player's ${type}.`);
         return card;
     }
-
-    /**
-     * Convert target objects to string identifiers that can be sent to clients
-     * and later resolved back to the actual objects.
-     * 
-     * @param options Array of target options (Cards, Players, Monsters, numbers, etc.)
-     * @returns Array of string identifiers
-     */
-    // static convertToSelectionItems(options: any[]): string[] {
-    //     return this.convertToSelectionItems(options).map(item => JSON.stringify(item.payload));
-    //     // console.log("Converting options to string identifiers:", options);
-    //     // return options.map(option => {
-
-    //     //     // Handle Cards
-    //     //     if (typeof option === 'object' && option !== null && 'slug' in option) {
-    //     //         return option.slug;
-    //     //     }
-
-    //     //     // Handle Entities (by ID)
-    //     //     if (typeof option === 'object' && option !== null && 'id' in option) {
-    //     //         return option.id;
-    //     //     }
-
-    //     //     // Handle Stack Elements
-    //     //     if (isStackElement(option)) {
-    //     //         // console.log("Stack element json:", JSON.stringify(option.json));
-    //     //         return JSON.stringify(option.json);
-    //     //     }
-
-    //     //     // Handle primitive types (numbers, strings, booleans)
-    //     //     if (typeof option === 'number' || typeof option === 'string' || typeof option === 'boolean') {
-    //     //         return `${option}`;
-    //     //     }
-
-    //     //     // Handle null explicitly
-    //     //     if (option === null) {
-    //     //         return 'null';
-    //     //     }
-            
-    //     //     // { player: Player; hand: Hand }
-    //     //     if( typeof option === 'object' && 'player' in option && 'hand' in option)
-    //     //         return option.player.id + ': ' + option.hand.cards.map((c: Card) => c.slug).join(',');
-
-    //     //     // Handle arrays and plain objects with JSON stringification
-    //     //     if (Array.isArray(option) || typeof option === 'object') {
-    //     //         return JSON.stringify(option);
-    //     //     }
-
-    //     //     // Fallback for unknown types
-    //     //     return option?.constructor?.name || 'undefined';
-    //     // });
-    // }
-
-    // "card" | "player" | "monster" | "number" | "boolean" | "stackElement" | "chooseOneOption" | "array" | "object" | "null" | "unknown";
 
     static convertToSelectionItems(options: any[]): SelectionItem[] {
          return options.map(option => {
@@ -389,8 +375,6 @@ export class TargetBuilder {
             // { player: Player; hand: Hand }
             if( typeof option === 'object' && 'player' in option && 'hand' in option)
                 return {type: "couplePlayerHand", payload: {player: {name: (option.player as Player).id, slug: (option.player as Player).slug, globalId: (option.player as Player).globalId}, hand: option.hand.cards.map((c: Card) => {return {name: c.name, slug: c.slug, globalId: c.globalId}})}};
-            if(option && typeof option === 'object' && 'type' in option && 'payload' in option)
-                return option as SelectionItem;
             if (Array.isArray(option) || typeof option === 'object') {
                 try {
                     return {type: "array", payload: TargetBuilder.convertToSelectionItems(option)};
@@ -401,59 +385,6 @@ export class TargetBuilder {
             return {type: "unknown", payload: null};
             // throw new Error("Not implemented yet");
         });
-    }
-
-    private static selectionItemMatchesRawChoice(selectionItem: SelectionItem, rawChoice: any): boolean {
-        if (rawChoice && typeof rawChoice === "object" && "type" in rawChoice && "payload" in rawChoice) {
-            return selectionItem.type === rawChoice.type && JSON.stringify(selectionItem.payload) === JSON.stringify(rawChoice.payload);
-        }
-
-        switch (selectionItem.type) {
-            case "card":
-                return !!rawChoice && typeof rawChoice === "object"
-                    && selectionItem.payload.slug === rawChoice.slug
-                    && (rawChoice.globalId === undefined || selectionItem.payload.globalId === rawChoice.globalId)
-                    && (rawChoice.name === undefined || selectionItem.payload.name === rawChoice.name);
-            case "player":
-            case "monster":
-                return !!rawChoice && typeof rawChoice === "object"
-                    && (
-                        (rawChoice.id !== undefined && selectionItem.payload.name === rawChoice.id) ||
-                        (rawChoice.json?.name !== undefined && selectionItem.payload.name === rawChoice.json.name)
-                    )
-                    && (rawChoice.slug === undefined || selectionItem.payload.slug === rawChoice.slug)
-                    && (rawChoice.globalId === undefined || selectionItem.payload.globalId === rawChoice.globalId)
-                    && (rawChoice.json?.globalId === undefined || selectionItem.payload.globalId === rawChoice.json.globalId);
-            case "deck":
-                return rawChoice === selectionItem.payload || rawChoice?._type === selectionItem.payload || rawChoice?.type === selectionItem.payload;
-            case "stackElement":
-                return !!rawChoice && typeof rawChoice === "object"
-                    && (rawChoice.stackId === selectionItem.payload.id || rawChoice.json?.id === selectionItem.payload.id);
-            case "number":
-            case "string":
-            case "boolean":
-            case "null":
-                return rawChoice === selectionItem.payload;
-            case "couplePlayerHand":
-            case "array":
-            case "object":
-                return JSON.stringify(rawChoice) === JSON.stringify(selectionItem.payload);
-            case "unknown":
-                return false;
-        }
-    }
-
-    private static normalizeSelectedChoice(rawChoice: any, availableOptions: SelectionItem[]): SelectionItem {
-        if (rawChoice && typeof rawChoice === "object" && "type" in rawChoice && "payload" in rawChoice) {
-            return rawChoice as SelectionItem;
-        }
-
-        const matchedOption = availableOptions.find((option) => TargetBuilder.selectionItemMatchesRawChoice(option, rawChoice));
-        if (matchedOption) {
-            return matchedOption;
-        }
-
-        return TargetBuilder.convertToSelectionItems([rawChoice])[0] ?? { type: "unknown", payload: null };
     }
 
     /**
@@ -509,68 +440,6 @@ export class TargetBuilder {
             default:
                 return undefined;
         }
-
-        // // Special case: if identifier is 'null', find null in the array
-        // if (identifier.type === 'null') {
-        //     return possibleTargets.find(t => t === null);
-        // }
-
-        // const firstTarget = possibleTargets[0];
-
-        // // Null - skip to next target if first is null
-        // if (firstTarget === null) {
-        //     // Find first non-null target to determine type
-        //     const nonNullTarget = possibleTargets.find(t => t !== null);
-        //     if (!nonNullTarget) {
-        //         // All null array, already handled above
-        //         return undefined;
-        //     }
-        //     // Use the non-null target as firstTarget for type detection
-        //     return TargetBuilder.resolveIdentifier(identifier, [nonNullTarget, ...possibleTargets.filter(t => t !== nonNullTarget)]);
-        // }
-
-        // // Cards - match by slug
-        // if (firstTarget && typeof firstTarget === 'object' && 'slug' in firstTarget) {
-        //     return possibleTargets.find(t => t && t.slug === identifier);
-        // }
-
-        // // Entities - match by ID
-        // if (firstTarget && typeof firstTarget === 'object' && 'id' in firstTarget) {
-        //     return possibleTargets.find(t => t && JSON.stringify(t.json) === identifier);
-        // }
-
-        // // Stack Elements - match by json
-        // if (isStackElement(firstTarget)) {
-        //     return possibleTargets.find(t => `${JSON.stringify(t.json)}` === identifier);
-        // }
-
-        // // Primitives - try parsing and direct match
-        // if (typeof firstTarget === 'number') {
-        //     const parsed = parseFloat(identifier);
-        //     return possibleTargets.find(t => t === parsed);
-        // }
-
-        // if (typeof firstTarget === 'boolean') {
-        //     const parsed = identifier === 'true';
-        //     return possibleTargets.find(t => t === parsed);
-        // }
-
-        // if (typeof firstTarget === 'string') {
-        //     return possibleTargets.find(t => t === identifier);
-        // }
-
-        // // Arrays and plain objects - match by JSON stringification
-        // if (Array.isArray(firstTarget) || typeof firstTarget === 'object') {
-        //     try {
-        //         const parsed = JSON.parse(identifier);
-        //         return possibleTargets.find(t => JSON.stringify(t) === JSON.stringify(parsed));
-        //     } catch {
-        //         return undefined;
-        //     }
-        // }
-
-        // // Fallback - direct match
-        // return possibleTargets.find(t => t === identifier || String(t) === identifier);
     }
 
     /**
@@ -637,7 +506,7 @@ export class TargetBuilder {
                 choiceIndex++; // Move past the option choice
 
                 // Collect the targets for this option from admissibleTargets
-                const targetsNeeded = selector.count;
+                const targetsNeeded = selector.max;
                 const admissibleTargets = chosenOption.admissibleTargets;
                 const chosenTargets: any[] = [];
 
@@ -658,7 +527,7 @@ export class TargetBuilder {
                 }
 
                 // Regular selector - collect count targets
-                for (let i = 0; i < selector.count && choiceIndex < partialChoices.length; i++) {
+                for (let i = 0; i < selector.max && choiceIndex < partialChoices.length; i++) {
                     const targetId = partialChoices[choiceIndex]!;
                     const resolved = TargetBuilder.resolveIdentifier(targetId, possibleTargets);
                     if (resolved) {
@@ -692,23 +561,21 @@ export class TargetBuilder {
 
         // The next target is expected to be an array of targets for the copied effect
         let targets: any[] = [];
-        let options = TargetBuilder.getNextSelector(game, player, item, targets, "tap", false);
+        let options = TargetBuilder.getNextSelectorRaw(game, player, item, targets, "tap", false);
         while(!options.complete)
         {
             const selection = await game.select(
                 player,
-                options.asMany ? 0 : options.count,
-                options.count,
+                options.min,
+                options.max,
                 options.options,
                 "Select targets for the copied card."
             );
-            const normalizedSelection = selection.selected.map((choice) =>
-                TargetBuilder.normalizeSelectedChoice(choice, options.options)
-            );
+            const normalizedSelection = selection.selected.map((choice) =>choice);
             targets.push(...normalizedSelection);
-            options = TargetBuilder.getNextSelector(game, player, item, targets, "tap", false);
+            options = TargetBuilder.getNextSelectorRaw(game, player, item, TargetBuilder.convertToSelectionItems(targets), "tap", false);
         }
-        return TargetBuilder.buildTargets(game, player, item, targets, "tap");
+        return TargetBuilder.buildTargets(game, player, item, TargetBuilder.convertToSelectionItems(targets), "tap");
     }
 
     /* verifyPaiementCanBeMade checks if the player can pay the cost described by string s. 
@@ -763,8 +630,8 @@ export class TargetBuilder {
         while(!options.complete)
         {
 
-            const selection = options.options.slice(0, options.count);
-            if(selection.length !== options.count && !options.asMany)
+            const selection = options.options.slice(0, options.max);
+            if(selection.length > options.max || selection.length < options.min)
             {
                 if(backtrackingIndices.length === 0)
                     return "No valid targets.";

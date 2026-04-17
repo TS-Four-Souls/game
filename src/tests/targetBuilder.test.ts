@@ -126,7 +126,7 @@ describe("Target Builder Interface", () => {
       // User picks items (as many as available)
       const itemsToDestroy = step1.options.slice(
         0,
-        Math.min(step1.count, step1.options.length),
+        Math.min(step1.max, step1.options.length),
       );
 
       // Step 2: After providing payment
@@ -273,7 +273,8 @@ describe("Target Builder Interface", () => {
     const result = TargetBuilder.getNextSelector(game, player1, item, []);
 
     // Verify asMany field exists (it's boolean)
-    expect(typeof result.asMany).toBe("boolean");
+    expect(typeof result.min).toBe("number");
+    expect(typeof result.max).toBe("number");
   });
 
   it("complete workflow: build targets step-by-step and activate item", async () => {
@@ -303,7 +304,7 @@ describe("Target Builder Interface", () => {
     // CLIENT: User picks items (just pick available options)
     const chosenItems = selector1.options.slice(
       0,
-      Math.min(selector1.count, selector1.options.length),
+      Math.min(selector1.max, selector1.options.length),
     );
 
     // CLIENT: Request next selector with chosen items (flat array)

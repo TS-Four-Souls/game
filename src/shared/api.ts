@@ -140,10 +140,10 @@ export type BonusSoulCard = z.infer<typeof bonusSoulCardSchema>;
 const targetSelectorResponseSchema = z.object({
   /** Description of what to select */
   description: z.string(),
-  /** How many targets to select */
-  count: z.number(),
-  /** Whether the player can select fewer targets than count (asMany) */
-  asMany: z.boolean(),
+  /** Minimal number of targets to select */
+  min: z.number(),
+  /** Maximal number of targets to select */
+  max: z.number(),
   /** Available options as string identifiers */
   options: z.array(selectionItemSchema),
   /** Whether target building is complete */

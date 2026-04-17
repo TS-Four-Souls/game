@@ -17,8 +17,8 @@ export type EffectType =
 export type TargetsSelector = {
     description: string;
     selector: (player: Player) => any[];
-    count: number;
-    asMany: boolean;
+    min: number;
+    max: number;
 };
 
 /**

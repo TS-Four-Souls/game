@@ -23,7 +23,7 @@ export class Effect {
         effectFunction: EffectFunction
             = (data: EffectData) => { return true; },
         targetsSelector: TargetsSelector[]
-            = [{ description: "", selector: (issuer: Player) => [], count: 0, asMany: false }],
+            = [{ description: "", selector: (issuer: Player) => [], min: 0, max: 0 }],
         paymentFunction?: EffectFunction
     ) {
         this._description = description;
@@ -120,10 +120,14 @@ export class Effect {
                 // Should not reach here with new format
                 return false;
             } else {
-                // Regular selector - check the next `selector.count` targets
-                for (let j = 0; j < selector.count && targetIndex < targets.length; j++) {
+                // Regular selector - check the next `selector.max` targets
+                for (let j = 0; j < selector.max && targetIndex < targets.length; j++) {
                     const target = targets[targetIndex];
                     if (!admissibleTargets.includes(target)) {
+                        if(j >= selector.min) {
+                            // If we have already validated the minimum required targets, we can ignore extra invalid targets
+                            break;
+                        }
                         return false;
                     }
                     targetIndex++;
@@ -764,7 +768,6 @@ export class LootCardEffect extends StackElement {
             card: this.card.jsonAPI,
             targets: TargetBuilder.convertToSelectionItems(this.targets),
             issuer: this.issuer.json,
-            color: this.issuer.color,
             ...super.baseJson,
          } ;
     }

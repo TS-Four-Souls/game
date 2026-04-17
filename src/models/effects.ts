@@ -190,10 +190,14 @@ export class Effect {
                 // Should not reach here with new format
                 return false;
             } else {
-                // Regular selector - check the next `selector.count` targets
-                for (let j = 0; j < selector.count && targetIndex < targets.length; j++) {
+                // Regular selector - check the next `selector.max` targets
+                for (let j = 0; j < selector.max && targetIndex < targets.length; j++) {
                     const target = targets[targetIndex];
                     if (!admissibleTargets.includes(target)) {
+                        if(j >= selector.min) {
+                            // If we have already validated the minimum required targets, we can ignore extra invalid targets
+                            break;
+                        }
                         return false;
                     }
                     targetIndex++;
