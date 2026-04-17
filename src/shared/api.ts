@@ -26,8 +26,8 @@ export type ActiveEffectEntry = z.infer<typeof activeEffectEntrySchema>;
 export type SelectionItem =
   | { type: "card"; payload: Card }
   | { type: "stackElement"; payload: StackElement }
-  | { type: "player"; payload: IdentifierType }
-  | { type: "monster"; payload: IdentifierType }
+  | { type: "player"; payload: EntityType }
+  | { type: "monster"; payload: EntityType }
   | { type: "deck"; payload: string }
   | { type: "number"; payload: number }
   | { type: "boolean"; payload: boolean }

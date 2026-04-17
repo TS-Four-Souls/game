@@ -2807,6 +2807,7 @@ export class Game {
       }
     }
     player.mustAttack(target, source);
+    this._onStateChange.dispatch();
   }
 
   /** Discards one hand card by index to the loot discard pile. */
