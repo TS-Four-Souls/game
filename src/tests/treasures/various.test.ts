@@ -324,7 +324,7 @@ describe("Treasure - Passive effects", () => {
         expect(battery.charged).toBe(false);
 
         // Mock game.select to choose the battery to recharge
-        game.select = async (_issuer, _n, opts, _optional) => {
+        game.select = async (_issuer, _min, _max, opts, _optional) => {
             return { selected: [battery], remaining: [] } as any;
         };
 
@@ -350,7 +350,7 @@ describe("Treasure - Passive effects", () => {
         battery2.charged = false;
 
         let selectCount = 0;
-        game.select = async (_issuer, _n, opts, _optional) => {
+        game.select = async (_issuer, _min, _max, opts, _optional) => {
             selectCount++;
             if (selectCount === 1) {
                 return { selected: [battery1], remaining: [] } as any;

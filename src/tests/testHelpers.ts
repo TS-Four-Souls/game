@@ -291,8 +291,8 @@ export function setupFourPlayerGame(): GameSetupResult {
  */
 export function mockGameSelections(game: Game): void {
     // Mock single player selection
-    game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
-        if (n === 1 && !anyNumber && Options.length === 1) {
+    game.select = async (player: Player, min: number, max: number, Options: any[]) => {
+        if (max === 1 && min === max && Options.length === 1) {
             return {
                 selected: Options,
                 remaining: []
@@ -300,20 +300,21 @@ export function mockGameSelections(game: Game): void {
             }
         if(Options.length === 0)
             return {selected: [], remaining: []};
-        return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+        return { selected: Options.slice(0, max), remaining: Options.slice(max) };
     };
 
     // Mock multiple player selection
     game.selectMultiple = async (selections: Array<{
         player: Player;
-        count: number;
+        min: number;
+        max: number;
         options: any[];
         asMany?: boolean;
     }>) => {
         return selections.map(sel => ({
             playerId: sel.player.id,
-            selected: sel.options.slice(0, sel.count),
-            remaining: sel.options.slice(sel.count)
+            selected: sel.options.slice(0, sel.max),
+            remaining: sel.options.slice(sel.max)
         }));
     };
 }

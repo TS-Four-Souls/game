@@ -378,7 +378,7 @@ describe("Tap/Paid effects 1", () => {
         const player2HandSize = player2.hand.length;
 
         // Mock game.select to return the loot card
-        game.select = async (issuer, n, opts, optional) => {
+        game.select = async (issuer, _min, _max, opts, optional) => {
             return { selected: [opts[0]], remaining: [] } as any;
         };
 
@@ -549,7 +549,7 @@ describe("Tap/Paid effects 1", () => {
         game.decks["monster"]!.addDiscardTop(monster2);
 
         // Mock game.select to choose monster2
-        game.select = async (issuer, n, opts, optional) => {
+        game.select = async (issuer, _min, _max, opts, optional) => {
             return { selected: [opts[0]], remaining: [] }as any;
         };
 
@@ -673,7 +673,7 @@ describe("Tap/Paid effects 1", () => {
         const player2InitialSouls = player2.souls.length;
 
         // Mock game.select to choose the soul
-        game.select = async (issuer, n, opts, optional) => {
+        game.select = async (issuer, _min, _max, opts, optional) => {
             return { selected: [soul], remaining: [] }as any;
         };
 
@@ -702,7 +702,7 @@ describe("Tap/Paid effects 1", () => {
         const initialHp = monster.currentHealthPoints;
 
         // Mock game.select to choose the monster
-        game.select = async (issuer, n, opts, optional) => {
+        game.select = async (issuer, _min, _max, opts, optional) => {
             return { selected: [monster], remaining: [] } as any;
         };
 
@@ -813,7 +813,7 @@ describe("Tap/Paid effects 1", () => {
         const initialHandSize = player1.hand.length;
 
         // Mock game.select to choose number 4
-        game.select = async (issuer, n, opts, optional) => {
+        game.select = async (issuer, _min, _max, opts, optional) => {
             return { selected: [4], remaining: [] } as any;
         };
 

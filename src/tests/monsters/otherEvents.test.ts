@@ -35,9 +35,9 @@ describe("Event Monsters - Other Events", () => {
         const initialHandSize = player1.hand.length;
         const initialDeckSize = game.decks["loot"]!.cards.length;
         
-        game.select = async <T>(player: Player, n: number, options: T[], optional?: boolean) => {
+        game.select = async <T>(player: Player, min: number, max: number, options: T[], description?: string) => {
             // Simulate selecting the first card to loot
-            return { selected: options.slice(0, n).reverse(), remaining: options.slice(n) };
+            return { selected: options.slice(0, max).reverse(), remaining: options.slice(max) };
         };
         // Draw the event to trigger its effect
         game.monsterSlots.discardTop(0);
@@ -210,11 +210,11 @@ describe("Event Monsters - Other Events", () => {
          
         // Mock select to choose no monsters to move
         const originalSelect = game.select.bind(game);
-        game.select = async <T>(player: Player, n: number, options: T[], optional?: boolean) => {
-            if (optional) {
+        game.select = async <T>(player: Player, min: number, max: number, options: T[], description?: string) => {
+            if (min === 0) {
                 return { selected: [] as T[], remaining: options };
             }
-            return originalSelect(player, n, options, optional);
+            return originalSelect(player, min, max, options, description);
         };
         game.decks["monster"]!.addTopPosition(weNeedToGoDeeper);
         
@@ -264,9 +264,9 @@ describe("Event Monsters - Other Events", () => {
         
         // Draw the event
         game.monsterSlots.discardTop(0);
-        game.select = async <T>(player: Player, n: number, options: T[], optional?: boolean) => {
+        game.select = async <T>(player: Player, min: number, max: number, options: T[], description?: string) => {
             // Simulate selecting the first option (put into discard)
-            return { selected: options.slice(0, n), remaining: options.slice(n) };
+            return { selected: options.slice(0, max), remaining: options.slice(max) };
         };
         const effect = game.stack._stack[game.stack._stack.length - 1] as EffectOnStack;
         await game.resolveStack(); // resolve the event addition
@@ -282,9 +282,9 @@ describe("Event Monsters - Other Events", () => {
         
         const initialHandSize = player1.hand.length;
         const initialHP = player1.currentHealthPoints;
-        game.select = async <T>(player: Player, n: number, options: T[], optional?: boolean) => {
+        game.select = async <T>(player: Player, min: number, max: number, options: T[], description?: string) => {
             // Simulate selecting the first option (put into discard)
-            return { selected: options.slice(1, n+1), remaining: options.slice(n) };
+            return { selected: options.slice(1, max+1), remaining: options.slice(max) };
         };
         // Draw the event
         game.monsterSlots.discardTop(0);
@@ -310,17 +310,17 @@ describe("Event Monsters - Other Events", () => {
         
         const initialHP = player1.currentHealthPoints;
         const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
-        game.select = async <T>(player: Player, n: number, options: T[], optional?: boolean) => {
+        game.select = async <T>(player: Player, min: number, max: number, options: T[], description?: string) => {
             // Simulate selecting the first option (put into discard)
-            return { selected: options.slice(2, n+2), remaining: options.slice(n) };
+            return { selected: options.slice(2, max+2), remaining: options.slice(max) };
         };        
         // Draw the event
         game.monsterSlots.discardTop(0);
         const effect = game.stack._stack[game.stack._stack.length - 1] as EffectOnStack;
         await game.resolveStack(); // resolve the event addition
-        game.select = async <T>(player: Player, n: number, options: T[], optional?: boolean) => {
+        game.select = async <T>(player: Player, min: number, max: number, options: T[], description?: string) => {
             // Simulate selecting the first option (put into discard)
-            return { selected: options.slice(0, n), remaining: options.slice(n) };
+            return { selected: options.slice(0, max), remaining: options.slice(max) };
         };     
         await game.resolveStack(); // damage resolution
         expect(player1.currentHealthPoints).toBe(initialHP - 2);

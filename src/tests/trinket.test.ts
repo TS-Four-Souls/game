@@ -226,7 +226,7 @@ describe("Loot Card", () => {
         const lootDeck = game.decks["loot"]!;
         
         // Player chooses to put it on bottom
-        game.select = async (_issuer, _n, _opts, _optional) => ({ 
+        game.select = async (_issuer, _min, _max, _opts, _optional) => ({ 
             selected: [_opts[0]!], 
             remaining: [] 
         });
@@ -248,7 +248,7 @@ describe("Loot Card", () => {
         
 
         
-        game.select = async (_issuer, _n, _opts, _optional) => ({ 
+        game.select = async (_issuer, _min, _max, _opts, _optional) => ({ 
             selected: [], 
             remaining: [_opts[0]!] 
         });
@@ -282,7 +282,7 @@ describe("Loot Card", () => {
         game.addTopPosition("loot", topCard);
 
         let selectCalled = false;
-        game.select = async (_issuer, _n, opts, _optional) => {
+        game.select = async (_issuer, _min, _max, opts, _optional) => {
             selectCalled = true;
             return { selected: [], remaining: [] };
         };
@@ -314,7 +314,7 @@ describe("Loot Card", () => {
         game.removeInPlay(player1, cainsEye);
 
         let selectCalled = false;
-        game.select = async (_issuer, _n, _opts, _optional) => {
+        game.select = async (_issuer, _min, _max, _opts, _optional) => {
             selectCalled = true;
             return { selected: [], remaining: [] };
         };
@@ -340,7 +340,7 @@ describe("Loot Card", () => {
         const treasureDeck = game.decks["treasure"]!;
 
         // Player chooses to put it on bottom
-        game.select = async (_issuer, _n, _opts, _optional) => ({
+        game.select = async (_issuer, _min, _max, _opts, _optional) => ({
             selected: [_opts[0]!],
             remaining: []
         });
@@ -360,7 +360,7 @@ describe("Loot Card", () => {
         expect(newBottomCards).toBe(topCard);
         expect(treasureDeck.cards[0]).not.toBe(topCard);
 
-        game.select = async (_issuer, _n, _opts, _optional) => ({
+        game.select = async (_issuer, _min, _max, _opts, _optional) => ({
             selected: [],
             remaining: [_opts[0]!]
         });
@@ -392,7 +392,7 @@ describe("Loot Card", () => {
         game.addTopPosition("treasure", topCard);
 
         let selectCalled = false;
-        game.select = async (_issuer, _n, opts, _optional) => {
+        game.select = async (_issuer, _min, _max, opts, _optional) => {
             selectCalled = true;
             return { selected: [], remaining: [] };
         };
@@ -424,7 +424,7 @@ describe("Loot Card", () => {
         game.removeInPlay(player1, goldenHorseshoe);
 
         let selectCalled = false;
-        game.select = async (_issuer, _n, _opts, _optional) => {
+        game.select = async (_issuer, _min, _max, _opts, _optional) => {
             selectCalled = true;
             return { selected: [], remaining: [] };
         };
@@ -452,7 +452,7 @@ describe("Loot Card", () => {
         const monsterDeck = game.decks["monster"]!;
 
         // Player chooses to put it on bottom
-        game.select = async (_issuer, _n, _opts, _optional) => ({
+        game.select = async (_issuer, _min, _max, _opts, _optional) => ({
             selected: [_opts[0]!],
             remaining: []
         });
@@ -472,7 +472,7 @@ describe("Loot Card", () => {
         expect(newBottomCards).toBe(topCard);
         expect(monsterDeck.cards[0]).not.toBe(topCard);
 
-        game.select = async (_issuer, _n, _opts, _optional) => ({
+        game.select = async (_issuer, _min, _max, _opts, _optional) => ({
             selected: [],
             remaining: [_opts[0]!]
         });
@@ -504,7 +504,7 @@ describe("Loot Card", () => {
         game.addTopPosition("monster", topCard);
 
         let selectCalled = false;
-        game.select = async (_issuer, _n, opts, _optional) => {
+        game.select = async (_issuer, _min, _max, opts, _optional) => {
             selectCalled = true;
             return { selected: [], remaining: [] };
         };
@@ -537,7 +537,7 @@ describe("Loot Card", () => {
         game.removeInPlay(player1, purpleHeart);
 
         let selectCalled = false;
-        game.select = async (_issuer, _n, _opts, _optional) => {
+        game.select = async (_issuer, _min, _max, _opts, _optional) => {
             selectCalled = true;
             return { selected: [], remaining: [] };
         };

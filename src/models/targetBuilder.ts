@@ -389,17 +389,71 @@ export class TargetBuilder {
             // { player: Player; hand: Hand }
             if( typeof option === 'object' && 'player' in option && 'hand' in option)
                 return {type: "couplePlayerHand", payload: {player: {name: (option.player as Player).id, slug: (option.player as Player).slug, globalId: (option.player as Player).globalId}, hand: option.hand.cards.map((c: Card) => {return {name: c.name, slug: c.slug, globalId: c.globalId}})}};
+            if(option && typeof option === 'object' && 'type' in option && 'payload' in option)
+                return option as SelectionItem;
             if (Array.isArray(option) || typeof option === 'object') {
                 try {
-                    return {type: "array", payload: option.map((item: any) => TargetBuilder.convertToSelectionItems([item]))};
+                    return {type: "array", payload: TargetBuilder.convertToSelectionItems(option)};
                 } catch {
                     return {type: "unknown", payload: null};
                 }
             }
-
             return {type: "unknown", payload: null};
             // throw new Error("Not implemented yet");
         });
+    }
+
+    private static selectionItemMatchesRawChoice(selectionItem: SelectionItem, rawChoice: any): boolean {
+        if (rawChoice && typeof rawChoice === "object" && "type" in rawChoice && "payload" in rawChoice) {
+            return selectionItem.type === rawChoice.type && JSON.stringify(selectionItem.payload) === JSON.stringify(rawChoice.payload);
+        }
+
+        switch (selectionItem.type) {
+            case "card":
+                return !!rawChoice && typeof rawChoice === "object"
+                    && selectionItem.payload.slug === rawChoice.slug
+                    && (rawChoice.globalId === undefined || selectionItem.payload.globalId === rawChoice.globalId)
+                    && (rawChoice.name === undefined || selectionItem.payload.name === rawChoice.name);
+            case "player":
+            case "monster":
+                return !!rawChoice && typeof rawChoice === "object"
+                    && (
+                        (rawChoice.id !== undefined && selectionItem.payload.name === rawChoice.id) ||
+                        (rawChoice.json?.name !== undefined && selectionItem.payload.name === rawChoice.json.name)
+                    )
+                    && (rawChoice.slug === undefined || selectionItem.payload.slug === rawChoice.slug)
+                    && (rawChoice.globalId === undefined || selectionItem.payload.globalId === rawChoice.globalId)
+                    && (rawChoice.json?.globalId === undefined || selectionItem.payload.globalId === rawChoice.json.globalId);
+            case "deck":
+                return rawChoice === selectionItem.payload || rawChoice?._type === selectionItem.payload || rawChoice?.type === selectionItem.payload;
+            case "stackElement":
+                return !!rawChoice && typeof rawChoice === "object"
+                    && (rawChoice.stackId === selectionItem.payload.id || rawChoice.json?.id === selectionItem.payload.id);
+            case "number":
+            case "string":
+            case "boolean":
+            case "null":
+                return rawChoice === selectionItem.payload;
+            case "couplePlayerHand":
+            case "array":
+            case "object":
+                return JSON.stringify(rawChoice) === JSON.stringify(selectionItem.payload);
+            case "unknown":
+                return false;
+        }
+    }
+
+    private static normalizeSelectedChoice(rawChoice: any, availableOptions: SelectionItem[]): SelectionItem {
+        if (rawChoice && typeof rawChoice === "object" && "type" in rawChoice && "payload" in rawChoice) {
+            return rawChoice as SelectionItem;
+        }
+
+        const matchedOption = availableOptions.find((option) => TargetBuilder.selectionItemMatchesRawChoice(option, rawChoice));
+        if (matchedOption) {
+            return matchedOption;
+        }
+
+        return TargetBuilder.convertToSelectionItems([rawChoice])[0] ?? { type: "unknown", payload: null };
     }
 
     /**
@@ -641,8 +695,17 @@ export class TargetBuilder {
         let options = TargetBuilder.getNextSelector(game, player, item, targets, "tap", false);
         while(!options.complete)
         {
-            const selection = await game.select(player, options.count, options.options, options.asMany, "Select targets for the copied card.");
-            targets.push(...selection.selected);
+            const selection = await game.select(
+                player,
+                options.asMany ? 0 : options.count,
+                options.count,
+                options.options,
+                "Select targets for the copied card."
+            );
+            const normalizedSelection = selection.selected.map((choice) =>
+                TargetBuilder.normalizeSelectedChoice(choice, options.options)
+            );
+            targets.push(...normalizedSelection);
             options = TargetBuilder.getNextSelector(game, player, item, targets, "tap", false);
         }
         return TargetBuilder.buildTargets(game, player, item, targets, "tap");

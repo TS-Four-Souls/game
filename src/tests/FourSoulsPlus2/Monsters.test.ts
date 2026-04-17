@@ -67,7 +67,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
             if(c instanceof MonsterCard && c.subtype === "boss")
                 bosses.push(c);
         }
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [opts[0]], remaining: [] } as any;
         };
         await game.resolveStack(); // effect
@@ -334,7 +334,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.encounters.forceSetMonsterAtSlot(0, card1);
         const slugs = game.decks.loot.cards.slice(0, 3).map(c => c.slug);
         game.random = () => 6/6-.00001;
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             if(opts[0] === "loot")
                 return { selected: [opts[0]], remaining: [] } as any;
             if(opts.length !== 1)
@@ -352,7 +352,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-isaac") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
         game.dealDamage(player1, game.monsters[0]!, card1, 1);
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [opts[1]], remaining: [] } as any;
         };
         await game.resolveStack(); // damage
@@ -364,7 +364,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         await game.resolveStack(); // death
         await game.resolveStack(); // effect
         game.dealDamage(player1, game.monsters[0]!, card1, 1);
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             expect(opts.length).toBe(1);
             return { selected: [opts[0]], remaining: [] } as any;
         };
@@ -442,7 +442,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.declareAttack(player1);
         await game.declareAttackOnMonster(player1, "topDeck", 0);
         game.dealDamage(player1, game.encounters.monsterIn(0)!, card1, 10);
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: opts.toReversed(), remaining: [] } as any;
         };
         expect(player1.attackThisTurn).toBe(0);
@@ -459,7 +459,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.declareAttack(player1);
         await game.declareAttackOnMonster(player1, "topDeck", 0);
         game.dealDamage(player1, game.encounters.monsterIn(0)!, card1, 10);
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: opts.toReversed(), remaining: [] } as any;
         };
         expect(player1.attackThisTurn).toBe(0);
@@ -476,7 +476,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.declareAttack(player1);
         await game.declareAttackOnMonster(player1, "topDeck", 0);
         game.dealDamage(player1, game.encounters.monsterIn(0)!, card1, 10);
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: opts.toReversed(), remaining: [] } as any;
         };
         await game.resolveStack(); // damage monster
@@ -494,7 +494,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.declareAttack(player1);
         await game.declareAttackOnMonster(player1, "topDeck", 0);
         game.dealDamage(player1, game.encounters.monsterIn(0)!, card1, 10);
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: opts.toReversed(), remaining: [] } as any;
         };
         const slugs = game.decks.monster.cards.slice(0, 5).map(c => c.slug);
@@ -511,7 +511,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.declareAttack(player1);
         await game.declareAttackOnMonster(player1, "topDeck", 0);
         game.dealDamage(player1, game.encounters.monsterIn(0)!, card1, 10);
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: opts.toReversed(), remaining: [] } as any;
         };
         const slugs = game.decks.monster.cards.slice(0, 5).map(c => c.slug);

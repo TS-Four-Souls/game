@@ -180,7 +180,7 @@ describe("Known bugs that have be corrected", () => {
         await game.resolveStack();
         expect(player1.hand.length).toBe(initcard);
         const card = game.decks.loot.cards[0] as LootCard;
-        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+        game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             await new Promise(resolve => setTimeout(resolve, 0));
             return {selected: [], remaining: []};
         };

@@ -67,7 +67,7 @@ export function activePlayerSelectAndCallEffect(game: Game, effectFunction: Effe
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
         
-        const targetSelection = await data.selectAndRecord(game, player, 1, game.players, false, "Select a player.");
+        const targetSelection = await data.selectAndRecord(game, player, 1, 1, game.players, "Select a player.", true, true);
         const targetPlayer = targetSelection.selected[0] as Player;
         if(!targetPlayer){
             throw new Error("No player selected for activePlayerForcesPlayerToDiscardLootEffect.");
@@ -85,10 +85,10 @@ export function activePlayerIsTargetedByEffect(game: Game, effectFunction: Effec
     };
 }
 
-export function activePlayerSelectTargetEffect(game: Game, effectFunction: EffectFunction, ts: TargetsSelector): EffectFunction {
+export function activePlayerSelectTargetEffect(game: Game, effectFunction: EffectFunction, ts: TargetsSelector, record: boolean = true): EffectFunction {
     return async (data: EffectData) => {
         const issuer = game.currentPlayer as Player;
-        const target = (await data.selectAndRecord(game, issuer as Player, ts.count, ts.selector(issuer as Player), ts.asMany, ts.description)).selected;
+        const target = (await data.selectAndRecord(game, issuer as Player, ts.asMany ? 0 : ts.count, ts.count, ts.selector(issuer as Player), ts.description, true, record)).selected;
         if(target.length > 0)
             await effectFunction(new EffectData(data.it, issuer, target));
         return true;
@@ -213,7 +213,7 @@ export function searchForBloatEffect(game: Game): EffectFunction {
         const theBloat = game.decks["monster"]!.cards.find(c => c.slug === "b2-the_bloat") as MonsterCard | undefined;
         if(!theBloat)
             return false;
-        const selection = (await data.selectAndRecord(game, player, 1, game.encounters.nonEngagedInCombat, false, "Where do you want to put The Bloat?", false)).selected[0];
+        const selection = (await data.selectAndRecord(game, player, 1, 1, game.encounters.nonEngagedInCombat, "Where do you want to put The Bloat?", true, true)).selected[0];
         if(selection === undefined)
             throw new Error("No selection made for searchForBloatEffect.");
         const index:number = game.encounters.visible.indexOf(selection as MonsterCard);
@@ -586,7 +586,7 @@ export function playerWithMostCoinsLosesAllEffect(game: Game): EffectFunction {
                 maxCoins = p.coins;
         });
         const playersToLoseCoins = game.players.filter(p => p.coins === maxCoins);
-        const selection = (await data.selectAndRecord(game, game.currentPlayer as Player, 1, playersToLoseCoins, false, "Select a player who will lose all their coins.")).selected[0]!;
+        const selection = (await data.selectAndRecord(game, game.currentPlayer as Player, 1, 1, playersToLoseCoins, "Select a player who will lose all their coins.", true, true)).selected[0]!;
         game.loseCoins(selection as Player, selection.coins, true);
         return true;
     };
@@ -620,7 +620,7 @@ export function activePlayerChoosePlayerDiscard2Effect(game: Game): EffectFuncti
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
         
-        const targetSelection = await data.selectAndRecord(game, player, 1, game.players, false, "Select a player to discard 2 loot cards.");
+        const targetSelection = await data.selectAndRecord(game, player, 1, 1, game.players, "Select a player who discards 2 loot cards.", true, true);
         const targetPlayer = targetSelection.selected[0] as Player;
         if(!targetPlayer){
             throw new Error("No player selected for activePlayerChoosePlayerDiscard2Effect.");
@@ -799,7 +799,7 @@ export function activePlayerChooseLivingPlayerTakeDamageEffect(game: Game, damag
         const livingPlayers = game.players.filter(p => p.currentHealthPoints > 0);
         if(livingPlayers.length === 0)
             return false;
-        const targetSelection = await data.selectAndRecord(game, player, 1, livingPlayers, false, "Select a living player to take damage.", true);
+        const targetSelection = await data.selectAndRecord(game, player, 1, 1, livingPlayers, "Select a living player to take damage.", true, true);
         const targetPlayer = targetSelection.selected[0] as Player;
         if(!targetPlayer){
             throw new Error("No player selected for activePlayerChooseLivingPlayerTakeDamageEffect.");
@@ -845,8 +845,8 @@ export function bossRushEffect(game: Game): EffectFunction {
         for(const card of bosses)
             game.addTopPosition("monster", card);
         const options = [...game.encounters.nonEngagedInCombat, data.it];
-        const selection = await data.selectAndRecord(game, game.currentPlayer, 2, [...game.encounters.nonEngagedInCombat, data.it], true, "Select slots to place the bosses in.", false);
-        const selectedMonsters = selection.selected.length === 0 ? game.encounters.nonEngagedInCombat.slice(0,2) : selection.selected;
+        const selection = await data.selectAndRecord(game, game.currentPlayer, 1, 2, [...game.encounters.nonEngagedInCombat, data.it], "Select slots to place the bosses in.", true, true);
+        const selectedMonsters = selection.selected;
         const selectedIndices = selectedMonsters.map(slot => game.encounters.visible.indexOf(slot));
         for(let i=0; i < bosses.length; i++)
         {
@@ -874,7 +874,7 @@ export function playerWithMostSoulsWinsEffect(game: Game): EffectFunction {
                     maxSouls = p.totalSouls;
             });
             const playersWithMostSouls = game.players.filter(p => p.totalSouls === maxSouls);
-            const selectedPlayer = (await data.selectAndRecord(game, eventIssuer as Player, 1, playersWithMostSouls, false, "Select a player with most souls to win the game.", true)).selected[0];
+            const selectedPlayer = (await data.selectAndRecord(game, eventIssuer as Player, 1, 1, playersWithMostSouls, "Select a player with most souls to win the game.", true, true)).selected[0];
             game.win(selectedPlayer as Player);
             offGainSoul?.();
             offGainSoul = null;

@@ -160,7 +160,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         game.addInPlay(player1, dadsLostCoin);
 
         // Mock game.select to choose to force reroll
-        game.select = async (_issuer, _n, opts, _optional) => {
+        game.select = async (_issuer, _min, _max, opts, _optional) => {
             return { selected: [opts[0]], remaining: [] } as any;
         };
         const rand = game.random;
@@ -180,7 +180,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         game.addInPlay(player1, dadsLostCoin);
 
         // Mock game.select to choose NOT to force reroll
-        game.select = async (_issuer, _n, opts, _optional) => {
+        game.select = async (_issuer, _min, _max, opts, _optional) => {
             return { selected: [], remaining: opts };
         };
         game.random = () => 0.1; // Force dice rolls to be 1

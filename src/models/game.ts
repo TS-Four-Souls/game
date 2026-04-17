@@ -338,15 +338,9 @@ export class Game {
     // If at least one item can be lost, ask the player to select one.
     if (this.gameParameters.deathPenaltyItem.value > 0 && setOfLosableItems.length > 0) {
       const itemToLose = (
-        await this.select(
-          player,
-          this.gameParameters.deathPenaltyItem.value,
-          setOfLosableItems,
-          false,
-          this.gameParameters.deathPenaltyItem.value > 1
+        await this.select(player, this.gameParameters.deathPenaltyItem.value, this.gameParameters.deathPenaltyItem.value, setOfLosableItems, this.gameParameters.deathPenaltyItem.value > 1
             ? "Select items to lose."
-            : "Select an item to lose."
-        )
+            : "Select an item to lose.", true)
       ).selected;
       if (itemToLose && itemToLose.length > 0) {
         for (const item of itemToLose) {
@@ -360,15 +354,9 @@ export class Game {
     // lose loot cards
     if (this.gameParameters.deathPenaltyLoot.value > 0 && player.hand.cards.length > 0) {
       const lootToLose = (
-        await this.select(
-          player,
-          this.gameParameters.deathPenaltyLoot.value,
-          player.hand.cards,
-          false,
-          this.gameParameters.deathPenaltyLoot.value > 1
+        await this.select(player, this.gameParameters.deathPenaltyLoot.value, this.gameParameters.deathPenaltyLoot.value, player.hand.cards, this.gameParameters.deathPenaltyLoot.value > 1
             ? "Select loot cards to lose."
-            : "Select a loot card to lose."
-        )
+            : "Select a loot card to lose.", true)
       ).selected;
       if (lootToLose && lootToLose.length > 0) {
         for (const loot of lootToLose) {
@@ -929,13 +917,7 @@ export class Game {
     amount: number,
     treasures: TreasureCard[]
   ): Promise<{ selected: TreasureCard[]; remaining: TreasureCard[] }> {
-    const selection = await this.select(
-      player,
-      amount,
-      treasures,
-      false,
-      "Select treasures to gain"
-    );
+    const selection = await this.select(player, amount, amount, treasures, "Select treasures to gain", true);
     for (const card of selection.selected) {
       this.addInPlay(player, card);
     }
@@ -948,8 +930,8 @@ export class Game {
     {
       playerId: string;
       options: any[];
-      count: number;
-      asMany: boolean;
+      min: number;
+      max: number;
       requestId: string;
       description: string;
       resolve: (selection: any[]) => void;
@@ -962,17 +944,22 @@ export class Game {
 
   /** Select is used to obtain a selection from a single player
    * If n=1 and only one option is available, it is automatically selected
-   * If anyNumber is true, the player can select up to n options (including 0)
+   * The player must select between min and max options.
    * Returns a Promise that resolves to an object containing the selected and remaining options
   */
   async select<T>(
-    player: Player,
-    n: number,
-    Options: T[],
-    anyNumber: boolean = false,
-    description: string = "UNDEFINED SHOULD NOT HAPPEN"
+      player: Player,
+      min: number,
+      max: number,
+      Options: T[],
+      description: string = "UNDEFINED SHOULD NOT HAPPEN",
+      skippable: boolean = true
   ): Promise<{ selected: T[]; remaining: T[] }> {
-    if ( !anyNumber && Options.length === n) {
+    if (min < 0 || min > max) {
+      throw new Error(`Invalid selection bounds: min (${min}) must be between 0 and max (${max}).`);
+    }
+
+    if (min === max && Options.length === max && skippable) {
       return {
         selected: Options,
         remaining: [],
@@ -983,10 +970,11 @@ export class Game {
     const results = await this.selectMultiple([
       {
         player,
-        count: n,
+        min: min,
+        max: max,
         options: Options,
-        asMany: anyNumber,
         description: description,
+        skippable,
       },
     ]);
     return results.find(r => r.playerId === player.id)!;
@@ -1007,12 +995,14 @@ export class Game {
     const pending = this.pendingMultipleSelections.get(requestId);
     if (pending && pending.playerId === player.id) {
       // Validate selection count
-      if (!pending.asMany && selectedIdentifiers.length !== pending.count) {
-        throw new Error(`Must select exactly ${pending.count} option(s)`);
+      if (selectedIdentifiers.length !== pending.max && pending.min === pending.max) {
+        throw new Error(`Must select exactly ${pending.max} option(s)`);
       }
-
-      if (pending.asMany && selectedIdentifiers.length > pending.count) {
-        throw new Error(`Must select at most ${pending.count} option(s)`);
+      else if (selectedIdentifiers.length > pending.max) {
+        throw new Error(`Must select at most ${pending.max} option(s)`);
+      }
+      else if (selectedIdentifiers.length < pending.min) {
+        throw new Error(`Must select at least ${pending.min} option(s)`);
       }
 
       // Resolve identifiers back to actual options
@@ -1036,14 +1026,16 @@ export class Game {
 
   /**
    * Opens multiple simultaneous selection prompts and waits for all.
+   * @param skippable is not implemented yet.
    */
   async selectMultiple<T>(
     selections: Array<{
       player: Player;
-      count: number;
+      min: number;
+      max: number;
       options: T[];
-      asMany?: boolean;
       description: string;
+      skippable?: boolean;
     }>
   ): Promise<Array<{ playerId: string; selected: T[]; remaining: T[] }>> {
     // In multiplayer mode: create promises for all players
@@ -1055,12 +1047,11 @@ export class Game {
       }>((resolve) => {
         // Non-seeded random used here for requestId generation since it doesn't affect game logic and just needs to be unique enough to avoid collisions.
         const requestId = `${sel.player.id}_${Date.now()}_${Math.random()}`;
-        const asMany = sel.asMany ?? false; // Use ?? instead of || to handle explicit false
         this.pendingMultipleSelections.set(requestId, {
           playerId: sel.player.id,
           options: sel.options,
-          count: sel.count,
-          asMany: asMany,
+          min: sel.min,
+          max: sel.max,
           description: sel.description,
           requestId,
           resolve: (selection: any[]) => {
@@ -1102,36 +1093,36 @@ export class Game {
 
     throw new Error("Not waiting for selection");
   }
+// check if used otherwise delete 
+  // // Get all pending selections (for server to send to clients)
+  // /**
+  //  * Returns all currently pending selection payloads.
+  //  */
+  // getPendingSelections(): Array<{
+  //   playerId: string;
+  //   options: any[];
+  //   min: number;
+  //   max: number;
+  // }> {
+  //   const pending: Array<{
+  //     playerId: string;
+  //     options: any[];
+  //     min: number;
+  //     max: number;
+  //   }> = [];
 
-  // Get all pending selections (for server to send to clients)
-  /**
-   * Returns all currently pending selection payloads.
-   */
-  getPendingSelections(): Array<{
-    playerId: string;
-    options: any[];
-    count: number;
-    asMany: boolean;
-  }> {
-    const pending: Array<{
-      playerId: string;
-      options: any[];
-      count: number;
-      asMany: boolean;
-    }> = [];
+  //   // Add all pending selections
+  //   for (const selection of this.pendingMultipleSelections.values()) {
+  //     pending.push({
+  //       playerId: selection.playerId,
+  //       options: selection.options,
+  //       min: selection.min,
+  //       max: selection.max,
+  //     });
+  //   }
 
-    // Add all pending selections
-    for (const selection of this.pendingMultipleSelections.values()) {
-      pending.push({
-        playerId: selection.playerId,
-        options: selection.options,
-        count: selection.count,
-        asMany: selection.asMany,
-      });
-    }
-
-    return pending;
-  }
+  //   return pending;
+  // }
 
   get monsterSlots(): Encounters {
     return this.encounters;
@@ -1383,13 +1374,7 @@ export class Game {
   async verifyHandSize(player: Player): Promise<void> {
     const toDiscard = player.hand.cards.length - this.gameParameters.maxHandSize.value;
     if (toDiscard > 0){
-      const selection = await this.select(
-        player,
-        toDiscard,
-        player.hand.cards,
-        false,
-        `You must discard ${toDiscard} card(s) to reach your maximum hand size of ${this.gameParameters.maxHandSize.value}.`
-      );
+      const selection = await this.select(player, toDiscard, toDiscard, player.hand.cards, `You must discard ${toDiscard} card(s) to reach your maximum hand size of ${this.gameParameters.maxHandSize.value}.`, true);
       for (const card of selection.selected) {
         this.discardFromHandAtIndex(player, player.hand._hand.indexOf(card));
       }
@@ -1664,7 +1649,7 @@ export class Game {
       return false;
     }
     if(!forced) {
-      const response = await this.select(to, 1, ['Accept', 'Decline'], false, `${from.id} wants to give you ${amount} coins. Do you accept?`);
+      const response = await this.select(to, 1, 1, ['Accept', 'Decline'], `${from.id} wants to give you ${amount} coins. Do you accept?`);
       if (response.selected[0] !== 'Accept') {
         return false;
       }
@@ -2277,8 +2262,8 @@ export class Game {
           return {
             requestId: sel.requestId,
             options: TargetBuilder.convertToSelectionItems(sel.options),
-            count: sel.count,
-            asMany: sel.asMany,
+            min: sel.min,
+            max: sel.max,
             description: sel.description,
           };
         }

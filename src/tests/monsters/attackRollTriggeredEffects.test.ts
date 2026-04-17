@@ -285,7 +285,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             expect(dice).toBeInstanceOf(DiceRoll);
             dice.value = 6; // Triggering value
             
-            game.select = async (_p, n, opts) => ({ selected: [player2], remaining: [] } as any);
+            game.select = async (_p, _min, _max, opts) => ({ selected: [player2], remaining: [] } as any);
             await game.resolveStack(); // resolve the dice roll 
             await game.resolveStack(); // resolve effect
             await game.resolveStack(); // resolve player death
@@ -403,7 +403,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const dice = game.stack.elements[0] as DiceRoll;
             dice.value = 6;
             
-            game.select = async (_p, n, opts) => ({ selected: [player1], remaining: [] } as any);
+            game.select = async (_p, _min, _max, opts) => ({ selected: [player1], remaining: [] } as any);
             await game.resolveStack();
             await game.resolveStack(); // resolve player death
             await game.resolveStack(); // resolve player death

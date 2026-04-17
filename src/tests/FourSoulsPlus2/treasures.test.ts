@@ -28,7 +28,7 @@ describe("Four Souls+2 Treasures", () => {
     it("fsp2-moms_eye_shadow - If another player declares an attack on a monster, you may choose which monster they attack.", async () => {
         const card1 = game.obtainCard("fsp2-moms_eye_shadow") as TreasureCard;
         game.addInPlay(player1, card1);
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [opts[1]], remaining: [] } as any;
         };
         await game.endTurn();
@@ -48,7 +48,7 @@ describe("Four Souls+2 Treasures", () => {
         await game.resolveStack();
         let count = 1;
         game.random = () => count++/6-0.0001;
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [opts[2]], remaining: [] } as any;
         };
         const dice = game.rollDice(player2, true, card1);
@@ -100,7 +100,7 @@ describe("Four Souls+2 Treasures", () => {
         await game.resolveStack();
         await game.resolveStack();
         game.random = () => 1/6-0.0001;
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [opts[1]], remaining: [] } as any;
         }
         const dice = game.rollDice(player1, true);
@@ -114,7 +114,7 @@ describe("Four Souls+2 Treasures", () => {
         game.addInPlay(player1, card1);
         game.gainTreasure(player2, 3);
         const slug = player2.inPlay[3]!.slug;
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [player2.inPlay[3]!], remaining: [] } as any;
         }
         game.random = () => 1/6-0.0001; // roll a 1
@@ -129,7 +129,7 @@ describe("Four Souls+2 Treasures", () => {
     it("fsp2-hourglass - Each time a player rolls a ❷, you may deactivate an item.", async () => {
         const card1 = game.obtainCard("fsp2-hourglass") as TreasureCard;
         game.addInPlay(player1, card1);
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [player2.inPlay[0]!], remaining: [] } as any;
         }
         game.recharge(player2.inPlay[0] as ItemCard);
@@ -165,7 +165,7 @@ describe("Four Souls+2 Treasures", () => {
         await game.resolveStack();
         expect(game.stack.size).toBe(2);
         const hp = player2.currentHealthPoints;
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [player2], remaining: [] } as any;
         }
         await game.resolveStack();
@@ -278,7 +278,7 @@ describe("Four Souls+2 Treasures", () => {
             game.decks.monster.addTopPosition(card);
         }
         let count = 0;
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             count += 1;
             return { selected: [game.players[count%2]], remaining: [] } as any;
         };
@@ -298,7 +298,7 @@ describe("Four Souls+2 Treasures", () => {
         game.addCardToHand(player2, lootCard);
         game.loot(player2, 2);
         const index = player2.hand.cards.indexOf(lootCard);
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [lootCard], remaining: [] } as any;
         }
         game.addInPlay(player1, card1);
@@ -319,7 +319,7 @@ describe("Four Souls+2 Treasures", () => {
         game.addCardToHand(player2, lootCard);
         game.loot(player2, 2);
         const index = player2.hand.cards.indexOf(lootCard);
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [lootCard], remaining: [] } as any;
         }
         game.addInPlay(player1, card1);
@@ -340,7 +340,7 @@ describe("Four Souls+2 Treasures", () => {
         game.addCardToHand(player2, lootCard);
         game.loot(player2, 2);
         const index = player2.hand.cards.indexOf(lootCard);
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [lootCard], remaining: [] } as any;
         }
         game.addInPlay(player1, card1);
@@ -382,9 +382,9 @@ describe("Four Souls+2 Treasures", () => {
     it("fsp2-smart_fly - [Tap Effect] Look at the top card of a deck. You may put it into discard or put it back on top.,  Each time you take damage, you may recharge this.", async () => {
         const card1 = game.obtainCard("fsp2-smart_fly") as TreasureCard;
         game.addInPlay(player1, card1);
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             expect(opts.length).toBe(1);
-            expect(_n).toBe(1);
+            expect(_max).toBe(1);
             count += 1;
             return { selected: [], remaining: [] } as any;
         };
@@ -405,7 +405,7 @@ describe("Four Souls+2 Treasures", () => {
         expect(game.stack.isEmpty()).toBe(true);
         expect(diceRoll.value).toBe(3);
         
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [], remaining: [] } as any;
         }
         diceRoll = game.rollDice(player1, false, card1);
@@ -413,7 +413,7 @@ describe("Four Souls+2 Treasures", () => {
         expect(game.stack.isEmpty()).toBe(true);
         expect(diceRoll.value).toBe(3);
 
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [-1], remaining: [] } as any;
         }
         diceRoll = game.rollDice(player1, false, card1);
@@ -423,7 +423,7 @@ describe("Four Souls+2 Treasures", () => {
         expect(diceRoll.value).toBe(2);
         expect(game.stack.isEmpty()).toBe(true);
 
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [1], remaining: [] } as any;
         }
         diceRoll = game.rollDice(player1, false, card1);
@@ -461,7 +461,7 @@ describe("Four Souls+2 Treasures", () => {
         const card1 = game.obtainCard("fsp2-daddy_long_legs") as TreasureCard;
         game.addInPlay(player1, card1);
         await game.endTurn();
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [game.encounters.monsterIn(0)!], remaining: [] } as any;
         }
         const hp = game.encounters.monsterIn(0)!.currentHealthPoints;
@@ -473,7 +473,7 @@ describe("Four Souls+2 Treasures", () => {
         await game.resolveStack();
 
         await game.endTurn();
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [player2], remaining: [] } as any;
         }
         const hp2 = player2.currentHealthPoints;
@@ -508,7 +508,7 @@ describe("Four Souls+2 Treasures", () => {
         game.random = () => 0.99;
         game.attackRoll(player1);
         await game.resolveStack();
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [game.encounters.monsterIn(1)!], remaining: [] } as any;
         }
         await game.resolveStack();
@@ -593,7 +593,7 @@ describe("Four Souls+2 Treasures", () => {
         await game.declareAttackOnMonster(player1, game.encounters.monsterIn(0)!);
         game.random = () => 0.01;
         game.attackRoll(player1);
-        game.select = (_issuer, _n, opts, _optional) => {
+        game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [player2], remaining: [] } as any;
         };
         await game.resolveStack(); // roll

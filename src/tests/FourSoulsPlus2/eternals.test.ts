@@ -39,13 +39,13 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.inPlay[1]!.slug).toBe("fsp2-gimpy");
         const coins = player1.coins;
 
-        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+        game.select = async (player: Player, min: number, max: number, Options: any[]) => {
         if(Options[0] === "gain 2¢.")
             return {
                 selected: [Options[0]],
                 remaining: []
             };
-        return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+        return { selected: Options.slice(0, max), remaining: Options.slice(max) };
     };
         game.dealDamage(player1, player1, player1.inPlay[0]!, 1);
         await game.resolveStack();
@@ -71,13 +71,13 @@ describe("Four Souls+2 Eternal Items", () => {
         const handSize = player1.hand.cards.length;
         const firstCard = player1.hand.cards[0];
 
-        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+        game.select = async (player: Player, min: number, max: number, Options: any[]) => {
         if(Options[1] === "loot 1, then discard a loot card.")
             return {
                 selected: [Options[1]],
                 remaining: []
             };
-        return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+        return { selected: Options.slice(0, max), remaining: Options.slice(max) };
     };
         game.dealDamage(player1, player1, player1.inPlay[0]!, 1);
         await game.resolveStack();
@@ -102,13 +102,13 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.inPlay[1]!.slug).toBe("fsp2-gimpy");
         const atk = player1.attackPoints;
 
-        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+        game.select = async (player: Player, min: number, max: number, Options: any[]) => {
         if(Options[2] === "gain +2 [atk] till end of turn.")
             return {
                 selected: [Options[2]],
                 remaining: []
             };
-        return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+        return { selected: Options.slice(0, max), remaining: Options.slice(max) };
     };
         game.dealDamage(player1, player1, player1.inPlay[0]!, 1);
         await game.resolveStack();

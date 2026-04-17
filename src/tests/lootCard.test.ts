@@ -975,7 +975,7 @@ describe("Loot Card", () => {
 
         // Stub select to choose all three tops
         const originalSelect = game.select;
-        game.select = async (_issuer, _n, opts) => ({ selected: opts, remaining: [] });
+        game.select = async (_issuer, _min, _max, opts) => ({ selected: opts, remaining: [] });
 
         const initialHand = player1.hand.cards.length;
 

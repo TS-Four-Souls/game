@@ -42,9 +42,9 @@ describe("Game.selectMultiple", () => {
 
     // Start multiple selections
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: options1 , description: "Select an option"},
-      { player: player2, count: 1, options: options2 , description: "Select an option"},
-      { player: player3, count: 1, options: options3 , description: "Select an option"},
+      { player: player1, min: 1, max: 1, options: options1 , description: "Select an option"},
+      { player: player2, min: 1, max: 1, options: options2 , description: "Select an option"},
+      { player: player3, min: 1, max: 1, options: options3 , description: "Select an option"},
     ]);
 
     // Get state for each player
@@ -101,8 +101,8 @@ describe("Game.selectMultiple", () => {
     const options2 = [card3];
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 2, options: options1, asMany: true , description: "Select a card"},
-      { player: player2, count: 1, options: options2, asMany: true , description: "Select a card"},
+      { player: player1, min: 0, max: 2, options: options1, description: "Select a card"},
+      { player: player2, min: 0, max: 1, options: options2, description: "Select a card"},
     ]);
 
     const state1 = game.detailedStateJSON(player1);
@@ -110,8 +110,10 @@ describe("Game.selectMultiple", () => {
 
     expect(state1.me.pendingSelection).toBeDefined();
     expect(state2.me.pendingSelection).toBeDefined();
-    expect(state1.me.pendingSelection!.asMany).toBe(true);
-    expect(state2.me.pendingSelection!.asMany).toBe(true);
+    expect(state1.me.pendingSelection!.min).toBe(0);
+    expect(state1.me.pendingSelection!.max).toBe(2);
+    expect(state2.me.pendingSelection!.min).toBe(0);
+    expect(state2.me.pendingSelection!.max).toBe(1);
 
     const requestId1 = state1.me.pendingSelection!.requestId;
     const requestId2 = state2.me.pendingSelection!.requestId;
@@ -132,7 +134,7 @@ describe("Game.selectMultiple", () => {
     const card2 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 2, options: [card1, card2], asMany: false , description: "Select a card"},
+      { player: player1, min: 2, max: 2, options: [card1, card2], description: "Select a card"},
     ]);
 
     const state1 = game.detailedStateJSON(player1);
@@ -154,7 +156,7 @@ describe("Game.selectMultiple", () => {
     const card3 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 2, options: [card1, card2, card3], asMany: true , description: "Select a card"},
+      { player: player1, min: 0, max: 2, options: [card1, card2, card3], description: "Select a card"},
     ]);
 
     const state1 = game.detailedStateJSON(player1);
@@ -174,7 +176,7 @@ describe("Game.selectMultiple", () => {
     const card1 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: [card1] , description: "Select a card"},
+      { player: player1, min: 1, max: 1, options: [card1] , description: "Select a card"},
     ]);
 
     expect(() => {
@@ -191,7 +193,7 @@ describe("Game.selectMultiple", () => {
     const card1 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: [card1] , description: "Select a card"},
+      { player: player1, min: 1, max: 1, options: [card1] , description: "Select a card"},
     ]);
 
     const state1 = game.detailedStateJSON(player1);
@@ -213,9 +215,9 @@ describe("Game.selectMultiple", () => {
     const card3 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: [card1] , description: "Select a card"},
-      { player: player2, count: 1, options: [card2] , description: "Select a card"},
-      { player: player3, count: 1, options: [card3] , description: "Select a card"},
+      { player: player1, min: 1, max: 1, options: [card1] , description: "Select a card"},
+      { player: player2, min: 1, max: 1, options: [card2] , description: "Select a card"},
+      { player: player3, min: 1, max: 1, options: [card3] , description: "Select a card"},
     ]);
 
     const state1 = game.detailedStateJSON(player1);
@@ -242,7 +244,7 @@ describe("Game.selectMultiple", () => {
     const card1 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: [card1] , description: "Select a card"},
+      { player: player1, min: 1, max: 1, options: [card1] , description: "Select a card"},
     ]);
 
     const state1Before = game.detailedStateJSON(player1);
@@ -289,8 +291,8 @@ describe("Game.selectMultiple", () => {
     const card2 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: [card1] , description: "Select a card"},
-      { player: player2, count: 1, options: [card2] , description: "Select a card"},
+      { player: player1, min: 1, max: 1, options: [card1] , description: "Select a card"},
+      { player: player2, min: 1, max: 1, options: [card2] , description: "Select a card"},
     ]);
 
     const state1 = game.detailedStateJSON(player1);
@@ -321,15 +323,15 @@ describe("Game.selectMultiple", () => {
     const card5 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: [card1, card2, card3] , description: "Select a card"},
-      { player: player2, count: 2, options: [card4, card5] , description: "Select a card"},
+      { player: player1, min: 1, max: 1, options: [card1, card2, card3] , description: "Select a card"},
+      { player: player2, min: 2, max: 2, options: [card4, card5] , description: "Select a card"},
     ]);
 
     const state1 = game.detailedStateJSON(player1);
     const state2 = game.detailedStateJSON(player2);
 
-    expect(state1.me.pendingSelection!.count).toBe(1);
-    expect(state2.me.pendingSelection!.count).toBe(2);
+    expect(state1.me.pendingSelection!.max).toBe(1);
+    expect(state2.me.pendingSelection!.max).toBe(2);
 
     game.submitSelection(player1, state1.me.pendingSelection!.requestId, [state1.me.pendingSelection!.options[1]!]);
     game.submitSelection(player2, state2.me.pendingSelection!.requestId, [state2.me.pendingSelection!.options[0]!, state2.me.pendingSelection!.options[1]!]);
@@ -342,7 +344,7 @@ describe("Game.selectMultiple", () => {
 
   test("should handle empty options array", async () => {
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 0, options: [], asMany: true , description: "Select a card"},
+      { player: player1, min: 0, max: 0, options: [], description: "Select a card"},
     ]);
 
     const state1 = game.detailedStateJSON(player1);
@@ -358,7 +360,7 @@ describe("Game.selectMultiple", () => {
     const card2 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 2, options: [card1, card2] , description: "Select a card"},
+      { player: player1, min: 2, max: 2, options: [card1, card2] , description: "Select a card"},
     ]);
 
     const state1 = game.detailedStateJSON(player1);
@@ -380,8 +382,8 @@ describe("Game.selectMultiple", () => {
     });
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: [card1] , description: "Select a card"},
-      { player: player2, count: 1, options: [card2] , description: "Select a card"},
+      { player: player1, min: 1, max: 1, options: [card1] , description: "Select a card"},
+      { player: player2, min: 1, max: 1, options: [card2] , description: "Select a card"},
     ]);
     await setTimeout(10); // slight delay to ensure state is updated before clients fetch it
     expect(stateChangeTriggered).toBe(true);
@@ -400,9 +402,9 @@ describe("Game.selectMultiple", () => {
     const card3 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, count: 1, options: [card1] , description: "Select a card"},
-      { player: player2, count: 1, options: [card2] , description: "Select a card"},
-      { player: player3, count: 1, options: [card3] , description: "Select a card"},
+      { player: player1, min: 1, max: 1, options: [card1] , description: "Select a card"},
+      { player: player2, min: 1, max: 1, options: [card2] , description: "Select a card"},
+      { player: player3, min: 1, max: 1, options: [card3] , description: "Select a card"},
     ]);
 
     const state1 = game.detailedStateJSON(player1);

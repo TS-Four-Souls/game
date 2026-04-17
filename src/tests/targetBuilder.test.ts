@@ -167,6 +167,21 @@ describe("Target Builder Interface", () => {
     expect(Array.isArray(targets)).toBe(true);
   });
 
+  it("should build resolve-time targets from raw selections returned by game.select", async () => {
+    const boomerang = game.obtainCard("b2-boomerang") as ItemCard;
+    game.addInPlay(player1, boomerang);
+    game.recharge(boomerang);
+
+    const builtTargets = await TargetBuilder.buildTargetsOnResolve(
+      game,
+      player1,
+      boomerang,
+    );
+
+    expect(builtTargets).toHaveLength(1);
+    expect(builtTargets[0].id).toBe(player2.id);
+  });
+
   it("should convert various object types to string identifiers", async () => {
     const card = game.obtainCard("b2-blank_card") as ItemCard;
 

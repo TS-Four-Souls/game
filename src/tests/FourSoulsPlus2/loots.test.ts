@@ -52,7 +52,7 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         game.declareAttack(player1);
         await game.declareAttackOnMonster(player1, game.monsters[0]!);
         game.random = () => 1/6 - 0.001; // roll 1, so attack misses
-        game.select = (_issuer, _n, opts, _optional) => {
+            game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             return { selected: [player2], remaining: [] } as any;
         };
         game.attackRoll(player1);
@@ -78,7 +78,7 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         const initialP1Hand = player1.hand.length;
         const initialP2Hand = player2.hand.length;
         
-        game.select = async (_issuer, _n, opts, _optional) => {
+            game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             return { selected: [{type: "player", payload: {name: player2.json.name, slug: player2.json.slug, globalId: player2.json.globalId}}], remaining: [] } as any;
         };
         await game.resolveStack();
@@ -99,12 +99,12 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         player1.inPlay[1]!.charged = false;
         player1.inPlay[2]!.charged = false;
         player1.inPlay[3]!.charged = false;
-        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+            game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             if(Options.includes(player1.inPlay[2]!))
                 return { selected: [player1.inPlay[2]!],
                     remaining: []
                 };
-            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+            return { selected: Options.slice(0, max), remaining: Options.slice(max) };
         };
         game.kill(player2, player2, player1.inPlay[1]!);
         await game.resolveStack();
@@ -148,13 +148,13 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         const health = player2.currentHealthPoints;
         game.addCardToHand(player1, card1);
         await game.playCard(player1, player1.hand.length - 1, []);
-        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+        game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             expect(Options.length).toBe(2);
             if(Options[1] === player2)
                 return { selected: [player2],
                     remaining: []
                 };
-            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+            return { selected: Options.slice(0, max), remaining: Options.slice(max) };
         };
         await game.resolveStack(); // card
         await game.resolveStack(); // roll
@@ -168,13 +168,13 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         const health = game.monsters[1]!.currentHealthPoints;
         game.addCardToHand(player1, card1);
         await game.playCard(player1, player1.hand.length - 1, []);
-        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+        game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             expect(Options.length).toBe(2);
             if(Options[1] === game.monsters[1]!)
                 return { selected: [game.monsters[1]!],
                     remaining: []
                 };
-            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+            return { selected: Options.slice(0, max), remaining: Options.slice(max) };
         };
         await game.resolveStack(); // card
         await game.resolveStack(); // roll
@@ -218,12 +218,12 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         const treasure2 = player1.inPlay[3]!;
         game.addCardToHand(player1, card1);
         await game.playCard(player1, player1.hand.length - 1, []);
-        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+        game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             if(Options[1] === treasure2)
                 return { selected: [treasure2],
                     remaining: []
                 };
-            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+            return { selected: Options.slice(0, max), remaining: Options.slice(max) };
         };
         await game.resolveStack(); // card
         await game.resolveStack(); // roll
@@ -260,12 +260,12 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         const expectedRerolledItem = game.decks["treasure"]!.cards[0]!;
         game.addCardToHand(player1, card1);
         await game.playCard(player1, player1.hand.length - 1, []);
-        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+        game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             if(Options.includes(treasure2))
                 return { selected: [treasure2],
                     remaining: []
                 };
-            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+            return { selected: Options.slice(0, max), remaining: Options.slice(max) };
         };
         await game.resolveStack(); // card
         await game.resolveStack(); // roll
@@ -280,12 +280,12 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         const treasure = game.shop._slots[1]!;
         game.addCardToHand(player1, card1);
         await game.playCard(player1, player1.hand.length - 1, []);
-        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+        game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             if(Options.includes(treasure))
                 return { selected: [treasure],
                     remaining: []
                 };
-            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+            return { selected: Options.slice(0, max), remaining: Options.slice(max) };
         };
         await game.resolveStack(); // card
         await game.resolveStack(); // roll
@@ -314,8 +314,8 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         const card1 = game.obtainCard("fsp2-ansuz") as LootCard;
         game.addCardToHand(player1, card1);
         const top4reverse = game.decks["loot"]!.cards.slice(0, 4).map(c => c.slug);
-        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
-            return { selected: Options.slice(0, n).toReversed(), remaining: Options.slice(n) };
+        game.select = async (player: Player, min: number, max: number, Options: any[]) => {
+            return { selected: Options.slice(0, max).toReversed(), remaining: Options.slice(max) };
         };
         await game.playCard(player1, player1.hand.length - 1, [game.decks["loot"]!]);
 
@@ -327,8 +327,8 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
     it("fsp2-aaa_battery - At the end of your turn, roll- 4-6: Recharge an item.", async () => {
         const card1 = game.obtainCard("fsp2-aaa_battery") as LootCard;
         game.addCardToHand(player1, card1);
-        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
-            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+        game.select = async (player: Player, min: number, max: number, Options: any[]) => {
+            return { selected: Options.slice(0, max), remaining: Options.slice(max) };
         };
         game.random = () => 4/6 - 0.001; // roll 4
         await game.playCard(player1, player1.hand.length - 1, []);
@@ -344,8 +344,8 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
     it("fsp2-aaa_battery - (roll 3) At the end of your turn, roll- 4-6: Recharge an item.", async () => {
         const card1 = game.obtainCard("fsp2-aaa_battery") as LootCard;
         game.addCardToHand(player1, card1);
-        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
-            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+        game.select = async (player: Player, min: number, max: number, Options: any[]) => {
+            return { selected: Options.slice(0, max), remaining: Options.slice(max) };
         };
         game.random = () => 3/6 - 0.001; // roll 3
         await game.playCard(player1, player1.hand.length - 1, []);
@@ -370,9 +370,9 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         game.rollDice(player1, true);
 
         game.addCardToHand(player1, card1);
-        game.select = async (player: Player, n: number, Options: any[], anyNumber: boolean = false) => {
+        game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             expect(Options.length).toBe(1);
-            return { selected: Options.slice(0, n), remaining: Options.slice(n) };
+            return { selected: Options.slice(0, max), remaining: Options.slice(max) };
         };
         game.random = () => 1/6 - 0.001; // roll 1
         await game.playCard(player1, player1.hand.length - 1, []);

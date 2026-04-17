@@ -300,14 +300,7 @@ class Encounters {
                     if(!(data.issuer instanceof Player))
                         throw new Error("Event encounter effect issuer is not a player");
                     if (card.isCurse) {
-                        const selection = await data.selectAndRecord(
-                            this._game,
-                            this._game.currentPlayer,
-                            1,
-                            this._game.players,
-                            false,
-                            `Select a player to receive ${card.name}.`
-                        );
+                        const selection = await data.selectAndRecord(this._game, this._game.currentPlayer, 1, 1, this._game.players, `Select a player to receive ${card.name}.`, true, true);
                         const owner = selection.selected[0];
                         if (!owner) return false;
                         this._game.addCurse(owner, card);

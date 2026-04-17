@@ -239,7 +239,7 @@ export function parseYouMayEffect(s: string, game: Game): ParsedEffect {
             if (data.issuer instanceof Player === false) return false;
             let choice = !shouldHandleYouMay[0];
             if(!choice){
-                const selection = await data.selectAndRecord(game, data.issuer, 1, [data.it], true, "Use " + data.it.name + "'s effect?", false);
+                const selection = await data.selectAndRecord(game, data.issuer, 0, 1, [data.it], "Use " + data.it.name + "'s effect?", false);
                 choice = selection.selected.length > 0;
             }
             if (choice) {
@@ -299,10 +299,7 @@ export function parseEachTimeDeclareAttackEffect(s: string, game: Game): ParsedE
 export function parseEachTimeAnotherPlayerDiesEffect(s: string, game: Game): ParsedEffect {
     const restOfEffect = s.substring("each time another player dies, ".length).trim();
     const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
-    return {
-        effectFunction: passive.onAnotherPlayerEventEffect("on:death:before-penalty", [restParsed.effectFunction], game, s),
-        targetSelectors: restParsed.targetSelectors
-    };
+    return noTargetEffect(passive.onAnotherPlayerEventEffect("on:death:before-penalty", [restParsed.effectFunction], game, s));
 }
 
 export function parseEachTimeWouldRollEffect(s: string, game: Game): ParsedEffect {
@@ -361,7 +358,7 @@ export function parseTheActivePlayerEffect(s: string, game: Game): ParsedEffect 
         case "the active player may steal a non-eternal item another player controls.":
             return noTargetEffect(monster.activePlayerSelectTargetEffect(game, active.stealNonEternalItemEffect(game), selectAnotherPlayerNonEternalItem(game, 1, true)[0]!));
         case "the active player may look at a player's hand.":
-            return noTargetEffect(monster.activePlayerSelectTargetEffect(game, active.lookAtAPlayerHand(game), selectPlayer(game, 1, true)[0]!));
+            return noTargetEffect(monster.activePlayerSelectTargetEffect(game, active.lookAtAPlayerHand(game), selectPlayer(game, 1, true)[0]!, false));
         case "the active player deals 3 damage to a player.":
             return noTargetEffect(active.dealDamageToAPlayerEffect(game, 3, true, true));
         case "the active player deals 2 damage divided as they choose to any number of monsters or players.":
@@ -898,8 +895,6 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
             return { effectFunction: active.rechargeCharaEffect(game), targetSelectors: noTargets };
         case "choose a living player. that player dies.":
             return { effectFunction: active.deathTargetEffect(game, true), targetSelectors: selectAlivePlayer(game) };
-        case "put a card from your hand on top of the loot deck.":
-            return { effectFunction: active.putCardFromHandOnTopOfDeckEffect(game), targetSelectors: noTargets };
         case "choose another player. they give you half of their ¢ and loot cards rounded down, then gives you an item.":
             return { effectFunction: active.halfLootAndCoinsAndGiveItemEffect(game), targetSelectors: selectAnotherPlayer(game) };
         case "recharge an item.":
@@ -1076,8 +1071,9 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
             return { effectFunction: active.changeRollDiceResultEffect(game), targetSelectors: selectRollAndNumber(game, [3]) };
         case "change the result of a dice roll to a 1 or 6.":
             return { effectFunction: active.changeRollDiceResultEffect(game), targetSelectors: selectRollAndNumber(game, [1, 6]) };
+        case "put a card from your hand on top of the loot deck.":
         case "put a loot card from your hand on top of the loot deck.":
-            return { effectFunction: active.putLootCardFromHandOnTopOfDeckEffect(game), targetSelectors: noTargets };
+            return { effectFunction: active.putCardFromHandOnTopOfDeckEffect(game), targetSelectors: noTargets };
         case "reroll an item you control.":
             return { effectFunction: active.rerollItemEffect(game, selectItemYouControl(game), selectionOnResolve), targetSelectors: selectItemYouControl(game) };
         case "reroll an item. (destroy that item and replace it with the top card of the treasure deck.)":

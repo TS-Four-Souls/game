@@ -82,8 +82,8 @@ const pendingSelectionSchema = z.object({
   requestId: z.string(),
   description: z.string(),
   options: z.array(selectionItemSchema),
-  count: z.number(),
-  asMany: z.boolean(),
+  min: z.number(),
+  max: z.number(),
 });
 export type PendingSelection = z.infer<typeof pendingSelectionSchema>;
 
@@ -167,7 +167,6 @@ const lootCardOnStackJsonSchema = z.object({
   type: z.literal("LootCardEffect"),
   card: identifierTypeSchema,
   targets: z.array(selectionItemSchema),
-  color: z.string(),
   issuer: entityTypeSchema,
   id: z.number(),
   reordering: stackReorderingInfoSchema.optional(),

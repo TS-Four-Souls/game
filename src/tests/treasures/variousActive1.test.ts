@@ -42,7 +42,7 @@ describe("Tap/Paid effects 1", () => {
         game.addInPlay(player1, sackHead);
 
         // Mock game.select to choose to put card on bottom
-        game.select = async (_issuer, _n, opts, _optional) => {
+        game.select = async (_issuer, _min, _max, opts, _optional) => {
             return { selected: [opts[0]], remaining: [] } as any;
         };
 
@@ -65,7 +65,7 @@ describe("Tap/Paid effects 1", () => {
         game.addInPlay(player1, sackHead);
 
         // Mock game.select to choose to keep card on top
-        game.select = async (_issuer, _n, opts, _optional) => {
+        game.select = async (_issuer, _min, _max, opts, _optional) => {
             return { selected: [], remaining: [opts[0]] } as any;
         };
 
@@ -114,7 +114,7 @@ describe("Tap/Paid effects 1", () => {
         const initialDeckSize = game.decks["loot"]!.cards.length;
 
         // Mock game.select to choose which card to put on top
-        game.select = async (_issuer, _n, opts, _optional) => {
+        game.select = async (_issuer, _min, _max, opts, _optional) => {
             return { selected: [opts[0]], remaining: [] } as any;
         };
 
@@ -255,7 +255,7 @@ describe("Tap/Paid effects 1", () => {
         const initialCoinsP2 = player2.coins;
 
         // Mock game.select to choose player2
-        game.select = async (_issuer, _n, opts, _optional) => {
+        game.select = async (_issuer, _min, _max, opts, _optional) => {
             return { selected: [opts.find((opt: any) => opt === player2)], remaining: [] } as any;
         };
 
@@ -279,7 +279,7 @@ describe("Tap/Paid effects 1", () => {
         const initialCoinsP2 = player2.coins;
 
         // Mock game.select to choose player2
-        game.select = async (_issuer, _n, opts, _optional) => {
+        game.select = async (_issuer, _min, _max, opts, _optional) => {
             return { selected: [opts.find((opt: any) => opt === player2)], remaining: [] } as any;
         };
 

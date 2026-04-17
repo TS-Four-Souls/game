@@ -82,13 +82,14 @@ export class EffectData {
     async selectAndRecord<T>(
         game: Game,
         player: Player,
-        n: number,
+        min: number,
+        max: number,
         options: T[],
-        anyNumber: boolean = false,
         description: string = "UNDEFINED SHOULD NOT HAPPEN",
+        skippable: boolean = true,
         record: boolean = true
     ): Promise<{ selected: T[]; remaining: T[] }> {
-        const selection = await game.select(player, n, options, anyNumber, description);
+        const selection = await game.select(player, min, max, options, description, skippable);
         if (record) {
             this.recordSelection(selection.selected as any[]);
         }
@@ -99,9 +100,9 @@ export class EffectData {
         game: Game,
         selections: Array<{
             player: Player;
-            count: number;
+            min: number;
+            max: number;
             options: T[];
-            asMany?: boolean;
             description: string;
         }>
     ): Promise<Array<{ playerId: string; selected: T[]; remaining: T[] }>> {
