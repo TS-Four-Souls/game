@@ -65,7 +65,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         const initialHP = monster.currentHealthPoints;
 
         game.select = async (_issuer, _min, _max, opts, _optional) => {
-            return { selected: [{type: "monster", payload: {name: monster.json.name, slug: monster.json.slug, globalId: monster.json.globalId}}], remaining: [] } as any;
+            return { selected: [monster], remaining: [] } as any;
         };
         // Recharge placebo and activate it to copy mr_boom
         game.recharge(placebo);
@@ -88,7 +88,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         const initialHP = player2.currentHealthPoints;
 
         game.select = async (_issuer, _min, _max, opts, _optional) => {
-            return { selected: [{type: "player", payload: {name: player2.json.name, slug: player2.json.slug, globalId: player2.json.globalId}} as any], remaining: [] };
+            return { selected: [opts[1]], remaining: [] } as any;
         };
         // Recharge placebo and activate it to copy razor_blade
         game.recharge(placebo);
@@ -117,7 +117,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
 
         // Recharge placebo and activate it to copy the_battery
         game.select = async (_issuer, _min, _max, opts, _optional) => {
-            return { selected: [{type: "card", payload: {slug: "b2-sack_of_pennies"}}], remaining: [] } as any;
+            return { selected: [sackOfPennies], remaining: [] } as any;
         };
         game.recharge(placebo);
         await game.activateItem(player1, placebo, [theBattery]);
@@ -261,7 +261,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         // Second use - copy razor_blade
         game.recharge(placebo);
         game.select = async (_issuer, _min, _max, opts, _optional) => {
-            return { selected: [{type: "player", payload: {name: player2.json.name, slug: player2.json.slug, globalId: player2.json.globalId}}], remaining: [] } as any;
+            return { selected: [player2], remaining: [] } as any;
         };
         await game.activateItem(player1, placebo, [razorBlade]);
         await game.resolveStack();

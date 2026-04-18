@@ -1249,6 +1249,13 @@ export function revealTopCardsOfMonsterDeckEffect(
             const target = (await data.selectAndRecord(game, data.issuer, 1, 1, game.players, `Select a player to give ${curse.name} to.`,true , true)).selected[0] as Player;
             game.addCurse(target, curse);
         }
+        const nonCurseCards = monsterCards.filter(c => !c.isCurse);
+        if(nonCurseCards.length === 0) return true;
+        const target = (await data.selectAndRecord(game, data.issuer, nonCurseCards.length, nonCurseCards.length, nonCurseCards, `Put the rest on the bottom of the deck in any order.`, false , false)).selected as MonsterCard[];
+        for (let i = 0; i < target.length; i++) {
+            game.addBottomPosition("monster", target[i]!);
+        }
+
         return true;
     };
 }
@@ -1617,7 +1624,7 @@ export function dealDamageToEachPlayerEffect(game: Game, amount: number, include
 
 export function dealDamageToEachMonsterEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
-        for (const monster of game.monsters) {
+        for (const monster of [...game.monsters]) {
             game.dealDamage(data.issuer, monster, data.it, amount);
         }
         return true;
@@ -1646,8 +1653,8 @@ export function dealDamageToTargetEffect(game: Game, amount: number, selectionOn
             target = target.issuer;
         if(selectionOnResolve && target === undefined){
             if(data.issuer instanceof Player === false) 
-                throw new Error("Issuer should be a player to select target for killTargetEffect.");
-            target = (await data.selectAndRecord(game, data.issuer as Player, 1, 1, selectors[0]!.selector(data.issuer), "Select a target to kill.", true, true)).selected[0];
+                throw new Error("Issuer should be a player to select target for dealDamageToTargetEffect.");
+            target = (await data.selectAndRecord(game, data.issuer as Player, 1, 1, selectors[0]!.selector(data.issuer), `Select a target to deal ${amount} damage to.`, true, true)).selected[0];
         }
         if(!(target instanceof Entity))
             throw new Error("Invalid target for dealDamageToTargetEffect");

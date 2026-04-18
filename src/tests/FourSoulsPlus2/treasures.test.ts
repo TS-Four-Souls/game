@@ -280,11 +280,13 @@ describe("Four Souls+2 Treasures", () => {
         let count = 0;
         game.select = (_issuer, _min, _max, opts, _optional) => {
             count += 1;
+            if(count === 4)
+            return { selected: opts, remaining: [] } as any;
             return { selected: [game.players[count%2]], remaining: [] } as any;
         };
         await game.activateItem(player1, card1, [], "tap");
         await game.resolveStack();
-        expect(count ).toBe(3);
+        expect(count ).toBe(4);
         expect(player2.curses.filter(c => c.slug === "b2-curse_of_loss").length).toBe(1);
         expect(player1.curses.filter(c => c.slug === "b2-curse_of_pain").length).toBe(1);
         expect(player2.curses.filter(c => c.slug === "b2-curse_of_amnesia").length).toBe(1);
@@ -359,6 +361,7 @@ describe("Four Souls+2 Treasures", () => {
         const initialCoins2 = player2.coins;
 
         game.gainCoins(player2, 3);
+        await game.resolveStack();
         expect(player2.coins).toBe(initialCoins2 + 2); // player2 gains 3 but gives 1 to player1 for each coin gained
         expect(player1.coins).toBe(initialCoins1 + 1); // player1 gains 1 coin
     });

@@ -403,7 +403,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     if (s.startsWith("when you would die on your turn, "))
     {
         const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, defaultEffect, true);
-        return noTargetEffect(passive.onYourEventEffect("on:death:would-death", [restParsed.effectFunction], game, s));
+        return noTargetEffect(passive.onYourEventEffect("on:death:would-death", [restParsed.effectFunction], game, s, false, true));
     }
     if(s.startsWith("each time you miss an attack roll, ")){
         const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, defaultEffect, true);

@@ -228,16 +228,19 @@ export function rollAndMayChangeNextRollForThis(game: Game): ParsedEffect {
             let offRoll: (() => void) | null = null;
 
             const savedRoll = game.rollDice(data.issuer, false, data.it);
-            offRoll = game.emitter.on("on:dice:rolled", async ({ diceRoll }) => {
+                const effect:EffectFunction = async (effectData: EffectData) => {
                 if(!(data.issuer instanceof Player))
                     throw new Error("rollAndMayChangeNextRollForThis issuer should be a player.");
-                if (diceRoll.issuer !== data.issuer) return;
-                if( savedRoll === diceRoll) return;
+                    if (diceRoll.issuer !== data.issuer) return false;
+                    if( savedRoll === diceRoll) return false;
                 if(savedRoll.value !== diceRoll.value)
                 {
                     const newValue = (await data.selectAndRecord(game, data.issuer, 1, 1, [diceRoll.value, savedRoll.value], "Choose the value of this dice roll.", true, true)).selected[0]!;
                     diceRoll.value = newValue;
                 }
+                    return true;
+                }
+                addPassiveEffectToStack(game, effect, data, "Select the result of this dice roll.");
                 offRoll!();
                 offEndTurn!();
             });
@@ -326,9 +329,12 @@ export function roll4Choose1Effect(game: Game) {
             }
 
             addPassiveEffectToStack(game, effect, data, "Select the result of the next dice roll among four results.");
+            offRoll?.();
+            offRoll = null;
         });
         data.it.cleaners.push(() => {
             offRoll?.();
+            offRoll = null;
         });
         return true;
     };
@@ -740,14 +746,15 @@ export function onYourEventEffect(
     effectFunctions: EffectFunction[],
     game: Game,
     description: string,
-    replacementEffects: boolean = false
+    replacementEffects: boolean = false,
+    duringYourTurnOnly: boolean = false
 ): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
         offDamage = game.emitter.on(triggerEvent, ({ eventIssuer }) => {
             if (data.issuer !== eventIssuer) return;
-            
+            if (duringYourTurnOnly && game.currentPlayer !== data.issuer) return;
             // Add all effects as a single stack element
             const effect = async (effectData: EffectData) => {
                 for (const func of effectFunctions) {
@@ -882,9 +889,16 @@ export function stealCoinOnGainEffect(amount: number, game: Game): EffectFunctio
             if(!(data.issuer instanceof Player)) {
                 throw new Error("stealCoinOnGainEffect can only be applied to Players.");
             }
+            const effect = (effectData: EffectData) => {
+            if(!(data.issuer instanceof Player)) {
+                throw new Error("stealCoinOnGainEffect can only be applied to Players.");
+            }
             const stealAmount = Math.min(coinGained[0] ?? 0, amount);
-            if(stealAmount <= 0) return;
+                if(stealAmount <= 0) return false;
             game.giveCoins(eventIssuer, data.issuer, stealAmount, true);
+                return true;
+            }
+            addPassiveEffectToStack(game, effect, data, `Steal ${amount}¢ from another player when they gain coins.`);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed

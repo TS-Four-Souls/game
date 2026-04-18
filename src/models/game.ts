@@ -1354,6 +1354,7 @@ export class Game {
    */
   deactivateItem(item: ItemCard): void {
     item.deactivate();
+    this._onStateChange.dispatch();
   }
 
   /**
