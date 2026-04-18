@@ -228,6 +228,7 @@ export function rollAndMayChangeNextRollForThis(game: Game): ParsedEffect {
             let offRoll: (() => void) | null = null;
 
             const savedRoll = game.rollDice(data.issuer, false, data.it);
+                offRoll = game.emitter.on("on:dice:rolled", async ({ diceRoll }) => {
                 const effect:EffectFunction = async (effectData: EffectData) => {
                 if(!(data.issuer instanceof Player))
                     throw new Error("rollAndMayChangeNextRollForThis issuer should be a player.");
