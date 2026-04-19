@@ -307,7 +307,7 @@ class Encounters {
                     } else {
                         card.onPlay(data.issuer, data.targets);
                     }
-                    this._game.executeWhenStackSubset(stackIds, () => {
+                    await this._game.executeWhenStackSubset(stackIds, () => {
                         if(card.afterEffect !== "handled")
                         {
                             this.removeFromSlot(card);

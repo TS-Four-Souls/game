@@ -344,7 +344,6 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.rollDice(player2, false, card1);
         await game.resolveStack();
         await game.resolveStack();
-        await game.resolveStack();
         expect(game.decks.loot.cards.slice(0, 3).map(c => c.slug)).toEqual(slugs.toReversed());
     });
 

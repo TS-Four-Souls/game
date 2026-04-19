@@ -120,7 +120,7 @@ describe("Four Souls+2 Treasures", () => {
         game.random = () => 1/6-0.0001; // roll a 1
         game.rollDice(player2, false, card1);
         await game.resolveStack();
-        expect(game.stack.size).toBe(2);
+        expect(game.stack.size).toBe(1);
         await game.resolveStack();
         expect(player2.inPlay[3]!.slug).not.toBe(slug);
         
@@ -136,7 +136,7 @@ describe("Four Souls+2 Treasures", () => {
         game.random = () => 2/6-0.0001; // roll a 2
         game.rollDice(player2, false, card1);
         await game.resolveStack();
-        expect(game.stack.size).toBe(2);
+        expect(game.stack.size).toBe(1);
         await game.resolveStack();
         expect(player2.inPlay[0]!.charged).toBe(false);
         
@@ -163,7 +163,7 @@ describe("Four Souls+2 Treasures", () => {
         await game.resolveStack();
         game.rollDice(player2, true);
         await game.resolveStack();
-        expect(game.stack.size).toBe(2);
+        expect(game.stack.size).toBe(1);
         const hp = player2.currentHealthPoints;
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [player2], remaining: [] } as any;
@@ -403,19 +403,21 @@ describe("Four Souls+2 Treasures", () => {
         game.addInPlay(player1, card1);
         game.random = () => 3/6-0.0001;
         // attack roll don't change
-        let diceRoll = game.rollDice(player1, true);
+        let diceRoll = game.rollDice(player1, true, card1);
         await game.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(diceRoll.value).toBe(3);
         
+        // non attack roll change, but can select nothing
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [], remaining: [] } as any;
         }
         diceRoll = game.rollDice(player1, false, card1);
         await game.resolveStack();
+        await game.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(diceRoll.value).toBe(3);
-
+        
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [-1], remaining: [] } as any;
         }

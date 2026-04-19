@@ -170,6 +170,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         dice._TEST_setRandom( () => 0.6); // Force dice rolls to be 4
         
         await game.resolveStack();
+        await game.resolveStack();
         expect(dice.value).not.toBe(1); // The dice should have been rerolled (value changed from 1)
         expect(dice.value).toBeGreaterThanOrEqual(1);
         expect(dice.value).toBeLessThanOrEqual(6);

@@ -1191,7 +1191,7 @@ export class Game {
     const prevValue = elem.value;
     elem.readyToResolve = true;
     this.emit("on:dice:would-roll", { eventIssuer: elem.issuer, diceRoll: elem });
-    this.executeWhenStackSubset(stackIds, async () => {
+    await this.executeWhenStackSubset(stackIds, async () => {
       // If the value has changed, the roll stays in the stack.
       if (elem.readyToResolve === false)
         {
@@ -1205,6 +1205,7 @@ export class Game {
         this._onStateChange.dispatch();
         await this.resolveCallbacks();
         this.emit("on:dice:resolved", { eventIssuer: elem.issuer, diceRoll: elem });
+        await this.resolveCallbacks();
     });
   }
 

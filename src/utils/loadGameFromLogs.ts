@@ -255,7 +255,7 @@ function findInitialSeed(logs: unknown[]): string {
 }
 
 export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 0): Promise<Game> {
-  console.log(`Loading game from logs with ${logs.length} entries...`);
+  // console.log(`Loading game from logs with ${logs.length} entries...`);
   const game = new Game(findInitialSeed(logs));
   const characterByPlayer = new Map<string, string>();
   const submitSelectionRequestIdMap = new Map<string, string>();

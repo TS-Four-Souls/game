@@ -1317,7 +1317,6 @@ export function changeRollOneToSixEffect(game: Game): EffectFunction {
         let offRoll: (() => void) | null = null;
         // Listen for the next would roll event on this player
         offRoll = game.emitter.on("on:dice:would-roll", ({eventIssuer, diceRoll}: OnDiceWouldRollData) => {
-            console.log("changeRollOneToSixEffect triggered for player", diceRoll);
             if (data.issuer !== diceRoll.issuer) return;
             if (diceRoll.value === 1) {
                 // Create the effect that will execute when the stack resolves
@@ -1561,9 +1560,8 @@ export function onAttackRollEffect(
             if (data.issuer !== eventIssuer) return;
             if (rollValues.includes(dice.value)) {
                 // Create the effect that will execute when the stack resolves
-                const stackEffect = (effectData: EffectData) => {
-                    effect(effectData);
-                    return true;
+                const stackEffect = async (effectData: EffectData) => {
+                    return await effect(effectData);
                 };
                 
                 // Add to stack instead of executing immediately
@@ -1601,9 +1599,8 @@ export function onAttackingPlayerRollEffect(
                 let copyData = data;
                 if(diceIssuerIssueTheEvent && dice.issuer !== undefined)
                     copyData.issuer = dice.issuer;
-                const stackEffect = (effectData: EffectData) => {
-                    effect(effectData);
-                    return true;
+                const stackEffect = async (effectData: EffectData) => {
+                    return await effect(effectData);
                 };
                 
                 // Add to stack instead of executing immediately
@@ -1675,9 +1672,8 @@ export function onRollEffect(
                 data.targets = [diceRoll];
                 
                 // Create the effect that will execute when the stack resolves
-                const stackEffect = (effectData: EffectData) => {
-                    effect(effectData);
-                    return true;
+                const stackEffect = async (effectData: EffectData) => {
+                    return await effect(effectData);
                 };
                 
                 if (diceIssuerIssueTheEvent && diceRoll.issuer !== undefined) {
@@ -1716,9 +1712,8 @@ export function onActivePlayerRollEffect(
             
             if (rollValues.includes(diceRoll.value)) {
                 // Create the effect that will execute when the stack resolves
-                const stackEffect = (effectData: EffectData) => {
-                    effect(effectData);
-                    return true;
+                const stackEffect = async (effectData: EffectData) => {
+                    return await effect(effectData);
                 };
                 
                 // Add to stack instead of executing immediately
