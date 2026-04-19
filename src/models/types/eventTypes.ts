@@ -205,12 +205,6 @@ export type OnPriorityPassesData = {
   eventIssuer: Player | null;
 };
 
-/** Data emitted when an item is purchased */
-export type OnItemPurchaseData = {
-  eventIssuer: Player;
-  cost: number[];
-};
-
 /** Data emitted when items are destroyed */
 export type OnItemDestroyedData = {
   eventIssuer: Player | null;
@@ -284,7 +278,6 @@ export type TriggerEventDataMap = {
   "on:enter:play:after": OnEnterPlayAfterData;
   "on:item:activated": OnItemActivatedData;
   "on:priority:passes": OnPriorityPassesData;
-  "on:item:purchase": OnItemPurchaseData;
   "on:item:destroyed": OnItemDestroyedData;
   "on:enter:play": OnEnterPlayData;
   "on:your:turn": OnYourTurnData;

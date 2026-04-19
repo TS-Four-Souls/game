@@ -2455,11 +2455,10 @@ export class Game {
       this.assertCurrentTurnIsPlayerTurn(player);
       this.assertIsAlive(player);
       this.assertCurrentPlayerIsEngagedInPurchase();
-      const price = [this.gameParameters.shopPrice.value];
-      this.emit("on:item:purchase", { eventIssuer: player, cost: price });
-      if (player.coins < price[0]!) {
+      const price = this.gameParameters.shopPrice.value + player.priceModifier;
+      if (player.coins < price!) {
         throw new Error(
-          `Purchase failed. You need ${price[0]! - player.coins} more coins.\n`
+          `Purchase failed. You need ${price! - player.coins} more coins.\n`
         );
       }
     } catch (error) {
@@ -2481,15 +2480,19 @@ export class Game {
     this.canPurchase(player, true);
     if (index !== "top" && (index < 0 || index >= this.shop._slots.length))
       throw new Error("Invalid shop index.");
-    const price = [this.gameParameters.shopPrice.value];
-    this.emit("on:item:purchase", { eventIssuer: player, cost: price });
-    if (this.shop.purchase(player, index, price[0]!, this)) {
+    const price = this.gameParameters.shopPrice.value + player.priceModifier;
+      if (player.coins < price!) {
+        throw new Error(
+          `Purchase failed. You need ${price! - player.coins} more coins.\n`
+        );
+      }
+    if (this.shop.purchase(player, index, price, this)) {
       player.purchaseEnded();
       this._onStateChange.dispatch();
       return `Purchase successful. You have now ${player.coins} coins.\n`;
     } else {
       throw new Error(
-        `Purchase failed. You need ${price[0]! - player.coins} more coins.\n`
+        `Purchase failed. You need ${price - player.coins} more coins.\n`
       );
     }
   }

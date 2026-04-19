@@ -76,6 +76,9 @@ export class Player extends Entity {
   private _attackedIdsThisTurn: ("monster" | "topDeck")[] = [];
 
   private _curses: MonsterCard[] = [];
+
+  private _priceModifier: number = 0;
+
   /**
    * Creates a new Player instance.
    * 
@@ -625,6 +628,17 @@ export class Player extends Entity {
     if(attackRoll)
       this._attackRollThisTurn += 1;
     return new DiceRoll(random, this, attackRoll, card);
+  }
+
+  /**
+   * A positive price modifier increases the cost.
+   */
+  set priceModifier(value: number) {
+    this._priceModifier = value;
+  }
+
+  get priceModifier(): number {
+    return this._priceModifier;
   }
 
   /* This methods tries to remove n coins to the player and return true if it does.

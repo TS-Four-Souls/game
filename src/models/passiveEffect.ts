@@ -21,7 +21,6 @@ import type {
     OnDiceWouldRollData,
     OnLootPlayedData,
     OnItemDestroyedData,
-    OnItemPurchaseData,
     OnLootStepData,
     OnLootWouldData
 } from "./types/eventTypes";
@@ -1436,18 +1435,12 @@ export function becomeSoulInsteadOfDestructionEffect(game: Game): EffectFunction
 // Reduces the cost of shop items.
 export function shopItemsCostLessEffect(discount: number, game: Game): EffectFunction {
     return (data: EffectData) => {
-        let offDamage: (() => void) | null = null;
-
-        offDamage = game.emitter.on("on:item:purchase", (eventData: OnItemPurchaseData) => {
-            const { eventIssuer, cost } = eventData;
-            if (data.issuer !== eventIssuer) return;
-            cost[0] = Math.max(0, (cost[0] ?? 0) - discount);
-        });
-
-        // Store cleanup function on the card for when it's removed/destroyed
+        const issuer = data.issuer;
+        if(!(issuer instanceof Player)) 
+            throw new Error("shopItemsCostLessEffect can only be applied to Players.");
+        issuer.priceModifier -= discount;
         data.it.cleaners.push(() => {
-            offDamage?.();
-            offDamage = null;
+            issuer.priceModifier += discount;
         });
         return true;
     };
