@@ -17,7 +17,7 @@ import type {
     OnDeathMonsterData,
     OnAttackRollData,
     OnDamageTakenData,
-    OnDiceRolledData,
+    OnDiceBeingRolledData,
     OnDiceWouldRollData,
     OnLootPlayedData,
     OnItemDestroyedData,
@@ -228,17 +228,17 @@ export function rollAndMayChangeNextRollForThis(game: Game): ParsedEffect {
             let offRoll: (() => void) | null = null;
 
             const savedRoll = game.rollDice(data.issuer, false, data.it);
-                offRoll = game.emitter.on("on:dice:rolled", async ({ diceRoll }) => {
+            offRoll = game.emitter.on("on:dice:being-rolled", async ({ diceRoll }) => {
                 const effect:EffectFunction = async (effectData: EffectData) => {
-                if(!(data.issuer instanceof Player))
-                    throw new Error("rollAndMayChangeNextRollForThis issuer should be a player.");
+                    if(!(data.issuer instanceof Player))
+                        throw new Error("rollAndMayChangeNextRollForThis issuer should be a player.");
                     if (diceRoll.issuer !== data.issuer) return false;
                     if( savedRoll === diceRoll) return false;
-                if(savedRoll.value !== diceRoll.value)
-                {
-                    const newValue = (await data.selectAndRecord(game, data.issuer, 1, 1, [diceRoll.value, savedRoll.value], "Choose the value of this dice roll.", true, true)).selected[0]!;
-                    diceRoll.value = newValue;
-                }
+                    if(savedRoll.value !== diceRoll.value)
+                    {
+                        const newValue = (await data.selectAndRecord(game, data.issuer, 1, 1, [diceRoll.value, savedRoll.value], "Choose the value of this dice roll.", true, true)).selected[0]!;
+                        diceRoll.value = newValue;
+                    }
                     return true;
                 }
                 addPassiveEffectToStack(game, effect, data, "Select the result of this dice roll.");
@@ -317,7 +317,7 @@ export function chooseMonsterWhenAnotherPlayerAttacksMonsterEffect(game: Game): 
 export function roll4Choose1Effect(game: Game) {
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
-        offRoll = game.emitter.on("on:dice:would-roll", async ({ eventIssuer, diceRoll }) => {
+        offRoll = game.emitter.on("on:dice:being-rolled", async ({ eventIssuer, diceRoll }) => {
             const effect:EffectFunction = async (effectData: EffectData) => {
                 const values = [diceRoll.value];
                 for(let i = 0; i < 3; i++)
@@ -721,7 +721,7 @@ export function chooseNumberDamageOnRollThisTurnEffect(game: Game): EffectFuncti
             throw new Error("chooseNumberDamageOnRollThisTurnEffect: nb must be a number between 1 and 6.");
         }
 
-        offDamage = game.emitter.on("on:dice:rolled", async (eventData: OnDiceRolledData) => {
+        offDamage = game.emitter.on("on:dice:resolved", async (eventData: OnDiceBeingRolledData) => {
             const { eventIssuer, diceRoll } = eventData;
             if (diceRoll.value !== nb) return;
             const effect = active.dealDamageToTargetEffect(game, 1, true, selectPlayerOrMonster(game));
@@ -853,7 +853,7 @@ export function addToYourRollValueEffect(game: Game, values: number[], rollType:
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         
-        offRoll = game.emitter.on("on:dice:rolled", async ({ diceRoll }) => {
+        offRoll = game.emitter.on("on:dice:being-rolled", async ({ diceRoll }) => {
             const eventIssuer = diceRoll.issuer;
             if(!(data.issuer instanceof Player)) {
                 throw new Error("addToYourRollValueEffect can only be applied to Players.");
@@ -862,14 +862,17 @@ export function addToYourRollValueEffect(game: Game, values: number[], rollType:
             if(rollType === "attack" && !diceRoll.attackRoll) return;
             if(rollType === "non-attack" && diceRoll.attackRoll) return;
             
-            const selected = (await data.selectAndRecord(game, data.issuer, (youMay ? 0 : 1), 1, values, "Select a value to add to your roll.", true, true)).selected;
-            if(selected.length === 0) return; // Player chose not to select a value
-            const toAdd = selected[0]!;
-            const effect = (effectData: EffectData) => {
+            const effect = async (effectData: EffectData) => {
+                if(!(data.issuer instanceof Player)) {
+                    throw new Error("addToYourRollValueEffect can only be applied to Players.");
+                }
+                const selected = (await data.selectAndRecord(game, data.issuer, (youMay ? 0 : 1), 1, values, "Select a value to add to your roll.", true, true)).selected;
+                if(selected.length === 0) return false; // Player chose not to select a value
+                const toAdd = selected[0]!;
                 diceRoll.value += toAdd;
                 return true;
             };
-            addPassiveEffectToStack(game, effect, data, `${toAdd < 0 ? "Subtract" : "Add"} ${Math.abs(toAdd)} to your roll`);
+            addPassiveEffectToStack(game, effect, data, `You may add or subtract 1 from any of your non-attack rolls.`);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -891,12 +894,12 @@ export function stealCoinOnGainEffect(amount: number, game: Game): EffectFunctio
                 throw new Error("stealCoinOnGainEffect can only be applied to Players.");
             }
             const effect = (effectData: EffectData) => {
-            if(!(data.issuer instanceof Player)) {
-                throw new Error("stealCoinOnGainEffect can only be applied to Players.");
-            }
-            const stealAmount = Math.min(coinGained[0] ?? 0, amount);
+                if(!(data.issuer instanceof Player)) {
+                    throw new Error("stealCoinOnGainEffect can only be applied to Players.");
+                }
+                const stealAmount = Math.min(coinGained[0] ?? 0, amount);
                 if(stealAmount <= 0) return false;
-            game.giveCoins(eventIssuer, data.issuer, stealAmount, true);
+                game.giveCoins(eventIssuer, data.issuer, stealAmount, true);
                 return true;
             }
             addPassiveEffectToStack(game, effect, data, `Steal ${amount}¢ from another player when they gain coins.`);
@@ -1063,7 +1066,7 @@ export function lootOnNextRollEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         // Listen for the next roll event on this player
-        offRoll = game.emitter.on("on:dice:rolled", (eventData: OnDiceRolledData) => {
+        offRoll = game.emitter.on("on:dice:resolved", (eventData: OnDiceBeingRolledData) => {
             const { diceRoll } = eventData;
             const guess = data.next;
             if(guess < 1 || guess > 6) {
@@ -1313,8 +1316,8 @@ export function changeRollOneToSixEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         // Listen for the next would roll event on this player
-        offRoll = game.emitter.on("on:dice:would-roll", (eventData: OnDiceWouldRollData) => {
-            const { diceRoll } = eventData;
+        offRoll = game.emitter.on("on:dice:would-roll", ({eventIssuer, diceRoll}: OnDiceWouldRollData) => {
+            console.log("changeRollOneToSixEffect triggered for player", diceRoll);
             if (data.issuer !== diceRoll.issuer) return;
             if (diceRoll.value === 1) {
                 // Create the effect that will execute when the stack resolves
@@ -1587,7 +1590,7 @@ export function onAttackingPlayerRollEffect(
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         
-        offEffect = game.emitter.on("on:dice:rolled", (eventData: OnDiceRolledData) => {
+        offEffect = game.emitter.on("on:dice:resolved", (eventData: OnDiceBeingRolledData) => {
             const { diceRoll } = eventData;
             const dice = diceRoll;
             if( !dice.issuer.engageInCombat || !dice.attackRoll)
@@ -1625,8 +1628,7 @@ export function onWouldRollEffect(
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
 
-        offDamage = game.emitter.on("on:dice:would-roll", (eventData: OnDiceWouldRollData) => {
-            const { eventIssuer, diceRoll } = eventData;
+        offDamage = game.emitter.on("on:dice:would-roll", ({eventIssuer, diceRoll}: OnDiceWouldRollData) => {
             // if (data.issuer !== eventIssuer) return;
             if (!values.includes(diceRoll.value)) return;
             
@@ -1661,7 +1663,7 @@ export function onRollEffect(
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         // Listen for the next damage event on this player
-        offEffect = game.emitter.on("on:dice:rolled", (eventData: OnDiceRolledData) => {
+        offEffect = game.emitter.on("on:dice:resolved", (eventData: OnDiceBeingRolledData) => {
             const { diceRoll } = eventData;
             // For monsters, only trigger if the monster is currently engaged in combat
             // if (data.issuer instanceof Monster && !data.issuer.isEngagedInCombat) {
@@ -1705,7 +1707,7 @@ export function onActivePlayerRollEffect(
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         
-        offEffect = game.emitter.on("on:dice:rolled", (eventData: OnDiceRolledData) => {
+        offEffect = game.emitter.on("on:dice:resolved", (eventData: OnDiceBeingRolledData) => {
             const { diceRoll } = eventData;
             // Only trigger if the roll issuer is the active player
             if (diceRoll.issuer !== game.currentPlayer) {

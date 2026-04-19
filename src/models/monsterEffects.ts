@@ -14,7 +14,7 @@ import type {
     OnDamageTakenData,
     OnTurnEndData,
     OnItemActivatedData,
-    OnDiceRolledData,
+    OnDiceBeingRolledData,
     OnAttackDeclaredMonsterData,
     OnGetMonsterAttackPointsData,
     OnGetMonsterEvasionData,
@@ -599,8 +599,8 @@ export function onAttackingPlayerRollsEffect(game: Game, s: string): EffectFunct
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         
-        offRoll = game.emitter.on("on:dice:rolled", async (eventData: OnDiceRolledData) => {
-            const { eventIssuer, dice: attackRoll } = eventData;
+        offRoll = game.emitter.on("on:dice:resolved", async (eventData: OnDiceBeingRolledData) => {
+            const { eventIssuer, diceRoll: attackRoll } = eventData;
             if (!(eventIssuer instanceof Player)) return;
             if (!(eventIssuer.isEngagedInCombat)) return;
             if(attackRoll?.value !== roll) return;

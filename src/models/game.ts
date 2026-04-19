@@ -1189,20 +1189,22 @@ export class Game {
     if (!elem || !(elem instanceof DiceRoll)) return;
 
     const prevValue = elem.value;
-    this.emit("on:dice:rolled", { diceRoll: elem });
+    elem.readyToResolve = true;
+    this.emit("on:dice:would-roll", { eventIssuer: elem.issuer, diceRoll: elem });
     this.executeWhenStackSubset(stackIds, async () => {
       // If the value has changed, the roll stays in the stack.
-      if (elem.value !== prevValue)
-      {
+      if (elem.readyToResolve === false)
+        {
+          this._onStateChange.dispatch();
+          return;
+        }
+        this.stack.resolve();
+        await elem.onResolve();
+        // Add to history
+        this.addToHistory(elem.json);
         this._onStateChange.dispatch();
-        return;
-      }
-      this.stack.resolve();
-      await elem.onResolve();
-      // Add to history
-      this.addToHistory(elem.json);
-      this._onStateChange.dispatch();
-      await this.resolveCallbacks();
+        await this.resolveCallbacks();
+        this.emit("on:dice:resolved", { eventIssuer: elem.issuer, diceRoll: elem });
     });
   }
 
@@ -1533,7 +1535,9 @@ export class Game {
    */
   setupGame(): void {
     this._decks = LoadDecks(
-      cards,
+      cards
+      // .filter((c) => c.slug.includes("fsp2") || (c.type !== "treasure" && c.type !== "monster"))
+      ,
       this.players.length,
       this.gameParameters.nbPlayerCardRestriction.value,
       this.random
@@ -2240,22 +2244,7 @@ export class Game {
       (card.tags["counters"] === undefined ? card.tags["levels"] : card.tags["counters"]) as number | undefined;
 
     const mapAttackRequirements = (p: Player) =>
-      p.mustAttackMonster.map((req) =>
-        req.target === "topDeck"
-          ? {
-              monster: "top" as const,
-              source: req.source.jsonAPI,
-            }
-          : req.target === "any" 
-          ? {
-              monster: "any" as const,
-              source: req.source.jsonAPI,
-            }
-          : {
-              monster: req.target.map((m) => m.json),
-              source: req.source.jsonAPI,
-            },
-      );
+      p.requirementListJSON;
 
     const getPendingSelectionDetailsForPlayer = (playerId: string) => {
       for (const sel of this.pendingMultipleSelections.values()) {
@@ -2320,7 +2309,7 @@ export class Game {
         souls: player.totalSouls,
         soulCards: player.souls.map((c) => c.jsonAPI),
         coins: player.coins,
-        attackRequirements: mapAttackRequirements(player),
+        attackRequirements: player.requirementListJSON(this),
         currentAttackPoints: player.attackPoints,
         currentHealthPoints: player.currentHealthPoints,
         remainingLootPlay: player.remainingLootPlay,
@@ -2356,7 +2345,7 @@ export class Game {
           remainingLootPlay: p.remainingLootPlay,
           isEngagedInCombat: p.isEngagedInCombat,
           isEngagedInPurchase: p.isEngagedInPurchase,
-          attackRequirements: mapAttackRequirements(p),
+          attackRequirements: p.requirementListJSON(this),
           pendingSelection: this.pendingMultipleSelections.values().some(sel => sel.playerId === p.id),
         })),
       monsters:
@@ -2855,7 +2844,7 @@ export class Game {
 
     let diceRoll = player.rollDice(this.random, attackRoll, card);
     this.addToStack(diceRoll);
-    this.emit("on:dice:would-roll", { eventIssuer: player, diceRoll });
+    this.emit("on:dice:being-rolled", { eventIssuer: player, diceRoll });
     return diceRoll;
   }
 

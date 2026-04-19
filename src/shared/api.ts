@@ -22,13 +22,16 @@ const activeEffectEntrySchema = z.object({
 });
 export type ActiveEffectEntry = z.infer<typeof activeEffectEntrySchema>;
 
+const deckNameSchema = z.union([z.literal("loot"), z.literal("treasure"), z.literal("monster")]);
+export type DeckName = z.infer<typeof deckNameSchema>;
+
 // Forward declare types for circular references
 export type SelectionItem =
   | { type: "card"; payload: Card }
   | { type: "stackElement"; payload: StackElement }
   | { type: "player"; payload: EntityType }
   | { type: "monster"; payload: EntityType }
-  | { type: "deck"; payload: string }
+  | { type: "deck"; payload: DeckName }
   | { type: "number"; payload: number }
   | { type: "boolean"; payload: boolean }
   | { type: "string"; payload: string }
@@ -54,7 +57,7 @@ const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
     z.object({ type: z.literal("stackElement"), payload: stackElementSchema }),
     z.object({ type: z.literal("player"), payload: entityTypeSchema }),
     z.object({ type: z.literal("monster"), payload: entityTypeSchema }),
-    z.object({ type: z.literal("deck"), payload: z.string() }),
+    z.object({ type: z.literal("deck"), payload: deckNameSchema }),
     z.object({ type: z.literal("number"), payload: z.number() }),
     z.object({ type: z.literal("boolean"), payload: z.boolean() }),
     z.object({ type: z.literal("string"), payload: z.string() }),
@@ -440,7 +443,7 @@ const purchaseSchema = z.object({
 });
 
 const attackRequirementSchema = z.object({
-  monster: z.union([z.array(cardSchema), z.literal("top"), z.literal("any")]),
+  target: z.union([cardSchema, z.literal("topDeck")]),
   source: cardSchema,
 });
 

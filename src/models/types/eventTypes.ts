@@ -120,10 +120,15 @@ export type OnCoinLostAfterData = {
 };
 
 /** Data emitted when a dice is rolled */
-export type OnDiceRolledData = {
+export type OnDiceBeingRolledData = {
   diceRoll: DiceRoll;
-  eventIssuer?: Player;
-  dice?: DiceRoll;
+  eventIssuer: Player;
+};
+
+/** Data emitted when a dice is resolved */
+export type OnDiceResolvedData = {
+  diceRoll: DiceRoll;
+  eventIssuer: Player;
 };
 
 /** Data emitted before a dice would be rolled (can be modified) */
@@ -262,8 +267,9 @@ export type TriggerEventDataMap = {
   "on:coin:gained": OnCoinGainedData;
   "on:coin:gained:after": OnCoinGainedData;
   "on:coin:lost:after": OnCoinLostAfterData;
-  "on:dice:rolled": OnDiceRolledData;
+  "on:dice:being-rolled": OnDiceBeingRolledData;
   "on:dice:would-roll": OnDiceWouldRollData;
+  "on:dice:resolved": OnDiceResolvedData;
   "on:turn:start": OnTurnStartData;
   "on:turn:start:before:recharge:step": OnTurnStartData;
   "on:turn:end": OnTurnEndData;

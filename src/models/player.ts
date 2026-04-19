@@ -4,7 +4,7 @@ import type { Game } from "./game";
 import { Monster } from "./monster";
 import { TargetBuilder } from "./targetBuilder";
 import { StackElement } from "./stackElement";
-import type { EntityType } from "@/shared/api";
+import type { EntityType, IdentifierType } from "@/shared/api";
 import type { DamageOnStackJson, DeathOnStackJson, DiceRollJson, TemporaryEffect } from "@/shared/api";
 
 /**
@@ -115,6 +115,29 @@ export class Player extends Entity {
    */
   get mustAttackMonster(): { target: Monster[] | "topDeck" | "any", source: Card }[] {
     return this._mustAttackMonster;
+  }
+
+  requirementListJSON(game: Game): {target: IdentifierType | "topDeck", source: IdentifierType}[] {
+    if(this.mustAttackMonster.length === 0) return [];
+    const list: {target: IdentifierType | "topDeck", source: IdentifierType}[] = [];
+    let sourceAny = undefined;
+    for(const req of this.mustAttackMonster)
+    {
+      if(req.target === "topDeck")
+        list.push({ target: "topDeck", source: req.source.jsonAPI });
+      else if(req.target === "any")
+        sourceAny = req.source.jsonAPI;
+      else 
+        for(const monster of req.target as Monster[])
+          list.push({ target: monster.card.jsonAPI, source: req.source.jsonAPI });
+    }
+    if(list.length === 0 && sourceAny !== undefined)
+    {
+      list.push({ target: "topDeck", source: sourceAny });
+      for(const monster of game.monsters)
+        list.push({ target: monster.card.jsonAPI, source: sourceAny });
+    }
+    return list;
   }
 
   get mayAttackForFree(): { target: Monster | "topDeck", nb: number }[] {
@@ -643,6 +666,7 @@ export class DiceRoll extends StackElement {
   private _card: Card | null = null;
   private _targets: any[] = [];
   private _random: () => number;
+  private _readyToResolve: boolean = false;
 
   constructor(random: () => number, issuer: Player, attackRoll: boolean = false, card: Card | null = null) {
     super();
@@ -673,6 +697,14 @@ export class DiceRoll extends StackElement {
     return this._card;
   }
 
+  get readyToResolve(): boolean {
+    return this._readyToResolve;
+  }
+
+  set readyToResolve(value: boolean) {
+    this._readyToResolve = value;
+  }
+
   add(modifier: number): void {
     if(modifier < 0){
       throw new Error("Modifier must be positive");
@@ -697,7 +729,10 @@ export class DiceRoll extends StackElement {
     }
   }
   set value(v: number) {
+    const prev = this._value;
     this._value = Math.max(1, Math.min(6, v));
+    if (prev !== this._value)
+      this.readyToResolve = false;
   }
   roll(): number {
     this._value = Math.floor(this._random() * 6) + 1;

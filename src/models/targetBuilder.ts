@@ -3,7 +3,7 @@ import type { Player } from "./player";
 import { Card, ItemCard, LootCard, type TargetsSelector } from "./cards";
 import { isChooseOneOptions, type ChooseOneOptions } from "./targetSelector";
 import { isStackElement } from "./stack";
-import type { TargetSelectorResponse } from "../shared/api";
+import type { DeckName, TargetSelectorResponse } from "../shared/api";
 import { Entity } from "./entity";
 import { parseNumber } from "./effectParser";
 import type { SelectionItem, SelectionItemType } from "../shared/api";
@@ -369,7 +369,7 @@ export class TargetBuilder {
             
             if (typeof option === 'object' && option !== null && '_type' in option && '_order' in option && '_discard' in option) {
                 // Deck object
-                return { type: "deck", payload: option._type };
+                return { type: "deck", payload: option._type as DeckName };
             }
             
             // { player: Player; hand: Hand }
@@ -587,7 +587,6 @@ export class TargetBuilder {
         const coins = parseNumber(s, /^\[paid effect\] pay\s+(\d+)\u00A2:?/u);
         if (coins !== null) {
             if (player.coins < coins) {
-                console.log("Checking coin payment:", coins, "player coins:", player.coins);
                 return `You don't have enough coins to pay this cost.`;
             }
         }
