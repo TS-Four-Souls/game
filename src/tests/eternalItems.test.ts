@@ -918,7 +918,7 @@ describe("Eternal Items", () => {
         const player2InitialHand = player2.hand.cards.slice();
         
         await game.activateItem(player2,
-            incubus, ["Look at a player's hand. You may swap a card from your hand with one of theirs."]);
+            incubus, ["Look at a player's hand. You may swap a card from your hand with one of theirs.", player1]);
         await game.resolveStack();
         
         // The swap should have occurred - player1 should have player2's card and vice versa

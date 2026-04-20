@@ -1,4 +1,4 @@
-import type { StackElementJson, StackReorderingInfo as ApiStackReorderingInfo } from "@/shared/api";
+import type { StackReorderingInfo as ApiStackReorderingInfo, StackElementJson } from "@/shared/api";
 
 type StackElementJsonBase = {
   id: number;

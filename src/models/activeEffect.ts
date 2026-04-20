@@ -7,14 +7,14 @@ import { type Card, LootCard, ItemCard, MonsterCard, InplayType, BsoulCard, Effe
 import { EffectData, type EffectFunction, type TargetsSelector, type DeckType } from "./types/cardTypes";
 import { Game } from "./game";
 import { Entity } from "./entity";
-import { effect } from "zod/v3";
 import type { OnTurnEndData } from "./types/eventTypes";
-import type { Stack, StackElement } from "./stack";
+import type { StackElement } from "./stack";
 import { effectParser, type ParsedEffect } from "./effectParser";
-import { deckSelector, visibleItemSelector, inplayUnchargedItemSelector, inplayItemSelector } from "./targetSelector";
+import { deckSelector, visibleItemSelector, inplayUnchargedItemSelector as inplayChargeableItemSelector, inplayItemSelector } from "./targetSelector";
 import { TargetBuilder } from "./targetBuilder";
 import { Monster } from "./monster";
 import * as passive from "./passiveEffect";
+import { minLength } from "zod";
 
 export function gainCoinsEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
@@ -38,7 +38,7 @@ export function rechargeItemsEffect(game: Game, selectionOnResolve: boolean = fa
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         if (selectionOnResolve) {
-            const selectionResult = await data.selectAndRecord(game, data.issuer, allowZero ? 0 : 1, 1, inplayUnchargedItemSelector(game)(data.issuer), "Select an item to recharge.", true, true);
+            const selectionResult = await data.selectAndRecord(game, data.issuer, allowZero ? 0 : 1, 1, inplayChargeableItemSelector(game)(data.issuer), "Select an item to recharge.", true, true);
             if (selectionResult.selected.length > 0) {
                 if(!(selectionResult.selected[0] instanceof ItemCard))
                     throw new Error(`Card to recharge is not an ItemCard: ${selectionResult.selected[0].name}`);
@@ -921,13 +921,16 @@ export function destroyThisAndLoot2Effect(game: Game): EffectFunction {
 }
 
 export function deactivateItemEffect(game: Game, selectionOnResolve: boolean = false, youMayEffectHanging: boolean[] = [false]): EffectFunction {
+    const minLength = (youMayEffectHanging[0] ? 0 : 1);
+    youMayEffectHanging[0] = false;
     return async (data: EffectData) => {
         if(data.issuer instanceof Player === false) 
             throw new Error("Effect issuer is not a player in deactivateItemEffect.");
         const target = selectionOnResolve 
-            ? (await data.selectAndRecord(game, data.issuer as Player, (youMayEffectHanging[0] ? 0 : 1), 1, inplayItemSelector(() => true, game)(data.issuer), "Select an item to deactivate.", true, true)).selected[0] as ItemCard
+            ? (await data.selectAndRecord(game, data.issuer as Player, minLength, 1, inplayChargeableItemSelector(game)(data.issuer), "Select an item to deactivate.", true, true)).selected[0] as ItemCard
             : data.next as ItemCard;
-        youMayEffectHanging[0] = false;
+        if(target === undefined)
+            return false;
         target.charged = false;
         game.deactivateItem(target);
         return true;
@@ -1007,7 +1010,10 @@ export function giveSoulEffect(game: Game): EffectFunction {
 export function lookAtPlayerHandAndSwapEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const otherPlayer = (await data.selectAndRecord(game, data.issuer, 1, 1, game.players.filter((p) => p !== data.issuer), "Select a player to look at their hand, and swap a loot card.", true, true)).selected[0] as Player;
+        const otherPlayer = data.next as Player;
+        if(!otherPlayer)
+            throw new Error("No target player to look at and swap with");
+        // (await data.selectAndRecord(game, data.issuer, 1, 1, game.players.filter((p) => p !== data.issuer), "Select a player to look at their hand, and swap a loot card.", true, true)).selected[0] as Player;
         const canSwap = otherPlayer.hand.length > 0 && data.issuer.hand.length > 0;
         const selection = await data.selectAndRecord(game, data.issuer, 0, canSwap ? 1 : 0, otherPlayer.hand.cards, "Select a loot card to swap.", true, false);
         if (selection.selected.length === 0)
@@ -1092,7 +1098,7 @@ export function youMayRechargeThisEffect(game: Game): EffectFunction {
 export function youMayRechargeAnItemEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const selectionResult = await data.selectAndRecord(game, data.issuer, 0, 1, inplayUnchargedItemSelector(game)(data.issuer), "If you want to, select an item to recharge.", true, true);
+        const selectionResult = await data.selectAndRecord(game, data.issuer, 0, 1, inplayChargeableItemSelector(game)(data.issuer), "If you want to, select an item to recharge.", true, true);
         if (selectionResult.selected.length > 0) {
             game.recharge(selectionResult.selected[0] as ItemCard);
         }

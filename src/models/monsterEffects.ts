@@ -1,38 +1,31 @@
 // A monster effect is an effect that is applied by a monster card.
 
 
-import { DamageOnStack, DiceRoll, Player } from "./player";
-import { Card, LootCard, ItemCard, MonsterCard, InplayType, BsoulCard } from "./cards";
-import { EffectData, type EffectFunction, type TargetsSelector } from "./types/cardTypes";
-import { Game } from "./game";
+import { Card, MonsterCard } from "./cards";
+import { effectParser } from "./effectParser";
 import { Entity } from "./entity";
-import { effect } from "zod/v3";
-import type { Stack, StackElement } from "./stack";
+import { Game } from "./game";
+import { DiceRoll, Player } from "./player";
+import { EffectData, type EffectFunction, type TargetsSelector } from "./types/cardTypes";
 import type {
-    OnDeathMonsterData,
-    OnDamageWouldTakeData,
-    OnDamageTakenData,
-    OnTurnEndData,
-    OnItemActivatedData,
-    OnDiceBeingRolledData,
     OnAttackDeclaredMonsterData,
+    OnDamageTakenData,
+    OnDamageWouldTakeData,
+    OnDeathMonsterData,
+    OnDeathWouldDeathData,
+    OnDiceBeingRolledData,
     OnGetMonsterAttackPointsData,
     OnGetMonsterEvasionData,
-    OnDeathWouldDeathData,
+    OnItemActivatedData,
     OnSoulGainedData,
+    OnTurnEndData,
 } from "./types/eventTypes";
-import { it } from "zod/locales";
-import { effectParser, type ParsedEffect } from "./effectParser";
-import { deckSelector, visibleItemSelector, inplayUnchargedItemSelector } from "./targetSelector";
 // import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, goFirstInTurnOrderEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, startingItemEffect, temporaryStatModifierEffect, gainTreasureOnDeathEffect } from "./abilities";
-import *  as passive from "./passiveEffect";
-import * as active from "./activeEffect";
-import type { BonusSoulCardType } from "@/types/cardTypes";
-import { Monster } from "./monster";
-import { string } from "zod";
-import { addInPlayEffect, obtainRollResults, throwEffect } from "./activeEffect";
-import { addPassiveEffectToStack } from "./passiveEffect";
 import { type TriggerEvent } from '@/models/types/eventTypes';
+import * as active from "./activeEffect";
+import { addInPlayEffect } from "./activeEffect";
+import { Monster } from "./monster";
+import { addPassiveEffectToStack } from "./passiveEffect";
 
 export function thisHealsEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {

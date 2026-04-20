@@ -1,9 +1,8 @@
 import { generateHistoryId } from "@/utils/random";
-import { type DetailedState, type Requests, type StackElementJson } from "../shared/api";
 import fs from "fs";
-import type { GameParameters } from "./gameParameters";
+import { type DetailedState, type Requests, type StackElementJson } from "../shared/api";
 import type { Game } from "./game";
-import { en } from "zod/locales";
+import type { GameParameters } from "./gameParameters";
 
 
 /* This class is responsible for handling historic data.

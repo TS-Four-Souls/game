@@ -1,19 +1,9 @@
-import { DamageOnStack, DiceRoll, Player } from "./player";
-import { type Card, LootCard, ItemCard, MonsterCard, InplayType, BsoulCard, EffectOnStack, LootCardEffect, MonsterType } from "./cards";
-import { EffectData, type EffectFunction, type TargetsSelector, type EffectType } from "./types/cardTypes";
-import { Game } from "./game";
-import type { Entity } from "./entity";
-import { effect } from "zod/v3";
-import type { Stack, StackElement } from "./stack";
-import { it, no } from "zod/locales";
-import *  as passive from "./passiveEffect";
 import * as active from "./activeEffect";
-import * as monster from "./monsterEffects";
-import type { BonusSoulCardType } from "@/types/cardTypes";
-import { parse } from "zod";
-import { Monster } from "./monster";
-import { inAnotherplayItemSelector, anotherPlayerSelector, playerSelector, activeEntitySelector, deckSelector, rollSelector, inplayUnchargedItemSelector, inplayCurseSelector, inplayItemSelector, visibleItemSelector, stackElementSelector, YourItemSelector, inplayItemAndSoulSelector, isChooseOneOptions } from "./targetSelector";
 import { effectParser, type ParsedEffect } from "./effectParser";
+import { Game } from "./game";
+import { Player } from "./player";
+import { isChooseOneOptions } from "./targetSelector";
+import { EffectData, type EffectFunction, type EffectType, type TargetsSelector } from "./types/cardTypes";
 
 /**
  * Represents an effect that can be executed on the game state.

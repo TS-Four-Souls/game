@@ -1,11 +1,10 @@
 import { Entity } from "@/models/entity";
-import { CharacterCard, Hand, InplayType, ItemCard, TreasureCard, Card, type EffectFunction, EffectOnStack, EffectData, MonsterCard, LootCard } from "./cards";
+import type { DamageOnStackJson, DeathOnStackJson, DiceRollJson, EntityType, IdentifierType } from "@/shared/api";
+import { Card, CharacterCard, EffectData, type EffectFunction, EffectOnStack, Hand, ItemCard, LootCard, MonsterCard } from "./cards";
 import type { Game } from "./game";
 import { Monster } from "./monster";
-import { TargetBuilder } from "./targetBuilder";
 import { StackElement } from "./stackElement";
-import type { EntityType, IdentifierType } from "@/shared/api";
-import type { DamageOnStackJson, DeathOnStackJson, DiceRollJson, TemporaryEffect } from "@/shared/api";
+import { TargetBuilder } from "./targetBuilder";
 
 /**
  * Represents a player in the Four Souls game.

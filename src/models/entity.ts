@@ -1,7 +1,6 @@
 import type { EntityType, TemporaryEffect } from "@/shared/api";
 import type { Card } from "./cards";
-import { Player, type DamageOnStack, type DiceRoll } from "./player";
-import { Monster } from "./monster";
+import { type DiceRoll } from "./player";
 
 type DamageObj = {
   dealer: Entity | null;

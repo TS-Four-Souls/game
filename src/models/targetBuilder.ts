@@ -1,12 +1,11 @@
+import type { DeckName, SelectionItem, TargetSelectorResponse } from "../shared/api";
+import { Card, ItemCard, type TargetsSelector } from "./cards";
+import { parseNumber } from "./effectParser";
+import { Entity } from "./entity";
 import type { Game } from "./game";
 import type { Player } from "./player";
-import { Card, ItemCard, LootCard, type TargetsSelector } from "./cards";
-import { isChooseOneOptions, type ChooseOneOptions } from "./targetSelector";
 import { isStackElement } from "./stack";
-import type { DeckName, TargetSelectorResponse } from "../shared/api";
-import { Entity } from "./entity";
-import { parseNumber } from "./effectParser";
-import type { SelectionItem, SelectionItemType } from "../shared/api";
+import { isChooseOneOptions, type ChooseOneOptions } from "./targetSelector";
 
 /**
  * Target Builder - Standalone utility for progressive target selection

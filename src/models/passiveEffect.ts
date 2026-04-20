@@ -1,31 +1,31 @@
-import { DiceRoll, Player } from "./player";
-import { LootCard, ItemCard, TreasureCard, LootCardEffect, EffectOnStack, MonsterCard, Card } from "./cards";
-import { EffectData, type EffectFunction } from "./types/cardTypes";
-import { Game } from "./game";
 import { type TriggerEvent } from '@/models/types/eventTypes';
-import { Monster } from "./monster";
-import { TargetBuilder } from "./targetBuilder";
-import * as active from "./activeEffect";
 import type { TemporaryEffect } from "@/shared/api";
+import * as active from "./activeEffect";
+import { EffectOnStack, ItemCard, LootCard, LootCardEffect, MonsterCard, TreasureCard } from "./cards";
+import { selectPlayerOrMonster, type ParsedEffect } from "./effectParser";
+import { Entity } from "./entity";
+import { Game } from "./game";
+import { Monster } from "./monster";
+import { DiceRoll, Player } from "./player";
+import { TargetBuilder } from "./targetBuilder";
+import { EffectData, type EffectFunction } from "./types/cardTypes";
 import type {
-    OnDamageWouldTakeData,
-    OnTurnEndData,
-    OnTurnStartData,
+    OnAttackRollData,
     OnCoinGainedData,
+    OnDamageTakenData,
+    OnDamageWouldTakeData,
     OnDeathAfterPenaltyData,
     OnDeathBeforePenaltyData,
     OnDeathMonsterData,
-    OnAttackRollData,
-    OnDamageTakenData,
     OnDiceBeingRolledData,
     OnDiceWouldRollData,
-    OnLootPlayedData,
     OnItemDestroyedData,
+    OnLootPlayedData,
     OnLootStepData,
-    OnLootWouldData
+    OnLootWouldData,
+    OnTurnEndData,
+    OnTurnStartData
 } from "./types/eventTypes";
-import { Entity } from "./entity";
-import { selectPlayerOrMonster, type ParsedEffect } from "./effectParser";
 function getTemporaryEffect(data: EffectData, description: string): TemporaryEffect {
     return{
             card: data.it.jsonAPI,

@@ -142,6 +142,24 @@ describe("Four Souls+2 Treasures", () => {
         
     });
 
+    it("fsp2-hourglass - (select 0 item to deactivate) Each time a player rolls a ❷, you may deactivate an item.", async () => {
+        const card1 = game.obtainCard("fsp2-hourglass") as TreasureCard;
+        game.addInPlay(player1, card1);
+        game.select = (_issuer, _min, _max, opts, _optional) => {
+            if(opts.length === 1) 
+                return { selected: [opts[0]], remaining: [] } as any;
+            return { selected: [], remaining: [] } as any;
+        }
+        game.recharge(player2.inPlay[0] as ItemCard);
+        game.random = () => 2/6-0.0001; // roll a 2
+        game.rollDice(player2, false, card1);
+        await game.resolveStack();
+        expect(game.stack.size).toBe(1);
+        await game.resolveStack();
+        expect(player2.inPlay[0]!.charged).toBe(true);
+        
+    });
+
     it("fsp2-guppys_eye - Each other player plays with their hand revealed.", async () => {
         const card1 = game.obtainCard("fsp2-guppys_eye") as TreasureCard;
         expect(player1.handRevealed).toBe(false);

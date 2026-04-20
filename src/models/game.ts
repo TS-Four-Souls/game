@@ -1,51 +1,49 @@
-import { Monster } from "@/models/monster";
-import { DamageOnStack, DeathOnStack, DiceRoll, Player } from "@/models/player";
-import { TargetBuilder } from "@/models/targetBuilder";
-import { loadCards } from "@/utils/loadCards";
-import {
-  Card,
-  CardSet,
-  Deck,
-  Hand,
-  LoadsCardSets,
-  LoadDecks,
-  createEmptyDecksCollection,
-  assertCardMatchesDeck,
-  isSameSlug,
-  CharacterCard,
-  MonsterCard,
-  ItemCard,
-  LootCard,
-  LootCardEffect,
-  EffectOnStack,
-  TreasureCard,
-  BsoulCard,
-  Effect,
-  EternalCard,
-  createCardFromJson,
-  MonsterType,
-  isDeckType
-} from "@/models/cards";
-import type { DecksCollection, DeckType, DeckTypeToCardType, EffectData, EffectType, TargetsSelector } from "@/models/types/cardTypes";
-import { Stack, type StackElement } from "@/models/stack";
-import { effectParser } from "@/models/effectParser";
 import {
   getAttackRollEffect,
   targetGetCoinRollEffect,
   targetGetLootRollEffect,
 } from "@/models/activeEffect";
-import { Shop, Encounters } from "@/models/slots";
-import { Entity } from "@/models/entity";
-import { TurnHandler } from "./turnHandler";
-import { type ReadableSignal, Signal } from "micro-signals";
-import { GameEventEmitter } from "./eventEmmitter";
 import { bSoulEffectParser } from "@/models/bonusSoulHandling";
+import {
+  BsoulCard,
+  Card,
+  CharacterCard,
+  Deck,
+  Effect,
+  EffectOnStack,
+  EternalCard,
+  Hand,
+  ItemCard,
+  LoadDecks,
+  LootCard,
+  LootCardEffect,
+  MonsterCard,
+  MonsterType,
+  TreasureCard,
+  assertCardMatchesDeck,
+  createCardFromJson,
+  createEmptyDecksCollection,
+  isDeckType,
+  isSameSlug
+} from "@/models/cards";
+import { effectParser } from "@/models/effectParser";
+import { Entity } from "@/models/entity";
+import { Monster } from "@/models/monster";
+import { DamageOnStack, DeathOnStack, DiceRoll, Player } from "@/models/player";
+import { Encounters, Shop } from "@/models/slots";
+import { Stack, type StackElement } from "@/models/stack";
+import { TargetBuilder } from "@/models/targetBuilder";
+import type { DeckType, DeckTypeToCardType, DecksCollection, EffectData, EffectType, TargetsSelector } from "@/models/types/cardTypes";
 import { type TriggerEvent } from '@/models/types/eventTypes';
 import type { Capability, DetailedState, Issuer, SelectionItem, StackElementJson } from "@/shared/api";
-import { HistoricHandler, type HistoricEntry, type UserRequest } from "./historyHandler";
-import { GameParameters } from "./gameParameters";
 import { shuffle } from "@/utils/auxiliary";
-import { miniDraft, edenGame } from "./variants";
+import { loadCards } from "@/utils/loadCards";
+import { Signal, type ReadableSignal } from "micro-signals";
+import { GameEventEmitter } from "./eventEmmitter";
+import { GameParameters } from "./gameParameters";
+import { HistoricHandler, type HistoricEntry } from "./historyHandler";
+import { TurnHandler } from "./turnHandler";
+import { edenGame, miniDraft } from "./variants";
 // Type representing sources of damage - either a card ability or a dice roll
 export type DamageSource = Card | DiceRoll;
 
