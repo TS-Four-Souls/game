@@ -3,7 +3,7 @@
 
 
 import { DamageOnStack, DiceRoll, Player } from "./player";
-import { type Card, LootCard, ItemCard, MonsterCard, InplayType, BsoulCard, EffectOnStack, isDeckType, assertCardMatchesDeck, Deck, TreasureCard } from "./cards";
+import { type Card, LootCard, ItemCard, MonsterCard, InplayType, BsoulCard, EffectOnStack, isDeckType, assertCardMatchesDeck, Deck, TreasureCard, LootCardEffect } from "./cards";
 import { EffectData, type EffectFunction, type TargetsSelector, type DeckType } from "./types/cardTypes";
 import { Game } from "./game";
 import { Entity } from "./entity";
@@ -381,7 +381,9 @@ export function cancelStackElementEffect(game: Game, selectors: TargetsSelector[
         const toRemove = !selectionOnResolve 
             ? data.next as StackElement 
             : (await data.selectAndRecord(game, data.issuer as Player, 1, 1, selectors[0]?.selector(data.issuer as Player)!, selectors[0]?.description, true, true)).selected[0] as StackElement;
-        game.cancelStackElement(toRemove);
+            game.cancelStackElement(toRemove);
+            if(toRemove instanceof LootCardEffect) // must handle the discard.
+                game.discard(toRemove.card);
         return true;
     };
 }

@@ -273,17 +273,21 @@ describe("Loot Card", () => {
     });
 
     it("b2-butter_bean: should work as a reactive card", async () => {
-        const butterBean = game.decks["loot"]!.getCardFromSlug("b2-butter_bean");
+        const dime = game.obtainCard("b2-a_dime") as LootCard;
+        const butterBean = game.obtainCard("b2-butter_bean") as LootCard;
         player2.hand.addToHand(butterBean!);
-
-        const initialStackSize = game.stack.size;
+        player1.hand.addToHand(dime);
+        game.playCard(player1, 0, []); 
+        
         game.addLootPlay(player2, 1);
-        game.playCard(player2, 0);
+        game.playCard(player2, 0, [game.stack.elements[game.stack.size - 1]]); // Play butter_bean in response to dime
         await game.resolveStack();
 
         // Verify butter_bean was played and resolved
         expect(game.stack.size).toBe(0);
         expect(player2.hand.cards.length).toBe(0);
+        expect(game.decks.loot.discard.includes(butterBean)).toBe(true);
+        expect(game.decks.loot.discard.includes(dime)).toBe(true);
     });
 
     it("b2-gold_bomb: should deal 3 damage to a player", async () => {
