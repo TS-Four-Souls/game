@@ -45,8 +45,7 @@ import type { Capability, DetailedState, Issuer, SelectionItem, StackElementJson
 import { HistoricHandler, type HistoricEntry, type UserRequest } from "./historyHandler";
 import { GameParameters } from "./gameParameters";
 import { shuffle } from "@/utils/auxiliary";
-import { color } from "bun";
-
+import { miniDraft, edenGame } from "./variants";
 // Type representing sources of damage - either a card ability or a dice roll
 export type DamageSource = Card | DiceRoll;
 
@@ -818,7 +817,7 @@ export class Game {
     source: DamageSource,
     damage: number
   ): void {
-    this.assertIsAlive(receiver);
+    if(receiver.isDead) return;
     this.healthLoss(dealer, receiver, source, damage);
 
     if(damage > 0){
@@ -1560,7 +1559,7 @@ export class Game {
   /**
    * Starts the game lifecycle and executes initial setup.
    */
-  start(issuer: Issuer, characters: CharacterCard[] | null = null, shufflePlayerOrder: boolean = true): void {
+  async start(issuer: Issuer, characters: CharacterCard[] | null = null, shufflePlayerOrder: boolean = true): Promise<void> {
     this.assertIssuerSecret(issuer);
     this.assertGameNotStarted();
     this.assertMinimumPlayerCount();
@@ -1572,7 +1571,8 @@ export class Game {
       this.setupGame();
     }
     this.turnHandler.initialize(this.players);
-    
+    if(this.gameParameters.edenVariant.value === true)
+      characters = edenGame(this);
     if (characters && characters.length > 0) {
       this.assignCharactersToPlayers(characters);
     } else {
@@ -1597,19 +1597,21 @@ export class Game {
     this.emit("on:game:start", {});
     this.healEveryone();
     
-    this.startOfGameSetup();
+    await this.startOfGameSetup();
     this.startTurn();
   }
 
   /**
    * Distributes starting resources to each player.
    */
-  startOfGameSetup(): void {
+  async startOfGameSetup(): Promise<void> {
     for (const player of this.players) {
       this.gainTreasure(player, this.gameParameters.treasuresOnStart.value);
       this.loot(player, this.gameParameters.lootOnStart.value);
       this.gainCoins(player, this.gameParameters.coinsOnStart.value);
     }
+    if(this.gameParameters.miniDraft.value)
+      await miniDraft(this);
   }
 
   /**

@@ -63,6 +63,8 @@ class BooleanGameParameter {
 }
 
 export class GameParameters {
+    readonly edenVariant: BooleanGameParameter;
+    readonly miniDraft: BooleanGameParameter;
     readonly nbItemsInShop: NumericGameParameter;
     readonly nbEncounters: NumericGameParameter;
     readonly deathPenaltyCoins: NumericGameParameter;
@@ -79,6 +81,8 @@ export class GameParameters {
     readonly nbPlayerCardRestriction: BooleanGameParameter;
 
     constructor(onChange: () => void) {
+        this.edenVariant = new BooleanGameParameter(false, onChange);
+        this.miniDraft = new BooleanGameParameter(false, onChange);
         this.nbItemsInShop = new NumericGameParameter(0, 2, 6, onChange);
         this.nbEncounters = new NumericGameParameter(1, 2, 6, onChange);
         this.deathPenaltyCoins = new NumericGameParameter(0, 2, 20, onChange);
@@ -96,6 +100,8 @@ export class GameParameters {
 
     toJson(): GameParametersJson {
         return {
+            edenVariant: {text: "Eden variant", value: this.edenVariant.value},
+            miniDraft: {text: "Mini-draft", value: this.miniDraft.value},
             nbItemsInShop: {text: "Number of items in the shop", value: this.nbItemsInShop.value},
             nbEncounters: {text: "Number of encounters", value: this.nbEncounters.value},
             deathPenaltyCoins: {text: "Death penalty coins", value: this.deathPenaltyCoins.value},
@@ -113,6 +119,8 @@ export class GameParameters {
     }
 
     reset() {
+        this.edenVariant.reset();
+        this.miniDraft.reset();
         this.nbItemsInShop.reset();
         this.nbEncounters.reset();
         this.deathPenaltyCoins.reset();

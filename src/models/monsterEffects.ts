@@ -57,8 +57,7 @@ export function activePlayerMayAttackMonsterDeckEffect(game: Game, numberOfTimes
 export function activePlayerMustMakeAdditionalAttackEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
-        player.attackThisTurn = Math.max(1, player.attackThisTurn);
-        game.declareAttack(player);
+        game.playerMustAttack(player, "any", data.it);
         return true;
     };
 }

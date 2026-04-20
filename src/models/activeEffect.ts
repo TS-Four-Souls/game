@@ -911,9 +911,10 @@ export function stealAPlayerRandomLootCardEffect(game: Game): EffectFunction {
 export function destroyThisAndLoot2Effect(game: Game): EffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        game.destroyCardsOrSouls([data.it]);
-        game.loot(data.issuer, 2);
-        return true;
+        const destroyed = game.destroyCardsOrSouls([data.it]);
+        if(destroyed)
+            game.loot(data.issuer, 2);
+        return destroyed;
     };
 }
 
