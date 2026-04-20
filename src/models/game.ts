@@ -1539,7 +1539,7 @@ export class Game {
       // .filter((c) => c.slug.includes("fsp2") || (c.type !== "treasure" && c.type !== "monster"))
       ,
       this.players.length,
-      this.gameParameters.nbPlayerCardRestriction.value,
+      this.gameParameters,
       this.random
     );
     this.rebuildCardMapping();
@@ -1811,7 +1811,7 @@ export class Game {
   /**
    * Removes a curse card from a player and runs cleanup.
    */
-  removeCurse(player: Player, card: MonsterCard): void {
+    removeCurse(player: Player, card: MonsterCard): void {
     card.cleanup();
     player.removeCurse(card);
     this._onStateChange.dispatch();

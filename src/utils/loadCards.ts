@@ -19,7 +19,7 @@ export async function loadCards(dirPath: string | undefined): Promise<GenericCar
   }
 
   const cards: GenericCardType[] = [];
-  for (const entry of entries) {
+  for (const entry of entries.toSorted()) {
     // only consider .json files
     if (!entry.toLowerCase().endsWith(".json")) continue;
     const filePath = path.join(dir, entry);

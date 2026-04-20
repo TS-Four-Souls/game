@@ -502,14 +502,12 @@ export function curseEffect(restEffectFunction: EffectFunction, game: Game): Eff
             if(!(data.it instanceof MonsterCard))
                 throw new Error("Curse effect can only be applied by MonsterCards.");
             game.removeCurse(data.issuer, data.it);
-            game.discard(data.it);
-            offDeath?.();
-            offDeath = null;
         });
 
         data.it.cleaners.push(() => {
             offDeath?.();
             offDeath = null;
+            game.discard(data.it);
         });
 
         restEffectFunction(new EffectData(data.it, data.issuer, []));

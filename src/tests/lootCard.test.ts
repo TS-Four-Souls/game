@@ -19,10 +19,10 @@ describe("Loot Card", () => {
     });
 
 
-    it("b2-two_cents-5: should increase player coins by 2", async () => {
+    it("b2-two_cents-2: should increase player coins by 2", async () => {
         player1.gainCoins(3);
         const initialCoins = player1.coins;
-        const lootCard = game.decks["loot"]!.getCardFromSlug("b2-two_cents-5");
+        const lootCard = game.decks["loot"]!.getCardFromSlug("b2-two_cents-2");
         player1.hand.addToHand(lootCard!);
         game.playCard(player1, 0);
         await game.resolveStack();

@@ -8,6 +8,8 @@ import { TargetBuilder } from './targetBuilder';
 import { StackElement } from './stackElement';
 import { type EffectOnStackJson, type LootCardOnStackJson } from '@/shared/api'
 import { EffectData, type EffectType, type EffectFunction, type TargetsSelector, type CardSetsCollection, type DecksCollection, type DeckType, type DeckTypeToCardType } from './types/cardTypes';
+import type { GameParameters } from './gameParameters';
+import { isCardRestricted } from './variants';
 
 export class Effect {
     protected _description: string;
@@ -1372,13 +1374,13 @@ function createEmptyDecksCollection(random: () => number): DecksCollection {
     };
 }
 
-function LoadDecks(json_array: GenericCardType[], numPlayers: number, nbPlayerCardRestriction: boolean, random: () => number) : DecksCollection {
+function LoadDecks(json_array: GenericCardType[], numPlayers: number, parameters: GameParameters, random: () => number) : DecksCollection {
     // Create fresh CardSets from JSON to ensure independent card instances
     const decks_cardSets = LoadsCardSets(json_array);
     
     const decks = {} as DecksCollection;
     const cardTypes: (keyof CardSetsCollection)[] = ['loot', 'treasure', 'eternal', 'character', 'monster', 'bsoul'];
-    
+    const restrictionCounters: Map<string, number> = new Map();
     for (const type of cardTypes) {
         const set = decks_cardSets[type] as CardSet<any>;
         if (set.length === 0) {
@@ -1387,7 +1389,7 @@ function LoadDecks(json_array: GenericCardType[], numPlayers: number, nbPlayerCa
         
         let range = [];
         for (let i = 0; i < set.length; i++) {
-            if(set.get(i)!.minimumPlayers <= numPlayers || !nbPlayerCardRestriction) {
+            if(!isCardRestricted(set.get(i), restrictionCounters, parameters, numPlayers)) {
                 range.push(i);
             }
         }

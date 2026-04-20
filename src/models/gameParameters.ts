@@ -65,6 +65,11 @@ class BooleanGameParameter {
 export class GameParameters {
     readonly edenVariant: BooleanGameParameter;
     readonly miniDraft: BooleanGameParameter;
+    readonly nbPennies: NumericGameParameter;
+    readonly nb2Cents: NumericGameParameter;
+    readonly nb3Cents: NumericGameParameter;
+    readonly nb4Cents: NumericGameParameter;
+    readonly nbNickels: NumericGameParameter;
     readonly nbItemsInShop: NumericGameParameter;
     readonly nbEncounters: NumericGameParameter;
     readonly deathPenaltyCoins: NumericGameParameter;
@@ -83,6 +88,11 @@ export class GameParameters {
     constructor(onChange: () => void) {
         this.edenVariant = new BooleanGameParameter(false, onChange);
         this.miniDraft = new BooleanGameParameter(false, onChange);
+        this.nbPennies = new NumericGameParameter(0, 2, 9, onChange);
+        this.nb2Cents = new NumericGameParameter(0, 6, 15, onChange);
+        this.nb3Cents = new NumericGameParameter(0, 11, 19, onChange);
+        this.nb4Cents = new NumericGameParameter(0, 11, 11, onChange);
+        this.nbNickels = new NumericGameParameter(0, 6, 6, onChange);
         this.nbItemsInShop = new NumericGameParameter(0, 2, 6, onChange);
         this.nbEncounters = new NumericGameParameter(1, 2, 6, onChange);
         this.deathPenaltyCoins = new NumericGameParameter(0, 2, 20, onChange);
@@ -100,8 +110,13 @@ export class GameParameters {
 
     toJson(): GameParametersJson {
         return {
-            edenVariant: {text: "Eden variant", value: this.edenVariant.value},
-            miniDraft: {text: "Mini-draft", value: this.miniDraft.value},
+            edenVariant: {text: "Eden Variant", value: this.edenVariant.value},
+            miniDraft: {text: "Mini-draft", value: this.miniDraft.value},//: At the start of the game, lay out (number of players + 1) treasure cards. Each player choose one of them and gain them, in turn order. Put the last card on the bottom of the treasure deck. Repeat this process with the order reversed.
+            nbPennies: {text: "Number of pennies", value: this.nbPennies.value},
+            nb2Cents: {text: "Number of 2-cents", value: this.nb2Cents.value},
+            nb3Cents: {text: "Number of 3-cents", value: this.nb3Cents.value},
+            nb4Cents: {text: "Number of 4-cents", value: this.nb4Cents.value},
+            nbNickels: {text: "Number of nickels", value: this.nbNickels.value},
             nbItemsInShop: {text: "Number of items in the shop", value: this.nbItemsInShop.value},
             nbEncounters: {text: "Number of encounters", value: this.nbEncounters.value},
             deathPenaltyCoins: {text: "Death penalty coins", value: this.deathPenaltyCoins.value},
@@ -121,6 +136,11 @@ export class GameParameters {
     reset() {
         this.edenVariant.reset();
         this.miniDraft.reset();
+        this.nbPennies.reset();
+        this.nb2Cents.reset();
+        this.nb3Cents.reset();
+        this.nb4Cents.reset();
+        this.nbNickels.reset();
         this.nbItemsInShop.reset();
         this.nbEncounters.reset();
         this.deathPenaltyCoins.reset();

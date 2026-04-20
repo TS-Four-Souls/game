@@ -309,7 +309,7 @@ describe("Tap/Paid effects 1", () => {
         // Give player1 multiple loot cards
         const lootCard1 = game.decks["loot"]!.getCardFromSlug("b2-a_penny");
         const lootCard2 = game.decks["loot"]!.getCardFromSlug("b2-a_penny_2");
-        const lootCard3 = game.decks["loot"]!.getCardFromSlug("b2-a_penny_3");
+        const lootCard3 = game.decks["loot"]!.getCardFromSlug("b2-a_dime");
         player1.hand.addToHand(lootCard1!);
         player1.hand.addToHand(lootCard2!);
         player1.hand.addToHand(lootCard3!);
@@ -334,8 +334,8 @@ describe("Tap/Paid effects 1", () => {
         game.playCard(player1, 0);
         await game.resolveStack();
 
-        // Player should have gained 3¢ (1 from each penny)
-        expect(player1.coins).toBe(initialCoins + 3);
+        // Player should have gained 12¢ (2 pennies, 1 dime)
+        expect(player1.coins).toBe(initialCoins + 12);
     });
 
     it("chaos - each player gives hand to left", async () => {

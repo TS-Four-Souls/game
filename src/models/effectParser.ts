@@ -536,9 +536,9 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         const restParsed = effectParser(s.substring(12).trim(), game, defaultEffect, selectionOnResolve, youMayEffectHanging);
         return {
             effectFunction: (data:EffectData) => { 
-                game.destroyCardsOrSouls([data.it]); 
+                const destroyResult = game.destroyCardsOrSouls([data.it]); 
                 if (s.substring(12).trim() === ".")
-                    return true;
+                    return destroyResult;
                 return restParsed.effectFunction(data);
             },
             targetSelectors: restParsed.targetSelectors
