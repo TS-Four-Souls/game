@@ -60,7 +60,7 @@ const sendRoomChanged = (room: Room, playerId: string) => {
   try {
     gameState = room.game.detailedStateJSON(player);
   } catch (error) {
-    console.error("Failed to get game state", error);
+    console.error("Failed to get game state");
   }
 
   io.to(player.id).emit("on:room:changed", {
@@ -300,7 +300,7 @@ io.on("connection", (socket) => {
               status: 200,
             });
           } catch (error) {
-            console.error("Failed to join the game", error);
+            console.error("Failed to join the game");
             if (error instanceof Error) {
               return callback({ status: 400, error: error.message });
             }
