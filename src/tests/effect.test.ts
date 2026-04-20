@@ -55,8 +55,14 @@ describe("Effect - gainCoins", () => {
 
   it("should require game to be started", async () => {
     const freshGame = new Game();
-    const a = new Player("a", 1, 1, 0);
-    const b = new Player("b", 1, 1, 0);
+    const a = new Player("a");
+    a.addAttackPoints(1); // Start with 1 attack points for testing
+    a.addHealthPoints(1); // Start with 1 health points for testing
+    a.gainCoins(0); // Start with 0 coins for testing
+    const b = new Player("b");
+    b.addAttackPoints(1); // Start with 1 attack points for testing
+    b.addHealthPoints(1); // Start with 1 health points for testing
+    b.gainCoins(0); // Start with 0 coins for testing
     freshGame.addPlayer(a);
     freshGame.addPlayer(b);
     const fn = gainCoinsEffect(freshGame, 3);

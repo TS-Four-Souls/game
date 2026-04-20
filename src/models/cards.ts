@@ -806,6 +806,11 @@ class CharacterCard extends ItemCard {
         this._charged = false;
         this._eternal = true;
     }
+    override onAddInPlay(owner: Entity): void {
+        super.onAddInPlay(owner);
+        owner.addHealthPoints(this._healthPoints);
+        owner.addAttackPoints(this._attackPoints);
+    }
     onRemoveFromPlay(): void {
 
     }

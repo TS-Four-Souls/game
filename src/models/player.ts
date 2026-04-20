@@ -31,7 +31,7 @@ export class Player extends Entity {
   readonly secret: string;
   
   /** @private Current number of coins the player has */
-  private _coin: number;
+  private _coin: number = 0;
   
 /** @private Whether the player play with their hand revealed */
   private _handRevealed: number = 0;
@@ -88,14 +88,10 @@ export class Player extends Entity {
    * @param secret - Authentication token (auto-generated if not provided)
    */
   constructor(
-    id: string, 
-    attackPoints: number=1, 
-    healthPoints: number=2, 
-    coins: number=0,
+    id: string,
     secret: string = crypto.randomUUID()
   ) {
-    super(id, attackPoints, healthPoints);
-    this._coin = coins;
+    super(id, 0, 0);
     this._hand = new Hand();
     this.secret = secret;
     this._inPlay = [];
