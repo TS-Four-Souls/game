@@ -1156,8 +1156,8 @@ export function replaceDeathPenaltyEffect(game: Game): EffectFunction {
             if (itemToLose) {
                 if(!(itemToLose instanceof ItemCard))
                     throw new Error("Death penalty item to lose is not an ItemCard.");
-                game.removeInPlay(player, itemToLose);
-                game.discard(itemToLose);
+                // game.removeInPlay(player, itemToLose);
+                game.destroyCardsOrSouls([itemToLose]);
             }
             }
             if(game.gameParameters.deathPenaltyLoot.value > 0) {

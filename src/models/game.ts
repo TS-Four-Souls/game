@@ -344,7 +344,7 @@ export class Game {
           if(!(item instanceof ItemCard))
             throw new Error("Selected card is not an ItemCard.");
           this.removeInPlay(player, item);
-          this.discard(item);
+          this.destroyCardsOrSouls([item]);
         }
       }
     }
