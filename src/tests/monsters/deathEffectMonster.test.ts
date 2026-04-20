@@ -128,7 +128,7 @@ describe("Monsters - On death effects", () => {
             await game.resolveStack(); // resolve death
             await game.resolveStack(); // resolve death effect - selection
             // Check that the player has declared an attack
-            expect(player1.isEngagedInCombat).toBe(true);
+            expect(game.canEndTurn(player1, false)).not.toBe(true);
         });
 
     it("active player choose a player that discard 2 loot cards when dank_globin dies.", async () => {

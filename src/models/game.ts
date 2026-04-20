@@ -1559,7 +1559,7 @@ export class Game {
   /**
    * Starts the game lifecycle and executes initial setup.
    */
-  async start(issuer: Issuer, characters: CharacterCard[] | null = null, shufflePlayerOrder: boolean = true): Promise<void> {
+  start(issuer: Issuer, characters: CharacterCard[] | null = null, shufflePlayerOrder: boolean = true): void{
     this.assertIssuerSecret(issuer);
     this.assertGameNotStarted();
     this.assertMinimumPlayerCount();
@@ -1597,7 +1597,7 @@ export class Game {
     this.emit("on:game:start", {});
     this.healEveryone();
     
-    await this.startOfGameSetup();
+    this.startOfGameSetup();
     this.startTurn();
   }
 
