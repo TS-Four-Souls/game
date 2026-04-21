@@ -1,12 +1,12 @@
 // A monster effect is an effect that is applied by a monster card.
 
 
-import { Card, MonsterCard } from "./cards";
+import { Card, MonsterCard } from "../cards";
 import { effectParser } from "./effectParser";
-import { Entity } from "./entity";
-import { Game } from "./game";
-import { DiceRoll, Player } from "./player";
-import { EffectData, type EffectFunction, type TargetsSelector } from "./types/cardTypes";
+import { Entity } from "../entity";
+import { Game } from "../game";
+import { DiceRoll, Player } from "../player";
+import { EffectData, type EffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type {
     OnAttackDeclaredMonsterData,
     OnDamageTakenData,
@@ -19,12 +19,11 @@ import type {
     OnItemActivatedData,
     OnSoulGainedData,
     OnTurnEndData,
-} from "./types/eventTypes";
-// import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, goFirstInTurnOrderEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, startingItemEffect, temporaryStatModifierEffect, gainTreasureOnDeathEffect } from "./abilities";
+} from "../types/eventTypes";
 import { type TriggerEvent } from '@/models/types/eventTypes';
 import * as active from "./activeEffect";
 import { addInPlayEffect } from "./activeEffect";
-import { Monster } from "./monster";
+import { Monster } from "../monster";
 import { addPassiveEffectToStack } from "./passiveEffect";
 
 export function thisHealsEffect(game: Game, amount: number): EffectFunction {

@@ -283,7 +283,7 @@ class Encounters {
      * @param index - The slot index to create a monster at
      */
     createMonsterAtSlot(index: number): void {
-        const toClean   = this._monstersInPlay[index];
+        const toClean = this._monstersInPlay[index];
         if (toClean !== undefined) {
             toClean.card.cleanup();
         }

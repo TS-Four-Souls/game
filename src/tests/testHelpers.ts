@@ -1,7 +1,6 @@
+import type { BsoulCard, CharacterCard, MonsterCard } from "../models/cards";
 import { Game } from "../models/game";
 import { Player } from "../models/player";
-import type { MonsterCard, CharacterCard } from "../models/cards";
-import { GameParameters } from "@/models/gameParameters";
 
 
 export function emptyHands(game: Game): void {
@@ -62,6 +61,12 @@ export interface GameSetupConfig {
      * @default 2
      */
     playerCount?: number;
+
+    /**
+     * Array of bonus soul slugs to add to the game.
+     * @example ["r-soul_of_envy", "r-soul_of_lust"]
+     */
+    bonusSouls?: string[];
 }
 
 /**
@@ -114,6 +119,7 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
         monsterDeck = [],
         treasureDeck = [],
         playerCount = 2,
+        bonusSouls = [],
     } = config;
 
     // Create game instance
@@ -133,6 +139,14 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
 
     // Setup game
     game.setupGame();
+
+    for(const soulSlug of bonusSouls) {
+        const soulCard = game.decks.bsoul.getCardFromSlug(soulSlug) as BsoulCard;
+        if(!soulCard) {
+            throw new Error(`Bonus soul card not found: ${soulSlug}`);
+        }
+        game.decks.bsoul.addTopPosition(soulCard);
+    }
 
     // Assign characters
     let characterCards: CharacterCard[] | null = null;

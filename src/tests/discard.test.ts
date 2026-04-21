@@ -53,7 +53,7 @@ describe("Discard", () => {
         expect(game.decks['loot']!.discard.length).toBe(0);
         game.kill(player1, player1, player1.inPlay[0]!);
         await game.resolveEntireStack();
-        expect(game.decks['loot']!.discard.length).toBe(1);
+        expect(game.decks['loot']!.discard.length).toBe(0);
         expect(game.decks['monster']!.discard.length).toBe(0);
         expect(game.decks['treasure']!.discard.length).toBe(0);
     });

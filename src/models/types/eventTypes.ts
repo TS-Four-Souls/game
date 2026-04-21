@@ -90,6 +90,12 @@ export type OnAttackDeclaredMonsterData = {
   monster: Monster[];
 };
 
+/** Data emitted when a player declares an attack on the top deck */
+export type OnAttackDeclaredTopDeckData = {
+  eventIssuer: Player;
+  drawInIndex: number;
+};
+
 /** Data emitted when an attack roll is made */
 export type OnAttackRollData = {
   eventIssuer: Player;
@@ -256,6 +262,7 @@ export type TriggerEventDataMap = {
   "on:combatdamage:dealt": OnCombatDamageDealtData;
   "on:attack:declared": OnAttackDeclaredData;
   "on:attack:declared:monster": OnAttackDeclaredMonsterData;
+  "on:attack:declared:topdeck": OnAttackDeclaredTopDeckData;
   "on:attack:roll": OnAttackRollData;
   "on:attack:roll:first-time-each-turn": OnAttackRollData;
   "on:coin:gained": OnCoinGainedData;

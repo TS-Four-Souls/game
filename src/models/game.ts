@@ -2,8 +2,8 @@ import {
   getAttackRollEffect,
   targetGetCoinRollEffect,
   targetGetLootRollEffect,
-} from "@/models/activeEffect";
-import { bSoulEffectParser } from "@/models/bonusSoulHandling";
+} from "@/models/effects/activeEffect";
+import { bSoulEffectParser } from "@/models/effects/bonusSoulHandling";
 import {
   BsoulCard,
   Card,
@@ -26,7 +26,7 @@ import {
   isDeckType,
   isSameSlug
 } from "@/models/cards";
-import { effectParser } from "@/models/effectParser";
+import { effectParser } from "@/models/effects/effectParser";
 import { Entity } from "@/models/entity";
 import { Monster } from "@/models/monster";
 import { DamageOnStack, DeathOnStack, DiceRoll, Player } from "@/models/player";
@@ -593,7 +593,8 @@ export class Game {
       if (monster.isEngagedInCombat === false)
         throw new Error("Monster should be engaged in combat now.");
       
-      
+      if(attackTopDeck)
+        this.emit("on:attack:declared:topdeck", { eventIssuer: player, drawInIndex });
       this._onStateChange.dispatch();
     });
   }

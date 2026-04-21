@@ -1,11 +1,12 @@
 import * as active from "./activeEffect";
-import { EffectOnStack, ItemCard, LootCardEffect, MonsterCard, MonsterType } from "./cards";
-import { Game } from "./game";
+import { EffectOnStack, ItemCard, LootCardEffect, MonsterCard, MonsterType } from "../cards";
+import { Game } from "../game";
 import * as monster from "./monsterEffects";
 import * as passive from "./passiveEffect";
-import { DiceRoll, Player } from "./player";
-import { activeEntitySelector, anotherPlayerSelector, deckSelector, inAnotherplayItemSelector, inplayCurseSelector, inplayItemAndSoulSelector, inplayItemSelector, inplayUnchargedItemSelector, playerSelector, rollSelector, stackElementSelector, topAnyDiscardSelector, visibleItemSelector, YourItemSelector } from "./targetSelector";
-import { EffectData, type EffectFunction, type TargetsSelector } from "./types/cardTypes";
+import * as room from "./roomEffects";
+import { DiceRoll, Player } from "../player";
+import { activeEntitySelector, anotherPlayerSelector, deckSelector, inAnotherplayItemSelector, inplayCurseSelector, inplayItemAndSoulSelector, inplayItemSelector, inplayUnchargedItemSelector, playerSelector, rollSelector, stackElementSelector, topAnyDiscardSelector, visibleItemSelector, YourItemSelector } from "../targetSelector";
+import { EffectData, type EffectFunction, type TargetsSelector } from "../types/cardTypes";
 
 /**
  * Represents a parsed effect with both its execution function and target selectors.
@@ -1094,7 +1095,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
         case "combat damage you deal on attack rolls of 6 is increased by 3.":
             return noTargetEffect(passive.combatDamageModifierOnAttackRollEffect(game, [6], 3));
         case "the active player must attack the monster deck 2 times this turn.":
-            return { effectFunction: active.forceAttackMonsterDeckEffect(game, 2, "total"), targetSelectors: noTargets };
+            return { effectFunction: active.forceAttackMonsterDeckEffect(game, 2, "total"), targetSelectors: noTargets };            
         default:
             return null; // No match found
         }
@@ -1202,6 +1203,17 @@ function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null 
             return noTargetEffect(monster.OnDamageByActivePlayerRollDealDamageEffect(game));
         case "they take 1 damage.":
             return noTargetEffect(monster.targetTakeDamageEffect(game, 1));
+        default:
+            return null; // No match found
+    }
+}
+
+function parseRoomEffect(s: string, game: Game): ParsedEffect | null {
+    switch (s) {
+        case "players can't gain souls.":
+            return noTargetEffect(room.preventGainSoulsEffect(game));
+        case "each time the active player attacks the top of the monster deck, after putting it in a monster slot, they may cancel their attack.":
+            return noTargetEffect(room.cancelAttackOnTopOfMonsterDeckEffect(game));
         default:
             return null; // No match found
     }

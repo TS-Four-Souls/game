@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "@/models/game";
 import { Player } from "@/models/player";
-import { gainCoinsEffect } from "@/models/activeEffect";
+import { gainCoinsEffect } from "@/models/effects/activeEffect";
 import { CharacterCard, MonsterCard, EffectData } from "@/models/cards";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame } from "@/tests/testHelpers";
 
@@ -76,8 +76,8 @@ describe("Effect - gainCoins", () => {
 });
 
 // Additional tests for non-tested effects from effect.ts
-import * as effect from "@/models/effectParser";
-import * as active from "@/models/activeEffect";
+import * as effect from "@/models/effects/effectParser";
+import * as active from "@/models/effects/activeEffect";
 import type { ItemCard, LootCard } from "@/models/cards";
 
 describe("Effect - additional unique implementations", () => {

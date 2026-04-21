@@ -2,17 +2,17 @@
 // as opposed to a passive effect which is triggered by a game event.
 
 
-import { DamageOnStack, DiceRoll, Player } from "./player";
-import { type Card, LootCard, ItemCard, MonsterCard, InplayType, BsoulCard, EffectOnStack, isDeckType, assertCardMatchesDeck, Deck, TreasureCard, LootCardEffect } from "./cards";
-import { EffectData, type EffectFunction, type TargetsSelector, type DeckType } from "./types/cardTypes";
-import { Game } from "./game";
-import { Entity } from "./entity";
-import type { OnTurnEndData } from "./types/eventTypes";
-import type { StackElement } from "./stack";
+import { DamageOnStack, DiceRoll, Player } from "../player";
+import { type Card, LootCard, ItemCard, MonsterCard, InplayType, BsoulCard, EffectOnStack, isDeckType, assertCardMatchesDeck, Deck, TreasureCard, LootCardEffect } from "../cards";
+import { EffectData, type EffectFunction, type TargetsSelector, type DeckType } from "../types/cardTypes";
+import { Game } from "../game";
+import { Entity } from "../entity";
+import type { OnTurnEndData } from "../types/eventTypes";
+import type { StackElement } from "../stack";
 import { effectParser, type ParsedEffect } from "./effectParser";
-import { deckSelector, visibleItemSelector, inplayUnchargedItemSelector as inplayChargeableItemSelector, inplayItemSelector } from "./targetSelector";
-import { TargetBuilder } from "./targetBuilder";
-import { Monster } from "./monster";
+import { deckSelector, visibleItemSelector, inplayUnchargedItemSelector as inplayChargeableItemSelector, inplayItemSelector } from "../targetSelector";
+import { TargetBuilder } from "../targetBuilder";
+import { Monster } from "../monster";
 import * as passive from "./passiveEffect";
 import { minLength } from "zod";
 

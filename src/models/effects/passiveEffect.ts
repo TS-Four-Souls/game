@@ -1,31 +1,31 @@
+import { DiceRoll, Player } from "../player";
+import { LootCard, ItemCard, TreasureCard, LootCardEffect, EffectOnStack, MonsterCard, Card } from "../cards";
+import { EffectData, type EffectFunction } from "../types/cardTypes";
+import { Game } from "../game";
 import { type TriggerEvent } from '@/models/types/eventTypes';
-import type { TemporaryEffect } from "@/shared/api";
+import { Monster } from "../monster";
+import { TargetBuilder } from "../targetBuilder";
 import * as active from "./activeEffect";
-import { EffectOnStack, ItemCard, LootCard, LootCardEffect, MonsterCard, TreasureCard } from "./cards";
-import { selectPlayerOrMonster, type ParsedEffect } from "./effectParser";
-import { Entity } from "./entity";
-import { Game } from "./game";
-import { Monster } from "./monster";
-import { DiceRoll, Player } from "./player";
-import { TargetBuilder } from "./targetBuilder";
-import { EffectData, type EffectFunction } from "./types/cardTypes";
+import type { TemporaryEffect } from "@/shared/api";
 import type {
-    OnAttackRollData,
-    OnCoinGainedData,
-    OnDamageTakenData,
     OnDamageWouldTakeData,
+    OnTurnEndData,
+    OnTurnStartData,
+    OnCoinGainedData,
     OnDeathAfterPenaltyData,
     OnDeathBeforePenaltyData,
     OnDeathMonsterData,
+    OnAttackRollData,
+    OnDamageTakenData,
     OnDiceBeingRolledData,
     OnDiceWouldRollData,
-    OnItemDestroyedData,
     OnLootPlayedData,
+    OnItemDestroyedData,
     OnLootStepData,
-    OnLootWouldData,
-    OnTurnEndData,
-    OnTurnStartData
-} from "./types/eventTypes";
+    OnLootWouldData
+} from "../types/eventTypes";
+import { Entity } from "../entity";
+import { selectPlayerOrMonster, type ParsedEffect } from "./effectParser";
 function getTemporaryEffect(data: EffectData, description: string): TemporaryEffect {
     return{
             card: data.it.jsonAPI,
@@ -502,12 +502,14 @@ export function curseEffect(restEffectFunction: EffectFunction, game: Game): Eff
             if(!(data.it instanceof MonsterCard))
                 throw new Error("Curse effect can only be applied by MonsterCards.");
             game.removeCurse(data.issuer, data.it);
+            game.discard(data.it);
+            offDeath?.();
+            offDeath = null;
         });
 
         data.it.cleaners.push(() => {
             offDeath?.();
             offDeath = null;
-            game.discard(data.it);
         });
 
         restEffectFunction(new EffectData(data.it, data.issuer, []));
@@ -1156,8 +1158,8 @@ export function replaceDeathPenaltyEffect(game: Game): EffectFunction {
             if (itemToLose) {
                 if(!(itemToLose instanceof ItemCard))
                     throw new Error("Death penalty item to lose is not an ItemCard.");
-                // game.removeInPlay(player, itemToLose);
-                game.destroyCardsOrSouls([itemToLose]);
+                game.removeInPlay(player, itemToLose);
+                game.discard(itemToLose);
             }
             }
             if(game.gameParameters.deathPenaltyLoot.value > 0) {
