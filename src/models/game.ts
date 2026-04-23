@@ -2515,10 +2515,11 @@ export class Game {
           covered: m.covered,
         })),
       },
-      ...(this.rooms ?{
+      ...(this.rooms ? { room: {
             discard: this.decks["room"]!.discard.map((c) => c.jsonAPI).toReversed(),
             deckSize: this.decks["room"]!.cards.length,
             inPlay: this.rooms!.activeRooms.map((c) => c!.jsonAPI),
+            }
           } : {}),
       bonusSouls: this._bonusSouls !== undefined ? this._bonusSouls.map((c) => c.jsonAPI) : undefined,
       loot:

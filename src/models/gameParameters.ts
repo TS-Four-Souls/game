@@ -111,7 +111,7 @@ export class GameParameters {
         this.lootPlayPerTurn = new NumericGameParameter(1, 1, 10, onChange);
         this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
         this.playWithBonusSouls = new BooleanGameParameter(true, onChange);
-        this.playWithRooms = new BooleanGameParameter(false, onChange);
+        this.playWithRooms = new BooleanGameParameter(true, onChange);
     }
 
     toJson(): GameParametersJson {
