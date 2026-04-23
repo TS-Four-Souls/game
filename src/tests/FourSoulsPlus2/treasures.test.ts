@@ -33,7 +33,7 @@ describe("Four Souls+2 Treasures", () => {
         };
         await game.endTurn();
         game.declareAttack(player2);
-        await game.declareAttackOnMonster(player2, game.encounters.monsterIn(0)!);
+        await game.declareAttackOnEntity(player2, game.encounters.monsterIn(0)!);
         expect(game.stack.size).toBe(1);
         await game.resolveStack();
         expect(game.encounters.monsterIn(1)!.isEngagedInCombat).toBe(true);
@@ -59,7 +59,7 @@ describe("Four Souls+2 Treasures", () => {
         const card1 = game.obtainCard("fsp2-cursed_eye") as TreasureCard;
         game.addInPlay(player1, card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, game.encounters.monsterIn(1)!);
+        await game.declareAttackOnEntity(player1, game.encounters.monsterIn(1)!);
         game.random = () => 1/6-.00001;
         game.attackRoll(player1);
         expect(game.stack.size).toBe(2);
@@ -73,7 +73,7 @@ describe("Four Souls+2 Treasures", () => {
         const card1 = game.obtainCard("fsp2-cursed_eye") as TreasureCard;
         game.addInPlay(player1, card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, game.encounters.monsterIn(1)!);
+        await game.declareAttackOnEntity(player1, game.encounters.monsterIn(1)!);
         game.random = () => 5/6-.00001;
         game.attackRoll(player1);
         await game.resolveStack();
@@ -208,7 +208,7 @@ describe("Four Souls+2 Treasures", () => {
     it("fsp2-divorce_papers - [Tap Effect] Destroy this. If you do, choose another player. They give you half of their ¢ and loot cards rounded down, then gives you an item.", async () => {
         const card1 = game.obtainCard("fsp2-divorce_papers") as TreasureCard;
         game.addInPlay(player1, card1);
-        game.gainCoins(player2, 5);
+        game.gainCoins(player2, 5, "gift");
         game.loot(player2, 3);
         game.gainTreasure(player2, 3);
         await game.activateItem(player1, card1, [player2], "tap");
@@ -229,7 +229,7 @@ describe("Four Souls+2 Treasures", () => {
         game.addInPlay(player1, card1);
         game.declareAttack(player1);
         const monster = game.encounters.monsterIn(1)!;
-        await game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnEntity(player1, monster);
         game.random = () => 0.01;
         game.attackRoll(player1);
         await game.resolveStack();
@@ -243,7 +243,7 @@ describe("Four Souls+2 Treasures", () => {
         await game.endTurn();
         await game.resolveStack();
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, game.encounters.monsterIn(0)!);
+        await game.declareAttackOnEntity(player1, game.encounters.monsterIn(0)!);
         game.attackRoll(player1);
         expect(game.stack.size).toBe(1);
     });
@@ -252,7 +252,7 @@ describe("Four Souls+2 Treasures", () => {
         const card1 = game.obtainCard("fsp2-head_of_the_keeper") as TreasureCard;
         game.addInPlay(player1, card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, game.encounters.monsterIn(1)!); // Fatty
+        await game.declareAttackOnEntity(player1, game.encounters.monsterIn(1)!); // Fatty
         game.random = () => 0.99;
         const initialCoins = player1.coins;
         game.attackRoll(player1);
@@ -276,7 +276,7 @@ describe("Four Souls+2 Treasures", () => {
         game.addInPlay(player1, card1);
         const hp = player1.currentHealthPoints;
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, game.encounters.monsterIn(0)!);
+        await game.declareAttackOnEntity(player1, game.encounters.monsterIn(0)!);
         game.dealDamage(player2, player1, card1, hp);
         await game.resolveStack();
         await game.resolveStack();
@@ -378,7 +378,7 @@ describe("Four Souls+2 Treasures", () => {
         const initialCoins1 = player1.coins;
         const initialCoins2 = player2.coins;
 
-        game.gainCoins(player2, 3);
+        game.gainCoins(player2, 3, "gift");
         await game.resolveStack();
         expect(player2.coins).toBe(initialCoins2 + 2); // player2 gains 3 but gives 1 to player1 for each coin gained
         expect(player1.coins).toBe(initialCoins1 + 1); // player1 gains 1 coin
@@ -527,7 +527,7 @@ describe("Four Souls+2 Treasures", () => {
         expect(game.getDC(game.encounters.monsterIn(0)!)).toBe(evastion[0]!+1);
         expect(game.getDC(game.encounters.monsterIn(1)!)).toBe(evastion[1]!+1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, game.encounters.monsterIn(0)!);
+        await game.declareAttackOnEntity(player1, game.encounters.monsterIn(0)!);
         game.random = () => 0.99;
         game.attackRoll(player1);
         await game.resolveStack();
@@ -613,7 +613,7 @@ describe("Four Souls+2 Treasures", () => {
         const card1 = game.obtainCard("fsp2-rubber_cement") as TreasureCard;
         game.addInPlay(player1, card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, game.encounters.monsterIn(0)!);
+        await game.declareAttackOnEntity(player1, game.encounters.monsterIn(0)!);
         game.random = () => 0.01;
         game.attackRoll(player1);
         game.select = (_issuer, _min, _max, opts, _optional) => {
@@ -664,7 +664,7 @@ describe("Four Souls+2 Treasures", () => {
         game.addInPlay(player1, card1);
         game.declareAttack(player1);
         const monster = game.encounters.monsterIn(1)!;
-        await game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnEntity(player1, monster);
         game.random = () => 0.01; // roll a 1
         game.attackRoll(player1);
         await game.activateItem(player1, card1, [game.stack.peek(), 2], "tap");

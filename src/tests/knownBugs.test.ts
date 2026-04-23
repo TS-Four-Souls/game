@@ -197,7 +197,7 @@ describe("Known bugs that have be corrected", () => {
         game.decks.monster.addTopPosition(chest);
 
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, game.monsters[0]!);
+        await game.declareAttackOnEntity(player1, game.monsters[0]!);
         game.kill(player1, game.monsters[0]!, player1.inPlay[0]!);
         await game.resolveStack(); // when this dies 
         expect(game.stack.size).toBe(1);
@@ -217,7 +217,7 @@ describe("Known bugs that have be corrected", () => {
         const monster = game.monsters[0]!;
 
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnEntity(player1, monster);
         const loot = game.obtainCard("b2-soul_heart") as LootCard;
         game.addCardToHand(player1, loot);
         game.playCard(player1, player1.hand.length - 1, [player1]);
@@ -227,7 +227,7 @@ describe("Known bugs that have be corrected", () => {
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 1;
 
-        game.gainCoins(player1, 10); // Give some coins to lose
+        game.gainCoins(player1, 10, "gift"); // Give some coins to lose
         const init = player1.coins;
         await game.resolveStack(); // dice
         await game.resolveStack(); // damage

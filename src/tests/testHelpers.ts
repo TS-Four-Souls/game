@@ -1,4 +1,5 @@
-import type { BsoulCard, CharacterCard, MonsterCard } from "../models/cards";
+import { bundlerModuleNameResolver } from "typescript";
+import type { BsoulCard, CharacterCard, MonsterCard, RoomCard, TreasureCard } from "../models/cards";
 import { Game } from "../models/game";
 import { Player } from "../models/player";
 
@@ -67,6 +68,11 @@ export interface GameSetupConfig {
      * @example ["r-soul_of_envy", "r-soul_of_lust"]
      */
     bonusSouls?: string[];
+
+    /**
+     * Whether to use rooms in the game.
+     */
+    rooms?: boolean;
 }
 
 /**
@@ -120,6 +126,7 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
         treasureDeck = [],
         playerCount = 2,
         bonusSouls = [],
+        rooms = false,
     } = config;
 
     // Create game instance
@@ -136,9 +143,26 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
         players.push(player);
         game.addPlayer(player);
     }
-
+    if(rooms)
+        game.gameParameters.playWithRooms.value = true;
+    else
+        game.gameParameters.playWithRooms.value = false;
+    
     // Setup game
     game.setupGame();
+    if(rooms)
+    {
+        for(const slug of ["r-bomb_bum", "r-devil_beggar", "r-blood_donation", "r-beggar"]) {
+            const roomCard = game.obtainCard(slug) ! as RoomCard;// default room.
+            game.decks.room.addTopPosition(roomCard);
+        }    
+    }
+
+    if(bonusSouls.length === 0) {
+        bonusSouls.push("b2-soul_of_guppy"); // Add a default bonus soul if none provided, to test bonus soul mechanics in most tests
+        bonusSouls.push("b2-soul_of_gluttony"); // Add a default bonus soul if none provided, to test bonus soul mechanics in most tests
+        bonusSouls.push("b2-soul_of_greed"); // Add a default bonus soul if none provided, to test bonus soul mechanics in most tests
+    }
 
     for(const soulSlug of bonusSouls) {
         const soulCard = game.decks.bsoul.getCardFromSlug(soulSlug) as BsoulCard;
@@ -192,7 +216,32 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
 
     // Add treasures to deck top (reverse order so last becomes top)
     for (const slug of treasureDeck) {
-        const treasureCard = game.shop.obtainCard(slug);
+        let treasureCard: TreasureCard | undefined;
+
+        try {
+            treasureCard = game.shop.obtainCard(slug) as TreasureCard | undefined;
+        } catch {
+            treasureCard = undefined;
+        }
+
+        if (!treasureCard) {
+            for (const player of game.players) {
+                const inPlayTreasure = player.inPlay.find((card): card is TreasureCard => card.type === "treasure" && card.slug === slug);
+                if (inPlayTreasure) {
+                    game.removeInPlay(player, inPlayTreasure);
+                    treasureCard = inPlayTreasure;
+                    break;
+                }
+            }
+        }
+
+        if (!treasureCard) {
+            const template = (game.decks["treasure"] as any)?._set?.cards?.find((card: TreasureCard) => card.slug === slug) as TreasureCard | undefined;
+            if (template) {
+                treasureCard = game.copyCard(template) as TreasureCard;
+            }
+        }
+
         if (!treasureCard) {
             throw new Error(`Treasure card not found: ${slug}`);
         }

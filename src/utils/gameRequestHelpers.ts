@@ -15,7 +15,7 @@ export async function executeAttackMonsterRequest(
   }
 
   const drawInIndex = payload.index === "top" ? payload.replaceIndex : -1;
-  await game.declareAttackOnMonster(player, monster, drawInIndex);
+  await game.declareAttackOnEntity(player, monster, drawInIndex);
 }
 
 export function executePlayCardRequest(

@@ -11,10 +11,14 @@ export enum CardType {
   Monster = "monster",
   Loot = "loot",
   BonusSoul = "bsoul",
+  Room = "room",
+  Outside = "outside",
 }
 
 export enum CardOrigin {
   BaseGameV2 = "b2",
+  PlusV2 = "fsp2",
+  Requiem = "r",
 }
 
 export enum TreasureCardSubtype {
@@ -46,20 +50,25 @@ const attackableMonsterSubtypes = [
 
 type AttackableMonsterSubtype = (typeof attackableMonsterSubtypes)[number];
 
-export const isAttackableMonsterSubtype = (subtype: MonsterCardSubtype): subtype is AttackableMonsterSubtype => {
-  return attackableMonsterSubtypes.includes(subtype as AttackableMonsterSubtype);
+export const isAttackableMonsterSubtype = (
+  subtype: MonsterCardSubtype,
+): subtype is AttackableMonsterSubtype => {
+  return attackableMonsterSubtypes.includes(
+    subtype as AttackableMonsterSubtype,
+  );
 };
 
 /* Parts */
+export type Reward =  number | "roll" | { all: true; count: number | "roll" };
 
 export type CardRewards = {
-  soul?: number | "roll" | "?";
-  coin?: number | "roll" | "?";
-  loot?: number | "roll" | "?";
-  treasure?: number | "roll" | "?";
+  soul?: Reward;
+  coin?: Reward;
+  loot?: Reward;
+  treasure?: Reward;
 };
 
-export type GuppyCard = {
+type GuppyCard = {
   guppy?: true;
 };
 
@@ -141,5 +150,10 @@ export type BonusSoulCardType = Card & {
   rewards: PartialRequired<CardRewards, "soul">;
 };
 
-export type GenericCardType = LootCardType | BonusSoulCardType | EternalCardType | TreasureCardType | MonsterCardType | CharacterCardType;
-export type InPlayCardType = EternalCardType | TreasureCardType | LootCardType | CharacterCardType;
+export type RoomCardType = Card & {
+  type: CardType.Room;
+  guppy: false;
+};
+
+export type GenericCardType = LootCardType | BonusSoulCardType | EternalCardType | TreasureCardType | MonsterCardType | CharacterCardType | RoomCardType;
+export type InPlayCardType = EternalCardType | TreasureCardType | LootCardType | CharacterCardType | RoomCardType;

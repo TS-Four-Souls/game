@@ -1,7 +1,205 @@
-    import { type Card, type Deck, type TreasureCard, EffectData, EffectOnStack, MonsterCard, MonsterType } from "./cards";
+    import { type Card, type Deck, type TreasureCard, EffectData, EffectOnStack, MonsterCard, MonsterType, RoomCard } from "./cards";
+import type { Animated } from "./entity";
 import type { Game } from "./game";
 import { Monster } from "./monster";
 import { Player } from "./player";
+
+export abstract class Slots<T extends Card> {
+    /** @private 2D array of cards in each slot (stacks of cards) */
+    _slots: T[][];
+    /** @private The deck to draw cards from */
+    _deck: Deck<T>;
+
+    constructor(nbSlots: number, deck: Deck<T>) {
+        this._slots = new Array(nbSlots);
+        for (let i = 0; i < nbSlots; i++) {
+            this._slots[i] = [];
+        }
+        this._deck = deck;
+    }
+
+
+    /**
+     * Fills all empty slots by drawing from the deck.
+     */
+    fillEmptySpots() : void {
+        for (let i = 0; i < this._slots.length; i++) {
+            if (this._slots[i]!.length == 0) {
+                this.draw(i);
+            }
+        }
+    }
+
+
+    removeFromSlot(card: T): boolean {
+        for (let i = 0; i < this._slots.length; i++) {
+            for (let j = this._slots[i]!.length - 1; j >= 0; j--) {
+                if (this._slots[i]![j] === card) {
+                    if(j === this._slots[i]!.length - 1)
+                        this.removeTop(i);
+                    else
+                    {
+                        this.removeAtIndices(i, j);
+                    }
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    removeAtIndices(i: number, j: number): T | undefined {
+        if (i < 0 || i >= this._slots.length || j < 0 || j >= this._slots[i]!.length) {
+            return undefined;
+        }
+        const card = this._slots[i]![j];
+        this._slots[i]!.splice(j, 1);
+        this.fillEmptySpots();
+        return card;
+    }
+
+    /**
+     * Obtains a specific card from the slot by its slug.
+     * Searches all slots, then the discard pile, then the deck.
+     * The card is removed from wherever it's found.
+     * 
+     * @param slug - The unique identifier of the card to obtain
+     * @returns The card if found, undefined otherwise
+     */
+    obtainCard(slug: string, globalId?: number): T | undefined{
+        for (let i = 0; i < this._slots.length; i++) {
+            const indexInSlot = this._slots[i]!.findIndex(card =>
+                card.slug === slug && (globalId === undefined || card.globalId === globalId)
+            );
+            if (indexInSlot >= 0) {
+                const card = this.removeAtIndices(i, indexInSlot);
+                return card;
+            }
+        }
+        const card = globalId === undefined
+            ? this._deck.discard.find(card => card.slug === slug)
+            : this._deck.discard.find(card => card.slug === slug && card.globalId === globalId);
+        if (card) {
+            this._deck.remove(card);
+            return card;
+        }
+        return this._deck.getCardFromSlug(slug, globalId);
+    }
+
+    /**
+     * Draws a card from the monster deck and places it on top of a specific slot.
+     * Creates a new Monster entity for the drawn card.
+     * 
+     * @param position - The slot index to draw to
+     */
+    draw(position: number) : void {
+        const card = this._deck.draw();
+        this._slots[position]!.push(card!);
+    }
+
+    /**
+     * Removes the top card from a slot without sending it to discard.
+     * Refills or reveals the next card in the slot as needed.
+     *
+     * @param index - The slot index to remove the top card from
+     * @returns The removed card, if any
+     */
+    removeTop(index: number) : T | undefined {
+        if (index < 0) {
+            return undefined;
+        }
+        const card = this._slots[index]!.pop();
+        if(this._slots[index]!.length === 0) {
+            this.fillEmptySpots();
+        }
+        return card;
+    }
+
+    /**
+     * Removes a specific card from the slots.
+     * Used when a card needs to be removed without purchasing (e.g., by card effects).
+     * @param target - The card to remove
+     * @returns True if the card was found and removed
+     */
+    removeCard(target: T): boolean{
+        for (let i = 0; i < this._slots.length; i++) {
+            const index = this._slots[i]!.findIndex(card => card === target);
+            if (index !== -1) {
+                this.removeAtIndices(i, index);
+                return true;
+            }
+        }
+        return false;
+    }
+    /**
+     * Discards the top monster card from a slot and refills the slot.
+     * The card goes to the discard pile of the monster deck.
+     * 
+     * @param index - The slot index to discard from
+     */
+    discardTop(index: number) : void {
+        if (index >= 0) {
+            const card = this.removeTop(index);
+            this._deck.addDiscardTop(card!);
+        }
+    }
+    
+    /**
+     * Moves the top card of a slot to the bottom of the monster deck.
+     * 
+     * @param index - The slot index to move from
+     */
+    moveToBottom(index: number) : void {
+        if (index >= 0) {
+            const card = this.removeTop(index);
+            this._deck.addBottomPosition(card!);
+        }
+    }
+    
+    /**
+     * Discards all top cards from all slots and refills.
+     * Used for effects that clear the encounter area.
+     */
+    flush() : void {
+        for (let i = 0; i < this._slots.length; i++) {
+            this.discardTop(i);
+        }
+        this.fillEmptySpots();
+    }
+    /**
+     * Flushes all top cards from all slots and refills, then draws a new card on top of each non refilled slot.
+     */
+    flushAndDraw(): void {
+        this.flush();
+        for (let i = 0; i < this._slots.length; i++) {
+            if(this._slots[i]!.length > 1)
+                this.draw(i);
+        }
+    }
+
+    /**
+     * Moves all top cards from all slots to the bottom of the deck.
+     * Different from flush as cards go to bottom instead of discard.
+     */
+    flushToBottom(): void {
+        for (let i = 0; i < this._slots.length; i++) {
+            this.moveToBottom(i);
+        }
+        this.fillEmptySpots();
+    }
+    /**
+     * Expands the encounter area by adding n new slots.
+     * New slots are immediately filled with monsters.
+     * 
+     * @param n - Number of new slots to add
+     */
+    expand(n: number): void {
+        for (let i = 0; i < n; i++)
+            this._slots.push([]);
+        this.fillEmptySpots();
+    }
+}
+
 
 /**
  * Manages the shop where players can purchase treasure cards.
@@ -17,13 +215,7 @@ import { Player } from "./player";
  * shop.flush(); // Discard all current shop cards and refill
  * ```
  */
-class Shop {
-    /** @private Array of cards currently available in shop slots (undefined = empty slot) */
-    _slots: (undefined | TreasureCard)[];
-    
-    /** @private The treasure deck to draw cards from */
-    _deck: Deck<TreasureCard>;
-
+export class Shop extends Slots<TreasureCard> {
     /**
      * Creates a new Shop instance.
      * 
@@ -31,77 +223,14 @@ class Shop {
      * @param deck - The treasure deck to draw cards from
      */
     constructor(nbItemsInShop: number, deck: Deck<TreasureCard>) {
-        this._slots = new Array(nbItemsInShop);
-        this._deck = deck;
+        super(nbItemsInShop, deck);
         this.fillEmptySpots();
     }
 
-    /**
-     * Fills all empty shop slots by drawing cards from the deck.
-     * Automatically called when slots become empty.
-     */
-    fillEmptySpots() : void {
-        for (let i = 0; i < this._slots.length; i++) {
-            if (this._slots[i] == undefined)
-                this._slots[i] = this._deck.draw();
-        }
+    get itemsInShop(): (TreasureCard | undefined)[] {
+        return this._slots.map(slot => slot[slot.length - 1]);
     }
 
-    /**
-     * Reduces the shop size by removing the last slot.
-     * The removed card is discarded to the deck.
-     */
-    reduce() : void{
-        const card = this._slots.pop();
-        this._deck.addDiscardTop(card!);
-    }
-    
-    /**
-     * Expands the shop by adding n new slots.
-     * New slots are immediately filled with cards from the deck.
-     * @param n - Number of slots to add
-     */
-    expand(n:number) : void {
-        for (let i = 0; i < n; i++)
-            this._slots.push(undefined);
-        this.fillEmptySpots();
-    }
-    /**
-     * Obtains a specific card from the shop by its slug.
-     * First searches shop slots, then falls back to searching the deck directly.
-     * The slot is emptied and refilled after obtaining the card.
-     * @param slug - The unique identifier of the card to obtain
-     * @returns The card if found, undefined otherwise
-     */
-    obtainCard(slug: string, globalId?: number): TreasureCard | undefined{
-        const index = this._slots.findIndex(card =>
-            card !== undefined && card.slug === slug && (globalId === undefined || card.globalId === globalId)
-        );
-        if (index >= 0) {
-            const card = this._slots[index];
-            this._slots[index] = undefined;
-            this.fillEmptySpots();
-            return card;
-        }
-        return this._deck.getCardFromSlug(slug, globalId);
-    }
-
-    /**
-     * Removes a specific card from the shop.
-     * Used when a card needs to be removed without purchasing (e.g., by card effects).
-     * @param target - The card to remove
-     * @returns True if the card was found and removed
-     */
-    removeCard(target: Card): boolean{
-        for (let i = 0; i < this._slots.length; i++) {
-            if (this._slots[i] === target) {
-                this._slots[i] = undefined;
-                this.fillEmptySpots();
-                return true;
-          }
-        }
-        return false;
-      }
     /**
      * Purchases the top card of the treasure deck without seeing it.
      * The player pays the specified price and the card goes directly to their in-play area.
@@ -135,57 +264,12 @@ class Shop {
         if(index === "top")
             return this.purchaseTopDeck(player, price, game);
         if (game.loseCoins(player, price, false) === price) {
-            game.addInPlay(player, this._slots[index]!);
-            this._slots[index] = undefined;
+            game.addInPlay(player, this.itemsInShop[index]!);
+            this._slots[index]?.pop();
             this.fillEmptySpots();
             return true;
         }
         return false;
-    }
-    /**
-     * Discards the card at the specified shop slot index.
-     * The slot is refilled after discarding.
-     * @param index - The slot index to discard from
-     */
-    discard(index: number) : void {
-        if (index >= 0) {
-            this._deck.addDiscardTop(this._slots[index]!);
-            this._slots[index] = undefined;
-            this.fillEmptySpots();
-        }
-    }
-    
-    /**
-     * Discards all cards currently in the shop and refills all slots.
-     * Used for shop refresh effects.
-     */
-    flush(): void {
-        for (let i = 0; i < this._slots.length; i++) {
-            this.discard(i);
-        }
-        this.fillEmptySpots();
-    }
-    
-    /**
-     * Moves the card at the specified slot to the bottom of the deck.
-     * @param index - The slot index to move from
-     */
-    moveToBottom(index: number) : void {
-        if (index >= 0) {
-            this._deck.addBottomPosition(this._slots[index]!);
-            this._slots[index] = undefined;
-            this.fillEmptySpots();
-        }
-    }
-    
-    /**
-     * Moves all shop cards to the bottom of the deck.
-     * Different from flush as cards go to bottom instead of discard pile.
-     */
-    flushToBottom(): void {
-        for (let i = 0; i < this._slots.length; i++) {
-            this.moveToBottom(i);
-        }
     }
 }
 
@@ -210,23 +294,17 @@ class Shop {
  * encounters.killTop(0); // Kill and reward for top monster
  * ```
  */
-class Encounters {
-    /** @private 2D array of cards in each encounter slot (stacks of monsters) */
-    _slots: MonsterCard[][];
-    
+export class Encounters extends Slots<MonsterCard> {
     /** @private Array of active Monster entities (one per slot, undefined if event or empty) */
     _monstersInPlay: (Monster | undefined)[];
-    
-    /** @private The monster deck to draw cards from */
-    _deck: Deck<MonsterCard>;
     
     /** @private Reference to the game instance */
     _game: Game; // Game type
     
-    /** Global modifier to all monster evasion values (DC = difficulty class) */
+    /** Global modifier to all monster evasion values */
     dcModifier: number = 0;
 
-    /** Global modifier to all monster attack values (DC = difficulty class) */
+    /** Global modifier to all monster attack values */
     attackModifier: number = 0;
     
     /**
@@ -238,12 +316,8 @@ class Encounters {
      * @param game - The game instance
      */
     constructor(nbEncounterSlots: number, deck: Deck<MonsterCard>, game: Game) {
-        this._slots = new Array(nbEncounterSlots);
+        super(nbEncounterSlots, deck);
         this._monstersInPlay = new Array(nbEncounterSlots);
-        for (let i = 0; i < nbEncounterSlots; i++) {
-            this._slots[i] = [];
-        }
-        this._deck = deck;
         this._game = game;
     }
 
@@ -255,7 +329,7 @@ class Encounters {
      *                       This is used during initial setup to ensure only monsters appear.
      *                       If false, events are added to the stack and resolved.
      */
-    fillEmptySpots(eventsBottom = false) : void {
+    override fillEmptySpots(eventsBottom = false) : void {
         for (let i = 0; i < this._slots.length; i++) {
             if (this._slots[i]!.length == 0) {
                 let card = this._deck.draw();
@@ -273,6 +347,93 @@ class Encounters {
                 this.createMonsterAtSlot(i);
             }
         }
+    }
+
+    /**
+     * Obtains a specific card from the encounter area by its slug.
+     * Searches all slots, then the discard pile, then the deck.
+     * The card is removed from wherever it's found.
+     * 
+     * @param slug - The unique identifier of the card to obtain
+     * @returns The card if found, undefined otherwise
+     */
+    override obtainCard(slug: string, globalId?: number): MonsterCard | undefined{
+        for (let i = 0; i < this._slots.length; i++) {
+            const indexInSlot = this._slots[i]!.findIndex(card =>
+                card.slug === slug && (globalId === undefined || card.globalId === globalId)
+            );
+            if (indexInSlot >= 0) {
+                const card = this._slots[i]![indexInSlot];
+                this._slots[i]!.splice(indexInSlot, 1);
+                this.fillEmptySpots(true);
+                return card;
+            }
+        }
+        const card = globalId === undefined
+            ? this._deck.discard.find(card => card.slug === slug)
+            : this._deck.discard.find(card => card.slug === slug && card.globalId === globalId);
+        if (card) {
+            this._deck.remove(card);
+            return card;
+        }
+        return this._deck.getCardFromSlug(slug, globalId);
+    }
+
+    /**
+     * Draws a card from the monster deck and places it on top of a specific slot.
+     * Creates a new Monster entity for the drawn card.
+     * 
+     * @param position - The slot index to draw to
+     */
+    override draw(position: number) : void {
+        const card = this._deck.draw();
+        this._slots[position]!.push(card!);
+        this.createMonsterAtSlot(position);
+    }
+
+    /**
+     * Removes the top card from a slot without sending it to discard.
+     * Refills or reveals the next card in the slot as needed.
+     *
+     * @param index - The slot index to remove the top card from
+     * @returns The removed card, if any
+     */
+    override removeTop(index: number) : MonsterCard | undefined {
+        if (index < 0) {
+            return undefined;
+        }
+        const card = this._slots[index]!.pop();
+        if(this._slots[index]!.length === 0) {
+            this.fillEmptySpots(false);
+        }else{
+            this.createMonsterAtSlot(index);
+        }
+        return card;
+    }
+
+    /**
+     * Moves the top card of a slot to the bottom of the monster deck.
+     * 
+     * @param index - The slot index to move from
+     */
+    override moveToBottom(index: number) : void {
+        if (index >= 0) {
+            const card = this._slots[index]!.pop();
+            this.fillEmptySpots(false);
+            this._deck.addBottomPosition(card!);
+        }
+    }
+    
+    /**
+     * Discards all top cards from all slots and refills.
+     * Used for effects that clear the encounter area.
+     */
+    override flush() : void {
+        for (let i = 0; i < this._slots.length; i++) {
+            if(this.monsterIn(i) !== undefined && !this.monsterIn(i)?.isEngagedInCombat)
+                this.discardTop(i);
+        }
+        this.fillEmptySpots(false);
     }
 
     /**
@@ -326,55 +487,6 @@ class Encounters {
         }
     }
 
-    removeFromSlot(card: MonsterCard): boolean {
-        for (let i = 0; i < this._slots.length; i++) {
-            for (let j = this._slots[i]!.length - 1; j >= 0; j--) {
-                if (this._slots[i]![j] === card) {
-                    if(j === this._slots[i]!.length - 1)
-                        this.removeTop(i);
-                    else
-                    {
-                        this._slots[i]!.splice(j, 1);
-                        this.fillEmptySpots();
-                    }
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-
-    /**
-     * Obtains a specific card from the encounter area by its slug.
-     * Searches all slots, then the discard pile, then the deck.
-     * The card is removed from wherever it's found.
-     * 
-     * @param slug - The unique identifier of the card to obtain
-     * @returns The card if found, undefined otherwise
-     */
-    obtainCard(slug: string, globalId?: number): Card | undefined{
-        for (let i = 0; i < this._slots.length; i++) {
-            const indexInSlot = this._slots[i]!.findIndex(card =>
-                card.slug === slug && (globalId === undefined || card.globalId === globalId)
-            );
-            if (indexInSlot >= 0) {
-                const card = this._slots[i]![indexInSlot];
-                this._slots[i]!.splice(indexInSlot, 1);
-                this.fillEmptySpots(true);
-                return card;
-            }
-        }
-        const card = globalId === undefined
-            ? this._deck.discard.find(card => card.slug === slug)
-            : this._deck.discard.find(card => card.slug === slug && card.globalId === globalId);
-        if (card) {
-            this._deck.remove(card);
-            return card;
-        }
-        return this._deck.getCardFromSlug(slug, globalId);
-    }
-
     /**
      * Gets indices of all slots that are either empty or contain monsters not engaged in combat.
      * Used to determine valid attack targets or where new monsters can appear.
@@ -404,86 +516,6 @@ class Encounters {
      */
     addAttackModifier(value: number): void {
         this.attackModifier += value;
-    }
-
-    /**
-     * Draws a card from the monster deck and places it on top of a specific slot.
-     * Creates a new Monster entity for the drawn card.
-     * 
-     * @param position - The slot index to draw to
-     */
-    draw(position: number) : void {
-        const card = this._deck.draw();
-        this._slots[position]!.push(card!);
-        this.createMonsterAtSlot(position);
-    }
-
-    /**
-     * Removes the top card from a slot without sending it to discard.
-     * Refills or reveals the next card in the slot as needed.
-     *
-     * @param index - The slot index to remove the top card from
-     * @returns The removed card, if any
-     */
-    removeTop(index: number) : MonsterCard | undefined {
-        if (index < 0) {
-            return undefined;
-        }
-        const card = this._slots[index]!.pop();
-        if(this._slots[index]!.length === 0) {
-            this.fillEmptySpots(false);
-        }else{
-            this.createMonsterAtSlot(index);
-        }
-        return card;
-    }
-    /**
-     * Discards the top monster card from a slot and refills the slot.
-     * The card goes to the discard pile of the monster deck.
-     * 
-     * @param index - The slot index to discard from
-     */
-    discardTop(index: number) : void {
-        if (index >= 0) {
-            const card = this.removeTop(index);
-            this._deck.addDiscardTop(card!);
-        }
-    }
-    
-    /**
-     * Moves the top card of a slot to the bottom of the monster deck.
-     * 
-     * @param index - The slot index to move from
-     */
-    moveToBottom(index: number) : void {
-        if (index >= 0) {
-            const card = this._slots[index]!.pop();
-            this.fillEmptySpots(false);
-            this._deck.addBottomPosition(card!);
-        }
-    }
-    
-    /**
-     * Discards all top cards from all slots and refills.
-     * Used for effects that clear the encounter area.
-     */
-    flush() : void {
-        for (let i = 0; i < this._slots.length; i++) {
-            if(this.monsterIn(i) !== undefined && !this.monsterIn(i)?.isEngagedInCombat)
-                this.discardTop(i);
-        }
-        this.fillEmptySpots(false);
-    }
-    /**
-     * Expands the encounter area by adding n new slots.
-     * New slots are immediately filled with monsters.
-     * 
-     * @param n - Number of new slots to add
-     */
-    expand(n: number): void {
-        for (let i = 0; i < n; i++)
-            this._slots.push([]);
-        this.fillEmptySpots();
     }
     
     /**
@@ -517,25 +549,6 @@ class Encounters {
         else
             throw new Error("Monster not found in encounters");
     }
-
-    flushAndDraw(): void {
-        this.flush();
-        for (let i = 0; i < this._slots.length; i++) {
-            if(this._slots[i]!.length > 1)
-                this.draw(i);
-        }
-    }
-
-    /**
-     * Moves all top cards from all slots to the bottom of the deck.
-     * Different from flush as cards go to bottom instead of discard.
-     */
-    flushToBottom(): void {
-        for (let i = 0; i < this._slots.length; i++) {
-            this.moveToBottom(i);
-        }
-        this.fillEmptySpots(false);
-    }
     
     /**
      * Kills a specific monster entity.
@@ -557,7 +570,7 @@ class Encounters {
      * @param index - The slot index to kill from
      * @returns The killed monster card, or undefined if slot is invalid
      */
-    killTop(index: number) : Card | undefined {
+    killTop(index: number) : MonsterCard | undefined {
         if (index >= 0) {
             const card = this._slots[index]!.pop();
             if(this._slots[index]!.length > 0)
@@ -608,4 +621,90 @@ class Encounters {
         return this._monstersInPlay.filter((m): m is Monster => m !== undefined);
     }
 }
-export { Encounters, Shop };
+
+export class Rooms extends Slots<RoomCard> {
+    /** @private Reference to the game instance */
+    _game: Game; // Game type
+    
+
+    constructor(nbRooms: number, deck: Deck<RoomCard>, game: Game) {
+        super(nbRooms, deck);
+        this._game = game;
+        this.fillEmptySpots();
+    }
+
+    /**
+     * Draws a card from the monster deck and places it on top of a specific slot.
+     * Creates a new Monster entity for the drawn card.
+     * 
+     * @param position - The slot index to draw to
+     */
+    override draw(position: number) : void {
+        const card = this._deck.draw();
+        this._slots[position]!.push(card!);
+        card.onAddInPlay(this._game.currentPlayer);
+    }
+
+    get activeRooms(): RoomCard[] {
+        return this._slots.map(slot => slot[slot.length - 1]!).filter(card => card !== undefined);
+    }
+
+    /**
+     * Removes the top card from a slot without sending it to discard.
+     * Refills or reveals the next card in the slot as needed.
+     *
+     * @param index - The slot index to remove the top card from
+     * @returns The removed card, if any
+     */
+    override removeTop(index: number) : RoomCard | undefined {
+        if (index < 0) {
+            return undefined;
+        }
+        const card = this._slots[index]!.pop();
+        card?.cleanup();
+        if(this._slots[index]!.length === 0) {
+            this.fillEmptySpots();
+        }
+        return card;
+    }
+
+    override removeAtIndices(i: number, j: number): RoomCard | undefined {
+        if (i < 0 || i >= this._slots.length || j < 0 || j >= this._slots[i]!.length) {
+            return undefined;
+        }
+        const card = this._slots[i]![j]!;
+        this._slots[i]!.splice(j, 1);
+        card.cleanup();
+        this.fillEmptySpots();
+        return card;
+    }
+
+    forceRoomAtSlot(index: number, roomCard: RoomCard): void {
+        this._deck.addTopPosition(roomCard);
+        const previousCard = this.removeTop(index)!;
+        this._deck.addBottomPosition(previousCard);
+    }
+}
+export class AnimatedList {
+    private _animated: Animated[] = [];
+    
+    constructor() {}
+    
+    add(animated: Animated): void {
+        this._animated.push(animated);
+    }
+    remove(animated: Animated): void {
+        const index = this._animated.indexOf(animated);
+        if (index >= 0) {
+            this._animated.splice(index, 1);
+        }
+    }
+    get all(): Animated[] {
+        return this._animated;
+    }
+
+    reset(): void {
+        this._animated.forEach(animated => animated.card.cleanup());
+        this._animated = [];
+    }
+}

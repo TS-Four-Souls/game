@@ -9,7 +9,7 @@ export type IdentifierType = z.infer<typeof identifierTypeSchema>;
 
 export const entityTypeSchema = identifierTypeSchema.extend({
   color: z.string(),
-  type: z.union([z.literal("player"), z.literal("monster")]),
+  type: z.union([z.literal("player"), z.literal("monster"), z.literal("animated")]),
 });
 export type EntityType = z.infer<typeof entityTypeSchema>;
 
@@ -31,6 +31,7 @@ export type SelectionItem =
   | { type: "stackElement"; payload: StackElement }
   | { type: "player"; payload: EntityType }
   | { type: "monster"; payload: EntityType }
+  | { type: "animated"; payload: EntityType }
   | { type: "deck"; payload: DeckName }
   | { type: "number"; payload: number }
   | { type: "boolean"; payload: boolean }
@@ -101,7 +102,7 @@ export type TemporaryEffect = z.infer<typeof temporaryEffectSchema>;
 const capabilitySchema = z.union([z.literal(true), z.string()]);
 export type Capability = z.infer<typeof capabilitySchema>;
 
-const monsterCardSchema = cardSchema.extend({
+const attackableCardSchema = cardSchema.extend({
   stats: z
     .object({
       healthPoints: z.number(),
@@ -115,9 +116,9 @@ const monsterCardSchema = cardSchema.extend({
     })
     .optional(),
 });
-export type MonsterCard = z.infer<typeof monsterCardSchema>;
+export type MonsterCard = z.infer<typeof attackableCardSchema>;
 
-const inPlayCardSchema = cardSchema.extend({
+const inPlayCardSchema = attackableCardSchema.extend({
   charged: z.boolean().optional(),
   counter: z.number().optional(),
   eternal: z.boolean().optional(),
@@ -303,6 +304,7 @@ const gameParametersSchema = z.object({
   nbNickels: numberGameParameterSchema,
   nbItemsInShop: numberGameParameterSchema,
   nbEncounters: numberGameParameterSchema,
+  nbRooms: numberGameParameterSchema,
   deathPenaltyCoins: numberGameParameterSchema,
   deathPenaltyItem: numberGameParameterSchema,
   deathPenaltyLoot: numberGameParameterSchema,
@@ -313,7 +315,9 @@ const gameParametersSchema = z.object({
   maxHandSize: numberGameParameterSchema,
   allowCoinDonation: booleanGameParameterSchema,
   lootPlayPerTurn: numberGameParameterSchema,
+  playWithBonusSouls: booleanGameParameterSchema,
   nbPlayerCardRestriction: booleanGameParameterSchema,
+  playWithRooms: booleanGameParameterSchema,
 });
 export type GameParametersJson = z.infer<typeof gameParametersSchema>;
 
@@ -543,7 +547,7 @@ const detailedStateSchema = z.object({
     }),
     inPlay: z.array(
       z.object({
-        top: monsterCardSchema,
+        top: attackableCardSchema,
         covered: z.array(cardSchema),
       }),
     ),

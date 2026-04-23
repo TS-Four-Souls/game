@@ -72,7 +72,7 @@ export class Player extends Entity {
 
   private _engagedInPurchase: number = 0;
 
-  private _attackedIdsThisTurn: ("monster" | "topDeck")[] = [];
+  private _attackedIdsThisTurn: (string | "topDeck")[] = [];
 
   private _curses: MonsterCard[] = [];
 
@@ -82,9 +82,6 @@ export class Player extends Entity {
    * Creates a new Player instance.
    * 
    * @param id - Unique identifier for the player (username)
-   * @param attackPoints - Base attack power (default: 1)
-   * @param healthPoints - Maximum and starting health (default: 2)
-   * @param coins - Starting number of coins (default: 0)
    * @param secret - Authentication token (auto-generated if not provided)
    */
   constructor(
@@ -97,6 +94,7 @@ export class Player extends Entity {
     this._inPlay = [];
     this._souls = [];
     this._remainingLootPlay = 0;
+    this.attackable = false;
   }
 
   get slug(): string {
@@ -146,7 +144,7 @@ export class Player extends Entity {
     this._mayAttackForFree.push({ target, nb });
   }
 
-  attackForFree(target: Monster | "topDeck"): boolean {
+  attackForFree(target: Entity | "topDeck"): boolean {
     const freeAttack = this._mayAttackForFree.find(free => free.target === target && free.nb > 0);
     if (freeAttack) {
       freeAttack.nb -= 1;
@@ -185,7 +183,8 @@ export class Player extends Entity {
   /**
    * Returns true if attacking this element satisfies the requirement
    */
-  canAttackThisMonster(elem: (Monster | "topDeck")): boolean {
+  canAttackThisEntity(elem: (Entity | "topDeck")): boolean {
+    if(elem !== "topDeck" && !elem.attackable) return false;
     if (this._mustAttackMonster.length > 0)
     {
       // console.log("Attack requirements:", this._mustAttackMonster.map(req => req.target === "topDeck" ? req.target : req.target.card.slug));
@@ -203,7 +202,7 @@ export class Player extends Entity {
   /**
    * Remove a monster from the must-attack list (call after attacking it)
    */
-  clearAttackRequirement(elem?: Monster | "topDeck" | "any"): void {
+  clearAttackRequirement(elem?: Entity | "topDeck" | "any"): void {
     
     if (!elem) {
       // Clear all requirements
@@ -218,11 +217,37 @@ export class Player extends Entity {
     }
   }
 
-  attackThisId(id: "monster" | "topDeck"): void {
+  /**
+   * Remove must-attack requirements registered by a specific source card.
+   * If `elem` is provided, only requirements matching that target are removed.
+   */
+  clearAttackRequirementsFromSource(source: Card, elem?: Entity | "topDeck" | "any"): void {
+    this._mustAttackMonster = this._mustAttackMonster.filter((req) => {
+      if (req.source !== source) {
+        return true;
+      }
+
+      if (elem === undefined) {
+        return false;
+      }
+
+      if (req.target === elem) {
+        return false;
+      }
+
+      if (Array.isArray(req.target) && elem instanceof Monster && req.target.includes(elem)) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  attackThisId(id: string | "topDeck"): void {
     this._attackedIdsThisTurn.push(id);
   }
   
-  get attackedIdsThisTurn(): ("monster" | "topDeck")[] {
+  get attackedIdsThisTurn(): (string | "topDeck")[] {
     return this._attackedIdsThisTurn;
   }
 
@@ -268,8 +293,8 @@ export class Player extends Entity {
   /**
    * Records that this player completed attack declaration on a target.
    */
-  registerAttackDeclaration(targetRequirement: Monster | "topDeck"): void {
-    const targetKind = targetRequirement === "topDeck" ? "topDeck" : "monster";
+  registerAttackDeclaration(targetRequirement: Entity | "topDeck"): void {
+    const targetKind = targetRequirement === "topDeck" ? "topDeck" : targetRequirement.id;
     if(this.attackThisTurn <= 0 && !this.hasAttackRequirement)
       if(!this.attackForFree(targetRequirement))
         throw new Error("No attacks remaining for this player this turn.");
@@ -412,6 +437,10 @@ export class Player extends Entity {
       }
     }
     throw new Error("No character card in play for this player.");
+  }
+
+  override get card(): CharacterCard{
+    return this.character;
   }
  
   get curses(): MonsterCard[] {
@@ -744,7 +773,8 @@ export class DiceRoll extends StackElement {
       this.readyToResolve = false;
   }
   roll(): number {
-    this._value = Math.floor(this._random() * 6) + 1;
+    const old = this._value;
+    this.value = Math.floor(this._random() * 6) + 1;
     return this._value;
   }
   /**

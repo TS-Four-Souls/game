@@ -22,7 +22,8 @@ import type {
     OnLootPlayedData,
     OnItemDestroyedData,
     OnLootStepData,
-    OnLootWouldData
+    OnLootWouldData,
+    OnDeathPenaltyData
 } from "../types/eventTypes";
 import { Entity } from "../entity";
 import { selectPlayerOrMonster, type ParsedEffect } from "./effectParser";
@@ -296,7 +297,7 @@ export function chooseMonsterWhenAnotherPlayerAttacksMonsterEffect(game: Game): 
         offAttack = game.emitter.on("on:attack:declared:monster", async ({ eventIssuer, monster }) => {
             if (eventIssuer === data.issuer) return;
             const effect: EffectFunction = async (effectData: EffectData) => {
-                const monsters = game.encounters.monsters.filter(m => game.canDeclareAttackOnMonster(eventIssuer, m, false));
+                const monsters = game.encounters.monsters.filter(m => game.canDeclareAttackOnEntity(eventIssuer, m, false));
                 if(monsters.length === 0) return false;
                 if(!data.issuer || !(data.issuer instanceof Player))
                     throw new Error("chooseMonsterWhenAnotherPlayerAttacksMonsterEffect issuer should be a player.");
@@ -562,39 +563,6 @@ export function firstAttackRollDiceModifier(
             offTurnEnd();
         });
 
-        return true;
-    };
-}
-
-
-// TRIGGERED EFFECT: Uses the stack.
-// Card text: "Each time a monster dies, gain X¢."
-export function gainCoinsOnMonsterDeathEffect(
-    amount: number,
-    game: Game
-): EffectFunction {
-    return (data:EffectData) => {
-        let offDeath: (() => void) | null = null;
-        // Listen for monster death events
-        offDeath = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
-            const { eventIssuer } = eventData;
-            if (!(eventIssuer instanceof Monster)) return;
-            
-            // Create the effect that will execute when the stack resolves
-            const effect = (effectData: EffectData) => {
-                if (!(effectData.issuer instanceof Player)) return false;
-                game.gainCoins(effectData.issuer, amount);
-                return true;
-            };
-            
-            // Add to stack instead of executing immediately
-            addPassiveEffectToStack(game, effect, data, `Gain ${amount}¢ from monster death`);
-        });
-        // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleaners.push(() => {
-            offDeath?.();
-            offDeath = null;
-        });
         return true;
     };
 }
@@ -1134,47 +1102,52 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): Effec
 
 
 // REPLACEMENT EFFECT: Uses "instead" - does not use the stack.
+// if another player would pay the death penalty, you choose what item they would destroy and you gain any loot cards and ¢ they would lose.
 export function replaceDeathPenaltyEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
+        let offPenalty: (() => void) | null = null;
         // Listen for the next death penalty event on this player
-        if (!(data.issuer instanceof Player)) return false;
-        let OriginalDeathPenalty = game.deathPenalty.bind(game);
+        const issuer = data.issuer;
+        if (!(issuer instanceof Player)) return false;
+        let OriginalDeathPenaltyItems = game.deathPenaltyItems.bind(game);
+        game.deathPenaltyItems = async (player: Player): Promise<ItemCard[]> => {
+            const setOfLosableItems = player.inPlay.filter(
+              (c) =>
+                (c instanceof TreasureCard || (c instanceof LootCard && c.trinket)) &&
+              c.eternal === false
+            );
+            if (game.gameParameters.deathPenaltyItem.value > 0 && setOfLosableItems.length > 0) {
+              const numberOfItemsToLose = Math.min(game.gameParameters.deathPenaltyItem.value, setOfLosableItems.length);
+              return (
+                await game.select(issuer, numberOfItemsToLose, numberOfItemsToLose, setOfLosableItems, game.gameParameters.deathPenaltyItem.value > 1
+                    ? "Select items to destroy."
+                    : "Select an item to destroy.", true)
+              ).selected;
+            }
+            return [];
+          }
 
-        game.deathPenalty = async (player: Player) => {
-            const issuer = data.issuer;
-            if (issuer === player) {
-                await OriginalDeathPenalty(player);
+        offPenalty = game.emitter.on("on:death:penalty", (eventData: OnDeathPenaltyData) => {
+            const { eventIssuer, coinsLost, itemsLost, lootCardsLost } = eventData;
+            if (issuer === eventIssuer) return;
+            if(!(eventIssuer instanceof Player))
                 return;
+            game.gainCoins(issuer, coinsLost, data.it);
+            if(lootCardsLost === undefined)
+                console.warn("replaceDeathPenaltyEffect: lootCardsLost is undefined. This should not happen.");
+            for (const loot of lootCardsLost)
+            {
+                game.removeCardFromHand(eventIssuer, loot);
+                game.addCardToHand(issuer, loot);
             }
+            eventData.lootCardsLost = [];
+        });
 
-            const lostCoins = game.loseCoins(player, game.gameParameters.deathPenaltyCoins.value, true);
-            if(!(issuer instanceof Player))
-                throw new Error("replaceDeathPenaltyEffect can only be applied to Players.");
-            game.gainCoins(issuer, lostCoins);
-            const setOfLosableItems = (player.inPlay).filter((c) => (c instanceof TreasureCard || (c instanceof LootCard && c.trinket))
-            && c.eternal === false)
-            if (game.gameParameters.deathPenaltyItem.value > 0) {
-            const itemToLose = (await data.selectAndRecord(game, issuer, game.gameParameters.deathPenaltyItem.value, game.gameParameters.deathPenaltyItem.value, setOfLosableItems, game.gameParameters.deathPenaltyItem.value > 1 ? "Select items " + player.id + " will lose." : "Select an item " + player.id + " will lose.", true, true)).selected[0];
-            if (itemToLose) {
-                if(!(itemToLose instanceof ItemCard))
-                    throw new Error("Death penalty item to lose is not an ItemCard.");
-                game.removeInPlay(player, itemToLose);
-                game.discard(itemToLose);
-            }
-            }
-            if(game.gameParameters.deathPenaltyLoot.value > 0) {
-                 const lootToLose = (await data.selectAndRecord(game, player, game.gameParameters.deathPenaltyLoot.value, game.gameParameters.deathPenaltyLoot.value, player.hand.cards, game.gameParameters.deathPenaltyLoot.value > 1 ? "Select loot cards " + player.id + " will lose." : "Select a loot card " + player.id + " will lose.", true, false)).selected[0];
-                if (lootToLose) {
-                    const card = game.getCardFromHand(player, lootToLose);
-                    if(!(data.issuer instanceof Player))
-                        throw new Error("replaceDeathPenaltyEffect can only be applied to Players.");
-                    game.addCardToHand(data.issuer, lootToLose);
-                }
-            }
-        }
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
-            game.deathPenalty = OriginalDeathPenalty;
+            game.deathPenaltyItems = OriginalDeathPenaltyItems;
+            offPenalty?.();
+            offPenalty = null;
         });
         return true;
     };
@@ -1446,16 +1419,51 @@ export function shopItemsCostLessEffect(discount: number, game: Game): EffectFun
     };
 }
 
+export function onMonsterDeathEffect(
+    effectFunctions: EffectFunction[],
+    game: Game,
+    description: string): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        
+        offDamage = game.emitter.on("on:death:monster", (eventData: OnDeathBeforePenaltyData) => {
+            const { eventIssuer, target } = eventData;
+            if (!(eventIssuer instanceof Monster)) return;
+            
+            // Add all effects as a single stack element
+            const effect = async (effectData: EffectData) => {
+                if(description.includes(" the player who killed it "))
+                    effectData.addTarget(target);
+                for (const func of effectFunctions) {
+                    await func(effectData);
+                }
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, description);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
 export function lootStepEffect(
     effectFunctions: EffectFunction[],
-    game: Game
+    game: Game,
+    anyPlayer: boolean = false
 ): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
 
         offDamage = game.emitter.on("on:loot:step", (eventData: OnLootStepData) => {
             const { eventIssuer } = eventData;
-            if (data.issuer !== eventIssuer) return;
+            if (!anyPlayer && data.issuer !== eventIssuer) return;
+            if(anyPlayer)
+                data.issuer = eventIssuer;
             for (const func of effectFunctions)
                 func(data);
         });

@@ -10,7 +10,7 @@ function setupBonusSoulsTestGame(soulSlug: string) {
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip","b2-leech","b2-gurdy"],
                     treasureDeck: ["b2-boomerang", "b2-guppys_head", "b2-no", "b2-blank_card"],
-                    bonusSouls: [soulSlug],
+                    bonusSouls: [soulSlug, "b2-soul_of_gluttony", "b2-soul_of_greed"],
                     playerCount: 2
                 });
     const game = setup.game;
@@ -35,7 +35,7 @@ describe("Four Souls+2 Loot Cards", () => {
         game.addLootPlay(player1, 2);
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             expect(Options.length).toBe(1);
-                return { selected: Options[0], remaining: [] } as any;
+                return { selected: [Options[0]], remaining: [] } as any;
             };
         game.addCardToHand(player1, soul1);
         game.addCardToHand(player1, soul2);
@@ -44,26 +44,37 @@ describe("Four Souls+2 Loot Cards", () => {
         await game.resolveStack();
         expect(player1.totalSouls).toBe(1);
         expect(player1.souls.map(c => c.slug)).not.toContain("r-soul_of_envy");
+        expect(player2.totalSouls).toBe(0);
+        expect(player2.souls.map(c => c.slug)).not.toContain("r-soul_of_envy");
 
         game.playCard(player1, 0, []);
         await game.resolveStack();
         expect(player1.totalSouls).toBe(2);
         expect(player1.souls.map(c => c.slug)).not.toContain("r-soul_of_envy");
+        expect(player2.totalSouls).toBe(0);
+        expect(player2.souls.map(c => c.slug)).not.toContain("r-soul_of_envy");
 
         game.playCard(player1, 0, []);
         await game.resolveStack();
-        expect(player1.totalSouls).toBe(4);
-        expect(player1.souls.map(c => c.slug)).toContain("r-soul_of_envy");
+        expect(player1.totalSouls).toBe(3);
+        expect(player1.souls.map(c => c.slug)).not.toContain("r-soul_of_envy");
+        await Promise.resolve(); // Wait for any pending promises (like selection) to resolve
+        expect(player2.totalSouls).toBe(1);
+        expect(player2.souls.map(c => c.slug)).toContain("r-soul_of_envy");
     });
 
 it("Soul of Lust - each time a player kills a monster, put a counter on this. - 6 counters", async () => {
         ({ game, player1, player2 } = setupBonusSoulsTestGame("r-soul_of_lust"));
-
+        for (const monster of ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip"]) {
+            game.addTopPosition("monster", game.obtainCard(monster)!);
+        }
         for(let i=0; i<6; i++) {
             game.kill(player1, game.monsters[0]!, player1.inPlay[0]!);
-            expect(game.currentPlayer.totalSouls).toBe((i === 6 ? 1 : 0));
+            await game.resolveStack();
+            expect(game.currentPlayer.totalSouls).toBe((i === 5 ? 1 : 0));
             await game.endTurn();
         }
+        await game.endTurn();
         expect(game.currentPlayer.souls.map(c => c.slug)).toContain("r-soul_of_lust");
     });
 
@@ -71,9 +82,9 @@ it("Soul of Lust - each time a player kills a monster, put a counter on this. - 
         ({ game, player1, player2 } = setupBonusSoulsTestGame("r-soul_of_pride"));
         for(let i=0; i<6; i++) {
             game.gainTreasure(player1, 1);
-            expect(player1.totalSouls).toBe((i === 6 ? 1 : 0));
+            expect(game.currentPlayer.totalSouls).toBe((i === 5 ? 1 : 0));
         }
-        expect(player1.souls.map(c => c.slug)).toContain("r-soul_of_pride");
+        expect(game.currentPlayer.souls.map(c => c.slug)).toContain("r-soul_of_pride");
     });
 
 it("Soul of Wrath - each time a player dies, put a counter on this. - 6 counters", async () => {
@@ -81,7 +92,8 @@ it("Soul of Wrath - each time a player dies, put a counter on this. - 6 counters
 
         for(let i=0; i<6; i++) {
             game.kill(player1, game.currentPlayer, player1.inPlay[0]!);
-            expect(game.currentPlayer.totalSouls).toBe((i === 6 ? 1 : 0));
+            await game.resolveStack();
+            expect(game.currentPlayer.totalSouls).toBe((i === 5 ? 1 : 0));
             await game.endTurn();
         }
         await game.endTurn();
@@ -95,6 +107,7 @@ it("Soul of Sloth - the first time a player controls 4 items, the active player 
             game.gainTreasure(player1, 1);
             expect(player2.totalSouls).toBe((i === 4 ? 1 : 0));
         }
+        await Promise.resolve(); // Wait for any pending promises (like selection) to resolve
         expect(player2.souls.map(c => c.slug)).toContain("r-soul_of_sloth");
     });
 });

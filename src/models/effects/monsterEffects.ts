@@ -280,7 +280,7 @@ export function doubleRewardsOnDeathRollEffect(game: Game, rollValues: number[])
             
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
-                game.monsterRewards(data.issuer as Monster);
+                game.entityRewards(data.issuer as Monster);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `When ${data.it.name} dies, if the killing roll was ${rollValues.join(" or ")}, it grants double rewards.`);
@@ -845,7 +845,7 @@ export function bossRushEffect(game: Game): EffectFunction {
             game.encounters.draw(slotIndex);
         }
         const monsters = selectedIndices.map(index => game.encounters.monsters[index]!);
-        game.encounters.removeFromSlot(data.it);
+        game.encounters.removeCard(data.it);
         game.encounters._deck.addDiscardTop(data.it); 
         game.playerMustAttack(game.currentPlayer, monsters, data.it);
         return true;

@@ -1,5 +1,5 @@
-import { type EffectOnStackJson, type LootCardOnStackJson } from '@/shared/api';
-import type { BonusSoulCardType, CardRewards, CharacterCardType, EternalCardType, GenericCardType, InPlayCardType, LootCardType, MonsterCardType, TreasureCardType } from '@/types/cardTypes';
+import { type EffectOnStackJson, type LootCardOnStackJson, type Room } from '@/shared/api';
+import type { BonusSoulCardType, CardRewards, CharacterCardType, EternalCardType, GenericCardType, InPlayCardType, LootCardType, MonsterCardType, RoomCardType, TreasureCardType } from '@/types/cardTypes';
 import { print, shuffle } from '@/utils/auxiliary';
 import type { Entity } from './entity';
 import type { GameParameters } from './gameParameters';
@@ -401,8 +401,12 @@ class Card {
     protected _souls: number = 0;
     protected _charged: boolean = true;
     protected _owner!: Entity;
+    protected _associatedEntity!: Entity;
     protected _eternal: boolean = false;
     protected _cleanup: (() => void)[] = [];
+    protected _onFlip: (() => void)[] = [];
+    protected _entity: Entity | undefined = undefined;
+
     constructor(id: number,
         globalId: number,
         json: GenericCardType) {
@@ -443,6 +447,15 @@ class Card {
         return this._effectInterface.activeEffectList;
     }
 
+    get entity(): Entity | undefined {
+        return this._entity;
+    }
+    get hasEntity(): boolean {
+        return this._entity !== undefined;
+    }
+    set entity(value: Entity | undefined) {
+        this._entity = value;
+    }
     get charged(): boolean {
         return this._charged;
     }
@@ -510,7 +523,12 @@ class Card {
     set owner(value: Entity) {
         this._owner = value;
     }
-
+    flip(): void {
+        [this._front, this._back] = [this._back, this._front];
+        for (const onFlipEffect of this._onFlip) {
+            onFlipEffect();
+        }
+    }
     cleanup(): void {
         for (const cleaner of this._cleanup) {
             cleaner();
@@ -774,6 +792,11 @@ export class LootCardEffect extends StackElement {
     }
 }
 
+export class RoomCard extends ItemCard {
+    constructor(id: number, globalId: number, json: RoomCardType) {
+        super(id, globalId, json);
+    }
+}
 class TreasureCard extends ItemCard {
 
     constructor(id: number, globalId: number, json: TreasureCardType) {
@@ -935,6 +958,7 @@ type CardToJsonType<T extends Card> =
     T extends TreasureCard ? TreasureCardType :
     T extends MonsterCard ? MonsterCardType :
     T extends BsoulCard ? BonusSoulCardType :
+    T extends RoomCard ? RoomCardType :
     GenericCardType;
 
 /**
@@ -947,6 +971,7 @@ function createCardFromJson(id: number, globalId: number, json: EternalCardType)
 function createCardFromJson(id: number, globalId: number, json: CharacterCardType): CharacterCard;
 function createCardFromJson(id: number, globalId: number, json: MonsterCardType): MonsterCard;
 function createCardFromJson(id: number, globalId: number, json: BonusSoulCardType): BsoulCard;
+function createCardFromJson(id: number, globalId: number, json: RoomCardType): RoomCard;
 function createCardFromJson(id: number, globalId: number, json: GenericCardType): Card;
 function createCardFromJson(id: number, globalId: number, json: GenericCardType): Card {
     switch (json.type) {
@@ -962,6 +987,8 @@ function createCardFromJson(id: number, globalId: number, json: GenericCardType)
             return new MonsterCard(id, globalId, json);
         case "bsoul":
             return new BsoulCard(id, globalId, json);
+        case "room":
+            return new RoomCard(id, globalId, json);
         default:
             console.log(`Unknown card: ${json}, adding as generic Card.`);
             return new Card(id, globalId, json);
@@ -1024,6 +1051,7 @@ function LoadsCardSets(json_array: GenericCardType[]) : CardSetsCollection {
         character: new CardSet<CharacterCard>('character'),
         monster: new CardSet<MonsterCard>('monster'),
         bsoul: new CardSet<BsoulCard>('bsoul'),
+        room: new CardSet<RoomCard>('room'),
     };
     
     let globalId = 0;
@@ -1053,8 +1081,11 @@ function LoadsCardSets(json_array: GenericCardType[]) : CardSetsCollection {
             case "bsoul":
                 sets.bsoul.addCard(card_json, globalId++);
                 break;
+            case "room":
+                sets.room.addCard(card_json, globalId++);
+                break;
             default:
-                throw new Error(`Unknown card type: ${type}. Only loot, treasure, eternal, character, monster, and bsoul are allowed.`);
+                throw new Error(`Unknown card type: ${type}. Only loot, treasure, eternal, character, monster, bsoul, and room are allowed.`);
         }
     }
     return sets;
@@ -1347,7 +1378,7 @@ class Hand {
 }
 
 export function isDeckType(value: string): value is DeckType {
-    return ['loot', 'treasure', 'eternal', 'character', 'monster', 'bsoul'].includes(value);
+    return ['loot', 'treasure', 'eternal', 'character', 'monster', 'bsoul', 'room'].includes(value);
 }
 
 export function assertCardMatchesDeck<T extends DeckType>(
@@ -1367,6 +1398,7 @@ function createEmptyDecksCollection(random: () => number): DecksCollection {
         character: new CardSet<CharacterCard>('character'),
         monster: new CardSet<MonsterCard>('monster'),
         bsoul: new CardSet<BsoulCard>('bsoul'),
+        room: new CardSet<RoomCard>('room'),
     };
     return {
         loot: new Deck(emptyCardSets.loot, 'loot', [], random),
@@ -1375,6 +1407,7 @@ function createEmptyDecksCollection(random: () => number): DecksCollection {
         character: new Deck(emptyCardSets.character, 'character', [], random),
         monster: new Deck(emptyCardSets.monster, 'monster', [], random),
         bsoul: new Deck(emptyCardSets.bsoul, 'bsoul', [], random),
+        room: new Deck(emptyCardSets.room, 'room', [], random),
     };
 }
 
@@ -1383,7 +1416,7 @@ function LoadDecks(json_array: GenericCardType[], numPlayers: number, parameters
     const decks_cardSets = LoadsCardSets(json_array);
     
     const decks = {} as DecksCollection;
-    const cardTypes: (keyof CardSetsCollection)[] = ['loot', 'treasure', 'eternal', 'character', 'monster', 'bsoul'];
+    const cardTypes: (keyof CardSetsCollection)[] = ['loot', 'treasure', 'eternal', 'character', 'monster', 'bsoul', 'room'];
     const restrictionCounters: Map<string, number> = new Map();
     for (const type of cardTypes) {
         const set = decks_cardSets[type] as CardSet<any>;

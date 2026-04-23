@@ -71,6 +71,7 @@ export class GameParameters {
     readonly nb4Cents: NumericGameParameter;
     readonly nbNickels: NumericGameParameter;
     readonly nbItemsInShop: NumericGameParameter;
+    readonly nbRooms: NumericGameParameter;
     readonly nbEncounters: NumericGameParameter;
     readonly deathPenaltyCoins: NumericGameParameter;
     readonly deathPenaltyItem: NumericGameParameter;
@@ -82,6 +83,8 @@ export class GameParameters {
     readonly lootPlayPerTurn: NumericGameParameter;
     readonly maxHandSize: NumericGameParameter;
     readonly allowCoinDonation: BooleanGameParameter;
+    readonly playWithBonusSouls: BooleanGameParameter;
+    readonly playWithRooms: BooleanGameParameter;
     /** only cards with minimum player requirement satisfied in decks. */
     readonly nbPlayerCardRestriction: BooleanGameParameter;
 
@@ -94,6 +97,7 @@ export class GameParameters {
         this.nb4Cents = new NumericGameParameter(0, 11, 11, onChange);
         this.nbNickels = new NumericGameParameter(0, 6, 6, onChange);
         this.nbItemsInShop = new NumericGameParameter(0, 2, 6, onChange);
+        this.nbRooms = new NumericGameParameter(1, 1, 1, onChange);
         this.nbEncounters = new NumericGameParameter(1, 2, 6, onChange);
         this.deathPenaltyCoins = new NumericGameParameter(0, 2, 20, onChange);
         this.deathPenaltyItem = new NumericGameParameter(0, 1, 10, onChange);
@@ -106,12 +110,16 @@ export class GameParameters {
         this.allowCoinDonation = new BooleanGameParameter(true, onChange);
         this.lootPlayPerTurn = new NumericGameParameter(1, 1, 10, onChange);
         this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
+        this.playWithBonusSouls = new BooleanGameParameter(true, onChange);
+        this.playWithRooms = new BooleanGameParameter(false, onChange);
     }
 
     toJson(): GameParametersJson {
         return {
             edenVariant: {text: "Eden Variant", value: this.edenVariant.value},
             miniDraft: {text: "Mini-draft", value: this.miniDraft.value},//: At the start of the game, lay out (number of players + 1) treasure cards. Each player choose one of them and gain them, in turn order. Put the last card on the bottom of the treasure deck. Repeat this process with the order reversed.
+            playWithBonusSouls: {text: "Play with bonus souls?", value: this.playWithBonusSouls.value}, // If player card restriction is on, there are 3 bonus souls in the pool at the start of the game, otherwise there are none.
+            playWithRooms: {text: "Play with rooms?", value: this.playWithRooms?.value}, // If true, rooms are added to the game. Each player starts with 1 room in play, and one room is added to the shop. Players can play a card on a room to add it to the room, and gain its effect as long as it's in the room. When the room is removed from play, all cards in it are discarded.
             nbPennies: {text: "Number of pennies", value: this.nbPennies.value},
             nb2Cents: {text: "Number of 2-cents", value: this.nb2Cents.value},
             nb3Cents: {text: "Number of 3-cents", value: this.nb3Cents.value},
@@ -119,6 +127,7 @@ export class GameParameters {
             nbNickels: {text: "Number of nickels", value: this.nbNickels.value},
             nbItemsInShop: {text: "Number of items in the shop", value: this.nbItemsInShop.value},
             nbEncounters: {text: "Number of encounters", value: this.nbEncounters.value},
+            nbRooms: {text: "Number of rooms", value: this.nbRooms.value},
             deathPenaltyCoins: {text: "Death penalty coins", value: this.deathPenaltyCoins.value},
             deathPenaltyItem: {text: "Death penalty item", value: this.deathPenaltyItem.value},
             deathPenaltyLoot: {text: "Death penalty loot", value: this.deathPenaltyLoot.value},
@@ -143,6 +152,7 @@ export class GameParameters {
         this.nbNickels.reset();
         this.nbItemsInShop.reset();
         this.nbEncounters.reset();
+        this.nbRooms.reset();
         this.deathPenaltyCoins.reset();
         this.deathPenaltyItem.reset();
         this.deathPenaltyLoot.reset();
@@ -150,6 +160,11 @@ export class GameParameters {
         this.lootOnStart.reset();
         this.coinsOnStart.reset();
         this.shopPrice.reset();
+        this.playWithBonusSouls.reset();
+        this.playWithRooms.reset();
+        this.maxHandSize.reset();
+        this.allowCoinDonation.reset();
+        this.lootPlayPerTurn.reset();
         this.nbPlayerCardRestriction.reset();
     }
 }

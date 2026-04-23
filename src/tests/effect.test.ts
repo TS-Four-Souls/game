@@ -97,8 +97,8 @@ describe("Effect - additional unique implementations", () => {
     p2.hand.addToHand(c); // p2 has more cards
     p2.gainCoins(5);
     // Use a real loot card
-    const card = game.decks["loot"]!.cards[0];
-    active.drawAndGainCoinsAsAPlayerEffect(p1, p2, game);
+    const card = game.decks["loot"]!.cards[0]!;
+    active.drawAndGainCoinsAsAPlayerEffect(p1, p2, card, game);
     expect(p1.hand.cards.length).toBe(1);
     expect(p1.coins).toBe(5);
   });

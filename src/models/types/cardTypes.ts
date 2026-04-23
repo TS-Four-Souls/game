@@ -1,6 +1,6 @@
 import type { Player } from '../player';
 import type { Entity } from '../entity';
-import type { Card, LootCard, TreasureCard, EternalCard, CharacterCard, MonsterCard, BsoulCard } from '../cards';
+import type { Card, LootCard, TreasureCard, EternalCard, CharacterCard, MonsterCard, BsoulCard, RoomCard } from '../cards';
 import type { Game } from '../game';
 
 /**
@@ -129,6 +129,7 @@ export type CardSetsCollection = {
     character: import('../cards').CardSet<CharacterCard>;
     monster: import('../cards').CardSet<MonsterCard>;
     bsoul: import('../cards').CardSet<BsoulCard>;
+    room: import('../cards').CardSet<RoomCard>;
 };
 
 /**
@@ -141,6 +142,7 @@ export type DecksCollection = {
     character: import('../cards').Deck<CharacterCard>;
     monster: import('../cards').Deck<MonsterCard>;
     bsoul: import('../cards').Deck<BsoulCard>;
+    room: import('../cards').Deck<RoomCard>;
 };
 
 /**
@@ -158,4 +160,5 @@ export type DeckTypeToCardType = {
     character: CharacterCard;
     monster: MonsterCard;
     bsoul: BsoulCard;
+    room: RoomCard;
 };

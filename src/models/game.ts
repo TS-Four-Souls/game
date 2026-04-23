@@ -2,8 +2,9 @@ import {
   getAttackRollEffect,
   targetGetCoinRollEffect,
   targetGetLootRollEffect,
+  targetGetTreasureRollEffect
 } from "@/models/effects/activeEffect";
-import { bSoulEffectParser } from "@/models/effects/bonusSoulHandling";
+import { bSoulEffectParser } from "@/models/effects/bonusSoulEffects";
 import {
   BsoulCard,
   Card,
@@ -19,6 +20,7 @@ import {
   LootCardEffect,
   MonsterCard,
   MonsterType,
+  RoomCard,
   TreasureCard,
   assertCardMatchesDeck,
   createCardFromJson,
@@ -27,10 +29,10 @@ import {
   isSameSlug
 } from "@/models/cards";
 import { effectParser } from "@/models/effects/effectParser";
-import { Entity } from "@/models/entity";
+import { Entity, Animated } from "@/models/entity";
 import { Monster } from "@/models/monster";
 import { DamageOnStack, DeathOnStack, DiceRoll, Player } from "@/models/player";
-import { Encounters, Shop } from "@/models/slots";
+import { Encounters, Shop, AnimatedList, Rooms } from "@/models/slots";
 import { Stack, type StackElement } from "@/models/stack";
 import { TargetBuilder } from "@/models/targetBuilder";
 import type { DeckType, DeckTypeToCardType, DecksCollection, EffectData, EffectType, TargetsSelector } from "@/models/types/cardTypes";
@@ -44,6 +46,7 @@ import { GameParameters } from "./gameParameters";
 import { HistoricHandler, type HistoricEntry } from "./historyHandler";
 import { TurnHandler } from "./turnHandler";
 import { edenGame, miniDraft } from "./variants";
+import { en } from "zod/locales";
 // Type representing sources of damage - either a card ability or a dice roll
 export type DamageSource = Card | DiceRoll;
 
@@ -63,14 +66,16 @@ export class Game {
   private _ongoingAttack: { player: Player; monster: Monster } | null = null;
   private _shop!: Shop;
   private _encounters!: Encounters;
+  private _rooms!: Rooms;
   private _stack: Stack = new Stack();
   private _destroyedCards: Card[] = [];
   private _emitter: GameEventEmitter;
-  private _bonusSouls: BsoulCard[] = [];
+  private _bonusSouls: BsoulCard[] | undefined = undefined;
   private _stackSubsetCallbacks: {stackIds: number[], callback: () => void}[] = [];
   private _historicHandler: HistoricHandler = new HistoricHandler();
   private _cardMapping: Map<number, Card> = new Map();
   private _nextCardGlobalId: number = 0;
+  private _animatedList: AnimatedList = new AnimatedList();
   readonly gameParameters = new GameParameters(() => this._onStateChange.dispatch());
 
   private _onStateChange: Signal<void> = new Signal();
@@ -128,6 +133,13 @@ export class Game {
     return [
       ...this.players,
       ...this.monsters.filter((m): m is Monster => m !== undefined),
+    ];
+  }
+
+  get EntitiesAndAnimated(): Entity[] {
+    return [
+      ...this.Entities,
+      ...this.animatedList.all
     ];
   }
 
@@ -198,16 +210,28 @@ export class Game {
 
   get inPlayCurses(): { player: Player; card: MonsterCard }[] {this.players.flatMap(p => p.curses.map(c => ({player: p, card: c})));
     return this.players.flatMap(p => p.curses.map(c => ({player: p, card: c})));
-
   }
 
+  get animatedList(): AnimatedList {
+    return this._animatedList;
+  }
+  addAnimated(animated: Animated): void {
+    this._animatedList.add(animated);
+  }
+  removeAnimated(animated: Animated): void {
+    this._animatedList.remove(animated);
+  }
+
+  get attackableEntities(): Entity[] {
+    return [...this.Entities.filter(e => e.attackable), ...this.animatedList.all.filter(e => e.attackable)];
+  }
   /**
    * This function returns all visible treasure and trinkets: each players inPlay and the shop items.
    */
   get visibleItems(): ItemCard[] {
     let result: ItemCard[] = this.inPlayItems.map(({ card }) => card);
     result.push(
-      ...this.shop._slots.filter((c): c is ItemCard => c instanceof ItemCard)
+      ...this.shop.itemsInShop.filter((c): c is ItemCard => c instanceof ItemCard)
     );
     return result;
   }
@@ -224,7 +248,7 @@ export class Game {
     // player's curses
     cards.push(...player.curses);
     // shop
-    cards.push(...this.shop._slots.filter((c) => c !== undefined));
+    cards.push(...this.shop.itemsInShop.filter((c) => c !== undefined));
     // events and monsters not in combat
     cards.push(...this.encounters.nonEngagedInCombat);
     return cards;
@@ -258,7 +282,7 @@ export class Game {
           const treasure = card as TreasureCard;
           if(!treasure)
             throw new Error(`Card ${card.name} is not a TreasureCard.`);
-          if(this.shop._slots.includes(treasure))
+          if(this.shop.itemsInShop.includes(treasure))
             this.shop.removeCard(treasure);
           else
             this.removeInPlay(player, treasure);
@@ -319,51 +343,77 @@ export class Game {
     target.removeSoul(soul);
     this.addSoul(player, soul);
   }
+
+  /**
+   * Asynchronously selects items to lose as a death penalty.
+   * This is separated from the main deathPenalty function to allow it to be overridden by specific passive effects that modify the item loss penalty without affecting the rest of the death penalty sequence.
+   */
+  async deathPenaltyItems(player: Player): Promise<ItemCard[]> {
+    const setOfLosableItems = player.inPlay.filter(
+      (c) =>
+        (c instanceof TreasureCard || (c instanceof LootCard && c.trinket)) &&
+      c.eternal === false
+    );
+    if (this.gameParameters.deathPenaltyItem.value > 0 && setOfLosableItems.length > 0) {
+      const numberOfItemsToLose = Math.min(this.gameParameters.deathPenaltyItem.value, setOfLosableItems.length);
+      return (
+        await this.select(player, numberOfItemsToLose, numberOfItemsToLose, setOfLosableItems, this.gameParameters.deathPenaltyItem.value > 1
+            ? "Select items to lose."
+            : "Select an item to lose.", true)
+      ).selected;
+    }
+    return [];
+  }
   /**
    * Applies all death penalties configured for a player.
    * It can be override by a specific passive effect.
    */
   async deathPenalty(player: Player): Promise<void> {
     // remove coins.
-    this.loseCoins(player, this.gameParameters.deathPenaltyCoins.value, true);
     // obtain set of items that can be lost.
-    const setOfLosableItems = player.inPlay.filter(
-      (c) =>
-        (c instanceof TreasureCard || (c instanceof LootCard && c.trinket)) &&
-        c.eternal === false
-    );
+    
+    
+    const lostCoins = this.loseCoins(player, this.gameParameters.deathPenaltyCoins.value, true);
+    let lootCardsToLose: LootCard[] = [];
+    let itemsToLose: ItemCard[] = await this.deathPenaltyItems(player);
     // If at least one item can be lost, ask the player to select one.
-    if (this.gameParameters.deathPenaltyItem.value > 0 && setOfLosableItems.length > 0) {
-      const itemToLose = (
-        await this.select(player, this.gameParameters.deathPenaltyItem.value, this.gameParameters.deathPenaltyItem.value, setOfLosableItems, this.gameParameters.deathPenaltyItem.value > 1
-            ? "Select items to lose."
-            : "Select an item to lose.", true)
-      ).selected;
-      if (itemToLose && itemToLose.length > 0) {
-        for (const item of itemToLose) {
-          if(!(item instanceof ItemCard))
-            throw new Error("Selected card is not an ItemCard.");
-          this.removeInPlay(player, item);
-          this.destroyCardsOrSouls([item]);
-        }
-      }
-    }
+    
     // lose loot cards
     if (this.gameParameters.deathPenaltyLoot.value > 0 && player.hand.cards.length > 0) {
-      const lootToLose = (
+      lootCardsToLose = (
         await this.select(player, this.gameParameters.deathPenaltyLoot.value, this.gameParameters.deathPenaltyLoot.value, player.hand.cards, this.gameParameters.deathPenaltyLoot.value > 1
             ? "Select loot cards to lose."
             : "Select a loot card to lose.", true)
       ).selected;
-      if (lootToLose && lootToLose.length > 0) {
-        for (const loot of lootToLose) {
-          this.discardFromHandAtIndex(player, player.hand._hand.indexOf(loot));
-        }
-      }
     }
     // discharge every items. 
     for (const item of player.inPlay)
       if (item.hasTapEffect()) item.charged = false;
+    const deathPenaltyData = {
+      eventIssuer: player,
+      coinsLost: lostCoins,
+      itemsLost: itemsToLose,
+      lootCardsLost: lootCardsToLose,
+    };
+    this.emit("on:death:penalty", deathPenaltyData);
+
+    // Replacement effects may alter the effective penalties during on:death:penalty emission.
+    itemsToLose = deathPenaltyData.itemsLost;
+    lootCardsToLose = deathPenaltyData.lootCardsLost;
+    
+    if (itemsToLose && itemsToLose.length > 0) {
+      for (const item of itemsToLose) {
+        if(!(item instanceof ItemCard))
+          throw new Error("Selected card is not an ItemCard.");
+        this.removeInPlay(player, item);
+        this.destroyCardsOrSouls([item]);
+      }
+    }
+    if (lootCardsToLose && lootCardsToLose.length > 0) {
+      for (const loot of lootCardsToLose) {
+        this.discardFromHandAtIndex(player, player.hand._hand.indexOf(loot));
+      }
+    }
     this._onStateChange.dispatch();
   }
 
@@ -388,29 +438,39 @@ export class Game {
   /**
    * Grants coin/loot/treasure rewards when a monster dies to the current player.
    */
-  monsterRewards(monster: Monster): void {
-    const rewards = monster.card.rewards;
-    if (rewards?.coin) {
-      if (rewards.coin === "roll") {
-        const roll = this.rollDice(this.currentPlayer, false, monster.card);
-        roll.attachEffect(targetGetCoinRollEffect(this), monster.card, [
-          this.currentPlayer,
-        ]);
-      } else if (typeof rewards.coin === "number") {
-        this.gainCoins(this.currentPlayer, rewards.coin);
+  entityRewards(entity: Monster | Animated): void {
+    const rewards = entity.rewards;
+    if(rewards === undefined)
+      return;
+
+    const adders =  {
+      "coin": (player: Player, amount: number) => this.gainCoins(player, amount, entity.card),
+      "loot": (player: Player, amount: number) => this.loot(player, amount),
+      "treasure": (player: Player, amount: number) => this.gainTreasure(player, amount),
+    }
+    const onDice = {
+      "coin": targetGetCoinRollEffect(this),
+      "loot": targetGetLootRollEffect(this),
+      "treasure": targetGetTreasureRollEffect(this),
+    }
+    for(const rewardType of ["coin", "loot", "treasure"] as const)
+      if(rewards[rewardType] !== undefined)
+      {
+        const allPlayers = rewards[rewardType] instanceof Object && "all" in rewards[rewardType] && rewards[rewardType].all
+        const amount = (rewards[rewardType] instanceof Object && "all" in rewards[rewardType]) ? rewards[rewardType].count : rewards[rewardType] as number | "roll";
+        const receivers = allPlayers ? this.players : [this.currentPlayer];
+        for(const receiver of receivers)
+        {
+          if (amount === "roll") {
+            const roll = this.rollDice(receiver, false, entity.card);
+            roll.attachEffect(onDice[rewardType], entity.card, [
+              receiver,
+            ]);
+          } else if (typeof amount === "number") {
+            adders[rewardType](receiver, amount);
+          }
+        }
       }
-    }
-    if (rewards?.loot) {
-      if (rewards.loot === "roll") {
-        const roll = this.rollDice(this.currentPlayer, false, monster.card);
-        roll.attachEffect(targetGetLootRollEffect(this), monster.card, [
-          this.currentPlayer,
-        ]);
-      } else if (typeof rewards.loot === "number")
-        this.loot(this.currentPlayer, rewards.loot);
-    }
-    if (rewards?.treasure && typeof rewards.treasure === "number")
-      this.gainTreasure(this.currentPlayer, rewards.treasure);
   }
 
   /**
@@ -445,7 +505,7 @@ export class Game {
     this.executeWhenStackSubset(stackIds, async () => {
       const stackIds = this.stack.elements.map(e => e.stackId);
       if (receiver.isEngagedInCombat) {
-        this.Entities.forEach((e) => e.combatEnded());
+        this.endCombat();
       }
       if (receiver instanceof Player) {
         receiver.clearAttackRequirement(); // clear any forced attack constraints on this player.
@@ -461,10 +521,21 @@ export class Game {
           source: source,
         });
         this.encounters.kill(receiver); // should only kill once its effects are resolved: should be moved in the resolvewhenstackempty
-        this.monsterRewards(receiver);
+        this.entityRewards(receiver);
         this.executeWhenStackSubset(stackIds, async () => {
           this.obtainMonsterSoulOrDiscard(receiver);
         });
+      }else if (receiver instanceof Animated) {
+        // Clear any forced attack constraints on this animated entity
+        for (const player of this.players) {
+          player.clearAttackRequirement(receiver);
+        }
+        this.emit("on:death:animated", {
+          eventIssuer: receiver,
+          target: from,
+          source: source,
+        });
+        this.entityRewards(receiver);
       }
       this.emit("on:death:after-penalty", {
         eventIssuer: receiver,
@@ -519,11 +590,11 @@ export class Game {
   /**
    * Validates whether a specific monster/top-deck can be attacked.
    */
-  canDeclareAttackOnMonster(player: Player,
-    monster: Monster | "topDeck", shouldThrow: boolean = false): Capability {
+  canDeclareAttackOnEntity(player: Player,
+    entity: Entity | "topDeck", shouldThrow: boolean = false): Capability {
     try {
-      if (monster !== "topDeck" && !monster.attackable) {
-        throw new Error("This monster cannot be attacked.");
+      if (entity !== "topDeck" && !entity.attackable) {
+        throw new Error("This entity cannot be attacked.");
       }
       this.assertCurrentTurnIsPlayerTurn(player);
       this.assertNoOngoingAttack();
@@ -531,14 +602,14 @@ export class Game {
       if (!player.isEngagedInCombat) {
         throw new Error("You have not declared an attack.");
       }
-      const isMonsterAlreadyEngaged = this.monsters.some(
-        (m): m is Monster => m !== undefined && m.isEngagedInCombat
-      );
-      if (isMonsterAlreadyEngaged) {
-        throw new Error("Another monster is already engaged in combat.");
+      const isCombatOngoing = this.attackableEntities.filter(
+        (e) => e !== undefined && e.isEngagedInCombat
+      ).length >= 2;
+      if (isCombatOngoing) {
+        throw new Error("Another entity is already engaged in combat.");
       }
-      if (!player.canAttackThisMonster(monster)) {
-        throw new Error(`You must attack a specific monster.`);
+      if (!player.canAttackThisEntity(entity)) {
+        throw new Error(`You must attack a specific entity.`);
       }
     } catch (e) {
       if (shouldThrow) throw e;
@@ -554,43 +625,47 @@ export class Game {
   /**
    * Binds the current attack to a monster target (or top-deck draw slot).
    */
-  async declareAttackOnMonster(
+  async declareAttackOnEntity(
     player: Player,
-    monster: Monster | "topDeck",
+    target: Entity | "topDeck",
     drawInIndex: number = -1
   ): Promise<void> {
-    const attackTopDeck = monster === "topDeck";
-    const attacked = [monster];
-    if(!attackTopDeck)
+    const attackTopDeck = target === "topDeck";
+    const attacked = [target];
+    if(target instanceof Monster)
       this.emit("on:attack:declared:monster", { eventIssuer: player, monster:attacked });
+    if(target instanceof Animated)
+      this.emit("on:attack:declared:animated", { eventIssuer: player, animated:attacked });
     await this.executeWhenStackEmpty(() => {
-      monster = attacked[0]!; // in case the monster is modified by the event.
-      if (drawInIndex !== -1 && monster !== "topDeck")
+      target = attacked[0]!; // in case the monster is modified by the event.
+      if (drawInIndex !== -1 && target !== "topDeck")
         throw new Error(
           "drawInIndex can only be specified when drawing from topDeck"
         );
-      if (drawInIndex === -1 && monster === "topDeck")
+      if (drawInIndex === -1 && target === "topDeck")
         throw new Error(
           "drawInIndex must be specified when drawing from topDeck"
         );
-      this.canDeclareAttackOnMonster(player, monster, true);
-      player.registerAttackDeclaration(monster);
-      if (monster === "topDeck") {
+      this.canDeclareAttackOnEntity(player, target, true);
+      player.registerAttackDeclaration(target);
+      if (target === "topDeck") {
         this.drawMonster(player, drawInIndex);
         if (
           this.encounters.monsterIn(drawInIndex) === undefined ||
           !this.encounters.monsterIn(drawInIndex)!.attackable
         ) {
-          player.combatEnded();
+          player.clearAttackRequirement(target);
+          player.clearAttackRequirement("any");
+          this.endCombat();
           return; // drawn event.
         }
-        monster = this.encounters.monsterIn(drawInIndex)!;
+        target = this.encounters.monsterIn(drawInIndex)!;
       }
-      player.clearAttackRequirement(monster);
+      player.clearAttackRequirement(target);
       player.clearAttackRequirement("any");
-      this.assertMonsterIsAlive(monster);
-      monster.engageInCombat();
-      if (monster.isEngagedInCombat === false)
+      this.assertIsAlive(target);
+      target.engageInCombat();
+      if (target.isEngagedInCombat === false)
         throw new Error("Monster should be engaged in combat now.");
       
       if(attackTopDeck)
@@ -602,32 +677,34 @@ export class Game {
   /**
    * Computes current monster attack after replacement/modifier effects.
    */
-  getAttack(monster: Monster): number {
-    let baseStat = [monster.attackPoints];
-    this.emit(
-      "on:get:monster:attackPoints",
-      {
-        eventIssuer: monster,
-        stat: baseStat,
-      },
-      false
-    );
+  getAttack(entity: Entity): number {
+    let baseStat = [entity.attackPoints];
+    if(entity instanceof Monster)
+      this.emit(
+        "on:get:monster:attackPoints",
+        {
+          eventIssuer: entity,
+          stat: baseStat,
+        },
+        false
+      );
     return baseStat[0]!;
   }
 
   /**
    * Computes current monster evasion/DC clamped to [1, 6].
    */
-  getDC(monster: Monster): number {
-    let baseStat = [monster.evasion];
-    this.emit(
-      "on:get:monster:evasion",
-      {
-        eventIssuer: monster,
-        stat: baseStat,
-      },
-      false
-    );
+  getDC(entity: Entity): number {
+    let baseStat = [entity.evasion];
+    if(entity instanceof Monster)
+      this.emit(
+        "on:get:monster:evasion",
+        {
+          eventIssuer: entity,
+          stat: baseStat,
+        },
+        false
+      );
     return Math.max(1, Math.min(6, baseStat[0]!));
   }
 
@@ -640,22 +717,17 @@ export class Game {
    * Only tests should not provide a global ID.
    */
   obtainCard(slug: string, globalId?: number): Card | undefined {
-    // Search in shop
-    try {
-      const card = this.shop.obtainCard(slug, globalId);
-      if (card) return card;
-    } catch {
-      // Card not found in shop, continue searching
+    for (const slot of [this.shop, this.encounters, this._rooms]) {
+      try {
+        if(slot === undefined)
+          continue;
+        const card = slot.obtainCard(slug, globalId);
+        if (card) return card;
+      } catch {
+        // Card not found 
+      }
     }
-
-    // Search in encounters
-    try {
-      const card = this.encounters.obtainCard(slug, globalId);
-      if (card) return card;
-    } catch {
-      // Card not found in encounters, continue searching
-    }
-
+    
     // Search in all decks
     for (const deckKey in this.decks) {
       try {
@@ -702,11 +774,11 @@ export class Game {
       this.assertCurrentPlayerIsEngagedInCombat();
       this.assertEmptyStack();
       
-      const monster = [...this.monsters].find(
-        (m): m is Monster => m !== undefined && m.isEngagedInCombat
+      const entity = [...this.attackableEntities].find(
+        (e) => e !== undefined && e.isEngagedInCombat && e !== player
       );
-      if (!monster) {
-        throw new Error("No monster is currently engaged in combat.");
+      if (!entity) {
+        throw new Error("No entity is currently engaged in combat.");
       }
     } catch (e) {
       if (shouldThrow) throw e;
@@ -723,25 +795,29 @@ export class Game {
   /**
    * Creates and configures an attack dice roll for the current combat.
    */
-  attackRoll(player: Player): void {
-    this.canRollDice(player, true);
+  attackRoll(player: Player, target: Entity | undefined = undefined): void {
+    if(target === undefined)
+      this.canRollDice(player, true);
     
-    const monster = [...this.monsters].find(
-      (m): m is Monster => m !== undefined && m.isEngagedInCombat
-    );
-    if (!monster) {
+    if(target === undefined)
+      target = [...this.attackableEntities].find(
+        (m) => m !== undefined && m.isEngagedInCombat && m !== player
+      );
+    if (!target) {
       throw new Error("No monster is currently engaged in combat.");
     }
+    if(!target.isEngagedInCombat)
+      throw new Error("The selected target is not engaged in combat.");
     // damageDealt and damageReceived will be increased by the attack
     // of the dealer and receiver respectively in getAttackRollEffect.
     const damageDealt = [0];
     const damageReceived = [0];
-    const evasion = [this.getDC(monster)];
+    const evasion = [this.getDC(target)];
     const dice = this.rollDice(player, true);
 
     this.emit("on:attack:roll", {
       eventIssuer: player,
-      target: monster,
+      target: target,
       dice,
       damageDealt,
       damageReceived,
@@ -750,7 +826,7 @@ export class Game {
     if (player.attackRollThisTurn === 1)
       this.emit("on:attack:roll:first-time-each-turn", {
         eventIssuer: player,
-        target: monster,
+        target: target,
         dice,
         damageDealt,
         damageReceived,
@@ -764,8 +840,8 @@ export class Game {
         evasion[0]!,
         this
       ),
-      monster.card,
-      [monster]
+      target.card,
+      [target]
     );
   }
 
@@ -897,6 +973,16 @@ export class Game {
     return false;
   }
 
+  makePlayerAttackable(player: Player, evasion: number): void {
+    player.attackable = true;
+    player.evasion = evasion;
+  }
+
+  makePlayerUnattackable(player: Player): void {
+    player.attackable = false;
+    player.evasion = 0;
+  }
+
   /**
    * Adds a new player before game start.
    */
@@ -957,7 +1043,7 @@ export class Game {
       throw new Error(`Invalid selection bounds: min (${min}) must be between 0 and max (${max}).`);
     }
 
-    if (min === max && Options.length === max && skippable) {
+    if ((min === max && Options.length === max && skippable) || Options.length < min) {
       return {
         selected: Options,
         remaining: [],
@@ -1091,37 +1177,13 @@ export class Game {
 
     throw new Error("Not waiting for selection");
   }
-// check if used otherwise delete 
-  // // Get all pending selections (for server to send to clients)
-  // /**
-  //  * Returns all currently pending selection payloads.
-  //  */
-  // getPendingSelections(): Array<{
-  //   playerId: string;
-  //   options: any[];
-  //   min: number;
-  //   max: number;
-  // }> {
-  //   const pending: Array<{
-  //     playerId: string;
-  //     options: any[];
-  //     min: number;
-  //     max: number;
-  //   }> = [];
-
-  //   // Add all pending selections
-  //   for (const selection of this.pendingMultipleSelections.values()) {
-  //     pending.push({
-  //       playerId: selection.playerId,
-  //       options: selection.options,
-  //       min: selection.min,
-  //       max: selection.max,
-  //     });
-  //   }
-
-  //   return pending;
-  // }
-
+  
+  get deckNames(): DeckType[] {
+    const names = ["loot", "treasure", "monster"] as DeckType[];
+    if(this._rooms !== undefined)
+      names.push("room");
+    return names;
+  }
   get monsterSlots(): Encounters {
     return this.encounters;
   }
@@ -1191,6 +1253,7 @@ export class Game {
     this.emit("on:dice:would-roll", { eventIssuer: elem.issuer, diceRoll: elem });
     await this.executeWhenStackSubset(stackIds, async () => {
       // If the value has changed, the roll stays in the stack.
+      
       if (elem.readyToResolve === false)
         {
           this._onStateChange.dispatch();
@@ -1331,7 +1394,7 @@ export class Game {
    * Discards a shop card at a given slot index.
    */
   discardFromShop(index: number): void {
-    return this.shop.discard(index);
+    return this.shop.discardTop(index);
   }
 
   /**
@@ -1362,11 +1425,15 @@ export class Game {
    * Ends combat for all currently engaged entities.
    */
   endCombat(): void {
-    for (const entity of this.Entities) {
+    const engagedEntities = [... this.players, ...this.attackableEntities].filter(
+      (e) => e !== undefined && e.isEngagedInCombat
+    ) as Entity[];
+    for (const entity of engagedEntities) {
       if (entity.isEngagedInCombat) {
         entity.combatEnded();
       }
     }
+    this.emit("on:combat:end", { eventIssuer: engagedEntities.filter(e => e instanceof Player)[0] });
     this._onStateChange.dispatch();
   }
 
@@ -1424,7 +1491,7 @@ export class Game {
       const player = this.assertIssuerSecret(issuer);
       this.assertCurrentTurnIsPlayerTurn(player);
       this.assertCurrentPlayerIsNotEngagedInPurchase();
-      this.assertNoMonsterIsEngagedInCombat();
+      this.assertNoEntityIsEngagedInCombat();
       this.assertCurrentPlayerIsNotEngagedInCombat();
       this.assertEmptyStack();
       this.assertNoOngoingAttack();
@@ -1524,9 +1591,11 @@ export class Game {
    * Draws and initializes the three bonus soul cards.
    */
   initializeBonusSouls(): void {
-    this._bonusSouls = this.decks["bsoul"]!.drawSeveral(3);
-    for (const soul of this._bonusSouls) {
-      soul.cleanup = bSoulEffectParser(soul, this);
+    if(this.decks["bsoul"]._order!.length !== 0) {
+      this._bonusSouls = this.decks["bsoul"]!.drawSeveral(3);
+      for (const soul of this._bonusSouls) {
+        soul.cleanup = bSoulEffectParser(soul, this);
+      }
     }
   }
   /**
@@ -1589,6 +1658,14 @@ export class Game {
       this.decks["monster"]!,
       this
     );
+    if(this.gameParameters.playWithRooms.value === true)
+    {
+      this._rooms = new Rooms(
+        this.gameParameters.nbRooms.value,
+        this.decks["room"]!,
+        this
+      );
+    }
     // fill empty spot may call game.encounters, so it must be called after this._encounters initialization.
     this._encounters.fillEmptySpots(true);
     this.emit("on:game:start:before", {});
@@ -1607,7 +1684,7 @@ export class Game {
     for (const player of this.players) {
       this.gainTreasure(player, this.gameParameters.treasuresOnStart.value);
       this.loot(player, this.gameParameters.lootOnStart.value);
-      this.gainCoins(player, this.gameParameters.coinsOnStart.value);
+      this.gainCoins(player, this.gameParameters.coinsOnStart.value, "gift");
     }
     if(this.gameParameters.miniDraft.value)
       await miniDraft(this);
@@ -1662,7 +1739,7 @@ export class Game {
       }
     }
     this.loseCoins(from, amount, true);
-    this.gainCoins(to, amount);
+    this.gainCoins(to, amount, "gift");
     this._onStateChange.dispatch();
     return true;
   }
@@ -1771,12 +1848,13 @@ export class Game {
     this._encounters = null!;
     this._stack.clear();
     this._emitter = new GameEventEmitter();
-    this._bonusSouls = [];
+    this._bonusSouls = undefined;
     this._destroyedCards = [];
     this._cardMapping.clear();
     this._nextCardGlobalId = 0;
     this.pendingMultipleSelections.clear();
     this.gameParameters.reset();
+    this._animatedList.reset();
   }
 
   /**
@@ -1796,6 +1874,10 @@ export class Game {
       eventIssuer: player,
       card: card,
     });
+  }
+
+  get rooms(): Rooms | undefined {
+    return this._rooms;
   }
 
   /**
@@ -1856,7 +1938,20 @@ export class Game {
     return true;
   }
 
+  async activateRoom(player: Player,
+    room: RoomCard,
+    targets: any[] = [],
+    effectId: number | "tap" = "tap"
+  ): Promise<boolean> {
+    if(!this._rooms || !(room instanceof RoomCard) || (player !== this.currentPlayer))
+      return false;
+    if (!room.targetStillValid(player, effectId, targets))
+      throw new Error("Targets are not valid for this effect.");
 
+    const effectOnStack = await room.tryActivateEffect(targets, effectId);
+    this.addToStack(effectOnStack);
+    return true;
+  }
 
   // An active effect goes on the stack immediately, a passive effect register a listener.
   // A loot card is always an active effect, as even trinket goes to the stack before becoming an item.
@@ -1910,7 +2005,6 @@ export class Game {
       console.log("WARNING: No effect outcomes for card:", card.slug);
       return;
     }
-
     for (const outcome of card.effectOutcomes) {
       const effectType = this.getEffectTypeFromOutcome(outcome, card);
 
@@ -1964,6 +2058,7 @@ export class Game {
       "eternal",
       "treasure",
       "monster",
+      "room",
     ]) {
       if(!isDeckType(deckName))
         throw new Error(`Invalid deck type: ${deckName}`);
@@ -2092,7 +2187,7 @@ export class Game {
   }
 
   /** Grants coins to a player and emits coin gained triggers. */
-  gainCoins(issuer: Issuer, coins: number): string {
+  gainCoins(issuer: Issuer, coins: number, source: Card | "gift"): string {
     this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.assertPositiveNumber(coins);
@@ -2101,11 +2196,13 @@ export class Game {
       this.emit("on:coin:gained", {
         eventIssuer: player,
         coinGained: amount,
+        source: source,
       });
       player.gainCoins(amount[0]!);
       this.emit("on:coin:gained:after", {
         eventIssuer: player,
         coinGained: amount,
+        source: source,
       });
     }
 
@@ -2194,7 +2291,8 @@ export class Game {
       });
     });
     cards.forEach((card) => {
-      this.shop.removeCard(card);
+      if(card instanceof ItemCard)
+        this.shop.removeCard(card);
     });
     this.destroyedCards.push(...cards);
     this._onStateChange.dispatch();
@@ -2274,6 +2372,18 @@ export class Game {
       capabilities: {
         activate: this.canActivate(item, owner),
       },
+      ...(item.entity ? {
+              stats: {
+                healthPoints: item.entity.currentHealthPoints,
+                attackPoints: this.getAttack(item.entity),
+                evasionPoints: this.getDC(item.entity),
+                isEngagedInCombat: item.entity.isEngagedInCombat,
+                capabilities: {
+                  targetable: this.canDeclareAttackOnEntity(player, item.entity, false),
+                },
+                temporaryEffect: item.entity.temporaryEffects,
+              }
+            } : {})
     });
 
     const mapOtherInPlayItem = (item: ItemCard, owner: Player) => ({
@@ -2286,6 +2396,18 @@ export class Game {
       },
       counter: getCardCounter(item),
       eternal: item.eternal,
+      ...(item.entity ? {
+              stats: {
+                healthPoints: item.entity.currentHealthPoints,
+                attackPoints: this.getAttack(item.entity),
+                evasionPoints: this.getDC(item.entity),
+                isEngagedInCombat: item.entity.isEngagedInCombat,
+                capabilities: {
+                  targetable: this.canDeclareAttackOnEntity(player, item.entity, false),
+                },
+                temporaryEffect: item.entity.temporaryEffects,
+              }
+            } : {})
     });
 
     const mapCurse = (curse: MonsterCard, owner: Player) => ({
@@ -2299,6 +2421,18 @@ export class Game {
       capabilities: {
         activate: this.canActivate(curse, owner),
       },
+      ...(curse.entity ? {
+              stats: {
+                healthPoints: curse.entity.currentHealthPoints,
+                attackPoints: this.getAttack(curse.entity),
+                evasionPoints: this.getDC(curse.entity),
+                isEngagedInCombat: curse.entity.isEngagedInCombat,
+                capabilities: {
+                  targetable: this.canDeclareAttackOnEntity(player, curse.entity, false),
+                },
+                temporaryEffect: curse.entity.temporaryEffects,
+              }
+            } : {})
     });
 
     return {
@@ -2349,13 +2483,14 @@ export class Game {
           isEngagedInPurchase: p.isEngagedInPurchase,
           attackRequirements: p.requirementListJSON(this),
           pendingSelection: this.pendingMultipleSelections.values().some(sel => sel.playerId === p.id),
+          targetable: this.canDeclareAttackOnEntity(player, p, false),
         })),
       monsters:
       {
         discard: this.decks["monster"]!.discard.map((c) => c.jsonAPI).toReversed(),
         deckSize: this.decks["monster"]!.cards.length,
         capabilities: {
-          targetableDeck: this.canDeclareAttackOnMonster(player, "topDeck", false),
+          targetableDeck: this.canDeclareAttackOnEntity(player, "topDeck", false),
         },
         inPlay: this.encounters._slots.map((m, index) => ({ card: m[m.length - 1]!, monster: this.encounters.monsterIn(index), covered: this.encounters._slots[index]!.slice(0, -1).map(c => c.jsonAPI) })).map((m) => ({
 
@@ -2370,10 +2505,9 @@ export class Game {
                 evasionPoints: this.getDC(m.monster),
                 isEngagedInCombat: m.monster.isEngagedInCombat,
                 capabilities: {
-                  targetable: this.canDeclareAttackOnMonster(player, m.monster),
+                  targetable: this.canDeclareAttackOnEntity(player, m.monster, false),
                 },
                 temporaryEffect: m.monster.temporaryEffects,
-
               }
 
             } : {})
@@ -2381,7 +2515,12 @@ export class Game {
           covered: m.covered,
         })),
       },
-      bonusSouls: this._bonusSouls.map((c) => c.jsonAPI),
+      ...(this.rooms ?{
+            discard: this.decks["room"]!.discard.map((c) => c.jsonAPI).toReversed(),
+            deckSize: this.decks["room"]!.cards.length,
+            inPlay: this.rooms!.activeRooms.map((c) => c!.jsonAPI),
+          } : {}),
+      bonusSouls: this._bonusSouls !== undefined ? this._bonusSouls.map((c) => c.jsonAPI) : undefined,
       loot:
       {
         discard: this.decks["loot"]!.discard.map((c) => c.jsonAPI).toReversed(),
@@ -2391,7 +2530,7 @@ export class Game {
       {
         discard: this.decks["treasure"]!.discard.map((c) => c.jsonAPI).toReversed(),
         deckSize: this.decks["treasure"]!.cards.length,
-        inPlay: this.shop._slots.map((c) => c!.jsonAPI),
+        inPlay: this.shop.itemsInShop.map((c) => c!.jsonAPI),
       },
       turn: this.currentPlayer.id,
       history: this.history,
@@ -2479,7 +2618,7 @@ export class Game {
     this.assertEmptyStack();
     this.assertNoPendingSelection();
     this.canPurchase(player, true);
-    if (index !== "top" && (index < 0 || index >= this.shop._slots.length))
+    if (index !== "top" && (index < 0 || index >= this.shop.itemsInShop.length))
       throw new Error("Invalid shop index.");
     const price = this.gameParameters.shopPrice.value + player.priceModifier;
       if (player.coins < price!) {
@@ -2488,6 +2627,11 @@ export class Game {
         );
       }
     if (this.shop.purchase(player, index, price, this)) {
+      this.emit("on:purchase:success", {
+        eventIssuer: player,
+        price: price,
+        index: index,
+      });
       player.purchaseEnded();
       this._onStateChange.dispatch();
       return `Purchase successful. You have now ${player.coins} coins.\n`;
@@ -2864,6 +3008,7 @@ export class Game {
 
   /** Sends a card to its owner deck discard pile. */
   discard(card: Card): void {
+    this.obtainCard(card.slug, card.globalId); // make sure the card is removed from other places.
     const deck: Deck<Card> = this.decks[card.type];
     deck.addDiscardTop(card);
   }
@@ -2952,9 +3097,9 @@ export class Game {
     }
   }
 
-  private assertNoMonsterIsEngagedInCombat(): void {
-    if (this.monsters.some((m) => m.isEngagedInCombat)) {
-      throw new Error("A monster is currently engaged in combat");
+  private assertNoEntityIsEngagedInCombat(): void {
+    if (this.attackableEntities.some((e) => e.isEngagedInCombat)) {
+      throw new Error("An entity is currently engaged in combat");
     }
   }
 
@@ -3006,7 +3151,7 @@ export class Game {
     return this.turnHandler.round;
   }
   private assertEntityIsInPlay(entity: Entity) {
-    if (!this.Entities.includes(entity))
+    if (!this.EntitiesAndAnimated.includes(entity))
       throw new Error("Entity is not currently in play.");
   }
 
@@ -3019,12 +3164,6 @@ export class Game {
   private assertMinimumPlayerCount(): void {
     if (this.players.length < 2) {
       throw new Error("At least 2 players are required to start the game");
-    }
-  }
-
-  private assertMonsterIsAlive(monster: Monster): void {
-    if (monster.isDead) {
-      throw new Error("Monster is already dead");
     }
   }
 

@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../models/game";
 import { Player } from "../models/player";
 import { type ItemCard, type LootCard, type CharacterCard, TreasureCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "@/tests/testHelpers";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame } from "@/tests/testHelpers";
 
 
 
@@ -24,6 +24,9 @@ describe("Before start effects", () => {
         game.addPlayer(player1);
         game.addPlayer(player2);
         game.setupGame();
+        for(const soul of ["b2-soul_of_guppy", "b2-soul_of_gluttony", "b2-soul_of_greed"]) {
+            game.addTopPosition("bsoul", game.decks.bsoul.getCardFromSlug(soul)!);
+        }
     });
 
     it("Cain plays first", async () => {
@@ -102,34 +105,33 @@ describe("Bonus Soul effects", () => {
     let player2: Player;
 
     beforeEach(() => {
-        game = new Game();
-        mockGameSelections(game);
-        player1 = new Player("Player 1");
-        player2 = new Player("Player 2");
-        game.addPlayer(player1);
-        game.addPlayer(player2);
-        game.setupGame();
-        const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [isaac, judas], false);
-      dischargeEachItemsAndRemoveCoins(game);
-      emptyHands(game);
+        const setup = setupTestGame({
+                            characters: ["b2-judas", "b2-isaac"],
+                            monsters: ["b2-fly", "b2-fatty"],
+                            monsterDeck: ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip","b2-leech","b2-gurdy"],
+                            treasureDeck: ["b2-boomerang", "b2-guppys_head", "b2-no", "b2-blank_card"],
+                            bonusSouls: [],
+                            playerCount: 2
+                        });
+            game = setup.game;
+            player1 = setup.player1;
+            player2 = setup.player2!;
         });
 
     it("Greed", async () => {
         const initSoul = player1.totalSouls;
-        game.gainCoins(player1, 24);
+        game.gainCoins(player1, 24, "gift");
         expect(player1.coins).toBe(24);
         expect(player1.totalSouls).toBe(initSoul);
-        game.gainCoins(player1, 1);
+        game.gainCoins(player1, 1, "gift");
         expect(player1.totalSouls).toBe(initSoul + 1);
 
         // only one player gets the soul bonus
         const player2souls = player2.totalSouls;
-        game.gainCoins(player2, 24);
+        game.gainCoins(player2, 24, "gift");
         expect(player2.coins).toBe(24);
         expect(player2.totalSouls).toBe(player2souls);
-        game.gainCoins(player2, 1);
+        game.gainCoins(player2, 1, "gift");
         expect(player2.totalSouls).toBe(player2souls);
     });
 

@@ -192,15 +192,15 @@ describe("Loot Card", () => {
         await game.resolveStack();
 
         // gain x + 1 coins.
-        game.gainCoins(player1, 2);
+        game.gainCoins(player1, 2, "gift");
         expect(player1.coins).toBe(initialCoins + 3);
         
         // no gain when gaining 0 coins.
-        game.gainCoins(player1, 0);
+        game.gainCoins(player1, 0, "gift");
         expect(player1.coins).toBe(initialCoins + 3);
 
         // no effect for other players nor on other players' coin gain.
-        game.gainCoins(player2, 5);
+        game.gainCoins(player2, 5, "gift");
         expect(player2.coins).toBe(initialCoins2 + 5);
         expect(player1.coins).toBe(initialCoins + 3);
 
@@ -211,7 +211,7 @@ describe("Loot Card", () => {
         game.removeInPlay(player1, loot);
 
         // gain x coins normally after removal.
-        game.gainCoins(player1, 4);
+        game.gainCoins(player1, 4, "gift");
         expect(player1.coins).toBe(4);
     });
 
@@ -666,7 +666,7 @@ describe("Loot Card", () => {
 
         // Attack monster
         game.declareAttack(game.currentPlayer);
-        await game.declareAttackOnMonster(game.currentPlayer, monster);
+        await game.declareAttackOnEntity(game.currentPlayer, monster);
         game.attackRoll(player1)
         const attackRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll).toBeDefined();
@@ -707,7 +707,7 @@ describe("Loot Card", () => {
 
         // Attack monster
         game.declareAttack(game.currentPlayer);
-        await game.declareAttackOnMonster(game.currentPlayer, monster);
+        await game.declareAttackOnEntity(game.currentPlayer, monster);
         game.attackRoll(player1)
         const attackRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll).toBeDefined();
