@@ -557,7 +557,14 @@ const detailedStateSchema = z.object({
     discard: z.array(cardSchema),
     deckSize: z.number(),
   }),
-  bonusSouls: z.array(bonusSoulCardSchema),
+  bonusSouls: z.array(bonusSoulCardSchema).optional(),
+  room: z
+    .object({
+      discard: z.array(cardSchema),
+      deckSize: z.number(),
+      inPlay: z.array(cardSchema),
+    })
+    .optional(),
   turn: z.string(),
   stack: z.array(z.lazy(() => stackElementSchema)),
   firstCardTreasureDeck: cardSchema.optional(),
