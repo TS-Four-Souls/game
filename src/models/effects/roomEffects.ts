@@ -303,6 +303,17 @@ export function lootOnPlayerDeathEffect(game: Game, amount: number): EffectFunct
     };
 }
 
+export function CurrentPlayerDecidesToChangeRoom(game: Game): EffectFunction{
+    return async (data: EffectData) => {
+        if(game.rooms === undefined)
+            return false;
+        const selectedRoom = (await data.selectAndRecord(game, game.currentPlayer, 0, 1, [...game.rooms.activeRooms], "A monster died this turn, you can choose to put a room card into discard.", true)).selected[0];
+        if(selectedRoom)
+            game.discard(selectedRoom);
+        return selectedRoom !== undefined;
+    }
+}
+
 export function playersGainAttackEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
         for(const player of game.players)

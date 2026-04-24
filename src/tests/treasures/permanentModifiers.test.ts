@@ -239,31 +239,20 @@ describe("Treasure - Permanent Modifiers", () => {
 
     it("b2-brimstone: Each time you deal combat damage to a monster, deal 1 damage to another player", async () => {
         // Setup a fresh game with 3 players (minimum required for brimstone)
-        const testGame = new Game();
-        mockGameSelections(testGame);
-        const p1 = new Player("Player 1");
-        const p2 = new Player("Player 2");
-        const p3 = new Player("Player 3");
-        testGame.addPlayer(p1);
-        testGame.addPlayer(p2);
-        testGame.addPlayer(p3);
-        testGame.setupGame();
-        const samson = testGame.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        const isaac = testGame.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const the_forgotten = testGame.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
-        testGame.start(p1, [samson, isaac, the_forgotten], false);
-      dischargeEachItemsAndRemoveCoins(game);
-      emptyHands(game);
-            for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
-          const monsterCardTop = testGame.obtainCard(slug) as MonsterCard;
-          testGame.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = testGame.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = testGame.obtainCard("b2-fatty")! as MonsterCard;
-        testGame.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        testGame.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
 
-        // IMPORTANT: Get the card from testGame, not from the global game instance!
+        const setup = setupTestGame({
+            characters: ["b2-samson", "b2-isaac", "b2-the_forgotten"],
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card"],
+            playerCount: 3,
+        });
+
+        const testGame = setup.game;
+        const p1 = setup.player1;
+        const p2 = setup.player2!;
+        const p3 = setup.player3!;
+
         const brimstone = testGame.shop.obtainCard("b2-brimstone") as TreasureCard;
         
         testGame.addInPlay(p1, brimstone);

@@ -35,7 +35,8 @@ import { DamageOnStack, DeathOnStack, DiceRoll, Player } from "@/models/player";
 import { Encounters, Shop, AnimatedList, Rooms } from "@/models/slots";
 import { Stack, type StackElement } from "@/models/stack";
 import { TargetBuilder } from "@/models/targetBuilder";
-import type { DeckType, DeckTypeToCardType, DecksCollection, EffectData, EffectType, TargetsSelector } from "@/models/types/cardTypes";
+import type { DeckType, DeckTypeToCardType, DecksCollection, EffectType, TargetsSelector } from "@/models/types/cardTypes";
+import {EffectData} from "@/models/types/cardTypes";
 import { type TriggerEvent } from '@/models/types/eventTypes';
 import type { Capability, DetailedState, Issuer, SelectionItem, StackElementJson } from "@/shared/api";
 import { shuffle } from "@/utils/auxiliary";
@@ -46,7 +47,8 @@ import { GameParameters } from "./gameParameters";
 import { HistoricHandler, type HistoricEntry } from "./historyHandler";
 import { TurnHandler } from "./turnHandler";
 import { edenGame, miniDraft } from "./variants";
-import { en } from "zod/locales";
+import { CurrentPlayerDecidesToChangeRoom } from "@/models/effects/roomEffects"
+import { addPassiveEffectToStack } from "./effects/passiveEffect";
 // Type representing sources of damage - either a card ability or a dice roll
 export type DamageSource = Card | DiceRoll;
 
@@ -75,6 +77,7 @@ export class Game {
   private _historicHandler: HistoricHandler = new HistoricHandler();
   private _cardMapping: Map<number, Card> = new Map();
   private _nextCardGlobalId: number = 0;
+  private _monsterDiedThisTurn: boolean = false;
   private _animatedList: AnimatedList = new AnimatedList();
   readonly gameParameters = new GameParameters(() => this._onStateChange.dispatch());
 
@@ -100,6 +103,12 @@ export class Game {
   }
   get monsters(): Monster[] {
     return this._encounters.monsters;
+  }
+  get monsterDiedThisTurn(): boolean {
+    return this._monsterDiedThisTurn;
+  }
+  set monsterDiedThisTurn(value: boolean) {
+    this._monsterDiedThisTurn = value;
   }
   get turnHandler(): TurnHandler {
     return this._turnHandler;
@@ -521,6 +530,7 @@ export class Game {
           source: source,
         });
         this.encounters.kill(receiver); // should only kill once its effects are resolved: should be moved in the resolvewhenstackempty
+        this.monsterDiedThisTurn = true;
         this.entityRewards(receiver);
         this.executeWhenStackSubset(stackIds, async () => {
           this.obtainMonsterSoulOrDiscard(receiver);
@@ -1380,6 +1390,7 @@ export class Game {
     this.players.forEach((p) => {
       p.initializeTurnCounters(p === this.currentPlayer, this.gameParameters.lootPlayPerTurn.value);
     });
+    this.monsterDiedThisTurn = false;
     const player = this.currentPlayer;
     this.emit("on:turn:start:before:recharge:step", { eventIssuer: player });
     this.rechargeEachItem(player);
@@ -1450,6 +1461,14 @@ export class Game {
     }
   }
 
+  handleRoomChange(): void {
+    if(this.rooms === undefined) return;
+    if(!this.monsterDiedThisTurn) return;
+    const data:EffectData = new EffectData(this.rooms.activeRooms[0]!, this.currentPlayer, []);
+    addPassiveEffectToStack(this, CurrentPlayerDecidesToChangeRoom(this), data, "A monster died this turn, you can choose to put a room card into discard.");
+    }
+
+
   /**
    * Runs turn-end sequence, then advances to next turn.
    */
@@ -1457,6 +1476,7 @@ export class Game {
     const player = this.assertIssuerSecret(this.currentPlayer);
     this.canEndTurn(player, true);
     this.emit("on:turn:end", { eventIssuer: player });
+    this.handleRoomChange();
     this.executeWhenStackEmpty(async () => {
       this.emit("till:turn:end", { eventIssuer: player });
       await this.verifyHandSize(player);
@@ -1840,6 +1860,7 @@ export class Game {
   reset(newSeed: boolean = true): void {
     this._historicHandler = new HistoricHandler();
     this.turnHandler.reset();
+    this.monsterDiedThisTurn = false;
     this._players = [];
     this._decks = createEmptyDecksCollection(this.random);
     this._ongoingAttack = null;
