@@ -536,18 +536,23 @@ const playerMeSchema = playerSchema.extend({
 });
 export type PlayerMe = z.infer<typeof playerMeSchema>;
 
-const lootPlayAnimationSchema = z.object({
+const genericAnimationSchema = z.object({
+  id: z.number(),
+  type: z.string(),
+});
+
+const lootPlayAnimationSchema = genericAnimationSchema.extend({
   type: z.literal("lootPlay"),
   card: identifierTypeSchema,
   player: z.string(),
 });
 
-const activateInPlayAnimationSchema = z.object({
+const activateInPlayAnimationSchema = genericAnimationSchema.extend({
   type: z.literal("activateInPlay"),
   card: identifierTypeSchema,
 });
 
-const giveCoinsAnimationSchema = z.object({
+const giveCoinsAnimationSchema = genericAnimationSchema.extend({
   type: z.literal("giveCoins"),
   sender: z.string(),
   recipient: z.string(),
