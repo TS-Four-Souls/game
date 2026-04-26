@@ -1750,6 +1750,7 @@ export class Game {
     });
     this.addToStack(lootCardEffect);
     player.remainingLootPlay -= 1;
+
     this.emit("on:loot:played", {
       eventIssuer: player,
       card: playedCard,
@@ -2765,6 +2766,7 @@ export class Game {
       stack: this.stack.elements.map((el) => el.json).toReversed(),
       animations: player.animations(true)
     };
+    this._animations = [];
   }
   // We should implement declaring a purchase
   /** Validates whether current player can declare purchase mode. */
