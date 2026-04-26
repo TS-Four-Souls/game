@@ -1711,6 +1711,7 @@ export class Game {
       this.decks["monster"]!,
       this
     );
+    this.gameParameters.playWithRooms.value = this.gameParameters.playWithRooms.value && this.decks["room"] !== undefined && this.decks["room"]._order!.length > 0;
     if(this.gameParameters.playWithRooms.value === true)
     {
       this._rooms = new Rooms(
