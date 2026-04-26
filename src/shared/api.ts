@@ -88,6 +88,7 @@ const pendingSelectionSchema = z.object({
   options: z.array(selectionItemSchema),
   min: z.number(),
   max: z.number(),
+  canUseOnBoardSelection: z.boolean(),
 });
 export type PendingSelection = z.infer<typeof pendingSelectionSchema>;
 
@@ -135,6 +136,7 @@ export type InPlayMeCard = z.infer<typeof inPlayMeCardSchema>;
 
 const bonusSoulCardSchema = cardSchema.extend({
   granted: z.boolean(),
+  counter: z.number().optional(),
 });
 export type BonusSoulCard = z.infer<typeof bonusSoulCardSchema>;
 
@@ -652,6 +654,7 @@ export const schemas = {
   playCardRequest: cardActivationSchema,
   endTurnRequest: nextTurnRequestSchema,
   activateRequest: cardActivationSchema,
+  activateRoomRequest: cardActivationSchema,
   purchaseRequest: purchaseSchema,
   giveCoinsRequest: giveCoinsSchema,
   setGameParameterRequest: setGameParameterRequestSchema,
@@ -678,6 +681,7 @@ export namespace Requests {
   export type PlayCard = z.infer<typeof cardActivationSchema>;
   export type EndTurn = z.infer<typeof nextTurnRequestSchema>;
   export type Activate = z.infer<typeof cardActivationSchema>;
+  export type ActivateRoom = z.infer<typeof cardActivationSchema>;
   export type Purchase = z.infer<typeof purchaseSchema>;
   export type GiveCoins = z.infer<typeof giveCoinsSchema>;
   export type AttackMonster = z.infer<typeof attackMonsterSchema>;
@@ -793,6 +797,11 @@ export interface ClientToServerEvents {
 
   activate: (
     request: Requests.Activate,
+    callback: (response: Responses.Activate) => void,
+  ) => void;
+
+  activateRoom: (
+    request: Requests.ActivateRoom,
     callback: (response: Responses.Activate) => void,
   ) => void;
 

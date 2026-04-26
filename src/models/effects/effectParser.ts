@@ -268,7 +268,7 @@ export function parseWhenThisDiesEffect(s: string, game: Game): ParsedEffect {
 }
 
 export function parseAtTheStartOfYourTurnEffect(s: string, game: Game): ParsedEffect {
-    const restOfEffect = s.substring("at the start of your turn, ".length).trim();
+    const restOfEffect = s.substring("at the start of your turn ".length).trim();
     const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
     return {
         effectFunction: passive.onYourEventEffect("on:turn:start", [restParsed.effectFunction], game, s),
@@ -401,7 +401,7 @@ export function parseTheActivePlayerEffect(s: string, game: Game): ParsedEffect 
 //  For other effects, we need to handle the "you may" part at this level by prompting the user for a choice, and then if they choose yes, we parse and execute the rest of the effect.
 export function effectParser(s: string, game: Game, defaultEffect: EffectFunction = active.addInPlayEffect(game), selectionOnResolve = false, youMayEffectHanging = [false]): ParsedEffect {
     const originalS = s;
-    // if (originalS == "Each time the active player deals damage to this, they roll-\n1-2: They take 1 damage.\n3-4: Each player takes 1 damage.\n5-6: This takes 1 damage."){
+    // if (originalS == "At the start of your turn roll-\n1-2: Put a monster into discard and replace it with the top card of the monster deck\n3-4: Reroll an item you control.\n5: Discard your hand and loot 3.\n6: Do all of the above."){
     //     console.log("parsing special roll effect:", originalS);
     // }
     s = s.replace("[Tap Effect] ", ""); // remove tap effect marker
@@ -469,7 +469,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
             targetSelectors: restParsed.targetSelectors
         };
     }
-    if (s.startsWith("at the start of your turn, "))
+    if (s.startsWith("at the start of your turn"))
         return parseAtTheStartOfYourTurnEffect(s, game);
     if (s.startsWith("each time you activate an item, ")) {
         const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, defaultEffect, true);
@@ -583,10 +583,10 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     if (s.startsWith("put a counter on this."))
         return { effectFunction: active.putCountersOnItemEffect(1, game), targetSelectors: noTargets };
     if(s.includes(", then") && s !== "choose another player. they give you half of their ¢ and loot cards rounded down, then gives you an item."){
-        const parts = s.split(", then");
+        const [first, ...rest] = s.split(", then");
 
-        const firstTrimmed = parts[0]!.trim();
-        const secondTrimmed = parts[1]!.trim();
+        const firstTrimmed = first!.trim();
+        const secondTrimmed = (rest.join(", then")).trim();
         const firstParsed = effectParser(firstTrimmed, game, defaultEffect, selectionOnResolve, youMayEffectHanging);
         const secondParsed = effectParser(secondTrimmed, game, defaultEffect, true, youMayEffectHanging);
         return {
@@ -1037,8 +1037,10 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
             return { effectFunction: active.swapNonEternalItemsEffect(game, youMayEffectHanging), targetSelectors: [selectItemYouControl(game)[0]!, selectAnotherPlayerNonEternalItem(game)[0]!] };
         case "choose a player. loot and gain ¢ until you have the same number of each as they do.":
             return { effectFunction: active.lootAndGainAsPlayerEffect(game), targetSelectors: selectPlayer(game) };
+        case "put a monster into discard and replace it with the top card of the monster deck":
+            return { effectFunction: active.flushOneMonsterSlotEffect(game, 1), targetSelectors: noTargets };
         case "you may put a monster not being attacked into discard and replace it with the top card of the monster deck.":
-            return { effectFunction: active.flushOneMonsterSlotEffect(game), targetSelectors: noTargets };
+            return { effectFunction: active.flushOneMonsterSlotEffect(game, 0), targetSelectors: noTargets };
         case "you may put the top card of the monster deck in a monster slot not being attacked.":
             return { effectFunction: active.putTopMonsterInValidSlotEffect(game), targetSelectors: noTargets };
         case "when this enters play, it becomes a soul.\n(it's no longer an item.)":
@@ -1202,6 +1204,8 @@ function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null 
             return noTargetEffect(monster.monstersGainDCEffect(game, 1, false));
         case "monsters have +1 [dc] .":
             return noTargetEffect(monster.monstersGainDCEffect(game, 1, true));
+        case "monsters have +1 [hp] .":
+            return noTargetEffect(monster.monstersGainHPEffect(game, 1));
         case "it heals 1 [hp] .":
             return noTargetEffect(active.healEffect(game, 1));
         case "when another monster dies, this dies.":
@@ -1247,6 +1251,8 @@ function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null 
             return noTargetEffect(monster.OnDamageByActivePlayerRollDealDamageEffect(game));
         case "they take 1 damage.":
             return noTargetEffect(monster.targetTakeDamageEffect(game, 1));
+        case "when any player controls a soul, players who control the most souls or tied for the most must pay each other player 2¢ to attack.":
+            return noTargetEffect(room.payOtherPlayersToAttackEffect(game, 2));
         default:
             return null; // No match found
     }
@@ -1283,6 +1289,10 @@ function parseRoomEffect(s: string, game: Game): ParsedEffect | null {
             return noTargetEffect(room.targetNextKillsAnotherPlayerEffect(game));
         case "at the start of the turn, the active player may reroll an item they control.":
             return noTargetEffect(room.mayRerollItemAtStartOfTurnEffect(game));
+        case "at the start of the turn, the active player may gain +1 treasure.":
+            return noTargetEffect(room.mayGainTreasureAtStartOfTurnEffect(game));
+        case "at the end of the turn, if the active player has 1 or fewer loot cards in their hand, they take 1 damage.":
+            return noTargetEffect(room.damageIfLowLootAtEndOfTurnEffect(game, 1));
         case "at the end of the turn, put this into discard.":
             return noTargetEffect(room.putThisIntoDiscardAtEndOfTurnEffect(game));
         case "when this enters play, the active player rerolls each item they control.":
@@ -1311,6 +1321,34 @@ function parseRoomEffect(s: string, game: Game): ParsedEffect | null {
             return noTargetEffect(room.takeDamageOnLootEffect(game, 1));
         case "players have +1 [atk] .":
             return noTargetEffect(room.playersGainAttackEffect(game, 1));
+        case "players who control the most items or tied for the most may only recharge one item during their recharge step.":
+            return noTargetEffect(passive.rechargeOneDuringRechargeStepEffect(game));
+        case "players have +1 [hp] .":
+            return noTargetEffect(room.allPlayersPermanentStatModifierEffect([game.addHealth], 1, game));
+        case "players have +1 [atk] .":
+            return noTargetEffect(room.allPlayersPermanentStatModifierEffect([game.addAttack], 1, game));
+        case "when a player dies, before paying penalties, they must destroy an item they control.":
+            return noTargetEffect(room.playerMustDestroyItemOnDeathEffect(game));
+        case "at the end of the turn, the active player deactivates their character.":
+            return noTargetEffect(room.deactivateCharacterAtEndOfTurnEffect(game));
+        case "at the start of the turn, the active player may pay [hp] until they have 1 [hp] . if they do, each time a monster dies this turn, they gain +1 treasure.":
+            return noTargetEffect(room.payHpForTreasureBoostEffect(game));
+        case "each time a player deals damage to a monster, they deal 1 damage to the player to their left.":
+            return noTargetEffect(room.WhenDealDamageMonsterDealDamageToPlayerToTheEffect(game, 1, "left"));
+        case "note each goal as players complete them.":
+            return noTargetEffect((data: EffectData) => true);
+        case "players who control the fewest souls or tied for fewest have +1 [atk] and may attack an additional time on their turn.":
+            return noTargetEffect(room.playersWithFewestSoulsAttackBoostEffect(game));
+        case "players who control the fewest souls or tied for fewest may purchase a shop item for 0¢ on their turn.":
+            return noTargetEffect(room.playersWithFewestSoulsFreeShopItemEffect(game));
+        case "put each shop item or each monster not being attacked into discard.":
+            return noTargetEffect(room.flushShopOrUnattackedMonstersEffect(game));
+        case "note each goal as players complete them. this room can't be put into discard till 4 goals are completed.\n1. play 5 loot cards.\n2. kill 3 monsters.\n3. give at least 6¢ to another player at one time.\n4. purchase 3 items.\n5. roll a 6 three times. when 4 goals are completed, each player gains +2 treasure.":
+            return noTargetEffect(room.socialGoalsEffect(game));
+        case "players can't activate more than one ability each turn.":
+            return noTargetEffect(room.playersCanOnlyActivateOnceATurn(game));
+        case "players can't play more than one loot card each turn.":
+            return noTargetEffect(room.playersCanOnlyPlayLootOnceATurn(game));
         default:
             return null; // No match found
     }

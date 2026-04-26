@@ -28,6 +28,7 @@ export type UserRequest =
   | {type: "PlayCard", payload: Requests.PlayCard }
   | {type: "EndTurn", payload: Requests.EndTurn }
   | {type: "Activate", payload: Requests.Activate }
+  | {type: "ActivateRoom", payload: Requests.ActivateRoom }
   | {type: "Purchase", payload: Requests.Purchase }
   | {type: "GiveCoins", payload: Requests.GiveCoins }
   | {type: "AttackMonster", payload: Requests.AttackMonster }
@@ -66,7 +67,7 @@ function isGameAction(entry: HistoricEntry): boolean {
         "CreateRoom",
         "JoinRoom",
         "LeaveRoom",
-        "LoadGame"
+        "LoadGame",
       ].includes(entry.type);
   }
 // Important historic information: purchase, DebugLoot, DebugListLoot, DebugListTreasure, DebugGainTreasure, GiveCoins, AttackMonster, EndTurn

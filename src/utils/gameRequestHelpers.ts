@@ -82,3 +82,40 @@ export async function executeActivateRequest(
 
   return choices;
 }
+
+export async function executeActivateRoomRequest(
+  game: Game,
+  payload: Requests.ActivateRoom,
+): Promise<TargetSelectorResponse> {
+  const player = game.getPlayerByIssuer(payload.issuer);
+  const partialChoices = payload.targetChoices || [];
+  const room = game.rooms?.roomIn(payload.index);
+  if(!room) {
+    throw new Error(`No room at index ${payload.index}`);
+  }
+  const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(
+    game,
+    player,
+    room,
+    partialChoices,
+    payload.effectIndex,
+  );
+
+  if (choices.complete) {
+    const targets = TargetBuilder.buildTargets(
+      game,
+      player,
+      room,
+      partialChoices,
+      payload.effectIndex,
+    );
+    await game.activateRoom(
+      player,
+      room,
+      targets,
+      payload.effectIndex,
+    );
+  }
+
+  return choices;
+}

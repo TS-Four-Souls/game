@@ -470,7 +470,7 @@ export function giveCurseToEffect(restEffectFunction: EffectFunction, game: Game
     // Add the curse to their in play area.
     game.addCurse(giveTo, data.it);
     // Apply the rest of the effect.
-    restEffectFunction(new EffectData(data.it, giveTo, []));
+    restEffectFunction(new EffectData(data.it, () => giveTo, []));
     // Add Listener to remove the curse when the owner dies.
     let offDeath: (() => void) | null = null;
     offDeath = game.emitter.on("on:death:after-penalty", (eventData: OnDeathAfterPenaltyData) => {
@@ -513,7 +513,7 @@ export function curseEffect(restEffectFunction: EffectFunction, game: Game): Eff
             offDeath = null;
         });
 
-        restEffectFunction(new EffectData(data.it, data.issuer, []));
+        restEffectFunction(new EffectData(data.it, () => data.issuer, []));
         return true;
     }
 }
@@ -883,37 +883,51 @@ export function stealCoinOnGainEffect(amount: number, game: Game): EffectFunctio
 
 export function noRechargeCharaDuringRechargeStepEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
-        if(!(data.issuer instanceof Player)) {
-            throw new Error("noRechargeCharaDuringRechargeStepEffect can only be applied to Players.");
-        }
         let offBeforeRechargeStep: (() => void) | null = null;
-        let offAfterRechargeStep: (() => void) | null = null;
-        let savedRechargeFunction = data.issuer.character.recharge;
-        offBeforeRechargeStep = game.emitter.on("on:turn:start:before:recharge:step", ({ eventIssuer }) => {
-            if (data.issuer !== eventIssuer) return;
-            if(!(data.issuer instanceof Player)) {
+        offBeforeRechargeStep = game.emitter.on("on:turn:start:before:recharge:step", ({ eventIssuer, itemsToRecharge }) => {
+            const issuer = data.issuer;
+            if (issuer !== eventIssuer) return;
+            if(!(issuer instanceof Player)) {
                 throw new Error("noRechargeCharaDuringRechargeStepEffect can only be applied to Players.");
             }
-            data.issuer.character.recharge = () => {return false;};
-        });
-
-        offAfterRechargeStep = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
-            if (data.issuer !== eventIssuer) return;
-            if(!(data.issuer instanceof Player)) {
-                throw new Error("noRechargeCharaDuringRechargeStepEffect can only be applied to Players.");
+            const index = itemsToRecharge.findIndex(item => item === issuer.character);
+            if (index >= 0) {
+                itemsToRecharge.splice(index, 1); // Remove character from recharge list
             }
-            data.issuer.character.recharge = savedRechargeFunction;
         });
 
         data.it.cleaners.push(() => {
             offBeforeRechargeStep?.();
             offBeforeRechargeStep = null;
-            offAfterRechargeStep?.();
-            offAfterRechargeStep = null;
-            if(!(data.issuer instanceof Player)) {
-                throw new Error("noRechargeCharaDuringRechargeStepEffect can only be applied to Players.");
+        });
+        return true;
+    };
+}
+
+export function rechargeOneDuringRechargeStepEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offBeforeRechargeStep: (() => void) | null = null;
+        offBeforeRechargeStep = game.emitter.on("on:turn:start:before:recharge:step", ({ eventIssuer, itemsToRecharge }) => {
+            const issuer = eventIssuer;
+            if (!(issuer instanceof Player)) {
+                throw new Error("rechargeOneDuringRechargeStepEffect can only be applied to Players.");
             }
-            data.issuer.character.recharge = savedRechargeFunction;
+            if (itemsToRecharge.length === 0) return;
+
+            const currentOptions = [...itemsToRecharge];
+            const effect = async (effectData: EffectData) => {
+                const selected = (await data.selectAndRecord(game, issuer, 1, 1, currentOptions, "Select an item to recharge.", true, true)).selected[0]!;
+                if (selected) {
+                    itemsToRecharge.splice(0, itemsToRecharge.length, selected);
+                }
+                return true;
+            }
+            addPassiveEffectToStack(game, effect, data, `Recharge only one of your items during the recharge step.`);
+        });
+
+        data.it.cleaners.push(() => {
+            offBeforeRechargeStep?.();
+            offBeforeRechargeStep = null;
         });
         return true;
     };
@@ -970,7 +984,7 @@ export function onAnyEventEffect(
         
         offDamage = game.emitter.on(triggerEvent, ({ eventIssuer }) => {
             if (eventIssuer) {
-                data.issuer = eventIssuer;
+                data.issuerProvider = () => eventIssuer;
             }
             
             // Add all effects as a single stack element
@@ -1330,7 +1344,7 @@ export function giveThisToAnotherPlayerOnDeathEffect(game: Game): EffectFunction
                 if (selection.selected.length > 0) {
                     const chosenPlayer = selection.selected[0]!;
                     game.give(effectData.issuer, chosenPlayer, effectData.it);
-                    effectData.issuer = chosenPlayer;
+                    effectData.issuerProvider = () => chosenPlayer;
                 }
                 return true;
             };
@@ -1463,7 +1477,7 @@ export function lootStepEffect(
             const { eventIssuer } = eventData;
             if (!anyPlayer && data.issuer !== eventIssuer) return;
             if(anyPlayer)
-                data.issuer = eventIssuer;
+                data.issuerProvider = () => eventIssuer;
             for (const func of effectFunctions)
                 func(data);
         });
@@ -1599,7 +1613,7 @@ export function onAttackingPlayerRollEffect(
                 // Create the effect that will execute when the stack resolves
                 let copyData = data;
                 if(diceIssuerIssueTheEvent && dice.issuer !== undefined)
-                    copyData.issuer = dice.issuer;
+                    copyData.issuerProvider = () => dice.issuer;
                 const stackEffect = async (effectData: EffectData) => {
                     return await effect(effectData);
                 };
@@ -1678,7 +1692,7 @@ export function onRollEffect(
                 };
                 
                 if (diceIssuerIssueTheEvent && diceRoll.issuer !== undefined) {
-                    data.issuer = diceRoll.issuer;
+                    data.issuerProvider = () => diceRoll.issuer;
                     data.targets = [];
                 }
                 // Add to stack instead of executing immediately

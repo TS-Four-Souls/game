@@ -118,13 +118,16 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
     
         await game.playCard(player1, player1.hand.length - 1, []);
         await game.resolveStack();
-        expect(player2.canIUseLootOrActivateThisTurn).toBe(false);
+        expect(player2.canIActivateThisTurn).toBe(false);
+        expect(player2.canIUseLootThisTurn).toBe(false);
         game.endTurn();
         await game.resolveEntireStack();
-        expect(player2.canIUseLootOrActivateThisTurn).toBe(true);
+        expect(player2.canIActivateThisTurn).toBe(true);
+        expect(player2.canIUseLootThisTurn).toBe(true);
         game.endTurn();
         await game.resolveEntireStack();
-        expect(player2.canIUseLootOrActivateThisTurn).toBe(true);
+        expect(player2.canIActivateThisTurn).toBe(true);
+        expect(player2.canIUseLootThisTurn).toBe(true);
     });
 
     it("fsp2-perthro - Reroll an item.", async () => {

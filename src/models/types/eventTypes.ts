@@ -96,6 +96,13 @@ export type OnAttackDeclaredData = {
   eventIssuer: Player;
 };
 
+/** Data emitted when validating whether a player can declare an attack */
+export type OnCanDeclareAttackData = {
+  eventIssuer: Player;
+  canDeclare: boolean[];
+  reason: string[];
+};
+
 /** Data emitted when a player declares an attack on a specific monster */
 export type OnAttackDeclaredMonsterData = {
   eventIssuer: Player;
@@ -171,6 +178,12 @@ export type OnDiceWouldRollData = {
 /** Data emitted at the start of a player's turn */
 export type OnTurnStartData = {
   eventIssuer: Player;
+};
+
+/** Data emitted at the start of a player's turn */
+export type OnBeforeRechargeStepData = {
+  eventIssuer: Player;
+  itemsToRecharge: ItemCard[];
 };
 
 /** Data emitted at the end of a player's turn */
@@ -259,6 +272,15 @@ export type OnLootPlayedData = {
   card: LootCard;
   targets?: any[];
 };
+/**
+ * eventIssuer gives coins to target. 
+ */
+export type OnCoinGivenData = {
+  eventIssuer: Player;
+  target: Player;
+  amount: number;
+  forced: boolean;
+};
 
 /** Data emitted before the game starts */
 export type OnGameStartBeforeData = Record<string, never>;
@@ -301,7 +323,7 @@ export type TriggerEventDataMap = {
   "on:dice:would-roll": OnDiceWouldRollData;
   "on:dice:resolved": OnDiceResolvedData;
   "on:turn:start": OnTurnStartData;
-  "on:turn:start:before:recharge:step": OnTurnStartData;
+  "on:turn:start:before:recharge:step": OnBeforeRechargeStepData;
   "on:turn:end": OnTurnEndData;
   "till:turn:end": OnTurnEndData;
   "on:loot:step": OnLootStepData;
@@ -313,6 +335,7 @@ export type TriggerEventDataMap = {
   "on:get:monster:evasion": OnGetMonsterEvasionData;
   "on:enter:play:after": OnEnterPlayAfterData;
   "on:item:activated": OnItemActivatedData;
+  "on:can:declare:attack": OnCanDeclareAttackData;
   "on:priority:passes": OnPriorityPassesData;
   "on:item:destroyed": OnItemDestroyedData;
   "on:enter:play": OnEnterPlayData;
@@ -322,6 +345,7 @@ export type TriggerEventDataMap = {
   "on:game:start:before": OnGameStartBeforeData;
   "on:game:start": OnGameStartData;
   "on:soul:gained": OnSoulGainedData;
+  "on:coin:given": OnCoinGivenData;
   "on:purchase:success": OnPurchaseSuccessData;
 };
 

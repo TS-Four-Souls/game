@@ -263,7 +263,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
         await game.declareAttackOnEntity(player1, "topDeck", 0);
-        game.rechargeEachItem(player1);
+        game.rechargeMultiple(player1);
         expect(player1.inPlay.every(i => i.charged || !i.isActiveItem)).toBe(true);
         await game.resolveStack(); // give curse to themselves
         game.endTurn();

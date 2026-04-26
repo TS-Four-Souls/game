@@ -5,6 +5,7 @@ import type { HistoricEntry, UserRequest } from "@/models/historyHandler";
 import { isParameterKey, type Issuer, type IdentifierType, type DetailedState } from "@/shared/api";
 import {
   executeActivateRequest,
+  executeActivateRoomRequest,
   executeAttackMonsterRequest,
   executePlayCardRequest,
 } from "@/utils/gameRequestHelpers";
@@ -497,6 +498,20 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         }
       }
 
+      case "ActivateRoom": {
+        try {
+        await executeActivateRoomRequest(game, {
+          ...entry.payload,
+          issuer: remapIssuer(game, entry.payload.issuer),
+        });
+        break;
+        } catch (error) {
+          // In some cases (e.g. activating a card that was just purchased in the same turn) the exact request may not be reproducible due to differences in request IDs or game state at the time of the request. In those cases, we can log a warning and skip the activation to allow the rest of the log replay to continue.
+          throw new Error(`Failed to replay ActivateRoom request from logs: ${error instanceof Error ? error.message : error}`);
+          break;
+        }
+      }
+
       case "DeclarePurchase": {
         const player = game.getPlayerByIssuer(remapIssuer(game, entry.payload.issuer));
         game.declarePurchase(player);
@@ -515,8 +530,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
       }
 
       case "EndTurn": {
-        game.nextTurn(remapIssuer(game, entry.payload.issuer));
-        activeTurnCallbackPromise = game.resolveCallbacks();
+        activeTurnCallbackPromise = game.nextTurn(remapIssuer(game, entry.payload.issuer));
         if(!game.hasPendingSelections) {
           await activeTurnCallbackPromise;
           activeTurnCallbackPromise = null;

@@ -574,6 +574,16 @@ export class Game {
       }
       if (player.attackThisTurn <= 0 && !player.hasAttackRequirement && !player.hasFreeAttackRemaining)
         throw new Error("You have no remaining attacks this turn.");
+
+      const canDeclareAttackData = {
+        eventIssuer: player,
+        canDeclare: [true],
+        reason: [""],
+      };
+      this.emit("on:can:declare:attack", canDeclareAttackData, false);
+      if (!canDeclareAttackData.canDeclare[0]) {
+        throw new Error(canDeclareAttackData.reason[0]);
+      }
     } catch (e) {
       if (shouldThrow) throw e;
       if (e instanceof Error) {
@@ -1111,6 +1121,7 @@ export class Game {
       // Resolve the pending promise
       pending.resolve(selected);
       this._onStateChange.dispatch();
+      void this.resolveCallbacks();
       return;
     }
     this._onStateChange.dispatch();
@@ -1327,6 +1338,8 @@ export class Game {
    * Executes stack-subset callbacks whose condition is currently met.
    */
   async resolveCallbacks(): Promise<void> {
+    if (this.hasPendingSelections)
+      return;
     const callbacksToExecute: {stackIds: number[], callback: () => void | Promise<void>}[] = [];
     for(let i = this._stackSubsetCallbacks.length - 1; i >= 0; i--){
       const e = this._stackSubsetCallbacks[i]!;
@@ -1337,6 +1350,10 @@ export class Game {
     }
     // Execute collected callbacks
     for (const cb of callbacksToExecute) {
+      if (this.hasPendingSelections) {
+        this._stackSubsetCallbacks.push(cb);
+        continue;
+      }
       await cb.callback();
       this._onStateChange.dispatch();
     }
@@ -1392,12 +1409,16 @@ export class Game {
     });
     this.monsterDiedThisTurn = false;
     const player = this.currentPlayer;
-    this.emit("on:turn:start:before:recharge:step", { eventIssuer: player });
-    this.rechargeEachItem(player);
-    this.emit("on:turn:start", { eventIssuer: player });
+    const itemsToRecharge = player.unchargedItems;
+    const eventData = { eventIssuer: player, itemsToRecharge: itemsToRecharge }
+    this.emit("on:turn:start:before:recharge:step", eventData);
     this.executeWhenStackEmpty(() => {
-      this.lootStep();
-      this.emit("on:your:turn", { eventIssuer: player });
+      this.rechargeMultiple(player, eventData.itemsToRecharge);
+      this.emit("on:turn:start", { eventIssuer: player });
+      this.executeWhenStackEmpty(() => {
+        this.lootStep();
+        this.emit("on:your:turn", { eventIssuer: player });
+      });
     });
   }
 
@@ -1411,8 +1432,10 @@ export class Game {
   /**
    * Recharges every in-play item for a player.
    */
-  rechargeEachItem(player: Player): void {
-    for (const card of player.inPlay) {
+  rechargeMultiple(player: Player, items: ItemCard[] | undefined = undefined): void {
+    if(items === undefined)
+      items = player.unchargedItems;
+    for (const card of items) {
       this.recharge(card);
     }
   }
@@ -1464,7 +1487,7 @@ export class Game {
   handleRoomChange(): void {
     if(this.rooms === undefined) return;
     if(!this.monsterDiedThisTurn) return;
-    const data:EffectData = new EffectData(this.rooms.activeRooms[0]!, this.currentPlayer, []);
+    const data:EffectData = new EffectData(this.rooms.activeRooms[0]!, () => this.currentPlayer, []);
     addPassiveEffectToStack(this, CurrentPlayerDecidesToChangeRoom(this), data, "A monster died this turn, you can choose to put a room card into discard.");
     }
 
@@ -1472,12 +1495,12 @@ export class Game {
   /**
    * Runs turn-end sequence, then advances to next turn.
    */
-  endTurn(): void {
+  async endTurn(): Promise<void> {
     const player = this.assertIssuerSecret(this.currentPlayer);
     this.canEndTurn(player, true);
     this.emit("on:turn:end", { eventIssuer: player });
     this.handleRoomChange();
-    this.executeWhenStackEmpty(async () => {
+    await this.executeWhenStackEmpty(async () => {
       this.emit("till:turn:end", { eventIssuer: player });
       await this.verifyHandSize(player);
       this.healEveryone();
@@ -1495,11 +1518,11 @@ export class Game {
   /**
    * End the turn of the current player if issuer is the current player and all conditions are satisfied.
    */
-  nextTurn(issuer: Issuer): void {
+  async nextTurn(issuer: Issuer): Promise<void> {
     const roundIndex = this.assertGameStarted();
     const player = this.assertIssuerSecret(issuer);
     this.canEndTurn(player, true);
-    this.endTurn();
+    await this.endTurn();
   }
 
   /**
@@ -1540,7 +1563,7 @@ export class Game {
       this.assertGameStarted();
       const player = this.assertIssuerSecret(issuer);
       this.assertNoPendingSelection();
-      if (!player.canIUseLootOrActivateThisTurn) {
+      if (!player.canIUseLootThisTurn) {
         throw new Error(`You cannot play loot cards during ${this.currentPlayer.id}'s turn.`);
       }
       if (player.remainingLootPlay <= 0) {
@@ -1760,6 +1783,7 @@ export class Game {
     }
     this.loseCoins(from, amount, true);
     this.gainCoins(to, amount, "gift");
+    this.emit("on:coin:given", { eventIssuer: from, target: to, amount, forced });
     this._onStateChange.dispatch();
     return true;
   }
@@ -1888,7 +1912,7 @@ export class Game {
       card instanceof EternalCard ||
       card instanceof TreasureCard
     ) {
-      card.onAddInPlay(player);
+      card.onAddInPlay(() => player);
     }
     player.addInPlay(card);
     this.emit("on:enter:play:after", {
@@ -2328,7 +2352,7 @@ export class Game {
     if(card instanceof MonsterCard && card.encounterType === MonsterType.EVENT) {
       return "You can not activate monster cards.";
     }
-    if (!owner.canIUseLootOrActivateThisTurn) {
+    if (!owner.canIActivateThisTurn) {
       return `You cannot activate cards this turn.`;
     }
     if (card.charged === false && card.activeEffectList.every(e => e.index === "tap")) {
@@ -2376,6 +2400,7 @@ export class Game {
             min: sel.min,
             max: sel.max,
             description: sel.description,
+            canUseOnBoardSelection: (sel.min === 0 && sel.max === 1 && sel.options.length === 1) ? false : true,
           };
         }
       }
@@ -2642,7 +2667,7 @@ export class Game {
     this.canPurchase(player, true);
     if (index !== "top" && (index < 0 || index >= this.shop.itemsInShop.length))
       throw new Error("Invalid shop index.");
-    const price = this.gameParameters.shopPrice.value + player.priceModifier;
+    const price = Math.max(0, this.gameParameters.shopPrice.value + player.priceModifier);
       if (player.coins < price!) {
         throw new Error(
           `Purchase failed. You need ${price! - player.coins} more coins.\n`
@@ -3045,7 +3070,10 @@ export class Game {
   applyLootOrActivateRestrictionForCurrentTurn(player: Player, value: number = 1): void {
     for (const p of this.players) {
       if(p !== player)
-        p.addToCanIUseLootOrActivateThisTurn(value);
+      {
+        p.addToCanIActivateThisTurn(value);
+        p.addToCanIUseLootThisTurn(value);
+      }
     }
     this._onStateChange.dispatch();
   }

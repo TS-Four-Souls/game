@@ -307,6 +307,9 @@ export class Encounters extends Slots<MonsterCard> {
     /** Global modifier to all monster attack values */
     attackModifier: number = 0;
     
+    /** Health modifier for all monsters */
+    healthModifier: number = 0;
+
     /**
      * Creates a new Encounters manager.
      * Initializes all slots and fills them with monsters (filtering out events during setup).
@@ -451,7 +454,8 @@ export class Encounters extends Slots<MonsterCard> {
         const card = this._slots[index]![this._slots[index]!.length - 1]!;
         if (card.encounterType !== MonsterType.EVENT) {
             const monster = new Monster(card, this);
-            card.onAddInPlay(monster);
+            monster.addHealthPoints(this.healthModifier);
+            card.onAddInPlay(() => monster);
             this._monstersInPlay[index] = monster;
         } else {
             this._monstersInPlay[index] = undefined!;
@@ -478,7 +482,7 @@ export class Encounters extends Slots<MonsterCard> {
                     });
                     return true;
                 }, 
-                new EffectData(card, this._game.currentPlayer, []), 
+                new EffectData(card, () => this._game.currentPlayer, []), 
                 card.effectOutcomes.join('\n')
             );
             this._game.executeWhenStackEmpty(() => {
@@ -508,6 +512,15 @@ export class Encounters extends Slots<MonsterCard> {
         this.dcModifier += value;
     }
 
+    addHealthModifier(value: number): void {
+        this.healthModifier += value;
+        for (let i = 0; i < this._monstersInPlay.length; i++) {
+            const monster = this._monstersInPlay[i];
+            if (monster) {
+                monster.addHealthPoints(value);
+            }
+        }
+    }
     /**
      * Adds to the global attack modifier.
      * This modifier affects the attack value of all monsters.
@@ -642,7 +655,7 @@ export class Rooms extends Slots<RoomCard> {
     override draw(position: number) : void {
         const card = this._deck.draw();
         this._slots[position]!.push(card!);
-        card.onAddInPlay(this._game.currentPlayer);
+        card.onAddInPlay(() => this._game.currentPlayer);
     }
 
     get activeRooms(): RoomCard[] {
@@ -667,7 +680,13 @@ export class Rooms extends Slots<RoomCard> {
         }
         return card;
     }
-
+    
+    roomIn(index: number): RoomCard | undefined {
+        if(index < 0 || index >= this._slots.length)
+            return undefined;
+        const card = this._slots[index]![this._slots[index]!.length - 1];
+        return card;
+    }
     override removeAtIndices(i: number, j: number): RoomCard | undefined {
         if (i < 0 || i >= this._slots.length || j < 0 || j >= this._slots[i]!.length) {
             return undefined;
@@ -681,8 +700,10 @@ export class Rooms extends Slots<RoomCard> {
 
     forceRoomAtSlot(index: number, roomCard: RoomCard): void {
         this._deck.addTopPosition(roomCard);
-        const previousCard = this.removeTop(index)!;
-        this._deck.addBottomPosition(previousCard);
+        const previousCard = this.removeTop(index);
+        if (previousCard) {
+            this._deck.addBottomPosition(previousCard);
+        }
     }
 }
 export class AnimatedList {

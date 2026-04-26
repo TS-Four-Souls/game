@@ -26,15 +26,23 @@ export type TargetsSelector = {
  */
 export class EffectData {
     it: Card;
-    issuer: Entity;
+    private _issuerProvider: () => Entity;
     private _targets: any[];
     private _selectedOnResolve: any[] = [];
     private _nextIndex: number = 0;
 
-    constructor(it: Card, issuer: Entity, targets: any[]) {
+    constructor(it: Card, issuerProvider: () => Entity, targets: any[]) {
         this.it = it;
-        this.issuer = issuer;
+        this._issuerProvider = issuerProvider;
         this._targets = targets;
+    }
+
+    get issuer(): Entity {
+        return this._issuerProvider();
+    }
+
+    set issuerProvider(issuerProvider: () => Entity) {
+        this._issuerProvider = issuerProvider;
     }
 
     get targets(): any[] {

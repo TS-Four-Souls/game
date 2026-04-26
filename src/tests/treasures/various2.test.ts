@@ -729,8 +729,8 @@ describe("Force Attack Monster", () => {
         game.currentPlayer.mustAttack([monster], monster.card);
 
         // Try to end turn without attacking
-        expect(() => {
-            game.endTurn();
+        expect(async() => {
+            await game.endTurn();
         }).toThrow("You must attack the required monster(s) before ending your turn");
     });
 
@@ -880,8 +880,8 @@ describe("Force Attack Monster", () => {
             await game.resolveStack();
 
             // Try to end turn without attacking
-            expect(() => {
-                game.endTurn();
+            expect(async () => {
+                await game.endTurn();
             }).toThrow("You must attack the required monster(s) before ending your turn");
         });
 

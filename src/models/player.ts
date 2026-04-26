@@ -68,7 +68,8 @@ export class Player extends Entity {
 
   private _diceModifier: number = 0;
 
-  private _canIUseLootOrActivateThisTurn: number = 0;
+  private _canIUseLootThisTurn: number = 0;
+  private _canIActivateThisTurn: number = 0;
 
   private _engagedInPurchase: number = 0;
 
@@ -313,23 +314,35 @@ export class Player extends Entity {
   get canSeeTopOfTreasureDeck(): boolean {
     return this._canSeeTopOfTreasureDeck > 0;
   }
-  
-
-  get canIUseLootOrActivateThisTurn(): boolean {
-    return this._canIUseLootOrActivateThisTurn === 0;
+    get canIUseLootThisTurn(): boolean {
+    return this._canIUseLootThisTurn === 0;
   }
 
-  addToCanIUseLootOrActivateThisTurn(valueToAdd: number) {
-    this._canIUseLootOrActivateThisTurn += valueToAdd;
-    if(this._canIUseLootOrActivateThisTurn < 0) {
-      this._canIUseLootOrActivateThisTurn = 0;
+  addToCanIUseLootThisTurn(valueToAdd: number) {
+    this._canIUseLootThisTurn += valueToAdd;
+    if(this._canIUseLootThisTurn < 0) {
+      this._canIUseLootThisTurn = 0;
     }
   }
 
-  resetCanIUseLootOrActivateThisTurn() {
-    this._canIUseLootOrActivateThisTurn = 0;
+  resetCanIUseLootThisTurn() {
+    this._canIUseLootThisTurn = 0;
   }
 
+  get canIActivateThisTurn(): boolean {
+    return this._canIActivateThisTurn === 0;
+  }
+
+  addToCanIActivateThisTurn(valueToAdd: number) {
+    this._canIActivateThisTurn += valueToAdd;
+    if(this._canIActivateThisTurn < 0) {
+      this._canIActivateThisTurn = 0;
+    }
+  }
+
+  resetCanIActivateThisTurn() {
+    this._canIActivateThisTurn = 0;
+  }
 
   get isEngagedInPurchase(): boolean {
     return this._engagedInPurchase > 0;
@@ -577,6 +590,9 @@ export class Player extends Entity {
     return false;
   }
 
+  get unchargedItems(): ItemCard[] {
+    return this.inPlay.filter(card => card instanceof ItemCard && !card.charged) as ItemCard[];
+  }
   /**
    * Gets the number of purchases the player can make this turn.
    * @returns Number of remaining purchases
@@ -602,7 +618,8 @@ export class Player extends Entity {
     this._attackThisTurn = 0;
     this._attackRollThisTurn = 0;
     this._remainingPurchaseThisTurn = 0;
-    this.resetCanIUseLootOrActivateThisTurn();
+    this.resetCanIActivateThisTurn();
+    this.resetCanIUseLootThisTurn();
     this._attackedIdsThisTurn = [];
     this._mustAttackMonster = [];
     this._mayAttackForFree = [];
@@ -800,7 +817,7 @@ export class DiceRoll extends StackElement {
       const effectIssuer = this._effectIssuer ?? this._issuer;
       // For attack rolls, prepend the dice roll itself to targets so effects can use it as the damage source
       const targetsWithDiceRoll = this._attackRoll ? [this, ...this._targets] : this._targets;
-      await this._effect[this._value - 1]!(new EffectData(this._card!, effectIssuer, targetsWithDiceRoll));
+      await this._effect[this._value - 1]!(new EffectData(this._card!, () => effectIssuer, targetsWithDiceRoll));
     }
   }
 }
@@ -841,7 +858,7 @@ export class DamageOnStack extends StackElement {
       const card = this._source instanceof DiceRoll ? this._source.card! : this._source;
       if(this.from instanceof Player === false)
         throw new Error("Damage effect issuer is not a player");
-      await this._effect(new EffectData(card, this.from, [this, this._targets]));
+      await this._effect(new EffectData(card, () => this.from, [this, this._targets]));
     }
   }
   override get json(): DamageOnStackJson {

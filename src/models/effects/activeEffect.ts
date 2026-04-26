@@ -79,7 +79,7 @@ export function rechargeEachItemsOfTargetEffect(game: Game): EffectFunction {
         const player = data.next;
         if(!(player instanceof Player))
             throw new Error("Target of rechargeEachItemsOfTargetEffect must be a Player.");
-        game.rechargeEachItem(player);
+        game.rechargeMultiple(player);
         return true;
     };
 }
@@ -313,7 +313,7 @@ export function copyTapAbilityEffect(game: Game): EffectFunction {
         if(player === undefined)
             throw new Error(`Effect issuer is not a player.`);
         const newTargets = await TargetBuilder.buildTargetsOnResolve(game, player, itemToCopy);
-        const effectOnStack: EffectOnStack = new EffectOnStack(activeEffect.effectFunction, new EffectData(data.it, data.issuer, newTargets), `Copy of ${itemToCopy.name} tap ability`);
+        const effectOnStack: EffectOnStack = new EffectOnStack(activeEffect.effectFunction, new EffectData(data.it, () => data.issuer, newTargets), `Copy of ${itemToCopy.name} tap ability`);
         game.addToStack(effectOnStack);
         return true;
         // return activeEffect.effectFunction(data);
@@ -338,7 +338,7 @@ export function becomesCopyOfItemIndefinitelyEffect(game: Game): EffectFunction 
         });
         
         // Re-subscribe the new effects with the current owner
-        thisItem.onAddInPlay(owner);
+        thisItem.onAddInPlay(() => owner);
         
         return true;
     };
@@ -362,7 +362,7 @@ export function becomesCopyOfItemUntilEndOfTurnEffect(game: Game): EffectFunctio
         });
         
         // Re-subscribe the new effects
-        thisItem.onAddInPlay(owner);
+        thisItem.onAddInPlay(() => owner);
         
         // Subscribe to end of turn event to restore the original card
         const unsubscribe = game.emitter.on("till:turn:end", (eventData: OnTurnEndData) => {
@@ -570,10 +570,10 @@ export function swapNonEternalItemsEffect(game: Game, youMayEffectHanging: boole
         return game.swapItems(itemToSwapFromIssuer, itemToSwapFromOtherPlayer);
     }
 }
-export function flushOneMonsterSlotEffect(game: Game): EffectFunction {
+export function flushOneMonsterSlotEffect(game: Game, min: number): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const monsterToFlush = (await data.selectAndRecord(game, data.issuer, 0, 1, game.monsters.filter((m) => m !== null && !m.isEngagedInCombat), "Select a monster to flush.", true, true)).selected[0] as Monster;
+        const monsterToFlush = (await data.selectAndRecord(game, data.issuer, min, 1, game.monsters.filter((m) => m !== null && !m.isEngagedInCombat), "Select a monster to flush.", true, true)).selected[0] as Monster;
         if(monsterToFlush === undefined) return true;
         game.monsterSlots.flushMonster(monsterToFlush);
         return true;
@@ -1054,11 +1054,11 @@ export function lookAtHandAndStealLootEffect(game: Game): EffectFunction {
 }
 
 export function endTurnAndResetStackEffect(game: Game): EffectFunction {
-    return (data: EffectData) => {
+    return async (data: EffectData) => {
         game.resetStack();
         game.resetCallbacks();
         game.endCombat();
-        game.endTurn();
+        await game.endTurn();
         return true;
     };
 }
@@ -1213,7 +1213,8 @@ export function rerollItemEffect(game: Game, selectors: TargetsSelector[] = [], 
                 throw new Error("Issuer must be a player for selection on resolve reroll effect");
             card = (await data.selectAndRecord(game, data.issuer, 1, 1, selectors[0]!.selector(data.issuer), "Select an item to reroll.", true, true)).selected[0];
         }
-        game.reroll(card);
+        if(card !== undefined)
+            game.reroll(card);
         return true;
     };
 }
@@ -1461,6 +1462,12 @@ export function obtainRollResults(s: string): string[] {
                     results[Number(line[0]) - 1] = line.substring(3).trim();
                     break;
             }
+        }
+    }
+    for(let i = 0; i < results.length; i++){
+        if(results[i] === "do all of the above.")
+        {
+            results[i] = results.slice(0, i).filter((r, idx) => idx === results.indexOf(r)).join(", then ");
         }
     }
     return results;

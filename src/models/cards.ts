@@ -172,14 +172,14 @@ class PassiveEffectHandler extends EffectHandler {
             this._effects.push(effect);
         else throw new Error("Cannot put a non-passive effect in a PassiveEffectHandler.");
     }
-    subscribeAll(owner: Entity, it: Card) {
+    subscribeAll(issuerProvider: () => Entity, it: Card) {
         for (const effect of this._effects) {
             // Passive effects don't have targets, pass empty array
             let targets: any[] = [];
             // if(effect.targetsSelector.length > 0) {
             //     targets = effect.targetsSelector.map(selector => { selector.selector(owner as Player)[0]; });
             // }
-            effect.effectFunction(new EffectData(it, owner, targets));
+            effect.effectFunction(new EffectData(it, issuerProvider, targets));
         }
     }
 }
@@ -216,12 +216,12 @@ class ActiveEffectHandler extends EffectHandler {
         if (this._activeEffect === null) {
             throw new Error("No active effect found in ActiveEffectHandler.");
         }
-        return await this._activeEffect.effectFunction(new EffectData(it, issuer as Player, targets));
+        return await this._activeEffect.effectFunction(new EffectData(it, () => issuer as Player, targets));
     }
 
     async pay(issuer: Entity, it: Card, targets: any[], effectId: number): Promise<boolean> {
         const effect = this.getPaidEffect(effectId);
-        return await effect.effectFunction(new EffectData(it, issuer as Player, targets));
+        return await effect.effectFunction(new EffectData(it, () => issuer as Player, targets));
     }
 
     hasTapEffect(): boolean {
@@ -299,14 +299,14 @@ class EffectInterface {
         return this.activeEffects.hasTapEffect();
     }
 
-    subscribeAll(owner: Entity): void {
-        this.passiveEffects.subscribeAll(owner, this.it);
+    subscribeAll(issuerProvider: () => Entity): void {
+        this.passiveEffects.subscribeAll(issuerProvider, this.it);
     }
 
     async paidEffect(issuer: Entity, targets: any[], effectId: number): Promise<EffectOnStack> {
         const effect = this.activeEffects.getPaidEffect(effectId);
         
-        const data = new EffectData(this.it, issuer as Player, targets);
+        const data = new EffectData(this.it, () => issuer as Player, targets);
         // Execute payment if it exists
         if (effect.hasPayment()) {
             if (!await effect.executePayment(data)) {
@@ -322,7 +322,7 @@ class EffectInterface {
         const effect = this.activeEffects.getActiveEffect();
         if(!issuer)
             throw new Error("EffectInterface.tapEffect: issuer is undefined or null.");
-        const data = new EffectData(this.it, issuer as Player, targets);
+        const data = new EffectData(this.it, () => issuer as Player, targets);
         return new EffectOnStack(effect.effectFunction, data, effect.description);
     }
     // activeEffect(issuer: Entity, targets: any[], effectId: number): void {
@@ -360,9 +360,9 @@ class EffectInterface {
             if(this._issuer) {
                 // Validate targets before calling effect function
                 if (effect.targetStillValid(this._issuer!, targets)) {
-                    await effect.effectFunction(new EffectData(this.it, this._issuer!, targets));
+                    await effect.effectFunction(new EffectData(this.it, () => this._issuer!, targets));
                 }
-                this.subscribeAll(this._issuer!);
+                this.subscribeAll(() => this._issuer!);
             }
         };
     }
@@ -550,9 +550,9 @@ class Card {
         }
     }
 
-    onAddInPlay(owner: Entity): void {
-        this._owner = owner;
-        this._effectInterface.subscribeAll(owner);
+    onAddInPlay(issuerProvider: () => Entity): void {
+        this._owner = issuerProvider();
+        this._effectInterface.subscribeAll(issuerProvider);
     }
     addEffect(effect: Effect) {
         this._effectInterface.addEffect(effect);
@@ -622,7 +622,7 @@ class Card {
             
             // Re-subscribe effects if we have an owner
             if (originalState.owner) {
-                this._effectInterface.subscribeAll(originalState.owner);
+                this._effectInterface.subscribeAll(() => originalState.owner);
             }
         };
 
@@ -829,8 +829,9 @@ class CharacterCard extends ItemCard {
         this._charged = false;
         this._eternal = true;
     }
-    override onAddInPlay(owner: Entity): void {
-        super.onAddInPlay(owner);
+    override onAddInPlay(issuerProvider: () => Entity): void {
+        const owner = issuerProvider();
+        super.onAddInPlay(issuerProvider);
         owner.addHealthPoints(this._healthPoints);
         owner.addAttackPoints(this._attackPoints);
     }
@@ -935,6 +936,7 @@ class BsoulCard extends Card {
             name: this._name,
             globalId: this._globalId,
             granted: this.granted,
+            ...( this.tags.counters !== undefined ? { counter: this.tags.counters } : {} ),
         };
     }
     

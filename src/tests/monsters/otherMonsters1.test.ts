@@ -126,7 +126,7 @@ describe("Monsters - Various 1", () => {
         expect(game.stack._stack.length).toBe(0);
         expect(monster.attackPoints).toBe(initAtk + 2);
 
-        game.nextTurn(player1);
+        await game.nextTurn(player1);
         await game.resolveStack(); // resolve effect
         expect(game.stack._stack.length).toBe(0);
 

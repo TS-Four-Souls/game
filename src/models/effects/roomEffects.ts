@@ -5,11 +5,11 @@ import { Game } from "../game";
 import { EffectData, type EffectFunction } from "../types/cardTypes";
 import { Player } from "../player";
 import { Card, LootCard, MonsterCard, TreasureCard, ItemCard } from "../cards";
-import type { OnAttackDeclaredTopDeckData, OnDeathMonsterData } from "../types/eventTypes";
-import { flushMonsterSlotsEffect } from "./activeEffect";
+import type { OnAttackDeclaredTopDeckData, OnDamageTakenData, OnDeathMonsterData } from "../types/eventTypes";
+import { flushMonsterSlotsEffect, flushShopEffect } from "./activeEffect";
 import { addPassiveEffectToStack } from "./passiveEffect";
 import { visibleItemSelector } from "../targetSelector";
-import type { Monster } from "../monster";
+import { Monster } from "../monster";
 import { Animated, Entity } from "../entity";
 
 export function preventGainSoulsEffect(game: Game): EffectFunction {
@@ -372,6 +372,26 @@ export function discardLootAtEndOfTurnEffect(game: Game, amount: number): Effect
     };
 }
 
+export function deactivateCharacterAtEndOfTurnEffect(game: Game): EffectFunction {
+     return (data: EffectData) => {
+        let offTurnStart: (() => void) | null = null;
+        offTurnStart = game.emitter.on("on:turn:end", (eventData) => {
+            const effect: EffectFunction = async (effectData: EffectData) => {
+                game.deactivateItem(game.currentPlayer.character);
+                return true;
+            }
+            addPassiveEffectToStack(game, effect, data, `Deactivate your character at the end of the turn.`);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offTurnStart?.();
+            offTurnStart = null;
+        });
+        return true;
+    };
+}
+
 export function loseCoinsAtEndOfTurnEffect(game: Game, amount: number): EffectFunction {
      return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
@@ -430,6 +450,51 @@ export function mayRerollItemAtStartOfTurnEffect(game: Game): EffectFunction {
                 return false;
             };
             addPassiveEffectToStack(game, effect, data, "You may reroll an item you control.");
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offTurnStart?.();
+            offTurnStart = null;
+        });
+        return true;
+    };
+}
+
+export function mayGainTreasureAtStartOfTurnEffect(game: Game): EffectFunction {
+     return (data: EffectData) => {
+        let offTurnStart: (() => void) | null = null;
+        offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
+            const effect: EffectFunction = async (effectData: EffectData) => {
+                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "You may gain a treasure.", false)).selected[0] as ItemCard | undefined;
+                if(selected !== undefined) {
+                    game.gainTreasure(game.currentPlayer, 1);
+                    return true;
+                }
+                return false;
+            };
+            addPassiveEffectToStack(game, effect, data, "You may gain a treasure.");
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offTurnStart?.();
+            offTurnStart = null;
+        });
+        return true;
+    };
+}
+
+export function damageIfLowLootAtEndOfTurnEffect(game: Game, amount: number): EffectFunction {
+     return (data: EffectData) => {
+        let offTurnStart: (() => void) | null = null;
+        offTurnStart = game.emitter.on("on:turn:end", (eventData) => {
+            const effect: EffectFunction = async (effectData: EffectData) => {
+                if(game.currentPlayer.hand.length > 1) return false;
+                game.dealDamage(game.currentPlayer, game.currentPlayer, data.it, amount);
+                return false;
+            };
+            addPassiveEffectToStack(game, effect, data, "You may gain a treasure.");
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -612,6 +677,30 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): EffectFun
     };
 }
 
+export function playerMustDestroyItemOnDeathEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offAttackDeclared: (() => void) | null = null;
+        offAttackDeclared = game.emitter.on("on:death:before-penalty", async (eventData) => {
+            const { eventIssuer  } = eventData;
+            const effect: EffectFunction = async (effectData: EffectData) => {
+                const selected = (await effectData.selectAndRecord(game, eventIssuer as Player, 1, 1, game.inPlayTargetableCards(eventIssuer as Player), "Select an item to destroy.", false)).selected[0] as ItemCard | undefined;
+                if(selected) {
+                    game.destroyCardsOrSouls([selected])
+                }
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, "You must destroy an item you control.");
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offAttackDeclared?.();
+            offAttackDeclared = null;
+        });
+        return true;
+    };
+}
+
 export function onAttackDeclaredNonActivePlayersRollToJoinEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offAttackDeclared: (() => void) | null = null;
@@ -672,3 +761,426 @@ export function rerollOn1Or6Effect(game: Game): EffectFunction {
         return true;
     };
 }
+
+
+// REPLACEMENT EFFECT: Continuous stat modification - does not use the stack.
+export function allPlayersPermanentStatModifierEffect(
+    adders: ((player: Player, value: number) => void)[],
+    amount: number,
+    game: Game
+): EffectFunction {
+    return (data: EffectData) => {
+        if (amount < 0)
+            throw new Error("allPlayersPermanentStatModifierEffect amount must be non-negative.");
+        // Apply the stat modification
+        for(const player of game.players) 
+            for (const adder of adders)
+                adder(player, amount);
+
+        data.it.cleaners.push(() => {
+            for(const player of game.players) 
+                for (const adder of adders)
+                    adder(player, -amount);
+        });
+
+        return true;
+    };
+}
+export function payHpForTreasureBoostEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offTurnStart: (() => void) | null = null;
+        offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
+            const effect: EffectFunction = async (effectData: EffectData) => {
+                const difference = game.currentPlayer.currentHealthPoints - 1;
+                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "You can pay " + difference + " HP to gain a treasure each time a monster dies this turn. Do you want to?", false, true)).selected[0] as Card | undefined;
+                if(selected !== undefined) {
+                    game.dealDamage(game.currentPlayer, game.currentPlayer, data.it, difference, (data: EffectData) => {
+                        let offMonsterDeath: (() => void) | null = null;
+                        offMonsterDeath = game.emitter.on("on:death:monster", (eventData) => {
+                             const { eventIssuer } = eventData;
+                             if(eventIssuer instanceof Monster) {
+                                 game.gainTreasure(game.currentPlayer, 1);
+                             }
+                        });
+                        data.it.cleaners.push(() => {
+                            offMonsterDeath?.();
+                            offMonsterDeath = null;
+                        });
+                        return true
+                    }); 
+                    return true;
+                }
+                return false;
+            };
+            addPassiveEffectToStack(game, effect, data, "You can pay " + (game.currentPlayer.currentHealthPoints - 1) + " HP to gain a treasure each time a monster dies this turn. Do you want to?");
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offTurnStart?.();
+            offTurnStart = null;
+        });
+        return true;
+    };
+}
+
+export function WhenDealDamageMonsterDealDamageToPlayerToTheEffect(game: Game, amount: number, direction: "left" | "right"): EffectFunction {
+    return (data: EffectData) => {
+        let offDealDamage: (() => void) | null = null;
+        offDealDamage = game.emitter.on("on:damage:taken", (eventData: OnDamageTakenData) => {
+            const { eventIssuer, target, damage } = eventData;
+            if(eventIssuer instanceof Monster && damage > 0 && target instanceof Player ) {
+                const effect: EffectFunction = (effectData: EffectData) => {
+                    game.dealDamage(target, game.turnHandler.getPlayerTo(target, direction), data.it, amount);
+                    return true;
+                };
+                addPassiveEffectToStack(game, effect, data, `When a monster takes damage, the player to their ${direction} also takes ${amount} damage.`);
+            }
+        });
+        data.it.cleaners.push(() => {
+            offDealDamage?.();
+            offDealDamage = null;
+        });
+        return true;
+    };
+}
+
+export function playersWithFewestSoulsAttackBoostEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offTurnStart: (() => void) | null = null;
+        let offSoulGained: (() => void) | null = null;
+        let playersWithFewestSouls: Player[] = [];
+        let shouldAddAttackThisTurn = true;
+        function computeEffect() {
+            let minSouls = Math.min(...game.players.map(p => p.totalSouls));
+            playersWithFewestSouls = game.players.filter(p => p.totalSouls === minSouls);
+            for(const player of playersWithFewestSouls) 
+            {
+                game.addAttack(player, 1);
+            }
+            if(playersWithFewestSouls.includes(game.currentPlayer) && shouldAddAttackThisTurn)
+                game.currentPlayer.attackThisTurn += 1;
+        }
+        function removeEffect() {
+            for(const player of playersWithFewestSouls) 
+            {
+                game.addAttack(player, -1);
+            }
+            if(playersWithFewestSouls.includes(game.currentPlayer))
+            {
+                if(game.currentPlayer.attackThisTurn > 0)
+                    game.currentPlayer.attackThisTurn -= 1;
+                else
+                    shouldAddAttackThisTurn = false;
+            }
+        }
+        computeEffect();
+        offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
+            if(playersWithFewestSouls.includes(game.currentPlayer))
+            {
+                game.currentPlayer.attackThisTurn += 1;
+                shouldAddAttackThisTurn = true;
+            }
+        });
+        offSoulGained = game.emitter.on("on:soul:gained", (eventData) => {
+            removeEffect();
+            computeEffect();
+        });
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offTurnStart?.();
+            offTurnStart = null;
+            removeEffect();
+        });
+        return true;
+    };
+}
+
+
+export function playersWithFewestSoulsFreeShopItemEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offTurnStart: (() => void) | null = null;
+        let offPurchase: (() => void) | null = null;
+        let offTurnEnd: (() => void) | null = null;
+        let offSoulGained: (() => void) | null = null;
+        let playersWithFewestSouls: Player[] = [];
+        let pay0Next = true;
+        /**
+         * compute the players with least souls.
+         * If the current player is among them, reduce their price modifier.
+         */
+        function computeEffect() {
+            let minSouls = Math.min(...game.players.map(p => p.totalSouls));
+            playersWithFewestSouls = game.players.filter(p => p.totalSouls === minSouls);
+            if(playersWithFewestSouls.includes(game.currentPlayer) && pay0Next)
+                game.currentPlayer.priceModifier -= 999;
+        }
+        /** When a shop item is purchase, if the current player has his cost reduced, remove the reduction.
+         */
+        offPurchase = game.emitter.on("on:purchase:success", (eventData) => {
+             const { eventIssuer, index } = eventData;
+             if(eventIssuer === game.currentPlayer && index !== "top" && playersWithFewestSouls.includes(game.currentPlayer) && pay0Next) {
+                removeEffect();
+                pay0Next = false;
+             }
+        });
+        function removeEffect() {
+            if(playersWithFewestSouls.includes(game.currentPlayer) && pay0Next)
+            {
+                game.currentPlayer.priceModifier += 999;
+            }
+        }
+        
+        computeEffect();
+        offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
+            computeEffect();
+            pay0Next = true;
+        });
+        offTurnEnd = game.emitter.on("on:turn:end", (eventData) => {
+            removeEffect();
+        });
+        offSoulGained = game.emitter.on("on:soul:gained", (eventData) => {
+            removeEffect();
+            computeEffect();
+        });
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offTurnStart?.();
+            offTurnStart = null;
+            removeEffect();
+        });
+        return true;
+    };
+}
+
+export function flushShopOrUnattackedMonstersEffect(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        const selected = (await data.selectAndRecord(game, game.currentPlayer, 0, 1, ["treasure", "monster"], "Put each shop item or each monster not being attacked into discard.", false)).selected[0] as string | undefined;
+        if(selected === "treasure") {
+            flushShopEffect(game, "discard")(data);
+        }
+        if(selected === "monster") {
+            flushMonsterSlotsEffect(game, "discard")(data);
+        }
+        // Implementation for flushing shop items or unattacked monsters
+        return true;
+    };
+}
+/**
+ * this room can't be put into discard till 4 goals are completed.
+ * 
+ *   - play 5 loot cards.
+ *   - kill 3 monsters.
+ *   - give at least 6¢ to another player at one time.
+ *   - purchase 3 items.
+ *   - roll a 6 three times. 
+ * 
+ * when 4 goals are completed, each player gains +2 treasure.
+ */
+export function socialGoalsEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const originalDiscard = game.discard.bind(game);
+        game.discard = (card: Card) => {
+            if(card === data.it) {
+                return; // Prevent discarding the card until goals are completed
+            }
+            originalDiscard(card);
+        };
+        data.it.tags.counters = 0;
+        let sixCoinGiven: boolean = false;
+        let lootPlayed = 0;
+        let monstersKilled = 0;
+        let itemsPurchased = 0;
+        let sixesRolled = 0;
+
+        function tryResolve() {
+            let goalsCompleted = 0;
+            if(lootPlayed >= 5) goalsCompleted++;
+            if(monstersKilled >= 3) goalsCompleted++;
+            if(sixCoinGiven) goalsCompleted++;
+            if(itemsPurchased >= 3) goalsCompleted++;
+            if(sixesRolled >= 3) goalsCompleted++;
+            data.it.tags.counters = goalsCompleted;
+            if(goalsCompleted >= 4)
+            {
+                for(const player of game.players) {
+                    game.gainTreasure(player, 2);
+                }
+                game.discard = originalDiscard; // Restore original discard function
+                game.discard(data.it);
+            }
+        }
+
+        let offLootPlayed: (() => void) | null = null;
+        let offMonsterKilled: (() => void) | null = null;
+        let offPurchase: (() => void) | null = null;
+        let offRoll: (() => void) | null = null;
+        let offDonation: (() => void) | null = null;
+
+        offLootPlayed = game.emitter.on("on:loot:added:after", (eventData) => {
+            lootPlayed++;
+            tryResolve();
+        });
+
+        offMonsterKilled = game.emitter.on("on:death:monster", (eventData) => {
+            monstersKilled++;
+            tryResolve();
+        });
+
+        offPurchase = game.emitter.on("on:purchase:success", (eventData) => {
+            itemsPurchased++;
+            tryResolve();
+        });
+
+        offRoll = game.emitter.on("on:dice:resolved", (eventData) => {
+            const { diceRoll } = eventData;
+            if(diceRoll.value === 6) {
+                sixesRolled++;
+                tryResolve();
+            }
+        });
+
+        offDonation = game.emitter.on("on:coin:given", (eventData) => {
+            const { eventIssuer, amount, target } = eventData;
+            if(amount >= 6) {
+                sixCoinGiven = true;
+                tryResolve();
+            }
+        });
+
+        return true;
+    }
+}
+
+export function playersCanOnlyActivateOnceATurn(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offActivate: (() => void) | null = null;
+        let offStartTurn: (() => void) | null = null;
+        let playersWhoActivatedThisTurn: Player[] = [];
+
+        offStartTurn = game.emitter.on("on:turn:start", (eventData) => {
+            playersWhoActivatedThisTurn = [];
+        });
+        offActivate = game.emitter.on("on:item:activated", (eventData) => {
+            const { eventIssuer } = eventData;
+            eventIssuer.addToCanIActivateThisTurn(1);
+            playersWhoActivatedThisTurn.push(eventIssuer);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offActivate?.();
+            offActivate = null;
+            for(const player of playersWhoActivatedThisTurn) {
+                player.addToCanIActivateThisTurn(-1);
+            }
+            offStartTurn?.();
+            offStartTurn = null;
+            playersWhoActivatedThisTurn = []
+        });
+        return true;
+    };
+}
+
+export function playersCanOnlyPlayLootOnceATurn(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offPlayLoot: (() => void) | null = null;
+        let offStartTurn: (() => void) | null = null;
+        let playersWhoPlayedLootThisTurn: Player[] = [];
+
+        offStartTurn = game.emitter.on("on:turn:start", (eventData) => {
+            playersWhoPlayedLootThisTurn = [];
+        });
+        offPlayLoot = game.emitter.on("on:loot:played", (eventData) => {
+            const { eventIssuer } = eventData;
+            eventIssuer.addToCanIUseLootThisTurn(1);
+            playersWhoPlayedLootThisTurn.push(eventIssuer);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offPlayLoot?.();
+            offPlayLoot = null;
+            for(const player of playersWhoPlayedLootThisTurn) {
+                player.addToCanIUseLootThisTurn(-1);
+            }
+            offStartTurn?.();
+            offStartTurn = null;
+            playersWhoPlayedLootThisTurn = []
+        });
+        return true;
+    };
+}
+
+export function payOtherPlayersToAttackEffect(game: Game, amount: number): EffectFunction {
+    return (data: EffectData) => {
+        let offCanDeclareAttack: (() => void) | null = null;
+        let offAttackDeclared: (() => void) | null = null;
+
+        function getTaxForMostSoulsAttack(game: Game, player: Player, amount: number): number {
+            const maxSoul = Math.max(...game.players.map(p => p.totalSouls));
+            if (maxSoul === 0) {
+                return 0;
+            }
+            if (player.totalSouls < maxSoul) {
+                return 0;
+            }
+            return amount * Math.max(0, game.players.length - 1);
+        }
+        
+        offCanDeclareAttack = game.emitter.on("on:can:declare:attack", (eventData) => {
+            const { eventIssuer } = eventData;
+            const requiredCoins = getTaxForMostSoulsAttack(game, eventIssuer, amount);
+            if (requiredCoins === 0) {
+                return;
+            }
+            if (eventIssuer.coins < requiredCoins) {
+                eventData.canDeclare[0] = false;
+                eventData.reason[0] = `You must pay ${requiredCoins}¢ to attack, but you only have ${eventIssuer.coins}¢.`;
+            }
+        });
+
+        offAttackDeclared = game.emitter.on("on:attack:declared", async (eventData) => {
+            const { eventIssuer } = eventData;
+            const requiredCoins = getTaxForMostSoulsAttack(game, eventIssuer, amount);
+            if (requiredCoins > 0)
+            {
+                const effect: EffectFunction = async (effectData: EffectData) => {
+                    for(const player of game.players) {
+                        if(player !== eventIssuer)
+                            game.giveCoins(eventIssuer, player, amount, true);
+                    }
+                    return true;
+                };
+                addPassiveEffectToStack(game, effect, data, `Pay each other player ${amount}¢ to attack.`);
+            }
+        });
+
+        data.it.cleaners.push(() => {
+            offCanDeclareAttack?.();
+            offCanDeclareAttack = null;
+            offAttackDeclared?.();
+            offAttackDeclared = null;
+        });
+
+        return true;
+    }
+}
+// export function playersWithFewestSoulsFreeShopItemEffect(game: Game): EffectFunction {
+//     return (data: EffectData) => {
+//         let offTurnStart: (() => void) | null = null;
+//         let active = true;
+//         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
+//             active = false;
+//         });
+
+        
+//         // Store cleanup function on the card for when it's removed/destroyed
+//         data.it.cleaners.push(() => {
+//             active = false;
+//             offTurnStart?.();
+//             offTurnStart = null;
+//         });
+//         return true;
+//     };
+// }
