@@ -35,7 +35,7 @@ import { Stack, type StackElement } from "@/models/stack";
 import { TargetBuilder } from "@/models/targetBuilder";
 import type { DeckType, DeckTypeToCardType, DecksCollection, EffectData, EffectType, TargetsSelector } from "@/models/types/cardTypes";
 import { type TriggerEvent } from '@/models/types/eventTypes';
-import type { Capability, DetailedState, Issuer, SelectionItem, StackElementJson } from "@/shared/api";
+import type { Capability, DetailedState, Issuer, SelectionItem, StackElementJson, Animation} from "@/shared/api";
 import { shuffle } from "@/utils/auxiliary";
 import { loadCards } from "@/utils/loadCards";
 import { Signal, type ReadableSignal } from "micro-signals";
@@ -71,6 +71,8 @@ export class Game {
   private _historicHandler: HistoricHandler = new HistoricHandler();
   private _cardMapping: Map<number, Card> = new Map();
   private _nextCardGlobalId: number = 0;
+  private _animations: Animation[] = [];
+  private _animationId: number = 0;
   readonly gameParameters = new GameParameters(() => this._onStateChange.dispatch());
 
   private _onStateChange: Signal<void> = new Signal();
@@ -921,6 +923,9 @@ export class Game {
     return selection;
   }
 
+  addAnimation(animation: Animation): void {
+    this._animations.push(animation);
+  }
   // Pending selection tracking for multiplayer (handles both single and multiple selections)
   private pendingMultipleSelections: Map<
     string,
@@ -1510,7 +1515,12 @@ export class Game {
     const lootCardEffect = new LootCardEffect(player, playedCard, targets);
     this.addToStack(lootCardEffect);
     player.remainingLootPlay -= 1;
-
+    this.addAnimation({
+      id: this._animationId++,
+      type: "lootPlay",
+      card: playedCard.jsonAPI,
+      player: player.id,
+    })
     this.emit("on:loot:played", {
       eventIssuer: player,
       card: playedCard,
@@ -2396,10 +2406,12 @@ export class Game {
       history: this.history,
       firstCardTreasureDeck: player.canSeeTopOfTreasureDeck ? this.decks["treasure"]!.cards[0]!.jsonAPI : undefined,
       stack: this.stack.elements.map((el) => el.json).toReversed(),
+      animations: this._animations
       // firstCardTreasureDeck: player.canSeeTopOfTreasureDeck
       // ? this.decks["treasure"]!.cards[0]?.json
       // : undefined,
     };
+    this._animations = [];
   }
   // We should implement declaring a purchase
   /** Validates whether current player can declare purchase mode. */

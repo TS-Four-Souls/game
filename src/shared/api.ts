@@ -564,6 +564,7 @@ const animationSchema = z.discriminatedUnion("type", [
   activateInPlayAnimationSchema,
   giveCoinsAnimationSchema,
 ]);
+export type Animation = z.infer<typeof animationSchema>;
 
 const detailedStateSchema = z.object({
   me: playerMeSchema,
