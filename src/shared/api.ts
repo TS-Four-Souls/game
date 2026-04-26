@@ -22,7 +22,11 @@ const activeEffectEntrySchema = z.object({
 });
 export type ActiveEffectEntry = z.infer<typeof activeEffectEntrySchema>;
 
-const deckNameSchema = z.union([z.literal("loot"), z.literal("treasure"), z.literal("monster")]);
+const deckNameSchema = z.union([
+  z.literal("loot"),
+  z.literal("treasure"),
+  z.literal("monster"),
+]);
 export type DeckName = z.infer<typeof deckNameSchema>;
 
 // Forward declare types for circular references
@@ -394,10 +398,10 @@ const debugListCardsICanRemoveResponseSchema = z.union([
     error: z.string(),
   }),
 ]);
-export type DebugListCardsICanRemoveResponse = z.infer<typeof debugListCardsICanRemoveResponseSchema>;
+export type DebugListCardsICanRemoveResponse = z.infer<
+  typeof debugListCardsICanRemoveResponseSchema
+>;
 
-// const debugRemoveCardsResponseSchema = z.union([
-//   z.object({
 const debugListTreasureResponseSchema = z.union([
   z.object({
     status: z.literal(200),
@@ -532,6 +536,30 @@ const playerMeSchema = playerSchema.extend({
 });
 export type PlayerMe = z.infer<typeof playerMeSchema>;
 
+const lootPlayAnimationSchema = z.object({
+  type: z.literal("lootPlay"),
+  card: identifierTypeSchema,
+  player: z.string(),
+});
+
+const activateInPlayAnimationSchema = z.object({
+  type: z.literal("activateInPlay"),
+  card: identifierTypeSchema,
+});
+
+const giveCoinsAnimationSchema = z.object({
+  type: z.literal("giveCoins"),
+  sender: z.string(),
+  recipient: z.string(),
+  count: z.number(),
+});
+
+const animationSchema = z.discriminatedUnion("type", [
+  lootPlayAnimationSchema,
+  activateInPlayAnimationSchema,
+  giveCoinsAnimationSchema,
+]);
+
 const detailedStateSchema = z.object({
   me: playerMeSchema,
   players: z.array(playerSchema),
@@ -562,6 +590,7 @@ const detailedStateSchema = z.object({
   stack: z.array(z.lazy(() => stackElementSchema)),
   firstCardTreasureDeck: cardSchema.optional(),
   history: z.array(stackElementSchema),
+  animations: z.array(animationSchema),
 });
 export type DetailedState = z.infer<typeof detailedStateSchema>;
 
@@ -819,7 +848,7 @@ export interface ClientToServerEvents {
     request: Requests.DebugRemoveCards,
     callback: (response: Responses.DebugRemoveCards) => void,
   ) => void;
-  
+
   debugListTreasure: (
     request: Requests.DebugListTreasure,
     callback: (response: Responses.DebugListTreasure) => void,
