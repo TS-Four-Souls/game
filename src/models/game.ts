@@ -1670,6 +1670,13 @@ export class Game {
         return false;
       }
     }
+    this.addAnimation({
+      id: this._animationId++,
+      type: "giveCoins",
+      sender: from.id,
+      recipient: to.id,
+      count: amount
+    });
     this.loseCoins(from, amount, true);
     this.gainCoins(to, amount);
     this._onStateChange.dispatch();
@@ -1855,6 +1862,11 @@ export class Game {
     effectId: number | "tap" = "tap"
   ): Promise<boolean> {
     const effectOnStack = await player.activateItem(item, targets, effectId);
+    this.addAnimation({
+      id: this._animationId++,
+      type: "activateInPlay",
+      card: item.jsonAPI,
+    })
     this.addToStack(effectOnStack);
     if (effectId === "tap") {
       this.emit("on:item:activated", {
