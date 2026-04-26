@@ -1,6 +1,6 @@
 import type { DeckName, SelectionItem, TargetSelectorResponse } from "../shared/api";
 import { Card, ItemCard, type TargetsSelector } from "./cards";
-import { parseNumber } from "./effectParser";
+import { parseNumber } from "./effects/effectParser";
 import { Entity } from "./entity";
 import type { Game } from "./game";
 import type { Player } from "./player";

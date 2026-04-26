@@ -94,7 +94,7 @@ describe("Tap/Paid effects 1", () => {
         expect(battery.charged).toBe(false);
 
         // Give player enough coins
-        game.gainCoins(player1, 10);
+        game.gainCoins(player1, 10, "gift");
         const initialCoins = player1.coins;
 
         // Activate battery_bum (paid effect with effectId 0)
@@ -154,7 +154,7 @@ describe("Tap/Paid effects 1", () => {
         game.addInPlay(player1, flush);
 
         // Get initial shop items count
-        const initialShopItems = [...game.shop._slots];
+        const initialShopItems = [...game.shop.itemsInShop];
 
         // Recharge and activate the item with choose one result
         game.recharge(flush);
@@ -163,8 +163,8 @@ describe("Tap/Paid effects 1", () => {
         await game.resolveStack();
 
         // Shop should be empty
-        const remainingShopItems = game.shop._slots.filter(slot => slot !== undefined).length;
-        expect(game.shop._slots.every(s => !initialShopItems.includes(s))).toBe(true);
+        const remainingShopItems = game.shop.itemsInShop.filter(slot => slot !== undefined).length;
+        expect(game.shop.itemsInShop.every(s => !initialShopItems.includes(s))).toBe(true);
 
     });
 
@@ -779,7 +779,7 @@ describe("Tap/Paid effects 1", () => {
 
     it("the_d20 - reroll an item from the shop (destroy and replace)", async () => {
         const theD20 = game.shop.obtainCard("b2-the_d20") as ItemCard;
-        const targetItem = game.shop._slots[0] as ItemCard;
+        const targetItem = game.shop.itemsInShop[0] as ItemCard;
         game.addInPlay(player1, theD20);
 
         // Get the top card of treasure deck (replacement card)
@@ -792,7 +792,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Target item should be destroyed
         expect(game.destroyedCards).toContain(targetItem);
-        expect(game.shop._slots[0]).toBe(replacementCard);
+        expect(game.shop.itemsInShop[0]).toBe(replacementCard);
     });
 
     it("spoon_bender - add 1 to a roll", async () => {

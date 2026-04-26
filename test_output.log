@@ -1,0 +1,361 @@
+bun test v1.3.3 (274e01c7)
+
+src/tests/misc.test.ts:
+(pass) Before start effects > Cain plays first [53.21ms]
+(pass) Before start effects > Eden gets a treasure and set it eternal [26.01ms]
+(pass) Before start effects > Character card activation gives a loot play (random characters) [34.85ms]
+(pass) Bonus Soul effects > Greed [25.62ms]
+(pass) Bonus Soul effects > Gluttony [10.90ms]
+(pass) Bonus Soul effects > Guppy combination 1 [11.24ms]
+(pass) Bonus Soul effects > Guppy combination 2 [11.19ms]
+(pass) Bonus Soul effects > Guppy combination 3 [10.94ms]
+
+src/tests/gameMultipleSelection.test.ts:
+(pass) Game.selectMultiple > should handle multiple players selecting in parallel [17.42ms]
+(pass) Game.selectMultiple > should handle asMany=true for multiple selections [11.96ms]
+(pass) Game.selectMultiple > should validate exact count when asMany=false [15.78ms]
+(pass) Game.selectMultiple > should validate maximum count when asMany=true [10.84ms]
+(pass) Game.selectMultiple > should reject submission with invalid requestId [11.10ms]
+(pass) Game.selectMultiple > should reject submission from wrong player [11.08ms]
+(pass) Game.selectMultiple > should generate unique requestIds for each selection [11.29ms]
+(pass) Game.selectMultiple > should clear pending selection after submission [10.64ms]
+(pass) Game.selectMultiple > should not show other players' multiple selections in state [9.96ms]
+(pass) Game.selectMultiple > should handle mixed selection counts [10.32ms]
+(pass) Game.selectMultiple > should handle empty options array [14.26ms]
+(pass) Game.selectMultiple > should handle selection with all options being selected [9.40ms]
+(pass) Game.selectMultiple > should trigger state change when multiple selections are created [23.41ms]
+(pass) Game.selectMultiple > should handle players submitting in different order than request order [8.24ms]
+
+src/tests/game.test.ts:
+(pass) Game > should create a new game instance
+(pass) Game > should add players to the game [0.42ms]
+(pass) Game > should start the game with a player [6.95ms]
+(pass) Game > should throw error when retrieving non-existent player
+(pass) Game > should have empty player list initially [0.04ms]
+(pass) Player > should create a player with correct attributes
+(pass) Player > should have a unique secret token
+(pass) Player > should start with full health
+(pass) Player > should start with empty hand
+(pass) Player > should start with zero souls
+(pass) Player > should start with no in-play cards
+(pass) Player > should gain coins
+(pass) Player > should lose coins successfully
+(pass) Player > should not lose more coins than available without asMany flag
+(pass) Player > should lose all coins with asMany flag when not enough coins
+(pass) Player > should receive damage
+(pass) Player > should not go below zero health
+(pass) Player > should heal to full health
+(pass) Player > should die immediately with die() method
+(pass) Player > should verify secret token correctly
+(pass) Player > should roll a dice between 1 and 6
+(pass) Player - In-Play Cards > should have empty in-play cards initially
+(pass) Player - In-Play Cards > should be able to add in-play cards
+(pass) Player - In-Play Cards > should be able to add multiple in-play cards
+(pass) Player - In-Play Cards > should not remove eternal or character cards by index
+(pass) Player - In-Play Cards > should return false when removing non-existent in-play card
+(pass) Player - In-Play Cards > should ignore negative index removal
+(pass) Player - In-Play Cards > should return true but keep size when removing out-of-range index
+(pass) Player - Removal > should remove card from in-play when present [2.56ms]
+(pass) Player - Removal > should remove card from hand when present there [0.10ms]
+(pass) Player - Souls > should start with zero souls
+(pass) Player - Souls > should be able to add a soul card [0.17ms]
+(pass) Player - Souls > should calculate total souls correctly
+(pass) Player - Souls > should throw error when adding card with no soul
+(pass) Player - Souls > should be able to remove a soul card [0.44ms]
+(pass) Player - Souls > should return false when removing non-existent soul
+(pass) Player - Damage & Health > should take multiple damage hits [0.23ms]
+(pass) Player - Damage & Health > should survive partial damage and be alive
+(pass) Player - Damage & Health > should be dead after exactly reaching zero health
+(pass) Player - Damage & Health > should recover to full health after heal [0.21ms]
+(pass) Player - Coins > should start with correct coin amount [0.12ms]
+(pass) Player - Coins > should gain multiple coin transactions [0.07ms]
+(pass) Player - Coins > should lose exact amount of coins when available [0.02ms]
+(pass) Player - Coins > should lose multiple times [0.08ms]
+(pass) Player - Coins > should handle edge case of zero coins
+(pass) Player - Coins > should use asMany flag correctly
+(pass) Multi death things > should handle multiple deaths in a row [9.76ms]
+(pass) DiceRoll > should create a valid dice roll [0.05ms]
+(pass) DiceRoll > should track the issuer correctly [0.01ms]
+(pass) DiceRoll > should allow setting dice value between 1 and 6
+(pass) DiceRoll > should roll and generate new value [0.31ms]
+(pass) DiceRoll > should return json representation correctly [0.21ms]
+(pass) DiceRoll > should resolve to current value [0.05ms]
+(pass) Game - Multiple Players > should add multiple players [0.27ms]
+(pass) Game - Multiple Players > should throw error when adding duplicate player ID [0.20ms]
+(pass) Game - Multiple Players > should retrieve correct players [0.22ms]
+(pass) Game - Multiple Players > should maintain player order [0.19ms]
+(pass) Game - Multiple Players > should get all players hands [0.06ms]
+(pass) Game - Guardrails > should not allow adding players after game start [7.58ms]
+(pass) Game - Guardrails > should select the first n options [0.30ms]
+(pass) Game - Stack Operations > should have an empty stack initially [0.38ms]
+(pass) Game - Stack Operations > should reset the stack
+(pass) Game - Stack Operations > should cancel stack
+(pass) Game - Stack Operations > should add to stack and resolve dice roll [0.84ms]
+(pass) Game - Stack Operations > should get destroyed cards
+(pass) Stack - Behavior > should resolve and remove the top element
+(pass) Stack - Behavior > should remove element at index [0.50ms]
+(pass) Stack - Behavior > should insert a stack element before another in same reordering group
+(pass) Stack - Behavior > should throw when trying to reorder elements from different groups
+(pass) Stack - Behavior > should throw when one of the elements has no reordering group
+(pass) GameEventEmitter - listener reordering > should reorder only the provided listener subset [0.92ms]
+(pass) Game - Game State > should get decks
+(pass) Game - Game State > should get turn handler [0.06ms]
+(pass) Game - Game State > should get shop [6.97ms]
+(pass) Game - Game State > should get encounters [7.37ms]
+(pass) Game - Game State > should get monster slots [6.62ms]
+(pass) Game - Game State > should get stack [0.20ms]
+(pass) TurnHandler > should advance turns and rounds correctly [0.10ms]
+(pass) Game - Souls & State > should compute players with most souls [0.35ms]
+(pass) Game - Souls & State > should return all leaders on tie [0.18ms]
+(pass) Game - Souls & State > should return both players when no souls are present [0.22ms]
+(pass) Game - Damage System > should deal damage between entities [8.41ms]
+(pass) Game - Damage System > should handle zero damage [6.46ms]
+(pass) Game - Damage System > should handle damage that kills entity [9.11ms]
+(pass) Player - Edge Cases & Combinations > should handle multiple damage and healing cycles [0.20ms]
+(pass) Player - Edge Cases & Combinations > should handle complex coin transactions [0.18ms]
+(pass) Player - Edge Cases & Combinations > should maintain player attributes immutably [0.08ms]
+(pass) Player - Edge Cases & Combinations > should handle soul card with zero soul value [0.09ms]
+(pass) Player - Edge Cases & Combinations > should handle many souls correctly [0.13ms]
+(pass) Player - Edge Cases & Combinations > should handle removing items in various ways [0.08ms]
+
+src/tests/history.test.ts:
+
+src/tests/targetBuilder.test.ts:
+(pass) Target Builder Interface > should progressively build targets for a tap effect with one selector [7.82ms]
+(pass) Target Builder Interface > select dice and then select number [10.30ms]
+(pass) Target Builder Interface > should build targets for contract_from_below (paid effect) [10.10ms]
+(pass) Target Builder Interface > should use buildTargets helper to convert string identifiers to targets [9.30ms]
+(pass) Target Builder Interface > should build resolve-time targets from raw selections returned by game.select [10.43ms]
+(pass) Target Builder Interface > should convert various object types to string identifiers [8.92ms]
+(pass) Target Builder Interface > should resolve identifiers back to objects [10.10ms]
+(pass) Target Builder Interface > should not leak information - only show next selector options [10.38ms]
+(pass) Target Builder Interface > should handle effects with no selectors [17.24ms]
+(pass) Target Builder Interface > should handle 'asMany' selectors correctly [7.86ms]
+(pass) Target Builder Interface > complete workflow: build targets step-by-step and activate item [8.54ms]
+(pass) Target Builder Interface > should handle chaos card choose-one - option 1: Kill a player or monster [7.82ms]
+(pass) Target Builder Interface > should handle chaos card choose-one - option 2: Destroy an item or soul [14.05ms]
+(pass) Target Builder Interface > should handle b [14.79ms]
+(pass) Target Builder - validTargetExists > Basic Functionality > should return true when valid targets exist for a simple selector [7.45ms]
+(pass) Target Builder - validTargetExists > Basic Functionality > should return error message when no valid targets exist [6.96ms]
+(pass) Target Builder - validTargetExists > Basic Functionality > should return true when effect has no selectors (always activatable) [6.24ms]
+(pass) Target Builder - validTargetExists > Basic Functionality > should return 'Item not found.' when item is null [6.39ms]
+(pass) Target Builder - validTargetExists > Multiple Selectors > should return true when all sequential selectors have valid targets [6.93ms]
+(pass) Target Builder - validTargetExists > Multiple Selectors > should return error when first selector has no targets [6.97ms]
+(pass) Target Builder - validTargetExists > Multiple Selectors > should return error when second selector has no targets [6.77ms]
+(pass) Target Builder - validTargetExists > Choose-One Selectors > should return true when at least one choose-one option has valid targets [7.28ms]
+(pass) Target Builder - validTargetExists > Choose-One Selectors > should handle choose-one with option that needs no targets [6.89ms]
+(pass) Target Builder - validTargetExists > AsMany Selectors > should return true for asMany selector even with zero targets available [7.93ms]
+(pass) Target Builder - validTargetExists > Count Requirements > should return error when available targets < required count [6.35ms]
+(pass) Target Builder - validTargetExists > Count Requirements > should return true when available targets >= required count [7.47ms]
+(pass) Target Builder - validTargetExists > Backtracking Logic > should backtrack when a choice path leads to invalid state [7.02ms]
+(pass) Target Builder - validTargetExists > Backtracking Logic > should find valid path through backtracking [7.15ms]
+(pass) Target Builder - validTargetExists > Paid Effects vs Tap Effects > should check paid effect (effectId = 0) [7.74ms]
+(pass) Target Builder - validTargetExists > Paid Effects vs Tap Effects > should check tap effect (effectId = 'tap') [7.08ms]
+(pass) Target Builder - validTargetExists > Edge Cases > should handle items with empty target selectors [11.89ms]
+(pass) Target Builder - validTargetExists > Edge Cases > should handle items with complex target conditions [8.43ms]
+(pass) Target Builder - validTargetExists > Edge Cases > should not throw when called on uncharged item with throwIfNotCharged=false [6.89ms]
+(pass) Target Builder - validTargetExists > Edge Cases > should handle player with no items in play [6.36ms]
+(pass) Target Builder - validTargetExists > Edge Cases > should handle items with null or undefined selectors gracefully [5.93ms]
+(pass) Target Builder - validTargetExists > Integration with Real Cards > should correctly validate Boomerang targets [5.37ms]
+192 |     // Force specific monsters into slots
+193 |     for (let i = 0; i < monsters.length; i++) {
+194 |         const slug = monsters[i]!;
+195 |         const monsterCard = game.obtainCard(slug);
+196 |         if (!monsterCard) {
+197 |             throw new Error(`Monster card not found: ${slug}`);
+                                                                   ^
+error: Monster card not found: b2-fatty
+      at setupTestGame (/Users/sylvain/Documents/foursouls/four-souls-game/src/tests/testHelpers.ts:197:62)
+      at <anonymous> (/Users/sylvain/Documents/foursouls/four-souls-game/src/tests/targetBuilder.test.ts:478:19)
+(fail) Target Builder - validTargetExists > Integration with Real Cards > should correctly validate Contract From Below targets [9.53ms]
+(pass) Target Builder - validTargetExists > Return Type Consistency > should return true (boolean) when targets exist [6.16ms]
+(pass) Target Builder - validTargetExists > Return Type Consistency > should return string (error message) when no targets exist [6.77ms]
+(pass) Target Builder - validTargetExists > Return Type Consistency > should return 'Item not found.' for null item [6.21ms]
+
+src/tests/trinket.test.ts:
+(pass) Loot Card > Swallowed Penny: should give one coin on player takes damage if player is issuer. [9.31ms]
+1383 | 
+1384 | export function assertCardMatchesDeck<T extends DeckType>(
+1385 |     deckName: T,
+1386 |     card: Card
+1387 | ): asserts card is DeckTypeToCardType[T] {
+1388 |     if (card.type !== deckName) {
+               ^
+TypeError: undefined is not an object (evaluating 'card.type')
+      at assertCardMatchesDeck (/Users/sylvain/Documents/foursouls/four-souls-game/src/models/cards.ts:1388:9)
+      at addTopPosition (/Users/sylvain/Documents/foursouls/four-souls-game/src/models/cards.ts:1234:9)
+      at <anonymous> (/Users/sylvain/Documents/foursouls/four-souls-game/src/tests/trinket.test.ts:27:34)
+(fail) Loot Card > Swallowed Penny: remove in play should remove effect. [6.69ms]
+(pass) Loot Card > Bloody Penny: should loot one on any player death. [8.43ms]
+443 |         const toClean = this._monstersInPlay[index];
+444 |         if (toClean !== undefined) {
+445 |             toClean.card.cleanup();
+446 |         }
+447 |         const card = this._slots[index]![this._slots[index]!.length - 1]!;
+448 |         if (card.encounterType !== MonsterType.EVENT) {
+                  ^
+TypeError: undefined is not an object (evaluating 'card.encounterType')
+      at createMonsterAtSlot (/Users/sylvain/Documents/foursouls/four-souls-game/src/models/slots.ts:448:13)
+      at forceSetMonsterAtSlot (/Users/sylvain/Documents/foursouls/four-souls-game/src/models/slots.ts:528:14)
+      at <anonymous> (/Users/sylvain/Documents/foursouls/four-souls-game/src/tests/trinket.test.ts:31:27)
+(fail) Loot Card > Bloody Penny: should NOT loot on monster death. [6.15ms]
+(pass) Loot Card > Counterfeit Penny: add one coins to your coin gain. [9.55ms]
+(pass) Loot Card > Cain's Eye: should let player look at top card and optionally put on bottom at turn start [12.72ms]
+(pass) Loot Card > Cain's Eye: should only trigger for the issuer, not other players [9.30ms]
+(pass) Loot Card > Cain's Eye: effect should stop when removed from play [6.75ms]
+(pass) Loot Card > Golden Horseshoe: should let player look at top card of the treasure deck and optionally put on bottom at turn start [7.87ms]
+(pass) Loot Card > Golden horseshoe: should only trigger for the issuer, not other players [7.48ms]
+(pass) Loot Card > Golden horseshoe: effect should stop when removed from play [7.18ms]
+(pass) Loot Card > Purple Heart: should let player look at top card of the monster deck and optionally put on bottom at turn start [7.20ms]
+(pass) Loot Card > Purple Heart: should only trigger for the issuer, not other players [10.03ms]
+(pass) Loot Card > Purple Heart: effect should stop when removed from play [6.45ms]
+(pass) Loot Card > Broken Ankh: should prevent death when rolling a 6, not on other rolls [6.68ms]
+(pass) Loot Card > Broken Ankh: should prevent death and end turn if rolling 6 on your turn [6.54ms]
+(pass) Loot Card > Broken Ankh: should not prevent death when rolling less than 6 [5.56ms]
+(pass) Loot Card > Broken Ankh: should only prevent owner from dying [7.07ms]
+(pass) Loot Card > Curved Horn: should add +1 [ATK] to first attack roll each turn and not to subsequent attack rolls [6.64ms]
+(pass) Loot Card > Curved Horn: should ONLY add +1 [ATK] to issuer [6.44ms]
+(pass) Loot Card > b2-lost_soul: becomes a soul on resolve. [5.92ms]
+(pass) Loot Card > b2-guppys_hairball: prevent damage on a 6. [6.24ms]
+(pass) Loot Card > b2-guppys_hairball: do not prevent damage on a 5. [6.43ms]
+
+src/tests/discard.test.ts:
+(pass) Discard > discard 1 loots on death [6.90ms]
+(pass) Discard > discard card on play [6.83ms]
+192 |     // Force specific monsters into slots
+193 |     for (let i = 0; i < monsters.length; i++) {
+194 |         const slug = monsters[i]!;
+195 |         const monsterCard = game.obtainCard(slug);
+196 |         if (!monsterCard) {
+197 |             throw new Error(`Monster card not found: ${slug}`);
+                                                                   ^
+error: Monster card not found: b2-fly
+      at setupTestGame (/Users/sylvain/Documents/foursouls/four-souls-game/src/tests/testHelpers.ts:197:62)
+      at <anonymous> (/Users/sylvain/Documents/foursouls/four-souls-game/src/tests/discard.test.ts:15:23)
+(fail) Discard > discard trinket on play [6.02ms]
+(pass) Discard > curse discard [7.04ms]
+(pass) Discard > curse discard 2 [6.81ms]
+(pass) Discard > kill monster with soul becomes player's soul (not discarded) [6.66ms]
+(pass) Discard > kill monster without soul goes to discard [7.54ms]
+(pass) Discard > discard monster puts it in monster discard pile [6.00ms]
+(pass) Discard > shop flush discards all treasure cards [4.95ms]
+(pass) Discard > destroy treasure does not put it in discard [7.09ms]
+198 |     });
+199 | 
+200 |     it("destroy soul does not put it in discard", async () => {
+201 |         // Give player1 a soul
+202 |         const monsterCard = game.obtainCard("b2-fly") as MonsterCard;
+203 |         monsterCard.soul = 1;
+              ^
+TypeError: undefined is not an object (evaluating 'monsterCard.soul = 1')
+      at <anonymous> (/Users/sylvain/Documents/foursouls/four-souls-game/src/tests/discard.test.ts:203:9)
+      at <anonymous> (/Users/sylvain/Documents/foursouls/four-souls-game/src/tests/discard.test.ts:200:51)
+(fail) Discard > destroy soul does not put it in discard [6.34ms]
+
+src/tests/effect.test.ts:
+443 |         const toClean = this._monstersInPlay[index];
+444 |         if (toClean !== undefined) {
+445 |             toClean.card.cleanup();
+446 |         }
+447 |         const card = this._slots[index]![this._slots[index]!.length - 1]!;
+448 |         if (card.encounterType !== MonsterType.EVENT) {
+                  ^
+TypeError: undefined is not an object (evaluating 'card.encounterType')
+      at createMonsterAtSlot (/Users/sylvain/Documents/foursouls/four-souls-game/src/models/slots.ts:448:13)
+      at forceSetMonsterAtSlot (/Users/sylvain/Documents/foursouls/four-souls-game/src/models/slots.ts:528:14)
+      at <anonymous> (/Users/sylvain/Documents/foursouls/four-souls-game/src/tests/effect.test.ts:43:27)
+      at <anonymous> (/Users/sylvain/Documents/foursouls/four-souls-game/src/tests/effect.test.ts:36:55)
+(fail) Effect - gainCoins > should give coins to issuer when game started [7.59ms]
+(pass) Effect - gainCoins > should accumulate across multiple triggers [6.43ms]
+(pass) Effect - gainCoins > should require game to be started [5.97ms]
+(pass) Effect - gainCoins > should reject negative coin amount [7.17ms]
+(pass) Effect - additional unique implementations > changeRollDiceResultEffect sets dice value [9.05ms]
+(pass) Effect - additional unique implementations > drawAndGainCoinsAsAPlayerEffect works [8.37ms]
+(pass) Effect - additional unique implementations > put on bottom of loot deck and extra turn [12.04ms]
+(pass) Loot deck integration > plays a gain coins card through the stack [10.99ms]
+(pass) Loot deck integration > plays a roll-based loot card through the stack [11.05ms]
+(pass) Loot deck integration > plays a deal damage card through the stack [10.88ms]
+(pass) Loot deck integration > plays a cancel ability card that affects the stack [9.28ms]
+(pass) Loot deck integration > plays a gain treasure card through the stack [8.61ms]
+(pass) Loot deck integration > handles multiple cards in stack with LIFO resolution [8.36ms]
+(pass) Loot deck integration > recharge item effect works correctly [8.76ms]
+(pass) Loot deck integration > steal coins effect works correctly [12.78ms]
+192 |     // Force specific monsters into slots
+193 |     for (let i = 0; i < monsters.length; i++) {
+194 |         const slug = monsters[i]!;
+195 |         const monsterCard = game.obtainCard(slug);
+196 |         if (!monsterCard) {
+197 |             throw new Error(`Monster card not found: ${slug}`);
+                            ^
+error: Monster card not found: b2-fly
+      at setupTestGame (/Users/sylvain/Documents/foursouls/four-souls-game/src/tests/testHelpers.ts:197:23)
+      at setupGame (/Users/sylvain/Documents/foursouls/four-souls-game/src/tests/effect.test.ts:13:19)
+      at <anonymous> (/Users/sylvain/Documents/foursouls/four-souls-game/src/tests/effect.test.ts:369:26)
+      at <anonymous> (/Users/sylvain/Documents/foursouls/four-souls-game/src/tests/effect.test.ts:368:44)
+(fail) Loot deck integration > take damage effect works correctly [8.90ms]
+(pass) Loot deck integration > verifies effect parser handles multiple card types [7.99ms]
+
+src/tests/gameSelection.test.ts:
+(pass) Game Selection System > select() creates a pending selection with correct data [9.35ms]
+(pass) Game Selection System > pending selection appears in detailedStateJSON for requesting player only [8.02ms]
+(pass) Game Selection System > submitSelection resolves the promise with correct values [8.94ms]
+(pass) Game Selection System > submitSelection clears pending selection after resolution [9.18ms]
+(pass) Game Selection System > submitSelection validates player identity [8.68ms]
+(pass) Game Selection System > submitSelection validates requestId [8.01ms]
+(pass) Game Selection System > submitSelection validates exact selection count when asMany is false [8.91ms]
+(pass) Game Selection System > submitSelection allows variable count when asMany is true [6.77ms]
+(pass) Game Selection System > submitSelection validates max count when asMany is true [7.40ms]
+(pass) Game Selection System > submitSelection allows zero selections when asMany is true [7.00ms]
+(pass) Game Selection System > state change is triggered when selection is created [20.64ms]
+(pass) Game Selection System > multiple sequential selections work correctly [7.64ms]
+(pass) Game Selection System > pending selection is removed from state after submission [6.58ms]
+(pass) Game Selection System > handles selection with object options correctly [7.89ms]
+(pass) Game Selection System > throws error when submitting without pending selection [11.59ms]
+(pass) Game Selection System > requestId is unique for each selection [13.32ms]
+
+src/tests/knownBugs.test.ts:
+(pass) Known bugs that have be corrected > discard 1 loots on death [10.85ms]
+(pass) Known bugs that have be corrected > Swallowed Penny: should give one coin on player takes damage if player is issuer and damage > 0. [8.54ms]
+(pass) Known bugs that have be corrected > stealing does not remove card correctly [8.91ms]
+(pass) Known bugs that have be corrected > curse removed on death [8.53ms]
+(pass) Known bugs that have be corrected > curse removed on destruction (dagaz) [9.32ms]
+(pass) Known bugs that have be corrected > remove something on top of a monster work [6.95ms]
+(pass) Known bugs that have be corrected > start of the turn resolve after loot [11.51ms]
+(pass) Known bugs that have be corrected > Psy horf dies into gold chest order in stack [8.58ms]
+(pass) Known bugs that have be corrected > b2-keeper_head - Prevented damage should not steal coins. [8.19ms]
+
+src/tests/encounters.test.ts:
+(pass) Encounters > Monster are created [7.30ms]
+(pass) Encounters > Killing monsters replaces them correctly [6.92ms]
+(pass) Encounters > Discarding monsters replaces them correctly [6.36ms]
+(pass) Encounters > Discarding single monster replaces it correctly [7.00ms]
+(pass) Encounters > Drawing monster replaces it correctly [7.08ms]
+(pass) Encounters > Drawing event replaces it correctly [7.18ms]
+
+src/tests/lootCard.test.ts:
+(pass) Loot Card > b2-two_cents-2: should increase player coins by 2 [8.34ms]
+(pass) Loot Card > b2-a_nickel: should increase player coins by 5 [7.07ms]
+(pass) Loot Card > b2-a_dime: should increase player coins by 10 [7.58ms]
+(pass) Loot Card > b2-xvii_the_stars: should gain 1 treasure [7.00ms]
+(pass) Loot Card > b2-viii_justice: should gain 7 coins and 3 loot cards [9.32ms]
+(pass) Loot Card > b2-viii_justice: should gain 5 coins and 1 loot cards [7.13ms]
+(pass) Loot Card > b2-blank_rune: roll 1 - each player gains 1¢ [7.44ms]
+192 |     // Force specific monsters into slots
+193 |     for (let i = 0; i < monsters.length; i++) {
+194 |         const slug = monsters[i]!;
+195 |         const monsterCard = game.obtainCard(slug);
+196 |         if (!monsterCard) {
+197 |             throw new Error(`Monster card not found: ${slug}`);
+                                                                   ^
+error: Monster card not found: b2-fatty
+      at setupTestGame (/Users/sylvain/Documents/foursouls/four-souls-game/src/tests/testHelpers.ts:197:62)
+      at <anonymous> (/Users/sylvain/Documents/foursouls/four-souls-game/src/tests/lootCard.test.ts:15:23)
+(fail) Loot Card > b2-blank_rune: roll 2 - each player loots 2 [8.79ms]
+(pass) Loot Card > b2-blank_rune: roll 3 - each player takes 3 damage [7.68ms]
+(pass) Loot Card > b2-blank_rune: roll 4 - each player gains 4¢ [7.33ms]
+(pass) Loot Card > b2-blank_rune: roll 5 - each player loot 5 [7.10ms]
+(pass) Loot Card > b2-blank_rune: roll 6 - each player gains 6¢ [7.27ms]
+(pass) Loot Card > b2-bomb: should deal 1 damage to a player [8.91ms]
+(pass) Loot Card > b2-bomb: should deal 1 damage to a monster [9.02ms]
+(pass) Loot Card > b2-butter_bean: should cancel the previous non-roll ability [11.03ms]
+(pass) Loot Card > b2-butter_bean: should work as a reactive card [8.61ms]

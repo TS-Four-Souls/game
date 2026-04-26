@@ -1,6 +1,6 @@
 import type { Player } from '../player';
 import type { Entity } from '../entity';
-import type { Card, LootCard, TreasureCard, EternalCard, CharacterCard, MonsterCard, BsoulCard } from '../cards';
+import type { Card, LootCard, TreasureCard, EternalCard, CharacterCard, MonsterCard, BsoulCard, RoomCard } from '../cards';
 import type { Game } from '../game';
 
 /**
@@ -26,15 +26,23 @@ export type TargetsSelector = {
  */
 export class EffectData {
     it: Card;
-    issuer: Entity;
+    private _issuerProvider: () => Entity;
     private _targets: any[];
     private _selectedOnResolve: any[] = [];
     private _nextIndex: number = 0;
 
-    constructor(it: Card, issuer: Entity, targets: any[]) {
+    constructor(it: Card, issuerProvider: () => Entity, targets: any[]) {
         this.it = it;
-        this.issuer = issuer;
+        this._issuerProvider = issuerProvider;
         this._targets = targets;
+    }
+
+    get issuer(): Entity {
+        return this._issuerProvider();
+    }
+
+    set issuerProvider(issuerProvider: () => Entity) {
+        this._issuerProvider = issuerProvider;
     }
 
     get targets(): any[] {
@@ -129,6 +137,7 @@ export type CardSetsCollection = {
     character: import('../cards').CardSet<CharacterCard>;
     monster: import('../cards').CardSet<MonsterCard>;
     bsoul: import('../cards').CardSet<BsoulCard>;
+    room: import('../cards').CardSet<RoomCard>;
 };
 
 /**
@@ -141,6 +150,7 @@ export type DecksCollection = {
     character: import('../cards').Deck<CharacterCard>;
     monster: import('../cards').Deck<MonsterCard>;
     bsoul: import('../cards').Deck<BsoulCard>;
+    room: import('../cards').Deck<RoomCard>;
 };
 
 /**
@@ -158,4 +168,5 @@ export type DeckTypeToCardType = {
     character: CharacterCard;
     monster: MonsterCard;
     bsoul: BsoulCard;
+    room: RoomCard;
 };

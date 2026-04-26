@@ -1,6 +1,6 @@
 import type { Player } from '../player';
 import type { Monster } from '../monster';
-import type { Entity } from '../entity';
+import type { Animated, Entity } from '../entity';
 import type { DeathOnStack, DiceRoll } from '../player';
 import type { ItemCard, Card, LootCard } from '../cards';
 import type { DamageSource } from '../game';
@@ -22,6 +22,14 @@ export type OnDeathBeforePenaltyData = {
   eventIssuer: Entity;
   target: Entity;
   source: DamageSource;
+};
+
+/** Data emitted when death penalty is ongoing (choice is made) */
+export type OnDeathPenaltyData = {
+  eventIssuer: Entity;
+  coinsLost: number;
+  itemsLost: ItemCard[];
+  lootCardsLost: LootCard[];
 };
 
 /** Data emitted after death penalty is applied */
@@ -79,9 +87,20 @@ export type OnCombatDamageDealtData = {
   damage: number;
 };
 
+export type OnCombatEndData = {
+  eventIssuer: Entity;
+};
+
 /** Data emitted when a player declares an attack */
 export type OnAttackDeclaredData = {
   eventIssuer: Player;
+};
+
+/** Data emitted when validating whether a player can declare an attack */
+export type OnCanDeclareAttackData = {
+  eventIssuer: Player;
+  canDeclare: boolean[];
+  reason: string[];
 };
 
 /** Data emitted when a player declares an attack on a specific monster */
@@ -90,10 +109,21 @@ export type OnAttackDeclaredMonsterData = {
   monster: Monster[];
 };
 
+/** Data emitted when a player declares an attack on a specific animated object */
+export type OnAttackDeclaredAnimatedData = {
+  eventIssuer: Player;
+  animated: Animated[];
+};
+/** Data emitted when a player declares an attack on the top deck */
+export type OnAttackDeclaredTopDeckData = {
+  eventIssuer: Player;
+  drawInIndex: number;
+};
+
 /** Data emitted when an attack roll is made */
 export type OnAttackRollData = {
   eventIssuer: Player;
-  target: Monster;
+  target: Entity;
   dice: DiceRoll;
   damageDealt: number[];
   damageReceived: number[];
@@ -106,11 +136,19 @@ export type OnSoulGainedData = {
   soul: Card;
 };
 
+/** Data emitted when a purchase is successful */
+export type OnPurchaseSuccessData = {
+  eventIssuer: Player;
+  price: number;
+  index: number | "top";
+};
+
 
 /** Data emitted when a player gains coins */
 export type OnCoinGainedData = {
   eventIssuer: Player;
   coinGained: number[];
+  source: Card | "gift";
 };
 
 /** Data emitted when a player loses coins */
@@ -140,6 +178,12 @@ export type OnDiceWouldRollData = {
 /** Data emitted at the start of a player's turn */
 export type OnTurnStartData = {
   eventIssuer: Player;
+};
+
+/** Data emitted at the start of a player's turn */
+export type OnBeforeRechargeStepData = {
+  eventIssuer: Player;
+  itemsToRecharge: ItemCard[];
 };
 
 /** Data emitted at the end of a player's turn */
@@ -228,6 +272,15 @@ export type OnLootPlayedData = {
   card: LootCard;
   targets?: any[];
 };
+/**
+ * eventIssuer gives coins to target. 
+ */
+export type OnCoinGivenData = {
+  eventIssuer: Player;
+  target: Player;
+  amount: number;
+  forced: boolean;
+};
 
 /** Data emitted before the game starts */
 export type OnGameStartBeforeData = Record<string, never>;
@@ -246,6 +299,7 @@ export type OnGameStartData = Record<string, never>;
 export type TriggerEventDataMap = {
   "on:death:would-death": OnDeathWouldDeathData;
   "on:death:before-penalty": OnDeathBeforePenaltyData;
+  "on:death:penalty": OnDeathPenaltyData;
   "on:death:after-penalty": OnDeathAfterPenaltyData;
   "on:death:monster": OnDeathMonsterData;
   "on:damage:taken": OnDamageTakenData;
@@ -254,10 +308,14 @@ export type TriggerEventDataMap = {
   "on:combatdamage:dealt:to-monster": OnCombatDamageDealtToMonsterData;
   "on:combatdamage:dealt:to-player": OnCombatDamageDealtToPlayerData;
   "on:combatdamage:dealt": OnCombatDamageDealtData;
+  "on:combat:end": OnCombatEndData;
   "on:attack:declared": OnAttackDeclaredData;
   "on:attack:declared:monster": OnAttackDeclaredMonsterData;
+  "on:attack:declared:animated": OnAttackDeclaredAnimatedData;
+  "on:attack:declared:topdeck": OnAttackDeclaredTopDeckData;
   "on:attack:roll": OnAttackRollData;
   "on:attack:roll:first-time-each-turn": OnAttackRollData;
+  "on:attack:roll:failed": OnAttackRollData;
   "on:coin:gained": OnCoinGainedData;
   "on:coin:gained:after": OnCoinGainedData;
   "on:coin:lost:after": OnCoinLostAfterData;
@@ -265,7 +323,7 @@ export type TriggerEventDataMap = {
   "on:dice:would-roll": OnDiceWouldRollData;
   "on:dice:resolved": OnDiceResolvedData;
   "on:turn:start": OnTurnStartData;
-  "on:turn:start:before:recharge:step": OnTurnStartData;
+  "on:turn:start:before:recharge:step": OnBeforeRechargeStepData;
   "on:turn:end": OnTurnEndData;
   "till:turn:end": OnTurnEndData;
   "on:loot:step": OnLootStepData;
@@ -277,15 +335,18 @@ export type TriggerEventDataMap = {
   "on:get:monster:evasion": OnGetMonsterEvasionData;
   "on:enter:play:after": OnEnterPlayAfterData;
   "on:item:activated": OnItemActivatedData;
+  "on:can:declare:attack": OnCanDeclareAttackData;
   "on:priority:passes": OnPriorityPassesData;
   "on:item:destroyed": OnItemDestroyedData;
   "on:enter:play": OnEnterPlayData;
   "on:your:turn": OnYourTurnData;
+  "on:death:animated": OnDeathMonsterData;
   "on:loot:played": OnLootPlayedData;
   "on:game:start:before": OnGameStartBeforeData;
   "on:game:start": OnGameStartData;
-  "on:attack:roll:failed": OnAttackRollData;
   "on:soul:gained": OnSoulGainedData;
+  "on:coin:given": OnCoinGivenData;
+  "on:purchase:success": OnPurchaseSuccessData;
 };
 
 export type TriggerEvent = keyof TriggerEventDataMap;

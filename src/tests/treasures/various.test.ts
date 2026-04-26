@@ -156,7 +156,7 @@ describe("Treasure - Passive effects", () => {
         const initialCoins = player1.coins;
 
         // Get a shop item to purchase
-        const shopItem = game.shop._slots[0]!;
+        const shopItem = game.shop.itemsInShop[0]!;
         expect(shopItem).toBeDefined();
 
         // Purchase the item - normal price is 10¢, should be 5¢ with steamy sale
@@ -405,7 +405,7 @@ describe("Treasure - Passive effects", () => {
         // Give player enough coins for two purchases
         player1.gainCoins(30);
         
-        const shopItemsBefore = game.shop._slots.filter(s => s !== undefined).length;
+        const shopItemsBefore = game.shop.itemsInShop.filter(s => s !== undefined).length;
         
         // Purchase first item
         game.declarePurchase(player1);

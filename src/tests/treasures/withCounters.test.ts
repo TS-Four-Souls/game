@@ -79,14 +79,14 @@ describe("Treasure - with counters effect", () => {
     it("bum_bo - leveling system and level effects", async () => {
         const bumBo = game.shop.obtainCard("b2-bum_bo") as TreasureCard;
         game.addInPlay(player1, bumBo);
-        game.gainCoins(player1, 1);
+        game.gainCoins(player1, 1, "gift");
         const baseAttack = player1.attackPoints;
         // Initial state - no counters
         expect(bumBo.tags.levels).toBe(1);
 
         // Test: gaining coins should add counters instead
         const initialCoins = player1.coins;
-        game.gainCoins(player1, 5);
+        game.gainCoins(player1, 5, "gift");
         expect(player1.coins).toBe(initialCoins); // Coins should not increase
         expect(bumBo.tags.levels).toBe(6); // Should level up by 5
 
@@ -94,7 +94,7 @@ describe("Treasure - with counters effect", () => {
         const monster = game.monsters[0]!;
         game.discardFromHandAtIndex(player1, 0);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnEntity(player1, monster);
 
         game.addHealth(monster, 20);
 
@@ -127,7 +127,7 @@ describe("Treasure - with counters effect", () => {
 
 
         // Test: gaining more coins levels up further
-        game.gainCoins(player1, 7);
+        game.gainCoins(player1, 7, "gift");
         expect(player1.coins).toBe(initialCoins); // Still no coins gained
         expect(bumBo.tags.levels).toBe(13); // Should be at level 13 now
 
@@ -137,7 +137,7 @@ describe("Treasure - with counters effect", () => {
         expect(currentAttack).toBe(baseAttack + 1); // Should have +1 ATK from LV10
 
         // Test: level up to 25 to test unlimited attacks
-        game.gainCoins(player1, 12); // 13 + 12 = 25
+        game.gainCoins(player1, 12, "gift"); // 13 + 12 = 25
         expect(bumBo.tags.levels).toBe(25);
 
         // Test: LV25 Effect - unlimited attacks
@@ -147,7 +147,7 @@ describe("Treasure - with counters effect", () => {
         expect(attacksAllowedBefore).toBe(Infinity);
 
         // Verify the leveling mechanic continues to work
-        game.gainCoins(player1, 10); // Should add 10 more levels
+        game.gainCoins(player1, 10, "gift"); // Should add 10 more levels
         expect(bumBo.tags.levels).toBe(35);
         expect(player1.coins).toBe(initialCoins); // Still no actual coins
     });

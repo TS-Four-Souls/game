@@ -32,7 +32,7 @@ describe("Monsters - Various 1", () => {
         const spiderMonster = game.monsters[0]!;
         
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, spiderMonster);
+        await game.declareAttackOnEntity(player1, spiderMonster);
         
         game.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
@@ -90,7 +90,7 @@ describe("Monsters - Various 1", () => {
         const monster = game.monsters[0]!;
         const initAtk = monster.attackPoints;
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnEntity(player1, monster);
         
         game.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
@@ -126,7 +126,7 @@ describe("Monsters - Various 1", () => {
         expect(game.stack._stack.length).toBe(0);
         expect(monster.attackPoints).toBe(initAtk + 2);
 
-        game.nextTurn(player1);
+        await game.nextTurn(player1);
         await game.resolveStack(); // resolve effect
         expect(game.stack._stack.length).toBe(0);
 
@@ -151,7 +151,7 @@ describe("Monsters - Various 1", () => {
         expect(otherMonster.evasion).toBe(initEvasion + 1);
 
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, otherMonster);
+        await game.declareAttackOnEntity(player1, otherMonster);
         
         game.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
@@ -204,7 +204,7 @@ describe("Monsters - Various 1", () => {
         expect(otherMonster.evasion).toBe(initEvasion + 1);
 
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, otherMonster);
+        await game.declareAttackOnEntity(player1, otherMonster);
         
         game.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
@@ -282,8 +282,8 @@ describe("Monsters - Various 1", () => {
         const monster = game.monsters[0]!;
         expect(monster.attackable).toBe(false);
         game.declareAttack(player1);
-        await expect(game.declareAttackOnMonster(player1, monster)).rejects.toThrowError(
-        "This monster cannot be attacked."
+        await expect(game.declareAttackOnEntity(player1, monster)).rejects.toThrowError(
+        "This entity cannot be attacked."
         );
     });
 
@@ -293,7 +293,7 @@ describe("Monsters - Various 1", () => {
         game.decks["monster"]?.addTopPosition(card);
 
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         const monster = game.encounters.monsterIn(0)!;
         expect(monster.attackable).toBe(false);
         expect(player1.isEngagedInCombat).toBe(false);
@@ -351,7 +351,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         const initHPPlayer3 = player3.currentHealthPoints;
 
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnEntity(player1, monster);
         
         game.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
@@ -414,7 +414,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         const initHPPlayer3 = player3.currentHealthPoints;
 
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnEntity(player1, monster);
         
         game.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
@@ -493,7 +493,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         const initHealth = player1.currentHealthPoints;
 
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnEntity(player1, monster);
         game.attackRoll(player1);
         const dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
@@ -530,7 +530,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         const initHealth = player1.currentHealthPoints;
 
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnEntity(player1, monster);
         game.attackRoll(player1);
         const dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
@@ -575,7 +575,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         const initHealth = player1.currentHealthPoints;
 
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnEntity(player1, monster);
         game.attackRoll(player1);
         const dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
@@ -601,7 +601,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         const initHPPlayer3 = player3.currentHealthPoints;
 
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnEntity(player1, monster);
         
         game.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
@@ -640,7 +640,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         const initHPPlayer3 = player3.currentHealthPoints;
 
         game.declareAttack(player2);
-        await game.declareAttackOnMonster(player2, monster);
+        await game.declareAttackOnEntity(player2, monster);
         
         game.attackRoll(player2);
         expect(game.stack._stack.length).toBe(1);
@@ -683,7 +683,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         const initHPPlayer3 = player3.currentHealthPoints;
 
         game.declareAttack(player2);
-        await game.declareAttackOnMonster(player2, monster);
+        await game.declareAttackOnEntity(player2, monster);
         
         game.attackRoll(player2);
         expect(game.stack._stack.length).toBe(1);
@@ -736,7 +736,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         const initHPPlayer3 = player3.currentHealthPoints;
 
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnEntity(player1, monster);
         
         game.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);

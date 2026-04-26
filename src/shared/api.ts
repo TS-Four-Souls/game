@@ -9,7 +9,7 @@ export type IdentifierType = z.infer<typeof identifierTypeSchema>;
 
 export const entityTypeSchema = identifierTypeSchema.extend({
   color: z.string(),
-  type: z.union([z.literal("player"), z.literal("monster")]),
+  type: z.union([z.literal("player"), z.literal("monster"), z.literal("animated")]),
 });
 export type EntityType = z.infer<typeof entityTypeSchema>;
 
@@ -35,6 +35,7 @@ export type SelectionItem =
   | { type: "stackElement"; payload: StackElement }
   | { type: "player"; payload: EntityType }
   | { type: "monster"; payload: EntityType }
+  | { type: "animated"; payload: EntityType }
   | { type: "deck"; payload: DeckName }
   | { type: "number"; payload: number }
   | { type: "boolean"; payload: boolean }
@@ -91,6 +92,7 @@ const pendingSelectionSchema = z.object({
   options: z.array(selectionItemSchema),
   min: z.number(),
   max: z.number(),
+  canUseOnBoardSelection: z.boolean(),
 });
 export type PendingSelection = z.infer<typeof pendingSelectionSchema>;
 
@@ -105,7 +107,7 @@ export type TemporaryEffect = z.infer<typeof temporaryEffectSchema>;
 const capabilitySchema = z.union([z.literal(true), z.string()]);
 export type Capability = z.infer<typeof capabilitySchema>;
 
-const monsterCardSchema = cardSchema.extend({
+const attackableCardSchema = cardSchema.extend({
   stats: z
     .object({
       healthPoints: z.number(),
@@ -119,9 +121,9 @@ const monsterCardSchema = cardSchema.extend({
     })
     .optional(),
 });
-export type MonsterCard = z.infer<typeof monsterCardSchema>;
+export type MonsterCard = z.infer<typeof attackableCardSchema>;
 
-const inPlayCardSchema = cardSchema.extend({
+const inPlayCardSchema = attackableCardSchema.extend({
   charged: z.boolean().optional(),
   counter: z.number().optional(),
   eternal: z.boolean().optional(),
@@ -138,6 +140,7 @@ export type InPlayMeCard = z.infer<typeof inPlayMeCardSchema>;
 
 const bonusSoulCardSchema = cardSchema.extend({
   granted: z.boolean(),
+  counter: z.number().optional(),
 });
 export type BonusSoulCard = z.infer<typeof bonusSoulCardSchema>;
 
@@ -307,6 +310,7 @@ const gameParametersSchema = z.object({
   nbNickels: numberGameParameterSchema,
   nbItemsInShop: numberGameParameterSchema,
   nbEncounters: numberGameParameterSchema,
+  nbRooms: numberGameParameterSchema,
   deathPenaltyCoins: numberGameParameterSchema,
   deathPenaltyItem: numberGameParameterSchema,
   deathPenaltyLoot: numberGameParameterSchema,
@@ -317,7 +321,9 @@ const gameParametersSchema = z.object({
   maxHandSize: numberGameParameterSchema,
   allowCoinDonation: booleanGameParameterSchema,
   lootPlayPerTurn: numberGameParameterSchema,
+  playWithBonusSouls: booleanGameParameterSchema,
   nbPlayerCardRestriction: booleanGameParameterSchema,
+  playWithRooms: booleanGameParameterSchema,
 });
 export type GameParametersJson = z.infer<typeof gameParametersSchema>;
 
@@ -577,7 +583,7 @@ const detailedStateSchema = z.object({
     }),
     inPlay: z.array(
       z.object({
-        top: monsterCardSchema,
+        top: attackableCardSchema,
         covered: z.array(cardSchema),
       }),
     ),
@@ -591,7 +597,14 @@ const detailedStateSchema = z.object({
     discard: z.array(cardSchema),
     deckSize: z.number(),
   }),
-  bonusSouls: z.array(bonusSoulCardSchema),
+  bonusSouls: z.array(bonusSoulCardSchema).optional(),
+  room: z
+    .object({
+      discard: z.array(cardSchema),
+      deckSize: z.number(),
+      inPlay: z.array(cardSchema),
+    })
+    .optional(),
   turn: z.string(),
   stack: z.array(z.lazy(() => stackElementSchema)),
   firstCardTreasureDeck: cardSchema.optional(),
@@ -676,6 +689,7 @@ export const schemas = {
   playCardRequest: cardActivationSchema,
   endTurnRequest: nextTurnRequestSchema,
   activateRequest: cardActivationSchema,
+  activateRoomRequest: cardActivationSchema,
   purchaseRequest: purchaseSchema,
   giveCoinsRequest: giveCoinsSchema,
   setGameParameterRequest: setGameParameterRequestSchema,
@@ -702,6 +716,7 @@ export namespace Requests {
   export type PlayCard = z.infer<typeof cardActivationSchema>;
   export type EndTurn = z.infer<typeof nextTurnRequestSchema>;
   export type Activate = z.infer<typeof cardActivationSchema>;
+  export type ActivateRoom = z.infer<typeof cardActivationSchema>;
   export type Purchase = z.infer<typeof purchaseSchema>;
   export type GiveCoins = z.infer<typeof giveCoinsSchema>;
   export type AttackMonster = z.infer<typeof attackMonsterSchema>;
@@ -817,6 +832,11 @@ export interface ClientToServerEvents {
 
   activate: (
     request: Requests.Activate,
+    callback: (response: Responses.Activate) => void,
+  ) => void;
+
+  activateRoom: (
+    request: Requests.ActivateRoom,
     callback: (response: Responses.Activate) => void,
   ) => void;
 

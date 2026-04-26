@@ -15,7 +15,7 @@ export async function executeAttackMonsterRequest(
   }
 
   const drawInIndex = payload.index === "top" ? payload.replaceIndex : -1;
-  await game.declareAttackOnMonster(player, monster, drawInIndex);
+  await game.declareAttackOnEntity(player, monster, drawInIndex);
 }
 
 export function executePlayCardRequest(
@@ -75,6 +75,43 @@ export async function executeActivateRequest(
     await game.activateItemAtIndex(
       player,
       payload.index,
+      targets,
+      payload.effectIndex,
+    );
+  }
+
+  return choices;
+}
+
+export async function executeActivateRoomRequest(
+  game: Game,
+  payload: Requests.ActivateRoom,
+): Promise<TargetSelectorResponse> {
+  const player = game.getPlayerByIssuer(payload.issuer);
+  const partialChoices = payload.targetChoices || [];
+  const room = game.rooms?.roomIn(payload.index);
+  if(!room) {
+    throw new Error(`No room at index ${payload.index}`);
+  }
+  const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(
+    game,
+    player,
+    room,
+    partialChoices,
+    payload.effectIndex,
+  );
+
+  if (choices.complete) {
+    const targets = TargetBuilder.buildTargets(
+      game,
+      player,
+      room,
+      partialChoices,
+      payload.effectIndex,
+    );
+    await game.activateRoom(
+      player,
+      room,
       targets,
       payload.effectIndex,
     );

@@ -38,7 +38,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         await game.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
-        await game.declareAttackOnMonster(player2, monster);
+        await game.declareAttackOnEntity(player2, monster);
 
         game.addHealth(monster, 10);
 
@@ -95,7 +95,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         await game.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
-        await game.declareAttackOnMonster(player2, monster);
+        await game.declareAttackOnEntity(player2, monster);
 
         game.addHealth(monster, 10);
         game.addHealth(player2, 10);
@@ -153,7 +153,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         await game.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
-        await game.declareAttackOnMonster(player2, monster);
+        await game.declareAttackOnEntity(player2, monster);
 
         game.addHealth(monster, 10);
         game.addHealth(player2, 10);
@@ -213,7 +213,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         await game.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
-        await game.declareAttackOnMonster(player2, monster);
+        await game.declareAttackOnEntity(player2, monster);
 
         game.addHealth(monster, 10);
         game.addHealth(player2, 10);
@@ -270,7 +270,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         await game.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
-        await game.declareAttackOnMonster(player2, monster);
+        await game.declareAttackOnEntity(player2, monster);
 
         game.addHealth(monster, 10);
         game.addHealth(player2, 10);
@@ -343,7 +343,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         await game.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
-        await game.declareAttackOnMonster(player2, monster);
+        await game.declareAttackOnEntity(player2, monster);
 
         game.addHealth(monster, 10);
         game.addHealth(player2, 10);
@@ -411,7 +411,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         await game.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
-        await game.declareAttackOnMonster(player2, monster);
+        await game.declareAttackOnEntity(player2, monster);
         
         game.addHealth(monster, 10);
         game.addHealth(player2, 10);
@@ -476,7 +476,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         await game.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
-        await game.declareAttackOnMonster(player2, monster);
+        await game.declareAttackOnEntity(player2, monster);
         
         game.addHealth(monster, 10);
         game.addHealth(player2, 10);
@@ -542,7 +542,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         await game.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
         game.declareAttack(player2);
-        await game.declareAttackOnMonster(player2, monster);
+        await game.declareAttackOnEntity(player2, monster);
 
         game.addHealth(monster, 10);
         game.addHealth(player2, 10);
@@ -648,7 +648,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         game.addAttackThisTurn(player2, 1); // Ensure player can attack
         game.declareAttack(player2);
-        await game.declareAttackOnMonster(player2, attackedMonster);
+        await game.declareAttackOnEntity(player2, attackedMonster);
         // First attack roll - should not trigger the effect
         game.attackRoll(player2);
         const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
@@ -718,7 +718,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         game.addHealth(player2, 10);
 
         game.declareAttack(player2);
-        await game.declareAttackOnMonster(player2, monster0);
+        await game.declareAttackOnEntity(player2, monster0);
         // First attack roll - should not trigger the effect
         game.attackRoll(player2);
         const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;

@@ -160,7 +160,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         game.addInPlay(player1, jawbone);
 
         // Give player2 some coins
-        game.gainCoins(player2, 10);
+        game.gainCoins(player2, 10, "gift");
         const initialP1Coins = player1.coins;
         const initialP2Coins = player2.coins;
 

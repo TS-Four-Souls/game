@@ -96,7 +96,7 @@ export function deckSelector(filter: (name: string) => boolean = () => true, gam
 export function topAnyDiscardSelector(filter: (card: Card) => boolean = () => true, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
         const cards = [] as Card[];
-        for (const deckName of ["loot", "treasure", "monster"] as const) {
+        for (const deckName of game.deckNames) {
             const deck = game.decks[deckName];
             if(deck && deck.discard.length > 0){
                 const topCard = deck.discard[0];

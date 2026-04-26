@@ -4,7 +4,7 @@ import { DiceRoll, Player } from "../models/player";
 import { pl } from "zod/locales";
 import type { LootCard, ItemCard } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard, TreasureCard } from "@/models/cards";
-import { setupStandardTestGame, dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "./testHelpers";
+import { setupStandardTestGame, dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame } from "./testHelpers";
 
 describe("Loot Card", () => {
     let game: Game;
@@ -373,7 +373,7 @@ describe("Loot Card", () => {
         const initialMonster1 = game.monsterSlots.monsterIn(1)!;
 
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, initialMonster0);
+        await game.declareAttackOnEntity(player1, initialMonster0);
         game.attackRoll(player1);
         const dice = game.stack.elements[game.stack.size - 1] as DiceRoll;
         expect(dice).toBeDefined();
@@ -415,7 +415,7 @@ describe("Loot Card", () => {
         player2.hand.addToHand(ehwaz!);
         
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         for (let i = 0; i < 5; i++) {
             game.attackRoll(player1);
             const dice = game.stack.elements[game.stack.size - 1] as DiceRoll;
@@ -863,7 +863,7 @@ describe("Loot Card", () => {
         player1.hand.addToHand(pills!);
 
         game.playCard(player1, 0);
-        game.gainCoins(player1, 10); // Ensure player has enough coins to lose
+        game.gainCoins(player1, 10, "gift"); // Ensure player has enough coins to lose
         const initialCoins = player1.coins;
 
         await game.resolveStack();
@@ -880,7 +880,7 @@ describe("Loot Card", () => {
         player1.hand.addToHand(pills!);
 
         game.playCard(player1, 0);
-        game.gainCoins(player1, 3);
+        game.gainCoins(player1, 3, "gift");
         const initialCoins = player1.coins;
         const initialInPlay = player1.inPlay.length;
 
@@ -1090,7 +1090,7 @@ describe("Loot Card", () => {
     it("b2-x_wheel_of_fortune: roll 4 should lose 4 coins", async () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-x_wheel_of_fortune");
         player1.hand.addToHand(card!);
-        game.gainCoins(player1, 6);
+        game.gainCoins(player1, 6, "gift");
 
         game.playCard(player1, 0);
         const beforeCoins = player1.coins;
@@ -1202,13 +1202,13 @@ describe("Loot Card", () => {
         player1.inPlay.push(itemToDestroy);
 
         // Get item from shop
-        const shopItem = game.shop._slots[0] as ItemCard;
+        const shopItem = game.shop.itemsInShop[0] as ItemCard;
 
         const originalSelect = game.select;
         let selectCallCount = 0;
         
         expect(player1.inPlay).toContain(itemToDestroy);
-        expect(game.shop._slots).toContain(shopItem);
+        expect(game.shop.itemsInShop).toContain(shopItem);
 
         game.playCard(player1, 0, [itemToDestroy, shopItem]);
         await game.resolveStack();
@@ -1218,7 +1218,7 @@ describe("Loot Card", () => {
         expect(game.destroyedCards).toContain(itemToDestroy);
 
         // Item should be stolen from shop to player1
-        expect(game.shop._slots).not.toContain(shopItem);
+        expect(game.shop.itemsInShop).not.toContain(shopItem);
         expect(player1.inPlay).toContain(shopItem);
 
         game.select = originalSelect;
@@ -1798,21 +1798,17 @@ describe("Loot Cards - 3 players tests", () => {
     let player3: Player;
 
     beforeEach(() => {
-        game = new Game();
-        mockGameSelections(game);
-        player1 = new Player("Player 1");
-        player2 = new Player("Player 2");
-        player3 = new Player("Player 3");
-        game.addPlayer(player1);
-        game.addPlayer(player2);
-        game.addPlayer(player3);
-        game.setupGame();
-        const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        game.start(player1, [isaac, judas, samson], false);
-      dischargeEachItemsAndRemoveCoins(game);
-      emptyHands(game);
+            const setup = setupTestGame({
+                        characters: ["b2-judas", "b2-isaac", "b2-samson"],
+                        monsters: ["b2-fly", "b2-fatty"],
+                        monsterDeck: ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip","b2-leech","b2-gurdy"],
+                        treasureDeck: ["b2-boomerang", "b2-guppys_head", "b2-no", "b2-blank_card"],
+                        playerCount: 3
+                    });
+            game = setup.game;
+            player1 = setup.player1;
+            player2 = setup.player2!;
+            player3 = setup.player3!;
         });
 
     it("b2-xx_judgement: tie for most souls chooses target to destroy soul", async () => {

@@ -225,7 +225,7 @@ describe("Tap/Paid effects 2", () => {
         game.addInPlay(player1, emptyVessel);
         
         // Give player1 some coins
-        game.gainCoins(player1, 5);
+        game.gainCoins(player1, 5, "gift");
         expect(player1.coins).toBe(5);
         
         // Should have no attack dice modifier
@@ -237,7 +237,7 @@ describe("Tap/Paid effects 2", () => {
         game.addInPlay(player1, emptyVessel);
         
         // Give player1 some coins
-        game.gainCoins(player1, 3);
+        game.gainCoins(player1, 3, "gift");
         expect(player1.coins).toBe(3);
         expect(player1.attackDiceModifier).toBe(0);
         
@@ -259,7 +259,7 @@ describe("Tap/Paid effects 2", () => {
         expect(player1.attackDiceModifier).toBe(1);
         
         // Gain coins
-        game.gainCoins(player1, 1);
+        game.gainCoins(player1, 1, "gift");
         expect(player1.coins).toBe(1);
         
         // Bonus should be deactivated
@@ -276,7 +276,7 @@ describe("Tap/Paid effects 2", () => {
         expect(player1.attackDiceModifier).toBe(1);
         
         // Gain coins
-        game.gainCoins(player1, 5);
+        game.gainCoins(player1, 5, "gift");
         expect(player1.coins).toBe(5);
         expect(player1.attackDiceModifier).toBe(0);
         
@@ -567,7 +567,7 @@ describe("Tap/Paid effects 2", () => {
         game.addInPlay(player2, breakfast);
         
         // Give player2 some coins and loot cards
-        game.gainCoins(player2, 5);
+        game.gainCoins(player2, 5, "gift");
         const lootCard1 = game.decks["loot"]!.draw() as LootCard;
         const lootCard2 = game.decks["loot"]!.draw() as LootCard;
         player2.hand.addToHand(lootCard1);
@@ -601,7 +601,7 @@ describe("Tap/Paid effects 2", () => {
         game.addInPlay(player1, shadow);
         
         // Give player1 some coins
-        game.gainCoins(player1, 5);
+        game.gainCoins(player1, 5, "gift");
         
         const player1CoinsBeforeDeath = player1.coins;
         
@@ -621,7 +621,7 @@ describe("Tap/Paid effects 2", () => {
         game.loot(player2, 2);
         // Player2 has no non-eternal items (only character)
         // Give player2 coins and loot
-        game.gainCoins(player2, 5);
+        game.gainCoins(player2, 5, "gift");
         const lootCard = game.decks["loot"]!.draw() as LootCard;
         player2.hand.addToHand(lootCard);
         expect(player2.hand.length).toBe(3);
@@ -649,7 +649,7 @@ describe("Tap/Paid effects 2", () => {
         game.addInPlay(player2, breakfast);
         
         // Give player2 coins but no loot
-        game.gainCoins(player2, 5);
+        game.gainCoins(player2, 5, "gift");
         expect(player2.hand.length).toBe(0);
         
         const player1CoinsBeforeDeath = player1.coins;
@@ -663,7 +663,7 @@ describe("Tap/Paid effects 2", () => {
         expect(player1.coins).toBe(player1CoinsBeforeDeath + 2);
         
         // Player2 should have lost the item
-        expect(player2.inPlay).not.toContain(breakfast);
+        expect(player2.inPlay.map((c) => c.name)).not.toContain(breakfast.name);
     });
 
     // TODO: Skipped - same issue as first shadow test
@@ -676,7 +676,7 @@ describe("Tap/Paid effects 2", () => {
         game.addInPlay(player2, breakfast);
         
         // Give player2 coins
-        game.gainCoins(player2, 5);
+        game.gainCoins(player2, 5, "gift");
         
         const player1CoinsBeforeDeath = player1.coins;
 
@@ -689,7 +689,7 @@ describe("Tap/Paid effects 2", () => {
         expect(player1.coins).toBe(player1CoinsBeforeDeath + 2);
         
         // Breakfast should still be in play
-        expect(player2.inPlay).toContain(breakfast);
+        expect(player2.inPlay.map((c) => c.name)).toContain(breakfast.name);
     });
 });
 
@@ -729,8 +729,8 @@ describe("Force Attack Monster", () => {
         game.currentPlayer.mustAttack([monster], monster.card);
 
         // Try to end turn without attacking
-        expect(() => {
-            game.endTurn();
+        expect(async() => {
+            await game.endTurn();
         }).toThrow("You must attack the required monster(s) before ending your turn");
     });
 
@@ -742,7 +742,7 @@ describe("Force Attack Monster", () => {
 
         // Attack the forced monster
         game.declareAttack(game.currentPlayer);
-        await game.declareAttackOnMonster(game.currentPlayer, monster);
+        await game.declareAttackOnEntity(game.currentPlayer, monster);
 
         // Should be able to end turn now (mustAttackMonster was cleared)
         expect(game.currentPlayer.hasAttackRequirement).toBe(false);
@@ -796,7 +796,7 @@ describe("Force Attack Monster", () => {
         game.currentPlayer.mustAttack([monster], monster.card);
         game.addAttackThisTurn(game.currentPlayer, 1); // Ensure player can attack
         game.declareAttack(game.currentPlayer);
-        await game.declareAttackOnMonster(game.currentPlayer, monster);
+        await game.declareAttackOnEntity(game.currentPlayer, monster);
 
         expect(game.currentPlayer.hasAttackRequirement).toBe(false);
         monster.combatEnded();
@@ -880,8 +880,8 @@ describe("Force Attack Monster", () => {
             await game.resolveStack();
 
             // Try to end turn without attacking
-            expect(() => {
-                game.endTurn();
+            expect(async () => {
+                await game.endTurn();
             }).toThrow("You must attack the required monster(s) before ending your turn");
         });
 
@@ -897,7 +897,7 @@ describe("Force Attack Monster", () => {
 
             // Attack the forced monster
             game.declareAttack(game.currentPlayer);
-            await game.declareAttackOnMonster(game.currentPlayer, targetMonster);
+            await game.declareAttackOnEntity(game.currentPlayer, targetMonster);
 
             expect(game.currentPlayer.hasAttackRequirement).toBe(false);
             game.kill(targetMonster, targetMonster, monsterManual);
@@ -920,7 +920,7 @@ describe("Force Attack Monster", () => {
                 // Use up any attacks by attacking another monster first
             if (game.currentPlayer.attackThisTurn !== 0) {
                 game.declareAttack(game.currentPlayer);
-                await game.declareAttackOnMonster(game.currentPlayer, game.monsters[1]!);
+                await game.declareAttackOnEntity(game.currentPlayer, game.monsters[1]!);
             }
             game.kill(game.currentPlayer, game.monsters[1]!, monsterManual);
             await game.resolveStack();
@@ -937,7 +937,7 @@ describe("Force Attack Monster", () => {
 
             // Player can still attack the forced monster (bypasses limit)
             game.declareAttack(game.currentPlayer);
-            await game.declareAttackOnMonster(game.currentPlayer, targetMonster);
+            await game.declareAttackOnEntity(game.currentPlayer, targetMonster);
 
             expect(game.currentPlayer.hasAttackRequirement).toBe(false);
         });
@@ -956,7 +956,7 @@ describe("Force Attack Monster", () => {
 
             // Attack the monster to satisfy constraint
             game.declareAttack(game.currentPlayer);
-            await game.declareAttackOnMonster(game.currentPlayer, targetMonster);
+            await game.declareAttackOnEntity(game.currentPlayer, targetMonster);
             expect(game.currentPlayer.hasAttackRequirement).toBe(false);
             game.kill(targetMonster, targetMonster, monsterManual);
             await game.resolveStack();
@@ -1080,7 +1080,7 @@ describe("Force Attack Monster", () => {
 
             // Attack the forced monster first
             game.declareAttack(game.currentPlayer);
-            await game.declareAttackOnMonster(game.currentPlayer, targetMonster);
+            await game.declareAttackOnEntity(game.currentPlayer, targetMonster);
             game.kill(targetMonster, targetMonster, monsterManual);
             await game.resolveStack();
 
@@ -1088,7 +1088,7 @@ describe("Force Attack Monster", () => {
 
             // Can now attack other monsters
             game.declareAttack(game.currentPlayer);
-            await game.declareAttackOnMonster(game.currentPlayer, otherMonster);
+            await game.declareAttackOnEntity(game.currentPlayer, otherMonster);
 
             game.currentPlayer.combatEnded();
             expect(otherMonster.isEngagedInCombat).toBe(true);

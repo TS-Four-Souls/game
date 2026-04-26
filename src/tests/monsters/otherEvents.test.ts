@@ -72,19 +72,19 @@ describe("Event Monsters - Other Events", () => {
         
         // Player should be forced to attack the monster deck 2 additional times
         expect(player1.mustAttackMonster.length).toBe(initialAttacks + 2);
-        expect(() => {game.nextTurn(player1)}).toThrow()
+        await expect(game.nextTurn(player1)).rejects.toThrow();
 
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.kill(player1, game.monsters[0]!, ambush);
         game.resolveStack();
         
         expect(player1.mustAttackMonster.length).toBe(initialAttacks + 1);
         expect(player1.isEngagedInCombat).toBe(false);
-        expect(() => {game.nextTurn(player1)}).toThrow()
+        await expect(game.nextTurn(player1)).rejects.toThrow();
 
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.kill(player1, game.monsters[0]!, ambush);
         game.resolveStack();
 
@@ -101,15 +101,15 @@ describe("Event Monsters - Other Events", () => {
         
         // Draw the event to trigger its effect
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         await game.resolveStack();
         
         // Player should be forced to attack the monster deck 2 additional times
         expect(player1.mustAttackMonster.length).toBe(initialAttacks + 1);
-        expect(() => {game.nextTurn(player1)}).toThrow()
+        await expect(game.nextTurn(player1)).rejects.toThrow();
 
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.kill(player1, game.monsters[0]!, ambush);
         game.resolveStack();
         
@@ -117,7 +117,7 @@ describe("Event Monsters - Other Events", () => {
         expect(player1.isEngagedInCombat).toBe(false);
         expect(player1.mustAttackMonster.length).toBe(initialAttacks);
         expect(player1.isEngagedInCombat).toBe(false);
-        expect(() => {game.nextTurn(player1)}).not.toThrow()
+        await expect(game.nextTurn(player1)).resolves.toBeUndefined();
     });
 
     // b2-mega_troll_bomb: Each player takes 2 damage!

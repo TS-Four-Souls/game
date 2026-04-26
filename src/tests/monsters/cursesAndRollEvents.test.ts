@@ -502,11 +502,11 @@ describe("Event Monsters - Expansion Effects", () => {
         const shopUpgrade = game.obtainCard("b2-shop_upgrade") as MonsterCard;
         game.decks["monster"]!.addTopPosition(shopUpgrade);
         
-        const initialShopSlots = game.shop._slots.length;
+        const initialShopSlots = game.shop.itemsInShop.length;
         
         game.monsterSlots.discardTop(0);
         await game.resolveStack(); // resolve the event addition
-        expect(game.shop._slots.length).toBe(initialShopSlots + 2);
+        expect(game.shop.itemsInShop.length).toBe(initialShopSlots + 2);
     });
 
     // b2-mom: When this dies, expand monsters slots by 1
@@ -547,14 +547,14 @@ describe("Event Monsters - Expansion Effects", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, hanger);
         
         const monster = game.monsters[0]!;
-        const initialShopSlots = game.shop._slots.length;
+        const initialShopSlots = game.shop.itemsInShop.length;
         
         // Kill the monster
         game.kill(player1, monster, hanger);
         await game.resolveStack();
         await game.resolveStack();
         
-        expect(game.shop._slots.length).toBe(initialShopSlots + 1);
+        expect(game.shop.itemsInShop.length).toBe(initialShopSlots + 1);
     });
 });
 
@@ -597,7 +597,7 @@ describe("Event Monsters - Curse Effects", () => {
         
         // Draw the curse to trigger its effect
         game.declareAttack(game.currentPlayer);
-        await game.declareAttackOnMonster(game.currentPlayer, "topDeck", 0);
+        await game.declareAttackOnEntity(game.currentPlayer, "topDeck", 0);
         await game.resolveStack(); // resolve the event addition
         
         // End player's turn to trigger curse effect
@@ -620,7 +620,7 @@ describe("Event Monsters - Curse Effects", () => {
         
         // Draw the curse to trigger its effect
         game.declareAttack(game.currentPlayer);
-        await game.declareAttackOnMonster(game.currentPlayer, "topDeck", 0);
+        await game.declareAttackOnEntity(game.currentPlayer, "topDeck", 0);
         await game.resolveStack(); // resolve the event addition
         
         // End player's turn to trigger curse effect
@@ -639,7 +639,7 @@ describe("Event Monsters - Curse Effects", () => {
         game.decks["monster"]!.addTopPosition(curseOfGreed);
         
         // Give player some coins
-        game.gainCoins(player1, 10);
+        game.gainCoins(player1, 10, "gift");
         const initialCoins = player1.coins;
         
         // Draw the curse to trigger its effect

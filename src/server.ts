@@ -13,6 +13,7 @@ import { ItemCard, LootCard, CharacterCard } from "./models/cards";
 import { generateRoomId, generateUserId } from "./utils/random";
 import {
   executeActivateRequest,
+  executeActivateRoomRequest,
   executeAttackMonsterRequest,
   executePlayCardRequest,
 } from "./utils/gameRequestHelpers";
@@ -691,6 +692,31 @@ io.on("connection", (socket) => {
     );
   });
 
+  socket.on("activateRoom", async (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.activateRoomRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, async (game) => {
+          try {
+            const choices = await executeActivateRoomRequest(game, payload);
+            if (choices.complete) {
+              game.addToHistory({ type: "ActivateRoom", payload });
+            }
+            return callback({ response: choices, status: 200 });
+          } catch (error) {
+            console.error("Failed to play card", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
+
   socket.on("declarePurchase", (payload, callback) => {
     payloadGuardedEndpoint(
       payload,
@@ -769,10 +795,10 @@ io.on("connection", (socket) => {
       schemas.endTurnRequest,
       callback,
       (payload) => {
-        roomGuardedEndpoint(userId, callback, (game) => {
+        roomGuardedEndpoint(userId, callback, async (game) => {
           try {
             game.addToHistory({ type: "EndTurn", payload });
-            game.nextTurn(payload.issuer);
+            await game.nextTurn(payload.issuer);
             return callback({ status: 200 });
           } catch (error) {
             console.error("Failed to end turn", error);

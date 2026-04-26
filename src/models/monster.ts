@@ -20,8 +20,6 @@ import type { Encounters } from "./slots";
  * ```
  */
 export class Monster extends Entity {
-  /** @private The evasion value from the monster card */
-  private _evasion: number;
   
   /** @private The monster card this entity represents */
   private _card: MonsterCard;
@@ -42,7 +40,7 @@ export class Monster extends Entity {
       card.healthPoints
     );
     this._card = card;
-    this._evasion = card.evasion;
+    super.evasion = card.evasion;
     this._encounters = encouters;
   }
   
@@ -50,7 +48,7 @@ export class Monster extends Entity {
    * Gets the monster card associated with this entity.
    * @returns The MonsterCard instance
    */
-  get card(): MonsterCard {
+  override get card(): MonsterCard {
     return this._card;
   }
 
@@ -62,19 +60,23 @@ export class Monster extends Entity {
     return this._card.name;
   }
 
+  get rewards() {
+    return this._card.rewards;
+  }
+
   /**
    * Gets the effective evasion value for this monster.
    * This includes the base evasion plus any DC modifiers from the encounters manager.
    * @returns The total evasion value that must be rolled to successfully attack
    */
-  get evasion(): number {
-    return this._evasion + this._encounters.dcModifier;
+  override get evasion(): number {
+    return Math.max(0, Math.min(super.evasion + this._encounters.dcModifier, 6)); // Evasion must be between 0 and 6
   }
 
   addEvasion(amount: number): void {
-    if(this._evasion + amount < 0)
+    if(this.evasion + amount < 0)
       throw new Error("Monster evasion cannot be negative.");
-    this._evasion += amount;
+    super.evasion += amount;
   }
 
   get json(): EntityType {

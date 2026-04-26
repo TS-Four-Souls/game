@@ -53,7 +53,7 @@ describe("Discard", () => {
         expect(game.decks['loot']!.discard.length).toBe(0);
         game.kill(player1, player1, player1.inPlay[0]!);
         await game.resolveEntireStack();
-        expect(game.decks['loot']!.discard.length).toBe(1);
+        expect(game.decks['loot']!.discard.length).toBe(0);
         expect(game.decks['monster']!.discard.length).toBe(0);
         expect(game.decks['treasure']!.discard.length).toBe(0);
     });
@@ -62,7 +62,7 @@ describe("Discard", () => {
         const card: MonsterCard = game.obtainCard("b2-curse_of_loss") as MonsterCard;
         game.decks['monster']!.addTopPosition(card);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         await game.resolveEntireStack();
         expect(game.decks['loot']!.discard.length).toBe(0);
         expect(game.decks['monster']!.discard.length).toBe(0);
@@ -83,7 +83,7 @@ describe("Discard", () => {
         const ewaz: LootCard = game.obtainCard("b2-ehwaz") as LootCard;
         game.decks['monster']!.addTopPosition(card2);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         const mobster = game.monsters[0]!;
         game.kill(mobster, player1, ewaz);
         await game.resolveStack();
@@ -102,7 +102,7 @@ describe("Discard", () => {
         game.decks['monster']!.addTopPosition(gurdy);
         
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         
         const monster = game.monsters[0]!;
         const monsterCard = monster.card;
@@ -133,7 +133,7 @@ describe("Discard", () => {
         
         // Attack and kill the monster
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         
         const monster = game.monsters[0]!;
         game.kill(player1, monster, monsterCard);
@@ -163,7 +163,7 @@ describe("Discard", () => {
 
     it("shop flush discards all treasure cards", async () => {
         const initialDiscardSize = game.decks['treasure']!.discard.length;
-        const shopCards = [...game.shop._slots].filter(c => c !== undefined);
+        const shopCards = [...game.shop.itemsInShop].filter(c => c !== undefined);
         const numShopCards = shopCards.length;
         
         expect(numShopCards).toBeGreaterThan(0);
