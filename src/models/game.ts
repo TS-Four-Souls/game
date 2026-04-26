@@ -1513,14 +1513,14 @@ export class Game {
           targets = playedCard.getTargetSelectors()[0]!.selector(player)[0];
     }
     const lootCardEffect = new LootCardEffect(player, playedCard, targets);
-    this.addToStack(lootCardEffect);
-    player.remainingLootPlay -= 1;
     this.addAnimation({
       id: this._animationId++,
       type: "lootPlay",
       card: playedCard.jsonAPI,
       player: player.id,
-    })
+    });
+    this.addToStack(lootCardEffect);
+    player.remainingLootPlay -= 1;
     this.emit("on:loot:played", {
       eventIssuer: player,
       card: playedCard,
@@ -1779,6 +1779,8 @@ export class Game {
   reset(newSeed: boolean = true): void {
     this._historicHandler = new HistoricHandler();
     this.turnHandler.reset();
+    this._animationId = 0;
+    this._animations = [];
     this._players = [];
     this._decks = createEmptyDecksCollection(this.random);
     this._ongoingAttack = null;
@@ -2419,11 +2421,7 @@ export class Game {
       firstCardTreasureDeck: player.canSeeTopOfTreasureDeck ? this.decks["treasure"]!.cards[0]!.jsonAPI : undefined,
       stack: this.stack.elements.map((el) => el.json).toReversed(),
       animations: this._animations
-      // firstCardTreasureDeck: player.canSeeTopOfTreasureDeck
-      // ? this.decks["treasure"]!.cards[0]?.json
-      // : undefined,
     };
-    this._animations = [];
   }
   // We should implement declaring a purchase
   /** Validates whether current player can declare purchase mode. */
