@@ -1,5 +1,5 @@
 import { Entity } from "@/models/entity";
-import type { DamageOnStackJson, DeathOnStackJson, DiceRollJson, EntityType, IdentifierType } from "@/shared/api";
+import type { Animation, DamageOnStackJson, DeathOnStackJson, DiceRollJson, EntityType, IdentifierType } from "@/shared/api";
 import { Card, CharacterCard, EffectData, type EffectFunction, EffectOnStack, Hand, ItemCard, LootCard, MonsterCard } from "./cards";
 import type { Game } from "./game";
 import { Monster } from "./monster";
@@ -78,6 +78,7 @@ export class Player extends Entity {
 
   private _priceModifier: number = 0;
 
+  private _animations: Animation[] = [];
   /**
    * Creates a new Player instance.
    * 
@@ -289,6 +290,18 @@ export class Player extends Entity {
     return this._canSeeTopOfTreasureDeck > 0;
   }
   
+  addAnimation(animation: Animation): void {
+    this._animations.push(animation);
+  }
+
+  animations(remove: boolean): Animation[] {
+    if (remove) {
+      const animations = this._animations;
+      this._animations = [];
+      return animations;
+    }
+    return this._animations;
+  }
 
   get canIUseLootOrActivateThisTurn(): boolean {
     return this._canIUseLootOrActivateThisTurn === 0;

@@ -71,7 +71,6 @@ export class Game {
   private _historicHandler: HistoricHandler = new HistoricHandler();
   private _cardMapping: Map<number, Card> = new Map();
   private _nextCardGlobalId: number = 0;
-  private _animations: Animation[] = [];
   private _animationId: number = 0;
   readonly gameParameters = new GameParameters(() => this._onStateChange.dispatch());
 
@@ -924,7 +923,8 @@ export class Game {
   }
 
   addAnimation(animation: Animation): void {
-    this._animations.push(animation);
+    for(const player of this.players)
+      player.addAnimation(animation);
   }
   // Pending selection tracking for multiplayer (handles both single and multiple selections)
   private pendingMultipleSelections: Map<
@@ -1780,7 +1780,6 @@ export class Game {
     this._historicHandler = new HistoricHandler();
     this.turnHandler.reset();
     this._animationId = 0;
-    this._animations = [];
     this._players = [];
     this._decks = createEmptyDecksCollection(this.random);
     this._ongoingAttack = null;
@@ -2420,7 +2419,7 @@ export class Game {
       history: this.history,
       firstCardTreasureDeck: player.canSeeTopOfTreasureDeck ? this.decks["treasure"]!.cards[0]!.jsonAPI : undefined,
       stack: this.stack.elements.map((el) => el.json).toReversed(),
-      animations: this._animations
+      animations: player.animations(true)
     };
   }
   // We should implement declaring a purchase
