@@ -682,6 +682,8 @@ export function playerMustDestroyItemOnDeathEffect(game: Game): EffectFunction {
         let offAttackDeclared: (() => void) | null = null;
         offAttackDeclared = game.emitter.on("on:death:before-penalty", async (eventData) => {
             const { eventIssuer  } = eventData;
+            if(eventIssuer instanceof Player === false)
+                return;
             const effect: EffectFunction = async (effectData: EffectData) => {
                 const selected = (await effectData.selectAndRecord(game, eventIssuer as Player, 1, 1, game.inPlayTargetableCards(eventIssuer as Player), "Select an item to destroy.", false)).selected[0] as ItemCard | undefined;
                 if(selected) {
