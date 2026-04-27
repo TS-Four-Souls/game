@@ -9,7 +9,7 @@ import type {
   ServerToClientEvents,
 } from "./shared/api";
 import { schemas } from "./shared/api";
-import { ItemCard, LootCard, CharacterCard } from "./models/cards";
+import { ItemCard, LootCard, CharacterCard, RoomCard } from "./models/cards";
 import { generateRoomId, generateUserId } from "./utils/random";
 import {
   executeActivateRequest,
@@ -27,6 +27,8 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>();
 
 type Room = { id: string; users: string[]; game: Game };
 const rooms: Map<string, Room> = new Map();
+const ROOM_STATE_DISPATCH_WINDOW_MS = 10;
+const roomUpdateTimeouts: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
 const engine = new Engine({
   path: "/socket.io/",
@@ -79,6 +81,19 @@ const sendRoomChanged = (room: Room, playerId: string) => {
   });
 };
 
+const scheduleRoomChanged = (room: Room) => {
+  if (roomUpdateTimeouts.get(room.id)) {
+    return;
+  }
+
+  const timeout = setTimeout(() => {
+    roomUpdateTimeouts.delete(room.id);
+    room.game.players.forEach((player) => sendRoomChanged(room, player.id));
+  }, ROOM_STATE_DISPATCH_WINDOW_MS);
+
+  roomUpdateTimeouts.set(room.id, timeout);
+};
+
 const getRoomFromUserId = (userId: string) => {
   const result = rooms
     .entries()
@@ -129,7 +144,7 @@ io.on("connection", (socket) => {
     const game = new Game();
     const room = { id: roomId, users: [userId], game };
     game.onStateChange.add(() => {
-      game.players.forEach((player) => sendRoomChanged(room, player.id));
+      scheduleRoomChanged(room);
     });
     rooms.set(roomId, room);
     socket.emit("on:user:assigned", userId);
@@ -232,9 +247,7 @@ io.on("connection", (socket) => {
             const loadedGame = await loadGameFromLogs(logs);
             // room.game.addToHistory({ type: "LoadGame", payload }); // Add the load game action to the current game history for traceability, even though it won't affect the loaded game state.
             loadedGame.onStateChange.add(() => {
-              loadedGame.players.forEach((player) =>
-                sendRoomChanged(room, player.id),
-              );
+              scheduleRoomChanged(room);
             });
 
             room.game = loadedGame;
@@ -383,8 +396,9 @@ io.on("connection", (socket) => {
             //   "b2-cain"
             // )! as CharacterCard;
             // const char2 = game.decks["character"]!.getCardFromSlug(
-            //   "b2-eve"
+            //   "b2-eden"
             // )! as CharacterCard;
+            // game.start(payload.issuer, [  char1, char2]);
             // const treas = ["b2-chaos_card", "b2-placebo", "b2-blank_card"];
             // for (const slug of treas) {
             //   const card = game.obtainCard(slug)! as ItemCard;
@@ -394,8 +408,9 @@ io.on("connection", (socket) => {
             //   const second = new Player("The other", 2, 1, 0, game.players[0]!.secret);
             //   game.addPlayer(second);
             // }
-
             game.start(payload.issuer, null);
+            // const room = game.obtainCard("r-heavy_is_the_head") as RoomCard;
+            // game.rooms?.forceRoomAtSlot(0, room!);
             // const mob = game.obtainCard("b2-curse_of_amnesia")!;
             // game.decks.monster?.addTopPosition(mob as any);
             // game.encounters.forceSetMonsterAtSlot(0, mob);
@@ -405,11 +420,12 @@ io.on("connection", (socket) => {
             //   game.addCardToHand(game.players[0]!, card);
             //   }
             // const treas = [
-            //   // "b2-mini_mush", 
+            //   "b2-mini_mush", 
             //   // "b2-dads_lost_coin",
             //   "b2-placebo"];
             // for (const slug of treas) {
             //   const card = game.obtainCard(slug)! as ItemCard;
+            //   card.charged = false;
             //   game.addInPlay(game.players[0]!, card);
             // }
             game.addToHistory({ type: "Start", payload });
@@ -471,9 +487,7 @@ io.on("connection", (socket) => {
               );
             const loadedGame = await loadGameFromLogs(logs);
             loadedGame.onStateChange.add(() => {
-              loadedGame.players.forEach((player) =>
-                sendRoomChanged(room, player.id),
-              );
+              scheduleRoomChanged(room);
             });
 
             room.game = loadedGame;
