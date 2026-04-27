@@ -1308,7 +1308,8 @@ export function changeRollOneToSixEffect(game: Game): EffectFunction {
                 // Create the effect that will execute when the stack resolves
                 const effect = async (effectData: EffectData) => {
                     if (!(effectData.issuer instanceof Player)) return false;
-                    const value = (await effectData.selectAndRecord(game, effectData.issuer, 0, 1, [6], "Select a result to change the roll to.", true, true)).selected[0]!;
+                    const value = (await effectData.selectAndRecord(game, effectData.issuer, 0, 1, [6], "You may select a result to change the roll to.", true, true)).selected[0]!;
+                    if(!value) return false; // Player chose not to change the roll
                     diceRoll.value = value;
                     return true;
                 };

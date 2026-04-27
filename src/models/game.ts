@@ -1126,7 +1126,6 @@ export class Game {
       // Resolve the pending promise
       pending.resolve(selected);
       this._onStateChange.dispatch();
-      void this.resolveCallbacks();
       return;
     }
     this._onStateChange.dispatch();
@@ -1938,6 +1937,7 @@ export class Game {
       eventIssuer: player,
       card: card,
     });
+    this._onStateChange.dispatch();
   }
 
   get rooms(): Rooms | undefined {
