@@ -547,8 +547,39 @@ const genericAnimationSchema = z.object({
   type: z.string(),
 });
 
-const lootPlayAnimationSchema = genericAnimationSchema.extend({
-  type: z.literal("lootPlay"),
+const playLootAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("playLoot"),
+  card: identifierTypeSchema,
+  player: z.string(),
+});
+
+const drawLootAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("drawLoot"),
+  card: identifierTypeSchema,
+  player: z.string(),
+});
+
+const transferLootAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("transferLoot"),
+  card: identifierTypeSchema,
+  sender: z.string(),
+  recipient: z.string(),
+});
+
+const discardLootAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("discardLoot"),
+  card: identifierTypeSchema,
+  player: z.string(),
+});
+
+const buyTopDeckTreasureAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("buyTopDeckTreasure"),
+  card: identifierTypeSchema,
+  player: z.string(),
+});
+
+const buyShopTreasureAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("buyShopTreasure"),
   card: identifierTypeSchema,
   player: z.string(),
 });
@@ -556,6 +587,18 @@ const lootPlayAnimationSchema = genericAnimationSchema.extend({
 const activateInPlayAnimationSchema = genericAnimationSchema.extend({
   type: z.literal("activateInPlay"),
   card: identifierTypeSchema,
+});
+
+const obtainBonusSoulAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("obtainBonusSoul"),
+  card: identifierTypeSchema,
+  player: z.string(),
+});
+
+const obtainMonsterSoulAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("obtainMonsterSoul"),
+  card: identifierTypeSchema,
+  player: z.string(),
 });
 
 const giveCoinsAnimationSchema = genericAnimationSchema.extend({
@@ -566,7 +609,14 @@ const giveCoinsAnimationSchema = genericAnimationSchema.extend({
 });
 
 const animationSchema = z.discriminatedUnion("type", [
-  lootPlayAnimationSchema,
+  playLootAnimationSchema,
+  drawLootAnimationSchema,
+  transferLootAnimationSchema,
+  discardLootAnimationSchema,
+  buyTopDeckTreasureAnimationSchema,
+  buyShopTreasureAnimationSchema,
+  obtainBonusSoulAnimationSchema,
+  obtainMonsterSoulAnimationSchema,
   activateInPlayAnimationSchema,
   giveCoinsAnimationSchema,
 ]);
