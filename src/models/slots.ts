@@ -439,6 +439,35 @@ export class Encounters extends Slots<MonsterCard> {
         this.fillEmptySpots(false);
     }
 
+    createEventEffect(event: MonsterCard): EffectOnStack{
+        return new EffectOnStack(
+                async (data:EffectData) => {
+                    const stackIds = this._game.stack.elements.map(e => e.stackId);
+                    if(!(data.issuer instanceof Player))
+                        throw new Error("Event encounter effect issuer is not a player");
+                    if (event.isCurse) {
+                        const selection = await data.selectAndRecord(this._game, this._game.currentPlayer, 1, 1, this._game.players, `Select a player to receive ${event.name}.`, true, true);
+                        const owner = selection.selected[0];
+                        if (!owner) return false;
+                        this._game.addCurse(owner, event);
+                    } else {
+                        await event.onPlay(data.issuer, data.targets);
+                    }
+                    await this._game.executeWhenStackSubset(stackIds, () => {
+                        if(event.afterEffect !== "handled")
+                        {
+                            this.removeFromSlot(event);
+                            if(event.afterEffect === "discard")
+                                this._deck.addDiscardTop(event); // remove the card once the effect is resolved.
+                        }
+                    });
+                    return true;
+                }, 
+                new EffectData(event, () => this._game.currentPlayer, []), 
+                event.effectOutcomes.join('\n')
+            );
+    }
+
     /**
      * Creates a Monster entity from the top card of an encounter slot.
      * If the card is an EVENT, it's added to the stack instead and the slot is cleared.
@@ -459,32 +488,7 @@ export class Encounters extends Slots<MonsterCard> {
             this._monstersInPlay[index] = monster;
         } else {
             this._monstersInPlay[index] = undefined!;
-            const effect: EffectOnStack = new EffectOnStack(
-                async (data:EffectData) => {
-                    const stackIds = this._game.stack.elements.map(e => e.stackId);
-                    if(!(data.issuer instanceof Player))
-                        throw new Error("Event encounter effect issuer is not a player");
-                    if (card.isCurse) {
-                        const selection = await data.selectAndRecord(this._game, this._game.currentPlayer, 1, 1, this._game.players, `Select a player to receive ${card.name}.`, true, true);
-                        const owner = selection.selected[0];
-                        if (!owner) return false;
-                        this._game.addCurse(owner, card);
-                    } else {
-                        card.onPlay(data.issuer, data.targets);
-                    }
-                    await this._game.executeWhenStackSubset(stackIds, () => {
-                        if(card.afterEffect !== "handled")
-                        {
-                            this.removeFromSlot(card);
-                            if(card.afterEffect === "discard")
-                                this._deck.addDiscardTop(card); // remove the card once the effect is resolved.
-                        }
-                    });
-                    return true;
-                }, 
-                new EffectData(card, () => this._game.currentPlayer, []), 
-                card.effectOutcomes.join('\n')
-            );
+            const effect: EffectOnStack = this.createEventEffect(card);
             this._game.executeWhenStackEmpty(() => {
                 this._game.addToStack(effect);
             });

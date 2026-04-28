@@ -39,6 +39,7 @@ export type UserRequest =
   | {type: "DebugRemoveCards", payload: Requests.DebugRemoveCards }
   | {type: "DebugListTreasure", payload: Requests.DebugListTreasure }
   | {type: "DebugGainTreasure", payload: Requests.DebugGainTreasure }
+  | {type: "ReportBug", payload: Requests.ReportBug }
   | {type: "IsGameOngoing" }
   | {type: "CreateRoom" }
   | {type: "JoinRoom", payload: Requests.JoinRoom }
@@ -63,6 +64,7 @@ function isGameAction(entry: HistoricEntry): boolean {
          "DebugListLoot", 
          "DebugListCardsICanRemove",
          "DebugListTreasure",
+        "ReportBug",
         "IsGameOngoing",
         "CreateRoom",
         "JoinRoom",

@@ -97,7 +97,9 @@ describe("Requiem Rooms", () => {
     it("social_goals discard", async () => {
         const room = game.obtainCard("r-social_goals") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
-        game.discard(room);
+        game.kill(player1, game.monsters[0]!, room);
+        await game.resolveStack();
+        await game.endTurn();
         expect(game.rooms?.activeRooms[0]).toBe(room);
     });
 

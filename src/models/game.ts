@@ -494,6 +494,12 @@ export class Game {
       if (typeof card.rewards?.soul !== "number")
         throw new Error("Monster soul reward must be a number.");
       card.soul = card.rewards?.soul;
+      this.addAnimation({
+        id: this.nextAnimationId,
+        type: "obtainMonsterSoul",
+        card: card,
+        player: this.currentPlayer.id,
+      });
       this.addSoul(this.currentPlayer, card);
     } else this.discard(card);
     this._onStateChange.dispatch();
@@ -1029,6 +1035,9 @@ export class Game {
     return selection;
   }
 
+  get nextAnimationId(): number {
+    return this._animationId++;
+  }
   addAnimation(animation: Animation): void {
     for(const player of this.players)
       player.addAnimation(animation);
@@ -1243,8 +1252,16 @@ export class Game {
    * Gives a soul card to a player.
    */
   addSoul(player: Player, soulCard: Card): void {
-    if (soulCard instanceof BsoulCard)
+    if (soulCard instanceof BsoulCard && soulCard.granted === false)
+    {
+      this.addAnimation({
+        id: this.nextAnimationId,
+        type: "obtainBonusSoul",
+        card: soulCard,
+        player: player.id,
+      });
       soulCard.granted = true;
+    }
     player.addSoul(soulCard);
     this.emit("on:soul:gained", { eventIssuer: player, soul: soulCard });
     this._onStateChange.dispatch();
@@ -1491,6 +1508,7 @@ export class Game {
   handleRoomChange(): void {
     if(this.rooms === undefined) return;
     if(!this.monsterDiedThisTurn) return;
+    if(this.rooms.activeRooms.every((room) => room.canBeDiscarded === false)) return;
     const data:EffectData = new EffectData(this.rooms.activeRooms[0]!, () => this.currentPlayer, []);
     addPassiveEffectToStack(this, CurrentPlayerDecidesToChangeRoom(this), data, "A monster died this turn, you can choose to put a room card into discard.");
     }
@@ -1624,8 +1642,8 @@ export class Game {
     }
     const lootCardEffect = new LootCardEffect(player, playedCard, targets);
     this.addAnimation({
-      id: this._animationId++,
-      type: "lootPlay",
+      id: this.nextAnimationId,
+      type: "playLoot",
       card: playedCard.jsonAPI,
       player: player.id,
     });
@@ -1771,6 +1789,13 @@ export class Game {
     if (!from.hand.cards.includes(card)) {
       return false;
     }
+    this.addAnimation({
+      id: this.nextAnimationId,
+      type: "transferLoot",
+      sender: from.id,
+      recipient: to.id,
+      card: card.jsonAPI,
+    });
     this.removeCardFromHand(from, card);
     this.addCardToHand(to, card);
     return true;
@@ -1792,7 +1817,7 @@ export class Game {
       }
     }
     this.addAnimation({
-      id: this._animationId++,
+      id: this.nextAnimationId,
       type: "giveCoins",
       sender: from.id,
       recipient: to.id,
@@ -1993,7 +2018,7 @@ export class Game {
   ): Promise<boolean> {
     const effectOnStack = await player.activateItem(item, targets, effectId);
     this.addAnimation({
-      id: this._animationId++,
+      id: this.nextAnimationId,
       type: "activateInPlay",
       card: item.jsonAPI,
     })
@@ -2695,7 +2720,14 @@ export class Game {
           `Purchase failed. You need ${price! - player.coins} more coins.\n`
         );
       }
+    const purchasedCard = index === "top" ? this.decks["treasure"]!.cards[0]! : this.shop.itemsInShop[index]!;
     if (this.shop.purchase(player, index, price, this)) {
+      this.addAnimation({
+        id: this.nextAnimationId,
+        type: index === "top" ? "buyTopDeckTreasure" : "buyShopTreasure",
+        player: player.id,
+        card: purchasedCard.jsonAPI,
+      })
       this.emit("on:purchase:success", {
         eventIssuer: player,
         price: price,
@@ -2724,6 +2756,12 @@ export class Game {
       numberOfCards: n,
     });
     const toLoot = n[0]!;
+    this.addAnimation({
+      id: this.nextAnimationId,
+      type: "drawLoot",
+      nb: toLoot,
+      player: player.id,
+    })
     if (toLoot > 0)
       for (let i = 0; i < toLoot; i++) {
         const drawnCard: LootCard = lootDeck.draw()!;
@@ -3032,6 +3070,12 @@ export class Game {
     const discardedCard: LootCard = hand.cards[position]!;
     this.removeCardFromHand(player, discardedCard);
     const lootDeck = this.decks["loot"]!;
+    this.addAnimation({
+      id: this.nextAnimationId,
+      type: "discardLoot",
+      player: player.id,
+      card: discardedCard.jsonAPI,
+    })
     lootDeck.addDiscardTop(discardedCard);
 
     return `You have discarded the card: ${discardedCard.name}.\n`;
@@ -3061,6 +3105,12 @@ export class Game {
     if (attackRoll) this.assertIsAlive(player);
 
     let diceRoll = player.rollDice(this.random, attackRoll, card);
+    this.addAnimation({
+      id: this.nextAnimationId,
+      type: "diceRoll",
+      player: player.id,
+      diceRoll: diceRoll.value,
+    })
     this.addToStack(diceRoll);
     this.emit("on:dice:being-rolled", { eventIssuer: player, diceRoll });
     return diceRoll;
@@ -3077,6 +3127,7 @@ export class Game {
 
   /** Sends a card to its owner deck discard pile. */
   discard(card: Card): void {
+    if(!card.canBeDiscarded) return;
     this.obtainCard(card.slug, card.globalId); // make sure the card is removed from other places.
     const deck: Deck<Card> = this.decks[card.type];
     deck.addDiscardTop(card);

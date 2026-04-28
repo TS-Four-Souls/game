@@ -84,6 +84,10 @@ const selectCurse = (game: Game, min: number = 1, max: number = min): TargetsSel
 const selectNonEternalItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
     [createSelector("Choose a non-eternal item", inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), min, max)];
 
+const selectTapItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Choose a tap item", inplayItemSelector((player: Player, card: ItemCard) => card.hasTapEffect(), game), min, max)];
+
+
 const selectNonEternalItemOrASoul = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
     [createSelector("Choose a non-eternal item or a soul", inplayItemAndSoulSelector((player: Player, card: ItemCard) => card.eternal === false, game), min, max)];
 
@@ -1082,7 +1086,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
         case "destroy this and loot 2.":
             return { effectFunction: active.destroyThisAndLoot2Effect(game), targetSelectors: noTargets };
         case "deactivate an item.":
-            return { effectFunction: active.deactivateItemEffect(game, selectionOnResolve, youMayEffectHanging), targetSelectors: selectItem(game) };
+            return { effectFunction: active.deactivateItemEffect(game, selectionOnResolve, youMayEffectHanging), targetSelectors: selectTapItem(game) };
         case "choose a player. that player gives you a loot card.":
             return { effectFunction: active.makePlayerGiveLootCardEffect(game), targetSelectors: selectPlayer(game) };
         case "look at the top card of a deck.":

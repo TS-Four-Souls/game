@@ -27,7 +27,7 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>();
 
 type Room = { id: string; users: string[]; game: Game };
 const rooms: Map<string, Room> = new Map();
-const ROOM_STATE_DISPATCH_WINDOW_MS = 10;
+const ROOM_STATE_DISPATCH_WINDOW_MS = 50;
 const roomUpdateTimeouts: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
 const engine = new Engine({
@@ -215,7 +215,7 @@ io.on("connection", (socket) => {
           try {
             game.getPlayerByIssuer(payload);
             const logs = JSON.stringify(game.log, null, 2);
-            console.log(`Game logs:`, logs);
+            // console.log(`Game logs:`, logs);
             return callback({ status: 200, logs });
           } catch (error) {
             console.error("Failed to get game logs", error);
@@ -409,10 +409,13 @@ io.on("connection", (socket) => {
             //   game.addPlayer(second);
             // }
             game.start(payload.issuer, null);
-            // const room = game.obtainCard("r-heavy_is_the_head") as RoomCard;
+            // const room = game.obtainCard("r-tax_for_the_mighty") as RoomCard;
             // game.rooms?.forceRoomAtSlot(0, room!);
-            // const mob = game.obtainCard("b2-curse_of_amnesia")!;
+            // const mob = game.obtainCard("b2-we_need_to_go_deeper")!;
             // game.decks.monster?.addTopPosition(mob as any);
+            // game.discard(game.obtainCard("b2-fly")!);
+            // game.discard(game.obtainCard("b2-gurdy")!);
+            // game.discard(game.obtainCard("b2-gurdy_jr")!);
             // game.encounters.forceSetMonsterAtSlot(0, mob);
             // const loots = ["b2-i_the_magician", "b2-gold_bomb", "b2-ii_the_high_priestess", "b2-cains_eye"]
             // for (const slug of loots) {
@@ -1052,6 +1055,40 @@ io.on("connection", (socket) => {
             return callback({ status: 200 });
           } catch (error) {
             console.error("Failed to debug gain treasure", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
+
+  socket.on("reportBug", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.reportBugRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game, room) => {
+          try {
+            const player = game.getPlayerByIssuer(payload);
+            const bugReport = {
+              roomId: room.id,
+              reporter: player.id,
+              title: payload.title,
+              description: payload.description,
+              severity: payload.severity ?? "undefined",
+              logs: game.log,
+            };
+
+            const txt = JSON.stringify(bugReport, null, 2);
+            
+
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to report bug", error);
             if (error instanceof Error) {
               return callback({ status: 400, error: error.message });
             }

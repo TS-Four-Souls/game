@@ -42,6 +42,11 @@ export function addPassiveEffectToStack(
     description: string
 ): void {
     const effectOnStack = new EffectOnStack(effectFunction, data, description);
+    game.addAnimation({
+        id: game.nextAnimationId,
+        type: "activateInPlay",
+        card: data.it.jsonAPI,
+    });
     game.addToStack(effectOnStack);
 }
 

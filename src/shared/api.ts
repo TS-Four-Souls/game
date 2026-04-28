@@ -272,6 +272,12 @@ const debugRemoveCardsRequestSchema = issuerSchema.extend({
   cards: z.array(identifierTypeSchema),
 });
 
+const reportBugRequestSchema = issuerSchema.extend({
+  title: z.string().min(1),
+  description: z.string().min(1),
+  severity: z.enum(["low", "medium", "high", "critical"]).optional(),
+});
+
 const giveCoinsSchema = z.object({
   issuer: issuerSchema,
   target: z.string(),
@@ -555,8 +561,14 @@ const playLootAnimationSchema = genericAnimationSchema.extend({
 
 const drawLootAnimationSchema = genericAnimationSchema.extend({
   type: z.literal("drawLoot"),
-  card: identifierTypeSchema,
+  nb: z.number(),
   player: z.string(),
+});
+
+const diceRollAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("diceRoll"),
+  player: z.string(),
+  diceRoll: z.number(),
 });
 
 const transferLootAnimationSchema = genericAnimationSchema.extend({
@@ -611,6 +623,7 @@ const giveCoinsAnimationSchema = genericAnimationSchema.extend({
 const animationSchema = z.discriminatedUnion("type", [
   playLootAnimationSchema,
   drawLootAnimationSchema,
+  diceRollAnimationSchema,
   transferLootAnimationSchema,
   discardLootAnimationSchema,
   buyTopDeckTreasureAnimationSchema,
@@ -733,6 +746,7 @@ export const schemas = {
   debugRemoveCardsRequest: debugRemoveCardsRequestSchema,
   debugListTreasureRequest: issuerSchema,
   debugGainTreasureRequest: debugGainTreasureRequestSchema,
+  reportBugRequest: reportBugRequestSchema,
   resolveRequest: resolveRequestSchema,
   submitSelectionRequest: submitSelectionSchema,
   insertStackElementBeforeRequest: insertStackElementBeforeSchema,
@@ -779,6 +793,7 @@ export namespace Requests {
   export type DebugGainTreasure = z.infer<
     typeof debugGainTreasureRequestSchema
   >;
+  export type ReportBug = z.infer<typeof reportBugRequestSchema>;
   export type JoinRoom = z.infer<typeof joinRoomRequestSchema>;
   export type GetGameLogs = z.infer<typeof issuerSchema>;
   export type LoadGame = z.infer<typeof loadGameRequestSchema>;
@@ -809,6 +824,7 @@ export namespace Responses {
   export type DebugRemoveCards = BasicResponse;
   export type DebugListTreasure = DebugListTreasureResponse;
   export type DebugGainTreasure = BasicResponse;
+  export type ReportBug = BasicResponse;
   export type GiveCoins = BasicResponse;
   export type IsGameOngoing = IsGameOngoingResponse;
   export type CreateRoom = BasicResponse;
@@ -933,6 +949,11 @@ export interface ClientToServerEvents {
   debugGainTreasure: (
     request: Requests.DebugGainTreasure,
     callback: (response: Responses.DebugGainTreasure) => void,
+  ) => void;
+
+  reportBug: (
+    request: Requests.ReportBug,
+    callback: (response: Responses.ReportBug) => void,
   ) => void;
 
   giveCoins: (

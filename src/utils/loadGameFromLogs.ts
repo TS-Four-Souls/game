@@ -318,7 +318,6 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
   };
 
   for (const [index, entry] of logs.entries()) {
-    try{
       if (!isUserRequestEntry(entry) && !isPrivateEntry(entry)) {
         // Stack element snapshots are not replayed directly.
         continue;
@@ -596,8 +595,6 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
           // Exhaustiveness safeguard for future request types.
           throw new Error(`Unsupported log entry type for replay: ${(entry as any).type}`);
       }
-    } catch (error) {
-    }
   }
   game.loadHistory(logs);
   game.seed = ""; // Change the seed to avoid cheating by saving and reloading to predict random outcomes.

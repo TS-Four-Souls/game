@@ -1422,14 +1422,19 @@ export function putAnyNumberFromDiscardOnTopEffect(deckName: DeckType, game: Gam
         if (!deck) {
             throw new Error(`Deck ${deckName} does not exist.`);
         }
-        const maxToPutBack = deck.discard.length;
-        const selectionResult = await data.selectAndRecord(game, data.issuer, 0, maxToPutBack, deck.discard.filter(condition), "Select cards to put back on top of the deck (first selected will be on top).", false, false);
-        for (let i = 0; i < selectionResult.selected.length; i++) {
-            const card = selectionResult.selected[i]!;
-            assertCardMatchesDeck(deckName, card);
-            deck.remove(card);
-            deck.addTopPosition(card);
-        }
+        // const effect: EffectFunction = async (data: EffectData) => {
+            const maxToPutBack = deck.discard.length;
+            if (data.issuer instanceof Player === false) return false;
+            const selectionResult = await data.selectAndRecord(game, data.issuer, 0, maxToPutBack, deck.discard.filter(condition), "Select cards to put back on top of the deck (first selected will be on top).", false, false);
+            for (let i = 0; i < selectionResult.selected.length; i++) {
+                const card = selectionResult.selected[i]!;
+                assertCardMatchesDeck(deckName, card);
+                deck.remove(card);
+                deck.addTopPosition(card);
+            }
+            return true;
+        // };
+        // passive.addPassiveEffectToStack(game, effect, data, "Select cards to put back on top of the deck (first selected will be on top).");
         return true;
     };
 }

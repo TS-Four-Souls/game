@@ -526,8 +526,9 @@ export function discardHandsAndLootEffect(game: Game, amount: number): EffectFun
     return (data: EffectData) => {
         for(const player of game.players)
         {
-            for(const card of player.hand.cards) {
-                game.discard(card);
+            const handSize = player.hand.length;
+            for(let i = 0; i < handSize; i++) {
+                game.discardFromHandAtIndex(player, 0);
             }
             game.loot(player, amount);
         }
@@ -581,8 +582,9 @@ export function discardHandIfNoShopPurchaseAtEndOfTurnEffect(game: Game): Effect
                 return; // Not the current player, ignore
             }
             if(!purchaseMade) {
-                for(const card of [...game.currentPlayer.hand.cards]) {
-                    game.discard(card);
+                const handSize = game.currentPlayer.hand.length;
+                for(let i = 0; i < handSize; i++) {
+                    game.discardFromHandAtIndex(game.currentPlayer, 0);
                 }
             }
             purchaseMade = false; // Reset for next turn
@@ -981,13 +983,7 @@ export function flushShopOrUnattackedMonstersEffect(game: Game): EffectFunction 
  */
 export function socialGoalsEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
-        const originalDiscard = game.discard.bind(game);
-        game.discard = (card: Card) => {
-            if(card === data.it) {
-                return; // Prevent discarding the card until goals are completed
-            }
-            originalDiscard(card);
-        };
+        data.it.canBeDiscarded = false; // Prevent the card from being discarded until goals are completed
         data.it.tags.counters = 0;
         let sixCoinGiven: boolean = false;
         let lootPlayed = 0;
@@ -1008,7 +1004,7 @@ export function socialGoalsEffect(game: Game): EffectFunction {
                 for(const player of game.players) {
                     game.gainTreasure(player, 2);
                 }
-                game.discard = originalDiscard; // Restore original discard function
+                data.it.canBeDiscarded = true; 
                 game.discard(data.it);
             }
         }
@@ -1048,6 +1044,19 @@ export function socialGoalsEffect(game: Game): EffectFunction {
                 sixCoinGiven = true;
                 tryResolve();
             }
+        });
+
+        data.it.cleaners.push(() => {
+            offLootPlayed?.();
+            offLootPlayed = null;
+            offMonsterKilled?.();
+            offMonsterKilled = null;
+            offPurchase?.();
+            offPurchase = null;
+            offRoll?.();
+            offRoll = null;
+            offDonation?.();
+            offDonation = null;
         });
 
         return true;

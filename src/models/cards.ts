@@ -403,6 +403,7 @@ class Card {
     protected _owner!: Entity;
     protected _associatedEntity!: Entity;
     protected _eternal: boolean = false;
+    protected _canBeDiscarded: boolean = true;
     protected _cleanup: (() => void)[] = [];
     protected _onFlip: (() => void)[] = [];
     protected _entity: Entity | undefined = undefined;
@@ -522,6 +523,12 @@ class Card {
     }
     set owner(value: Entity) {
         this._owner = value;
+    }
+    get canBeDiscarded(): boolean{
+        return this._canBeDiscarded
+    }
+    set canBeDiscarded(value: boolean){
+        this._canBeDiscarded = true;
     }
     flip(): void {
         [this._front, this._back] = [this._back, this._front];
@@ -922,8 +929,8 @@ class MonsterCard extends Card {
     set afterEffect(value: "discard" | "nothing" | "handled") {
         this._afterEffect = value;
     }
-    onPlay(issuer: Player, targets: any[] = []): void{
-        this._effectInterface.onPlay(issuer, targets)();
+    async onPlay(issuer: Player, targets: any[] = []): Promise<void>{
+        return this._effectInterface.onPlay(issuer, targets)();
     }
 }
 
