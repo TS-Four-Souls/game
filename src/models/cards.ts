@@ -78,8 +78,14 @@ export class Effect {
         if (targetsList.length > 0) {
             for (const admissibleTarget of this._targetsSelector[0]!.selector(issuer)) {
                 if (admissibleTarget.description.toLowerCase() === descr.toLowerCase()) {
+                    let admisibleTargetsIndex = 0;
+                    let nbTargetsForSelector = 0;
                     for (const t of targetsList) {
-                        if (!admissibleTarget.admissibleTargets.includes(t)) {
+                        if (((admissibleTarget.admissibleTargets[admisibleTargetsIndex]) as TargetsSelector).selector(issuer).includes(t)) {
+                            nbTargetsForSelector++;
+                        } else if(nbTargetsForSelector >= ((admissibleTarget.admissibleTargets[admisibleTargetsIndex]) as TargetsSelector).min) {
+                            admisibleTargetsIndex++;
+                        }else {
                             return false;
                         }
                     }

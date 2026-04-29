@@ -5,7 +5,7 @@ import * as monster from "./monsterEffects";
 import * as passive from "./passiveEffect";
 import * as room from "./roomEffects";
 import { DiceRoll, Player } from "../player";
-import { activeEntitySelector, anotherPlayerSelector, deckSelector, inAnotherplayItemSelector, inplayCurseSelector, inplayItemAndSoulSelector, inplayItemSelector, inplayUnchargedItemSelector, playerSelector, rollSelector, stackElementSelector, topAnyDiscardSelector, visibleItemSelector, YourItemSelector } from "../targetSelector";
+import { activeEntitySelector, anotherPlayerSelector, deckSelector, inAnotherplayItemSelector, inplayCurseSelector, itemAndSoulSelector as itemAndSoulSelector, inplayItemSelector, inplayUnchargedItemSelector, playerSelector, rollSelector, stackElementSelector, topAnyDiscardSelector, visibleItemSelector, YourItemSelector } from "../targetSelector";
 import { EffectData, type EffectFunction, type TargetsSelector } from "../types/cardTypes";
 
 /**
@@ -89,7 +89,7 @@ const selectTapItem = (game: Game, min: number = 1, max: number = min): TargetsS
 
 
 const selectNonEternalItemOrASoul = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
-    [createSelector("Choose a non-eternal item or a soul", inplayItemAndSoulSelector((player: Player, card: ItemCard) => card.eternal === false, game), min, max)];
+    [createSelector("Choose a non-eternal item or a soul", itemAndSoulSelector((player: Player, card: ItemCard) => card.eternal === false, game), min, max)];
 
 const selectNonEternalTapItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
     [createSelector("Choose a non-eternal item", visibleItemSelector((card: ItemCard) => card.eternal === false && card.hasTapEffect() && card.slug != "b2-placebo", game), min, max)];

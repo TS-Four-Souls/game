@@ -206,7 +206,7 @@ export function chooseOneEffect(s: string, game: Game, selectionOnResolve: boole
                 // Construct ChooseOneOptions array from parsed effects
                 return effects.map((effect, i) => ({
                     description: lines[i + 1]!,
-                    admissibleTargets: effect.targetSelectors.map(ts => ts.selector(issuer)).flat()
+                    admissibleTargets: effect.targetSelectors
                 }));
             }, 
             min: 1, 
@@ -313,10 +313,11 @@ export function copyTapAbilityEffect(game: Game): EffectFunction {
         if(player === undefined)
             throw new Error(`Effect issuer is not a player.`);
         const newTargets = await TargetBuilder.buildTargetsOnResolve(game, player, itemToCopy);
-        const effectOnStack: EffectOnStack = new EffectOnStack(activeEffect.effectFunction, new EffectData(data.it, () => data.issuer, newTargets), `Copy of ${itemToCopy.name} tap ability`);
-        game.addToStack(effectOnStack);
-        return true;
-        // return activeEffect.effectFunction(data);
+        const newData: EffectData = new EffectData(data.it, () => data.issuer, newTargets);
+        // const effectOnStack: EffectOnStack = new EffectOnStack(activeEffect.effectFunction, newData, `Copy of ${itemToCopy.name} tap ability`);
+        // game.addToStack(effectOnStack);
+        // return true;
+        return activeEffect.effectFunction(newData);
     };
 }
 
@@ -1422,19 +1423,14 @@ export function putAnyNumberFromDiscardOnTopEffect(deckName: DeckType, game: Gam
         if (!deck) {
             throw new Error(`Deck ${deckName} does not exist.`);
         }
-        // const effect: EffectFunction = async (data: EffectData) => {
-            const maxToPutBack = deck.discard.length;
-            if (data.issuer instanceof Player === false) return false;
-            const selectionResult = await data.selectAndRecord(game, data.issuer, 0, maxToPutBack, deck.discard.filter(condition), "Select cards to put back on top of the deck (first selected will be on top).", false, false);
-            for (let i = 0; i < selectionResult.selected.length; i++) {
-                const card = selectionResult.selected[i]!;
-                assertCardMatchesDeck(deckName, card);
-                deck.remove(card);
-                deck.addTopPosition(card);
-            }
-            return true;
-        // };
-        // passive.addPassiveEffectToStack(game, effect, data, "Select cards to put back on top of the deck (first selected will be on top).");
+        const maxToPutBack = deck.discard.length;
+        const selectionResult = await data.selectAndRecord(game, data.issuer, 0, maxToPutBack, deck.discard.filter(condition), "Select cards to put back on top of the deck (first selected will be on top).", false, false);
+        for (let i = 0; i < selectionResult.selected.length; i++) {
+            const card = selectionResult.selected[i]!;
+            assertCardMatchesDeck(deckName, card);
+            deck.remove(card);
+            deck.addTopPosition(card);
+        }
         return true;
     };
 }

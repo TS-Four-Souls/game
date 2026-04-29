@@ -518,7 +518,7 @@ export class Game {
       source: source,
     });
     receiver.die();
-    this.executeWhenStackSubset(stackIds, async () => {
+    void this.executeWhenStackSubset(stackIds, async () => {
       const stackIds = this.stack.elements.map(e => e.stackId);
       if (receiver.isEngagedInCombat) {
         this.endCombat();
@@ -539,8 +539,10 @@ export class Game {
         this.encounters.kill(receiver); // should only kill once its effects are resolved: should be moved in the resolvewhenstackempty
         this.monsterDiedThisTurn = true;
         this.entityRewards(receiver);
-        this.executeWhenStackSubset(stackIds, async () => {
+        void this.executeWhenStackSubset(stackIds, async () => {
           this.obtainMonsterSoulOrDiscard(receiver);
+        }).catch((error) => {
+          console.error("Failed to finish monster death resolution", error);
         });
       }else if (receiver instanceof Animated) {
         // Clear any forced attack constraints on this animated entity
@@ -562,6 +564,8 @@ export class Game {
       this._onStateChange.dispatch();
       // if(receiver instanceof Player && this.currentPlayer === receiver)
       //   this.executeWhenStackEmpty(() => {this.endTurn();});
+    }).catch((error) => {
+      console.error("Failed to resolve death follow-up", error);
     });
   }
 
@@ -1313,6 +1317,8 @@ export class Game {
   }
 
   handleLootCardEffectResolution(elem: LootCardEffect): void {
+    if(this.destroyedCards.includes(elem.card))
+      return;
     if(elem.card.afterEffect === "discard")
         this.discard(elem.card);
     if(elem.card.afterEffect === "addInPlay")
@@ -1433,13 +1439,17 @@ export class Game {
     const itemsToRecharge = player.unchargedItems;
     const eventData = { eventIssuer: player, itemsToRecharge: itemsToRecharge }
     this.emit("on:turn:start:before:recharge:step", eventData);
-    this.executeWhenStackEmpty(() => {
+    void this.executeWhenStackEmpty(() => {
       this.rechargeMultiple(player, eventData.itemsToRecharge);
       this.emit("on:turn:start", { eventIssuer: player });
-      this.executeWhenStackEmpty(() => {
+      void this.executeWhenStackEmpty(() => {
         this.lootStep();
         this.emit("on:your:turn", { eventIssuer: player });
+      }).catch((error) => {
+        console.error("Failed to finish deferred turn-start loot step", error);
       });
+    }).catch((error) => {
+      console.error("Failed to finish deferred turn-start recharge step", error);
     });
   }
 
@@ -1744,7 +1754,9 @@ export class Game {
     this.emit("on:game:start", {});
     this.healEveryone();
     
-    this.startOfGameSetup();
+    void this.startOfGameSetup().catch((error) => {
+      console.error("Failed to complete game start setup", error);
+    });
     this.startTurn();
   }
 
@@ -2099,7 +2111,9 @@ export class Game {
       console.log("WARNING: No effect outcomes for card:", card.slug);
       return;
     }
-    for (const outcome of card.effectOutcomes) {
+    for (let outcome of card.effectOutcomes) {
+      if(card.subtype === "curse" && !outcome.startsWith("[Curse]"))
+        outcome = "[Curse] " + outcome;
       const effectType = this.getEffectTypeFromOutcome(outcome, card);
 
       // Handle paid effects separately to extract payment and effect functions
@@ -2374,10 +2388,7 @@ export class Game {
       return false;
     this.emit("on:item:destroyed", { eventIssuer: null, cards });
     cards.forEach((card) => {
-      if(card instanceof ItemCard)
-        this.players.forEach((player) => {
-          this.removeInPlay(player, card);
-        });
+      this.obtainCard(card.slug, card.globalId);
     });
     cards.forEach((card) => {
       this.players.forEach((player) => {
