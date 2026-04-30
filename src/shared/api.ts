@@ -330,6 +330,7 @@ const gameParametersSchema = z.object({
   playWithBonusSouls: booleanGameParameterSchema,
   nbPlayerCardRestriction: booleanGameParameterSchema,
   playWithRooms: booleanGameParameterSchema,
+  allowCheatOptions: booleanGameParameterSchema,
 });
 export type GameParametersJson = z.infer<typeof gameParametersSchema>;
 
@@ -375,7 +376,7 @@ const startRequestSchema = z.object({
 
 const resetRequestSchema = z.literal(null);
 
-const rollbackRequestSchema = z.literal(null);
+const rollbackRequestSchema = issuerSchema;
 
 const basicResponseSchema = z.union([
   z.object({

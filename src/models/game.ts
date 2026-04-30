@@ -174,7 +174,9 @@ export class Game {
     return this._historicHandler.log(this);
   }
 
-  get rollbackLog(): HistoricEntry[] {
+  getRollbackLog(player: Player): HistoricEntry[] {
+    if(!this.gameParameters.allowCheatOptions.value && this._historicHandler.lastUserRequestIssuer === player.id)
+      throw new Error("Cheat options are not allowed in this game. You can only rollback other players' actions.");
     return this._historicHandler.rollbackLog;
   }
 
@@ -270,6 +272,8 @@ export class Game {
    * A player can remove: any card owned by the game (shop and encounters) and any card that he owns (hand and inPlay).
    */
   debugRemoveCards(player: Player, cards: Card[]): void {
+    if(!this.gameParameters.allowCheatOptions.value)
+      throw new Error("Cheat options are not allowed in this game.");
     // verify that the cards are actually owned by the player or in the shop/encounters.
     for (const card of cards) {
       if (!this.playerCardsAndGameOwnedCards(player).some(c => c === card)) {
@@ -317,6 +321,26 @@ export class Game {
       }
     }
     this._onStateChange.dispatch();
+  }
+
+  debugGainTreasures(player: Player, treasures: ItemCard[]): void {
+    if(!this.gameParameters.allowCheatOptions.value)
+      throw new Error("Cheat options are not allowed in this game.");
+    for (const card of treasures) {
+      const targetCard = this.obtainCard(card.slug, card.globalId)!;
+      if (targetCard instanceof ItemCard === false)
+        throw new Error(`Card ${targetCard.name} is not an ItemCard`);
+      this.addInPlay(player, targetCard);
+    }
+  }
+
+  debugLoot(player: Player, lootCards: LootCard[]): void {
+    if(!this.gameParameters.allowCheatOptions.value)
+      throw new Error("Cheat options are not allowed in this game.");
+    for (const card of lootCards) {
+      const targetCard = this.obtainCard(card.slug, card.globalId)! as LootCard;
+      this.addCardToHand(player, targetCard);
+    }
   }
 
   /**

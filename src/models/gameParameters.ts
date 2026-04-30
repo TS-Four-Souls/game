@@ -87,6 +87,7 @@ export class GameParameters {
     readonly playWithRooms: BooleanGameParameter;
     /** only cards with minimum player requirement satisfied in decks. */
     readonly nbPlayerCardRestriction: BooleanGameParameter;
+    readonly allowCheatOptions: BooleanGameParameter;
 
     constructor(onChange: () => void) {
         this.edenVariant = new BooleanGameParameter(false, onChange);
@@ -110,6 +111,7 @@ export class GameParameters {
         this.allowCoinDonation = new BooleanGameParameter(true, onChange);
         this.lootPlayPerTurn = new NumericGameParameter(1, 1, 10, onChange);
         this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
+        this.allowCheatOptions = new BooleanGameParameter(true, onChange);
         this.playWithBonusSouls = new BooleanGameParameter(true, onChange);
         this.playWithRooms = new BooleanGameParameter(true, onChange);
     }
@@ -119,6 +121,7 @@ export class GameParameters {
             edenVariant: {text: "Eden Variant", value: this.edenVariant.value},
             miniDraft: {text: "Mini-draft", value: this.miniDraft.value},//: At the start of the game, lay out (number of players + 1) treasure cards. Each player choose one of them and gain them, in turn order. Put the last card on the bottom of the treasure deck. Repeat this process with the order reversed.
             playWithBonusSouls: {text: "Play with bonus souls?", value: this.playWithBonusSouls.value}, // If player card restriction is on, there are 3 bonus souls in the pool at the start of the game, otherwise there are none.
+            allowCheatOptions: {text: "Allow cheat options", value: this.allowCheatOptions.value},
             playWithRooms: {text: "Play with rooms?", value: this.playWithRooms?.value}, // If true, rooms are added to the game. Each player starts with 1 room in play, and one room is added to the shop. Players can play a card on a room to add it to the room, and gain its effect as long as it's in the room. When the room is removed from play, all cards in it are discarded.
             nbPennies: {text: "Number of pennies", value: this.nbPennies.value},
             nb2Cents: {text: "Number of 2-cents", value: this.nb2Cents.value},
@@ -163,6 +166,7 @@ export class GameParameters {
         this.playWithBonusSouls.reset();
         this.playWithRooms.reset();
         this.maxHandSize.reset();
+        this.allowCheatOptions.reset();
         this.allowCoinDonation.reset();
         this.lootPlayPerTurn.reset();
         this.nbPlayerCardRestriction.reset();

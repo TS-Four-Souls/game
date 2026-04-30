@@ -483,7 +483,8 @@ io.on("connection", (socket) => {
       (payload) => {
         roomGuardedEndpoint(userId, callback, async (game, room) => {
           try {
-            const logs: HistoricEntry[] = game.rollbackLog;
+            const player = game.getPlayerByIssuer(payload);
+            const logs: HistoricEntry[] = game.getRollbackLog(player);
             if (!logs)
               throw new Error(
                 "Logs are not valid JSON or not in the expected format.",
@@ -877,10 +878,7 @@ io.on("connection", (socket) => {
                   error: "Loot deck not available",
                 });
               }
-              for (const card of cards) {
-                const targetCard = game.obtainCard(card.slug, card.globalId)! as LootCard;
-                game.addCardToHand(player, targetCard);
-              }
+              game.debugLoot(player, cards as LootCard[]);
               return callback({ status: 200 });
             }
             return callback({ status: 200 });
@@ -904,6 +902,8 @@ io.on("connection", (socket) => {
       (payload) => {
         roomGuardedEndpoint(userId, callback, (game) => {
           try {
+            if(!game.gameParameters.allowCheatOptions.value)
+              throw new Error("Cheat options are not enabled for this game.");
             game.getPlayerByIssuer(payload);
             game.addToHistory({ type: "DebugListLoot", payload });
 
@@ -939,6 +939,8 @@ io.on("connection", (socket) => {
       (payload) => {
         roomGuardedEndpoint(userId, callback, (game) => {
           try {
+            if(!game.gameParameters.allowCheatOptions.value)
+              throw new Error("Cheat options are not enabled for this game.");
             const player = game.getPlayerByIssuer(payload);
             game.addToHistory({ type: "DebugListCardsICanRemove", payload });
             const cards = game
@@ -996,6 +998,8 @@ io.on("connection", (socket) => {
       (payload) => {
         roomGuardedEndpoint(userId, callback, (game) => {
           try {
+            if(!game.gameParameters.allowCheatOptions.value)
+              throw new Error("Cheat options are not enabled for this game.");
             game.getPlayerByIssuer(payload);
             game.addToHistory({ type: "DebugListTreasure", payload });
 
@@ -1042,12 +1046,7 @@ io.on("connection", (socket) => {
                   error: "Treasure deck not available",
                 });
               }
-              for (const card of cards) {
-                const targetCard = game.obtainCard(card.slug, card.globalId)!;
-                if (targetCard instanceof ItemCard === false)
-                  throw new Error(`Card ${targetCard.name} is not an ItemCard`);
-                game.addInPlay(player, targetCard);
-              }
+              game.debugGainTreasures(player, cards as ItemCard[]);
               return callback({
                 status: 200,
               });

@@ -158,6 +158,21 @@ export class HistoricHandler {
      }
     return [...this._history, state];
   }
+
+  get lastUserRequestIssuer(): string | null {
+    const lastUserRequestIndex = this._history.findLastIndex((entry, index) => {
+      return isGameAction(entry);
+    });
+    if(this._history[lastUserRequestIndex] 
+        && "payload" in this._history[lastUserRequestIndex] 
+        && typeof this._history[lastUserRequestIndex].payload === 'object' 
+        && this._history[lastUserRequestIndex].payload !== null 
+        && "issuer" in this._history[lastUserRequestIndex].payload
+        && this._history[lastUserRequestIndex].payload.issuer !== undefined
+      )
+      return this._history[lastUserRequestIndex].payload.issuer.id;
+    return null;
+  }
   /** Returns the history entries until the last user request (exluded).
    * If no user request is found, returns the entire history.
    */
