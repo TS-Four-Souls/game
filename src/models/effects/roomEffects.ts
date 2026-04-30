@@ -37,7 +37,7 @@ export function cancelAttackOnTopOfMonsterDeckEffect(game: Game): EffectFunction
             }
             // Create the effect that will execute when the stack resolves
             const effect = async (effectData: EffectData) => {
-                const selection = await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "Do you want to cancel the attack?", false, true);
+                const selection = await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "Do you want to cancel the attack?", false, true, false);
                 if (selection.selected.length > 0) {
                     game.endCombat();
                 }
@@ -466,7 +466,7 @@ export function mayGainTreasureAtStartOfTurnEffect(game: Game): EffectFunction {
         let offTurnStart: (() => void) | null = null;
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
             const effect: EffectFunction = async (effectData: EffectData) => {
-                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "You may gain a treasure.", false)).selected[0] as ItemCard | undefined;
+                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "You may gain a treasure.", false, true, false)).selected[0] as ItemCard | undefined;
                 if(selected !== undefined) {
                     game.gainTreasure(game.currentPlayer, 1);
                     return true;
@@ -746,7 +746,7 @@ export function rerollOn1Or6Effect(game: Game): EffectFunction {
             const { eventIssuer, diceRoll } = eventData;
             if(diceRoll.value === 1 || diceRoll.value === 6) {
                 const effect: EffectFunction = async (effectData: EffectData) => {
-                    const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "You rolled a 1 or a 6. Do you want to reroll?", false, true)).selected[0] as Card | undefined;
+                    const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "You rolled a 1 or a 6. Do you want to reroll?", false, true, false)).selected[0] as Card | undefined;
                     if(selected) {
                         diceRoll.roll();
                         return true;
@@ -796,7 +796,7 @@ export function payHpForTreasureBoostEffect(game: Game): EffectFunction {
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
             const effect: EffectFunction = async (effectData: EffectData) => {
                 const difference = game.currentPlayer.currentHealthPoints - 1;
-                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "You can pay " + difference + " HP to gain a treasure each time a monster dies this turn. Do you want to?", false, true)).selected[0] as Card | undefined;
+                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "You can pay " + difference + " HP to gain a treasure each time a monster dies this turn. Do you want to?", false, true, false)).selected[0] as Card | undefined;
                 if(selected !== undefined) {
                     game.dealDamage(game.currentPlayer, game.currentPlayer, data.it, difference, (data: EffectData) => {
                         let offMonsterDeath: (() => void) | null = null;

@@ -95,9 +95,10 @@ export class EffectData {
         options: T[],
         description: string = "UNDEFINED SHOULD NOT HAPPEN",
         skippable: boolean = true,
-        record: boolean = true
+        record: boolean = true,
+        canUseOnBoardSelection: boolean = true
     ): Promise<{ selected: T[]; remaining: T[] }> {
-        const selection = await game.select(player, min, max, options, description, skippable);
+        const selection = await game.select(player, min, max, options, description, skippable, canUseOnBoardSelection);
         if (record) {
             this.recordSelection(selection.selected as any[]);
         }
@@ -112,6 +113,7 @@ export class EffectData {
             max: number;
             options: T[];
             description: string;
+            canUseOnBoardSelection: boolean;
         }>
     ): Promise<Array<{ playerId: string; selected: T[]; remaining: T[] }>> {
         const results = await game.selectMultiple(selections);

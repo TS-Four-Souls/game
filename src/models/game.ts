@@ -1092,6 +1092,7 @@ export class Game {
       max: number;
       requestId: string;
       description: string;
+      canUseOnBoardSelection: boolean;
       resolve: (selection: any[]) => void;
     }
   > = new Map();
@@ -1111,7 +1112,8 @@ export class Game {
       max: number,
       Options: T[],
       description: string = "UNDEFINED SHOULD NOT HAPPEN",
-      skippable: boolean = true
+      skippable: boolean = true,
+      canUseOnBoardSelection: boolean = true,
   ): Promise<{ selected: T[]; remaining: T[] }> {
     if (min < 0 || min > max) {
       throw new Error(`Invalid selection bounds: min (${min}) must be between 0 and max (${max}).`);
@@ -1133,6 +1135,7 @@ export class Game {
         options: Options,
         description: description,
         skippable,
+        canUseOnBoardSelection,
       },
     ]);
     return results.find(r => r.playerId === player.id)!;
@@ -1194,6 +1197,7 @@ export class Game {
       options: T[];
       description: string;
       skippable?: boolean;
+      canUseOnBoardSelection: boolean;
     }>
   ): Promise<Array<{ playerId: string; selected: T[]; remaining: T[] }>> {
     // In multiplayer mode: create promises for all players
@@ -1212,6 +1216,7 @@ export class Game {
           max: sel.max,
           description: sel.description,
           requestId,
+          canUseOnBoardSelection: sel.canUseOnBoardSelection,
           resolve: (selection: any[]) => {
             const remaining = sel.options.filter(
               (opt) => !selection.includes(opt)
@@ -1859,7 +1864,7 @@ export class Game {
       return false;
     }
     if(!forced) {
-      const response = await this.select(to, 1, 1, ['Accept', 'Decline'], `${from.id} wants to give you ${amount} coins. Do you accept?`);
+      const response = await this.select(to, 1, 1, ['Accept', 'Decline'], `${from.id} wants to give you ${amount} coins.`);
       if (response.selected[0] !== 'Accept') {
         return false;
       }
@@ -2496,7 +2501,7 @@ export class Game {
             min: sel.min,
             max: sel.max,
             description: sel.description,
-            canUseOnBoardSelection: (sel.min === 0 && sel.max === 1 && sel.options.length === 1) ? false : true,
+            canUseOnBoardSelection: sel.canUseOnBoardSelection,
           };
         }
       }

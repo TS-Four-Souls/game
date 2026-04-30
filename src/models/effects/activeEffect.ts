@@ -400,7 +400,8 @@ export function eachOtherPlayerDiscardsLootEffect(game: Game): EffectFunction {
                 min: 1,
                 max: 1,
                 options: player.hand.cards,
-                description: "Choose a loot card to discard."
+                description: "Choose a loot card to discard.",
+                canUseOnBoardSelection: true,
             });
             }
         }
@@ -794,7 +795,8 @@ export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestinati
                 min: 0,
                 max: (justWatch || player !== data.issuer) ? 0 : 1,
                 options: [topCard!],
-                description: description
+                description: description,
+                canUseOnBoardSelection: true,
             })))).find(p => p.playerId === data.issuer.id)!
         : await data.selectAndRecord(game, data.issuer, 0, justWatch ? 0 : 1, [topCard!], description, false, false);
         if (selectionResult.selected[0] === topCard) {
@@ -870,7 +872,8 @@ export function eachPlayersVoteToDestroyItemEffect(game: Game): EffectFunction {
             min: 1,
             max: 1,
             options: ListOfItems,
-            description: "Vote for an item to be destroyed."
+            description: "Vote for an item to be destroyed.",
+            canUseOnBoardSelection: true,
         }));
         const voteResults = await data.selectMultipleAndRecord(game, voteRequests);
 
@@ -1001,7 +1004,8 @@ export function eachPlayerDestroysASoulEffect(game: Game): EffectFunction {
             min: 1,
             max: 1,
             options: player.souls.filter(soul => soul.eternal === false),
-            description: "Select a soul to destroy."
+            description: "Select a soul to destroy.",
+            canUseOnBoardSelection: true,
         }));
         const playersChoices:{ playerId: string; selected: Card[]; remaining: Card[] }[] = await data.selectMultipleAndRecord(game, choices);
         for (const playerChoice of playersChoices) {
@@ -1105,7 +1109,7 @@ export function rerollDiceEffect(): EffectFunction {
 export function youMayRechargeThisEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const selectionResult = await data.selectAndRecord(game, data.issuer, 0, 1, [data.it], "If you want to, you can recharge this item.", true, true);
+        const selectionResult = await data.selectAndRecord(game, data.issuer, 0, 1, [data.it], "If you want to, you can recharge this item.", true, true, false);
         if (selectionResult.selected.length > 0) {
             game.recharge(data.it as ItemCard);
         }
@@ -1447,7 +1451,7 @@ export function rechargeCharaEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         if (data.issuer.character.charged === false) {
-            const selection = await data.selectAndRecord(game, data.issuer, 0, 1, [data.issuer.character], "You may recharge your character.", true, true);
+            const selection = await data.selectAndRecord(game, data.issuer, 0, 1, [data.issuer.character], "You may recharge your character.", true, true, false);
             if (selection.selected.length > 0)
                 game.recharge(data.issuer.character);
         }
