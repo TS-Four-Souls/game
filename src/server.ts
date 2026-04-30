@@ -9,7 +9,7 @@ import type {
   ServerToClientEvents,
 } from "./shared/api";
 import { schemas } from "./shared/api";
-import { ItemCard, LootCard, CharacterCard, RoomCard } from "./models/cards";
+import { ItemCard, LootCard, CharacterCard, RoomCard, MonsterCard } from "./models/cards";
 import { generateRoomId, generateUserId } from "./utils/random";
 import {
   executeActivateRequest,
@@ -1063,6 +1063,100 @@ io.on("connection", (socket) => {
       },
     );
   });
+
+  socket.on("debugGainCoins", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.debugGainCoinsRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            const player = game.getPlayerByIssuer(payload);
+            game.addToHistory({ type: "DebugGainCoins", payload });
+            game.debugGainCoins(player, payload.coins);
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to debug gain coins", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
+
+  socket.on("debugListMonsterDeck", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.debugListMonsterDeckRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            if(!game.gameParameters.allowCheatOptions.value)
+              throw new Error("Cheat options are not enabled for this game.");
+            game.getPlayerByIssuer(payload);
+            game.addToHistory({ type: "DebugListMonsterDeck", payload });
+
+            const monsterDeck = game.decks["monster"];
+            if (!monsterDeck) {
+              return callback({
+                status: 400,
+                error: "Monster deck not available",
+              });
+            }
+            const cards = monsterDeck.cards
+              .toSorted((a, b) => (a.name+a.slug).localeCompare(b.name+b.slug))
+              .map((c) => c.jsonAPI);
+            const indices = game.encounters.nonAttackedSlots;
+            return callback({ status: 200, cards, indices });
+          } catch (error) {
+            console.error("Failed to debug list monster deck", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
+
+  socket.on("debugPutMonsterCardInSlot", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.debugPutMonsterCardInSlotRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            if(!game.gameParameters.allowCheatOptions.value)
+              throw new Error("Cheat options are not enabled for this game.");
+            game.getPlayerByIssuer(payload);
+            game.addToHistory({ type: "DebugPutMonsterCardInSlot", payload });
+            const card = game.obtainCard(payload.card.slug, payload.card.globalId) as MonsterCard;
+            if (!card) {
+              throw new Error("Card not found in the game: " + payload.card.slug);
+            }
+            game.debugPutMonsterCardInSlot(card, payload.index);
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to debug put monster card in slot", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
+
+  
+
 
   socket.on("reportBug", (payload, callback) => {
     payloadGuardedEndpoint(

@@ -389,6 +389,8 @@ export class Encounters extends Slots<MonsterCard> {
      * @param position - The slot index to draw to
      */
     override draw(position: number) : void {
+        if(position < 0 || position >= this._slots.length)
+            throw new Error("Invalid slot position to draw to.");
         const card = this._deck.draw();
         this._slots[position]!.push(card!);
         this.createMonsterAtSlot(position);
@@ -502,7 +504,7 @@ export class Encounters extends Slots<MonsterCard> {
      * @returns Array of slot indices that are not currently being attacked
      */
     get nonAttackedSlots() : number[] {
-        return this._slots.map((slot, index) => slot.length === 0 || (!this.monsterIn(index)?.isEngagedInCombat) ? index : -1).filter(index => index !== -1);
+        return this._slots.map((slot, index) => slot.length === 0 || (!(this.monsterIn(index)?.isEngagedInCombat || this.visible[index]?.encounterType === MonsterType.EVENT)) ? index : -1).filter(index => index !== -1);
     }
 
     /**

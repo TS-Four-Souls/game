@@ -267,6 +267,14 @@ const debugLootRequestSchema = issuerSchema.extend({
 const debugGainTreasureRequestSchema = issuerSchema.extend({
   cards: z.array(identifierTypeSchema),
 });
+const debugPutMonsterCardInSlotRequestSchema = issuerSchema.extend({
+  card: identifierTypeSchema,
+  index: z.number(),
+});
+
+const debugGainCoinsRequestSchema = issuerSchema.extend({
+  coins: z.number(),
+});
 
 const debugRemoveCardsRequestSchema = issuerSchema.extend({
   cards: z.array(identifierTypeSchema),
@@ -400,6 +408,20 @@ const debugListLootResponseSchema = z.union([
   }),
 ]);
 export type DebugListLootResponse = z.infer<typeof debugListLootResponseSchema>;
+
+const DebugListMonsterDeckResponseSchema = z.union([
+  z.object({
+    status: z.literal(200),
+    cards: z.array(cardSchema),
+    indices: z.array(z.number()),
+  }),
+  z.object({
+    status: z.literal(400),
+    error: z.string(),
+  }),
+]);
+export type DebugListMonsterDeckResponse = z.infer<typeof DebugListMonsterDeckResponseSchema>;
+
 
 const debugListCardsICanRemoveResponseSchema = z.union([
   z.object({
@@ -747,6 +769,9 @@ export const schemas = {
   debugRemoveCardsRequest: debugRemoveCardsRequestSchema,
   debugListTreasureRequest: issuerSchema,
   debugGainTreasureRequest: debugGainTreasureRequestSchema,
+  debugListMonsterDeckRequest: issuerSchema,
+  debugPutMonsterCardInSlotRequest: debugPutMonsterCardInSlotRequestSchema,
+  debugGainCoinsRequest: debugGainCoinsRequestSchema,
   reportBugRequest: reportBugRequestSchema,
   resolveRequest: resolveRequestSchema,
   submitSelectionRequest: submitSelectionSchema,
@@ -787,7 +812,10 @@ export namespace Requests {
   export type AttackMonster = z.infer<typeof attackMonsterSchema>;
   export type AttackRoll = z.infer<typeof issuerSchema>;
   export type DebugLoot = z.infer<typeof debugLootRequestSchema>;
+  export type DebugGainCoins = z.infer<typeof debugGainCoinsRequestSchema>;
   export type DebugListLoot = z.infer<typeof issuerSchema>;
+  export type DebugListMonsterDeck = z.infer<typeof issuerSchema>;
+  export type DebugPutMonsterCardInSlot = z.infer<typeof debugPutMonsterCardInSlotRequestSchema>;
   export type DebugListCardsICanRemove = z.infer<typeof issuerSchema>;
   export type DebugRemoveCards = z.infer<typeof debugRemoveCardsRequestSchema>;
   export type DebugListTreasure = z.infer<typeof issuerSchema>;
@@ -821,10 +849,13 @@ export namespace Responses {
   export type AttackRoll = BasicResponse;
   export type DebugLoot = BasicResponse;
   export type DebugListLoot = DebugListLootResponse;
+  export type DebugListMonsterDeck = DebugListMonsterDeckResponse;
   export type DebugListCardsICanRemove = DebugListCardsICanRemoveResponse;
   export type DebugRemoveCards = BasicResponse;
   export type DebugListTreasure = DebugListTreasureResponse;
+  export type DebugPutMonsterCardInSlot = BasicResponse;
   export type DebugGainTreasure = BasicResponse;
+  export type DebugGainCoins = BasicResponse;
   export type ReportBug = BasicResponse;
   export type GiveCoins = BasicResponse;
   export type IsGameOngoing = IsGameOngoingResponse;
@@ -950,6 +981,21 @@ export interface ClientToServerEvents {
   debugGainTreasure: (
     request: Requests.DebugGainTreasure,
     callback: (response: Responses.DebugGainTreasure) => void,
+  ) => void;
+
+  debugListMonsterDeck: (
+    request: Requests.DebugListMonsterDeck,
+    callback: (response: Responses.DebugListMonsterDeck) => void,
+  ) => void;
+
+  debugPutMonsterCardInSlot: (
+    request: Requests.DebugPutMonsterCardInSlot,
+    callback: (response: Responses.DebugPutMonsterCardInSlot) => void,
+  ) => void;
+
+  debugGainCoins: (
+    request: Requests.DebugGainCoins,
+    callback: (response: Responses.DebugGainCoins) => void,
   ) => void;
 
   reportBug: (

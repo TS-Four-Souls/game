@@ -35,10 +35,13 @@ export type UserRequest =
   | {type: "AttackRoll", payload: Requests.AttackRoll }
   | {type: "DebugLoot", payload: Requests.DebugLoot }
   | {type: "DebugListLoot", payload: Requests.DebugListLoot }
+  | {type: "DebugListMonsterDeck", payload: Requests.DebugListMonsterDeck }
   | {type: "DebugListCardsICanRemove", payload: Requests.DebugListCardsICanRemove }
   | {type: "DebugRemoveCards", payload: Requests.DebugRemoveCards }
   | {type: "DebugListTreasure", payload: Requests.DebugListTreasure }
+  | {type: "DebugPutMonsterCardInSlot", payload: Requests.DebugPutMonsterCardInSlot }
   | {type: "DebugGainTreasure", payload: Requests.DebugGainTreasure }
+  | {type: "DebugGainCoins", payload: Requests.DebugGainCoins }
   | {type: "ReportBug", payload: Requests.ReportBug }
   | {type: "IsGameOngoing" }
   | {type: "CreateRoom" }
@@ -63,6 +66,7 @@ function isGameAction(entry: HistoricEntry): boolean {
           "SubmitSelection",
          "InsertStackElementBefore", 
          "DebugListLoot", 
+         "DebugListMonsterDeck",
          "DebugListCardsICanRemove",
          "DebugListTreasure",
         "ReportBug",

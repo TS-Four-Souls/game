@@ -334,6 +334,12 @@ export class Game {
     }
   }
 
+  debugGainCoins(player: Player, coins: number): void {
+    if(!this.gameParameters.allowCheatOptions.value)
+      throw new Error("Cheat options are not allowed in this game.");
+    this.gainCoins(player, coins, "gift");
+  }
+
   debugLoot(player: Player, lootCards: LootCard[]): void {
     if(!this.gameParameters.allowCheatOptions.value)
       throw new Error("Cheat options are not allowed in this game.");
@@ -342,7 +348,13 @@ export class Game {
       this.addCardToHand(player, targetCard);
     }
   }
-
+  debugPutMonsterCardInSlot(card: MonsterCard, index: number): void {
+    if (!card) {
+      throw new Error("Card not found in the game.");
+    }
+    this.addTopPosition("monster", card);
+    this.encounters.draw(index);
+  }
   /**
    * Finds the owner of a soul or in-play item card.
    */
