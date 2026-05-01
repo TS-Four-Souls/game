@@ -1188,7 +1188,7 @@ io.on("connection", (socket) => {
             const cards = monsterDeck.cards
               .toSorted((a, b) => (a.name+a.slug).localeCompare(b.name+b.slug))
               .map((c) => c.jsonAPI);
-            const coverable = game.encounters.nonAttackedSlots;
+            const coverable = game.encounters.nonAttackedSlots.map((elem) => elem.jsonAPI);
             return callback({ status: 200, cards, coverable });
           } catch (error) {
             console.error("Failed to debug list monster deck", error);
