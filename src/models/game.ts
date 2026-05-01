@@ -354,6 +354,7 @@ export class Game {
     }
     this.addTopPosition("monster", card);
     this.encounters.draw(index);
+    this._onStateChange.dispatch();
   }
   /**
    * Finds the owner of a soul or in-play item card.
