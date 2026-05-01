@@ -156,14 +156,11 @@ io.on("connection", (socket) => {
       scheduleRoomChanged(room);
     });
     game.onRoomBroadcast.add((broadcast) => {
-      io.to(broadcast.players.map((player) => player)).emit(
-        "on:room:broadcast",
-        {
-          type: broadcast.type,
-          title: broadcast.title,
-          message: broadcast.message,
-        },
-      );
+      io.to(broadcast.players).emit("on:room:broadcast", {
+        type: broadcast.type,
+        title: broadcast.title,
+        message: broadcast.message,
+      });
     });
     rooms.set(roomId, room);
     socket.emit("on:user:assigned", userId);
@@ -598,11 +595,28 @@ io.on("connection", (socket) => {
               scheduleRoomChanged(room);
             });
 
+            loadedGame.onRoomBroadcast.add((broadcast) => {
+              io.to(broadcast.players).emit("on:room:broadcast", {
+                type: broadcast.type,
+                title: broadcast.title,
+                message: broadcast.message,
+              });
+            });
             room.game = loadedGame;
 
             loadedGame.players.forEach((player) =>
               sendRoomChanged(room, player.id),
             );
+
+            io.to(loadedGame.players.map((player) => player.id)).emit(
+              "on:room:broadcast",
+              {
+                type: "info",
+                title: `Game rolled back by ${player.id}`,
+                message: "The game has been rolled back the last action.",
+              },
+            );
+
             return callback({ status: 200 });
           } catch (error) {
             console.error("Failed to rollback.", error);
