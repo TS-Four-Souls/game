@@ -278,7 +278,7 @@ io.on("connection", (socket) => {
         roomGuardedEndpoint(userId, callback, (game) => {
           try {
             game.getPlayerByIssuer(payload);
-            const settings = JSON.stringify(game.gameParameters, null, 2);
+            const settings = JSON.stringify(game.gameParameters.toJson(), null, 2);
             return callback({ status: 200, settings });
           } catch (error) {
             console.error("Failed to get game settings", error);
@@ -298,10 +298,11 @@ io.on("connection", (socket) => {
       schemas.loadGameSettingsRequest,
       callback,
       (payload) => {
-        roomGuardedEndpoint(userId, callback, (game) => {
+        roomGuardedEndpoint(userId, callback, (game, room) => {
           try {
             const settings = JSON.parse(payload.settings);
-            game.gameParameters.loadFromJson(settings);
+            game.loadSettingsFromJson(settings);
+            scheduleRoomChanged(room);
             return callback({ status: 200 });
           } catch (error) {
             console.error("Failed to get game settings", error);
@@ -440,11 +441,12 @@ io.on("connection", (socket) => {
       schemas.setGameParameterRequest,
       callback,
       (payload) => {
-        roomGuardedEndpoint(userId, callback, (game) => {
+        roomGuardedEndpoint(userId, callback, (game, room) => {
           try {
             game.getPlayerByIssuer(payload.issuer);
             game.gameParameters[payload.parameter].value = payload.value;
             game.addToHistory({ type: "SetGameParameter", payload });
+            scheduleRoomChanged(room);
             return callback({ status: 200 });
           } catch (error) {
             console.error("Failed to set game parameter", error);

@@ -38,7 +38,7 @@ import { TargetBuilder } from "@/models/targetBuilder";
 import type { DeckType, DeckTypeToCardType, DecksCollection, EffectType, TargetsSelector } from "@/models/types/cardTypes";
 import {EffectData} from "@/models/types/cardTypes";
 import { type TriggerEvent } from '@/models/types/eventTypes';
-import type { Capability, DetailedState, Issuer, SelectionItem, StackElementJson, Animation} from "@/shared/api";
+import type { Capability, DetailedState, Issuer, SelectionItem, StackElementJson, Animation, GameParametersJson} from "@/shared/api";
 import { shuffle } from "@/utils/auxiliary";
 import { loadCards } from "@/utils/loadCards";
 import { Signal, type ReadableSignal } from "micro-signals";
@@ -378,7 +378,15 @@ export class Game {
   cancelStackElement(element: StackElement): void {
     this.stack.cancelElement(element);
   }
-
+  /**
+   * Load settings from json if the game has not started yet.
+   * @param settings 
+   */
+  loadSettingsFromJson(settings: GameParametersJson): void {
+    if(this.isStarted)
+      throw new Error("Cannot load game parameters after the game has started.");
+    this.gameParameters.loadFromJson(settings);
+  }
   /**
    * Transfers a soul card from a target player to another player.
    */
@@ -2395,7 +2403,7 @@ export class Game {
         source: source,
       });
     }
-
+    this._onStateChange.dispatch();
     return `New amount of coins: ${player.coins} coins.\n`;
   }
 
