@@ -611,7 +611,9 @@ export function putTopMonsterInValidSlotEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const nonAttackedSlots = game.monsterSlots.nonAttackedSlots;
-        const index = (await data.selectAndRecord(game, data.issuer, 0, 1, nonAttackedSlots, "Select a slot to put the top monster in.", true, true)).selected[0]!;
+        const toCover = (await data.selectAndRecord(game, data.issuer, 0, 1, nonAttackedSlots, "Select a slot to put the top monster in.", true, true)).selected[0]!;
+        if(toCover === undefined) return true;
+        const index = game.monsterSlots._slots.map((slot) => slot[slot.length - 1]).indexOf(toCover);
         game.monsterSlots.draw(index);
         return true;
     };

@@ -324,7 +324,13 @@ io.on("connection", (socket) => {
         roomGuardedEndpoint(userId, callback, (game) => {
           try {
             game.setupGame();
-            return callback({ status: 200, characters: game.decks["character"]!.cards.map((card) => card.jsonAPI) });
+            const charas = game.decks["character"]!.cards.toSorted().map((card) => card.jsonAPI);
+            // Isaac first and eden last.
+            charas.sort((a, b) =>
+              a.slug === "b2-isaac" ? -1
+              : b.slug === "b2-eden" ? 1
+              : a.name.localeCompare(b.name));
+            return callback({ status: 200, characters: charas });
           } catch (error) {
             console.error("Failed to get game settings", error);
             if (error instanceof Error) {
@@ -1180,8 +1186,8 @@ io.on("connection", (socket) => {
             const cards = monsterDeck.cards
               .toSorted((a, b) => (a.name+a.slug).localeCompare(b.name+b.slug))
               .map((c) => c.jsonAPI);
-            const indices = game.encounters.nonAttackedSlots;
-            return callback({ status: 200, cards, indices });
+            const coverable = game.encounters.nonAttackedSlots;
+            return callback({ status: 200, cards, coverable });
           } catch (error) {
             console.error("Failed to debug list monster deck", error);
             if (error instanceof Error) {
@@ -1210,7 +1216,8 @@ io.on("connection", (socket) => {
             if (!card) {
               throw new Error("Card not found in the game: " + payload.card.slug);
             }
-            game.debugPutMonsterCardInSlot(card, payload.index);
+            const index = game.monsterSlots._slots.map((slot) => slot[slot.length - 1]?.globalId).indexOf(payload.toCover.globalId);
+            game.debugPutMonsterCardInSlot(card, index);
             return callback({ status: 200 });
           } catch (error) {
             console.error("Failed to debug put monster card in slot", error);

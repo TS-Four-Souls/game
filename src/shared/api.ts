@@ -269,7 +269,7 @@ const debugGainTreasureRequestSchema = issuerSchema.extend({
 });
 const debugPutMonsterCardInSlotRequestSchema = issuerSchema.extend({
   card: identifierTypeSchema,
-  index: z.number(),
+  toCover: cardSchema,
 });
 
 const debugGainCoinsRequestSchema = issuerSchema.extend({
@@ -418,7 +418,7 @@ const DebugListMonsterDeckResponseSchema = z.union([
   z.object({
     status: z.literal(200),
     cards: z.array(cardSchema),
-    indices: z.array(z.number()),
+    coverable: z.array(cardSchema),
   }),
   z.object({
     status: z.literal(400),

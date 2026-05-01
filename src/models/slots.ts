@@ -503,8 +503,8 @@ export class Encounters extends Slots<MonsterCard> {
      * 
      * @returns Array of slot indices that are not currently being attacked
      */
-    get nonAttackedSlots() : number[] {
-        return this._slots.map((slot, index) => slot.length === 0 || (!(this.monsterIn(index)?.isEngagedInCombat || this.visible[index]?.encounterType === MonsterType.EVENT)) ? index : -1).filter(index => index !== -1);
+    get nonAttackedSlots() : MonsterCard[] {
+       return this._slots.filter((slot, index) => slot.length === 0 || (!(this.monsterIn(index)?.isEngagedInCombat || this.visible[index]?.encounterType === MonsterType.EVENT))).map(slot => slot[slot.length - 1]!).filter(card => card !== undefined);
     }
 
     /**
