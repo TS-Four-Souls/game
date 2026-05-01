@@ -2261,6 +2261,8 @@ export class Game {
     ]) {
       if(!isDeckType(deckName))
         throw new Error(`Invalid deck type: ${deckName}`);
+      if(deckName === "room" && this.decks["room"] === undefined)
+        continue;
       const deck = this.decks[deckName]!;
       deck.cards.forEach((card: Card) => {
         this.attachEffectsToCard(card);
