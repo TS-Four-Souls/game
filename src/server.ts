@@ -9,7 +9,13 @@ import type {
   ServerToClientEvents,
 } from "./shared/api";
 import { schemas } from "./shared/api";
-import { ItemCard, LootCard, CharacterCard, RoomCard, MonsterCard } from "./models/cards";
+import {
+  ItemCard,
+  LootCard,
+  CharacterCard,
+  RoomCard,
+  MonsterCard,
+} from "./models/cards";
 import { generateRoomId, generateUserId } from "./utils/random";
 import {
   executeActivateRequest,
@@ -28,7 +34,10 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>();
 type Room = { id: string; users: string[]; game: Game };
 const rooms: Map<string, Room> = new Map();
 const ROOM_STATE_DISPATCH_WINDOW_MS = 50;
-const roomUpdateTimeouts: Map<string, ReturnType<typeof setTimeout>> = new Map();
+const roomUpdateTimeouts: Map<
+  string,
+  ReturnType<typeof setTimeout>
+> = new Map();
 
 const engine = new Engine({
   path: "/socket.io/",
@@ -145,6 +154,16 @@ io.on("connection", (socket) => {
     const room = { id: roomId, users: [userId], game };
     game.onStateChange.add(() => {
       scheduleRoomChanged(room);
+    });
+    game.onRoomBroadcast.add((broadcast) => {
+      io.to(broadcast.players.map((player) => player)).emit(
+        "on:room:broadcast",
+        {
+          type: broadcast.type,
+          title: broadcast.title,
+          message: broadcast.message,
+        },
+      );
     });
     rooms.set(roomId, room);
     socket.emit("on:user:assigned", userId);
@@ -268,7 +287,6 @@ io.on("connection", (socket) => {
     );
   });
 
-
   socket.on("getGameSettings", (payload, callback) => {
     payloadGuardedEndpoint(
       payload,
@@ -278,7 +296,11 @@ io.on("connection", (socket) => {
         roomGuardedEndpoint(userId, callback, (game) => {
           try {
             game.getPlayerByIssuer(payload);
-            const settings = JSON.stringify(game.gameParameters.toJson(), null, 2);
+            const settings = JSON.stringify(
+              game.gameParameters.toJson(),
+              null,
+              2,
+            );
             return callback({ status: 200, settings });
           } catch (error) {
             console.error("Failed to get game settings", error);
@@ -325,12 +347,17 @@ io.on("connection", (socket) => {
         roomGuardedEndpoint(userId, callback, (game) => {
           try {
             game.setupGame();
-            const charas = game.decks["character"]!.cards.toSorted().map((card) => card.jsonAPI);
+            const charas = game.decks["character"]!.cards.toSorted().map(
+              (card) => card.jsonAPI,
+            );
             // Isaac first and eden last.
             charas.sort((a, b) =>
-              a.slug === "b2-isaac" ? -1
-              : b.slug === "b2-eden" ? 1
-              : a.name.localeCompare(b.name));
+              a.slug === "b2-isaac"
+                ? -1
+                : b.slug === "b2-eden"
+                  ? 1
+                  : a.name.localeCompare(b.name),
+            );
             return callback({ status: 200, characters: charas });
           } catch (error) {
             console.error("Failed to get game settings", error);
@@ -355,7 +382,7 @@ io.on("connection", (socket) => {
   //           // Ensure requester is an authorized player in the current room game.
   //           game.getPlayerByIssuer(payload.issuer);
   //           const logs: HistoricEntry[] = JSON.parse(payload.logs);
-            
+
   //           return callback({ status: 200 });
   //         } catch (error) {
   //           console.error("Failed to load game from logs", error);
@@ -500,7 +527,7 @@ io.on("connection", (socket) => {
             //   game.addCardToHand(game.players[0]!, card);
             //   }
             // const treas = [
-            //   "b2-mini_mush", 
+            //   "b2-mini_mush",
             //   // "b2-dads_lost_coin",
             //   "b2-placebo"];
             // for (const slug of treas) {
@@ -531,9 +558,9 @@ io.on("connection", (socket) => {
         roomGuardedEndpoint(userId, callback, (game, room) => {
           try {
             const players = game.players;
-            // Reset is added to the previous game history. 
+            // Reset is added to the previous game history.
             // The new game instance created in the next line will start a new history.
-            game.addToHistory({ type: "Reset", payload }); 
+            game.addToHistory({ type: "Reset", payload });
             game.reset();
             players.forEach((player) => {
               sendRoomChanged(room, player.id);
@@ -979,7 +1006,7 @@ io.on("connection", (socket) => {
       (payload) => {
         roomGuardedEndpoint(userId, callback, (game) => {
           try {
-            if(!game.gameParameters.allowCheatOptions.value)
+            if (!game.gameParameters.allowCheatOptions.value)
               throw new Error("Cheat options are not enabled for this game.");
             game.getPlayerByIssuer(payload);
             game.addToHistory({ type: "DebugListLoot", payload });
@@ -992,7 +1019,9 @@ io.on("connection", (socket) => {
               });
             }
             const cards = lootDeck.cards
-              .toSorted((a, b) => (a.name+a.slug).localeCompare(b.name+b.slug))
+              .toSorted((a, b) =>
+                (a.name + a.slug).localeCompare(b.name + b.slug),
+              )
               .map((c) => c.jsonAPI);
 
             return callback({ status: 200, cards });
@@ -1016,7 +1045,7 @@ io.on("connection", (socket) => {
       (payload) => {
         roomGuardedEndpoint(userId, callback, (game) => {
           try {
-            if(!game.gameParameters.allowCheatOptions.value)
+            if (!game.gameParameters.allowCheatOptions.value)
               throw new Error("Cheat options are not enabled for this game.");
             const player = game.getPlayerByIssuer(payload);
             game.addToHistory({ type: "DebugListCardsICanRemove", payload });
@@ -1049,7 +1078,11 @@ io.on("connection", (socket) => {
             if (payload.cards !== undefined) {
               const cardsToRemove = game
                 .playerCardsAndGameOwnedCards(player)
-                .filter((c) => payload.cards.map((card)=>card.globalId)!.includes(c.globalId));
+                .filter((c) =>
+                  payload.cards
+                    .map((card) => card.globalId)!
+                    .includes(c.globalId),
+                );
               game.debugRemoveCards(player, cardsToRemove);
             }
             return callback({
@@ -1075,7 +1108,7 @@ io.on("connection", (socket) => {
       (payload) => {
         roomGuardedEndpoint(userId, callback, (game) => {
           try {
-            if(!game.gameParameters.allowCheatOptions.value)
+            if (!game.gameParameters.allowCheatOptions.value)
               throw new Error("Cheat options are not enabled for this game.");
             game.getPlayerByIssuer(payload);
             game.addToHistory({ type: "DebugListTreasure", payload });
@@ -1088,7 +1121,9 @@ io.on("connection", (socket) => {
               });
             }
             const cards = treasureDeck.cards
-              .toSorted((a, b) => (a.name+a.slug).localeCompare(b.name+b.slug))
+              .toSorted((a, b) =>
+                (a.name + a.slug).localeCompare(b.name + b.slug),
+              )
               .map((c) => c.jsonAPI);
 
             return callback({ status: 200, cards });
@@ -1173,7 +1208,7 @@ io.on("connection", (socket) => {
       (payload) => {
         roomGuardedEndpoint(userId, callback, (game) => {
           try {
-            if(!game.gameParameters.allowCheatOptions.value)
+            if (!game.gameParameters.allowCheatOptions.value)
               throw new Error("Cheat options are not enabled for this game.");
             game.getPlayerByIssuer(payload);
             game.addToHistory({ type: "DebugListMonsterDeck", payload });
@@ -1186,9 +1221,13 @@ io.on("connection", (socket) => {
               });
             }
             const cards = monsterDeck.cards
-              .toSorted((a, b) => (a.name+a.slug).localeCompare(b.name+b.slug))
+              .toSorted((a, b) =>
+                (a.name + a.slug).localeCompare(b.name + b.slug),
+              )
               .map((c) => c.jsonAPI);
-            const coverable = game.encounters.nonAttackedSlots.map((elem) => elem.jsonAPI);
+            const coverable = game.encounters.nonAttackedSlots.map(
+              (elem) => elem.jsonAPI,
+            );
             return callback({ status: 200, cards, coverable });
           } catch (error) {
             console.error("Failed to debug list monster deck", error);
@@ -1210,16 +1249,23 @@ io.on("connection", (socket) => {
       (payload) => {
         roomGuardedEndpoint(userId, callback, (game) => {
           try {
-            if(!game.gameParameters.allowCheatOptions.value)
+            if (!game.gameParameters.allowCheatOptions.value)
               throw new Error("Cheat options are not enabled for this game.");
-            game.getPlayerByIssuer(payload);
+            const player = game.getPlayerByIssuer(payload);
             game.addToHistory({ type: "DebugPutMonsterCardInSlot", payload });
-            const card = game.obtainCard(payload.card.slug, payload.card.globalId) as MonsterCard;
+            const card = game.obtainCard(
+              payload.card.slug,
+              payload.card.globalId,
+            ) as MonsterCard;
             if (!card) {
-              throw new Error("Card not found in the game: " + payload.card.slug);
+              throw new Error(
+                "Card not found in the game: " + payload.card.slug,
+              );
             }
-            const index = game.monsterSlots._slots.map((slot) => slot[slot.length - 1]?.globalId).indexOf(payload.toCover.globalId);
-            game.debugPutMonsterCardInSlot(card, index);
+            const index = game.monsterSlots._slots
+              .map((slot) => slot[slot.length - 1]?.globalId)
+              .indexOf(payload.toCover.globalId);
+            game.debugPutMonsterCardInSlot(player, card, index);
             return callback({ status: 200 });
           } catch (error) {
             console.error("Failed to debug put monster card in slot", error);
@@ -1232,9 +1278,6 @@ io.on("connection", (socket) => {
       },
     );
   });
-
-  
-
 
   socket.on("reportBug", (payload, callback) => {
     payloadGuardedEndpoint(
@@ -1255,7 +1298,6 @@ io.on("connection", (socket) => {
             };
 
             const txt = JSON.stringify(bugReport, null, 2);
-            
 
             return callback({ status: 200 });
           } catch (error) {

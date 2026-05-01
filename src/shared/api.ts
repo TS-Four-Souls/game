@@ -9,7 +9,11 @@ export type IdentifierType = z.infer<typeof identifierTypeSchema>;
 
 export const entityTypeSchema = identifierTypeSchema.extend({
   color: z.string(),
-  type: z.union([z.literal("player"), z.literal("monster"), z.literal("animated")]),
+  type: z.union([
+    z.literal("player"),
+    z.literal("monster"),
+    z.literal("animated"),
+  ]),
 });
 export type EntityType = z.infer<typeof entityTypeSchema>;
 
@@ -380,11 +384,14 @@ const rejoinRequestSchema = z.object({
 
 const startRequestSchema = z.object({
   issuer: issuerSchema,
-  characters: z.array(
-    z.object({
-    player: z.string(),
-    character: z.union([z.object({ slug: z.string()})]),
-    })).optional(),
+  characters: z
+    .array(
+      z.object({
+        player: z.string(),
+        character: z.union([z.object({ slug: z.string() })]),
+      }),
+    )
+    .optional(),
 });
 
 const resetRequestSchema = z.literal(null);
@@ -425,8 +432,9 @@ const DebugListMonsterDeckResponseSchema = z.union([
     error: z.string(),
   }),
 ]);
-export type DebugListMonsterDeckResponse = z.infer<typeof DebugListMonsterDeckResponseSchema>;
-
+export type DebugListMonsterDeckResponse = z.infer<
+  typeof DebugListMonsterDeckResponseSchema
+>;
 
 const debugListCardsICanRemoveResponseSchema = z.union([
   z.object({
@@ -722,6 +730,13 @@ const roomSchema = z.object({
 });
 export type Room = z.infer<typeof roomSchema>;
 
+const roomBroadcastSchema = z.object({
+  type: z.enum(["info", "error", "success"]),
+  title: z.string(),
+  message: z.string(),
+});
+export type RoomBroadcast = z.infer<typeof roomBroadcastSchema>;
+
 const isGameOngoingResponseSchema = z.union([
   z.object({
     status: z.literal(200),
@@ -756,7 +771,9 @@ const getGameSettingsResponseSchema = z.union([
     error: z.string(),
   }),
 ]);
-export type GetGameSettingsResponse = z.infer<typeof getGameSettingsResponseSchema>;
+export type GetGameSettingsResponse = z.infer<
+  typeof getGameSettingsResponseSchema
+>;
 
 const GetCharactersListResponseSchema = z.union([
   z.object({
@@ -854,7 +871,9 @@ export namespace Requests {
   export type DebugGainCoins = z.infer<typeof debugGainCoinsRequestSchema>;
   export type DebugListLoot = z.infer<typeof issuerSchema>;
   export type DebugListMonsterDeck = z.infer<typeof issuerSchema>;
-  export type DebugPutMonsterCardInSlot = z.infer<typeof debugPutMonsterCardInSlotRequestSchema>;
+  export type DebugPutMonsterCardInSlot = z.infer<
+    typeof debugPutMonsterCardInSlotRequestSchema
+  >;
   export type DebugListCardsICanRemove = z.infer<typeof issuerSchema>;
   export type DebugRemoveCards = z.infer<typeof debugRemoveCardsRequestSchema>;
   export type DebugListTreasure = z.infer<typeof issuerSchema>;
@@ -868,7 +887,6 @@ export namespace Requests {
   export type GetGameSettings = z.infer<typeof issuerSchema>;
   export type LoadGameSettings = z.infer<typeof loadGameSettingsRequestSchema>;
   export type getCharactersList = z.infer<typeof issuerSchema>;
-
 }
 
 export namespace Responses {
@@ -916,6 +934,7 @@ export namespace Responses {
 export interface ServerToClientEvents {
   "on:room:changed": (room: Room | null) => void;
   "on:user:assigned": (userId: string | null) => void;
+  "on:room:broadcast": (broadcast: RoomBroadcast) => void;
 }
 
 export interface ClientToServerEvents {

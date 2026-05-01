@@ -49,6 +49,7 @@ import { TurnHandler } from "./turnHandler";
 import { edenGame, miniDraft } from "./variants";
 import { CurrentPlayerDecidesToChangeRoom } from "@/models/effects/roomEffects"
 import { addPassiveEffectToStack } from "./effects/passiveEffect";
+import type { ServerRoomBroadcast } from "./roomBroadcast";
 // Type representing sources of damage - either a card ability or a dice roll
 export type DamageSource = Card | DiceRoll;
 
@@ -84,6 +85,9 @@ export class Game {
 
   private _onStateChange: Signal<void> = new Signal();
   onStateChange: ReadableSignal<void> = this._onStateChange.readOnly();
+
+  private _onRoomBroadcast: Signal<ServerRoomBroadcast> = new Signal();
+  onRoomBroadcast: ReadableSignal<ServerRoomBroadcast> = this._onRoomBroadcast.readOnly();
 
   constructor(seed: string = "") {
     this.seed = seed; // if seed is empty, it will be set to a random value.
@@ -267,9 +271,9 @@ export class Game {
   }
 
   /**
-   * This function allows a player to remove a cards. 
+   * This function allows a player to discard a card. 
    * It is not part of the game, but can be used to debug situations.
-   * A player can remove: any card owned by the game (shop and encounters) and any card that he owns (hand and inPlay).
+   * A player can discard: any card owned by the game (shop and encounters) and any card that he owns (hand and inPlay).
    */
   debugRemoveCards(player: Player, cards: Card[]): void {
     if(!this.gameParameters.allowCheatOptions.value)
@@ -317,10 +321,15 @@ export class Game {
           break;
         default:
           throw new Error(`Card ${card.name} is of type ${card.type} which cannot be removed with debugRemoveCards.`);
-          break;
       }
     }
     this._onStateChange.dispatch();
+    this._onRoomBroadcast.dispatch({
+      type: "info",
+      title: `${player.id} used a cheat to discard ${cards.length} card(s).`,
+      message: `They discarded ${cards.map((c) => c.name).join(", ")}.`,
+      players: this.players.map((p) => p.id),
+    });
   }
 
   debugGainTreasures(player: Player, treasures: ItemCard[]): void {
@@ -332,12 +341,24 @@ export class Game {
         throw new Error(`Card ${targetCard.name} is not an ItemCard`);
       this.addInPlay(player, targetCard);
     }
+    this._onRoomBroadcast.dispatch({
+      type: "info",
+      title: `${player.id} used a cheat to gain ${treasures.length} treasure(s).`,
+      message: `They obtained ${treasures.map((t) => t.name).join(", ")}.`,
+      players: this.players.map((p) => p.id),
+    });
   }
 
   debugGainCoins(player: Player, coins: number): void {
     if(!this.gameParameters.allowCheatOptions.value)
       throw new Error("Cheat options are not allowed in this game.");
     this.gainCoins(player, coins, "gift");
+    this._onRoomBroadcast.dispatch({
+      type: "info",
+      title: `${player.id} used a cheat to gain ${coins} coin(s).`,
+      message: `They obtained ${coins} coin(s).`,
+      players: this.players.map((p) => p.id),
+    });
   }
 
   debugLoot(player: Player, lootCards: LootCard[]): void {
@@ -347,14 +368,26 @@ export class Game {
       const targetCard = this.obtainCard(card.slug, card.globalId)! as LootCard;
       this.addCardToHand(player, targetCard);
     }
+    this._onRoomBroadcast.dispatch({
+      type: "info",
+      title: `${player.id} used a cheat to loot ${lootCards.length} loot card(s).`,
+      message: `They obtained ${lootCards.map((c) => c.name).join(", ")}.`,
+      players: this.players.map((p) => p.id),
+    });
   }
-  debugPutMonsterCardInSlot(card: MonsterCard, index: number): void {
+  debugPutMonsterCardInSlot(player: Player, card: MonsterCard, index: number): void {
     if (!card) {
       throw new Error("Card not found in the game.");
     }
     this.addTopPosition("monster", card);
     this.encounters.draw(index);
     this._onStateChange.dispatch();
+    this._onRoomBroadcast.dispatch({
+      type: "info",
+      title: `${player.id} used a cheat to summon a monster card.`,
+      message: `They put ${card.name} in the monster slot ${index + 1}.`,
+      players: this.players.map((p) => p.id),
+    });
   }
   /**
    * Finds the owner of a soul or in-play item card.
