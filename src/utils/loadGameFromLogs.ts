@@ -332,6 +332,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         case "IsGameOngoing":
         case "LoadGame":
         case "DebugListCardsICanRemove":
+        case "DebugListMonsterDeck":
         case "DebugListTreasure":
         case "DebugListLoot":
           // Transport/lifecycle events that don't mutate core game state directly.
@@ -570,13 +571,15 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         }
 
         case "DebugPutMonsterCardInSlot": {
+          const player = game.getPlayerByIssuer(remapIssuer(game, entry.payload));
           const cardRef = entry.payload.card;
           if (cardRef) {
             const card = game.obtainCard(cardRef.slug, cardRef.globalId) as MonsterCard;
             if (!card) {
               throw new Error(`Card not found in the game: ${cardRef.slug}`);
             }
-            game.debugPutMonsterCardInSlot(card, entry.payload.index);
+            const index = game.monsterSlots._slots.map((slot) => slot[slot.length - 1]?.globalId).indexOf(entry.payload.toCover.globalId);
+            game.debugPutMonsterCardInSlot(player, card, index);
           }
           break;
         }

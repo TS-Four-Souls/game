@@ -575,7 +575,7 @@ export class Game {
       this.addAnimation({
         id: this.nextAnimationId,
         type: "obtainMonsterSoul",
-        card: card,
+        card: card.jsonAPI,
         player: this.currentPlayer.id,
       });
       this.addSoul(this.currentPlayer, card);
@@ -614,10 +614,10 @@ export class Game {
           target: from,
           source: source,
         });
-        this.encounters.kill(receiver); // should only kill once its effects are resolved: should be moved in the resolvewhenstackempty
         this.monsterDiedThisTurn = true;
         this.entityRewards(receiver);
         void this.executeWhenStackSubset(stackIds, async () => {
+          this.encounters.kill(receiver); // should only kill once its effects are resolved: should be moved in the resolvewhenstackempty
           this.obtainMonsterSoulOrDiscard(receiver);
         }).catch((error) => {
           console.error("Failed to finish monster death resolution", error);
@@ -1344,7 +1344,7 @@ export class Game {
       this.addAnimation({
         id: this.nextAnimationId,
         type: "obtainBonusSoul",
-        card: soulCard,
+        card: soulCard.jsonAPI,
         player: player.id,
       });
       soulCard.granted = true;

@@ -616,7 +616,9 @@ describe("Monsters - On death effects", () => {
     it("put delirium 6 cards from the top of the monster deck when delirium dies.", async () => {
         const card = game.obtainCard("b2-delirium") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.decks.monster.addTopPosition(card);
+        game.declareAttack(player1);
+        game.declareAttackOnEntity(player1, "topDeck", 0);
         const monster = game.monsters[0]!;
         
         game.kill(monster, monster, card);
@@ -643,7 +645,9 @@ describe("Monsters - On death effects", () => {
     it("roll when rag_man dies. (1)", async () => {
         const card = game.obtainCard("b2-rag_man") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.decks.monster.addTopPosition(card);
+        game.declareAttack(player1);
+        game.declareAttackOnEntity(player1, "topDeck", 0);
         const monster = game.monsters[0]!;
         
         game.kill(monster, monster, card);
@@ -662,7 +666,9 @@ describe("Monsters - On death effects", () => {
     it("roll when rag_man dies. (6)", async () => {
         const card = game.obtainCard("b2-rag_man") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.decks.monster.addTopPosition(card);
+        game.declareAttack(player1);
+        game.declareAttackOnEntity(player1, "topDeck", 0);
         const monster = game.monsters[0]!;
         
         game.kill(monster, monster, card);
