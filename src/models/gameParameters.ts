@@ -145,30 +145,21 @@ export class GameParameters {
         };
     }
 
+    loadFromJson(json: GameParametersJson) {
+        for (const key in json) {
+            if (json.hasOwnProperty(key) && this.hasOwnProperty(key)) {
+                const param = (this as any)[key] as NumericGameParameter | BooleanGameParameter;
+                param.value = json[key as keyof GameParametersJson].value;
+            }
+        }
+    }
+
     reset() {
-        this.edenVariant.reset();
-        this.miniDraft.reset();
-        this.nbPennies.reset();
-        this.nb2Cents.reset();
-        this.nb3Cents.reset();
-        this.nb4Cents.reset();
-        this.nbNickels.reset();
-        this.nbItemsInShop.reset();
-        this.nbEncounters.reset();
-        this.nbRooms.reset();
-        this.deathPenaltyCoins.reset();
-        this.deathPenaltyItem.reset();
-        this.deathPenaltyLoot.reset();
-        this.treasuresOnStart.reset();
-        this.lootOnStart.reset();
-        this.coinsOnStart.reset();
-        this.shopPrice.reset();
-        this.playWithBonusSouls.reset();
-        this.playWithRooms.reset();
-        this.maxHandSize.reset();
-        this.allowCheatOptions.reset();
-        this.allowCoinDonation.reset();
-        this.lootPlayPerTurn.reset();
-        this.nbPlayerCardRestriction.reset();
+        for (const key in this) {
+            if (this.hasOwnProperty(key) 
+                && (this[key] instanceof NumericGameParameter || this[key] instanceof BooleanGameParameter)) {
+                this[key].reset();
+            }
+        }
     }
 }

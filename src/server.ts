@@ -268,6 +268,75 @@ io.on("connection", (socket) => {
     );
   });
 
+
+  socket.on("getGameSettings", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.getGameSettingsRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            game.getPlayerByIssuer(payload);
+            const settings = JSON.stringify(game.gameParameters, null, 2);
+            return callback({ status: 200, settings });
+          } catch (error) {
+            console.error("Failed to get game settings", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
+
+  socket.on("loadGameSettings", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.loadGameSettingsRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            const settings = JSON.parse(payload.settings);
+            game.gameParameters.loadFromJson(settings);
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to get game settings", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
+
+  socket.on("getCharactersList", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.getCharactersListRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (game) => {
+          try {
+            game.setupGame();
+            return callback({ status: 200, characters: game.decks["character"]!.cards.map((card) => card.jsonAPI) });
+          } catch (error) {
+            console.error("Failed to get game settings", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        });
+      },
+    );
+  });
+
   // socket.on("getListOfPlayersFromLogs", (payload, callback) => {
   //   payloadGuardedEndpoint(
   //     payload,

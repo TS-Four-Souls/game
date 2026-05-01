@@ -331,10 +331,10 @@ export function becomesCopyOfItemIndefinitelyEffect(game: Game): EffectFunction 
         if (!owner) return false;
         
         // Create a temporary copy to get the JSON from
-        const templateCopy = game.copyCard(itemToCopy) as ItemCard;
+        // const templateCopy = game.copyCard(itemToCopy) as ItemCard;
         
         // Transform this card to become the copy, with effect attachment
-        thisItem.becomesCopyOf(templateCopy, (card) => {
+        thisItem.becomesCopyOf(itemToCopy, (card) => {
             game.attachEffectsToCard(card);
         });
         
@@ -355,10 +355,10 @@ export function becomesCopyOfItemUntilEndOfTurnEffect(game: Game): EffectFunctio
         if (!owner) return false;
         
         // Create a temporary copy to get the JSON from
-        const templateCopy = game.copyCard(itemToCopy) as ItemCard;
+        // const templateCopy = game.copyCard(itemToCopy) as ItemCard;
         
         // Transform this card to become the copy and get the restore function
-        const { restore } = thisItem.becomesCopyOf(templateCopy, (card) => {
+        const { restore } = thisItem.becomesCopyOf(itemToCopy, (card) => {
             game.attachEffectsToCard(card);
         });
         

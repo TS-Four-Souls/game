@@ -1723,6 +1723,8 @@ export class Game {
    * Creates decks and attaches parsed effects to all cards.
    */
   setupGame(): void {
+    if(this._decks["character"]._order!.length !== 0)
+      return;
     this._decks = LoadDecks(
       cards
       // .filter((c) => c.slug.includes("fsp2") || (c.type !== "treasure" && c.type !== "monster"))
@@ -1733,6 +1735,45 @@ export class Game {
     );
     this.rebuildCardMapping();
     this.joinEffectsToCards();
+  }
+
+  /**
+   * Note that any character card taken is duplicated with its eternal item if it has one. 
+   * That allows several players to have the same character.
+   * @param slugs set of character card slugs or "random" in the players order.
+   * @returns set of character cards in the same order
+   */
+  getCharactersFromSlugs(slugs: string[]): CharacterCard[] {
+    this.setupGame();
+    const characters: CharacterCard[] = [];
+    for (const slug of slugs) {
+      if(slug === "random")
+      {
+        characters.push(null as any);
+        continue;
+      }
+      const card = this._decks["character"].getCardFromSlug(slug);
+      if (card) {
+        const copy = this.copyCard(card);
+        this.addBottomPosition("character", card);
+        this.addBottomPosition("character", copy);
+        if(card.eternalCard !== null)
+        {
+          const eternalCard = this._decks["eternal"].getCardFromSlug(card.eternalCard)!;
+          const copy2 = this.copyCard(eternalCard);
+          this.addBottomPosition("eternal", eternalCard);
+          this.addBottomPosition("eternal", copy2);
+        }
+        characters.push(card);
+      }
+    }
+    for (let index = 0; index < characters.length; index++) {
+      if (characters[index] === null) {
+        const randomCard = this._decks["character"].draw();
+        characters[index] = randomCard;
+      }
+    }
+    return characters;
   }
 
   assignColorsToPlayers(): void {
@@ -1951,9 +1992,9 @@ export class Game {
         const cards = eternalDeck.getCards((card: Card) =>
           isSameSlug(cardName, card)
         );
-        if (cards.length > 1) {
-          throw new Error("Multiple eternal cards with the same slug found");
-        }
+        // if (cards.length > 1) {
+        //   throw new Error("Multiple eternal cards with the same slug found");
+        // }
         if (cards.length === 0) {
           eternalDeck?.cards.forEach((card) => {
             console.log("Available eternal card:", card.slug);
@@ -2228,8 +2269,8 @@ export class Game {
     const json = card.json;
 
     // Create the appropriate card type using the helper function
-    const copiedCard = createCardFromJson(-1, this.allocateCardGlobalId(), json);
-
+    this.decks[card.type]._set.addCard(json, this.allocateCardGlobalId());
+    const copiedCard = this.decks[card.type]._set.get(this.decks[card.type]._set.length - 1);
     // Parse and attach effects to the copied card
     this.attachEffectsToCard(copiedCard);
     this.registerCard(copiedCard);

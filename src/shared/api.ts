@@ -380,6 +380,11 @@ const rejoinRequestSchema = z.object({
 
 const startRequestSchema = z.object({
   issuer: issuerSchema,
+  characters: z.array(
+    z.object({
+    player: z.string(),
+    character: z.union([z.object({ slug: z.string()})]),
+    })).optional(),
 });
 
 const resetRequestSchema = z.literal(null);
@@ -741,6 +746,32 @@ const getGameLogsResponseSchema = z.union([
 ]);
 export type GetGameLogsResponse = z.infer<typeof getGameLogsResponseSchema>;
 
+const getGameSettingsResponseSchema = z.union([
+  z.object({
+    status: z.literal(200),
+    settings: z.string(),
+  }),
+  z.object({
+    status: z.literal(400),
+    error: z.string(),
+  }),
+]);
+export type GetGameSettingsResponse = z.infer<typeof getGameSettingsResponseSchema>;
+
+const GetCharactersListResponseSchema = z.union([
+  z.object({
+    status: z.literal(200),
+    characters: z.array(identifierTypeSchema),
+  }),
+  z.object({
+    status: z.literal(400),
+    error: z.string(),
+  }),
+]);
+export type GetCharactersListResponse = z.infer<
+  typeof GetCharactersListResponseSchema
+>;
+
 const joinRoomRequestSchema = z.object({
   roomId: z.string(),
 });
@@ -748,6 +779,11 @@ const joinRoomRequestSchema = z.object({
 const loadGameRequestSchema = z.object({
   issuer: issuerSchema,
   logs: z.string(),
+});
+
+const loadGameSettingsRequestSchema = z.object({
+  issuer: issuerSchema,
+  settings: z.string(),
 });
 
 export const schemas = {
@@ -785,7 +821,10 @@ export const schemas = {
   setGameParameterRequest: setGameParameterRequestSchema,
   joinRoomRequest: joinRoomRequestSchema,
   getGameLogsRequest: issuerSchema,
+  getGameSettingsRequest: issuerSchema,
   loadGameRequest: loadGameRequestSchema,
+  loadGameSettingsRequest: loadGameSettingsRequestSchema,
+  getCharactersListRequest: issuerSchema,
 };
 
 export namespace Requests {
@@ -826,6 +865,10 @@ export namespace Requests {
   export type JoinRoom = z.infer<typeof joinRoomRequestSchema>;
   export type GetGameLogs = z.infer<typeof issuerSchema>;
   export type LoadGame = z.infer<typeof loadGameRequestSchema>;
+  export type GetGameSettings = z.infer<typeof issuerSchema>;
+  export type LoadGameSettings = z.infer<typeof loadGameSettingsRequestSchema>;
+  export type getCharactersList = z.infer<typeof issuerSchema>;
+
 }
 
 export namespace Responses {
@@ -865,6 +908,9 @@ export namespace Responses {
   export type LeaveRoom = BasicResponse;
   export type GetGameLogs = GetGameLogsResponse;
   export type LoadGame = BasicResponse;
+  export type GetGameSettings = GetGameSettingsResponse;
+  export type LoadGameSettings = BasicResponse;
+  export type GetCharactersList = GetCharactersListResponse;
 }
 
 export interface ServerToClientEvents {
@@ -1008,6 +1054,11 @@ export interface ClientToServerEvents {
     callback: (response: Responses.GiveCoins) => void,
   ) => void;
 
+  getCharactersList: (
+    request: Requests.getCharactersList,
+    callback: (response: Responses.GetCharactersList) => void,
+  ) => void;
+
   declarePurchase: (
     request: Requests.DeclarePurchase,
     callback: (response: Responses.DeclarePurchase) => void,
@@ -1044,5 +1095,15 @@ export interface ClientToServerEvents {
   loadGame: (
     request: Requests.LoadGame,
     callback: (response: Responses.LoadGame) => void,
+  ) => void;
+
+  getGameSettings: (
+    request: Requests.GetGameSettings,
+    callback: (response: Responses.GetGameSettings) => void,
+  ) => void;
+
+  loadGameSettings: (
+    request: Requests.LoadGameSettings,
+    callback: (response: Responses.LoadGameSettings) => void,
   ) => void;
 }

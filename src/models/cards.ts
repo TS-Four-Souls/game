@@ -1151,6 +1151,7 @@ export class EffectOnStack extends StackElement {
 }
 class Deck<T extends Card> {
     _type: DeckType;
+    _nextId: number;
     _set: CardSet<T>
     _order: number[];
     _discard: number[];
@@ -1163,6 +1164,7 @@ class Deck<T extends Card> {
         this._set = set;
         // reverse order of the cards ids remaining in the deck.
         this._order = order.reverse();
+        this._nextId = order.length - 1;
         // Set of discarded cards of the deck.
         this._discard = [];
         this._random = random;
@@ -1170,6 +1172,10 @@ class Deck<T extends Card> {
         order.forEach((id) => {
             const card = this._set.get(id);
         });
+    }
+
+    get nextId(){
+        return ++this._nextId;
     }
 
     get length(): number {
@@ -1303,25 +1309,34 @@ class Deck<T extends Card> {
         this._discard = [];
     }
     getCardFromSlug(slug: string, globalId?: number) : T|undefined {
-        const res = this.getCards((card) =>
+        const res = this.getCard((card) =>
             card.slug === slug && (globalId === undefined || card.globalId === globalId)
         );
-        if( res.length > 1 ) {
-            throw new Error(
-                globalId === undefined
-                    ? `Multiple cards with slug ${slug} found in deck of type ${this._type}.`
-                    : `Multiple cards with slug ${slug} and global id ${globalId} found in deck of type ${this._type}.`
-            );
-        }
-        if( res.length === 0 ) {
+        if( res === undefined ) {
             throw new Error(
                 globalId === undefined
                     ? `No card with slug ${slug} found in deck of type ${this._type}.`
                     : `No card with slug ${slug} and global id ${globalId} found in deck of type ${this._type}.`
             );
         }
-        return  res[0];
+        return  res;
     }
+    getCard(filter: (card: T) => boolean) : T|undefined {
+        for (let i = 0; i < this._order.length; i++) {
+            const id = this._order[i];
+            if (typeof id !== "undefined" && id !== null) {
+                const card = this._set.get(id);
+                if (filter(card)) {
+                    const positionFromTop = this._order.length - 1 - i;
+                    // console.log(`Found card ${card.slug} at position from top ${positionFromTop}.`);
+                    const card: T = this.drawCardAt(positionFromTop);
+                    return card;
+                }
+            }
+        }
+        return undefined;
+    }
+
     getCards(filter: (card: T) => boolean) : T[] {
         const result: T[] = [];
         for (let i = 0; i < this._order.length; i++) {
