@@ -731,7 +731,7 @@ const roomSchema = z.object({
 export type Room = z.infer<typeof roomSchema>;
 
 const roomBroadcastSchema = z.object({
-  type: z.enum(["info", "error", "success"]),
+  type: z.enum(["info", "error", "success", "warning", "victory"]),
   title: z.string(),
   message: z.string(),
 });

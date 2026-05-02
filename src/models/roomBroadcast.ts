@@ -1,5 +1,5 @@
 export type ServerRoomBroadcast = {
-  type: "info" | "error" | "success";
+  type: "info" | "error" | "success" | "warning" | "victory";
   title: string;
   message: string;
   players: string[];

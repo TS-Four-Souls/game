@@ -326,7 +326,7 @@ export class Game {
     }
     this._onStateChange.dispatch();
     this._onRoomBroadcast.dispatch({
-      type: "info",
+      type: "warning",
       title: `${player.id} used a cheat to discard ${cards.length} card(s).`,
       message: `They discarded ${cards.map((c) => c.name).join(", ")}.`,
       players: this.players.map((p) => p.id),
@@ -343,7 +343,7 @@ export class Game {
       this.addInPlay(player, targetCard);
     }
     this._onRoomBroadcast.dispatch({
-      type: "info",
+      type: "warning",
       title: `${player.id} used a cheat to gain ${treasures.length} treasure(s).`,
       message: `They obtained ${treasures.map((t) => t.name).join(", ")}.`,
       players: this.players.map((p) => p.id),
@@ -355,7 +355,7 @@ export class Game {
       throw new Error("Cheat options are not allowed in this game.");
     this.gainCoins(player, coins, "gift");
     this._onRoomBroadcast.dispatch({
-      type: "info",
+      type: "warning",
       title: `${player.id} used a cheat to gain ${coins} coin(s).`,
       message: `They obtained ${coins} coin(s).`,
       players: this.players.map((p) => p.id),
@@ -370,7 +370,7 @@ export class Game {
       this.addCardToHand(player, targetCard);
     }
     this._onRoomBroadcast.dispatch({
-      type: "info",
+      type: "warning",
       title: `${player.id} used a cheat to loot ${lootCards.length} loot card(s).`,
       message: `They obtained ${lootCards.map((c) => c.name).join(", ")}.`,
       players: this.players.map((p) => p.id),
@@ -384,7 +384,7 @@ export class Game {
     this.encounters.draw(index);
     this._onStateChange.dispatch();
     this._onRoomBroadcast.dispatch({
-      type: "info",
+      type: "warning",
       title: `${player.id} used a cheat to summon a monster card.`,
       message: `They put ${card.name} in the monster slot ${index + 1}.`,
       players: this.players.map((p) => p.id),
@@ -1721,7 +1721,7 @@ export class Game {
     {
       const isWinner = p.id === player.id;
       this._onRoomBroadcast.dispatch({
-        type: "info",
+        type: "victory",
         title: isWinner ? "YOU WON!" : `${player.id} won, BUT MORE IMPORTANTLY, YOU LOST!`,
         message: isWinner ? "Congratulations!" : `Next time, cheat!`,
         players: [p.id],
