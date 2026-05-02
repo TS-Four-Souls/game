@@ -80,6 +80,7 @@ export class Game {
   private _nextCardGlobalId: number = 0;
   private _monsterDiedThisTurn: boolean = false;
   private _animatedList: AnimatedList = new AnimatedList();
+  private _isWon: boolean = false;
   private _animationId: number = 0;
   readonly gameParameters = new GameParameters(() => this._onStateChange.dispatch());
 
@@ -1713,7 +1714,19 @@ export class Game {
   }
 
   win(player: Player): void {
-    console.log(`Player ${player.id} wins the game!`);
+    if(this._isWon)
+      return;
+    this._isWon = true;
+    for(const p of this.players)
+    {
+      const isWinner = p.id === player.id;
+      this._onRoomBroadcast.dispatch({
+        type: "info",
+        title: isWinner ? "YOU WON!" : `${player.id} won, BUT MORE IMPORTANTLY, YOU LOST!`,
+        message: isWinner ? "Congratulations!" : `Next time, cheat!`,
+        players: [p.id],
+      });
+    }
   }
 
   /**
@@ -1761,6 +1774,18 @@ export class Game {
       }
     }
   }
+
+  initializeWinningCondition(): void {
+    let offSoulGained: (() => void) | null = null;
+        offSoulGained = this.emitter.on("on:soul:gained", async ({ eventIssuer }) => {
+          if(eventIssuer.totalSouls >= 4)
+          {
+              this.win(eventIssuer);
+              offSoulGained!();
+              offSoulGained = null;
+          }
+      });
+    }
   /**
    * Creates decks and attaches parsed effects to all cards.
    */
@@ -1852,6 +1877,7 @@ export class Game {
     }
     this._historicHandler.recordInitialGameState(this);
     
+    this.initializeWinningCondition();
     this.initializeBonusSouls();
     this._shop = new Shop(
       this.gameParameters.nbItemsInShop.value,
@@ -2344,6 +2370,7 @@ export class Game {
       "eternal",
       "treasure",
       "monster",
+      "room",
     ]) {
       if(!isDeckType(deckName))
         throw new Error(`Invalid deck type: ${deckName}`);
