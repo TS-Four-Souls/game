@@ -1,12 +1,12 @@
 // A monster effect is an effect that is applied by a monster card.
 
 
-import { Card, MonsterCard } from "./cards";
+import { Card, MonsterCard } from "../cards";
 import { effectParser } from "./effectParser";
-import { Entity } from "./entity";
-import { Game } from "./game";
-import { DiceRoll, Player } from "./player";
-import { EffectData, type EffectFunction, type TargetsSelector } from "./types/cardTypes";
+import { Entity } from "../entity";
+import { Game } from "../game";
+import { DiceRoll, Player } from "../player";
+import { EffectData, type EffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type {
     OnAttackDeclaredMonsterData,
     OnDamageTakenData,
@@ -19,12 +19,11 @@ import type {
     OnItemActivatedData,
     OnSoulGainedData,
     OnTurnEndData,
-} from "./types/eventTypes";
-// import { firstAttackRollStatModifierEffect, gainCoinsOnDamageEffect, gainPlusCoinsEffect, goFirstInTurnOrderEffect, LookAndPutBottomEffect, lootOnPlayerDeathEffect, preventDamageOnRollEffect, preventNextDamageUpToEffect, rollDiceOnTriggerEffect, startingItemEffect, temporaryStatModifierEffect, gainTreasureOnDeathEffect } from "./abilities";
+} from "../types/eventTypes";
 import { type TriggerEvent } from '@/models/types/eventTypes';
 import * as active from "./activeEffect";
 import { addInPlayEffect } from "./activeEffect";
-import { Monster } from "./monster";
+import { Monster } from "../monster";
 import { addPassiveEffectToStack } from "./passiveEffect";
 
 export function thisHealsEffect(game: Game, amount: number): EffectFunction {
@@ -64,7 +63,7 @@ export function activePlayerSelectAndCallEffect(game: Game, effectFunction: Effe
         if(!targetPlayer){
             throw new Error("No player selected for activePlayerForcesPlayerToDiscardLootEffect.");
         }
-        await effectFunction(new EffectData(data.it, targetPlayer, (currentPlayerIsTarget ? [player] : [])));
+        await effectFunction(new EffectData(data.it, () => targetPlayer, (currentPlayerIsTarget ? [player] : [])));
         return true;
     };
 }
@@ -72,7 +71,7 @@ export function activePlayerSelectAndCallEffect(game: Game, effectFunction: Effe
 export function activePlayerIsTargetedByEffect(game: Game, effectFunction: EffectFunction): EffectFunction {
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
-        await effectFunction(new EffectData(data.it, data.issuer, [player]));
+        await effectFunction(new EffectData(data.it, () => data.issuer, [player]));
         return true;
     };
 }
@@ -82,7 +81,7 @@ export function activePlayerSelectTargetEffect(game: Game, effectFunction: Effec
         const issuer = game.currentPlayer as Player;
         const target = (await data.selectAndRecord(game, issuer as Player, ts.min, ts.max, ts.selector(issuer as Player), ts.description, true, record)).selected;
         if(target.length > 0)
-            await effectFunction(new EffectData(data.it, issuer, target));
+            await effectFunction(new EffectData(data.it, () => issuer, target));
         return true;
     };
 }
@@ -281,7 +280,7 @@ export function doubleRewardsOnDeathRollEffect(game: Game, rollValues: number[])
             
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
-                game.monsterRewards(data.issuer as Monster);
+                game.entityRewards(data.issuer as Monster);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `When ${data.it.name} dies, if the killing roll was ${rollValues.join(" or ")}, it grants double rewards.`);
@@ -336,6 +335,16 @@ export function monstersGainDCEffect(game: Game, amount: number, includeSelf: bo
             if(!includeSelf) {
             (data.issuer as Monster).addEvasion(amount);
         }
+        });
+        return true;
+    };
+}
+
+export function monstersGainHPEffect(game: Game, amount: number): EffectFunction {
+    return (data: EffectData) => {
+        game.encounters.addHealthModifier(amount);
+        data.it.cleaners.push(() => {
+            game.encounters.addHealthModifier(-amount);
         });
         return true;
     };
@@ -475,7 +484,7 @@ export function OnDealsCombatDamageEffect(game: Game, s: string): EffectFunction
             const { eventIssuer, target, source, damage } = eventData;
             if (data.issuer !== target) return;
             if (!(eventIssuer instanceof Player)) return;
-            const newData = new EffectData(data.it, eventIssuer as Player, []);
+            const newData = new EffectData(data.it, () => eventIssuer as Player, []);
             addPassiveEffectToStack(game, effect.effectFunction, newData, `Each time ${data.it.name} deals combat damage to a player, they ${rest}`);
         });
 
@@ -499,7 +508,7 @@ export function OnDealsDamageEffect(game: Game, s: string): EffectFunction {
             if (data.issuer !== target) return;
             if(!(eventIssuer instanceof Player)) return;
             if(!(source instanceof DiceRoll)) return;
-            const newData = new EffectData(data.it, target as Player, []);
+            const newData = new EffectData(data.it, () => target as Player, []);
             addPassiveEffectToStack(game, effect.effectFunction, newData, `Each time ${data.it.name} deals combat damage to a player, they ${rest}`);
         });
 
@@ -558,7 +567,7 @@ export function onAttackingPlayerActivatesItemEffect(game: Game, s: string): Eff
             const { eventIssuer, item } = eventData;
             if (!(eventIssuer instanceof Player)) return;
             if (!(eventIssuer.isEngagedInCombat)) return;
-            const newData = new EffectData(data.it, eventIssuer as Player, []);
+            const newData = new EffectData(data.it, () => eventIssuer as Player, []);
             addPassiveEffectToStack(game, effect.effectFunction, newData, `Each time the attacking player activates an item, they ${rest}`);
         });
         // Store cleanup function on the card for when it's removed/destroyed
@@ -596,7 +605,7 @@ export function onAttackingPlayerRollsEffect(game: Game, s: string): EffectFunct
             if (!(eventIssuer instanceof Player)) return;
             if (!(eventIssuer.isEngagedInCombat)) return;
             if(attackRoll?.value !== roll) return;
-            const newData = new EffectData(data.it, eventIssuer as Player, []);
+            const newData = new EffectData(data.it, () => eventIssuer as Player, []);
             addPassiveEffectToStack(game, effect.effectFunction, newData, `When the attacking player rolls an attack roll of ${roll} ${rest}`);
         });
         // Store cleanup function on the card for when it's removed/destroyed
@@ -617,7 +626,7 @@ export function activePlayerChoosePlayerDiscard2Effect(game: Game): EffectFuncti
         if(!targetPlayer){
             throw new Error("No player selected for activePlayerChoosePlayerDiscard2Effect.");
         }
-        active.discardNLootCardsEffect(2, game, true)(new EffectData(data.it, targetPlayer, []));
+        await active.discardNLootCardsEffect(2, game, true)(new EffectData(data.it, () => targetPlayer, []));
         return true;
     };
 }
@@ -627,11 +636,11 @@ export function onAttackDeclaredEffect(game: Game, s: string): EffectFunction {
     const effect = effectParser(rest, game, addInPlayEffect(game), true);
     return (data: EffectData) => {
         let offAttackDeclared: (() => void) | null = null;
-        offAttackDeclared = game.emitter.on("on:attack:declared:monster", async (eventData: OnAttackDeclaredMonsterData) => {
+        offAttackDeclared = game.emitter.on("on:attack:declared:monster", (eventData: OnAttackDeclaredMonsterData) => {
             const { eventIssuer, monster } = eventData;
             if (data.issuer !== monster[0]) return;
             if (!(eventIssuer instanceof Player)) return;
-            const newData = new EffectData(data.it, eventIssuer as Player, []);
+            const newData = new EffectData(data.it, () => eventIssuer as Player, []);
             addPassiveEffectToStack(game, effect.effectFunction, newData, `When an attack is declared on ${data.it.name}, the active player ${rest}`);
         });
 
@@ -846,7 +855,7 @@ export function bossRushEffect(game: Game): EffectFunction {
             game.encounters.draw(slotIndex);
         }
         const monsters = selectedIndices.map(index => game.encounters.monsters[index]!);
-        game.encounters.removeFromSlot(data.it);
+        game.encounters.removeCard(data.it);
         game.encounters._deck.addDiscardTop(data.it); 
         game.playerMustAttack(game.currentPlayer, monsters, data.it);
         return true;
@@ -894,7 +903,7 @@ export function onTakesCombatDamageEffect(game: Game, s: string, rolls: number[]
             if(!(eventIssuer instanceof Monster)) return;
             if(!(source instanceof DiceRoll)) return;
             if(rolls.length > 0 && !rolls.includes((source as DiceRoll).value)) return;
-            const newData = new EffectData(data.it, data.issuer, []);
+            const newData = new EffectData(data.it, () => data.issuer, []);
             addPassiveEffectToStack(game, effect.effectFunction, newData, `Each time ${data.it.name} takes combat damage, it ${rest}`);
         });
 

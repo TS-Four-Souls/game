@@ -1,5 +1,5 @@
-import { type EffectOnStackJson, type LootCardOnStackJson } from '@/shared/api';
-import type { BonusSoulCardType, CardRewards, CharacterCardType, EternalCardType, GenericCardType, InPlayCardType, LootCardType, MonsterCardType, TreasureCardType } from '@/types/cardTypes';
+import { type EffectOnStackJson, type LootCardOnStackJson, type Room } from '@/shared/api';
+import type { BonusSoulCardType, CardRewards, CharacterCardType, EternalCardType, GenericCardType, InPlayCardType, LootCardType, MonsterCardType, RoomCardType, TreasureCardType } from '@/types/cardTypes';
 import { print, shuffle } from '@/utils/auxiliary';
 import type { Entity } from './entity';
 import type { GameParameters } from './gameParameters';
@@ -78,8 +78,14 @@ export class Effect {
         if (targetsList.length > 0) {
             for (const admissibleTarget of this._targetsSelector[0]!.selector(issuer)) {
                 if (admissibleTarget.description.toLowerCase() === descr.toLowerCase()) {
+                    let admisibleTargetsIndex = 0;
+                    let nbTargetsForSelector = 0;
                     for (const t of targetsList) {
-                        if (!admissibleTarget.admissibleTargets.includes(t)) {
+                        if (((admissibleTarget.admissibleTargets[admisibleTargetsIndex]) as TargetsSelector).selector(issuer).includes(t)) {
+                            nbTargetsForSelector++;
+                        } else if(nbTargetsForSelector >= ((admissibleTarget.admissibleTargets[admisibleTargetsIndex]) as TargetsSelector).min) {
+                            admisibleTargetsIndex++;
+                        }else {
                             return false;
                         }
                     }
@@ -172,14 +178,14 @@ class PassiveEffectHandler extends EffectHandler {
             this._effects.push(effect);
         else throw new Error("Cannot put a non-passive effect in a PassiveEffectHandler.");
     }
-    subscribeAll(owner: Entity, it: Card) {
+    subscribeAll(issuerProvider: () => Entity, it: Card) {
         for (const effect of this._effects) {
             // Passive effects don't have targets, pass empty array
             let targets: any[] = [];
             // if(effect.targetsSelector.length > 0) {
             //     targets = effect.targetsSelector.map(selector => { selector.selector(owner as Player)[0]; });
             // }
-            effect.effectFunction(new EffectData(it, owner, targets));
+            effect.effectFunction(new EffectData(it, issuerProvider, targets));
         }
     }
 }
@@ -216,12 +222,12 @@ class ActiveEffectHandler extends EffectHandler {
         if (this._activeEffect === null) {
             throw new Error("No active effect found in ActiveEffectHandler.");
         }
-        return await this._activeEffect.effectFunction(new EffectData(it, issuer as Player, targets));
+        return await this._activeEffect.effectFunction(new EffectData(it, () => issuer as Player, targets));
     }
 
     async pay(issuer: Entity, it: Card, targets: any[], effectId: number): Promise<boolean> {
         const effect = this.getPaidEffect(effectId);
-        return await effect.effectFunction(new EffectData(it, issuer as Player, targets));
+        return await effect.effectFunction(new EffectData(it, () => issuer as Player, targets));
     }
 
     hasTapEffect(): boolean {
@@ -299,14 +305,14 @@ class EffectInterface {
         return this.activeEffects.hasTapEffect();
     }
 
-    subscribeAll(owner: Entity): void {
-        this.passiveEffects.subscribeAll(owner, this.it);
+    subscribeAll(issuerProvider: () => Entity): void {
+        this.passiveEffects.subscribeAll(issuerProvider, this.it);
     }
 
     async paidEffect(issuer: Entity, targets: any[], effectId: number): Promise<EffectOnStack> {
         const effect = this.activeEffects.getPaidEffect(effectId);
         
-        const data = new EffectData(this.it, issuer as Player, targets);
+        const data = new EffectData(this.it, () => issuer as Player, targets);
         // Execute payment if it exists
         if (effect.hasPayment()) {
             if (!await effect.executePayment(data)) {
@@ -322,7 +328,7 @@ class EffectInterface {
         const effect = this.activeEffects.getActiveEffect();
         if(!issuer)
             throw new Error("EffectInterface.tapEffect: issuer is undefined or null.");
-        const data = new EffectData(this.it, issuer as Player, targets);
+        const data = new EffectData(this.it, () => issuer as Player, targets);
         return new EffectOnStack(effect.effectFunction, data, effect.description);
     }
     // activeEffect(issuer: Entity, targets: any[], effectId: number): void {
@@ -360,9 +366,9 @@ class EffectInterface {
             if(this._issuer) {
                 // Validate targets before calling effect function
                 if (effect.targetStillValid(this._issuer!, targets)) {
-                    await effect.effectFunction(new EffectData(this.it, this._issuer!, targets));
+                    await effect.effectFunction(new EffectData(this.it, () => this._issuer!, targets));
                 }
-                this.subscribeAll(this._issuer!);
+                this.subscribeAll(() => this._issuer!);
             }
         };
     }
@@ -401,8 +407,13 @@ class Card {
     protected _souls: number = 0;
     protected _charged: boolean = true;
     protected _owner!: Entity;
+    protected _associatedEntity!: Entity;
     protected _eternal: boolean = false;
+    protected _canBeDiscarded: boolean = true;
     protected _cleanup: (() => void)[] = [];
+    protected _onFlip: (() => void)[] = [];
+    protected _entity: Entity | undefined = undefined;
+
     constructor(id: number,
         globalId: number,
         json: GenericCardType) {
@@ -443,6 +454,15 @@ class Card {
         return this._effectInterface.activeEffectList;
     }
 
+    get entity(): Entity | undefined {
+        return this._entity;
+    }
+    get hasEntity(): boolean {
+        return this._entity !== undefined;
+    }
+    set entity(value: Entity | undefined) {
+        this._entity = value;
+    }
     get charged(): boolean {
         return this._charged;
     }
@@ -510,7 +530,18 @@ class Card {
     set owner(value: Entity) {
         this._owner = value;
     }
-
+    get canBeDiscarded(): boolean{
+        return this._canBeDiscarded
+    }
+    set canBeDiscarded(value: boolean){
+        this._canBeDiscarded = true;
+    }
+    flip(): void {
+        [this._front, this._back] = [this._back, this._front];
+        for (const onFlipEffect of this._onFlip) {
+            onFlipEffect();
+        }
+    }
     cleanup(): void {
         for (const cleaner of this._cleanup) {
             cleaner();
@@ -532,9 +563,9 @@ class Card {
         }
     }
 
-    onAddInPlay(owner: Entity): void {
-        this._owner = owner;
-        this._effectInterface.subscribeAll(owner);
+    onAddInPlay(issuerProvider: () => Entity): void {
+        this._owner = issuerProvider();
+        this._effectInterface.subscribeAll(issuerProvider);
     }
     addEffect(effect: Effect) {
         this._effectInterface.addEffect(effect);
@@ -604,7 +635,7 @@ class Card {
             
             // Re-subscribe effects if we have an owner
             if (originalState.owner) {
-                this._effectInterface.subscribeAll(originalState.owner);
+                this._effectInterface.subscribeAll(() => originalState.owner);
             }
         };
 
@@ -774,6 +805,11 @@ export class LootCardEffect extends StackElement {
     }
 }
 
+export class RoomCard extends ItemCard {
+    constructor(id: number, globalId: number, json: RoomCardType) {
+        super(id, globalId, json);
+    }
+}
 class TreasureCard extends ItemCard {
 
     constructor(id: number, globalId: number, json: TreasureCardType) {
@@ -806,8 +842,9 @@ class CharacterCard extends ItemCard {
         this._charged = false;
         this._eternal = true;
     }
-    override onAddInPlay(owner: Entity): void {
-        super.onAddInPlay(owner);
+    override onAddInPlay(issuerProvider: () => Entity): void {
+        const owner = issuerProvider();
+        super.onAddInPlay(issuerProvider);
         owner.addHealthPoints(this._healthPoints);
         owner.addAttackPoints(this._attackPoints);
     }
@@ -898,8 +935,8 @@ class MonsterCard extends Card {
     set afterEffect(value: "discard" | "nothing" | "handled") {
         this._afterEffect = value;
     }
-    onPlay(issuer: Player, targets: any[] = []): void{
-        this._effectInterface.onPlay(issuer, targets)();
+    async onPlay(issuer: Player, targets: any[] = []): Promise<void>{
+        return this._effectInterface.onPlay(issuer, targets)();
     }
 }
 
@@ -912,6 +949,7 @@ class BsoulCard extends Card {
             name: this._name,
             globalId: this._globalId,
             granted: this.granted,
+            ...( this.tags.counters !== undefined ? { counter: this.tags.counters } : {} ),
         };
     }
     
@@ -935,6 +973,7 @@ type CardToJsonType<T extends Card> =
     T extends TreasureCard ? TreasureCardType :
     T extends MonsterCard ? MonsterCardType :
     T extends BsoulCard ? BonusSoulCardType :
+    T extends RoomCard ? RoomCardType :
     GenericCardType;
 
 /**
@@ -947,6 +986,7 @@ function createCardFromJson(id: number, globalId: number, json: EternalCardType)
 function createCardFromJson(id: number, globalId: number, json: CharacterCardType): CharacterCard;
 function createCardFromJson(id: number, globalId: number, json: MonsterCardType): MonsterCard;
 function createCardFromJson(id: number, globalId: number, json: BonusSoulCardType): BsoulCard;
+function createCardFromJson(id: number, globalId: number, json: RoomCardType): RoomCard;
 function createCardFromJson(id: number, globalId: number, json: GenericCardType): Card;
 function createCardFromJson(id: number, globalId: number, json: GenericCardType): Card {
     switch (json.type) {
@@ -962,6 +1002,8 @@ function createCardFromJson(id: number, globalId: number, json: GenericCardType)
             return new MonsterCard(id, globalId, json);
         case "bsoul":
             return new BsoulCard(id, globalId, json);
+        case "room":
+            return new RoomCard(id, globalId, json);
         default:
             console.log(`Unknown card: ${json}, adding as generic Card.`);
             return new Card(id, globalId, json);
@@ -1024,6 +1066,7 @@ function LoadsCardSets(json_array: GenericCardType[]) : CardSetsCollection {
         character: new CardSet<CharacterCard>('character'),
         monster: new CardSet<MonsterCard>('monster'),
         bsoul: new CardSet<BsoulCard>('bsoul'),
+        room: new CardSet<RoomCard>('room'),
     };
     
     let globalId = 0;
@@ -1053,8 +1096,11 @@ function LoadsCardSets(json_array: GenericCardType[]) : CardSetsCollection {
             case "bsoul":
                 sets.bsoul.addCard(card_json, globalId++);
                 break;
+            case "room":
+                sets.room.addCard(card_json, globalId++);
+                break;
             default:
-                throw new Error(`Unknown card type: ${type}. Only loot, treasure, eternal, character, monster, and bsoul are allowed.`);
+                throw new Error(`Unknown card type: ${type}. Only loot, treasure, eternal, character, monster, bsoul, and room are allowed.`);
         }
     }
     return sets;
@@ -1105,6 +1151,7 @@ export class EffectOnStack extends StackElement {
 }
 class Deck<T extends Card> {
     _type: DeckType;
+    _nextId: number;
     _set: CardSet<T>
     _order: number[];
     _discard: number[];
@@ -1117,6 +1164,7 @@ class Deck<T extends Card> {
         this._set = set;
         // reverse order of the cards ids remaining in the deck.
         this._order = order.reverse();
+        this._nextId = order.length - 1;
         // Set of discarded cards of the deck.
         this._discard = [];
         this._random = random;
@@ -1124,6 +1172,10 @@ class Deck<T extends Card> {
         order.forEach((id) => {
             const card = this._set.get(id);
         });
+    }
+
+    get nextId(){
+        return ++this._nextId;
     }
 
     get length(): number {
@@ -1257,25 +1309,34 @@ class Deck<T extends Card> {
         this._discard = [];
     }
     getCardFromSlug(slug: string, globalId?: number) : T|undefined {
-        const res = this.getCards((card) =>
+        const res = this.getCard((card) =>
             card.slug === slug && (globalId === undefined || card.globalId === globalId)
         );
-        if( res.length > 1 ) {
-            throw new Error(
-                globalId === undefined
-                    ? `Multiple cards with slug ${slug} found in deck of type ${this._type}.`
-                    : `Multiple cards with slug ${slug} and global id ${globalId} found in deck of type ${this._type}.`
-            );
-        }
-        if( res.length === 0 ) {
+        if( res === undefined ) {
             throw new Error(
                 globalId === undefined
                     ? `No card with slug ${slug} found in deck of type ${this._type}.`
                     : `No card with slug ${slug} and global id ${globalId} found in deck of type ${this._type}.`
             );
         }
-        return  res[0];
+        return  res;
     }
+    getCard(filter: (card: T) => boolean) : T|undefined {
+        for (let i = 0; i < this._order.length; i++) {
+            const id = this._order[i];
+            if (typeof id !== "undefined" && id !== null) {
+                const card = this._set.get(id);
+                if (filter(card)) {
+                    const positionFromTop = this._order.length - 1 - i;
+                    // console.log(`Found card ${card.slug} at position from top ${positionFromTop}.`);
+                    const card: T = this.drawCardAt(positionFromTop);
+                    return card;
+                }
+            }
+        }
+        return undefined;
+    }
+
     getCards(filter: (card: T) => boolean) : T[] {
         const result: T[] = [];
         for (let i = 0; i < this._order.length; i++) {
@@ -1347,7 +1408,7 @@ class Hand {
 }
 
 export function isDeckType(value: string): value is DeckType {
-    return ['loot', 'treasure', 'eternal', 'character', 'monster', 'bsoul'].includes(value);
+    return ['loot', 'treasure', 'eternal', 'character', 'monster', 'bsoul', 'room'].includes(value);
 }
 
 export function assertCardMatchesDeck<T extends DeckType>(
@@ -1367,6 +1428,7 @@ function createEmptyDecksCollection(random: () => number): DecksCollection {
         character: new CardSet<CharacterCard>('character'),
         monster: new CardSet<MonsterCard>('monster'),
         bsoul: new CardSet<BsoulCard>('bsoul'),
+        room: new CardSet<RoomCard>('room'),
     };
     return {
         loot: new Deck(emptyCardSets.loot, 'loot', [], random),
@@ -1375,6 +1437,7 @@ function createEmptyDecksCollection(random: () => number): DecksCollection {
         character: new Deck(emptyCardSets.character, 'character', [], random),
         monster: new Deck(emptyCardSets.monster, 'monster', [], random),
         bsoul: new Deck(emptyCardSets.bsoul, 'bsoul', [], random),
+        room: new Deck(emptyCardSets.room, 'room', [], random),
     };
 }
 
@@ -1383,7 +1446,7 @@ function LoadDecks(json_array: GenericCardType[], numPlayers: number, parameters
     const decks_cardSets = LoadsCardSets(json_array);
     
     const decks = {} as DecksCollection;
-    const cardTypes: (keyof CardSetsCollection)[] = ['loot', 'treasure', 'eternal', 'character', 'monster', 'bsoul'];
+    const cardTypes: (keyof CardSetsCollection)[] = ['loot', 'treasure', 'eternal', 'character', 'monster', 'bsoul', 'room'];
     const restrictionCounters: Map<string, number> = new Map();
     for (const type of cardTypes) {
         const set = decks_cardSets[type] as CardSet<any>;

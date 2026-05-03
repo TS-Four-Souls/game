@@ -576,7 +576,7 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
         const restock = game.shop.obtainCard("b2-restock") as TreasureCard;
         game.addInPlay(player1, restock);
 
-        const shopItems = game.shop._slots.filter(s => s !== undefined);
+        const shopItems = game.shop.itemsInShop.filter(s => s !== undefined);
         expect(shopItems.length).toBeGreaterThanOrEqual(2);
 
         const itemsToDiscard = shopItems.slice(0, 2);
@@ -587,11 +587,11 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
         await game.resolveStack(); // Resolve any stack effects
         // Both items should no longer be in the shop
         for (const item of itemsToDiscard) {
-            expect(game.shop._slots.includes(item)).toBe(false);
+            expect(game.shop.itemsInShop.includes(item)).toBe(false);
         }
 
         // Shop should have been refilled
-        const newShopItems = game.shop._slots.filter(s => s !== undefined);
+        const newShopItems = game.shop.itemsInShop.filter(s => s !== undefined);
         expect(itemsToDiscard.every(item => !newShopItems.includes(item))).toBe(true);
         expect(newShopItems.length).toBeGreaterThan(0);
     });

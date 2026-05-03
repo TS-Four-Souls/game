@@ -51,7 +51,10 @@ export function isCardRestricted(card: GenericCardType, counters: Map<string, nu
         if(counters.get(card.name) === undefined)
             counters.set(card.name, 0);
     }
-    else return false;
+    if(card.type === "bsoul" && !parameters.playWithBonusSouls.value)
+        return true;
+    if(card.type === "room" && !parameters.playWithRooms.value)
+        return true;
     const parameterMap: {[key: string]: number} = {
         "A Penny!": parameters.nbPennies.value,
         "2 Cents!": parameters.nb2Cents.value,

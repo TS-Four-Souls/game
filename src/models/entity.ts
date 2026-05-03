@@ -1,6 +1,8 @@
 import type { EntityType, TemporaryEffect } from "@/shared/api";
 import type { Card } from "./cards";
 import { type DiceRoll } from "./player";
+import type { Monster } from "./monster";
+import type { CardRewards, Reward } from "@/types/cardTypes";
 
 type DamageObj = {
   dealer: Entity | null;
@@ -12,12 +14,22 @@ export abstract class Entity {
   private _currentHealthPoints: number;
   private _color: string = "#D92D18";
   // Either attacking or being attacked.
+    /** @private The evasion value from the monster card */
+  private _evasion: number = 0;
   private _engagedInCombat: number;
   private _attackDiceModifier: number = 0;
   private _damageTakenThisTurn: DamageObj[] = [];
   private _died: boolean = false;
   private _attackable: boolean = true;
   private _temporaryEffects: TemporaryEffect[] = [];
+
+  get evasion(): number {
+    return this._evasion;
+  }
+
+  set evasion(value: number) {
+    this._evasion = Math.max(0, Math.min(value, 6)); // Evasion must be between 0 and 6
+  }
 
   get attackable(): boolean {
     return this._attackable;
@@ -150,4 +162,39 @@ export abstract class Entity {
     return this._temporaryEffects;
   }
   abstract get json(): EntityType;
+  abstract get card(): Card;
+}
+
+/**
+ * Animated entities are entities are entities that are neither players nor monsters.
+ * They are cards that have entities, such as the revenant (eternal item), the puching ball (treasure card), or gus (room card).
+ */
+export class Animated extends Entity {
+  private _card: Card;
+  private _reward: CardRewards | undefined = undefined;
+  constructor(card: Card, id: string, attackPoints: number, healthPoints: number, evasion: number) {
+    super(id, attackPoints, healthPoints);
+    super.evasion = evasion;
+    this._card = card;
+    this._reward = card.json.rewards!;
+  }
+
+  get rewards(): CardRewards | undefined {
+    return this._reward;
+  }
+
+  override get json(): EntityType {
+    return {
+      name: this.id,
+      slug: this._card.slug,
+      globalId: this._card.globalId,
+      color: this.color,
+      type: "animated",
+    };
+  }
+    
+  override get card(): Card {
+    return this._card;
+  }
+    
 }

@@ -38,7 +38,7 @@ describe("Monsters - On death effects", () => {
                     return { selected: [opts[0]], remaining: opts.slice(1) } as any;
             };
             game.declareAttack(player1);
-            await game.declareAttackOnMonster(player1, spiderMonster);
+            await game.declareAttackOnEntity(player1, spiderMonster);
             // Kill the Big Spider by dealing lethal damage
             game.kill(spiderMonster, spiderMonster, bigSpider);
             
@@ -51,9 +51,9 @@ describe("Monsters - On death effects", () => {
             expect(game.encounters.monsterIn(0)?.card.slug).toBe("b2-pooter");
             // Check that the player has declared an attack
             game.declareAttack(player1); // declare attack to engage in combat
-            expect(game.canDeclareAttackOnMonster(player1, game.monsters[0]!, false)).not.toBe(true);
-            expect(game.canDeclareAttackOnMonster(player1, game.monsters[0]!, false)).not.toBe(true);
-            expect(game.canDeclareAttackOnMonster(player1, "topDeck", false)).toBe(true);
+            expect(game.canDeclareAttackOnEntity(player1, game.monsters[0]!, false)).not.toBe(true);
+            expect(game.canDeclareAttackOnEntity(player1, game.monsters[0]!, false)).not.toBe(true);
+            expect(game.canDeclareAttackOnEntity(player1, "topDeck", false)).toBe(true);
         });
 
         it("active player can choose not to attack the monster deck when Big Spider dies", async () => {
@@ -90,7 +90,7 @@ describe("Monsters - On death effects", () => {
             
             let selectionCount = 0;
             game.declareAttack(player1);
-            await game.declareAttackOnMonster(player1, spiderMonster);
+            await game.declareAttackOnEntity(player1, spiderMonster);
             game.dealDamage(player1, spiderMonster, bigSpider, 1);
             await game.resolveStack();
 
@@ -102,9 +102,9 @@ describe("Monsters - On death effects", () => {
             
             // Verify that the selection was made (effect triggered)
             game.declareAttack(player1); // declare attack to engage in combat
-            expect(game.canDeclareAttackOnMonster(player1, game.monsters[0]!, false)).not.toBe(true);
-            expect(game.canDeclareAttackOnMonster(player1, game.monsters[0]!, false)).not.toBe(true);
-            expect(game.canDeclareAttackOnMonster(player1, "topDeck", false)).toBe(true);
+            expect(game.canDeclareAttackOnEntity(player1, game.monsters[0]!, false)).not.toBe(true);
+            expect(game.canDeclareAttackOnEntity(player1, game.monsters[0]!, false)).not.toBe(true);
+            expect(game.canDeclareAttackOnEntity(player1, "topDeck", false)).toBe(true);
 
         });
     });
@@ -227,7 +227,7 @@ describe("Monsters - On death effects", () => {
         
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
-        game.gainCoins(player2, 10);
+        game.gainCoins(player2, 10, "gift");
         const coins = player2.coins;
 
         game.select = async (p, _min, _max, opts) => {
@@ -616,7 +616,9 @@ describe("Monsters - On death effects", () => {
     it("put delirium 6 cards from the top of the monster deck when delirium dies.", async () => {
         const card = game.obtainCard("b2-delirium") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.decks.monster.addTopPosition(card);
+        game.declareAttack(player1);
+        game.declareAttackOnEntity(player1, "topDeck", 0);
         const monster = game.monsters[0]!;
         
         game.kill(monster, monster, card);
@@ -643,7 +645,9 @@ describe("Monsters - On death effects", () => {
     it("roll when rag_man dies. (1)", async () => {
         const card = game.obtainCard("b2-rag_man") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.decks.monster.addTopPosition(card);
+        game.declareAttack(player1);
+        game.declareAttackOnEntity(player1, "topDeck", 0);
         const monster = game.monsters[0]!;
         
         game.kill(monster, monster, card);
@@ -662,7 +666,9 @@ describe("Monsters - On death effects", () => {
     it("roll when rag_man dies. (6)", async () => {
         const card = game.obtainCard("b2-rag_man") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.decks.monster.addTopPosition(card);
+        game.declareAttack(player1);
+        game.declareAttackOnEntity(player1, "topDeck", 0);
         const monster = game.monsters[0]!;
         
         game.kill(monster, monster, card);
@@ -740,7 +746,7 @@ describe("Monsters - On death effects", () => {
         let currentcoins = player1.coins;
         game.addAttack(player1, 100); // ensure kill
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnEntity(player1, monster);
         game.attackRoll(player1); // ensure hit
         expect(game.stack._stack.length).toBe(1);
         const roll = game.stack._stack[0] as DiceRoll;

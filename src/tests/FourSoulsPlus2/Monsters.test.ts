@@ -35,7 +35,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-boss_rush") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         const bosses = [];
         for(const c of game.decks.monster.cards)
         {
@@ -49,16 +49,16 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         expect(game.monsters[1]!.card.slug).toBe(bosses[1]!.slug);
         expect(game.canEndTurn(player1, false)).not.toBe(true);
         game.declareAttack(player1)
-        expect(game.canDeclareAttackOnMonster(player1, game.monsters[0]!)).toBe(true);
-        expect(game.canDeclareAttackOnMonster(player1, game.monsters[1]!)).toBe(true);
-        expect(game.canDeclareAttackOnMonster(player1, "topDeck")).not.toBe(true);
+        expect(game.canDeclareAttackOnEntity(player1, game.monsters[0]!)).toBe(true);
+        expect(game.canDeclareAttackOnEntity(player1, game.monsters[1]!)).toBe(true);
+        expect(game.canDeclareAttackOnEntity(player1, "topDeck")).not.toBe(true);
     });
 
     it("fsp2-boss_rush - (One slot) Reveal cards from the top of the monster deck till you reveal 2 boss cards. Put them in one or more monster slots not being attacked and the rest into discard. The active player must make an additional attack on one of them this turn.", async () => {
         const card1 = game.obtainCard("fsp2-boss_rush") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 1);
+        await game.declareAttackOnEntity(player1, "topDeck", 1);
         const bosses = [];
         for(const c of game.decks.monster.cards)
         {
@@ -74,9 +74,9 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         expect(game.monsters[0]!.card.slug).toBe(bosses[0]!.slug);
         expect(game.canEndTurn(player1, false)).not.toBe(true);
         game.declareAttack(player1)
-        expect(game.canDeclareAttackOnMonster(player1, game.monsters[0]!)).toBe(true);
-        expect(game.canDeclareAttackOnMonster(player1, game.monsters[1]!)).not.toBe(true);
-        expect(game.canDeclareAttackOnMonster(player1, "topDeck")).not.toBe(true);
+        expect(game.canDeclareAttackOnEntity(player1, game.monsters[0]!)).toBe(true);
+        expect(game.canDeclareAttackOnEntity(player1, game.monsters[1]!)).not.toBe(true);
+        expect(game.canDeclareAttackOnEntity(player1, "topDeck")).not.toBe(true);
     });
 
 
@@ -84,7 +84,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-dingle") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         const mob = game.monsters[0]!;
         game.dealDamage(player1, mob, card1, 1);
         await game.resolveStack(); // damage
@@ -101,7 +101,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-dingle") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         const mob = game.monsters[0]!;
         game.dealDamage(player1, mob, card1, 1);
         await game.resolveStack(); // damage
@@ -117,7 +117,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-dingle") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         const mob = game.monsters[0]!;
         game.dealDamage(player1, mob, card1, 1);
         await game.resolveStack(); // damage
@@ -135,7 +135,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-globin") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         const mob = game.monsters[0]!;
         game.dealDamage(player1, mob, card1, mob.currentHealthPoints - 1);
         await game.resolveStack(); // damage
@@ -152,7 +152,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-globin") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         const mob = game.monsters[0]!;
         game.dealDamage(player1, mob, card1, mob.currentHealthPoints - 1);
         await game.resolveStack(); // damage
@@ -171,7 +171,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.addSoul(player2, card2);
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         let winner = "";
         game.win = (player) => {
             winner = player.id;
@@ -190,7 +190,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.addSoul(player2, card2);
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         let winner = "";
         game.win = (player) => {
             winner = player.id;
@@ -209,7 +209,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.addSoul(player2, card2);
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         let winner = "";
         game.win = (player) => {
             winner = player.id;
@@ -225,14 +225,14 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-curse_of_blood_lust") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         await game.resolveStack(); 
         await game.endTurn();
         await game.endTurn();
         await game.resolveStack(); // turn end
         expect(game.canEndTurn(player1, false)).not.toBe(true);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.endCombat();
         expect(game.canEndTurn(player1, false)).toBe(true);
     });
@@ -241,7 +241,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-curse_of_blood_lust") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         await game.resolveStack(); 
         await game.endTurn();
         await game.endTurn();
@@ -249,7 +249,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         expect(player1.hasAttackRequirement).toBe(true);
         expect(game.canEndTurn(player1, false)).not.toBe(true);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, game.monsters[0]!);
+        await game.declareAttackOnEntity(player1, game.monsters[0]!);
         game.endCombat();
         expect(game.canEndTurn(player1, false)).toBe(true);
     });
@@ -262,8 +262,8 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.addInPlay(player1, c2);
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
-        game.rechargeEachItem(player1);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
+        game.rechargeMultiple(player1);
         expect(player1.inPlay.every(i => i.charged || !i.isActiveItem)).toBe(true);
         await game.resolveStack(); // give curse to themselves
         game.endTurn();
@@ -277,7 +277,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.encounters.forceSetMonsterAtSlot(0, card1);
         const mob = game.monsters[0]!;
         game.declareAttack(player1);
-        game.declareAttackOnMonster(player1, mob);
+        game.declareAttackOnEntity(player1, mob);
         game.random = () => 1/6-.00001;
         game.attackRoll(player1);
         const atk = game.getAttack(mob);
@@ -376,15 +376,15 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
     it("fsp2-krampus - The active player must attack this once each turn if able.", async () => {
         const card1 = game.obtainCard("fsp2-krampus") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        expect(player1.canAttackThisMonster("topDeck")).toBe(false);   
-        expect(player1.canAttackThisMonster(game.monsters[0]!)).toBe(true);   
-        expect(player1.canAttackThisMonster(game.monsters[1]!)).toBe(false);   
+        expect(player1.canAttackThisEntity("topDeck")).toBe(false);   
+        expect(player1.canAttackThisEntity(game.monsters[0]!)).toBe(true);   
+        expect(player1.canAttackThisEntity(game.monsters[1]!)).toBe(false);   
     });
     it("fsp2-holy_chest - Roll- 6: This becomes a soul. Gain it.", async () => {
        const card1 = game.obtainCard("fsp2-holy_chest") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.random = () => 6/6-.00001;
         await game.resolveStack(); // effect    
         await game.resolveStack(); // roll
@@ -395,7 +395,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
        const card1 = game.obtainCard("fsp2-holy_chest") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.random = () => 4/6-.00001;
         await game.resolveStack(); // effect    
         await game.resolveStack(); // roll
@@ -405,7 +405,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
        const card1 = game.obtainCard("fsp2-holy_chest") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.random = () => 1/6-.00001;
         await game.resolveStack(); // effect    
         await game.resolveStack(); // roll    
@@ -419,7 +419,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
        const card1 = game.obtainCard("fsp2-roundy") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.encounters.expand(2);
         game.random = () => 1/6-.00001;
         game.attackRoll(player1);
@@ -439,7 +439,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
        const card1 = game.obtainCard("fsp2-blastocyst") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.dealDamage(player1, game.encounters.monsterIn(0)!, card1, 10);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: opts.toReversed(), remaining: [] } as any;
@@ -449,14 +449,14 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         await game.resolveStack(); // death
         await game.resolveStack(); // effect
         expect(game.encounters.slots.length).toBe(4);
-        expect(player1.canAttackThisMonster("topDeck")).toBe(true);
-        expect(player1.canAttackThisMonster(game.monsters[1]!)).toBe(false);
+        expect(player1.canAttackThisEntity("topDeck")).toBe(true);
+        expect(player1.canAttackThisEntity(game.monsters[1]!)).toBe(false);
     });
     it("fsp2-holy_mulligan - When this dies, expand monster slots by 2. The active player may attack an additional time this turn.", async () => {
        const card1 = game.obtainCard("fsp2-holy_mulligan") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.dealDamage(player1, game.encounters.monsterIn(0)!, card1, 10);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: opts.toReversed(), remaining: [] } as any;
@@ -473,7 +473,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-sucker") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.dealDamage(player1, game.encounters.monsterIn(0)!, card1, 10);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: opts.toReversed(), remaining: [] } as any;
@@ -491,7 +491,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-swarmer") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.dealDamage(player1, game.encounters.monsterIn(0)!, card1, 10);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: opts.toReversed(), remaining: [] } as any;
@@ -508,7 +508,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-the_fallen") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.dealDamage(player1, game.encounters.monsterIn(0)!, card1, 10);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: opts.toReversed(), remaining: [] } as any;
@@ -524,7 +524,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-tumor") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.dealDamage(player1, game.encounters.monsterIn(0)!, card1, 1);
         await game.resolveStack(); // damage monster
         await game.resolveStack(); // effect
@@ -535,7 +535,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-brain") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.random = () => 6/6-.00001;
         const init = player1.currentHealthPoints;
         game.attackRoll(player1);
@@ -609,7 +609,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const init = player1.hand.length;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         await game.resolveStack();
         expect(player1.hand.length).toBe(init - 2);
     });
@@ -618,7 +618,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-spiked_chest") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         const init = player1.currentHealthPoints;
         game.random = () => 1/6-.00001;
         await game.resolveStack();
@@ -631,7 +631,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-spiked_chest") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         const init = player1.currentHealthPoints;
         const loot = player1.hand.length;
         game.random = () => 3/6-.00001;
@@ -646,7 +646,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-spiked_chest") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         const init = player1.currentHealthPoints;
         const treas = player1.inPlay.length;
         game.random = () => 5/6-.00001;
@@ -661,7 +661,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-angel_room") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         const init = player1.inPlay.length;
         game.random = () => 1/6-.00001;
         await game.resolveStack();
@@ -673,7 +673,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-angel_room") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         const init = player1.inPlay.length;
         game.random = () => 3/6-.00001;
         await game.resolveStack();
@@ -685,7 +685,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-angel_room") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         const init = player1.hand.length;
         game.random = () => 5/6-.00001;
         await game.resolveStack();
@@ -718,7 +718,7 @@ describe("Four Souls+2 Monsters 3 players game", () => {
         const card1 = game.obtainCard("fsp2-monstro_ii") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.random = () => 1/6-.00001;
         game.addHealth(player1, 10);
         game.attackRoll(player1);
@@ -734,7 +734,7 @@ describe("Four Souls+2 Monsters 3 players game", () => {
         const card1 = game.obtainCard("fsp2-monstro_ii") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, "topDeck", 0);
+        await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.random = () => 1/6-.00001;
         game.addHealth(player1, 10);
         game.attackRoll(player1);

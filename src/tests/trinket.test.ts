@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../models/game";
 import { DiceRoll, Player } from "../models/player";
 import type { CharacterCard, MonsterCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "@/tests/testHelpers";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame } from "@/tests/testHelpers";
 
 describe("Loot Card", () => {
     let game: Game;
@@ -10,26 +10,15 @@ describe("Loot Card", () => {
     let player2: Player;
 
     beforeEach(() => {
-        game = new Game();
-        mockGameSelections(game);
-        player1 = new Player("Player 1");
-        player2 = new Player("Player 2");
-        game.addPlayer(player1);
-        game.addPlayer(player2);
-        game.setupGame();
-        const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [isaac, judas], false);
-      dischargeEachItemsAndRemoveCoins(game);
-      emptyHands(game);
-            for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
-          const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-          game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupTestGame({
+                    characters: ["b2-judas", "b2-isaac"],
+                    monsters: ["b2-fly", "b2-fatty"],
+                    monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+                    treasureDeck: ["b2-blank_card"],
+                });
+                game = setup.game;
+                player1 = setup.player1;
+                player2 = setup.player2!;
     });
 
 
@@ -192,15 +181,15 @@ describe("Loot Card", () => {
         await game.resolveStack();
 
         // gain x + 1 coins.
-        game.gainCoins(player1, 2);
+        game.gainCoins(player1, 2, "gift");
         expect(player1.coins).toBe(initialCoins + 3);
         
         // no gain when gaining 0 coins.
-        game.gainCoins(player1, 0);
+        game.gainCoins(player1, 0, "gift");
         expect(player1.coins).toBe(initialCoins + 3);
 
         // no effect for other players nor on other players' coin gain.
-        game.gainCoins(player2, 5);
+        game.gainCoins(player2, 5, "gift");
         expect(player2.coins).toBe(initialCoins2 + 5);
         expect(player1.coins).toBe(initialCoins + 3);
 
@@ -211,7 +200,7 @@ describe("Loot Card", () => {
         game.removeInPlay(player1, loot);
 
         // gain x coins normally after removal.
-        game.gainCoins(player1, 4);
+        game.gainCoins(player1, 4, "gift");
         expect(player1.coins).toBe(4);
     });
 
@@ -666,7 +655,7 @@ describe("Loot Card", () => {
 
         // Attack monster
         game.declareAttack(game.currentPlayer);
-        await game.declareAttackOnMonster(game.currentPlayer, monster);
+        await game.declareAttackOnEntity(game.currentPlayer, monster);
         game.attackRoll(player1)
         const attackRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll).toBeDefined();
@@ -707,7 +696,7 @@ describe("Loot Card", () => {
 
         // Attack monster
         game.declareAttack(game.currentPlayer);
-        await game.declareAttackOnMonster(game.currentPlayer, monster);
+        await game.declareAttackOnEntity(game.currentPlayer, monster);
         game.attackRoll(player1)
         const attackRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll).toBeDefined();

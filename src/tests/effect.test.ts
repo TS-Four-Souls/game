@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "@/models/game";
 import { Player } from "@/models/player";
-import { gainCoinsEffect } from "@/models/activeEffect";
+import { gainCoinsEffect } from "@/models/effects/activeEffect";
 import { CharacterCard, MonsterCard, EffectData } from "@/models/cards";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame } from "@/tests/testHelpers";
 
@@ -42,14 +42,14 @@ describe("Effect - gainCoins", () => {
         const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
         game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
         game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
-    effectFn(new EffectData(dummyLoot, p1, []));
+    effectFn(new EffectData(dummyLoot, () => p1, []));
     expect(p1.coins).toBe(5);
     expect(p2.coins).toBe(0);
   });
 
   it("should accumulate across multiple triggers", async () => {
-    effectFn(new EffectData(dummyLoot, p1, []));
-    effectFn(new EffectData(dummyLoot, p1, []));
+    effectFn(new EffectData(dummyLoot, () => p1, []));
+    effectFn(new EffectData(dummyLoot, () => p1, []));
     expect(p1.coins).toBe(10);
   });
 
@@ -66,18 +66,18 @@ describe("Effect - gainCoins", () => {
     freshGame.addPlayer(a);
     freshGame.addPlayer(b);
     const fn = gainCoinsEffect(freshGame, 3);
-    expect(() => fn(new EffectData(dummyLoot, a, []))).toThrow("Game not started");
+    expect(() => fn(new EffectData(dummyLoot, () => a, []))).toThrow("Game not started");
   });
 
   it("should reject negative coin amount", async () => {
     const negEffect = gainCoinsEffect(game, -2 as any);
-    expect(() => negEffect(new EffectData(dummyLoot, p1, []))).toThrow("Number is negative.");
+    expect(() => negEffect(new EffectData(dummyLoot, () => p1, []))).toThrow("Number is negative.");
   });
 });
 
 // Additional tests for non-tested effects from effect.ts
-import * as effect from "@/models/effectParser";
-import * as active from "@/models/activeEffect";
+import * as effect from "@/models/effects/effectParser";
+import * as active from "@/models/effects/activeEffect";
 import type { ItemCard, LootCard } from "@/models/cards";
 
 describe("Effect - additional unique implementations", () => {
@@ -87,7 +87,7 @@ describe("Effect - additional unique implementations", () => {
     const fn = active.changeRollDiceResultEffect(game);
     // Use a real loot card
     const card = game.decks["loot"]!.cards[0]!;
-    await fn(new EffectData(card, p1, [dice, 6]));
+    await fn(new EffectData(card, () => p1, [dice, 6]));
     expect(dice.value).toBe(6);
   });
 
@@ -97,8 +97,8 @@ describe("Effect - additional unique implementations", () => {
     p2.hand.addToHand(c); // p2 has more cards
     p2.gainCoins(5);
     // Use a real loot card
-    const card = game.decks["loot"]!.cards[0];
-    active.drawAndGainCoinsAsAPlayerEffect(p1, p2, game);
+    const card = game.decks["loot"]!.cards[0]!;
+    active.drawAndGainCoinsAsAPlayerEffect(p1, p2, card, game);
     expect(p1.hand.cards.length).toBe(1);
     expect(p1.coins).toBe(5);
   });
@@ -112,7 +112,7 @@ describe("Effect - additional unique implementations", () => {
     const parsed = effect.effectParser("Put this on the bottom of the loot deck. If you do, take an extra turn after this one if it's your turn.", game);
     // Use a real loot card
     const card = game.decks["loot"]!.cards[0]!;
-    await parsed.effectFunction(new EffectData(card, p1, []));
+    await parsed.effectFunction(new EffectData(card, () => p1, []));
     expect(added).toBe(true);
     expect(extra).toBe(true);
   });

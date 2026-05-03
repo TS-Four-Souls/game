@@ -17,7 +17,16 @@ describe("Known bugs that have be corrected", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
     });
-
+    it("playing question mark on chaos card should destroy question mark.", async () => {
+        const chaosCard = game.obtainCard("b2-chaos_card") as ItemCard;
+        game.addInPlay(player1, chaosCard);
+        const questionMark = game.obtainCard("fsp2-questionmark_card") as LootCard;
+        game.addCardToHand(player1, questionMark);
+        game.playCard(player1, player1.hand.length - 1, [chaosCard]);
+        await game.resolveStack();
+        expect(game.destroyedCards).toContain(questionMark);
+        expect(game.decks.loot.discard.map(c=>c.slug)).not.toContain(questionMark.slug);
+    });
     it("discard 1 loots on death", async () => {
         game.loot(player1, 10);
         const handSize = player1.hand.length;
@@ -197,7 +206,7 @@ describe("Known bugs that have be corrected", () => {
         game.decks.monster.addTopPosition(chest);
 
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, game.monsters[0]!);
+        await game.declareAttackOnEntity(player1, game.monsters[0]!);
         game.kill(player1, game.monsters[0]!, player1.inPlay[0]!);
         await game.resolveStack(); // when this dies 
         expect(game.stack.size).toBe(1);
@@ -217,7 +226,7 @@ describe("Known bugs that have be corrected", () => {
         const monster = game.monsters[0]!;
 
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, monster);
+        await game.declareAttackOnEntity(player1, monster);
         const loot = game.obtainCard("b2-soul_heart") as LootCard;
         game.addCardToHand(player1, loot);
         game.playCard(player1, player1.hand.length - 1, [player1]);
@@ -227,7 +236,7 @@ describe("Known bugs that have be corrected", () => {
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 1;
 
-        game.gainCoins(player1, 10); // Give some coins to lose
+        game.gainCoins(player1, 10, "gift"); // Give some coins to lose
         const init = player1.coins;
         await game.resolveStack(); // dice
         await game.resolveStack(); // damage

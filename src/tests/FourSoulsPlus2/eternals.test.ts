@@ -116,7 +116,7 @@ describe("Four Souls+2 Eternal Items", () => {
         
         expect(player1.attackPoints).toBe(atk + 2);
         game.resolveEntireStack();
-        game.endTurn();
+        await game.endTurn();
         game.resolveEntireStack();
         expect(player1.attackPoints).toBe(atk); 
     });
@@ -162,7 +162,7 @@ describe("Four Souls+2 Eternal Items", () => {
         player2 = setup.player2!;
         // const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         // const bumbo = game.decks["character"]!.getCardFromSlug("fsp2-dark_judas")! as CharacterCard;
-        // game.start(player1, [bumbo, samson], false);
+        // game.start([bumbo, samson], false);
         expect(player1.inPlay[0]!.slug).toBe("fsp2-dark_judas");
         expect(player1.inPlay[1]!.slug).toBe("fsp2-dark_arts");
 
@@ -232,7 +232,7 @@ describe("Four Souls+2 Eternal Items", () => {
         const initialLootPlay = player1.remainingLootPlay;
         expect(player1.inPlay[0]!.slug).toBe("fsp2-bum_bo");
         expect(player1.inPlay[1]!.slug).toBe("fsp2-bag_o_trash");
-        game.gainCoins(player1, 3);
+        game.gainCoins(player1, 3, "gift");
         await game.activateItem(player1, player1.inPlay[1]!, [], 0);
         expect(player1.coins).toBe(0);
         await game.resolveStack();
@@ -253,7 +253,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.inPlay[0]!.slug).toBe("fsp2-bum_bo");
         expect(player1.inPlay[1]!.slug).toBe("fsp2-bag_o_trash");
 
-        game.gainCoins(player1, 4);
+        game.gainCoins(player1, 4, "gift");
         expect(player1.coins).toBe(4);
         const handSize = player1.hand.cards.length;
         await game.activateItem(player1, player1.inPlay[1]!, [], 1);
@@ -276,7 +276,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.inPlay[0]!.slug).toBe("fsp2-bum_bo");
         expect(player1.inPlay[1]!.slug).toBe("fsp2-bag_o_trash");
 
-        game.gainCoins(player1, 6);
+        game.gainCoins(player1, 6, "gift");
         expect(player1.coins).toBe(6);
         // deal damage to a player.
         const healthP2 = player2.currentHealthPoints;
@@ -287,7 +287,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.coins).toBe(0);
 
         // deal damage to a monster.
-        game.gainCoins(player1, 6);
+        game.gainCoins(player1, 6, "gift");
         const healthM = game.monsters[0]!.currentHealthPoints;
         await game.activateItem(player1, player1.inPlay[1]!, [game.monsters[0]!], 2);
         await game.resolveStack();

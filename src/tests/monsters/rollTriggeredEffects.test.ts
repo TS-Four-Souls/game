@@ -262,7 +262,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         game.monsterSlots.forceSetMonsterAtSlot(0, cursedKeeperHead);
         
-        game.gainCoins(player1, 10); // Ensure player has enough coins
+        game.gainCoins(player1, 10, "gift"); // Ensure player has enough coins
         const initialCoins = player1.coins;
         
         // Trigger a roll
@@ -286,7 +286,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         game.monsterSlots.forceSetMonsterAtSlot(0, cursedKeeperHead);
         
-        game.gainCoins(player1, 10);
+        game.gainCoins(player1, 10, "gift");
         const initialCoins = player1.coins;
         
         const lootCard = game.obtainCard("b2-pills") as LootCard;
@@ -694,7 +694,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         // Declare attack
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, daddyMonster);
+        await game.declareAttackOnEntity(player1, daddyMonster);
         
         game.addHealth(daddyMonster, 10);
         
@@ -727,7 +727,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const initialDC = game.monsters.map(m => m?.evasion || 0);
         
         game.declareAttack(player1);
-        await game.declareAttackOnMonster(player1, daddyMonster);
+        await game.declareAttackOnEntity(player1, daddyMonster);
         
         game.addHealth(daddyMonster, 10);
         

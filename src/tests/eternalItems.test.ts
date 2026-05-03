@@ -4,7 +4,18 @@ import { DiceRoll, Player } from "../models/player";
 import { pl } from "zod/locales";
 import type { LootCard, ItemCard, TreasureCard } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "./testHelpers";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame, type GameSetupResult } from "./testHelpers";
+
+function setupGameWithCharacters(characterSlugs: string[]): GameSetupResult
+{
+    return setupTestGame({
+        characters: characterSlugs,
+        monsters: ["b2-fly", "b2-fatty"],
+        monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+        treasureDeck: ["b2-blank_card"],
+        playerCount: characterSlugs.length,
+    });
+}
 
 describe("Eternal Items", () => {
     let game: Game;
@@ -12,29 +23,14 @@ describe("Eternal Items", () => {
     let player2: Player;
 
     beforeEach(() => {
-        game = new Game();
-        mockGameSelections(game);
-        player1 = new Player("Player 1");
-        player2 = new Player("Player 2");
-        game.addPlayer(player1);
-        game.addPlayer(player2);
-        game.setupGame();
     });
     // [tap effect] look at the top 5 cards of a deck. put them back in any order.
     it("The D6", async () => {
-        const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [samson, isaac], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-samson", "b2-isaac"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        
         expect(player1.inPlay[0]!.slug).toBe("b2-samson");
         expect(player1.inPlay[0]!.eternal).toBe(true);
         expect(player2.inPlay[0]!.slug).toBe("b2-isaac");
@@ -58,7 +54,7 @@ describe("Eternal Items", () => {
         }
         expect(sumDiceRoll).not.toBe(50); // value should change
         await game.resolveStack();
-        game.endTurn();
+        await game.endTurn();
         await game.resolveStack();
         await game.resolveStack();
         await game.resolveStack(); // Resolve any stack effects
@@ -66,19 +62,11 @@ describe("Eternal Items", () => {
     }); 
     // [Tap Effect] Put the top card of any discard on top of its deck.
     it("The Curse - active", async () => {
-        const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [eve, isaac], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-eve", "b2-isaac"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        
         expect(player1.inPlay[0]!.slug).toBe("b2-eve");
         expect(player1.inPlay[0]!.eternal).toBe(true);
         expect(player1.inPlay[1]!.slug).toBe("b2-the_curse");
@@ -89,10 +77,10 @@ describe("Eternal Items", () => {
         await game.resolveStack();
         expect(game.decks["loot"]!.discard.length).toBe(1); // eve starts, discard 1.
         
-        game.endTurn();
+        await game.endTurn();
         expect(theCurse.charged).toBe(false);
         expect(game.stack.size).toBe(0);
-        game.endTurn();
+        await game.endTurn();
         await game.resolveStack(); // isaac D6 recharge.
         await game.resolveStack(); // eve turn start, discard 1.
         await game.resolveStack();
@@ -113,19 +101,10 @@ describe("Eternal Items", () => {
     });
 
     it("The Curse - passive", async () => {
-        const eve = game.decks["character"]!.getCardFromSlug("b2-eve")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [eve, isaac], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-eve", "b2-isaac"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
         expect(player1.inPlay[0]!.slug).toBe("b2-eve");
         expect(player1.inPlay[0]!.eternal).toBe(true);
         expect(player1.inPlay[1]!.slug).toBe("b2-the_curse");
@@ -133,11 +112,11 @@ describe("Eternal Items", () => {
         expect(player2.inPlay[0]!.slug).toBe("b2-isaac");
         await game.resolveStack();
 
-        game.endTurn(); // Isaac's turn
+        await game.endTurn(); // Isaac's turn
         await game.resolveStack(); // Resolve any stack effects
         const theCurse = player1.inPlay[1]! as ItemCard;
         const shouldBeDiscarded = game.decks["loot"]!.cards[0];
-        game.endTurn(); // back to Eve's turn
+        await game.endTurn(); // back to Eve's turn
         await game.resolveStack(); // Resolve any stack effects
         await game.resolveStack();
         // loot by default.
@@ -147,19 +126,10 @@ describe("Eternal Items", () => {
 
     // "[Tap Effect] Put a counter on this.",
     it("The Bone: active effect (put a counter on this)", async () => {
-        const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [theForgotten, isaac], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-the_forgotten", "b2-isaac"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
         expect(player1.inPlay[0]!.slug).toBe("b2-the_forgotten");
         expect(player1.inPlay[0]!.eternal).toBe(true);
         expect(player1.inPlay[1]!.slug).toBe("b2-the_bone");
@@ -170,7 +140,7 @@ describe("Eternal Items", () => {
         await game.activateItem(player1, theBone);
         await game.resolveStack();
         expect(theBone.tags.counters).toBe(1);
-        game.endTurn();
+        await game.endTurn();
         expect(theBone.charged).toBe(false);
         game.recharge(theBone);
         await game.activateItem(player1, theBone);
@@ -180,30 +150,12 @@ describe("Eternal Items", () => {
 
     });
 
-
-
-
-
-
-
-
-
-
     // "[Paid Effect] Remove 1 counter from this: Add +1 to a dice roll."
     it("The Bone: paid effect 1 (remove 1 counter to add +1 to dice roll)", async () => {
-        const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [theForgotten, isaac], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-the_forgotten", "b2-isaac"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
         
         const theBone = player1.inPlay[1]! as ItemCard;
         
@@ -238,19 +190,10 @@ describe("Eternal Items", () => {
 
     // "[Paid Effect] Remove 2 counters from this: Deal 1 damage to a monster or player."
     it("The Bone: paid effect 2 (remove 2 counters to deal 1 damage to player)", async () => {
-        const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [theForgotten, isaac], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-the_forgotten", "b2-isaac"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
         
         const theBone = player1.inPlay[1]! as ItemCard;
         
@@ -274,19 +217,10 @@ describe("Eternal Items", () => {
     });
 
     it("The Bone: paid effect 2 (remove 2 counters to deal 1 damage to monster)", async () => {
-        const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [theForgotten, isaac], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+       const setup = setupGameWithCharacters(["b2-the_forgotten", "b2-isaac"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
         
         const theBone = player1.inPlay[1]! as ItemCard;
         
@@ -314,19 +248,10 @@ describe("Eternal Items", () => {
 
     // "[Paid Effect] Remove 5 counters from this: This becomes a soul and loses all abilities."
     it("The Bone: paid effect 3 (remove 5 counters to become a soul)", async () => {
-        const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [theForgotten, isaac], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-the_forgotten", "b2-isaac"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
         
         const theBone = player1.inPlay[1]! as ItemCard;
         
@@ -354,20 +279,11 @@ describe("Eternal Items", () => {
     });
 
     it("The Bone: paid effect 3 cannot be used with less than 5 counters", async () => {
-        const theForgotten = game.decks["character"]!.getCardFromSlug("b2-the_forgotten")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [theForgotten, isaac], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
-        
+        const setup = setupGameWithCharacters(["b2-the_forgotten", "b2-isaac"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+
         const theBone = player1.inPlay[1]! as ItemCard;
         
         // Add only 4 counters to the bone
@@ -388,39 +304,13 @@ describe("Eternal Items", () => {
         expect(player1.souls).toBe(initialSouls); // Souls should remain unchanged
     });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     // "[Tap Effect] Add or subtract 1 from a roll."
     it("Book of Belial: add ", async () => {
-        const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [judas, isaac], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-judas", "b2-isaac"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        
         expect(player1.inPlay[0]!.slug).toBe("b2-judas");
         expect(player1.inPlay[0]!.eternal).toBe(true);
         expect(player1.inPlay[1]!.slug).toBe("b2-book_of_belial");
@@ -450,19 +340,10 @@ describe("Eternal Items", () => {
     });
 
     it("Book of Belial: subtract ", async () => {
-        const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [judas, isaac], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-judas", "b2-isaac"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
         expect(player1.inPlay[0]!.slug).toBe("b2-judas");
         expect(player1.inPlay[0]!.eternal).toBe(true);
         expect(player1.inPlay[1]!.slug).toBe("b2-book_of_belial");
@@ -493,19 +374,11 @@ describe("Eternal Items", () => {
 
     // "[Tap Effect] Look at the top 5 cards of a deck. Put them back in any order."
     it("Sleight of Hand ", async () => {
-        const cain = game.decks["character"]!.getCardFromSlug("b2-cain")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [cain, isaac], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-cain", "b2-isaac"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        
         expect(player1.inPlay[0]!.slug).toBe("b2-cain");
         expect(player1.inPlay[0]!.eternal).toBe(true);
         expect(player1.inPlay[1]!.slug).toBe("b2-sleight_of_hand");
@@ -527,19 +400,11 @@ describe("Eternal Items", () => {
 
     // "[Tap Effect] Choose a player or monster. Prevent the next instance of damage they would take this turn.",
     it("Yum Heart", async () => {
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const maggy = game.decks["character"]!.getCardFromSlug("b2-maggy")! as CharacterCard;
-        game.start(player1, [isaac, maggy], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-isaac", "b2-maggy"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        
         const dummyLoot = game.decks["loot"]!.draw() as LootCard;
         
         expect(player1.inPlay[0]!.slug).toBe("b2-isaac");
@@ -548,7 +413,7 @@ describe("Eternal Items", () => {
         expect(player2.inPlay[1]!.slug).toBe("b2-yum_heart");
         expect(player2.inPlay[1]!.eternal).toBe(true);
         const yumHeart = player2.inPlay[1]! as ItemCard;
-        game.endTurn();
+        await game.endTurn();
         await game.resolveStack(); // Resolve any stack effects
         expect(yumHeart.charged).toBe(true);
         
@@ -565,27 +430,17 @@ describe("Eternal Items", () => {
         await game.resolveStack(); // resolve the damage prevention
         expect(player2.currentHealthPoints).toBe(1); // damage taken
 
-        game.endTurn();
+        await game.endTurn();
         await game.resolveStack(); // Resolve any stack effects
         expect(yumHeart.charged).toBe(true);
     });
 //     "Each time you die, after paying penalties, gain +1 treasure."
     it("Lazarus Rags", async () => {
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const lazarus = game.decks["character"]!.getCardFromSlug("b2-lazarus")! as CharacterCard;
-        game.start(player1, [isaac, lazarus], false);
-        // Wait for async event handlers to complete
-        await new Promise(resolve => setTimeout(resolve, 10));
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-isaac", "b2-lazarus"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        
         const dummyLoot = game.decks["loot"]!.draw() as LootCard;
 
         expect(player1.inPlay[0]!.slug).toBe("b2-isaac");
@@ -609,7 +464,7 @@ describe("Eternal Items", () => {
         expect(player2.inPlay.length).toBe(3);
         const firstItemGained = player2.inPlay[2];
 
-        game.endTurn();
+        await game.endTurn();
         await game.resolveStack(); // Resolve any stack effects
         expect(firstItemGained!.eternal).toBe(false);
         expect(firstItemGained!).toBe(blankcard);
@@ -625,19 +480,10 @@ describe("Eternal Items", () => {
     });
 
     it("Blood Lust", async () => {
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        game.start(player1, [isaac, samson], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-isaac", "b2-samson"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
 
         expect(player1.inPlay[0]!.slug).toBe("b2-isaac");
         expect(player2.inPlay[0]!.slug).toBe("b2-samson");
@@ -654,7 +500,7 @@ describe("Eternal Items", () => {
         await game.resolveStack();
         expect(player2.attackPoints).toBe(2);
 
-        game.endTurn();
+        await game.endTurn();
         await game.resolveStack();
         await game.resolveStack();
         expect(player2.attackPoints).toBe(1);
@@ -662,7 +508,7 @@ describe("Eternal Items", () => {
 
         await game.activateItem(player2, bloodlust);
         await game.resolveStack();
-        game.endTurn();
+        await game.endTurn();
         await game.resolveStack();
         await game.resolveStack();
         await game.resolveStack(); // Resolve any stack effects
@@ -670,21 +516,21 @@ describe("Eternal Items", () => {
         await game.activateItem(player2, bloodlust);
         await game.resolveStack();
         expect(bloodlust.charged).toBe(false);
-        game.endTurn();
+        await game.endTurn();
         await game.resolveStack();
         await game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
         await game.activateItem(player2, bloodlust);
         await game.resolveStack();
         expect(bloodlust.charged).toBe(false);
-        game.endTurn();
+        await game.endTurn();
         await game.resolveStack();
         await game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
         await game.activateItem(player2, bloodlust);
         await game.resolveStack();
         expect(bloodlust.charged).toBe(false);
-        game.endTurn();
+        await game.endTurn();
         await game.resolveStack();
         await game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
@@ -693,19 +539,10 @@ describe("Eternal Items", () => {
     // "[Tap Effect] Choose one-\nSteal 1\u00A2 from another player.\nLook at the top card of a deck.\nDiscard a loot card, then loot 1."
     // "Each time you take damage, recharge this."
     it("Forever Alone - Option 1: Steal 1\u00A2 from another player", async () => {
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
-        game.start(player1, [isaac, blueBaby], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-isaac", "b2-blue_baby"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
         
         expect(player2.inPlay[0]!.slug).toBe("b2-blue_baby");
         expect(player2.inPlay[0]!.eternal).toBe(true);
@@ -731,19 +568,10 @@ describe("Eternal Items", () => {
     });
 
     it("Forever Alone - Option 2: Look at the top card of a deck", async () => {
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
-        game.start(player1, [isaac, blueBaby], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-isaac", "b2-blue_baby"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
         
         const foreverAlone = player2.inPlay[1]! as ItemCard;
         game.recharge(foreverAlone);
@@ -760,20 +588,10 @@ describe("Eternal Items", () => {
     });
 
     it("Forever Alone - Option 3: Discard a loot card, then loot 1", async () => {
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
-        game.start(player1, [isaac, blueBaby], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
-        
+        const setup = setupGameWithCharacters(["b2-isaac", "b2-blue_baby"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
         const foreverAlone = player2.inPlay[1]! as ItemCard;
         game.recharge(foreverAlone);
 
@@ -805,19 +623,10 @@ describe("Eternal Items", () => {
     });
 
     it("Forever Alone - Recharges when taking damage", async () => {
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
-        game.start(player1, [isaac, blueBaby], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-isaac", "b2-blue_baby"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
         
         const foreverAlone = player2.inPlay[1]! as ItemCard;
         const dummyLoot = game.decks["loot"]!.draw() as LootCard;
@@ -841,19 +650,10 @@ describe("Eternal Items", () => {
     });
 
     it("Forever Alone - Multiple damage instances recharge each time", async () => {
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const blueBaby = game.decks["character"]!.getCardFromSlug("b2-blue_baby")! as CharacterCard;
-        game.start(player1, [isaac, blueBaby], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-isaac", "b2-blue_baby"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
         
         const foreverAlone = player2.inPlay[1]! as ItemCard;
         const dummyLoot = game.decks["loot"]!.draw() as LootCard;
@@ -885,19 +685,10 @@ describe("Eternal Items", () => {
 
     // "[Tap Effect] Choose one-\nLook at a player's hand. You may swap a card from your hand with one of theirs.\nLoot 1, then put a card from your hand on top of the loot deck."
     it("Incubus - Option 1: Look at a player's hand and swap a card", async () => {
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
-        game.start(player1, [isaac, lilith], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-isaac", "b2-lilith"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
         
         expect(player2.inPlay[0]!.slug).toBe("b2-lilith");
         expect(player2.inPlay[0]!.eternal).toBe(true);
@@ -930,20 +721,11 @@ describe("Eternal Items", () => {
     });
 
     it("Incubus - Option 2: Loot 1, then put a card from your hand on top of the loot deck", async () => {
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
-        game.start(player1, [isaac, lilith], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
-
+        const setup = setupGameWithCharacters(["b2-isaac", "b2-lilith"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        
         const incubus = player2.inPlay[1]! as ItemCard;
         game.recharge(incubus);
 
@@ -969,19 +751,10 @@ describe("Eternal Items", () => {
     });
 
     it("Incubus - Option 2: Does nothing with empty hand", async () => {
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
-        game.start(player1, [isaac, lilith], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-isaac", "b2-lilith"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
         
         const incubus = player2.inPlay[1]! as ItemCard;
         game.recharge(incubus);
@@ -1003,26 +776,17 @@ describe("Eternal Items", () => {
     });
 
     it("Incubus - Charges at start of turn", async () => {
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const lilith = game.decks["character"]!.getCardFromSlug("b2-lilith")! as CharacterCard;
-        game.start(player1, [isaac, lilith], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-isaac", "b2-lilith"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
         
         const incubus = player2.inPlay[1]! as ItemCard;
         
         // Start with incubus discharged
         incubus.charged = false;
         
-        game.endTurn(); // Isaac's turn ends
+        await game.endTurn(); // Isaac's turn ends
         await game.resolveStack();
         expect(incubus.charged).toBe(true);
         
@@ -1036,32 +800,16 @@ describe("Eternal Items - 3 players tests", () => {
     let player3: Player;
 
     beforeEach(() => {
-        game = new Game();
-        mockGameSelections(game);
-        player1 = new Player("Player 1");
-        player2 = new Player("Player 2");
-        player3 = new Player("Player 3");
-        game.addPlayer(player1);
-        game.addPlayer(player2);
-        game.addPlayer(player3);
-        game.setupGame();
     });
     
     it("Blood Lust - recharge on end turn", async () => {
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
-        game.start(player1, [isaac, samson, judas], false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
-        for( const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]){
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
-        const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
-        const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        const setup = setupGameWithCharacters(["b2-isaac", "b2-samson", "b2-judas"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        player3 = setup.player3!;
+        
+        
         expect(player1.inPlay[0]!.slug).toBe("b2-isaac");
         expect(player2.inPlay[0]!.slug).toBe("b2-samson");
         expect(player2.inPlay[0]!.eternal).toBe(true);
@@ -1069,31 +817,31 @@ describe("Eternal Items - 3 players tests", () => {
         expect(player2.inPlay[1]!.eternal).toBe(true);
         const bloodlust = player2.inPlay[1]! as ItemCard;
 
-        game.endTurn(); // samson turn
+        await game.endTurn(); // samson turn
         await game.resolveStack();
         expect(bloodlust.charged).toBe(true);
         await game.activateItem(player2, bloodlust);
         await game.resolveStack();
         expect(bloodlust.charged).toBe(false);
 
-        game.endTurn(); // eve turn
+        await game.endTurn(); // eve turn
         await game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
         await game.activateItem(player2, bloodlust);
         await game.resolveStack();
         expect(bloodlust.charged).toBe(false);
 
-        game.endTurn(); // isaac turn
+        await game.endTurn(); // isaac turn
         await game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(false);
-        game.endTurn(); // samson turn
+        await game.endTurn(); // samson turn
         await game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
         await game.activateItem(player2, bloodlust);
         await game.resolveStack();
         expect(bloodlust.charged).toBe(false);
 
-        game.endTurn(); // eve turn
+        await game.endTurn(); // eve turn
         await game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);;
         expect(player1.attackPoints).toBe(1);
@@ -1102,24 +850,24 @@ describe("Eternal Items - 3 players tests", () => {
         expect(player1.attackPoints).toBe(2);
         expect(bloodlust.charged).toBe(false);
 
-        game.endTurn(); // isaac turn
+        await game.endTurn(); // isaac turn
         await game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(false); 
-        game.endTurn(); // samson turn
+        await game.endTurn(); // samson turn
         await game.resolveStack();
         expect(bloodlust.charged).toBe(true);
         await game.activateItem(player2, bloodlust);
         await game.resolveStack();
         expect(bloodlust.charged).toBe(false);
 
-        game.endTurn(); // eve turn
+        await game.endTurn(); // eve turn
         await game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
         await game.activateItem(player2, bloodlust);
         await game.resolveStack();
         expect(bloodlust.charged).toBe(false);
 
-        game.endTurn(); // isaac turn
+        await game.endTurn(); // isaac turn
         await game.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(false);
     });

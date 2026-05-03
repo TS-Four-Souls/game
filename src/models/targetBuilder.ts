@@ -1,6 +1,6 @@
 import type { DeckName, SelectionItem, TargetSelectorResponse } from "../shared/api";
 import { Card, ItemCard, type TargetsSelector } from "./cards";
-import { parseNumber } from "./effectParser";
+import { parseNumber } from "./effects/effectParser";
 import { Entity } from "./entity";
 import type { Game } from "./game";
 import type { Player } from "./player";
@@ -10,8 +10,6 @@ import { isChooseOneOptions, type ChooseOneOptions } from "./targetSelector";
 /**
  * Target Builder - Standalone utility for progressive target selection
  * 
- * Inspired by SelectorWalker, this walks through selectors handling choose-one nesting.
- * Uses a flat array of choices (similar to SelectorWalker) instead of nested arrays.
  * 
  * For choose-one selectors:
  * 1. First choice is the option description (e.g., "destroy an item you control.")
@@ -103,6 +101,7 @@ export class TargetBuilder {
 
             const isChooseOne = possibleTargets.length > 0 && isChooseOneOptions(possibleTargets[0]);
             if (isChooseOne) {
+                throw new Error("SHOULD NEVER BE THERE: Cannot auto-advance through deterministic choose-one selectors during build - user choice is required to determine the path.");
                 const chosenOption = (possibleTargets as ChooseOneOptions[])[0]!;
                 result.push(chosenOption.description);
 
@@ -168,7 +167,7 @@ export class TargetBuilder {
             throw new Error(`Item ${item.name} is not charged.`);
         // console.log("TargetBuilder.getNextSelector for item:", item.name, "effectId:", effectId, "partialChoices:", partialChoices);
 
-        const rootSelectors = item.getEffectTarget(effectId);
+        const rootSelectors = [... item.getEffectTarget(effectId)];
 
         let selectorIndex = 0;
         let selector: TargetsSelector | undefined = rootSelectors[selectorIndex];
@@ -204,25 +203,11 @@ export class TargetBuilder {
                 if (!chosenOption) {
                     throw new Error(`Invalid choose-one option: ${choice}`);
                 }
-
-                // If admissibleTargets is empty, this option needs no targets - move to next selector
-                if (chosenOption.admissibleTargets.length === 0) {
-                    selectorIndex++;
-                    selector = rootSelectors[selectorIndex];
-                    choicesProcessed = 0;
-                    
-                    if (!selector) {
-                        return TargetBuilder.completeResponse();
-                    }
-                } else {
-                    // Create a temporary selector for the admissible targets
-                    selector = {
-                        description: chosenOption.description,
-                        selector: () => chosenOption.admissibleTargets,
-                        min: selector.min,
-                        max: selector.max
-                    };
-                    choicesProcessed = 0; // Reset for the sub-selector
+                rootSelectors.splice(selectorIndex + 1, 0, ...chosenOption.admissibleTargets);
+                selectorIndex++;
+                selector = rootSelectors[selectorIndex];
+                if (!selector) {
+                    return TargetBuilder.completeResponse();
                 }
             } else {
                 // Regular selector - validate choice by matching against possibleTargets
@@ -466,7 +451,7 @@ export class TargetBuilder {
         game.assertNoPendingSelection();
         if(!item)
             throw new Error(`Item not found.`);
-        const rootSelectors = item.getEffectTarget(effectId);
+        const rootSelectors = [...item.getEffectTarget(effectId)];
         const result: any[] = [];
 
         let selectorIndex = 0;
@@ -494,6 +479,7 @@ export class TargetBuilder {
                 }
 
                 const choice = partialChoices[choiceIndex]!;
+                choiceIndex++; // Move past the option choice
                 const chosenOption = (possibleTargets as ChooseOneOptions[]).find(
                     opt => opt.description === choice.payload
                 );
@@ -501,25 +487,8 @@ export class TargetBuilder {
                 if (!chosenOption) {
                     throw new Error(`Invalid choose-one option: ${choice}`);
                 }
-
-                choiceIndex++; // Move past the option choice
-
-                // Collect the targets for this option from admissibleTargets
-                const targetsNeeded = selector.max;
-                const admissibleTargets = chosenOption.admissibleTargets;
-                const chosenTargets: any[] = [];
-
-                for (let i = 0; i < targetsNeeded && choiceIndex < partialChoices.length; i++) {
-                    const targetId = partialChoices[choiceIndex]!;
-                    const resolved = TargetBuilder.resolveIdentifier(targetId, admissibleTargets);
-                    if (resolved) {
-                        chosenTargets.push(resolved);
-                    }
-                    choiceIndex++;
-                }
-
-                // Push description and spread targets into flat array
-                result.push(chosenOption.description, ...chosenTargets);
+                result.push(chosenOption.description);
+                rootSelectors.splice(selectorIndex+1, 0, ...chosenOption.admissibleTargets);
             } else {
                 if (choiceIndex >= partialChoices.length) {
                     break;

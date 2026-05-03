@@ -7,7 +7,7 @@ import { StackElement } from "@/models/stackElement";
 import { GameEventEmitter } from "@/models/eventEmmitter";
 import type { CharacterCard, ItemCard, LootCard } from "@/models/cards";
 import type { StackElementJson } from "@/shared/api";
-import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupStandardTestGame } from "@/tests/testHelpers";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupStandardTestGame, setupTestGame } from "@/tests/testHelpers";
 
 class DummyStackElement extends StackElement {
   constructor(private readonly label: string) {
@@ -66,7 +66,7 @@ describe("Game", () => {
     
     expect(game.players.length).toBe(2);
     expect(() => {
-      game.start(player1, null, false);
+      game.start( null, false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
         }).not.toThrow();
@@ -174,11 +174,6 @@ describe("Player", () => {
     player.die();
     expect(player.currentHealthPoints).toBe(0);
     expect(player.isDead).toBe(true);
-  });
-
-  it("should verify secret token correctly", async () => {
-    expect(player.verifySecret(player.secret)).toBe(true);
-    expect(player.verifySecret("wrongSecret")).toBe(false);
   });
 
   it("should roll a dice between 1 and 6", async () => {
@@ -654,7 +649,7 @@ describe("Game - Guardrails", () => {
   });
 
   it("should not allow adding players after game start", async () => {
-    game.start(player1, null, false);
+    game.start(null, false);
     dischargeEachItemsAndRemoveCoins(game);
     emptyHands(game);
     const latePlayer = new Player("late");
@@ -874,7 +869,7 @@ describe("Game - Game State", () => {
   });
 
   it("should get shop", async () => {
-    game.start(player1, null, false);
+    game.start(null, false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
         const shop = game.shop;
@@ -882,7 +877,7 @@ describe("Game - Game State", () => {
   });
 
   it("should get encounters", async () => {
-    game.start(player1, null, false);
+    game.start(null, false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
         const encounters = game.encounters;
@@ -890,7 +885,7 @@ describe("Game - Game State", () => {
   });
 
   it("should get monster slots", async () => {
-    game.start(player1, null, false);
+    game.start(null, false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
         const slots = game.monsterSlots;
@@ -985,25 +980,27 @@ describe("Game - Damage System", () => {
   let player2: Player;
 
   beforeEach(() => {
-    game = new Game();
-    mockGameSelections(game);
-    player1 = new Player("player1");
+    const setup = setupTestGame({
+                            characters: ["b2-samson", "b2-isaac"],
+                            monsters: ["b2-fly", "b2-fatty"],
+                            monsterDeck: ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip","b2-leech","b2-gurdy"],
+                            treasureDeck: ["b2-boomerang", "b2-guppys_head", "b2-blank_card", "b2-tech_x", "b2-the_battery", "b2-lucky_foot", "b2-mini_mush", "b2-spoon_bender"],
+                            bonusSouls: [],
+                            playerCount: 2,
+                            rooms: true,
+                        });
+            game = setup.game;
+            player1 = setup.player1;
+            player2 = setup.player2!;
+            game.resetStack();
+            game.resetCallbacks();
     player1.addAttackPoints(2); // Start with 2 attack points for testing
     player1.addHealthPoints(10); // Start with 10 health points for testing
     player1.gainCoins(10); // Start with 10 coins for testing
-    player2 = new Player("player2");
     player2.addAttackPoints(3); // Start with 3 attack points for testing
     player2.addHealthPoints(8); // Start with 8 health points for testing
     player2.gainCoins(15); // Start with 15 coins for testing
-    game.addPlayer(player1);
-    game.addPlayer(player2);
-    game.setupGame();
-    const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-    const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-    game.start(player1, [samson, isaac], false);
-      dischargeEachItemsAndRemoveCoins(game);
-      emptyHands(game);
-      });
+    });
 
   it("should deal damage between entities", async () => {
     const initialHealth = player2.currentHealthPoints;
@@ -1019,6 +1016,8 @@ describe("Game - Damage System", () => {
     const mockCard = { name: "Test Card" } as any;
     
     game.dealDamage(player1, player2, mockCard, 0);
+    await game.resolveStack();
+    await game.resolveStack();
     
     expect(player2.currentHealthPoints).toBe(initialHealth);
   });

@@ -9,7 +9,11 @@ export type IdentifierType = z.infer<typeof identifierTypeSchema>;
 
 export const entityTypeSchema = identifierTypeSchema.extend({
   color: z.string(),
-  type: z.union([z.literal("player"), z.literal("monster")]),
+  type: z.union([
+    z.literal("player"),
+    z.literal("monster"),
+    z.literal("animated"),
+  ]),
 });
 export type EntityType = z.infer<typeof entityTypeSchema>;
 
@@ -22,7 +26,11 @@ const activeEffectEntrySchema = z.object({
 });
 export type ActiveEffectEntry = z.infer<typeof activeEffectEntrySchema>;
 
-const deckNameSchema = z.union([z.literal("loot"), z.literal("treasure"), z.literal("monster")]);
+const deckNameSchema = z.union([
+  z.literal("loot"),
+  z.literal("treasure"),
+  z.literal("monster"),
+]);
 export type DeckName = z.infer<typeof deckNameSchema>;
 
 // Forward declare types for circular references
@@ -31,6 +39,7 @@ export type SelectionItem =
   | { type: "stackElement"; payload: StackElement }
   | { type: "player"; payload: EntityType }
   | { type: "monster"; payload: EntityType }
+  | { type: "animated"; payload: EntityType }
   | { type: "deck"; payload: DeckName }
   | { type: "number"; payload: number }
   | { type: "boolean"; payload: boolean }
@@ -39,6 +48,7 @@ export type SelectionItem =
       type: "couplePlayerHand";
       payload: { player: IdentifierType; hand: Card[] };
     }
+  | { type: "character"; payload: RoomCharacter }
   | { type: "array"; payload: SelectionItem[] }
   | { type: "object"; payload: { [key: string]: SelectionItem } }
   | { type: "null"; payload: null }
@@ -87,6 +97,7 @@ const pendingSelectionSchema = z.object({
   options: z.array(selectionItemSchema),
   min: z.number(),
   max: z.number(),
+  canUseOnBoardSelection: z.boolean(),
 });
 export type PendingSelection = z.infer<typeof pendingSelectionSchema>;
 
@@ -101,7 +112,7 @@ export type TemporaryEffect = z.infer<typeof temporaryEffectSchema>;
 const capabilitySchema = z.union([z.literal(true), z.string()]);
 export type Capability = z.infer<typeof capabilitySchema>;
 
-const monsterCardSchema = cardSchema.extend({
+const attackableCardSchema = cardSchema.extend({
   stats: z
     .object({
       healthPoints: z.number(),
@@ -115,9 +126,9 @@ const monsterCardSchema = cardSchema.extend({
     })
     .optional(),
 });
-export type MonsterCard = z.infer<typeof monsterCardSchema>;
+export type MonsterCard = z.infer<typeof attackableCardSchema>;
 
-const inPlayCardSchema = cardSchema.extend({
+const inPlayCardSchema = attackableCardSchema.extend({
   charged: z.boolean().optional(),
   counter: z.number().optional(),
   eternal: z.boolean().optional(),
@@ -134,6 +145,7 @@ export type InPlayMeCard = z.infer<typeof inPlayMeCardSchema>;
 
 const bonusSoulCardSchema = cardSchema.extend({
   granted: z.boolean(),
+  counter: z.number().optional(),
 });
 export type BonusSoulCard = z.infer<typeof bonusSoulCardSchema>;
 
@@ -248,36 +260,47 @@ const selectionItemTypeSchema = z.union([
 ]);
 export type SelectionItemType = z.infer<typeof selectionItemTypeSchema>;
 
-const issuerSchema = z.object({
-  id: z.string(),
-  secret: z.string(),
-});
+const nullSchema = z.null();
+
+const issuerSchema = z.string();
+
 export type Issuer = z.infer<typeof issuerSchema>;
 
-const debugLootRequestSchema = issuerSchema.extend({
+const debugLootRequestSchema = z.object({
   cards: z.array(identifierTypeSchema),
 });
-const debugGainTreasureRequestSchema = issuerSchema.extend({
+const debugGainTreasureRequestSchema = z.object({
+  cards: z.array(identifierTypeSchema),
+});
+const debugPutMonsterCardInSlotRequestSchema = z.object({
+  card: identifierTypeSchema,
+  toCover: cardSchema,
+});
+
+const debugGainCoinsRequestSchema = z.object({
+  coins: z.number(),
+});
+
+const debugRemoveCardsRequestSchema = z.object({
   cards: z.array(identifierTypeSchema),
 });
 
-const debugRemoveCardsRequestSchema = issuerSchema.extend({
-  cards: z.array(identifierTypeSchema),
+const reportBugRequestSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().min(1),
+  severity: z.enum(["low", "medium", "high", "critical"]).optional(),
 });
 
 const giveCoinsSchema = z.object({
-  issuer: issuerSchema,
   target: z.string(),
   coins: z.number(),
 });
 
 const attackMonsterSchema = z.union([
   z.object({
-    issuer: issuerSchema,
     index: z.number(),
   }),
   z.object({
-    issuer: issuerSchema,
     index: z.literal("top"),
     replaceIndex: z.number(),
   }),
@@ -303,6 +326,7 @@ const gameParametersSchema = z.object({
   nbNickels: numberGameParameterSchema,
   nbItemsInShop: numberGameParameterSchema,
   nbEncounters: numberGameParameterSchema,
+  nbRooms: numberGameParameterSchema,
   deathPenaltyCoins: numberGameParameterSchema,
   deathPenaltyItem: numberGameParameterSchema,
   deathPenaltyLoot: numberGameParameterSchema,
@@ -313,7 +337,10 @@ const gameParametersSchema = z.object({
   maxHandSize: numberGameParameterSchema,
   allowCoinDonation: booleanGameParameterSchema,
   lootPlayPerTurn: numberGameParameterSchema,
+  playWithBonusSouls: booleanGameParameterSchema,
   nbPlayerCardRestriction: booleanGameParameterSchema,
+  playWithRooms: booleanGameParameterSchema,
+  allowCheatOptions: booleanGameParameterSchema,
 });
 export type GameParametersJson = z.infer<typeof gameParametersSchema>;
 
@@ -350,12 +377,9 @@ const joinRequestSchema = z.string();
 
 const rejoinRequestSchema = z.object({
   userId: z.string(),
-  issuer: issuerSchema.optional(),
 });
 
-const startRequestSchema = z.object({
-  issuer: issuerSchema,
-});
+const startRequestSchema = z.literal(null);
 
 const resetRequestSchema = z.literal(null);
 
@@ -384,6 +408,21 @@ const debugListLootResponseSchema = z.union([
 ]);
 export type DebugListLootResponse = z.infer<typeof debugListLootResponseSchema>;
 
+const DebugListMonsterDeckResponseSchema = z.union([
+  z.object({
+    status: z.literal(200),
+    cards: z.array(cardSchema),
+    coverable: z.array(cardSchema),
+  }),
+  z.object({
+    status: z.literal(400),
+    error: z.string(),
+  }),
+]);
+export type DebugListMonsterDeckResponse = z.infer<
+  typeof DebugListMonsterDeckResponseSchema
+>;
+
 const debugListCardsICanRemoveResponseSchema = z.union([
   z.object({
     status: z.literal(200),
@@ -394,10 +433,10 @@ const debugListCardsICanRemoveResponseSchema = z.union([
     error: z.string(),
   }),
 ]);
-export type DebugListCardsICanRemoveResponse = z.infer<typeof debugListCardsICanRemoveResponseSchema>;
+export type DebugListCardsICanRemoveResponse = z.infer<
+  typeof debugListCardsICanRemoveResponseSchema
+>;
 
-// const debugRemoveCardsResponseSchema = z.union([
-//   z.object({
 const debugListTreasureResponseSchema = z.union([
   z.object({
     status: z.literal(200),
@@ -433,19 +472,16 @@ const declarePurchaseRequestSchema = startRequestSchema;
 const cancelPurchaseRequestSchema = startRequestSchema;
 
 const submitSelectionSchema = z.object({
-  issuer: issuerSchema,
   requestId: z.string(),
   selections: z.array(selectionItemSchema),
 });
 
 const insertStackElementBeforeSchema = z.object({
-  issuer: issuerSchema,
   elementToMoveStackId: z.number(),
   targetStackId: z.union([z.number(), z.literal("start")]),
 });
 
 const purchaseSchema = z.object({
-  issuer: issuerSchema,
   index: z.union([z.number(), z.literal("top")]),
 });
 
@@ -456,7 +492,6 @@ const attackRequirementSchema = z.object({
 
 export type AttackRequirement = z.infer<typeof attackRequirementSchema>;
 const cardActivationSchema = z.object({
-  issuer: issuerSchema,
   index: z.number(),
   effectIndex: z.union([z.number(), z.literal("tap")]),
   targetChoices: z.array(selectionItemSchema).optional(),
@@ -475,7 +510,6 @@ const setGameParameterRequestSchema = z.discriminatedUnion("parameter", [
       ) as [NumberParameterKeys, ...NumberParameterKeys[]],
     ),
     value: z.number(),
-    issuer: issuerSchema,
   }),
   z.object({
     parameter: z.enum(
@@ -487,7 +521,6 @@ const setGameParameterRequestSchema = z.discriminatedUnion("parameter", [
       ) as [BooleanParameterKeys, ...BooleanParameterKeys[]],
     ),
     value: z.boolean(),
-    issuer: issuerSchema,
   }),
 ]);
 export type SetGameParameterRequest = z.infer<
@@ -532,6 +565,93 @@ const playerMeSchema = playerSchema.extend({
 });
 export type PlayerMe = z.infer<typeof playerMeSchema>;
 
+const genericAnimationSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+});
+
+const playLootAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("playLoot"),
+  card: identifierTypeSchema,
+  player: z.string(),
+});
+
+const drawLootAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("drawLoot"),
+  nb: z.number(),
+  player: z.string(),
+});
+
+const diceRollAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("diceRoll"),
+  player: z.string(),
+  diceRoll: z.number(),
+});
+
+const transferLootAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("transferLoot"),
+  card: identifierTypeSchema,
+  sender: z.string(),
+  recipient: z.string(),
+});
+
+const discardLootAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("discardLoot"),
+  card: identifierTypeSchema,
+  player: z.string(),
+});
+
+const buyTopDeckTreasureAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("buyTopDeckTreasure"),
+  card: identifierTypeSchema,
+  player: z.string(),
+});
+
+const buyShopTreasureAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("buyShopTreasure"),
+  card: identifierTypeSchema,
+  player: z.string(),
+});
+
+const activateInPlayAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("activateInPlay"),
+  card: identifierTypeSchema,
+});
+
+const obtainBonusSoulAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("obtainBonusSoul"),
+  card: identifierTypeSchema,
+  player: z.string(),
+});
+
+const obtainMonsterSoulAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("obtainMonsterSoul"),
+  card: identifierTypeSchema,
+  player: z.string(),
+});
+
+const giveCoinsAnimationSchema = genericAnimationSchema.extend({
+  type: z.literal("giveCoins"),
+  sender: z.string(),
+  recipient: z.string(),
+  count: z.number(),
+});
+
+const animationSchema = z.discriminatedUnion("type", [
+  playLootAnimationSchema,
+  drawLootAnimationSchema,
+  diceRollAnimationSchema,
+  transferLootAnimationSchema,
+  discardLootAnimationSchema,
+  buyTopDeckTreasureAnimationSchema,
+  buyShopTreasureAnimationSchema,
+  obtainBonusSoulAnimationSchema,
+  obtainMonsterSoulAnimationSchema,
+  activateInPlayAnimationSchema,
+  giveCoinsAnimationSchema,
+]);
+export type Animation = z.infer<typeof animationSchema>;
+
 const detailedStateSchema = z.object({
   me: playerMeSchema,
   players: z.array(playerSchema),
@@ -543,7 +663,7 @@ const detailedStateSchema = z.object({
     }),
     inPlay: z.array(
       z.object({
-        top: monsterCardSchema,
+        top: attackableCardSchema,
         covered: z.array(cardSchema),
       }),
     ),
@@ -557,13 +677,34 @@ const detailedStateSchema = z.object({
     discard: z.array(cardSchema),
     deckSize: z.number(),
   }),
-  bonusSouls: z.array(bonusSoulCardSchema),
+  bonusSouls: z.array(bonusSoulCardSchema).optional(),
+  room: z
+    .object({
+      discard: z.array(cardSchema),
+      deckSize: z.number(),
+      inPlay: z.array(cardSchema),
+    })
+    .optional(),
   turn: z.string(),
   stack: z.array(z.lazy(() => stackElementSchema)),
   firstCardTreasureDeck: cardSchema.optional(),
   history: z.array(stackElementSchema),
+  animations: z.array(animationSchema),
 });
 export type DetailedState = z.infer<typeof detailedStateSchema>;
+
+const roomCharacterSchema = z.object({
+  character: z.union([z.string(), z.literal("random")]),
+  eternal: z.union([z.string(), z.literal("random")]),
+});
+export type RoomCharacter = z.infer<typeof roomCharacterSchema>;
+
+const roomPlayerSchema = z.object({
+  name: z.string().optional(),
+  character: roomCharacterSchema,
+});
+
+export type RoomPlayer = z.infer<typeof roomPlayerSchema>;
 
 const roomSchema = z.object({
   room: z.discriminatedUnion("state", [
@@ -571,7 +712,9 @@ const roomSchema = z.object({
       id: z.string(),
       state: z.literal("joined"),
       issuer: issuerSchema,
-      players: z.array(z.string()),
+      me: roomPlayerSchema,
+      players: z.array(roomPlayerSchema),
+      characters: z.array(roomCharacterSchema),
       gameParameters: gameParametersSchema,
     }),
     z.object({
@@ -582,6 +725,13 @@ const roomSchema = z.object({
   gameState: detailedStateSchema.optional(),
 });
 export type Room = z.infer<typeof roomSchema>;
+
+const roomBroadcastSchema = z.object({
+  type: z.enum(["info", "error", "success", "warning", "victory"]),
+  title: z.string(),
+  message: z.string(),
+});
+export type RoomBroadcast = z.infer<typeof roomBroadcastSchema>;
 
 const isGameOngoingResponseSchema = z.union([
   z.object({
@@ -607,13 +757,34 @@ const getGameLogsResponseSchema = z.union([
 ]);
 export type GetGameLogsResponse = z.infer<typeof getGameLogsResponseSchema>;
 
+const getGameSettingsResponseSchema = z.union([
+  z.object({
+    status: z.literal(200),
+    settings: z.string(),
+  }),
+  z.object({
+    status: z.literal(400),
+    error: z.string(),
+  }),
+]);
+export type GetGameSettingsResponse = z.infer<
+  typeof getGameSettingsResponseSchema
+>;
+
 const joinRoomRequestSchema = z.object({
   roomId: z.string(),
 });
 
 const loadGameRequestSchema = z.object({
-  issuer: issuerSchema,
   logs: z.string(),
+});
+
+const loadGameSettingsRequestSchema = z.object({
+  settings: z.string(),
+});
+
+const selectCharacterRequestSchema = z.object({
+  character: roomCharacterSchema,
 });
 
 export const schemas = {
@@ -628,25 +799,32 @@ export const schemas = {
   declarePurchaseRequest: declarePurchaseRequestSchema,
   cancelPurchaseRequest: cancelPurchaseRequestSchema,
   attackMonsterRequest: attackMonsterSchema,
-  attackRollRequest: issuerSchema,
+  attackRollRequest: nullSchema,
   debugLootRequest: debugLootRequestSchema,
-  debugListLootRequest: issuerSchema,
-  debugListCardsICanRemoveRequest: issuerSchema,
+  debugListLootRequest: nullSchema,
+  debugListCardsICanRemoveRequest: nullSchema,
   debugRemoveCardsRequest: debugRemoveCardsRequestSchema,
-  debugListTreasureRequest: issuerSchema,
+  debugListTreasureRequest: nullSchema,
   debugGainTreasureRequest: debugGainTreasureRequestSchema,
+  debugListMonsterDeckRequest: nullSchema,
+  debugPutMonsterCardInSlotRequest: debugPutMonsterCardInSlotRequestSchema,
+  debugGainCoinsRequest: debugGainCoinsRequestSchema,
+  reportBugRequest: reportBugRequestSchema,
   resolveRequest: resolveRequestSchema,
   submitSelectionRequest: submitSelectionSchema,
   insertStackElementBeforeRequest: insertStackElementBeforeSchema,
   playCardRequest: cardActivationSchema,
   endTurnRequest: nextTurnRequestSchema,
   activateRequest: cardActivationSchema,
+  activateRoomRequest: cardActivationSchema,
   purchaseRequest: purchaseSchema,
   giveCoinsRequest: giveCoinsSchema,
   setGameParameterRequest: setGameParameterRequestSchema,
   joinRoomRequest: joinRoomRequestSchema,
   getGameLogsRequest: issuerSchema,
   loadGameRequest: loadGameRequestSchema,
+  loadGameSettingsRequest: loadGameSettingsRequestSchema,
+  selectCharacterRequest: selectCharacterRequestSchema,
 };
 
 export namespace Requests {
@@ -667,21 +845,31 @@ export namespace Requests {
   export type PlayCard = z.infer<typeof cardActivationSchema>;
   export type EndTurn = z.infer<typeof nextTurnRequestSchema>;
   export type Activate = z.infer<typeof cardActivationSchema>;
+  export type ActivateRoom = z.infer<typeof cardActivationSchema>;
   export type Purchase = z.infer<typeof purchaseSchema>;
   export type GiveCoins = z.infer<typeof giveCoinsSchema>;
   export type AttackMonster = z.infer<typeof attackMonsterSchema>;
-  export type AttackRoll = z.infer<typeof issuerSchema>;
+  export type AttackRoll = z.infer<typeof nullSchema>;
   export type DebugLoot = z.infer<typeof debugLootRequestSchema>;
-  export type DebugListLoot = z.infer<typeof issuerSchema>;
-  export type DebugListCardsICanRemove = z.infer<typeof issuerSchema>;
+  export type DebugGainCoins = z.infer<typeof debugGainCoinsRequestSchema>;
+  export type DebugListLoot = z.infer<typeof nullSchema>;
+  export type DebugListMonsterDeck = z.infer<typeof nullSchema>;
+  export type DebugPutMonsterCardInSlot = z.infer<
+    typeof debugPutMonsterCardInSlotRequestSchema
+  >;
+  export type DebugListCardsICanRemove = z.infer<typeof nullSchema>;
   export type DebugRemoveCards = z.infer<typeof debugRemoveCardsRequestSchema>;
-  export type DebugListTreasure = z.infer<typeof issuerSchema>;
+  export type DebugListTreasure = z.infer<typeof nullSchema>;
   export type DebugGainTreasure = z.infer<
     typeof debugGainTreasureRequestSchema
   >;
+  export type ReportBug = z.infer<typeof reportBugRequestSchema>;
   export type JoinRoom = z.infer<typeof joinRoomRequestSchema>;
-  export type GetGameLogs = z.infer<typeof issuerSchema>;
+  export type GetGameLogs = z.infer<typeof nullSchema>;
   export type LoadGame = z.infer<typeof loadGameRequestSchema>;
+  export type GetGameSettings = z.infer<typeof nullSchema>;
+  export type LoadGameSettings = z.infer<typeof loadGameSettingsRequestSchema>;
+  export type SelectCharacter = z.infer<typeof selectCharacterRequestSchema>;
 }
 
 export namespace Responses {
@@ -705,10 +893,14 @@ export namespace Responses {
   export type AttackRoll = BasicResponse;
   export type DebugLoot = BasicResponse;
   export type DebugListLoot = DebugListLootResponse;
+  export type DebugListMonsterDeck = DebugListMonsterDeckResponse;
   export type DebugListCardsICanRemove = DebugListCardsICanRemoveResponse;
   export type DebugRemoveCards = BasicResponse;
   export type DebugListTreasure = DebugListTreasureResponse;
+  export type DebugPutMonsterCardInSlot = BasicResponse;
   export type DebugGainTreasure = BasicResponse;
+  export type DebugGainCoins = BasicResponse;
+  export type ReportBug = BasicResponse;
   export type GiveCoins = BasicResponse;
   export type IsGameOngoing = IsGameOngoingResponse;
   export type CreateRoom = BasicResponse;
@@ -717,11 +909,14 @@ export namespace Responses {
   export type LeaveRoom = BasicResponse;
   export type GetGameLogs = GetGameLogsResponse;
   export type LoadGame = BasicResponse;
+  export type LoadGameSettings = BasicResponse;
+  export type SelectCharacter = BasicResponse;
 }
 
 export interface ServerToClientEvents {
   "on:room:changed": (room: Room | null) => void;
   "on:user:assigned": (userId: string | null) => void;
+  "on:room:broadcast": (broadcast: RoomBroadcast) => void;
 }
 
 export interface ClientToServerEvents {
@@ -785,6 +980,11 @@ export interface ClientToServerEvents {
     callback: (response: Responses.Activate) => void,
   ) => void;
 
+  activateRoom: (
+    request: Requests.ActivateRoom,
+    callback: (response: Responses.Activate) => void,
+  ) => void;
+
   purchase: (
     request: Requests.Purchase,
     callback: (response: Responses.Purchase) => void,
@@ -819,7 +1019,7 @@ export interface ClientToServerEvents {
     request: Requests.DebugRemoveCards,
     callback: (response: Responses.DebugRemoveCards) => void,
   ) => void;
-  
+
   debugListTreasure: (
     request: Requests.DebugListTreasure,
     callback: (response: Responses.DebugListTreasure) => void,
@@ -828,6 +1028,26 @@ export interface ClientToServerEvents {
   debugGainTreasure: (
     request: Requests.DebugGainTreasure,
     callback: (response: Responses.DebugGainTreasure) => void,
+  ) => void;
+
+  debugListMonsterDeck: (
+    request: Requests.DebugListMonsterDeck,
+    callback: (response: Responses.DebugListMonsterDeck) => void,
+  ) => void;
+
+  debugPutMonsterCardInSlot: (
+    request: Requests.DebugPutMonsterCardInSlot,
+    callback: (response: Responses.DebugPutMonsterCardInSlot) => void,
+  ) => void;
+
+  debugGainCoins: (
+    request: Requests.DebugGainCoins,
+    callback: (response: Responses.DebugGainCoins) => void,
+  ) => void;
+
+  reportBug: (
+    request: Requests.ReportBug,
+    callback: (response: Responses.ReportBug) => void,
   ) => void;
 
   giveCoins: (
@@ -871,5 +1091,15 @@ export interface ClientToServerEvents {
   loadGame: (
     request: Requests.LoadGame,
     callback: (response: Responses.LoadGame) => void,
+  ) => void;
+
+  loadGameSettings: (
+    request: Requests.LoadGameSettings,
+    callback: (response: Responses.LoadGameSettings) => void,
+  ) => void;
+
+  selectCharacter: (
+    request: Requests.SelectCharacter,
+    callback: (response: Responses.SelectCharacter) => void,
   ) => void;
 }

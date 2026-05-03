@@ -49,7 +49,7 @@ describe("Target Builder Interface", () => {
 
   it("should progressively build targets for a tap effect with one selector", async () => {
     // Get an item with a simple selector
-    const item = game.shop._slots.find(
+    const item = game.shop.itemsInShop.find(
       (c) => c && c.constructor.name === "ItemCard",
     ) as ItemCard;
     if (!item) return; // Skip if no item in shop
@@ -90,7 +90,7 @@ describe("Target Builder Interface", () => {
       game.recharge(item);
     }
     game.declareAttack(player1);
-    await game.declareAttackOnMonster(player1, game.encounters.monsterIn(0)!);
+    await game.declareAttackOnEntity(player1, game.encounters.monsterIn(0)!);
     game.attackRoll(player1);
     expect(TargetBuilder.validTargetExists(game, player1, item, "tap")).toBe(true);
   });
@@ -251,7 +251,7 @@ describe("Target Builder Interface", () => {
 
   it("should handle effects with no selectors", async () => {
     // Get an item with no selectors (e.g., "loot 1")
-    const item = game.shop._slots.find(
+    const item = game.shop.itemsInShop.find(
       (c) => c && c.constructor.name === "ItemCard",
     ) as ItemCard;
     if (!item) return; // Skip if no item

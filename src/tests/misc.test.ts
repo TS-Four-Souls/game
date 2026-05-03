@@ -7,38 +7,41 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../models/game";
 import { Player } from "../models/player";
 import { type ItemCard, type LootCard, type CharacterCard, TreasureCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "@/tests/testHelpers";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame, type GameSetupResult } from "@/tests/testHelpers";
 
 
-
+function setupGameWithCharacters(characterSlugs: string[]): GameSetupResult
+{
+    return setupTestGame({
+        characters: characterSlugs,
+        monsters: ["b2-fly", "b2-fatty"],
+        monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+        treasureDeck: ["b2-blank_card", "b2-placebo", "b2-tech_x"],
+        playerCount: characterSlugs.length,
+    });
+}
+    
 describe("Before start effects", () => {
     let game: Game;
     let player1: Player;
     let player2: Player;
 
     beforeEach(() => {
-        game = new Game();
-        mockGameSelections(game);
-        player1 = new Player("Player 1");
-        player2 = new Player("Player 2");
-        game.addPlayer(player1);
-        game.addPlayer(player2);
-        game.setupGame();
     });
 
     it("Cain plays first", async () => {
-        const cain = game.decks["character"]!.getCardFromSlug("b2-cain")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [isaac, cain], false);
-      dischargeEachItemsAndRemoveCoins(game);
-      emptyHands(game);
-            expect(game.currentPlayer).toBe(player2);
+        const setup = setupGameWithCharacters(["b2-isaac", "b2-cain"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        expect(game.currentPlayer).toBe(player2);
     });
 
     it("Eden gets a treasure and set it eternal", async () => {
-        const eden = game.decks["character"]!.getCardFromSlug("b2-eden")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [isaac, eden], false);
+        const setup = setupGameWithCharacters(["b2-isaac", "b2-eden"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
         // Wait for async event handlers to complete
         await new Promise(resolve => setTimeout(resolve, 10));
       dischargeEachItemsAndRemoveCoins(game);
@@ -51,19 +54,10 @@ describe("Before start effects", () => {
     });
 
     it("Character card activation gives a loot play (random characters)", async () => {
-        // const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        // const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        expect(game.players.length).toBe(2);
-        game.setupGame();
-        const topTreas = game.decks.treasure.getCardFromSlug("b2-blank_card");
-        const topTreas2 = game.decks.treasure.getCardFromSlug("b2-placebo");
-        const topTreas3 = game.decks.treasure.getCardFromSlug("b2-tech_x");
-        game.decks["treasure"]!.addTopPosition(topTreas!);
-        game.decks["treasure"]!.addTopPosition(topTreas2!);
-        game.decks["treasure"]!.addTopPosition(topTreas3!);
-        game.start(player1, null, false);
-        dischargeEachItemsAndRemoveCoins(game);
-        emptyHands(game);
+        const setup = setupGameWithCharacters(["b2-samson", "b2-isaac"]);
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
         expect(game.players.length).toBe(2);
         const character1 = player1.inPlay[0] as CharacterCard;
         const character2 = player2.inPlay[0] as CharacterCard;
@@ -87,7 +81,7 @@ describe("Before start effects", () => {
         expect(player2.remainingLootPlay).toBe(initialLootPlays2 + 1);
 
         game.currentPlayer.clearAttackRequirement(); // If krampus is visible, the test can fail because of it requiring an attack declaration before ending the turn
-        game.endTurn();
+        await game.endTurn();
         await game.resolveEntireStack();
         // Ensure the loot play resets at the start of the turn
         expect(game.players.filter(p => p.id !== game.currentPlayer.id)[0]!.remainingLootPlay).toBe(0);
@@ -102,34 +96,33 @@ describe("Bonus Soul effects", () => {
     let player2: Player;
 
     beforeEach(() => {
-        game = new Game();
-        mockGameSelections(game);
-        player1 = new Player("Player 1");
-        player2 = new Player("Player 2");
-        game.addPlayer(player1);
-        game.addPlayer(player2);
-        game.setupGame();
-        const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        game.start(player1, [isaac, judas], false);
-      dischargeEachItemsAndRemoveCoins(game);
-      emptyHands(game);
+        const setup = setupTestGame({
+                            characters: ["b2-judas", "b2-isaac"],
+                            monsters: ["b2-fly", "b2-fatty"],
+                            monsterDeck: ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip","b2-leech","b2-gurdy"],
+                            treasureDeck: ["b2-boomerang", "b2-guppys_head", "b2-no", "b2-blank_card"],
+                            bonusSouls: [],
+                            playerCount: 2
+                        });
+            game = setup.game;
+            player1 = setup.player1;
+            player2 = setup.player2!;
         });
 
     it("Greed", async () => {
         const initSoul = player1.totalSouls;
-        game.gainCoins(player1, 24);
+        game.gainCoins(player1, 24, "gift");
         expect(player1.coins).toBe(24);
         expect(player1.totalSouls).toBe(initSoul);
-        game.gainCoins(player1, 1);
+        game.gainCoins(player1, 1, "gift");
         expect(player1.totalSouls).toBe(initSoul + 1);
 
         // only one player gets the soul bonus
         const player2souls = player2.totalSouls;
-        game.gainCoins(player2, 24);
+        game.gainCoins(player2, 24, "gift");
         expect(player2.coins).toBe(24);
         expect(player2.totalSouls).toBe(player2souls);
-        game.gainCoins(player2, 1);
+        game.gainCoins(player2, 1, "gift");
         expect(player2.totalSouls).toBe(player2souls);
     });
 

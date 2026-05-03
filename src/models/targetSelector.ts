@@ -20,9 +20,9 @@ export function inplayItemSelector(filter: (player: Player, card: ItemCard) => b
     };
 }
 
-export function inplayItemAndSoulSelector(filter: (player: Player, card: ItemCard) => boolean, game: Game): (issuer: Player) => any[] {
+export function itemAndSoulSelector(filter: (player: Player, card: ItemCard) => boolean, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
-        return [...game.inPlayItems.filter(({ player, card }) => filter(player, card)).map(({ card }) => card), ...game.players.flatMap(p => p.souls)];
+        return [...game.shop.itemsInShop, ...game.inPlayItems.filter(({ player, card }) => filter(player, card)).map(({ card }) => card), ...game.players.flatMap(p => p.souls)];
     };
 }
 
@@ -62,7 +62,7 @@ export function activeEntitySelector(filter: (player: Entity) => boolean = () =>
 }
 export type ChooseOneOptions = {
     description: string;
-    admissibleTargets: any[];
+    admissibleTargets: TargetsSelector[];
 }
 
 export const isChooseOneOptions = (x: any): x is ChooseOneOptions => {
@@ -96,7 +96,7 @@ export function deckSelector(filter: (name: string) => boolean = () => true, gam
 export function topAnyDiscardSelector(filter: (card: Card) => boolean = () => true, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
         const cards = [] as Card[];
-        for (const deckName of ["loot", "treasure", "monster"] as const) {
+        for (const deckName of game.deckNames) {
             const deck = game.decks[deckName];
             if(deck && deck.discard.length > 0){
                 const topCard = deck.discard[0];
@@ -124,41 +124,4 @@ export function attackRollSelector(game: Game): (issuer: Player) => any[] {
 
 export function nonAttackRollSelector(game: Game): (issuer: Player) => any[] {
     return rollSelector((roll) => !roll.attackRoll, game);
-}
-
-export class selectorWalker{
-    _targetsSelectors: TargetsSelector[];
-    _currentSelectorIndex: number
-    _currentChoiceIndex: number
-
-    constructor(targetsSelectors: TargetsSelector[]){
-        this._targetsSelectors = targetsSelectors;
-        this._currentSelectorIndex = 0;
-        this._currentChoiceIndex = 0;
-    }
-
-    walk(issuer: Player, choices: string[]): boolean | any[] {
-        let selectorIndex = 0;
-        let selector = this._targetsSelectors[selectorIndex];
-        if(!selector) return true;
-        for (let i = 0; i < choices.length; i++) {
-            let possibleTargets: any[] = selector.selector(issuer);
-            const choice = choices[i];
-            if(!selector.description.startsWith("Choose one-")){
-                if (!possibleTargets.includes(choice)) {
-                    return false;
-                }
-                selectorIndex++;
-                selector = this._targetsSelectors[selectorIndex];
-                if (!selector) return true;
-            }
-            else {
-                const index = possibleTargets.findIndex((option: ChooseOneOptions) => option.description === choice);
-                selector = possibleTargets[index];
-                if (!selector) return false;
-            }
-        }
-        return false;
-    }
-
 }
