@@ -2363,20 +2363,8 @@ export class Game {
   private rebuildCardMapping(): void {
     this._cardMapping.clear();
     this._nextCardGlobalId = 0;
-    for (const deckName of [
-      "loot",
-      "bsoul",
-      "character",
-      "eternal",
-      "treasure",
-      "monster",
-      "room",
-    ]) {
-      if(!isDeckType(deckName))
-        throw new Error(`Invalid deck type: ${deckName}`);
-      const deck = this.decks[deckName]!;
-      deck.cards.forEach((c: Card) => this.registerCard(c));
-    }
+      Object.values(this.decks).forEach((deck) => deck.cards.forEach((card) => this.registerCard(card)));
+    
   }
 
   private allocateCardGlobalId(): number {
@@ -3320,6 +3308,18 @@ export class Game {
     card.cleanup();
     return player.removeSoul(card);
   }
+
+  getCharacterAndEternalPairs(): {
+    character: { slug: string; name: string; globalId: number };
+    eternal: string | null;
+  }[] {
+    this.setupGame();
+    return this.decks["character"]!._set.cards.map((card) => ({
+      character: card.jsonAPI,
+      eternal: card.eternalCard,
+    }));
+  }
+  
   /* PRIVATE METHODS */
 
   private removeMonster(monster: Monster): void {

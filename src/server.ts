@@ -2,20 +2,14 @@ import { Server as Engine } from "@socket.io/bun-engine";
 import { Server } from "socket.io";
 import { Game } from "./models/game";
 import { Player } from "./models/player";
-import { shuffle } from "./utils/auxiliary";
 import type {
   ClientToServerEvents,
   DetailedState,
+  RoomPlayer,
   ServerToClientEvents,
 } from "./shared/api";
 import { schemas } from "./shared/api";
-import {
-  ItemCard,
-  LootCard,
-  CharacterCard,
-  RoomCard,
-  MonsterCard,
-} from "./models/cards";
+import { ItemCard, LootCard, MonsterCard } from "./models/cards";
 import { generateRoomId, generateUserId } from "./utils/random";
 import {
   executeActivateRequest,
@@ -26,12 +20,24 @@ import {
 import { loadGameFromLogs } from "./utils/loadGameFromLogs";
 import type { z, ZodType } from "zod";
 import type { HistoricEntry } from "./models/historyHandler";
+import type { RoomCharacter } from "./shared/api";
 
 const PORT = process.env.PORT || 3000;
 const HOSTNAME = process.env.HOSTNAME || "localhost";
 const io = new Server<ClientToServerEvents, ServerToClientEvents>();
 
-type Room = { id: string; users: string[]; game: Game };
+const DEFAULT_CHARACTER: RoomCharacter = {
+  character: "random",
+  eternal: "random",
+};
+
+type User = { id: string; player?: Player; character: RoomCharacter };
+type Room = {
+  id: string;
+  users: User[];
+  game: Game;
+  characters: RoomCharacter[];
+};
 const rooms: Map<string, Room> = new Map();
 const ROOM_STATE_DISPATCH_WINDOW_MS = 50;
 const roomUpdateTimeouts: Map<
@@ -56,6 +62,18 @@ io.use((socket, next) => {
   next();
 });
 
+const generateCharacterAndEternalPairs = (game: Game): RoomCharacter[] => {
+  const charas = game.getCharacterAndEternalPairs();
+
+  return [
+    { character: "random", eternal: "random" },
+    ...charas.map((card) => ({
+      character: card.character.slug,
+      eternal: card.eternal ?? "random",
+    })),
+  ];
+};
+
 const sendRoomChanged = (room: Room, playerId: string) => {
   let player: Player;
   try {
@@ -75,6 +93,26 @@ const sendRoomChanged = (room: Room, playerId: string) => {
     console.error("Failed to get game state");
   }
 
+  const me = room.users.find((user) => user.player?.id === player.id);
+  const others = room.users
+    .filter((user) => user.player?.id !== player.id)
+    .map((user) => ({
+      id: user.id,
+      name: user.player?.id,
+      character: user.character,
+    }));
+
+  if (!me) {
+    console.error("Me not found", player.id);
+    return;
+  }
+
+  const meRoomPlayer: RoomPlayer = {
+    id: me.id,
+    name: me.player?.id,
+    character: me.character,
+  };
+
   io.to(player.id).emit("on:room:changed", {
     room: {
       id: room.id,
@@ -83,7 +121,9 @@ const sendRoomChanged = (room: Room, playerId: string) => {
         id: player.id,
         secret: player.secret,
       },
-      players: room.game.players.map((player) => player.id),
+      me: meRoomPlayer,
+      players: others,
+      characters: room.characters,
       gameParameters: room.game.gameParameters.toJson(),
     },
     gameState,
@@ -106,7 +146,7 @@ const scheduleRoomChanged = (room: Room) => {
 const getRoomFromUserId = (userId: string) => {
   const result = rooms
     .entries()
-    .find(([_, room]) => room.users.includes(userId));
+    .find(([_, room]) => room.users.some(({ id }) => id === userId));
   if (!result) {
     return undefined;
   }
@@ -151,7 +191,13 @@ io.on("connection", (socket) => {
     const roomId = generateRoomId();
     userId = generateUserId();
     const game = new Game();
-    const room = { id: roomId, users: [userId], game };
+
+    const room: Room = {
+      id: roomId,
+      users: [{ id: userId, character: DEFAULT_CHARACTER }],
+      game,
+      characters: generateCharacterAndEternalPairs(game),
+    };
     game.onStateChange.add(() => {
       scheduleRoomChanged(room);
     });
@@ -188,7 +234,7 @@ io.on("connection", (socket) => {
         }
 
         userId = generateUserId();
-        room.users.push(userId);
+        room.users.push({ id: userId, character: DEFAULT_CHARACTER });
 
         socket.emit("on:user:assigned", userId);
         socket.emit("on:room:changed", {
@@ -198,6 +244,7 @@ io.on("connection", (socket) => {
           },
         });
 
+        scheduleRoomChanged(room);
         room.game.addToHistory({ type: "JoinRoom", payload });
         return callback({ status: 200 });
       },
@@ -206,9 +253,10 @@ io.on("connection", (socket) => {
 
   socket.on("leaveRoom", (callback) => {
     roomGuardedEndpoint(userId, callback, (game, room) => {
-      room.users = room.users.filter((id) => id !== userId);
+      room.users = room.users.filter(({ id }) => id !== userId);
       socket.emit("on:user:assigned", null);
       socket.emit("on:room:changed", null);
+      scheduleRoomChanged(room);
       game.addToHistory({ type: "LeaveRoom" });
       return callback({ status: 200 });
     });
@@ -284,33 +332,6 @@ io.on("connection", (socket) => {
     );
   });
 
-  socket.on("getGameSettings", (payload, callback) => {
-    payloadGuardedEndpoint(
-      payload,
-      schemas.getGameSettingsRequest,
-      callback,
-      (payload) => {
-        roomGuardedEndpoint(userId, callback, (game) => {
-          try {
-            game.getPlayerByIssuer(payload);
-            const settings = JSON.stringify(
-              game.gameParameters.toJson(),
-              null,
-              2,
-            );
-            return callback({ status: 200, settings });
-          } catch (error) {
-            console.error("Failed to get game settings", error);
-            if (error instanceof Error) {
-              return callback({ status: 400, error: error.message });
-            }
-            return callback({ status: 400, error: "Unknown error" });
-          }
-        });
-      },
-    );
-  });
-
   socket.on("loadGameSettings", (payload, callback) => {
     payloadGuardedEndpoint(
       payload,
@@ -335,64 +356,6 @@ io.on("connection", (socket) => {
     );
   });
 
-  socket.on("getCharactersList", (payload, callback) => {
-    payloadGuardedEndpoint(
-      payload,
-      schemas.getCharactersListRequest,
-      callback,
-      (payload) => {
-        roomGuardedEndpoint(userId, callback, (game) => {
-          try {
-            game.setupGame();
-            const charas = game.decks["character"]!.cards.toSorted().map(
-              (card) => card.jsonAPI,
-            );
-            // Isaac first and eden last.
-            charas.sort((a, b) =>
-              a.slug === "b2-isaac"
-                ? -1
-                : b.slug === "b2-eden"
-                  ? 1
-                  : a.name.localeCompare(b.name),
-            );
-            return callback({ status: 200, characters: charas });
-          } catch (error) {
-            console.error("Failed to get game settings", error);
-            if (error instanceof Error) {
-              return callback({ status: 400, error: error.message });
-            }
-            return callback({ status: 400, error: "Unknown error" });
-          }
-        });
-      },
-    );
-  });
-
-  // socket.on("getListOfPlayersFromLogs", (payload, callback) => {
-  //   payloadGuardedEndpoint(
-  //     payload,
-  //     schemas.getListOfPlayersFromLogsRequest,
-  //     callback,
-  //     (payload) => {
-  //       roomGuardedEndpoint(userId, callback, async (game, room) => {
-  //         try {
-  //           // Ensure requester is an authorized player in the current room game.
-  //           game.getPlayerByIssuer(payload.issuer);
-  //           const logs: HistoricEntry[] = JSON.parse(payload.logs);
-
-  //           return callback({ status: 200 });
-  //         } catch (error) {
-  //           console.error("Failed to load game from logs", error);
-  //           if (error instanceof Error) {
-  //             return callback({ status: 400, error: error.message });
-  //           }
-  //           return callback({ status: 400, error: "Unknown error" });
-  //         }
-  //       });
-  //     },
-  //   );
-  // });
-
   socket.on("join", (payload, callback) => {
     payloadGuardedEndpoint(
       payload,
@@ -407,6 +370,7 @@ io.on("connection", (socket) => {
             const player = new Player(payload);
             game.addPlayer(player);
             console.log(`Player ${payload} joined the game`);
+            room.users.find((user) => user.id === userId)!.player = player;
             socket.join(player.id);
             sendRoomChanged(room, player.id);
             game.addToHistory({ type: "Join", payload });
@@ -484,13 +448,35 @@ io.on("connection", (socket) => {
     );
   });
 
+  socket.on("selectCharacter", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.selectCharacterRequest,
+      callback,
+      (payload) => {
+        roomGuardedEndpoint(userId, callback, (_, room) => {
+          const user = room.users.find((user) => user.id === userId);
+
+          if (!user) {
+            return callback({ status: 400, error: "User not found" });
+          }
+
+          user.character = payload.character;
+
+          scheduleRoomChanged(room);
+          return callback({ status: 200 });
+        });
+      },
+    );
+  });
+
   socket.on("start", (payload, callback) => {
     payloadGuardedEndpoint(
       payload,
       schemas.startRequest,
       callback,
       (payload) => {
-        roomGuardedEndpoint(userId, callback, (game) => {
+        roomGuardedEndpoint(userId, callback, (game, room) => {
           try {
             // game.setupGame();
             // const char1 = game.decks["character"]!.getCardFromSlug(
@@ -509,7 +495,22 @@ io.on("connection", (socket) => {
             //   const second = new Player("The other", 2, 1, 0, game.players[0]!.secret);
             //   game.addPlayer(second);
             // }
-            game.start(payload.issuer, null);
+
+            // Match room users character selection with game characters
+            if (room.users.some(user => user.player === undefined)) {
+              return callback({ status: 400, error: "All players must have joined to start the game" });
+            }
+            
+            const characters: string[] = []; 
+            for (const gamePlayer of game.players) {
+              const roomPlayer = room.users.find(({ player }) => player?.id === gamePlayer.id);
+              if (!roomPlayer) {  
+                return callback({ status: 400, error: "All players must have joined to start the game" });
+              }
+              characters.push(roomPlayer.character.character);
+            }
+
+            game.start(payload.issuer, game.getCharactersFromSlugs(characters));
             // const room = game.obtainCard("r-tax_for_the_mighty") as RoomCard;
             // game.rooms?.forceRoomAtSlot(0, room!);
             // const mob = game.obtainCard("b2-we_need_to_go_deeper")!;

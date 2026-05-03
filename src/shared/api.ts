@@ -48,6 +48,7 @@ export type SelectionItem =
       type: "couplePlayerHand";
       payload: { player: IdentifierType; hand: Card[] };
     }
+  | { type: "character"; payload: RoomCharacter }
   | { type: "array"; payload: SelectionItem[] }
   | { type: "object"; payload: { [key: string]: SelectionItem } }
   | { type: "null"; payload: null }
@@ -384,14 +385,6 @@ const rejoinRequestSchema = z.object({
 
 const startRequestSchema = z.object({
   issuer: issuerSchema,
-  characters: z
-    .array(
-      z.object({
-        player: z.string(),
-        character: z.union([z.object({ slug: z.string() })]),
-      }),
-    )
-    .optional(),
 });
 
 const resetRequestSchema = z.literal(null);
@@ -712,13 +705,29 @@ const detailedStateSchema = z.object({
 });
 export type DetailedState = z.infer<typeof detailedStateSchema>;
 
+const roomCharacterSchema = z.object({
+  character: z.union([z.string(), z.literal("random")]),
+  eternal: z.union([z.string(), z.literal("random")]),
+});
+export type RoomCharacter = z.infer<typeof roomCharacterSchema>;
+
+const roomPlayerSchema = z.object({
+  id: z.string(),
+  name: z.string().optional(),
+  character: roomCharacterSchema,
+});
+
+export type RoomPlayer = z.infer<typeof roomPlayerSchema>;
+
 const roomSchema = z.object({
   room: z.discriminatedUnion("state", [
     z.object({
       id: z.string(),
       state: z.literal("joined"),
       issuer: issuerSchema,
-      players: z.array(z.string()),
+      me: roomPlayerSchema,
+      players: z.array(roomPlayerSchema),
+      characters: z.array(roomCharacterSchema),
       gameParameters: gameParametersSchema,
     }),
     z.object({
@@ -775,20 +784,6 @@ export type GetGameSettingsResponse = z.infer<
   typeof getGameSettingsResponseSchema
 >;
 
-const GetCharactersListResponseSchema = z.union([
-  z.object({
-    status: z.literal(200),
-    characters: z.array(identifierTypeSchema),
-  }),
-  z.object({
-    status: z.literal(400),
-    error: z.string(),
-  }),
-]);
-export type GetCharactersListResponse = z.infer<
-  typeof GetCharactersListResponseSchema
->;
-
 const joinRoomRequestSchema = z.object({
   roomId: z.string(),
 });
@@ -801,6 +796,11 @@ const loadGameRequestSchema = z.object({
 const loadGameSettingsRequestSchema = z.object({
   issuer: issuerSchema,
   settings: z.string(),
+});
+
+const selectCharacterRequestSchema = z.object({
+  issuer: issuerSchema,
+  character: roomCharacterSchema,
 });
 
 export const schemas = {
@@ -838,10 +838,9 @@ export const schemas = {
   setGameParameterRequest: setGameParameterRequestSchema,
   joinRoomRequest: joinRoomRequestSchema,
   getGameLogsRequest: issuerSchema,
-  getGameSettingsRequest: issuerSchema,
   loadGameRequest: loadGameRequestSchema,
   loadGameSettingsRequest: loadGameSettingsRequestSchema,
-  getCharactersListRequest: issuerSchema,
+  selectCharacterRequest: selectCharacterRequestSchema,
 };
 
 export namespace Requests {
@@ -886,7 +885,7 @@ export namespace Requests {
   export type LoadGame = z.infer<typeof loadGameRequestSchema>;
   export type GetGameSettings = z.infer<typeof issuerSchema>;
   export type LoadGameSettings = z.infer<typeof loadGameSettingsRequestSchema>;
-  export type getCharactersList = z.infer<typeof issuerSchema>;
+  export type SelectCharacter = z.infer<typeof selectCharacterRequestSchema>;
 }
 
 export namespace Responses {
@@ -926,9 +925,8 @@ export namespace Responses {
   export type LeaveRoom = BasicResponse;
   export type GetGameLogs = GetGameLogsResponse;
   export type LoadGame = BasicResponse;
-  export type GetGameSettings = GetGameSettingsResponse;
   export type LoadGameSettings = BasicResponse;
-  export type GetCharactersList = GetCharactersListResponse;
+  export type SelectCharacter = BasicResponse;
 }
 
 export interface ServerToClientEvents {
@@ -1073,11 +1071,6 @@ export interface ClientToServerEvents {
     callback: (response: Responses.GiveCoins) => void,
   ) => void;
 
-  getCharactersList: (
-    request: Requests.getCharactersList,
-    callback: (response: Responses.GetCharactersList) => void,
-  ) => void;
-
   declarePurchase: (
     request: Requests.DeclarePurchase,
     callback: (response: Responses.DeclarePurchase) => void,
@@ -1116,13 +1109,13 @@ export interface ClientToServerEvents {
     callback: (response: Responses.LoadGame) => void,
   ) => void;
 
-  getGameSettings: (
-    request: Requests.GetGameSettings,
-    callback: (response: Responses.GetGameSettings) => void,
-  ) => void;
-
   loadGameSettings: (
     request: Requests.LoadGameSettings,
     callback: (response: Responses.LoadGameSettings) => void,
+  ) => void;
+
+  selectCharacter: (
+    request: Requests.SelectCharacter,
+    callback: (response: Responses.SelectCharacter) => void,
   ) => void;
 }
