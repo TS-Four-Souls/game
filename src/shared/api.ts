@@ -380,7 +380,6 @@ const joinRequestSchema = z.string();
 
 const rejoinRequestSchema = z.object({
   userId: z.string(),
-  issuer: issuerSchema.optional(),
 });
 
 const startRequestSchema = z.object({
@@ -712,7 +711,6 @@ const roomCharacterSchema = z.object({
 export type RoomCharacter = z.infer<typeof roomCharacterSchema>;
 
 const roomPlayerSchema = z.object({
-  id: z.string(),
   name: z.string().optional(),
   character: roomCharacterSchema,
 });
