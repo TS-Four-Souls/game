@@ -626,7 +626,7 @@ export function activePlayerChoosePlayerDiscard2Effect(game: Game): EffectFuncti
         if(!targetPlayer){
             throw new Error("No player selected for activePlayerChoosePlayerDiscard2Effect.");
         }
-        active.discardNLootCardsEffect(2, game, true)(new EffectData(data.it, () => targetPlayer, []));
+        await active.discardNLootCardsEffect(2, game, true)(new EffectData(data.it, () => targetPlayer, []));
         return true;
     };
 }
@@ -636,7 +636,7 @@ export function onAttackDeclaredEffect(game: Game, s: string): EffectFunction {
     const effect = effectParser(rest, game, addInPlayEffect(game), true);
     return (data: EffectData) => {
         let offAttackDeclared: (() => void) | null = null;
-        offAttackDeclared = game.emitter.on("on:attack:declared:monster", async (eventData: OnAttackDeclaredMonsterData) => {
+        offAttackDeclared = game.emitter.on("on:attack:declared:monster", (eventData: OnAttackDeclaredMonsterData) => {
             const { eventIssuer, monster } = eventData;
             if (data.issuer !== monster[0]) return;
             if (!(eventIssuer instanceof Player)) return;
