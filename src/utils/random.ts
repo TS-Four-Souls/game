@@ -10,3 +10,7 @@ export function generateUserId(): string {
 export function generateHistoryId(): string {
   return crypto.randomUUID();
 }
+
+export function generateAnimationId(): string {
+  return crypto.randomUUID();
+}

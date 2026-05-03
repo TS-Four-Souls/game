@@ -566,7 +566,7 @@ const playerMeSchema = playerSchema.extend({
 export type PlayerMe = z.infer<typeof playerMeSchema>;
 
 const genericAnimationSchema = z.object({
-  id: z.number(),
+  id: z.string(),
   type: z.string(),
 });
 

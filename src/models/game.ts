@@ -28,6 +28,7 @@ import {
   isDeckType,
   isSameSlug
 } from "@/models/cards";
+import { generateAnimationId } from "@/utils/random";
 import { effectParser } from "@/models/effects/effectParser";
 import { Entity, Animated } from "@/models/entity";
 import { Monster } from "@/models/monster";
@@ -81,7 +82,6 @@ export class Game {
   private _monsterDiedThisTurn: boolean = false;
   private _animatedList: AnimatedList = new AnimatedList();
   private _isWon: boolean = false;
-  private _animationId: number = 0;
   readonly gameParameters = new GameParameters(() => this._onStateChange.dispatch());
 
   private _onStateChange: Signal<void> = new Signal();
@@ -1118,8 +1118,8 @@ export class Game {
     return selection;
   }
 
-  get nextAnimationId(): number {
-    return this._animationId++;
+  get nextAnimationId(): string {
+    return generateAnimationId();
   }
   addAnimation(animation: Animation): void {
     for(const player of this.players)
@@ -2083,7 +2083,6 @@ export class Game {
     this._historicHandler = new HistoricHandler();
     this.turnHandler.reset();
     this.monsterDiedThisTurn = false;
-    this._animationId = 0;
     this._players = [];
     this._decks = createEmptyDecksCollection(this.random);
     this._ongoingAttack = null;
