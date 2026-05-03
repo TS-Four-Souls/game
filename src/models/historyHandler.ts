@@ -1,8 +1,9 @@
 import { generateHistoryId } from "@/utils/random";
 import fs from "fs";
-import { type DetailedState, type Requests, type StackElementJson } from "../shared/api";
+import { type DetailedState, type Issuer, type Requests, type StackElementJson } from "../shared/api";
 import type { Game } from "./game";
 import type { GameParameters } from "./gameParameters";
+import { StackElement } from "./stackElement";
 
 
 /* This class is responsible for handling historic data.
@@ -16,33 +17,33 @@ export type UserRequest =
     {type: "Join", payload: Requests.Join } 
   | {type: "Rejoin", payload: Requests.Rejoin }
   | {type: "SetGameParameter", payload: Requests.SetGameParameter }
-  | {type: "Start", payload: Requests.Start }
+  | {type: "Start", payload: Requests.Start, characters: string[] }
   | {type: "Reset", payload: Requests.Reset }
-  | {type: "Rollback", payload: Requests.Rollback }
-  | {type: "DeclareAttack", payload: Requests.DeclareAttack }
-  | {type: "DeclarePurchase", payload: Requests.DeclarePurchase }
-  | {type: "CancelPurchase", payload: Requests.CancelPurchase }
-  | {type: "Resolve", payload: Requests.Resolve }
-  | {type: "SubmitSelection", payload: Requests.SubmitSelection }
-  | {type: "InsertStackElementBefore", payload: Requests.InsertStackElementBefore }
-  | {type: "PlayCard", payload: Requests.PlayCard }
-  | {type: "EndTurn", payload: Requests.EndTurn }
-  | {type: "Activate", payload: Requests.Activate }
-  | {type: "ActivateRoom", payload: Requests.ActivateRoom }
-  | {type: "Purchase", payload: Requests.Purchase }
-  | {type: "GiveCoins", payload: Requests.GiveCoins }
-  | {type: "AttackMonster", payload: Requests.AttackMonster }
-  | {type: "AttackRoll", payload: Requests.AttackRoll }
-  | {type: "DebugLoot", payload: Requests.DebugLoot }
-  | {type: "DebugListLoot", payload: Requests.DebugListLoot }
-  | {type: "DebugListMonsterDeck", payload: Requests.DebugListMonsterDeck }
-  | {type: "DebugListCardsICanRemove", payload: Requests.DebugListCardsICanRemove }
-  | {type: "DebugRemoveCards", payload: Requests.DebugRemoveCards }
-  | {type: "DebugListTreasure", payload: Requests.DebugListTreasure }
-  | {type: "DebugPutMonsterCardInSlot", payload: Requests.DebugPutMonsterCardInSlot }
-  | {type: "DebugGainTreasure", payload: Requests.DebugGainTreasure }
-  | {type: "DebugGainCoins", payload: Requests.DebugGainCoins }
-  | {type: "ReportBug", payload: Requests.ReportBug }
+  | {type: "Rollback", payload: Requests.Rollback, issuer: Issuer }
+  | {type: "DeclareAttack", payload: Requests.DeclareAttack, issuer: Issuer }
+  | {type: "DeclarePurchase", payload: Requests.DeclarePurchase, issuer: Issuer }
+  | {type: "CancelPurchase", payload: Requests.CancelPurchase, issuer: Issuer }
+  | {type: "Resolve", payload: Requests.Resolve, issuer: Issuer }
+  | {type: "SubmitSelection", payload: Requests.SubmitSelection, issuer: Issuer }
+  | {type: "InsertStackElementBefore", payload: Requests.InsertStackElementBefore, issuer: Issuer }
+  | {type: "PlayCard", payload: Requests.PlayCard, issuer: Issuer }
+  | {type: "EndTurn", payload: Requests.EndTurn, issuer: Issuer }
+  | {type: "Activate", payload: Requests.Activate, issuer: Issuer }
+  | {type: "ActivateRoom", payload: Requests.ActivateRoom, issuer: Issuer }
+  | {type: "Purchase", payload: Requests.Purchase, issuer: Issuer }
+  | {type: "GiveCoins", payload: Requests.GiveCoins, issuer: Issuer }
+  | {type: "AttackMonster", payload: Requests.AttackMonster, issuer: Issuer }
+  | {type: "AttackRoll", payload: Requests.AttackRoll, issuer: Issuer }
+  | {type: "DebugLoot", payload: Requests.DebugLoot, issuer: Issuer }
+  | {type: "DebugListLoot", payload: Requests.DebugListLoot, issuer: Issuer }
+  | {type: "DebugListMonsterDeck", payload: Requests.DebugListMonsterDeck, issuer: Issuer }
+  | {type: "DebugListCardsICanRemove", payload: Requests.DebugListCardsICanRemove, issuer: Issuer }
+  | {type: "DebugRemoveCards", payload: Requests.DebugRemoveCards, issuer: Issuer }
+  | {type: "DebugListTreasure", payload: Requests.DebugListTreasure, issuer: Issuer }
+  | {type: "DebugPutMonsterCardInSlot", payload: Requests.DebugPutMonsterCardInSlot, issuer: Issuer }
+  | {type: "DebugGainTreasure", payload: Requests.DebugGainTreasure, issuer: Issuer }
+  | {type: "DebugGainCoins", payload: Requests.DebugGainCoins, issuer: Issuer }
+  | {type: "ReportBug", payload: Requests.ReportBug, issuer: Issuer }
   | {type: "IsGameOngoing" }
   | {type: "CreateRoom" }
   | {type: "JoinRoom", payload: Requests.JoinRoom }
@@ -168,13 +169,11 @@ export class HistoricHandler {
       return isGameAction(entry);
     });
     if(this._history[lastUserRequestIndex] 
-        && "payload" in this._history[lastUserRequestIndex] 
-        && typeof this._history[lastUserRequestIndex].payload === 'object' 
-        && this._history[lastUserRequestIndex].payload !== null 
-        && "issuer" in this._history[lastUserRequestIndex].payload
-        && this._history[lastUserRequestIndex].payload.issuer !== undefined
+        && "issuer" in this._history[lastUserRequestIndex]
+        && this._history[lastUserRequestIndex].issuer !== undefined
+        && !isStackElementJson((this._history[lastUserRequestIndex])) // Already verified by lastUserRequest being a game action. 
       )
-      return this._history[lastUserRequestIndex].payload.issuer.id;
+      return this._history[lastUserRequestIndex].issuer;
     return null;
   }
   /** Returns the history entries until the last user request (exluded).

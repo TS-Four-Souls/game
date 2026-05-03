@@ -66,7 +66,7 @@ describe("Game", () => {
     
     expect(game.players.length).toBe(2);
     expect(() => {
-      game.start(player1, null, false);
+      game.start( null, false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
         }).not.toThrow();
@@ -174,11 +174,6 @@ describe("Player", () => {
     player.die();
     expect(player.currentHealthPoints).toBe(0);
     expect(player.isDead).toBe(true);
-  });
-
-  it("should verify secret token correctly", async () => {
-    expect(player.verifySecret(player.secret)).toBe(true);
-    expect(player.verifySecret("wrongSecret")).toBe(false);
   });
 
   it("should roll a dice between 1 and 6", async () => {
@@ -654,7 +649,7 @@ describe("Game - Guardrails", () => {
   });
 
   it("should not allow adding players after game start", async () => {
-    game.start(player1, null, false);
+    game.start(null, false);
     dischargeEachItemsAndRemoveCoins(game);
     emptyHands(game);
     const latePlayer = new Player("late");
@@ -874,7 +869,7 @@ describe("Game - Game State", () => {
   });
 
   it("should get shop", async () => {
-    game.start(player1, null, false);
+    game.start(null, false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
         const shop = game.shop;
@@ -882,7 +877,7 @@ describe("Game - Game State", () => {
   });
 
   it("should get encounters", async () => {
-    game.start(player1, null, false);
+    game.start(null, false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
         const encounters = game.encounters;
@@ -890,7 +885,7 @@ describe("Game - Game State", () => {
   });
 
   it("should get monster slots", async () => {
-    game.start(player1, null, false);
+    game.start(null, false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
         const slots = game.monsterSlots;

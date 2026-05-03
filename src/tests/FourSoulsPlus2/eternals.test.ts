@@ -162,7 +162,7 @@ describe("Four Souls+2 Eternal Items", () => {
         player2 = setup.player2!;
         // const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         // const bumbo = game.decks["character"]!.getCardFromSlug("fsp2-dark_judas")! as CharacterCard;
-        // game.start(player1, [bumbo, samson], false);
+        // game.start([bumbo, samson], false);
         expect(player1.inPlay[0]!.slug).toBe("fsp2-dark_judas");
         expect(player1.inPlay[1]!.slug).toBe("fsp2-dark_arts");
 

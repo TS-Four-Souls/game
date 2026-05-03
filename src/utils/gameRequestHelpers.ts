@@ -1,12 +1,13 @@
 import type { Game } from "@/models/game";
 import { TargetBuilder } from "@/models/targetBuilder";
+import { Player } from "@/models/player"
 import type { Requests, TargetSelectorResponse } from "@/shared/api";
 
 export async function executeAttackMonsterRequest(
   game: Game,
   payload: Requests.AttackMonster,
+  player: Player,
 ): Promise<void> {
-  const player = game.getPlayerById(payload.issuer.id);
   const monster =
     payload.index === "top" ? "topDeck" : game.encounters.monsterIn(payload.index);
 
@@ -21,8 +22,8 @@ export async function executeAttackMonsterRequest(
 export function executePlayCardRequest(
   game: Game,
   payload: Requests.PlayCard,
+  player: Player,
 ): TargetSelectorResponse {
-  const player = game.getPlayerByIssuer(payload.issuer);
   const partialChoices = payload.targetChoices || [];
   const card = TargetBuilder.getCardFromPlayer(game, player, payload.index, "hand");
 
@@ -51,8 +52,8 @@ export function executePlayCardRequest(
 export async function executeActivateRequest(
   game: Game,
   payload: Requests.Activate,
+  player: Player,
 ): Promise<TargetSelectorResponse> {
-  const player = game.getPlayerByIssuer(payload.issuer);
   const partialChoices = payload.targetChoices || [];
   const item = TargetBuilder.getCardFromPlayer(game, player, payload.index, "inPlay");
 
@@ -86,8 +87,8 @@ export async function executeActivateRequest(
 export async function executeActivateRoomRequest(
   game: Game,
   payload: Requests.ActivateRoom,
+  player: Player,
 ): Promise<TargetSelectorResponse> {
-  const player = game.getPlayerByIssuer(payload.issuer);
   const partialChoices = payload.targetChoices || [];
   const room = game.rooms?.roomIn(payload.index);
   if(!room) {

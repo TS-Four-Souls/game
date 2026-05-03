@@ -19,7 +19,7 @@
 //         game.setupGame();
 //         const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
 //         const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-//         game.start(player1, [samson, isaac]);
+//         game.start([samson, isaac]);
     //   dischargeEachItemsAndRemoveCoins(game);
     //   emptyHands(game);
     //         for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {

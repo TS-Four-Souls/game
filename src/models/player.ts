@@ -712,10 +712,6 @@ export class Player extends Entity {
     return 0;
   }
 
-  verifySecret(secret: string): boolean {
-    return this.secret === secret;
-  }
-
   get json(): EntityType {
     return {
         type: "player",

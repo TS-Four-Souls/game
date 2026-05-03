@@ -1190,11 +1190,10 @@ export class Game {
    * Submits a player's answer for a pending selection request.
    */
   submitSelection(
-    issuer: Issuer,
+    player: Player,
     requestId: string,
     selectedIdentifiers: SelectionItem[]
   ): void {
-    const player = this.assertIssuerSecret(issuer);
     // Check if this is from a selectMultiple() call
     const pending = this.pendingMultipleSelections.get(requestId);
     if (pending && pending.playerId === player.id) {
@@ -1612,7 +1611,7 @@ export class Game {
    * Runs turn-end sequence, then advances to next turn.
    */
   async endTurn(): Promise<void> {
-    const player = this.assertIssuerSecret(this.currentPlayer);
+    const player = this.currentPlayer;
     this.canEndTurn(player, true);
     this.emit("on:turn:end", { eventIssuer: player });
     this.handleRoomChange();
@@ -1634,9 +1633,8 @@ export class Game {
   /**
    * End the turn of the current player if issuer is the current player and all conditions are satisfied.
    */
-  async nextTurn(issuer: Issuer): Promise<void> {
+  async nextTurn(player: Player): Promise<void> {
     const roundIndex = this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
     this.canEndTurn(player, true);
     await this.endTurn();
   }
@@ -1644,10 +1642,9 @@ export class Game {
   /**
    * Validates if the active player can legally end the turn.
    */
-  canEndTurn(issuer: Issuer, shouldThrow: boolean = false): Capability {
+  canEndTurn(player: Player, shouldThrow: boolean = false): Capability {
     try {
       this.assertGameStarted();
-      const player = this.assertIssuerSecret(issuer);
       this.assertCurrentTurnIsPlayerTurn(player);
       this.assertCurrentPlayerIsNotEngagedInPurchase();
       this.assertNoEntityIsEngagedInCombat();
@@ -1674,10 +1671,9 @@ export class Game {
   /**
    * Validates whether issuer can play a loot card.
    */
-  canPlayCard(issuer: Issuer, shouldThrow: boolean = false): Capability {
+  canPlayCard(player: Player, shouldThrow: boolean = false): Capability {
     try {
       this.assertGameStarted();
-      const player = this.assertIssuerSecret(issuer);
       this.assertNoPendingSelection();
       if (!player.canIUseLootThisTurn) {
         throw new Error(`You cannot play loot cards during ${this.currentPlayer.id}'s turn.`);
@@ -1732,9 +1728,8 @@ export class Game {
   /**
    * Plays one loot card from hand and pushes its effect on stack.
    */
-  playCard(issuer: Issuer, index: number, targets: any[] = []): string {
-    this.canPlayCard(issuer, true);
-    const player = this.assertIssuerSecret(issuer);
+  playCard(player: Player, index: number, targets: any[] = []): string {
+    this.canPlayCard(player, true);
     this.assertPositiveNumber(index);
     if (index < 0 || index > player.hand.cards.length) {
       return "Invalid card position.";
@@ -1856,8 +1851,7 @@ export class Game {
   /**
    * Starts the game lifecycle and executes initial setup.
    */
-  start(issuer: Issuer, characters: CharacterCard[] | null = null, shufflePlayerOrder: boolean = true): void{
-    this.assertIssuerSecret(issuer);
+  start(characters: CharacterCard[] | null = null, shufflePlayerOrder: boolean = true): void{
     this.assertGameNotStarted();
     this.assertMinimumPlayerCount();
     this.pendingMultipleSelections.clear();
@@ -2436,9 +2430,8 @@ export class Game {
   }
 
   /** Grants coins to a player and emits coin gained triggers. */
-  gainCoins(issuer: Issuer, coins: number, source: Card | "gift"): string {
+  gainCoins(player: Player, coins: number, source: Card | "gift"): string {
     this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
     this.assertPositiveNumber(coins);
     if (coins > 0) {
       const amount = [coins];
@@ -2481,25 +2474,14 @@ export class Game {
   setHand(player: Player, hand: Hand): Hand {
     return player.setHand(hand);
   }
-  /** Emits priority pass ordering and returns current priority order. */
-  priorityPasses(): Player[] {
-    const order = this.turnHandler.priorityOrder;
-    this.emit("on:priority:passes", {
-      eventIssuer: this.currentPlayer,
-      order,
-    });
-    // todo handle priority passing effects
-    return order;
-  }
   /** Cancels previous death entry for a player and stabilizes at 1 HP if needed. */
   preventDeath(entity: Entity): void {
     this.stack.cancelPreviousDeath(entity);
     if (entity.currentHealthPoints === 0) entity.heal(1);
   }
   /** Draws treasure cards and puts them directly in play for the player. */
-  gainTreasure(issuer: Issuer, number: number = 1): void {
+  gainTreasure(player: Player, number: number = 1): void {
     this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
     this.assertPositiveNumber(number);
 
     for (let i = 0; i < number; i++) {
@@ -2572,10 +2554,8 @@ export class Game {
   }
 
   /** Builds a full player-scoped game state payload for API/UI clients. */
-  detailedStateJSON(issuer: Issuer): DetailedState {
+  detailedStateJSON(player: Player): DetailedState {
     this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
-    
     const players = [...this.players];
 
     // Rotate the array until the player is at the front
@@ -2789,10 +2769,9 @@ export class Game {
   }
   // We should implement declaring a purchase
   /** Validates whether current player can declare purchase mode. */
-  canDeclarePurchase(issuer: Issuer, shouldThrow: boolean = false): Capability {
+  canDeclarePurchase(player: Player, shouldThrow: boolean = false): Capability {
     try {
       this.assertGameStarted();
-      const player = this.assertIssuerSecret(issuer);
       this.assertCurrentTurnIsPlayerTurn(player);
       this.assertIsAlive(player);
       this.assertCurrentPlayerIsNotEngagedInCombat();
@@ -2858,9 +2837,8 @@ export class Game {
   }
 
   /** Purchases a shop slot (or top deck) item if affordable. */
-  purchase(issuer: Issuer, index: number | "top"): string {
+  purchase(player: Player, index: number | "top"): string {
     this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
     this.assertEmptyStack();
     this.assertNoPendingSelection();
     this.canPurchase(player, true);
@@ -2896,9 +2874,8 @@ export class Game {
   }
 
   /** Draws loot cards for a player and emits pre/post loot triggers. */
-  loot(issuer: Issuer, number: number = 1): void {
+  loot(player: Player, number: number = 1): void {
     this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
     this.assertPositiveNumber(number);
 
     const n = [number];
@@ -2979,9 +2956,8 @@ export class Game {
   }
 
   /** Moves one stack element before another within the same reordering group. */
-  insertStackElementBefore(issuer: Issuer, elementToMoveStackId: number, targetStackId: number | "start"): void {
+  insertStackElementBefore(player: Player, elementToMoveStackId: number, targetStackId: number | "start"): void {
     this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
 
     const elementToMove = this.stack.elements.find((el) => el.stackId === elementToMoveStackId);
     const targetElement = 
@@ -3026,25 +3002,9 @@ export class Game {
     this._onStateChange.dispatch();
   }
 
-  /** Returns a readable string listing a player's in-play cards. */
-  getInPlay(issuer: Issuer): string {
-    this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
-
-    const cards = player.inPlay;
-    let result = "Your in-play area contains the following cards:\n";
-    for (let i = 0; i < cards.length; i++) {
-      const card = cards[i]!;
-      result += `Card ${i + 1}: ${card}\n`;
-    }
-
-    return result;
-  }
-
   /** Discards one in-play card by index when discard is legal. */
-  discardInPlay(issuer: Issuer, index: number): string {
+  discardInPlay(player: Player, index: number): string {
     this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
     this.assertIsAlive(player);
     this.assertPositiveNumber(index);
 
@@ -3062,9 +3022,8 @@ export class Game {
   }
 
   /** Attempts to steal an item from shop or another player's in-play area. */
-  stealItemAnywhere(issuer: Issuer, target: ItemCard): boolean {
+  stealItemAnywhere(player: Player, target: ItemCard): boolean {
     this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
     this.assertIsAlive(player);
 
     if (this.shop.removeCard(target)) {
@@ -3083,9 +3042,8 @@ export class Game {
     return false;
   }
   /** Steals up to the requested number of coins from target player. */
-  stealCoins(issuer: Issuer, target: Player, amount: number): string {
+  stealCoins(player: Player, target: Player, amount: number): string {
     this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
     this.assertPositiveNumber(amount);
 
     const stolenCoins = this.loseCoins(target, amount, true);
@@ -3094,9 +3052,8 @@ export class Game {
     return `You have stolen ${stolenCoins} coins from ${target.id}.\n`;
   }
   /** Steals one specific loot card from target player's hand. */
-  stealLootCard(issuer: Issuer, target: Player, card: LootCard): string {
+  stealLootCard(player: Player, target: Player, card: LootCard): string {
     this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
 
     const position = target.hand.cards.indexOf(card);
     this.assertPositiveNumber(position);
@@ -3129,9 +3086,8 @@ export class Game {
   }
 
   /** Discards the top monster card from an encounter slot. */
-  discardMonster(issuer: Issuer, position: number): string {
+  discardMonster(player: Player, position: number): string {
     this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
     this.assertPositiveNumber(position);
 
     if (position < 0 || position > this.encounters._slots.length - 1) {
@@ -3150,9 +3106,8 @@ export class Game {
   }
 
   /** Draws a new monster into the chosen encounter slot during combat. */
-  drawMonster(issuer: Issuer, position: number): string {
+  drawMonster(player: Player, position: number): string {
     this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
     this.assertIsAlive(player);
     this.assertPositiveNumber(position);
     this.assertCurrentTurnIsPlayerTurn(player);
@@ -3172,9 +3127,8 @@ export class Game {
   }
 
   /** Removes and returns a specific loot card from issuer hand. */
-  getCardFromHand(issuer: Issuer, card: LootCard): LootCard {
+  getCardFromHand(player: Player, card: LootCard): LootCard {
     this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
     const lootCard = card;
     const position = player.hand.cards.indexOf(lootCard);
     this.assertPositiveNumber(position);
@@ -3209,9 +3163,8 @@ export class Game {
   }
 
   /** Discards one hand card by index to the loot discard pile. */
-  discardFromHandAtIndex(issuer: Issuer, position: number): string {
+  discardFromHandAtIndex(player: Player, position: number): string {
     this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
     this.assertPositiveNumber(position);
 
     const hand = player.hand;
@@ -3239,9 +3192,8 @@ export class Game {
   }
 
   /** Removes coins from a player and emits coin lost trigger. */
-  loseCoins(issuer: Issuer, coins: number, asMany: boolean): number {
+  loseCoins(player: Player, coins: number, asMany: boolean): number {
     this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
     this.assertPositiveNumber(coins);
 
     const coinLost = player.loseCoins(coins, asMany);
@@ -3251,9 +3203,8 @@ export class Game {
   }
 
   /** Creates a dice roll stack element and emits pre-roll triggers. */
-  rollDice(issuer: Issuer, attackRoll: boolean, card: Card | null = null): DiceRoll {
+  rollDice(player: Player, attackRoll: boolean, card: Card | null = null): DiceRoll {
     this.assertGameStarted();
-    const player = this.assertIssuerSecret(issuer);
     if (attackRoll) this.assertIsAlive(player);
 
     let diceRoll = player.rollDice(this.random, attackRoll, card);
@@ -3411,14 +3362,6 @@ export class Game {
     if (this._stack.size > 0) throw new Error(`Stack is not empty.`);
   }
 
-  private assertIssuerSecret(issuer: Issuer): Player {
-    const player = this.findPlayerById(issuer.id);
-    if (!player.verifySecret(issuer.secret)) {
-      throw new Error("Invalid player secret");
-    }
-    return player;
-  }
-
   private assertGameNotStarted(): void {
     if (this.turnHandler.isInitialized) {
       throw new Error("Game already started");
@@ -3512,8 +3455,7 @@ export class Game {
 
   /** Resolves a player from issuer credentials. */
   getPlayerByIssuer(issuer: Issuer): Player {
-    this.assertIssuerSecret(issuer);
-    return this.getPlayerById(issuer.id);
+    return this.getPlayerById(issuer);
   }
 
   /** Finds a player by id or throws. */

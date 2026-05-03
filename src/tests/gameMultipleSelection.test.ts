@@ -21,7 +21,7 @@ describe("Game.selectMultiple", () => {
     game.addPlayer(player2);
     game.addPlayer(player3);
     game.setupGame();
-    game.start(player1, null);
+    game.start(null);
     
     // Clear any pending selections to ensure clean state
     game["pendingMultipleSelections"].clear();

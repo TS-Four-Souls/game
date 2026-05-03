@@ -20,7 +20,7 @@ describe("Start of Game", () => {
         const characters = game.getCharactersFromSlugs(orderedCharacters?.map((c) => 
                 // c.character === "random" ? "random" : 
         c.character.slug) ?? []);
-        expect(() => game.start(game.players[0]!, characters)).not.toThrow();
+        expect(() => game.start(characters)).not.toThrow();
         expect(game.players[0]!.inPlay[1]!.globalId).not.toBe(game.players[1]!.inPlay[1]!.globalId);
         expect(game.players[2]!.inPlay[1]!.globalId).not.toBe(game.players[1]!.inPlay[1]!.globalId);
         expect(game.players[2]!.inPlay[1]!.globalId).not.toBe(game.players[0]!.inPlay[1]!.globalId);
@@ -38,7 +38,7 @@ describe("Start of Game", () => {
         const orderedCharacters = [{character: {slug: "b2-judas"}}, {character: {slug: "b2-judas"}}, {character: {slug: "random"}}];
         const characters = game.getCharactersFromSlugs(orderedCharacters?.map((c) => 
         c.character.slug) ?? []);
-        expect(() => game.start(game.players[0]!, characters)).not.toThrow();
+        expect(() => game.start(characters)).not.toThrow();
     });
 
     

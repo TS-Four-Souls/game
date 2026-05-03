@@ -260,50 +260,47 @@ const selectionItemTypeSchema = z.union([
 ]);
 export type SelectionItemType = z.infer<typeof selectionItemTypeSchema>;
 
-const issuerSchema = z.object({
-  id: z.string(),
-  secret: z.string(),
-});
+const nullSchema = z.null();
+
+const issuerSchema = z.string();
+
 export type Issuer = z.infer<typeof issuerSchema>;
 
-const debugLootRequestSchema = issuerSchema.extend({
+const debugLootRequestSchema = z.object({
   cards: z.array(identifierTypeSchema),
 });
-const debugGainTreasureRequestSchema = issuerSchema.extend({
+const debugGainTreasureRequestSchema = z.object({
   cards: z.array(identifierTypeSchema),
 });
-const debugPutMonsterCardInSlotRequestSchema = issuerSchema.extend({
+const debugPutMonsterCardInSlotRequestSchema = z.object({
   card: identifierTypeSchema,
   toCover: cardSchema,
 });
 
-const debugGainCoinsRequestSchema = issuerSchema.extend({
+const debugGainCoinsRequestSchema = z.object({
   coins: z.number(),
 });
 
-const debugRemoveCardsRequestSchema = issuerSchema.extend({
+const debugRemoveCardsRequestSchema = z.object({
   cards: z.array(identifierTypeSchema),
 });
 
-const reportBugRequestSchema = issuerSchema.extend({
+const reportBugRequestSchema = z.object({
   title: z.string().min(1),
   description: z.string().min(1),
   severity: z.enum(["low", "medium", "high", "critical"]).optional(),
 });
 
 const giveCoinsSchema = z.object({
-  issuer: issuerSchema,
   target: z.string(),
   coins: z.number(),
 });
 
 const attackMonsterSchema = z.union([
   z.object({
-    issuer: issuerSchema,
     index: z.number(),
   }),
   z.object({
-    issuer: issuerSchema,
     index: z.literal("top"),
     replaceIndex: z.number(),
   }),
@@ -382,13 +379,11 @@ const rejoinRequestSchema = z.object({
   userId: z.string(),
 });
 
-const startRequestSchema = z.object({
-  issuer: issuerSchema,
-});
+const startRequestSchema = z.literal(null);
 
 const resetRequestSchema = z.literal(null);
 
-const rollbackRequestSchema = issuerSchema;
+const rollbackRequestSchema = z.literal(null);
 
 const basicResponseSchema = z.union([
   z.object({
@@ -477,19 +472,16 @@ const declarePurchaseRequestSchema = startRequestSchema;
 const cancelPurchaseRequestSchema = startRequestSchema;
 
 const submitSelectionSchema = z.object({
-  issuer: issuerSchema,
   requestId: z.string(),
   selections: z.array(selectionItemSchema),
 });
 
 const insertStackElementBeforeSchema = z.object({
-  issuer: issuerSchema,
   elementToMoveStackId: z.number(),
   targetStackId: z.union([z.number(), z.literal("start")]),
 });
 
 const purchaseSchema = z.object({
-  issuer: issuerSchema,
   index: z.union([z.number(), z.literal("top")]),
 });
 
@@ -500,7 +492,6 @@ const attackRequirementSchema = z.object({
 
 export type AttackRequirement = z.infer<typeof attackRequirementSchema>;
 const cardActivationSchema = z.object({
-  issuer: issuerSchema,
   index: z.number(),
   effectIndex: z.union([z.number(), z.literal("tap")]),
   targetChoices: z.array(selectionItemSchema).optional(),
@@ -519,7 +510,6 @@ const setGameParameterRequestSchema = z.discriminatedUnion("parameter", [
       ) as [NumberParameterKeys, ...NumberParameterKeys[]],
     ),
     value: z.number(),
-    issuer: issuerSchema,
   }),
   z.object({
     parameter: z.enum(
@@ -531,7 +521,6 @@ const setGameParameterRequestSchema = z.discriminatedUnion("parameter", [
       ) as [BooleanParameterKeys, ...BooleanParameterKeys[]],
     ),
     value: z.boolean(),
-    issuer: issuerSchema,
   }),
 ]);
 export type SetGameParameterRequest = z.infer<
@@ -787,17 +776,14 @@ const joinRoomRequestSchema = z.object({
 });
 
 const loadGameRequestSchema = z.object({
-  issuer: issuerSchema,
   logs: z.string(),
 });
 
 const loadGameSettingsRequestSchema = z.object({
-  issuer: issuerSchema,
   settings: z.string(),
 });
 
 const selectCharacterRequestSchema = z.object({
-  issuer: issuerSchema,
   character: roomCharacterSchema,
 });
 
@@ -813,14 +799,14 @@ export const schemas = {
   declarePurchaseRequest: declarePurchaseRequestSchema,
   cancelPurchaseRequest: cancelPurchaseRequestSchema,
   attackMonsterRequest: attackMonsterSchema,
-  attackRollRequest: issuerSchema,
+  attackRollRequest: nullSchema,
   debugLootRequest: debugLootRequestSchema,
-  debugListLootRequest: issuerSchema,
-  debugListCardsICanRemoveRequest: issuerSchema,
+  debugListLootRequest: nullSchema,
+  debugListCardsICanRemoveRequest: nullSchema,
   debugRemoveCardsRequest: debugRemoveCardsRequestSchema,
-  debugListTreasureRequest: issuerSchema,
+  debugListTreasureRequest: nullSchema,
   debugGainTreasureRequest: debugGainTreasureRequestSchema,
-  debugListMonsterDeckRequest: issuerSchema,
+  debugListMonsterDeckRequest: nullSchema,
   debugPutMonsterCardInSlotRequest: debugPutMonsterCardInSlotRequestSchema,
   debugGainCoinsRequest: debugGainCoinsRequestSchema,
   reportBugRequest: reportBugRequestSchema,
@@ -863,25 +849,25 @@ export namespace Requests {
   export type Purchase = z.infer<typeof purchaseSchema>;
   export type GiveCoins = z.infer<typeof giveCoinsSchema>;
   export type AttackMonster = z.infer<typeof attackMonsterSchema>;
-  export type AttackRoll = z.infer<typeof issuerSchema>;
+  export type AttackRoll = z.infer<typeof nullSchema>;
   export type DebugLoot = z.infer<typeof debugLootRequestSchema>;
   export type DebugGainCoins = z.infer<typeof debugGainCoinsRequestSchema>;
-  export type DebugListLoot = z.infer<typeof issuerSchema>;
-  export type DebugListMonsterDeck = z.infer<typeof issuerSchema>;
+  export type DebugListLoot = z.infer<typeof nullSchema>;
+  export type DebugListMonsterDeck = z.infer<typeof nullSchema>;
   export type DebugPutMonsterCardInSlot = z.infer<
     typeof debugPutMonsterCardInSlotRequestSchema
   >;
-  export type DebugListCardsICanRemove = z.infer<typeof issuerSchema>;
+  export type DebugListCardsICanRemove = z.infer<typeof nullSchema>;
   export type DebugRemoveCards = z.infer<typeof debugRemoveCardsRequestSchema>;
-  export type DebugListTreasure = z.infer<typeof issuerSchema>;
+  export type DebugListTreasure = z.infer<typeof nullSchema>;
   export type DebugGainTreasure = z.infer<
     typeof debugGainTreasureRequestSchema
   >;
   export type ReportBug = z.infer<typeof reportBugRequestSchema>;
   export type JoinRoom = z.infer<typeof joinRoomRequestSchema>;
-  export type GetGameLogs = z.infer<typeof issuerSchema>;
+  export type GetGameLogs = z.infer<typeof nullSchema>;
   export type LoadGame = z.infer<typeof loadGameRequestSchema>;
-  export type GetGameSettings = z.infer<typeof issuerSchema>;
+  export type GetGameSettings = z.infer<typeof nullSchema>;
   export type LoadGameSettings = z.infer<typeof loadGameSettingsRequestSchema>;
   export type SelectCharacter = z.infer<typeof selectCharacterRequestSchema>;
 }
