@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../../models/game";
-import { DiceRoll, Player } from "../../models/player";
+import { Player } from "../../models/player";
+import { DiceRoll } from "../../models/stackElement";
 import type { LootCard } from "@/models/cards";
 import { MonsterCard } from "@/models/cards";
 import { setupTestGame, emptyHands, mockGameSelections } from "../testHelpers";

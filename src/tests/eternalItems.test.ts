@@ -1,10 +1,9 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import type { ItemCard, LootCard, TreasureCard } from "@/models/cards";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { Game } from "../models/game";
-import { DiceRoll, Player } from "../models/player";
-import { pl } from "zod/locales";
-import type { LootCard, ItemCard, TreasureCard } from "@/models/cards";
-import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame, type GameSetupResult } from "./testHelpers";
+import { Player } from "../models/player";
+import { DiceRoll } from "../models/stackElement";
+import { setupTestGame, type GameSetupResult } from "./testHelpers";
 
 function setupGameWithCharacters(characterSlugs: string[]): GameSetupResult
 {
@@ -66,7 +65,6 @@ describe("Eternal Items", () => {
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
-        
         expect(player1.inPlay[0]!.slug).toBe("b2-eve");
         expect(player1.inPlay[0]!.eternal).toBe(true);
         expect(player1.inPlay[1]!.slug).toBe("b2-the_curse");

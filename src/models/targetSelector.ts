@@ -1,7 +1,8 @@
 import { type Card, ItemCard, MonsterCard } from "./cards";
 import type { Entity } from "./entity";
 import { Game } from "./game";
-import { DiceRoll, Player } from "./player";
+import { Player } from "./player";
+import { DiceRoll } from "./stackElement";
 import type { StackElement } from "./stack";
 import { type TargetsSelector } from "./types/cardTypes";
 
@@ -37,9 +38,9 @@ export function inAnotherplayItemSelector(filter: (player: Player, card: ItemCar
     };
 }
 
-export function visibleItemSelector(filter: (card: ItemCard) => boolean, game: Game): (issuer: Player) => any[] {
+export function visibleItemSelector(filter: (card: ItemCard, issuer: Player) => boolean, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
-        return game.visibleItems.filter((card) => filter(card));
+        return game.visibleItems.filter((card) => filter(card, issuer));
     };
 }
 

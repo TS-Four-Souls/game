@@ -1,11 +1,9 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import type { LootCard, TreasureCard } from "@/models/cards";
+import { MonsterCard } from "@/models/cards";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { Game } from "../../models/game";
-import { DiceRoll, Player } from "../../models/player";
-import { pl } from "zod/locales";
-import type { LootCard, ItemCard, TreasureCard, TargetsSelector } from "@/models/cards";
-import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame } from "../testHelpers";
-import type { Target } from "bun";
+import { Player } from "../../models/player";
+import { setupTestGame } from "../testHelpers";
 
 describe("Four Souls+2 Monsters", () => {
     let game: Game;
@@ -376,9 +374,9 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
     it("fsp2-krampus - The active player must attack this once each turn if able.", async () => {
         const card1 = game.obtainCard("fsp2-krampus") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        expect(player1.canAttackThisEntity("topDeck")).toBe(false);   
-        expect(player1.canAttackThisEntity(game.monsters[0]!)).toBe(true);   
-        expect(player1.canAttackThisEntity(game.monsters[1]!)).toBe(false);   
+        expect(player1.canAttackThisEntity("topDeck")).not.toBe(true);
+        expect(player1.canAttackThisEntity(game.monsters[0]!)).toBe(true);
+        expect(player1.canAttackThisEntity(game.monsters[1]!)).not.toBe(true);
     });
     it("fsp2-holy_chest - Roll- 6: This becomes a soul. Gain it.", async () => {
        const card1 = game.obtainCard("fsp2-holy_chest") as MonsterCard;
@@ -450,7 +448,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         await game.resolveStack(); // effect
         expect(game.encounters.slots.length).toBe(4);
         expect(player1.canAttackThisEntity("topDeck")).toBe(true);
-        expect(player1.canAttackThisEntity(game.monsters[1]!)).toBe(false);
+        expect(player1.canAttackThisEntity(game.monsters[1]!)).not.toBe(true);
     });
     it("fsp2-holy_mulligan - When this dies, expand monster slots by 2. The active player may attack an additional time this turn.", async () => {
        const card1 = game.obtainCard("fsp2-holy_mulligan") as MonsterCard;

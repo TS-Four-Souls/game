@@ -613,6 +613,8 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
       }
   }
   game.loadHistory(logs);
+  for(const player of game.players)
+    player.animations(true);
   game.seed = ""; // Change the seed to avoid cheating by saving and reloading to predict random outcomes.
   return game;
 }

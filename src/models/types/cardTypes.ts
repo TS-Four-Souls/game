@@ -45,6 +45,10 @@ export class EffectData {
         this._issuerProvider = issuerProvider;
     }
 
+    get issuerProvider(): () => Entity {
+        return this._issuerProvider;
+    }
+
     get targets(): any[] {
         return this._targets;
     }

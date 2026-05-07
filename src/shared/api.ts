@@ -821,7 +821,7 @@ export const schemas = {
   giveCoinsRequest: giveCoinsSchema,
   setGameParameterRequest: setGameParameterRequestSchema,
   joinRoomRequest: joinRoomRequestSchema,
-  getGameLogsRequest: issuerSchema,
+  getGameLogsRequest: nullSchema,
   loadGameRequest: loadGameRequestSchema,
   loadGameSettingsRequest: loadGameSettingsRequestSchema,
   selectCharacterRequest: selectCharacterRequestSchema,

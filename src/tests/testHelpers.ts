@@ -2,6 +2,7 @@ import { bundlerModuleNameResolver } from "typescript";
 import type { BsoulCard, CharacterCard, MonsterCard, RoomCard, TreasureCard } from "../models/cards";
 import { Game } from "../models/game";
 import { Player } from "../models/player";
+import { shuffle } from "@/utils/auxiliary";
 
 
 export function emptyHands(game: Game): void {
@@ -21,6 +22,35 @@ export function dischargeEachItemsAndRemoveCoins(game: Game): void {
         player.loseCoins(player.coins, true);
     }
 }
+
+export async function randomSelect<T>(
+        player: Player,
+        min: number,
+        max: number,
+        Options: T[],
+        description: string = "UNDEFINED SHOULD NOT HAPPEN",
+        skippable: boolean = true,
+        canUseOnBoardSelection: boolean = true,
+    ): Promise<{ selected: T[]; remaining: T[] }> {
+    if (min < 0 || min > max) {
+        throw new Error(`Invalid selection bounds: min (${min}) must be between 0 and max (${max}).`);
+    }
+
+    if ((min === max && Options.length === max && skippable) || Options.length < min) {
+        return {
+        selected: Options,
+        remaining: [],
+        };
+    }
+    if (Options.length === 0) return { selected: [], remaining: [] };
+
+    const nbToSelect = Math.floor(Math.random() * ((Math.min(max, Options.length) - min + 1)) + min);
+    const shuffledOptions = [...Options];
+    shuffle(Math.random, shuffledOptions);
+    const selected = shuffledOptions.slice(0, nbToSelect);
+    const remaining = shuffledOptions.slice(nbToSelect);
+    return { selected: selected, remaining: remaining };
+}     
 
 /**
  * Configuration options for setting up a test game.
@@ -67,12 +97,18 @@ export interface GameSetupConfig {
      * Array of bonus soul slugs to add to the game.
      * @example ["r-soul_of_envy", "r-soul_of_lust"]
      */
-    bonusSouls?: string[];
+    bonusSouls?: string[] | "random";
 
     /**
      * Whether to use rooms in the game.
      */
-    rooms?: boolean;
+    rooms?: boolean | "random";
+
+    /**
+     * Optional random seed for deterministic setups.
+     * If provided, will be used to seed the game's random number generator.
+     */
+    randomSeed?: string;
 }
 
 /**
@@ -127,11 +163,12 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
         playerCount = 2,
         bonusSouls = [],
         rooms = false,
+        randomSeed = ""
     } = config;
 
     // Create game instance
     
-    const game = new Game();
+    const game = new Game(randomSeed);
     mockGameSelections(game);
     game.gameParameters.nbPlayerCardRestriction.value = false;
     game.gameParameters.lootPlayPerTurn.value = 10;
@@ -143,33 +180,34 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
         players.push(player);
         game.addPlayer(player);
     }
-    if(rooms)
+    if(rooms !== false)
         game.gameParameters.playWithRooms.value = true;
     else
         game.gameParameters.playWithRooms.value = false;
     
     // Setup game
     game.setupGame();
-    if(rooms)
+    if(rooms === true)
     {
         for(const slug of ["r-bomb_bum", "r-devil_beggar", "r-blood_donation", "r-beggar"]) {
             const roomCard = game.obtainCard(slug) ! as RoomCard;// default room.
             game.decks.room.addTopPosition(roomCard);
         }    
     }
+    if(bonusSouls !== "random"){
 
-    if(bonusSouls.length === 0) {
-        bonusSouls.push("b2-soul_of_guppy"); // Add a default bonus soul if none provided, to test bonus soul mechanics in most tests
-        bonusSouls.push("b2-soul_of_gluttony"); // Add a default bonus soul if none provided, to test bonus soul mechanics in most tests
-        bonusSouls.push("b2-soul_of_greed"); // Add a default bonus soul if none provided, to test bonus soul mechanics in most tests
-    }
-
-    for(const soulSlug of bonusSouls) {
-        const soulCard = game.decks.bsoul.getCardFromSlug(soulSlug) as BsoulCard;
-        if(!soulCard) {
-            throw new Error(`Bonus soul card not found: ${soulSlug}`);
+        if(bonusSouls.length === 0) {
+            bonusSouls.push("b2-soul_of_guppy"); // Add a default bonus soul if none provided, to test bonus soul mechanics in most tests
+            bonusSouls.push("b2-soul_of_gluttony"); // Add a default bonus soul if none provided, to test bonus soul mechanics in most tests
+            bonusSouls.push("b2-soul_of_greed"); // Add a default bonus soul if none provided, to test bonus soul mechanics in most tests
         }
-        game.decks.bsoul.addTopPosition(soulCard);
+        for(const soulSlug of bonusSouls) {
+            const soulCard = game.decks.bsoul.getCardFromSlug(soulSlug) as BsoulCard;
+            if(!soulCard) {
+                throw new Error(`Bonus soul card not found: ${soulSlug}`);
+            }
+            game.decks.bsoul.addTopPosition(soulCard);
+        }
     }
 
     // Assign characters
@@ -194,6 +232,8 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
     game.start(characterCards, false);
     dischargeEachItemsAndRemoveCoins(game);
     emptyHands(game);
+    
+    const originalStack = [...game.stack._stack];
 
     // Force specific monsters into slots
     for (let i = 0; i < monsters.length; i++) {
@@ -214,6 +254,7 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
         game.decks["monster"]!.addTopPosition(monsterCard as MonsterCard);
     }
 
+    game.stack._stack = originalStack;
     // Add treasures to deck top (reverse order so last becomes top)
     for (const slug of treasureDeck) {
         let treasureCard: TreasureCard | undefined;

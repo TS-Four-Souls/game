@@ -1,6 +1,7 @@
 import { describe, it, beforeEach, expect } from "bun:test";
 import { Game } from "../../models/game";
-import { DiceRoll, Player } from "../../models/player";
+import { Player } from "../../models/player";
+import { DiceRoll } from "../../models/stackElement";
 import { CharacterCard, ItemCard, TreasureCard, MonsterCard } from "@/models/cards";
 import { Monster } from "@/models/monster";
 import { dischargeEachItemsAndRemoveCoins, setupTestGame } from "@/tests/testHelpers";
@@ -76,9 +77,11 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Get the dice roll and set it to 3
         const dice = game.stack.elements[0] as DiceRoll;
+        game.select = async (_issuer, _min, _max, opts, _optional) => {
+            return { selected: [opts[1]], remaining: [] } as any; // Select player2 as the target
+        };
         if (dice) {
             dice.value = 3;
-            dice.targets = [player2];
         }
 
         await game.resolveStack();

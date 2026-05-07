@@ -1213,7 +1213,6 @@ class Deck<T extends Card> {
     }
 
     draw(): T {
-        // console.log(`Drawing card from deck of type ${this._type}.`);
         return this.drawCardAt(0);
     }
     get cards(): T[] {
@@ -1235,8 +1234,12 @@ class Deck<T extends Card> {
             this.resetDiscard();
         }
         const posFromEnd: number = this._order.length - 1 - positionFromTop;
-        if (posFromEnd < 0 || posFromEnd >= this._order.length) {
+        if (posFromEnd >= this._order.length) {
             throw new Error(`Cannot draw card at position ${positionFromTop} from top, deck of type ${this._type} has only ${this._order.length} cards.`);
+        }
+        if(posFromEnd < 0 || this._order.length === 0)
+        {
+            throw new Error(`Cannot draw card at position ${positionFromTop} from top even after resetting discard, deck of type ${this._type} has only ${this._order.length} cards.`);
         }
         const id: number = this._order[posFromEnd]!;
         if(id === undefined || id === null) {
@@ -1276,9 +1279,9 @@ class Deck<T extends Card> {
         this._discard.push(card.id);
     }
 
-    drawTopDiscard(): T {
+    drawTopDiscard(): T | null {
         if (this._discard.length === 0) {
-            throw new Error(`Cannot draw from empty discard pile of deck type ${this._type}.`);
+            return null;
         }
         const id = this._discard.pop()!;
         if (typeof id === "undefined" || id === null) {
@@ -1415,8 +1418,8 @@ export function assertCardMatchesDeck<T extends DeckType>(
     deckName: T,
     card: Card
 ): asserts card is DeckTypeToCardType[T] {
-    if (card.type !== deckName) {
-        throw new Error(`Card type ${card.type} doesn't match deck ${deckName}`);
+    if (card === undefined || card.type !== deckName) {
+        throw new Error(`Card type ${card?.type} doesn't match deck ${deckName}`);
     }
 }
 

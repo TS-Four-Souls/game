@@ -30,6 +30,10 @@ export abstract class Slots<T extends Card> {
         }
     }
 
+    get cardsOnTop(): (T | undefined)[] {
+        return this._slots.map(slot => slot[slot.length - 1]);
+    }
+
 
     removeFromSlot(card: T): boolean {
         for (let i = 0; i < this._slots.length; i++) {
@@ -94,7 +98,9 @@ export abstract class Slots<T extends Card> {
      */
     draw(position: number) : void {
         const card = this._deck.draw();
-        this._slots[position]!.push(card!);
+        if(card === undefined)
+            throw new Error(`Cannot draw card from deck for slot ${position}.`);
+        this._slots[position]!.push(card);
     }
 
     /**
@@ -228,7 +234,7 @@ export class Shop extends Slots<TreasureCard> {
     }
 
     get itemsInShop(): (TreasureCard | undefined)[] {
-        return this._slots.map(slot => slot[slot.length - 1]);
+        return this.cardsOnTop;
     }
 
     /**
@@ -264,7 +270,9 @@ export class Shop extends Slots<TreasureCard> {
         if(index === "top")
             return this.purchaseTopDeck(player, price, game);
         if (game.loseCoins(player, price, false) === price) {
-            game.addInPlay(player, this.itemsInShop[index]!);
+            if(this.itemsInShop[index] === undefined)
+                throw new Error(`Cannot purchase from shop slot ${index}, it is empty. The deck has ${this._deck.cards.length} cards left.`);
+            game.addInPlay(player, this.itemsInShop[index]);
             this._slots[index]?.pop();
             this.fillEmptySpots();
             return true;
@@ -337,9 +345,17 @@ export class Encounters extends Slots<MonsterCard> {
             if (this._slots[i]!.length == 0) {
                 let card = this._deck.draw();
                 if (eventsBottom) {
-                    while (card!.encounterType === MonsterType.EVENT) {
-                        this._deck.addBottomPosition(card!);
-                        card = this._deck.draw();
+                    for(let i = 0; i < this._deck.length; i++)
+                    {
+                        if (card!.encounterType === MonsterType.EVENT) {
+                            this._deck.addBottomPosition(card!);
+                            card = this._deck.draw();
+                        } else
+                            break;
+                        if(i === this._deck.length - 1)
+                        {
+                            throw new Error(`No valid monster card found in deck. The deck has ${this._deck.length} cards left.`);
+                        }
                     }
                     if(!(card instanceof MonsterCard))
                     {
@@ -366,9 +382,10 @@ export class Encounters extends Slots<MonsterCard> {
                 card.slug === slug && (globalId === undefined || card.globalId === globalId)
             );
             if (indexInSlot >= 0) {
+
                 const card = this._slots[i]![indexInSlot];
                 this._slots[i]!.splice(indexInSlot, 1);
-                this.fillEmptySpots(true);
+                this.fillEmptySpots(false);
                 return card;
             }
         }
@@ -390,9 +407,11 @@ export class Encounters extends Slots<MonsterCard> {
      */
     override draw(position: number) : void {
         if(position < 0 || position >= this._slots.length)
-            throw new Error("Invalid slot position to draw to.");
+            throw new Error("Invalid slot position to draw to. Position: " + position + ", Slots length: " + this._slots.length);
         const card = this._deck.draw();
-        this._slots[position]!.push(card!);
+        if(card === undefined)
+            throw new Error(`Cannot draw card from deck for slot ${position}. The deck has ${this._deck.cards.length} cards left.`);
+        this._slots[position]!.push(card);
         this.createMonsterAtSlot(position);
     }
 
@@ -423,7 +442,7 @@ export class Encounters extends Slots<MonsterCard> {
      */
     override moveToBottom(index: number) : void {
         if (index >= 0) {
-            const card = this._slots[index]!.pop();
+            const card = this.removeTop(index);
             this.fillEmptySpots(false);
             this._deck.addBottomPosition(card!);
         }
@@ -432,6 +451,7 @@ export class Encounters extends Slots<MonsterCard> {
     /**
      * Discards all top cards from all slots and refills.
      * Used for effects that clear the encounter area.
+     * EXCEPT IF THE MONSTER IS ENGAGED IN COMBAT, IN WHICH CASE IT IS LEFT IN PLACE AND NOT DISCARDED.
      */
     override flush() : void {
         for (let i = 0; i < this._slots.length; i++) {
@@ -439,6 +459,31 @@ export class Encounters extends Slots<MonsterCard> {
                 this.discardTop(i);
         }
         this.fillEmptySpots(false);
+    }
+
+    /**
+     * Moves all top cards from all slots to the bottom of the deck.
+     * Different from flush as cards go to bottom instead of discard.
+     * EXCEPT IF THE MONSTER IS ENGAGED IN COMBAT, IN WHICH CASE IT IS LEFT IN PLACE AND NOT DISCARDED.
+     */
+    override flushToBottom(): void {
+        for (let i = 0; i < this._slots.length; i++) {
+            if(this.monsterIn(i) !== undefined && this.monsterIn(i)!.isEngagedInCombat === true)
+                continue;
+            this.moveToBottom(i);
+        }
+        this.fillEmptySpots();
+    }
+
+    /**
+     * Flushes all top cards from all slots and refills, then draws a new card on top of each non refilled slot.
+     */
+    override flushAndDraw(): void {
+        this.flush();
+        for (let i = 0; i < this._slots.length; i++) {
+            if(this._slots[i]!.length > 1 && (this.monsterIn(i) === undefined || this.monsterIn(i)!.isEngagedInCombat === false))
+                this.draw(i);
+        }
     }
 
     createEventEffect(event: MonsterCard): EffectOnStack{
@@ -481,6 +526,7 @@ export class Encounters extends Slots<MonsterCard> {
         const toClean = this._monstersInPlay[index];
         if (toClean !== undefined) {
             toClean.card.cleanup();
+            this._game.stack.clearEffectsFromEntity(toClean);
         }
         const card = this._slots[index]![this._slots[index]!.length - 1]!;
         if (card.encounterType !== MonsterType.EVENT) {
@@ -579,6 +625,8 @@ export class Encounters extends Slots<MonsterCard> {
         const index = this._monstersInPlay.indexOf(monster);
         if (index >= 0) {
             this.killTop(index);
+        } else {
+            this.removeCard(monster.card);
         }
     }
     
@@ -660,7 +708,9 @@ export class Rooms extends Slots<RoomCard> {
      */
     override draw(position: number) : void {
         const card = this._deck.draw();
-        this._slots[position]!.push(card!);
+        if(card === undefined)
+            throw new Error(`Cannot draw card from deck for slot ${position}.`);
+        this._slots[position]!.push(card);
         card.onAddInPlay(() => this._game.currentPlayer);
     }
 

@@ -1,3 +1,4 @@
+import { EffectOnStack } from "./cards";
 import type { Entity } from "./entity";
 import { StackElement } from "./stackElement";
 
@@ -111,6 +112,15 @@ export class Stack {
 
     peek(): StackElement | undefined {
         return this._stack[this._stack.length - 1];
+    }
+
+    clearEffectsFromEntity(entity: Entity): void {
+        this._stack = this._stack.filter(element => {
+            if (element instanceof EffectOnStack && element.data.it === entity.card) {
+                return false; // Remove this element
+            }
+            return true; // Keep this element
+        });
     }
 }
 

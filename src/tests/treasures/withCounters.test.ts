@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../../models/game";
-import { DamageOnStack, DiceRoll, Player } from "../../models/player";
+import { DamageOnStack, DiceRoll } from "../../models/stackElement";
+import { Player } from "../../models/player";
 import { MonsterCard, type ItemCard, type TreasureCard } from "@/models/cards";
 import { CharacterCard } from "@/models/cards";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame, mockGameSelections } from "@/tests/testHelpers";
@@ -144,7 +145,7 @@ describe("Treasure - with counters effect", () => {
         const attacksAllowedBefore = player1.attackThisTurn;
         // At LV25, player should be able to attack unlimited times
         // This is represented by a very high number or no limit
-        expect(attacksAllowedBefore).toBe(Infinity);
+        expect(attacksAllowedBefore).toBe(999999);
 
         // Verify the leveling mechanic continues to work
         game.gainCoins(player1, 10, "gift"); // Should add 10 more levels

@@ -1,10 +1,9 @@
 import { Entity } from "@/models/entity";
-import type { Animation, DamageOnStackJson, DeathOnStackJson, DiceRollJson, EntityType, IdentifierType } from "@/shared/api";
-import { Card, CharacterCard, EffectData, type EffectFunction, EffectOnStack, Hand, ItemCard, LootCard, MonsterCard } from "./cards";
+import type { Animation, Capability, EntityType, IdentifierType } from "@/shared/api";
+import { Card, CharacterCard, EffectOnStack, Hand, ItemCard, LootCard, MonsterCard } from "./cards";
 import type { Game } from "./game";
 import { Monster } from "./monster";
-import { StackElement } from "./stackElement";
-import { TargetBuilder } from "./targetBuilder";
+import { DiceRoll } from "./stackElement";
 
 /**
  * Represents a player in the Four Souls game.
@@ -115,6 +114,21 @@ export class Player extends Entity {
     return this._mustAttackMonster;
   }
 
+  requirementListPRINT(): void {
+    if(this.mustAttackMonster.length === 0) return;
+    for(const req of this.mustAttackMonster)
+    {
+      if(req.target === "topDeck")
+        console.log(`Must attack top of deck, source: ${req.source.name}`);
+      else if(req.target === "any")
+        console.log(`Must attack any, source: ${req.source.name}`);
+      else 
+        for(const monster of req.target as Monster[])
+          console.log(`Must attack monster: ${monster.name}, source: ${req.source.name}`);
+    }
+    return;
+  }
+
   requirementListJSON(game: Game): {target: IdentifierType | "topDeck", source: IdentifierType}[] {
     if(this.mustAttackMonster.length === 0) return [];
     const list: {target: IdentifierType | "topDeck", source: IdentifierType}[] = [];
@@ -185,22 +199,47 @@ export class Player extends Entity {
   /**
    * Returns true if attacking this element satisfies the requirement
    */
-  canAttackThisEntity(elem: (Entity | "topDeck")): boolean {
-    if(elem !== "topDeck" && !elem.attackable) return false;
+  canAttackThisEntity(elem: (Entity | "topDeck")): Capability {
+    if(elem !== "topDeck" && !elem.attackable) return "This target is unattackable";
     if (this._mustAttackMonster.length > 0)
     {
-      // console.log("Attack requirements:", this._mustAttackMonster.map(req => req.target === "topDeck" ? req.target : req.target.card.slug));
-      return this._mustAttackMonster.some(req => req.target === elem || (Array.isArray(req.target) && elem instanceof Monster && req.target.includes(elem))) || this._mustAttackMonster.every(req => req.target === "any"); // Must be in the list
+      const requirements = this._mustAttackMonster.some(
+          req => req.target === elem 
+          || (Array.isArray(req.target) && elem instanceof Monster && req.target.includes(elem))) 
+          || this._mustAttackMonster.every(req => req.target === "any"); // Must be in the list
+      if(requirements !== true){
+        return "You have attack requirements."
+        + ` You must attack ${this._mustAttackMonster.map(req => req.target instanceof Array ? req.target[0]!.card.name : req.target).join(", ")}.`;
+      }
+      return true;
     }
     if (this.attackThisTurn > 0)
     {
-      // console.log("No attack requirements, any attack is valid.");
       return true; // If no requirement, any attack is valid as long as player has attacks left
     }
-    // console.log("May attack only:" , this._mayAttackForFree.map(f => f.target === "topDeck" ? f.target : f.target.card.slug));
-    return this.mayAttackForFree.some(free => free.target === elem && free.nb > 0); // Check if it's a free attack
+    const freeAttack = this.mayAttackForFree.some(free => free.target === elem && free.nb > 0); // Check if it's a free attack
+    if (freeAttack === false)
+    {
+      if(this.mayAttackForFree.length > 0)
+        return "You can only attack for free " 
+        + this.mayAttackForFree.map(e => e instanceof Entity ? e.id : e).join(", ") + ".";
+      return "No attacks remaining for this player this turn.";
+    }
+    return true;
   }
-  
+  /**
+   * Monsters can be flushed, or forced removed leading to outdated attack requirements. 
+   * This function clears any requirements that can no longer be fulfilled.
+   * @param elems 
+   * @return true if the player has no more attack requirements, attacks remaining and free attacks, and is currently engaged in combat (used to check if combat should end after clearing requirements)
+   */
+  clearOutdatedAttackRequirements(elems: Entity[]): boolean {
+    this._mustAttackMonster = this._mustAttackMonster.filter(req => {
+      return !(req.target instanceof Array && req.target.every(t => !elems.includes(t)));
+    });
+    return (!this.hasAttackRequirement && !this.hasFreeAttackRemaining && this.attackThisTurn <= 0 && this.isEngagedInCombat)
+  }
+
   /**
    * Remove a monster from the must-attack list (call after attacking it)
    */
@@ -394,8 +433,8 @@ export class Player extends Entity {
    */
   addCanSeeTopOfTreasureDeck(value: number) {
     const sum = this._canSeeTopOfTreasureDeck + value;
-    if(sum !== 0 && sum !== 1) {
-      throw new Error("canSeeTopOfTreasureDeck can only be set to 0 or 1");
+    if(sum < 0) { // can be set to more than 1 with modelling clay.
+      throw new Error("canSeeTopOfTreasureDeck can not be set to a value less than 0");
     }
     this._canSeeTopOfTreasureDeck = sum;
   }
@@ -722,201 +761,3 @@ export class Player extends Entity {
       }
     }
 }
-
-export class DiceRoll extends StackElement {
-  private _value: number;
-  private _issuer: Player;
-  private _effectIssuer: Entity | null = null;
-  private _attackRoll;
-  private _effect: EffectFunction[] | null = null;
-  private _card: Card | null = null;
-  private _targets: any[] = [];
-  private _random: () => number;
-  private _readyToResolve: boolean = false;
-
-  constructor(random: () => number, issuer: Player, attackRoll: boolean = false, card: Card | null = null) {
-    super();
-    if(!attackRoll && !card) {
-      throw new Error("Non-attack dice rolls must be associated with a card.");
-    }
-    this._random = random;
-    this._issuer = issuer;
-    this._attackRoll = attackRoll;
-    this._card = card;
-    this._value = this.roll();
-  }
-  set targets(targets: any[]) {
-    this._targets = targets;
-  }
-
-  get attackRoll(): boolean {
-    return this._attackRoll;
-  }
-  get issuer(): Player {
-    return this._issuer;
-  }
-  get value(): number {
-    return this._value;
-  }
-
-  get card(): Card | null {
-    return this._card;
-  }
-
-  get readyToResolve(): boolean {
-    return this._readyToResolve;
-  }
-
-  set readyToResolve(value: boolean) {
-    this._readyToResolve = value;
-  }
-
-  add(modifier: number): void {
-    if(modifier < 0){
-      throw new Error("Modifier must be positive");
-    }
-    this.value = this.value + modifier;
-  }
-  subtract(modifier: number): void {
-    if (modifier < 0) {
-      throw new Error("Modifier must be positive");
-    }
-    this.value = this.value - modifier;
-  }
-  override get json(): DiceRollJson {
-    return { 
-      type: "diceRoll",
-      diceRoll: this.value, 
-      issuer: this.issuer.json, 
-      card: !this._attackRoll ? this._card!.jsonAPI : undefined, 
-      targets: !this._attackRoll ? TargetBuilder.convertToSelectionItems(this._targets) : undefined,
-      ...super.baseJson,
-      modifier: (this._attackRoll ? this._issuer.attackDiceModifier : 0) + this._issuer.diceModifier,
-    }
-  }
-  set value(v: number) {
-    const prev = this._value;
-    this._value = Math.max(1, Math.min(6, v));
-    if (prev !== this._value)
-      this.readyToResolve = false;
-  }
-  roll(): number {
-    const old = this._value;
-    this.value = Math.floor(this._random() * 6) + 1;
-    return this._value;
-  }
-  /**
-   * Modify the random function used for this dice roll (for testing purposes only)
-   */
-  _TEST_setRandom(random: () => number): void {
-    this._random = random;
-  }
-  attachEffect(effect: EffectFunction[], card: Card, targets: any[]=[], effectIssuer: Entity | null = null): void {
-    if(effect.length != 6)
-      throw new Error("Effect must have 6 outcomes, one for each dice face.");
-    this._effect = effect;
-    this._card = card;
-    this._targets = targets;
-    this._effectIssuer = effectIssuer;
-  }
-  async onResolve(): Promise<void> {
-    if(this.attackRoll)
-      if(this._issuer.isDead || this._targets.length === 0 || this._targets[0].isDead)
-        return; // No effect if attacker or target is dead
-    this.value += (this._attackRoll ? this._issuer.attackDiceModifier : 0) + this._issuer.diceModifier;
-    if (this._effect?.length === 6) {
-      const effectIssuer = this._effectIssuer ?? this._issuer;
-      // For attack rolls, prepend the dice roll itself to targets so effects can use it as the damage source
-      const targetsWithDiceRoll = this._attackRoll ? [this, ...this._targets] : this._targets;
-      await this._effect[this._value - 1]!(new EffectData(this._card!, () => effectIssuer, targetsWithDiceRoll));
-    }
-  }
-}
-
-export class DamageOnStack extends StackElement {
-
-  from: Entity;
-  receiver: Entity;
-  damage: number[];
-  _source: Card | DiceRoll;
-  _targets: any[] = [];
-  _effect: EffectFunction | null = null;
-  game: Game;
-
-  constructor(
-    from: Entity,
-    receiver: Entity,
-    damage: number[],
-    source: Card | DiceRoll,
-    game: Game
-  ) {
-    super();
-    this.receiver = receiver;
-    this.from = from;
-    this.damage = damage;
-    this._source = source;
-    this.game = game;
-  }
-  attachEffect(effect: EffectFunction, source: Card | DiceRoll, targets: any[] = []): void {
-    this._effect = effect;
-    this._source = source;
-    this._targets = targets;
-  }
-
-  async onResolve(): Promise<void> {
-    this.game.resolveDamage(this.from, this.receiver, this._source, this.damage[0]!);
-    if(this._effect) {
-      const card = this._source instanceof DiceRoll ? this._source.card! : this._source;
-      if(this.from instanceof Player === false)
-        throw new Error("Damage effect issuer is not a player");
-      await this._effect(new EffectData(card, () => this.from, [this, this._targets]));
-    }
-  }
-  override get json(): DamageOnStackJson {
-    const sourceName = this._source instanceof DiceRoll ? this._source.json : this._source.jsonAPI;
-    return {
-      type: "damage",
-      from: this.from.json, 
-      receiver: this.receiver.json, 
-      damage: this.damage[0]!, 
-      source: sourceName,
-      ...super.baseJson,
-    };
-  }
-};
-
-export class DeathOnStack extends StackElement {
-
-  receiver: Entity;
-  from: Entity;
-  source: Card | DiceRoll; 
-  game: Game;
-
-  constructor(
-    receiver: Entity,
-    from: Entity,
-    source: Card | DiceRoll,
-    game: Game
-  ) {
-    super();
-    this.receiver = receiver;
-    this.from = from;
-    this.source = source;
-    this.game = game;
-  }
-  async onResolve(): Promise<void> {
-    await this.game.resolveDeath(this.receiver, this.from, this.source);
-  }
-
-  override get json(): DeathOnStackJson {
-    const sourceName = this.source instanceof DiceRoll ? this.source.json : this.source.jsonAPI;
-    this.receiver.json;
-    return {
-      type: "death",
-      receiver: this.receiver.json,
-      from: this.from.json,
-      source: sourceName,
-      ...super.baseJson,
-    };
-  }
-};

@@ -1,7 +1,7 @@
 import type { Player } from '../player';
 import type { Monster } from '../monster';
 import type { Animated, Entity } from '../entity';
-import type { DeathOnStack, DiceRoll } from '../player';
+import type { DeathOnStack, DiceRoll } from '../stackElement';
 import type { ItemCard, Card, LootCard } from '../cards';
 import type { DamageSource } from '../game';
 
@@ -279,7 +279,7 @@ export type OnCoinGivenData = {
   eventIssuer: Player;
   target: Player;
   amount: number;
-  forced: boolean;
+  forced: Card | null;
 };
 
 /** Data emitted before the game starts */

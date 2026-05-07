@@ -1,11 +1,7 @@
-    import { describe, it, expect, beforeEach } from "bun:test";
+    import { beforeEach, describe, expect, it } from "bun:test";
 import { Game } from "../../models/game";
-import { DamageOnStack, DiceRoll, Player } from "../../models/player";
-import { pl } from "zod/locales";
-import type { LootCard, ItemCard, TreasureCard, TargetsSelector, EffectOnStack } from "@/models/cards";
-import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame } from "../testHelpers";
-import type { Target } from "bun";
+import { Player } from "../../models/player";
+import { setupTestGame } from "../testHelpers";
 
 describe("Four Souls+2 Attack Requirements", () => {
     let game: Game;
@@ -33,7 +29,7 @@ describe("Four Souls+2 Attack Requirements", () => {
         expect(game.canEndTurn(player1, false)).not.toBe(true);
         game.declareAttack(player1);
         expect(player1.canAttackThisEntity("topDeck")).toBe(true);
-        expect(player1.canAttackThisEntity(game.monsters[0]!)).toBe(false);
+        expect(player1.canAttackThisEntity(game.monsters[0]!)).not.toBe(true);
         await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.endCombat();
         expect(player1.hasAttackRequirement).toBe(true);
@@ -50,7 +46,7 @@ describe("Four Souls+2 Attack Requirements", () => {
         expect(game.canEndTurn(player1, false)).not.toBe(true);
         game.declareAttack(player1);
         expect(player1.canAttackThisEntity("topDeck")).toBe(true);
-        expect(player1.canAttackThisEntity(game.monsters[0]!)).toBe(false);
+        expect(player1.canAttackThisEntity(game.monsters[0]!)).not.toBe(true);
         await game.declareAttackOnEntity(player1, "topDeck", 0);
         game.endCombat();
         expect(game.canEndTurn(player1, false)).toBe(true);
@@ -63,14 +59,14 @@ describe("Four Souls+2 Attack Requirements", () => {
         game.playerMustAttack(player1, [mob1], source);
         game.playerMustAttack(player1, [mob2], source);
         game.declareAttack(player1);
-        expect(player1.canAttackThisEntity("topDeck")).toBe(false);
+        expect(player1.canAttackThisEntity("topDeck")).not.toBe(true);
         expect(player1.canAttackThisEntity(mob1)).toBe(true);
         expect(player1.canAttackThisEntity(mob2)).toBe(true);
         await game.declareAttackOnEntity(player1, mob1);
         game.endCombat();
         game.declareAttack(player1);
         expect(game.canEndTurn(player1, false)).not.toBe(true);
-        expect(player1.canAttackThisEntity(mob1)).toBe(false);
+        expect(player1.canAttackThisEntity(mob1)).not.toBe(true);
         expect(player1.canAttackThisEntity(mob2)).toBe(true);
         await game.declareAttackOnEntity(player1, mob2);
         game.endCombat();

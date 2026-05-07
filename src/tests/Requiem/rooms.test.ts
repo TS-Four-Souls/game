@@ -2,9 +2,9 @@
 import type { ItemCard, LootCard, RoomCard } from "@/models/cards";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { Game } from "../../models/game";
-import { DamageOnStack, Player } from "../../models/player";
+import { DamageOnStack } from "../../models/stackElement";
+import { Player } from "../../models/player";
 import { setupTestGame } from "../testHelpers";
-import { executeActivateRequest } from "@/utils/gameRequestHelpers";
 
 
 describe("Requiem Rooms", () => {

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../../models/game";
-import { DiceRoll, Player } from "../../models/player";
+import { Player } from "../../models/player";
+import { DiceRoll } from "../../models/stackElement";
 import { pl } from "zod/locales";
 import type { LootCard, TreasureCard, Card } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard, ItemCard } from "@/models/cards";
@@ -307,7 +308,7 @@ describe("Treasure - Passive effects", () => {
         expect(player1.inPlay.map((c) => c.slug)).not.toContain(theChest.slug);
 
         // The chest should now be a soul
-        expect(player1.souls).toContain(theChest);
+        expect(player1.souls.map((c) => c.slug)).toContain(theChest.slug);
         expect(player1.totalSouls).toBe(initialSouls + 1);
     });
 

@@ -283,9 +283,7 @@ io.on("connection", (socket) => {
         callback,
         (payload) => {
           try {
-            game.getPlayerByIssuer(payload);
             const logs = JSON.stringify(game.log, null, 2);
-            // console.log(`Game logs:`, logs);
             return callback({ status: 200, logs });
           } catch (error) {
             console.error("Failed to get game logs", error);

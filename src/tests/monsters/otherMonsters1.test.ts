@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, expectTypeOf } from "bun:test";
-import { Game } from "../../models/game";
-import { DamageOnStack, DiceRoll, Player } from "../../models/player";
-import type { ItemCard, LootCard } from "@/models/cards";
+import type { ItemCard } from "@/models/cards";
 import { MonsterCard } from "@/models/cards";
-import { setupTestGame, emptyHands, mockGameSelections } from "../testHelpers";
-import { he, pl } from "zod/locales";
+import { beforeEach, describe, expect, it } from "bun:test";
+import { Game } from "../../models/game";
+import { DamageOnStack, DiceRoll} from "../../models/stackElement";
+import { Player } from "../../models/player";
+import { mockGameSelections, setupTestGame } from "../testHelpers";
 
 describe("Monsters - Various 1", () => {
     let game: Game;

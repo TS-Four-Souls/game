@@ -1,6 +1,6 @@
 import type { EntityType, TemporaryEffect } from "@/shared/api";
 import type { Card } from "./cards";
-import { type DiceRoll } from "./player";
+import { type DiceRoll } from "./stackElement";
 import type { Monster } from "./monster";
 import type { CardRewards, Reward } from "@/types/cardTypes";
 

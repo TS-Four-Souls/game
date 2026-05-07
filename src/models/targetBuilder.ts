@@ -1,5 +1,6 @@
+import { shuffle } from "@/utils/auxiliary";
 import type { DeckName, SelectionItem, TargetSelectorResponse } from "../shared/api";
-import { Card, ItemCard, type TargetsSelector } from "./cards";
+import { Card, ItemCard, LootCard, type TargetsSelector } from "./cards";
 import { parseNumber } from "./effects/effectParser";
 import { Entity } from "./entity";
 import type { Game } from "./game";
@@ -382,7 +383,8 @@ export class TargetBuilder {
      * @returns The matched target object, or undefined if not found
      */
     private static resolveIdentifier(identifier: SelectionItem, possibleTargets: any[]): any {
-        if (possibleTargets.length === 0) return undefined;
+        if (possibleTargets.length === 0) 
+            throw new Error("No possible targets to resolve against.");
         switch(identifier.type) {
             case "card":
                 return possibleTargets.find(t =>
@@ -469,7 +471,6 @@ export class TargetBuilder {
             selectorIndex = advanced.selectorIndex;
             selector = advanced.selector;
             if (!selector) break;
-
             const possibleTargets = selector.selector(player);
 
             // Check if this is a choose-one selector
@@ -498,8 +499,10 @@ export class TargetBuilder {
                 for (let i = 0; i < selector.max && choiceIndex < partialChoices.length; i++) {
                     const targetId = partialChoices[choiceIndex]!;
                     const resolved = TargetBuilder.resolveIdentifier(targetId, possibleTargets);
-                    if (resolved) {
+                    if (resolved !== undefined) {
                         result.push(resolved);
+                    }else{
+                        throw new Error(`Invalid target choice: ${targetId} for item ${item.name}, selector: ${selector.description}`);
                     }
                     choiceIndex++;
                 }
@@ -532,6 +535,25 @@ export class TargetBuilder {
         let options = TargetBuilder.getNextSelectorRaw(game, player, item, targets, "tap", false);
         while(!options.complete)
         {
+            if(options.isChooseOne)
+            {
+                const feasibleChoices = []
+                for(const option of options.options)
+                {
+                    try {
+                        const tmp = TargetBuilder.getNextSelectorRaw(game, player, item, [...targets, TargetBuilder.convertToSelectionItems([option])[0]], "tap", false);
+                        if(tmp.complete || tmp.options.length > tmp.min)
+                        {
+                            feasibleChoices.push(option);
+                        }
+                    } catch (e) {}
+                }
+                options.options = feasibleChoices;
+                if(options.options.length === 0)
+                {
+                    throw new Error(`No valid targets available for the copied card.`);
+                }
+            }
             const selection = await game.select(
                 player,
                 options.min,
@@ -542,6 +564,10 @@ export class TargetBuilder {
             const normalizedSelection = selection.selected.map((choice) =>choice);
             targets.push(...normalizedSelection);
             options = TargetBuilder.getNextSelectorRaw(game, player, item, TargetBuilder.convertToSelectionItems(targets), "tap", false);
+            if(!options.complete && options.options.length === 0)
+            {
+                throw new Error(`No valid targets available for the copied card ${item.name}.`);
+            }
         }
         return TargetBuilder.buildTargets(game, player, item, TargetBuilder.convertToSelectionItems(targets), "tap");
     }
@@ -596,20 +622,108 @@ export class TargetBuilder {
         const backtrackingIndices: number[] = [];
         while(!options.complete)
         {
-
             const selection = options.options.slice(0, options.max);
             if(selection.length > options.max || selection.length < options.min)
             {
                 if(backtrackingIndices.length === 0)
                     return "No valid targets.";
                 const lastIndex = backtrackingIndices.pop()!;
+                const prevChooseOneOption = targets[lastIndex];
                 targets = targets.slice(0, lastIndex);
+                options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
+                const prevChooseOneIdx = options.options.findIndex((opt: any) => opt.description === prevChooseOneOption.description);
+                    if(prevChooseOneIdx === -1)
+                        throw new Error(`Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`);
+                    if(options.options.length <= prevChooseOneIdx + 1)
+                        return "No valid targets. (No option to backtrack to)";
+                    targets.push(options.options[prevChooseOneIdx+1]);
                 options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
                 continue;
             }
+            if(options.isChooseOne)
+                backtrackingIndices.push(targets.length);
             targets.push(...selection);
             options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
         }
         return options.complete;
+    }
+
+    static buildRandomValidTargets(
+        game: Game,
+        player: Player,
+        item: ItemCard,
+        where: "inPlay" | "hand"
+    ): string | {index: number | "tap"; targets: any[]} {
+        
+        if(!item)
+            return "Item not found.";
+
+        const indices = [...item.activeEffectList]
+        if(where === "hand" && item.hasTapEffect() && indices.length === 0 && item instanceof LootCard && item.trinket)
+        {
+            return {index: "tap", targets: []};
+        }
+        shuffle(Math.random, indices);
+        for(const id of indices)
+        {
+            const effectId = id.index;
+            // console.log(`Checking valid targets for item: ${item.name}, effectId: ${effectId} descr ${item.activeEffectList[effectId as number]?.description}`);
+            if(effectId !== "tap")
+                {
+                    const paiement = TargetBuilder.verifyPaiementCanBeMade(game, player, item, item.activeEffectList[effectId]?.description || "");
+                    if(paiement !== true)
+                    {
+                        continue;
+                    }
+                }
+            else if(!item.charged)
+            {
+                continue;
+            }
+            // The next target is expected to be an array of targets for the copied effect
+            let targets: any[] = [];
+            let options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
+            const backtrackingIndices: number[] = [];
+            while(!options.complete)
+            {
+                // pick a number uniformly between options.min and Math.min(options.max, options.options.length)
+                const upper = Math.min(options.max, options.options.length);
+                const range = upper - options.min + 1;
+                const nbToSelect = options.min + (range > 0 ? Math.floor(Math.random() * range) : 0);
+                const shuffledOptions = [...options.options];
+                shuffle(Math.random, shuffledOptions);
+                const selection = shuffledOptions.slice(0, nbToSelect);
+                if(selection.length > options.max || selection.length < options.min)
+                {
+                    if(backtrackingIndices.length === 0)
+                        break;
+                    const lastIndex = backtrackingIndices.pop()!;
+                    const prevChooseOneOption = targets[lastIndex];
+                    targets = targets.slice(0, lastIndex);
+                    options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
+                    const prevChooseOneIdx = options.options.findIndex((opt: any) => opt.description === prevChooseOneOption.description);
+                    if(prevChooseOneIdx === -1)
+                        throw new Error(`Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`);
+                    if(options.options.length <= prevChooseOneIdx + 1)
+                        return "No valid targets. (No option to backtrack to)";
+                    targets.push(options.options[prevChooseOneIdx+1]);
+                    options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
+                    // continue;
+                }
+                if(options.isChooseOne)
+                    backtrackingIndices.push(targets.length);
+                targets.push(...selection);
+                options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
+            }
+            try {
+                // Convert serialized selection items into resolved targets expected by game/player APIs
+                const resolved = TargetBuilder.buildTargets(game, player, item, targets, effectId);
+                return {index: effectId, targets: resolved};
+            } catch {
+                // If conversion fails, try next effect
+                continue;
+            }
+        }
+        return "No valid targets found for any effect.";
     }
 }

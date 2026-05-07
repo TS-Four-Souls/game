@@ -3,6 +3,7 @@ import { Player } from "./player";
 export class TurnHandler {
     private _isInitialized: boolean = false;
     private _roundIndex: number = 0;
+    private _numberOfRoundSinceBeginning: number = 0;
     private _remainingTurnsInRound: Player[] = [];
     private _baseOrder: Player[] = [];
     private _skipTurnNextRoundList: Player[] = [];
@@ -15,7 +16,12 @@ export class TurnHandler {
         this._remainingTurnsInRound = [...baseOrder];
     }
 
+    get numberOfRoundSinceBeginning(): number {
+        return this._numberOfRoundSinceBeginning;
+    }
+
     endTurn() : void {
+        this._numberOfRoundSinceBeginning++;
         const finishedPlayer = this._remainingTurnsInRound.shift();
         if (this._remainingTurnsInRound.length === 0) {
             this._roundIndex += 1;

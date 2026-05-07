@@ -799,8 +799,7 @@ describe("Force Attack Monster", () => {
         await game.declareAttackOnEntity(game.currentPlayer, monster);
 
         expect(game.currentPlayer.hasAttackRequirement).toBe(false);
-        monster.combatEnded();
-        game.currentPlayer.combatEnded();
+        game.endCombat();
         // End turn
         game.endTurn();
         await game.resolveStack();

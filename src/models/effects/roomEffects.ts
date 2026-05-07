@@ -428,7 +428,7 @@ export function targetNextKillsAnotherPlayerEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         const killer = data.next as Player;
         if(!killer || !(killer instanceof Player))
-            throw new Error("No valid killer found for targetNextKillsAnotherPlayerEffect.");
+            return false;
         if(game.players.filter(p => p !== killer && p.isDead == false).length === 0)
             return false; // No valid targets to kill
         const selected = (await data.selectAndRecord(game, killer, 1, 1, game.players.filter(p => p !== killer && p.isDead == false), "Select a player to kill.")).selected[0]! as Player;
@@ -552,7 +552,7 @@ export function eachPlayerGainsCoinsEffect(game: Game): EffectFunction {
         let offGainCoins: (() => void) | null = null;
         offGainCoins = game.emitter.on("on:coin:gained:after", (eventData) => {
             const { eventIssuer, coinGained, source } = eventData;
-            if(source === data.it)
+            if(source === data.it || (source !== "gift" && source.slug === "fsp2-magnet"))
                 return; // Prevent infinite loop if the coin gain is caused by this effect
             for(const player of game.players) {
                 if(player !== eventIssuer) {
@@ -894,6 +894,8 @@ export function playersWithFewestSoulsAttackBoostEffect(game: Game): EffectFunct
         data.it.cleaners.push(() => {
             offTurnStart?.();
             offTurnStart = null;
+            offSoulGained?.();
+            offSoulGained = null;
             removeEffect();
         });
         return true;
@@ -1148,6 +1150,7 @@ export function payOtherPlayersToAttackEffect(game: Game, amount: number): Effec
             if (eventIssuer.coins < requiredCoins) {
                 eventData.canDeclare[0] = false;
                 eventData.reason[0] = `You must pay ${requiredCoins}¢ to attack, but you only have ${eventIssuer.coins}¢.`;
+                eventIssuer.clearAttackRequirement();
             }
         });
 
@@ -1159,7 +1162,7 @@ export function payOtherPlayersToAttackEffect(game: Game, amount: number): Effec
                 const effect: EffectFunction = async (effectData: EffectData) => {
                     for(const player of game.players) {
                         if(player !== eventIssuer)
-                            game.giveCoins(eventIssuer, player, amount, true);
+                            game.giveCoins(eventIssuer, player, amount, data.it);
                     }
                     return true;
                 };

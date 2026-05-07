@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, expectTypeOf } from "bun:test";
-import { Game } from "../../models/game";
-import { DamageOnStack, DiceRoll, Player } from "../../models/player";
-import type { ItemCard, LootCard } from "@/models/cards";
+    import type { ItemCard } from "@/models/cards";
 import { MonsterCard } from "@/models/cards";
-import { setupTestGame, emptyHands, mockGameSelections } from "../testHelpers";
-import { he, pl } from "zod/locales";
+import { beforeEach, describe, expect, it } from "bun:test";
+import { Game } from "../../models/game";
+import { Player } from "../../models/player";
+import { DiceRoll } from "../../models/stackElement";
+import { mockGameSelections, setupTestGame } from "../testHelpers";
 
 describe("Monsters - Various 2", () => {
     let game: Game;
@@ -25,13 +25,20 @@ describe("Monsters - Various 2", () => {
     });
 
     it("Each time this deals combat damage to a player, they lose 2¢. (b2-keeper_head)", async () => {
+        expect(game.stack.isEmpty()).toBe(true);
+        if(!game.stack.isEmpty())
+            console.log(game.stack._stack[0]?.json);
         const card = game.obtainCard("b2-keeper_head") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         game.addHealth(player1, 10); // Prevent death by damage
-
+        expect(game.stack.isEmpty()).toBe(true);
+        if(!game.stack.isEmpty())
+            console.log(game.stack._stack[0]?.json);
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
-
+        if(!game.stack.isEmpty())
+            console.log(game.stack._stack[0]?.json);
+        expect(game.stack.isEmpty()).toBe(true);
         game.declareAttack(player1);
         await game.declareAttackOnEntity(player1, monster);
         

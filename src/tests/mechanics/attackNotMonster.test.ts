@@ -1,11 +1,7 @@
-    import { describe, it, expect, beforeEach } from "bun:test";
+    import { beforeEach, describe, expect, it } from "bun:test";
 import { Game } from "../../models/game";
-import { DamageOnStack, DiceRoll, Player } from "../../models/player";
-import { pl } from "zod/locales";
-import type { LootCard, ItemCard, TreasureCard, TargetsSelector, EffectOnStack } from "@/models/cards";
-import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame } from "../testHelpers";
-import type { Target } from "bun";
+import { Player } from "../../models/player";
+import { setupTestGame } from "../testHelpers";
 
 describe("Four Souls+2 Attack Requirements", () => {
     let game: Game;

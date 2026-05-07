@@ -1,4 +1,5 @@
-import { DiceRoll, Player } from "../player";
+import { Player } from "../player";
+import { DiceRoll } from "../stackElement";
 import { LootCard, ItemCard, TreasureCard, LootCardEffect, EffectOnStack, MonsterCard, Card } from "../cards";
 import { EffectData, type EffectFunction } from "../types/cardTypes";
 import { Game } from "../game";
@@ -40,14 +41,14 @@ export function addPassiveEffectToStack(
     effectFunction: EffectFunction,
     data: EffectData,
     description: string
-): void {
+): number {
     const effectOnStack = new EffectOnStack(effectFunction, data, description);
     game.addAnimation({
         id: game.nextAnimationId,
         type: "activateInPlay",
         card: data.it.jsonAPI,
     });
-    game.addToStack(effectOnStack);
+    return game.addToStack(effectOnStack);
 }
 
 // REPLACEMENT EFFECT: Uses "prevent" - does not use the stack.
@@ -151,18 +152,17 @@ export function interceptFirstGainCoinYourTurnEffect(effectFunctions: EffectFunc
             if(!active) return;
             if(coinGained[0]! <= 0) return;
             active = false;
-            data.addTarget([coinGained[0]]);
+            const newData: EffectData = new EffectData(data.it, data.issuerProvider, [[coinGained[0]]]);
             // Add all effects as a single stack element
             const effect = async (effectData: EffectData) => {
                 for (const func of effectFunctions) {
                     await func(effectData);
                 }
                 active = false;
-                data.targets = [];
                 return true;
             };
             coinGained[0] = 0;
-            addPassiveEffectToStack(game, effect, data, description);
+            addPassiveEffectToStack(game, effect, newData, description);
         });
 
         offTurn = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
@@ -428,10 +428,11 @@ export function onYourTurnModifier(
     return (data: EffectData) => {
         if (amount < 0)
             throw new Error("onYourTurnModifier amount must be non-negative.");
-
+        let active = false;
         if(game.currentPlayer === data.issuer) {
             // Apply the stat modification
             const target = data.targets.length > 0 ? data.peek() : data.issuer;
+            active = true;
             for (const adder of adders)
                 adder(target, amount);
         }
@@ -440,28 +441,36 @@ export function onYourTurnModifier(
             const { eventIssuer } = eventData;
             if (eventIssuer !== data.issuer) return;
             const target = data.targets.length > 0 ? data.peek() : data.issuer;
+            active = true;
             for (const adder of adders)
                 adder(target, amount);
         });
-
-        let offTurnEnd = game.emitter.on("on:turn:end", (eventData: OnTurnEndData) => {
+        let offTurnEnd = game.emitter.on("till:turn:end", (eventData: OnTurnEndData) => {
             const { eventIssuer } = eventData;
             if (eventIssuer !== data.issuer) return;
             const target = data.targets.length > 0 ? data.peek() : data.issuer;
-            for (const adder of adders)
-                adder(target, -amount);
+            
+            if(active)
+            {
+                active = false;
+                for (const adder of adders)
+                    adder(target, -amount);
+            }
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
 
-        data.it.cleaners.push(() => {            
-            if (game.currentPlayer === data.issuer) {
+        data.it.cleaners.push(() => { 
+            if (game.currentPlayer === data.issuer && active) {
                 const target = data.targets.length > 0 ? data.peek() : data.issuer;
+                active = false;
                 for (const adder of adders)
                     adder(target, -amount);
             }
             offTurn();
+            offTurn = () => null;
             offTurnEnd();
+            offTurnEnd = () => null;
         });
 
         return true;
@@ -543,6 +552,7 @@ export function firstAttackRollDiceModifier(
             if (eventIssuer !== issuer) return;
             if(active) return;
             game.addAttackDiceModifier(issuer, amount);
+            active = true;
         });
 
         let offTurnEnd = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
@@ -625,7 +635,9 @@ export function onDamageTakenEffect(
             const index = data.targets.findIndex((c) => c.damageTaken !== undefined) < 0 
                 ? data.targets.length 
                 : data.targets.findIndex((c) => c.damageTaken !== undefined);
-            data.addTarget({damageTaken: damage});
+            data.targets = [];
+            data.clearSelectionRecord();
+            data.addTarget(damage);
             
             // Add all effects as a single stack element
             const effect = async (effectData: EffectData) => {
@@ -860,18 +872,19 @@ export function stealCoinOnGainEffect(amount: number, game: Game): EffectFunctio
     return (data: EffectData) => {
         let offCoinGain: (() => void) | null = null;
         
-        offCoinGain = game.emitter.on("on:coin:gained:after", ({ eventIssuer, coinGained }) => {
+        offCoinGain = game.emitter.on("on:coin:gained:after", ({ eventIssuer, coinGained, source }) => {
             if (data.issuer === eventIssuer) return;
             if(!(data.issuer instanceof Player)) {
                 throw new Error("stealCoinOnGainEffect can only be applied to Players.");
             }
+            if(source !== "gift" && source.slug === data.it.slug && source.slug) return; // Avoid infinite loops.
             const effect = (effectData: EffectData) => {
                 if(!(data.issuer instanceof Player)) {
                     throw new Error("stealCoinOnGainEffect can only be applied to Players.");
                 }
                 const stealAmount = Math.min(coinGained[0] ?? 0, amount);
                 if(stealAmount <= 0) return false;
-                game.giveCoins(eventIssuer, data.issuer, stealAmount, true);
+                game.giveCoins(eventIssuer, data.issuer, stealAmount, data.it);
                 return true;
             }
             addPassiveEffectToStack(game, effect, data, `Steal ${amount}¢ from another player when they gain coins.`);
@@ -1093,10 +1106,14 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): Effec
             // Create the effect that will execute when the stack resolves
             const effect = async (effectData: EffectData) => {
                 if (!(effectData.issuer instanceof Player)) return false;
-                const newTargets = await TargetBuilder.buildTargetsOnResolve(game, eventIssuer, card);
-                const lootCardEffect = new LootCardEffect(eventIssuer, card, newTargets);
-                game.addToStack(lootCardEffect);
-                return true;
+                try{
+                    const newTargets = await TargetBuilder.buildTargetsOnResolve(game, eventIssuer, card);
+                    const lootCardEffect = new LootCardEffect(eventIssuer, card, newTargets);
+                    game.addToStack(lootCardEffect);
+                    return true;
+                } catch (error) {
+                    return false;
+                }
             };
             
             // Add to stack instead of executing immediately
@@ -1188,6 +1205,7 @@ export function ConditionalStatModifierEffect(
         let offEvents: (() => void)[] = [];
         
         let currentlyActive = false;
+        let adderStackId: number | null = null;
         const applyModifierIfConditionMet = (player: Player) => {
             const shouldBeActive = condition(player);
             
@@ -1195,31 +1213,42 @@ export function ConditionalStatModifierEffect(
                 if (useStack) {
                     // Create the effect that will execute when the stack resolves
                     const effect = (effectData: EffectData) => {
+                        if(currentlyActive === true) return true; // Already applied by another trigger
+                        currentlyActive = true;
                         for (const adder of adders)
                             adder(player, amount);
-                        currentlyActive = true;
                         return true;
                     };
-                    addPassiveEffectToStack(game, effect, data, "Apply conditional stat modifier");
+                    adderStackId = addPassiveEffectToStack(game, effect, data, "Apply conditional stat modifier");
                 } else {
+                    currentlyActive = true;
                     for (const adder of adders)
                         adder(player, amount);
-                    currentlyActive = true;
                 }
             } else if (!shouldBeActive && currentlyActive) {
                 if (useStack) {
                     // Create the effect that will execute when the stack resolves
                     const effect = (effectData: EffectData) => {
-                        for (const adder of adders)
-                            adder(player, -amount);
+                        if(currentlyActive === false) return true; // Already removed by another trigger
                         currentlyActive = false;
+                        const index = game.stack.elements.findIndex(element => element.stackId === adderStackId);
+                        if(index !== -1)
+                        {
+                            game.stack.removeAt(index);
+                            adderStackId = null;
+                        }
+                        else
+                        {
+                            for (const adder of adders)
+                                adder(player, -amount);
+                        }
                         return true;
                     };
                     addPassiveEffectToStack(game, effect, data, "Remove conditional stat modifier");
                 } else {
+                    currentlyActive = false;
                     for (const adder of adders)
                         adder(player, -amount);
-                    currentlyActive = false;
                 }
             }
         };
@@ -1240,8 +1269,16 @@ export function ConditionalStatModifierEffect(
         data.it.cleaners.push(() => {
             // Remove modifier if still active
             if (currentlyActive) {
-                for (const adder of adders)
-                {
+                currentlyActive = false; 
+                const index = game.stack.elements.findIndex(element => element.stackId === adderStackId);
+                if(index !== -1)
+                    {
+                        game.stack.removeAt(index);
+                        adderStackId = null;
+                    }
+                    else 
+                        for (const adder of adders)
+                    {
                     if(!(data.issuer instanceof Player)) 
                         throw new Error("ConditionalStatModifierEffect can only be removed from Players.");
                     adder(data.issuer, -amount);
@@ -1687,10 +1724,9 @@ export function onRollEffect(
             // if (data.issuer instanceof Monster && !data.issuer.isEngagedInCombat) {
             //     return;
             // }
-            
             if (rollValues.includes(diceRoll.value))
             {
-                data.targets = [diceRoll];
+                const newData:EffectData =  new EffectData(data.it, data.issuerProvider, [diceRoll]);
                 
                 // Create the effect that will execute when the stack resolves
                 const stackEffect = async (effectData: EffectData) => {
@@ -1698,11 +1734,11 @@ export function onRollEffect(
                 };
                 
                 if (diceIssuerIssueTheEvent && diceRoll.issuer !== undefined) {
-                    data.issuerProvider = () => diceRoll.issuer;
-                    data.targets = [];
+                    newData.issuerProvider = () => diceRoll.issuer;
+                    newData.targets = [];
                 }
                 // Add to stack instead of executing immediately
-                addPassiveEffectToStack(game, stackEffect, data, "On roll effect");
+                addPassiveEffectToStack(game, stackEffect, newData, "On roll effect");
             }
         });
 
@@ -1982,11 +2018,11 @@ export function preventDamageOnRollEffect(
             offEffect?.();
             offEffect = null;
         };
-
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
             if (data.issuer !== eventIssuer) return;
             if (!(data.issuer instanceof Player)) return;
+            if(damageArray[0]! <= 0) return;
             const roll:DiceRoll = game.rollDice(data.issuer, false, data.it);
             const effects: EffectFunction[] = new Array<EffectFunction>(6).fill((data:EffectData) => { return true; });
             for (const val of diceValues) {

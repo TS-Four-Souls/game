@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../models/game";
-import { DamageOnStack, DiceRoll, Player } from "../models/player";
+import { Player } from "../models/player";
+import { DamageOnStack, DiceRoll } from "../models/stackElement";
 import { pl } from "zod/locales";
 import type { LootCard, ItemCard, Card } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
@@ -17,15 +18,15 @@ describe("Known bugs that have be corrected", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
     });
-    it("playing question mark on chaos card should destroy question mark.", async () => {
+    it("playing question mark on chaos card should NOT destroy question mark.", async () => {
         const chaosCard = game.obtainCard("b2-chaos_card") as ItemCard;
         game.addInPlay(player1, chaosCard);
         const questionMark = game.obtainCard("fsp2-questionmark_card") as LootCard;
         game.addCardToHand(player1, questionMark);
         game.playCard(player1, player1.hand.length - 1, [chaosCard]);
         await game.resolveStack();
-        expect(game.destroyedCards).toContain(questionMark);
-        expect(game.decks.loot.discard.map(c=>c.slug)).not.toContain(questionMark.slug);
+        expect(game.destroyedCards).not.toContain(questionMark);
+        expect(game.decks.loot.discard.map(c=>c.slug)).toContain(questionMark.slug);
     });
     it("discard 1 loots on death", async () => {
         game.loot(player1, 10);

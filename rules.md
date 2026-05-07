@@ -1,0 +1,1 @@
+- monster shields (no damage taken on X) breaks when the minimum roll value is above the maximum acceptable roll value. noCombatDamageOnAttackRollEffect

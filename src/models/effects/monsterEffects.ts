@@ -1,11 +1,13 @@
 // A monster effect is an effect that is applied by a monster card.
 
 
+import { type TriggerEvent } from '@/models/types/eventTypes';
 import { Card, MonsterCard } from "../cards";
-import { effectParser } from "./effectParser";
 import { Entity } from "../entity";
 import { Game } from "../game";
-import { DiceRoll, Player } from "../player";
+import { Monster } from "../monster";
+import { Player } from "../player";
+import { DiceRoll } from "../stackElement";
 import { EffectData, type EffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type {
     OnAttackDeclaredMonsterData,
@@ -20,10 +22,9 @@ import type {
     OnSoulGainedData,
     OnTurnEndData,
 } from "../types/eventTypes";
-import { type TriggerEvent } from '@/models/types/eventTypes';
 import * as active from "./activeEffect";
 import { addInPlayEffect } from "./activeEffect";
-import { Monster } from "../monster";
+import { effectParser } from "./effectParser";
 import { addPassiveEffectToStack } from "./passiveEffect";
 
 export function thisHealsEffect(game: Game, amount: number): EffectFunction {
@@ -201,7 +202,10 @@ export function putInMonsterDeck6FromTopEffect(game: Game): EffectFunction {
 export function searchForBloatEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
-        const theBloat = game.decks["monster"]!.cards.find(c => c.slug === "b2-the_bloat") as MonsterCard | undefined;
+        const indexBloat = game.decks["monster"]!.cards.findIndex(c => c.slug === "b2-the_bloat") ;
+        if(indexBloat === -1)
+            return false;
+        const theBloat = game.decks["monster"]!.drawCardAt(indexBloat);
         if(!theBloat)
             return false;
         const selection = (await data.selectAndRecord(game, player, 1, 1, game.encounters.nonEngagedInCombat, "Where do you want to put The Bloat?", true, true)).selected[0];
@@ -298,7 +302,7 @@ export function doubleRewardsOnDeathRollEffect(game: Game, rollValues: number[])
 export function noCombatDamageOnAttackRollEffect(game: Game, rollValues: number[]): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
-        
+
         offDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
             const { eventIssuer, target, source, damageArray } = eventData;
             if(!(target instanceof Player)) return;
@@ -307,6 +311,11 @@ export function noCombatDamageOnAttackRollEffect(game: Game, rollValues: number[
             if (data.issuer !== eventIssuer) return;
             const roll = source as DiceRoll;
             if(!rollValues.includes(roll.value)) return;
+            const minDiceValue  = target.diceModifier + target.attackDiceModifier + 1;
+            const maxValidValue = Math.max(...[1,2,3,4,5,6].filter(v => !rollValues.includes(v)));
+            if(rollValues.includes(6) 
+                && minDiceValue > maxValidValue) 
+                return;
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
                 damageArray[0] = 0; // remove all damage
@@ -697,6 +706,7 @@ export function preventDeathFirstTimeEachTurnHealAndStatModifierEffect(game: Gam
             if (data.issuer !== eventIssuer) return;
             if(!(eventIssuer instanceof Monster)) return;
             if(hasPreventedDeathThisTurn) return;
+            hasPreventedDeathThisTurn = true;
             const effect = (effectData: EffectData) => {
                 if(data.issuer instanceof Monster === false)
                     throw new Error("preventDeathFirstTimeEachTurnHealAndStatModifierEffect can only be applied to monsters.");
@@ -704,7 +714,6 @@ export function preventDeathFirstTimeEachTurnHealAndStatModifierEffect(game: Gam
                 data.issuer.heal(1); // heal 1 + 1 from death prevention.
                 game.addDC(data.issuer, 1); // add +1 DC
                 game.addAttack(data.issuer, -1); // lose 1 attack
-                hasPreventedDeathThisTurn = true;
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `The first time each turn ${data.it.name} would be reduced to 0 health, prevent that damage, heal 2 HP, and give it +2 attack.`);
@@ -845,12 +854,20 @@ export function bossRushEffect(game: Game): EffectFunction {
         }
         for(const card of bosses)
             game.addTopPosition("monster", card);
-        const options = [...game.encounters.nonEngagedInCombat, data.it];
-        const selection = await data.selectAndRecord(game, game.currentPlayer, 1, 2, [...game.encounters.nonEngagedInCombat, data.it], "Select slots to place the bosses in.", true, true);
+        
+        const options = [...game.encounters.nonEngagedInCombat];
+        if(game.encounters.visible.includes(data.it))
+            options.push(data.it);
+        if(options.length === 0)
+            return false;
+        const selection = await data.selectAndRecord(game, game.currentPlayer, 1, 2, options, "Select slots to place the bosses in.", true, true);
         const selectedMonsters = selection.selected;
-        const selectedIndices = selectedMonsters.map(slot => game.encounters.visible.indexOf(slot));
+        const selectedIndices = selectedMonsters.map(c => game.encounters.slots.findIndex(s => s.includes(c)));
+
         for(let i=0; i < bosses.length; i++)
         {
+            if(selectedIndices[i%selectedIndices.length]! < 0)
+                throw new Error("Selected monster for boss rush effect not found in encounter slots.");
             const slotIndex = selectedIndices[i%selectedIndices.length]!;
             game.encounters.draw(slotIndex);
         }

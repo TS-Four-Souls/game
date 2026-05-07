@@ -1,10 +1,8 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import type { ItemCard } from "@/models/cards";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { Game } from "../../models/game";
-import { DiceRoll, Player } from "../../models/player";
-import { pl } from "zod/locales";
-import type { LootCard, ItemCard, TreasureCard } from "@/models/cards";
-import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame } from "../testHelpers";
+import { Player } from "../../models/player";
+import { setupTestGame } from "../testHelpers";
 
 async function characterAdd1LootPlay(player1: Player, game: Game) {
     // verify character card works.

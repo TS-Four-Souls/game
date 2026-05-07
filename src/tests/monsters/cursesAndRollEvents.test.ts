@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../../models/game";
-import { DiceRoll, Player } from "../../models/player";
+import { Player } from "../../models/player";
+import { DiceRoll } from "../../models/stackElement";
 import type { LootCard, Card, EffectOnStack } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard, ItemCard, TreasureCard } from "@/models/cards";
 import { setupTestGame, mockGameSelections } from "../testHelpers";
@@ -193,6 +194,7 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
         
+        await game.resolveStack();
         await game.resolveStack();
         expect(player1.hand.length).toBe(initialHandSize + 1);
     });
@@ -719,8 +721,10 @@ describe("Event Monsters - Curse Effects", () => {
         expect(currentDC).toBe(originalDC! + 1);
         
         // Check DC during player2's turn
-        game.endTurn();
+        await game.endTurn();
+        await game.resolveStack();
         const dcOnOtherTurn = fly.evasion;
+        expect(game.currentPlayer.id).toBe(player2.id);
         expect(dcOnOtherTurn).toBe(originalDC);
     });
 });

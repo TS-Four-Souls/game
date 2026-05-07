@@ -1,10 +1,9 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import type { TreasureCard } from "@/models/cards";
+import { setupTestGame } from "@/tests/testHelpers";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { Game } from "../../models/game";
-import { DiceRoll, Player } from "../../models/player";
-import { pl } from "zod/locales";
-import type { LootCard, ItemCard, TreasureCard } from "@/models/cards";
-import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame} from "@/tests/testHelpers";
+import { Player } from "../../models/player";
+import { DiceRoll } from "../../models/stackElement";
 
 describe("Treasure - Permanent Modifiers", () => {
     let game: Game;
@@ -189,8 +188,7 @@ describe("Treasure - Permanent Modifiers", () => {
 
             expect(monster.currentHealthPoints).toBe(initialMonsterHealth - baseAttack - baseAttack - 1);
             game.removeInPlay(player1, item);
-            player1.combatEnded();
-            monster.combatEnded();
+            game.endCombat();
             game.endTurn();
             await game.resolveStack();
             game.endTurn();
