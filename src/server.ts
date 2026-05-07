@@ -260,7 +260,7 @@ io.on("connection", (socket) => {
   });
 
   const setupAuthenticatedEndpoints = (room: Room, user: User) => {
-    const { game } = room;
+    let game = room.game;
 
     socket.on("leaveRoom", (callback) => {
       room.users = room.users.filter(({ id }) => id !== user.id);
@@ -316,6 +316,15 @@ io.on("connection", (socket) => {
             });
 
             room.game = loadedGame;
+            game = loadedGame;
+            for (const roomUser of room.users) {
+              if (!roomUser.player) {
+                continue;
+              }
+              roomUser.player = loadedGame.players.find(
+                (player) => player.id === roomUser.player?.id,
+              );
+            }
 
             loadedGame.players.forEach((player) =>
               sendRoomChanged(room, player.id),
@@ -563,6 +572,15 @@ io.on("connection", (socket) => {
               });
             });
             room.game = loadedGame;
+            game = loadedGame;
+            for (const roomUser of room.users) {
+              if (!roomUser.player) {
+                continue;
+              }
+              roomUser.player = loadedGame.players.find(
+                (player) => player.id === roomUser.player?.id,
+              );
+            }
 
             loadedGame.players.forEach((player) =>
               sendRoomChanged(room, player.id),

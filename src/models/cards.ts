@@ -464,7 +464,7 @@ class Card {
         this._entity = value;
     }
     get charged(): boolean {
-        return this._charged || !this.hasTapEffect();
+        return this._charged;
     }
     set charged(value: boolean) {
         this._charged = value;

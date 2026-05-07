@@ -313,9 +313,15 @@ export function noCombatDamageOnAttackRollEffect(game: Game, rollValues: number[
             if(!rollValues.includes(roll.value)) return;
             const minDiceValue  = target.diceModifier + target.attackDiceModifier + 1;
             const maxValidValue = Math.max(...[1,2,3,4,5,6].filter(v => !rollValues.includes(v)));
-            if(rollValues.includes(6) 
-                && minDiceValue > maxValidValue) 
-                return;
+            if(rollValues.includes(6) && minDiceValue > maxValidValue) 
+                {
+                    const effect = (effectData: EffectData) => {
+                        game.endCombat();
+                        return true;
+                    };
+                    addPassiveEffectToStack(game, effect, data, `${data.it.name} and ${target.card.name} cannot damage each other. They opted for a truce.`);
+                    return false;
+                }
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
                 damageArray[0] = 0; // remove all damage
