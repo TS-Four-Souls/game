@@ -93,8 +93,10 @@ export class TurnHandler {
     reset() : void {
         this._isInitialized = false;
         this._roundIndex = 0;
+        this._numberOfRoundSinceBeginning = 0;
         this._remainingTurnsInRound = [];
         this._baseOrder = [];
+        this._skipTurnNextRoundList = [];
     }
 
 }

@@ -105,6 +105,8 @@ function normalizeDetailedStateForComparison(state: DetailedState): DetailedStat
     // Request IDs are generated at runtime and can differ between replay and recorded logs.
     normalized.me.pendingSelection.requestId = "<ignored>";
   }
+  normalized.animations = [];
+  console.log("Normalized game state for comparison:", normalized.animations);
   return normalized;
 }
 

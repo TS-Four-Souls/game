@@ -1551,6 +1551,7 @@ export class Game {
    */
   resetStack(): void {
     this.stack.clear();
+    this.resetCallbacks();
   }
 
   /**
@@ -2140,23 +2141,28 @@ export class Game {
    */
   reset(newSeed: boolean = true): void {
     this._historicHandler = new HistoricHandler();
-    this.turnHandler.reset();
+    this._turnHandler = new TurnHandler();
     this.monsterDiedThisTurn = false;
     this._players = [];
-    this._decks = createEmptyDecksCollection(this.random);
     this._ongoingAttack = null;
-    this._shop = null!;
     this.seed = (newSeed ? "" : this.seed); // If newSeed is true, set to a random value in the setter.
-    this._encounters = null!;
-    this._stack.clear();
+    this._decks = createEmptyDecksCollection(this.random);
+    this._shop = undefined!;
+    this._encounters = undefined!;
+    this._rooms = undefined!;
+    this.resetStack();
     this._emitter = new GameEventEmitter();
     this._bonusSouls = undefined;
     this._destroyedCards = [];
-    this._cardMapping.clear();
+    this._cardMapping = new Map();
     this._nextCardGlobalId = 0;
-    this.pendingMultipleSelections.clear();
-    this.gameParameters.reset();
+    this.pendingMultipleSelections = new Map();
+    this._stackSubsetCallbacks = [];
     this._animatedList.reset();
+    this._entitiesInCombat = [];
+    this._isWon = false;
+    this._monsterDiedThisTurn = false;
+    this.gameParameters.reset(false);
   }
 
   /**

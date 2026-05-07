@@ -22,6 +22,7 @@ export class Stack {
 
     clear() : void {
         this._stack = [];
+        this._nextId = 0;
     }
 
     removeAt(index: number) : void {

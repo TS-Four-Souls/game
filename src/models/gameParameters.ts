@@ -30,8 +30,11 @@ class NumericGameParameter {
         this.onChange();
     }
 
-    reset() {
-        this.value = this._initialValue;
+    reset(emitChange: boolean = true) {
+        this._value = this._initialValue;
+        if (emitChange) {
+            this.onChange();
+        }
     }
 
     static clamp(value: number, min: number, max: number): number {
@@ -57,8 +60,11 @@ class BooleanGameParameter {
         return this._value;
     }
 
-    reset() {
-        this.value = this._initialValue;
+    reset(emitChange: boolean = true) {
+        this._value = this._initialValue;
+        if (emitChange) {
+            this.onChange();
+        }
     }
 }
 
@@ -154,11 +160,11 @@ export class GameParameters {
         }
     }
 
-    reset() {
+    reset(emitChange: boolean = true) {
         for (const key in this) {
             if (this.hasOwnProperty(key) 
                 && (this[key] instanceof NumericGameParameter || this[key] instanceof BooleanGameParameter)) {
-                this[key].reset();
+                this[key].reset(emitChange);
             }
         }
     }
