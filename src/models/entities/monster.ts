@@ -1,7 +1,7 @@
 import { Entity } from "@/models/entities/entity";
 import type { EntityType } from "@/shared/api";
 import type { MonsterCard } from "../cards";
-import type { Encounters } from "../slots";
+import type { Encounters } from "../slots/encounters";
 
 /**
  * Represents a monster entity in the Four Souls game.
