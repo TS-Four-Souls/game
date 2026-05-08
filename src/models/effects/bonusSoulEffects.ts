@@ -108,16 +108,20 @@ function soulOfGuppyEffect(game: Game, card: Card): OffEffectFunction {
 
 function soulOfEnvyEffect(game: Game, card: Card): OffEffectFunction {
     let offEffect: (() => void) | null = null;
+    let active = true;
 
     const cleanup = () => {
         offEffect?.();
         offEffect = null;
+        active = false;
     };
 
     // Listen for the next damage event on this player
     offEffect = game.emitter.on("on:soul:gained", async (eventData: OnSoulGainedData) => {
         const { eventIssuer, soul } = eventData;
         if(eventIssuer.totalSouls < 3) return;
+        if(!active) return;
+        active = false;
         const fewestSouls = Math.min(...game.players.map(p => p.totalSouls));
         const playersWithFewestSouls = game.players.filter(p => p.totalSouls === fewestSouls);
         const selected = (await game.select(eventIssuer, 1, 1, playersWithFewestSouls, "Select a player to gain the Soul of Envy", false)).selected[0];
@@ -189,14 +193,18 @@ function soulOfWrathEffect(game: Game, card: Card): OffEffectFunction {
 
 function soulOfSlothEffect(game: Game, card: Card): OffEffectFunction {
     let offDeath: (() => void) | null = null;
+    let active = true;
 
     const cleanup = () => {
         offDeath?.();
         offDeath = null;
+        active = false;
     };
 
     offDeath = game.emitter.on("on:enter:play:after", async (eventData: OnEnterPlayAfterData) => {
         if(eventData.eventIssuer.inPlay.length - 2 < 4) return; // -2 to exclude character card and eternal.
+        if(!active) return;
+        active = false; 
         const fewestTreasure = Math.min(...game.players.map(p => p.inPlay.length));
         const playersWithFewestTreasures = game.players.filter(p => p.inPlay.length === fewestTreasure);
         const selected = (await game.select(eventData.eventIssuer, 1, 1, playersWithFewestTreasures, "Select a player to gain the Soul of Sloth", false)).selected[0];
