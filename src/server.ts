@@ -1,6 +1,6 @@
 import { Server as Engine } from "@socket.io/bun-engine";
 import { Server } from "socket.io";
-import { Game } from "./models/game";
+import { CARD_SETS, Game } from "./models/game";
 import { Player } from "./models/player";
 import type {
   ClientToServerEvents,
@@ -63,7 +63,10 @@ io.use((socket, next) => {
 });
 
 const generateCharacterAndEternalPairs = (game: Game): RoomCharacter[] => {
-  const charas = game.getCharacterAndEternalPairs();
+  const charas = CARD_SETS.character.cards.map((card) => ({
+        character: card.jsonAPI,
+      eternal: card.eternalCard,
+    }));
 
   return [
     { character: "random", eternal: "random" },

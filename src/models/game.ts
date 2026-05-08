@@ -43,6 +43,7 @@ import { type TriggerEvent } from '@/models/types/eventTypes';
 import type { Animation, Capability, DetailedState, GameParametersJson, Issuer, SelectionItem, StackElementJson } from "@/shared/api";
 import { shuffle } from "@/utils/auxiliary";
 import { loadCards } from "@/utils/loadCards";
+import { LoadsCardSets } from "@/models/cards";
 import { Signal, type ReadableSignal } from "micro-signals";
 import { addPassiveEffectToStack } from "./effects/passiveEffect";
 import { GameEventEmitter } from "./eventEmmitter";
@@ -55,8 +56,8 @@ import { edenGame, miniDraft } from "./variants";
 export type DamageSource = Card | DiceRoll;
 
 const LOG_GAME = false;
-export const cards = await loadCards(process.cwd() + "/data/cards");
-
+export const CARDS = await loadCards(process.cwd() + "/data/cards");
+export const CARD_SETS = LoadsCardSets(CARDS);
 /*
  * The Game class is the central hub of the game logic, managing the state of the game, players, monsters, decks, shop, encounters, stack, and more. 
  * It also handles all player actions such as declaring attacks, dealing damage, resolving deaths, and managing the game history. 
@@ -1848,7 +1849,7 @@ export class Game {
     if(this._decks["character"]._order!.length !== 0)
       return;
     this._decks = LoadDecks(
-      cards
+      CARDS
       // .filter((c) => c.slug.includes("fsp2") || (c.type !== "treasure" && c.type !== "monster"))
       ,
       this.players.length,
@@ -2644,7 +2645,7 @@ export class Game {
       name: item.name,
       slug: item.slug,
       globalId: item.globalId,
-      charged: item.charged,
+      charged: item.charged || !item.activeEffectList.some(e => e.index === "tap"),
       counter: getCardCounter(item),
       eternal: item.eternal,
       effects: item.activeEffectList,
@@ -2669,7 +2670,7 @@ export class Game {
       name: item.name,
       slug: item.json.slug,
       globalId: item.globalId,
-      charged: item.charged,
+      charged: item.charged || !item.activeEffectList.some(e => e.index === "tap"),
       capabilities: {
         activate: this.canActivate(item, owner),
       },
@@ -3319,17 +3320,6 @@ export class Game {
     return player.removeSoul(card);
   }
 
-  getCharacterAndEternalPairs(): {
-    character: { slug: string; name: string; globalId: number };
-    eternal: string | null;
-  }[] {
-    this.setupGame();
-    return this.decks["character"]!._set.cards.map((card) => ({
-      character: card.jsonAPI,
-      eternal: card.eternalCard,
-    }));
-  }
-  
   /* PRIVATE METHODS */
 
   private healEveryone(): void {
