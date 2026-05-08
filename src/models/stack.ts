@@ -1,5 +1,5 @@
 import { EffectOnStack } from "./cards";
-import type { Entity } from "./entity";
+import type { Entity } from "./entities/entity";
 import { StackElement } from "./stackElement";
 
 export function isStackElement(obj: any): obj is StackElement {

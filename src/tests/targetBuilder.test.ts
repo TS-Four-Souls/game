@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, expect } from "bun:test";
 import { Game } from "../models/game";
-import { Player } from "../models/player";
+import { Player } from "../models/entities/player";
 import { CharacterCard, ItemCard, LootCard, MonsterCard } from "@/models/cards";
 import { TargetBuilder } from "@/models/targetBuilder";
 import {

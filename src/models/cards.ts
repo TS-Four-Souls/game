@@ -1,9 +1,9 @@
 import { type EffectOnStackJson, type LootCardOnStackJson, type Room } from '@/shared/api';
 import type { BonusSoulCardType, CardRewards, CharacterCardType, EternalCardType, GenericCardType, InPlayCardType, LootCardType, MonsterCardType, RoomCardType, TreasureCardType } from '@/types/cardTypes';
 import { print, shuffle } from '@/utils/auxiliary';
-import type { Entity } from './entity';
+import type { Entity } from './entities/entity';
 import type { GameParameters } from './gameParameters';
-import { Player } from './player';
+import { Player } from './entities/player';
 import { StackElement } from './stackElement';
 import { TargetBuilder } from './targetBuilder';
 import { isChooseOneOptions } from './targetSelector';

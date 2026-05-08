@@ -1,6 +1,6 @@
 import type { Game } from "@/models/game";
 import { TargetBuilder } from "@/models/targetBuilder";
-import { Player } from "@/models/player"
+import { Player } from "@/models/entities/player"
 import type { Requests, TargetSelectorResponse } from "@/shared/api";
 
 export async function executeAttackMonsterRequest(

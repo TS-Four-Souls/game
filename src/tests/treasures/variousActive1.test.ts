@@ -1,9 +1,9 @@
 import { describe, it, beforeEach, expect } from "bun:test";
 import { Game } from "../../models/game";
-import { Player } from "../../models/player";
+import { Player } from "../../models/entities/player";
 import { DiceRoll } from "../../models/stackElement";
 import { CharacterCard, ItemCard, TreasureCard, MonsterCard } from "@/models/cards";
-import { Monster } from "@/models/monster";
+import { Monster } from "@/models/entities/monster";
 import { dischargeEachItemsAndRemoveCoins, setupTestGame } from "@/tests/testHelpers";
 
 describe("Tap/Paid effects 1", () => {

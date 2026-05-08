@@ -3,14 +3,15 @@
 
 import { Game } from "../game";
 import { EffectData, type EffectFunction } from "../types/cardTypes";
-import { Player } from "../player";
+import { Player } from "../entities/player";
 import { Card, LootCard, MonsterCard, TreasureCard, ItemCard } from "../cards";
 import type { OnAttackDeclaredTopDeckData, OnDamageTakenData, OnDeathMonsterData } from "../types/eventTypes";
 import { flushMonsterSlotsEffect, flushShopEffect } from "./activeEffect";
 import { addPassiveEffectToStack } from "./passiveEffect";
 import { visibleItemSelector } from "../targetSelector";
-import { Monster } from "../monster";
-import { Animated, Entity } from "../entity";
+import { Monster } from "../entities/monster";
+import { Entity } from "../entities/entity";
+import { Animated } from "../entities/animated";
 
 export function preventGainSoulsEffect(game: Game): EffectFunction {
     return (data: EffectData) => {

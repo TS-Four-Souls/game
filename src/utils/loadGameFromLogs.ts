@@ -1,5 +1,5 @@
 import { Game } from "@/models/game";
-import { Player } from "@/models/player";
+import { Player } from "@/models/entities/player";
 import { ItemCard, LootCard, CharacterCard, MonsterCard } from "@/models/cards";
 import type { HistoricEntry, UserRequest } from "@/models/historyHandler";
 import { isParameterKey, type Issuer, type IdentifierType, type DetailedState } from "@/shared/api";

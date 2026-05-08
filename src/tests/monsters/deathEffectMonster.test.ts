@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, expectTypeOf } from "bun:test";
 import { Game } from "../../models/game";
-import { Player } from "../../models/player";
+import { Player } from "../../models/entities/player";
 import { DiceRoll } from "../../models/stackElement";
 import type { Hand, LootCard } from "@/models/cards";
 import { MonsterCard } from "@/models/cards";

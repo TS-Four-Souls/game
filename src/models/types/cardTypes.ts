@@ -1,5 +1,5 @@
-import type { Player } from '../player';
-import type { Entity } from '../entity';
+import type { Player } from '../entities/player';
+import type { Entity } from '../entities/entity';
 import type { Card, LootCard, TreasureCard, EternalCard, CharacterCard, MonsterCard, BsoulCard, RoomCard } from '../cards';
 import type { Game } from '../game';
 

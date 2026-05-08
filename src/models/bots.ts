@@ -1,6 +1,6 @@
 import { Game } from "./game";
-import type { Player } from "./player";
-import type { Entity } from "./entity";
+import type { Player } from "./entities/player";
+import type { Entity } from "./entities/entity";
 import { TargetBuilder } from "./targetBuilder";
 import type { ItemCard } from "./cards";
 import { shuffle } from "@/utils/auxiliary";

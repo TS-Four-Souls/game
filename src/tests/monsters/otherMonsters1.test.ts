@@ -3,7 +3,7 @@ import { MonsterCard } from "@/models/cards";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { Game } from "../../models/game";
 import { DamageOnStack, DiceRoll} from "../../models/stackElement";
-import { Player } from "../../models/player";
+import { Player } from "../../models/entities/player";
 import { mockGameSelections, setupTestGame } from "../testHelpers";
 
 describe("Monsters - Various 1", () => {

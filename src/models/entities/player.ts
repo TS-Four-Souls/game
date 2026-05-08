@@ -1,9 +1,9 @@
-import { Entity } from "@/models/entity";
+import { Entity } from "@/models/entities/entity";
 import type { Animation, Capability, EntityType, IdentifierType } from "@/shared/api";
-import { Card, CharacterCard, EffectOnStack, Hand, ItemCard, LootCard, MonsterCard } from "./cards";
-import type { Game } from "./game";
+import { Card, CharacterCard, EffectOnStack, Hand, ItemCard, LootCard, MonsterCard } from "../cards";
+import type { Game } from "../game";
 import { Monster } from "./monster";
-import { DiceRoll } from "./stackElement";
+import { DiceRoll } from "../stackElement";
 
 /**
  * Represents a player in the Four Souls game.

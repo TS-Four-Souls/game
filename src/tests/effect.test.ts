@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "@/models/game";
-import { Player } from "@/models/player";
+import { Player } from "@/models/entities/player";
 import { gainCoinsEffect } from "@/models/effects/activeEffect";
 import { CharacterCard, MonsterCard, EffectData } from "@/models/cards";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame } from "@/tests/testHelpers";

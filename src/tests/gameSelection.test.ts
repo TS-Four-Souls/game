@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../models/game";
-import { Player } from "../models/player";
+import { Player } from "../models/entities/player";
 import type { CharacterCard } from "@/models/cards";
 import type { DetailedState } from "@/shared/api";
 import { setTimeout } from "timers/promises";

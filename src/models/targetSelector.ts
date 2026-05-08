@@ -1,7 +1,7 @@
 import { type Card, ItemCard, MonsterCard } from "./cards";
-import type { Entity } from "./entity";
+import type { Entity } from "./entities/entity";
 import { Game } from "./game";
-import { Player } from "./player";
+import { Player } from "./entities/player";
 import { DiceRoll } from "./stackElement";
 import type { StackElement } from "./stack";
 import { type TargetsSelector } from "./types/cardTypes";

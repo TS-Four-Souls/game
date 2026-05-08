@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
 import { Game } from "@/models/game";
-import { Player } from "@/models/player";
+import { Player } from "@/models/entities/player";
 import { shuffle } from "@/utils/auxiliary";
 import type { HistoricEntry } from "@/models/historyHandler";
 import { string } from "zod";

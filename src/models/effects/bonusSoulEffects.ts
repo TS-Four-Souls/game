@@ -1,7 +1,7 @@
 import { de } from "zod/locales";
 import { type Card, BsoulCard, ItemCard, TreasureCard } from "../cards";
 import { Game } from "../game";
-import { Player } from "../player";
+import { Player } from "../entities/player";
 import type {
     OnCoinGainedData,
     OnDeathBeforePenaltyData,

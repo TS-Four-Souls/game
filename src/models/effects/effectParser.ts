@@ -4,7 +4,7 @@ import { Game } from "../game";
 import * as monster from "./monsterEffects";
 import * as passive from "./passiveEffect";
 import * as room from "./roomEffects";
-import { Player } from "../player";
+import { Player } from "../entities/player";
 import { DiceRoll } from "../stackElement";
 import { activeEntitySelector, anotherPlayerSelector, deckSelector, inAnotherplayItemSelector, inplayCurseSelector, itemAndSoulSelector as itemAndSoulSelector, inplayItemSelector, inplayUnchargedItemSelector, playerSelector, rollSelector, stackElementSelector, topAnyDiscardSelector, visibleItemSelector, YourItemSelector } from "../targetSelector";
 import { EffectData, type EffectFunction, type TargetsSelector } from "../types/cardTypes";

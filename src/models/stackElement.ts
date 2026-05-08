@@ -1,8 +1,8 @@
 import type { StackReorderingInfo as ApiStackReorderingInfo, DamageOnStackJson, DeathOnStackJson, DiceRollJson, StackElementJson } from "@/shared/api";
-import type { Entity } from "./entity";
+import type { Entity } from "./entities/entity";
 import type { Game } from "./game";
 import { EffectData, type Card, type EffectFunction } from "./cards";
-import { Player } from "./player";
+import { Player } from "./entities/player";
 import { TargetBuilder } from "./targetBuilder";
 
 type StackElementJsonBase = {

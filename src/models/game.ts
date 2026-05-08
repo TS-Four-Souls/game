@@ -9,6 +9,7 @@ import {
   Hand,
   ItemCard,
   LoadDecks,
+  LoadsCardSets,
   LootCard,
   LootCardEffect,
   MonsterCard,
@@ -27,13 +28,14 @@ import {
   targetGetTreasureRollEffect
 } from "@/models/effects/activeEffect";
 import { bSoulEffectParser } from "@/models/effects/bonusSoulEffects";
-import { generateAnimationId } from "@/utils/random";
 import { effectParser } from "@/models/effects/effectParser";
 import { CurrentPlayerDecidesToChangeRoom } from "@/models/effects/roomEffects";
-import { Animated, Entity } from "@/models/entity";
-import { Monster } from "@/models/monster";
-import { Player } from "@/models/player";
-import { AnimatedList, Encounters, Rooms, Shop } from "@/models/slots";
+import { Animated } from "@/models/entities/animated";
+import { Entity } from "@/models/entities/entity";
+import { Monster } from "@/models/entities/monster";
+import { Player } from "@/models/entities/player";
+import { Encounters, Rooms, Shop } from "@/models/slots";
+import { AnimatedList } from "./entities/animated";
 import { Stack, type StackElement } from "@/models/stack";
 import { DamageOnStack, DeathOnStack, DiceRoll } from "@/models/stackElement";
 import { TargetBuilder } from "@/models/targetBuilder";
@@ -43,7 +45,7 @@ import { type TriggerEvent } from '@/models/types/eventTypes';
 import type { Animation, Capability, DetailedState, GameParametersJson, Issuer, SelectionItem, StackElementJson } from "@/shared/api";
 import { shuffle } from "@/utils/auxiliary";
 import { loadCards } from "@/utils/loadCards";
-import { LoadsCardSets } from "@/models/cards";
+import { generateAnimationId } from "@/utils/random";
 import { Signal, type ReadableSignal } from "micro-signals";
 import { addPassiveEffectToStack } from "./effects/passiveEffect";
 import { GameEventEmitter } from "./eventEmmitter";

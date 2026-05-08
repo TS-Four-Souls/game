@@ -1,7 +1,7 @@
 import { bundlerModuleNameResolver } from "typescript";
 import type { BsoulCard, CharacterCard, MonsterCard, RoomCard, TreasureCard } from "../models/cards";
 import { Game } from "../models/game";
-import { Player } from "../models/player";
+import { Player } from "../models/entities/player";
 import { shuffle } from "@/utils/auxiliary";
 
 

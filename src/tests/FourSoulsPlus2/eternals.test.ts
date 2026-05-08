@@ -1,7 +1,7 @@
 import type { ItemCard } from "@/models/cards";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { Game } from "../../models/game";
-import { Player } from "../../models/player";
+import { Player } from "../../models/entities/player";
 import { setupTestGame } from "../testHelpers";
 
 async function characterAdd1LootPlay(player1: Player, game: Game) {

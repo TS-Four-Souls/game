@@ -1,6 +1,7 @@
-import type { Player } from '../player';
-import type { Monster } from '../monster';
-import type { Animated, Entity } from '../entity';
+import type { Player } from '../entities/player';
+import type { Monster } from '../entities/monster';
+import type { Entity } from '../entities/entity';
+import { Animated } from "../entities/animated";
 import type { DeathOnStack, DiceRoll } from '../stackElement';
 import type { ItemCard, Card, LootCard } from '../cards';
 import type { DamageSource } from '../game';

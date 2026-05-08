@@ -2,9 +2,9 @@ import { shuffle } from "@/utils/auxiliary";
 import type { DeckName, SelectionItem, TargetSelectorResponse } from "../shared/api";
 import { Card, ItemCard, LootCard, type TargetsSelector } from "./cards";
 import { parseNumber } from "./effects/effectParser";
-import { Entity } from "./entity";
+import { Entity } from "./entities/entity";
 import type { Game } from "./game";
-import type { Player } from "./player";
+import type { Player } from "./entities/player";
 import { isStackElement } from "./stack";
 import { isChooseOneOptions, type ChooseOneOptions } from "./targetSelector";
 

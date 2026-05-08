@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../models/game";
-import { Player } from "../models/player";
+import { Player } from "../models/entities/player";
 import { type ItemCard, type LootCard, type CharacterCard, TreasureCard } from "@/models/cards";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame, type GameSetupResult } from "@/tests/testHelpers";
 

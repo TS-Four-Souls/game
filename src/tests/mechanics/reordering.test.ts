@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "@/models/game";
-import { Player } from "@/models/player";
+import { Player } from "@/models/entities/player";
 import { EffectOnStack, EffectData, type TreasureCard } from "@/models/cards";
 import { setupTestGame } from "@/tests/testHelpers";
 

@@ -2,7 +2,7 @@ import type { ItemCard, LootCard } from "@/models/cards";
 import { MonsterCard, TreasureCard } from "@/models/cards";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { Game } from "../models/game";
-import { Player } from "../models/player";
+import { Player } from "../models/entities/player";
 import { DiceRoll } from "../models/stackElement";
 import { setupStandardTestGame, setupTestGame } from "./testHelpers";
 

@@ -1,10 +1,10 @@
-import { Player } from "../player";
+import { Player } from "../entities/player";
 import { DiceRoll } from "../stackElement";
 import { LootCard, ItemCard, TreasureCard, LootCardEffect, EffectOnStack, MonsterCard, Card } from "../cards";
 import { EffectData, type EffectFunction } from "../types/cardTypes";
 import { Game } from "../game";
 import { type TriggerEvent } from '@/models/types/eventTypes';
-import { Monster } from "../monster";
+import { Monster } from "../entities/monster";
 import { TargetBuilder } from "../targetBuilder";
 import * as active from "./activeEffect";
 import type { TemporaryEffect } from "@/shared/api";
@@ -26,7 +26,7 @@ import type {
     OnLootWouldData,
     OnDeathPenaltyData
 } from "../types/eventTypes";
-import { Entity } from "../entity";
+import { Entity } from "../entities/entity";
 import { selectPlayerOrMonster, type ParsedEffect } from "./effectParser";
 function getTemporaryEffect(data: EffectData, description: string): TemporaryEffect {
     return{

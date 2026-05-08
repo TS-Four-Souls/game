@@ -3,7 +3,7 @@ import { print, shuffle } from "@/utils/auxiliary";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { ActionType, Bot, DeclareAttackOnEntityAction, PlayLootAction, PurchaseAction, ResolveStackAction, UseItemAction } from "./src/models/bots";
 import { Game } from "./src/models/game";
-import { Player } from "./src/models/player";
+import { Player } from "./src/models/entities/player";
 import { setupTestGame, randomSelect } from "./src/tests/testHelpers";
    
 let fixedSeed = false;

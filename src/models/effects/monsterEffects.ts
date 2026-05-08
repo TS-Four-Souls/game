@@ -3,10 +3,10 @@
 
 import { type TriggerEvent } from '@/models/types/eventTypes';
 import { Card, MonsterCard } from "../cards";
-import { Entity } from "../entity";
+import { Entity } from "../entities/entity";
 import { Game } from "../game";
-import { Monster } from "../monster";
-import { Player } from "../player";
+import { Monster } from "../entities/monster";
+import { Player } from "../entities/player";
 import { DiceRoll } from "../stackElement";
 import { EffectData, type EffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type {

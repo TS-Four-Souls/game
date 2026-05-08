@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from "bun:test";
 import { Game } from "@/models/game";
-import { Player } from "@/models/player";
+import { Player } from "@/models/entities/player";
 import { setTimeout } from "timers/promises";
 
 describe("Game.selectMultiple", () => {

@@ -1,7 +1,7 @@
 import { Server as Engine } from "@socket.io/bun-engine";
 import { Server } from "socket.io";
 import { CARD_SETS, Game } from "./models/game";
-import { Player } from "./models/player";
+import { Player } from "./models/entities/player";
 import type {
   ClientToServerEvents,
   DetailedState,

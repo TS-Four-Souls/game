@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../../models/game";
 import { DamageOnStack, DiceRoll } from "../../models/stackElement";
-import { Player } from "../../models/player";
+import { Player } from "../../models/entities/player";
 import { MonsterCard, type ItemCard, type TreasureCard } from "@/models/cards";
 import { CharacterCard } from "@/models/cards";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame, mockGameSelections } from "@/tests/testHelpers";

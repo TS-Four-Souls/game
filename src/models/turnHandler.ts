@@ -1,4 +1,4 @@
-import { Player } from "./player";
+import { Player } from "./entities/player";
 
 export class TurnHandler {
     private _isInitialized: boolean = false;

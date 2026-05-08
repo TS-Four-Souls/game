@@ -1,8 +1,7 @@
     import { type Card, type Deck, type TreasureCard, EffectData, EffectOnStack, MonsterCard, MonsterType, RoomCard } from "./cards";
-import type { Animated } from "./entity";
 import type { Game } from "./game";
-import { Monster } from "./monster";
-import { Player } from "./player";
+import { Monster } from "./entities/monster";
+import { Player } from "./entities/player";
 
 export abstract class Slots<T extends Card> {
     /** @private 2D array of cards in each slot (stacks of cards) */
@@ -760,28 +759,5 @@ export class Rooms extends Slots<RoomCard> {
         if (previousCard) {
             this._deck.addBottomPosition(previousCard);
         }
-    }
-}
-export class AnimatedList {
-    private _animated: Animated[] = [];
-    
-    constructor() {}
-    
-    add(animated: Animated): void {
-        this._animated.push(animated);
-    }
-    remove(animated: Animated): void {
-        const index = this._animated.indexOf(animated);
-        if (index >= 0) {
-            this._animated.splice(index, 1);
-        }
-    }
-    get all(): Animated[] {
-        return this._animated;
-    }
-
-    reset(): void {
-        this._animated.forEach(animated => animated.card.cleanup());
-        this._animated = [];
     }
 }

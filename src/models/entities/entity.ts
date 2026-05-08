@@ -1,8 +1,7 @@
 import type { EntityType, TemporaryEffect } from "@/shared/api";
-import type { Card } from "./cards";
-import { type DiceRoll } from "./stackElement";
-import type { Monster } from "./monster";
-import type { CardRewards, Reward } from "@/types/cardTypes";
+import type { Card } from "../cards";
+import { type DiceRoll } from "../stackElement";
+
 
 type DamageObj = {
   dealer: Entity | null;
@@ -165,36 +164,3 @@ export abstract class Entity {
   abstract get card(): Card;
 }
 
-/**
- * Animated entities are entities are entities that are neither players nor monsters.
- * They are cards that have entities, such as the revenant (eternal item), the puching ball (treasure card), or gus (room card).
- */
-export class Animated extends Entity {
-  private _card: Card;
-  private _reward: CardRewards | undefined = undefined;
-  constructor(card: Card, id: string, attackPoints: number, healthPoints: number, evasion: number) {
-    super(id, attackPoints, healthPoints);
-    super.evasion = evasion;
-    this._card = card;
-    this._reward = card.json.rewards!;
-  }
-
-  get rewards(): CardRewards | undefined {
-    return this._reward;
-  }
-
-  override get json(): EntityType {
-    return {
-      name: this.id,
-      slug: this._card.slug,
-      globalId: this._card.globalId,
-      color: this.color,
-      type: "animated",
-    };
-  }
-    
-  override get card(): Card {
-    return this._card;
-  }
-    
-}

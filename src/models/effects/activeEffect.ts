@@ -3,11 +3,11 @@
 
 
 import { assertCardMatchesDeck, type Card, Deck, isDeckType, ItemCard, LootCard, LootCardEffect, MonsterCard, RoomCard, TreasureCard } from "../cards";
-import { Entity } from "../entity";
+import { Entity } from "../entities/entity";
 import { Game } from "../game";
-import { Monster } from "../monster";
+import { Monster } from "../entities/monster";
 import { DamageOnStack, DiceRoll, } from "../stackElement";
-import {Player } from "../player";
+import {Player } from "../entities/player";
 import type { StackElement } from "../stack";
 import { TargetBuilder } from "../targetBuilder";
 import { deckSelector, inplayUnchargedItemSelector as inplayChargeableItemSelector, visibleItemSelector } from "../targetSelector";

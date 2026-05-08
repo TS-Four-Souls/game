@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../../models/game";
-import { Player } from "../../models/player";
+import { Player } from "../../models/entities/player";
 import { DiceRoll } from "../../models/stackElement";
 import type { LootCard, Card, EffectOnStack } from "@/models/cards";
 import { InplayType, MonsterCard, CharacterCard, ItemCard, TreasureCard } from "@/models/cards";
