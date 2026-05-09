@@ -1,6 +1,8 @@
 - Remove issuer?
 - Refacto room guarded endpoints, only enable them in a context where the room and game is defined
 
+- Alphanumerical username
+
 ## Refacto proposal: handle auth at the network level
 
 User obtain a userId when they:
