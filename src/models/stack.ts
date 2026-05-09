@@ -1,6 +1,8 @@
 import { EffectOnStack } from "./cards";
 import type { Entity } from "./entities/entity";
+import type { Player } from "./entities/player";
 import { StackElement } from "./stackElement";
+import type { TriggerEvent } from "./types/eventTypes";
 
 export function isStackElement(obj: any): obj is StackElement {
     return obj instanceof StackElement;
@@ -38,7 +40,9 @@ export class Stack {
         }
     }
 
-    insertStackElementBefore(elementToMove: StackElement, targetElement: StackElement): void {
+    /** Moves one stack element before another within the same reordering group. 
+    */
+    private insertStackElementBefore(elementToMove: StackElement, targetElement: StackElement): void {
         if (elementToMove === targetElement) {
             return;
         }
@@ -76,6 +80,49 @@ export class Stack {
             this._stack[i - 1] = tmp;
         }
     }
+
+    /** Moves one stack element before another within the same reordering group, or at the start of the group. 
+     * @returns The event and the new order of listener IDs for the affected group, if applicable. It is used by the client to update the order of event listeners when a trigger group is reordered.
+    */
+      insertStackElement(player: Player, elementToMoveStackId: number, targetStackId: number | "start"): {event: TriggerEvent | null, orderedListenerIds: number[]} {
+    
+        const elementToMove = this.elements.find((el) => el.stackId === elementToMoveStackId);
+        const targetElement = 
+          targetStackId === "start"
+            ? this.elements.filter((el) => el.reordering?.groupId === elementToMove?.reordering?.groupId).at(-1)
+            : this.elements.find((el) => el.stackId === targetStackId);
+    
+        if (!elementToMove || !targetElement) {
+          throw new Error("Stack elements to reorder were not found.");
+        }
+        const moveInfo = elementToMove.reordering;
+        const targetInfo = targetElement.reordering;
+        if (!moveInfo || !targetInfo) {
+          throw new Error("Both stack elements must be reorderable.");
+        }
+        if (moveInfo.groupId !== targetInfo.groupId) {
+          throw new Error("Cannot reorder stack elements from different groups.");
+        }
+        if (!moveInfo.ownerId || moveInfo.ownerId !== player.id) {
+          throw new Error("You are not allowed to reorder this trigger group.");
+        }
+    
+        // If the target is the start of the group, we first put the element to move second, and then swap with the first.
+        this.insertStackElementBefore(elementToMove, targetElement);
+        if(targetStackId === "start")
+          this.insertStackElementBefore(targetElement, elementToMove);
+        const event = moveInfo.event;
+        if (!event) {
+          return {event: null, orderedListenerIds: []};
+        }
+    
+        const orderedListenerIds = this.elements
+          .filter((el) => el.reordering?.groupId === moveInfo.groupId)
+          .map((el) => el.reordering?.listenerId)
+          .filter((id): id is number => typeof id === "number");
+
+        return {event: event as TriggerEvent, orderedListenerIds};
+      }
 
     cancelPreviousDeath(entity: Entity): void {
         for (let i = this._stack.length - 1; i >= 0; i--) {
@@ -123,6 +170,42 @@ export class Stack {
             return true; // Keep this element
         });
     }
+
+    async reorderStack(currentPlayer: Player, count: number): Promise<void> {
+        const topElements = this.elements.slice(-count);
+        if(topElements.some(el => el.json.type !== "effect")) // Only effects can be reordered.
+          return;
+        // Group by issuer
+        const groups: {[issuer: string]: StackElement[]} = {};
+        topElements.forEach((el) => {
+          const effect = el as EffectOnStack;
+          const issuerId = effect.json.issuer.type === "player" ? effect.json.issuer.name: "game";
+          if (!groups[issuerId]) {
+            groups[issuerId] = [];
+          }
+          groups[issuerId].push(el); 
+        });
+    
+        const batchMarker = `batch-${Date.now()}-${topElements[0]?.stackId ?? 0}`;
+        Object.entries(groups).forEach(([issuerId, elements]) => {
+          if (elements.length <= 1) {
+            elements.forEach((el) => {
+              el.reordering = null;
+            });
+            return;
+          }
+          // Game effects can be reordered by the current player.
+          const ownerId = issuerId === "game" ? currentPlayer.id : issuerId;
+          const groupId = `${batchMarker}:${issuerId}`;
+          elements.forEach((el) => {
+            el.reordering = {
+              ...(el.reordering ?? { groupId }),
+              groupId,
+              ownerId,
+            };
+          });
+        });
+      }
 }
 
 export { StackElement } from "./stackElement";

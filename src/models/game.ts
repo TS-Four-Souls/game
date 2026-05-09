@@ -2909,7 +2909,6 @@ export class Game {
           `Purchase failed. You need ${price! - player.coins} more coins.\n`
         );
       }
-    const purchasedCard = index === "top" ? this.decks["treasure"]!.cards[0]! : this.shop.itemsInShop[index]!;
     if (this.shop.purchase(player, index, price, this)) {
       const purchasedCard = player.inPlay[player.inPlay.length - 1]!;
       this.addAnimation({
@@ -2973,92 +2972,19 @@ export class Game {
     // Current player can also reorder game effects if multiple are triggered at the same time.
     // Game effects are always resolved before player effects, and player effects are resolved in turn order starting from the current player.
     if(count > 2)
-      this.reorderStack(count);
+      this.stack.reorderStack(this.currentPlayer, count);
   }
 
   /** Tags simultaneously-added top stack effects into reorderable owner groups. */
-  async reorderStack(count: number): Promise<void> {
-    const topElements = this.stack.elements.slice(-count);
-    if(topElements.some(el => el.json.type !== "effect")) // Only effects can be reordered.
-      return;
-    // Group by issuer
-    const groups: {[issuer: string]: StackElement[]} = {};
-    const playerIds = this.players.map(p => p.id);
-    topElements.forEach((el) => {
-      const effect = el as EffectOnStack;
-      const issuerId = playerIds.includes(effect.json.issuer.name) ? effect.json.issuer.name: "game";
-      if (!groups[issuerId]) {
-        groups[issuerId] = [];
-      }
-      groups[issuerId].push(el); 
-    });
-
-    const batchMarker = `batch-${Date.now()}-${topElements[0]?.stackId ?? 0}`;
-    Object.entries(groups).forEach(([issuerId, elements]) => {
-      if (elements.length <= 1) {
-        elements.forEach((el) => {
-          el.reordering = null;
-        });
-        return;
-      }
-      // Game effects can be reordered by the current player.
-      const ownerId = issuerId === "game" ? this.currentPlayer.id : issuerId;
-      const groupId = `${batchMarker}:${issuerId}`;
-      elements.forEach((el) => {
-        el.reordering = {
-          ...(el.reordering ?? { groupId }),
-          groupId,
-          ownerId,
-        };
-      });
-    });
-    
-  }
+  
 
   /** Moves one stack element before another within the same reordering group. */
   insertStackElementBefore(player: Player, elementToMoveStackId: number, targetStackId: number | "start"): void {
     this.assertGameStarted();
-
-    const elementToMove = this.stack.elements.find((el) => el.stackId === elementToMoveStackId);
-    const targetElement = 
-      targetStackId === "start"
-        ? this.stack.elements.filter((el) => el.reordering?.groupId === elementToMove?.reordering?.groupId).at(-1)
-        : this.stack.elements.find((el) => el.stackId === targetStackId);
-    if (!elementToMove || !targetElement) {
-      throw new Error("Stack elements to reorder were not found.");
-    }
-
-    const moveInfo = elementToMove.reordering;
-    const targetInfo = targetElement.reordering;
-    if (!moveInfo || !targetInfo) {
-      throw new Error("Both stack elements must be reorderable.");
-    }
-    if (moveInfo.groupId !== targetInfo.groupId) {
-      throw new Error("Cannot reorder stack elements from different groups.");
-    }
-    if (!moveInfo.ownerId || moveInfo.ownerId !== player.id) {
-      throw new Error("You are not allowed to reorder this trigger group.");
-    }
-
-    // If the target is the start of the group, we first put the element to move second, and then swap with the first.
-    this.stack.insertStackElementBefore(elementToMove, targetElement);
-    if(targetStackId === "start")
-      this.stack.insertStackElementBefore(targetElement, elementToMove);
-    const event = moveInfo.event;
-    if (!event) {
-      this._onStateChange.dispatch();
-      return;
-    }
-
-    const orderedListenerIds = this.stack.elements
-      .filter((el) => el.reordering?.groupId === moveInfo.groupId)
-      .map((el) => el.reordering?.listenerId)
-      .filter((id): id is number => typeof id === "number");
-
+    const {event, orderedListenerIds} = this.stack.insertStackElement(player, elementToMoveStackId, targetStackId);
     if (orderedListenerIds.length > 1) {
       this.emitter.reorderListenersBySubset(event as TriggerEvent, orderedListenerIds);
     }
-
     this._onStateChange.dispatch();
   }
 
