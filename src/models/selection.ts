@@ -2,13 +2,7 @@ import type { SelectionItem } from "@/shared/api";
 import { Player } from "./entities/player";
 import { TargetBuilder } from "./targetBuilder";
 
-export abstract class SelectionHandler {
-    abstract dispatch(): void; // Placeholder for the actual event dispatcher type
-
-      // Pending selection tracking for multiplayer (handles both single and multiple selections)
-      protected _pendingMultipleSelections: Map<
-        string,
-        {
+export type PendingSelection = {
           playerId: string;
           options: any[];
           min: number;
@@ -18,6 +12,14 @@ export abstract class SelectionHandler {
           canUseOnBoardSelection: boolean;
           resolve: (selection: any[]) => void;
         }
+
+export abstract class SelectionHandler {
+    abstract dispatch(): void; // Placeholder for the actual event dispatcher type
+
+      // Pending selection tracking for multiplayer (handles both single and multiple selections)
+      protected _pendingMultipleSelections: Map<
+        string,
+        PendingSelection
       > = new Map();
     
       get hasPendingSelections(): boolean {
@@ -111,7 +113,8 @@ export abstract class SelectionHandler {
        * @param skippable is not implemented yet.
        */
       async selectMultiple<T>(
-        selections: Array<{
+        selections: Array<
+        {
           player: Player;
           min: number;
           max: number;

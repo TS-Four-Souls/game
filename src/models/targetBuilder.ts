@@ -161,7 +161,7 @@ export class TargetBuilder {
                 isChooseOne: boolean,
             } {
         if(!bypassAsserPendingSelection)
-            game.assertNoPendingSelection();
+            game.assert.noPendingSelection();
         if(!item)
             throw new Error(`Item not found.`);
         if(throwIfNotCharged && effectId === "tap" && !item.charged)
@@ -450,7 +450,7 @@ export class TargetBuilder {
         if(validTargets !== true)
             throw new Error(`Cannot build targets: ${validTargets}`);
 
-        game.assertNoPendingSelection();
+        game.assert.noPendingSelection();
         if(!item)
             throw new Error(`Item not found.`);
         const rootSelectors = [...item.getEffectTarget(effectId)];

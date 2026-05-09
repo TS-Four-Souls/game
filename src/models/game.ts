@@ -16,7 +16,6 @@ import {
   MonsterType,
   RoomCard,
   TreasureCard,
-  assertCardMatchesDeck,
   createEmptyDecksCollection,
   isDeckType,
   isSameSlug
@@ -57,7 +56,8 @@ import type { ServerRoomBroadcast } from "./roomBroadcast";
 import { GameStateSerializer } from "./gameStateSerializer";
 import { TurnHandler } from "./turnHandler";
 import { edenGame, miniDraft } from "./variants";
-import { SelectionHandler } from "./selection";
+import { SelectionHandler, type PendingSelection } from "./selection";
+import { AssertHandler } from "./handlers/assertHandler";
 // Type representing sources of damage - either a card ability or a dice roll
 export type DamageSource = Card | DiceRoll;
 
@@ -74,7 +74,6 @@ export class Game extends SelectionHandler {
   private _random: () => number = () => {throw new Error("Random generator not initialized yet.");};
   private _seed: string = "";
   private _decks: DecksCollection;
-  private _ongoingAttack: { player: Player; monster: Monster } | null = null;
   private _shop!: Shop;
   private _encounters!: Encounters;
   private _rooms!: Rooms;
@@ -91,6 +90,7 @@ export class Game extends SelectionHandler {
   private _isWon: boolean = false;
   private _entitiesInCombat: Entity[] = [];
   private _gameStateSerializer: GameStateSerializer;
+  private _assertHandler: AssertHandler = new AssertHandler(this);
   readonly gameParameters = new GameParameters(() => this.dispatch());
 
   private _onStateChange: Signal<void> = new Signal();
@@ -169,6 +169,10 @@ export class Game extends SelectionHandler {
     ];
   }
 
+  get assert(): AssertHandler {
+    return this._assertHandler;
+  }
+
   get EntitiesAndAnimated(): Entity[] {
     return [
       ...this.Entities,
@@ -233,7 +237,7 @@ export class Game extends SelectionHandler {
   }
 
   dispatch(): void {
-    this.dispatch();
+    this._onStateChange.dispatch();
   }
   /**
    * Load history after loading a game.
@@ -532,8 +536,8 @@ export class Game extends SelectionHandler {
    * Queues a death resolution sequence for an entity.
    */
   death(receiver: Entity, from: Entity, source: DamageSource): void {
-    this.assertGameStarted();
-    this.assertEntityIsInPlay(receiver);
+    this.assert.gameStarted();
+    this.assert.entityIsInPlay(receiver);
     if (receiver.isDead) return;
 
     const deathOnStack = new DeathOnStack(receiver, from, source, this);
@@ -612,8 +616,8 @@ export class Game extends SelectionHandler {
    */
   resolveDeath(receiver: Entity, from: Entity, source: DamageSource): void {
     try{
-      this.assertIsAlive(receiver);
-      this.assertEntityIsInPlay(receiver);
+      this.assert.isAlive(receiver);
+      this.assert.entityIsInPlay(receiver);
     }catch{
       return; // if the receiver is not alive or not in play anymore, do nothing.
     }
@@ -681,13 +685,13 @@ export class Game extends SelectionHandler {
    */
   canDeclareAttack(player: Player, shouldThrow: boolean = false): Capability {
     try {
-      this.assertCurrentTurnIsPlayerTurn(player);
-      this.assertNoOngoingAttack();
-      this.assertCurrentPlayerIsNotEngagedInPurchase();
-      this.assertCurrentPlayerIsNotEngagedInCombat();
-      this.assertIsAlive(player);
-      this.assertEmptyStack();
-      this.assertNoPendingSelection();
+      this.assert.currentTurnIsPlayerTurn(player);
+      this.assert.noOngoingAttack();
+      this.assert.currentPlayerIsNotEngagedInPurchase();
+      this.assert.currentPlayerIsNotEngagedInCombat();
+      this.assert.isAlive(player);
+      this.assert.emptyStack();
+      this.assert.noPendingSelection();
 
       if (player.isEngagedInCombat) {
         throw new Error("You are already engaged in combat.");
@@ -748,14 +752,14 @@ export class Game extends SelectionHandler {
     entity: Entity | "topDeck", shouldThrow: boolean = false): Capability {
     try {
       this.endCombatIfInvalid(player);
-      this.assertEmptyStack();
+      this.assert.emptyStack();
       if (entity !== "topDeck" && !entity.attackable) {
         throw new Error("This entity cannot be attacked.");
       }
-      this.assertCurrentTurnIsPlayerTurn(player);
-      this.assertNoOngoingAttack();
-      this.assertIsAlive(player);
-      this.assertEmptyStack();
+      this.assert.currentTurnIsPlayerTurn(player);
+      this.assert.noOngoingAttack();
+      this.assert.isAlive(player);
+      this.assert.emptyStack();
       if (!player.isEngagedInCombat) {
         throw new Error("You have not declared an attack.");
       }
@@ -957,11 +961,11 @@ export class Game extends SelectionHandler {
    */
   canRollDice(player: Player, shouldThrow: boolean = false): Capability {
     try {
-      this.assertCurrentTurnIsPlayerTurn(player);
-      this.assertIsAlive(player);
-      this.assertNoPendingSelection();
-      this.assertCurrentPlayerIsEngagedInCombat();
-      this.assertEmptyStack();
+      this.assert.currentTurnIsPlayerTurn(player);
+      this.assert.isAlive(player);
+      this.assert.noPendingSelection();
+      this.assert.currentPlayerIsEngagedInCombat();
+      this.assert.emptyStack();
       
       const entity = [...this.entitiesInCombat].find(
         (e) => e !== player
@@ -1083,8 +1087,8 @@ export class Game extends SelectionHandler {
   ): void {
     if(receiver.isDead) return;
     try{
-      this.assertIsAlive(receiver);
-      this.assertEntityIsInPlay(receiver);
+      this.assert.isAlive(receiver);
+      this.assert.entityIsInPlay(receiver);
     }catch{
       return; // if the receiver is not alive or not in play anymore, do nothing.
     }
@@ -1182,8 +1186,8 @@ export class Game extends SelectionHandler {
    * Adds a new player before game start.
    */
   addPlayer(newPlayer: Player): void {
-    this.assertPlayerIdAvailable(newPlayer.id);
-    this.assertGameNotStarted();
+    this.assert.playerIdAvailable(newPlayer.id);
+    this.assert.gameNotStarted();
     this.players.push(newPlayer);
     this.dispatch();
   }
@@ -1527,15 +1531,15 @@ export class Game extends SelectionHandler {
    */
   canEndTurn(player: Player, shouldThrow: boolean = false): Capability {
     try {
-      this.assertGameStarted();
-      this.assertCurrentTurnIsPlayerTurn(player);
-      this.assertCurrentPlayerIsNotEngagedInPurchase();
-      this.assertCurrentPlayerIsNotEngagedInCombat();
-      this.assertEmptyStack();
-      this.assertNoOngoingAttack();
-      this.assertForcedAttackSatisfied(player);
-      this.assertNoEntityIsEngagedInCombat();
-      this.assertNoPendingSelection();
+      this.assert.gameStarted();
+      this.assert.currentTurnIsPlayerTurn(player);
+      this.assert.currentPlayerIsNotEngagedInPurchase();
+      this.assert.currentPlayerIsNotEngagedInCombat();
+      this.assert.emptyStack();
+      this.assert.noOngoingAttack();
+      this.assert.forcedAttackSatisfied(player);
+      this.assert.noEntityIsEngagedInCombat();
+      this.assert.noPendingSelection();
     }
     catch (e) {
       if (shouldThrow) throw e;
@@ -1552,8 +1556,8 @@ export class Game extends SelectionHandler {
    */
   canPlayCard(player: Player, shouldThrow: boolean = false): Capability {
     try {
-      this.assertGameStarted();
-      this.assertNoPendingSelection();
+      this.assert.gameStarted();
+      this.assert.noPendingSelection();
       if (!player.canIUseLootThisTurn) {
         throw new Error(`You cannot play loot cards during ${this.currentPlayer.id}'s turn.`);
       }
@@ -1575,9 +1579,9 @@ export class Game extends SelectionHandler {
    */
   canResolve(shouldThrow: boolean = false): Capability {
     try {
-      this.assertGameStarted();
-      this.assertStackNotEmpty();
-      this.assertNoPendingSelection();
+      this.assert.gameStarted();
+      this.assert.stackNotEmpty();
+      this.assert.noPendingSelection();
     } catch (e) {
       if (shouldThrow) throw e;
       if (e instanceof Error) {
@@ -1609,7 +1613,7 @@ export class Game extends SelectionHandler {
    */
   playCard(player: Player, index: number, targets: any[] = []): string {
     this.canPlayCard(player, true);
-    this.assertPositiveNumber(index);
+    this.assert.positiveNumber(index);
     if (index < 0 || index > player.hand.cards.length) {
       return "Invalid card position.";
     }
@@ -1730,8 +1734,8 @@ export class Game extends SelectionHandler {
    * Starts the game lifecycle and executes initial setup.
    */
   start(characters: CharacterCard[] | null = null, shufflePlayerOrder: boolean = true): void{
-    this.assertGameNotStarted();
-    this.assertMinimumPlayerCount();
+    this.assert.gameNotStarted();
+    this.assert.minimumPlayerCount();
     this._pendingMultipleSelections.clear();
     if (shufflePlayerOrder) {
       shuffle(this.random, this.players);
@@ -1962,7 +1966,6 @@ export class Game extends SelectionHandler {
     this._turnHandler = new TurnHandler();
     this.monsterDiedThisTurn = false;
     this._players = [];
-    this._ongoingAttack = null;
     this.seed = (newSeed ? "" : this.seed); // If newSeed is true, set to a random value in the setter.
     this._decks = createEmptyDecksCollection(this.random);
     this._shop = undefined!;
@@ -2034,7 +2037,7 @@ export class Game extends SelectionHandler {
     choices: any[] = [],
     effectId: number | "tap" = "tap"
   ): Promise<boolean> {
-    this.assertNoPendingSelection();
+    this.assert.noPendingSelection();
     const item = player.inPlay[index];
     if (!item || !(item instanceof ItemCard)) {
       throw new Error("Player does not own the specified item.");
@@ -2295,8 +2298,8 @@ export class Game extends SelectionHandler {
 
   /** Grants coins to a player and emits coin gained triggers. */
   gainCoins(player: Player, coins: number, source: Card | "gift"): string {
-    this.assertGameStarted();
-    this.assertPositiveNumber(coins);
+    this.assert.gameStarted();
+    this.assert.positiveNumber(coins);
     if (coins > 0) {
       const amount = [coins];
       this.emit("on:coin:gained", {
@@ -2321,12 +2324,12 @@ export class Game extends SelectionHandler {
   }
   /** Inserts a card on top of a typed deck. */
   addTopPosition<T extends DeckType>(deckName: T, card: Card): void {
-    assertCardMatchesDeck(deckName, card);
+    this.assert.cardMatchesDeck(deckName, card);
     this.decks[deckName]!.addTopPosition(card as any);
   }
   /** Inserts a card at the bottom of a typed deck. */
   addBottomPosition<T extends DeckType>(deckName: T, card: Card): void {
-    assertCardMatchesDeck(deckName, card);
+    this.assert.cardMatchesDeck(deckName, card);
     this.decks[deckName]!.addBottomPosition(card as any);
   }
 
@@ -2345,8 +2348,8 @@ export class Game extends SelectionHandler {
   }
   /** Draws treasure cards and puts them directly in play for the player. */
   gainTreasure(player: Player, number: number = 1): void {
-    this.assertGameStarted();
-    this.assertPositiveNumber(number);
+    this.assert.gameStarted();
+    this.assert.positiveNumber(number);
 
     for (let i = 0; i < number; i++) {
       const treasureDeck = this.decks["treasure"]!;
@@ -2428,7 +2431,7 @@ export class Game extends SelectionHandler {
 
   /** Builds a full player-scoped game state payload for API/UI clients. */
   detailedStateJSON(player: Player): DetailedState {
-    this.assertGameStarted();
+    this.assert.gameStarted();
     return this._gameStateSerializer.detailedStateJSON(player);
   }
 
@@ -2436,13 +2439,13 @@ export class Game extends SelectionHandler {
   /** Validates whether current player can declare purchase mode. */
   canDeclarePurchase(player: Player, shouldThrow: boolean = false): Capability {
     try {
-      this.assertGameStarted();
-      this.assertCurrentTurnIsPlayerTurn(player);
-      this.assertIsAlive(player);
-      this.assertCurrentPlayerIsNotEngagedInCombat();
-      this.assertCurrentPlayerIsNotEngagedInPurchase();
-      this.assertEmptyStack();
-      this.assertNoPendingSelection();
+      this.assert.gameStarted();
+      this.assert.currentTurnIsPlayerTurn(player);
+      this.assert.isAlive(player);
+      this.assert.currentPlayerIsNotEngagedInCombat();
+      this.assert.currentPlayerIsNotEngagedInPurchase();
+      this.assert.emptyStack();
+      this.assert.noPendingSelection();
       if (player.remainingPurchaseThisTurn <= 0) {
         throw new Error(
           `Purchase failed. You have no remaining purchases this turn.\n`
@@ -2482,12 +2485,12 @@ export class Game extends SelectionHandler {
   /** Validates whether the active player can buy from the shop now. */
   canPurchase(player: Player, shouldThrow: boolean = false): Capability {
     try {
-      this.assertGameStarted();
-      this.assertCurrentTurnIsPlayerTurn(player);
-      this.assertIsAlive(player);
-      this.assertCurrentPlayerIsEngagedInPurchase();
-      this.assertNoPendingSelection();
-      this.assertEmptyStack();
+      this.assert.gameStarted();
+      this.assert.currentTurnIsPlayerTurn(player);
+      this.assert.isAlive(player);
+      this.assert.currentPlayerIsEngagedInPurchase();
+      this.assert.noPendingSelection();
+      this.assert.emptyStack();
       const price = this.gameParameters.shopPrice.value + player.priceModifier;
       if (player.coins < price!) {
         throw new Error(
@@ -2540,8 +2543,8 @@ export class Game extends SelectionHandler {
 
   /** Draws loot cards for a player and emits pre/post loot triggers. */
   loot(player: Player, number: number = 1): void {
-    this.assertGameStarted();
-    this.assertPositiveNumber(number);
+    this.assert.gameStarted();
+    this.assert.positiveNumber(number);
 
     const n = [number];
     const lootDeck = this.decks["loot"]!;
@@ -2586,7 +2589,7 @@ export class Game extends SelectionHandler {
 
   /** Moves one stack element before another within the same reordering group. */
   insertStackElementBefore(player: Player, elementToMoveStackId: number, targetStackId: number | "start"): void {
-    this.assertGameStarted();
+    this.assert.gameStarted();
     const {event, orderedListenerIds} = this.stack.insertStackElement(player, elementToMoveStackId, targetStackId);
     if (orderedListenerIds.length > 1) {
       this.emitter.reorderListenersBySubset(event as TriggerEvent, orderedListenerIds);
@@ -2596,9 +2599,9 @@ export class Game extends SelectionHandler {
 
   /** Discards one in-play card by index when discard is legal. */
   discardInPlay(player: Player, index: number): string {
-    this.assertGameStarted();
-    this.assertIsAlive(player);
-    this.assertPositiveNumber(index);
+    this.assert.gameStarted();
+    this.assert.isAlive(player);
+    this.assert.positiveNumber(index);
 
     const inPlayCards = player.inPlay;
     if (index < 0 || index > inPlayCards.length - 1) {
@@ -2615,7 +2618,7 @@ export class Game extends SelectionHandler {
 
   /** Attempts to steal an item from shop or another player's in-play area. */
   stealItemAnywhere(player: Player, target: ItemCard): boolean {
-    this.assertGameStarted();
+    this.assert.gameStarted();
 
     if (this.shop.removeCard(target)) {
       this.addInPlay(player, target);
@@ -2634,8 +2637,8 @@ export class Game extends SelectionHandler {
   }
   /** Steals up to the requested number of coins from target player. */
   stealCoins(player: Player, target: Player, amount: number): string {
-    this.assertGameStarted();
-    this.assertPositiveNumber(amount);
+    this.assert.gameStarted();
+    this.assert.positiveNumber(amount);
 
     const stolenCoins = this.loseCoins(target, amount, true);
     player.gainCoins(stolenCoins);
@@ -2644,10 +2647,10 @@ export class Game extends SelectionHandler {
   }
   /** Steals one specific loot card from target player's hand. */
   stealLootCard(player: Player, target: Player, card: LootCard): string {
-    this.assertGameStarted();
+    this.assert.gameStarted();
 
     const position = target.hand.cards.indexOf(card);
-    this.assertPositiveNumber(position);
+    this.assert.positiveNumber(position);
 
     if (position < 0 || position > target.hand.cards.length) {
       throw new Error("Invalid card position.");
@@ -2678,8 +2681,8 @@ export class Game extends SelectionHandler {
 
   /** Discards the top monster card from an encounter slot. */
   discardMonster(player: Player, position: number): string {
-    this.assertGameStarted();
-    this.assertPositiveNumber(position);
+    this.assert.gameStarted();
+    this.assert.positiveNumber(position);
 
     if (position < 0 || position > this.encounters._slots.length - 1) {
       throw new Error("Invalid monster position.");
@@ -2691,10 +2694,10 @@ export class Game extends SelectionHandler {
   }
   /** Shortcut to queue death for an entity from a given source. */
   kill(killer: Entity, entity: Entity, source: DamageSource): void {
-    this.assertGameStarted();
+    this.assert.gameStarted();
     try{
-      this.assertIsAlive(entity);
-      this.assertEntityIsInPlay(entity);
+      this.assert.isAlive(entity);
+      this.assert.entityIsInPlay(entity);
     }catch{
       return; // if the receiver is not alive or not in play anymore, do nothing.
     }
@@ -2703,11 +2706,11 @@ export class Game extends SelectionHandler {
 
   /** Draws a new monster into the chosen encounter slot during combat. */
   drawMonster(player: Player, position: number): string {
-    this.assertGameStarted();
-    this.assertIsAlive(player);
-    this.assertPositiveNumber(position);
-    this.assertCurrentTurnIsPlayerTurn(player);
-    this.assertNoPendingSelection();
+    this.assert.gameStarted();
+    this.assert.isAlive(player);
+    this.assert.positiveNumber(position);
+    this.assert.currentTurnIsPlayerTurn(player);
+    this.assert.noPendingSelection();
 
     if (!player.isEngagedInCombat) {
       throw new Error("You must be engaged in combat to draw a monster.");
@@ -2724,10 +2727,10 @@ export class Game extends SelectionHandler {
 
   /** Removes and returns a specific loot card from issuer hand. */
   getCardFromHand(player: Player, card: LootCard): LootCard {
-    this.assertGameStarted();
+    this.assert.gameStarted();
     const lootCard = card;
     const position = player.hand.cards.indexOf(lootCard);
-    this.assertPositiveNumber(position);
+    this.assert.positiveNumber(position);
 
     if (position < 0 || position > player.hand.cards.length) {
       throw new Error("Invalid card position.");
@@ -2760,8 +2763,8 @@ export class Game extends SelectionHandler {
 
   /** Discards one hand card by index to the loot discard pile. */
   discardFromHandAtIndex(player: Player, position: number): string {
-    this.assertGameStarted();
-    this.assertPositiveNumber(position);
+    this.assert.gameStarted();
+    this.assert.positiveNumber(position);
 
     const hand = player.hand;
     if (position < 0 || position > hand.cards.length - 1) {
@@ -2789,8 +2792,8 @@ export class Game extends SelectionHandler {
 
   /** Removes coins from a player and emits coin lost trigger. */
   loseCoins(player: Player, coins: number, asMany: boolean): number {
-    this.assertGameStarted();
-    this.assertPositiveNumber(coins);
+    this.assert.gameStarted();
+    this.assert.positiveNumber(coins);
 
     const coinLost = player.loseCoins(coins, asMany);
     this.emit("on:coin:lost:after", { eventIssuer: player, coinLost });
@@ -2800,8 +2803,8 @@ export class Game extends SelectionHandler {
 
   /** Creates a dice roll stack element and emits pre-roll triggers. */
   rollDice(player: Player, attackRoll: boolean, card: Card | null = null): DiceRoll {
-    this.assertGameStarted();
-    if (attackRoll) this.assertIsAlive(player);
+    this.assert.gameStarted();
+    if (attackRoll) this.assert.isAlive(player);
 
     let diceRoll = player.rollDice(this.random, attackRoll, card);
     this.addAnimation({
@@ -2863,152 +2866,12 @@ export class Game extends SelectionHandler {
     this.monsters.forEach((m) => m.heal());
   }
 
-  /* ASSERTIONS AND UTILS */
-
-  private assertCurrentTurnIsPlayerTurn(player: Player): void {
-    if (this.currentPlayer !== player) {
-      throw new Error("Not your turn");
-    }
-  }
-
-  private assertCurrentPlayerIsNotEngagedInCombat(): void {
-    this.endCombatIfInvalid(this.currentPlayer);
-    if (this.currentPlayer!.isEngagedInCombat) {
-      throw new Error("You are currently engaged in combat");
-    }
-  }
-
-  private assertCurrentPlayerIsEngagedInCombat(): void {
-    if (!this.currentPlayer!.isEngagedInCombat) {
-      throw new Error("You are not currently engaged in combat");
-    }
-  }
-
-  private assertNoEntityIsEngagedInCombat(): void {
-    if (this._entitiesInCombat.length > 0) {
-      throw new Error("An entity is currently engaged in combat");
-    }
-  }
-
-  private assertCurrentPlayerIsEngagedInPurchase(): void {
-    if (!this.currentPlayer!.isEngagedInPurchase) {
-      throw new Error("You are not currently engaged in purchase");
-    }
-  }
-
-  private assertCurrentPlayerIsNotEngagedInPurchase(): void {
-    if (this.currentPlayer!.isEngagedInPurchase) {
-      throw new Error("You are currently engaged in purchase");
-    }
-  }
-  private assertPlayerIdAvailable(id: string): void {
-    if (this.players.some((p) => p.id === id)) {
-      throw new Error(`Player ${id} already exists`);
-    }
-  }
-
-  private assertEmptyStack(): void {
-    if (!this._stack.isEmpty()) throw new Error(`Stack is not empty.`);
-  }
-
-  private assertGameNotStarted(): void {
-    if (this.turnHandler.isInitialized) {
-      throw new Error("Game already started");
-    }
-  }
-
-  private assertStackNotEmpty(): void {
-    if (this._stack.size === 0) {
-      throw new Error("The stack is empty");
-    }
-  }
-
-  private assertGameStarted(): number {
-    if (!this.turnHandler.isInitialized) {
-      throw new Error("Game not started");
-    }
-    return this.turnHandler.round;
-  }
   get bonusSouls(): BsoulCard[] | undefined {
     return this._bonusSouls;
   }
-  get pendingMultipleSelections(): Map<string, {
-    requestId: string;
-    playerId: string;
-    options: any[];
-    min: number;
-    max: number;
-    description: string;
-    canUseOnBoardSelection: boolean;
-  }> {
+  
+  get pendingMultipleSelections(): Map<string, PendingSelection> {
     return this._pendingMultipleSelections;
-  }
-  private assertEntityIsInPlay(entity: Entity) {
-    if (!this.EntitiesAndAnimated.includes(entity))
-      throw new Error("Entity is not currently in play.");
-  }
-
-  private assertMinimumPlayerCount(): void {
-    if (this.players.length < 2) {
-      throw new Error("At least 2 players are required to start the game");
-    }
-  }
-
-  private assertIsAlive(ent: Entity): void {
-    if (ent.isDead) {
-      throw new Error(`${ent.id} is already dead`);
-    }
-  }
-
-  private assertPositiveNumber(nb: number): void {
-    if (nb < 0) {
-      throw new Error("Number is negative.");
-    }
-  }
-
-  private assertNoOngoingAttack(): void {
-    if (this._ongoingAttack !== null) {
-      throw new Error("An attack is ongoing");
-    }
-    if(this.entitiesInCombat.length > 1)
-      throw new Error("An attack is ongoing");
-    
-  }
-
-  assertNoPendingSelection(): void {
-    if (this.hasPendingSelections)
-      throw new Error("Pending selection need to be resolved");
-  }
-
-  private assertForcedAttackSatisfied(player: Player): void {
-    this.canDeclareAttack(player, false);
-    // Check if there's a forced attack constraint
-    if (!player.hasAttackRequirement) {
-      return; // No constraint, all good
-    }
-
-    // Check if player is dead - constraint doesn't apply
-    if (player.isDead) {
-      player.clearAttackRequirement();
-      return;
-    }
-
-    const requirement = player.mustAttackMonster!;
-
-    // Filter monsters that are still in play
-    const validMonsters = requirement.filter(
-      (req) => req.target === "topDeck" || req.target === "any" || req.target.some(target => this.monsters.includes(target))
-    );
-
-    if (validMonsters.length === 0) {
-      player.clearAttackRequirement(); // All monsters gone, constraint lifted
-      return;
-    }
-
-    // At least one monster constraint remains - must be satisfied
-    throw new Error(
-      "You must attack the required monster(s) before ending your turn"
-    );
   }
 
   /** Resolves a player from issuer credentials. */
