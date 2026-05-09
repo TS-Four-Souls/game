@@ -20,6 +20,8 @@ export type EntityType = z.infer<typeof entityTypeSchema>;
 const cardSchema = identifierTypeSchema;
 export type Card = z.infer<typeof cardSchema>;
 
+const shopItemSchema = cardSchema.extend({price: z.number()});
+
 const activeEffectEntrySchema = z.object({
   index: z.union([z.literal("tap"), z.number()]),
   description: z.string(),
@@ -671,7 +673,8 @@ const detailedStateSchema = z.object({
   treasure: z.object({
     discard: z.array(cardSchema),
     deckSize: z.number(),
-    inPlay: z.array(cardSchema),
+    inPlay: z.array(shopItemSchema),
+    topDeckPrice: z.number(),
   }),
   loot: z.object({
     discard: z.array(cardSchema),

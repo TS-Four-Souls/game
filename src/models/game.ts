@@ -1341,25 +1341,6 @@ export class Game {
     // Wait for all selections to complete
     return Promise.all(promises);
   }
-
-  // Called when client provides selection to continue paused resolution
-  /**
-   * Legacy helper to resolve pending selections by player id.
-   */
-  provideSelection(playerId: string, selection: any[]): void {
-    // Check if this is a parallel selection
-    for (const [
-      requestId,
-      pending,
-    ] of this.pendingMultipleSelections.entries()) {
-      if (pending.playerId === playerId) {
-        pending.resolve(selection);
-        return;
-      }
-    }
-
-    throw new Error("Not waiting for selection");
-  }
   
   get deckNames(): DeckType[] {
     const names = ["loot", "treasure", "monster"] as DeckType[];
@@ -2331,7 +2312,7 @@ export class Game {
         card.addEffect(effect);
       } else {
         // Regular effects (passive/active)
-        const parsed = effectParser(outcome, this, (data:EffectData) => {return true;}, card instanceof MonsterCard);
+        const parsed = effectParser(outcome, this, () => {return true;}, card instanceof MonsterCard);
         const effect: Effect = new Effect(
           outcome,
           effectType,
@@ -2815,7 +2796,8 @@ export class Game {
       {
         discard: this.decks["treasure"]!.discard.map((c) => c.jsonAPI).toReversed(),
         deckSize: this.decks["treasure"]!.cards.length,
-        inPlay: this.shop.itemsInShop.map((c) => c!.jsonAPI),
+        inPlay: this.shop.itemsInShop.map((c) => ({ ...c!.jsonAPI, price: this.gameParameters.shopPrice.value + player.priceModifier })),
+        topDeckPrice: this.gameParameters.shopPrice.value,
       },
       turn: this.currentPlayer.id,
       history: this.history,
@@ -2903,7 +2885,7 @@ export class Game {
     this.canPurchase(player, true);
     if (index !== "top" && (index < 0 || index >= this.shop.itemsInShop.length))
       throw new Error("Invalid shop index.");
-    const price = Math.max(0, this.gameParameters.shopPrice.value + player.priceModifier);
+    const price = Math.max(0, this.gameParameters.shopPrice.value + (index === "top" ? player.priceModifier : 0));
       if (player.coins < price!) {
         throw new Error(
           `Purchase failed. You need ${price! - player.coins} more coins.\n`
