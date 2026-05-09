@@ -21,6 +21,7 @@ import { loadGameFromLogs } from "./utils/loadGameFromLogs";
 import type { z, ZodType } from "zod";
 import type { HistoricEntry } from "./models/historyHandler";
 import type { RoomCharacter } from "./shared/api";
+import type { GameParameters } from "./models/gameParameters";
 
 const PORT = process.env.PORT || 3000;
 const HOSTNAME = process.env.HOSTNAME || "localhost";
@@ -32,10 +33,30 @@ const DEFAULT_CHARACTER: RoomCharacter = {
 };
 
 type User = { id: string; player?: Player; character: RoomCharacter };
+
+type RoomBase = {
+  id: string;
+  users: User[];
+}
+type PreStartRoom = RoomBase & {
+  params: GameParameters;
+  characters: RoomCharacter[];
+};
+
+type LoadGameRoom = RoomBase & {
+  oldNames: string[];
+  UserMapping: Record<string, string>;
+};
+
+type GameRoom = RoomBase & {
+  game: Game 
+};
+
 type Room = {
   id: string;
   users: User[];
   game: Game;
+  params: GameParameters;
   characters: RoomCharacter[];
 };
 const rooms: Map<string, Room> = new Map();
@@ -167,6 +188,7 @@ io.on("connection", (socket) => {
       id: roomId,
       users: [user],
       game,
+      params: game.gameParameters,
       characters: generateCharacterAndEternalPairs(game),
     };
     game.onStateChange.add(() => {
@@ -558,6 +580,7 @@ io.on("connection", (socket) => {
             if (!player)
               throw new Error("Player not found for the user");
             const logs: HistoricEntry[] = game.getRollbackLog(player);
+            console.log("Rollback logs", logs.at(-1)!.type);
             if (!logs)
               throw new Error(
                 "Logs are not valid JSON or not in the expected format.",
@@ -620,7 +643,7 @@ io.on("connection", (socket) => {
             const player = user.player;
             if (!player)
               throw new Error("Player not found for the user");
-            game.declareAttack(player);
+            game.actions.declareAttack(player);
             game.addToHistory({ type: "DeclareAttack", payload, issuer: player.id });
             return callback({ status: 200 });
           } catch (error) {
@@ -667,7 +690,7 @@ io.on("connection", (socket) => {
             const player = user.player;
             if (!player)
               throw new Error("Player not found for the user");
-            game.attackRoll(player);
+            game.actions.attackRoll(player);
             game.addToHistory({ type: "AttackRoll", payload, issuer: player.id });
             return callback({ status: 200 });
           } catch (error) {
@@ -692,7 +715,7 @@ io.on("connection", (socket) => {
             if (!player)
               throw new Error("Player not found for the user");
             game.addToHistory({ type: "Resolve", payload, issuer: player.id });
-            await game.resolveStack();
+            await game.actions.resolveStack();
             return callback({ status: 200 });
           } catch (error) {
             console.error("Failed to resolve the stack", error);
@@ -847,7 +870,7 @@ io.on("connection", (socket) => {
             const player = user.player;
             if (!player)
               throw new Error("Player not found for the user");
-            game.declarePurchase(player);
+            game.actions.declarePurchase(player);
             game.addToHistory({ type: "DeclarePurchase", payload, issuer: player.id });
             return callback({ status: 200 });
           } catch (error) {
@@ -871,7 +894,7 @@ io.on("connection", (socket) => {
             const player = user.player;
             if (!player)
               throw new Error("Player not found for the user");
-            game.cancelPurchase(player);
+            game.actions.cancelPurchase(player);
             game.addToHistory({ type: "CancelPurchase", payload, issuer: player.id });
             return callback({ status: 200 });
           } catch (error) {
@@ -895,7 +918,7 @@ io.on("connection", (socket) => {
             const player = user.player;
             if (!player)
               throw new Error("Player not found for the user");
-            game.purchase(player, payload.index);
+            game.actions.purchase(player, payload.index);
             game.addToHistory({ type: "Purchase", payload, issuer: player.id });
             return callback({ status: 200 });
           } catch (error) {
@@ -920,7 +943,7 @@ io.on("connection", (socket) => {
             if (!player)
               throw new Error("Player not found for the user");
             game.addToHistory({ type: "EndTurn", payload, issuer: player.id });
-            await game.nextTurn(player);
+            await game.actions.nextTurn(player);
             return callback({ status: 200 });
           } catch (error) {
             console.error("Failed to end turn", error);
@@ -982,7 +1005,7 @@ io.on("connection", (socket) => {
                   error: "Loot deck not available",
                 });
               }
-              game.debugLoot(player, cards as LootCard[]);
+              game.actions.debugLoot(player, cards as LootCard[]);
               return callback({ status: 200 });
             }
             return callback({ status: 200 });
@@ -1083,7 +1106,7 @@ io.on("connection", (socket) => {
                     .map((card) => card.globalId)!
                     .includes(c.globalId),
                 );
-              game.debugRemoveCards(player, cardsToRemove);
+              game.actions.debugRemoveCards(player, cardsToRemove);
             }
             return callback({
               status: 200,
@@ -1158,7 +1181,7 @@ io.on("connection", (socket) => {
                   error: "Treasure deck not available",
                 });
               }
-              game.debugGainTreasures(player, cards as ItemCard[]);
+              game.actions.debugGainTreasures(player, cards as ItemCard[]);
               return callback({
                 status: 200,
               });
@@ -1186,7 +1209,7 @@ io.on("connection", (socket) => {
             if (!player)
               throw new Error("Player not found for the user");
             game.addToHistory({ type: "DebugGainCoins", payload, issuer: player.id });
-            game.debugGainCoins(player, payload.coins);
+            game.actions.debugGainCoins(player, payload.coins);
             return callback({ status: 200 });
           } catch (error) {
             console.error("Failed to debug gain coins", error);
@@ -1265,7 +1288,7 @@ io.on("connection", (socket) => {
             const index = game.monsterSlots._slots
               .map((slot) => slot[slot.length - 1]?.globalId)
               .indexOf(payload.toCover.globalId);
-            game.debugPutMonsterCardInSlot(player, card, index);
+            game.actions.debugPutMonsterCardInSlot(player, card, index);
             return callback({ status: 200 });
           } catch (error) {
             console.error("Failed to debug put monster card in slot", error);

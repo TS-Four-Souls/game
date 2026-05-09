@@ -41,34 +41,34 @@ import { DiceRoll } from "../../models/stackElement";
         
 //         // Trigger the event
 //         game.monsterSlots.discardTop(0);
-//         await game.resolveStack(); // resolve the event addition
+//         await game.actions.resolveStack(); // resolve the event addition
         
 //         const monster = game.monsters[0]!;
 //         game.addHealth(monster, 10);
 //         const initialHandSize = player1.hand.length;
         
 //         // Attack roll with non-triggering value
-//         game.attackRoll(player1, monster);
+//         game.actions.attackRoll(player1, monster);
 //         const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
 //         expect(attackRoll1).toBeDefined();
 //         if (attackRoll1) {
 //             attackRoll1.value = 6; // Non-triggering roll
 //         }
-//         await game.resolveStack(); // roll resolution
-//         await game.resolveStack(); // damage resolution
-//         await game.resolveStack(); // dies ?
+//         await game.actions.resolveStack(); // roll resolution
+//         await game.actions.resolveStack(); // damage resolution
+//         await game.actions.resolveStack(); // dies ?
 //         expect(player1.hand.length).toBe(initialHandSize);
         
 //         // Attack roll with triggering value
-//         game.attackRoll(player1, monster);
+//         game.actions.attackRoll(player1, monster);
 //         const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
 //         expect(attackRoll2).toBeDefined();
 //         if (attackRoll2) {
 //             attackRoll2.value = 5; // Triggering roll
 //         }
-//         await game.resolveStack(); // roll resolution
-//         await game.resolveStack(); // damage resolution
-//         await game.resolveStack(); // loot effect
+//         await game.actions.resolveStack(); // roll resolution
+//         await game.actions.resolveStack(); // damage resolution
+//         await game.actions.resolveStack(); // loot effect
         
 //         expect(player1.hand.length).toBe(initialHandSize + 1);
 //     });
@@ -79,23 +79,23 @@ import { DiceRoll } from "../../models/stackElement";
         
 //         // Trigger the event
 //         game.monsterSlots.discardTop(0);
-//         await game.resolveStack(); // resolve the event addition
+//         await game.actions.resolveStack(); // resolve the event addition
         
 //         const card = game.decks["loot"]?.getCardFromSlug("b2-pills") as LootCard;
 //         player1.hand.addToHand(card);
 //         const initialHandSize = player1.hand.length;
         
 //         // Play card that triggers a roll
-//         game.playCard(player1, 1);
-//         await game.resolveStack(); // card resolution
+//         game.actions.playCard(player1, 1);
+//         await game.actions.resolveStack(); // card resolution
         
 //         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
 //         expect(cardRoll).toBeDefined();
 //         if (cardRoll) {
 //             cardRoll.value = 5; // Triggering roll
 //         }
-//         await game.resolveStack(); // roll resolution
-//         await game.resolveStack(); // loot effect
+//         await game.actions.resolveStack(); // roll resolution
+//         await game.actions.resolveStack(); // loot effect
         
 //         expect(player1.hand.length).toBe(initialHandSize + 1);
 //     });
@@ -106,7 +106,7 @@ import { DiceRoll } from "../../models/stackElement";
         
 //         // Trigger the event
 //         game.monsterSlots.discardTop(0);
-//         await game.resolveStack(); // resolve the event addition
+//         await game.actions.resolveStack(); // resolve the event addition
         
 //         const monster = game.monsters[0]!;
 //         game.addHealth(monster, 10);
@@ -114,14 +114,14 @@ import { DiceRoll } from "../../models/stackElement";
         
 //         // Test various non-5 rolls
 //         for (const rollValue of [1, 2, 3, 4, 6]) {
-//             game.attackRoll(player1, monster);
+//             game.actions.attackRoll(player1, monster);
 //             const attackRoll = game.stack._stack[0] as DiceRoll | undefined;
 //             if (attackRoll) {
 //                 attackRoll.value = rollValue;
 //             }
-//             await game.resolveStack(); // roll resolution
-//             await game.resolveStack(); // damage resolution
-//             await game.resolveStack(); // dies ?
+//             await game.actions.resolveStack(); // roll resolution
+//             await game.actions.resolveStack(); // damage resolution
+//             await game.actions.resolveStack(); // dies ?
 //         }
         
 //         expect(player1.hand.length).toBe(initialHandSize);
@@ -133,7 +133,7 @@ import { DiceRoll } from "../../models/stackElement";
         
 //         // Trigger the event
 //         game.monsterSlots.discardTop(0);
-//         await game.resolveStack(); // resolve the event addition
+//         await game.actions.resolveStack(); // resolve the event addition
         
 //         const monster = game.monsters[0]!;
 //         game.addHealth(monster, 20);
@@ -142,14 +142,14 @@ import { DiceRoll } from "../../models/stackElement";
 //         const initialHandSizeP2 = player2.hand.length;
         
 //         // Player 1 rolls a 5
-//         game.attackRoll(player1, monster);
+//         game.actions.attackRoll(player1, monster);
 //         const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
 //         if (attackRoll1) {
 //             attackRoll1.value = 5;
 //         }
-//         await game.resolveStack(); // roll resolution
-//         await game.resolveStack(); // damage resolution
-//         await game.resolveStack(); // loot effect
+//         await game.actions.resolveStack(); // roll resolution
+//         await game.actions.resolveStack(); // damage resolution
+//         await game.actions.resolveStack(); // loot effect
         
 //         expect(player1.hand.length).toBe(initialHandSizeP1 + 1);
         
@@ -157,14 +157,14 @@ import { DiceRoll } from "../../models/stackElement";
 //         game.endTurn();
         
 //         // Player 2 rolls a 5
-//         game.attackRoll(player2, monster);
+//         game.actions.attackRoll(player2, monster);
 //         const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
 //         if (attackRoll2) {
 //             attackRoll2.value = 5;
 //         }
-//         await game.resolveStack(); // roll resolution
-//         await game.resolveStack(); // damage resolution
-//         await game.resolveStack(); // loot effect
+//         await game.actions.resolveStack(); // roll resolution
+//         await game.actions.resolveStack(); // damage resolution
+//         await game.actions.resolveStack(); // loot effect
         
 //         expect(player2.hand.length).toBe(initialHandSizeP2 + 1);
 //     });

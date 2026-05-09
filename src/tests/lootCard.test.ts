@@ -24,8 +24,8 @@ describe("Loot Card", () => {
         const initialCoins = player1.coins;
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-two_cents-2");
         player1.hand.addToHand(lootCard!);
-        game.playCard(player1, 0);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
 
         expect(player1.coins).toBe(initialCoins + 2);
     });
@@ -35,8 +35,8 @@ describe("Loot Card", () => {
         const initialCoins = player1.coins;
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-a_nickel");
         player1.hand.addToHand(lootCard!);
-        game.playCard(player1, 0);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
 
         expect(player1.coins).toBe(initialCoins + 5);
     });
@@ -45,8 +45,8 @@ describe("Loot Card", () => {
         const initialCoins = player1.coins;
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-a_dime");
         player1.hand.addToHand(lootCard!);
-        game.playCard(player1, 0);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
 
         expect(player1.coins).toBe(initialCoins + 10);
     });
@@ -59,8 +59,8 @@ describe("Loot Card", () => {
 
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-xvii_the_stars");
         player1.hand.addToHand(lootCard!);
-        game.playCard(player1, 0);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
         expect(player1.inPlay.length).toBe(nbItems + 1);
         // Verify the gained treasure is the one from the top of the treasure deck
         expect(player1.inPlay[player1.inPlay.length - 1]).toBe(topTreasureCard);
@@ -77,8 +77,8 @@ describe("Loot Card", () => {
 
         player2.hand.addToHand(lootCard!);
         game.addLootPlay(player2, 1);
-        game.playCard(player2, 0, [player1]);
-        await game.resolveStack();
+        game.actions.playCard(player2, 0, [player1]);
+        await game.actions.resolveStack();
 
         expect(player2.coins).toBe(nbCoinsTarget); ``
         expect(player2.hand.cards.length).toBe(nbLootCardsTarget);
@@ -99,12 +99,12 @@ describe("Loot Card", () => {
         const nbLootCardsTarget = player1.hand.cards.length;
 
         game.addLootPlay(player2, 1);
-        game.playCard(player2, 0, [player1]);
+        game.actions.playCard(player2, 0, [player1]);
 
         const nbCoins = player2.coins;
         const nbLootCards = player2.hand.cards.length;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         const gainedCoins = player1.coins - nbCoins;
         const gainedLootCards = player1.hand.cards.length - nbLootCards;
@@ -121,12 +121,12 @@ describe("Loot Card", () => {
         const player2InitialCoins = player2.coins;
 
         game.addLootPlay(player2, 1);
-        game.playCard(player2, 0);
-        await game.resolveStack();
+        game.actions.playCard(player2, 0);
+        await game.actions.resolveStack();
 
         const roll = game.stack.elements[0] as DiceRoll;
         roll.value = 1;
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.coins).toBe(player1InitialCoins + 1);
         expect(player2.coins).toBe(player2InitialCoins + 1);
@@ -140,12 +140,12 @@ describe("Loot Card", () => {
         player2.hand.addToHand(lootCard!);
 
         game.addLootPlay(player2, 1);
-        game.playCard(player2, 0);
-        await game.resolveStack();
+        game.actions.playCard(player2, 0);
+        await game.actions.resolveStack();
 
         const roll = game.stack.elements[0] as DiceRoll;
         roll.value = 2;
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.hand.cards.length).toBe(player1InitialLoot + 2);
         expect(player2.hand.cards.length).toBe(player2InitialLoot + 2);
@@ -156,15 +156,15 @@ describe("Loot Card", () => {
         player2.hand.addToHand(lootCard!);
 
         game.addLootPlay(player2, 1);
-        game.playCard(player2, 0);
-        await game.resolveStack();
+        game.actions.playCard(player2, 0);
+        await game.actions.resolveStack();
 
         const roll = game.stack.elements[0] as DiceRoll;
         roll.value = 3;
-        await game.resolveStack(); // Dice 
-        await game.resolveStack(); // Damage to player1
-        await game.resolveStack(); // Death player 1
-        await game.resolveStack(); // Damage to player2
+        await game.actions.resolveStack(); // Dice 
+        await game.actions.resolveStack(); // Damage to player1
+        await game.actions.resolveStack(); // Death player 1
+        await game.actions.resolveStack(); // Damage to player2
 
         expect(player1.currentHealthPoints).toBe(0);
         expect(player2.currentHealthPoints).toBe(0);
@@ -177,12 +177,12 @@ describe("Loot Card", () => {
         const player2InitialCoins = player2.coins;
 
         game.addLootPlay(player2, 1);
-        game.playCard(player2, 0);
-        await game.resolveStack();
+        game.actions.playCard(player2, 0);
+        await game.actions.resolveStack();
 
         const roll = game.stack.elements[0] as DiceRoll;
         roll.value = 4;
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.coins).toBe(player1InitialCoins + 4);
         expect(player2.coins).toBe(player2InitialCoins + 4);
@@ -196,12 +196,12 @@ describe("Loot Card", () => {
         player2.hand.addToHand(lootCard!);
         
         game.addLootPlay(player2, 1);
-        game.playCard(player2, 0);
-        await game.resolveStack();
+        game.actions.playCard(player2, 0);
+        await game.actions.resolveStack();
 
         const roll = game.stack.elements[0] as DiceRoll;
         roll.value = 5;
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.hand.cards.length).toBe(player1InitialLoot + 5);
         expect(player2.hand.cards.length).toBe(player2InitialLoot + 5);
@@ -214,12 +214,12 @@ describe("Loot Card", () => {
         const player2InitialCoins = player2.coins;
         
         game.addLootPlay(player2, 1);
-        game.playCard(player2, 0);
-        await game.resolveStack();
+        game.actions.playCard(player2, 0);
+        await game.actions.resolveStack();
 
         const roll = game.stack.elements[0] as DiceRoll;
         roll.value = 6;
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.coins).toBe(player1InitialCoins + 6);
         expect(player2.coins).toBe(player2InitialCoins + 6);
@@ -231,9 +231,9 @@ describe("Loot Card", () => {
 
         const player2InitialHP = player2.currentHealthPoints;
 
-        game.playCard(player1, 0, [player2]);
-        await game.resolveStack();
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [player2]);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player2.currentHealthPoints).toBe(player2InitialHP - 1);
     });
@@ -246,9 +246,9 @@ describe("Loot Card", () => {
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-bomb");
         player1.hand.addToHand(lootCard!);
 
-        game.playCard(player1, 0, [monster]);
-        await game.resolveStack();
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [monster]);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(monster.currentHealthPoints).toBe(monsterInitialHP - 1);
     });
@@ -264,9 +264,9 @@ describe("Loot Card", () => {
         player1.hand.addToHand(butterBean!);
 
         // Play dime first, then butter_bean to cancel it
-        game.playCard(player1, 0);
-        game.playCard(player1, 0, [game.stack.elements[game.stack.size - 1]]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0);
+        game.actions.playCard(player1, 0, [game.stack.elements[game.stack.size - 1]]);
+        await game.actions.resolveStack();
 
         // If the stack was properly canceled, we should have no elements left
         expect(game.stack.size).toBe(0);
@@ -277,11 +277,11 @@ describe("Loot Card", () => {
         const butterBean = game.obtainCard("b2-butter_bean") as LootCard;
         player2.hand.addToHand(butterBean!);
         player1.hand.addToHand(dime);
-        game.playCard(player1, 0, []); 
+        game.actions.playCard(player1, 0, []); 
         
         game.addLootPlay(player2, 1);
-        game.playCard(player2, 0, [game.stack.elements[game.stack.size - 1]]); // Play butter_bean in response to dime
-        await game.resolveStack();
+        game.actions.playCard(player2, 0, [game.stack.elements[game.stack.size - 1]]); // Play butter_bean in response to dime
+        await game.actions.resolveStack();
 
         // Verify butter_bean was played and resolved
         expect(game.stack.size).toBe(0);
@@ -296,9 +296,9 @@ describe("Loot Card", () => {
 
         const player2InitialHP = player2.currentHealthPoints;
 
-        game.playCard(player1, 0, [player2]);
-        await game.resolveStack();
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [player2]);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player2.currentHealthPoints).toBe(Math.max(0, player2InitialHP - 3));
     });
@@ -311,9 +311,9 @@ describe("Loot Card", () => {
         const lootCard = game.decks["loot"]!.getCardFromSlug("b2-gold_bomb");
         player1.hand.addToHand(lootCard!);
 
-        game.playCard(player1, 0, [monster]);
-        await game.resolveStack();
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [monster]);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(monster.currentHealthPoints).toBe(Math.max(0, monsterInitialHP - 3));
     });
@@ -330,8 +330,8 @@ describe("Loot Card", () => {
         for (let attempt = 0; attempt < 1000; attempt++) {
             player1.hand.addToHand(diceShard!);
             // Play dice_shard to reroll the dice
-            game.playCard(player1, 0, [roll]);
-            await game.resolveStack();
+            game.actions.playCard(player1, 0, [roll]);
+            await game.actions.resolveStack();
             if (initialRollValue !== roll.value) {
                 break;
             }
@@ -352,8 +352,8 @@ describe("Loot Card", () => {
         const initialMonster1 = game.monsterSlots.monsterIn(1)!;
 
         // Play ehwaz to flush monsters
-        game.playCard(player1, 0);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
 
         // Get new monsters
         const newMonster0 = game.monsterSlots.monsterIn(0)!;
@@ -372,33 +372,33 @@ describe("Loot Card", () => {
         const initialMonster0 = game.monsterSlots.monsterIn(0)!;
         const initialMonster1 = game.monsterSlots.monsterIn(1)!;
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, initialMonster0);
-        game.attackRoll(player1);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, initialMonster0);
+        game.actions.attackRoll(player1);
         const dice = game.stack.elements[game.stack.size - 1] as DiceRoll;
         expect(dice).toBeDefined();
         dice.value = 1;
-        await game.resolveStack(); 
-        await game.resolveStack(); 
+        await game.actions.resolveStack(); 
+        await game.actions.resolveStack(); 
 
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         const dice2 = game.stack.elements[game.stack.size - 1] as DiceRoll;
         expect(dice2).toBeDefined();
         dice2.value = 1;
-        await game.resolveStack();
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.currentHealthPoints).toBe(0); // player should be dead
         expect(player1.isDead).toBe(true);
         expect(game.currentPlayer.id).toBe(player1.id); // should be player2's turn
         game.endTurn(); // end player1's turn to move to player2's turn
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.currentPlayer.id).toBe(player2.id); // should be player2's turn
         
 
         // Play ehwaz to flush monsters
-        game.playCard(player2, 0);
-        await game.resolveStack();
+        game.actions.playCard(player2, 0);
+        await game.actions.resolveStack();
 
         // Get new monsters
         const newMonster0 = game.monsterSlots.monsterIn(0)!;
@@ -414,20 +414,20 @@ describe("Loot Card", () => {
         const ehwaz = game.decks["loot"]!.getCardFromSlug("b2-ehwaz");
         player2.hand.addToHand(ehwaz!);
         
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, "topDeck", 0);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         for (let i = 0; i < 5; i++) {
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             const dice = game.stack.elements[game.stack.size - 1] as DiceRoll;
             expect(dice).toBeDefined();
             dice.value = 6;
-            await game.resolveStack(); 
-            await game.resolveStack();             
+            await game.actions.resolveStack(); 
+            await game.actions.resolveStack();             
         }
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         game.endTurn(); // end player1's turn to move to player2's turn
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.currentPlayer.id).toBe(player2.id); // should be player2's turn
         
         // Get initial monsters
@@ -435,8 +435,8 @@ describe("Loot Card", () => {
         const initialMonster1 = game.monsterSlots.monsterIn(1)!.id;
         
         // Play ehwaz to flush monsters
-        game.playCard(player2, 0);
-        await game.resolveStack();
+        game.actions.playCard(player2, 0);
+        await game.actions.resolveStack();
 
         // Get new monsters
         const newMonster0 = game.monsterSlots.monsterIn(0)!.id;
@@ -456,8 +456,8 @@ describe("Loot Card", () => {
         const monsterDeckInitialSize = game.decks["monster"]!.cards.length;
 
         // Play ehwaz to flush monsters
-        game.playCard(player1, 0);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
 
         // Verify new monsters were drawn from deck
         expect(game.monsterSlots._slots[0]).toBeDefined();
@@ -473,8 +473,8 @@ describe("Loot Card", () => {
         game.stack.push(roll);
         roll.value = 6; // initial value
         // Play magician to change the roll
-        game.playCard(player1, 0, [game.stack.elements[0], 2]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [game.stack.elements[0], 2]);
+        await game.actions.resolveStack();
 
         expect(roll.value).toBe(2);
     });
@@ -491,8 +491,8 @@ describe("Loot Card", () => {
         roll.value = 5;
 
         // Play magician to change roll to 1
-        game.playCard(player1, 0, [roll, 2]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [roll, 2]);
+        await game.actions.resolveStack();
 
         // Should be able to choose any value 1-6
         expect(typeof roll.value).toBe("number");
@@ -506,13 +506,13 @@ describe("Loot Card", () => {
         const player2InitialHP = player2.currentHealthPoints;
 
         // Play high priestess
-        game.playCard(player1, 0, [player2]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [player2]);
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Should have dealt damage between 1-6
         const damageTaken = player2InitialHP - player2.currentHealthPoints;
@@ -527,12 +527,12 @@ describe("Loot Card", () => {
         const monsterInitialHP = monster.currentHealthPoints;
 
         // Play high priestess
-        game.playCard(player1, 0, [monster]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [monster]);
+        await game.actions.resolveStack();
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Should have dealt damage between 1-6
         const damageTaken = monsterInitialHP - monster.currentHealthPoints;
@@ -549,8 +549,8 @@ describe("Loot Card", () => {
             game.addTopPosition("monster", initialTop5[i]!);
         }
 
-        game.playCard(player1, 0);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
 
         const newTop5 = game.getFirstCardsOfDeck("monster", 5);
         const monsterDeck = game.decks["monster"]!;
@@ -579,8 +579,8 @@ describe("Loot Card", () => {
         for (let i = initialTop5.length - 1; i >= 0; i--) {
             game.addTopPosition("treasure", initialTop5[i]!);
         }
-        game.playCard(player1, 0);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
 
         const newTop5 = game.getFirstCardsOfDeck("treasure", 5);
         const treasureDeck = game.decks["treasure"]!;
@@ -610,8 +610,8 @@ describe("Loot Card", () => {
             game.addTopPosition("loot", initialTop5[i]!);
         }
 
-        game.playCard(player1, 0);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
 
         const newTop5 = game.getFirstCardsOfDeck("loot", 5);
         const lootDeck = game.decks["loot"]!;
@@ -641,12 +641,12 @@ describe("Loot Card", () => {
 
         // Recharge and tap the item (simulate using it)
         item.charged = false;
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(item.charged).toBe(false);
 
         // Play lil battery
-        game.playCard(player1, 0, [item]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [item]);
+        await game.actions.resolveStack();
 
         // Item should be recharged
         expect(item.charged).toBe(true);
@@ -670,8 +670,8 @@ describe("Loot Card", () => {
         item2.charged = false;
 
         // Play lil battery targeting item1
-        game.playCard(player1, 0, [item1]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [item1]);
+        await game.actions.resolveStack();
 
         // Only item1 should be recharged
         expect(item1.charged).toBe(true);
@@ -692,8 +692,8 @@ describe("Loot Card", () => {
         item3.charged = false;
         
         // Play mega battery targeting player2
-        game.playCard(player1, 0, [player2]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [player2]);
+        await game.actions.resolveStack();
 
         // All of player2's items should be recharged
         expect(item1.charged).toBe(true);
@@ -714,8 +714,8 @@ describe("Loot Card", () => {
         player2Item.charged = false;
 
         // Play mega battery targeting player2
-        game.playCard(player1, 0, [player2]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [player2]);
+        await game.actions.resolveStack();
 
         // Only player2's item should be recharged
         expect(player1Item.charged).toBe(false);
@@ -733,14 +733,14 @@ describe("Loot Card", () => {
         const initialStackSize = game.stack.elements.length;
         const initialPlayer = game.turnHandler.current;
 
-        game.playCard(player1, 1); // Play dime
-        game.playCard(player1, 0); // Play fool
+        game.actions.playCard(player1, 1); // Play dime
+        game.actions.playCard(player1, 0); // Play fool
 
         const stackSizeBeforeFool = game.stack.elements.length;
         expect(stackSizeBeforeFool).toBeGreaterThan(initialStackSize);
 
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Stack should be empty and turn should have ended
         expect(game.turnHandler.current).not.toBe(initialPlayer);
@@ -751,15 +751,15 @@ describe("Loot Card", () => {
         const pills = game.decks["loot"]!.getCardFromSlug("b2-pills");
         player1.hand.addToHand(pills!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
 
         const initialHandSize = player1.hand.cards.length;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1; // Force roll to 1 for testing
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.hand.cards.length).toBe(initialHandSize + 1);
         // After resolving, hand size should have changed based on roll outcome
@@ -776,15 +776,15 @@ describe("Loot Card", () => {
         const pills = game.decks["loot"]!.getCardFromSlug("b2-pills");
         player1.hand.addToHand(pills!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
 
         const initialHandSize = player1.hand.cards.length;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4; // Force roll to 4 for testing
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.hand.cards.length).toBe(initialHandSize + 3);
     });
@@ -792,16 +792,16 @@ describe("Loot Card", () => {
         const pills = game.decks["loot"]!.getCardFromSlug("b2-pills");
         player1.hand.addToHand(pills!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
         game.loot(player1, 2); // Ensure player has at least 1 card to discard
 
         const initialHandSize = player1.hand.cards.length;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5; // Force roll to 5 for testing
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.hand.cards.length).toBe(1);
     });
@@ -810,15 +810,15 @@ describe("Loot Card", () => {
         const pills = game.decks["loot"]!.getCardFromSlug("b2-pills");
         player1.hand.addToHand(pills!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
 
         const initialHandSize = player1.hand.cards.length;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6; // Force roll to 6 for testing
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.hand.cards.length).toBe(0);
     });
@@ -828,15 +828,15 @@ describe("Loot Card", () => {
         const pills = game.decks["loot"]!.getCardFromSlug("b2-pills_2");
         player1.hand.addToHand(pills!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
 
         const initialCoins = player1.coins;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1; // Force roll to 1 for testing
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.coins).toBe(initialCoins + 4);
     });
@@ -845,15 +845,15 @@ describe("Loot Card", () => {
         const pills = game.decks["loot"]!.getCardFromSlug("b2-pills_2");
         player1.hand.addToHand(pills!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
 
         const initialCoins = player1.coins;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3; // Force roll to 3 for testing
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.coins).toBe(initialCoins + 7);
     });
@@ -862,15 +862,15 @@ describe("Loot Card", () => {
         const pills = game.decks["loot"]!.getCardFromSlug("b2-pills_2");
         player1.hand.addToHand(pills!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
         game.gainCoins(player1, 10, "gift"); // Ensure player has enough coins to lose
         const initialCoins = player1.coins;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5; // Force roll to 5 for testing
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.coins).toBe(initialCoins - 4);
     });
@@ -879,16 +879,16 @@ describe("Loot Card", () => {
         const pills = game.decks["loot"]!.getCardFromSlug("b2-pills_2");
         player1.hand.addToHand(pills!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
         game.gainCoins(player1, 3, "gift");
         const initialCoins = player1.coins;
         const initialInPlay = player1.inPlay.length;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6; // Force roll to 6 for testing
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.coins).toBe(0);
         expect(player1.inPlay.length).toBe(initialInPlay); // Discard a card to make up the difference
@@ -899,24 +899,24 @@ describe("Loot Card", () => {
         const pills = game.decks["loot"]!.getCardFromSlug("b2-pills_3");
         player1.hand.addToHand(pills!);
         const initialInPlay = player1.inPlay.length;
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
 
         const initialAtk = player1.attackPoints;
 
         // (pills as LootCard).debugSetTargets([player1]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1; // Force roll to 1 for testing
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk + 1);
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk);
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk);
         expect(player1.inPlay.length).toBe(initialInPlay); // Discard a card to make up the difference
@@ -927,20 +927,20 @@ describe("Loot Card", () => {
         const pills = game.decks["loot"]!.getCardFromSlug("b2-pills_3");
         player1.hand.addToHand(pills!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
 
         const initialHp = player1.currentHealthPoints;
 
         // (pills as LootCard).debugSetTargets([player1]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3; // Force roll to 3 for testing
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(initialHp + 1);
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(initialHp);
         game.endTurn();
@@ -952,17 +952,17 @@ describe("Loot Card", () => {
         const pills = game.decks["loot"]!.getCardFromSlug("b2-pills_3");
         player1.hand.addToHand(pills!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
 
         const initialHp = player1.currentHealthPoints;
 
         // (pills as LootCard).debugSetTargets([player1]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1); // Dice roll should be on stack
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6; // Force roll to 6 for testing
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(initialHp - 1);
     });
@@ -983,8 +983,8 @@ describe("Loot Card", () => {
 
         const initialHand = player1.hand.cards.length;
 
-        game.playCard(player1, 0);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
 
         const newTopLoot = game.getFirstCardsOfDeck("loot", 1)[0]!;
         const newTopTreasure = game.getFirstCardsOfDeck("treasure", 1)[0]!;
@@ -1006,9 +1006,9 @@ describe("Loot Card", () => {
 
         const originalSelect = game.select;
 
-        game.playCard(player1, 0, [player2]);
-        await game.resolveStack();
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [player2]);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player2.currentHealthPoints).toBe(0);
         expect(player2.isDead).toBe(true);
@@ -1023,8 +1023,8 @@ describe("Loot Card", () => {
         const lootDeck = game.decks["loot"]!;
         const beforeSize = lootDeck.length;
 
-        game.playCard(player1, 0);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
 
         // Card placed on bottom of loot deck
         // expect(lootDeck.length).toBe(beforeSize + 1);
@@ -1042,14 +1042,14 @@ describe("Loot Card", () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-x_wheel_of_fortune");
         player1.hand.addToHand(card!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
         const beforeCoins = player1.coins;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.coins).toBe(beforeCoins + 1);
     });
@@ -1058,15 +1058,15 @@ describe("Loot Card", () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-x_wheel_of_fortune");
         player1.hand.addToHand(card!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
         const beforeHp = player1.currentHealthPoints;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(Math.max(0, beforeHp - 2));
     });
@@ -1075,14 +1075,14 @@ describe("Loot Card", () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-x_wheel_of_fortune");
         player1.hand.addToHand(card!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
         const initialHand = player1.hand.cards.length;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3;
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.hand.cards.length).toBe(initialHand + 3);
     });
@@ -1092,14 +1092,14 @@ describe("Loot Card", () => {
         player1.hand.addToHand(card!);
         game.gainCoins(player1, 6, "gift");
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
         const beforeCoins = player1.coins;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4;
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.coins).toBe(Math.max(0, beforeCoins - 4));
     });
@@ -1108,14 +1108,14 @@ describe("Loot Card", () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-x_wheel_of_fortune");
         player1.hand.addToHand(card!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
         const beforeCoins = player1.coins;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5;
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.coins).toBe(beforeCoins + 5);
     });
@@ -1124,16 +1124,16 @@ describe("Loot Card", () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-x_wheel_of_fortune");
         player1.hand.addToHand(card!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
         const treasureDeck = game.decks["treasure"]!;
         const topTreasure = treasureDeck.cards[0];
         const beforeInPlay = player1.inPlay.length;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.inPlay.length).toBe(beforeInPlay + 1);
         expect(player1.inPlay[player1.inPlay.length - 1]).toBe(topTreasure);
@@ -1150,9 +1150,9 @@ describe("Loot Card", () => {
         const beforeCoins = player1.coins;
 
         const debugTarget = ["Take 1 damage and gain 4¢."];
-        game.playCard(player1, 0, debugTarget);
-        await game.resolveStack();
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, debugTarget);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(beforeHp - 1);
         expect(player1.coins).toBe(beforeCoins + 4);
@@ -1178,8 +1178,8 @@ describe("Loot Card", () => {
         expect(player2.inPlay).toContain(itemToSteal);
         expect(player1.inPlay).not.toContain(itemToSteal);
 
-        game.playCard(player1, 0, [itemToDestroy, itemToSteal]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [itemToDestroy, itemToSteal]);
+        await game.actions.resolveStack();
 
         // Item should be destroyed from player1
         expect(player1.inPlay).not.toContain(itemToDestroy);
@@ -1210,8 +1210,8 @@ describe("Loot Card", () => {
         expect(player1.inPlay).toContain(itemToDestroy);
         expect(game.shop.itemsInShop).toContain(shopItem);
 
-        game.playCard(player1, 0, [itemToDestroy, shopItem]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [itemToDestroy, shopItem]);
+        await game.actions.resolveStack();
 
         // Item should be destroyed from player1
         expect(player1.inPlay).not.toContain(itemToDestroy);
@@ -1234,8 +1234,8 @@ describe("Loot Card", () => {
         const initialInPlayCount = player1.inPlay.filter((card) => card.eternal === false).length;
         expect(initialInPlayCount).toBe(0);
 
-        game.playCard(player1, 0, [[], [itemTargetToSteal]]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [[], [itemTargetToSteal]]);
+        await game.actions.resolveStack();
 
         const afterInPlayCount = player1.inPlay.filter((card) => card.eternal === false).length;
         // Nothing should have changed
@@ -1250,14 +1250,14 @@ describe("Loot Card", () => {
         const player1Hp = player1.currentHealthPoints;
         const player2Hp = player2.currentHealthPoints;
 
-        game.playCard(player1, 0);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
-        await game.resolveStack();
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(player1Hp - 1);
         expect(player2.currentHealthPoints).toBe(player2Hp - 1);
@@ -1270,15 +1270,15 @@ describe("Loot Card", () => {
         const monsters = [game.monsterSlots.monsterIn(0), game.monsterSlots.monsterIn(1)].filter(Boolean) as any[];
         const initialHps = monsters.map((m) => m.currentHealthPoints);
 
-        game.playCard(player1, 0);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3;
-        await game.resolveStack(); // dice resolve
-        await game.resolveStack(); // damage monster 1
-        await game.resolveStack(); // death monster 1 ?
-        await game.resolveStack(); // damage monster 2
+        await game.actions.resolveStack(); // dice resolve
+        await game.actions.resolveStack(); // damage monster 1
+        await game.actions.resolveStack(); // death monster 1 ?
+        await game.actions.resolveStack(); // damage monster 2
         
         monsters.forEach((m, idx) => {
             expect(m.currentHealthPoints).toBe(initialHps[idx]! - 1);
@@ -1292,15 +1292,15 @@ describe("Loot Card", () => {
         const player1Hp = player1.currentHealthPoints;
         const player2Hp = player2.currentHealthPoints;
 
-        game.playCard(player1, 0);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5;
-        await game.resolveStack();// dice resolve
-        await game.resolveStack();// damage player 1
-        await game.resolveStack();// death player 1
-        await game.resolveStack();// damage player 2
+        await game.actions.resolveStack();// dice resolve
+        await game.actions.resolveStack();// damage player 1
+        await game.actions.resolveStack();// death player 1
+        await game.actions.resolveStack();// damage player 2
 
         expect(player1.currentHealthPoints).toBe(player1Hp - 2);
         expect(player2.currentHealthPoints).toBe(player2Hp - 2);
@@ -1313,12 +1313,12 @@ describe("Loot Card", () => {
         player1.hand.addToHand(soulHeart!);
 
         const initialHP = player2.currentHealthPoints;
-        game.playCard(player1, 0, [player2]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [player2]);
+        await game.actions.resolveStack();
 
         // player2 should have prevention shield now - deal 3 damage
         game.dealDamage(player1, player2, dummyCard, 3);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 2); // 3 - 1 prevented = 2 damage taken
     });
 
@@ -1331,16 +1331,16 @@ describe("Loot Card", () => {
         const initialHP = player2.currentHealthPoints;
         // const effect = effectParser(soulHeart!.effectOutcomes[0]!, game);
         // effect(soulHeart!, player1, []);
-        game.playCard(player1, 0, [player2]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [player2]);
+        await game.actions.resolveStack();
         // First damage: 1 prevented, take 2 damage
         game.dealDamage(player1, player2, dummyCard, 3);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 2);
 
         // Second damage: not prevented, take full damage
         game.dealDamage(player1, player2, dummyCard, 5);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 7);
     });
 
@@ -1352,12 +1352,12 @@ describe("Loot Card", () => {
 
 
         const initialHP = player2.currentHealthPoints;
-        game.playCard(player1, 0, [player2]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [player2]);
+        await game.actions.resolveStack();
 
         // Deal only 1 damage - should be fully prevented
         game.dealDamage(player1, player2, dummyCard, 1);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP); // No damage taken
     });
 
@@ -1368,17 +1368,17 @@ describe("Loot Card", () => {
         player1.hand.addToHand(soulHeart!);
 
 
-        game.playCard(player1, 0, [player2]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [player2]);
+        await game.actions.resolveStack();
 
         // player1 takes damage - should NOT be prevented (shield is on player2)
         const initialP1HP = player1.currentHealthPoints;
         game.dealDamage(player2, player1, dummyCard, 2);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.currentHealthPoints).toBe(initialP1HP - 2); // Full damage taken
 
         game.dealDamage(player2, player2, dummyCard, 2);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialP1HP - 1); // Full damage taken
     });
 
@@ -1391,12 +1391,12 @@ describe("Loot Card", () => {
         player2.addHealthPoints(10); // Ensure player2 has enough HP to take damage
 
         const initialHP = player2.currentHealthPoints;
-        game.playCard(player1, 0, [player2]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [player2]);
+        await game.actions.resolveStack();
 
         // player2 should have prevention shield now - deal 5 damage
         game.dealDamage(player1, player2, dummyCard, 5);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 3); // 5 - 2 prevented = 3 damage taken
     });
 
@@ -1410,12 +1410,12 @@ describe("Loot Card", () => {
         player1.hand.addToHand(hierophant!);
 
         const initialHP = monster.currentHealthPoints;
-        game.playCard(player1, 0, [monster]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [monster]);
+        await game.actions.resolveStack();
 
         // player2 should have prevention shield now - deal 3 damage
         game.dealDamage(player1, monster, dummyCard, 3);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(monster.currentHealthPoints).toBe(initialHP - 1); // 3 - 2 prevented = 1 damage taken
     });
 
@@ -1426,16 +1426,16 @@ describe("Loot Card", () => {
 
         player2.addHealthPoints(10); // Ensure player2 has enough HP to take damage
         const initialHP = player2.currentHealthPoints;
-        game.playCard(player1, 0, [player2]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [player2]);
+        await game.actions.resolveStack();
         // First damage: 2 prevented, take 3 damage
         game.dealDamage(player1, player2, dummyCard, 5);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 3);
 
         // Second damage: not prevented, take full damage
         game.dealDamage(player1, player2, dummyCard, 5);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 8);
     });
 
@@ -1447,12 +1447,12 @@ describe("Loot Card", () => {
 
 
         const initialHP = player2.currentHealthPoints;
-        game.playCard(player1, 0, [player2]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [player2]);
+        await game.actions.resolveStack();
 
         // Deal only 2 damage - should be fully prevented
         game.dealDamage(player1, player2, dummyCard, 2);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP); // No damage taken
     });
 
@@ -1465,17 +1465,17 @@ describe("Loot Card", () => {
         player2.addHealthPoints(10); // Ensure player2 has enough HP to take damage
 
 
-        game.playCard(player1, 0, [player2]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [player2]);
+        await game.actions.resolveStack();
 
         // player1 takes damage - should NOT be prevented (shield is on player2)
         const initialP1HP = player1.currentHealthPoints;
         game.dealDamage(player2, player1, dummyCard, 3);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.currentHealthPoints).toBe(initialP1HP - 3); // Full damage taken
 
         game.dealDamage(player2, player2, dummyCard, 3);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialP1HP - 1); //Shilded damage taken
     });
 
@@ -1491,8 +1491,8 @@ describe("Loot Card", () => {
         const debugTarget = ["Destroy a curse.", curses[0]!];
         // console.log("debugTarget: ", debugTarget);
         // console.log("curse: ", curses[0]!);
-        game.playCard(player1, 0, debugTarget);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, debugTarget);
+        await game.actions.resolveStack();
 
         expect(player1.curses).not.toContain(curses[0]!);
         expect(game.destroyedCards).toContain(curses[0]!);
@@ -1512,10 +1512,10 @@ describe("Loot Card", () => {
         const debugTarget = ["Destroy a curse.", curses[1]!];
         // console.log("debugTarget: ", debugTarget);
         // console.log("curse: ", curses[0]!);
-        game.playCard(player1, 0, debugTarget);
+        game.actions.playCard(player1, 0, debugTarget);
         player1.removeCurse(curses[1]!); // Simulate curse being removed before resolution
         player2.addCurse(curses[1]!); // Simulate curse being removed before resolution
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.curses.map(card => card.slug)).not.toContain(curses[1]!.slug);
         expect(player1.curses.map(card => card.slug)).toContain(curses[0]!.slug);
@@ -1535,9 +1535,9 @@ describe("Loot Card", () => {
         const debugTarget = ["Destroy a curse.", curses[2]!];
         // console.log("debugTarget: ", debugTarget);
         // console.log("curse: ", curses[0]!);
-        game.playCard(player1, 0, debugTarget);
+        game.actions.playCard(player1, 0, debugTarget);
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.curses).toContain(curses[0]!);
         expect(player1.curses).toContain(curses[1]!);
@@ -1551,12 +1551,12 @@ describe("Loot Card", () => {
 
         const initialHP = player2.currentHealthPoints;
         const debugTarget = ["Choose a player. Prevent the next 1 damage they would take this turn.", player2];
-        game.playCard(player1, 0, debugTarget);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, debugTarget);
+        await game.actions.resolveStack();
 
         // player2 should have prevention shield now - deal 2 damage
         game.dealDamage(player1, player2, dummyCard, 2);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 1); // 2 - 1 prevented = 1 damage taken
     });
 
@@ -1564,17 +1564,17 @@ describe("Loot Card", () => {
         const pills = game.decks["loot"]!.getCardFromSlug("b2-vi_the_lovers");
         player1.hand.addToHand(pills!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
 
         const initialHp = player1.currentHealthPoints;
 
         // (pills as LootCard).debugSetTargets([player1]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(initialHp + 2);
         expect(player1.healthPoints).toBe(initialHp+2);
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(initialHp);
         game.endTurn();
@@ -1586,18 +1586,18 @@ describe("Loot Card", () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-vi_the_lovers");
         player1.hand.addToHand(card!);
 
-        game.playCard(player1, 0, [player2]);
+        game.actions.playCard(player1, 0, [player2]);
 
         const initialHplayer1 = player1.currentHealthPoints;
         const initialHp = player2.currentHealthPoints;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(initialHplayer1);
         expect(player2.currentHealthPoints).toBe(initialHp + 2);
         expect(player2.healthPoints).toBe(initialHp + 2);
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player2.currentHealthPoints).toBe(initialHp);
         game.endTurn();
@@ -1609,13 +1609,13 @@ describe("Loot Card", () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-iii_the_empress");
         player1.hand.addToHand(card!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
 
         const initialAtk = player1.attackPoints;
         const initialDiceMod = player1.diceModifier;
 
         // (pills as LootCard).debugSetTargets([player1]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk + 1);
         expect(player1.diceModifier).toBe(initialDiceMod + 1);
@@ -1623,22 +1623,22 @@ describe("Loot Card", () => {
         const pill = game.obtainCard("b2-pills")!;
         expect(pill).toBeDefined();
         player1.hand.addToHand(pill as LootCard);
-        game.playCard(player1, player1.hand.cards.indexOf(pill as LootCard));
-        await game.resolveStack();
+        game.actions.playCard(player1, player1.hand.cards.indexOf(pill as LootCard));
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
         const dice = game.stack.elements[0] as DiceRoll;
         expect(dice instanceof DiceRoll).toBe(true);
         dice.value = 2;
         const initHandSize = player1.hand.cards.length;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         // Dice roll should have +1 modifier
         expect(dice.value).toBe(3); // 2 + 1 from Empress
         expect(player1.hand.cards.length).toBe(initHandSize + 3); // Looted successfully
 
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk);
         expect(player1.diceModifier).toBe(initialDiceMod);
@@ -1652,21 +1652,21 @@ describe("Loot Card", () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-iii_the_empress");
         player1.hand.addToHand(card!);
 
-        game.playCard(player1, 0, [player2]);
+        game.actions.playCard(player1, 0, [player2]);
 
         const initialAtk1 = player1.attackPoints;
         const initialAtk = player2.attackPoints;
         const initialDiceMod1 = player1.diceModifier;
         const initialDiceMod = player2.diceModifier;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player2.attackPoints).toBe(initialAtk + 1);
         expect(player1.attackPoints).toBe(initialAtk1);
         expect(player2.diceModifier).toBe(initialDiceMod + 1);
         expect(player1.diceModifier).toBe(initialDiceMod1);
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player2.attackPoints).toBe(initialAtk);
         expect(player2.diceModifier).toBe(initialDiceMod);
@@ -1680,19 +1680,19 @@ describe("Loot Card", () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-vii_the_chariot");
         player1.hand.addToHand(card!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
 
         const initialAtk = player1.attackPoints;
         const initialHP = player1.healthPoints;
 
         // (pills as LootCard).debugSetTargets([player1]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk + 1);
         expect(player1.healthPoints).toBe(initialHP + 1);
         expect(player1.currentHealthPoints).toBe(initialHP + 1);
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk);
         expect(player1.currentHealthPoints).toBe(initialHP);
@@ -1706,14 +1706,14 @@ describe("Loot Card", () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-vii_the_chariot");
         player1.hand.addToHand(card!);
 
-        game.playCard(player1, 0, [player2]);
+        game.actions.playCard(player1, 0, [player2]);
 
         const initialAtk1 = player1.attackPoints;
         const initialAtk = player2.attackPoints;
         const initialHP1 = player1.currentHealthPoints;
         const initialHP = player2.currentHealthPoints;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player2.attackPoints).toBe(initialAtk + 1);
         expect(player1.attackPoints).toBe(initialAtk1);
@@ -1721,7 +1721,7 @@ describe("Loot Card", () => {
         expect(player2.healthPoints).toBe(initialHP+1);
         expect(player1.currentHealthPoints).toBe(initialHP1);
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player2.attackPoints).toBe(initialAtk);
         expect(player2.currentHealthPoints).toBe(initialHP);
@@ -1737,23 +1737,23 @@ describe("Loot Card", () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-xi_strength");
         player1.hand.addToHand(card!);
 
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
 
         const initialAtk = player1.attackPoints;
         const initialAtkThisTurn = player1.attackThisTurn;
 
         // (pills as LootCard).debugSetTargets([player1]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk + 1);
         expect(player1.attackThisTurn).toBe(initialAtkThisTurn + 1);
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk);
         expect(player1.attackThisTurn).toBe(0 ); // not his turn
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk);
         expect(player1.attackThisTurn).toBe(1); // his turn
@@ -1763,14 +1763,14 @@ describe("Loot Card", () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-xi_strength");
         player1.hand.addToHand(card!);
 
-        game.playCard(player1, 0, [player2]);
+        game.actions.playCard(player1, 0, [player2]);
 
         const initialAtk1 = player1.attackPoints;
         const initialAtk = player2.attackPoints;
         const initialAtkThisTurn1 = player1.attackThisTurn;
         const initialAtkThisTurn = player2.attackThisTurn;
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player2.attackPoints).toBe(initialAtk + 1);
         expect(player1.attackPoints).toBe(initialAtk1);
@@ -1778,12 +1778,12 @@ describe("Loot Card", () => {
         expect(player2.attackThisTurn).toBe(initialAtkThisTurn + 1);
         expect(player1.attackThisTurn).toBe(initialAtkThisTurn1);
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player2.attackPoints).toBe(initialAtk);
         expect(player2.attackThisTurn).toBe(initialAtkThisTurn + 1); // his turn
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player2.attackPoints).toBe(initialAtk);
         expect(player2.attackThisTurn).toBe(initialAtkThisTurn);
@@ -1822,10 +1822,10 @@ describe("Loot Cards - 3 players tests", () => {
         const soul3 = game.decks["loot"]!.cards[2]!; soul3.soul = 1; game.addSoul(player3, soul3);
 
 
-        game.playCard(player1, 0, [player2]);
+        game.actions.playCard(player1, 0, [player2]);
         // Choose player2 among the tied leaders
         // (judgement as LootCard).debugSetTargets([player2]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player2.totalSouls).toBe(0);
         expect(player1.totalSouls).toBe(1);
@@ -1842,8 +1842,8 @@ describe("Loot Cards - 3 players tests", () => {
         const s2 = game.decks["loot"]!.cards[1]!; s2.soul = 1; game.addSoul(player1, s2);
         const s3 = game.decks["loot"]!.cards[2]!; s3.soul = 1; game.addSoul(player2, s3);
 
-        game.playCard(player1, 0, [player1]);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, [player1]);
+        await game.actions.resolveStack();
 
         expect(player1.totalSouls).toBe(1);
         expect(player2.totalSouls).toBe(1);
@@ -1861,9 +1861,9 @@ describe("Loot Cards - 3 players tests", () => {
         const s2 = game.decks["loot"]!.cards[1]!; s2.soul = 1; game.addSoul(player1, s2);
         const s3 = game.decks["loot"]!.cards[2]!; s3.soul = 1; game.addSoul(player2, s3);
 
-        game.playCard(player1, 0, [player1]);
+        game.actions.playCard(player1, 0, [player1]);
         s1.soul = 0; // Invalidate target during resolution
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.totalSouls).toBe(1);
         expect(player2.totalSouls).toBe(1);

@@ -52,7 +52,7 @@ describe("Tap/Paid effects 2", () => {
         
         expect(player1.inPlay).toContain(breakfast);
         await game.activateItem(player1, remoteDetonator);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         expect(voteCount).toBe(3); // All 3 players should have voted
         expect(player1.inPlay).not.toContain(breakfast); // breakfast should be destroyed
@@ -89,7 +89,7 @@ describe("Tap/Paid effects 2", () => {
         const initialInPlay3 = [...player3.inPlay];
         
         await game.activateItem(player1, remoteDetonator);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         // Nothing should be destroyed on a tie
         expect(player1.inPlay).toContain(breakfast);
@@ -109,13 +109,13 @@ describe("Tap/Paid effects 2", () => {
         
         expect(player1.currentHealthPoints).toBe(2);
         await game.activateItem(player1, guppysPaw, [player2]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.currentHealthPoints).toBe(1); // Paid 1 HP
         
         // Now deal 3 damage to player2
         game.dealDamage(player1, player2, guppysPaw, 3);
-        await game.resolveStack(); // Resolve the damage
+        await game.actions.resolveStack(); // Resolve the damage
         
         expect(player2.currentHealthPoints).toBe(initialHP - 1); // 3 - 2 prevented = 1 damage
     });
@@ -134,14 +134,14 @@ describe("Tap/Paid effects 2", () => {
         
         // Try to activate - should fail because player1 has 0 HP
         await game.activateItem(player1, guppysPaw, [player2]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.currentHealthPoints).toBe(0); // No HP paid
         
         // Damage should not be prevented
         game.dealDamage(player1, player2, guppysPaw, 3);
-        await game.resolveStack(); // Resolve the damage
-        await game.resolveStack(); // Resolve the damage
+        await game.actions.resolveStack(); // Resolve the damage
+        await game.actions.resolveStack(); // Resolve the damage
         expect(player2.currentHealthPoints).toBe(initialHP2 - 3); // Full damage taken
     });
 
@@ -155,11 +155,11 @@ describe("Tap/Paid effects 2", () => {
         game.recharge(guppysPaw);
         
         await game.activateItem(player1, guppysPaw, [player2]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         // Deal 5 damage to player2
         game.dealDamage(player1, player2, guppysPaw, 5);
-        await game.resolveStack(); // Resolve the damage
+        await game.actions.resolveStack(); // Resolve the damage
         
         expect(player2.currentHealthPoints).toBe(initialHP - 3); // 5 - 2 prevented = 3 damage
     });
@@ -174,16 +174,16 @@ describe("Tap/Paid effects 2", () => {
         game.recharge(guppysPaw);
         
         await game.activateItem(player1, guppysPaw, [player2]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         // First damage instance - should be prevented
         game.dealDamage(player1, player2, guppysPaw, 1);
-        await game.resolveStack(); // Resolve the damage
+        await game.actions.resolveStack(); // Resolve the damage
         expect(player2.currentHealthPoints).toBe(initialHP); // 1 - 1 prevented = 0 damage
         
         // Second damage instance - should NOT be prevented
         game.dealDamage(player1, player2, guppysPaw, 2);
-        await game.resolveStack(); // Resolve the damage
+        await game.actions.resolveStack(); // Resolve the damage
         expect(player2.currentHealthPoints).toBe(initialHP - 2); // Full damage
     });
 
@@ -197,13 +197,13 @@ describe("Tap/Paid effects 2", () => {
         
         expect(player1.currentHealthPoints).toBe(2);
         await game.activateItem(player1, guppysPaw, [player1]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.currentHealthPoints).toBe(1); // Paid 1 HP
         
         // Deal damage to player1 - should be prevented
         game.dealDamage(player2, player1, guppysPaw, 2);
-        await game.resolveStack(); // Resolve the damage
+        await game.actions.resolveStack(); // Resolve the damage
         expect(player1.currentHealthPoints).toBe(1); // 2 - 2 prevented = 0 damage, still at 1 HP
     });
 
@@ -298,7 +298,7 @@ describe("Tap/Paid effects 2", () => {
         }
         
         game.addInPlay(player1, emptyVessel);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Player1 now has 0 cards
         expect(player1.hand.length).toBe(0);
@@ -318,7 +318,7 @@ describe("Tap/Paid effects 2", () => {
     it("empty_vessel - ATK bonus activates when hand becomes empty", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
         game.addInPlay(player1, emptyVessel);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Start with empty hand and bonus
         expect(player1.hand.length).toBe(0);
@@ -326,7 +326,7 @@ describe("Tap/Paid effects 2", () => {
         
         // Loot some cards
         game.loot(player1, 2);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.hand.length).toBe(2);
         expect(player1.attackPoints).toBe(1); // Bonus deactivated
         
@@ -334,7 +334,7 @@ describe("Tap/Paid effects 2", () => {
         const cards = [...player1.hand.cards];
         game.removeCardFromHand(player1, cards[0]! as LootCard);
         game.removeCardFromHand(player1, cards[1]! as LootCard);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.hand.length).toBe(0);
         expect(player1.attackPoints).toBe(2); // Bonus reactivated!
@@ -344,15 +344,15 @@ describe("Tap/Paid effects 2", () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
         game.addInPlay(player1, emptyVessel);
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         // Add a card
         game.loot(player1, 1);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(1); // No bonus
         
         // Discard the card using game method
         game.discardFromHandAtIndex(player1, 0);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.hand.length).toBe(0);
         expect(player1.attackPoints).toBe(2); // Bonus reactivated
@@ -361,11 +361,11 @@ describe("Tap/Paid effects 2", () => {
     it("empty_vessel - ATK bonus responds to giveCard", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
         game.addInPlay(player1, emptyVessel);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Give player1 some cards
         game.loot(player1, 2);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(1); // No bonus with cards
         
         // Give all cards to player2
@@ -373,7 +373,7 @@ describe("Tap/Paid effects 2", () => {
         for (const card of cards) {
             game.giveCard(player1, player2, card as LootCard);
         }
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.hand.length).toBe(0);
         expect(player1.attackPoints).toBe(2); // Bonus reactivated
@@ -382,18 +382,18 @@ describe("Tap/Paid effects 2", () => {
     it("empty_vessel - ATK bonus responds to stealLootCard", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
         game.addInPlay(player1, emptyVessel);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Give player1 one card
         game.loot(player1, 1);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(1); // No bonus
         
         const stolenCard = player1.hand.cards[0] as LootCard;
         
         // Player2 steals the card
         game.stealLootCard(player2, player1, stolenCard);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.hand.length).toBe(0);
         expect(player1.attackPoints).toBe(2); // Bonus reactivated after being stolen from
@@ -402,7 +402,7 @@ describe("Tap/Paid effects 2", () => {
     it("empty_vessel - receiving stolen card deactivates ATK bonus", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
         game.addInPlay(player1, emptyVessel);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Player1 has empty hand with bonus
         expect(player1.hand.length).toBe(0);
@@ -410,14 +410,14 @@ describe("Tap/Paid effects 2", () => {
         
         // Give player2 a card
         game.loot(player2, 1);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         const cardToSteal = player2.hand.cards[0] as LootCard;
         
         // Player1 steals from player2
         game.stealLootCard(player1, player2, cardToSteal);
         
         expect(player1.hand.length).toBe(1);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(1); // Bonus deactivated
     });
 
@@ -436,8 +436,8 @@ describe("Tap/Paid effects 2", () => {
         expect(player1.attackPoints).toBe(1); // No bonus (has card in hand)
         
         // Play the card
-        game.playCard(player1, 0);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
         
         expect(player1.hand.length).toBe(0);
         expect(player1.coins).toBe(1); // Gained 1 coin from penny
@@ -447,48 +447,48 @@ describe("Tap/Paid effects 2", () => {
     it("empty_vessel - ATK bonus correctly toggles with rapid hand size changes", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
         game.addInPlay(player1, emptyVessel);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.attackPoints).toBe(2); // Start with bonus
         
         // Add card
         const card1 = game.decks["loot"]!.draw() as LootCard;
         game.addCardToHand(player1, card1);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(1);
         
         // Add another
         const card2 = game.decks["loot"]!.draw() as LootCard;
         game.addCardToHand(player1, card2);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(1);
         
         // Remove one
         game.removeCardFromHand(player1, card1);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(1);
         
         // Remove the last
         game.removeCardFromHand(player1, card2);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(2);
         
         // Add again
         const card3 = game.decks["loot"]!.draw() as LootCard;
         game.addCardToHand(player1, card3);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(1);
         
         // Remove again
         game.removeCardFromHand(player1, card3);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(2);
     });
 
     it("empty_vessel - ATK bonus is specific to owner", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
         game.addInPlay(player1, emptyVessel);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         // Both players have empty hands
         expect(player1.hand.length).toBe(0);
@@ -500,7 +500,7 @@ describe("Tap/Paid effects 2", () => {
         
         // Give player2 a card (shouldn't affect player1's bonus)
         game.loot(player2, 1);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(2); // Still has bonus
         expect(player2.attackPoints).toBe(1);
     });
@@ -521,7 +521,7 @@ describe("Tap/Paid effects 2", () => {
         while (player1.hand.length > 0) {
             game.discardFromHandAtIndex(player1, 0);
         }
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         // Now bonus should activate
         expect(player1.hand.length).toBe(0);
@@ -538,7 +538,7 @@ describe("Tap/Paid effects 2", () => {
         
         // Add empty vessel
         game.addInPlay(player1, emptyVessel);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.hand.length).toBe(0);
         expect(player1.attackPoints).toBe(2); // Bonus active
         
@@ -579,8 +579,8 @@ describe("Tap/Paid effects 2", () => {
         
         // Kill player2
         game.dealDamage(player1, player2, shadow, 999);
-        await game.resolveStack(); // Resolve the damage
-        await game.resolveStack(); // Resolve the death
+        await game.actions.resolveStack(); // Resolve the damage
+        await game.actions.resolveStack(); // Resolve the death
         
         // Player1 should have gained the coins
         expect(player1.coins).toBe(player1CoinsBeforeDeath + 2); // death penalty is 2 coins
@@ -607,8 +607,8 @@ describe("Tap/Paid effects 2", () => {
         
         // Kill player1 (shadow owner)
         game.dealDamage(player2, player1, shadow, 999);
-        await game.resolveStack(); // Resolve the damage
-        await game.resolveStack(); // Resolve the death
+        await game.actions.resolveStack(); // Resolve the damage
+        await game.actions.resolveStack(); // Resolve the death
         
         // Player1 should have paid normal death penalty (lost 2 coins)
         expect(player1.coins).toBe(player1CoinsBeforeDeath - 2);
@@ -631,8 +631,8 @@ describe("Tap/Paid effects 2", () => {
         
         // Kill player2
         game.dealDamage(player1, player2, shadow, 999);
-        await game.resolveStack(); // Resolve damage
-        await game.resolveStack(); // Resolve death
+        await game.actions.resolveStack(); // Resolve damage
+        await game.actions.resolveStack(); // Resolve death
         
         // Player1 should still gain coins and loot
         expect(game.stack.size).toBe(0);
@@ -656,8 +656,8 @@ describe("Tap/Paid effects 2", () => {
         
         // Kill player2
         game.dealDamage(player1, player2, shadow, 999);
-        await game.resolveStack(); // Resolve the damage and death
-        await game.resolveStack(); // Resolve the damage and death
+        await game.actions.resolveStack(); // Resolve the damage and death
+        await game.actions.resolveStack(); // Resolve the damage and death
         
         // Player1 should still gain coins
         expect(player1.coins).toBe(player1CoinsBeforeDeath + 2);
@@ -682,8 +682,8 @@ describe("Tap/Paid effects 2", () => {
 
         // Kill player2
         game.dealDamage(player1, player2, shadow, 999);
-        await game.resolveStack(); // Resolve the damage
-        await game.resolveStack(); // Resolve the death
+        await game.actions.resolveStack(); // Resolve the damage
+        await game.actions.resolveStack(); // Resolve the death
         
         // Player1 should still gain coins even if no item was destroyed
         expect(player1.coins).toBe(player1CoinsBeforeDeath + 2);
@@ -741,8 +741,8 @@ describe("Force Attack Monster", () => {
         game.currentPlayer.mustAttack([monster], monster.card);
 
         // Attack the forced monster
-        game.declareAttack(game.currentPlayer);
-        await game.declareAttackOnEntity(game.currentPlayer, monster);
+        game.actions.declareAttack(game.currentPlayer);
+        await game.actions.declareAttackOnEntity(game.currentPlayer, monster);
 
         // Should be able to end turn now (mustAttackMonster was cleared)
         expect(game.currentPlayer.hasAttackRequirement).toBe(false);
@@ -761,7 +761,7 @@ describe("Force Attack Monster", () => {
 
         // Kill the monster
         game.death(monster, game.currentPlayer, monster.card);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Should be able to end turn (constraint lifted)
         expect(() => {
@@ -778,8 +778,8 @@ describe("Force Attack Monster", () => {
 
         // Kill the player
         game.dealDamage(player2, game.currentPlayer, monster.card, 999);
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(game.currentPlayer.isDead).toBe(true);
 
@@ -795,18 +795,18 @@ describe("Force Attack Monster", () => {
         // Set forced attack and satisfy it
         game.currentPlayer.mustAttack([monster], monster.card);
         game.addAttackThisTurn(game.currentPlayer, 1); // Ensure player can attack
-        game.declareAttack(game.currentPlayer);
-        await game.declareAttackOnEntity(game.currentPlayer, monster);
+        game.actions.declareAttack(game.currentPlayer);
+        await game.actions.declareAttackOnEntity(game.currentPlayer, monster);
 
         expect(game.currentPlayer.hasAttackRequirement).toBe(false);
         game.endCombat();
         // End turn
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Go back to player1's turn
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // mustAttackMonster should still be null
         expect(game.currentPlayer.hasAttackRequirement).toBe(false);
@@ -862,7 +862,7 @@ describe("Force Attack Monster", () => {
 
             game.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             // Active player (player1) should have forced attack constraint
             expect(game.currentPlayer.mustAttackMonster![0]!.target[0]).toBe(targetMonster);
@@ -876,7 +876,7 @@ describe("Force Attack Monster", () => {
 
             game.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             // Try to end turn without attacking
             expect(async () => {
@@ -892,15 +892,15 @@ describe("Force Attack Monster", () => {
 
             game.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             // Attack the forced monster
-            game.declareAttack(game.currentPlayer);
-            await game.declareAttackOnEntity(game.currentPlayer, targetMonster);
+            game.actions.declareAttack(game.currentPlayer);
+            await game.actions.declareAttackOnEntity(game.currentPlayer, targetMonster);
 
             expect(game.currentPlayer.hasAttackRequirement).toBe(false);
             game.kill(targetMonster, targetMonster, monsterManual);
-            await game.resolveStack();
+            await game.actions.resolveStack();
             // Should be able to end turn now
             expect(() => {
                 game.endTurn();
@@ -918,25 +918,25 @@ describe("Force Attack Monster", () => {
 
                 // Use up any attacks by attacking another monster first
             if (game.currentPlayer.attackThisTurn !== 0) {
-                game.declareAttack(game.currentPlayer);
-                await game.declareAttackOnEntity(game.currentPlayer, game.monsters[1]!);
+                game.actions.declareAttack(game.currentPlayer);
+                await game.actions.declareAttackOnEntity(game.currentPlayer, game.monsters[1]!);
             }
             game.kill(game.currentPlayer, game.monsters[1]!, monsterManual);
-            await game.resolveStack();
-            await game.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
             expect(game.currentPlayer.attackThisTurn).toBeLessThanOrEqual(0);
 
             // Now activate monster manual
             game.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             // Player should still be forced to attack despite having 0 or negative attacks
             expect(game.currentPlayer.mustAttackMonster![0]!.target[0]).toBe(targetMonster);
 
             // Player can still attack the forced monster (bypasses limit)
-            game.declareAttack(game.currentPlayer);
-            await game.declareAttackOnEntity(game.currentPlayer, targetMonster);
+            game.actions.declareAttack(game.currentPlayer);
+            await game.actions.declareAttackOnEntity(game.currentPlayer, targetMonster);
 
             expect(game.currentPlayer.hasAttackRequirement).toBe(false);
         });
@@ -949,19 +949,19 @@ describe("Force Attack Monster", () => {
 
             game.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             expect(game.currentPlayer.mustAttackMonster![0]!.target[0]).toBe(targetMonster);
 
             // Attack the monster to satisfy constraint
-            game.declareAttack(game.currentPlayer);
-            await game.declareAttackOnEntity(game.currentPlayer, targetMonster);
+            game.actions.declareAttack(game.currentPlayer);
+            await game.actions.declareAttackOnEntity(game.currentPlayer, targetMonster);
             expect(game.currentPlayer.hasAttackRequirement).toBe(false);
             game.kill(targetMonster, targetMonster, monsterManual);
-            await game.resolveStack();
+            await game.actions.resolveStack();
             // End turn
             game.endTurn();
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             // On next turn, player2 should not have the constraint
             expect(game.currentPlayer).toBe(player2);
@@ -969,7 +969,7 @@ describe("Force Attack Monster", () => {
 
             // End player2's turn
             game.endTurn();
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             // Back to player1 - constraint should not persist
             expect(game.currentPlayer).toBe(player1);
@@ -984,13 +984,13 @@ describe("Force Attack Monster", () => {
 
             game.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             expect(game.currentPlayer.mustAttackMonster![0]!.target[0]).toBe(targetMonster);
 
             // Kill the monster directly
             game.kill(player1, targetMonster, monsterManual);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             // Constraint should be cleared
             expect(game.currentPlayer.hasAttackRequirement).toBe(false);
@@ -1010,7 +1010,7 @@ describe("Force Attack Monster", () => {
 
             game.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             expect(game.currentPlayer.mustAttackMonster![0]!.target[0]).toBe(targetMonster);
 
@@ -1034,7 +1034,7 @@ describe("Force Attack Monster", () => {
 
             game.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             expect(game.currentPlayer.mustAttackMonster![0]!.target[0]).toBe(
               targetMonster
@@ -1042,7 +1042,7 @@ describe("Force Attack Monster", () => {
 
             // Kill the player
             game.kill(player1, player1, monsterManual);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             // Constraint should be cleared (player dead)
             expect(game.currentPlayer.hasAttackRequirement).toBe(false);
@@ -1056,7 +1056,7 @@ describe("Force Attack Monster", () => {
 
             game.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             // Only current player (player1) should have the constraint
             expect(player1.mustAttackMonster![0]!.target[0]).toBe(targetMonster);
@@ -1075,19 +1075,19 @@ describe("Force Attack Monster", () => {
 
             game.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             // Attack the forced monster first
-            game.declareAttack(game.currentPlayer);
-            await game.declareAttackOnEntity(game.currentPlayer, targetMonster);
+            game.actions.declareAttack(game.currentPlayer);
+            await game.actions.declareAttackOnEntity(game.currentPlayer, targetMonster);
             game.kill(targetMonster, targetMonster, monsterManual);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             expect(game.currentPlayer.hasAttackRequirement).toBe(false);
 
             // Can now attack other monsters
-            game.declareAttack(game.currentPlayer);
-            await game.declareAttackOnEntity(game.currentPlayer, otherMonster);
+            game.actions.declareAttack(game.currentPlayer);
+            await game.actions.declareAttackOnEntity(game.currentPlayer, otherMonster);
 
             game.currentPlayer.combatEnded();
             expect(otherMonster.isEngagedInCombat).toBe(true);
@@ -1109,27 +1109,27 @@ describe("Force Attack Monster", () => {
 
     //         game.recharge(monsterManual);
     //         await game.activateItem(player1, monsterManual, [secondMonster]);
-    //         await game.resolveStack();
+    //         await game.actions.resolveStack();
 
     //         // Should force attack on second monster specifically
     //         expect(game.currentPlayer.mustAttackMonster![0]).toBe(secondMonster);
 
     //         // Attacking first monster should not clear the constraint
-    //         game.declareAttack(game.currentPlayer);
-    //         await game.resolveStack();
+    //         game.actions.declareAttack(game.currentPlayer);
+    //         await game.actions.resolveStack();
     //         await game.declareAttackOnMonster(game.currentPlayer, firstMonster);
-    //         await game.resolveStack();
+    //         await game.actions.resolveStack();
     //         expect(game.currentPlayer.mustAttackMonster![0]).toBe(secondMonster);
 
     //         game.kill(firstMonster, firstMonster, monsterManual);
-    //         await game.resolveStack();
+    //         await game.actions.resolveStack();
             
-    //         game.declareAttack(game.currentPlayer);
-    //         await game.resolveStack();
+    //         game.actions.declareAttack(game.currentPlayer);
+    //         await game.actions.resolveStack();
     //         await game.declareAttackOnMonster(game.currentPlayer, secondMonster);
-    //         await game.resolveStack();
+    //         await game.actions.resolveStack();
     //         game.kill(secondMonster, secondMonster, monsterManual);
-    //         await game.resolveStack();
+    //         await game.actions.resolveStack();
 
     //         // Must attack the second monster to clear constraint
     //         expect(game.currentPlayer.hasAttackRequirement).toBe(false);

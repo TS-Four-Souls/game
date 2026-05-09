@@ -65,15 +65,15 @@ for(let i = 0; i < 100; i++){
                 printVerbose(bot.me.attackThisTurn <= 0, !bot.me.hasAttackRequirement, !bot.me.hasFreeAttackRemaining);
                 printVerbose(`${bot.me.isEngagedInCombat ? "Engaged" : "Not engaged"}`);
                 printVerbose(game.hasPendingSelections ? " There are pending selections." : "No pending selections.");
-                printVerbose(game.canEndTurn(bot.me, false));
+                printVerbose(game.actions.canEndTurn(bot.me, false));
                 printVerbose(bot.me.attackThisTurn, " attacks remaining.");
                 printVerbose(bot.me.isDead ? "Player is dead." : "Player is alive.");
                 for(const monster of game.monsters) {
-                    printVerbose(monster.id, game.canDeclareAttackOnEntity(bot.me, monster) === true ? "Can declare attack on monster." : game.canDeclareAttackOnEntity(bot.me, monster));
+                    printVerbose(monster.id, game.actions.canDeclareAttackOnEntity(bot.me, monster) === true ? "Can declare attack on monster." : game.actions.canDeclareAttackOnEntity(bot.me, monster));
                 }
-                printVerbose(game.canDeclareAttackOnEntity(bot.me, "topDeck") === true ? "Can declare attack on monster." : game.canDeclareAttackOnEntity(bot.me, "topDeck"));
+                printVerbose(game.actions.canDeclareAttackOnEntity(bot.me, "topDeck") === true ? "Can declare attack on monster." : game.actions.canDeclareAttackOnEntity(bot.me, "topDeck"));
                 printVerbose(bot.me.hasAttackRequirement ? "Player has attack requirement." : "Player has no attack requirement.");
-                printVerbose(game.canEndTurn(bot.me, false) === true ? "Player can end turn." : game.canEndTurn(bot.me, false));
+                printVerbose(game.actions.canEndTurn(bot.me, false) === true ? "Player can end turn." : game.actions.canEndTurn(bot.me, false));
                 printVerbose(game.stack.isEmpty() ? "Stack is empty." : "Stack is not empty.");
                 printVerbose(game.monsters.filter(m => m.isEngagedInCombat).length, " monsters engaged in combat.");
                 // printVerbose("Requirement list; ", JSON.stringify(bot.me.requirementListJSON(game)));
@@ -108,7 +108,7 @@ for(let i = 0; i < 100; i++){
                         throw new Error("Expected UseItemAction");
                     printVerbose(`    Try ${bot.me.id} executed action: ${action.type}, ${`item: ${action.item.name}`}`);
                     try {
-                        if(bot.game.canActivate(action.item, bot.me) !== true)
+                        if(bot.game.actions.canActivate(action.item, bot.me) !== true)
                             throw new Error(`Item ${action.item.name} cannot be activated by player ${bot.me.id}`);
                         const result = TargetBuilder.buildRandomValidTargets(game, bot.me, action.item, "inPlay");
                         if(typeof result === "string")                         

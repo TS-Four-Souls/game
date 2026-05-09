@@ -36,49 +36,49 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const monster = game.monsters[0]!;
 
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
-        game.declareAttack(player2);
-        await game.declareAttackOnEntity(player2, monster);
+        game.actions.declareAttack(player2);
+        await game.actions.declareAttackOnEntity(player2, monster);
 
         game.addHealth(monster, 10);
 
         // First attack roll - should not trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll1).toBeDefined();
         if (attackRoll1) {
             attackRoll1.value = 6; // Non-triggering roll
         }
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins);
 
         // Second attack roll - should trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll2).toBeDefined();
         if (attackRoll2) {
             attackRoll2.value = 5; // Triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // damage resolution
-        await game.resolveStack();
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // damage resolution
+        await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 3);
         expect(game.stack.size).toBe(0);
 
         // card roll
         player1.hand.addToHand(card);
         game.addLootPlay(player1, 1);
-        const playCard = game.playCard(player1, 0);
-        await game.resolveStack();
+        const playCard = game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
         if (cardRoll) {
             cardRoll.value = 5; // Triggering roll
         }
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 6);
     });
 
@@ -93,50 +93,50 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const monster = game.monsters[0]!;
 
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
-        game.declareAttack(player2);
-        await game.declareAttackOnEntity(player2, monster);
+        game.actions.declareAttack(player2);
+        await game.actions.declareAttackOnEntity(player2, monster);
 
         game.addHealth(monster, 10);
         game.addHealth(player2, 10);
 
         // First attack roll - should not trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll1).toBeDefined();
         if (attackRoll1) {
             attackRoll1.value = 6; // Non-triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // damage resolution
-        await game.resolveStack(); // dies ?
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // dies ?
         expect(player1.hand.length).toBe(initialHandLength);
 
         // Second attack roll - should trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll2).toBeDefined();
         if (attackRoll2) {
             attackRoll2.value = correctValue; // Triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // damage resolution
-        await game.resolveStack(); // dies ?
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // dies ?
         expect(player1.hand.length).toBe(initialHandLength + 1);
         expect(game.stack.size).toBe(0);
 
         // card roll
         game.addLootPlay(player1, 1);
-        const playCard = game.playCard(player1, 0);
-        await game.resolveStack();
+        const playCard = game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
         if (cardRoll) {
             cardRoll.value = correctValue; // Triggering roll
         }
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.hand.length).toBe(initialHandLength + 2);
     });
 
@@ -151,51 +151,51 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const monster = game.monsters[0]!;
 
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
-        game.declareAttack(player2);
-        await game.declareAttackOnEntity(player2, monster);
+        game.actions.declareAttack(player2);
+        await game.actions.declareAttackOnEntity(player2, monster);
 
         game.addHealth(monster, 10);
         game.addHealth(player2, 10);
 
         // First attack roll - should not trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll1).toBeDefined();
         if (attackRoll1) {
             attackRoll1.value = 6; // Non-triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // damage resolution
-        await game.resolveStack(); // dies ?
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // dies ?
         expect(sack.charged).toBe(false);
 
         // Second attack roll - should trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll2).toBeDefined();
         if (attackRoll2) {
             attackRoll2.value = correctValue; // Triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // damage resolution
-        await game.resolveStack(); // dies ?
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // dies ?
         expect(sack.charged).toBe(true);
         expect(game.stack.size).toBe(0);
         sack.charged = false;
 
         // card roll
         game.addLootPlay(player1, 1);
-        const playCard = game.playCard(player1, 0);
-        await game.resolveStack();
+        const playCard = game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
         if (cardRoll) {
             cardRoll.value = correctValue; // Triggering roll
         }
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(sack.charged).toBe(true);
     });
 
@@ -211,51 +211,51 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const monster = game.monsters[0]!;
 
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
-        game.declareAttack(player2);
-        await game.declareAttackOnEntity(player2, monster);
+        game.actions.declareAttack(player2);
+        await game.actions.declareAttackOnEntity(player2, monster);
 
         game.addHealth(monster, 10);
         game.addHealth(player2, 10);
 
         // First attack roll - should not trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll1).toBeDefined();
         if (attackRoll1) {
             attackRoll1.value = 6; // Non-triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // damage resolution
-        await game.resolveStack(); // dies ?
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // dies ?
         expect(recharged.charged).toBe(false);
 
         // Second attack roll - should trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll2).toBeDefined();
         if (attackRoll2) {
             attackRoll2.value = correctValue; // Triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // damage resolution
-        await game.resolveStack(); // dies ?
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // dies ?
         expect(recharged.charged).toBe(true);
         expect(game.stack.size).toBe(0);
         recharged.charged = false;
 
         // card roll
         game.addLootPlay(player1, 1);
-        const playCard = game.playCard(player1, 0);
-        await game.resolveStack();
+        const playCard = game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
         if (cardRoll) {
             cardRoll.value = correctValue; // Triggering roll
         }
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(recharged.charged).toBe(true);
     });
 
@@ -268,39 +268,39 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const monster = game.monsters[0]!;
 
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
-        game.declareAttack(player2);
-        await game.declareAttackOnEntity(player2, monster);
+        game.actions.declareAttack(player2);
+        await game.actions.declareAttackOnEntity(player2, monster);
 
         game.addHealth(monster, 10);
         game.addHealth(player2, 10);
         const initialHandSize = player1.hand.length;
 
         // First attack roll - should not trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll1).toBeDefined();
         if (attackRoll1) {
             attackRoll1.value = 6; // Non-triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // damage resolution
-        await game.resolveStack(); // dies ?
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // dies ?
         expect(player1.hand.length).toBe(initialHandSize);
 
         let cardToDiscard = game.decks["loot"]!.cards[0]!;
         let cardToAdd = game.decks["loot"]!.cards[0]!;
         // Second attack roll - should trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll2).toBeDefined();
         if (attackRoll2) {
             attackRoll2.value = correctValue; // Triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // effect resolution
-        await game.resolveStack(); // damage
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // effect resolution
+        await game.actions.resolveStack(); // damage
         expect(game.stack.size).toBe(0);
         expect(player1.hand.length).toBe(initialHandSize); // looted 1, discarded 1
         expect(player1.hand.cards).not.toContain(cardToDiscard);
@@ -314,15 +314,15 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         cardToAdd = game.decks["loot"]!.cards[0]!;
         expect(game.stack.size).toBe(0);
         game.addLootPlay(player1, 1);
-        const playCard = game.playCard(player1, 0);
-        await game.resolveStack();
+        const playCard = game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
         if (cardRoll) {
             cardRoll.value = correctValue; // Triggering roll
         }
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(player1.hand.length).toBe(initialHandSize + 1 + 3); // looted 1, pill trigger loot 3.
         expect(player1.hand.cards).toContain(cardToAdd);
@@ -341,38 +341,38 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const monster = game.monsters[0]!;
 
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
-        game.declareAttack(player2);
-        await game.declareAttackOnEntity(player2, monster);
+        game.actions.declareAttack(player2);
+        await game.actions.declareAttackOnEntity(player2, monster);
 
         game.addHealth(monster, 10);
         game.addHealth(player2, 10);
         const initialHandSize = player1.hand.length;
 
         // First attack roll - should not trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll1).toBeDefined();
         if (attackRoll1) {
             attackRoll1.value = 6; // Non-triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // damage resolution
-        await game.resolveStack(); // dies ?
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // dies ?
         expect(player1.hand.length).toBe(initialHandSize);
 
         let cardToSteal = player2.hand.cards[0]!;
         // Second attack roll - should trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll2).toBeDefined();
         if (attackRoll2) {
             attackRoll2.value = correctValue; // Triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // damage resolution
-        await game.resolveStack(); // dies ?
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // dies ?
         expect(game.stack.size).toBe(0);
         expect(player1.hand.length).toBe(initialHandSize + 1); // steal 1
         expect(player1.hand.cards).toContain(cardToSteal);
@@ -384,15 +384,15 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         player2.hand.addToHand(card);
         cardToSteal = player2.hand.cards[0]!;
         expect(game.stack.size).toBe(0);
-        const playCard = game.playCard(player2, 1);
-        await game.resolveStack();
+        const playCard = game.actions.playCard(player2, 1);
+        await game.actions.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
         if (cardRoll) {
             cardRoll.value = correctValue; // Triggering roll
         }
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(player1.hand.length).toBe(initialHandSize + 2); // stolen 2
         expect(player1.hand.cards.map(card => card.slug)).toContain(cardToSteal.slug);
@@ -409,10 +409,10 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const monster = game.monsters[0]!;
         
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
-        game.declareAttack(player2);
-        await game.declareAttackOnEntity(player2, monster);
+        game.actions.declareAttack(player2);
+        await game.actions.declareAttackOnEntity(player2, monster);
         
         game.addHealth(monster, 10);
         game.addHealth(player2, 10);
@@ -420,46 +420,46 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
 
         // First attack roll - should not trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll1).toBeDefined();
         if (attackRoll1) {
             attackRoll1.value = 5; // Non-triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // dmg resolution
-        await game.resolveStack(); // dies ?
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // dmg resolution
+        await game.actions.resolveStack(); // dies ?
 
         expect(player2.currentHealthPoints).toBe(initHP);
         expect(game.stack.size).toBe(0);
 
         // Second attack roll - should trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll2).toBeDefined();
         if (attackRoll2) {
             attackRoll2.value = correctValue; // Triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // damage resolution player 2 should take 1 damage
-        await game.resolveStack(); // damage resolution
-        await game.resolveStack(); // dies ?
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // damage resolution player 2 should take 1 damage
+        await game.actions.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // dies ?
         expect(game.stack.size).toBe(0);
         expect(player2.currentHealthPoints).toBe(initHP - 1);
 
         // card roll
         player2.hand.addToHand(card);
         expect(game.stack.size).toBe(0);
-        const playCard = game.playCard(player2, 0);
-        await game.resolveStack();
+        const playCard = game.actions.playCard(player2, 0);
+        await game.actions.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
         if (cardRoll) {
             cardRoll.value = correctValue; // Triggering roll
         }
-        await game.resolveStack();
-        await game.resolveStack(); // damage resolution player 2 should take 1 damage
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // damage resolution player 2 should take 1 damage
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(player2.currentHealthPoints).toBe(initHP - 2);
     });
@@ -474,40 +474,40 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const monster = game.monsters[0]!;
 
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
-        game.declareAttack(player2);
-        await game.declareAttackOnEntity(player2, monster);
+        game.actions.declareAttack(player2);
+        await game.actions.declareAttackOnEntity(player2, monster);
         
         game.addHealth(monster, 10);
         game.addHealth(player2, 10);
         let topTreasure = game.decks["loot"]!.cards[0]!;
 
         // First attack roll - should not trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll1).toBeDefined();
         if (attackRoll1) {
             attackRoll1.value = 5; // Non-triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // dmg resolution
-        await game.resolveStack(); // dies ?
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // dmg resolution
+        await game.actions.resolveStack(); // dies ?
 
         expect(topTreasure).toBe(game.decks["loot"]!.cards[0]!);
         expect(game.stack.size).toBe(0);
 
         // Second attack roll - should trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll2).toBeDefined();
         if (attackRoll2) {
             attackRoll2.value = correctValue; // Triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // damage resolution player 2 should take 1 damage
-        await game.resolveStack(); // damage resolution
-        await game.resolveStack(); // dies ?
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // damage resolution player 2 should take 1 damage
+        await game.actions.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // dies ?
         expect(game.stack.size).toBe(0);
         expect(game.decks["loot"]!.cards[0]!.slug).not.toBe(topTreasure.slug);
         expect(game.decks["loot"]!.discard).toContain(topTreasure);
@@ -516,15 +516,15 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         // card roll
         player2.hand.addToHand(card);
         expect(game.stack.size).toBe(0);
-        const playCard = game.playCard(player2, 0);
-        await game.resolveStack();
+        const playCard = game.actions.playCard(player2, 0);
+        await game.actions.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
         if (cardRoll) {
             cardRoll.value = correctValue; // Triggering roll
         }
-        await game.resolveStack();
-        await game.resolveStack(); // damage resolution player 2 should take 1 damage
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // damage resolution player 2 should take 1 damage
         expect(game.stack.size).toBe(0);
         expect(topTreasure).not.toBe(game.decks["treasure"]!.cards[0]!);
     });
@@ -540,38 +540,38 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const monster = game.monsters[0]!;
         
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
-        game.declareAttack(player2);
-        await game.declareAttackOnEntity(player2, monster);
+        game.actions.declareAttack(player2);
+        await game.actions.declareAttackOnEntity(player2, monster);
 
         game.addHealth(monster, 10);
         game.addHealth(player2, 10);
         const initialHandSize = player1.hand.length;
 
         // First attack roll - should not trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll1).toBeDefined();
         if (attackRoll1) {
             attackRoll1.value = 6; // Non-triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // damage resolution
-        await game.resolveStack(); // dies ?
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // dies ?
         expect(player1.hand.length).toBe(initialHandSize);
 
         let cardToSteal = player2.hand.cards[0]!;
         // Second attack roll - should trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll2).toBeDefined();
         if (attackRoll2) {
             attackRoll2.value = correctValue; // Triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // damage resolution
-        await game.resolveStack(); // dies ?
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // dies ?
         expect(game.stack.size).toBe(0);
         expect(player1.hand.length).toBe(initialHandSize + 1); // steal 1
         expect(player1.hand.cards).toContain(cardToSteal);
@@ -583,15 +583,15 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         player2.hand.addToHand(card);
         cardToSteal = player2.hand.cards[0]!;
         expect(game.stack.size).toBe(0);
-        const playCard = game.playCard(player2, 1);
-        await game.resolveStack();
+        const playCard = game.actions.playCard(player2, 1);
+        await game.actions.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
         if (cardRoll) {
             cardRoll.value = correctValue; // Triggering roll
         }
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(player1.hand.length).toBe(initialHandSize + 2); // stolen 2
         expect(player1.hand.cards.map(card => card.slug)).toContain(cardToSteal.slug);
@@ -614,15 +614,15 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         // card roll
         player2.hand.addToHand(card);
         game.addLootPlay(player2, 1);
-        const playCard = game.playCard(player2, 0);
-        await game.resolveStack();
+        const playCard = game.actions.playCard(player2, 0);
+        await game.actions.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(cardRoll).toBeDefined();
         if (cardRoll) {
             cardRoll.value = correctValue; // Triggering roll
         }
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(player1.inPlay.map((c) => c.slug)).toContain(item2.slug);
         expect(player1.inPlay).not.toContain(item1);
@@ -644,39 +644,39 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         game.addHealth(player2, 10);
 
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
 
         game.addAttackThisTurn(player2, 1); // Ensure player can attack
-        game.declareAttack(player2);
-        await game.declareAttackOnEntity(player2, attackedMonster);
+        game.actions.declareAttack(player2);
+        await game.actions.declareAttackOnEntity(player2, attackedMonster);
         // First attack roll - should not trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll1 instanceof DiceRoll).toBe(true);
         if (attackRoll1) {
             attackRoll1.value = 6; // Non-triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // damage resolution
-        await game.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // damage resolution
         expect(game.monsters[0]).toBe(remainingMonster); // Monster slot 1 unchanged
 
         // Second attack roll - should trigger the effect (monster being attacked)
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll2).toBeDefined();
         if (attackRoll2) {
             attackRoll2.value = correctValue; // Triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // roll resolution
 
         // The effect should trigger and replace a monster NOT being attacked (attackedMonster or monster2)
         // Store the top card of monster deck before resolving
         const topMonsterCard = game.decks["monster"]!.cards[0];
 
-        await game.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // damage resolution
 
         // Check that one of the non-attacked monsters was replaced
         const monstersChanged = game.monsters[0] !== remainingMonster;
@@ -684,8 +684,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         // card roll
         player2.hand.addToHand(card);
-        const playCard = game.playCard(player2, 0);
-        await game.resolveStack();
+        const playCard = game.actions.playCard(player2, 0);
+        await game.actions.resolveStack();
 
         const initialRemainingMonster = game.monsters[0];
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
@@ -693,8 +693,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         if (cardRoll) {
             cardRoll.value = correctValue; // Triggering roll
         }
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Check that a monster was replaced (at least one slot changed)
         const anyMonsterChanged =
@@ -709,7 +709,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const theD10 = game.shop.obtainCard("b2-the_d10")! as TreasureCard;
         const card = game.obtainCard("b2-pills") as LootCard;
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
         game.addInPlay(player1, theD10);
         game.addAttackThisTurn(player2, 1); // Ensure player can attack
 
@@ -718,22 +718,22 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         game.addHealth(monster0, 10);
         game.addHealth(player2, 10);
 
-        game.declareAttack(player2);
-        await game.declareAttackOnEntity(player2, monster0);
+        game.actions.declareAttack(player2);
+        await game.actions.declareAttackOnEntity(player2, monster0);
         // First attack roll - should not trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll1 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll1).toBeDefined();
         if (attackRoll1) {
             attackRoll1.value = 6; // Non-triggering roll
         }
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // damage resolution
         expect(game.monsters[1]).toBe(monster1); // Monster slot 1 unchanged
 
         // Second attack roll - should trigger the effect
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll2).toBeDefined();
         if (attackRoll2) {
@@ -741,9 +741,9 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         }
 
         const topMonsterCard = game.decks["monster"]!.cards[0];
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // roll resolution
-        await game.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // roll resolution
+        await game.actions.resolveStack(); // damage resolution
 
         // Check that the top card was placed in a non-attacked slot
         const foundTopCard = game.monsterSlots._slots[1]![1] === topMonsterCard;
@@ -751,9 +751,9 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         // card roll
         player2.hand.addToHand(card);
-        const playCard = game.playCard(player2, 1);
+        const playCard = game.actions.playCard(player2, 1);
         expect(playCard).toBeDefined();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         const topMonsterCard2 = game.decks["monster"]!.cards[0];
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
@@ -761,11 +761,11 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         if (cardRoll) {
             cardRoll.value = correctValue; // Triggering roll
         }
-        await game.resolveStack();
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
-        await game.resolveStack();
+        await game.actions.resolveStack();
         // Check that the new top card was placed somewhere
         const foundNewTopCard = game.monsterSlots._slots[1]![2] === topMonsterCard2
         expect(foundNewTopCard).toBe(true);

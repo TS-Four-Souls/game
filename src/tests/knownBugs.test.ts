@@ -23,8 +23,8 @@ describe("Known bugs that have be corrected", () => {
         game.addInPlay(player1, chaosCard);
         const questionMark = game.obtainCard("fsp2-questionmark_card") as LootCard;
         game.addCardToHand(player1, questionMark);
-        game.playCard(player1, player1.hand.length - 1, [chaosCard]);
-        await game.resolveStack();
+        game.actions.playCard(player1, player1.hand.length - 1, [chaosCard]);
+        await game.actions.resolveStack();
         expect(game.destroyedCards).not.toContain(questionMark);
         expect(game.decks.loot.discard.map(c=>c.slug)).toContain(questionMark.slug);
     });
@@ -45,20 +45,20 @@ describe("Known bugs that have be corrected", () => {
         const initialCoins = player1.coins;
         const initialCoins2 = player2.coins;
         player1.hand.addToHand(loot);
-        game.playCard(player1, 0);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
 
         game.dealDamage(player2, player1, loot, 1);
-        await game.resolveStack();
-        await game.resolveStack(); // resolve on damage taken
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
         expect(player1.coins).toBe(initialCoins + 1);
         expect(player1.currentHealthPoints).toBe(initialHealth - 1);
 
         game.dealDamage(player2, player1, loot, 1);
         const dmgOnStck = game.stack.peek()! as DamageOnStack;
         dmgOnStck.damage = [0]; // modify damage to 0
-        await game.resolveStack();
-        await game.resolveStack(); // resolve on damage taken
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
         expect(player1.coins).toBe(initialCoins + 1);
         expect(player1.currentHealthPoints).toBe(initialHealth - 1);
     });
@@ -80,7 +80,7 @@ describe("Known bugs that have be corrected", () => {
 
         // Activate pay_to_play (paid effect with effectId 0)
         await game.activateItem(player2, payToPlay, [targetItem], 0);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.attackPoints).toBe(1);
         expect(player2.attackPoints).toBe(2);
@@ -102,30 +102,30 @@ describe("Known bugs that have be corrected", () => {
         game.decks["monster"]?.addTopPosition(pain);
 
         game.encounters.draw(0);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.curses.length).toBe(1);
         expect(player1.curses[0]!.slug).toBe("b2-curse_of_pain");
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         game.endTurn();
-        await game.resolveStack(); // end turn effect d6
-        await game.resolveStack(); // on turn start
-        await game.resolveStack(); // damage
+        await game.actions.resolveStack(); // end turn effect d6
+        await game.actions.resolveStack(); // on turn start
+        await game.actions.resolveStack(); // damage
         expect(game.currentPlayer).toBe(player1);
         expect(game.stack.size).toBe(0);
         expect(player1.currentHealthPoints).toBe(1);
 
         game.kill(player1, player1, pain);
-        await game.resolveStack(); // death on stack
+        await game.actions.resolveStack(); // death on stack
         expect(player1.curses.length).toBe(0);
 
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         game.endTurn();
-        await game.resolveStack(); // end turn effect d6
+        await game.actions.resolveStack(); // end turn effect d6
         expect(game.stack.size).toBe(0);
         expect(player1.currentHealthPoints).toBe(2);
     });
@@ -138,37 +138,37 @@ describe("Known bugs that have be corrected", () => {
         game.decks["monster"]?.addTopPosition(pain);
 
         game.encounters.draw(0);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.curses.length).toBe(1);
         expect(player1.curses[0]!.slug).toBe("b2-curse_of_pain");
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         game.endTurn();
-        await game.resolveStack(); // end turn effect d6
-        await game.resolveStack(); // on turn start
-        await game.resolveStack(); // damage
+        await game.actions.resolveStack(); // end turn effect d6
+        await game.actions.resolveStack(); // on turn start
+        await game.actions.resolveStack(); // damage
         expect(game.currentPlayer).toBe(player1);
         expect(game.stack.size).toBe(0);
         expect(player1.currentHealthPoints).toBe(1);
 
         game.addCardToHand(player1, dagaz);
-        game.playCard(player1, player1.hand.length - 1, ["Destroy a curse.", pain]);
-        await game.resolveStack(); // death on stack
+        game.actions.playCard(player1, player1.hand.length - 1, ["Destroy a curse.", pain]);
+        await game.actions.resolveStack(); // death on stack
         expect(player1.curses.length).toBe(0);
 
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         game.endTurn();
-        await game.resolveStack(); // end turn effect d6
+        await game.actions.resolveStack(); // end turn effect d6
         expect(game.stack.size).toBe(0);
         expect(player1.currentHealthPoints).toBe(2);
     });
     
     it("remove something on top of a monster work", async () => {
-        game.declareAttack(player1);
+        game.actions.declareAttack(player1);
         game.drawMonster(player1, 0);
         const monster = game.monsters[0]!;
         game.kill(player1, monster, player1.inPlay[0]!);
@@ -181,13 +181,13 @@ describe("Known bugs that have be corrected", () => {
 
         const loot = game.obtainCard("b2-cains_eye") as LootCard;
         game.addCardToHand(player1, loot);
-        game.playCard(player1, player1.hand.length - 1, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, player1.hand.length - 1, []);
+        await game.actions.resolveStack();
         game.endTurn();
         await game.resolveEntireStack();
         const initcard = player1.hand.length;
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.hand.length).toBe(initcard);
         const card = game.decks.loot.cards[0] as LootCard;
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
@@ -195,7 +195,7 @@ describe("Known bugs that have be corrected", () => {
             return {selected: [], remaining: []};
         };
         expect(player1.hand._hand.map((c) => c.slug)).not.toContain(card.slug);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.hand.length).toBe(initcard + 1);
         expect(player1.hand._hand.map((c) => c.slug)).toContain(card.slug);
     });
@@ -206,14 +206,14 @@ describe("Known bugs that have be corrected", () => {
         game.encounters.forceSetMonsterAtSlot(0, psy);
         game.decks.monster.addTopPosition(chest);
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, game.monsters[0]!);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, game.monsters[0]!);
         game.kill(player1, game.monsters[0]!, player1.inPlay[0]!);
-        await game.resolveStack(); // when this dies 
+        await game.actions.resolveStack(); // when this dies 
         expect(game.stack.size).toBe(1);
-        await game.resolveStack(); // gold chest top deck
+        await game.actions.resolveStack(); // gold chest top deck
         expect(game.stack.size).toBe(1);
-        await game.resolveStack(); // gold chest dice
+        await game.actions.resolveStack(); // gold chest dice
         expect(game.stack.size).toBe(1);
         expect(game.stack.peek()).toBeInstanceOf(DiceRoll);
     });
@@ -226,21 +226,21 @@ describe("Known bugs that have be corrected", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
         const loot = game.obtainCard("b2-soul_heart") as LootCard;
         game.addCardToHand(player1, loot);
-        game.playCard(player1, player1.hand.length - 1, [player1]);
-        await game.resolveStack(); // damage
-        game.attackRoll(player1);
+        game.actions.playCard(player1, player1.hand.length - 1, [player1]);
+        await game.actions.resolveStack(); // damage
+        game.actions.attackRoll(player1);
         const dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 1;
 
         game.gainCoins(player1, 10, "gift"); // Give some coins to lose
         const init = player1.coins;
-        await game.resolveStack(); // dice
-        await game.resolveStack(); // damage
+        await game.actions.resolveStack(); // dice
+        await game.actions.resolveStack(); // damage
         expect(game.stack.size).toBe(0);
         
         expect(game.stack.isEmpty()).toBe(true);

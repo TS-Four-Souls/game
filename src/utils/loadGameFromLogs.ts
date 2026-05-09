@@ -387,7 +387,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
 
         case "DeclareAttack": {
           const player = game.getPlayerByIssuer(remapIssuer(game, entry.issuer));
-          game.declareAttack(player);
+          game.actions.declareAttack(player);
           break;
         }
 
@@ -416,13 +416,13 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
 
         case "AttackRoll": {
           const player = game.getPlayerByIssuer(remapIssuer(game, entry.issuer));
-          game.attackRoll(player);
+          game.actions.attackRoll(player);
           break;
         }
 
         case "Resolve": {
           // Start resolution and track the promise so we can wait for it after selections are submitted
-          activeResolutionPromise = game.resolveStack();
+          activeResolutionPromise = game.actions.resolveStack();
           await Promise.resolve(); // Ensure any synchronous effects are processed before potentially awaiting resolution
           await Promise.resolve(); // Ensure any synchronous effects are processed before potentially awaiting resolution
           await Promise.resolve(); // Ensure any synchronous effects are processed before potentially awaiting resolution
@@ -512,23 +512,23 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
 
         case "DeclarePurchase": {
           const player = game.getPlayerByIssuer(remapIssuer(game, entry.issuer));
-          game.declarePurchase(player);
+          game.actions.declarePurchase(player);
           break;
         }
 
         case "CancelPurchase": {
           const player = game.getPlayerByIssuer(remapIssuer(game, entry.issuer));
-          game.cancelPurchase(player);
+          game.actions.cancelPurchase(player);
           break;
         }
 
         case "Purchase": {
-          game.purchase(game.getPlayerByIssuer(remapIssuer(game, entry.issuer)), entry.payload.index);
+          game.actions.purchase(game.getPlayerByIssuer(remapIssuer(game, entry.issuer)), entry.payload.index);
           break;
         }
 
         case "EndTurn": {
-          activeTurnCallbackPromise = game.nextTurn(game.getPlayerByIssuer(remapIssuer(game, entry.issuer)));
+          activeTurnCallbackPromise = game.actions.nextTurn(game.getPlayerByIssuer(remapIssuer(game, entry.issuer)));
           if(!game.hasPendingSelections) {
             await activeTurnCallbackPromise;
             activeTurnCallbackPromise = null;
@@ -563,7 +563,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
 
         case "DebugGainCoins": {
           const player = game.getPlayerByIssuer(remapIssuer(game, entry.issuer));
-          game.debugGainCoins(player, entry.payload.coins);
+          game.actions.debugGainCoins(player, entry.payload.coins);
           break;
         }
 
@@ -576,7 +576,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
               throw new Error(`Card not found in the game: ${cardRef.slug}`);
             }
             const index = game.monsterSlots._slots.map((slot) => slot[slot.length - 1]?.globalId).indexOf(entry.payload.toCover.globalId);
-            game.debugPutMonsterCardInSlot(player, card, index);
+            game.actions.debugPutMonsterCardInSlot(player, card, index);
           }
           break;
         }
@@ -605,7 +605,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
                 const cardsToRemove = game
                   .playerCardsAndGameOwnedCards(player)
                   .filter((c) => refs.some((ref: IdentifierType) => c.slug === ref.slug && c.globalId === ref.globalId));
-                game.debugRemoveCards(player, cardsToRemove);
+                game.actions.debugRemoveCards(player, cardsToRemove);
               }
           break;
 

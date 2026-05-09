@@ -34,17 +34,17 @@ abstract class Action {
 
 export class DeclareAttackAction extends Action {
     constructor(me: Player) {
-        super(ActionType.DECLARE_ATTACK, (game) => game.declareAttack(me), me);
+        super(ActionType.DECLARE_ATTACK, (game) => game.actions.declareAttack(me), me);
     }
 
     isFeasible(game: Game): boolean {
-        return game.canDeclareAttack(this.me, false) === true;
+        return game.actions.canDeclareAttack(this.me, false) === true;
     }
 }
 
 export class ResolveStackAction extends Action {
     constructor(me: Player) {
-        super(ActionType.RESOLVE_STACK, async (game) => await game.resolveStack(), me);
+        super(ActionType.RESOLVE_STACK, async (game) => await game.actions.resolveStack(), me);
     }
 
     isFeasible(game: Game): boolean {
@@ -54,32 +54,32 @@ export class ResolveStackAction extends Action {
 
 export class DeclarePurchaseAction extends Action {
     constructor(me: Player) {
-        super(ActionType.DECLARE_PURCHASE, (game) => game.declarePurchase(me), me);
+        super(ActionType.DECLARE_PURCHASE, (game) => game.actions.declarePurchase(me), me);
     }
 
     isFeasible(game: Game): boolean {
-        return game.canDeclarePurchase(this.me, false) === true;
+        return game.actions.canDeclarePurchase(this.me, false) === true;
     }
 }
 
 export class EndTurnAction extends Action {
     constructor(me: Player) {
-        super(ActionType.END_TURN, async (game) => await game.nextTurn(me), me);
+        super(ActionType.END_TURN, async (game) => await game.actions.nextTurn(me), me);
     }
 
     isFeasible(game: Game): boolean {
-        // console.log("BOT can end turn:", game.canEndTurn(this.me, false));
-        return game.canEndTurn(this.me, false) === true;
+        // console.log("BOT can end turn:", game.actions.canEndTurn(this.me, false));
+        return game.actions.canEndTurn(this.me, false) === true;
     }
 }
 
 export class RollAction extends Action {
     constructor(me: Player) {
-        super(ActionType.ROLL, (game) => game.attackRoll(me), me);
+        super(ActionType.ROLL, (game) => game.actions.attackRoll(me), me);
     }
 
     isFeasible(game: Game): boolean {
-        return game.canRollDice(this.me, false) === true;
+        return game.actions.canRollDice(this.me, false) === true;
     }
 }
 
@@ -87,7 +87,7 @@ export class PlayLootAction extends Action {
     private _targets: any[] = [];
     private _index: number;
     constructor(me: Player, index: number) {
-        super(ActionType.PLAY_LOOT, async (game) => {await game.playCard(me, this._index, this._targets)}, me);
+        super(ActionType.PLAY_LOOT, async (game) => {await game.actions.playCard(me, this._index, this._targets)}, me);
         this._index = index;
     }
 
@@ -101,7 +101,7 @@ export class PlayLootAction extends Action {
 
     isFeasible(game: Game): boolean {
         const me = this.me;
-        if (game.canPlayCard(me, false) !== true) return false;
+        if (game.actions.canPlayCard(me, false) !== true) return false;
         const loot = me.hand.cards[this._index];
         if (!loot) return false;
         return TargetBuilder.validTargetExists(game, me, loot, "tap") === true;
@@ -112,10 +112,10 @@ export class DeclareAttackOnEntityAction extends Action {
     private _target: Entity | "topDeck";
     constructor(me: Player, target: "topDeck" | Entity, drawInIndex: number = 0) {
         if(target === "topDeck") {
-            super(ActionType.ATTACK, async (game) => {await game.declareAttackOnEntity(me, "topDeck", drawInIndex)}, me);
+            super(ActionType.ATTACK, async (game) => {await game.actions.declareAttackOnEntity(me, "topDeck", drawInIndex)}, me);
         }
         else {
-            super(ActionType.ATTACK, async (game) => {await game.declareAttackOnEntity(me, target)}, me);
+            super(ActionType.ATTACK, async (game) => {await game.actions.declareAttackOnEntity(me, target)}, me);
         }
         this._target = target;
     }
@@ -126,14 +126,14 @@ export class DeclareAttackOnEntityAction extends Action {
     isFeasible(game: Game): boolean {
         const me = this.me;
         if (!me.isEngagedInCombat) return false;
-        return game.canDeclareAttackOnEntity(me, this._target, false) === true;
+        return game.actions.canDeclareAttackOnEntity(me, this._target, false) === true;
     }
 }
 
 export class PurchaseAction extends Action {
     private _index: number | "top" = 0;
     constructor(me: Player) {
-        super(ActionType.PURCHASE, async (game) => {await game.purchase(me, this._index)}, me);
+        super(ActionType.PURCHASE, async (game) => {await game.actions.purchase(me, this._index)}, me);
     }
 
     set index(index: number | "top") {
@@ -141,7 +141,7 @@ export class PurchaseAction extends Action {
     }
 
     isFeasible(game: Game): boolean {
-        return game.canPurchase(this.me, false) === true;
+        return game.actions.canPurchase(this.me, false) === true;
     }
 }
 
@@ -167,18 +167,18 @@ export class UseItemAction extends Action {
     isFeasible(game: Game): boolean {
         const me = this.me;
         if (!me.canIActivateThisTurn) return false;
-        return game.canActivate(this._item, me) === true;
+        return game.actions.canActivate(this._item, me) === true;
     }
 }
 
 export class CancelPurchaseAction extends Action {
     constructor(me: Player) {
-        super(ActionType.CANCEL_PURCHASE, async (game) => {await game.cancelPurchase(me)}, me);
+        super(ActionType.CANCEL_PURCHASE, async (game) => {await game.actions.cancelPurchase(me)}, me);
     }
 
     isFeasible(game: Game): boolean {
         const me = this.me;
-        return game.canPurchase(me, false) !== true && me.isEngagedInPurchase;
+        return game.actions.canPurchase(this.me, false) !== true && me.isEngagedInPurchase;
     }
 }
 

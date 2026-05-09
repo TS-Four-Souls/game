@@ -37,22 +37,22 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const initialHP = player1.currentHealthPoints;
             
             // Declare attack
-            game.declareAttack(player1);
-            await game.declareAttackOnEntity(player1, swarmMonster);
+            game.actions.declareAttack(player1);
+            await game.actions.declareAttackOnEntity(player1, swarmMonster);
             
             game.addHealth(swarmMonster, 10); // Ensure monster has HP to survive
             
             // Make attack roll
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             
             const dice = game.stack.elements[0] as DiceRoll;
             expect(dice).toBeInstanceOf(DiceRoll);
             dice.value = 5; // Triggering value
             
-            await game.resolveStack(); // resolve the dice roll
-            await game.resolveStack(); // resolve swarm_of_flies effect
-            await game.resolveStack(); // resolve swarm_of_flies effect
-            await game.resolveStack(); // resolve damage
+            await game.actions.resolveStack(); // resolve the dice roll
+            await game.actions.resolveStack(); // resolve swarm_of_flies effect
+            await game.actions.resolveStack(); // resolve swarm_of_flies effect
+            await game.actions.resolveStack(); // resolve damage
             
             // Player should have taken 1 damage
             expect(player1.currentHealthPoints).toBe(initialHP - 1);
@@ -67,18 +67,18 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const swarmMonster = game.monsters[0]!;
             const initialHP = player1.currentHealthPoints;
             
-            game.declareAttack(player1);
-            await game.declareAttackOnEntity(player1, swarmMonster);
+            game.actions.declareAttack(player1);
+            await game.actions.declareAttackOnEntity(player1, swarmMonster);
             
             game.addHealth(swarmMonster, 10);
             
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             
             const dice = game.stack.elements[0] as DiceRoll;
             dice.value = 3; // Non-triggering value
             
-            await game.resolveStack();
-            await game.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
             
             // Player should not take damage
             expect(player1.currentHealthPoints).toBe(initialHP);
@@ -95,31 +95,31 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const initialHP = player1.currentHealthPoints;
             
             // First attack
-            game.declareAttack(player1);
-            await game.declareAttackOnEntity(player1, swarmMonster);
+            game.actions.declareAttack(player1);
+            await game.actions.declareAttackOnEntity(player1, swarmMonster);
             game.addHealth(swarmMonster, 10);
             
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             const dice1 = game.stack.elements[0] as DiceRoll;
             dice1.value = 5;
             
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
             
             expect(player1.currentHealthPoints).toBe(initialHP - 1);
             
             // Second attack
             
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             const dice2 = game.stack.elements[0] as DiceRoll;
             dice2.value = 5;
             
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
             
             // Should trigger again
             expect(player1.currentHealthPoints).toBe(initialHP - 2);
@@ -139,23 +139,23 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             
             // Reduce chub's health so it can heal
             game.dealDamage(chubMonster, chubMonster, chubMonster.card, 3);
-            await game.resolveStack(); // resolve the dice roll and chub healing effect
+            await game.actions.resolveStack(); // resolve the dice roll and chub healing effect
 
             const initialMonsterHP = chubMonster.currentHealthPoints;
             
-            game.declareAttack(player1);
-            await game.declareAttackOnEntity(player1, chubMonster);
+            game.actions.declareAttack(player1);
+            await game.actions.declareAttackOnEntity(player1, chubMonster);
             
             // Make attack roll
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             
             const dice = game.stack.elements[0] as DiceRoll;
             expect(dice).toBeInstanceOf(DiceRoll);
             dice.value = 1; // Triggering value
             
-            await game.resolveStack(); // resolve the dice roll and chub healing effect
-            await game.resolveStack(); // resolve the dice roll and chub healing effect
-            await game.resolveStack(); // resolve the dice roll and chub healing effect
+            await game.actions.resolveStack(); // resolve the dice roll and chub healing effect
+            await game.actions.resolveStack(); // resolve the dice roll and chub healing effect
+            await game.actions.resolveStack(); // resolve the dice roll and chub healing effect
             
             // Monster should have healed 2 HP
             expect(chubMonster.currentHealthPoints).toBe(initialMonsterHP + 2);
@@ -169,21 +169,21 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             
             const chubMonster = game.monsters[0]!;
             game.dealDamage(chubMonster, chubMonster, chubMonster.card, 2);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             const initialMonsterHP = chubMonster.currentHealthPoints;
             
-            game.declareAttack(player1);
-            await game.declareAttackOnEntity(player1, chubMonster);
+            game.actions.declareAttack(player1);
+            await game.actions.declareAttackOnEntity(player1, chubMonster);
             
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             
             const dice = game.stack.elements[0] as DiceRoll;
             dice.value = 2; // Non-triggering value
             
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
             
             // Monster should not heal
             expect(chubMonster.currentHealthPoints).toBe(initialMonsterHP);
@@ -197,33 +197,33 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             
             const chubMonster = game.monsters[0]!;
             game.dealDamage(chubMonster, chubMonster, chubMonster.card, 3);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             const initialMonsterHP = chubMonster.currentHealthPoints;
             
             // First attack roll of 1
-            game.declareAttack(player1);
-            await game.declareAttackOnEntity(player1, chubMonster);
+            game.actions.declareAttack(player1);
+            await game.actions.declareAttackOnEntity(player1, chubMonster);
             
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             const dice1 = game.stack.elements[0] as DiceRoll;
             dice1.value = 1;
             
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
             
             expect(chubMonster.currentHealthPoints).toBe(initialMonsterHP + 2);
             
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             const dice2 = game.stack.elements[0] as DiceRoll;
             dice2.value = 1;
             
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
             
             // Should heal again
             expect(chubMonster.currentHealthPoints).toBe(initialMonsterHP + 3);
@@ -240,20 +240,20 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             
             // Set chub to 1 HP below max
             game.dealDamage(chubMonster, chubMonster, chubMonster.card, 1);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             
-            game.declareAttack(player1);
-            await game.declareAttackOnEntity(player1, chubMonster);
+            game.actions.declareAttack(player1);
+            await game.actions.declareAttackOnEntity(player1, chubMonster);
             
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             const dice = game.stack.elements[0] as DiceRoll;
             dice.value = 1;
             
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
             
             // Should not exceed max HP
             expect(chubMonster.currentHealthPoints).toBe(maxHP);
@@ -274,23 +274,23 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             
             expect(player2.isDead).toBe(false);
             
-            game.declareAttack(player1);
-            await game.declareAttackOnEntity(player1, satanMonster);
+            game.actions.declareAttack(player1);
+            await game.actions.declareAttackOnEntity(player1, satanMonster);
             
             game.addHealth(satanMonster, 10);
             
             // Make attack roll
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             
             const dice = game.stack.elements[0] as DiceRoll;
             expect(dice).toBeInstanceOf(DiceRoll);
             dice.value = 6; // Triggering value
             
             game.select = async (_p, _min, _max, opts) => ({ selected: [player2], remaining: [] } as any);
-            await game.resolveStack(); // resolve the dice roll 
-            await game.resolveStack(); // resolve effect
-            await game.resolveStack(); // resolve player death
-            await game.resolveStack(); // resolve damage
+            await game.actions.resolveStack(); // resolve the dice roll 
+            await game.actions.resolveStack(); // resolve effect
+            await game.actions.resolveStack(); // resolve player death
+            await game.actions.resolveStack(); // resolve damage
             
             // Player2 should be dead
             expect(player2.isDead).toBe(true);
@@ -307,21 +307,21 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             
             expect(player2.isDead).toBe(false);
             
-            game.declareAttack(player1);
-            await game.declareAttackOnEntity(player1, satanMonster);
+            game.actions.declareAttack(player1);
+            await game.actions.declareAttackOnEntity(player1, satanMonster);
             
             game.addHealth(satanMonster, 10);
             
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             
             const dice = game.stack.elements[0] as DiceRoll;
             dice.value = 2; // Non-triggering value
             
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
             
             // Player2 should still be alive
             expect(player2.isDead).toBe(false);
@@ -354,32 +354,32 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             game4.addHealth(player4, 5);
             
             // First attack roll of 6 - kill player2
-            game4.declareAttack(player1_4);
-            await game4.declareAttackOnEntity(player1_4, satanMonster);
+            game4.actions.declareAttack(player1_4);
+            await game4.actions.declareAttackOnEntity(player1_4, satanMonster);
             game4.addHealth(satanMonster, 10);
             
-            game4.attackRoll(player1_4);
+            game4.actions.attackRoll(player1_4);
             const dice1 = game4.stack.elements[0] as DiceRoll;
             dice1.value = 6;
             game4.select = async (_p, n, opts) => ({ selected: [player2_4], remaining: [] } as any);
             
-            await game4.resolveStack();
-            await game4.resolveStack(); // resolve death
-            await game4.resolveStack(); // resolve death
-            await game4.resolveStack(); // resolve death
+            await game4.actions.resolveStack();
+            await game4.actions.resolveStack(); // resolve death
+            await game4.actions.resolveStack(); // resolve death
+            await game4.actions.resolveStack(); // resolve death
             
             expect(player2_4.isDead).toBe(true);
             expect(player3.isDead).toBe(false);
             
-            game4.attackRoll(player1_4);
+            game4.actions.attackRoll(player1_4);
             const dice2 = game4.stack.elements[0] as DiceRoll;
             dice2.value = 6;
             game4.select = async (_p, n, opts) => ({ selected: [player3], remaining: [] } as any);
             
-            await game4.resolveStack();
-            await game4.resolveStack(); // resolve death
-            await game4.resolveStack(); // resolve death
-            await game4.resolveStack(); // resolve death
+            await game4.actions.resolveStack();
+            await game4.actions.resolveStack(); // resolve death
+            await game4.actions.resolveStack(); // resolve death
+            await game4.actions.resolveStack(); // resolve death
             
             expect(player3.isDead).toBe(true);
             expect(player4.isDead).toBe(false);
@@ -396,19 +396,19 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             
             expect(player1.isDead).toBe(false);
             
-            game.declareAttack(player1);
-            await game.declareAttackOnEntity(player1, satanMonster);
+            game.actions.declareAttack(player1);
+            await game.actions.declareAttackOnEntity(player1, satanMonster);
             game.addHealth(satanMonster, 10);
             
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             const dice = game.stack.elements[0] as DiceRoll;
             dice.value = 6;
             
             game.select = async (_p, _min, _max, opts) => ({ selected: [player1], remaining: [] } as any);
-            await game.resolveStack();
-            await game.resolveStack(); // resolve player death
-            await game.resolveStack(); // resolve player death
-            await game.resolveStack(); // resolve player death
+            await game.actions.resolveStack();
+            await game.actions.resolveStack(); // resolve player death
+            await game.actions.resolveStack(); // resolve player death
+            await game.actions.resolveStack(); // resolve player death
             
             // Player1 should be dead
             expect(player1.isDead).toBe(true);
@@ -435,20 +435,20 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const initialPlayer1HandSize = player1.hand.length;
             const initialPlayer2HandSize = player2.hand.length;
             
-            game.declareAttack(player1);
-            await game.declareAttackOnEntity(player1, ringMonster);
+            game.actions.declareAttack(player1);
+            await game.actions.declareAttackOnEntity(player1, ringMonster);
             
             // Make attack roll
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             
             const dice = game.stack.elements[0] as DiceRoll;
             expect(dice).toBeInstanceOf(DiceRoll);
             dice.value = 3; // Triggering value
             
-            await game.resolveStack(); // resolve the dice roll
-            await game.resolveStack(); // resolve ring_of_flies effect
-            await game.resolveStack(); // resolve ring_of_flies effect
-            await game.resolveStack(); // resolve ring_of_flies effect
+            await game.actions.resolveStack(); // resolve the dice roll
+            await game.actions.resolveStack(); // resolve ring_of_flies effect
+            await game.actions.resolveStack(); // resolve ring_of_flies effect
+            await game.actions.resolveStack(); // resolve ring_of_flies effect
             
             // Player1 should have gained a card, player2 should have lost one
             expect(player1.hand.length).toBe(initialPlayer1HandSize + 1);
@@ -469,19 +469,19 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const initialPlayer1HandSize = player1.hand.length;
             const initialPlayer2HandSize = player2.hand.length;
             
-            game.declareAttack(player1);
-            await game.declareAttackOnEntity(player1, ringMonster);
+            game.actions.declareAttack(player1);
+            await game.actions.declareAttackOnEntity(player1, ringMonster);
             game.addHealth(ringMonster, 10);
             
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             
             const dice = game.stack.elements[0] as DiceRoll;
             dice.value = 5; // Non-triggering value
             
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
             
             // No cards should be stolen
             expect(player1.hand.length).toBe(initialPlayer1HandSize);
@@ -506,31 +506,31 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const initialPlayer2HandSize = player2.hand.length;
             
             // First attack roll of 3
-            game.declareAttack(player1);
-            await game.declareAttackOnEntity(player1, ringMonster);
+            game.actions.declareAttack(player1);
+            await game.actions.declareAttackOnEntity(player1, ringMonster);
             game.addHealth(ringMonster, 10);
             
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             const dice1 = game.stack.elements[0] as DiceRoll;
             dice1.value = 3;
             
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
             
             expect(player1.hand.length).toBe(initialPlayer1HandSize + 1);
             expect(player2.hand.length).toBe(initialPlayer2HandSize - 1);
             
             // Second attack roll of 3
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             const dice2 = game.stack.elements[0] as DiceRoll;
             dice2.value = 3;
             
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
             
             // Should steal again
             expect(player1.hand.length).toBe(initialPlayer1HandSize + 2);
@@ -550,18 +550,18 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             
             const initialPlayer1HandSize = player1.hand.length;
             
-            game.declareAttack(player1);
-            await game.declareAttackOnEntity(player1, ringMonster);
+            game.actions.declareAttack(player1);
+            await game.actions.declareAttackOnEntity(player1, ringMonster);
             game.addHealth(ringMonster, 10);
             
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             const dice = game.stack.elements[0] as DiceRoll;
             dice.value = 3;
             
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
-            await game.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
             
             // No cards to steal, hand size should remain the same
             expect(player1.hand.length).toBe(initialPlayer1HandSize);
@@ -596,18 +596,18 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const initialPlayer1HandSize = player1_3.hand.length;
             const totalOtherPlayersCards = player2_3.hand.length + player3.hand.length;
             
-            game3.declareAttack(player1_3);
-            await game3.declareAttackOnEntity(player1_3, ringMonster);
+            game3.actions.declareAttack(player1_3);
+            await game3.actions.declareAttackOnEntity(player1_3, ringMonster);
             game3.addHealth(ringMonster, 10);
             
-            game3.attackRoll(player1_3);
+            game3.actions.attackRoll(player1_3);
             const dice = game3.stack.elements[0] as DiceRoll;
             dice.value = 3;
             
-            await game3.resolveStack();
-            await game3.resolveStack();
-            await game3.resolveStack();
-            await game3.resolveStack();
+            await game3.actions.resolveStack();
+            await game3.actions.resolveStack();
+            await game3.actions.resolveStack();
+            await game3.actions.resolveStack();
             
             // Player1 should gain one card
             expect(player1_3.hand.length).toBe(initialPlayer1HandSize + 1);

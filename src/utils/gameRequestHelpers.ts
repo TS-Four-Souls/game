@@ -16,7 +16,7 @@ export async function executeAttackMonsterRequest(
   }
 
   const drawInIndex = payload.index === "top" ? payload.replaceIndex : -1;
-  await game.declareAttackOnEntity(player, monster, drawInIndex);
+  await game.actions.declareAttackOnEntity(player, monster, drawInIndex);
 }
 
 export function executePlayCardRequest(
@@ -43,7 +43,7 @@ export function executePlayCardRequest(
       partialChoices,
       payload.effectIndex,
     );
-    game.playCard(player, payload.index, targets);
+    game.actions.playCard(player, payload.index, targets);
   }
 
   return choices;
@@ -73,7 +73,7 @@ export async function executeActivateRequest(
       partialChoices,
       payload.effectIndex,
     );
-    await game.activateItemAtIndex(
+    await game.actions.activateItemAtIndex(
       player,
       payload.index,
       targets,
@@ -110,7 +110,7 @@ export async function executeActivateRoomRequest(
       partialChoices,
       payload.effectIndex,
     );
-    await game.activateRoom(
+    await game.actions.activateRoom(
       player,
       room,
       targets,

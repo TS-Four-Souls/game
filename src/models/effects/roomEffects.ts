@@ -660,7 +660,7 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): EffectFun
             const effect: EffectFunction = (effectData: EffectData) => {
                 if(effectData.issuer instanceof Player === false)
                     throw new Error("Expected issuer to be a player for makeAnAttackRollAfterEachAttackRollEffect.");
-                    game.attackRoll(effectData.issuer, data.it.entity as Entity);
+                    game.actions.attackRoll(effectData.issuer, data.it.entity as Entity);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, "You must make an attack roll against this after each attack roll the active player makes this attack.");

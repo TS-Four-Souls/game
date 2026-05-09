@@ -58,7 +58,7 @@ describe("Monster Rewards - Verification", () => {
         // Kill the monster
         game.kill(player1, monsterEntity, monster);
         // Resolve the death and rewards
-        await game.resolveStack();
+        await game.actions.resolveStack();
         if( game.stack.elements.length > 1) // black bony effect add effect on stack on death.
             game.stack.removeAt(0);
 
@@ -67,7 +67,7 @@ describe("Monster Rewards - Verification", () => {
             const diceRoll = game.stack.elements[0] as DiceRoll;
             if (diceRoll && diceRoll instanceof DiceRoll) {
                 diceRoll.value = expectedReward.rollValue;
-                await game.resolveStack();
+                await game.actions.resolveStack();
             }
         }
 
@@ -199,7 +199,7 @@ describe("Monster Rewards - Verification", () => {
             const initialSouls = player1.souls.length;
 
             game.kill(player1, monsterEntity, monster);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             // Should have both treasure and soul
             expect(player1.inPlay.filter(c => c instanceof TreasureCard).length).toBe(initialTreasures + 1);
@@ -218,7 +218,7 @@ describe("Monster Rewards - Verification", () => {
             const initialLoot = player1.hand.length;
 
             game.kill(player1, monsterEntity, monster);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             // Should have both coins and soul
             expect(player1.coins).toBe(initialCoins + 7);
@@ -240,7 +240,7 @@ describe("Monster Rewards - Verification", () => {
     //         const initialSouls = player1.souls.length;
 
     //         game.kill(player1, monsterEntity, monster);
-    //         await game.resolveStack();
+    //         await game.actions.resolveStack();
 
     //         // Nothing should have changed
     //         expect(player1.coins).toBe(initialCoins);
@@ -261,7 +261,7 @@ describe("Monster Rewards - Verification", () => {
             const initialSouls = player1.souls.length;
 
             game.kill(player1, monsterEntity, monster);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             // Should only gain coins, nothing else
             expect(player1.hand.length).toBe(initialHandSize); // No loot
@@ -279,7 +279,7 @@ describe("Monster Rewards - Verification", () => {
             const initialSouls = player1.souls.length;
 
             game.kill(player1, monsterEntity, monster);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             // Should only gain loot, nothing else
             expect(player1.coins).toBe(initialCoins); // No coins
@@ -297,7 +297,7 @@ describe("Monster Rewards - Verification", () => {
             const initialSouls = player1.souls.length;
 
             game.kill(player1, monsterEntity, monster);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             // Should only gain treasures, nothing else
             expect(player1.coins).toBe(initialCoins); // No coins

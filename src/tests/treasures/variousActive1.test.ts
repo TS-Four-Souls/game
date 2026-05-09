@@ -32,7 +32,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate the item
         game.recharge(sackOfPennies);
         await game.activateItem(player1, sackOfPennies);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Player should gain 1¢
         expect(player1.coins).toBe(initialCoins + 1);
@@ -54,7 +54,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate the item with deck name as target
         game.recharge(sackHead);
         await game.activateItem(player1, sackHead, [game.decks["loot"]]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // The top card should now be at the bottom
         expect(game.decks["loot"]!.cards[game.decks["loot"]!.cards.length - 1]).toBe(topCard);
@@ -76,7 +76,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate the item with deck name as target
         game.recharge(sackHead);
         await game.activateItem(player1, sackHead, [game.decks.loot]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // The top card should still be on top
         expect(game.decks["loot"]!.cards[0]).toBe(topCard);
@@ -91,7 +91,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge then deactivate the battery
         game.recharge(battery);
         await game.activateItem(player1, battery);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(battery.charged).toBe(false);
 
         // Give player enough coins
@@ -100,7 +100,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Activate battery_bum (paid effect with effectId 0)
         await game.activateItem(player1, batteryBum, [battery], 0);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Battery should be recharged and player should lose 4¢
         expect(battery.charged).toBe(true);
@@ -122,7 +122,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate the item
         game.recharge(bumFriend);
         await game.activateItem(player1, bumFriend);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Player should have the same hand size (loot 1, then put 1 back)
         expect(player1.hand.length).toBe(initialHandSize);
@@ -143,7 +143,7 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(flush);
         const chooseOneTarget = ["Put each monster not being attacked on the bottom of the monster deck."];
         await game.activateItem(player1, flush, chooseOneTarget);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Monsters should be removed from slots and added to bottom of deck
         expect(game.monsters.every(m => !initialMonsters.includes(m))).toBe(true);
@@ -161,7 +161,7 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(flush);
         const chooseOneTarget = ["Put each shop item on the bottom of the treasure deck."];
         await game.activateItem(player1, flush, chooseOneTarget);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Shop should be empty
         const remainingShopItems = game.shop.itemsInShop.filter(slot => slot !== undefined).length;
@@ -181,7 +181,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate godhead with the dice as target
         game.recharge(godhead);
         await game.activateItem(player1, godhead, [dice, 1]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Dice value should be changed to 1
         expect(dice.value).toBe(1);
@@ -199,7 +199,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate godhead with the dice as target
         game.recharge(godhead);
         await game.activateItem(player1, godhead, [dice, 6]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Dice value should be changed to 6
         expect(dice.value).toBe(6);
@@ -218,8 +218,8 @@ describe("Tap/Paid effects 1", () => {
 
         // Activate golden_razor_blade (paid effect with effectId 0) with monster as target
         await game.activateItem(player1, goldenRazor, [monster], 0);
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Monster should take 1 damage and player should lose 5¢
         expect(monster.currentHealthPoints).toBe(initialMonsterHP - 1);
@@ -238,8 +238,8 @@ describe("Tap/Paid effects 1", () => {
 
         // Activate golden_razor_blade (paid effect with effectId 0) with player2 as target
         await game.activateItem(player1, goldenRazor, [player2], 0);
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Player2 should take 1 damage and player1 should lose 5¢
         expect(player2.currentHealthPoints).toBe(initialHP - 1);
@@ -263,7 +263,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate the item
         game.recharge(jawbone);
         await game.activateItem(player1, jawbone, [player2]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Player1 should gain 3¢ and player2 should lose 3¢
         expect(player1.coins).toBe(initialCoinsP1 + 3);
@@ -287,7 +287,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate the item
         game.recharge(jawbone);
         await game.activateItem(player1, jawbone, [player2]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Player1 should gain 2¢ (all that player2 had) and player2 should have 0¢
         expect(player1.coins).toBe(initialCoinsP1 + 2);
@@ -303,12 +303,12 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate the item (creates and adds dice to stack)
         game.recharge(bookOfSin);
         await game.activateItem(player1, bookOfSin);
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Get the dice from the stack and set its value
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Player should gain 1¢
         expect(player1.coins).toBe(initialCoins + 1);
@@ -323,12 +323,12 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate the item (creates and adds dice to stack)
         game.recharge(bookOfSin);
         await game.activateItem(player1, bookOfSin);
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Get the dice from the stack and set its value
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3;
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Player should loot 1
         expect(player1.hand.length).toBe(initialHandSize + 1);
@@ -343,12 +343,12 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate the item (creates and adds dice to stack)
         game.recharge(bookOfSin);
         await game.activateItem(player1, bookOfSin);
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Get the dice from the stack and set its value
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Player should gain +1 HP
         expect(player1.currentHealthPoints).toBe(initialHp + 1);
@@ -366,8 +366,8 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate the item with the monster as target
         game.recharge(mrBoom);
         await game.activateItem(player1, mrBoom, [game.monsters[0]]);
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Monster should take 1 damage
         expect(game.monsters[0]!.currentHealthPoints).toBe(initialHp - 1);
@@ -382,12 +382,12 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate the item (creates and adds dice to stack)
         game.recharge(mysterySack);
         await game.activateItem(player1, mysterySack);
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Get the dice from the stack and set its value
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Player should loot 1
         expect(player1.hand.length).toBe(initialHandSize + 1);
@@ -402,12 +402,12 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate the item (creates and adds dice to stack)
         game.recharge(mysterySack);
         await game.activateItem(player1, mysterySack);
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Get the dice from the stack and set its value
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4;
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Player should gain 4¢
         expect(player1.coins).toBe(initialCoins + 4);
@@ -429,7 +429,7 @@ describe("Tap/Paid effects 1", () => {
     //     game.recharge(no);
     //     const stackElement = game.stack.elements[0];
     //     await game.activateItem(player1, no, [stackElement]);
-    //     await game.resolveStack(); // Resolve "no"
+    //     await game.actions.resolveStack(); // Resolve "no"
 
     //     // sack_of_pennies effect should be cancelled, coins unchanged
     //     expect(player2.coins).toBe(initialCoins);
@@ -452,7 +452,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Activate pay_to_play (paid effect with effectId 0)
         await game.activateItem(player1, payToPlay, [targetItem], 0);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Item should be stolen and player should lose 10¢
         expect(player1.coins).toBe(initialCoins - 10);
@@ -473,8 +473,8 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(chaosCard);
         const chooseOneTarget = ["Kill a player or monster.", player2];
         await game.activateItem(player1, chaosCard, chooseOneTarget);
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // chaos_card should be destroyed
         expect(player1.inPlay).not.toContain(chaosCard);
@@ -496,7 +496,7 @@ describe("Tap/Paid effects 1", () => {
         game.recharge(chaosCard);
         const chooseOneTarget = ["Destroy an item or soul.", targetItem];
         await game.activateItem(player1, chaosCard, chooseOneTarget);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // chaos_card should be destroyed
         expect(player1.inPlay).not.toContain(chaosCard);
@@ -518,12 +518,12 @@ describe("Tap/Paid effects 1", () => {
 
         // Activate paid effect (effectId 0)
         await game.activateItem(player1, portableSlotMachine, [], 0);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Get the dice from the stack and set its value
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Player should lose 3¢ and loot 1
         expect(player1.coins).toBe(initialCoins - 3);
@@ -540,12 +540,12 @@ describe("Tap/Paid effects 1", () => {
 
         // Activate paid effect (effectId 0)
         await game.activateItem(player1, portableSlotMachine, [], 0);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Get the dice from the stack and set its value
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4;
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Player should lose 3¢ and gain 4¢ (net +1¢)
         expect(player1.coins).toBe(initialCoins + 1);
@@ -567,8 +567,8 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate
         game.recharge(potatoPeeler);
         await game.activateItem(player1, potatoPeeler);
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Top cards should be in discard
         expect(game.decks["loot"]!.discard).toContain(topLoot);
@@ -591,8 +591,8 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate with player2 as target
         game.recharge(razorBlade);
         await game.activateItem(player1, razorBlade, [player2]);
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Player2 should take 1 damage
         expect(player2.currentHealthPoints).toBe(initialHp - 1);
@@ -610,7 +610,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Activate paid effect (effectId 0) with loot card as target
         await game.activateItem(player1, smelter, [lootCard], 0);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Player should gain 3¢ and hand size should decrease
         expect(player1.coins).toBe(initialCoins + 3);
@@ -627,12 +627,12 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate
         game.recharge(theD100);
         await game.activateItem(player1, theD100);
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Get the dice from the stack and set its value
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Player should loot 1
         expect(player1.hand.length).toBe(initialHandSize + 1);
@@ -647,12 +647,12 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate
         game.recharge(theD100);
         await game.activateItem(player1, theD100);
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Get the dice from the stack and set its value
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Player should loot 2
         expect(player1.hand.length).toBe(initialHandSize + 2);
@@ -667,12 +667,12 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate
         game.recharge(theD100);
         await game.activateItem(player1, theD100);
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Get the dice from the stack and set its value
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3;
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Player should gain 3¢
         expect(player1.coins).toBe(initialCoins + 3);
@@ -687,12 +687,12 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate
         game.recharge(theD100);
         await game.activateItem(player1, theD100);
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Get the dice from the stack and set its value
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4;
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Player should gain 4¢
         expect(player1.coins).toBe(initialCoins + 4);
@@ -707,12 +707,12 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate
         game.recharge(theD100);
         await game.activateItem(player1, theD100);
-        await game.resolveStack(); // Resolve the item
+        await game.actions.resolveStack(); // Resolve the item
 
         // Get the dice from the stack and set its value
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5;
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Player should gain +1 HP
         expect(player1.currentHealthPoints).toBe(initialHp + 1);
@@ -727,12 +727,12 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate
         game.recharge(theD100);
         await game.activateItem(player1, theD100);
-        await game.resolveStack(); // Resolve the item
+        await game.actions.resolveStack(); // Resolve the item
 
         // Get the dice from the stack and set its value
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
-        await game.resolveStack(); // Resolve the dice roll
+        await game.actions.resolveStack(); // Resolve the dice roll
 
         // Player should gain +1 ATK
         expect(player1.attackPoints).toBe(initialAtk + 1);
@@ -750,7 +750,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate the_battery with target item
         game.recharge(theBattery);
         await game.activateItem(player1, theBattery, [targetItem]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Target item should be recharged
         expect(targetItem.charged).toBe(true);
@@ -768,7 +768,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate the_d20 with target item (needs {player, card} format for reroll)
         game.recharge(theD20);
         await game.activateItem(player1, theD20, [targetItem]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Target item should be destroyed
         expect(player2.inPlay).not.toContain(targetItem);
@@ -789,7 +789,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate the_d20 with target item (needs {player, card} format for reroll)
         game.recharge(theD20);
         await game.activateItem(player1, theD20, [targetItem]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Target item should be destroyed
         expect(game.destroyedCards).toContain(targetItem);
@@ -808,7 +808,7 @@ describe("Tap/Paid effects 1", () => {
         // Recharge and activate spoon_bender with dice as target
         game.recharge(spoonBender);
         await game.activateItem(player1, spoonBender, [dice]);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Dice value should be increased by 1
         expect(dice.value).toBe(4);

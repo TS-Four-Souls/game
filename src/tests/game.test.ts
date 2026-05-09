@@ -475,15 +475,15 @@ describe("Multi death things", () => {
       game.addCardToHand(player1, card);
       game.addCardToHand(player1, card2);
 
-      game.playCard(player1, 1, [player2]); // play bomb
-      game.playCard(player1, 0, [player2]); // play gold bomb
+      game.actions.playCard(player1, 1, [player2]); // play bomb
+      game.actions.playCard(player1, 0, [player2]); // play gold bomb
 
-      game.resolveStack(); // resolve card
-      game.resolveStack(); // resolve damage
-      game.resolveStack(); // resolve death
+      game.actions.resolveStack(); // resolve card
+      game.actions.resolveStack(); // resolve damage
+      game.actions.resolveStack(); // resolve death
 
       expect(player2.isDead).toBe(true);
-      game.resolveStack(); // resolve card
+      game.actions.resolveStack(); // resolve card
       expect(game.stack.size).toBe(0);
     });
 });
@@ -706,7 +706,7 @@ describe("Game - Stack Operations", () => {
     game.addToStack(dice);
     expect(game.stack.size).toBe(1);
 
-    await game.resolveStack();
+    await game.actions.resolveStack();
     expect(game.stack.size).toBe(0);
   });
 
@@ -1007,7 +1007,7 @@ describe("Game - Damage System", () => {
     const mockCard = { name: "Test Card" } as any;
     
     game.dealDamage(player1, player2, mockCard, 1);
-    await game.resolveStack();
+    await game.actions.resolveStack();
     expect(player2.currentHealthPoints).toBe(initialHealth - 1);
   });
 
@@ -1016,8 +1016,8 @@ describe("Game - Damage System", () => {
     const mockCard = { name: "Test Card" } as any;
     
     game.dealDamage(player1, player2, mockCard, 0);
-    await game.resolveStack();
-    await game.resolveStack();
+    await game.actions.resolveStack();
+    await game.actions.resolveStack();
     
     expect(player2.currentHealthPoints).toBe(initialHealth);
   });
@@ -1026,8 +1026,8 @@ describe("Game - Damage System", () => {
     const mockCard = { name: "Test Card" } as any;
     
     game.dealDamage(player1, player2, mockCard, 100);
-    await game.resolveStack();
-    await game.resolveStack();
+    await game.actions.resolveStack();
+    await game.actions.resolveStack();
 
     expect(game.stack.size).toBe(0);
     expect(player2.isDead).toBe(true);

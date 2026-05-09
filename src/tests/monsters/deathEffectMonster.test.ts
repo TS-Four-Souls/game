@@ -38,23 +38,23 @@ describe("Monsters - On death effects", () => {
             game.select = async (_p, _min, _max, opts) => {
                     return { selected: [opts[0]], remaining: opts.slice(1) } as any;
             };
-            game.declareAttack(player1);
-            await game.declareAttackOnEntity(player1, spiderMonster);
+            game.actions.declareAttack(player1);
+            await game.actions.declareAttackOnEntity(player1, spiderMonster);
             // Kill the Big Spider by dealing lethal damage
             game.kill(spiderMonster, spiderMonster, bigSpider);
             
             const newmonster = game.encounters.monsterIn(0);
-            await game.resolveStack(); // resolve death
-            await game.resolveStack(); // resolve death effect - selection
+            await game.actions.resolveStack(); // resolve death
+            await game.actions.resolveStack(); // resolve death effect - selection
             // Check that player attack the top deck and the monster has changed.
             expect(game.encounters.monsterIn(0)).not.toBe(newmonster);
             expect(game.encounters.monsterIn(0)).toBeDefined();
             expect(game.encounters.monsterIn(0)?.card.slug).toBe("b2-pooter");
             // Check that the player has declared an attack
-            game.declareAttack(player1); // declare attack to engage in combat
-            expect(game.canDeclareAttackOnEntity(player1, game.monsters[0]!, false)).not.toBe(true);
-            expect(game.canDeclareAttackOnEntity(player1, game.monsters[0]!, false)).not.toBe(true);
-            expect(game.canDeclareAttackOnEntity(player1, "topDeck", false)).toBe(true);
+            game.actions.declareAttack(player1); // declare attack to engage in combat
+            expect(game.actions.canDeclareAttackOnEntity(player1, game.monsters[0]!, false)).not.toBe(true);
+            expect(game.actions.canDeclareAttackOnEntity(player1, game.monsters[0]!, false)).not.toBe(true);
+            expect(game.actions.canDeclareAttackOnEntity(player1, "topDeck", false)).toBe(true);
         });
 
         it("active player can choose not to attack the monster deck when Big Spider dies", async () => {
@@ -73,9 +73,9 @@ describe("Monsters - On death effects", () => {
             // Kill the Big Spider by dealing lethal damage
             game.kill(player1, spiderMonster, bigSpider);
             
-            await game.resolveStack(); // resolve death
-            await game.resolveStack(); // resolve death effect - selection
-            await game.resolveStack(); // resolve death effect - selection
+            await game.actions.resolveStack(); // resolve death
+            await game.actions.resolveStack(); // resolve death effect - selection
+            await game.actions.resolveStack(); // resolve death effect - selection
             
             // Check that the player did NOT declare an attack
             expect(player1.isEngagedInCombat).toBe(false);
@@ -90,22 +90,22 @@ describe("Monsters - On death effects", () => {
             
             
             let selectionCount = 0;
-            game.declareAttack(player1);
-            await game.declareAttackOnEntity(player1, spiderMonster);
+            game.actions.declareAttack(player1);
+            await game.actions.declareAttackOnEntity(player1, spiderMonster);
             game.dealDamage(player1, spiderMonster, bigSpider, 1);
-            await game.resolveStack();
+            await game.actions.resolveStack();
 
             // Kill the Big Spider (player1 is active, effect should trigger)
             game.kill(player1, spiderMonster, bigSpider);
             
-            await game.resolveStack(); // resolve death
-            await game.resolveStack(); // resolve death effect - should ask player1
+            await game.actions.resolveStack(); // resolve death
+            await game.actions.resolveStack(); // resolve death effect - should ask player1
             
             // Verify that the selection was made (effect triggered)
-            game.declareAttack(player1); // declare attack to engage in combat
-            expect(game.canDeclareAttackOnEntity(player1, game.monsters[0]!, false)).not.toBe(true);
-            expect(game.canDeclareAttackOnEntity(player1, game.monsters[0]!, false)).not.toBe(true);
-            expect(game.canDeclareAttackOnEntity(player1, "topDeck", false)).toBe(true);
+            game.actions.declareAttack(player1); // declare attack to engage in combat
+            expect(game.actions.canDeclareAttackOnEntity(player1, game.monsters[0]!, false)).not.toBe(true);
+            expect(game.actions.canDeclareAttackOnEntity(player1, game.monsters[0]!, false)).not.toBe(true);
+            expect(game.actions.canDeclareAttackOnEntity(player1, "topDeck", false)).toBe(true);
 
         });
     });
@@ -126,10 +126,10 @@ describe("Monsters - On death effects", () => {
             
                 game.kill(conquestMonster, conquestMonster, conquestCard);
             
-            await game.resolveStack(); // resolve death
-            await game.resolveStack(); // resolve death effect - selection
+            await game.actions.resolveStack(); // resolve death
+            await game.actions.resolveStack(); // resolve death effect - selection
             // Check that the player has declared an attack
-            expect(game.canEndTurn(player1, false)).not.toBe(true);
+            expect(game.actions.canEndTurn(player1, false)).not.toBe(true);
         });
 
     it("active player choose a player that discard 2 loot cards when dank_globin dies.", async () => {
@@ -142,9 +142,9 @@ describe("Monsters - On death effects", () => {
             game.loot( player1, 4); // give some loot cards to player1
                 game.kill(monster, monster, card);
             
-            await game.resolveStack(); // resolve death
+            await game.actions.resolveStack(); // resolve death
             const initialLength = player1.hand.length;
-            await game.resolveStack(); // resolve death effect - selection
+            await game.actions.resolveStack(); // resolve death effect - selection
             // Check that the player has declared an attack
             expect(player1.hand.length).toBe(initialLength - 2);
         });
@@ -164,9 +164,9 @@ describe("Monsters - On death effects", () => {
         };
         game.kill(monster, monster, card);
         
-        await game.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death
         const initialLength = player2.hand.length;
-        await game.resolveStack(); // resolve death effect - selection
+        await game.actions.resolveStack(); // resolve death effect - selection
         // Check that the player has declared an attack
         expect(player2.hand.length).toBe(initialLength - 2);
     });
@@ -185,11 +185,11 @@ describe("Monsters - On death effects", () => {
         };
         game.kill(monster, monster, card);
         
-        await game.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death
         expect(player2.isDead).toBe(false);
 
-        await game.resolveStack(); // resolve death effect - selection
-        await game.resolveStack(); // resolve death effect - selection
+        await game.actions.resolveStack(); // resolve death effect - selection
+        await game.actions.resolveStack(); // resolve death effect - selection
         
         expect(player2.isDead).toBe(true);
     });
@@ -203,8 +203,8 @@ describe("Monsters - On death effects", () => {
         
         game.kill(monster, monster, card);
         
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect - selection
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect - selection
         
 
         // Check that the player has declared an attack
@@ -212,12 +212,12 @@ describe("Monsters - On death effects", () => {
         expect(game.turnHandler.numberOfTurnSkiped(player2)).toBe(0);
 
         game.endTurn(); // end player1 turn
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(game.currentPlayer.id).toBe(player2.id);
 
         game.endTurn(); // end player2 turn, player 1 should be skipped
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(game.currentPlayer.id).toBe(player2.id);
     });
@@ -238,10 +238,10 @@ describe("Monsters - On death effects", () => {
         };
         game.kill(monster, monster, card);
         
-        await game.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death
         expect(player2.isDead).toBe(false);
 
-        await game.resolveStack(); // resolve death effect - selection
+        await game.actions.resolveStack(); // resolve death effect - selection
         
         expect(player2.coins).toBe(coins - 7);
     });
@@ -262,9 +262,9 @@ describe("Monsters - On death effects", () => {
         };
         game.kill(monster, monster, card);
         
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect - selection
-        await game.resolveStack(); // resolve damage from death effect
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect - selection
+        await game.actions.resolveStack(); // resolve damage from death effect
         
         expect(player2.currentHealthPoints).toBe(health - 3);
     });
@@ -285,9 +285,9 @@ describe("Monsters - On death effects", () => {
         }
         game.kill(monster, monster, card);
         
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect - selection
-        await game.resolveStack(); // resolve damage from death effect
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect - selection
+        await game.actions.resolveStack(); // resolve damage from death effect
         
         for(const item of player1.inPlay){
             expect(item.charged).toBe(true);
@@ -310,9 +310,9 @@ describe("Monsters - On death effects", () => {
                 return { selected: [item1], remaining: opts.filter(o => o !== player2) } as any;
             return { selected: opts.slice(0, _max), remaining: opts.slice(_max) } as any;
         };
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect - selection
-        await game.resolveStack(); // resolve damage from death effect
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect - selection
+        await game.actions.resolveStack(); // resolve damage from death effect
         
         expect(player1.inPlay.map(card => card.slug)).toContain(item1.slug);
         expect(player2.inPlay.map(card => card.slug)).not.toContain(item1.slug);
@@ -333,9 +333,9 @@ describe("Monsters - On death effects", () => {
                 return { selected: [], remaining: opts.filter(o => o !== player2) };
             return { selected: opts.slice(0, _max), remaining: opts.slice(_max) };
         };
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect - selection
-        await game.resolveStack(); // resolve damage from death effect
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect - selection
+        await game.actions.resolveStack(); // resolve damage from death effect
         
         expect(player1.inPlay.map(card => card.slug)).not.toContain(item1.slug);
         expect(player2.inPlay.map(card => card.slug)).toContain(item1.slug);
@@ -366,9 +366,9 @@ describe("Monsters - On death effects", () => {
             }
             return { selected: opts.slice(0, _max), remaining: opts.slice(_max) } as any;
         };
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect - selection
-        await game.resolveStack(); // resolve damage from death effect
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect - selection
+        await game.actions.resolveStack(); // resolve damage from death effect
         expect(count).toBe(2);
     });
 
@@ -389,9 +389,9 @@ describe("Monsters - On death effects", () => {
                 return { selected: [], remaining: opts.filter(o => o !== player2) } as any;
             return { selected: opts.slice(0, _max), remaining: opts.slice(_max) } as any;
         };
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect - selection
-        await game.resolveStack(); // resolve damage from death effect
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect - selection
+        await game.actions.resolveStack(); // resolve damage from death effect
         expect(count).toBe(1);
     });
 
@@ -407,9 +407,9 @@ describe("Monsters - On death effects", () => {
         game.select = async (p, _min, _max, opts) => {
             return { selected: [player2], remaining: opts.filter(o => o !== player2) } as any;
         };
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect - selection
-        await game.resolveStack(); // resolve damage from death effect
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect - selection
+        await game.actions.resolveStack(); // resolve damage from death effect
         expect(player2.currentHealthPoints).toBe(health - 2);
     });
 
@@ -426,10 +426,10 @@ describe("Monsters - On death effects", () => {
         game.select = async (p, _min, _max, opts) => {
             return { selected: [player2, game.encounters.monsterIn(1)], remaining: opts.filter(o => o !== player2) } as any;
         };
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect - selection
-        await game.resolveStack(); // resolve damage from death effect
-        await game.resolveStack(); // resolve second damage from death effect
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect - selection
+        await game.actions.resolveStack(); // resolve damage from death effect
+        await game.actions.resolveStack(); // resolve second damage from death effect
         expect(game.encounters.monsterIn(1)!.currentHealthPoints).toBe(healthmonster - 1);
         expect(player2.currentHealthPoints).toBe(health - 1);
     });
@@ -439,8 +439,8 @@ describe("Monsters - On death effects", () => {
         game.addCardToHand(player2, soul);
         expect(player2.hand.length).toBe(1);
         game.addLootPlay(player2, 1);
-        game.playCard(player2, 0);
-        await game.resolveStack(); // resolve playing lost soul
+        game.actions.playCard(player2, 0);
+        await game.actions.resolveStack(); // resolve playing lost soul
 
         const card = game.obtainCard("b2-the_lamb") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
@@ -453,9 +453,9 @@ describe("Monsters - On death effects", () => {
                 return { selected: [player2], remaining: opts.filter(o => o !== player2) } as any;
             return { selected: opts.slice(0, _max), remaining: opts.slice(_max)};
         };
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect - selection
-        await game.resolveStack(); // resolve damage from death effect
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect - selection
+        await game.actions.resolveStack(); // resolve damage from death effect
         expect(player1.souls.map(s => s.id)).toContain(soul.id);
         expect(player2.souls.map(s => s.id)).not.toContain(soul.id);
     });
@@ -465,8 +465,8 @@ describe("Monsters - On death effects", () => {
         game.addCardToHand(player2, soul);
         expect(player2.hand.length).toBe(1);
         game.addLootPlay(player2, 1);
-        game.playCard(player2, 0);
-        await game.resolveStack(); // resolve playing lost soul
+        game.actions.playCard(player2, 0);
+        await game.actions.resolveStack(); // resolve playing lost soul
 
         const card = game.obtainCard("b2-wizoob") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
@@ -479,9 +479,9 @@ describe("Monsters - On death effects", () => {
                 return { selected: [player2], remaining: opts.filter(o => o !== player2) } as any;
             return { selected: opts.slice(0, _max), remaining: opts.slice(_max) } as any;
         };
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect - selection
-        await game.resolveStack(); // resolve damage from death effect
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect - selection
+        await game.actions.resolveStack(); // resolve damage from death effect
         expect(player1.souls.map(s => s.id)).not.toContain(soul.id);
         expect(player2.souls.map(s => s.id)).not.toContain(soul.id);
     });
@@ -494,14 +494,14 @@ describe("Monsters - On death effects", () => {
         const monster = game.monsters[0]!;
         
         game.kill(monster, monster, card);
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect - selection
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect - selection
         const dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 2; // mock a dice roll of 5
-        await game.resolveStack(); // resolve dice roll effect
-        await game.resolveStack(); // resolve damage from dice roll effect
-        await game.resolveStack(); // resolve damage from dice roll effect
+        await game.actions.resolveStack(); // resolve dice roll effect
+        await game.actions.resolveStack(); // resolve damage from dice roll effect
+        await game.actions.resolveStack(); // resolve damage from dice roll effect
         expect(player1.currentHealthPoints).toBe(player1.healthPoints - 1);
         expect(player2.currentHealthPoints).toBe(player2.healthPoints - 1);
     });
@@ -515,16 +515,16 @@ describe("Monsters - On death effects", () => {
         const monster = game.monsters[0]!;
         
         game.kill(monster, monster, card);
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect - selection
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect - selection
         const dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 5; // mock a dice roll of 5
-        await game.resolveStack(); // resolve dice roll effect
-        await game.resolveStack(); // resolve damage from dice roll effect
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve damage from dice roll effect
-        await game.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve dice roll effect
+        await game.actions.resolveStack(); // resolve damage from dice roll effect
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve damage from dice roll effect
+        await game.actions.resolveStack(); // resolve death
         expect(player1.currentHealthPoints).toBe(player1.healthPoints - 2);
         expect(player2.currentHealthPoints).toBe(player2.healthPoints - 2);
         expect(player1.isDead).toBe(true);
@@ -538,10 +538,10 @@ describe("Monsters - On death effects", () => {
         const monster = game.monsters[0]!;
         
         game.kill(player1, monster, card);
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve death effect 
-        await game.resolveStack(); // resolve damage 
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve death effect 
+        await game.actions.resolveStack(); // resolve damage 
 
         expect(player1.currentHealthPoints).toBe(player1.healthPoints - 1);
         expect(player2.currentHealthPoints).toBe(player2.healthPoints);
@@ -554,11 +554,11 @@ describe("Monsters - On death effects", () => {
         const monster = game.monsters[0]!;
         
         game.kill(player2, monster, card);
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve dice
 
-        await game.resolveStack(); // resolve death effect 
-        await game.resolveStack(); // resolve damage 
+        await game.actions.resolveStack(); // resolve death effect 
+        await game.actions.resolveStack(); // resolve damage 
 
         expect(player1.currentHealthPoints).toBe(player1.healthPoints);
         expect(player2.currentHealthPoints).toBe(player2.healthPoints - 1);
@@ -572,9 +572,9 @@ describe("Monsters - On death effects", () => {
         const monster2 = game.monsters[1]!;
         
         game.kill(monster, monster, card);
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect 
-        await game.resolveStack(); // resolve damage 
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect 
+        await game.actions.resolveStack(); // resolve damage 
 
         expect(game.stack.size).toBe(0);
         expect(player1.currentHealthPoints).toBe(player1.healthPoints);
@@ -589,10 +589,10 @@ describe("Monsters - On death effects", () => {
         const monster = game.monsters[0]!;
         
         game.kill(monster, monster, card);
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect 
-        await game.resolveStack(); // resolve damage 
-        await game.resolveStack(); // resolve damage 
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect 
+        await game.actions.resolveStack(); // resolve damage 
+        await game.actions.resolveStack(); // resolve damage 
 
         expect(player1.currentHealthPoints).toBe(player1.healthPoints-1);
         expect(player2.currentHealthPoints).toBe(player2.healthPoints-1);
@@ -605,10 +605,10 @@ describe("Monsters - On death effects", () => {
         const monster = game.monsters[0]!;
         
         game.kill(monster, monster, card);
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect 
-        await game.resolveStack(); // resolve damage 
-        await game.resolveStack(); // resolve damage 
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect 
+        await game.actions.resolveStack(); // resolve damage 
+        await game.actions.resolveStack(); // resolve damage 
 
         expect(player1.currentHealthPoints).toBe(player1.healthPoints-1);
         expect(player2.currentHealthPoints).toBe(player2.healthPoints-1);
@@ -618,8 +618,8 @@ describe("Monsters - On death effects", () => {
         const card = game.obtainCard("b2-delirium") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         game.decks.monster.addTopPosition(card);
-        game.declareAttack(player1);
-        game.declareAttackOnEntity(player1, "topDeck", 0);
+        game.actions.declareAttack(player1);
+        game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         const monster = game.monsters[0]!;
         
         game.kill(monster, monster, card);
@@ -636,8 +636,8 @@ describe("Monsters - On death effects", () => {
         const monster = game.monsters[0]!;
         
         game.kill(monster, monster, card);
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect 
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect 
         expect(game.stack.size).toBe(0);
         
         expect(game.encounters.visible.map(m => m.slug)).toContain("b2-the_bloat");
@@ -647,18 +647,18 @@ describe("Monsters - On death effects", () => {
         const card = game.obtainCard("b2-rag_man") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         game.decks.monster.addTopPosition(card);
-        game.declareAttack(player1);
-        game.declareAttackOnEntity(player1, "topDeck", 0);
+        game.actions.declareAttack(player1);
+        game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         const monster = game.monsters[0]!;
         
         game.kill(monster, monster, card);
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect 
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect 
         expect(game.stack.size).toBe(1);
         const dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 1;
-        await game.resolveStack(); // resolve dice roll
+        await game.actions.resolveStack(); // resolve dice roll
         expect(game.stack.size).toBe(0);
         expect(game.decks["monster"]!.cards[0]!.slug).toBe("b2-rag_man");
         expect(game.currentPlayer.souls.length).toBe(0);
@@ -668,18 +668,18 @@ describe("Monsters - On death effects", () => {
         const card = game.obtainCard("b2-rag_man") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         game.decks.monster.addTopPosition(card);
-        game.declareAttack(player1);
-        game.declareAttackOnEntity(player1, "topDeck", 0);
+        game.actions.declareAttack(player1);
+        game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         const monster = game.monsters[0]!;
         
         game.kill(monster, monster, card);
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect 
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect 
         expect(game.stack.size).toBe(1);
         const dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 6;
-        await game.resolveStack(); // resolve dice roll
+        await game.actions.resolveStack(); // resolve dice roll
         expect(game.stack.size).toBe(0);
         expect(game.decks["monster"]!.cards[0]!.slug).toBe("b2-rag_man");
         expect(game.currentPlayer.souls.length).toBe(0);
@@ -692,13 +692,13 @@ describe("Monsters - On death effects", () => {
         const monster = game.monsters[0]!;
         
         game.kill(monster, monster, card);
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect 
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect 
         expect(game.stack.size).toBe(1);
         const dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 4;
-        await game.resolveStack(); // resolve dice roll
+        await game.actions.resolveStack(); // resolve dice roll
         expect(game.stack.size).toBe(0);
         expect(game.decks["monster"]!.cards[0]!.slug).not.toBe("b2-rag_man");
         expect(game.currentPlayer.souls.length).toBe(1);
@@ -713,8 +713,8 @@ describe("Monsters - On death effects", () => {
         const monster = game.monsters[0]!;
         
         game.kill(player1, monster, card);
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect 
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect 
         
         expect(game.stack.size).toBe(0);
         expect(player1.hand.length).toBe(0);
@@ -730,8 +730,8 @@ describe("Monsters - On death effects", () => {
         const monster = game.monsters[0]!;
         
         game.kill(player2, monster, card);
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve death effect 
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect 
         
         expect(game.stack.size).toBe(0);
         expect(player2.hand.length).toBe(0);
@@ -746,21 +746,21 @@ describe("Monsters - On death effects", () => {
         
         let currentcoins = player1.coins;
         game.addAttack(player1, 100); // ensure kill
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
-        game.attackRoll(player1); // ensure hit
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
+        game.actions.attackRoll(player1); // ensure hit
         expect(game.stack._stack.length).toBe(1);
         const roll = game.stack._stack[0] as DiceRoll;
         roll.value = 6;
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve damage
 
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve coin gain
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve coin gain
         expect(player1.coins).toBeGreaterThan(currentcoins);
         currentcoins = player1.coins;
-        await game.resolveStack(); // resolve coin gain
+        await game.actions.resolveStack(); // resolve coin gain
         
         expect(game.stack.size).toBe(0);
         expect(player1.coins).toBeGreaterThan(currentcoins);

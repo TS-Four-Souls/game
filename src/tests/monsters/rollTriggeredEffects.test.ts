@@ -41,8 +41,8 @@ describe("Monsters - Roll Triggered Effects", () => {
         player1.hand.addToHand(lootCard);
         
         // Play pills which causes a roll
-        game.playCard(player1, 0, []);
-        await game.resolveStack(); // resolve pills play
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack(); // resolve pills play
         
         expect(game.stack.size).toBe(1); // dice roll on stack
         const dice = game.stack.elements[0] as DiceRoll;
@@ -51,9 +51,9 @@ describe("Monsters - Roll Triggered Effects", () => {
         // Set dice value to 2 to trigger cursed_horf effect
         dice.value = 2;
         
-        await game.resolveStack(); // resolve the dice roll
-        await game.resolveStack(); // resolve cursed_horf effect
-        await game.resolveStack(); // resolve cursed_horf damage effect
+        await game.actions.resolveStack(); // resolve the dice roll
+        await game.actions.resolveStack(); // resolve cursed_horf effect
+        await game.actions.resolveStack(); // resolve cursed_horf damage effect
         
         expect(player1.currentHealthPoints).toBe(initialHP - 2);
     });
@@ -70,13 +70,13 @@ describe("Monsters - Roll Triggered Effects", () => {
         const lootCard = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(lootCard);
         
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5; // Non-triggering value
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         // No damage should be dealt
         expect(player1.currentHealthPoints).toBe(initialHP);
@@ -96,16 +96,16 @@ describe("Monsters - Roll Triggered Effects", () => {
         const lootCard = game.obtainCard("b2-pills") as LootCard;
         player2.hand.addToHand(lootCard);
         
-        game.playCard(player2, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player2, 0, []);
+        await game.actions.resolveStack();
         
         expect(game.stack.size).toBeGreaterThan(0);
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
         
-        await game.resolveStack(); // resolve dice roll and cursed_horf damage effect
-        await game.resolveStack(); // resolve cursed_horf effect
-        await game.resolveStack(); // resolve cursed_horf damage
+        await game.actions.resolveStack(); // resolve dice roll and cursed_horf damage effect
+        await game.actions.resolveStack(); // resolve cursed_horf effect
+        await game.actions.resolveStack(); // resolve cursed_horf damage
         
         expect(player2.currentHealthPoints).toBe(initialHP - 2);
     });
@@ -121,28 +121,28 @@ describe("Monsters - Roll Triggered Effects", () => {
         // First roll
         const lootCard1 = game.obtainCard("b2-pills_2") as LootCard;
         player1.hand.addToHand(lootCard1);
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         
         const dice1 = game.stack.elements[0] as DiceRoll;
         dice1.value = 2;
-        await game.resolveStack();
-        await game.resolveStack(); // resolve cursed_horf effect
-        await game.resolveStack(); // resolve cursed_horf damage
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve cursed_horf effect
+        await game.actions.resolveStack(); // resolve cursed_horf damage
 
         expect(player1.currentHealthPoints).toBe(initialHP - 2);
         
         // Second roll in same turn
         const lootCard2 = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(lootCard2);
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         
         const dice2 = game.stack.elements[0] as DiceRoll;
         dice2.value = 2;
-        await game.resolveStack();
-        await game.resolveStack(); // resolve cursed_horf effect
-        await game.resolveStack(); // resolve cursed_horf damage
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve cursed_horf effect
+        await game.actions.resolveStack(); // resolve cursed_horf damage
 
         // Should trigger again
         expect(player1.currentHealthPoints).toBe(initialHP - 4);
@@ -164,14 +164,14 @@ describe("Monsters - Roll Triggered Effects", () => {
         // Trigger a roll
         const triggerCard = game.obtainCard("b2-pills_2") as LootCard;
         player1.hand.addToHand(triggerCard);
-        game.playCard(player1, player1.hand.length - 1, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, player1.hand.length - 1, []);
+        await game.actions.resolveStack();
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5;
         
-        await game.resolveStack(); // resolve the dice roll
-        await game.resolveStack(); // resolve cursed_fatty effect
+        await game.actions.resolveStack(); // resolve the dice roll
+        await game.actions.resolveStack(); // resolve cursed_fatty effect
         
         // Player should have discarded one loot card
         expect(player1.hand.length).toBe(initialHandSize - 1);
@@ -190,13 +190,13 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         const triggerCard = game.obtainCard("b2-pills_2") as LootCard;
         player1.hand.addToHand(triggerCard);
-        game.playCard(player1, player1.hand.length - 1, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, player1.hand.length - 1, []);
+        await game.actions.resolveStack();
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3; // Non-triggering value
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         // Hand size should remain the same
         expect(player1.hand.length).toBe(initialHandSize);
@@ -215,14 +215,14 @@ describe("Monsters - Roll Triggered Effects", () => {
         // Trigger a roll
         const lootCard = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(lootCard);
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4;
         
-        await game.resolveStack(); // resolve the dice roll
-        await game.resolveStack(); // resolve cursed_gaper effect
+        await game.actions.resolveStack(); // resolve the dice roll
+        await game.actions.resolveStack(); // resolve cursed_gaper effect
         
         expect(game.encounters.attackModifier).toBe(1);
         // Each monster should have +1 ATK
@@ -242,13 +242,13 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         const lootCard = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(lootCard);
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2; // Non-triggering value
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         const currentATK = game.monsters.map(m => m?.attackPoints || 0);
         initialATK.forEach((atkValue, index) => {
@@ -269,14 +269,14 @@ describe("Monsters - Roll Triggered Effects", () => {
         // Trigger a roll
         const lootCard = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(lootCard);
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
         
-        await game.resolveStack(); // resolve the dice roll
-        await game.resolveStack(); // resolve cursed_keeper_head effect
+        await game.actions.resolveStack(); // resolve the dice roll
+        await game.actions.resolveStack(); // resolve cursed_keeper_head effect
         
         expect(player1.coins).toBe(initialCoins - 2);
     });
@@ -292,13 +292,13 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         const lootCard = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(lootCard);
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6; // Non-triggering value
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.coins).toBe(initialCoins);
     });
@@ -315,14 +315,14 @@ describe("Monsters - Roll Triggered Effects", () => {
         // Trigger a roll
         const lootCard = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(lootCard);
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
         
-        await game.resolveStack(); // resolve the dice roll
-        await game.resolveStack(); // resolve holy_dip effect
+        await game.actions.resolveStack(); // resolve the dice roll
+        await game.actions.resolveStack(); // resolve holy_dip effect
         
         expect(player1.coins).toBe(initialCoins + 1);
     });
@@ -337,13 +337,13 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         const lootCard = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(lootCard);
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4; // Non-triggering value
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.coins).toBe(initialCoins);
     });
@@ -360,14 +360,14 @@ describe("Monsters - Roll Triggered Effects", () => {
         // Trigger a roll
         const lootCard = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(lootCard);
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4;
         
-        await game.resolveStack(); // resolve the dice roll
-        await game.resolveStack(); // resolve holy_keeper_head effect
+        await game.actions.resolveStack(); // resolve the dice roll
+        await game.actions.resolveStack(); // resolve holy_keeper_head effect
         
         expect(player1.coins).toBe(initialCoins + 2);
     });
@@ -382,13 +382,13 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         const lootCard = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(lootCard);
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2; // Non-triggering value
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.coins).toBe(initialCoins);
     });
@@ -407,17 +407,17 @@ describe("Monsters - Roll Triggered Effects", () => {
         // Trigger a roll
         const lootCard = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(lootCard);
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
         
-        await game.resolveStack(); // resolve the dice roll
+        await game.actions.resolveStack(); // resolve the dice roll
         
         // Should have a recharge effect on the stack (may recharge an item)
         expect(game.stack.size).toBeGreaterThan(0);
-        await game.resolveStack(); // resolve the effect
+        await game.actions.resolveStack(); // resolve the effect
         expect(item.charged).toBe(true);
     });
 
@@ -432,13 +432,13 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         const lootCard = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(lootCard);
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5; // Non-triggering value
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         // Item should remain tapped
         expect(item.charged).toBe(false);
@@ -456,15 +456,15 @@ describe("Monsters - Roll Triggered Effects", () => {
         // Trigger a roll
         const lootCard = game.obtainCard("b2-pills_2") as LootCard;
         player1.hand.addToHand(lootCard);
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5;
         
-        await game.resolveStack(); // resolve the dice roll
-        await game.resolveStack(); // resolve holy_squirt effect
-        await game.resolveStack(); // resolve loot 1
+        await game.actions.resolveStack(); // resolve the dice roll
+        await game.actions.resolveStack(); // resolve holy_squirt effect
+        await game.actions.resolveStack(); // resolve loot 1
         
         expect(player1.hand.length).toBe(initialHandSize + 1);
     });
@@ -479,13 +479,13 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         const lootCard = game.obtainCard("b2-pills_2") as LootCard;
         player1.hand.addToHand(lootCard);
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3; // Non-triggering value
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.hand.length).toBe(initialHandSize);
     });
@@ -499,20 +499,20 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         // Damage player first so they can heal
         game.dealDamage(player1, player1, holyDinga, 1);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         const initialHP = player1.currentHealthPoints;
         
         // Trigger a roll
         const lootCard = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(lootCard);   
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
         
-        await game.resolveStack(); // resolve the dice roll
-        await game.resolveStack(); // resolve holy_dinga effect
+        await game.actions.resolveStack(); // resolve the dice roll
+        await game.actions.resolveStack(); // resolve holy_dinga effect
         
         expect(player1.currentHealthPoints).toBe(initialHP + 1);
     });
@@ -524,18 +524,18 @@ describe("Monsters - Roll Triggered Effects", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, holyDinga);
         
         game.dealDamage(player1, player1, holyDinga, 1);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         const initialHP = player1.currentHealthPoints;
         
         const lootCard = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(lootCard);
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4; // Non-triggering value
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.currentHealthPoints).toBe(initialHP);
     });
@@ -557,9 +557,9 @@ describe("Monsters - Roll Triggered Effects", () => {
 
         // Activate the item
         await game.activateItem(player1, item);
-        await game.resolveStack(); // resolve cursed_psy_horf effect
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve item activation
+        await game.actions.resolveStack(); // resolve cursed_psy_horf effect
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve item activation
         
         expect(player1.currentHealthPoints).toBe(initialHP - 1);
     });
@@ -579,9 +579,9 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         // Player 2 activates the item
         await game.activateItem(player2, item);
-        await game.resolveStack(); // resolve item activation
-        await game.resolveStack(); // resolve cursed_psy_horf effect
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve item activation
+        await game.actions.resolveStack(); // resolve cursed_psy_horf effect
+        await game.actions.resolveStack(); // resolve damage
         
         expect(player2.currentHealthPoints).toBe(initialHP - 1);
     });
@@ -604,17 +604,17 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         // Activate first item
         await game.activateItem(player1, item1);
-        await game.resolveStack(); // resolve item activation
-        await game.resolveStack(); // resolve cursed_psy_horf effect
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve item activation
+        await game.actions.resolveStack(); // resolve cursed_psy_horf effect
+        await game.actions.resolveStack(); // resolve damage
         
         expect(player1.currentHealthPoints).toBe(initialHP - 1);
         
         // Activate second item
         await game.activateItem(player2, item2);
-        await game.resolveStack(); // resolve item activation
-        await game.resolveStack(); // resolve cursed_psy_horf effect
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve item activation
+        await game.actions.resolveStack(); // resolve cursed_psy_horf effect
+        await game.actions.resolveStack(); // resolve damage
         
         expect(player2.currentHealthPoints).toBe(initialHP - 1);
     });
@@ -632,22 +632,22 @@ describe("Monsters - Roll Triggered Effects", () => {
         // Add some extra effects to the stack that should be cancelled
         const extraCard = game.obtainCard("b2-pills_2") as LootCard;
         player1.hand.addToHand(extraCard);
-        game.playCard(player1, 0, []);
+        game.actions.playCard(player1, 0, []);
         
         // Active player (player1) rolls
         const lootCard = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(lootCard);
-        game.playCard(player1, 0, []);
-        await game.resolveStack(); // resolve pills play
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack(); // resolve pills play
         
         const dice = game.stack.elements[1] as DiceRoll;
         dice.value = 6;
         
         
-        await game.resolveStack(); // resolve the dice roll
-        await game.resolveStack(); // resolve cursed_moms_hand effect which clears stack and ends turn
+        await game.actions.resolveStack(); // resolve the dice roll
+        await game.actions.resolveStack(); // resolve cursed_moms_hand effect which clears stack and ends turn
         
-        await game.resolveStack(); // on turn end effect
+        await game.actions.resolveStack(); // on turn end effect
         
         expect(game.stack.size).toBe(0);
         // Stack should be cleared (the effect itself clears it) and turn should have ended
@@ -664,13 +664,13 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         const lootCard = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(lootCard);
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3; // Non-triggering value
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         // Turn should not end, player should still be active
         expect(game.currentPlayer).toBe(initialTurnPlayer);
@@ -694,20 +694,20 @@ describe("Monsters - Roll Triggered Effects", () => {
         const initialDC = game.monsters.map(m => m?.evasion || 0);
         
         // Declare attack
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, daddyMonster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, daddyMonster);
         
         game.addHealth(daddyMonster, 10);
         
         // Make attack roll
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         
         const dice = game.stack.elements[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 1; // Triggering value
         
-        await game.resolveStack(); // resolve the dice roll
-        await game.resolveStack(); // resolve daddy_long_legs effect
+        await game.actions.resolveStack(); // resolve the dice roll
+        await game.actions.resolveStack(); // resolve daddy_long_legs effect
         
         // Each monster should have +1 DC
         const currentDC = game.monsters.map(m => m?.evasion || 0);
@@ -727,18 +727,18 @@ describe("Monsters - Roll Triggered Effects", () => {
         const daddyMonster = game.monsters[0]!;
         const initialDC = game.monsters.map(m => m?.evasion || 0);
         
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, daddyMonster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, daddyMonster);
         
         game.addHealth(daddyMonster, 10);
         
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5; // Non-triggering value
         
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         const currentDC = game.monsters.map(m => m?.evasion || 0);
         initialDC.forEach((dcValue, index) => {

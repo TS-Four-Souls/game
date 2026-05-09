@@ -40,7 +40,7 @@ describe("Encounters", () => {
         verifyMonsters(game);
         getAndAddTopMonsterCard(game, "b2-mom");
         game.kill(player1, game.encounters.monsterIn(0)!, game.encounters.monsterIn(0)!.card);
-        game.resolveStack();
+        game.actions.resolveStack();
         verifyMonsters(game);
         expect(game.encounters.monsterIn(0)?.id).toBe("b2-mom");
         expect(game.encounters.visible[0]?.slug).toBe("b2-mom");
@@ -51,7 +51,7 @@ describe("Encounters", () => {
         getAndAddTopMonsterCard(game, "b2-holy_moms_eye");
         getAndAddTopMonsterCard(game, "b2-mom");
         game.encounters.flush();
-        game.resolveStack();
+        game.actions.resolveStack();
         verifyMonsters(game);
         expect(game.encounters.monsterIn(0)?.id).toBe("b2-mom");
         expect(game.encounters.visible[0]?.slug).toBe("b2-mom");
@@ -63,7 +63,7 @@ describe("Encounters", () => {
         verifyMonsters(game);
         getAndAddTopMonsterCard(game, "b2-mom");
         game.encounters.flushMonster(game.encounters.monsterIn(0)!);
-        game.resolveStack();
+        game.actions.resolveStack();
         verifyMonsters(game);
         expect(game.encounters.monsterIn(0)?.id).toBe("b2-mom");
         expect(game.encounters.visible[0]?.slug).toBe("b2-mom");

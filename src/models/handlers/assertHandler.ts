@@ -119,37 +119,5 @@ export class AssertHandler {
   ) {
       assertCardMatchesDeck(deckName, card);
   }
-  
-  
-  forcedAttackSatisfied(player: Player): void {
-    this.game.canDeclareAttack(player, false);
-    // Check if there's a forced attack constraint
-    if (!player.hasAttackRequirement) {
-      return; // No constraint, all good
-    }
-
-    // Check if player is dead - constraint doesn't apply
-    if (player.isDead) {
-      player.clearAttackRequirement();
-      return;
-    }
-
-    const requirement = player.mustAttackMonster!;
-
-    // Filter monsters that are still in play
-    const validMonsters = requirement.filter(
-      (req) => req.target === "topDeck" || req.target === "any" || req.target.some(target => this.game.monsters.includes(target))
-    );
-
-    if (validMonsters.length === 0) {
-      player.clearAttackRequirement(); // All monsters gone, constraint lifted
-      return;
-    }
-
-    // At least one monster constraint remains - must be satisfied
-    throw new Error(
-      "You must attack the required monster(s) before ending your turn"
-    );
-  }
 
 }

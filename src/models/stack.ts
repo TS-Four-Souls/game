@@ -42,7 +42,7 @@ export class Stack {
 
     /** Moves one stack element before another within the same reordering group. 
     */
-    private insertStackElementBefore(elementToMove: StackElement, targetElement: StackElement): void {
+    insertStackElementBefore(elementToMove: StackElement, targetElement: StackElement): void {
         if (elementToMove === targetElement) {
             return;
         }

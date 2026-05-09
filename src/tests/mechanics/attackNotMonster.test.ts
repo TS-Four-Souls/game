@@ -24,12 +24,12 @@ describe("Four Souls+2 Attack Requirements", () => {
     it("Attack a player.", async () => {
         player2.attackable = true;
         player2.evasion = 3;
-        game.declareAttack(player1);
+        game.actions.declareAttack(player1);
         game.random = () => 0.6;
-        game.declareAttackOnEntity(player1, player2);
-        game.attackRoll(player1);
-        await game.resolveStack(); // dice
-        await game.resolveStack(); // damage
+        game.actions.declareAttackOnEntity(player1, player2);
+        game.actions.attackRoll(player1);
+        await game.actions.resolveStack(); // dice
+        await game.actions.resolveStack(); // damage
         expect(player1.currentHealthPoints).toBe(2);
         expect(player2.currentHealthPoints).toBe(1);
     });
@@ -37,12 +37,12 @@ describe("Four Souls+2 Attack Requirements", () => {
     it("Attack a player and take damage.", async () => {
         player2.attackable = true;
         player2.evasion = 3;
-        game.declareAttack(player1);
+        game.actions.declareAttack(player1);
         game.random = () => 0.1;
-        game.declareAttackOnEntity(player1, player2);
-        game.attackRoll(player1);
-        await game.resolveStack(); // dice
-        await game.resolveStack(); // damage
+        game.actions.declareAttackOnEntity(player1, player2);
+        game.actions.attackRoll(player1);
+        await game.actions.resolveStack(); // dice
+        await game.actions.resolveStack(); // damage
         expect(player1.currentHealthPoints).toBe(1);
         expect(player2.currentHealthPoints).toBe(2);
     });

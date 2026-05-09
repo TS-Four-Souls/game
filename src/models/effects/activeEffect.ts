@@ -880,10 +880,10 @@ export function playForFreeTargetEffect(game: Game): EffectFunction {
         if (!card) return false;
         const previousLootPlay = data.issuer.remainingLootPlay;
         data.issuer.remainingLootPlay = 1;
-        if(TargetBuilder.validTargetExists(game, data.issuer as Player, card, "tap") === true && game.canPlayCard(data.issuer as Player, false) === true) {
+        if(TargetBuilder.validTargetExists(game, data.issuer as Player, card, "tap") === true && game.actions.canPlayCard(data.issuer as Player, false) === true) {
             const index = data.issuer.hand.cards.indexOf(card);
             const targets = await TargetBuilder.buildTargetsOnResolve(game, data.issuer as Player, card)
-            game.playCard(data.issuer as Player, index, targets);
+            game.actions.playCard(data.issuer as Player, index, targets);
         }
         data.issuer.remainingLootPlay = previousLootPlay;
         return true;
@@ -1096,7 +1096,7 @@ export function lookAtHandAndStealLootEffect(game: Game): EffectFunction {
 export function endTurnAndResetStackEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         game.currentPlayer.clearAttackRequirement();
-        game.cancelPurchase(game.currentPlayer, true);
+        game.actions.cancelPurchase(game.currentPlayer, true);
         game.resetStack();
         game.resetCallbacks();
         game.endCombat();

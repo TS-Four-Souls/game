@@ -42,8 +42,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const initialMonsterHP = monster.currentHealthPoints;
 
         // Declare an attack to trigger the effect
-        game.declareAttack(player1);
-        await game.resolveStack(); // Resolve any stack effects
+        game.actions.declareAttack(player1);
+        await game.actions.resolveStack(); // Resolve any stack effects
 
         expect(game.stack.elements.length).toBeGreaterThan(0);
         // Get the dice roll and set it to 1
@@ -54,8 +54,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         }
 
 
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Monster should take 1 damage
         expect(monster.currentHealthPoints).toBe(initialMonsterHP - 1);
@@ -70,8 +70,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const initialHP = player2.currentHealthPoints;
 
         // Declare an attack
-        game.declareAttack(player1);
-        await game.resolveStack(); // Resolve any stack effects
+        game.actions.declareAttack(player1);
+        await game.actions.resolveStack(); // Resolve any stack effects
 
         expect(game.stack.elements.length).toBeGreaterThan(0);
 
@@ -84,8 +84,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
             dice.value = 3;
         }
 
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Player2 should take 1 damage
         expect(player2.currentHealthPoints).toBe(initialHP - 1);
@@ -99,8 +99,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const initialHP = player1.currentHealthPoints;
 
         // Declare an attack
-        game.declareAttack(player1);
-        await game.resolveStack(); // Resolve any stack effects
+        game.actions.declareAttack(player1);
+        await game.actions.resolveStack(); // Resolve any stack effects
 
         expect(game.stack.elements.length).toBeGreaterThan(0);
 
@@ -110,8 +110,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
             dice.value = 5;
         }
 
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Player1 should take 1 damage
         expect(player1.currentHealthPoints).toBe(initialHP - 1);
@@ -128,7 +128,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         // Activate the battery
         game.recharge(battery);
         await game.activateItem(player1, battery);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // Player should gain 1¢
         expect(player1.coins).toBe(initialCoins + 1);
@@ -147,12 +147,12 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         // Activate both items
         game.recharge(battery1);
         await game.activateItem(player1, battery1);
-        await game.resolveStack();
-        await game.resolveStack(); // Resolve any stack effects
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // Resolve any stack effects
         game.recharge(battery2);
         await game.activateItem(player1, battery2); // gain 1 coin
-        await game.resolveStack(); // Resolve any stack effects
-        await game.resolveStack();
+        await game.actions.resolveStack(); // Resolve any stack effects
+        await game.actions.resolveStack();
 
         // Player should gain 2¢ (1¢ per activation)
         expect(player1.coins).toBe(initialCoins + 3);
@@ -172,8 +172,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const dice = game.rollDice(player2, false, dadsLostCoin);
         dice._TEST_setRandom( () => 0.6); // Force dice rolls to be 4
         
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(dice.value).not.toBe(1); // The dice should have been rerolled (value changed from 1)
         expect(dice.value).toBeGreaterThanOrEqual(1);
         expect(dice.value).toBeLessThanOrEqual(6);
@@ -193,7 +193,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         dice._TEST_setRandom( () => 0.6); // Force dice rolls to be 4
 
         game.addToStack(dice);
-        await game.resolveStack();
+        await game.actions.resolveStack();
 
         // The dice should still be 1
         expect(dice.value).toBe(1);
@@ -205,7 +205,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Kill player1
         game.kill(player2, player1, guppysCollar);
-        await game.resolveStack(); // Resolve any stack effects
+        await game.actions.resolveStack(); // Resolve any stack effects
 
         // Get the dice roll and set it to 2
         expect(game.stack.elements.length).toBeGreaterThan(0);
@@ -215,8 +215,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
             dice.value = 2;
         }
 
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Player should not be dead
         expect(game.stack.elements.length).toBe(0);
@@ -229,7 +229,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Kill player1
         game.kill(player2, player1, guppysCollar);
-        await game.resolveStack(); // Resolve any stack effects
+        await game.actions.resolveStack(); // Resolve any stack effects
 
         // Get the dice roll and set it to 5
         expect(game.stack.elements.length).toBeGreaterThan(0);
@@ -239,8 +239,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
             dice.value = 5;
         }
 
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Player should be dead
         expect(player1.isDead).toBe(true);
@@ -258,15 +258,15 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Kill the monster
         game.kill(player2, monster, midasTouch);
-        await game.resolveStack(); // death on stack
-        await game.resolveStack(); // gain coins
+        await game.actions.resolveStack(); // death on stack
+        await game.actions.resolveStack(); // gain coins
 
         // Player should gain 3¢ + fly = 1 coins
         expect(player1.coins).toBe(initialCoins + 3 + 1);
 
         // Kill the player
         game.kill(player2, player2, midasTouch);
-        await game.resolveStack(); // death on stack
+        await game.actions.resolveStack(); // death on stack
 
         // Player should gain 3¢
         expect(player1.coins).toBe(initialCoins + 3 + 1);
@@ -284,10 +284,10 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         game.kill(player2, monster1, midasTouch);
         game.kill(player2, monster2, midasTouch);
-        await game.resolveStack(); // death on stack
-        await game.resolveStack(); // gain coins
-        await game.resolveStack(); // death on stack
-        await game.resolveStack(); // gain coins
+        await game.actions.resolveStack(); // death on stack
+        await game.actions.resolveStack(); // gain coins
+        await game.actions.resolveStack(); // death on stack
+        await game.actions.resolveStack(); // gain coins
 
         // Player should gain 6¢ (3¢ per monster) // fly = 1 coin
         expect(player1.coins).toBe(initialCoins + 6 + 1);
@@ -301,8 +301,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Take damage
         game.dealDamage(player2, player1, fannyPack, 1);
-        await game.resolveStack();
-        await game.resolveStack(); // resolve on damage taken
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
 
         // Player should loot 1 card
         expect(player1.hand.length).toBe(initialHandSize + 1);
@@ -316,11 +316,11 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Take damage twice
         game.dealDamage(player2, player1, fannyPack, 1);
-        await game.resolveStack();
-        await game.resolveStack(); // resolve on damage taken
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
         game.dealDamage(player2, player1, fannyPack, 1);
-        await game.resolveStack();
-        await game.resolveStack(); // resolve on damage taken
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
 
         // Player should loot 2 cards (1 per damage instance)
         expect(player1.hand.length).toBe(initialHandSize + 2);
@@ -334,8 +334,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Take damage to trigger the effect
         game.dealDamage(player2, player1, curseOfTheTower, 1);
-        await game.resolveStack();
-        await game.resolveStack(); // resolve on damage taken
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
 
         // Get the dice roll from the stack and set it to 2
         if (game.stack.elements.length > 0) {
@@ -347,8 +347,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         }
 
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Player2 (other player) should take 1 damage
         expect(player2.currentHealthPoints).toBe(initialHP - 1);
@@ -365,8 +365,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Take damage to trigger the effect
         game.dealDamage(player2, player1, curseOfTheTower, 1);
-        await game.resolveStack();
-        await game.resolveStack(); // resolve on damage taken
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
 
         // Get the dice roll and set it to 5
         if (game.stack.elements.length > 0) {
@@ -377,8 +377,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
             }
         }
 
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Monster should take 1 damage
         expect(monster.currentHealthPoints).toBe(initialMonsterHP - 1);
@@ -392,8 +392,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Kill the player
         game.kill(player2, player1, greedsGullet);
-        await game.resolveStack();
-        await game.resolveStack(); // Resolve any stack effects
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // Resolve any stack effects
 
         // Player should gain 8¢ before paying penalties
         expect(player1.coins).toBeGreaterThanOrEqual(initialCoins + 6); // +8 - 2 for death penalties
@@ -407,8 +407,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Kill the player
         game.kill(player2, player1, suicideKing);
-        await game.resolveStack();
-        await game.resolveStack(); // Resolve any stack effects
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // Resolve any stack effects
 
         // Player should loot 3 cards before paying penalties
         expect(player1.hand.length).toBeGreaterThanOrEqual(initialHandSize + 2); // +3 - 1

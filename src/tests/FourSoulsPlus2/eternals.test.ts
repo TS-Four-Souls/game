@@ -9,8 +9,8 @@ async function characterAdd1LootPlay(player1: Player, game: Game) {
     const lootPlay = player1.remainingLootPlay;
     game.recharge(player1.inPlay[0] as ItemCard);
     await game.activateItem(player1, player1.inPlay[0]!, [], "tap");
-    await game.resolveStack();
-    await game.resolveStack();
+    await game.actions.resolveStack();
+    await game.actions.resolveStack();
     expect(player1.remainingLootPlay).toBe(lootPlay + 1);
 }
 
@@ -46,8 +46,8 @@ describe("Four Souls+2 Eternal Items", () => {
         return { selected: Options.slice(0, max), remaining: Options.slice(max) };
     };
         game.dealDamage(player1, player1, player1.inPlay[0]!, 1);
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.coins).toBe(coins + 2);
         await characterAdd1LootPlay(player1, game);
@@ -78,8 +78,8 @@ describe("Four Souls+2 Eternal Items", () => {
         return { selected: Options.slice(0, max), remaining: Options.slice(max) };
     };
         game.dealDamage(player1, player1, player1.inPlay[0]!, 1);
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.hand.cards.length).toBe(handSize);
         expect(player1.hand.cards).not.toContain(firstCard);
@@ -109,8 +109,8 @@ describe("Four Souls+2 Eternal Items", () => {
         return { selected: Options.slice(0, max), remaining: Options.slice(max) };
     };
         game.dealDamage(player1, player1, player1.inPlay[0]!, 1);
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.attackPoints).toBe(atk + 2);
         game.resolveEntireStack();
@@ -135,14 +135,14 @@ describe("Four Souls+2 Eternal Items", () => {
 
         const handSize = player1.hand.cards.length;
         game.kill(player2, player2, player1.inPlay[0]!);
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.hand.cards.length).toBe(handSize + 1);
 
         game.kill(player1, player1, player1.inPlay[0]!);
-        await game.resolveStack();
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.hand.cards.length).toBe(handSize); // doesn't trigger when the player itself dies.
     });
 
@@ -171,8 +171,8 @@ describe("Four Souls+2 Eternal Items", () => {
         {
             game.random = () => (val/ 6) - 0.0001; // ensure we roll a 6.
             const roll = await game.rollDice(player, false, player1.inPlay[0]!);
-            await game.resolveStack();
-            await game.resolveStack();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
             if(roll.value === 6)
             {
                 if(player1.coins !== coins+2)
@@ -209,7 +209,7 @@ describe("Four Souls+2 Eternal Items", () => {
         const firstCard = player1.hand.cards[0]!;
         game.recharge(player1.inPlay[1] as ItemCard);
         await game.activateItem(player1, player1.inPlay[1]!, [], "tap");
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.hand.cards.length).toBe(handSize + 1);
         expect(player1.hand.cards).not.toContain(firstCard);
 
@@ -233,7 +233,7 @@ describe("Four Souls+2 Eternal Items", () => {
         game.gainCoins(player1, 3, "gift");
         await game.activateItem(player1, player1.inPlay[1]!, [], 0);
         expect(player1.coins).toBe(0);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(initialLootPlay + 1);
     });
 
@@ -256,7 +256,7 @@ describe("Four Souls+2 Eternal Items", () => {
         const handSize = player1.hand.cards.length;
         await game.activateItem(player1, player1.inPlay[1]!, [], 1);
         expect(player1.coins).toBe(0);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.hand.cards.length).toBe(handSize + 1);
     });
 
@@ -279,8 +279,8 @@ describe("Four Souls+2 Eternal Items", () => {
         // deal damage to a player.
         const healthP2 = player2.currentHealthPoints;
         await game.activateItem(player1, player1.inPlay[1]!, [player2], 2);
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(healthP2 - 1);
         expect(player1.coins).toBe(0);
 
@@ -288,8 +288,8 @@ describe("Four Souls+2 Eternal Items", () => {
         game.gainCoins(player1, 6, "gift");
         const healthM = game.monsters[0]!.currentHealthPoints;
         await game.activateItem(player1, player1.inPlay[1]!, [game.monsters[0]!], 2);
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.monsters[0]!.currentHealthPoints).toBe(healthM - 1);
         expect(player1.coins).toBe(0);
 

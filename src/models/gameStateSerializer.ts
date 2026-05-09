@@ -55,7 +55,7 @@ export class GameStateSerializer {
       eternal: item.eternal,
       effects: item.activeEffectList,
       capabilities: {
-        activate: this.game.canActivate(item, owner),
+        activate: this.game.actions.canActivate(item, owner),
       },
       ...(item.entity ? {
               stats: {
@@ -64,7 +64,7 @@ export class GameStateSerializer {
                 evasionPoints: this.game.getDC(item.entity),
                 isEngagedInCombat: item.entity.isEngagedInCombat,
                 capabilities: {
-                  targetable: this.game.canDeclareAttackOnEntity(player, item.entity, false),
+                  targetable: this.game.actions.canDeclareAttackOnEntity(player, item.entity, false),
                 },
                 temporaryEffect: item.entity.temporaryEffects,
               }
@@ -77,7 +77,7 @@ export class GameStateSerializer {
       globalId: item.globalId,
       charged: item.charged || !item.activeEffectList.some(e => e.index === "tap"),
       capabilities: {
-        activate: this.game.canActivate(item, owner),
+        activate: this.game.actions.canActivate(item, owner),
       },
       counter: getCardCounter(item),
       eternal: item.eternal,
@@ -88,7 +88,7 @@ export class GameStateSerializer {
                 evasionPoints: this.game.getDC(item.entity),
                 isEngagedInCombat: item.entity.isEngagedInCombat,
                 capabilities: {
-                  targetable: this.game.canDeclareAttackOnEntity(player, item.entity, false),
+                  targetable: this.game.actions.canDeclareAttackOnEntity(player, item.entity, false),
                 },
                 temporaryEffect: item.entity.temporaryEffects,
               }
@@ -104,7 +104,7 @@ export class GameStateSerializer {
       eternal: false,
       effects: curse.activeEffectList,
       capabilities: {
-        activate: this.game.canActivate(curse, owner),
+        activate: this.game.actions.canActivate(curse, owner),
       },
       ...(curse.entity ? {
               stats: {
@@ -113,7 +113,7 @@ export class GameStateSerializer {
                 evasionPoints: this.game.getDC(curse.entity),
                 isEngagedInCombat: curse.entity.isEngagedInCombat,
                 capabilities: {
-                  targetable: this.game.canDeclareAttackOnEntity(player, curse.entity, false),
+                  targetable: this.game.actions.canDeclareAttackOnEntity(player, curse.entity, false),
                 },
                 temporaryEffect: curse.entity.temporaryEffects,
               }
@@ -140,13 +140,13 @@ export class GameStateSerializer {
         numberOfCardsOverMaxHandSize: Math.max(0, player.hand.cards.length - this.game.gameParameters.maxHandSize.value),
         pendingSelection: getPendingSelectionDetailsForPlayer(player.id),
         capabilities: {
-          endTurn: this.game.canEndTurn(player),
-          declareAttack: this.game.canDeclareAttack(player),
-          declarePurchase: this.game.canDeclarePurchase(player),
-          rollDice: this.game.canRollDice(player),
-          buyTreasure: this.game.canPurchase(player),
-          useLoot: this.game.canPlayCard(player),
-          resolve: this.game.canResolve(),
+          endTurn: this.game.actions.canEndTurn(player),
+          declareAttack: this.game.actions.canDeclareAttack(player),
+          declarePurchase: this.game.actions.canDeclarePurchase(player),
+          rollDice: this.game.actions.canRollDice(player),
+          buyTreasure: this.game.actions.canPurchase(player),
+          useLoot: this.game.actions.canPlayCard(player),
+          resolve: this.game.actions.canResolve(),
           canDonateCoins: this.game.gameParameters.allowCoinDonation.value ? true : "Giving coins is not allowed in this game.",
         }
       },
@@ -168,14 +168,14 @@ export class GameStateSerializer {
           isEngagedInPurchase: p.isEngagedInPurchase,
           attackRequirements: p.requirementListJSON(this.game),
           pendingSelection: this.game.pendingMultipleSelections.values().some(sel => sel.playerId === p.id),
-          targetable: this.game.canDeclareAttackOnEntity(player, p, false),
+          targetable: this.game.actions.canDeclareAttackOnEntity(player, p, false),
         })),
       monsters:
       {
         discard: this.game.decks["monster"]!.discard.map((c) => c.jsonAPI).toReversed(),
         deckSize: this.game.decks["monster"]!.cards.length,
         capabilities: {
-          targetableDeck: this.game.canDeclareAttackOnEntity(player, "topDeck", false),
+          targetableDeck: this.game.actions.canDeclareAttackOnEntity(player, "topDeck", false),
         },
         inPlay: this.game.encounters._slots.map((m, index) => ({ card: m[m.length - 1]!, monster: this.game.encounters.monsterIn(index), covered: this.game.encounters._slots[index]!.slice(0, -1).map(c => c.jsonAPI) })).map((m) => ({
 
@@ -190,7 +190,7 @@ export class GameStateSerializer {
                 evasionPoints: this.game.getDC(m.monster),
                 isEngagedInCombat: m.monster.isEngagedInCombat,
                 capabilities: {
-                  targetable: this.game.canDeclareAttackOnEntity(player, m.monster, false),
+                  targetable: this.game.actions.canDeclareAttackOnEntity(player, m.monster, false),
                 },
                 temporaryEffect: m.monster.temporaryEffects,
               }

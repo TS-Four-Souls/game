@@ -39,20 +39,20 @@ describe("Monsters - Various 2", () => {
         if(!game.stack.isEmpty())
             console.log(game.stack._stack[0]?.json);
         expect(game.stack.isEmpty()).toBe(true);
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
         
         for(let i=0; i<3; i++) {
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             const dice = game.stack._stack[0] as DiceRoll;
             expect(dice).toBeInstanceOf(DiceRoll);
             dice.value = 1;
 
             game.gainCoins(player1, 10, "gift"); // Give some coins to lose
             const init = player1.coins;
-            await game.resolveStack(); // dice
-            await game.resolveStack(); // damage
-            await game.resolveStack(); // effect
+            await game.actions.resolveStack(); // dice
+            await game.actions.resolveStack(); // damage
+            await game.actions.resolveStack(); // effect
             
             expect(game.stack.isEmpty()).toBe(true);
             expect(player1.coins).toBe(init - 2);
@@ -67,20 +67,20 @@ describe("Monsters - Various 2", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
         
         for(let i=0; i<3; i++) {
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             const dice = game.stack._stack[0] as DiceRoll;
             expect(dice).toBeInstanceOf(DiceRoll);
             dice.value = 1;
 
             game.loot(player1, 3); // Give some cards to lose
             const init = player1.hand.length;
-            await game.resolveStack(); // dice
-            await game.resolveStack(); // damage
-            await game.resolveStack(); // effect
+            await game.actions.resolveStack(); // dice
+            await game.actions.resolveStack(); // damage
+            await game.actions.resolveStack(); // effect
 
             expect(game.stack.isEmpty()).toBe(true);
             expect(player1.hand.length).toBe(init - 1);
@@ -95,26 +95,26 @@ describe("Monsters - Various 2", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         game.dealDamage(player1, monster, card, monster.currentHealthPoints - 1); // Reduce to 1 HP
-        await game.resolveStack(); // damage
+        await game.actions.resolveStack(); // damage
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
         
         for(let i=0; i<3; i++) {
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             const dice = game.stack._stack[0] as DiceRoll;
             expect(dice).toBeInstanceOf(DiceRoll);
             dice.value = 1;
 
             const init = monster.currentHealthPoints;
-            await game.resolveStack(); // dice
-            await game.resolveStack(); // damage
-            await game.resolveStack(); // effect
+            await game.actions.resolveStack(); // dice
+            await game.actions.resolveStack(); // damage
+            await game.actions.resolveStack(); // effect
 
             expect(game.stack.isEmpty()).toBe(true);
             expect(monster.currentHealthPoints).toBe(init + 1);
             game.dealDamage(player1, monster, card, monster.currentHealthPoints - 1); // Reduce to 1 HP
-            await game.resolveStack(); // damage
+            await game.actions.resolveStack(); // damage
         }
     });
 
@@ -125,24 +125,24 @@ describe("Monsters - Various 2", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         game.dealDamage(player1, monster, card, monster.currentHealthPoints - 1); // Reduce to 1 HP
-        await game.resolveStack(); // damage
+        await game.actions.resolveStack(); // damage
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
         
         for(let i=0; i<3; i++) {
             game.addHealth(player1, 10); // Prevent death by damage
             game.addHealth(player2, 10); // Prevent death by damage
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             const dice = game.stack._stack[0] as DiceRoll;
             expect(dice).toBeInstanceOf(DiceRoll);
             dice.value = 1;
 
             const init = player2.currentHealthPoints;
-            await game.resolveStack(); // dice
-            await game.resolveStack(); // damage
-            await game.resolveStack(); // effect
-            await game.resolveStack(); // damage to p2
+            await game.actions.resolveStack(); // dice
+            await game.actions.resolveStack(); // damage
+            await game.actions.resolveStack(); // effect
+            await game.actions.resolveStack(); // damage to p2
 
             expect(game.stack.isEmpty()).toBe(true);
             expect(player2.currentHealthPoints).toBe(init - 1);
@@ -159,22 +159,22 @@ describe("Monsters - Various 2", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         game.dealDamage(player1, monster, card, monster.currentHealthPoints - 1); // Reduce to 1 HP
-        await game.resolveStack(); // damage
+        await game.actions.resolveStack(); // damage
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
         
         for(let i=0; i<3; i++) {
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             const dice = game.stack._stack[0] as DiceRoll;
             expect(dice).toBeInstanceOf(DiceRoll);
             dice.value = 1;
 
             const init = player1.coins;
             const init2 = player2.coins;
-            await game.resolveStack(); // dice
-            await game.resolveStack(); // damage
-            await game.resolveStack(); // effect
+            await game.actions.resolveStack(); // dice
+            await game.actions.resolveStack(); // damage
+            await game.actions.resolveStack(); // effect
             
             expect(game.stack.isEmpty()).toBe(true);
             expect(player1.coins).toBe(init - 4);
@@ -189,50 +189,50 @@ describe("Monsters - Various 2", () => {
 
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
         
         // ATTACK 1 ~ NO DOUBLE DAMAGE
         const baseDamage = game.getAttack(monster);
         let init = player1.currentHealthPoints;
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         let dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 2; // should do normal damage
 
-        await game.resolveStack(); // dice
-        await game.resolveStack(); // effect
-        await game.resolveStack(); // damage
+        await game.actions.resolveStack(); // dice
+        await game.actions.resolveStack(); // effect
+        await game.actions.resolveStack(); // damage
         
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.currentHealthPoints).toBe(init - baseDamage);
 
         // ATTACK 2 ~ DOUBLE DAMAGE
         init = player1.currentHealthPoints;
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 1; // should do double damage
 
-        await game.resolveStack(); // dice
-        await game.resolveStack(); // effect
-        await game.resolveStack(); // damage
+        await game.actions.resolveStack(); // dice
+        await game.actions.resolveStack(); // effect
+        await game.actions.resolveStack(); // damage
         
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.currentHealthPoints).toBe(init - baseDamage * 2);
 
         // ATTACK 3 ~ INCREASED ATTACK DOUBLE DAMAGE
         init = player1.currentHealthPoints;
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         game.addAttack(monster, 2); // increase attack to test base damage calculation via entities
         monster.addAttackPoints(2);
         dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 1; // should do double damage
 
-        await game.resolveStack(); // dice
-        await game.resolveStack(); // effect
-        await game.resolveStack(); // damage
+        await game.actions.resolveStack(); // dice
+        await game.actions.resolveStack(); // effect
+        await game.actions.resolveStack(); // damage
         
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.currentHealthPoints).toBe(init - baseDamage * 2 - 8); // baseDamage increased by 4, then doubled
@@ -245,50 +245,50 @@ describe("Monsters - Various 2", () => {
 
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
         
         // ATTACK 1 ~ NO DOUBLE DAMAGE
         const baseDamage = game.getAttack(monster);
         let init = player1.currentHealthPoints;
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         let dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 1; // should do normal damage
 
-        await game.resolveStack(); // dice
-        await game.resolveStack(); // effect
-        await game.resolveStack(); // damage
+        await game.actions.resolveStack(); // dice
+        await game.actions.resolveStack(); // effect
+        await game.actions.resolveStack(); // damage
         
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.currentHealthPoints).toBe(init - baseDamage);
 
         // ATTACK 2 ~ DAMAGE + 1
         init = player1.currentHealthPoints;
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 2; // should do double damage
 
-        await game.resolveStack(); // dice
-        await game.resolveStack(); // effect
-        await game.resolveStack(); // damage
+        await game.actions.resolveStack(); // dice
+        await game.actions.resolveStack(); // effect
+        await game.actions.resolveStack(); // damage
         
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.currentHealthPoints).toBe(init - baseDamage - 1);
 
         // ATTACK 3 ~ INCREASED ATTACK DOUBLE DAMAGE
         init = player1.currentHealthPoints;
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         game.addAttack(monster, 2); // increase attack to test base damage calculation via entities
         monster.addAttackPoints(2);
         dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 2; // should do double damage
 
-        await game.resolveStack(); // dice
-        await game.resolveStack(); // effect
-        await game.resolveStack(); // damage
+        await game.actions.resolveStack(); // dice
+        await game.actions.resolveStack(); // effect
+        await game.actions.resolveStack(); // damage
         
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.currentHealthPoints).toBe(init - baseDamage - 1 - 4); // baseDamage increased by 4, then doubled
@@ -301,16 +301,16 @@ describe("Monsters - Various 2", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
     
-        game.declareAttack(player1);
+        game.actions.declareAttack(player1);
         game.addHealth(player1, 10); // Prevent death by damage
         const init = player1.currentHealthPoints;
         const chara = player1.inPlay[0]! as ItemCard;
 
         game.recharge(chara);
         await game.activateItem(player1, chara, []); // Activate first item
-        await game.resolveStack(); // item activation
-        await game.resolveStack(); // effect
-        await game.resolveStack(); // damage
+        await game.actions.resolveStack(); // item activation
+        await game.actions.resolveStack(); // effect
+        await game.actions.resolveStack(); // damage
 
         expect(game.stack._stack.length).toBe(0); // effect to deal damage
         expect(player1.currentHealthPoints).toBe(init - 1);
@@ -327,7 +327,7 @@ describe("Monsters - Various 2", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
 
         expect(game.stack._stack.length).toBe(1); 
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack._stack.length).toBe(0); 
         expect(player1.coins).toBe(coin1);
         expect(player2.coins).toBe(0);
@@ -344,7 +344,7 @@ describe("Monsters - Various 2", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
 
         expect(game.stack._stack.length).toBe(1); 
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack._stack.length).toBe(0); 
         expect(player1.coins).toBe(0);
         expect(player2.coins).toBe(coin2);
@@ -361,12 +361,12 @@ describe("Monsters - Various 2", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
 
-        game.declareAttack(player1);
+        game.actions.declareAttack(player1);
         expect(game.stack._stack.length).toBe(0); 
-        await game.declareAttackOnEntity(player1, monster);
+        await game.actions.declareAttackOnEntity(player1, monster);
         expect(game.stack._stack.length).toBe(1); 
 
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack._stack.length).toBe(0); 
         expect(player1.hand.length).toBe(loot1-2);
         expect(player2.hand.length).toBe(loot2);
@@ -380,16 +380,16 @@ describe("Monsters - Various 2", () => {
         const monster = game.monsters[0]!;
 
         expect(game.currentPlayer).toBe(player1);
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
 
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         const dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 6; // should cancel everything and end turn
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack._stack.length).toBe(0); 
         expect(game.currentPlayer.id).toBe(player2.id);
     });
@@ -401,33 +401,33 @@ describe("Monsters - Various 2", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
         const init = monster.currentHealthPoints;
 
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         let dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 6; 
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack.peek()).toBeInstanceOf(DiceRoll);
         (game.stack.peek() as DiceRoll).value = 1; // Prevent damage
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack._stack.length).toBe(0); 
         expect(monster.currentHealthPoints).toBe(init);
 
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 6; 
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack.peek()).toBeInstanceOf(DiceRoll);
         (game.stack.peek() as DiceRoll).value = 2; // Prevent damage
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack._stack.length).toBe(0); 
         expect(monster.currentHealthPoints).toBe(init-1);
     });
@@ -439,19 +439,19 @@ describe("Monsters - Various 2", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
 
         const init = player1.currentHealthPoints;
 
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         let dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 6; 
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
 
         expect(game.stack._stack.length).toBe(0);
         expect(player1.currentHealthPoints).toBe(init - 1);
@@ -464,21 +464,21 @@ describe("Monsters - Various 2", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
 
         game.addHealth(monster, 100); // Prevent death by damage
         const init = game.getDC(monster);
 
         for(let i=0; i<10; i++)
         {
-            game.attackRoll(player1);
+            game.actions.attackRoll(player1);
             const dice = game.stack._stack[0] as DiceRoll;
             expect(dice).toBeInstanceOf(DiceRoll);
             dice.value = 6; 
-            await game.resolveStack(); // resolve dice
-            await game.resolveStack(); // resolve damage
-            await game.resolveStack(); // resolve damage
+            await game.actions.resolveStack(); // resolve dice
+            await game.actions.resolveStack(); // resolve damage
+            await game.actions.resolveStack(); // resolve damage
             expect(game.stack._stack.length).toBe(0);
             expect(game.getDC(monster)).toBe(Math.min(6, init + Math.floor((i+1)/2)));
         }

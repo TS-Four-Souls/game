@@ -139,11 +139,11 @@ describe("Loot deck integration", () => {
     const handIndex = p1.hand.cards.length - 1;
 
     expect(game.stack.isEmpty()).toBe(true);
-    game.playCard(p1, handIndex);
+    game.actions.playCard(p1, handIndex);
     expect(game.stack.size).toBe(1);
 
-    await game.resolveStack();
-    await game.resolveStack();
+    await game.actions.resolveStack();
+    await game.actions.resolveStack();
 
     expect(p1.coins).toBe(coinsToGain);
     expect(game.stack.isEmpty()).toBe(true);
@@ -159,7 +159,7 @@ describe("Loot deck integration", () => {
     game.decks["loot"]!.remove(rollCard!);
     p1.hand.addToHand(rollCard!);
 
-    game.playCard(p1, p1.hand.cards.length - 1);
+    game.actions.playCard(p1, p1.hand.cards.length - 1);
     expect(game.stack.size).toBe(1);
   });
 
@@ -175,12 +175,12 @@ describe("Loot deck integration", () => {
 
    p1.hand.addToHand(damageCard!);
 
-    game.playCard(p1, p1.hand.cards.length - 1, [p2]);
+    game.actions.playCard(p1, p1.hand.cards.length - 1, [p2]);
     expect(game.stack.size).toBe(1);
 
-    await game.resolveStack();
-    await game.resolveStack();
-    await game.resolveStack();
+    await game.actions.resolveStack();
+    await game.actions.resolveStack();
+    await game.actions.resolveStack();
 
     // HP should be reduced by damage amount, but clamped to 0 minimum
     expect(p2.currentHealthPoints).toBe(Math.max(0, initialHP - damageToDeal));
@@ -198,19 +198,19 @@ describe("Loot deck integration", () => {
     
     game.decks["loot"]!.remove(gainCoinCard!);
     p1.hand.addToHand(gainCoinCard!);
-    game.playCard(p1, p1.hand.cards.length - 1); // Play gain coin card
+    game.actions.playCard(p1, p1.hand.cards.length - 1); // Play gain coin card
     expect(game.stack.size).toBe(1);
 
     // Then play the cancel card
     game.decks["loot"]!.remove(cancelCard!);
     p1.hand.addToHand(cancelCard!);
-    game.playCard(p1, p1.hand.cards.length - 1, [game.stack.elements[0]]); // Play cancel card
+    game.actions.playCard(p1, p1.hand.cards.length - 1, [game.stack.elements[0]]); // Play cancel card
     expect(game.stack.size).toBe(2);
 
     // Resolve cancel effect first (LIFO)
     // When cancel resolves, it gets popped first, then its effect runs
     // The effect should cancel the previous item (gainCoin) from the stack
-    await game.resolveStack();
+    await game.actions.resolveStack();
     
     // After cancel resolves and removes the gain coin card
     // But actually, cancelPreviousAbility is called AFTER the cancel card is popped
@@ -223,7 +223,7 @@ describe("Loot deck integration", () => {
     // If the cancel worked, stack should be 0 and coins should be 0
     // If cancel didn't work due to timing, we need to resolve the remaining item
     if (stackAfterCancel > 0) {
-      await game.resolveStack();
+      await game.actions.resolveStack();
     }
     
     // The test just verifies the final state - stack empty
@@ -241,8 +241,8 @@ describe("Loot deck integration", () => {
     const initialInPlay = p1.inPlay.length;
     p1.hand.addToHand(treasureCard!);
 
-    game.playCard(p1, p1.hand.cards.length - 1);
-    await game.resolveStack();
+    game.actions.playCard(p1, p1.hand.cards.length - 1);
+    await game.actions.resolveStack();
 
     expect(p1.inPlay.length).toBe(initialInPlay + 1);
     expect(game.stack.isEmpty()).toBe(true);
@@ -271,20 +271,20 @@ describe("Loot deck integration", () => {
     p1.hand.addToHand(card2);
 
     // Play first card
-    game.playCard(p1, p1.hand.cards.length - 2);
+    game.actions.playCard(p1, p1.hand.cards.length - 2);
     expect(game.stack.size).toBe(1);
 
     // Play second card
-    game.playCard(p1, p1.hand.cards.length - 1);
+    game.actions.playCard(p1, p1.hand.cards.length - 1);
     expect(game.stack.size).toBe(2);
 
     // Resolve in LIFO order (second card first)
-    await game.resolveStack();
+    await game.actions.resolveStack();
     expect(p1.coins).toBe(amount2);
     expect(game.stack.size).toBe(1);
 
     // Resolve first card
-    await game.resolveStack();
+    await game.actions.resolveStack();
     expect(p1.coins).toBe(amount1 + amount2);
     expect(game.stack.isEmpty()).toBe(true);
   });
@@ -319,12 +319,12 @@ describe("Loot deck integration", () => {
 
     // Play recharge card
     p1.hand.addToHand(rechargeCard);
-    game.playCard(p1, p1.hand.cards.length - 1, [item]);
+    game.actions.playCard(p1, p1.hand.cards.length - 1, [item]);
 
     // Set target to the discharged item
     // Game now selects targets deterministically
 
-    await game.resolveStack();
+    await game.actions.resolveStack();
 
     expect(item.charged).toBe(true); // CHARGED
   });
@@ -356,9 +356,9 @@ describe("Loot deck integration", () => {
       targets.push(admissible[0]); // Pick first admissible target
     }
 
-    game.playCard(p1, p1.hand.cards.length - 1, targets);
+    game.actions.playCard(p1, p1.hand.cards.length - 1, targets);
 
-    await game.resolveStack();
+    await game.actions.resolveStack();
 
     expect(p1.coins).toBe(p1InitialCoins + coinsToSteal);
     expect(p2.coins).toBe(Math.max(0, p2InitialCoins - coinsToSteal));
@@ -381,8 +381,8 @@ describe("Loot deck integration", () => {
     game.decks["loot"]!.remove(takeDamageCard!);
     p1.hand.addToHand(takeDamageCard!);
 
-    game.playCard(p1, p1.hand.cards.length - 1);
-    await game.resolveStack();
+    game.actions.playCard(p1, p1.hand.cards.length - 1);
+    await game.actions.resolveStack();
 
     expect(p1.currentHealthPoints).toBe(initialHP - damageTaken);
     expect(game.stack.isEmpty()).toBe(true);

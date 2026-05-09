@@ -9,8 +9,8 @@
 //     const lootPlay = player1.remainingLootPlay;
 //     game.recharge(player1.inPlay[0] as ItemCard);
 //     await game.activateItem(player1, player1.inPlay[0]!, [], "tap");
-//     await game.resolveStack();
-//     await game.resolveStack();
+//     await game.actions.resolveStack();
+//     await game.actions.resolveStack();
 //     expect(player1.remainingLootPlay).toBe(lootPlay + 1);
 // }
 
@@ -42,20 +42,20 @@
 //         eternal.tags.counters = 3;
 //         game.recharge(player1.inPlay[1] as ItemCard);
 //         await game.activateItem(player1, eternal, [], 0);
-//         await game.resolveStack();
-//         await game.resolveStack();
+//         await game.actions.resolveStack();
+//         await game.actions.resolveStack();
 //         expect(player1.attackPoints).toBe(3);
 //         game.recharge(player1.inPlay[1] as ItemCard);
 //         await game.activateItem(player1, eternal, [], 0);
-//         await game.resolveStack();
-//         await game.resolveStack();
+//         await game.actions.resolveStack();
+//         await game.actions.resolveStack();
 //         expect(player1.attackPoints).toBe(3);
 //         await characterAdd1LootPlay(player1, game);
 
 //         game.recharge(player1.inPlay[1] as ItemCard);
 //         await game.activateItem(player1, eternal, [], 0    );
-//         await game.resolveStack();
-//         await game.resolveStack();
+//         await game.actions.resolveStack();
+//         await game.actions.resolveStack();
 //         expect(player1.attackPoints).toBe(4);
 //         await characterAdd1LootPlay(player1, game);
 //     });

@@ -42,7 +42,7 @@ describe("Event Monsters - Other Events", () => {
         };
         // Draw the event to trigger its effect
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
         
         // Check that player looted 1 card
         expect(player1.hand.length).toBe(initialHandSize + 1);
@@ -69,25 +69,25 @@ describe("Event Monsters - Other Events", () => {
         
         // Draw the event to trigger its effect
         game.monsterSlots.discardTop(0);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         // Player should be forced to attack the monster deck 2 additional times
         expect(player1.mustAttackMonster.length).toBe(initialAttacks + 2);
-        await expect(game.nextTurn(player1)).rejects.toThrow();
+        await expect(game.actions.nextTurn(player1)).rejects.toThrow();
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, "topDeck", 0);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         game.kill(player1, game.monsters[0]!, ambush);
-        game.resolveStack();
+        game.actions.resolveStack();
         
         expect(player1.mustAttackMonster.length).toBe(initialAttacks + 1);
         expect(player1.isEngagedInCombat).toBe(false);
-        await expect(game.nextTurn(player1)).rejects.toThrow();
+        await expect(game.actions.nextTurn(player1)).rejects.toThrow();
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, "topDeck", 0);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         game.kill(player1, game.monsters[0]!, ambush);
-        game.resolveStack();
+        game.actions.resolveStack();
 
         expect(player1.mustAttackMonster.length).toBe(initialAttacks);
         expect(player1.isEngagedInCombat).toBe(false);
@@ -101,24 +101,24 @@ describe("Event Monsters - Other Events", () => {
         
         
         // Draw the event to trigger its effect
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, "topDeck", 0);
-        await game.resolveStack();
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
+        await game.actions.resolveStack();
         
         // Player should be forced to attack the monster deck 2 additional times
         expect(player1.mustAttackMonster.length).toBe(initialAttacks + 1);
-        await expect(game.nextTurn(player1)).rejects.toThrow();
+        await expect(game.actions.nextTurn(player1)).rejects.toThrow();
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, "topDeck", 0);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         game.kill(player1, game.monsters[0]!, ambush);
-        game.resolveStack();
+        game.actions.resolveStack();
         
         expect(player1.mustAttackMonster.length).toBe(0);
         expect(player1.isEngagedInCombat).toBe(false);
         expect(player1.mustAttackMonster.length).toBe(initialAttacks);
         expect(player1.isEngagedInCombat).toBe(false);
-        await expect(game.nextTurn(player1)).resolves.toBeUndefined();
+        await expect(game.actions.nextTurn(player1)).resolves.toBeUndefined();
     });
 
     // b2-mega_troll_bomb: Each player takes 2 damage!
@@ -131,11 +131,11 @@ describe("Event Monsters - Other Events", () => {
         
         // Draw the event to trigger its effect
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
-        await game.resolveStack();
-        await game.resolveStack();
-        await game.resolveStack(); // damage resolution for player1
-        await game.resolveStack(); // damage resolution for player2
+        await game.actions.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // damage resolution for player1
+        await game.actions.resolveStack(); // damage resolution for player2
         
         expect(player1.currentHealthPoints).toBe(initialHP1 - 2);
         expect(player2.currentHealthPoints).toBe(initialHP2 - 2);
@@ -151,9 +151,9 @@ describe("Event Monsters - Other Events", () => {
         
         // Draw the event to trigger its effect
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
-        await game.resolveStack();
-        await game.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // damage resolution
         
         expect(player1.currentHealthPoints).toBe(initialHP1 - 2);
         expect(player2.currentHealthPoints).toBe(initialHP2); // player2 should not take damage
@@ -192,7 +192,7 @@ describe("Event Monsters - Other Events", () => {
         // Draw the event to trigger its effect
         game.monsterSlots.discardTop(0);
         
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
         
         // Check that monsters were moved from discard to top of deck
         // Note: exact ordering depends on game.select() which we're not mocking here
@@ -221,8 +221,8 @@ describe("Event Monsters - Other Events", () => {
         
         // Draw the event
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
-        await game.resolveStack();
+        await game.actions.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack();
         
         // Note: This test assumes the card might grant additional attack
         // If the card only does the discard manipulation, this would need adjustment
@@ -238,7 +238,7 @@ describe("Event Monsters - Other Events", () => {
         
         // Draw the event to trigger its effect
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
         
         // Check that player got an additional attack
         expect(player1.attackThisTurn).toBe(initialAttacks + 1);
@@ -252,7 +252,7 @@ describe("Event Monsters - Other Events", () => {
         
         // Draw the event to trigger its effect
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
         
         // Check that player got an additional attack
         expect(player1.attackThisTurn).toBe(initialAttacks + 1);
@@ -270,8 +270,8 @@ describe("Event Monsters - Other Events", () => {
             return { selected: options.slice(0, max), remaining: options.slice(max) };
         };
         const effect = game.stack._stack[game.stack._stack.length - 1] as EffectOnStack;
-        await game.resolveStack(); // resolve the event addition
-        await game.resolveStack();
+        await game.actions.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack();
         
         // The event should be in discard
         expect(game.decks["monster"]!.discard.some(c => c.slug === "b2-devil_deal")).toBe(true);
@@ -290,9 +290,9 @@ describe("Event Monsters - Other Events", () => {
         // Draw the event
         game.monsterSlots.discardTop(0);
         const effect = game.stack._stack[game.stack._stack.length - 1] as EffectOnStack;
-        await game.resolveStack(); // resolve the event addition
-        await game.resolveStack();
-        await game.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // damage resolution
         
         expect(player1.hand.length).toBe(initialHandSize + 2);
         expect(player1.currentHealthPoints).toBe(initialHP - 1);
@@ -318,12 +318,12 @@ describe("Event Monsters - Other Events", () => {
         // Draw the event
         game.monsterSlots.discardTop(0);
         const effect = game.stack._stack[game.stack._stack.length - 1] as EffectOnStack;
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
         game.select = async <T>(player: Player, min: number, max: number, options: T[], description?: string) => {
             // Simulate selecting the first option (put into discard)
             return { selected: options.slice(0, max), remaining: options.slice(max) };
         };     
-        await game.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); // damage resolution
         expect(player1.currentHealthPoints).toBe(initialHP - 2);
         expect(player1.inPlay.filter(c => c instanceof TreasureCard).length).toBe(initialTreasures + 1);
         expect(player1.inPlay.some(c => c.isGuppy())).toBe(true);

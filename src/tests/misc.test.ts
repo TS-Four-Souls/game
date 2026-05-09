@@ -182,8 +182,8 @@ describe("Bonus Soul effects", () => {
         player1.hand.addToHand(guppyItem1);
         game.addInPlay(player1, guppyItem2);
         expect(player1.totalSouls).toBe(initSoul);
-        game.playCard(player1, 0); // Play guppy's hairball
-        await game.resolveStack();
+        game.actions.playCard(player1, 0); // Play guppy's hairball
+        await game.actions.resolveStack();
         expect(player1.totalSouls).toBe(initSoul + 1);
     });
 });

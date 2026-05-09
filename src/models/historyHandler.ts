@@ -64,7 +64,7 @@ function isGameAction(entry: HistoricEntry): boolean {
          "Start", 
          "Reset",
          "Rollback", 
-          "SubmitSelection",
+        "SubmitSelection",
          "InsertStackElementBefore", 
          "DebugListLoot", 
          "DebugListMonsterDeck",

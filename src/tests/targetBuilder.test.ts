@@ -89,9 +89,9 @@ describe("Target Builder Interface", () => {
     if (item.isActiveItem()) {
       game.recharge(item);
     }
-    game.declareAttack(player1);
-    await game.declareAttackOnEntity(player1, game.encounters.monsterIn(0)!);
-    game.attackRoll(player1);
+    game.actions.declareAttack(player1);
+    await game.actions.declareAttackOnEntity(player1, game.encounters.monsterIn(0)!);
+    game.actions.attackRoll(player1);
     expect(TargetBuilder.validTargetExists(game, player1, item, "tap")).toBe(true);
   });
 
@@ -418,7 +418,7 @@ describe("Target Builder Interface", () => {
       ]);
 
       await game.activateItem(player1, chaosCard, targets);
-      await game.resolveStack();
+      await game.actions.resolveStack();
       // Verify the item was destroyed
       expect(
         player2.inPlay.find((i) => i.slug === targetItem.slug),
@@ -464,7 +464,7 @@ describe("Target Builder Interface", () => {
         chosenOption,
       ]);
       await game.activateItem(player1, bloodLust, targets);
-      await game.resolveStack();
+      await game.actions.resolveStack();
     }
   });
 });

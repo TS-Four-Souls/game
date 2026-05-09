@@ -31,10 +31,10 @@ describe("Monsters - Various 1", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, bigSpider);
         const spiderMonster = game.monsters[0]!;
         
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, spiderMonster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, spiderMonster);
         
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
         let roll = game.stack._stack[0] as DiceRoll;
         if(!(roll instanceof DiceRoll)) {
@@ -42,15 +42,15 @@ describe("Monsters - Various 1", () => {
         }
         // Force the roll to be 4
         roll.value = 4;
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
         
         expect(game.stack._stack.length).toBe(0);
         // No damage should be dealt
         expect(spiderMonster.currentHealthPoints).toBe(spiderMonster.card.healthPoints);
 
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
         roll = game.stack._stack[0] as DiceRoll;
         if(!(roll instanceof DiceRoll)) {
@@ -58,24 +58,24 @@ describe("Monsters - Various 1", () => {
         }
         // Force the roll to be 5
         roll.value = 5;
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
         
         expect(game.stack._stack.length).toBe(0);
         // No damage should be dealt
         expect(spiderMonster.currentHealthPoints).toBe(spiderMonster.card.healthPoints);
 
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
         roll = game.stack._stack[0] as DiceRoll;
         if(!(roll instanceof DiceRoll)) {
             throw new Error("Expected a DiceRoll on the stack.");
         }
         roll.value = 6;
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
         
         expect(game.stack._stack.length).toBe(0);
         // No damage should be dealt
@@ -89,19 +89,19 @@ describe("Monsters - Various 1", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         const initAtk = monster.attackPoints;
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
         
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
         let roll = game.stack._stack[0] as DiceRoll;
         if(!(roll instanceof DiceRoll)) {
             throw new Error("Expected a DiceRoll on the stack.");
         }
         roll.value = 6;
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack._stack.length).toBe(0);
         // No damage should be dealt
         expect(monster.attackPoints).toBe(initAtk + 1);
@@ -115,19 +115,19 @@ describe("Monsters - Various 1", () => {
         const monster = game.monsters[0]!;
         const initAtk = monster.attackPoints;
         game.dealDamage(player1, monster, card, 1);
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack._stack.length).toBe(0);
         expect(monster.attackPoints).toBe(initAtk + 1);
         
         game.dealDamage(player1, monster, card, 1);
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack._stack.length).toBe(0);
         expect(monster.attackPoints).toBe(initAtk + 2);
 
-        await game.nextTurn(player1);
-        await game.resolveStack(); // resolve effect
+        await game.actions.nextTurn(player1);
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack._stack.length).toBe(0);
 
         expect(monster.attackPoints).toBe(initAtk);
@@ -150,10 +150,10 @@ describe("Monsters - Various 1", () => {
         expect(monster.evasion).toBe(4);
         expect(otherMonster.evasion).toBe(initEvasion + 1);
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, otherMonster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, otherMonster);
         
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
         let roll = game.stack._stack[0] as DiceRoll;
         if(!(roll instanceof DiceRoll)) {
@@ -161,9 +161,9 @@ describe("Monsters - Various 1", () => {
         }
         // Force the roll to be 4 (should miss because of evasion +1)
         roll.value = initEvasion;
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
         
         expect(game.stack._stack.length).toBe(0);
         // No damage should be dealt
@@ -171,9 +171,9 @@ describe("Monsters - Various 1", () => {
         expect(player1.currentHealthPoints).toBe(player1.healthPoints - 1); // took 1 damage for failed attack
 
         game.kill(player1, monster, card);
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve effect
-        game.attackRoll(player1);
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve effect
+        game.actions.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
         roll = game.stack._stack[0] as DiceRoll;
         if(!(roll instanceof DiceRoll)) {
@@ -181,9 +181,9 @@ describe("Monsters - Various 1", () => {
         }
         // Force the roll to be 4 (should miss because of evasion +1)
         roll.value = initEvasion;
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
         
         expect(game.stack._stack.length).toBe(0);
         // No damage should be dealt
@@ -203,10 +203,10 @@ describe("Monsters - Various 1", () => {
         const monster = game.monsters[0]!;
         expect(otherMonster.evasion).toBe(initEvasion + 1);
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, otherMonster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, otherMonster);
         
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
         let roll = game.stack._stack[0] as DiceRoll;
         if(!(roll instanceof DiceRoll)) {
@@ -214,9 +214,9 @@ describe("Monsters - Various 1", () => {
         }
         // Force the roll to be 4 (should miss because of evasion +1)
         roll.value = initEvasion;
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
         
         expect(game.stack._stack.length).toBe(0);
         // No damage should be dealt
@@ -227,11 +227,11 @@ describe("Monsters - Various 1", () => {
 
         game.kill(player1, monster, card);
         
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve effect
         expect(game.encounters.visible[0]!.slug).toBe("b2-gurdy"); // sanity check
 
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
         roll = game.stack._stack[0] as DiceRoll;
         if(!(roll instanceof DiceRoll)) {
@@ -242,12 +242,12 @@ describe("Monsters - Various 1", () => {
 
         expect(game.stack._stack.length).toBe(1);
 
-        await game.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve dice
         expect(game.stack._stack.length).toBe(1);
         expect(game.stack._stack[0]).toBeInstanceOf(DamageOnStack);
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
         expect(game.stack._stack.length).toBe(0);
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
         expect(game.stack._stack.length).toBe(0);
         // No damage should be dealt
         expect(otherMonster.currentHealthPoints).toBe(otherMonster.card.healthPoints - 1);
@@ -265,10 +265,10 @@ describe("Monsters - Various 1", () => {
         expect(monster.isDead).toBe(false);
 
         game.kill(player1, otherMonster, otherMonster.card);
-        await game.resolveStack(); // resolve death
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve effect
 
         expect(monster.isDead).toBe(true);
     });
@@ -281,8 +281,8 @@ describe("Monsters - Various 1", () => {
 
         const monster = game.monsters[0]!;
         expect(monster.attackable).toBe(false);
-        game.declareAttack(player1);
-        await expect(game.declareAttackOnEntity(player1, monster)).rejects.toThrowError(
+        game.actions.declareAttack(player1);
+        await expect(game.actions.declareAttackOnEntity(player1, monster)).rejects.toThrowError(
         "This entity cannot be attacked."
         );
     });
@@ -292,8 +292,8 @@ describe("Monsters - Various 1", () => {
         expect(card).toBeInstanceOf(MonsterCard);
         game.decks["monster"]?.addTopPosition(card);
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, "topDeck", 0);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         const monster = game.encounters.monsterIn(0)!;
         expect(monster.attackable).toBe(false);
         expect(player1.isEngagedInCombat).toBe(false);
@@ -350,21 +350,21 @@ describe("Monsters - Various 1 - 3 players", () => {
         const initHPPlayer2 = player2.currentHealthPoints;
         const initHPPlayer3 = player3.currentHealthPoints;
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
         
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
         let roll = game.stack._stack[0] as DiceRoll;
         if(!(roll instanceof DiceRoll)) {
             throw new Error("Expected a DiceRoll on the stack.");
         }
         roll.value = 6;
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
         
         expect(game.stack._stack.length).toBe(0);
         // Damage should be dealt to both monster and player2
@@ -387,12 +387,12 @@ describe("Monsters - Various 1 - 3 players", () => {
         const initHPPlayer3 = player3.currentHealthPoints;
 
         game.endTurn(); // to player2
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
         game.dealDamage(monster, monster, card, 1);
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
         
         expect(game.stack._stack.length).toBe(0);
         // Damage should be dealt to both monster and player2
@@ -413,21 +413,21 @@ describe("Monsters - Various 1 - 3 players", () => {
         const initHPPlayer2 = player2.currentHealthPoints;
         const initHPPlayer3 = player3.currentHealthPoints;
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
         
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
         let roll = game.stack._stack[0] as DiceRoll;
         if(!(roll instanceof DiceRoll)) {
             throw new Error("Expected a DiceRoll on the stack.");
         }
         roll.value = 6;
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
         
         expect(game.stack._stack.length).toBe(0);
         // Damage should be dealt to both monster and player2
@@ -450,14 +450,14 @@ describe("Monsters - Various 1 - 3 players", () => {
         const initHPPlayer3 = player3.currentHealthPoints;
 
         game.endTurn(); // to player2
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
         game.endTurn(); // to player2
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
         game.dealDamage(monster, monster, card, 1);
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
         
         expect(game.stack._stack.length).toBe(0);
         // Damage should be dealt to both monster and player2
@@ -476,8 +476,8 @@ describe("Monsters - Various 1 - 3 players", () => {
         expect(monster.attackPoints).toBe(card.attackPoints);
 
         game.dealDamage(player1, monster, card, card.healthPoints -1);
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve effect
         
         expect(game.getAttack(monster)).toBe(card.attackPoints + 1);
         game.heal(monster, 1);
@@ -485,21 +485,21 @@ describe("Monsters - Various 1 - 3 players", () => {
         expect(game.getAttack(monster)).toBe(card.attackPoints);
 
         game.dealDamage(player1, monster, card, 1);
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve effect
         
         expect(game.getAttack(monster)).toBe(card.attackPoints + 1);
         game.addHealth(player1, 10);
         const initHealth = player1.currentHealthPoints;
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
-        game.attackRoll(player1);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
+        game.actions.attackRoll(player1);
         const dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 1; // fail
-        await game.resolveStack(); // Dice
-        await game.resolveStack(); // Damage
+        await game.actions.resolveStack(); // Dice
+        await game.actions.resolveStack(); // Damage
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.currentHealthPoints).toBe(initHealth - 2);
     });
@@ -513,8 +513,8 @@ describe("Monsters - Various 1 - 3 players", () => {
         expect(game.getDC(monster)).toBe(card.evasion);
 
         game.dealDamage(player1, monster, card, monster.currentHealthPoints -1);
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve effect
         
         expect(game.getDC(monster)).toBe(card.evasion + 2);
         game.heal(monster, 1);
@@ -522,21 +522,21 @@ describe("Monsters - Various 1 - 3 players", () => {
         expect(game.getDC(monster)).toBe(card.evasion);
 
         game.dealDamage(player1, monster, card, 1);
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve effect
         
         expect(game.getDC(monster)).toBe(card.evasion + 2);
         game.addHealth(player1, 10);
         const initHealth = player1.currentHealthPoints;
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
-        game.attackRoll(player1);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
+        game.actions.attackRoll(player1);
         const dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = monster.card.evasion + 1;
-        await game.resolveStack(); // Dice
-        await game.resolveStack(); // Damage
+        await game.actions.resolveStack(); // Dice
+        await game.actions.resolveStack(); // Damage
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.currentHealthPoints).toBeLessThan(initHealth);
     });
@@ -550,15 +550,15 @@ describe("Monsters - Various 1 - 3 players", () => {
         expect(game.getDC(monster)).toBe(card.evasion);
 
         game.dealDamage(player1, monster, card, card.healthPoints -2);
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve effect
         
         expect(game.getDC(monster)).toBe(card.evasion + 1);
         game.heal(monster, 1);
         expect(game.getDC(monster)).toBe(card.evasion);
         game.dealDamage(player1, monster, card, card.healthPoints -2);
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve effect
         
         expect(game.getDC(monster)).toBe(card.evasion + 1);
         game.heal(monster, 2);
@@ -567,21 +567,21 @@ describe("Monsters - Various 1 - 3 players", () => {
         expect(game.getDC(monster)).toBe(card.evasion);
 
         game.dealDamage(player1, monster, card, 1);
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve effect
         
         expect(game.getDC(monster)).toBe(card.evasion + 1);
         game.addHealth(player1, 10);
         const initHealth = player1.currentHealthPoints;
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
-        game.attackRoll(player1);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
+        game.actions.attackRoll(player1);
         const dice = game.stack._stack[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = monster.card.evasion;
-        await game.resolveStack(); // Dice
-        await game.resolveStack(); // Damage
+        await game.actions.resolveStack(); // Dice
+        await game.actions.resolveStack(); // Damage
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.currentHealthPoints).toBeLessThan(initHealth);
     });
@@ -600,20 +600,20 @@ describe("Monsters - Various 1 - 3 players", () => {
         const initHPPlayer2 = player2.currentHealthPoints;
         const initHPPlayer3 = player3.currentHealthPoints;
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
         
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
         let roll = game.stack._stack[0] as DiceRoll;
         if(!(roll instanceof DiceRoll)) {
             throw new Error("Expected a DiceRoll on the stack.");
         }
         roll.value = 1;
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
 
         expect(game.stack._stack.length).toBe(0);
         // Damage should be dealt to both monster and player2
@@ -632,27 +632,27 @@ describe("Monsters - Various 1 - 3 players", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
 
         game.endTurn(); // to player2
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
 
         const monster = game.monsters[0]!;
         const initHPPlayer1 = player1.currentHealthPoints;
         const initHPPlayer2 = player2.currentHealthPoints;
         const initHPPlayer3 = player3.currentHealthPoints;
 
-        game.declareAttack(player2);
-        await game.declareAttackOnEntity(player2, monster);
+        game.actions.declareAttack(player2);
+        await game.actions.declareAttackOnEntity(player2, monster);
         
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         expect(game.stack._stack.length).toBe(1);
         let roll = game.stack._stack[0] as DiceRoll;
         if(!(roll instanceof DiceRoll)) {
             throw new Error("Expected a DiceRoll on the stack.");
         }
         roll.value = 1;
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
 
         expect(game.stack._stack.length).toBe(0);
         // Damage should be dealt to both monster and player2
@@ -673,7 +673,7 @@ describe("Monsters - Various 1 - 3 players", () => {
 
         
         game.endTurn(); // to player2
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
         
 
         const monster = game.monsters[0]!;
@@ -682,20 +682,20 @@ describe("Monsters - Various 1 - 3 players", () => {
         const initHPPlayer2 = player2.currentHealthPoints;
         const initHPPlayer3 = player3.currentHealthPoints;
 
-        game.declareAttack(player2);
-        await game.declareAttackOnEntity(player2, monster);
+        game.actions.declareAttack(player2);
+        await game.actions.declareAttackOnEntity(player2, monster);
         
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         expect(game.stack._stack.length).toBe(1);
         let roll = game.stack._stack[0] as DiceRoll;
         if(!(roll instanceof DiceRoll)) {
             throw new Error("Expected a DiceRoll on the stack.");
         }
         roll.value = 6;
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
 
         expect(game.stack._stack.length).toBe(0);
         // Damage should be dealt to both monster and player2
@@ -704,15 +704,15 @@ describe("Monsters - Various 1 - 3 players", () => {
         expect(player3.currentHealthPoints).toBe(initHPPlayer3-1);
 
 
-        game.attackRoll(player2);
+        game.actions.attackRoll(player2);
         expect(game.stack._stack.length).toBe(1);
         roll = game.stack._stack[0] as DiceRoll;
         if(!(roll instanceof DiceRoll)) {
             throw new Error("Expected a DiceRoll on the stack.");
         }
         roll.value = 5;
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve effect
 
         expect(game.stack._stack.length).toBe(0);
         // Damage should be dealt to both monster and player2
@@ -735,20 +735,20 @@ describe("Monsters - Various 1 - 3 players", () => {
         const initHPPlayer2 = player2.currentHealthPoints;
         const initHPPlayer3 = player3.currentHealthPoints;
 
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, monster);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
         
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
         let roll = game.stack._stack[0] as DiceRoll;
         if(!(roll instanceof DiceRoll)) {
             throw new Error("Expected a DiceRoll on the stack.");
         }
         roll.value = 6;
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve effect
-        await game.resolveStack(); // resolve damage
-        await game.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
 
         expect(game.stack._stack.length).toBe(0);
         // Damage should be dealt to both monster and player2
@@ -757,15 +757,15 @@ describe("Monsters - Various 1 - 3 players", () => {
         expect(player3.currentHealthPoints).toBe(initHPPlayer3);
 
 
-        game.attackRoll(player1);
+        game.actions.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
         roll = game.stack._stack[0] as DiceRoll;
         if(!(roll instanceof DiceRoll)) {
             throw new Error("Expected a DiceRoll on the stack.");
         }
         roll.value = 5;
-        await game.resolveStack(); // resolve dice
-        await game.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve dice
+        await game.actions.resolveStack(); // resolve effect
 
         expect(game.stack._stack.length).toBe(0);
         // Damage should be dealt to both monster and player2

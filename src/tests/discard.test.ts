@@ -31,21 +31,21 @@ describe("Discard", () => {
     it("discard card on play", async () => {
         game.addCardToHand(player1, game.obtainCard("b2-a_dime")! as LootCard);
         game.addCardToHand(player1, game.obtainCard("b2-a_nickel")! as LootCard);
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
         game.addLootPlay(player1, 1);
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
         expect(game.decks['loot']!.discard.length).toBe(0);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
         expect(game.decks['loot']!.discard.length).toBe(1);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(game.decks['loot']!.discard.length).toBe(2);
     });
     
     it("discard trinket on play", async () => {
         game.addCardToHand(player1, game.obtainCard("b2-swallowed_penny")! as LootCard);
-        game.playCard(player1, 0);
+        game.actions.playCard(player1, 0);
         expect(game.decks['loot']!.discard.length).toBe(0);
         await game.resolveEntireStack();
         expect(game.stack.size).toBe(0);
@@ -60,8 +60,8 @@ describe("Discard", () => {
     it("curse discard", async () => {
         const card: MonsterCard = game.obtainCard("b2-curse_of_loss") as MonsterCard;
         game.decks['monster']!.addTopPosition(card);
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, "topDeck", 0);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         await game.resolveEntireStack();
         expect(game.decks['loot']!.discard.length).toBe(0);
         expect(game.decks['monster']!.discard.length).toBe(0);
@@ -81,16 +81,16 @@ describe("Discard", () => {
         const card2: MonsterCard = game.obtainCard("b2-moms_hand") as MonsterCard;
         const ewaz: LootCard = game.obtainCard("b2-ehwaz") as LootCard;
         game.decks['monster']!.addTopPosition(card2);
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, "topDeck", 0);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         const mobster = game.monsters[0]!;
         game.kill(mobster, player1, ewaz);
-        await game.resolveStack();
+        await game.actions.resolveStack();
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
         game.addCardToHand(player2, ewaz);
-        game.playCard(player2, player2.hand.length - 1);
-        game.resolveStack();
+        game.actions.playCard(player2, player2.hand.length - 1);
+        game.actions.resolveStack();
         expect(game.encounters.visible[0]!.slug).not.toBe("b2-moms_hand");
     });
 
@@ -100,8 +100,8 @@ describe("Discard", () => {
         const gurdy = game.decks['monster']!.getCardFromSlug("b2-gurdy") as MonsterCard;
         game.decks['monster']!.addTopPosition(gurdy);
         
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, "topDeck", 0);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         
         const monster = game.monsters[0]!;
         const monsterCard = monster.card;
@@ -131,8 +131,8 @@ describe("Discard", () => {
         const initialDiscardSize = game.decks['monster']!.discard.length;
         
         // Attack and kill the monster
-        game.declareAttack(player1);
-        await game.declareAttackOnEntity(player1, "topDeck", 0);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         
         const monster = game.monsters[0]!;
         game.kill(player1, monster, monsterCard);

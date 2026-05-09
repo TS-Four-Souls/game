@@ -34,13 +34,13 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         // Discard existing monster and draw the chest event
         game.monsterSlots.discardTop(0);
         expect(game.stack.size).toBe(1);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
         
         const dice = game.stack.elements[0] as DiceRoll;
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 1;
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 1);
     });
 
@@ -51,11 +51,11 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialCoins = player1.coins;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3;
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 3);
     });
 
@@ -66,12 +66,12 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialCoins = player1.coins;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 6);
     });
 
@@ -83,12 +83,12 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialHandSize = player1.hand.length;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.hand.length).toBe(initialHandSize + 1);
     });
 
@@ -99,12 +99,12 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialHandSize = player1.hand.length;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4;
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.hand.length).toBe(initialHandSize + 2);
     });
 
@@ -115,12 +115,12 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialHandSize = player1.hand.length;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.hand.length).toBe(initialHandSize + 3);
     });
 
@@ -132,13 +132,13 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialHP = player1.currentHealthPoints;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
         
-        await game.resolveStack();
-        await game.resolveStack(); // damage resolution
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // damage resolution
         expect(player1.currentHealthPoints).toBe(initialHP - 1);
     });
 
@@ -149,13 +149,13 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialHP = player1.currentHealthPoints;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5;
         
-        await game.resolveStack();
-        await game.resolveStack(); // damage resolution
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // damage resolution
         expect(player1.currentHealthPoints).toBe(initialHP - 2);
     });
 
@@ -170,12 +170,12 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.inPlay.filter(c => c instanceof TreasureCard).length).toBe(initialTreasures + 1);
         expect(player1.inPlay.find(c => c.slug === "b2-guppys_head")).toBeDefined();
         // Search the treasure deck for a Guppy item, gain it, then shuffle the treasure deck.
@@ -189,13 +189,13 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialHandSize = player1.hand.length;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
         
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.hand.length).toBe(initialHandSize + 1);
     });
 
@@ -206,12 +206,12 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialCoins = player1.coins;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4;
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 3);
     });
 
@@ -222,13 +222,13 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialHP = player1.currentHealthPoints;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
         
-        await game.resolveStack();
-        await game.resolveStack(); // damage resolution
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // damage resolution
         expect(player1.currentHealthPoints).toBe(initialHP - 2);
     });
 
@@ -240,12 +240,12 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialCoins = player1.coins;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 1);
     });
 
@@ -256,12 +256,12 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialHandSize = player1.hand.length;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3;
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.hand.length).toBe(initialHandSize + 2);
     });
 
@@ -272,13 +272,13 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialHP = player1.currentHealthPoints;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5;
         
-        await game.resolveStack();
-        await game.resolveStack(); // damage resolution
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // damage resolution
         expect(player1.currentHealthPoints).toBe(initialHP - 2);
     });
 
@@ -291,12 +291,12 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.inPlay.filter(c => c instanceof TreasureCard).length).toBe(initialTreasures + 1);
         expect(player1.inPlay).toContain(topTreasure);
     });
@@ -308,12 +308,12 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialCoins = player1.coins;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3;
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 5);
     });
 
@@ -324,12 +324,12 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialCoins = player1.coins;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 7);
     });
 
@@ -342,12 +342,12 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.inPlay.filter(c => c instanceof TreasureCard).length).toBe(initialTreasures + 1);
         expect(player1.inPlay).toContain(topTreasure);
     });
@@ -359,12 +359,12 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialHandSize = player1.hand.length;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4;
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.hand.length).toBe(initialHandSize + 1);
     });
 
@@ -375,12 +375,12 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialHandSize = player1.hand.length;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 5;
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.hand.length).toBe(initialHandSize + 2);
     });
 
@@ -392,13 +392,13 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialHP = player1.currentHealthPoints;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 1;
         
-        await game.resolveStack();
-        await game.resolveStack(); // damage resolution
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // damage resolution
         expect(player1.currentHealthPoints).toBe(initialHP - 3);
     });
 
@@ -411,13 +411,13 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialHandSize = player1.hand.length;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
         
-        await game.resolveStack();
-        await game.resolveStack(); // discard resolution
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // discard resolution
         
         expect(player1.hand.length).toBe(initialHandSize - 2);
     });
@@ -429,12 +429,12 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialCoins = player1.coins;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 4;
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 7);
     });
 
@@ -446,12 +446,12 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
         const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
         
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.inPlay.filter(c => c instanceof TreasureCard).length).toBe(initialTreasures + 1);
         expect(player1.inPlay).toContain(topTreasure);
     });
@@ -494,7 +494,7 @@ describe("Event Monsters - Expansion Effects", () => {
         const initialMonsterSlots = game.monsterSlots.slots.length;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
         
         expect(game.monsterSlots.slots.length).toBe(initialMonsterSlots + 1);
     });
@@ -507,7 +507,7 @@ describe("Event Monsters - Expansion Effects", () => {
         const initialShopSlots = game.shop.itemsInShop.length;
         
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
         expect(game.shop.itemsInShop.length).toBe(initialShopSlots + 2);
     });
 
@@ -521,8 +521,8 @@ describe("Event Monsters - Expansion Effects", () => {
         
         // Kill the monster
         game.kill(player1, monster, mom);
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         expect(game.monsterSlots._slots.length).toBe(initialMonsterSlots + 1);
     });
@@ -537,8 +537,8 @@ describe("Event Monsters - Expansion Effects", () => {
         
         // Kill the monster
         game.kill(player1, monster, mulligan);
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         expect(game.monsterSlots.slots.length).toBe(initialMonsterSlots + 1);
     });
@@ -553,8 +553,8 @@ describe("Event Monsters - Expansion Effects", () => {
         
         // Kill the monster
         game.kill(player1, monster, hanger);
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         expect(game.shop.itemsInShop.length).toBe(initialShopSlots + 1);
     });
@@ -598,14 +598,14 @@ describe("Event Monsters - Curse Effects", () => {
         const initialHandSize = player1.hand.length;
         
         // Draw the curse to trigger its effect
-        game.declareAttack(game.currentPlayer);
-        await game.declareAttackOnEntity(game.currentPlayer, "topDeck", 0);
-        await game.resolveStack(); // resolve the event addition
+        game.actions.declareAttack(game.currentPlayer);
+        await game.actions.declareAttackOnEntity(game.currentPlayer, "topDeck", 0);
+        await game.actions.resolveStack(); // resolve the event addition
         
         // End player's turn to trigger curse effect
         game.endTurn();
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.hand.length).toBe(initialHandSize - 2);
         expect(game.monsterSlots._slots[0]).not.toBe(curseOfAmnesia); // Curse should not be in monster slot
@@ -621,14 +621,14 @@ describe("Event Monsters - Curse Effects", () => {
         const initialHandSize = player1.hand.length;
         
         // Draw the curse to trigger its effect
-        game.declareAttack(game.currentPlayer);
-        await game.declareAttackOnEntity(game.currentPlayer, "topDeck", 0);
-        await game.resolveStack(); // resolve the event addition
+        game.actions.declareAttack(game.currentPlayer);
+        await game.actions.declareAttackOnEntity(game.currentPlayer, "topDeck", 0);
+        await game.actions.resolveStack(); // resolve the event addition
         
         // End player's turn to trigger curse effect
         game.endTurn();
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.hand.length).toBe(initialHandSize - 2);
         // expect(false).toBe(true);
@@ -646,11 +646,11 @@ describe("Event Monsters - Curse Effects", () => {
         
         // Draw the curse to trigger its effect
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
         
         // End player's turn to trigger curse effect
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.coins).toBe(initialCoins - 4);
     });
@@ -668,14 +668,14 @@ describe("Event Monsters - Curse Effects", () => {
         
         // Draw the curse
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
         
         // Kill the player
         game.kill(player1, player1, curseOfLoss);
-        await game.resolveStack(); // death resolution
+        await game.actions.resolveStack(); // death resolution
         const effect = game.stack._stack[0] as EffectOnStack ;
         effect.targets = [soulCard]; // Choose soul to destroy
-        await game.resolveStack(); // curse effect resolution
+        await game.actions.resolveStack(); // curse effect resolution
         
         expect(player1.souls.length).toBe(initialSouls - 1);
     });
@@ -689,16 +689,16 @@ describe("Event Monsters - Curse Effects", () => {
         
         // Draw the curse
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
         
         // Start next turn to trigger curse effect
         game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.currentHealthPoints).toBe(initialHP );
         game.endTurn();
-        await game.resolveStack();
-        await game.resolveStack();
-        await game.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.currentHealthPoints).toBe(initialHP - 1);
     });
@@ -714,7 +714,7 @@ describe("Event Monsters - Curse Effects", () => {
         
         // Draw the curse
         game.monsterSlots.discardTop(0);
-        await game.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
         
         // Check DC during player1's turn
         const currentDC = fly.evasion;
@@ -722,7 +722,7 @@ describe("Event Monsters - Curse Effects", () => {
         
         // Check DC during player2's turn
         await game.endTurn();
-        await game.resolveStack();
+        await game.actions.resolveStack();
         const dcOnOtherTurn = fly.evasion;
         expect(game.currentPlayer.id).toBe(player2.id);
         expect(dcOnOtherTurn).toBe(originalDC);

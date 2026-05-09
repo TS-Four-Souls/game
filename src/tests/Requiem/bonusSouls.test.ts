@@ -40,22 +40,22 @@ describe("Four Souls+2 Loot Cards", () => {
         game.addCardToHand(player1, soul1);
         game.addCardToHand(player1, soul2);
         game.addCardToHand(player1, soul3);
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         expect(player1.totalSouls).toBe(1);
         expect(player1.souls.map(c => c.slug)).not.toContain("r-soul_of_envy");
         expect(player2.totalSouls).toBe(0);
         expect(player2.souls.map(c => c.slug)).not.toContain("r-soul_of_envy");
 
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         expect(player1.totalSouls).toBe(2);
         expect(player1.souls.map(c => c.slug)).not.toContain("r-soul_of_envy");
         expect(player2.totalSouls).toBe(0);
         expect(player2.souls.map(c => c.slug)).not.toContain("r-soul_of_envy");
 
-        game.playCard(player1, 0, []);
-        await game.resolveStack();
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         expect(player1.totalSouls).toBe(3);
         expect(player1.souls.map(c => c.slug)).not.toContain("r-soul_of_envy");
         await Promise.resolve(); // Wait for any pending promises (like selection) to resolve
@@ -70,7 +70,7 @@ it("Soul of Lust - each time a player kills a monster, put a counter on this. - 
         }
         for(let i=0; i<6; i++) {
             game.kill(player1, game.monsters[0]!, player1.inPlay[0]!);
-            await game.resolveStack();
+            await game.actions.resolveStack();
             expect(game.currentPlayer.totalSouls).toBe((i === 5 ? 1 : 0));
             await game.endTurn();
         }
@@ -92,7 +92,7 @@ it("Soul of Wrath - each time a player dies, put a counter on this. - 6 counters
 
         for(let i=0; i<6; i++) {
             game.kill(player1, game.currentPlayer, player1.inPlay[0]!);
-            await game.resolveStack();
+            await game.actions.resolveStack();
             expect(game.currentPlayer.totalSouls).toBe((i === 5 ? 1 : 0));
             await game.endTurn();
         }
