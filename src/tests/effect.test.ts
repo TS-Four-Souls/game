@@ -349,7 +349,7 @@ describe("Loot deck integration", () => {
     p1.hand.addToHand(stealCard!);
 
     // Get the selectors and select target
-    const selectors = game.getSelectors(p1, stealCard! as any);
+    const selectors = stealCard.getTargetSelectors();
     const targets: any[] = [];
     for (const selector of selectors) {
       const admissible = selector.selector(p1);

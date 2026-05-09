@@ -54,8 +54,10 @@ import { GameEventEmitter } from "./eventEmmitter";
 import { GameParameters } from "./gameParameters";
 import { HistoricHandler, type HistoricEntry } from "./historyHandler";
 import type { ServerRoomBroadcast } from "./roomBroadcast";
+import { GameStateSerializer } from "./gameStateSerializer";
 import { TurnHandler } from "./turnHandler";
 import { edenGame, miniDraft } from "./variants";
+import { SelectionHandler } from "./selection";
 // Type representing sources of damage - either a card ability or a dice roll
 export type DamageSource = Card | DiceRoll;
 
@@ -66,7 +68,7 @@ export const CARD_SETS = LoadsCardSets(CARDS);
  * The Game class is the central hub of the game logic, managing the state of the game, players, monsters, decks, shop, encounters, stack, and more. 
  * It also handles all player actions such as declaring attacks, dealing damage, resolving deaths, and managing the game history. 
  */
-export class Game {
+export class Game extends SelectionHandler {
   private _players: Player[] = [];
   private _turnHandler: TurnHandler = new TurnHandler();
   private _random: () => number = () => {throw new Error("Random generator not initialized yet.");};
@@ -88,7 +90,8 @@ export class Game {
   private _animatedList: AnimatedList = new AnimatedList();
   private _isWon: boolean = false;
   private _entitiesInCombat: Entity[] = [];
-  readonly gameParameters = new GameParameters(() => this._onStateChange.dispatch());
+  private _gameStateSerializer: GameStateSerializer;
+  readonly gameParameters = new GameParameters(() => this.dispatch());
 
   private _onStateChange: Signal<void> = new Signal();
   onStateChange: ReadableSignal<void> = this._onStateChange.readOnly();
@@ -97,9 +100,11 @@ export class Game {
   onRoomBroadcast: ReadableSignal<ServerRoomBroadcast> = this._onRoomBroadcast.readOnly();
 
   constructor(seed: string = "") {
+    super();
     this.seed = seed; // if seed is empty, it will be set to a random value.
     this._decks = createEmptyDecksCollection(this.random);
     this._emitter = new GameEventEmitter();
+    this._gameStateSerializer = new GameStateSerializer(this);
   }
 /*
  * Check if that game is started.
@@ -227,6 +232,9 @@ export class Game {
     this._historicHandler.addToHistory(entry);
   }
 
+  dispatch(): void {
+    this.dispatch();
+  }
   /**
    * Load history after loading a game.
    */
@@ -337,7 +345,7 @@ export class Game {
           throw new Error(`Card ${card.name} is of type ${card.type} which cannot be removed with debugRemoveCards.`);
       }
     }
-    this._onStateChange.dispatch();
+    this.dispatch();
     this._onRoomBroadcast.dispatch({
       type: "warning",
       title: `${player.id} used a cheat to discard ${cards.length} card(s).`,
@@ -395,7 +403,7 @@ export class Game {
     }
     this.addTopPosition("monster", card);
     this.encounters.draw(index);
-    this._onStateChange.dispatch();
+    this.dispatch();
     this._onRoomBroadcast.dispatch({
       type: "warning",
       title: `${player.id} used a cheat to summon a monster card.`,
@@ -403,6 +411,8 @@ export class Game {
       players: this.players.map((p) => p.id),
     });
   }
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
   /**
    * Finds the owner of a soul or in-play item card.
    */
@@ -515,7 +525,7 @@ export class Game {
         this.discardFromHandAtIndex(player, player.hand._hand.indexOf(loot));
       }
     }
-    this._onStateChange.dispatch();
+    this.dispatch();
   }
 
   /**
@@ -593,7 +603,7 @@ export class Game {
       });
       this.addSoul(this.currentPlayer, card);
     } else this.discard(card);
-    this._onStateChange.dispatch();
+    this.dispatch();
   }
 
   /**
@@ -658,7 +668,7 @@ export class Game {
         target: from,
         source: source,
       });
-      this._onStateChange.dispatch();
+      this.dispatch();
       // if(receiver instanceof Player && this.currentPlayer === receiver)
       //   this.executeWhenStackEmpty(() => {this.endTurn();});
     }).catch((error) => {
@@ -720,7 +730,7 @@ export class Game {
     player.engageInCombat();
     this._entitiesInCombat.push(player);
     this.emit("on:attack:declared", { eventIssuer: player });
-    this._onStateChange.dispatch();
+    this.dispatch();
   }
 
   endCombatIfInvalid(player: Player): void
@@ -769,6 +779,21 @@ export class Game {
       return "Unknown reason"
     }
     return true;
+  }
+
+  /**
+   * Ends combat for all currently engaged entities.
+   */
+  endCombat(): void {
+    const engagedEntities = this.entitiesInCombat;
+    for (const entity of engagedEntities) {
+      if (entity.isEngagedInCombat) {
+        entity.combatEnded();
+      }
+    }
+    this._entitiesInCombat = [];
+    this.emit("on:combat:end", { eventIssuer: engagedEntities.filter(e => e instanceof Player)[0] });
+    this.dispatch();
   }
 
 
@@ -826,7 +851,7 @@ export class Game {
       
       if(attackTopDeck)
         this.emit("on:attack:declared:topdeck", { eventIssuer: player, drawInIndex });
-      this._onStateChange.dispatch();
+      this.dispatch();
     });
   }
 
@@ -953,8 +978,6 @@ export class Game {
     }
     return true;
   }
-
-
 
   /**
    * Creates and configures an attack dice roll for the current combat.
@@ -1162,22 +1185,7 @@ export class Game {
     this.assertPlayerIdAvailable(newPlayer.id);
     this.assertGameNotStarted();
     this.players.push(newPlayer);
-    this._onStateChange.dispatch();
-  }
-
-  /**
-   * Lets a player choose treasure cards from a candidate set.
-   */
-  async gainTreasureAmongs(
-    player: Player,
-    amount: number,
-    treasures: TreasureCard[]
-  ): Promise<{ selected: TreasureCard[]; remaining: TreasureCard[] }> {
-    const selection = await this.select(player, amount, amount, treasures, "Select treasures to gain", true);
-    for (const card of selection.selected) {
-      this.addInPlay(player, card);
-    }
-    return selection;
+    this.dispatch();
   }
 
   get nextAnimationId(): string {
@@ -1187,161 +1195,7 @@ export class Game {
     for(const player of this.players)
       player.addAnimation(animation);
   }
-  // Pending selection tracking for multiplayer (handles both single and multiple selections)
-  private pendingMultipleSelections: Map<
-    string,
-    {
-      playerId: string;
-      options: any[];
-      min: number;
-      max: number;
-      requestId: string;
-      description: string;
-      canUseOnBoardSelection: boolean;
-      resolve: (selection: any[]) => void;
-    }
-  > = new Map();
 
-  get hasPendingSelections(): boolean {
-    return this.pendingMultipleSelections.size > 0;
-  }
-
-  /** Select is used to obtain a selection from a single player
-   * If n=1 and only one option is available, it is automatically selected
-   * The player must select between min and max options.
-   * Returns a Promise that resolves to an object containing the selected and remaining options
-  */
-  async select<T>(
-      player: Player,
-      min: number,
-      max: number,
-      Options: T[],
-      description: string = "UNDEFINED SHOULD NOT HAPPEN",
-      skippable: boolean = true,
-      canUseOnBoardSelection: boolean = true,
-  ): Promise<{ selected: T[]; remaining: T[] }> {
-    if (min < 0 || min > max) {
-      throw new Error(`Invalid selection bounds: min (${min}) must be between 0 and max (${max}).`);
-    }
-
-    if ((min === max && Options.length === max && skippable) || Options.length < min) {
-      return {
-        selected: Options,
-        remaining: [],
-      };
-    }
-    if (Options.length === 0) return { selected: [], remaining: [] };
-    
-    const results = await this.selectMultiple([
-      {
-        player,
-        min: min,
-        max: max,
-        options: Options,
-        description: description,
-        skippable,
-        canUseOnBoardSelection,
-      },
-    ]);
-    return results.find(r => r.playerId === player.id)!;
-  }
-
-  // Select from multiple players in parallel (useful for voting)
-  // Method to submit a selection from the client
-  /**
-   * Submits a player's answer for a pending selection request.
-   */
-  submitSelection(
-    player: Player,
-    requestId: string,
-    selectedIdentifiers: SelectionItem[]
-  ): void {
-    // Check if this is from a selectMultiple() call
-    const pending = this.pendingMultipleSelections.get(requestId);
-    if (pending && pending.playerId === player.id) {
-      // Validate selection count
-      if (selectedIdentifiers.length !== pending.max && pending.min === pending.max) {
-        throw new Error(`Must select exactly ${pending.max} option(s)`);
-      }
-      else if (selectedIdentifiers.length > pending.max) {
-        throw new Error(`Must select at most ${pending.max} option(s)`);
-      }
-      else if (selectedIdentifiers.length < pending.min) {
-        throw new Error(`Must select at least ${pending.min} option(s)`);
-      }
-
-      // Resolve identifiers back to actual options
-      const selected = selectedIdentifiers.map((id) => {
-        const option = TargetBuilder["resolveIdentifier"](id, pending.options);
-        if (option === undefined) {
-          throw new Error(`Invalid selection identifier: ${id.payload}`);
-        }
-        return option;
-      });
-
-      // Resolve the pending promise
-      pending.resolve(selected);
-      this._onStateChange.dispatch();
-      return;
-    }
-    this._onStateChange.dispatch();
-    // No matching pending selection found
-    throw new Error("No pending selection found for this request ID");
-  }
-
-  /**
-   * Opens multiple simultaneous selection prompts and waits for all.
-   * @param skippable is not implemented yet.
-   */
-  async selectMultiple<T>(
-    selections: Array<{
-      player: Player;
-      min: number;
-      max: number;
-      options: T[];
-      description: string;
-      skippable?: boolean;
-      canUseOnBoardSelection: boolean;
-    }>
-  ): Promise<Array<{ playerId: string; selected: T[]; remaining: T[] }>> {
-    // In multiplayer mode: create promises for all players
-    const promises = selections.map((sel) => {
-      return new Promise<{
-        playerId: string;
-        selected: T[];
-        remaining: T[];
-      }>((resolve) => {
-        // Non-seeded random used here for requestId generation since it doesn't affect game logic and just needs to be unique enough to avoid collisions.
-        const requestId = `${sel.player.id}_${Date.now()}_${Math.random()}`;
-        this.pendingMultipleSelections.set(requestId, {
-          playerId: sel.player.id,
-          options: sel.options,
-          min: sel.min,
-          max: sel.max,
-          description: sel.description,
-          requestId,
-          canUseOnBoardSelection: sel.canUseOnBoardSelection,
-          resolve: (selection: any[]) => {
-            const remaining = sel.options.filter(
-              (opt) => !selection.includes(opt)
-            );
-            resolve({
-              playerId: sel.player.id,
-              selected: selection,
-              remaining,
-            });
-            this.pendingMultipleSelections.delete(requestId);
-          },
-        });
-      });
-    });
-
-    this._onStateChange.dispatch();
-
-    // Wait for all selections to complete
-    return Promise.all(promises);
-  }
-  
   get deckNames(): DeckType[] {
     const names = ["loot", "treasure", "monster"] as DeckType[];
     if(this._rooms !== undefined)
@@ -1376,7 +1230,7 @@ export class Game {
     }
 
     this.stack.push(item);
-    this._onStateChange.dispatch();
+    this.dispatch();
     return item.stackId;
   }
 
@@ -1396,7 +1250,7 @@ export class Game {
     }
     player.addSoul(soulCard);
     this.emit("on:soul:gained", { eventIssuer: player, soul: soulCard });
-    this._onStateChange.dispatch();
+    this.dispatch();
   }
 
   /**
@@ -1413,7 +1267,7 @@ export class Game {
     this.addToHistory(elem.json);
     if (elem instanceof LootCardEffect && elem.card instanceof LootCard)
       this.handleLootCardEffectResolution(elem);
-    this._onStateChange.dispatch();
+    this.dispatch();
     await this.resolveCallbacks();
   }
 
@@ -1422,7 +1276,6 @@ export class Game {
     const elem = this.stack.peek() as DiceRoll;
     if (!elem || !(elem instanceof DiceRoll)) return;
 
-    const prevValue = elem.value;
     elem.readyToResolve = true;
     this.emit("on:dice:would-roll", { eventIssuer: elem.issuer, diceRoll: elem });
     await this.executeWhenStackSubset(stackIds, async () => {
@@ -1430,14 +1283,14 @@ export class Game {
       
       if (elem.readyToResolve === false)
         {
-          this._onStateChange.dispatch();
+          this.dispatch();
           return;
         }
         this.stack.resolve();
         await elem.onResolve();
         // Add to history
         this.addToHistory(elem.json);
-        this._onStateChange.dispatch();
+        this.dispatch();
         await this.resolveCallbacks();
         this.emit("on:dice:resolved", { eventIssuer: elem.issuer, diceRoll: elem });
         await this.resolveCallbacks();
@@ -1510,7 +1363,7 @@ export class Game {
         continue;
       }
       await cb.callback();
-      this._onStateChange.dispatch();
+      this.dispatch();
     }
   }
 
@@ -1612,22 +1465,7 @@ export class Game {
    */
   deactivateItem(item: ItemCard): void {
     item.deactivate();
-    this._onStateChange.dispatch();
-  }
-
-  /**
-   * Ends combat for all currently engaged entities.
-   */
-  endCombat(): void {
-    const engagedEntities = this.entitiesInCombat;
-    for (const entity of engagedEntities) {
-      if (entity.isEngagedInCombat) {
-        entity.combatEnded();
-      }
-    }
-    this._entitiesInCombat = [];
-    this.emit("on:combat:end", { eventIssuer: engagedEntities.filter(e => e instanceof Player)[0] });
-    this._onStateChange.dispatch();
+    this.dispatch();
   }
 
   /**
@@ -1672,7 +1510,7 @@ export class Game {
         monster.resetEntityFlags();
       }
       this.turnHandler.endTurn();
-      this._onStateChange.dispatch();
+      this.dispatch();
       this.startTurn();
     });
   }
@@ -1680,7 +1518,6 @@ export class Game {
    * End the turn of the current player if issuer is the current player and all conditions are satisfied.
    */
   async nextTurn(player: Player): Promise<void> {
-    const roundIndex = this.assertGameStarted();
     this.canEndTurn(player, true);
     await this.endTurn();
   }
@@ -1708,10 +1545,6 @@ export class Game {
       return "Unknown reason";
     }
     return true;
-  }
-  // Get target selectors for a card that a player wants to play
-  getSelectors(player: Player, card: LootCard): TargetsSelector[] {
-    return card.getTargetSelectors();
   }
 
   /**
@@ -1893,14 +1726,13 @@ export class Game {
       this.players[i]!.color = colors[i % colors.length]!;
     }
   }
-
   /**
    * Starts the game lifecycle and executes initial setup.
    */
   start(characters: CharacterCard[] | null = null, shufflePlayerOrder: boolean = true): void{
     this.assertGameNotStarted();
     this.assertMinimumPlayerCount();
-    this.pendingMultipleSelections.clear();
+    this._pendingMultipleSelections.clear();
     if (shufflePlayerOrder) {
       shuffle(this.random, this.players);
     }
@@ -2028,7 +1860,7 @@ export class Game {
     this.loseCoins(from, amount, true);
     this.gainCoins(to, amount, forcedBy ? forcedBy : "gift");
     this.emit("on:coin:given", { eventIssuer: from, target: to, amount, forcedBy });
-    this._onStateChange.dispatch();
+    this.dispatch();
     return true;
   }
 
@@ -2038,9 +1870,9 @@ export class Game {
    */
   addCardToHand(player: Player, card: LootCard): void {
     player.hand.addToHand(card);
-    this._onStateChange.dispatch();
+    this.dispatch();
     this.emit("on:loot:added:after", { eventIssuer: player, card });
-    this._onStateChange.dispatch();
+    this.dispatch();
   }
 
   /**
@@ -2049,9 +1881,9 @@ export class Game {
    */
   removeCardFromHand(player: Player, card: LootCard): void {
     player.hand.removeCard(card);
-    this._onStateChange.dispatch();
+    this.dispatch();
     this.emit("on:loot:removed:after", { eventIssuer: player, card });
-    this._onStateChange.dispatch();
+    this.dispatch();
   }
 
   /**
@@ -2142,7 +1974,7 @@ export class Game {
     this._destroyedCards = [];
     this._cardMapping = new Map();
     this._nextCardGlobalId = 0;
-    this.pendingMultipleSelections = new Map();
+    this._pendingMultipleSelections = new Map();
     this._stackSubsetCallbacks = [];
     this._animatedList.reset();
     this._entitiesInCombat = [];
@@ -2168,7 +2000,7 @@ export class Game {
       eventIssuer: player,
       card: card,
     });
-    this._onStateChange.dispatch();
+    this.dispatch();
   }
 
   get rooms(): Rooms | undefined {
@@ -2181,7 +2013,7 @@ export class Game {
   addCurse(player: Player, card: MonsterCard): void {
     player.addCurse(card);
     card.onPlay(player, []);
-    this._onStateChange.dispatch();
+    this.dispatch();
   }
 
   /**
@@ -2190,7 +2022,7 @@ export class Game {
     removeCurse(player: Player, card: MonsterCard): void {
     card.cleanup();
     player.removeCurse(card);
-    this._onStateChange.dispatch();
+    this.dispatch();
   }
 
   /**
@@ -2406,7 +2238,7 @@ export class Game {
       }
       else
         e.addAttackThisTurn(value);
-      this._onStateChange.dispatch();
+      this.dispatch();
     }
   }
 
@@ -2479,7 +2311,7 @@ export class Game {
         source: source,
       });
     }
-    this._onStateChange.dispatch();
+    this.dispatch();
     return `New amount of coins: ${player.coins} coins.\n`;
   }
 
@@ -2533,7 +2365,7 @@ export class Game {
         }
       })
     });
-    this._onStateChange.dispatch();
+    this.dispatch();
     return true;
   }
 
@@ -2557,7 +2389,7 @@ export class Game {
       });
     });
     this.destroyedCards.push(...cards);
-    this._onStateChange.dispatch();
+    this.dispatch();
     return true;
   }
 
@@ -2597,216 +2429,10 @@ export class Game {
   /** Builds a full player-scoped game state payload for API/UI clients. */
   detailedStateJSON(player: Player): DetailedState {
     this.assertGameStarted();
-    const players = [...this.players];
-
-    // Rotate the array until the player is at the front
-    const playerIndex = players.findIndex(p => p.id === player.id);
-    for (let i = 0; i < playerIndex; i++) {
-      players.push(players.shift()!);
-    }
-    
-    const otherPlayers = players.slice(1);
-
-    const getCardCounter = (card: ItemCard | MonsterCard): number | undefined =>
-      (card.tags["counters"] === undefined ? card.tags["levels"] : card.tags["counters"]) as number | undefined;
-
-    const getPendingSelectionDetailsForPlayer = (playerId: string) => {
-      for (const sel of this.pendingMultipleSelections.values()) {
-        if (sel.playerId === playerId) {
-          return {
-            requestId: sel.requestId,
-            options: TargetBuilder.convertToSelectionItems(sel.options),
-            min: sel.min,
-            max: sel.max,
-            description: sel.description,
-            canUseOnBoardSelection: sel.canUseOnBoardSelection,
-          };
-        }
-      }
-      return undefined;
-    };
-
-    const mapInPlayItem = (item: ItemCard, owner: Player) => ({
-      name: item.name,
-      slug: item.slug,
-      globalId: item.globalId,
-      charged: item.charged || !item.activeEffectList.some(e => e.index === "tap"),
-      counter: getCardCounter(item),
-      eternal: item.eternal,
-      effects: item.activeEffectList,
-      capabilities: {
-        activate: this.canActivate(item, owner),
-      },
-      ...(item.entity ? {
-              stats: {
-                healthPoints: item.entity.currentHealthPoints,
-                attackPoints: this.getAttack(item.entity),
-                evasionPoints: this.getDC(item.entity),
-                isEngagedInCombat: item.entity.isEngagedInCombat,
-                capabilities: {
-                  targetable: this.canDeclareAttackOnEntity(player, item.entity, false),
-                },
-                temporaryEffect: item.entity.temporaryEffects,
-              }
-            } : {})
-    });
-
-    const mapOtherInPlayItem = (item: ItemCard, owner: Player) => ({
-      name: item.name,
-      slug: item.json.slug,
-      globalId: item.globalId,
-      charged: item.charged || !item.activeEffectList.some(e => e.index === "tap"),
-      capabilities: {
-        activate: this.canActivate(item, owner),
-      },
-      counter: getCardCounter(item),
-      eternal: item.eternal,
-      ...(item.entity ? {
-              stats: {
-                healthPoints: item.entity.currentHealthPoints,
-                attackPoints: this.getAttack(item.entity),
-                evasionPoints: this.getDC(item.entity),
-                isEngagedInCombat: item.entity.isEngagedInCombat,
-                capabilities: {
-                  targetable: this.canDeclareAttackOnEntity(player, item.entity, false),
-                },
-                temporaryEffect: item.entity.temporaryEffects,
-              }
-            } : {})
-    });
-
-    const mapCurse = (curse: MonsterCard, owner: Player) => ({
-      name: curse.name,
-      slug: curse.slug,
-      globalId: curse.globalId,
-      charged: true,
-      counter: undefined,
-      eternal: false,
-      effects: curse.activeEffectList,
-      capabilities: {
-        activate: this.canActivate(curse, owner),
-      },
-      ...(curse.entity ? {
-              stats: {
-                healthPoints: curse.entity.currentHealthPoints,
-                attackPoints: this.getAttack(curse.entity),
-                evasionPoints: this.getDC(curse.entity),
-                isEngagedInCombat: curse.entity.isEngagedInCombat,
-                capabilities: {
-                  targetable: this.canDeclareAttackOnEntity(player, curse.entity, false),
-                },
-                temporaryEffect: curse.entity.temporaryEffects,
-              }
-            } : {})
-    });
-
-    return {
-      me: {
-        name: player.id,
-        color: player.color,
-        hand: player.hand.cards.map((c) => c.jsonAPI),
-        inPlay: player.inPlay.map((c) => mapInPlayItem(c, player)).concat(player.curses.map((c) => mapCurse(c, player))),
-        handSize: player.hand.cards.length,
-        souls: player.totalSouls,
-        soulCards: player.souls.map((c) => c.jsonAPI),
-        coins: player.coins,
-        attackRequirements: player.requirementListJSON(this),
-        currentAttackPoints: player.attackPoints,
-        currentHealthPoints: player.currentHealthPoints,
-        remainingLootPlay: player.remainingLootPlay,
-        isEngagedInCombat: player.isEngagedInCombat,
-        temporaryEffect: player.temporaryEffects,
-        isEngagedInPurchase: player.isEngagedInPurchase,
-        numberOfCardsOverMaxHandSize: Math.max(0, player.hand.cards.length - this.gameParameters.maxHandSize.value),
-        pendingSelection: getPendingSelectionDetailsForPlayer(player.id),
-        capabilities: {
-          endTurn: this.canEndTurn(player),
-          declareAttack: this.canDeclareAttack(player),
-          declarePurchase: this.canDeclarePurchase(player),
-          rollDice: this.canRollDice(player),
-          buyTreasure: this.canPurchase(player),
-          useLoot: this.canPlayCard(player),
-          resolve: this.canResolve(),
-          canDonateCoins: this.gameParameters.allowCoinDonation.value ? true : "Giving coins is not allowed in this game.",
-        }
-      },
-      players: otherPlayers
-        .map((p) => ({
-          name: p.id,
-          color: p.color,
-          handSize: p.hand.cards.length,
-          hand: p.handRevealed ? p.hand.cards.map((c) => c.jsonAPI) : undefined,
-          inPlay: p.inPlay.map((c) => mapOtherInPlayItem(c, p)).concat(p.curses.map((c) => mapCurse(c, p))),
-          souls: p.totalSouls,
-          soulCards: p.souls.map((c) => c.jsonAPI),
-          coins: p.coins,
-          currentAttackPoints: p.attackPoints,
-          currentHealthPoints: p.currentHealthPoints,
-          temporaryEffect: p.temporaryEffects,
-          remainingLootPlay: p.remainingLootPlay,
-          isEngagedInCombat: p.isEngagedInCombat,
-          isEngagedInPurchase: p.isEngagedInPurchase,
-          attackRequirements: p.requirementListJSON(this),
-          pendingSelection: this.pendingMultipleSelections.values().some(sel => sel.playerId === p.id),
-          targetable: this.canDeclareAttackOnEntity(player, p, false),
-        })),
-      monsters:
-      {
-        discard: this.decks["monster"]!.discard.map((c) => c.jsonAPI).toReversed(),
-        deckSize: this.decks["monster"]!.cards.length,
-        capabilities: {
-          targetableDeck: this.canDeclareAttackOnEntity(player, "topDeck", false),
-        },
-        inPlay: this.encounters._slots.map((m, index) => ({ card: m[m.length - 1]!, monster: this.encounters.monsterIn(index), covered: this.encounters._slots[index]!.slice(0, -1).map(c => c.jsonAPI) })).map((m) => ({
-
-          top: {
-            slug: m.card?.slug,
-            name: m.card?.name,
-            globalId: m.card?.globalId,
-            ...(m.monster ? {
-              stats: {
-                healthPoints: m.monster.currentHealthPoints,
-                attackPoints: this.getAttack(m.monster),
-                evasionPoints: this.getDC(m.monster),
-                isEngagedInCombat: m.monster.isEngagedInCombat,
-                capabilities: {
-                  targetable: this.canDeclareAttackOnEntity(player, m.monster, false),
-                },
-                temporaryEffect: m.monster.temporaryEffects,
-              }
-
-            } : {})
-          },
-          covered: m.covered,
-        })),
-      },
-      ...(this.rooms ? { room: {
-            discard: this.decks["room"]!.discard.map((c) => c.jsonAPI).toReversed(),
-            deckSize: this.decks["room"]!.cards.length,
-            inPlay: this.rooms!.activeRooms.map((c) => c!.jsonAPI),
-            }
-          } : {}),
-      bonusSouls: this._bonusSouls !== undefined ? this._bonusSouls.map((c) => c.jsonAPI) : undefined,
-      loot:
-      {
-        discard: this.decks["loot"]!.discard.map((c) => c.jsonAPI).toReversed(),
-        deckSize: this.decks["loot"]!.cards.length,
-      },
-      treasure:
-      {
-        discard: this.decks["treasure"]!.discard.map((c) => c.jsonAPI).toReversed(),
-        deckSize: this.decks["treasure"]!.cards.length,
-        inPlay: this.shop.itemsInShop.map((c) => ({ ...c!.jsonAPI, price: this.gameParameters.shopPrice.value + player.priceModifier })),
-        topDeckPrice: this.gameParameters.shopPrice.value,
-      },
-      turn: this.currentPlayer.id,
-      history: this.history,
-      firstCardTreasureDeck: player.canSeeTopOfTreasureDeck ? this.decks["treasure"]!.cards[0]!.jsonAPI : undefined,
-      stack: this.stack.elements.map((el) => el.json).toReversed(),
-      animations: player.animations(true)
-    };
+    return this._gameStateSerializer.detailedStateJSON(player);
   }
-  // We should implement declaring a purchase
+
+  
   /** Validates whether current player can declare purchase mode. */
   canDeclarePurchase(player: Player, shouldThrow: boolean = false): Capability {
     try {
@@ -2838,7 +2464,7 @@ export class Game {
 
     player.remainingPurchaseThisTurn -= 1;
     player.engageInPurchase();
-    this._onStateChange.dispatch();
+    this.dispatch();
   }
 
   /** Cancels purchase mode when purchasing is no longer valid. */
@@ -2846,7 +2472,7 @@ export class Game {
     if(force || this.canPurchase(player, false) !== true)
       {
         player.purchaseEnded();
-        this._onStateChange.dispatch();
+        this.dispatch();
       }
     else 
       throw new Error("You have to purchase an item.");
@@ -2860,6 +2486,7 @@ export class Game {
       this.assertCurrentTurnIsPlayerTurn(player);
       this.assertIsAlive(player);
       this.assertCurrentPlayerIsEngagedInPurchase();
+      this.assertNoPendingSelection();
       this.assertEmptyStack();
       const price = this.gameParameters.shopPrice.value + player.priceModifier;
       if (player.coins < price!) {
@@ -2879,9 +2506,6 @@ export class Game {
 
   /** Purchases a shop slot (or top deck) item if affordable. */
   purchase(player: Player, index: number | "top"): string {
-    this.assertGameStarted();
-    this.assertEmptyStack();
-    this.assertNoPendingSelection();
     this.canPurchase(player, true);
     if (index !== "top" && (index < 0 || index >= this.shop.itemsInShop.length))
       throw new Error("Invalid shop index.");
@@ -2905,7 +2529,7 @@ export class Game {
         index: index,
       });
       player.purchaseEnded();
-      this._onStateChange.dispatch();
+      this.dispatch();
       return `Purchase successful. You have now ${player.coins} coins.\n`;
     } else {
       throw new Error(
@@ -2941,14 +2565,14 @@ export class Game {
       eventIssuer: player,
       numberOfCards: toLoot,
     });
-    this._onStateChange.dispatch();
+    this.dispatch();
   }
 
   /** Emits a game trigger event and schedules stack reordering if needed. */
   emit(event: TriggerEvent, data: any = {}, dispatch: boolean = true): void {
     const count = this.emitter.emit(event, data);
     if (count > 0 && dispatch)
-      this._onStateChange.dispatch();
+      this.dispatch();
     // If count > 1 calls stack reordering. 
     // Players can reorder their own effects if they have multiple. 
     // Current player can also reorder game effects if multiple are triggered at the same time.
@@ -2967,7 +2591,7 @@ export class Game {
     if (orderedListenerIds.length > 1) {
       this.emitter.reorderListenersBySubset(event as TriggerEvent, orderedListenerIds);
     }
-    this._onStateChange.dispatch();
+    this.dispatch();
   }
 
   /** Discards one in-play card by index when discard is legal. */
@@ -3131,7 +2755,7 @@ export class Game {
       }
     }
     player.mustAttack(target, source);
-    this._onStateChange.dispatch();
+    this.dispatch();
   }
 
   /** Discards one hand card by index to the loot discard pile. */
@@ -3223,7 +2847,7 @@ export class Game {
         p.addToCanIUseLootThisTurn(value);
       }
     }
-    this._onStateChange.dispatch();
+    this.dispatch();
   }
 
   /** Removes a soul card from player and runs cleanup triggers. */
@@ -3304,6 +2928,20 @@ export class Game {
       throw new Error("Game not started");
     }
     return this.turnHandler.round;
+  }
+  get bonusSouls(): BsoulCard[] | undefined {
+    return this._bonusSouls;
+  }
+  get pendingMultipleSelections(): Map<string, {
+    requestId: string;
+    playerId: string;
+    options: any[];
+    min: number;
+    max: number;
+    description: string;
+    canUseOnBoardSelection: boolean;
+  }> {
+    return this._pendingMultipleSelections;
   }
   private assertEntityIsInPlay(entity: Entity) {
     if (!this.EntitiesAndAnimated.includes(entity))
