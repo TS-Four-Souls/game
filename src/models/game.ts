@@ -98,12 +98,14 @@ export class Game extends SelectionHandler {
   private _onRoomBroadcast: Signal<ServerRoomBroadcast> = new Signal();
   onRoomBroadcast: ReadableSignal<ServerRoomBroadcast> = this._onRoomBroadcast.readOnly();
 
-  constructor(seed: string = "") {
+  constructor(seed: string = "", gameParameters?: GameParameters) {
     super();
     this.seed = seed; // if seed is empty, it will be set to a random value.
     this._decks = createEmptyDecksCollection(this.random);
     this._emitter = new GameEventEmitter();
     this._gameStateSerializer = new GameStateSerializer(this);
+    if(gameParameters !== undefined)
+      this.gameParameters.loadFromJson(gameParameters.toJson());
   }
 /*
  * Check if that game is started.
@@ -1524,7 +1526,6 @@ export class Game extends SelectionHandler {
     this._entitiesInCombat = [];
     this._isWon = false;
     this._monsterDiedThisTurn = false;
-    this.gameParameters.reset(false);
   }
 
   /**
