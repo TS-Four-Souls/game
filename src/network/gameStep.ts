@@ -1,6 +1,10 @@
 import { schemas } from "@/shared/api";
 import type { Room, Socket, User } from "./types";
-import { payloadGuardedEndpoint, sendRoomChangedToAll, sendRoomChangedToUser } from "./utils";
+import {
+  payloadGuardedEndpoint,
+  sendRoomChangedToAll,
+  sendRoomChangedToUser,
+} from "./utils";
 import {
   executeActivateRequest,
   executeActivateRoomRequest,
@@ -20,13 +24,12 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
 
   sendRoomChangedToUser(room, user);
 
-  
   if (!room.game) {
     throw new Error("Game not found");
   }
 
   let game: Game = room.game;
-  
+
   if (user.name === undefined) {
     throw new Error("User name not found");
   }
@@ -59,32 +62,30 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
       });
 
       loadedGame.onRoomBroadcast.add((broadcast) => {
-      socket.broadcast.to(room.id).emit("on:room:broadcast", {
-          type: broadcast.type,
-          title: broadcast.title,
-          message: broadcast.message,
+        room.users.forEach((user) => {
+          if (user.name === undefined) return;
+          if (broadcast.players.includes(user.name)) {
+            user.socket.to(broadcast.players).emit("on:room:broadcast", {
+              type: broadcast.type,
+              title: broadcast.title,
+              message: broadcast.message,
+            });
+          }
         });
       });
+
       room.game = loadedGame;
       game = loadedGame;
-      loadedGame.players.forEach((p) => {
-        const u = room.users.find((u) => u.name === p.id);
-        if (u) sendRoomChangedToUser(room, u);
-      });
-      
 
-      // Notify affected players about the rollback using per-user sockets
-      const rolledBackPlayerIds = loadedGame.players.map((p) => p.id);
-      for (const userEntry of room.users) {
-        if (!userEntry.name) continue;
-        if (rolledBackPlayerIds.includes(userEntry.name)) {
-          // try {
-            socket.emit("on:room:broadcast", {
-              type: "info",
-              title: `Game rolled back by ${player.id}`,
-              message: "The game has been rolled back the last action.",
-            });
-        }
+      sendRoomChangedToAll(room);
+
+      for (const user of room.users) {
+        if (!user.name) continue;
+        user.socket.emit("on:room:broadcast", {
+          type: "info",
+          title: `Game rolled back by ${player.id}`,
+          message: "The game has been rolled back the last action.",
+        });
       }
 
       return callback({ status: 200 });
