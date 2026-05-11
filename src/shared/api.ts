@@ -20,7 +20,7 @@ export type EntityType = z.infer<typeof entityTypeSchema>;
 const cardSchema = identifierTypeSchema;
 export type Card = z.infer<typeof cardSchema>;
 
-const shopItemSchema = cardSchema.extend({price: z.number()});
+const shopItemSchema = cardSchema.extend({ price: z.number() });
 
 const activeEffectEntrySchema = z.object({
   index: z.union([z.literal("tap"), z.number()]),
@@ -262,8 +262,6 @@ const selectionItemTypeSchema = z.union([
 ]);
 export type SelectionItemType = z.infer<typeof selectionItemTypeSchema>;
 
-const nullSchema = z.null();
-
 const issuerSchema = z.string();
 
 export type Issuer = z.infer<typeof issuerSchema>;
@@ -375,17 +373,7 @@ export function isParameterKey(key: string): key is keyof GameParametersJson {
   return key in gameParametersSchema.shape;
 }
 
-const joinRequestSchema = z.string();
-
-const rejoinRequestSchema = z.object({
-  userId: z.string(),
-});
-
-const startRequestSchema = z.literal(null);
-
-const resetRequestSchema = z.literal(null);
-
-const rollbackRequestSchema = z.literal(null);
+const setNameRequestSchema = z.string();
 
 const basicResponseSchema = z.union([
   z.object({
@@ -467,12 +455,6 @@ export type NextTargetSelectorResponse = z.infer<
   typeof nextTargetSelectorResponseSchema
 >;
 
-const resolveRequestSchema = startRequestSchema;
-
-const declareAttackRequestSchema = startRequestSchema;
-const declarePurchaseRequestSchema = startRequestSchema;
-const cancelPurchaseRequestSchema = startRequestSchema;
-
 const submitSelectionSchema = z.object({
   requestId: z.string(),
   selections: z.array(selectionItemSchema),
@@ -498,8 +480,6 @@ const cardActivationSchema = z.object({
   effectIndex: z.union([z.number(), z.literal("tap")]),
   targetChoices: z.array(selectionItemSchema).optional(),
 });
-
-const nextTurnRequestSchema = startRequestSchema;
 
 const setGameParameterRequestSchema = z.discriminatedUnion("parameter", [
   z.object({
@@ -703,29 +683,19 @@ const roomCharacterSchema = z.object({
 export type RoomCharacter = z.infer<typeof roomCharacterSchema>;
 
 const roomPlayerSchema = z.object({
-  name: z.string().optional(),
+  name: z.string(),
   character: roomCharacterSchema,
 });
 
 export type RoomPlayer = z.infer<typeof roomPlayerSchema>;
 
 const roomSchema = z.object({
-  room: z.discriminatedUnion("state", [
-    z.object({
-      id: z.string(),
-      state: z.literal("joined"),
-      issuer: issuerSchema,
-      me: roomPlayerSchema,
-      players: z.array(roomPlayerSchema),
-      characters: z.array(roomCharacterSchema),
-      gameParameters: gameParametersSchema,
-    }),
-    z.object({
-      id: z.string(),
-      state: z.literal("created"),
-    }),
-  ]),
-  gameState: detailedStateSchema.optional(),
+  id: z.string(),
+  me: roomPlayerSchema.optional(),
+  players: z.array(roomPlayerSchema),
+  characters: z.array(roomCharacterSchema),
+  gameParameters: gameParametersSchema,
+  game: detailedStateSchema.optional(),
 });
 export type Room = z.infer<typeof roomSchema>;
 
@@ -736,19 +706,7 @@ const roomBroadcastSchema = z.object({
 });
 export type RoomBroadcast = z.infer<typeof roomBroadcastSchema>;
 
-const isGameOngoingResponseSchema = z.union([
-  z.object({
-    status: z.literal(200),
-    gameOngoing: z.boolean(),
-  }),
-  z.object({
-    status: z.literal(400),
-    error: z.string(),
-  }),
-]);
-export type IsGameOngoingResponse = z.infer<typeof isGameOngoingResponseSchema>;
-
-const getGameLogsResponseSchema = z.union([
+const saveGameResponseSchema = z.union([
   z.object({
     status: z.literal(200),
     logs: z.string(),
@@ -758,129 +716,87 @@ const getGameLogsResponseSchema = z.union([
     error: z.string(),
   }),
 ]);
-export type GetGameLogsResponse = z.infer<typeof getGameLogsResponseSchema>;
+export type SaveGameResponse = z.infer<typeof saveGameResponseSchema>;
 
-const getGameSettingsResponseSchema = z.union([
-  z.object({
-    status: z.literal(200),
-    settings: z.string(),
-  }),
-  z.object({
-    status: z.literal(400),
-    error: z.string(),
-  }),
-]);
-export type GetGameSettingsResponse = z.infer<
-  typeof getGameSettingsResponseSchema
->;
-
-const joinRoomRequestSchema = z.object({
+const enterRoomRequestSchema = z.object({
   roomId: z.string(),
+  userId: z.string().optional(),
 });
 
-const loadGameRequestSchema = z.object({
-  logs: z.string(),
-});
+const loadGameRequestSchema = z.string();
 
-const loadGameSettingsRequestSchema = z.object({
-  settings: z.string(),
-});
+const loadGameParametersRequestSchema = z.string();
 
 const selectCharacterRequestSchema = z.object({
   character: roomCharacterSchema,
 });
 
+const kickFromRoomRequestSchema = z.object({
+  name: z.string(),
+});
+
 export const schemas = {
   issuer: issuerSchema,
   room: roomSchema,
-  joinRequest: joinRequestSchema,
-  rejoinRequest: rejoinRequestSchema,
-  startRequest: startRequestSchema,
-  resetRequest: resetRequestSchema,
-  rollbackRequest: rollbackRequestSchema,
-  declareAttackRequest: declareAttackRequestSchema,
-  declarePurchaseRequest: declarePurchaseRequestSchema,
-  cancelPurchaseRequest: cancelPurchaseRequestSchema,
+  setNameRequest: setNameRequestSchema,
   attackMonsterRequest: attackMonsterSchema,
-  attackRollRequest: nullSchema,
   debugLootRequest: debugLootRequestSchema,
-  debugListLootRequest: nullSchema,
-  debugListCardsICanRemoveRequest: nullSchema,
   debugRemoveCardsRequest: debugRemoveCardsRequestSchema,
-  debugListTreasureRequest: nullSchema,
   debugGainTreasureRequest: debugGainTreasureRequestSchema,
-  debugListMonsterDeckRequest: nullSchema,
   debugPutMonsterCardInSlotRequest: debugPutMonsterCardInSlotRequestSchema,
   debugGainCoinsRequest: debugGainCoinsRequestSchema,
   reportBugRequest: reportBugRequestSchema,
-  resolveRequest: resolveRequestSchema,
   submitSelectionRequest: submitSelectionSchema,
   insertStackElementBeforeRequest: insertStackElementBeforeSchema,
   playCardRequest: cardActivationSchema,
-  endTurnRequest: nextTurnRequestSchema,
   activateRequest: cardActivationSchema,
   activateRoomRequest: cardActivationSchema,
   purchaseRequest: purchaseSchema,
   giveCoinsRequest: giveCoinsSchema,
-  setGameParameterRequest: setGameParameterRequestSchema,
-  joinRoomRequest: joinRoomRequestSchema,
-  getGameLogsRequest: nullSchema,
+  enterRoomRequest: enterRoomRequestSchema,
   loadGameRequest: loadGameRequestSchema,
-  loadGameSettingsRequest: loadGameSettingsRequestSchema,
+  setGameParameterRequest: setGameParameterRequestSchema,
+  loadGameParametersRequest: loadGameParametersRequestSchema,
   selectCharacterRequest: selectCharacterRequestSchema,
+  kickFromRoomRequest: kickFromRoomRequestSchema,
 };
 
 export namespace Requests {
-  export type Join = z.infer<typeof joinRequestSchema>;
-  export type Rejoin = z.infer<typeof rejoinRequestSchema>;
+  export type SetName = z.infer<typeof setNameRequestSchema>;
   export type SetGameParameter = z.infer<typeof setGameParameterRequestSchema>;
-  export type Start = z.infer<typeof startRequestSchema>;
-  export type Reset = z.infer<typeof resetRequestSchema>;
-  export type Rollback = z.infer<typeof rollbackRequestSchema>;
-  export type DeclareAttack = z.infer<typeof declareAttackRequestSchema>;
-  export type DeclarePurchase = z.infer<typeof declarePurchaseRequestSchema>;
-  export type CancelPurchase = z.infer<typeof cancelPurchaseRequestSchema>;
-  export type Resolve = z.infer<typeof resolveRequestSchema>;
   export type SubmitSelection = z.infer<typeof submitSelectionSchema>;
   export type InsertStackElementBefore = z.infer<
     typeof insertStackElementBeforeSchema
   >;
   export type PlayCard = z.infer<typeof cardActivationSchema>;
-  export type EndTurn = z.infer<typeof nextTurnRequestSchema>;
   export type Activate = z.infer<typeof cardActivationSchema>;
   export type ActivateRoom = z.infer<typeof cardActivationSchema>;
   export type Purchase = z.infer<typeof purchaseSchema>;
   export type GiveCoins = z.infer<typeof giveCoinsSchema>;
   export type AttackMonster = z.infer<typeof attackMonsterSchema>;
-  export type AttackRoll = z.infer<typeof nullSchema>;
   export type DebugLoot = z.infer<typeof debugLootRequestSchema>;
   export type DebugGainCoins = z.infer<typeof debugGainCoinsRequestSchema>;
-  export type DebugListLoot = z.infer<typeof nullSchema>;
-  export type DebugListMonsterDeck = z.infer<typeof nullSchema>;
   export type DebugPutMonsterCardInSlot = z.infer<
     typeof debugPutMonsterCardInSlotRequestSchema
   >;
-  export type DebugListCardsICanRemove = z.infer<typeof nullSchema>;
   export type DebugRemoveCards = z.infer<typeof debugRemoveCardsRequestSchema>;
-  export type DebugListTreasure = z.infer<typeof nullSchema>;
   export type DebugGainTreasure = z.infer<
     typeof debugGainTreasureRequestSchema
   >;
   export type ReportBug = z.infer<typeof reportBugRequestSchema>;
-  export type JoinRoom = z.infer<typeof joinRoomRequestSchema>;
-  export type GetGameLogs = z.infer<typeof nullSchema>;
+  export type EnterRoom = z.infer<typeof enterRoomRequestSchema>;
   export type LoadGame = z.infer<typeof loadGameRequestSchema>;
-  export type GetGameSettings = z.infer<typeof nullSchema>;
-  export type LoadGameSettings = z.infer<typeof loadGameSettingsRequestSchema>;
+  export type LoadGameParameters = z.infer<
+    typeof loadGameParametersRequestSchema
+  >;
   export type SelectCharacter = z.infer<typeof selectCharacterRequestSchema>;
+  export type KickFromRoom = z.infer<typeof kickFromRoomRequestSchema>;
 }
 
 export namespace Responses {
-  export type Join = BasicResponse;
-  export type Rejoin = BasicResponse;
+  export type SetName = BasicResponse;
   export type SetGameParameter = BasicResponse;
   export type Start = BasicResponse;
-  export type Reset = BasicResponse;
   export type Rollback = BasicResponse;
   export type DeclareAttack = BasicResponse;
   export type Resolve = BasicResponse;
@@ -905,14 +821,14 @@ export namespace Responses {
   export type DebugGainCoins = BasicResponse;
   export type ReportBug = BasicResponse;
   export type GiveCoins = BasicResponse;
-  export type IsGameOngoing = IsGameOngoingResponse;
   export type CreateRoom = BasicResponse;
-  export type JoinRoom = BasicResponse;
-  export type JoinAsUser = BasicResponse;
+  export type EnterRoom = BasicResponse;
   export type LeaveRoom = BasicResponse;
-  export type GetGameLogs = GetGameLogsResponse;
+  export type KickFromRoom = BasicResponse;
+  export type SaveGame = SaveGameResponse;
   export type LoadGame = BasicResponse;
-  export type LoadGameSettings = BasicResponse;
+  export type LoadGameParameters = BasicResponse;
+  export type ResetGameParameters = BasicResponse;
   export type SelectCharacter = BasicResponse;
 }
 
@@ -923,40 +839,34 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
-  join: (
-    request: Requests.Join,
-    callback: (response: Responses.Join) => void,
+  createRoom: (callback: (response: Responses.CreateRoom) => void) => void;
+
+  enterRoom: (
+    request: Requests.EnterRoom,
+    callback: (response: Responses.EnterRoom) => void,
   ) => void;
 
-  rejoin: (
-    request: Requests.Rejoin,
-    callback: (response: Responses.Rejoin) => void,
+  leaveRoom: (callback: (response: Responses.LeaveRoom) => void) => void;
+
+  kickFromRoom: (
+    request: Requests.KickFromRoom,
+    callback: (response: Responses.KickFromRoom) => void,
   ) => void;
 
-  start: (
-    request: Requests.Start,
-    callback: (response: Responses.Start) => void,
+  setName: (
+    request: Requests.SetName,
+    callback: (response: Responses.SetName) => void,
   ) => void;
 
-  reset: (
-    request: Requests.Reset,
-    callback: (response: Responses.Reset) => void,
-  ) => void;
+  start: (callback: (response: Responses.Start) => void) => void;
 
-  rollback: (
-    request: Requests.Rollback,
-    callback: (response: Responses.Rollback) => void,
-  ) => void;
+  rollback: (callback: (response: Responses.Rollback) => void) => void;
 
   declareAttack: (
-    request: Requests.DeclareAttack,
     callback: (response: Responses.DeclareAttack) => void,
   ) => void;
 
-  resolve: (
-    request: Requests.Resolve,
-    callback: (response: Responses.Resolve) => void,
-  ) => void;
+  resolve: (callback: (response: Responses.Resolve) => void) => void;
 
   submitSelection: (
     request: Requests.SubmitSelection,
@@ -973,10 +883,7 @@ export interface ClientToServerEvents {
     callback: (response: Responses.PlayCard) => void,
   ) => void;
 
-  endTurn: (
-    request: Requests.EndTurn,
-    callback: (response: Responses.EndTurn) => void,
-  ) => void;
+  endTurn: (callback: (response: Responses.EndTurn) => void) => void;
 
   activate: (
     request: Requests.Activate,
@@ -998,10 +905,7 @@ export interface ClientToServerEvents {
     callback: (response: Responses.AttackMonster) => void,
   ) => void;
 
-  attackRoll: (
-    request: Requests.AttackRoll,
-    callback: (response: Responses.AttackRoll) => void,
-  ) => void;
+  attackRoll: (callback: (response: Responses.AttackRoll) => void) => void;
 
   debugLoot: (
     request: Requests.DebugLoot,
@@ -1009,12 +913,10 @@ export interface ClientToServerEvents {
   ) => void;
 
   debugListLoot: (
-    request: Requests.DebugListLoot,
     callback: (response: Responses.DebugListLoot) => void,
   ) => void;
 
   debugListCardsICanRemove: (
-    request: Requests.DebugListCardsICanRemove,
     callback: (response: Responses.DebugListCardsICanRemove) => void,
   ) => void;
 
@@ -1024,7 +926,6 @@ export interface ClientToServerEvents {
   ) => void;
 
   debugListTreasure: (
-    request: Requests.DebugListTreasure,
     callback: (response: Responses.DebugListTreasure) => void,
   ) => void;
 
@@ -1034,7 +935,6 @@ export interface ClientToServerEvents {
   ) => void;
 
   debugListMonsterDeck: (
-    request: Requests.DebugListMonsterDeck,
     callback: (response: Responses.DebugListMonsterDeck) => void,
   ) => void;
 
@@ -1059,13 +959,18 @@ export interface ClientToServerEvents {
   ) => void;
 
   declarePurchase: (
-    request: Requests.DeclarePurchase,
     callback: (response: Responses.DeclarePurchase) => void,
   ) => void;
 
   cancelPurchase: (
-    request: Requests.CancelPurchase,
     callback: (response: Responses.CancelPurchase) => void,
+  ) => void;
+
+  saveGame: (callback: (response: Responses.SaveGame) => void) => void;
+
+  loadGame: (
+    request: Requests.LoadGame,
+    callback: (response: Responses.LoadGame) => void,
   ) => void;
 
   setGameParameter: (
@@ -1073,32 +978,13 @@ export interface ClientToServerEvents {
     callback: (response: Responses.SetGameParameter) => void,
   ) => void;
 
-  isGameOngoing: (
-    callback: (response: Responses.IsGameOngoing) => void,
+  loadGameParameters: (
+    request: Requests.LoadGameParameters,
+    callback: (response: Responses.LoadGameParameters) => void,
   ) => void;
 
-  createRoom: (callback: (response: Responses.CreateRoom) => void) => void;
-
-  joinRoom: (
-    request: Requests.JoinRoom,
-    callback: (response: Responses.JoinRoom) => void,
-  ) => void;
-
-  leaveRoom: (callback: (response: Responses.LeaveRoom) => void) => void;
-
-  getGameLogs: (
-    request: Requests.GetGameLogs,
-    callback: (response: Responses.GetGameLogs) => void,
-  ) => void;
-
-  loadGame: (
-    request: Requests.LoadGame,
-    callback: (response: Responses.LoadGame) => void,
-  ) => void;
-
-  loadGameSettings: (
-    request: Requests.LoadGameSettings,
-    callback: (response: Responses.LoadGameSettings) => void,
+  resetGameParameters: (
+    callback: (response: Responses.ResetGameParameters) => void,
   ) => void;
 
   selectCharacter: (

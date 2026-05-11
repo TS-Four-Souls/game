@@ -343,15 +343,6 @@ export class Game extends SelectionHandler {
     this.stack.cancelElement(element);
   }
   /**
-   * Load settings from json if the game has not started yet.
-   * @param settings 
-   */
-  loadSettingsFromJson(settings: GameParametersJson): void {
-    if(this.isStarted)
-      throw new Error("Cannot load game parameters after the game has started.");
-    this.gameParameters.loadFromJson(settings);
-  }
-  /**
    * Transfers a soul card from a target player to another player.
    */
   stealSoul(player: Player, target: Player, soul: Card) {

@@ -1,0 +1,230 @@
+import { type Room, type Socket, type User } from "./types";
+import { schemas } from "@/shared/api";
+import {
+  payloadGuardedEndpoint,
+  sendRoomChangedToAll,
+  sendRoomChangedToUser,
+  sendUserAssigned,
+} from "./utils";
+import { Game } from "@/models/game";
+import { enterGameStep } from "./gameStep";
+import type { HistoricEntry } from "@/models/historyHandler";
+import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
+import { enterIntroStep } from "./introStep";
+import { Player } from "@/models/entities/player";
+
+export const enterStartStep = (
+  socket: Socket,
+  rooms: Map<string, Room>,
+  room: Room,
+  user: User,
+) => {
+  const updateLastActionTimestamp = () => {
+    user.lastActionTimestamp = new Date();
+  };
+
+  const leaveStartStep = (socket: Socket) => {
+    socket.offAny(updateLastActionTimestamp);
+    socket.removeAllListeners("leaveRoom");
+    socket.removeAllListeners("kickFromRoom");
+    socket.removeAllListeners("setName");
+    socket.removeAllListeners("setGameParameter");
+    socket.removeAllListeners("resetGameSettings");
+    socket.removeAllListeners("loadGameSettings");
+    socket.removeAllListeners("selectCharacter");
+    socket.removeAllListeners("loadGame");
+    socket.removeAllListeners("start");
+  };
+
+  socket.onAny(updateLastActionTimestamp);
+  sendRoomChangedToUser(room, user);
+
+  socket.on("leaveRoom", (callback) => {
+    room.users = room.users.filter(({ id }) => id !== user.id);
+
+    sendRoomChangedToAll(room);
+
+    sendUserAssigned(socket, null);
+    sendRoomChangedToUser(null, user);
+
+    leaveStartStep(socket);
+    enterIntroStep(socket, rooms);
+
+    return callback({ status: 200 });
+  });
+
+  socket.on("kickFromRoom", (request, callback) => {
+    payloadGuardedEndpoint(
+      request,
+      schemas.kickFromRoomRequest,
+      callback,
+      (payload) => {
+        const user = room.users.find((user) => user.name === payload.name);
+        if (!user) {
+          return callback({ status: 400, error: "User not found" });
+        }
+        const socket = user.socket;
+        room.users = room.users.filter(({ id }) => id !== user.id);
+
+        sendRoomChangedToAll(room);
+
+        sendUserAssigned(socket, null);
+        sendRoomChangedToUser(null, user);
+
+        leaveStartStep(socket);
+        enterIntroStep(socket, rooms);
+
+        return callback({ status: 200 });
+      },
+    );
+  });
+
+  socket.on("setName", (request, callback) => {
+    payloadGuardedEndpoint(
+      request,
+      schemas.setNameRequest,
+      callback,
+      (payload) => {
+        if (payload.length === 0) {
+          return callback({ status: 400, error: "A name is required" });
+        }
+
+        if (payload.length > 16) {
+          return callback({
+            status: 400,
+            error: "Your name needs to be less than 16 characters",
+          });
+        }
+
+        if (!/\w/u.test(payload)) {
+          return callback({
+            status: 400,
+            error:
+              "Your name can only contain letters, numbers and underscores",
+          });
+        }
+
+        if (room.users.some((user) => user.name === payload)) {
+          return callback({ status: 400, error: "That name is already taken" });
+        }
+
+        user.name = payload;
+        sendRoomChangedToAll(room);
+      },
+    );
+  });
+
+  socket.on("setGameParameter", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.setGameParameterRequest,
+      callback,
+      (payload) => {
+        room.params[payload.parameter].value = payload.value;
+      },
+    );
+  });
+
+  socket.on("resetGameParameters", (callback) => {
+    room.params.reset();
+    return callback({ status: 200 });
+  });
+
+  socket.on("loadGameParameters", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.loadGameParametersRequest,
+      callback,
+      (payload) => {
+        try {
+          const settings = JSON.parse(payload);
+          room.params.loadFromJson(settings);
+          return callback({ status: 200 });
+        } catch (error) {
+          console.error("Failed to get game settings", error);
+          if (error instanceof Error) {
+            return callback({ status: 400, error: error.message });
+          }
+          return callback({ status: 400, error: "Unknown error" });
+        }
+      },
+    );
+  });
+
+  socket.on("selectCharacter", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.selectCharacterRequest,
+      callback,
+      (payload) => {
+        user.character = payload.character;
+        sendRoomChangedToAll(room);
+        return callback({ status: 200 });
+      },
+    );
+  });
+
+  socket.on("loadGame", (payload, callback) => {
+    payloadGuardedEndpoint(
+      payload,
+      schemas.loadGameRequest,
+      callback,
+      async (payload) => {
+        try {
+          // Ensure requester is an authorized player in the current room game.
+          const logs: HistoricEntry[] = JSON.parse(payload);
+          if (!logs)
+            throw new Error(
+              "Logs are not valid JSON or not in the expected format.",
+            );
+          room.game = await loadGameFromLogs(logs);
+          leaveStartStep(socket);
+          enterGameStep(socket, room, user);
+          return callback({ status: 200 });
+        } catch (error) {
+          console.error("Failed to load game from logs", error);
+          if (error instanceof Error) {
+            return callback({ status: 400, error: error.message });
+          }
+          return callback({ status: 400, error: "Unknown error" });
+        }
+      },
+    );
+  });
+
+  socket.on("start", (callback) => {
+    const game = new Game();
+    for (const user of room.users) {
+      if (!user.name) continue;
+      const player = new Player(user.name);
+      game.addPlayer(player);
+    }
+    game.onStateChange.add(() => {
+      sendRoomChangedToAll(room);
+    });
+    game.onRoomBroadcast.add((broadcast) => {
+      room.users.forEach((user) => {
+        if (user.name === undefined) return;
+        if (broadcast.players.includes(user.name)) {
+          user.socket.to(broadcast.players).emit("on:room:broadcast", {
+            type: broadcast.type,
+            title: broadcast.title,
+            message: broadcast.message,
+          });
+        }
+      });
+    });
+    console.log(
+      "Starting game with players:",
+      game.players.map((p) => p.id),
+    );
+    game.start();
+    for (const user of room.users) {
+      if (!user.name) continue;
+      const socket = user.socket;
+      leaveStartStep(socket);
+      enterGameStep(socket, room, user);
+    }
+    return callback({ status: 200 });
+  });
+};
