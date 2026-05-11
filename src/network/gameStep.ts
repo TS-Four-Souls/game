@@ -1,6 +1,6 @@
 import { schemas } from "@/shared/api";
 import type { Room, Socket, User } from "./types";
-import { payloadGuardedEndpoint, sendRoomChangedToUser } from "./utils";
+import { payloadGuardedEndpoint, sendRoomChangedToAll, sendRoomChangedToUser } from "./utils";
 import {
   executeActivateRequest,
   executeActivateRoomRequest,
@@ -8,6 +8,9 @@ import {
   executePlayCardRequest,
 } from "@/utils/gameRequestHelpers";
 import type { ItemCard, LootCard, MonsterCard } from "@/models/cards";
+import type { Game } from "@/models/game";
+import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
+import type { HistoricEntry } from "@/models/historyHandler";
 
 export const enterGameStep = (socket: Socket, room: Room, user: User) => {
   const updateLastActionTimestamp = () => {
@@ -17,12 +20,13 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
 
   sendRoomChangedToUser(room, user);
 
-  const game = room.game;
-
-  if (!game) {
+  
+  if (!room.game) {
     throw new Error("Game not found");
   }
 
+  let game: Game = room.game;
+  
   if (user.name === undefined) {
     throw new Error("User name not found");
   }
@@ -41,7 +45,6 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
     }
   });
 
-  /*
   socket.on("rollback", async (callback) => {
     try {
       const logs: HistoricEntry[] = game.getRollbackLog(player);
@@ -52,11 +55,11 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
         );
       const loadedGame = await loadGameFromLogs(logs);
       loadedGame.onStateChange.add(() => {
-        scheduleRoomChanged(room);
+        sendRoomChangedToAll(room);
       });
 
       loadedGame.onRoomBroadcast.add((broadcast) => {
-        io.to(broadcast.players).emit("on:room:broadcast", {
+      socket.broadcast.to(room.id).emit("on:room:broadcast", {
           type: broadcast.type,
           title: broadcast.title,
           message: broadcast.message,
@@ -64,25 +67,25 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
       });
       room.game = loadedGame;
       game = loadedGame;
-      for (const roomUser of room.users) {
-        if (!roomUser.player) {
-          continue;
+      loadedGame.players.forEach((p) => {
+        const u = room.users.find((u) => u.name === p.id);
+        if (u) sendRoomChangedToUser(room, u);
+      });
+      
+
+      // Notify affected players about the rollback using per-user sockets
+      const rolledBackPlayerIds = loadedGame.players.map((p) => p.id);
+      for (const userEntry of room.users) {
+        if (!userEntry.name) continue;
+        if (rolledBackPlayerIds.includes(userEntry.name)) {
+          // try {
+            socket.emit("on:room:broadcast", {
+              type: "info",
+              title: `Game rolled back by ${player.id}`,
+              message: "The game has been rolled back the last action.",
+            });
         }
-        roomUser.player = loadedGame.players.find(
-          (player) => player.id === roomUser.player?.id,
-        );
       }
-
-      loadedGame.players.forEach((player) => sendRoomChanged(room, player.id));
-
-      io.to(loadedGame.players.map((player) => player.id)).emit(
-        "on:room:broadcast",
-        {
-          type: "info",
-          title: `Game rolled back by ${player.id}`,
-          message: "The game has been rolled back the last action.",
-        },
-      );
 
       return callback({ status: 200 });
     } catch (error) {
@@ -93,7 +96,6 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
       return callback({ status: 400, error: "Unknown error" });
     }
   });
-  */
 
   socket.on("declareAttack", (callback) => {
     try {

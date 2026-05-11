@@ -69,7 +69,6 @@ class BooleanGameParameter {
 }
 
 export class GameParameters {
-    readonly edenVariant: BooleanGameParameter;
     readonly miniDraft: BooleanGameParameter;
     readonly nbPennies: NumericGameParameter;
     readonly nb2Cents: NumericGameParameter;
@@ -96,7 +95,6 @@ export class GameParameters {
     readonly allowCheatOptions: BooleanGameParameter;
 
     constructor(onChange: () => void) {
-        this.edenVariant = new BooleanGameParameter(false, onChange);
         this.miniDraft = new BooleanGameParameter(false, onChange);
         this.nbPennies = new NumericGameParameter(0, 2, 9, onChange);
         this.nb2Cents = new NumericGameParameter(0, 6, 15, onChange);
@@ -124,7 +122,6 @@ export class GameParameters {
 
     toJson(): GameParametersJson {
         return {
-            edenVariant: {text: "Eden Variant", value: this.edenVariant.value},
             miniDraft: {text: "Mini-draft", value: this.miniDraft.value},//: At the start of the game, lay out (number of players + 1) treasure cards. Each player choose one of them and gain them, in turn order. Put the last card on the bottom of the treasure deck. Repeat this process with the order reversed.
             playWithBonusSouls: {text: "Play with bonus souls?", value: this.playWithBonusSouls.value}, // If player card restriction is on, there are 3 bonus souls in the pool at the start of the game, otherwise there are none.
             allowCheatOptions: {text: "Allow cheat options", value: this.allowCheatOptions.value},

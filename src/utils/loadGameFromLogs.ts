@@ -338,6 +338,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         case "DebugListMonsterDeck":
         case "DebugListTreasure":
         case "DebugListLoot":
+        case "Join": 
           // Transport/lifecycle events that don't mutate core game state directly.
           break;
 
@@ -346,13 +347,6 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
           break;
         }
 
-        case "Join": {
-          const playerName = entry.payload;
-          if (!game.players.some((p) => p.id === playerName)) {
-            game.addPlayer(new Player(playerName));
-          }
-          break;
-        }
 
         case "randomSeed": {
           game.seed = entry.seed;
@@ -374,8 +368,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         }
 
         case "Start": {
-          const characters: string[] = entry.characters;
-          game.start(game.getCharactersFromSlugs(characters));
+          game.start(entry.players);
           verifyRecordedCharactersAfterStart(game, characterByPlayer);
           break;
         }

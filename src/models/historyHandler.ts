@@ -21,7 +21,7 @@ export type UserRequest =
   | { type: "Join"; payload: Requests.SetName }
   | { type: "Rejoin" }
   | { type: "SetGameParameter"; payload: Requests.SetGameParameter }
-  | { type: "Start"; characters: string[] }
+  | { type: "Start"; players: { issuer: string; character: string }[], params: GameParameters }
   | { type: "Reset" }
   | { type: "Rollback"; issuer: Issuer }
   | { type: "DeclareAttack"; issuer: Issuer }

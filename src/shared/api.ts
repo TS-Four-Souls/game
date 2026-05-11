@@ -317,7 +317,6 @@ const numberGameParameterSchema = z.object({
 });
 
 const gameParametersSchema = z.object({
-  edenVariant: booleanGameParameterSchema,
   miniDraft: booleanGameParameterSchema,
   nbPennies: numberGameParameterSchema,
   nb2Cents: numberGameParameterSchema,

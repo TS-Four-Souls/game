@@ -1226,6 +1226,7 @@ export class Game extends SelectionHandler {
     this.setupGame();
     const characters: CharacterCard[] = [];
     for (const slug of slugs) {
+      console.log(`Obtaining character card for slug: ${slug}`);
       if(slug === "random")
       {
         characters.push(null as any);
@@ -1267,8 +1268,17 @@ export class Game extends SelectionHandler {
   /**
    * Starts the game lifecycle and executes initial setup.
    */
-  start(characters: CharacterCard[] | null = null, shufflePlayerOrder: boolean = true): void{
+  start(players: { issuer: string; character: string }[] | null = null, shufflePlayerOrder: boolean = true): void{
     this.assert.gameNotStarted();
+    if (players && players.length > 0) {
+      for (const p of players) 
+        this.addPlayer(new Player(p.issuer));
+      const chara = this.getCharactersFromSlugs(players.map((p) => p.character));
+      this.assignCharactersToPlayers(chara);
+    }
+     else {
+      this.assignRandomCharacterToPlayers();
+    }
     this.assert.minimumPlayerCount();
     this._pendingMultipleSelections.clear();
     if (shufflePlayerOrder) {
@@ -1278,13 +1288,6 @@ export class Game extends SelectionHandler {
       this.setupGame();
     }
     this.turnHandler.initialize(this.players);
-    if(this.gameParameters.edenVariant.value === true)
-      characters = edenGame(this);
-    if (characters && characters.length > 0) {
-      this.assignCharactersToPlayers(characters);
-    } else {
-      this.assignRandomCharacterToPlayers();
-    }
     this._historicHandler.recordInitialGameState(this);
     
     this.initializeWinningCondition();
@@ -2275,6 +2278,6 @@ export class Game extends SelectionHandler {
         return p;
       }
     }
-    throw new Error("Player not found");
+    throw new Error(`Player not found: ${id}, requested by issuer with id ${this.players.map(p => p.id).join(", ")}`);
   }
 }

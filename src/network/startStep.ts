@@ -193,12 +193,10 @@ export const enterStartStep = (
   });
 
   socket.on("start", (callback) => {
-    const game = new Game();
-    for (const user of room.users) {
-      if (!user.name) continue;
-      const player = new Player(user.name);
-      game.addPlayer(player);
-    }
+    const params = room.params;
+    const userChara = room.users.map((u) => ({ playerId: u.id, character: u.character.character }));
+
+    const game = new Game("", params);
     game.onStateChange.add(() => {
       sendRoomChangedToAll(room);
     });
@@ -214,11 +212,24 @@ export const enterStartStep = (
         }
       });
     });
+    const players = room.users.filter((user) => !!user.name);
+    const playersWithCharacters = players.map((user, index) => ({
+            issuer: user.name!,
+            character: user.character.character!,
+          }));
     console.log(
       "Starting game with players:",
       game.players.map((p) => p.id),
     );
-    game.start();
+    console.log(`Starting game with players: ${playersWithCharacters.map(p => `${p.issuer} as ${p.character}`).join(", ")}`);
+
+    game.start(playersWithCharacters);
+    game.addToHistory({ 
+      type: "Start",
+      players: playersWithCharacters,
+      params: room.params,
+    });
+    room.game = game;
     for (const user of room.users) {
       if (!user.name) continue;
       const socket = user.socket;
