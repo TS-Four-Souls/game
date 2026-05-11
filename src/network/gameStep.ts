@@ -15,8 +15,45 @@ import type { ItemCard, LootCard, MonsterCard } from "@/models/cards";
 import type { Game } from "@/models/game";
 import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
 import type { HistoricEntry } from "@/models/historyHandler";
+import { enterStartStep } from "./startStep";
 
-export const enterGameStep = (socket: Socket, room: Room, user: User) => {
+export const enterGameStep = (
+  socket: Socket,
+  rooms: Map<string, Room>,
+  room: Room,
+  user: User,
+) => {
+  const leaveGameStep = (socket: Socket) => {
+    socket.offAny(updateLastActionTimestamp);
+    socket.removeAllListeners("saveGame");
+    socket.removeAllListeners("rollback");
+    socket.removeAllListeners("declareAttack");
+    socket.removeAllListeners("attackMonster");
+    socket.removeAllListeners("attackRoll");
+    socket.removeAllListeners("resolve");
+    socket.removeAllListeners("submitSelection");
+    socket.removeAllListeners("insertStackElementBefore");
+    socket.removeAllListeners("playCard");
+    socket.removeAllListeners("activate");
+    socket.removeAllListeners("activateRoom");
+    socket.removeAllListeners("declarePurchase");
+    socket.removeAllListeners("cancelPurchase");
+    socket.removeAllListeners("purchase");
+    socket.removeAllListeners("endTurn");
+    socket.removeAllListeners("giveCoins");
+    socket.removeAllListeners("debugLoot");
+    socket.removeAllListeners("debugListLoot");
+    socket.removeAllListeners("debugListCardsICanRemove");
+    socket.removeAllListeners("debugRemoveCards");
+    socket.removeAllListeners("debugListTreasure");
+    socket.removeAllListeners("debugGainTreasure");
+    socket.removeAllListeners("debugGainCoins");
+    socket.removeAllListeners("debugListMonsterDeck");
+    socket.removeAllListeners("debugPutMonsterCardInSlot");
+    socket.removeAllListeners("reportBug");
+    socket.removeAllListeners("quitGame");
+  };
+
   const updateLastActionTimestamp = () => {
     user.lastActionTimestamp = new Date();
   };
@@ -716,5 +753,26 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
         }
       },
     );
+  });
+
+  socket.on("quitGame", (callback) => {
+    for (const user of room.users) {
+      if (!user.name) continue;
+      const socket = user.socket;
+      socket.emit("on:room:broadcast", {
+        type: "info",
+        title: `Game exited by ${player.id}`,
+        message: "The game has been exited.",
+      });
+    }
+
+    room.game = undefined;
+    for (const user of room.users) {
+      if (!user.name) continue;
+      const socket = user.socket;
+      leaveGameStep(socket);
+      enterStartStep(socket, rooms, room, user);
+    }
+    return callback({ status: 200 });
   });
 };

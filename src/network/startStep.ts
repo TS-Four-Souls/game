@@ -179,7 +179,7 @@ export const enterStartStep = (
             );
           room.game = await loadGameFromLogs(logs);
           leaveStartStep(socket);
-          enterGameStep(socket, room, user);
+          enterGameStep(socket, rooms, room, user);
           return callback({ status: 200 });
         } catch (error) {
           console.error("Failed to load game from logs", error);
@@ -230,7 +230,7 @@ export const enterStartStep = (
       if (!user.name) continue;
       const socket = user.socket;
       leaveStartStep(socket);
-      enterGameStep(socket, room, user);
+      enterGameStep(socket, rooms, room, user);
     }
     return callback({ status: 200 });
   });
