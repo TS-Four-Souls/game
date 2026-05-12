@@ -105,44 +105,33 @@ class DeckParameter {
     /** Apply a deck configuration: set counts for provided cards and recompute total */
     applyDeckConfig(cards: DeckConfigCard[]) {
         for (const c of cards) {
-            const card = this._cards.find(x => x.card.slug === c.slug);
-            if (card) {
-                // set without using setCardParameter to avoid per-card total checks while applying
-                const previousCount = card.param.value;
-                if( this._currentCount - previousCount + c.count > this._maxCardInDeck) {
-                    const newValue = card.param.value + (this._maxCardInDeck - this._currentCount);
-                    card.param.value = newValue;
-                }
-                else if( this._currentCount - previousCount + c.count < this._minCardInDeck) {
-                    const newValue = card.param.value - (this._currentCount - this._minCardInDeck);
-                    card.param.value = newValue;
-                }
-                else
-                    card.param.value = c.count;
-                this._currentCount += card.param.value - previousCount;
-            }
+            this.setCardParameter(c.slug, c.count, false);
         }
-        
         this.onChange();
     }
 
-    setCardParameter(slug: string, value: number) {
-        const card = this._cards.find(c => c.card.slug === slug);
+    setCardParameter(slug: string, value: number, callOnChange: boolean = true) {
+        const card = this._cards.find(x => x.card.slug === slug);
         if (card) {
-            const newCount = this._currentCount + value - card.param.value;
-            if(value > card.param.value && newCount >= this._maxCardInDeck) {
-                throw new Error(`Cannot add more cards to deck ${this._type}. Maximum is ${this._maxCardInDeck}`);
+            // set without using setCardParameter to avoid per-card total checks while applying
+            const previousCount = card.param.value;
+            if( this._currentCount - previousCount + value > this._maxCardInDeck) {
+                const newValue = card.param.value + (this._maxCardInDeck - this._currentCount);
+                card.param.value = newValue;
             }
-            if(value < card.param.value && newCount < this._minCardInDeck) {
-                throw new Error(`Cannot remove cards from deck ${this._type}. Minimum is ${this._minCardInDeck}`);
+            else if( this._currentCount - previousCount + value < this._minCardInDeck) {
+                const newValue = card.param.value - (this._currentCount - this._minCardInDeck);
+                card.param.value = newValue;
             }
-            console.log(`Setting card ${slug} count to ${value} in deck ${this._type}, new total would be ${newCount}`);
-            this._currentCount = newCount;
-            card.param.value = value;
-            this.onChange();
+            else
+                card.param.value = value;
+            this._currentCount += card.param.value - previousCount;
         } else
         {            
             throw new Error(`Card with slug ${slug} not found in deck ${this._type}`);
+        }
+        if (callOnChange) {
+            this.onChange();
         }
     }
 
