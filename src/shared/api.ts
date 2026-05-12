@@ -35,6 +35,27 @@ const deckNameSchema = z.union([
 ]);
 export type DeckName = z.infer<typeof deckNameSchema>;
 
+const deckTypeEnum = z.enum(["monster", "treasure", "loot", "bsoul", "room"]);
+
+const deckConfigCardSchema = z.object({
+  name: z.string(),
+  slug: z.string(),
+  count: z.number(),
+  deckType: deckTypeEnum,
+});
+export type DeckConfigCard = z.infer<typeof deckConfigCardSchema>;
+
+const deckSchema = z.object({
+  total: z.number(),
+  cards: z.array(deckConfigCardSchema),
+});
+
+export type SetCardCountRequest = {
+    slug: string;
+    count: number;
+}
+
+
 // Forward declare types for circular references
 export type SelectionItem =
   | { type: "card"; payload: Card }
@@ -315,14 +336,22 @@ const numberGameParameterSchema = z.object({
   text: z.string(),
   value: z.number(),
 });
+const decksConfigSchema = z.object({
+  useBonusSouls: booleanGameParameterSchema,
+  useRooms: booleanGameParameterSchema,
+  nbPlayerCardRestriction: booleanGameParameterSchema,
+  
+  monster: deckSchema,
+  treasure: deckSchema,
+  loot: deckSchema,
+  bsoul: deckSchema.optional(),
+  room: deckSchema.optional(),
+});
+
+export type DeckConfig = z.infer<typeof decksConfigSchema>;
 
 const gameParametersSchema = z.object({
   miniDraft: booleanGameParameterSchema,
-  nbPennies: numberGameParameterSchema,
-  nb2Cents: numberGameParameterSchema,
-  nb3Cents: numberGameParameterSchema,
-  nb4Cents: numberGameParameterSchema,
-  nbNickels: numberGameParameterSchema,
   nbItemsInShop: numberGameParameterSchema,
   nbEncounters: numberGameParameterSchema,
   nbRooms: numberGameParameterSchema,
@@ -336,22 +365,20 @@ const gameParametersSchema = z.object({
   maxHandSize: numberGameParameterSchema,
   allowCoinDonation: booleanGameParameterSchema,
   lootPlayPerTurn: numberGameParameterSchema,
-  playWithBonusSouls: booleanGameParameterSchema,
-  nbPlayerCardRestriction: booleanGameParameterSchema,
-  playWithRooms: booleanGameParameterSchema,
   allowCheatOptions: booleanGameParameterSchema,
+  decksConfig: decksConfigSchema,
 });
 export type GameParametersJson = z.infer<typeof gameParametersSchema>;
 
 // Utility types to extract keys based on parameter value type
 export type NumberParameterKeys = {
-  [K in keyof GameParametersJson]: GameParametersJson[K]["value"] extends number
+  [K in keyof GameParametersJson]: GameParametersJson[K] extends { value: number }
     ? K
     : never;
 }[keyof GameParametersJson];
 
 export type BooleanParameterKeys = {
-  [K in keyof GameParametersJson]: GameParametersJson[K]["value"] extends boolean
+  [K in keyof GameParametersJson]: GameParametersJson[K] extends { value: boolean }
     ? K
     : never;
 }[keyof GameParametersJson];
@@ -502,6 +529,10 @@ const setGameParameterRequestSchema = z.discriminatedUnion("parameter", [
       ) as [BooleanParameterKeys, ...BooleanParameterKeys[]],
     ),
     value: z.boolean(),
+  }),
+  z.object({
+    parameter: z.literal("decksConfig"),
+    value: decksConfigSchema,
   }),
 ]);
 export type SetGameParameterRequest = z.infer<

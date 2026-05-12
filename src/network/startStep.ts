@@ -120,7 +120,7 @@ export const enterStartStep = (
       schemas.setGameParameterRequest,
       callback,
       (payload) => {
-        room.params[payload.parameter].value = payload.value;
+        room.params.setParameterByKey(payload.parameter, payload.value);
       },
     );
   });

@@ -28,7 +28,7 @@ export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
       users: [user],
       params: new GameParameters(() => {
         sendRoomChangedToAll(room);
-      }),
+      }, () => room.users.length),
       characters: generateCharacterAndEternalPairs(),
     };
     rooms.set(roomId, room);
@@ -63,7 +63,7 @@ export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
             enterStartStep(socket, rooms, room, user);
           } else {
             console.log("Entering game step");
-            enterGameStep(socket, room, user);
+            enterGameStep(socket, rooms, room, user);
           }
         } else {
           if (room.users.length >= 4) {

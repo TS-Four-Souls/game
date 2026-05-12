@@ -542,6 +542,16 @@ class Card {
             onFlipEffect();
         }
     }
+
+    isSameCard(other: Card): boolean {
+        for (const key of Object.keys(this._json)) {
+            if(["front", "back", "slug", "quote", "origin"].includes(key)) continue; // Ignore front/back differences for card identity
+            if (JSON.stringify(this._json[key as keyof GenericCardType]) !== JSON.stringify(other._json[key as keyof GenericCardType])) {
+                return false;
+            }
+        }
+        return true;
+    }
     cleanup(): void {
         for (const cleaner of this._cleanup) {
             cleaner();

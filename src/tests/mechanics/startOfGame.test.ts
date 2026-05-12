@@ -12,15 +12,8 @@ describe("Start of Game", () => {
 
     it("start with same characters", async () => {
         game = new Game();
-        for (let i = 0; i < 3; i++) {
-            const player = new Player(`player${i + 1}`);
-            game.players.push(player);
-        }
-        const orderedCharacters = [{character: {slug: "b2-judas"}}, {character: {slug: "b2-judas"}}, {character: {slug: "b2-judas"}}];
-        const characters = game.getCharactersFromSlugs(orderedCharacters?.map((c) => 
-                // c.character === "random" ? "random" : 
-        c.character.slug) ?? []);
-        expect(() => game.start(characters)).not.toThrow();
+        const orderedCharacters = [{issuer: "Player 1", character: "b2-judas"}, {issuer: "Player 2", character: "b2-judas"}, {issuer: "Player 3", character: "b2-judas"}];
+        expect(() => game.start(orderedCharacters)).not.toThrow();
         expect(game.players[0]!.inPlay[1]!.globalId).not.toBe(game.players[1]!.inPlay[1]!.globalId);
         expect(game.players[2]!.inPlay[1]!.globalId).not.toBe(game.players[1]!.inPlay[1]!.globalId);
         expect(game.players[2]!.inPlay[1]!.globalId).not.toBe(game.players[0]!.inPlay[1]!.globalId);
@@ -31,14 +24,8 @@ describe("Start of Game", () => {
 
     it("start with same characters with random", async () => {
         game = new Game();
-        for (let i = 0; i < 3; i++) {
-            const player = new Player(`player${i + 1}`);
-            game.players.push(player);
-        }
-        const orderedCharacters = [{character: {slug: "b2-judas"}}, {character: {slug: "b2-judas"}}, {character: {slug: "random"}}];
-        const characters = game.getCharactersFromSlugs(orderedCharacters?.map((c) => 
-        c.character.slug) ?? []);
-        expect(() => game.start(characters)).not.toThrow();
+        const orderedCharacters = [{issuer: "Player 1", character: "b2-judas"}, {issuer: "Player 2", character: "b2-judas"}, {issuer: "Player 3", character: "b2-judas"}];
+        expect(() => game.start(orderedCharacters)).not.toThrow();
     });
 
     

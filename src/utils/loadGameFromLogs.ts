@@ -57,20 +57,7 @@ function remapSubmitSelectionRequestId(
   return pendingRequestId;
 }
 function applySetGameParameter(game: Game, payload: HistoricEntry & { type: "GameParameters" }): void {
-  for (const key of Object.keys(payload.gameParameters)) {
-    if (!isParameterKey(key)) {
-      continue;
-    }
-    const paramDef = payload.gameParameters[key];
-    // Handle both formats: { value, text } or just { value }
-    const value = isObject(paramDef) && "value" in paramDef ? paramDef.value : "_value" in paramDef ? (paramDef as any)._value : undefined;
-    if (value === undefined || value === null) {
-      console.warn(`Skipping game parameter ${key}: value is ${value}`);
-      continue;
-    }
-    game.gameParameters[key].value = value;
-    // console.log(`Set game parameter ${key} to value ${value}`);
-  }
+  game.gameParameters.loadFromJson(payload.gameParameters as any);
 }
 
 function verifyRecordedCharactersAfterStart(
@@ -360,7 +347,12 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
 
         case "SetGameParameter": {
           const payload = entry.payload;
-          if (isParameterKey(payload.parameter)) {
+          if (payload.parameter === "decksConfig") {
+            game.gameParameters.loadFromJson({
+              ...game.gameParameters.toJson(),
+              decksConfig: payload.value,
+            });
+          } else if (isParameterKey(payload.parameter)) {
             game.gameParameters[payload.parameter].value = payload.value;
             // console.log(`Set game parameter ${payload.parameter} to value ${payload.value}`);
           }

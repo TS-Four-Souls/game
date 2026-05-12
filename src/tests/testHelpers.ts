@@ -172,14 +172,6 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
     mockGameSelections(game);
     game.gameParameters.nbPlayerCardRestriction.value = false;
     game.gameParameters.lootPlayPerTurn.value = 10;
-    // Create players
-    const players: Player[] = [];
-    for (let i = 0; i < playerCount; i++) {
-        const name = `Player ${i + 1}`;
-        const player = new Player(name);
-        players.push(player);
-        game.addPlayer(player);
-    }
     if(rooms !== false)
         game.gameParameters.playWithRooms.value = true;
     else
@@ -211,25 +203,12 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
     }
 
     // Assign characters
-    let characterCards: CharacterCard[] | null = null;
-    if (characters && characters.length > 0) {
-        if (characters.length !== playerCount) {
-            throw new Error(
-                `Number of characters (${characters.length}) must match number of players (${playerCount})`
-            );
-        }
-
-        characterCards = characters.map(slug => {
-            const card = game.decks["character"]!.getCardFromSlug(slug);
-            if (!card) {
-                throw new Error(`Character card not found: ${slug}`);
-            }
-            return card as CharacterCard;
-        });
-    }
-
+    const charactersFull = characters ? characters :
+    game.decks.character.cards.splice(0, playerCount).map(c => c.slug);
     // Start the game
-    game.start(characterCards, false);
+    const charas = charactersFull?.map((slug, index) => ({issuer: `Player ${index + 1}`, character: slug}));
+    game.start(charas, false);
+    const players = game.players;
     dischargeEachItemsAndRemoveCoins(game);
     emptyHands(game);
     

@@ -1,5 +1,6 @@
-import type { GameParametersJson } from "@/shared/api";
-
+import type { DeckConfig, DeckConfigCard, GameParametersJson } from "@/shared/api";
+import { CARD_SETS } from "./game";
+import type { DeckType, Card } from "./cards";
 class NumericGameParameter {
     private _value: number;
     private _min: number;
@@ -42,6 +43,133 @@ class NumericGameParameter {
     }
 }
 
+class DeckParameter {
+    private _type: DeckType;
+    private _currentCount: number = 0;
+    private _cards: {card: Card, param: NumericGameParameter}[] = [];
+    private _minCardInDeck: number;
+    private _maxCardInDeck: number;
+    private _getCurrentNbPlayers: () => number;
+
+    constructor(type: DeckType, minCardInDeck: number = 100, maxCardInDeck: number = 1000, private readonly onChange: () => void, private readonly getCurrentNbPlayers: () => number) {
+        this._type = type;
+        this._currentCount = CARD_SETS[type].cards.length;
+        this._getCurrentNbPlayers = getCurrentNbPlayers;
+        this._minCardInDeck = minCardInDeck;
+        this._maxCardInDeck = maxCardInDeck;
+        this.createParamForUniqueCards();
+    }
+    get count(): number {
+        return this._currentCount;
+    }
+
+    get cardsParam() {
+        return this._cards;
+    }
+
+    createParamForUniqueCards(): void {
+        const uniqueCards: {card: Card, count: number}[] = [];
+        for(const card of CARD_SETS[this._type].cards) {
+            const existing = uniqueCards.find(c => c.card.isSameCard(card));
+            if (existing) {
+                existing.count++;
+            } else {
+                uniqueCards.push({card, count: 1});
+            }
+        }
+        uniqueCards.forEach(c => {
+            let count = c.count;
+            switch(c.card.name) {
+                case "A Penny!":
+                    count = 2;
+                    break;
+                case "2 Cents!":
+                    count = 6;
+                    break;
+                case "3 Cents!":
+                    count = 11;
+                    break;
+                case "4 Cents!":
+                    count = 11;
+                    break;
+                case "A Nickel!":
+                    count = 6;
+                    break;
+                default:
+                    break;
+            }
+            this._cards.push({card: c.card, param: new NumericGameParameter(0, count, 100, this.onChange)});
+        });
+    }
+
+    /** Apply a deck configuration: set counts for provided cards and recompute total */
+    applyDeckConfig(cards: DeckConfigCard[]) {
+        for (const c of cards) {
+            const card = this._cards.find(x => x.card.slug === c.slug);
+            if (card) {
+                // set without using setCardParameter to avoid per-card total checks while applying
+                const previousCount = card.param.value;
+                if( this._currentCount - previousCount + c.count > this._maxCardInDeck) {
+                    const newValue = card.param.value + (this._maxCardInDeck - this._currentCount);
+                    card.param.value = newValue;
+                }
+                else if( this._currentCount - previousCount + c.count < this._minCardInDeck) {
+                    const newValue = card.param.value - (this._currentCount - this._minCardInDeck);
+                    card.param.value = newValue;
+                }
+                else
+                    card.param.value = c.count;
+                this._currentCount += card.param.value - previousCount;
+            }
+        }
+        
+        this.onChange();
+    }
+
+    setCardParameter(slug: string, value: number) {
+        const card = this._cards.find(c => c.card.slug === slug);
+        if (card) {
+            const newCount = this._currentCount + value - card.param.value;
+            if(value > card.param.value && newCount >= this._maxCardInDeck) {
+                throw new Error(`Cannot add more cards to deck ${this._type}. Maximum is ${this._maxCardInDeck}`);
+            }
+            if(value < card.param.value && newCount < this._minCardInDeck) {
+                throw new Error(`Cannot remove cards from deck ${this._type}. Minimum is ${this._minCardInDeck}`);
+            }
+            console.log(`Setting card ${slug} count to ${value} in deck ${this._type}, new total would be ${newCount}`);
+            this._currentCount = newCount;
+            card.param.value = value;
+            this.onChange();
+        } else
+        {            
+            throw new Error(`Card with slug ${slug} not found in deck ${this._type}`);
+        }
+    }
+
+    reset(emitChange: boolean = true) {
+        for (const card of this._cards) {
+            card.param.reset(emitChange);
+        }
+        this._currentCount = CARD_SETS[this._type].cards.length;
+    }
+
+    get total(): number {
+        return this._currentCount;
+    }
+    
+    get type(): DeckType {
+        return this._type;
+    }
+
+    json() {
+        const result: DeckConfigCard[] = [];
+        for (const card of this._cards) {
+            result.push({slug: card.card.slug, name: card.card.name, count: card.param.value, deckType: this._type as DeckConfigCard["deckType"]});
+        }
+        return result;
+    }
+}
+
 class BooleanGameParameter {
     private _value: boolean;
     private _initialValue: boolean;
@@ -70,11 +198,6 @@ class BooleanGameParameter {
 
 export class GameParameters {
     readonly miniDraft: BooleanGameParameter;
-    readonly nbPennies: NumericGameParameter;
-    readonly nb2Cents: NumericGameParameter;
-    readonly nb3Cents: NumericGameParameter;
-    readonly nb4Cents: NumericGameParameter;
-    readonly nbNickels: NumericGameParameter;
     readonly nbItemsInShop: NumericGameParameter;
     readonly nbRooms: NumericGameParameter;
     readonly nbEncounters: NumericGameParameter;
@@ -93,14 +216,24 @@ export class GameParameters {
     /** only cards with minimum player requirement satisfied in decks. */
     readonly nbPlayerCardRestriction: BooleanGameParameter;
     readonly allowCheatOptions: BooleanGameParameter;
+    readonly monsterDeck: DeckParameter;
+    readonly treasureDeck: DeckParameter;
+    readonly lootDeck: DeckParameter;
+    readonly soulDeck: DeckParameter;
+    readonly roomDeck: DeckParameter;
 
-    constructor(onChange: () => void) {
+    readonly _onChange: () => void;
+    readonly _getCurrentNbPlayers: () => number;
+
+    constructor(onChange: () => void, getCurrentNbPlayers: () => number) {
+        this._onChange = onChange;
+        this._getCurrentNbPlayers = getCurrentNbPlayers;
         this.miniDraft = new BooleanGameParameter(false, onChange);
-        this.nbPennies = new NumericGameParameter(0, 2, 9, onChange);
-        this.nb2Cents = new NumericGameParameter(0, 6, 15, onChange);
-        this.nb3Cents = new NumericGameParameter(0, 11, 19, onChange);
-        this.nb4Cents = new NumericGameParameter(0, 11, 11, onChange);
-        this.nbNickels = new NumericGameParameter(0, 6, 6, onChange);
+        this.monsterDeck = new DeckParameter("monster", 100, 1000, onChange, getCurrentNbPlayers);
+        this.treasureDeck = new DeckParameter("treasure", 100, 1000, onChange, getCurrentNbPlayers);
+        this.lootDeck = new DeckParameter("loot", 100, 1000, onChange, getCurrentNbPlayers);
+        this.soulDeck = new DeckParameter("bsoul", 3, 100, onChange, getCurrentNbPlayers);
+        this.roomDeck = new DeckParameter("room", 10, 100, onChange, getCurrentNbPlayers);
         this.nbItemsInShop = new NumericGameParameter(0, 2, 6, onChange);
         this.nbRooms = new NumericGameParameter(1, 1, 1, onChange);
         this.nbEncounters = new NumericGameParameter(1, 2, 6, onChange);
@@ -114,23 +247,49 @@ export class GameParameters {
         this.maxHandSize = new NumericGameParameter(1, 10, 100, onChange);
         this.allowCoinDonation = new BooleanGameParameter(true, onChange);
         this.lootPlayPerTurn = new NumericGameParameter(1, 1, 10, onChange);
-        this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
+        this.nbPlayerCardRestriction = new BooleanGameParameter(true, this.onChangeNbPlayerCardRestriction.bind(this));
         this.allowCheatOptions = new BooleanGameParameter(true, onChange);
         this.playWithBonusSouls = new BooleanGameParameter(true, onChange);
         this.playWithRooms = new BooleanGameParameter(true, onChange);
     }
 
+    onChangeNbPlayerCardRestriction()
+    {
+        console.log("Applying player card restriction, current nb players:", this._getCurrentNbPlayers());
+        for(const deck of [this.monsterDeck, this.treasureDeck, this.lootDeck, this.soulDeck, this.roomDeck]) {
+            for(const cardParam of deck.cardsParam) {
+                if(this.nbPlayerCardRestriction.value){
+                    if(this._getCurrentNbPlayers() < cardParam.card.minimumPlayers)
+                    {
+                        console.log("Removing card from deck:", cardParam.card.slug);
+                        deck.setCardParameter(cardParam.card.slug, 0);
+                    }
+                }else{
+                    if(this._getCurrentNbPlayers() < cardParam.card.minimumPlayers)
+                    {
+                        console.log("Re-adding card to deck:", cardParam.card.slug);
+                        deck.setCardParameter(cardParam.card.slug, cardParam.param.value === 0 ? 1 : cardParam.param.value);
+                    }
+                }
+            }
+        }
+        this._onChange();
+    }
+
     toJson(): GameParametersJson {
+        const decks: DeckConfig = {
+            useBonusSouls: {text: "Use bonus souls?", value: this.playWithBonusSouls.value},
+            useRooms: {text: "Use rooms?", value: this.playWithRooms.value},
+            nbPlayerCardRestriction: {text: "Number player card restriction", value: this.nbPlayerCardRestriction.value},
+            monster: {total: this.monsterDeck.count, cards: this.monsterDeck.json()},
+            treasure: {total: this.treasureDeck.count, cards: this.treasureDeck.json()},
+            loot: {total: this.lootDeck.count, cards: this.lootDeck.json()},
+            ...(this.playWithBonusSouls.value ? {bsoul: {total: this.soulDeck.count, cards: this.soulDeck.json()}} : {}),
+            ...(this.playWithRooms.value ? {room: {total: this.roomDeck.count, cards: this.roomDeck.json()}} : {}),
+        }
         return {
             miniDraft: {text: "Mini-draft", value: this.miniDraft.value},//: At the start of the game, lay out (number of players + 1) treasure cards. Each player choose one of them and gain them, in turn order. Put the last card on the bottom of the treasure deck. Repeat this process with the order reversed.
-            playWithBonusSouls: {text: "Play with bonus souls?", value: this.playWithBonusSouls.value}, // If player card restriction is on, there are 3 bonus souls in the pool at the start of the game, otherwise there are none.
             allowCheatOptions: {text: "Allow cheat options", value: this.allowCheatOptions.value},
-            playWithRooms: {text: "Play with rooms?", value: this.playWithRooms?.value}, // If true, rooms are added to the game. Each player starts with 1 room in play, and one room is added to the shop. Players can play a card on a room to add it to the room, and gain its effect as long as it's in the room. When the room is removed from play, all cards in it are discarded.
-            nbPennies: {text: "Number of pennies", value: this.nbPennies.value},
-            nb2Cents: {text: "Number of 2-cents", value: this.nb2Cents.value},
-            nb3Cents: {text: "Number of 3-cents", value: this.nb3Cents.value},
-            nb4Cents: {text: "Number of 4-cents", value: this.nb4Cents.value},
-            nbNickels: {text: "Number of nickels", value: this.nbNickels.value},
             nbItemsInShop: {text: "Number of items in the shop", value: this.nbItemsInShop.value},
             nbEncounters: {text: "Number of encounters", value: this.nbEncounters.value},
             nbRooms: {text: "Number of rooms", value: this.nbRooms.value},
@@ -144,24 +303,100 @@ export class GameParameters {
             maxHandSize: {text: "Max hand size", value: this.maxHandSize.value},
             allowCoinDonation: {text: "Allow coin donation", value: this.allowCoinDonation.value},
             lootPlayPerTurn: {text: "Loot play per turn", value: this.lootPlayPerTurn.value},
-            nbPlayerCardRestriction: {text: "Number player card restriction", value: this.nbPlayerCardRestriction.value},
+            decksConfig: decks,
         };
     }
 
     loadFromJson(json: GameParametersJson) {
         for (const key in json) {
-            if (json.hasOwnProperty(key) && this.hasOwnProperty(key)) {
+            if (!json.hasOwnProperty(key)) continue;
+            if (key === "decksConfig") {
+                const decks = (json as any).decksConfig as DeckConfig;
+                // Apply deck card counts first, then update top-level flags that may trigger
+                // card removals/restore (nbPlayerCardRestriction). This prevents a config
+                // that contains both the flags and the full card list from re-adding
+                // cards immediately after they were removed by the restriction handler.
+                if (decks.monster) {
+                    this.monsterDeck.applyDeckConfig(decks.monster.cards);
+                }
+                if (decks.treasure) {
+                    this.treasureDeck.applyDeckConfig(decks.treasure.cards);
+                }
+                if (decks.loot) {
+                    this.lootDeck.applyDeckConfig(decks.loot.cards);
+                }
+                if (decks.bsoul) {
+                    this.soulDeck.applyDeckConfig(decks.bsoul.cards);
+                }
+                if (decks.room) {
+                    this.roomDeck.applyDeckConfig(decks.room.cards);
+                }
+
+                if (decks.useBonusSouls) {
+                    this.playWithBonusSouls.value = decks.useBonusSouls.value;
+                }
+                if (decks.useRooms) {
+                    this.playWithRooms.value = decks.useRooms.value;
+                }
+                if (decks.nbPlayerCardRestriction) {
+                    this.nbPlayerCardRestriction.value = decks.nbPlayerCardRestriction.value;
+                }
+                continue;
+            }
+            if (this.hasOwnProperty(key)) {
                 const param = (this as any)[key] as NumericGameParameter | BooleanGameParameter;
-                param.value = json[key as keyof GameParametersJson].value;
+                if (param && typeof (json as any)[key].value !== "undefined") {
+                    param.value = (json as any)[key].value;
+                }
+            }
+        }
+    }
+
+    /** Set a single parameter by key without full serialization/deserialization cycle
+     * Avoids the overhead of serializing all parameters when only changing one */
+    setParameterByKey(key: string, value: any) {
+        if (key === "decksConfig") {
+            // Special handling for complex deck configuration
+            const decks = value as DeckConfig;
+            
+            // Apply provided deck card counts first so that top-level flags (like
+            // nbPlayerCardRestriction) that may remove/restore cards are applied
+            // afterwards and take precedence.
+            if (decks.monster?.cards) this.monsterDeck.applyDeckConfig(decks.monster.cards);
+            if (decks.treasure?.cards) this.treasureDeck.applyDeckConfig(decks.treasure.cards);
+            if (decks.loot?.cards) this.lootDeck.applyDeckConfig(decks.loot.cards);
+            if (decks.bsoul?.cards) this.soulDeck.applyDeckConfig(decks.bsoul.cards);
+            if (decks.room?.cards) this.roomDeck.applyDeckConfig(decks.room.cards);
+
+            if (decks.useBonusSouls?.value !== undefined) {
+                this.playWithBonusSouls.value = decks.useBonusSouls.value;
+            }
+            if (decks.useRooms?.value !== undefined) {
+                this.playWithRooms.value = decks.useRooms.value;
+            }
+            if (decks.nbPlayerCardRestriction?.value !== undefined) {
+                this.nbPlayerCardRestriction.value = decks.nbPlayerCardRestriction.value;
+            }
+            return;
+        }
+
+        // Handle scalar parameters (numeric or boolean)
+        if (this.hasOwnProperty(key)) {
+            const param = (this as any)[key] as NumericGameParameter | BooleanGameParameter;
+            if (param && param instanceof NumericGameParameter) {
+                param.value = value;
+            } else if (param && param instanceof BooleanGameParameter) {
+                param.value = value;
             }
         }
     }
 
     reset(emitChange: boolean = true) {
         for (const key in this) {
-            if (this.hasOwnProperty(key) 
-                && (this[key] instanceof NumericGameParameter || this[key] instanceof BooleanGameParameter)) {
-                this[key].reset(emitChange);
+            if (!this.hasOwnProperty(key)) continue;
+            const val = (this as any)[key];
+            if (val instanceof NumericGameParameter || val instanceof BooleanGameParameter || val instanceof DeckParameter) {
+                val.reset(emitChange);
             }
         }
     }

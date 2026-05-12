@@ -89,7 +89,7 @@ export class Game extends SelectionHandler {
   private _entitiesInCombat: Entity[] = [];
   private _gameStateSerializer: GameStateSerializer;
   private _assertHandler: AssertHandler = new AssertHandler(this);
-  readonly gameParameters = new GameParameters(() => this.dispatch());
+  readonly gameParameters = new GameParameters(() => this.dispatch(), () => this._players.length);
   readonly _actionHandler = new ActionHandler(this);
 
   private _onStateChange: Signal<void> = new Signal();
@@ -1226,7 +1226,6 @@ export class Game extends SelectionHandler {
     this.setupGame();
     const characters: CharacterCard[] = [];
     for (const slug of slugs) {
-      console.log(`Obtaining character card for slug: ${slug}`);
       if(slug === "random")
       {
         characters.push(null as any);
@@ -1277,6 +1276,7 @@ export class Game extends SelectionHandler {
       this.assignCharactersToPlayers(chara);
     }
      else {
+      this.setupGame();
       this.assignRandomCharacterToPlayers();
     }
     this.assert.minimumPlayerCount();
@@ -2278,6 +2278,6 @@ export class Game extends SelectionHandler {
         return p;
       }
     }
-    throw new Error(`Player not found: ${id}, requested by issuer with id ${this.players.map(p => p.id).join(", ")}`);
+    throw new Error("Player not found");
   }
 }

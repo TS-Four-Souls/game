@@ -203,13 +203,14 @@ describe("Requiem Rooms", () => {
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
         expect(player1.inPlay.length).toBe(3);
+        game.removeInPlay(player1, player1.inPlay[2]!);
         expect(player1.coins).toBe(0);
         game.addSoul(player2, soul);
         game.addPurchaseThisTurn(player1, 1);
         game.gainCoins(player1, 10, "gift");
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
-        expect(player1.inPlay.length).toBe(4);
+        expect(player1.inPlay.length).toBe(3);
         expect(player1.coins).toBe(10);
 
     });

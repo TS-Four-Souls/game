@@ -14,18 +14,12 @@ describe("Game Selection System", () => {
 
     beforeEach(() => {
         game = new Game();
-        player1 = new Player("Player 1");
-        player2 = new Player("Player 2");
-        player3 = new Player("Player 3");
-        game.addPlayer(player1);
-        game.addPlayer(player2);
-        game.addPlayer(player3);
         game.setupGame();
-        
-        const isaac = game.decks["character"]!.getCardFromSlug("b2-isaac")! as CharacterCard;
-        const judas = game.decks["character"]!.getCardFromSlug("b2-judas")! as CharacterCard;
-        const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
-        game.start([isaac, judas, samson], false);
+        const chara = [{issuer: "Player 1", character: "b2-isaac"}, {issuer: "Player 2", character: "b2-judas"}, {issuer: "Player 3", character: "b2-samson"}];
+        game.start(chara, false);
+        player1 = game.players[0]!;
+        player2 = game.players[1]!;
+        player3 = game.players[2]!;
     });
 
     it("select() creates a pending selection with correct data", async () => {
