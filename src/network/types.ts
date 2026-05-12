@@ -18,6 +18,7 @@ export type User = {
   socket: Socket;
   name?: string;
   character: RoomCharacter;
+  isHost: boolean;
 };
 
 export type Room = {

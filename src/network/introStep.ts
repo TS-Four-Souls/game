@@ -20,15 +20,19 @@ export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
       lastActionTimestamp: new Date(),
       socket,
       character: DEFAULT_CHARACTER,
+      isHost: true,
     };
     sendUserAssigned(socket, user);
 
     const room: Room = {
       id: roomId,
       users: [user],
-      params: new GameParameters(() => {
-        sendRoomChangedToAll(room);
-      }, () => room.users.length),
+      params: new GameParameters(
+        () => {
+          sendRoomChangedToAll(room);
+        },
+        () => room.users.length,
+      ),
       characters: generateCharacterAndEternalPairs(),
     };
     rooms.set(roomId, room);
@@ -77,6 +81,7 @@ export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
             lastActionTimestamp: new Date(),
             socket,
             character: DEFAULT_CHARACTER,
+            isHost: false,
           };
           sendUserAssigned(socket, user);
 

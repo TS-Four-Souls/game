@@ -11,7 +11,6 @@ import { enterGameStep } from "./gameStep";
 import type { HistoricEntry } from "@/models/historyHandler";
 import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
 import { enterIntroStep } from "./introStep";
-import { Player } from "@/models/entities/player";
 
 export const enterStartStep = (
   socket: Socket,
@@ -53,32 +52,6 @@ export const enterStartStep = (
     return callback({ status: 200 });
   });
 
-  socket.on("kickFromRoom", (request, callback) => {
-    payloadGuardedEndpoint(
-      request,
-      schemas.kickFromRoomRequest,
-      callback,
-      (payload) => {
-        const user = room.users.find((user) => user.name === payload.name);
-        if (!user) {
-          return callback({ status: 400, error: "User not found" });
-        }
-        const socket = user.socket;
-        room.users = room.users.filter(({ id }) => id !== user.id);
-
-        sendRoomChangedToAll(room);
-
-        sendUserAssigned(socket, null);
-        sendRoomChangedToUser(null, user);
-
-        leaveStartStep(socket);
-        enterIntroStep(socket, rooms);
-
-        return callback({ status: 200 });
-      },
-    );
-  });
-
   socket.on("setName", (request, callback) => {
     payloadGuardedEndpoint(
       request,
@@ -114,43 +87,6 @@ export const enterStartStep = (
     );
   });
 
-  socket.on("setGameParameter", (payload, callback) => {
-    payloadGuardedEndpoint(
-      payload,
-      schemas.setGameParameterRequest,
-      callback,
-      (payload) => {
-        room.params.setParameterByKey(payload.parameter, payload.value);
-      },
-    );
-  });
-
-  socket.on("resetGameParameters", (callback) => {
-    room.params.reset();
-    return callback({ status: 200 });
-  });
-
-  socket.on("loadGameParameters", (payload, callback) => {
-    payloadGuardedEndpoint(
-      payload,
-      schemas.loadGameParametersRequest,
-      callback,
-      (payload) => {
-        try {
-          const settings = JSON.parse(payload);
-          room.params.loadFromJson(settings);
-          return callback({ status: 200 });
-        } catch (error) {
-          console.error("Failed to get game settings", error);
-          if (error instanceof Error) {
-            return callback({ status: 400, error: error.message });
-          }
-          return callback({ status: 400, error: "Unknown error" });
-        }
-      },
-    );
-  });
-
   socket.on("selectCharacter", (payload, callback) => {
     payloadGuardedEndpoint(
       payload,
@@ -164,74 +100,139 @@ export const enterStartStep = (
     );
   });
 
-  socket.on("loadGame", (payload, callback) => {
-    payloadGuardedEndpoint(
-      payload,
-      schemas.loadGameRequest,
-      callback,
-      async (payload) => {
-        try {
-          // Ensure requester is an authorized player in the current room game.
-          const logs: HistoricEntry[] = JSON.parse(payload);
-          if (!logs)
-            throw new Error(
-              "Logs are not valid JSON or not in the expected format.",
-            );
-          room.game = await loadGameFromLogs(logs);
-          leaveStartStep(socket);
-          enterGameStep(socket, rooms, room, user);
-          return callback({ status: 200 });
-        } catch (error) {
-          console.error("Failed to load game from logs", error);
-          if (error instanceof Error) {
-            return callback({ status: 400, error: error.message });
+  if (user.isHost) {
+    socket.on("kickFromRoom", (request, callback) => {
+      payloadGuardedEndpoint(
+        request,
+        schemas.kickFromRoomRequest,
+        callback,
+        (payload) => {
+          const user = room.users.find((user) => user.name === payload.name);
+          if (!user) {
+            return callback({ status: 400, error: "User not found" });
           }
-          return callback({ status: 400, error: "Unknown error" });
-        }
-      },
-    );
-  });
+          const socket = user.socket;
+          room.users = room.users.filter(({ id }) => id !== user.id);
 
-  socket.on("start", (callback) => {
-    const params = room.params;
+          sendRoomChangedToAll(room);
 
-    const game = new Game("", params);
-    game.onStateChange.add(() => {
-      sendRoomChangedToAll(room);
+          sendUserAssigned(socket, null);
+          sendRoomChangedToUser(null, user);
+
+          leaveStartStep(socket);
+          enterIntroStep(socket, rooms);
+
+          return callback({ status: 200 });
+        },
+      );
     });
-    game.onRoomBroadcast.add((broadcast) => {
-      room.users.forEach((user) => {
-        if (user.name === undefined) return;
-        if (broadcast.players.includes(user.name)) {
-          user.socket.to(broadcast.players).emit("on:room:broadcast", {
-            type: broadcast.type,
-            title: broadcast.title,
-            message: broadcast.message,
-          });
-        }
+
+    socket.on("setGameParameter", (payload, callback) => {
+      payloadGuardedEndpoint(
+        payload,
+        schemas.setGameParameterRequest,
+        callback,
+        (payload) => {
+          room.params.setParameterByKey(payload.parameter, payload.value);
+        },
+      );
+    });
+
+    socket.on("resetGameParameters", (callback) => {
+      room.params.reset();
+      return callback({ status: 200 });
+    });
+
+    socket.on("loadGameParameters", (payload, callback) => {
+      payloadGuardedEndpoint(
+        payload,
+        schemas.loadGameParametersRequest,
+        callback,
+        (payload) => {
+          try {
+            const settings = JSON.parse(payload);
+            room.params.loadFromJson(settings);
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to get game settings", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        },
+      );
+    });
+
+    socket.on("loadGame", (payload, callback) => {
+      payloadGuardedEndpoint(
+        payload,
+        schemas.loadGameRequest,
+        callback,
+        async (payload) => {
+          try {
+            // Ensure requester is an authorized player in the current room game.
+            const logs: HistoricEntry[] = JSON.parse(payload);
+            if (!logs)
+              throw new Error(
+                "Logs are not valid JSON or not in the expected format.",
+              );
+            room.game = await loadGameFromLogs(logs);
+            leaveStartStep(socket);
+            enterGameStep(socket, rooms, room, user);
+            return callback({ status: 200 });
+          } catch (error) {
+            console.error("Failed to load game from logs", error);
+            if (error instanceof Error) {
+              return callback({ status: 400, error: error.message });
+            }
+            return callback({ status: 400, error: "Unknown error" });
+          }
+        },
+      );
+    });
+
+    socket.on("start", (callback) => {
+      const params = room.params;
+
+      const game = new Game("", params);
+      game.onStateChange.add(() => {
+        sendRoomChangedToAll(room);
       });
-    });
-    const playersWithCharacters = room.users.flatMap((user) => {
-      if (!user.name) return [];
-      return {
-        issuer: user.name,
-        character: user.character.character,
-      };
-    });
+      game.onRoomBroadcast.add((broadcast) => {
+        room.users.forEach((user) => {
+          if (user.name === undefined) return;
+          if (broadcast.players.includes(user.name)) {
+            user.socket.to(broadcast.players).emit("on:room:broadcast", {
+              type: broadcast.type,
+              title: broadcast.title,
+              message: broadcast.message,
+            });
+          }
+        });
+      });
+      const playersWithCharacters = room.users.flatMap((user) => {
+        if (!user.name) return [];
+        return {
+          issuer: user.name,
+          character: user.character.character,
+        };
+      });
 
-    game.start(playersWithCharacters);
-    game.addToHistory({
-      type: "Start",
-      players: playersWithCharacters,
-      params: room.params,
+      game.start(playersWithCharacters);
+      game.addToHistory({
+        type: "Start",
+        players: playersWithCharacters,
+        params: room.params,
+      });
+      room.game = game;
+      for (const user of room.users) {
+        if (!user.name) continue;
+        const socket = user.socket;
+        leaveStartStep(socket);
+        enterGameStep(socket, rooms, room, user);
+      }
+      return callback({ status: 200 });
     });
-    room.game = game;
-    for (const user of room.users) {
-      if (!user.name) continue;
-      const socket = user.socket;
-      leaveStartStep(socket);
-      enterGameStep(socket, rooms, room, user);
-    }
-    return callback({ status: 200 });
-  });
+  }
 };
