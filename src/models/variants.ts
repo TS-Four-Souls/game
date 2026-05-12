@@ -55,17 +55,17 @@ export function isCardRestricted(card: GenericCardType, counters: Map<string, nu
         return true;
     if(card.type === "room" && !parameters.playWithRooms.value)
         return true;
-    const parameterMap: {[key: string]: number} = {
-        "A Penny!": parameters.nbPennies.value,
-        "2 Cents!": parameters.nb2Cents.value,
-        "3 Cents!": parameters.nb3Cents.value,
-        "4 Cents!": parameters.nb4Cents.value,
-        "A Nickel!": parameters.nbNickels.value
-    };
-    if(counters.get(card.name)! >= parameterMap[card.name]!)
-        {
-        return true;
-    }
+    // const parameterMap: {[key: string]: number} = {
+    //     "A Penny!": parameters.nbPennies.value,
+    //     "2 Cents!": parameters.nb2Cents.value,
+    //     "3 Cents!": parameters.nb3Cents.value,
+    //     "4 Cents!": parameters.nb4Cents.value,
+    //     "A Nickel!": parameters.nbNickels.value
+    // };
+    // if(counters.get(card.name)! >= parameterMap[card.name]!)
+    //     {
+    //     return true;
+    // }
     counters.set(card.name, counters.get(card.name)! + 1);
     return false;
 }
