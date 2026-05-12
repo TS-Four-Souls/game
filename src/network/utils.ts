@@ -69,13 +69,20 @@ const generateRoomChangedPayload = (
       id: user.id,
       name: user.name,
       character: user.character,
+      isHost: user.isHost,
     };
   });
 
   return {
     id: room.id,
     ...(recipient.name
-      ? { me: { name: recipient.name, character: recipient.character } }
+      ? {
+          me: {
+            name: recipient.name,
+            character: recipient.character,
+            isHost: recipient.isHost,
+          },
+        }
       : {}),
     players: others,
     characters: room.characters,

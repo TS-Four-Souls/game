@@ -51,10 +51,9 @@ const deckSchema = z.object({
 });
 
 export type SetCardCountRequest = {
-    slug: string;
-    count: number;
-}
-
+  slug: string;
+  count: number;
+};
 
 // Forward declare types for circular references
 export type SelectionItem =
@@ -340,7 +339,7 @@ const decksConfigSchema = z.object({
   useBonusSouls: booleanGameParameterSchema,
   useRooms: booleanGameParameterSchema,
   nbPlayerCardRestriction: booleanGameParameterSchema,
-  
+
   monster: deckSchema,
   treasure: deckSchema,
   loot: deckSchema,
@@ -372,13 +371,17 @@ export type GameParametersJson = z.infer<typeof gameParametersSchema>;
 
 // Utility types to extract keys based on parameter value type
 export type NumberParameterKeys = {
-  [K in keyof GameParametersJson]: GameParametersJson[K] extends { value: number }
+  [K in keyof GameParametersJson]: GameParametersJson[K] extends {
+    value: number;
+  }
     ? K
     : never;
 }[keyof GameParametersJson];
 
 export type BooleanParameterKeys = {
-  [K in keyof GameParametersJson]: GameParametersJson[K] extends { value: boolean }
+  [K in keyof GameParametersJson]: GameParametersJson[K] extends {
+    value: boolean;
+  }
     ? K
     : never;
 }[keyof GameParametersJson];
@@ -715,6 +718,7 @@ export type RoomCharacter = z.infer<typeof roomCharacterSchema>;
 const roomPlayerSchema = z.object({
   name: z.string(),
   character: roomCharacterSchema,
+  isHost: z.boolean(),
 });
 
 export type RoomPlayer = z.infer<typeof roomPlayerSchema>;
