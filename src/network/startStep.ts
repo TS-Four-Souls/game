@@ -81,10 +81,9 @@ export const enterStartStep = (
         if (room.users.some((user) => user.name === payload)) {
           return callback({ status: 400, error: "That name is already taken" });
         }
-        if(user.name !== undefined) 
-          room.params.playerLeft();
+        if(user.name === undefined) 
+          room.params.playerJoined();
         user.name = payload;
-        room.params.playerJoined();
         sendRoomChangedToAll(room);
       },
     );
@@ -226,7 +225,7 @@ export const enterStartStep = (
       game.addToHistory({
         type: "Start",
         players: playersWithCharacters,
-        params: room.params,
+        params: room.params.toJson(),
       });
       room.game = game;
       for (const user of room.users) {

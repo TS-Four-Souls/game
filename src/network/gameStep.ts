@@ -74,7 +74,7 @@ export const enterGameStep = (
 
   socket.on("saveGame", (callback) => {
     try {
-      const logs = JSON.stringify(game.history, null, 2);
+      const logs = JSON.stringify(game.log, null, 2);
       return callback({ status: 200, logs });
     } catch (error) {
       console.error("Failed to get game logs", error);

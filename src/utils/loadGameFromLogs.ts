@@ -456,8 +456,6 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         }
 
         case "PlayCard": {
-          if(entry.payload.index === 11)
-            console.warn("Warning: Detected PlayCard request with index 11 in logs.");
           const player = game.getPlayerByIssuer(remapIssuer(game, entry.issuer));
           executePlayCardRequest(game, entry.payload, player);
           break;

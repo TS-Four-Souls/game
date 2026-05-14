@@ -2,6 +2,7 @@ import { generateHistoryId } from "@/utils/random";
 import fs from "fs";
 import {
   type DetailedState,
+  type GameParametersJson,
   type Issuer,
   type Requests,
   type StackElementJson,
@@ -21,7 +22,7 @@ export type UserRequest =
   | { type: "Join"; payload: Requests.SetName }
   | { type: "Rejoin" }
   | { type: "SetGameParameter"; payload: Requests.SetGameParameter }
-  | { type: "Start"; players: { issuer: string; character: string }[], params: GameParameters }
+  | { type: "Start"; players: { issuer: string; character: string }[], params: GameParametersJson }
   | { type: "Reset" }
   | { type: "Rollback"; issuer: Issuer }
   | { type: "DeclareAttack"; issuer: Issuer }
@@ -118,7 +119,7 @@ export type PrivateData =
   | {
       private: true;
       type: "GameParameters";
-      gameParameters: GameParameters;
+      gameParameters: GameParametersJson;
     }
   | {
       private: true;
@@ -162,7 +163,7 @@ export class HistoricHandler {
     this.addToHistory({
       private: true,
       type: "GameParameters",
-      gameParameters: game.gameParameters,
+      gameParameters: game.gameParameters.toJson(),
     });
     for (const player of game.players) {
       this.addToHistory({

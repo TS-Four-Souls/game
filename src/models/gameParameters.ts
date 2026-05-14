@@ -248,7 +248,7 @@ export class GameParameters {
 
     constructor(onChange: () => void) {
         this._onChange = onChange;
-        this._currentNbPlayers = 1;
+        this._currentNbPlayers = 0;
         this.miniDraft = new BooleanGameParameter(false, onChange);
         this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
         this.monster = new DeckParameter("monster", 100, 1000, onChange, this._filter, this._deckMode);
@@ -422,7 +422,7 @@ export class GameParameters {
         }
     }
     playerLeft() {
-        this._currentNbPlayers = Math.max(1, this._currentNbPlayers - 1);
+        this._currentNbPlayers = Math.max(0, this._currentNbPlayers - 1);
         if (this.nbPlayerCardRestriction.value && this._deckMode === "standard") {
             for (const deck of [this.monster, this.treasure, this.loot, this.bsoul, this.room]) {
                 deck.filter = this._filter;
