@@ -497,9 +497,12 @@ export class ActionHandler {
     this.game.dispatch();
   }
 
-  /** Cancels purchase mode when purchasing is no longer valid. */
+  /** Cancels purchase mode when purchasing is no longer valid.
+   * Checks if the first item in the shop can not be purchased.
+   * It assumes that: all shop items have the same price, and that the top deck item is not cheaper.
+   */
   cancelPurchase(player: Player, force: boolean = false): void {
-    if(force || this.canPurchase(player, false) !== true)
+    if(force || this.canPurchase(player) !== true)
       {
         player.purchaseEnded();
         this.game.dispatch();
@@ -509,8 +512,11 @@ export class ActionHandler {
   }
 
   // We should implement declaring a purchase
-  /** Validates whether the active player can buy from the shop now. */
-  canPurchase(player: Player, shouldThrow: boolean = false): Capability {
+  /** Validates whether the active player can buy from the shop now.
+   *  By default checks if the first item in the shop can not be purchased.
+   * It assumes that: all shop items have the same price, and that the top deck item is not cheaper.
+   */
+  canPurchase(player: Player, index: number | "top" = 0, shouldThrow: boolean = false): Capability {
     try {
       this.game.assert.gameStarted();
       this.game.assert.currentTurnIsPlayerTurn(player);
@@ -518,7 +524,7 @@ export class ActionHandler {
       this.game.assert.currentPlayerIsEngagedInPurchase();
       this.game.assert.noPendingSelection();
       this.game.assert.emptyStack();
-      const price = this.game.gameParameters.shopPrice.value + player.priceModifier;
+      const price = this.game.gameParameters.shopPrice.value + (index !== "top" ? player.priceModifier : 0);
       if (player.coins < price!) {
         throw new Error(
           `Purchase failed. You need ${price! - player.coins} more coins.\n`
@@ -536,10 +542,10 @@ export class ActionHandler {
 
   /** Purchases a shop slot (or top deck) item if affordable. */
   purchase(player: Player, index: number | "top"): string {
-    this.canPurchase(player, true);
+    this.canPurchase(player, index, true);
     if (index !== "top" && (index < 0 || index >= this.game.shop.itemsInShop.length))
       throw new Error("Invalid shop index.");
-    const price = Math.max(0, this.game.gameParameters.shopPrice.value + player.priceModifier);
+    const price = Math.max(0, this.game.gameParameters.shopPrice.value + (index !== "top" ? player.priceModifier : 0));
       if (player.coins < price!) {
         throw new Error(
           `Purchase failed. You need ${price! - player.coins} more coins.\n`

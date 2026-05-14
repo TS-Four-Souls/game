@@ -7,8 +7,8 @@ import { randomSelect, setupTestGame } from "../testHelpers";
 
 
 let fixedSeed: string = "";
-// fixedSeed = "0.3387079022219079";
-let VERBOSE = fixedSeed; 
+// fixedSeed = "0.32206281439260126";
+let VERBOSE = fixedSeed !== ""; 
 let gameId = 0;
 
 describe(   "Random Games", () => {
@@ -112,7 +112,12 @@ describe(   "Random Games", () => {
                     const index = Math.floor(Math.random() * (game.shop._slots.length + 1));
                     printVerbose(`    Try ${bot.me.id} executed action: ${action.type}, ${index === game.shop._slots.length ? "top of the treasure deck" : `slot ${index} (${game.shop._slots[index] && game.shop._slots[index]![0] ? game.shop._slots[index]![0].name : "empty"})`}`);
                     if(index === game.shop._slots.length)
-                        action.index = "top";
+                    {
+                        if(game.actions.canPurchase(bot.me, "top", false) !== true)
+                            action.index = Math.floor(Math.random() * (game.shop._slots.length));
+                        else
+                            action.index = "top";
+                    }
                     else
                         action.index = index;
                     break;

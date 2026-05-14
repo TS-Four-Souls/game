@@ -141,7 +141,7 @@ export class PurchaseAction extends Action {
     }
 
     isFeasible(game: Game): boolean {
-        return game.actions.canPurchase(this.me, false) === true;
+        return game.actions.canPurchase(this.me, this._index, false) === true;
     }
 }
 
@@ -178,7 +178,7 @@ export class CancelPurchaseAction extends Action {
 
     isFeasible(game: Game): boolean {
         const me = this.me;
-        return game.actions.canPurchase(this.me, false) !== true && me.isEngagedInPurchase;
+        return game.actions.canPurchase(this.me) !== true && me.isEngagedInPurchase;
     }
 }
 
