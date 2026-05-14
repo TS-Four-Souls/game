@@ -100,3 +100,9 @@ const generateRoomChangedPayload = (
 export const sendUserAssigned = (socket: Socket, user: User | null) => {
   socket.emit("on:user:assigned", user?.id ?? null);
 };
+
+export const updatePlayerCount = (room: Room) => {
+  room.params.setPlayerCount(
+    room.users.filter((user) => user.name !== undefined).length,
+  );
+};

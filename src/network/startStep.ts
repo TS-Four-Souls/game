@@ -5,6 +5,7 @@ import {
   sendRoomChangedToAll,
   sendRoomChangedToUser,
   sendUserAssigned,
+  updatePlayerCount,
 } from "./utils";
 import { Game } from "@/models/game";
 import { enterGameStep } from "./gameStep";
@@ -40,8 +41,8 @@ export const enterStartStep = (
 
   socket.on("leaveRoom", (callback) => {
     room.users = room.users.filter(({ id }) => id !== user.id);
+    updatePlayerCount(room);
 
-    room.params.playerLeft();
     sendRoomChangedToAll(room);
 
     sendUserAssigned(socket, null);
@@ -81,9 +82,9 @@ export const enterStartStep = (
         if (room.users.some((user) => user.name === payload)) {
           return callback({ status: 400, error: "That name is already taken" });
         }
-        if(user.name === undefined) 
-          room.params.playerJoined();
+
         user.name = payload;
+        updatePlayerCount(room);
         sendRoomChangedToAll(room);
       },
     );
@@ -115,7 +116,8 @@ export const enterStartStep = (
           }
           const socket = user.socket;
           room.users = room.users.filter(({ id }) => id !== user.id);
-          room.params.playerLeft();
+          updatePlayerCount(room);
+
           sendRoomChangedToAll(room);
 
           sendUserAssigned(socket, null);
@@ -197,44 +199,58 @@ export const enterStartStep = (
     socket.on("start", (callback) => {
       const params = room.params;
 
-      const game = new Game("", params);
-      game.onStateChange.add(() => {
-        sendRoomChangedToAll(room);
-      });
-      game.onRoomBroadcast.add((broadcast) => {
-        room.users.forEach((user) => {
-          if (user.name === undefined) return;
-          if (broadcast.players.includes(user.name)) {
-            user.socket.to(broadcast.players).emit("on:room:broadcast", {
-              type: broadcast.type,
-              title: broadcast.title,
-              message: broadcast.message,
-            });
-          }
-        });
-      });
-      const playersWithCharacters = room.users.flatMap((user) => {
-        if (!user.name) return [];
-        return {
-          issuer: user.name,
-          character: user.character.character,
-        };
-      });
+      try {
+        const game = new Game("", params);
 
-      game.start(playersWithCharacters);
-      game.addToHistory({
-        type: "Start",
-        players: playersWithCharacters,
-        params: room.params.toJson(),
-      });
-      room.game = game;
-      for (const user of room.users) {
-        if (!user.name) continue;
-        const socket = user.socket;
-        leaveStartStep(socket);
-        enterGameStep(socket, rooms, room, user);
+        game.onStateChange.add(() => {
+          sendRoomChangedToAll(room);
+        });
+
+        game.onRoomBroadcast.add((broadcast) => {
+          room.users.forEach((user) => {
+            if (user.name === undefined) return;
+            if (broadcast.players.includes(user.name)) {
+              user.socket.to(broadcast.players).emit("on:room:broadcast", {
+                type: broadcast.type,
+                title: broadcast.title,
+                message: broadcast.message,
+              });
+            }
+          });
+        });
+
+        const playersWithCharacters = room.users.flatMap((user) => {
+          if (!user.name) return [];
+          return {
+            issuer: user.name,
+            character: user.character.character,
+          };
+        });
+
+        game.start(playersWithCharacters);
+
+        game.addToHistory({
+          type: "Start",
+          players: playersWithCharacters,
+          params: room.params.toJson(),
+        });
+
+        room.game = game;
+
+        for (const user of room.users) {
+          if (!user.name) continue;
+          const socket = user.socket;
+          leaveStartStep(socket);
+          enterGameStep(socket, rooms, room, user);
+        }
+
+        return callback({ status: 200 });
+      } catch (error) {
+        if (error instanceof Error) {
+          return callback({ status: 400, error: error.message });
+        }
+        return callback({ status: 400, error: "Unknown error" });
       }
-      return callback({ status: 200 });
     });
   }
 };

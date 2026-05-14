@@ -411,24 +411,13 @@ export class GameParameters {
             this._onChange();
     }
 
-    playerJoined() {
-        this._currentNbPlayers++;
+    setPlayerCount(count: number) {
+        this._currentNbPlayers = count;
         if (this.nbPlayerCardRestriction.value && this._deckMode === "standard") {
             for (const deck of [this.monster, this.treasure, this.loot, this.bsoul, this.room]) {
                 deck.filter = this._filter;
                 deck.resetCardCounts(false);
             }
-            this._onChange();
-        }
-    }
-    playerLeft() {
-        this._currentNbPlayers = Math.max(0, this._currentNbPlayers - 1);
-        if (this.nbPlayerCardRestriction.value && this._deckMode === "standard") {
-            for (const deck of [this.monster, this.treasure, this.loot, this.bsoul, this.room]) {
-                deck.filter = this._filter;
-                deck.resetCardCounts(false);
-            }
-            this._onChange();
         }
     }
 }
