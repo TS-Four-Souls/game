@@ -412,6 +412,7 @@ class Card {
     protected _cleanup: (() => void)[] = [];
     protected _onFlip: (() => void)[] = [];
     protected _entity: Entity | undefined = undefined;
+    protected _identityHash: string | null = null;
 
     constructor(id: number,
         globalId: number,
@@ -542,14 +543,26 @@ class Card {
         }
     }
 
-    isSameCard(other: Card): boolean {
-        for (const key of Object.keys(this._json)) {
-            if(["front", "back", "slug", "quote", "origin"].includes(key)) continue; // Ignore front/back differences for card identity
-            if (JSON.stringify(this._json[key as keyof GenericCardType]) !== JSON.stringify(other._json[key as keyof GenericCardType])) {
-                return false;
-            }
+    private computeIdentityHash(): string {
+        const keys = Object.keys(this._json)
+            .filter(key => !["front", "back", "slug", "quote", "origin"].includes(key))
+            .sort();
+        const identityParts = keys.map(key =>
+            `${key}:${JSON.stringify(this._json[key as keyof GenericCardType])}`
+        );
+        return identityParts.join('|');
+    }
+
+    private getIdentityHash(): string {
+        if (this._identityHash === null) {
+            this._identityHash = this.computeIdentityHash();
         }
-        return true;
+        console.log(`Computed identity hash for card ${this._name} (ID: ${this._id}): ${this._identityHash}`);
+        return this._identityHash;
+    }
+
+    isSameCard(other: Card): boolean {
+        return this.getIdentityHash() === other.getIdentityHash();
     }
     cleanup(): void {
         for (const cleaner of this._cleanup) {
@@ -1455,7 +1468,14 @@ function createEmptyDecksCollection(random: () => number): DecksCollection {
     };
 }
 
+// Module-level cache for getCardsByCopy results - avoids recomputing across game instances
+const cardSetCopyCache = new WeakMap<CardSet<any>, any[][]>();
+
 function getCardsByCopy<T extends Card>(set: CardSet<T>): T[][] {
+    // Return cached result if available
+    if (cardSetCopyCache.has(set)) {
+        return cardSetCopyCache.get(set)!;
+    }
     const copies: T[][] = [];
      for (let i = 0; i < set.length; i++) {
         const card = set.get(i);
@@ -1466,6 +1486,8 @@ function getCardsByCopy<T extends Card>(set: CardSet<T>): T[][] {
             copies[copyIndex]!.push(card);
         }
     }
+    // Cache the result for future calls with the same CardSet
+    cardSetCopyCache.set(set, copies);
     return copies;
 }
 function LoadDecks(json_array: GenericCardType[], numPlayers: number, parameters: GameParameters, random: () => number) : DecksCollection {
@@ -1488,22 +1510,32 @@ function LoadDecks(json_array: GenericCardType[], numPlayers: number, parameters
         else
         {
             const copies = getCardsByCopy<Card>(decks_cardSets[type] as CardSet<Card>);
-            for (let i = 0; i < parameters[type as 'loot' | 'treasure' | 'monster' | 'bsoul' | 'room'].json().length; i++) {
-                const cardParam = parameters[type as 'loot' | 'treasure' | 'monster' | 'bsoul' | 'room'].json()[i]!;
-                const set = copies.find((copyGroup) => copyGroup.some((card) => card.slug === cardParam.slug));
-                if (set === undefined) {
+            const paramType = type as 'loot' | 'treasure' | 'monster' | 'bsoul' | 'room';
+            const paramCards = parameters[paramType].json(); // Cache to avoid repeated calls
+            
+            // Build slug→copies Map for O(1) lookup instead of O(n) search
+            const slugToCopies = new Map<string, Card[]>();
+            for (const copyGroup of copies) {
+                if (copyGroup.length > 0) {
+                    slugToCopies.set(copyGroup[0]!.slug, copyGroup);
+                }
+            }
+            
+            for (const cardParam of paramCards) {
+                const copyGroup = slugToCopies.get(cardParam.slug);
+                if (copyGroup === undefined) {
                     throw new Error(`Card with slug ${cardParam.slug} not found in card set of type ${type}.`);
                 }
                 let next_set_id = 0;
                 let createCopy = false;
                 for(let counter = 0; counter < cardParam.count; counter++) {
-                    let nextId = set[next_set_id]!.id;
+                    let nextId = copyGroup[next_set_id]!.id;
                     if (createCopy) {
                         nextId = decks_cardSets[type]!.length;
-                        decks_cardSets[type]!.cards.push(createCardFromJson(nextId, nextGlobalId++, set[next_set_id]!.json) as any);
+                        decks_cardSets[type]!.cards.push(createCardFromJson(nextId, nextGlobalId++, copyGroup[next_set_id]!.json) as any);
                     }
                     range.push(nextId);
-                    next_set_id = (next_set_id + 1) % set.length;
+                    next_set_id = (next_set_id + 1) % copyGroup.length;
                     if(next_set_id === 0)
                         createCopy = true;
                 }
