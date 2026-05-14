@@ -557,7 +557,6 @@ class Card {
         if (this._identityHash === null) {
             this._identityHash = this.computeIdentityHash();
         }
-        console.log(`Computed identity hash for card ${this._name} (ID: ${this._id}): ${this._identityHash}`);
         return this._identityHash;
     }
 
