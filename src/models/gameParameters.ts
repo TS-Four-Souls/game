@@ -234,7 +234,7 @@ export class GameParameters {
 
     readonly _onChange: () => void;
     private _currentNbPlayers: number;
-    readonly _getCurrentNbPlayers = () => this._currentNbPlayers
+    readonly _getCurrentNbPlayers = () => Math.max(this._currentNbPlayers, 1);
 
     private _deckMode: "standard" | "custom" = "standard";
     private _filter: (card: Card) => boolean = (card: Card) => {

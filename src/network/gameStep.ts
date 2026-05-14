@@ -65,7 +65,7 @@ export const enterGameStep = (
     throw new Error("Game not found");
   }
 
-  let game: Game = room.game;
+  const game: Game = room.game;
 
   if (user.name === undefined) {
     throw new Error("User name not found");
@@ -112,12 +112,14 @@ export const enterGameStep = (
       });
 
       room.game = loadedGame;
-      game = loadedGame;
+      
 
       sendRoomChangedToAll(room);
 
       for (const user of room.users) {
         if (!user.name) continue;
+        leaveGameStep(user.socket);
+        enterGameStep(user.socket, rooms, room, user);
         user.socket.emit("on:room:broadcast", {
           type: "info",
           title: `Game rolled back by ${player.id}`,
