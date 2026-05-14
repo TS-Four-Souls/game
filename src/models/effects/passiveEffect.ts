@@ -722,6 +722,44 @@ export function chooseNumberDamageOnRollThisTurnEffect(game: Game): EffectFuncti
     };
 }
 
+export function WouldDieYourTurnEffect(
+    effectFunctions: EffectFunction[],
+    game: Game,
+    description: string,
+    replacementEffects: boolean = false,
+    duringYourTurnOnly: boolean = false
+): EffectFunction {
+    return (data: EffectData) => {
+        let offDeath: (() => void) | null = null;
+        
+        offDeath = game.emitter.on("on:death:would-death", ({ eventIssuer, target, source, deathOnStack}) => {
+            if (data.issuer !== eventIssuer) return;
+            if (duringYourTurnOnly && game.currentPlayer !== data.issuer) return;
+            // Add all effects as a single stack element
+            const effect = async (effectData: EffectData) => {
+                if(game.stack.elements.every(e => e !== deathOnStack)) return false; // Only trigger on the first "would death" event in the stack, to avoid infinite loops with replacement effects that prevent death.
+                for (const func of effectFunctions) {
+                    await func(effectData);
+                }
+                return true;
+            };
+            if(replacementEffects)
+                effect(data);
+            else
+                addPassiveEffectToStack(game, effect, data, description);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDeath?.();
+            offDeath = null;
+        });
+        return true;
+    };
+}
+
+
+
 /*
 TRIGGERED EFFECT: Uses the stack.
 Each time triggerEvent triggers, if you are the eventIssuer, call effectFunctions.
