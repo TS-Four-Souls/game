@@ -1,14 +1,13 @@
-import { type EffectOnStackJson, type LootCardOnStackJson, type Room } from '@/shared/api';
+import { type EffectOnStackJson, type LootCardOnStackJson } from '@/shared/api';
 import type { BonusSoulCardType, CardRewards, CharacterCardType, EternalCardType, GenericCardType, InPlayCardType, LootCardType, MonsterCardType, RoomCardType, TreasureCardType } from '@/types/cardTypes';
 import { print, shuffle } from '@/utils/auxiliary';
 import type { Entity } from './entities/entity';
-import type { GameParameters } from './gameParameters';
 import { Player } from './entities/player';
+import type { GameParameters } from './gameParameters';
 import { StackElement } from './stackElement';
 import { TargetBuilder } from './targetBuilder';
 import { isChooseOneOptions } from './targetSelector';
 import { EffectData, type CardSetsCollection, type DecksCollection, type DeckType, type DeckTypeToCardType, type EffectFunction, type EffectType, type TargetsSelector } from './types/cardTypes';
-import { isCardRestricted } from './variants';
 
 export class Effect {
     protected _description: string;
@@ -1068,7 +1067,7 @@ class CardSet<T extends Card> {
 * Loads card sets from an array of json cards.
 * Returns a dictionary of card sets indexed by their type.
 */
-function LoadsCardSets(json_array: GenericCardType[]) : CardSetsCollection {
+function LoadsCardSets(json_array: GenericCardType[]) : {nextGlobalId: number, cardSets: CardSetsCollection} {
     const sets: CardSetsCollection = {
         loot: new CardSet<LootCard>('loot'),
         treasure: new CardSet<TreasureCard>('treasure'),
@@ -1078,7 +1077,9 @@ function LoadsCardSets(json_array: GenericCardType[]) : CardSetsCollection {
         bsoul: new CardSet<BsoulCard>('bsoul'),
         room: new CardSet<RoomCard>('room'),
     };
-    
+    json_array.sort((a, b) => 
+        (a.name + a.slug).localeCompare(b.name + b.slug)
+    );
     let globalId = 0;
     for(let index:number = 0; index < json_array.length; index++) {
         const card_json = json_array[index];
@@ -1113,7 +1114,7 @@ function LoadsCardSets(json_array: GenericCardType[]) : CardSetsCollection {
                 throw new Error(`Unknown card type: ${type}. Only loot, treasure, eternal, character, monster, bsoul, and room are allowed.`);
         }
     }
-    return sets;
+    return {nextGlobalId: globalId, cardSets: sets};
 }
 
 function prepareEffectString(s: string): string {
@@ -1454,13 +1455,25 @@ function createEmptyDecksCollection(random: () => number): DecksCollection {
     };
 }
 
+function getCardsByCopy<T extends Card>(set: CardSet<T>): T[][] {
+    const copies: T[][] = [];
+     for (let i = 0; i < set.length; i++) {
+        const card = set.get(i);
+        const copyIndex = copies.findIndex((copyGroup) => copyGroup[0]!.isSameCard(card));
+        if (copyIndex === -1) {
+            copies.push([card]);
+        } else {
+            copies[copyIndex]!.push(card);
+        }
+    }
+    return copies;
+}
 function LoadDecks(json_array: GenericCardType[], numPlayers: number, parameters: GameParameters, random: () => number) : DecksCollection {
     // Create fresh CardSets from JSON to ensure independent card instances
-    const decks_cardSets = LoadsCardSets(json_array);
+    let {nextGlobalId, cardSets: decks_cardSets} = LoadsCardSets(json_array);
     
     const decks = {} as DecksCollection;
     const cardTypes: (keyof CardSetsCollection)[] = ['loot', 'treasure', 'eternal', 'character', 'monster', 'bsoul', 'room'];
-    const restrictionCounters: Map<string, number> = new Map();
     for (const type of cardTypes) {
         const set = decks_cardSets[type] as CardSet<any>;
         if (set.length === 0) {
@@ -1468,9 +1481,32 @@ function LoadDecks(json_array: GenericCardType[], numPlayers: number, parameters
         }
         
         let range = [];
-        for (let i = 0; i < set.length; i++) {
-            if(!isCardRestricted(set.get(i), restrictionCounters, parameters, numPlayers)) {
+        if(['eternal', 'character'].includes(type) )
+            for (let i = 0; i < set.length; i++) {
                 range.push(i);
+            }
+        else
+        {
+            const copies = getCardsByCopy<Card>(decks_cardSets[type] as CardSet<Card>);
+            for (let i = 0; i < parameters[type as 'loot' | 'treasure' | 'monster' | 'bsoul' | 'room'].json().length; i++) {
+                const cardParam = parameters[type as 'loot' | 'treasure' | 'monster' | 'bsoul' | 'room'].json()[i]!;
+                const set = copies.find((copyGroup) => copyGroup.some((card) => card.slug === cardParam.slug));
+                if (set === undefined) {
+                    throw new Error(`Card with slug ${cardParam.slug} not found in card set of type ${type}.`);
+                }
+                let next_set_id = 0;
+                let createCopy = false;
+                for(let counter = 0; counter < cardParam.count; counter++) {
+                    let nextId = set[next_set_id]!.id;
+                    if (createCopy) {
+                        nextId = decks_cardSets[type]!.length;
+                        decks_cardSets[type]!.cards.push(createCardFromJson(nextId, nextGlobalId++, set[next_set_id]!.json) as any);
+                    }
+                    range.push(nextId);
+                    next_set_id = (next_set_id + 1) % set.length;
+                    if(next_set_id === 0)
+                        createCopy = true;
+                }
             }
         }
         shuffle<number>(random, range);
@@ -1497,3 +1533,4 @@ function randomCardFromSet<T extends Card>(set: CardSet<T>, random: () => number
 export { EffectData } from './types/cardTypes';
 export type { CardSetsCollection, DecksCollection, DeckType, DeckTypeToCardType, EffectFunction, EffectType, TargetsSelector } from './types/cardTypes';
 export { BsoulCard, Card, CardSet, CharacterCard, createCardFromJson, createEmptyDecksCollection, Deck, EternalCard, Hand, InplayType, isSameSlug, LoadDecks, LoadsCardSets, LootCard, MonsterCard, MonsterType, randomCardFromSet, TreasureCard as TreasureCard };
+

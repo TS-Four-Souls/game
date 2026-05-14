@@ -3,6 +3,8 @@ import type { BsoulCard, CharacterCard, MonsterCard, RoomCard, TreasureCard } fr
 import { Game } from "../models/game";
 import { Player } from "../models/entities/player";
 import { shuffle } from "@/utils/auxiliary";
+import { GameParameters } from "@/models/gameParameters";
+import type { DeckConfigPatch } from "@/shared/api";
 
 
 export function emptyHands(game: Game): void {
@@ -167,15 +169,15 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
     } = config;
 
     // Create game instance
-    
-    const game = new Game(randomSeed);
-    mockGameSelections(game);
-    game.gameParameters.nbPlayerCardRestriction.value = false;
-    game.gameParameters.lootPlayPerTurn.value = 10;
+    const params = new GameParameters(() => {});
+    params.setParameterByKey("decksConfig", {nbPlayerCardRestriction: {text: "", value: false}} as DeckConfigPatch);
+    params.setParameterByKey("lootPlayPerTurn", 10);
     if(rooms !== false)
-        game.gameParameters.playWithRooms.value = true;
+        params.setParameterByKey("decksConfig", {useRooms: {text: "", value: true}} as DeckConfigPatch);
     else
-        game.gameParameters.playWithRooms.value = false;
+        params.setParameterByKey("decksConfig", {useRooms: {text: "", value: false}} as DeckConfigPatch);
+    const game = new Game(randomSeed, params);
+    mockGameSelections(game);
     
     // Setup game
     game.setupGame();

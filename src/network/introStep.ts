@@ -30,8 +30,7 @@ export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
       params: new GameParameters(
         () => {
           sendRoomChangedToAll(room);
-        },
-        () => room.users.length,
+        }
       ),
       characters: generateCharacterAndEternalPairs(),
     };

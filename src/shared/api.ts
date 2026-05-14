@@ -40,8 +40,7 @@ const deckTypeEnum = z.enum(["monster", "treasure", "loot", "bsoul", "room"]);
 const deckConfigCardSchema = z.object({
   name: z.string(),
   slug: z.string(),
-  count: z.number(),
-  deckType: deckTypeEnum,
+  count: z.number()
 });
 export type DeckConfigCard = z.infer<typeof deckConfigCardSchema>;
 
@@ -338,7 +337,7 @@ const numberGameParameterSchema = z.object({
 const decksConfigSchema = z.object({
   useBonusSouls: booleanGameParameterSchema,
   useRooms: booleanGameParameterSchema,
-  nbPlayerCardRestriction: booleanGameParameterSchema,
+  nbPlayerCardRestriction: booleanGameParameterSchema.optional(),
 
   monster: deckSchema,
   treasure: deckSchema,
@@ -349,11 +348,25 @@ const decksConfigSchema = z.object({
 
 export type DeckConfig = z.infer<typeof decksConfigSchema>;
 
+const decksConfigPatchSchema = z.object({
+  useBonusSouls: booleanGameParameterSchema.optional(),
+  useRooms: booleanGameParameterSchema.optional(),
+  nbPlayerCardRestriction: booleanGameParameterSchema.optional(),
+
+  monster: deckConfigCardSchema.optional(),
+  treasure: deckConfigCardSchema.optional(),
+  loot: deckConfigCardSchema.optional(),
+  bsoul: deckConfigCardSchema.optional(),
+  room: deckConfigCardSchema.optional(),
+});
+
+export type DeckConfigPatch = z.infer<typeof decksConfigPatchSchema>;
+
 const gameParametersSchema = z.object({
   miniDraft: booleanGameParameterSchema,
   nbItemsInShop: numberGameParameterSchema,
   nbEncounters: numberGameParameterSchema,
-  nbRooms: numberGameParameterSchema,
+  // nbRooms: numberGameParameterSchema,
   deathPenaltyCoins: numberGameParameterSchema,
   deathPenaltyItem: numberGameParameterSchema,
   deathPenaltyLoot: numberGameParameterSchema,
@@ -535,7 +548,7 @@ const setGameParameterRequestSchema = z.discriminatedUnion("parameter", [
   }),
   z.object({
     parameter: z.literal("decksConfig"),
-    value: decksConfigSchema,
+    value: decksConfigPatchSchema,
   }),
 ]);
 export type SetGameParameterRequest = z.infer<

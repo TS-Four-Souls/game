@@ -41,6 +41,7 @@ export const enterStartStep = (
   socket.on("leaveRoom", (callback) => {
     room.users = room.users.filter(({ id }) => id !== user.id);
 
+    room.params.playerLeft();
     sendRoomChangedToAll(room);
 
     sendUserAssigned(socket, null);
@@ -80,8 +81,10 @@ export const enterStartStep = (
         if (room.users.some((user) => user.name === payload)) {
           return callback({ status: 400, error: "That name is already taken" });
         }
-
+        if(user.name !== undefined) 
+          room.params.playerLeft();
         user.name = payload;
+        room.params.playerJoined();
         sendRoomChangedToAll(room);
       },
     );
@@ -113,7 +116,7 @@ export const enterStartStep = (
           }
           const socket = user.socket;
           room.users = room.users.filter(({ id }) => id !== user.id);
-
+          room.params.playerLeft();
           sendRoomChangedToAll(room);
 
           sendUserAssigned(socket, null);

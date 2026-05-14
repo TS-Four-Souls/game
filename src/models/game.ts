@@ -61,7 +61,7 @@ export type DamageSource = Card | DiceRoll;
 
 const LOG_GAME = false;
 export const CARDS = await loadCards(process.cwd() + "/data/cards");
-export const CARD_SETS = LoadsCardSets(CARDS);
+export const {nextGlobalId, cardSets: CARD_SETS} = LoadsCardSets(CARDS);
 /*
  * The Game class is the central hub of the game logic, managing the state of the game, players, monsters, decks, shop, encounters, stack, and more. 
  * It also handles all player actions such as declaring attacks, dealing damage, resolving deaths, and managing the game history. 
@@ -89,7 +89,7 @@ export class Game extends SelectionHandler {
   private _entitiesInCombat: Entity[] = [];
   private _gameStateSerializer: GameStateSerializer;
   private _assertHandler: AssertHandler = new AssertHandler(this);
-  readonly gameParameters = new GameParameters(() => this.dispatch(), () => this._players.length);
+  readonly gameParameters = new GameParameters(() => this.dispatch());
   readonly _actionHandler = new ActionHandler(this);
 
   private _onStateChange: Signal<void> = new Signal();
@@ -1276,16 +1276,12 @@ export class Game extends SelectionHandler {
       this.assignCharactersToPlayers(chara);
     }
      else {
-      this.setupGame();
       this.assignRandomCharacterToPlayers();
     }
     this.assert.minimumPlayerCount();
     this._pendingMultipleSelections.clear();
     if (shufflePlayerOrder) {
       shuffle(this.random, this.players);
-    }
-    if (this._decks.character.length === 0) {
-      this.setupGame();
     }
     this.turnHandler.initialize(this.players);
     this._historicHandler.recordInitialGameState(this);
@@ -1304,6 +1300,10 @@ export class Game extends SelectionHandler {
     this.gameParameters.playWithRooms.value = this.gameParameters.playWithRooms.value && this.decks["room"] !== undefined && this.decks["room"]._order!.length > 0;
     // fill empty spot may call game.encounters, so it must be called after this._encounters initialization.
     this._encounters.fillEmptySpots(true);
+    // call startOfGameSetup here so room laser eye does not deal damage before the first turn starts.
+    void this.startOfGameSetup().catch((error) => {
+      console.error("Failed to complete game start setup", error);
+    });
     if(this.gameParameters.playWithRooms.value === true)
     {
       this._rooms = new Rooms(
@@ -1317,9 +1317,7 @@ export class Game extends SelectionHandler {
     this.emit("on:game:start", {});
     this.healEveryone();
     
-    void this.startOfGameSetup().catch((error) => {
-      console.error("Failed to complete game start setup", error);
-    });
+
     this.startTurn();
   }
 
@@ -1431,6 +1429,7 @@ export class Game extends SelectionHandler {
    * Draws random character cards and assigns them to players.
    */
   assignRandomCharacterToPlayers(): void {
+    this.setupGame();
     const characterDeck = this.decks["character"];
     if (!characterDeck) {
       throw new Error("No character deck found");

@@ -347,15 +347,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
 
         case "SetGameParameter": {
           const payload = entry.payload;
-          if (payload.parameter === "decksConfig") {
-            game.gameParameters.loadFromJson({
-              ...game.gameParameters.toJson(),
-              decksConfig: payload.value,
-            });
-          } else if (isParameterKey(payload.parameter)) {
-            game.gameParameters[payload.parameter].value = payload.value;
-            // console.log(`Set game parameter ${payload.parameter} to value ${payload.value}`);
-          }
+          game.gameParameters.setParameterByKey(payload.parameter, payload.value);
           break;
         }
 

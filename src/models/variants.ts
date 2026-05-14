@@ -36,36 +36,3 @@ export function edenGame(game: Game): CharacterCard[] {
     }
     return edens;
 }
-/**
- * Check whether a card is restricted by the game parameters. 
- * This function is used to determine whether a card should be included in the decks or not.
- * @param card the card to check
- * @param counters an object entirely handled by the functions. It counts the number of occurences of each type of cards.
- * @param parameters parameters to verify against
- */
-export function isCardRestricted(card: GenericCardType, counters: Map<string, number>, parameters: GameParameters, numPlayers: number): boolean {
-    if(card.minimumPlayers > numPlayers && parameters.nbPlayerCardRestriction.value)
-        return true;
-    if(["A Penny!", "2 Cents!", "3 Cents!", "4 Cents!", "A Nickel!"].includes(card.name))
-    {
-        if(counters.get(card.name) === undefined)
-            counters.set(card.name, 0);
-    }
-    if(card.type === "bsoul" && !parameters.playWithBonusSouls.value)
-        return true;
-    if(card.type === "room" && !parameters.playWithRooms.value)
-        return true;
-    // const parameterMap: {[key: string]: number} = {
-    //     "A Penny!": parameters.nbPennies.value,
-    //     "2 Cents!": parameters.nb2Cents.value,
-    //     "3 Cents!": parameters.nb3Cents.value,
-    //     "4 Cents!": parameters.nb4Cents.value,
-    //     "A Nickel!": parameters.nbNickels.value
-    // };
-    // if(counters.get(card.name)! >= parameterMap[card.name]!)
-    //     {
-    //     return true;
-    // }
-    counters.set(card.name, counters.get(card.name)! + 1);
-    return false;
-}
