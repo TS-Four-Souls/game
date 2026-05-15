@@ -251,8 +251,8 @@ export class GameParameters {
         this._currentNbPlayers = 0;
         this.miniDraft = new BooleanGameParameter(false, onChange);
         this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
-        this.monster = new DeckParameter("monster", 100, 1000, onChange, this._filter, this._deckMode);
-        this.treasure = new DeckParameter("treasure", 100, 1000, onChange, this._filter, this._deckMode);
+        this.monster = new DeckParameter("monster", 50, 1000, onChange, this._filter, this._deckMode);
+        this.treasure = new DeckParameter("treasure", 50, 1000, onChange, this._filter, this._deckMode);
         this.loot = new DeckParameter("loot", 100, 1000, onChange, this._filter, this._deckMode);
         this.bsoul = new DeckParameter("bsoul", 3, 100, onChange, this._filter, this._deckMode);
         this.room = new DeckParameter("room", 10, 100, onChange, this._filter, this._deckMode);
