@@ -1,2 +1,5 @@
-- Restrict player cards doesn't work after quitting the game
-- Loot is 93?
+- When host quit, kick everybody and delete room
+- Add character cards to deck config
+- Set character to random when selected character is no longer valid (change of deck config)
+- Make sure the server doesn't crash when there is a throw in one room
+- Purge inactive rooms

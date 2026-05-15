@@ -40,7 +40,7 @@ const deckTypeEnum = z.enum(["monster", "treasure", "loot", "bsoul", "room"]);
 const deckConfigCardSchema = z.object({
   name: z.string(),
   slug: z.string(),
-  count: z.number()
+  count: z.number(),
 });
 export type DeckConfigCard = z.infer<typeof deckConfigCardSchema>;
 
