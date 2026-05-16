@@ -35,16 +35,26 @@ export const enterStartStep = (
   sendRoomChangedToUser(room, user);
 
   socket.on("leaveRoom", (callback) => {
-    room.users = room.users.filter(({ id }) => id !== user.id);
-    updatePlayerCount(room);
+    if (user.isHost) {
+      room.users.forEach((user) => {
+        leaveStartStep(user.socket);
+        enterIntroStep(user.socket, rooms);
+        sendUserAssigned(user.socket, null);
+        sendRoomChangedToUser(null, user);
+      });
+      rooms.delete(room.id);
+    } else {
+      room.users = room.users.filter(({ id }) => id !== user.id);
+      updatePlayerCount(room);
 
-    sendRoomChangedToAll(room);
+      sendRoomChangedToAll(room);
 
-    sendUserAssigned(socket, null);
-    sendRoomChangedToUser(null, user);
+      sendUserAssigned(socket, null);
+      sendRoomChangedToUser(null, user);
 
-    leaveStartStep(socket);
-    enterIntroStep(socket, rooms);
+      leaveStartStep(socket);
+      enterIntroStep(socket, rooms);
+    }
 
     return callback({ status: 200 });
   });
