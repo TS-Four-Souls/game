@@ -16,7 +16,7 @@ import type { Game } from "@/models/game";
 import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
 import type { HistoricEntry } from "@/models/historyHandler";
 import { enterStartStep } from "./startStep";
-import { contactEndpoint } from "./global";
+import { globalEndpoints } from "./global";
 
 export const enterGameStep = (
   socket: Socket,
@@ -24,40 +24,15 @@ export const enterGameStep = (
   room: Room,
   user: User,
 ) => {
-  const leaveGameStep = (socket: Socket) => {
-    socket.offAny(updateLastActionTimestamp);
-    socket.removeAllListeners("saveGame");
-    socket.removeAllListeners("rollback");
-    socket.removeAllListeners("declareAttack");
-    socket.removeAllListeners("attackMonster");
-    socket.removeAllListeners("attackRoll");
-    socket.removeAllListeners("resolve");
-    socket.removeAllListeners("submitSelection");
-    socket.removeAllListeners("insertStackElementBefore");
-    socket.removeAllListeners("playCard");
-    socket.removeAllListeners("activate");
-    socket.removeAllListeners("activateRoom");
-    socket.removeAllListeners("declarePurchase");
-    socket.removeAllListeners("cancelPurchase");
-    socket.removeAllListeners("purchase");
-    socket.removeAllListeners("endTurn");
-    socket.removeAllListeners("giveCoins");
-    socket.removeAllListeners("debugLoot");
-    socket.removeAllListeners("debugListLoot");
-    socket.removeAllListeners("debugListCardsICanRemove");
-    socket.removeAllListeners("debugRemoveCards");
-    socket.removeAllListeners("debugListTreasure");
-    socket.removeAllListeners("debugGainTreasure");
-    socket.removeAllListeners("debugGainCoins");
-    socket.removeAllListeners("debugListMonsterDeck");
-    socket.removeAllListeners("debugPutMonsterCardInSlot");
-    socket.removeAllListeners("reportBug");
-    socket.removeAllListeners("quitGame");
-  };
-
   const updateLastActionTimestamp = () => {
     user.lastActionTimestamp = new Date();
   };
+
+  const leaveGameStep = (socket: Socket) => {
+    socket.offAny(updateLastActionTimestamp);
+    socket.removeAllListeners();
+  };
+
   socket.onAny(updateLastActionTimestamp);
 
   sendRoomChangedToUser(room, user);
@@ -73,7 +48,7 @@ export const enterGameStep = (
   }
   const player = game.getPlayerById(user.name);
 
-  contactEndpoint(socket, game);
+  globalEndpoints(socket, game);
 
   socket.on("saveGame", (callback) => {
     try {

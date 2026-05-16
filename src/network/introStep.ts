@@ -10,14 +10,14 @@ import {
 import { enterStartStep } from "./startStep";
 import { schemas } from "@/shared/api";
 import { enterGameStep } from "./gameStep";
-import { contactEndpoint } from "./global";
+import { globalEndpoints } from "./global";
 
 export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
   const leaveIntroStep = (socket: Socket) => {
-    socket.removeAllListeners("createRoom");
-    socket.removeAllListeners("enterRoom");
-    socket.removeAllListeners("reportBug");
+    socket.removeAllListeners();
   };
+
+  globalEndpoints(socket);
 
   socket.on("createRoom", (callback) => {
     const roomId = generateRoomId();
@@ -45,8 +45,6 @@ export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
     enterStartStep(socket, rooms, room, user);
     return callback({ status: 200 });
   });
-
-  contactEndpoint(socket);
 
   socket.on("enterRoom", (payload, callback) => {
     payloadGuardedEndpoint(

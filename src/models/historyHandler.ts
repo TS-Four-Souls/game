@@ -8,8 +8,6 @@ import {
   type StackElementJson,
 } from "../shared/api";
 import type { Game } from "./game";
-import type { GameParameters } from "./gameParameters";
-import { StackElement } from "./stackElement";
 
 /* This class is responsible for handling historic data.
  * Historic data is divided into two categories:

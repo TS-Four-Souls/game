@@ -6,7 +6,7 @@ import { insertReport } from "@/utils/db";
 
 const REPORT_COOLDOWN = 1_000 * 30; // 30 seconds
 
-export const contactEndpoint = (socket: Socket, game?: Game) => {
+export const globalEndpoints = (socket: Socket, game?: Game) => {
 
   let lastReportedAt = 0;
 

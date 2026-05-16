@@ -12,7 +12,7 @@ import { enterGameStep } from "./gameStep";
 import type { HistoricEntry } from "@/models/historyHandler";
 import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
 import { enterIntroStep } from "./introStep";
-import { contactEndpoint } from "./global";
+import { globalEndpoints } from "./global";
 
 export const enterStartStep = (
   socket: Socket,
@@ -26,17 +26,10 @@ export const enterStartStep = (
 
   const leaveStartStep = (socket: Socket) => {
     socket.offAny(updateLastActionTimestamp);
-    socket.removeAllListeners("leaveRoom");
-    socket.removeAllListeners("kickFromRoom");
-    socket.removeAllListeners("setName");
-    socket.removeAllListeners("setGameParameter");
-    socket.removeAllListeners("resetGameSettings");
-    socket.removeAllListeners("loadGameSettings");
-    socket.removeAllListeners("reportBug");
-    socket.removeAllListeners("selectCharacter");
-    socket.removeAllListeners("loadGame");
-    socket.removeAllListeners("start");
+    socket.removeAllListeners();
   };
+
+  globalEndpoints(socket);
 
   socket.onAny(updateLastActionTimestamp);
   sendRoomChangedToUser(room, user);
@@ -55,8 +48,6 @@ export const enterStartStep = (
 
     return callback({ status: 200 });
   });
-
-  contactEndpoint(socket);
 
   socket.on("setName", (request, callback) => {
     payloadGuardedEndpoint(
