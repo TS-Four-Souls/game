@@ -2,24 +2,17 @@ import { Server as Engine } from "@socket.io/bun-engine";
 import { Server } from "socket.io";
 import type { ClientToServerEvents, ServerToClientEvents } from "./shared/api";
 import { enterIntroStep } from "./network/introStep";
-import type { Room } from "./network/types";
-import { pruneInactiveRooms } from "./network/roomManager";
 
 const PORT = process.env.PORT || 3000;
 const HOSTNAME = process.env.HOSTNAME || "localhost";
 const io = new Server<ClientToServerEvents, ServerToClientEvents>();
 
-const rooms: Map<string, Room> = new Map();
 const engine = new Engine({
   path: "/socket.io/",
   cors: {
     origin: "*",
   },
 });
-
-setInterval(() => {
-  pruneInactiveRooms(rooms);
-}, 60_000);
 
 io.bind(engine);
 
@@ -32,7 +25,7 @@ io.use((socket, next) => {
   next();
 });
 
-io.on("connection", (socket) => enterIntroStep(socket, rooms));
+io.on("connection", (socket) => enterIntroStep(socket));
 
 export default {
   port: PORT,

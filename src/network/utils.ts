@@ -17,21 +17,6 @@ export const payloadGuardedEndpoint = <T extends ZodType>(
   onSuccess(validated.data);
 };
 
-export const generateCharacterAndEternalPairs = (): RoomCharacter[] => {
-  const charas = CARD_SETS.character.cards.map((card) => ({
-    character: card.jsonAPI,
-    eternal: card.eternalCard,
-  }));
-
-  return [
-    { character: "random", eternal: "random" },
-    ...charas.map((card) => ({
-      character: card.character.slug,
-      eternal: card.eternal ?? "random",
-    })),
-  ];
-};
-
 export const sendRoomChangedToAll = (room: Room) => {
   for (const user of room.users) {
     sendRoomChangedToUser(room, user);

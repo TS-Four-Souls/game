@@ -14,10 +14,10 @@ import type { HistoricEntry } from "@/models/historyHandler";
 import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
 import { enterIntroStep } from "./introStep";
 import { globalEndpoints } from "./global";
+import { roomManager } from "./roomManager";
 
 export const enterStartStep = (
   socket: Socket,
-  rooms: Map<string, Room>,
   room: Room,
   user: User,
 ) => {
@@ -33,11 +33,11 @@ export const enterStartStep = (
     if (user.isHost) {
       room.users.forEach((user) => {
         leaveCurrentStep(user.socket);
-        enterIntroStep(user.socket, rooms);
+        enterIntroStep(user.socket);
         sendUserAssigned(user.socket, null);
         sendRoomChangedToUser(null, user);
       });
-      rooms.delete(room.id);
+      roomManager.deleteRoom(room.id);
     } else {
       room.users = room.users.filter(({ id }) => id !== user.id);
       updatePlayerCount(room);
@@ -48,7 +48,7 @@ export const enterStartStep = (
       sendRoomChangedToUser(null, user);
 
       leaveCurrentStep(socket);
-      enterIntroStep(socket, rooms);
+      enterIntroStep(socket);
     }
 
     return callback({ status: 200 });
@@ -124,7 +124,7 @@ export const enterStartStep = (
           sendRoomChangedToUser(null, user);
 
           leaveCurrentStep(socket);
-          enterIntroStep(socket, rooms);
+          enterIntroStep(socket);
 
           return callback({ status: 200 });
         },
@@ -183,7 +183,7 @@ export const enterStartStep = (
               );
             room.game = await loadGameFromLogs(logs);
             leaveCurrentStep(socket);
-            enterGameStep(socket, rooms, room, user);
+            enterGameStep(socket, room, user);
             return callback({ status: 200 });
           } catch (error) {
             console.error("Failed to load game from logs", error);
@@ -241,7 +241,7 @@ export const enterStartStep = (
           if (!user.name) continue;
           const socket = user.socket;
           leaveCurrentStep(socket);
-          enterGameStep(socket, rooms, room, user);
+          enterGameStep(socket, room, user);
         }
 
         return callback({ status: 200 });

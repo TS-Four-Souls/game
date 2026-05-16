@@ -19,12 +19,7 @@ import type { HistoricEntry } from "@/models/historyHandler";
 import { enterStartStep } from "./startStep";
 import { globalEndpoints } from "./global";
 
-export const enterGameStep = (
-  socket: Socket,
-  rooms: Map<string, Room>,
-  room: Room,
-  user: User,
-) => {
+export const enterGameStep = (socket: Socket, room: Room, user: User) => {
   if (!room.game) {
     throw new Error("Game not found");
   }
@@ -90,7 +85,7 @@ export const enterGameStep = (
       for (const user of room.users) {
         if (!user.name) continue;
         leaveCurrentStep(user.socket);
-        enterGameStep(user.socket, rooms, room, user);
+        enterGameStep(user.socket, room, user);
         user.socket.emit("on:room:broadcast", {
           type: "info",
           title: `Game rolled back by ${player.id}`,
@@ -714,7 +709,7 @@ export const enterGameStep = (
       if (!user.name) continue;
       const socket = user.socket;
       leaveCurrentStep(socket);
-      enterStartStep(socket, rooms, room, user);
+      enterStartStep(socket, room, user);
     }
     return callback({ status: 200 });
   });

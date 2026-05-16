@@ -1,19 +1,17 @@
 import { generateRoomId, generateUserId } from "@/utils/random";
 import { DEFAULT_CHARACTER, type Room, type Socket, type User } from "./types";
-import { GameParameters } from "@/models/gameParameters";
 import {
-  generateCharacterAndEternalPairs,
   leaveCurrentStep,
   payloadGuardedEndpoint,
-  sendRoomChangedToAll,
   sendUserAssigned,
 } from "./utils";
 import { enterStartStep } from "./startStep";
 import { schemas } from "@/shared/api";
 import { enterGameStep } from "./gameStep";
 import { globalEndpoints } from "./global";
+import { roomManager } from "./roomManager";
 
-export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
+export const enterIntroStep = (socket: Socket) => {
   globalEndpoints(socket);
 
   socket.on("createRoom", (callback) => {
@@ -28,18 +26,10 @@ export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
     };
     sendUserAssigned(socket, user);
 
-    const room: Room = {
-      id: roomId,
-      users: [user],
-      params: new GameParameters(() => {
-        sendRoomChangedToAll(room);
-      }),
-      characters: generateCharacterAndEternalPairs(),
-    };
-    rooms.set(roomId, room);
+    const room: Room = roomManager.createRoom(roomId, user);
 
     leaveCurrentStep(socket);
-    enterStartStep(socket, rooms, room, user);
+    enterStartStep(socket, room, user);
     return callback({ status: 200 });
   });
 
@@ -49,7 +39,7 @@ export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
       schemas.enterRoomRequest,
       callback,
       (payload) => {
-        const room = rooms.get(payload.roomId);
+        const room = roomManager.findRoom(payload.roomId);
 
         if (!room) {
           return callback({ status: 400, error: "Room not found" });
@@ -64,9 +54,9 @@ export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
           user.lastActionTimestamp = new Date();
           leaveCurrentStep(socket);
           if (room.game === undefined) {
-            enterStartStep(socket, rooms, room, user);
+            enterStartStep(socket, room, user);
           } else {
-            enterGameStep(socket, rooms, room, user);
+            enterGameStep(socket, room, user);
           }
         } else {
           if (room.users.length >= 4) {
@@ -87,7 +77,7 @@ export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
           room.users.push(user);
 
           leaveCurrentStep(socket);
-          enterStartStep(socket, rooms, room, user);
+          enterStartStep(socket, room, user);
         }
         return callback({ status: 200 });
       },
