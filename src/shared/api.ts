@@ -304,9 +304,11 @@ const debugRemoveCardsRequestSchema = z.object({
   cards: z.array(identifierTypeSchema),
 });
 
-const reportBugRequestSchema = z.object({
-  type: z.enum(["contact", "bug", "suggestion"]),
-  includeLogs: z.boolean(),
+const contactTypeSchema = z.enum(["contact", "bug", "suggestion"]);
+export type ContactType = z.infer<typeof contactTypeSchema>;
+
+const contactRequestSchema = z.object({
+  type: contactTypeSchema,
   description: z.string().min(1).max(3000),
   email: z.email().optional(),
 });
@@ -793,7 +795,7 @@ export const schemas = {
   debugGainTreasureRequest: debugGainTreasureRequestSchema,
   debugPutMonsterCardInSlotRequest: debugPutMonsterCardInSlotRequestSchema,
   debugGainCoinsRequest: debugGainCoinsRequestSchema,
-  reportBugRequest: reportBugRequestSchema,
+  contactRequest: contactRequestSchema,
   submitSelectionRequest: submitSelectionSchema,
   insertStackElementBeforeRequest: insertStackElementBeforeSchema,
   playCardRequest: cardActivationSchema,
@@ -831,7 +833,7 @@ export namespace Requests {
   export type DebugGainTreasure = z.infer<
     typeof debugGainTreasureRequestSchema
   >;
-  export type ReportBug = z.infer<typeof reportBugRequestSchema>;
+  export type Contact = z.infer<typeof contactRequestSchema>;
   export type EnterRoom = z.infer<typeof enterRoomRequestSchema>;
   export type LoadGame = z.infer<typeof loadGameRequestSchema>;
   export type LoadGameParameters = z.infer<
@@ -867,7 +869,7 @@ export namespace Responses {
   export type DebugPutMonsterCardInSlot = BasicResponse;
   export type DebugGainTreasure = BasicResponse;
   export type DebugGainCoins = BasicResponse;
-  export type ReportBug = BasicResponse;
+  export type Contact = BasicResponse;
   export type GiveCoins = BasicResponse;
   export type CreateRoom = BasicResponse;
   export type EnterRoom = BasicResponse;
@@ -997,9 +999,9 @@ export interface ClientToServerEvents {
     callback: (response: Responses.DebugGainCoins) => void,
   ) => void;
 
-  reportBug: (
-    request: Requests.ReportBug,
-    callback: (response: Responses.ReportBug) => void,
+  contact: (
+    request: Requests.Contact,
+    callback: (response: Responses.Contact) => void,
   ) => void;
 
   giveCoins: (

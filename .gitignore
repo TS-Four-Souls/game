@@ -43,3 +43,5 @@ todo
 collection.bru
 src/models/test.ts
 .gitignore
+
+*.sqlite

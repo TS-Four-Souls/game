@@ -68,7 +68,7 @@ export type UserRequest =
       issuer: Issuer;
     }
   | { type: "DebugGainCoins"; payload: Requests.DebugGainCoins; issuer: Issuer }
-  | { type: "ReportBug"; payload: Requests.ReportBug; issuer: Issuer }
+  | { type: "Contact"; payload: Requests.Contact; issuer: Issuer }
   | { type: "IsGameOngoing" }
   | { type: "CreateRoom" }
   | { type: "JoinRoom" }

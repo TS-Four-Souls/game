@@ -16,7 +16,7 @@ import type { Game } from "@/models/game";
 import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
 import type { HistoricEntry } from "@/models/historyHandler";
 import { enterStartStep } from "./startStep";
-import { reportBugEndpoint } from "./global";
+import { contactEndpoint } from "./global";
 
 export const enterGameStep = (
   socket: Socket,
@@ -73,7 +73,7 @@ export const enterGameStep = (
   }
   const player = game.getPlayerById(user.name);
 
-  reportBugEndpoint(socket, game);
+  contactEndpoint(socket, game);
 
   socket.on("saveGame", (callback) => {
     try {

@@ -10,7 +10,7 @@ import {
 import { enterStartStep } from "./startStep";
 import { schemas } from "@/shared/api";
 import { enterGameStep } from "./gameStep";
-import { reportBugEndpoint } from "./global";
+import { contactEndpoint } from "./global";
 
 export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
   const leaveIntroStep = (socket: Socket) => {
@@ -46,7 +46,7 @@ export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
     return callback({ status: 200 });
   });
 
-  reportBugEndpoint(socket);
+  contactEndpoint(socket);
 
   socket.on("enterRoom", (payload, callback) => {
     payloadGuardedEndpoint(
