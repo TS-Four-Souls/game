@@ -97,6 +97,7 @@ function isGameAction(entry: HistoricEntry): boolean {
     "IsGameOngoing",
     "CreateRoom",
     "JoinRoom",
+    "Contact",
     "LeaveRoom",
     "LoadGame",
   ].includes(entry.type);
