@@ -3,6 +3,7 @@ import { Server } from "socket.io";
 import type { ClientToServerEvents, ServerToClientEvents } from "./shared/api";
 import { enterIntroStep } from "./network/introStep";
 import type { Room } from "./network/types";
+import { pruneInactiveRooms } from "./network/roomManager";
 
 const PORT = process.env.PORT || 3000;
 const HOSTNAME = process.env.HOSTNAME || "localhost";
@@ -15,6 +16,10 @@ const engine = new Engine({
     origin: "*",
   },
 });
+
+setInterval(() => {
+  pruneInactiveRooms(rooms);
+}, 60_000);
 
 io.bind(engine);
 

@@ -106,3 +106,8 @@ export const updatePlayerCount = (room: Room) => {
     room.users.filter((user) => user.name !== undefined).length,
   );
 };
+
+export const leaveCurrentStep = (socket: Socket) => {
+  socket.removeAllListeners();
+  socket.offAny();
+};

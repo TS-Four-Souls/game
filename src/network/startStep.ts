@@ -6,6 +6,7 @@ import {
   sendRoomChangedToUser,
   sendUserAssigned,
   updatePlayerCount,
+  leaveCurrentStep,
 } from "./utils";
 import { Game } from "@/models/game";
 import { enterGameStep } from "./gameStep";
@@ -20,24 +21,18 @@ export const enterStartStep = (
   room: Room,
   user: User,
 ) => {
-  const updateLastActionTimestamp = () => {
-    user.lastActionTimestamp = new Date();
-  };
-
-  const leaveStartStep = (socket: Socket) => {
-    socket.offAny(updateLastActionTimestamp);
-    socket.removeAllListeners();
-  };
+  sendRoomChangedToUser(room, user);
 
   globalEndpoints(socket);
 
-  socket.onAny(updateLastActionTimestamp);
-  sendRoomChangedToUser(room, user);
+  socket.onAny(() => {
+    user.lastActionTimestamp = new Date();
+  });
 
   socket.on("leaveRoom", (callback) => {
     if (user.isHost) {
       room.users.forEach((user) => {
-        leaveStartStep(user.socket);
+        leaveCurrentStep(user.socket);
         enterIntroStep(user.socket, rooms);
         sendUserAssigned(user.socket, null);
         sendRoomChangedToUser(null, user);
@@ -52,7 +47,7 @@ export const enterStartStep = (
       sendUserAssigned(socket, null);
       sendRoomChangedToUser(null, user);
 
-      leaveStartStep(socket);
+      leaveCurrentStep(socket);
       enterIntroStep(socket, rooms);
     }
 
@@ -128,7 +123,7 @@ export const enterStartStep = (
           sendUserAssigned(socket, null);
           sendRoomChangedToUser(null, user);
 
-          leaveStartStep(socket);
+          leaveCurrentStep(socket);
           enterIntroStep(socket, rooms);
 
           return callback({ status: 200 });
@@ -187,7 +182,7 @@ export const enterStartStep = (
                 "Logs are not valid JSON or not in the expected format.",
               );
             room.game = await loadGameFromLogs(logs);
-            leaveStartStep(socket);
+            leaveCurrentStep(socket);
             enterGameStep(socket, rooms, room, user);
             return callback({ status: 200 });
           } catch (error) {
@@ -245,7 +240,7 @@ export const enterStartStep = (
         for (const user of room.users) {
           if (!user.name) continue;
           const socket = user.socket;
-          leaveStartStep(socket);
+          leaveCurrentStep(socket);
           enterGameStep(socket, rooms, room, user);
         }
 

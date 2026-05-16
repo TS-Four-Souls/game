@@ -4,6 +4,7 @@ import {
   payloadGuardedEndpoint,
   sendRoomChangedToAll,
   sendRoomChangedToUser,
+  leaveCurrentStep,
 } from "./utils";
 import {
   executeActivateRequest,
@@ -24,19 +25,6 @@ export const enterGameStep = (
   room: Room,
   user: User,
 ) => {
-  const updateLastActionTimestamp = () => {
-    user.lastActionTimestamp = new Date();
-  };
-
-  const leaveGameStep = (socket: Socket) => {
-    socket.offAny(updateLastActionTimestamp);
-    socket.removeAllListeners();
-  };
-
-  socket.onAny(updateLastActionTimestamp);
-
-  sendRoomChangedToUser(room, user);
-
   if (!room.game) {
     throw new Error("Game not found");
   }
@@ -48,7 +36,13 @@ export const enterGameStep = (
   }
   const player = game.getPlayerById(user.name);
 
+  sendRoomChangedToUser(room, user);
+
   globalEndpoints(socket, game);
+
+  socket.onAny(() => {
+    user.lastActionTimestamp = new Date();
+  });
 
   socket.on("saveGame", (callback) => {
     try {
@@ -95,7 +89,7 @@ export const enterGameStep = (
 
       for (const user of room.users) {
         if (!user.name) continue;
-        leaveGameStep(user.socket);
+        leaveCurrentStep(user.socket);
         enterGameStep(user.socket, rooms, room, user);
         user.socket.emit("on:room:broadcast", {
           type: "info",
@@ -719,7 +713,7 @@ export const enterGameStep = (
     for (const user of room.users) {
       if (!user.name) continue;
       const socket = user.socket;
-      leaveGameStep(socket);
+      leaveCurrentStep(socket);
       enterStartStep(socket, rooms, room, user);
     }
     return callback({ status: 200 });

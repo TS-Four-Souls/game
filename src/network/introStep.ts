@@ -3,6 +3,7 @@ import { DEFAULT_CHARACTER, type Room, type Socket, type User } from "./types";
 import { GameParameters } from "@/models/gameParameters";
 import {
   generateCharacterAndEternalPairs,
+  leaveCurrentStep,
   payloadGuardedEndpoint,
   sendRoomChangedToAll,
   sendUserAssigned,
@@ -13,10 +14,6 @@ import { enterGameStep } from "./gameStep";
 import { globalEndpoints } from "./global";
 
 export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
-  const leaveIntroStep = (socket: Socket) => {
-    socket.removeAllListeners();
-  };
-
   globalEndpoints(socket);
 
   socket.on("createRoom", (callback) => {
@@ -41,7 +38,7 @@ export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
     };
     rooms.set(roomId, room);
 
-    leaveIntroStep(socket);
+    leaveCurrentStep(socket);
     enterStartStep(socket, rooms, room, user);
     return callback({ status: 200 });
   });
@@ -65,12 +62,10 @@ export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
           }
           user.socket = socket;
           user.lastActionTimestamp = new Date();
-          leaveIntroStep(socket);
+          leaveCurrentStep(socket);
           if (room.game === undefined) {
-            console.log("Entering start step");
             enterStartStep(socket, rooms, room, user);
           } else {
-            console.log("Entering game step");
             enterGameStep(socket, rooms, room, user);
           }
         } else {
@@ -91,7 +86,7 @@ export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
 
           room.users.push(user);
 
-          leaveIntroStep(socket);
+          leaveCurrentStep(socket);
           enterStartStep(socket, rooms, room, user);
         }
         return callback({ status: 200 });
