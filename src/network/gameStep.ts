@@ -16,6 +16,7 @@ import type { Game } from "@/models/game";
 import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
 import type { HistoricEntry } from "@/models/historyHandler";
 import { enterStartStep } from "./startStep";
+import { reportBugEndpoint } from "./global";
 
 export const enterGameStep = (
   socket: Socket,
@@ -72,6 +73,8 @@ export const enterGameStep = (
   }
   const player = game.getPlayerById(user.name);
 
+  reportBugEndpoint(socket, game);
+
   socket.on("saveGame", (callback) => {
     try {
       const logs = JSON.stringify(game.log, null, 2);
@@ -112,7 +115,6 @@ export const enterGameStep = (
       });
 
       room.game = loadedGame;
-      
 
       sendRoomChangedToAll(room);
 
@@ -718,36 +720,6 @@ export const enterGameStep = (
           return callback({ status: 200 });
         } catch (error) {
           console.error("Failed to debug put monster card in slot", error);
-          if (error instanceof Error) {
-            return callback({ status: 400, error: error.message });
-          }
-          return callback({ status: 400, error: "Unknown error" });
-        }
-      },
-    );
-  });
-
-  socket.on("reportBug", (payload, callback) => {
-    payloadGuardedEndpoint(
-      payload,
-      schemas.reportBugRequest,
-      callback,
-      (payload) => {
-        try {
-          const bugReport = {
-            roomId: room.id,
-            reporter: player.id,
-            title: payload.title,
-            description: payload.description,
-            severity: payload.severity ?? "undefined",
-            logs: game.log,
-          };
-
-          console.log(bugReport);
-
-          return callback({ status: 200 });
-        } catch (error) {
-          console.error("Failed to report bug", error);
           if (error instanceof Error) {
             return callback({ status: 400, error: error.message });
           }

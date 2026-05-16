@@ -12,6 +12,7 @@ import { enterGameStep } from "./gameStep";
 import type { HistoricEntry } from "@/models/historyHandler";
 import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
 import { enterIntroStep } from "./introStep";
+import { reportBugEndpoint } from "./global";
 
 export const enterStartStep = (
   socket: Socket,
@@ -31,6 +32,7 @@ export const enterStartStep = (
     socket.removeAllListeners("setGameParameter");
     socket.removeAllListeners("resetGameSettings");
     socket.removeAllListeners("loadGameSettings");
+    socket.removeAllListeners("reportBug");
     socket.removeAllListeners("selectCharacter");
     socket.removeAllListeners("loadGame");
     socket.removeAllListeners("start");
@@ -53,6 +55,8 @@ export const enterStartStep = (
 
     return callback({ status: 200 });
   });
+
+  reportBugEndpoint(socket);
 
   socket.on("setName", (request, callback) => {
     payloadGuardedEndpoint(

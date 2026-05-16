@@ -305,9 +305,10 @@ const debugRemoveCardsRequestSchema = z.object({
 });
 
 const reportBugRequestSchema = z.object({
-  title: z.string().min(1),
-  description: z.string().min(1),
-  severity: z.enum(["low", "medium", "high", "critical"]).optional(),
+  type: z.enum(["contact", "bug", "suggestion"]),
+  includeLogs: z.boolean(),
+  description: z.string().min(1).max(3000),
+  email: z.email().optional(),
 });
 
 const giveCoinsSchema = z.object({

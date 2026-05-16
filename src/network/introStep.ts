@@ -10,8 +10,15 @@ import {
 import { enterStartStep } from "./startStep";
 import { schemas } from "@/shared/api";
 import { enterGameStep } from "./gameStep";
+import { reportBugEndpoint } from "./global";
 
 export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
+  const leaveIntroStep = (socket: Socket) => {
+    socket.removeAllListeners("createRoom");
+    socket.removeAllListeners("enterRoom");
+    socket.removeAllListeners("reportBug");
+  };
+
   socket.on("createRoom", (callback) => {
     const roomId = generateRoomId();
 
@@ -27,11 +34,9 @@ export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
     const room: Room = {
       id: roomId,
       users: [user],
-      params: new GameParameters(
-        () => {
-          sendRoomChangedToAll(room);
-        }
-      ),
+      params: new GameParameters(() => {
+        sendRoomChangedToAll(room);
+      }),
       characters: generateCharacterAndEternalPairs(),
     };
     rooms.set(roomId, room);
@@ -40,6 +45,8 @@ export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
     enterStartStep(socket, rooms, room, user);
     return callback({ status: 200 });
   });
+
+  reportBugEndpoint(socket);
 
   socket.on("enterRoom", (payload, callback) => {
     payloadGuardedEndpoint(
@@ -93,9 +100,4 @@ export const enterIntroStep = (socket: Socket, rooms: Map<string, Room>) => {
       },
     );
   });
-};
-
-const leaveIntroStep = (socket: Socket) => {
-  socket.removeAllListeners("createRoom");
-  socket.removeAllListeners("enterRoom");
 };
