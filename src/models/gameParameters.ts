@@ -261,7 +261,7 @@ export class GameParameters {
         this.nbItemsInShop = new NumericGameParameter(0, 2, 6, onChange);
         this.nbRooms = new NumericGameParameter(1, 1, 1, onChange);
         this.nbEncounters = new NumericGameParameter(1, 2, 6, onChange);
-        this.deathPenaltyCoins = new NumericGameParameter(0, 2, 20, onChange);
+        this.deathPenaltyCoins = new NumericGameParameter(0, 1, 20, onChange);
         this.deathPenaltyItem = new NumericGameParameter(0, 1, 10, onChange);
         this.deathPenaltyLoot = new NumericGameParameter(0, 1, 10, onChange);
         this.treasuresOnStart = new NumericGameParameter(0, 0, 10, onChange);
@@ -332,7 +332,9 @@ export class GameParameters {
                 if (decks.room) {
                     this.room.applyDeckConfig(decks.room.cards);
                 }
-
+                if (decks.character) {
+                    this.character.applyDeckConfig(decks.character.cards);
+                }
                 if (decks.useBonusSouls) {
                     this.playWithBonusSouls.value = decks.useBonusSouls.value;
                 }
@@ -363,7 +365,7 @@ export class GameParameters {
             // Apply provided deck card counts first so that top-level flags (like
             // nbPlayerCardRestriction) that may remove/restore cards are applied
             // afterwards and take precedence.
-            if(decks.monster || decks.treasure || decks.loot || decks.bsoul || decks.room) {
+            if(decks.monster || decks.treasure || decks.loot || decks.bsoul || decks.room || decks.character) {
                 // If specific cards were provided, we assume the config is custom and switch to custom mode to avoid overwriting counts with standard config when toggling flags.
                 this._deckMode = "custom";
             }
@@ -372,6 +374,7 @@ export class GameParameters {
             if (decks.loot) this.loot.applyDeckConfig([decks.loot]);
             if (decks.bsoul) this.bsoul.applyDeckConfig([decks.bsoul]);
             if (decks.room) this.room.applyDeckConfig([decks.room]);
+            if (decks.character) this.character.applyDeckConfig([decks.character]);
             if (decks.useBonusSouls?.value !== undefined) {
                 this.playWithBonusSouls.value = decks.useBonusSouls.value;
             }
@@ -381,7 +384,7 @@ export class GameParameters {
             if (decks.nbPlayerCardRestriction?.value !== undefined) {
                 this.nbPlayerCardRestriction.value = decks.nbPlayerCardRestriction.value;
                 this._deckMode = "standard"; // Switch back to standard mode when player card restriction is toggled, as it's the only flag that affects card counts in standard mode
-                for (const deck of [this.monster, this.treasure, this.loot, this.bsoul, this.room]) {
+                for (const deck of [this.character, this.monster, this.treasure, this.loot, this.bsoul, this.room]) {
                     deck.filter = this._filter;
                     deck.resetCardCounts(false);
                 }
@@ -417,7 +420,7 @@ export class GameParameters {
     setPlayerCount(count: number) {
         this._currentNbPlayers = count;
         if (this.nbPlayerCardRestriction.value && this._deckMode === "standard") {
-            for (const deck of [this.monster, this.treasure, this.loot, this.bsoul, this.room]) {
+            for (const deck of [this.character, this.monster, this.treasure, this.loot, this.bsoul, this.room]) {
                 deck.filter = this._filter;
                 deck.resetCardCounts(false);
             }

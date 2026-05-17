@@ -358,6 +358,7 @@ const decksConfigPatchSchema = z.object({
   nbPlayerCardRestriction: booleanGameParameterSchema.optional(),
 
   monster: deckConfigCardSchema.optional(),
+  character: deckConfigCardSchema.optional(),
   treasure: deckConfigCardSchema.optional(),
   loot: deckConfigCardSchema.optional(),
   bsoul: deckConfigCardSchema.optional(),
