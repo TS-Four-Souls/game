@@ -44,8 +44,10 @@ const deckConfigCardSchema = z.object({
 });
 
 const characterCardSchema = deckConfigCardSchema.extend({
-  eternal: z.string(),
+  eternal: z.union([z.string(), z.literal("random")]),
 });
+export type CharacterCardConfig = z.infer<typeof characterCardSchema>;
+
 export type DeckConfigCard =
   | z.infer<typeof deckConfigCardSchema>
   | z.infer<typeof characterCardSchema>;

@@ -1,6 +1,6 @@
-import type { DeckConfig, DeckConfigCard, GameParametersJson, DeckConfigPatch, SetGameParameterRequest } from "@/shared/api";
+import type { DeckConfig, DeckConfigCard, GameParametersJson, DeckConfigPatch, SetGameParameterRequest, CharacterCardConfig } from "@/shared/api";
 import { CARD_SETS } from "./game";
-import type { DeckType, Card } from "./cards";
+import type { DeckType, Card, CharacterCard } from "./cards";
 class NumericGameParameter {
     private _value: number;
     private _min: number;
@@ -44,19 +44,17 @@ class NumericGameParameter {
 }
 
 class DeckParameter {
-    private _type: DeckType;
-    private _currentCount: number = 0;
-    private _cards: {card: Card, param: NumericGameParameter}[] = [];
-    private _minCardInDeck: number;
-    private _maxCardInDeck: number;
-    private _filter: (card: Card) => boolean;
-    private _deckMode: "standard" | "custom";
+    protected _type: DeckType;
+    protected _currentCount: number = 0;
+    protected _cards: {card: Card, param: NumericGameParameter}[] = [];
+    protected _minCardInDeck: number;
+    protected _maxCardInDeck: number;
+    protected _filter: (card: Card) => boolean;
 
-    constructor(type: DeckType, minCardInDeck: number = 100, maxCardInDeck: number = 1000, private readonly onChange: () => void, private F: (card: Card) => boolean, deckMode: "standard" | "custom" = "standard") {
+    constructor(type: DeckType, minCardInDeck: number = 100, maxCardInDeck: number = 1000, protected readonly onChange: () => void, protected F: (card: Card) => boolean) {
         this._type = type;
         this._currentCount = -1;
         this._filter = F;
-        this._deckMode = deckMode;
         this._minCardInDeck = minCardInDeck;
         this._maxCardInDeck = maxCardInDeck;
         this.createParamForUniqueCards();
@@ -180,6 +178,19 @@ class DeckParameter {
     }
 }
 
+class CharacterDeckParameter extends DeckParameter {
+    constructor(minCardInDeck: number = 100, maxCardInDeck: number = 1000, onChange: () => void, F: (card: Card) => boolean) {
+        super("character", minCardInDeck, maxCardInDeck, onChange, F);
+    }
+    override json() {
+        const result: CharacterCardConfig[] = [];
+        for (const card of this._cards) {
+            result.push({slug: card.card.slug, name: card.card.name, count: card.param.value, eternal: (card.card as CharacterCard).eternalCard ?? "random"});
+        }
+        return result;
+    }
+}
+
 class BooleanGameParameter {
     private _value: boolean;
     private _initialValue: boolean;
@@ -226,7 +237,7 @@ export class GameParameters {
     /** only cards with minimum player requirement satisfied in decks. */
     readonly nbPlayerCardRestriction: BooleanGameParameter;
     readonly allowCheatOptions: BooleanGameParameter;
-    readonly character: DeckParameter;
+    readonly character: CharacterDeckParameter;
     readonly monster: DeckParameter;
     readonly treasure: DeckParameter;
     readonly loot: DeckParameter;
@@ -252,12 +263,12 @@ export class GameParameters {
         this._currentNbPlayers = 0;
         this.miniDraft = new BooleanGameParameter(false, onChange);
         this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
-        this.character = new DeckParameter("character", 4, 100, onChange, this._filter, this._deckMode);
-        this.monster = new DeckParameter("monster", 50, 1000, onChange, this._filter, this._deckMode);
-        this.treasure = new DeckParameter("treasure", 50, 1000, onChange, this._filter, this._deckMode);
-        this.loot = new DeckParameter("loot", 100, 1000, onChange, this._filter, this._deckMode);
-        this.bsoul = new DeckParameter("bsoul", 3, 100, onChange, this._filter, this._deckMode);
-        this.room = new DeckParameter("room", 10, 100, onChange, this._filter, this._deckMode);
+        this.character = new CharacterDeckParameter(4, 100, onChange, this._filter);
+        this.monster = new DeckParameter("monster", 50, 1000, onChange, this._filter);
+        this.treasure = new DeckParameter("treasure", 50, 1000, onChange, this._filter);
+        this.loot = new DeckParameter("loot", 100, 1000, onChange, this._filter);
+        this.bsoul = new DeckParameter("bsoul", 3, 100, onChange, this._filter);
+        this.room = new DeckParameter("room", 10, 100, onChange, this._filter);
         this.nbItemsInShop = new NumericGameParameter(0, 2, 6, onChange);
         this.nbRooms = new NumericGameParameter(1, 1, 1, onChange);
         this.nbEncounters = new NumericGameParameter(1, 2, 6, onChange);
