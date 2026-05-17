@@ -1231,17 +1231,17 @@ export class Game extends SelectionHandler {
         characters.push(null as any);
         continue;
       }
-      const card = this._decks["character"].getCardFromSlug(slug);
+      const cardFromSet = this._decks["character"]._set.cards.find(c => c.slug === slug);
+      if(!cardFromSet)
+        throw new Error(`Character card with slug ${slug} not found in character deck.`);
+      const card = this.copyCard(cardFromSet) as CharacterCard;
       if (card) {
-        const copy = this.copyCard(card);
         this.addBottomPosition("character", card);
-        this.addBottomPosition("character", copy);
         if(card.eternalCard !== null)
         {
-          const eternalCard = this._decks["eternal"].getCardFromSlug(card.eternalCard)!;
-          const copy2 = this.copyCard(eternalCard);
+          const eternalCardFromSet = this._decks["eternal"]._set.cards.find(c => c.slug === card.eternalCard) as ItemCard;
+          const eternalCard = this.copyCard(eternalCardFromSet) as ItemCard;
           this.addBottomPosition("eternal", eternalCard);
-          this.addBottomPosition("eternal", copy2);
         }
         characters.push(card);
       }
