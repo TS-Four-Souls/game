@@ -43,7 +43,7 @@ class RoomManager {
               "The room has been purged because it has been inactive for too long.",
           });
         });
-        this.rooms.delete(room.id);
+        this.deleteRoom(room.id);
       }
     });
   }
