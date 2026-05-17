@@ -1,7 +1,7 @@
 import type { ContactType } from "@/shared/api";
 import { Database } from "bun:sqlite";
 
-const db = new Database("database.sqlite", { create: true });
+const db = new Database("db/db.sqlite", { create: true });
 
 db.run(`
   CREATE TABLE IF NOT EXISTS reports(
@@ -9,19 +9,21 @@ db.run(`
     type TEXT,
     description TEXT,
     email TEXT,
-    created_at TEXT
+    created_at TEXT,
+    logs TEXT
   )`);
 
 export const insertReport = (
   type: ContactType,
   description: string,
   email: string | null,
+  logs: string | null,
 ) => {
   db.run(
     `INSERT INTO
-      reports(type, description, email, created_at)
+      reports(type, description, email, created_at, logs)
     VALUES
-      (?, ?, ?, ?)`,
-    [type, description, email, new Date().toISOString()],
+      (?, ?, ?, ?, ?)`,
+    [type, description, email, new Date().toISOString(), logs ?? null],
   );
 };

@@ -9,6 +9,7 @@ import {
 import { CARD_SETS } from "@/models/game";
 import type { RoomCharacter } from "@/shared/api";
 import { enterIntroStep } from "./introStep";
+import bun from "bun";
 
 const INACTIVE_ROOM_TIMEOUT = 3 * 60 * 60 * 1_000; // 3 hours
 
@@ -76,18 +77,29 @@ class RoomManager {
   };
 
   deleteRoom(roomId: string) {
+    this.saveGameLogs(roomId, false);
     this.rooms.delete(roomId);
   }
 
-  saveGameLogs(roomId: string, saveShortGame: boolean): string | undefined{
+  saveGameLogs(roomId: string, bugReport: boolean): string | undefined {
     const room = this.rooms.get(roomId);
-    if (!room || !room.game) return ;
+    if (!room || !room.game) return;
     const game = room.game;
-    if(!saveShortGame && room.game.turnHandler.round < 4) return;
-    const logs = JSON.stringify(game.log, null, 2);
-    for(const [index, player] of game.players.entries())
-      logs.replaceAll(`"${player.id}"`, `"p${index}"`);
-    return "";
+
+    if (!bugReport && room.game.turnHandler.round < 4) return;
+
+    let logs = JSON.stringify(game.log, null, 2);
+
+    // Anonymize player names
+    for (const [index, player] of game.players.entries()) {
+      logs = logs.replaceAll(`"${player.id}`, `"p${index}`);
+    }
+
+    // Save logs to file
+    const fileName = `${roomId}_${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    const folder = bugReport ? "bug-logs" : "room-logs";
+    bun.write(`db/${folder}/${fileName}`, logs);
+    return fileName;
   }
 
   findRoom(roomId: string): Room | undefined {

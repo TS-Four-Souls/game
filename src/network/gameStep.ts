@@ -33,7 +33,7 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
 
   sendRoomChangedToUser(room, user);
 
-  globalEndpoints(socket, game);
+  globalEndpoints(socket, room);
 
   socket.onAny(() => {
     user.lastActionTimestamp = new Date();

@@ -1,6 +1,1 @@
-- Save game logs when receiving bug report
-    -> save ref to logfile in db
-- Save game logs before pruning room
-- Add character cards to deck config
-- Set character to random when selected character is no longer valid (change of deck config)
 - Make sure the server doesn't crash when there is a throw in one room
