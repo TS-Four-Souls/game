@@ -42,11 +42,22 @@ const deckConfigCardSchema = z.object({
   slug: z.string(),
   count: z.number(),
 });
-export type DeckConfigCard = z.infer<typeof deckConfigCardSchema>;
+
+const characterCardSchema = deckConfigCardSchema.extend({
+  eternal: z.string(),
+});
+export type DeckConfigCard =
+  | z.infer<typeof deckConfigCardSchema>
+  | z.infer<typeof characterCardSchema>;
 
 const deckSchema = z.object({
   total: z.number(),
   cards: z.array(deckConfigCardSchema),
+});
+
+const characterDeckSchema = z.object({
+  total: z.number(),
+  cards: z.array(characterCardSchema),
 });
 
 export type SetCardCountRequest = {
@@ -341,8 +352,8 @@ const decksConfigSchema = z.object({
   useBonusSouls: booleanGameParameterSchema,
   useRooms: booleanGameParameterSchema,
   nbPlayerCardRestriction: booleanGameParameterSchema.optional(),
-  
-  character: deckSchema,
+
+  character: characterDeckSchema,
   monster: deckSchema,
   treasure: deckSchema,
   loot: deckSchema,
