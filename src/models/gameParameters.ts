@@ -226,6 +226,7 @@ export class GameParameters {
     /** only cards with minimum player requirement satisfied in decks. */
     readonly nbPlayerCardRestriction: BooleanGameParameter;
     readonly allowCheatOptions: BooleanGameParameter;
+    readonly character: DeckParameter;
     readonly monster: DeckParameter;
     readonly treasure: DeckParameter;
     readonly loot: DeckParameter;
@@ -251,6 +252,7 @@ export class GameParameters {
         this._currentNbPlayers = 0;
         this.miniDraft = new BooleanGameParameter(false, onChange);
         this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
+        this.character = new DeckParameter("character", 4, 100, onChange, this._filter, this._deckMode);
         this.monster = new DeckParameter("monster", 50, 1000, onChange, this._filter, this._deckMode);
         this.treasure = new DeckParameter("treasure", 50, 1000, onChange, this._filter, this._deckMode);
         this.loot = new DeckParameter("loot", 100, 1000, onChange, this._filter, this._deckMode);
@@ -279,6 +281,7 @@ export class GameParameters {
             useBonusSouls: {text: "Use bonus souls?", value: this.playWithBonusSouls.value},
             useRooms: {text: "Use rooms?", value: this.playWithRooms.value},
             ...(this._deckMode === "standard" ? {nbPlayerCardRestriction: {text: "Number player card restriction", value: this.nbPlayerCardRestriction.value}} : {}),
+            character: {total: this.character.count, cards: this.character.json()},
             monster: {total: this.monster.count, cards: this.monster.json()},
             treasure: {total: this.treasure.count, cards: this.treasure.json()},
             loot: {total: this.loot.count, cards: this.loot.json()},

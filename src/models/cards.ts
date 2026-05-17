@@ -1502,14 +1502,14 @@ function LoadDecks(json_array: GenericCardType[], numPlayers: number, parameters
         }
         
         let range = [];
-        if(['eternal', 'character'].includes(type) )
+        if(type === 'eternal')
             for (let i = 0; i < set.length; i++) {
                 range.push(i);
             }
         else
         {
             const copies = getCardsByCopy<Card>(decks_cardSets[type] as CardSet<Card>);
-            const paramType = type as 'loot' | 'treasure' | 'monster' | 'bsoul' | 'room';
+            const paramType = type as 'character' | 'loot' | 'treasure' | 'monster' | 'bsoul' | 'room';
             const paramCards = parameters[paramType].json(); // Cache to avoid repeated calls
             
             // Build slug→copies Map for O(1) lookup instead of O(n) search

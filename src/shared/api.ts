@@ -341,7 +341,8 @@ const decksConfigSchema = z.object({
   useBonusSouls: booleanGameParameterSchema,
   useRooms: booleanGameParameterSchema,
   nbPlayerCardRestriction: booleanGameParameterSchema.optional(),
-
+  
+  character: deckSchema,
   monster: deckSchema,
   treasure: deckSchema,
   loot: deckSchema,

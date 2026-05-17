@@ -79,6 +79,17 @@ class RoomManager {
     this.rooms.delete(roomId);
   }
 
+  saveGameLogs(roomId: string, saveShortGame: boolean): string | undefined{
+    const room = this.rooms.get(roomId);
+    if (!room || !room.game) return ;
+    const game = room.game;
+    if(!saveShortGame && room.game.turnHandler.round < 4) return;
+    const logs = JSON.stringify(game.log, null, 2);
+    for(const [index, player] of game.players.entries())
+      logs.replaceAll(`"${player.id}"`, `"p${index}"`);
+    return "";
+  }
+
   findRoom(roomId: string): Room | undefined {
     return this.rooms.get(roomId);
   }
