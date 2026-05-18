@@ -55,16 +55,17 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
         throw new Error(
           "Logs are not valid JSON or not in the expected format.",
         );
-      const loadedGame = await loadGameFromLogs(logs);
-      loadedGame.onStateChange.add(() => {
+      room.game = await loadGameFromLogs(logs);
+
+      room.game.onStateChange.add(() => {
         sendRoomChangedToAll(room);
       });
 
-      loadedGame.onRoomBroadcast.add((broadcast) => {
+      room.game.onRoomBroadcast.add((broadcast) => {
         room.users.forEach((user) => {
           if (user.name === undefined) return;
           if (broadcast.players.includes(user.name)) {
-            user.socket.to(broadcast.players).emit("on:room:broadcast", {
+            user.socket.emit("on:room:broadcast", {
               type: broadcast.type,
               title: broadcast.title,
               message: broadcast.message,
@@ -72,8 +73,6 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
           }
         });
       });
-
-      room.game = loadedGame;
 
       sendRoomChangedToAll(room);
 

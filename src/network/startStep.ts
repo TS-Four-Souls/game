@@ -188,8 +188,37 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
                 "Logs are not valid JSON or not in the expected format.",
               );
             room.game = await loadGameFromLogs(logs);
-            leaveCurrentStep(socket);
-            enterGameStep(socket, room, user);
+
+            room.game.onStateChange.add(() => {
+              sendRoomChangedToAll(room);
+            });
+
+            room.game.onRoomBroadcast.add((broadcast) => {
+              room.users.forEach((user) => {
+                if (user.name === undefined) return;
+                if (broadcast.players.includes(user.name)) {
+                  user.socket.emit("on:room:broadcast", {
+                    type: broadcast.type,
+                    title: broadcast.title,
+                    message: broadcast.message,
+                  });
+                }
+              });
+            });
+
+            sendRoomChangedToAll(room);
+
+            for (const user of room.users) {
+              if (!user.name) continue;
+              leaveCurrentStep(user.socket);
+              enterGameStep(user.socket, room, user);
+              user.socket.emit("on:room:broadcast", {
+                type: "info",
+                title: `Game loaded by ${user.name}`,
+                message: "The game has been loaded.",
+              });
+            }
+
             return callback({ status: 200 });
           },
         ),
@@ -208,9 +237,10 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
 
         game.onRoomBroadcast.add((broadcast) => {
           room.users.forEach((user) => {
+            console.log("Room broadcast", broadcast);
             if (user.name === undefined) return;
             if (broadcast.players.includes(user.name)) {
-              user.socket.to(broadcast.players).emit("on:room:broadcast", {
+              user.socket.emit("on:room:broadcast", {
                 type: broadcast.type,
                 title: broadcast.title,
                 message: broadcast.message,
