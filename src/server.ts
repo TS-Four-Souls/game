@@ -25,7 +25,14 @@ io.use((socket, next) => {
   next();
 });
 
-io.on("connection", (socket) => enterIntroStep(socket));
+io.on("connection", (socket) => {
+  try {
+    enterIntroStep(socket);
+  } catch (error) {
+    console.error("Error in connection handler", error);
+    socket.disconnect();
+  }
+});
 
 export default {
   port: PORT,

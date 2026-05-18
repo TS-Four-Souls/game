@@ -1,20 +1,33 @@
-import { CARD_SETS } from "@/models/game";
-import type { RoomCharacter } from "@/shared/api";
 import type { z, ZodType } from "zod";
 import type { Room, Socket, User } from "./types";
 import type { Room as RoomPayload } from "@/shared/api";
 
-export const payloadGuardedEndpoint = <T extends ZodType>(
+export const errorGuardedEndpoint = async (
+  callback: (response: { status: 400; error: string }) => void,
+  handler: () => void | Promise<void>,
+): Promise<void> => {
+  try {
+    await handler();
+  } catch (error) {
+    console.error("Error in errorGuardedEndpoint", error);
+    if (error instanceof Error) {
+      return callback({ status: 400, error: error.message });
+    }
+    return callback({ status: 400, error: "Unknown error" });
+  }
+};
+
+export const payloadGuardedEndpoint = async <T extends ZodType>(
   payload: unknown,
   schema: T,
   callback: (response: { status: 400; error: string }) => void,
-  onSuccess: (payload: z.infer<T>) => void,
-): void => {
+  onSuccess: (payload: z.infer<T>) => void | Promise<void>,
+): Promise<void> => {
   const validated = schema.safeParse(payload);
   if (!validated.success) {
     return callback({ status: 400, error: validated.error.message });
   }
-  onSuccess(validated.data);
+  await onSuccess(validated.data);
 };
 
 export const sendRoomChangedToAll = (room: Room) => {
