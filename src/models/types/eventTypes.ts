@@ -5,7 +5,7 @@ import { Animated } from "../entities/animated";
 import type { DeathOnStack, DiceRoll } from '../stackElement';
 import type { ItemCard, Card, LootCard } from '../cards';
 import type { DamageSource } from '../game';
-
+import { DeathPenaltyValues } from '../handlers/deathHandler';
 // ============================================================================
 // Event Data Types
 // ============================================================================
@@ -23,6 +23,7 @@ export type OnDeathBeforePenaltyData = {
   eventIssuer: Entity;
   target: Entity;
   source: DamageSource;
+  values: DeathPenaltyValues;
 };
 
 /** Data emitted when death penalty is ongoing (choice is made) */
@@ -47,6 +48,15 @@ export type OnDeathMonsterData = {
   source: DamageSource;
   ability?: any;
 };
+
+/** Data emitted when an animated object dies */
+export type OnDeathAnimatedData = {
+  eventIssuer: Animated;
+  target: Entity;
+  source: DamageSource;
+  ability?: any;
+};
+
 
 /** Data emitted when damage has been taken */
 export type OnDamageTakenData = {
@@ -92,6 +102,12 @@ export type OnCombatEndData = {
   eventIssuer: Entity;
 };
 
+export type OnCardFlippedData = {
+  eventIssuer: Entity;
+  card: Card;
+  recto: boolean;
+};
+
 /** Data emitted when a player declares an attack */
 export type OnAttackDeclaredData = {
   eventIssuer: Player;
@@ -132,7 +148,7 @@ export type OnAttackRollData = {
 };
 
 /** Data emitted when a soul is gained */
-export type OnSoulGainedData = {
+export type OnSoulGainedOrRemovedData = {
   eventIssuer: Player;
   soul: Card;
 };
@@ -245,6 +261,15 @@ export type OnItemActivatedData = {
   item: ItemCard;
 };
 
+/** Data emitted when a counter is added to an entity */
+export type OnCounterModifiedData = {
+  eventIssuer: Entity;
+  card: Card;
+  counterName: string;
+  previousValue: number;
+  newValue: number;
+};
+
 /** Data emitted when priority passes */
 export type OnPriorityPassesData = {
   eventIssuer: Player | null;
@@ -310,6 +335,7 @@ export type TriggerEventDataMap = {
   "on:combatdamage:dealt:to-player": OnCombatDamageDealtToPlayerData;
   "on:combatdamage:dealt": OnCombatDamageDealtData;
   "on:combat:end": OnCombatEndData;
+  "on:card:flipped": OnCardFlippedData;
   "on:attack:declared": OnAttackDeclaredData;
   "on:attack:declared:monster": OnAttackDeclaredMonsterData;
   "on:attack:declared:animated": OnAttackDeclaredAnimatedData;
@@ -324,6 +350,7 @@ export type TriggerEventDataMap = {
   "on:dice:would-roll": OnDiceWouldRollData;
   "on:dice:resolved": OnDiceResolvedData;
   "on:turn:start": OnTurnStartData;
+  "on:counter:modified": OnCounterModifiedData;
   "on:turn:start:before:recharge:step": OnBeforeRechargeStepData;
   "on:turn:end": OnTurnEndData;
   "till:turn:end": OnTurnEndData;
@@ -341,11 +368,12 @@ export type TriggerEventDataMap = {
   "on:item:destroyed": OnItemDestroyedData;
   "on:enter:play": OnEnterPlayData;
   "on:your:turn": OnYourTurnData;
-  "on:death:animated": OnDeathMonsterData;
+  "on:death:animated": OnDeathAnimatedData;
   "on:loot:played": OnLootPlayedData;
   "on:game:start:before": OnGameStartBeforeData;
   "on:game:start": OnGameStartData;
-  "on:soul:gained": OnSoulGainedData;
+  "on:soul:gained": OnSoulGainedOrRemovedData;
+  "on:soul:removed": OnSoulGainedOrRemovedData;
   "on:coin:given": OnCoinGivenData;
   "on:purchase:success": OnPurchaseSuccessData;
 };

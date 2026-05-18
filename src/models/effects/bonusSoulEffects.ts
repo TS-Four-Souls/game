@@ -8,7 +8,7 @@ import type {
     OnDeathMonsterData,
     OnEnterPlayAfterData,
     OnLootAddedAfterData,
-    OnSoulGainedData,
+    OnSoulGainedOrRemovedData,
 } from "../types/eventTypes";
 export type OffEffectFunction = () => void;
 
@@ -117,7 +117,7 @@ function soulOfEnvyEffect(game: Game, card: Card): OffEffectFunction {
     };
 
     // Listen for the next damage event on this player
-    offEffect = game.emitter.on("on:soul:gained", async (eventData: OnSoulGainedData) => {
+    offEffect = game.emitter.on("on:soul:gained", async (eventData: OnSoulGainedOrRemovedData) => {
         const { eventIssuer, soul } = eventData;
         if(eventIssuer.totalSouls < 3) return;
         if(!active) return;
@@ -142,7 +142,7 @@ function soulOfLustEffect(game: Game, card: Card): OffEffectFunction {
 
     offDeath = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
         if(!(eventData.target instanceof Player)) return;
-        card.tags.counters++;
+        game.addToCounter(eventData.eventIssuer, card, "counters", 1);
         if(card.tags.counters < 6) return;
         game.addSoul(game.currentPlayer, card);
         cleanup();
@@ -162,7 +162,7 @@ function soulOfPrideEffect(game: Game, card: Card): OffEffectFunction {
 
     offDeath = game.emitter.on("on:enter:play:after", (eventData: OnEnterPlayAfterData) => {
         if(!(eventData.card instanceof TreasureCard)) return;
-        card.tags.counters++;
+        game.addToCounter(eventData.eventIssuer, card, "counters", 1);
         if(card.tags.counters < 6) return;
         game.addSoul(eventData.eventIssuer, card);
         cleanup();
@@ -182,7 +182,7 @@ function soulOfWrathEffect(game: Game, card: Card): OffEffectFunction {
 
     offDeath = game.emitter.on("on:death:before-penalty", (eventData: OnDeathBeforePenaltyData) => {
         if(!(eventData.eventIssuer instanceof Player)) return;
-        card.tags.counters++;
+        game.addToCounter(eventData.eventIssuer, card, "counters", 1);
         if(card.tags.counters < 6) return;
         game.addSoul(eventData.eventIssuer, card);
         cleanup();

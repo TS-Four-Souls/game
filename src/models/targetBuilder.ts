@@ -57,7 +57,6 @@ export class TargetBuilder {
             if (!TargetBuilder.shouldAutofillSelector(selector, possibleTargets)) {
                 break;
             }
-
             const isChooseOne = possibleTargets.length > 0 && isChooseOneOptions(possibleTargets[0]);
             if (isChooseOne) {
                 const chosenOption = (possibleTargets as ChooseOneOptions[])[0]!;
@@ -123,7 +122,7 @@ export class TargetBuilder {
                 break;
             }
 
-            result.push(possibleTargets[0]);
+            result.push(...possibleTargets);
             selectorIndex++;
             selector = rootSelectors[selectorIndex];
         }
@@ -172,7 +171,6 @@ export class TargetBuilder {
 
         let selectorIndex = 0;
         let selector: TargetsSelector | undefined = rootSelectors[selectorIndex];
-
         if (!selector) {
             return TargetBuilder.completeResponse();
         }
@@ -512,7 +510,7 @@ export class TargetBuilder {
             selector = rootSelectors[selectorIndex];
         }
         if (!item.targetStillValid(player, effectId, result)) {
-            throw new Error(`One or more targets are no longer valid.`);
+            throw new Error(`One or more targets are no longer valid. ${TargetBuilder.convertToSelectionItems(result).map(o => JSON.stringify(o)).join(", ")}`);
         }
         return result;
     }
@@ -520,19 +518,24 @@ export class TargetBuilder {
     static async buildTargetsOnResolve(
         game: Game,
         player: Player,
-        item: ItemCard
+        item: ItemCard,
+        effectId: number | "tap"
     ): Promise<any[]> {
         if(!item)
             throw new Error(`Item not found or has no active effect.`);
-        const activeEffect = item.getActiveEffect();
-        if (!activeEffect)
-            throw new Error(`Item ${item.name} has no active effect to copy.`);
+        if(effectId === "tap"){
+            const activeEffect = item.getActiveEffect();
+            if (!activeEffect)
+                throw new Error(`Item ${item.name} has no active effect to copy.`);
+        }else if (!item.activeEffectList.map(e => e.index).includes(effectId as number)) {
+            throw new Error(`Paid effect with index ${effectId} not found on item ${item.name}, available: ${item.activeEffectList.map(e => e.index).join(", ")}.`);
+        }
         if(player === undefined)
             throw new Error(`Effect issuer is not a player.`);
 
         // The next target is expected to be an array of targets for the copied effect
         let targets: any[] = [];
-        let options = TargetBuilder.getNextSelectorRaw(game, player, item, targets, "tap", false);
+        let options = TargetBuilder.getNextSelectorRaw(game, player, item, targets, effectId, false);
         while(!options.complete)
         {
             if(options.isChooseOne)
@@ -541,7 +544,7 @@ export class TargetBuilder {
                 for(const option of options.options)
                 {
                     try {
-                        const tmp = TargetBuilder.getNextSelectorRaw(game, player, item, [...targets, TargetBuilder.convertToSelectionItems([option])[0]], "tap", false);
+                        const tmp = TargetBuilder.getNextSelectorRaw(game, player, item, [...targets, TargetBuilder.convertToSelectionItems([option])[0]], effectId, false);
                         if(tmp.complete || tmp.options.length > tmp.min)
                         {
                             feasibleChoices.push(option);
@@ -563,13 +566,13 @@ export class TargetBuilder {
             );
             const normalizedSelection = selection.selected.map((choice) =>choice);
             targets.push(...normalizedSelection);
-            options = TargetBuilder.getNextSelectorRaw(game, player, item, TargetBuilder.convertToSelectionItems(targets), "tap", false);
+            options = TargetBuilder.getNextSelectorRaw(game, player, item, TargetBuilder.convertToSelectionItems(targets), effectId, false);
             if(!options.complete && options.options.length === 0)
             {
                 throw new Error(`No valid targets available for the copied card ${item.name}.`);
             }
         }
-        return TargetBuilder.buildTargets(game, player, item, TargetBuilder.convertToSelectionItems(targets), "tap");
+        return TargetBuilder.buildTargets(game, player, item, TargetBuilder.convertToSelectionItems(targets), effectId);
     }
 
     /* verifyPaiementCanBeMade checks if the player can pay the cost described by string s. 
@@ -597,6 +600,14 @@ export class TargetBuilder {
             if (card.tags.counters === undefined || card.tags.counters < countersToRemove) {
                 return `You don't have enough counters to pay this cost.`;
             }
+        let lootsToDiscard = parseNumber(s, /^\[paid effect\] discard (\d+) loot cards?\.?/u);
+        if(lootsToDiscard === null)
+            lootsToDiscard = /^\[paid effect\] discard a loot card\.?/.test(s) ? 1 : null;
+        if (lootsToDiscard !== null) {
+            if (player.hand.length < lootsToDiscard) {
+                return `You don't have enough loot cards to pay this cost.`;
+            }
+        }
         return true;
     }
 
@@ -667,7 +678,6 @@ export class TargetBuilder {
         for(const id of indices)
         {
             const effectId = id.index;
-            // console.log(`Checking valid targets for item: ${item.name}, effectId: ${effectId} descr ${item.activeEffectList[effectId as number]?.description}`);
             if(effectId !== "tap")
                 {
                     const paiement = TargetBuilder.verifyPaiementCanBeMade(game, player, item, item.activeEffectList[effectId]?.description || "");
@@ -719,7 +729,8 @@ export class TargetBuilder {
                 // Convert serialized selection items into resolved targets expected by game/player APIs
                 const resolved = TargetBuilder.buildTargets(game, player, item, targets, effectId);
                 return {index: effectId, targets: resolved};
-            } catch {
+            } catch (e) {
+                // console.error(`Error building targets for item ${item.name}, effectId: ${effectId}:`, e);
                 // If conversion fails, try next effect
                 continue;
             }

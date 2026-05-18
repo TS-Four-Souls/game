@@ -638,9 +638,10 @@ export function canBeAttackedEffect(game: Game): EffectFunction {
         card.entity = new Animated(card, card.slug, attackPoints, healthPoints, evasionPoints);
         card.entity.attackable = true;
         game.addAnimated(card.entity as Animated);
-        data.it.cleaners.push(() => {
+        card.cleaners.push(() => {
             game.removeAnimated(card.entity as Animated);
-            data.it.entity!.attackable = false;
+            card.entity!.attackable = false;
+            card.entity = undefined;
         });
         return true;
     };
@@ -658,9 +659,11 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): EffectFun
             if(data.issuer.isDead)
                 return; // Dead, ignore
             const effect: EffectFunction = (effectData: EffectData) => {
+                if(data.issuer.isDead || eventData.target.isEngagedInCombat === false || eventData.target.isDead)
+                    return false; // Dead, ignore
                 if(effectData.issuer instanceof Player === false)
                     throw new Error("Expected issuer to be a player for makeAnAttackRollAfterEachAttackRollEffect.");
-                    game.actions.attackRoll(effectData.issuer, data.it.entity as Entity);
+                    game.actions.attackRoll(effectData.issuer, eventData.target);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, "You must make an attack roll against this after each attack roll the active player makes this attack.");
@@ -744,6 +747,8 @@ export function rerollOn1Or6Effect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         offRoll = game.emitter.on("on:dice:would-roll", (eventData) => {
+            data.targets = []; // Clear targets to prevent other effects from modifying the roll
+            data.clearSelectionRecord(); // Clear selection record to prevent other effects from modifying the roll
             const { eventIssuer, diceRoll } = eventData;
             if(diceRoll.value === 1 || diceRoll.value === 6) {
                 const effect: EffectFunction = async (effectData: EffectData) => {

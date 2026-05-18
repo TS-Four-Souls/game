@@ -385,10 +385,13 @@ describe("Game Selection System", () => {
     });
 
     it("handles selection with object options correctly", async () => {
-        const card1 = game.obtainCard("b2-a_penny");
-        const card2 = game.obtainCard("b2-a_penny_2");
-        const options = [card1, card2, null];
-        
+        const card1 = game.decks.loot.draw();
+        expect(card1).toBeDefined();
+        const card2 = game.decks.loot.draw();
+        expect(card2).toBeDefined();
+        const card3 = game.decks.loot.draw();
+        expect(card3).toBeDefined();
+        const options = [card1, card2, card3];
         const selectionPromise = game.select(player1, 2, 2, options);
         const state = game.detailedStateJSON(player1);
         const requestId = state.me.pendingSelection!.requestId;
@@ -400,7 +403,7 @@ describe("Game Selection System", () => {
         );
         
         const result = await selectionPromise;
-        expect(result.selected).toEqual([card1, null]);
+        expect(result.selected).toEqual([card1, card3]);
         expect(result.remaining).toEqual([card2]);
     });
 

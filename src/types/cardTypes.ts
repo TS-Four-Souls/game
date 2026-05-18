@@ -92,8 +92,15 @@ export type CardStats = {
   evasionPoints?: number;
 };
 
-/* Card */
+export type FlipData = {
+  name: string;
+  slug: string;
+  effectOutcome: string[];
+  rewards?: CardRewards;
+  stats?: CardStats;
+};
 
+/* Card */
 export type Card = CardMeta & {
   front: string;
   back: string;
@@ -102,6 +109,7 @@ export type Card = CardMeta & {
   rewards?: CardRewards;
   stats?: CardStats;
   quote?: string;
+  flip?: FlipData;
   minimumPlayers: number;
 };
 

@@ -15,6 +15,7 @@ import {
   MonsterCard,
   MonsterType,
   TreasureCard,
+  createCardFromJson,
   createEmptyDecksCollection,
   isDeckType,
   isSameSlug
@@ -56,6 +57,8 @@ import { Rooms } from "./slots/rooms";
 import { Shop } from "./slots/shop";
 import { TurnHandler } from "./turnHandler";
 import { edenGame, miniDraft } from "./variants";
+import { DeathPenaltyValues } from "./handlers/deathHandler";
+import type { GenericCardType } from "@/types/cardTypes";
 // Type representing sources of damage - either a card ability or a dice roll
 export type DamageSource = Card | DiceRoll;
 
@@ -349,7 +352,7 @@ export class Game extends SelectionHandler {
     if (!target.souls.includes(soul)) {
       throw new Error("Target player does not have the specified soul.");
     }
-    target.removeSoul(soul);
+    this.removeSoul(target, soul);
     this.addSoul(player, soul);
   }
 
@@ -357,16 +360,16 @@ export class Game extends SelectionHandler {
    * Asynchronously selects items to lose as a death penalty.
    * This is separated from the main deathPenalty function to allow it to be overridden by specific passive effects that modify the item loss penalty without affecting the rest of the death penalty sequence.
    */
-  async deathPenaltyItems(player: Player): Promise<ItemCard[]> {
+  async deathPenaltyItems(player: Player, nbItemsToLose: number): Promise<ItemCard[]> {
     const setOfLosableItems = player.inPlay.filter(
       (c) =>
         (c instanceof TreasureCard || (c instanceof LootCard && c.trinket)) &&
       c.eternal === false
     );
-    if (this.gameParameters.deathPenaltyItem.value > 0 && setOfLosableItems.length > 0) {
-      const numberOfItemsToLose = Math.min(this.gameParameters.deathPenaltyItem.value, setOfLosableItems.length);
+    if (nbItemsToLose > 0 && setOfLosableItems.length > 0) {
+      const numberOfItemsToLose = Math.min(nbItemsToLose, setOfLosableItems.length);
       return (
-        await this.select(player, numberOfItemsToLose, numberOfItemsToLose, setOfLosableItems, this.gameParameters.deathPenaltyItem.value > 1
+        await this.select(player, numberOfItemsToLose, numberOfItemsToLose, setOfLosableItems, nbItemsToLose > 1
             ? "Select items to lose."
             : "Select an item to lose.", true)
       ).selected;
@@ -377,19 +380,19 @@ export class Game extends SelectionHandler {
    * Applies all death penalties configured for a player.
    * It can be override by a specific passive effect.
    */
-  async deathPenalty(player: Player): Promise<void> {
+  async deathPenalty(player: Player, values: DeathPenaltyValues): Promise<void> {
     // remove coins.
     // obtain set of items that can be lost.
     
-    const lostCoins = this.loseCoins(player, this.gameParameters.deathPenaltyCoins.value, true);
+    const lostCoins = this.loseCoins(player, values.nbCoinsToLose, true);
     let lootCardsToLose: LootCard[] = [];
-    let itemsToLose: ItemCard[] = await this.deathPenaltyItems(player);
+    let itemsToLose: ItemCard[] = await this.deathPenaltyItems(player, values.nbItemsToLose);
     // If at least one item can be lost, ask the player to select one.
     
     // lose loot cards
-    if (this.gameParameters.deathPenaltyLoot.value > 0 && player.hand.cards.length > 0) {
+    if (values.nbLootCardsToLose > 0 && player.hand.cards.length > 0) {
       lootCardsToLose = (
-        await this.select(player, this.gameParameters.deathPenaltyLoot.value, this.gameParameters.deathPenaltyLoot.value, player.hand.cards, this.gameParameters.deathPenaltyLoot.value > 1
+        await this.select(player, values.nbLootCardsToLose, values.nbLootCardsToLose, player.hand.cards, values.nbLootCardsToLose > 1
             ? "Select loot cards to lose."
             : "Select a loot card to lose.", true)
       ).selected;
@@ -446,7 +449,9 @@ export class Game extends SelectionHandler {
   /**
    * Grants coin/loot/treasure rewards when a monster dies to the current player.
    */
-  entityRewards(entity: Monster | Animated): void {
+  entityRewards(entity: Monster | Animated, player: Player | null = null): void {
+    if(player === null)
+      player = this.currentPlayer;
     const rewards = entity.rewards;
     if(rewards === undefined)
       return;
@@ -466,7 +471,7 @@ export class Game extends SelectionHandler {
       {
         const allPlayers = rewards[rewardType] instanceof Object && "all" in rewards[rewardType] && rewards[rewardType].all
         const amount = (rewards[rewardType] instanceof Object && "all" in rewards[rewardType]) ? rewards[rewardType].count : rewards[rewardType] as number | "roll";
-        const receivers = allPlayers ? this.players : [this.currentPlayer];
+        const receivers = allPlayers ? this.players : [player];
         for(const receiver of receivers)
         {
           if (amount === "roll") {
@@ -515,12 +520,15 @@ export class Game extends SelectionHandler {
       return; // if the receiver is not alive or not in play anymore, do nothing.
     }
     const stackIds = this.stack.elements.map(e => e.stackId);
+    const values: DeathPenaltyValues = new DeathPenaltyValues(this.gameParameters);
 
     this.emit("on:death:before-penalty", {
       eventIssuer: receiver,
       target: from,
       source: source,
+      values: values,
     });
+    
     receiver.die();
     void this.executeWhenStackSubset(stackIds, async () => {
       const stackIds = this.stack.elements.map(e => e.stackId);
@@ -529,7 +537,7 @@ export class Game extends SelectionHandler {
       }
       if (receiver instanceof Player) {
         receiver.clearAttackRequirement(); // clear any forced attack constraints on this player.
-        await this.deathPenalty(receiver);
+        await this.deathPenalty(receiver, values);
       } else if (receiver instanceof Monster) {
         // Clear any forced attack constraints on this monster
         for (const player of this.players) {
@@ -689,7 +697,6 @@ export class Game extends SelectionHandler {
     }
 
     for (const slot of [this.shop, this.encounters, this._rooms]) {
-      try {
         if(slot === undefined)
           continue;
         if(type !== undefined && type !== slot._deck._type)
@@ -699,13 +706,9 @@ export class Game extends SelectionHandler {
           {
             return card;
           }
-      } catch {
-        // Card not found 
-      }
     }
     // Search in all decks
     for (const deckKey in this.decks) {
-      try {
         if(!isDeckType(deckKey))
           throw new Error(`Invalid deck type: ${deckKey}`);
         if(type !== undefined && type !== deckKey)
@@ -713,9 +716,6 @@ export class Game extends SelectionHandler {
         const deck = this.decks[deckKey]!;
         const card = deck.getCardFromSlug(slug, globalId);
         if (card) return card;
-      } catch {
-        // Card not found in this deck, continue searching
-      }
     }
     return undefined;
   }
@@ -846,10 +846,10 @@ export class Game extends SelectionHandler {
     const owner1 = this.getOwner(item1);
     const owner2 = this.getOwner(item2);
     if (owner1 && owner2) {
-      owner1.removeInPlay(item1);
-      owner2.removeInPlay(item2);
-      owner1.addInPlay(item2);
-      owner2.addInPlay(item1);
+      this.removeInPlay(owner1, item1);
+      this.removeInPlay(owner2, item2);
+      this.addInPlay(owner1, item2);
+      this.addInPlay(owner2, item1);
       return true;
     }
     return false;
@@ -1339,19 +1339,21 @@ export class Game extends SelectionHandler {
    */
   give(from: Player, to: Player, card: Card): boolean {
     if (from.souls.includes(card)) {
-      from.removeSoul(card);
+      this.removeSoul(from, card);
       this.addSoul(to, card);
       return true;
     }
-    if (card instanceof LootCard) {
-      return this.giveCard(from, to, card);
-    }
+    
     if (card instanceof ItemCard) 
       if (from.inPlay.includes(card) && !card.eternal) {
         this.removeInPlay(from, card);
         this.addInPlay(to, card);
         return true;
       }
+      // loot card must be looked at the end, as it can be a trinket in play, or a soul.
+    if (card instanceof LootCard) {
+      return this.giveCard(from, to, card);
+    }
     return false;
   }
 
@@ -1469,27 +1471,24 @@ export class Game extends SelectionHandler {
       }
       if (character.eternalCard) {
         const cardName = character.eternalCard;
-        const cards = eternalDeck.getCards((card: Card) =>
+        const card = eternalDeck.getCard((card: Card) =>
           isSameSlug(cardName, card)
         );
-        // if (cards.length > 1) {
-        //   throw new Error("Multiple eternal cards with the same slug found");
-        // }
-        if (cards.length === 0) {
+        if (!card) {
           eternalDeck?.cards.forEach((card) => {
             console.log("Available eternal card:", card.slug);
           });
           throw new Error("No eternal card with slug " + cardName + " found");
         }
-        if (cards[0]?.slug !== cardName) {
+        if (card.slug !== cardName) {
           throw new Error(
             "Eternal card slug mismatch: expected " +
             cardName +
             ", got " +
-            cards[0]?.slug
+            card.slug
           );
         }
-        this.addInPlay(player, cards[0]!);
+        this.addInPlay(player, card);
       }
     });
   }
@@ -1607,9 +1606,78 @@ export class Game extends SelectionHandler {
     return type;
   }
 
+  attachFlipEffectsToCard(card: Card): void {
+    if(card.flipData === undefined)
+      throw new Error("attachFlipEffectsToCard should only be called on cards with flip data.");
+    
+    if(card.flipData.rewards !== undefined)
+    {
+      const originalRewards = card.json.rewards;
+      const flippedRewards = card.flipData.rewards;
+      card.addFlipEffect(() => {
+          card.json.rewards = card.flipped ? flippedRewards : originalRewards;
+      });
+    }
+    if(card.flipData.stats !== undefined)
+    {
+      if(card.json.stats !== undefined) // Entity changes stats.
+      {
+        const originalStats = card.json.stats;
+        const flippedStats = card.flipData.stats;
+        const differenceHP = (flippedStats.healthPoints ?? 0) - (originalStats.healthPoints ?? 0); 
+        const differenceAttack = (flippedStats.attackPoints ?? 0) - (originalStats.attackPoints ?? 0);
+        const differenceEvasion = (flippedStats.evasionPoints ?? 0) - (originalStats.evasionPoints ?? 0);
+        if((flippedStats.evasionPoints === undefined) !== (originalStats.evasionPoints === undefined))
+          throw new Error("Cards adding or removing evasion as a stat not supported.");
+
+        card.addFlipEffect(() => {
+          if(!card.flipped)
+          {
+            this.addHealth(card.owner, -differenceHP);
+            this.addAttack(card.owner, -differenceAttack);
+            if(flippedStats.evasionPoints !== undefined)
+              this.addDC(card.owner, -differenceEvasion); 
+          }
+            else
+            {
+              this.addHealth(card.owner, differenceHP);
+              this.addAttack(card.owner, differenceAttack);
+              if(flippedStats.evasionPoints !== undefined)
+                this.addDC(card.owner, differenceEvasion);
+            }
+        });
+      }
+      else // create animated entity.
+      {
+        card.addFlipEffect(() => {
+          if(!card.flipped)
+            card.json.stats = undefined;
+          else
+            card.json.stats = card.flipData!.stats!;
+        });
+      }
+    }
+    const originalEffects = card.json.effectOutcome || [];
+    const newEffects = card.flipData!.effectOutcome;
+    const flipData = card.flipData;
+    card.flipData = undefined; // to avoid confusion, as the json is not updated on flip after initialization.
+    card.effectOutcomes = newEffects;
+    card.swapEffectInterfaces();
+    this.attachEffectsToCard(card);
+    card.flipData = flipData;
+    card.swapEffectInterfaces();
+
+    card.addFlipEffect(() => {
+      card.cleanup();
+      card.swapEffectInterfaces();
+      card.onAddInPlay(() => card.owner);
+    });
+  }
+
   /**
    * Parses and attaches all effects from a card's effect outcomes.
    * @param card - The card to attach effects to
+   * @param attachFlip - Whether to attach flip effects. Set to false only by parsing flipped cards.
    */
   attachEffectsToCard(card: Card): void {
     for (let outcome of card.effectOutcomes) {
@@ -1657,6 +1725,9 @@ export class Game extends SelectionHandler {
         card.addEffect(effect);
       }
     }
+    
+    if(card.flipData !== undefined)
+      this.attachFlipEffectsToCard(card);
   }
 
   private joinEffectsToCards(): void {
@@ -1715,7 +1786,15 @@ export class Game extends SelectionHandler {
     this._cardMapping.clear();
     this._nextCardGlobalId = 0;
       Object.values(this.decks).forEach((deck) => deck.cards.forEach((card) => this.registerCard(card)));
-    
+  }
+
+  addToCounter(issuer: Entity, item: Card, counterName: string, value: number): void {
+    if (!item.tags[counterName]) {
+      item.tags[counterName] = 0;
+    }
+    const oldValue = item.tags[counterName];
+    item.tags[counterName] = Math.max(0, item.tags[counterName] + value);
+    this.emit("on:counter:modified", { eventIssuer: issuer, card: item, counterName: counterName, previousValue: oldValue, newValue: item.tags[counterName] });
   }
 
   private allocateCardGlobalId(): number {
@@ -1724,8 +1803,8 @@ export class Game extends SelectionHandler {
 
   /** Adds a temporary/permanent attack modifier to an entity. */
   addAttack(e: Entity, value: number): void {
-    if(e.attackPoints + value <= 0)
-      throw new Error(`Cannot reduce attack points of entity ${e.id} below 1 using addAttack. If you want to temporarily reduce attacks for this turn only, consider using addAttackThisTurn with a value of -1 instead.`);
+    if(e.attackPoints + value < 0)
+      throw new Error(`Cannot reduce attack points of entity ${e.id} below 0.`);
     e.addAttackPoints(value);
   }
 
@@ -1876,15 +1955,16 @@ export class Game extends SelectionHandler {
    * Note that loot cards can not be destroyed.
    */
   destroyCardsOrSouls(cards: Card[]): boolean {
-    if (cards.length === 0 || cards.every((card) => card === undefined) || cards.some((card) => card instanceof LootCard && card.soul === 0))
+    if (cards.length === 0 || cards.some((card) => card === undefined) || cards.some((card) => card instanceof LootCard && card.soul === 0 && card.trinket === false))
       return false;
     this.emit("on:item:destroyed", { eventIssuer: null, cards });
     cards.forEach((card) => {
-      this.obtainCard(card.slug, card.globalId, card.type);
+      if(card instanceof ItemCard)
+        if(this.shop.removeCard(card)) {
+        }
     });
     cards.forEach((card) => {
-      if(card instanceof ItemCard)
-        this.shop.removeCard(card);
+      const rest = this.obtainCard(card.slug, card.globalId, card.type);
     });
     cards.forEach((card) => {
       this.players.forEach((player) => {
@@ -1893,6 +1973,7 @@ export class Game extends SelectionHandler {
     });
     this.destroyedCards.push(...cards);
     this.dispatch();
+
     return true;
   }
 
@@ -2041,6 +2122,17 @@ export class Game extends SelectionHandler {
     }
   }
 
+  flip(player: Player, card: Card): void {
+    this.assert.gameStarted();
+    if (!(this.getOwner(card) === player)) {
+      throw new Error("You can only flip cards you own.");
+    }
+    if (card.flipData === undefined) {
+      throw new Error("This card cannot be flipped.");
+    }
+    card.flip();
+    this.emit("on:card:flipped", { eventIssuer: player, card, recto: card.flipped });
+  }
   /** Discards the top monster card from an encounter slot. */
   discardMonster(player: Player, position: number): string {
     this.assert.gameStarted();
@@ -2247,7 +2339,10 @@ export class Game extends SelectionHandler {
   /** Removes a soul card from player and runs cleanup triggers. */
   removeSoul(player: Player, card: Card): boolean {
     card.cleanup();
-    return player.removeSoul(card);
+    const result = player.removeSoul(card);
+    if(result)
+      this.emit("on:soul:removed", { eventIssuer: player, card });
+    return result;
   }
 
   /* PRIVATE METHODS */

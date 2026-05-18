@@ -1,5 +1,5 @@
 import { type EffectOnStackJson, type LootCardOnStackJson } from '@/shared/api';
-import type { BonusSoulCardType, CardRewards, CharacterCardType, EternalCardType, GenericCardType, InPlayCardType, LootCardType, MonsterCardType, RoomCardType, TreasureCardType } from '@/types/cardTypes';
+import type { FlipData, BonusSoulCardType, CardRewards, CharacterCardType, EternalCardType, GenericCardType, InPlayCardType, LootCardType, MonsterCardType, RoomCardType, TreasureCardType } from '@/types/cardTypes';
 import { print, shuffle } from '@/utils/auxiliary';
 import type { Entity } from './entities/entity';
 import { Player } from './entities/player';
@@ -124,7 +124,7 @@ export class Effect {
             
             if (admissibleTargets.length > 0 && isChooseOneOptions(admissibleTargets[0])) {
                 // Should not reach here with new format
-                return false;
+                return this.chooseOneTargetStillValid(issuer, targets.slice(targetIndex));
             } else {
                 // Regular selector - check the next `selector.max` targets
                 for (let j = 0; j < selector.max && targetIndex < targets.length; j++) {
@@ -315,7 +315,7 @@ class EffectInterface {
         // Execute payment if it exists
         if (effect.hasPayment()) {
             if (!await effect.executePayment(data)) {
-                throw new Error(`Payment denied for ${this.it.slug}.`);
+                throw new Error(`Payment denied for ${this.it.slug}, with targets: ${JSON.stringify(TargetBuilder.convertToSelectionItems(data.targets))}.`);
             }
             // Effect gets second element of targets array
             return new EffectOnStack(effect.effectFunction, data, effect.description);
@@ -403,37 +403,42 @@ class Card {
     protected _minimumPlayers: number;
     protected _effectOutcomes: string[];
     protected _effectInterface: EffectInterface;
+    protected _flippedEffectInterface: EffectInterface;
     protected _souls: number = 0;
     protected _charged: boolean = true;
     protected _owner!: Entity;
     protected _associatedEntity!: Entity;
     protected _eternal: boolean = false;
+    protected _flipped: boolean = false;
     protected _canBeDiscarded: boolean = true;
     protected _cleanup: (() => void)[] = [];
     protected _onFlip: (() => void)[] = [];
+    protected _otherSideCard: Card | null = null;
     protected _entity: Entity | undefined = undefined;
     protected _identityHash: string | null = null;
+    protected _flipData: FlipData | undefined = undefined;
 
     constructor(id: number,
         globalId: number,
         json: GenericCardType) {
-        this._json = json;
+        this._json = JSON.parse(JSON.stringify(json)) as GenericCardType;
         this._id = id;
         this._globalId = globalId;
-        this._slug = json.slug;
-        this._name = json.name;
-        this._type = json.type;
-        this._subtype = json.type;
-        this._origin = json.origin;
-        this._quote = json.quote;
-        this._front = json.front;
-        this._back = json.back;
+        this._slug = this._json.slug;
+        this._name = this._json.name;
+        this._type = this._json.type;
+        this._subtype = this._json.type;
+        this._origin = this._json.origin;
+        this._quote = this._json.quote;
+        this._front = this._json.front;
+        this._back = this._json.back;
         this._keywords = [];
         this._tags = {};
         this._effectInterface = new EffectInterface(this);
-        // this._tags = json.tags || {};
-        this._minimumPlayers = json.minimumPlayers || 1;
-        this._effectOutcomes = json.effectOutcome || [];
+        this._flippedEffectInterface = new EffectInterface(this);
+        this._flipData = this._json.flip;
+        this._minimumPlayers = this._json.minimumPlayers || 1;
+        this._effectOutcomes = this._json.effectOutcome || [];
     }
     toString() : string {
         let toAdd:string = "";
@@ -453,7 +458,22 @@ class Card {
             return [];
         return this._effectInterface.activeEffectList;
     }
+    get flipped(): boolean {
+        return this._flipped;
+    }
 
+    swapEffectInterfaces(): void {
+        [this._effectInterface, this._flippedEffectInterface] = [this._flippedEffectInterface, this._effectInterface];
+    }
+    get flipData(): FlipData | undefined {
+        return this._flipData;
+    }
+    set flipData(value: FlipData | undefined) {
+        this._flipData = value;
+    }
+    addFlipEffect(onFlipEffect: () => void): void {
+        this._onFlip.push(onFlipEffect);
+    }
     get entity(): Entity | undefined {
         return this._entity;
     }
@@ -499,6 +519,9 @@ class Card {
     get effectOutcomes() {
         return this._effectOutcomes;
     }
+    set effectOutcomes(outcomes: string[]) {
+        this._effectOutcomes = outcomes;
+    }
     get keywords() {
         return this._keywords;
     }
@@ -509,6 +532,12 @@ class Card {
         return this._json;
     }
     get jsonAPI() {
+        if(this._flipped)
+            return {
+            slug: this.flipData!.slug,
+            name: this.flipData!.name,
+            globalId: this._globalId,
+        };
         return {
             slug: this._slug,
             name: this._name,
@@ -537,6 +566,7 @@ class Card {
         this._canBeDiscarded = true;
     }
     flip(): void {
+        this._flipped = !this._flipped;
         [this._front, this._back] = [this._back, this._front];
         for (const onFlipEffect of this._onFlip) {
             onFlipEffect();
@@ -864,10 +894,14 @@ class CharacterCard extends ItemCard {
         this._eternal = true;
     }
     override onAddInPlay(issuerProvider: () => Entity): void {
-        const owner = issuerProvider();
         super.onAddInPlay(issuerProvider);
+        const owner = issuerProvider();
         owner.addHealthPoints(this._healthPoints);
         owner.addAttackPoints(this._attackPoints);
+        this.cleaners.push(() => {
+            owner.addHealthPoints(-this._healthPoints);
+            owner.addAttackPoints(-this._attackPoints);
+        });
     }
     onRemoveFromPlay(): void {
 
@@ -966,8 +1000,7 @@ class BsoulCard extends Card {
 
     override get jsonAPI() {
         return {
-            slug: this._slug,
-            name: this._name,
+            ...super.jsonAPI,
             globalId: this._globalId,
             granted: this.granted,
             ...( this.tags.counters !== undefined ? { counter: this.tags.counters } : {} ),
@@ -1338,13 +1371,13 @@ class Deck<T extends Card> {
         const res = this.getCard((card) =>
             card.slug === slug && (globalId === undefined || card.globalId === globalId)
         );
-        if( res === undefined ) {
-            throw new Error(
-                globalId === undefined
-                    ? `No card with slug ${slug} found in deck of type ${this._type}.`
-                    : `No card with slug ${slug} and global id ${globalId} found in deck of type ${this._type}.`
-            );
-        }
+        // if( res === undefined ) {
+        //     throw new Error(
+        //         globalId === undefined
+        //             ? `No card with slug ${slug} found in deck of type ${this._type}.`
+        //             : `No card with slug ${slug} and global id ${globalId} found in deck of type ${this._type}.`
+        //     );
+        // }
         return  res;
     }
     getCard(filter: (card: T) => boolean) : T|undefined {
@@ -1454,7 +1487,7 @@ function createEmptyDecksCollection(random: () => number): DecksCollection {
         character: new CardSet<CharacterCard>('character'),
         monster: new CardSet<MonsterCard>('monster'),
         bsoul: new CardSet<BsoulCard>('bsoul'),
-        room: new CardSet<RoomCard>('room'),
+        room: new CardSet<RoomCard>('room')
     };
     return {
         loot: new Deck(emptyCardSets.loot, 'loot', [], random),
@@ -1463,7 +1496,7 @@ function createEmptyDecksCollection(random: () => number): DecksCollection {
         character: new Deck(emptyCardSets.character, 'character', [], random),
         monster: new Deck(emptyCardSets.monster, 'monster', [], random),
         bsoul: new Deck(emptyCardSets.bsoul, 'bsoul', [], random),
-        room: new Deck(emptyCardSets.room, 'room', [], random),
+        room: new Deck(emptyCardSets.room, 'room', [], random)
     };
 }
 

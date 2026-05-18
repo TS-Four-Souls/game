@@ -111,6 +111,11 @@ export interface GameSetupConfig {
      * If provided, will be used to seed the game's random number generator.
      */
     randomSeed?: string;
+
+    /**
+     * Array of card slugs that should be removed from the game entirely.
+     */
+    forbiddenCards?: string[];
 }
 
 /**
@@ -165,7 +170,8 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
         playerCount = 2,
         bonusSouls = [],
         rooms = false,
-        randomSeed = ""
+        randomSeed = "",
+        forbiddenCards = [],
     } = config;
 
     // Create game instance
@@ -181,6 +187,12 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
     
     // Setup game
     game.setupGame();
+    for(const slug of forbiddenCards) {
+        const card = game.obtainCard(slug);
+        if(card === undefined) {
+            console.warn(`Card with slug ${slug} not found in game, cannot forbid it.`);
+        }
+    }
     if(rooms === true)
     {
         for(const slug of ["r-bomb_bum", "r-devil_beggar", "r-blood_donation", "r-beggar"]) {
@@ -280,6 +292,7 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
     if (players.length > 1) result.player2 = players[1];
     if (players.length > 2) result.player3 = players[2];
     if (players.length > 3) result.player4 = players[3];
+    game.resetCallbacks();
 
     return result;
 }

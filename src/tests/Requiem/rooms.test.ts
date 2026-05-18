@@ -193,6 +193,9 @@ describe("Requiem Rooms", () => {
 
     it("pity_for_the_poor become weak was strong become weak", async () => {
         const room = game.obtainCard("r-pity_for_the_poor") as RoomCard;
+        for(let i = 0; i < 10; i++) 
+            game.addTopPosition("treasure", game.copyCard(game.decks.treasure.cards[0]!)!);
+        game.shop.removeTop(0);
         game.rooms?.forceRoomAtSlot(0, room);
         const soul = game.obtainCard("b2-lost_soul")!;
         const soul2 = game.copyCard(soul);
@@ -204,6 +207,7 @@ describe("Requiem Rooms", () => {
         game.actions.purchase(player1, 0);
         expect(player1.inPlay.length).toBe(3);
         game.removeInPlay(player1, player1.inPlay[2]!);
+        game.resetStack();
         expect(player1.coins).toBe(0);
         game.addSoul(player2, soul);
         game.addPurchaseThisTurn(player1, 1);
@@ -217,6 +221,9 @@ describe("Requiem Rooms", () => {
 
     it("pity_for_the_poor become weak", async () => {
         const room = game.obtainCard("r-pity_for_the_poor") as RoomCard;
+        for(let i = 0; i < 10; i++) 
+            game.addTopPosition("treasure", game.copyCard(game.decks.treasure.cards[0]!)!);
+        game.shop.removeTop(0);
         game.rooms?.forceRoomAtSlot(0, room);
         const soul = game.obtainCard("b2-lost_soul")!;
         soul.soul = 2;
@@ -231,6 +238,9 @@ describe("Requiem Rooms", () => {
     it("pity_for_the_poor become powerful", async () => {
         const room = game.obtainCard("r-pity_for_the_poor") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
+        for(let i = 0; i < 10; i++) 
+            game.addTopPosition("treasure", game.copyCard(game.decks.treasure.cards[0]!)!);
+        game.shop.removeTop(0);
         const soul = game.obtainCard("b2-lost_soul")!;
         soul.soul = 2;
         game.addSoul(player1, soul);
@@ -244,6 +254,9 @@ describe("Requiem Rooms", () => {
     it("pity_for_the_poor ", async () => {
         const room = game.obtainCard("r-pity_for_the_poor") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
+        for(let i = 0; i < 10; i++) 
+            game.addTopPosition("treasure", game.copyCard(game.decks.treasure.cards[0]!)!);
+        game.shop.removeTop(0);
         game.gainCoins(player1, 3, "gift");
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
@@ -1009,7 +1022,7 @@ describe("Requiem Rooms", () => {
         game.kill(player2, player2, room);
         await game.actions.resolveStack();
         expect(player1.coins).toBe(4);
-        expect(player2.coins).toBe(2);
+        expect(player2.coins).toBe(3);
         
     });
 

@@ -1564,7 +1564,7 @@ describe("Loot Card", () => {
         const pills = game.decks["loot"]!.getCardFromSlug("b2-vi_the_lovers");
         player1.hand.addToHand(pills!);
 
-        game.actions.playCard(player1, 0);
+        game.actions.playCard(player1, 0, [player1]);
 
         const initialHp = player1.currentHealthPoints;
 
@@ -1609,7 +1609,7 @@ describe("Loot Card", () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-iii_the_empress");
         player1.hand.addToHand(card!);
 
-        game.actions.playCard(player1, 0);
+        game.actions.playCard(player1, 0, [player1]);
 
         const initialAtk = player1.attackPoints;
         const initialDiceMod = player1.diceModifier;
@@ -1680,7 +1680,7 @@ describe("Loot Card", () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-vii_the_chariot");
         player1.hand.addToHand(card!);
 
-        game.actions.playCard(player1, 0);
+        game.actions.playCard(player1, 0, [player1]);
 
         const initialAtk = player1.attackPoints;
         const initialHP = player1.healthPoints;
@@ -1737,7 +1737,7 @@ describe("Loot Card", () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-xi_strength");
         player1.hand.addToHand(card!);
 
-        game.actions.playCard(player1, 0);
+        game.actions.playCard(player1, 0, [player1]);
 
         const initialAtk = player1.attackPoints;
         const initialAtkThisTurn = player1.attackThisTurn;

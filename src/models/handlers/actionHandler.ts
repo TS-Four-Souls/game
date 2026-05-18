@@ -443,14 +443,13 @@ export class ActionHandler {
     // Either card is not charged and has a tap effect, or card does not have a tap effect,
     if (((card.charged === false && card.hasTapEffect()) || !card.hasTapEffect()) && (
       // And all paid effect are not valid
-      !(card instanceof ItemCard) || card.activeEffectList.every(e => 
-          (e.index === "tap" || 
-            !(TargetBuilder.verifyPaiementCanBeMade(this.game, owner, card, e.description)) === true) || 
+      !(card instanceof ItemCard) || !card.activeEffectList.some(e => 
+          (e.index !== "tap" && 
+            TargetBuilder.verifyPaiementCanBeMade(this.game, owner, card, e.description) === true) && 
               TargetBuilder.validTargetExists(this.game, owner, card, e.index) === true)
     )) {
-      return "This card is not charged, it cannot be activated.";
+      return "This card has no effects usable now.";
     }
-
     if(card instanceof ItemCard)
       {
         if(card.activeEffectList.length === 1){

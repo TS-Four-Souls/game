@@ -176,6 +176,7 @@ describe("Target Builder Interface", () => {
       game,
       player1,
       boomerang,
+      "tap"
     );
 
     expect(builtTargets).toHaveLength(1);

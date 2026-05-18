@@ -39,6 +39,7 @@ export class Monster extends Entity {
       card.attackPoints,
       card.healthPoints
     );
+    card.owner = this; // Link the card to this entity
     this._card = card;
     super.evasion = card.evasion;
     this._encounters = encouters;

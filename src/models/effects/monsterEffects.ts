@@ -19,7 +19,7 @@ import type {
     OnGetMonsterAttackPointsData,
     OnGetMonsterEvasionData,
     OnItemActivatedData,
-    OnSoulGainedData,
+    OnSoulGainedOrRemovedData,
     OnTurnEndData,
 } from "../types/eventTypes";
 import * as active from "./activeEffect";
@@ -305,13 +305,14 @@ export function noCombatDamageOnAttackRollEffect(game: Game, rollValues: number[
 
         offDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
             const { eventIssuer, target, source, damageArray } = eventData;
-            if(!(target instanceof Player)) return;
-            if(!(eventIssuer instanceof Monster)) return;
             if(source instanceof Card) return;
             if (data.issuer !== eventIssuer) return;
             const roll = source as DiceRoll;
             if(!rollValues.includes(roll.value)) return;
-            const minDiceValue  = target.diceModifier + target.attackDiceModifier + 1;
+            const player = target instanceof Player ? target : eventIssuer;
+            if(player instanceof Player === false)
+                throw new Error("noCombatDamageOnAttackRollEffect can only be applied when the target or event issuer is a player.");
+            const minDiceValue  = player.diceModifier + player.attackDiceModifier + 1;
             const maxValidValue = Math.max(...[1,2,3,4,5,6].filter(v => !rollValues.includes(v)));
             if(rollValues.includes(6) && minDiceValue > maxValidValue) 
                 {
@@ -889,7 +890,7 @@ export function playerWithMostSoulsWinsEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         let offGainSoul: (() => void) | null = null;
 
-        offGainSoul = game.emitter.on("on:soul:gained", async (eventData: OnSoulGainedData) => {
+        offGainSoul = game.emitter.on("on:soul:gained", async (eventData: OnSoulGainedOrRemovedData) => {
             const { eventIssuer, soul } = eventData;
             if(soul !== data.it) return;
             let maxSouls = -1;

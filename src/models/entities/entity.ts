@@ -17,6 +17,7 @@ export abstract class Entity {
   private _evasion: number = 0;
   private _engagedInCombat: number;
   private _attackDiceModifier: number = 0;
+  private _baseAttackPoints: number = 0;
   private _damageTakenThisTurn: DamageObj[] = [];
   private _died: boolean = false;
   private _attackable: boolean = true;
@@ -24,6 +25,11 @@ export abstract class Entity {
 
   get evasion(): number {
     return this._evasion;
+  }
+
+  set baseAttackPoints(value: number) {
+    this.addAttackPoints(value - this._baseAttackPoints);
+    this._baseAttackPoints = value;
   }
 
   set evasion(value: number) {
@@ -46,6 +52,7 @@ export abstract class Entity {
     this.id = id;
     this._currentHealthPoints = this._healthPoints;
     this._engagedInCombat = 0;
+    this._baseAttackPoints = _attackPoints;
   }
 
   receiveDamage(damage: number, dealer: Entity | null = null, abilityCard: Card | DiceRoll | null = null): boolean {

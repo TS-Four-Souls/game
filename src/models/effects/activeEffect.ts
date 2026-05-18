@@ -13,9 +13,11 @@ import { TargetBuilder } from "../targetBuilder";
 import { deckSelector, inplayUnchargedItemSelector as inplayChargeableItemSelector, visibleItemSelector } from "../targetSelector";
 import { type DeckType, EffectData, type EffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type { OnTurnEndData } from "../types/eventTypes";
-import { effectParser, type ParsedEffect } from "./effectParser";
+import { effectParser, type ParsedEffect, selectAliveNonActivePlayer } from "./effectParser";
 import * as passive from "./passiveEffect";
-
+import * as room from "./roomEffects";
+import { addPassiveEffectToStack } from "./passiveEffect";
+import { type OnDeathMonsterData, type OnAttackDeclaredData } from "@/models/types/eventTypes";
 export function gainCoinsEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
         if(data.issuer instanceof Player === false) return false;
@@ -161,7 +163,7 @@ export function removeCountersEffect(game: Game, amount: number): EffectFunction
         if(!(data.it as ItemCard).tags.counters)
             (data.it as ItemCard).tags.counters = 0;
         if ((data.it as ItemCard).tags.counters as number >= amount) {
-            (data.it as ItemCard).tags.counters -= amount;
+            game.addToCounter(data.issuer, data.it, "counters", -amount);
             return true;
         }
         return false;
@@ -329,7 +331,7 @@ export function copyTapAbilityEffect(game: Game): EffectFunction {
         if(player === undefined)
             throw new Error(`Effect issuer is not a player.`);
         try {
-            const newTargets = await TargetBuilder.buildTargetsOnResolve(game, player, itemToCopy);
+            const newTargets = await TargetBuilder.buildTargetsOnResolve(game, player, itemToCopy, "tap");
             const newData: EffectData = new EffectData(data.it, () => data.issuer, newTargets);
             return activeEffect.effectFunction(newData);
         }
@@ -620,13 +622,22 @@ export function giveAdditionalAttackThisTurnEffect(game: Game, amount: number): 
     };
 }
 
+export function flipThisItemEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        if (data.issuer instanceof Player === false) return false;
+        const item = data.it as ItemCard;
+        game.flip(data.issuer, item);
+        return true;
+    };
+}
+
 export function addCountersAndGainTreasureEffect(countersThreshold: number, treasureToGain: number, game: Game): EffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const dmg = data.next as number;
-        data.it.tags.counters = (data.it.tags.counters ?? 0) + dmg;
+        game.addToCounter(data.issuer, data.it, "counters", dmg);
         if (data.it.tags.counters >= countersThreshold) {
-            data.it.tags.counters -= countersThreshold;
+            game.addToCounter(data.issuer, data.it, "counters", -countersThreshold);
             game.gainTreasure(data.issuer, treasureToGain);
         }
         return true;
@@ -760,18 +771,101 @@ export function deactivateAllYourItemsAndCharaEffect(game: Game): EffectFunction
     };
 }
 
-export function discardAnyNumberOfShopItemsEffect(game: Game): EffectFunction {
+export function discardAnyNumberOfShopItemsEffect(game: Game, min: number, max: number | "any", selection: "onResolve" | "next"): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const shop = game.shop;
-        const maxToDiscard = shop.itemsInShop.filter((slot) => slot !== undefined).length;
-        const selectionResult = await data.selectAndRecord(game, data.issuer, 0, maxToDiscard, shop.itemsInShop.filter((slot) => slot !== undefined) as ItemCard[], "Select any number of items to discard from the shop.", true, true);
-        for (const card of selectionResult.selected) {
+        const shopLength = shop.itemsInShop.filter((slot) => slot !== undefined).length;
+        const maxToDiscard = (max === "any") ? shopLength : Math.min(max, shopLength);
+        let selectionResult: ItemCard[] = [];
+        switch(selection) {
+            case "onResolve":
+                selectionResult = (await data.selectAndRecord(game, data.issuer, min, maxToDiscard, shop.itemsInShop.filter((slot) => slot !== undefined) as ItemCard[], "Select any number of items to discard from the shop.", true, true)).selected;
+                break;
+            case "next":
+                if(min !== max)
+                    throw new Error("Not handled case where min and max are different for 'next' selection in discardAnyNumberOfShopItemsEffect.");
+                for(let i = 0; i < min; i++) {
+                    const item = data.next as ItemCard;
+                    if(!item)
+                        throw new Error("Not enough items selected for 'next' selection in discardAnyNumberOfShopItemsEffect.");
+                    selectionResult.push(item);
+                }
+                break;
+            default:
+                throw new Error(`Invalid selection timing: ${selection}`);
+        }
+        for (const card of selectionResult) {
             const index = shop.itemsInShop.indexOf(card);
             game.discardFromShop(index);
         }
-        data.addTarget(selectionResult.selected.length);
+        data.addTarget(selectionResult.length);
         return true;
+    };
+}
+
+export function setMonsterAttackToXEffect(game: Game, x: number): EffectFunction {
+    return (data: EffectData) => {
+        const target = data.next as Monster;
+        if(!target || !(target instanceof Monster))
+            throw new Error(`Invalid target for setMonsterAttackToXEffect: ${target}`);
+        target.baseAttackPoints = x;
+        return true;
+    };
+}
+
+export function flipCharacterEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        if (data.issuer instanceof Player === false) return false;
+        const player = data.issuer;
+        const card = player.character;
+        if(card.flipData === undefined) return false;
+        game.flip(player, card);
+        return true;
+    }   
+}
+
+export function dealDamageToUpToXMonstersOrPlayersEffect(game: Game, maxTargets: number, dmg: number): EffectFunction {
+    return async (data: EffectData) => {
+        for (let i = 0; i < maxTargets; i++) {
+            const target = data.next as Entity;
+            if(!target || !(target instanceof Entity)) break;
+            game.dealDamage(data.issuer as Entity, target, data.it, dmg);
+        }
+        return true;
+    }
+}
+
+export function destroyItemAndMaybeStealFromShopEffect(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        const itemToDestroy = data.next as ItemCard;
+        if(!itemToDestroy || !(itemToDestroy instanceof ItemCard))
+            throw new Error(`Invalid item to destroy in destroyItemAndMaybeStealFromShopEffect: ${itemToDestroy}`);
+        const owner = game.getOwner(itemToDestroy);
+        const res = game.destroyCardsOrSouls([itemToDestroy]);
+        if(!res) 
+            return false;
+        if(owner instanceof Player) {
+            const itemToSteal = (await data.selectAndRecord(game, owner, 0, 1, game.shop.itemsInShop.filter((slot) => slot !== undefined) as ItemCard[], "You may steal from the shop.", true, true)).selected[0] as ItemCard;
+            if(itemToSteal) {
+                game.shop.obtainCard(itemToSteal.slug, itemToSteal.globalId);
+                game.addInPlay(owner, itemToSteal);
+            }
+        }
+        return true;
+    };
+}
+
+export function removeCounterAndLootIfAbove(game: Game, counterThreshold: number, lootAmount: number): EffectFunction {
+    return (data: EffectData) => {
+        if(!(data.issuer instanceof Player)) return false;
+        const currentCounters = data.it.tags.counters || 0;
+        if(currentCounters >= counterThreshold) {
+            game.addToCounter(data.issuer, data.it, "counters", -currentCounters);
+            game.loot(data.issuer, lootAmount);
+            return true;
+        }
+        return false;
     };
 }
 
@@ -790,8 +884,130 @@ export function lookAndOrderEffect(deckName: string, numberOfCards: number, game
 }
 export function putCountersOnItemEffect(amount: number, game: Game): EffectFunction {   
     return (data: EffectData) => {
-        data.it.tags.counters = (data.it.tags.counters ?? 0) + amount;
+        game.addToCounter(data.issuer, data.it, "counters", amount);
         return true;
+    };
+}
+export function rerollDiceRoll2Effect(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        const diceRoll = data.next;
+        if(!(diceRoll instanceof DiceRoll))
+            throw new Error("Expected a DiceRoll instance.");
+        const values = [];
+                for(let i = 0; i < 2; i++)
+                    values.push(diceRoll.issuer.rollDice(game.random, diceRoll.attackRoll, diceRoll.card).value);
+        const chooser = (await data.selectAndRecord(game, diceRoll.issuer as Player, 1, 1, game.players.filter((p) => p !== diceRoll.issuer), `Select a player to choose the dice rolls result between ${values[0]} and ${values[1]}.`, true, true)).selected[0] as Player;
+        if(!chooser)
+            throw new Error("No player selected.");
+        const result = await data.selectAndRecord(game, chooser, 1, 1, values, "Select a value to change the roll to.", true, true);
+        const newValue = result.selected[0] as number;
+        if(newValue < 1 || newValue > 6)
+            throw new Error(`Invalid dice value selected: ${newValue}`);
+        diceRoll.value = newValue;
+        return true;
+    };
+}
+
+export function cancelAttackOnMonsterEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        if(data.issuer instanceof Player === false) return false;
+        if(data.issuer.isEngagedInCombat === false) return false;
+        game.endCombat();
+        return true;
+    };
+}
+
+export function healMonsterThenDamageAnotherEffect(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        if (data.issuer instanceof Player === false) return false;
+        const monsterToHeal = data.next as Monster;
+        if(monsterToHeal === undefined) throw new Error("No monster selected to heal.");
+        if(!monsterToHeal.isEngagedInCombat) return false;
+
+        const healAmount = monsterToHeal.healthPoints - monsterToHeal.currentHealthPoints;
+        game.heal(monsterToHeal, healAmount);
+        const target = (await data.selectAndRecord(game, data.issuer, 1, 1, game.monsters.filter((m) => m !== monsterToHeal && m !== null), `Select another monster to deal ${healAmount} damage to.`, true, true)).selected[0] as Monster;
+        if(target === undefined) 
+            return false;
+        game.dealDamage(data.issuer, target, data.it, healAmount);
+        if(game.currentPlayer !== data.issuer) {
+            game.endCombat();
+            game.addAttackThisTurn(game.currentPlayer, 1);
+        }
+        return true;
+    }
+}
+
+export function eachOtherPlayerMayGainCoinEffect(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        if (data.issuer instanceof Player === false) return false;
+        const issuer = data.issuer;
+        const selections = await data.selectMultipleAndRecord(game, game.players.filter(p => p !== issuer).map(player => ({
+            player,
+            min: 0,
+            max: 1,
+            options: [data.it],
+            description: "You may choose to gain a coin.",
+            canUseOnBoardSelection: false,
+        })));
+        let issuerGains = 1;
+        for (const selection of selections) {
+            if (selection.selected.length > 0) {
+                const player = game.getPlayerById(selection.playerId);
+                if(player)
+                    {
+                        game.gainCoins(player, 1, data.it);
+                        issuerGains += 1;
+                    }
+                else
+                    throw new Error(`Player with id ${selection.playerId} not found.`);
+            }
+        }
+        game.gainCoins(data.issuer, issuerGains, data.it);
+        return true;
+    }
+}
+export function destroyYourItemOnYourNextTurnEndEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offEndTurn : null | (() => void) = null;
+        
+        offEndTurn = game.emitter.on("on:turn:end", async (eventData: OnTurnEndData) => {
+            if (eventData.eventIssuer === data.issuer) {
+                const effect: EffectFunction = async (data: EffectData) => {
+                    if (data.issuer instanceof Player === false) return false;
+                    const item = (await data.selectAndRecord(game, data.issuer as Player, 1, 1, data.issuer.inPlay.filter((card) => card.eternal === false), "Select an item to destroy at the end of your turn.", true, true)).selected[0]!;
+                    const removed = game.destroyCardsOrSouls([item]);
+                    if (offEndTurn) offEndTurn();
+                    offEndTurn = null;
+                    return removed;
+                };
+                addPassiveEffectToStack(game, effect, data, `Destroy an item at the next end of your turn effect.`);
+                
+            }
+        });
+        return true;
+    };
+}
+
+export function chooseAnotherPlayerAndLoot1Effect(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        if (data.issuer instanceof Player === false) return false;
+        const targetPlayer = (await data.selectAndRecord(game, data.issuer, 1, 1, game.players.filter((p) => p !== data.issuer), "Select another player.", true, true)).selected[0]!;
+        game.loot(data.issuer, 1);
+        game.loot(targetPlayer, 1);
+        return true;
+    };
+}
+
+export function removeCountersFromThisEffect(game: Game, amount: number): EffectFunction {
+    return (data: EffectData) => {
+        if(!(data.it as ItemCard).tags.counters)
+            (data.it as ItemCard).tags.counters = 0;
+        if ((data.it as ItemCard).tags.counters as number >= amount) {
+            game.addToCounter(data.issuer, data.it, "counters", -amount);
+            return true;
+        }
+        return false;
     };
 }
 
@@ -882,7 +1098,7 @@ export function playForFreeTargetEffect(game: Game): EffectFunction {
         data.issuer.remainingLootPlay = 1;
         if(TargetBuilder.validTargetExists(game, data.issuer as Player, card, "tap") === true && game.actions.canPlayCard(data.issuer as Player, false) === true) {
             const index = data.issuer.hand.cards.indexOf(card);
-            const targets = await TargetBuilder.buildTargetsOnResolve(game, data.issuer as Player, card)
+            const targets = await TargetBuilder.buildTargetsOnResolve(game, data.issuer as Player, card, "tap");
             game.actions.playCard(data.issuer as Player, index, targets);
         }
         data.issuer.remainingLootPlay = previousLootPlay;
@@ -1480,14 +1696,27 @@ export function lootCardsEffect(game: Game, nbCards: number): EffectFunction {
     };
 }
 
-export function rechargeCharaEffect(game: Game): EffectFunction {
+export function combineEffects(game: Game, effects: EffectFunction[]): EffectFunction {
+    return async (data: EffectData) => {
+        let result = true;
+        for (const effect of effects) {
+            result = result && await effect(data);
+        }
+        return result;
+    };
+}
+
+export function rechargeCharaEffect(game: Game, youMayEffectHanging: boolean[]): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         if (data.issuer.character.charged === false) {
-            const selection = await data.selectAndRecord(game, data.issuer, 0, 1, [data.issuer.character], "You may recharge your character.", true, true, false);
-            if (selection.selected.length > 0)
+            const shouldRecharge = !youMayEffectHanging[0] ||
+                (await data.selectAndRecord(game, data.issuer, 0, 1, [data.issuer.character], "You may recharge your character.", true, true, false)).selected.length > 0 
+                
+            if (shouldRecharge)
                 game.recharge(data.issuer.character);
         }
+        youMayEffectHanging[0] = false;
         return true;
     };
 }
@@ -1631,6 +1860,61 @@ export function killTargetEffect(game: Game, selectors: TargetsSelector[] = [], 
             return true;
         }
         game.kill(issuer, data.next as Entity, data.it);
+        return true;
+    };
+}
+
+/**
+ * choose a non-active player. 
+ * the next time the active player declares an attack this turn, 
+ * the chosen player must make an attack roll after each attack roll the active player makes for the attack. 
+ * if that monster dies this attack, the chosen player also gains the rewards.
+ */
+export function nonActivePlayerHelpFight(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        let offDeclareAttack: (() => void) | null = null;
+        let offEndTurn: (() => void) | null = null;
+        let offDeath: (() => void) | null = null;
+        offDeclareAttack = game.emitter.on("on:attack:declared", (eventData: OnAttackDeclaredData) => {
+            const helper = data.next as Player;
+            if(!helper || !(helper instanceof Player))
+                throw new Error("Player invalid for nonActivePlayerHelpFight");
+            const newData = new EffectData(data.it, () => helper, []);
+            room.makeAnAttackRollAfterEachAttackRollEffect(game)(newData);
+                    
+            offDeath = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
+                const { eventIssuer, target, source } = eventData;
+                if(game.entitiesInCombat.length === 0)
+                    {
+                        offDeath?.();
+                        offDeath = null;
+                    }
+                if (!(eventIssuer instanceof Monster)) return;
+                if(source instanceof DiceRoll === false || (source as DiceRoll).issuer !== helper) return;
+                
+                // Add all effects as a single stack element
+                const effect = async (effectData: EffectData) => {
+                    game.entityRewards(eventIssuer, helper)
+                    return true;
+                };
+                addPassiveEffectToStack(game, effect, data, `${helper.id} also gains rewards from killing ${target.id}.`);
+                offDeath?.();
+                offDeath = null;
+            });
+            offDeclareAttack?.();
+            offDeclareAttack = null;
+            offEndTurn?.();
+            offEndTurn = null;
+            return true;
+        });
+        offEndTurn = game.emitter.on("on:turn:start", () => {
+            offDeclareAttack?.();
+            offDeclareAttack = null;
+            offEndTurn?.();
+            offEndTurn = null;
+            offDeath?.();
+            offDeath = null;
+        });
         return true;
     };
 }

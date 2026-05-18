@@ -583,7 +583,7 @@ describe("Tap/Paid effects 2", () => {
         await game.actions.resolveStack(); // Resolve the death
         
         // Player1 should have gained the coins
-        expect(player1.coins).toBe(player1CoinsBeforeDeath + 2); // death penalty is 2 coins
+        expect(player1.coins).toBe(player1CoinsBeforeDeath + 1); // death penalty is 1 coin
         
         // Player1 should have gained the loot card
         expect(player1.hand.length).toBe(player1HandBeforeDeath + 1);
@@ -593,7 +593,7 @@ describe("Tap/Paid effects 2", () => {
         expect(player2.inPlay).not.toContain(breakfast);
         
         // Player2 should have lost coins (but they went to player1)
-        expect(player2.coins).toBe(3); // 5 - 2 = 3
+        expect(player2.coins).toBe(4); // 5 - 1 = 4
     });
 
     it("shadow - shadow owner does not intercept their own death penalty", async () => {
@@ -611,7 +611,7 @@ describe("Tap/Paid effects 2", () => {
         await game.actions.resolveStack(); // Resolve the death
         
         // Player1 should have paid normal death penalty (lost 2 coins)
-        expect(player1.coins).toBe(player1CoinsBeforeDeath - 2);
+        expect(player1.coins).toBe(player1CoinsBeforeDeath - 1);
     });
 
     it("shadow - handles death penalty when victim has no items", async () => {
@@ -636,7 +636,7 @@ describe("Tap/Paid effects 2", () => {
         
         // Player1 should still gain coins and loot
         expect(game.stack.size).toBe(0);
-        expect(player1.coins).toBe(player1CoinsBeforeDeath + 2);
+        expect(player1.coins).toBe(player1CoinsBeforeDeath + 1);
         expect(player1.hand.length).toBe(player1HandBeforeDeath + 1);
         expect(player2.hand.length).toBe(2);
     });
@@ -660,7 +660,7 @@ describe("Tap/Paid effects 2", () => {
         await game.actions.resolveStack(); // Resolve the damage and death
         
         // Player1 should still gain coins
-        expect(player1.coins).toBe(player1CoinsBeforeDeath + 2);
+        expect(player1.coins).toBe(player1CoinsBeforeDeath + 1);
         
         // Player2 should have lost the item
         expect(player2.inPlay.map((c) => c.name)).not.toContain(breakfast.name);
@@ -686,7 +686,7 @@ describe("Tap/Paid effects 2", () => {
         await game.actions.resolveStack(); // Resolve the death
         
         // Player1 should still gain coins even if no item was destroyed
-        expect(player1.coins).toBe(player1CoinsBeforeDeath + 2);
+        expect(player1.coins).toBe(player1CoinsBeforeDeath + 1);
         
         // Breakfast should still be in play
         expect(player2.inPlay.map((c) => c.name)).toContain(breakfast.name);
