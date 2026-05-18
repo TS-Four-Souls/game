@@ -311,239 +311,6 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
     ),
   );
 
-  // ------------- DEBUG EVENTS -------------
-
-  socket.on("debugLoot", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
-      payloadGuardedEndpoint(
-        payload,
-        schemas.debugLootRequest,
-        callback,
-        (payload) => {
-          game.addToHistory({
-            type: "DebugLoot",
-            payload,
-            issuer: player.id,
-          });
-          const cards = payload.cards;
-          if (cards && cards.length > 0) {
-            const lootDeck = game.decks["loot"];
-            if (!lootDeck) {
-              return callback({
-                status: 400,
-                error: "Loot deck not available",
-              });
-            }
-            game.actions.debugLoot(player, cards as LootCard[]);
-            return callback({ status: 200 });
-          }
-          return callback({ status: 200 });
-        },
-      ),
-    ),
-  );
-
-  socket.on("debugListLoot", (callback) =>
-    errorGuardedEndpoint(callback, () => {
-      if (!game.gameParameters.allowCheatOptions.value)
-        throw new Error("Cheat options are not enabled for this game.");
-      game.addToHistory({
-        type: "DebugListLoot",
-        issuer: player.id,
-      });
-
-      const lootDeck = game.decks["loot"];
-      if (!lootDeck) {
-        return callback({
-          status: 400,
-          error: "Loot deck not available",
-        });
-      }
-      const cards = lootDeck.cards
-        .toSorted((a, b) => (a.name + a.slug).localeCompare(b.name + b.slug))
-        .map((c) => c.jsonAPI);
-
-      return callback({ status: 200, cards });
-    }),
-  );
-
-  socket.on("debugListCardsICanRemove", (callback) =>
-    errorGuardedEndpoint(callback, () => {
-      if (!game.gameParameters.allowCheatOptions.value)
-        throw new Error("Cheat options are not enabled for this game.");
-      game.addToHistory({
-        type: "DebugListCardsICanRemove",
-        issuer: player.id,
-      });
-      const cards = game
-        .playerCardsAndGameOwnedCards(player)
-        .map((c) => c.jsonAPI);
-      return callback({ status: 200, cards });
-    }),
-  );
-
-  socket.on("debugRemoveCards", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
-      payloadGuardedEndpoint(
-        payload,
-        schemas.debugRemoveCardsRequest,
-        callback,
-        (payload) => {
-          game.addToHistory({
-            type: "DebugRemoveCards",
-            payload,
-            issuer: player.id,
-          });
-          if (payload.cards !== undefined) {
-            const cardsToRemove = game
-              .playerCardsAndGameOwnedCards(player)
-              .filter((c) =>
-                payload.cards
-                  .map((card) => card.globalId)!
-                  .includes(c.globalId),
-              );
-            game.actions.debugRemoveCards(player, cardsToRemove);
-          }
-          return callback({
-            status: 200,
-          });
-        },
-      ),
-    ),
-  );
-
-  socket.on("debugListTreasure", (callback) =>
-    errorGuardedEndpoint(callback, () => {
-      if (!game.gameParameters.allowCheatOptions.value)
-        throw new Error("Cheat options are not enabled for this game.");
-      game.addToHistory({
-        type: "DebugListTreasure",
-        issuer: player.id,
-      });
-
-      const treasureDeck = game.decks["treasure"];
-      if (!treasureDeck) {
-        return callback({
-          status: 400,
-          error: "Treasure deck not available",
-        });
-      }
-      const cards = treasureDeck.cards
-        .toSorted((a, b) => (a.name + a.slug).localeCompare(b.name + b.slug))
-        .map((c) => c.jsonAPI);
-
-      return callback({ status: 200, cards });
-    }),
-  );
-
-  socket.on("debugGainTreasure", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
-      payloadGuardedEndpoint(
-        payload,
-        schemas.debugGainTreasureRequest,
-        callback,
-        (payload) => {
-          game.addToHistory({
-            type: "DebugGainTreasure",
-            payload,
-            issuer: player.id,
-          });
-          const cards = payload.cards;
-          if (cards && cards.length > 0) {
-            const treasureDeck = game.decks["treasure"];
-            if (!treasureDeck) {
-              return callback({
-                status: 400,
-                error: "Treasure deck not available",
-              });
-            }
-            game.actions.debugGainTreasures(player, cards as ItemCard[]);
-            return callback({
-              status: 200,
-            });
-          }
-          return callback({ status: 200 });
-        },
-      ),
-    ),
-  );
-
-  socket.on("debugGainCoins", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
-      payloadGuardedEndpoint(
-        payload,
-        schemas.debugGainCoinsRequest,
-        callback,
-        (payload) => {
-          game.addToHistory({
-            type: "DebugGainCoins",
-            payload,
-            issuer: player.id,
-          });
-          game.actions.debugGainCoins(player, payload.coins);
-          return callback({ status: 200 });
-        },
-      ),
-    ),
-  );
-
-  socket.on("debugListMonsterDeck", (callback) =>
-    errorGuardedEndpoint(callback, () => {
-      if (!game.gameParameters.allowCheatOptions.value)
-        throw new Error("Cheat options are not enabled for this game.");
-      game.addToHistory({
-        type: "DebugListMonsterDeck",
-        issuer: player.id,
-      });
-
-      const monsterDeck = game.decks["monster"];
-      if (!monsterDeck) {
-        return callback({
-          status: 400,
-          error: "Monster deck not available",
-        });
-      }
-      const cards = monsterDeck.cards
-        .toSorted((a, b) => (a.name + a.slug).localeCompare(b.name + b.slug))
-        .map((c) => c.jsonAPI);
-      const coverable = game.encounters.nonAttackedSlots.map(
-        (elem) => elem.jsonAPI,
-      );
-      return callback({ status: 200, cards, coverable });
-    }),
-  );
-
-  socket.on("debugPutMonsterCardInSlot", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
-      payloadGuardedEndpoint(
-        payload,
-        schemas.debugPutMonsterCardInSlotRequest,
-        callback,
-        (payload) => {
-          if (!game.gameParameters.allowCheatOptions.value)
-            throw new Error("Cheat options are not enabled for this game.");
-          game.addToHistory({
-            type: "DebugPutMonsterCardInSlot",
-            payload,
-            issuer: player.id,
-          });
-          const card = game.obtainCard(
-            payload.card.slug,
-            payload.card.globalId,
-          ) as MonsterCard;
-          if (!card) {
-            throw new Error("Card not found in the game: " + payload.card.slug);
-          }
-          const index = game.monsterSlots._slots
-            .map((slot) => slot[slot.length - 1]?.globalId)
-            .indexOf(payload.toCover.globalId);
-          game.actions.debugPutMonsterCardInSlot(player, card, index);
-          return callback({ status: 200 });
-        },
-      ),
-    ),
-  );
-
   socket.on("quitGame", (callback) =>
     errorGuardedEndpoint(callback, () => {
       for (const user of room.users) {
@@ -566,4 +333,229 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
       return callback({ status: 200 });
     }),
   );
+
+  if (game.gameParameters.allowCheatOptions.value) {
+    socket.on("debugLoot", (payload, callback) =>
+      errorGuardedEndpoint(callback, () =>
+        payloadGuardedEndpoint(
+          payload,
+          schemas.debugLootRequest,
+          callback,
+          (payload) => {
+            game.addToHistory({
+              type: "DebugLoot",
+              payload,
+              issuer: player.id,
+            });
+            const cards = payload.cards;
+            if (cards && cards.length > 0) {
+              const lootDeck = game.decks["loot"];
+              if (!lootDeck) {
+                return callback({
+                  status: 400,
+                  error: "Loot deck not available",
+                });
+              }
+              game.actions.debugLoot(player, cards as LootCard[]);
+              return callback({ status: 200 });
+            }
+            return callback({ status: 200 });
+          },
+        ),
+      ),
+    );
+
+    socket.on("debugListLoot", (callback) =>
+      errorGuardedEndpoint(callback, () => {
+        game.addToHistory({
+          type: "DebugListLoot",
+          issuer: player.id,
+        });
+
+        const lootDeck = game.decks["loot"];
+        if (!lootDeck) {
+          return callback({
+            status: 400,
+            error: "Loot deck not available",
+          });
+        }
+        const cards = lootDeck.cards
+          .toSorted((a, b) => (a.name + a.slug).localeCompare(b.name + b.slug))
+          .map((c) => c.jsonAPI);
+
+        return callback({ status: 200, cards });
+      }),
+    );
+
+    socket.on("debugListCardsICanRemove", (callback) =>
+      errorGuardedEndpoint(callback, () => {
+        game.addToHistory({
+          type: "DebugListCardsICanRemove",
+          issuer: player.id,
+        });
+        const cards = game
+          .playerCardsAndGameOwnedCards(player)
+          .map((c) => c.jsonAPI);
+        return callback({ status: 200, cards });
+      }),
+    );
+
+    socket.on("debugRemoveCards", (payload, callback) =>
+      errorGuardedEndpoint(callback, () =>
+        payloadGuardedEndpoint(
+          payload,
+          schemas.debugRemoveCardsRequest,
+          callback,
+          (payload) => {
+            game.addToHistory({
+              type: "DebugRemoveCards",
+              payload,
+              issuer: player.id,
+            });
+            if (payload.cards !== undefined) {
+              const cardsToRemove = game
+                .playerCardsAndGameOwnedCards(player)
+                .filter((c) =>
+                  payload.cards
+                    .map((card) => card.globalId)!
+                    .includes(c.globalId),
+                );
+              game.actions.debugRemoveCards(player, cardsToRemove);
+            }
+            return callback({
+              status: 200,
+            });
+          },
+        ),
+      ),
+    );
+
+    socket.on("debugListTreasure", (callback) =>
+      errorGuardedEndpoint(callback, () => {
+        game.addToHistory({
+          type: "DebugListTreasure",
+          issuer: player.id,
+        });
+
+        const treasureDeck = game.decks["treasure"];
+        if (!treasureDeck) {
+          return callback({
+            status: 400,
+            error: "Treasure deck not available",
+          });
+        }
+        const cards = treasureDeck.cards
+          .toSorted((a, b) => (a.name + a.slug).localeCompare(b.name + b.slug))
+          .map((c) => c.jsonAPI);
+
+        return callback({ status: 200, cards });
+      }),
+    );
+
+    socket.on("debugGainTreasure", (payload, callback) =>
+      errorGuardedEndpoint(callback, () =>
+        payloadGuardedEndpoint(
+          payload,
+          schemas.debugGainTreasureRequest,
+          callback,
+          (payload) => {
+            game.addToHistory({
+              type: "DebugGainTreasure",
+              payload,
+              issuer: player.id,
+            });
+            const cards = payload.cards;
+            if (cards && cards.length > 0) {
+              const treasureDeck = game.decks["treasure"];
+              if (!treasureDeck) {
+                return callback({
+                  status: 400,
+                  error: "Treasure deck not available",
+                });
+              }
+              game.actions.debugGainTreasures(player, cards as ItemCard[]);
+              return callback({
+                status: 200,
+              });
+            }
+            return callback({ status: 200 });
+          },
+        ),
+      ),
+    );
+
+    socket.on("debugGainCoins", (payload, callback) =>
+      errorGuardedEndpoint(callback, () =>
+        payloadGuardedEndpoint(
+          payload,
+          schemas.debugGainCoinsRequest,
+          callback,
+          (payload) => {
+            game.addToHistory({
+              type: "DebugGainCoins",
+              payload,
+              issuer: player.id,
+            });
+            game.actions.debugGainCoins(player, payload.coins);
+            return callback({ status: 200 });
+          },
+        ),
+      ),
+    );
+
+    socket.on("debugListMonsterDeck", (callback) =>
+      errorGuardedEndpoint(callback, () => {
+        game.addToHistory({
+          type: "DebugListMonsterDeck",
+          issuer: player.id,
+        });
+
+        const monsterDeck = game.decks["monster"];
+        if (!monsterDeck) {
+          return callback({
+            status: 400,
+            error: "Monster deck not available",
+          });
+        }
+        const cards = monsterDeck.cards
+          .toSorted((a, b) => (a.name + a.slug).localeCompare(b.name + b.slug))
+          .map((c) => c.jsonAPI);
+        const coverable = game.encounters.nonAttackedSlots.map(
+          (elem) => elem.jsonAPI,
+        );
+        return callback({ status: 200, cards, coverable });
+      }),
+    );
+
+    socket.on("debugPutMonsterCardInSlot", (payload, callback) =>
+      errorGuardedEndpoint(callback, () =>
+        payloadGuardedEndpoint(
+          payload,
+          schemas.debugPutMonsterCardInSlotRequest,
+          callback,
+          (payload) => {
+            game.addToHistory({
+              type: "DebugPutMonsterCardInSlot",
+              payload,
+              issuer: player.id,
+            });
+            const card = game.obtainCard(
+              payload.card.slug,
+              payload.card.globalId,
+            ) as MonsterCard;
+            if (!card) {
+              throw new Error(
+                "Card not found in the game: " + payload.card.slug,
+              );
+            }
+            const index = game.monsterSlots._slots
+              .map((slot) => slot[slot.length - 1]?.globalId)
+              .indexOf(payload.toCover.globalId);
+            game.actions.debugPutMonsterCardInSlot(player, card, index);
+            return callback({ status: 200 });
+          },
+        ),
+      ),
+    );
+  }
 };
