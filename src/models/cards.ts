@@ -563,7 +563,7 @@ class Card {
         return this._canBeDiscarded
     }
     set canBeDiscarded(value: boolean){
-        this._canBeDiscarded = true;
+        this._canBeDiscarded = value;
     }
     flip(): void {
         this._flipped = !this._flipped;

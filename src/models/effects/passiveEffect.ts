@@ -2334,6 +2334,7 @@ export function startingItemEffect(game: Game): EffectFunction {
             game.addInPlay(data.issuer, selection.selected[0]!); 
             offEffect?.();
             offEffect = null;
+            await game.resolveCallbacks();
         });
         return true;
     };
