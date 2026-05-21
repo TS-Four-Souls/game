@@ -352,7 +352,7 @@ const numberGameParameterSchema = z.object({
 });
 const decksConfigSchema = z.object({
   useBonusSouls: booleanGameParameterSchema,
-  useRooms: booleanGameParameterSchema,
+  useRooms: booleanGameParameterSchema.optional(),
   nbPlayerCardRestriction: booleanGameParameterSchema.optional(),
 
   character: characterDeckSchema,

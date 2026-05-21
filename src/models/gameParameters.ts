@@ -284,14 +284,14 @@ export class GameParameters {
         this.lootPlayPerTurn = new NumericGameParameter(1, 1, 10, onChange);
         this.allowCheatOptions = new BooleanGameParameter(true, onChange);
         this.playWithBonusSouls = new BooleanGameParameter(true, onChange);
-        this.playWithRooms = new BooleanGameParameter(true, onChange);
+        this.playWithRooms = new BooleanGameParameter(false, onChange);
     }
 
     toJson(): GameParametersJson {
         const decks: DeckConfig = {
             useBonusSouls: {text: "Use bonus souls?", value: this.playWithBonusSouls.value},
-            useRooms: {text: "Use rooms?", value: this.playWithRooms.value},
-            ...(this._deckMode === "standard" ? {nbPlayerCardRestriction: {text: "Number player card restriction", value: this.nbPlayerCardRestriction.value}} : {}),
+            //useRooms: {text: "Use rooms?", value: this.playWithRooms.value},
+            ...(this._deckMode === "standard" && this._currentNbPlayers < 3 ? {nbPlayerCardRestriction: {text: "Number player card restriction", value: this.nbPlayerCardRestriction.value}} : {}),
             character: {total: this.character.count, cards: this.character.json()},
             monster: {total: this.monster.count, cards: this.monster.json()},
             treasure: {total: this.treasure.count, cards: this.treasure.json()},
