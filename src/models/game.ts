@@ -1179,7 +1179,7 @@ export class Game extends SelectionHandler {
    * Draws and initializes the three bonus soul cards.
    */
   initializeBonusSouls(): void {
-    if(this.decks["bsoul"]._order!.length !== 0) {
+    if(this.decks["bsoul"]._order!.length !== 0 && this.gameParameters.playWithBonusSouls.value) {
       this._bonusSouls = this.decks["bsoul"]!.drawSeveral(3);
       for (const soul of this._bonusSouls) {
         soul.cleanup = bSoulEffectParser(soul, this);
