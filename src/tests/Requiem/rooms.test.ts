@@ -1,9 +1,8 @@
-
 import type { ItemCard, LootCard, RoomCard } from "@/models/cards";
 import { beforeEach, describe, expect, it } from "bun:test";
+import { Player } from "../../models/entities/player";
 import { Game } from "../../models/game";
 import { DamageOnStack } from "../../models/stackElement";
-import { Player } from "../../models/entities/player";
 import { setupTestGame } from "../testHelpers";
 
 
@@ -118,6 +117,19 @@ describe("Requiem Rooms", () => {
         game.addCardToHand(player1, copy);
         game.actions.playCard(player1, player1.hand.length-1, []);
         expect(room.tags.counters).toBe(1);
+    });
+
+    it("social_goals can not be discarded", async () => {
+        const room = game.obtainCard("r-social_goals") as RoomCard;
+        game.rooms?.forceRoomAtSlot(0, room);
+        expect(room.tags.counters).toBe(0);
+        // Test purchase goal
+        game.kill(player1, game.monsters[0]!, room);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.endTurn();
+        await game.actions.resolveStack();
+        expect(game.rooms?.activeRooms[0]!.slug).toBe(room.slug);
     });
 
     it("social_goals", async () => {

@@ -62,7 +62,7 @@ describe("Encounters", () => {
     it("Discarding single monster replaces it correctly", async () => {
         verifyMonsters(game);
         getAndAddTopMonsterCard(game, "b2-mom");
-        game.encounters.flushMonster(game.encounters.monsterIn(0)!);
+        game.encounters.flushMonster(game.encounters.monsterIn(0)!, "discard");
         game.actions.resolveStack();
         verifyMonsters(game);
         expect(game.encounters.monsterIn(0)?.id).toBe("b2-mom");
@@ -78,7 +78,7 @@ describe("Encounters", () => {
         expect(game.encounters.monsterIn(0)?.id).toBe("b2-mom");
         expect(game.encounters.visible[0]?.slug).toBe("b2-mom");
 
-        game.encounters.flushMonster(game.encounters.monsterIn(0)!);
+        game.encounters.flushMonster(game.encounters.monsterIn(0)!, "discard");
         verifyMonsters(game);
         expect(game.encounters.monsterIn(0)?.id).toBe(monster.id);
         expect(game.encounters.visible[0]?.slug).toBe(monster.card.slug);

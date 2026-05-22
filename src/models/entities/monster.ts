@@ -75,8 +75,6 @@ export class Monster extends Entity {
   }
 
   addEvasion(amount: number): void {
-    if(this.evasion + amount < 0)
-      throw new Error("Monster evasion cannot be negative.");
     super.evasion += amount;
   }
 

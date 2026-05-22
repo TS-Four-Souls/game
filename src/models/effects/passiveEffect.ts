@@ -26,7 +26,9 @@ import type {
     OnLootWouldData,
     OnDeathPenaltyData,
     OnDeathAnimatedData,
-    OnCardFlippedData
+    OnCardFlippedData,
+    OnLootWouldDiscardData,
+    OnCoinsLostBeforeData
 } from "../types/eventTypes";
 import { Entity } from "../entities/entity";
 import { selectPlayerOrMonster, type ParsedEffect } from "./effectParser";
@@ -99,7 +101,7 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): EffectF
 // Card text examples: "+X [stat] till end of turn" or "Gain +X [stat] this turn."
 // This modifies the stat value directly rather than replacing an event.
 export function temporaryStatModifierEffect(
-    adders: ((entity: Entity, value: number) => void)[],
+    adders: ((entity: Entity, value: number, source: Card) => void)[],
     amount: number,
     game: Game,
     targetType: "current" | "next" | "issuer" | "selectionOnResolve"
@@ -143,12 +145,12 @@ export function temporaryStatModifierEffect(
         target.addTemporaryEffect(temp);
 
         for(const adder of adders)
-            adder(target, amount);
+            adder(target, amount, data.it);
         
         // Register cleanup to reverse at end of turn
         let offTurn = game.emitter.on("till:turn:end", () => {
             for(const adder of adders)
-                adder(target, -amount);
+                adder(target, -amount, data.it);
             target.removeTemporaryEffect(temp);
             offTurn();
         });
@@ -156,6 +158,42 @@ export function temporaryStatModifierEffect(
         return true;
     };
 }
+
+
+export function onFirstKillMonsterYourTurnEffect(effectFunctions: EffectFunction[], game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offKill: (() => void) | null = null;
+        let offTurnStart: (() => void) | null = null;
+        let counter = 0;
+
+        offKill = game.emitter.on("on:death:monster", async (eventData: OnDeathMonsterData) => {
+            if(game.currentPlayer !== data.issuer) return;
+            if (eventData.target !== data.issuer) return;
+            if(counter++ > 0) return;
+            const effect:EffectFunction = async (effectData: EffectData) => {
+                let success = true;
+                for (const func of effectFunctions)
+                    success = success && await func(effectData);
+                return success;
+            };
+            addPassiveEffectToStack(game, effect, data, "First time you kill a monster on your turn.");
+        });
+
+        offTurnStart = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
+            counter = 0;
+        });
+
+        data.it.cleaners.push(() => {
+            offKill?.();
+            offTurnStart?.();
+            offKill = null;
+            offTurnStart = null;
+        });
+
+        return true;
+    }
+}
+
 /**
  * Set coin gain to 0, but add it as a target for other effects to reference.
  * @param effectFunctions 
@@ -226,7 +264,7 @@ export function lvlXaddListenerEffect(
 
 // REPLACEMENT EFFECT: Continuous stat modification - does not use the stack.
 export function permanentStatModifierEffect(
-    adders: ((player: Player, value: number) => void)[],
+    adders: ((player: Player, value: number, source: Card) => void)[],
     amount: number,
     game: Game
 ): EffectFunction {
@@ -236,11 +274,11 @@ export function permanentStatModifierEffect(
         // Apply the stat modification
         const target = data.targets.length > 0 ? data.peek() : data.issuer;
         for (const adder of adders)
-            adder(target, amount);
+            adder(target, amount, data.it);
 
         data.it.cleaners.push(() => {
             for (const adder of adders)
-                adder(target, -amount);
+                adder(target, -amount, data.it);
         });
 
         return true;
@@ -444,7 +482,7 @@ export function setNextDamageToXEffect(setTo: number, game: Game): EffectFunctio
 
 // REPLACEMENT EFFECT: Continuous stat modification on your turn - does not use the stack.
 export function onYourTurnModifier(
-    adders: ((player: Player, value: number) => void)[],
+    adders: ((player: Player, value: number, source: Card) => void)[],
     amount: number,
     game: Game
 ): EffectFunction {
@@ -457,7 +495,7 @@ export function onYourTurnModifier(
             const target = data.targets.length > 0 ? data.peek() : data.issuer;
             active = true;
             for (const adder of adders)
-                adder(target, amount);
+                adder(target, amount, data.it);
         }
 
         let offTurn = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
@@ -466,7 +504,7 @@ export function onYourTurnModifier(
             const target = data.targets.length > 0 ? data.peek() : data.issuer;
             active = true;
             for (const adder of adders)
-                adder(target, amount);
+                adder(target, amount, data.it);
         });
         let offTurnEnd = game.emitter.on("till:turn:end", (eventData: OnTurnEndData) => {
             const { eventIssuer } = eventData;
@@ -477,7 +515,7 @@ export function onYourTurnModifier(
             {
                 active = false;
                 for (const adder of adders)
-                    adder(target, -amount);
+                    adder(target, -amount, data.it);
             }
         });
 
@@ -488,7 +526,7 @@ export function onYourTurnModifier(
                 const target = data.targets.length > 0 ? data.peek() : data.issuer;
                 active = false;
                 for (const adder of adders)
-                    adder(target, -amount);
+                    adder(target, -amount, data.it);
             }
             offTurn();
             offTurn = () => null;
@@ -568,13 +606,13 @@ export function firstAttackRollDiceModifier(
             throw new Error("firstAttackRollDiceModifier can only be applied to Players.");
         let active = issuer.attackRollThisTurn ===  0;
         if(active)
-            game.addAttackDiceModifier(issuer, amount);
+            game.addAttackDiceModifier(issuer, amount, data.it);
 
         let offTurn = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
             const { eventIssuer } = eventData;
             if (eventIssuer !== issuer) return;
             if(active) return;
-            game.addAttackDiceModifier(issuer, amount);
+            game.addAttackDiceModifier(issuer, amount, data.it);
             active = true;
         });
 
@@ -585,7 +623,7 @@ export function firstAttackRollDiceModifier(
             if(issuer.attackRollThisTurn > 1)
             {
                 active = false;
-                game.addAttackDiceModifier(issuer, -amount);
+                game.addAttackDiceModifier(issuer, -amount, data.it);
             }
         });
 
@@ -595,7 +633,7 @@ export function firstAttackRollDiceModifier(
             if(active)
             {
                 active = false;
-                game.addAttackDiceModifier(data.issuer, -amount);
+                game.addAttackDiceModifier(data.issuer, -amount, data.it);
             }
             offTurn();
             offTurnEnd();
@@ -719,6 +757,33 @@ export function beforeDeathPenaltyEffect(
     };
 }
 
+export function gainEternalTillEndOfTurnEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offTurn: (() => void) | null = null;
+
+        let turnedEternal: ItemCard[] = [];
+        const target = data.next;
+        if(!target || !(target instanceof Player))
+            throw new Error("gainEternalTillEndOfTurnEffect can only target Players.");
+        for(const inPlay of target.inPlay)
+            if(!inPlay.eternal)
+            {
+                inPlay.setEternal(true);
+                turnedEternal.push(inPlay);
+            }
+        offTurn = game.emitter.on("on:turn:end", ({ eventIssuer }) => {
+            for(const card of turnedEternal)
+                card.setEternal(false);
+            turnedEternal = [];
+        });
+        
+        data.it.cleaners.push(() => {
+            offTurn?.();
+            offTurn = null;
+        });
+        return true;
+    };
+}
 
 // TRIGGERED EFFECT: Uses the stack.
 // Executes effects after death penalty is applied.
@@ -748,6 +813,42 @@ export function afterDeathPenaltyEffect(
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
+export function gainTreasureOnDestroyEffect(game: Game, amount: number): EffectFunction {
+    return (data: EffectData) => {
+        let offDestroy: (() => void) | null = null;
+
+        offDestroy = game.emitter.on("on:item:destroyed", (eventData: OnItemDestroyedData) => {
+            if (!eventData.cards.includes(data.it)) return;
+            if(!data.issuer || !(data.issuer instanceof Player))
+                return;
+            game.gainTreasure(data.issuer, amount);
+        });
+
+        data.it.cleaners.push(() => {
+            offDestroy?.();
+            offDestroy = null;
+        });
+        return true;
+    };
+}
+
+export function preventNonCombatDamageEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        
+        offDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
+            if (data.issuer !== eventData.eventIssuer) return;
+            if (eventData.source !instanceof DiceRoll ) return;
+            eventData.damageArray[0] = 0;
+        });
         data.it.cleaners.push(() => {
             offDamage?.();
             offDamage = null;
@@ -841,6 +942,8 @@ export function onYourEventEffect(
             if (data.issuer !== eventIssuer) return;
             if (duringYourTurnOnly && game.currentPlayer !== data.issuer) return;
             if(!condition(data, eventData)) return;
+            data.targets = [];
+            data.clearSelectionRecord();
             // Add all effects as a single stack element
             const effect = async (effectData: EffectData) => {
                 for (const func of effectFunctions) {
@@ -951,6 +1054,43 @@ export function onDamageYouDealtEffect(
     };
 }
 
+export function noLootDiscardOrCoinLossEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offDeath: (() => void) | null = null;
+        let offLoseCoins: (() => void) | null = null;
+        let offLoseLoot: (() => void) | null = null;
+        
+        offDeath = game.emitter.on("on:death:before-penalty", (eventData: OnDeathBeforePenaltyData) => {
+            if (data.issuer !== eventData.eventIssuer) return;
+            eventData.values.nbCoinsToLose = 0;
+            eventData.values.nbLootCardsToLose = 0;
+        });
+
+        offLoseCoins = game.emitter.on("on:coin:lost:before", (eventData: OnCoinsLostBeforeData) => {
+            if (data.issuer !== eventData.eventIssuer) return;
+            if(!["death", "effect"].includes(eventData.reason)) return
+            eventData.coinToLose = 0;
+        });
+
+        offLoseLoot = game.emitter.on("on:loot:discard:before", (eventData: OnLootWouldDiscardData) => {
+            if (data.issuer !== eventData.eventIssuer) return;
+            if(!["death", "effect"].includes(eventData.reason)) return
+            eventData.indice[0] = -1; // Prevent discarding any loot cards
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDeath?.();
+            offDeath = null;
+            offLoseCoins?.();
+            offLoseCoins = null;
+            offLoseLoot?.();
+            offLoseLoot = null;
+        });
+        return true;
+    };
+}
+
 
 export function addToYourRollValueEffect(game: Game, values: number[], rollType: "attack" | "non-attack" | "any", youMayEffectHanging: boolean[]): EffectFunction {
     const youMay = youMayEffectHanging[0];
@@ -1021,10 +1161,14 @@ export function stealCoinOnGainEffect(amount: number, game: Game): EffectFunctio
 }
 
 export function statModifierBasedOnCountersEffect(game: Game,
-    adders: ((entity: Entity, value: number) => void)[],
+    adders: ((entity: Entity, value: number, source: Card) => void)[],
     countersPerModifier: number, 
     modifier: number): EffectFunction {
     return (data: EffectData) => {
+        const toAdd = Math.floor((data.it.tags.counters ?? 0) / countersPerModifier);
+        for (const adder of adders) {
+            adder(data.issuer, toAdd * modifier, data.it);
+        }
         let offCounterModifier: (() => void) | null = null;
         offCounterModifier = game.emitter.on("on:counter:modified", ({ eventIssuer, card, counterName, previousValue, newValue }) => {
             if(data.issuer !== eventIssuer) return;
@@ -1032,13 +1176,13 @@ export function statModifierBasedOnCountersEffect(game: Game,
             const toAdd = Math.floor(newValue / countersPerModifier) - Math.floor(previousValue / countersPerModifier);
             if(toAdd === 0) return;
             for (const adder of adders) {
-                adder(data.issuer, toAdd * modifier);
+                adder(data.issuer, toAdd * modifier, data.it);
             }
         });
 
         data.it.cleaners.push(() => {
             for (const adder of adders) {
-                adder(data.issuer, -Math.floor((data.it.tags.counters ?? 0) / countersPerModifier) * modifier); // Remove all modifiers from this effect.
+                adder(data.issuer, -Math.floor((data.it.tags.counters ?? 0) / countersPerModifier) * modifier, data.it); // Remove all modifiers from this effect.
             }
             offCounterModifier?.();
             offCounterModifier = null;
@@ -1172,6 +1316,67 @@ export function onAnyEventEffect(
     };
 }
 
+export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        if(!(data.it instanceof ItemCard)) return false;
+        if(!data.issuer || !(data.issuer instanceof Player)) return false;
+        const goldenItems = game.visibleItems.filter(item => item.tags.goldCounters !== undefined && item.tags.goldCounters > 0);
+        data.it.swapEffectInterfaces();
+        for (const item of goldenItems) {
+            game.gainAbilities(data.issuer, data.it, item);
+        }
+        let offCounterChange: (() => void) | null = null;
+        offCounterChange = game.emitter.on("on:counter:modified", ({ eventIssuer, card, counterName, previousValue, newValue }) => {
+            if (counterName !== "goldCounters") return;
+            if(!(data.it instanceof ItemCard)) return;
+            if(!data.issuer || !(data.issuer instanceof Player)) return false;
+            if(!(card instanceof ItemCard)) return;
+            if (!card.tags.goldCounters) return;
+            if (card.tags.goldCounters > 0 && previousValue === 0) {
+                game.gainAbilities(data.issuer, data.it, card);
+            }
+            else if(newValue === 0 && previousValue > 0) {
+                const toRemove = (data.it.tags.copiedCards as ItemCard[]).find(c => c.slug === card.slug);
+                toRemove?.cleanup();
+                data.it.tags.copiedCards = (data.it.tags.copiedCards as ItemCard[]).filter(c => c !== toRemove);
+
+            }
+        });
+        
+        data.it.cleaners.push(() => {
+
+            data.it.swapEffectInterfaces();
+            offCounterChange?.();
+            offCounterChange = null;
+        });
+        return true;
+    };
+}
+
+export function giveCounterToAnotherItemOnEnterPlayEffect(game: Game, counterType: string): EffectFunction {
+    return (data: EffectData) => {
+        let offEnterPlay: (() => void) | null = null;
+        offEnterPlay = game.emitter.on("on:enter:play", ({ eventIssuer, card }) => {
+            if (card !== data.it) return;
+            const effect = async (effectData: EffectData) => {
+                if (data.issuer instanceof Player === false) return false;
+                const itemToGiveCounter = (await data.selectAndRecord(game, data.issuer, 1, 1, data.issuer.inPlay.filter(item => item !== data.it && !item.eternal), "Select an item to give a gold counter to.", true)).selected[0]!;
+                if(!itemToGiveCounter)
+                    return false;
+                game.addToCounter(data.issuer, itemToGiveCounter, counterType, 1);
+                return true;
+            }
+            addPassiveEffectToStack(game, effect, data, `Give a ${counterType} counter to another item when this enters play.`);
+        });
+        data.it.cleaners.push(() => {
+            offEnterPlay?.();
+            offEnterPlay = null;
+        });
+        return true;
+    };
+}
+
+
 // Reduces any damage to a maximum of 1.
 export function reduceDamageToOneEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
@@ -1223,7 +1428,7 @@ export function lootOnNextRollEffect(game: Game): EffectFunction {
                 // Create the effect that will execute when the stack resolves
                 const effect = (effectData: EffectData) => {
                     if (!(effectData.issuer instanceof Player)) return false;
-                    game.loot(effectData.issuer, 3);
+                    game.loot(effectData.issuer, 3, "other");
                     return true;
                 };
                 
@@ -1240,49 +1445,11 @@ export function lootOnNextRollEffect(game: Game): EffectFunction {
 export function gainAbilitiesUntilEffect(game: Game, triggerEvent: TriggerEvent, targetsSelector: TargetsSelector, recharge: boolean): EffectFunction {
     return async (data: EffectData) => {
         const issuer = data.issuer;
+        if(data.it instanceof ItemCard === false)
+            throw new Error("gainAbilitiesUntilEffect card must be an ItemCard.");
         if(issuer instanceof Player === false)
             throw new Error("gainAbilitiesUntilEffect issuer must be a Player.");
-        if(data.it.tags.copiedCards === undefined)
-            data.it.tags.copiedCards = [];
-
-        const copiedSelector: TargetsSelector = {
-            description: "Select a card granted by this effect.",
-            selector: (player: Player) => ((data.it.tags.copiedCards as ItemCard[]).filter((c) => c.activeEffectList.length > 0)),
-            min: 1,
-            max: 1,
-        };
-        if(!(data.it.hasTapEffect()))
-        {
-            data.it.addEffect(new Effect("Use a card effect.",
-                "active",
-                async (effectData: EffectData) => {
-                    const card = effectData.next;
-                    if(!(card instanceof ItemCard)) {
-                        throw new Error("gainAbilitiesUntilEffect target must be an ItemCard.");
-                    }
-                    if(!(data.it.tags.copiedCards as ItemCard[]).includes(card)) {
-                        throw new Error("You can only choose cards granted by this effect.");
-                    }
-                    const effectsWithValidTargets = card.activeEffectList.filter(e => {
-                        if(TargetBuilder.validTargetExists(game, issuer, card, e.index) !== true) return false;
-                        return (e.index === "tap" || TargetBuilder.verifyPaiementCanBeMade(game, issuer, card, e.description) === true);
-                    });
-                    if(effectsWithValidTargets.length === 0)
-                        return false;
-                    const effectDescriptionId = (await data.selectAndRecord(game, issuer, 1, 1, effectsWithValidTargets.map(e => e.description), "Select an effect to use.", true)).selected[0]!;
-                    const effectId = card.activeEffectList.find(e => e.description === effectDescriptionId)?.index;
-                    if(effectId === undefined) {
-                        throw new Error(`Selected effect "${effectDescriptionId}" not found on the card ${card.name}.`);
-                    }
-                    const targets = await TargetBuilder.buildTargetsOnResolve(game, issuer, card, effectId);
-                    card.recharge();
-                    const effectOnStack = await card.tryActivateEffect(targets, effectId);
-                    game.addToStack(effectOnStack);
-                    return true;
-                }
-            ,[copiedSelector]
-        ));
-        }
+        
         let offTrigger: (() => void) | null = null;
         if(targetsSelector.selector(issuer).length === 0)
             return false;
@@ -1290,17 +1457,16 @@ export function gainAbilitiesUntilEffect(game: Game, triggerEvent: TriggerEvent,
         if(!target || !(target instanceof ItemCard)) {
             throw new Error("gainAbilitiesUntilEffect target must be a Card.");
         }
-        const copied = game.copyCard(target) as ItemCard;
-        data.it.tags.copiedCards.push(copied);
-        copied.onAddInPlay(() => data.issuer);
+        const copiedRef = game.gainAbilities(issuer, data.it, target);
         
         if(recharge)
             game.recharge(data.it as ItemCard);
 
         offTrigger = game.emitter.on(triggerEvent, (eventData: any) => {
             if (data.issuer !== eventData.eventIssuer) return;
-            data.it.tags.copiedCards  = (data.it.tags.copiedCards as ItemCard[]).filter((c) => c !== copied && c.activeEffectList.length > 0);
-            copied.cleanup();
+            // console.log("Cleaning up gainAbilitiesUntilEffect for", data.it.name);
+            data.it.tags.copiedCards  = (data.it.tags.copiedCards as ItemCard[]).filter((c) => c !== copiedRef && c.activeEffectList.length > 0);
+            copiedRef.cleanup();
             offTrigger?.();
             offTrigger = null;
         });
@@ -1409,13 +1575,37 @@ export function replaceDeathPenaltyEffect(game: Game): EffectFunction {
     };
 }
 
+export function putCounterInsteadOfDestructionEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offDestroy: (() => void) | null = null;
+        // Listen for the next destroy event on this card
+        offDestroy = game.emitter.on("on:item:destroyed", (eventData: OnItemDestroyedData) => {
+            if (!eventData.cards.includes(data.it)) return;
+            if(!(data.issuer instanceof Player))
+                throw new Error("putCounterInsteadOfDestructionEffect can only be applied to Players.");
+            const item = data.it as ItemCard;
+            if(item.tags.counters === undefined) item.tags.counters = 0;
+            if(item.tags.counters >= 1) return; // Max 1 counters, then the item is destroyed as normal.
+            game.addToCounter(data.issuer, item, "counters", 1);
+            eventData.cards = eventData.cards.filter(c => c !== data.it); // Prevent destruction
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDestroy?.();
+            offDestroy = null;
+        });
+        return true;
+    };
+}
+
 // [game.addAttackDiceModifier.bind(game)], 1, (player: Player) => player.coins === 0, ["on:coin:gained:after", "on:coin:lost:after"], game);
 // HYBRID EFFECT: Can be either a replacement effect or triggered effect depending on useStack parameter.
 // Modifies stats based on a condition (e.g., "while you have 0¢").
 export function ConditionalStatModifierEffect(
-    adders: ((player: Player, value: number) => void)[],
+    adders: ((player: Player, value: number, source: Card) => void)[],
     amount: number,
-    condition: (player: Player) => boolean,
+    condition: (player: Player, card: Card) => boolean,
     triggerEvents: TriggerEvent[],
     game: Game,
     useStack: boolean = true
@@ -1427,7 +1617,7 @@ export function ConditionalStatModifierEffect(
         let currentlyActive = false;
         let adderStackId: number | null = null;
         const applyModifierIfConditionMet = (player: Player) => {
-            const shouldBeActive = condition(player);
+            const shouldBeActive = condition(player, data.it);
             
             if (shouldBeActive && !currentlyActive) {
                 if (useStack) {
@@ -1436,14 +1626,14 @@ export function ConditionalStatModifierEffect(
                         if(currentlyActive === true) return true; // Already applied by another trigger
                         currentlyActive = true;
                         for (const adder of adders)
-                            adder(player, amount);
+                            adder(player, amount, data.it);
                         return true;
                     };
                     adderStackId = addPassiveEffectToStack(game, effect, data, "Apply conditional stat modifier");
                 } else {
                     currentlyActive = true;
                     for (const adder of adders)
-                        adder(player, amount);
+                        adder(player, amount, data.it);
                 }
             } else if (!shouldBeActive && currentlyActive) {
                 if (useStack) {
@@ -1460,7 +1650,7 @@ export function ConditionalStatModifierEffect(
                         else
                         {
                             for (const adder of adders)
-                                adder(player, -amount);
+                                adder(player, -amount, data.it);
                         }
                         return true;
                     };
@@ -1468,7 +1658,7 @@ export function ConditionalStatModifierEffect(
                 } else {
                     currentlyActive = false;
                     for (const adder of adders)
-                        adder(player, -amount);
+                        adder(player, -amount, data.it);
                 }
             }
         };
@@ -1501,7 +1691,7 @@ export function ConditionalStatModifierEffect(
                     {
                     if(!(data.issuer instanceof Player)) 
                         throw new Error("ConditionalStatModifierEffect can only be removed from Players.");
-                    adder(data.issuer, -amount);
+                    adder(data.issuer, -amount, data.it);
                 }
             }
             // Remove event listeners
@@ -1555,6 +1745,26 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
         // Expire at end of turn if unused
         offTurn = game.emitter.on("on:turn:end", cleanup);
 
+        return true;
+    };
+}
+
+export function lootPlusOneExceptLootStepEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offLoot: (() => void) | null = null;
+        // Listen for the next loot event on this player
+        offLoot = game.emitter.on("on:loot:would", (eventData: OnLootWouldData) => {
+            const { eventIssuer } = eventData;
+            if (data.issuer !== eventIssuer) return;
+            if(eventData.reason === "lootStep") return; // Does not apply during the loot step
+            eventData.numberOfCards[0]! += 1;
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offLoot?.();
+            offLoot = null;
+        });
         return true;
     };
 }
@@ -1867,7 +2077,7 @@ export function flipAndAddAttackEffect(game: Game): EffectFunction {
             if(owner === null)
                 throw new Error("gainRewardFlipAndAttackAgainEffect can only be applied to cards owned by a player.");
             game.flip(owner, data.it);
-            game.addAttackThisTurn(game.currentPlayer);
+            game.addAttackThisTurn(game.currentPlayer, 1, data.it);
         });
 
         return true;
@@ -2105,6 +2315,45 @@ export function preventDamageByRemovingCountersEffect(
     };
 }
 
+export function preventDamageAndDealOnDeathEffect(game: Game, damagePrevented: number, damageAmount: number): EffectFunction {
+    return async (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        let offDeath: (() => void) | null = null;
+
+        const cleanup = () => {
+            offDamage?.();
+            offDeath?.();
+            offDamage = null;
+            offDeath = null;
+        };
+        if(!(data.issuer instanceof Player)) return false;
+
+        const target = data.next;
+        if(!target || !(target instanceof Player)) return false;
+        const newData = new EffectData(data.it, () => target, []);
+        preventNextDamageUpToEffect(damagePrevented, game)(newData); // Reuse the preventNextDamageUpToEffect to handle the prevention part
+        // Listen for death of the player from this damage
+        offDeath = game.emitter.on("on:death:before-penalty", (deathEventData: OnDeathBeforePenaltyData) => {
+            const { eventIssuer } = deathEventData;
+            if (target !== eventIssuer) return;
+
+            for(const player of game.players) {
+                if(player !== data.issuer && !player.isDead && player !== eventIssuer) {
+                    game.dealDamage(data.issuer, player, data.it, damageAmount);
+                }
+            }
+
+            cleanup(); // One-shot: remove listeners after triggering
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            cleanup();
+        });
+
+        return true;
+    };
+}
 export function eachOtherPlayerRevealsHandEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         for(const player of game.players) {
@@ -2235,6 +2484,31 @@ export function lootFromDiscardEffect(game: Game): EffectFunction {
             }
             offEffect?.();
             offEffect = null;
+        });
+        return true;
+    };
+}
+
+export function doubleRewardsTillEndOfTurnEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offEffect: (() => void) | null = null;
+        let offEndTurn: (() => void) | null = null;
+
+        offEffect = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
+            const effect = (effectData: EffectData) => {
+                game.entityRewards(eventData.eventIssuer as Monster);
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, `Double rewards.`);
+        }
+        );
+        
+        offEndTurn = game.emitter.on("on:turn:end", (eventData: OnTurnEndData) => {
+            const { eventIssuer } = eventData;
+            offEffect?.();
+            offEffect = null;
+            offEndTurn?.();
+            offEndTurn = null;
         });
         return true;
     };

@@ -10,6 +10,8 @@ import { DeathPenaltyValues } from '../handlers/deathHandler';
 // Event Data Types
 // ============================================================================
 
+export type LoseCoinsReason = "paiement" | "effect" | "death" | "gift" | "other";
+
 /** Data emitted when an entity is about to die (can be prevented) */
 export type OnDeathWouldDeathData = {
   eventIssuer: Entity;
@@ -160,6 +162,11 @@ export type OnPurchaseSuccessData = {
   index: number | "top";
 };
 
+export type OnLootWouldDiscardData = {
+  eventIssuer: Player;
+  indice: number[];
+  reason: "death" | "effect" | "overload" | "other";
+};
 
 /** Data emitted when a player gains coins */
 export type OnCoinGainedData = {
@@ -168,10 +175,17 @@ export type OnCoinGainedData = {
   source: Card | "gift";
 };
 
-/** Data emitted when a player loses coins */
+/** Data emitted after a player loses coins */
 export type OnCoinLostAfterData = {
   eventIssuer: Player;
   coinLost: number;
+};
+
+/** Data emitted lose a player loses coins */
+export type OnCoinsLostBeforeData = {
+  eventIssuer: Player;
+  coinToLose: number;
+  reason: LoseCoinsReason;
 };
 
 /** Data emitted when a dice is rolled */
@@ -217,6 +231,7 @@ export type OnLootStepData = {
 export type OnLootWouldData = {
   eventIssuer: Player;
   numberOfCards: number[];
+  reason: "lootStep" | "other";
 };
 
 /** Data emitted after a player loots cards */
@@ -345,6 +360,8 @@ export type TriggerEventDataMap = {
   "on:attack:roll:failed": OnAttackRollData;
   "on:coin:gained": OnCoinGainedData;
   "on:coin:gained:after": OnCoinGainedData;
+  "on:loot:discard:before": OnLootWouldDiscardData;
+  "on:coin:lost:before": OnCoinsLostBeforeData;
   "on:coin:lost:after": OnCoinLostAfterData;
   "on:dice:being-rolled": OnDiceBeingRolledData;
   "on:dice:would-roll": OnDiceWouldRollData;

@@ -188,15 +188,19 @@ return (data: EffectData) => {
     };
 }
 
-export function putInMonsterDeck6FromTopEffect(game: Game): EffectFunction {
+export function putInMonsterDeckNFromTopEffect(game: Game, n: number): EffectFunction {
     return async (data: EffectData) => {
         const monsterDeck = game.decks.monster;
-        if(!(data.it instanceof MonsterCard))
-            throw new Error("putInMonsterDeck6FromTopEffect can only be applied to monster cards.");
+        if (!(data.it instanceof MonsterCard)) {
+            throw new Error("putInMonsterDeckNFromTopEffect can only be applied to monster cards.");
+        }
+        if (!Number.isFinite(n) || n < 1) {
+            throw new Error(`Invalid n for putInMonsterDeckNFromTopEffect: ${n}`);
+        }
         data.it.afterEffect = "nothing"; // Card placement is handled by this effect
-        monsterDeck.addCardAtPosFromTop(data.it, 6);
-        return true
-    }
+        monsterDeck.addCardAtPosFromTop(data.it, n);
+        return true;
+    };
 }
 
 export function searchForBloatEffect(game: Game): EffectFunction {
@@ -254,7 +258,7 @@ return (data: EffectData) => {
                 for(let i=0; i < handSize; i++)
                 {
 
-                    game.discardFromHandAtIndex(target as Player, 0);
+                    game.discardFromHandAtIndex(target as Player, 0, "effect");
                 }
                 return true;
             };
@@ -342,12 +346,12 @@ export function noCombatDamageOnAttackRollEffect(game: Game, rollValues: number[
 
 export function monstersGainDCEffect(game: Game, amount: number, includeSelf: boolean): EffectFunction {
     return (data: EffectData) => {
-        game.addDCToEachMonster(data.issuer as Entity, amount);
+        game.addDCToEachMonster(data.issuer as Entity, amount, data.it);
         if(!includeSelf) {
             (data.issuer as Monster).addEvasion(-amount);
         }
         data.it.cleaners.push(() => {
-            game.addDCToEachMonster(data.issuer as Entity, -amount);
+            game.addDCToEachMonster(data.issuer as Entity, -amount, data.it);
             if(!includeSelf) {
             (data.issuer as Monster).addEvasion(amount);
         }
@@ -604,7 +608,7 @@ export function playerWithMostCoinsLosesAllEffect(game: Game): EffectFunction {
         });
         const playersToLoseCoins = game.players.filter(p => p.coins === maxCoins);
         const selection = (await data.selectAndRecord(game, game.currentPlayer as Player, 1, 1, playersToLoseCoins, "Select a player who will lose all their coins.", true, true)).selected[0]!;
-        game.loseCoins(selection as Player, selection.coins, true);
+        game.loseCoins(selection as Player, selection.coins, true, "effect");
         return true;
     };
 }
@@ -719,8 +723,8 @@ export function preventDeathFirstTimeEachTurnHealAndStatModifierEffect(game: Gam
                     throw new Error("preventDeathFirstTimeEachTurnHealAndStatModifierEffect can only be applied to monsters.");
                 game.preventDeath(eventIssuer as Entity);
                 data.issuer.heal(1); // heal 1 + 1 from death prevention.
-                game.addDC(data.issuer, 1); // add +1 DC
-                game.addAttack(data.issuer, -1); // lose 1 attack
+                game.addDC(data.issuer, 1, data.it); // add +1 DC
+                game.addAttack(data.issuer, -1, data.it); // lose 1 attack
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `The first time each turn ${data.it.name} would be reduced to 0 health, prevent that damage, heal 2 HP, and give it +2 attack.`);
@@ -729,8 +733,8 @@ export function preventDeathFirstTimeEachTurnHealAndStatModifierEffect(game: Gam
         offTurnStart = game.emitter.on("on:turn:start", (eventData: OnTurnEndData) => {
             if (!hasPreventedDeathThisTurn) return;
             // reset stats
-            game.addDC(data.issuer, -1);
-            game.addAttack(data.issuer, +1);
+            game.addDC(data.issuer, -1, data.it);
+            game.addAttack(data.issuer, +1, data.it);
             hasPreventedDeathThisTurn = false;
         });
 
@@ -738,8 +742,8 @@ export function preventDeathFirstTimeEachTurnHealAndStatModifierEffect(game: Gam
         data.it.cleaners.push(() => {
             if(hasPreventedDeathThisTurn) {
                 // reset stats if needed
-                game.addDC(data.issuer, -1);
-                game.addAttack(data.issuer, +1);
+                game.addDC(data.issuer, -1, data.it);
+                game.addAttack(data.issuer, +1, data.it);
             }
             offDamage?.();
             offDamage = null;
@@ -863,14 +867,17 @@ export function bossRushEffect(game: Game): EffectFunction {
             game.addTopPosition("monster", card);
         
         const options = [...game.encounters.nonEngagedInCombat];
+
         if(game.encounters.visible.includes(data.it))
             options.push(data.it);
         if(options.length === 0)
             return false;
+        const indices = new Map<string, number>();
+        options.forEach(c => indices.set(c.name, game.encounters.slots.findIndex(s => s.includes(c))));
         const selection = await data.selectAndRecord(game, game.currentPlayer, 1, 2, options, "Select slots to place the bosses in.", true, true);
         const selectedMonsters = selection.selected;
-        const selectedIndices = selectedMonsters.map(c => game.encounters.slots.findIndex(s => s.includes(c)));
-
+        const selectedIndices = selectedMonsters.map(c => indices.get(c.name)!);
+        
         for(let i=0; i < bosses.length; i++)
         {
             if(selectedIndices[i%selectedIndices.length]! < 0)
@@ -878,7 +885,7 @@ export function bossRushEffect(game: Game): EffectFunction {
             const slotIndex = selectedIndices[i%selectedIndices.length]!;
             game.encounters.draw(slotIndex);
         }
-        const monsters = selectedIndices.map(index => game.encounters.monsters[index]!);
+        const monsters = selectedIndices.map(idx => game.encounters.monsters[idx]!);
         game.encounters.removeCard(data.it);
         game.encounters._deck.addDiscardTop(data.it); 
         game.playerMustAttack(game.currentPlayer, monsters, data.it);

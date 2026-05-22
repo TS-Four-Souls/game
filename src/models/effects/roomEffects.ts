@@ -318,11 +318,11 @@ export function CurrentPlayerDecidesToChangeRoom(game: Game): EffectFunction{
 export function playersGainAttackEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
         for(const player of game.players)
-            game.addAttack(player, amount);
+            game.addAttack(player, amount, data.it);
         
         data.it.cleaners.push(() => {
             for(const player of game.players)
-                game.addAttack(player, -amount);
+                game.addAttack(player, -amount, data.it);
         });
         return true;
     };
@@ -397,7 +397,7 @@ export function loseCoinsAtEndOfTurnEffect(game: Game, amount: number): EffectFu
      return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
         offTurnStart = game.emitter.on("on:turn:end", (eventData) => {
-            game.loseCoins(game.currentPlayer, amount, true);
+            game.loseCoins(game.currentPlayer, amount, true, "effect");
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -411,12 +411,12 @@ export function loseCoinsAtEndOfTurnEffect(game: Game, amount: number): EffectFu
 
 export function monstersGainAttackEffect(game: Game, amount: number, includeSelf: boolean): EffectFunction {
     return (data: EffectData) => {
-        game.addAttackToEachMonster(data.issuer as Entity, amount);
+        game.addAttackToEachMonster(data.issuer as Entity, amount, data.it);
         if(!includeSelf) {
             (data.issuer as Monster).addEvasion(-amount);
         }
         data.it.cleaners.push(() => {
-            game.addAttackToEachMonster(data.issuer as Entity, -amount);
+            game.addAttackToEachMonster(data.issuer as Entity, -amount, data.it);
             if(!includeSelf) {
             (data.issuer as Monster).addEvasion(amount);
         }
@@ -529,7 +529,7 @@ export function discardHandsAndLootEffect(game: Game, amount: number): EffectFun
         {
             const handSize = player.hand.length;
             for(let i = 0; i < handSize; i++) {
-                game.discardFromHandAtIndex(player, 0);
+                game.discardFromHandAtIndex(player, 0, "effect");
             }
             game.loot(player, amount);
         }
@@ -585,7 +585,7 @@ export function discardHandIfNoShopPurchaseAtEndOfTurnEffect(game: Game): Effect
             if(!purchaseMade) {
                 const handSize = game.currentPlayer.hand.length;
                 for(let i = 0; i < handSize; i++) {
-                    game.discardFromHandAtIndex(game.currentPlayer, 0);
+                    game.discardFromHandAtIndex(game.currentPlayer, 0, "effect");
                 }
             }
             purchaseMade = false; // Reset for next turn
@@ -775,7 +775,7 @@ export function rerollOn1Or6Effect(game: Game): EffectFunction {
 
 // REPLACEMENT EFFECT: Continuous stat modification - does not use the stack.
 export function allPlayersPermanentStatModifierEffect(
-    adders: ((player: Player, value: number) => void)[],
+    adders: ((player: Player, value: number, source: Card) => void)[],
     amount: number,
     game: Game
 ): EffectFunction {
@@ -785,12 +785,12 @@ export function allPlayersPermanentStatModifierEffect(
         // Apply the stat modification
         for(const player of game.players) 
             for (const adder of adders)
-                adder(player, amount);
+                adder(player, amount, data.it);
 
         data.it.cleaners.push(() => {
             for(const player of game.players) 
                 for (const adder of adders)
-                    adder(player, -amount);
+                    adder(player, -amount, data.it);
         });
 
         return true;
@@ -866,7 +866,7 @@ export function playersWithFewestSoulsAttackBoostEffect(game: Game): EffectFunct
             playersWithFewestSouls = game.players.filter(p => p.totalSouls === minSouls);
             for(const player of playersWithFewestSouls) 
             {
-                game.addAttack(player, 1);
+                game.addAttack(player, 1, data.it);
             }
             if(playersWithFewestSouls.includes(game.currentPlayer) && shouldAddAttackThisTurn)
                 game.currentPlayer.attackThisTurn += 1;
@@ -874,7 +874,7 @@ export function playersWithFewestSoulsAttackBoostEffect(game: Game): EffectFunct
         function removeEffect() {
             for(const player of playersWithFewestSouls) 
             {
-                game.addAttack(player, -1);
+                game.addAttack(player, -1, data.it);
             }
             if(playersWithFewestSouls.includes(game.currentPlayer))
             {
@@ -1055,6 +1055,7 @@ export function socialGoalsEffect(game: Game): EffectFunction {
         });
 
         data.it.cleaners.push(() => {
+            data.it.canBeDiscarded = true;
             offLootPlayed?.();
             offLootPlayed = null;
             offMonsterKilled?.();

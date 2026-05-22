@@ -7,7 +7,7 @@ import * as room from "./roomEffects";
 import { Player } from "../entities/player";
 import { DiceRoll } from "../stackElement";
 import { activeEntitySelector, anotherPlayerSelector, deckSelector, inAnotherplayItemSelector, inplayCurseSelector, itemAndSoulSelector as itemAndSoulSelector, inplayItemSelector, inplayUnchargedItemSelector, playerSelector, rollSelector, stackElementSelector, topAnyDiscardSelector, visibleItemSelector, YourItemSelector } from "../targetSelector";
-import { EffectData, type EffectFunction, type TargetsSelector } from "../types/cardTypes";
+import { EffectData, type DeckType, type EffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type { OnDeathMonsterData } from "../types/eventTypes";
 import { Monster } from "../entities/monster";
 
@@ -20,6 +20,167 @@ export type ParsedEffect = {
     effectFunction: EffectFunction;
     targetSelectors: TargetsSelector[];
 };
+
+class NumberRobustString extends String {
+    private readonly _raw: string;
+    private readonly _masked: string;
+    private readonly _numbers: number[];
+    private _normalizedMasked: string | null = null;
+    private _index = 0;
+
+    constructor(raw: string) {
+        const { masked, numbers } = NumberRobustString.maskNumbers(raw);
+        super(masked);
+        this._raw = raw;
+        this._masked = masked;
+        this._numbers = numbers;
+    }
+
+    /** Original, unmasked string that the numbers were extracted from. */
+    get raw(): string {
+        return this._raw;
+    }
+
+    /** Extracted numbers, in encounter order. */
+    get numbers(): number[] {
+        return this._numbers;
+    }
+
+    /** Masked string with numbers replaced by x. */
+    get masked(): string {
+        return this._masked;
+    }
+
+    /** Normalized masked string for pattern matching. Cached because it is queried a lot. */
+    get normalizedMasked(): string {
+        if (this._normalizedMasked === null) {
+            this._normalizedMasked = normalizeMaskedForMatch(this._masked);
+        }
+        return this._normalizedMasked;
+    }
+
+    /** Stateful iterator-style accessor (kept for convenience). */
+    nextNumber(): number {
+        if (this._index >= this._numbers.length)
+            throw new Error("No more numbers available in the string");
+        return this._numbers[this._index++]!;
+    }
+
+    resetIndex(): void {
+        this._index = 0;
+    }
+
+    /**
+     * Returns the raw remainder after a masked prefix.
+     * The prefix is expressed in the masked form (numbers replaced by 'x').
+     */
+    restAfter(maskedPrefix: string): string | null {
+        const masked = this._masked;
+        if (!masked.startsWith(maskedPrefix)) return null;
+        const rawEndIndex = NumberRobustString.rawIndexAfterMaskedPrefix(this._raw, maskedPrefix.length);
+        return this._raw.slice(rawEndIndex);
+    }
+
+    private static rawIndexAfterMaskedPrefix(raw: string, maskedPos: number): number {
+        if (maskedPos <= 0) return 0;
+
+        let rawIndex = 0;
+        let maskedIndex = 0;
+
+        while (rawIndex < raw.length && maskedIndex < maskedPos) {
+            const ch = raw[rawIndex]!;
+            if (ch >= "0" && ch <= "9") {
+                maskedIndex++;
+                while (rawIndex < raw.length) {
+                    const digit = raw[rawIndex]!;
+                    if (digit < "0" || digit > "9") break;
+                    rawIndex++;
+                }
+                continue;
+            }
+
+            maskedIndex++;
+            rawIndex++;
+        }
+
+        return rawIndex;
+    }
+
+    private static maskNumbers(raw: string): { masked: string; numbers: number[] } {
+        const numbers: number[] = [];
+        let masked = "";
+
+        let cursor = 0;
+        for (const match of raw.matchAll(/\d+/gu)) {
+            const start = match.index ?? 0;
+            const digits = match[0]!;
+            const end = start + digits.length;
+
+            if (cursor < start) {
+                masked += raw.slice(cursor, start);
+            }
+
+            const parsed = Number(digits);
+            if (!Number.isNaN(parsed)) numbers.push(parsed);
+
+            masked += "x";
+            cursor = end;
+        }
+
+        if (cursor < raw.length) {
+            masked += raw.slice(cursor);
+        }
+
+        return { masked, numbers };
+    }
+}
+
+const normalizedPatternCache = new Map<string, string>();
+
+function normalizePatternForMatch(pattern: string): string {
+    const cached = normalizedPatternCache.get(pattern);
+    if (cached !== undefined) return cached;
+    const normalized = normalizeMaskedForMatch(pattern);
+    normalizedPatternCache.set(pattern, normalized);
+    return normalized;
+}
+
+function normalizeMaskedForMatch(s: string): string {
+    // Keep internal punctuation, but ignore trailing punctuation variants (.,?,!) so we can match e.g. "loot 3" and "loot 3.".
+    // Also normalize leading plus signs before masked numbers so existing `x` patterns still match `+x` text,
+    // while preserving `-x` for cases that need to treat a negative sign explicitly.
+    return s
+        .trim()
+        .replace(/(^|[^\w])\+\s*x/gu, "$1x")
+        .replace(/\s*[.?!,]+$/gu, "")
+        .trim();
+}
+
+function maskedEqualsAny(nr: NumberRobustString, patterns: readonly string[]): boolean {
+    const m = nr.normalizedMasked;
+    return patterns.some((p) => normalizePatternForMatch(p) === m);
+}
+
+function numberAtIfMaskedEqualsAny(nr: NumberRobustString, patterns: readonly string[], index = 0): number | null {
+    if (!maskedEqualsAny(nr, patterns)) return null;
+    return nr.numbers[index] ?? null;
+}
+
+type NumberRobustCheck = {
+    /** Masked patterns (numbers replaced by 'x') to match against the normalized masked string. */
+    patterns: readonly string[];
+    /** Only consume numbers inside this function (i.e. only when we actually match). */
+    parse: (nr: NumberRobustString) => ParsedEffect;
+};
+
+function applyNumberRobustChecks(nr: NumberRobustString, checks: readonly NumberRobustCheck[]): ParsedEffect | null {
+    for (const check of checks) {
+        if (!maskedEqualsAny(nr, check.patterns)) continue;
+        nr.resetIndex();
+        return check.parse(nr);
+    }
+    return null;
+}
 
 /**
  * Common selector helpers for effect parsing.
@@ -44,6 +205,11 @@ const selectPlayer = (game: Game, min: number = 1, max: number = min): TargetsSe
 const selectAlivePlayer = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
     [createSelector("Choose a player", playerSelector((player) => !player.isDead, game), min, max)];
 
+const selectXCardsFromDiscard = (game: Game, type: DeckType, min: number = 1, max: number = min, filter?: (card: Card) => boolean): TargetsSelector[] =>
+[createSelector(`Choose ${min === max ? min : `up to ${max}`} ${type} card${max > 1 ? "s" : ""} in discard`, (issuer: Player) => {
+    return game.decks[type].discard.filter(card => filter ? filter(card) : true);
+})];
+
 export const selectAliveNonActivePlayer = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
     [createSelector("Choose a player", playerSelector((player) => !player.isDead && player !== game.currentPlayer, game), min, max)];
 
@@ -63,12 +229,18 @@ const selectPassiveAbilityOrMonsterAbility = (game: Game, min: number = 1, max: 
             e instanceof EffectOnStack 
             && ((e.data.it instanceof ItemCard && e.isReorderable) || e.data.it instanceof MonsterCard))
     }, min, max)];
+export const selectCardInPlayOrLootBeingPlayed = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
+    [createSelector("Choose a card in play or a loot being played", (issuer: Player) => {
+        const inPlayCards = game.players.flatMap(p => p.inPlay);
+        const lootOnStack = game.stack.elements.filter(e => e.json.type === "LootCardEffect");
+        return [...inPlayCards, ...lootOnStack];
+    }, min, max)];
 
 export const selectPlayerOrMonster = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
     [createSelector("Choose a player or monster", activeEntitySelector(() => true, game), min, max)];
 
-const selectDeck = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
-    [createSelector("Select a deck", deckSelector(() => true, game), min, max)];
+const selectDeck = (game: Game, min: number = 1, max: number = min, filter?: (name: string) => boolean): TargetsSelector[] => 
+    [createSelector("Select a deck", deckSelector(filter || (() => true), game), min, max)];
 
 const selectTopAnyDiscard = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector("Select the top card of any discard pile", topAnyDiscardSelector(() => true, game), min, max)];
@@ -120,6 +292,9 @@ const selectNonEternalPassiveItem = (game: Game, min: number = 1, max: number = 
 
 const selectItemYouControl = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
     [createSelector("Select an item you control", YourItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), min, max)];
+
+const selectAnotherItemYouControl = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Select an item you control", YourItemSelector((player: Player, card: ItemCard) => card.eternal === false && card.name !== "Donation Machine", game), min, max)];
 
 const selectSoulYouControl = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
     [createSelector("Destroy a soul you control", (issuer: Player) => issuer.souls, min, max)];
@@ -179,13 +354,17 @@ export function eachTimeActivateItemEffect(s: string, game: Game): ParsedEffect 
     };
 }
 
-export function parseEachTimeRollEffect(s: string, game: Game): ParsedEffect {
+export function parseEachTimeRollEffect(s: string, game: Game, nr?: NumberRobustString): ParsedEffect {
+    const numberRobustString = nr ?? new NumberRobustString(s);
+    const masked = numberRobustString.toString();
+
     // Check for "each time the attacking player rolls an attack roll of X"
-    let attackRollMatch = s.match(/^each time the attacking player rolls an attack roll of (\d),?/u);
-    if (attackRollMatch) {
-        const rollValue = Number(attackRollMatch[1]);
-        let restOfEffect = s.substring(attackRollMatch[0]!.length).trim();
-        restOfEffect = restOfEffect.replace("they", "").trim();
+    const attackingPrefix = "each time the attacking player rolls an attack roll of x";
+    if (masked.startsWith(attackingPrefix)) {
+        const rollValue = numberRobustString.numbers[0]!;
+        let restOfEffect = (numberRobustString.restAfter(attackingPrefix) ?? "").trim();
+        if (restOfEffect.startsWith(",")) restOfEffect = restOfEffect.substring(1).trim();
+        restOfEffect = restOfEffect.replace(/^they\b/iu, "").trim();
         if (restOfEffect.startsWith("may") ||
             restOfEffect.startsWith("must")
         )
@@ -200,12 +379,16 @@ export function parseEachTimeRollEffect(s: string, game: Game): ParsedEffect {
         };
     }
 
-    let rollMatch = s.match(/^each time a player rolls a (\d),? they /u);
+    const theyPrefixes = [
+        "each time a player rolls a x, they ",
+        "each time a player rolls a x they ",
+    ] as const;
     // If "you" is present, handling it requires having both you and they.
     // So far only "they must give you a loot card" is using it.
-    if (rollMatch && !s.split(" ").includes("you")) {
-        const rollValue = Number(rollMatch[1]);
-        let restOfEffect = s.substring(rollMatch[0]!.length).trim();
+    const theyPrefix = theyPrefixes.find((p) => masked.startsWith(p));
+    if (theyPrefix && !s.split(" ").includes("you")) {
+        const rollValue = numberRobustString.numbers[0]!;
+        let restOfEffect = (numberRobustString.restAfter(theyPrefix) ?? "").trim();
         if (restOfEffect.startsWith("may") ||
             restOfEffect.startsWith("must")
         )
@@ -219,11 +402,11 @@ export function parseEachTimeRollEffect(s: string, game: Game): ParsedEffect {
         };
     }
 
-    rollMatch = s.match(/^each time a player rolls a (\d),?/u);
-    if (rollMatch) {
-
-        const rollValue = Number(rollMatch[1]);
-        const restOfEffect = s.substring(rollMatch[0]!.length).trim();
+    const genericPrefix = "each time a player rolls a x";
+    if (masked.startsWith(genericPrefix)) {
+        const rollValue = numberRobustString.numbers[0]!;
+        let restOfEffect = (numberRobustString.restAfter(genericPrefix) ?? "").trim();
+        if (restOfEffect.startsWith(",")) restOfEffect = restOfEffect.substring(1).trim();
         const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
         return {
             effectFunction: passive.onRollEffect([rollValue], restParsed.effectFunction, game),
@@ -233,11 +416,14 @@ export function parseEachTimeRollEffect(s: string, game: Game): ParsedEffect {
     throw new Error(`Could not parse 'Each time a player rolls a X' effect: ${s}`);
 }
 
-export function parseWhenActivePlayerRollsEffect(s: string, game: Game): ParsedEffect {
-    const rollMatch = s.match(/^when the active player rolls a (\d),?/u);
-    if (rollMatch) {
-        const rollValue = Number(rollMatch[1]);
-        const restOfEffect = s.substring(rollMatch[0]!.length).trim();
+export function parseWhenActivePlayerRollsEffect(s: string, game: Game, nr?: NumberRobustString): ParsedEffect {
+    const numberRobustString = nr ?? new NumberRobustString(s);
+    const masked = numberRobustString.toString();
+    const prefix = "when the active player rolls a x";
+    if (masked.startsWith(prefix)) {
+        const rollValue = numberRobustString.numbers[0]!;
+        let restOfEffect = (numberRobustString.restAfter(prefix) ?? "").trim();
+        if (restOfEffect.startsWith(",")) restOfEffect = restOfEffect.substring(1).trim();
         const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
         return {
             effectFunction: passive.onActivePlayerRollEffect([rollValue], restParsed.effectFunction, game),
@@ -304,6 +490,15 @@ export function parseOnDamageTakenEffect(s: string, game: Game): ParsedEffect {
     };
 }
 
+export function parseFirstKillMonsterTurnEffect(s: string, game: Game): ParsedEffect {
+    const restOfEffect = s.substring("the first time you kill a monster on your turn, ".length).trim();
+    const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
+    return {
+        effectFunction: passive.onFirstKillMonsterYourTurnEffect([restParsed.effectFunction], game),
+        targetSelectors: restParsed.targetSelectors
+    };
+}
+
 export function parseEachTimeDeclareAttackEffect(s: string, game: Game): ParsedEffect {
     const restOfEffect = s.substring(s.indexOf(",") + 1).trim();
     const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
@@ -331,9 +526,16 @@ export function parseEachTimeAnotherPlayerDiesEffect(s: string, game: Game): Par
 }
 
 export function parseEachTimeWouldRollEffect(s: string, game: Game): ParsedEffect {
-    const restOfEffect = s.substring("each time a player would roll a 1, ".length).trim();
+    const nr = new NumberRobustString(s);
+    const masked = nr.toString();
+    const prefix = "each time a player would roll a x";
+    if (!masked.startsWith(prefix))
+        throw new Error(`Could not parse 'Each time a player would roll a X' effect: ${s}`);
+
+    const value = nr.numbers[0]!;
+    let restOfEffect = (nr.restAfter(prefix) ?? "").trim();
+    if (restOfEffect.startsWith(",")) restOfEffect = restOfEffect.substring(1).trim();
     const restParsed = effectParser(restOfEffect, game, active.addInPlayEffect(game), true);
-    const value = parseNumber(s, /^each time a player would roll a (\d),?/u)!;
     return {
         effectFunction: passive.onWouldRollEffect([restParsed.effectFunction], [value], game),
         targetSelectors: restParsed.targetSelectors
@@ -362,16 +564,20 @@ let selector = selectMonster(game);
 function noTargetEffect(effectFunction: EffectFunction): ParsedEffect {
     return { effectFunction, targetSelectors: noTargets };
 }
-export function parseTheActivePlayerEffect(s: string, game: Game): ParsedEffect {
+export function parseTheActivePlayerEffect(s: string, game: Game, nr?: NumberRobustString): ParsedEffect {
     if(s.startsWith("the active player rolls-"))
     {
         const rest = "roll" + s.substring("the active player rolls".length).replace("they", "the active player");
         return active.rollEffect(rest, game, true);
     }
-    const evasion = parseNumber(s, /the active player may attack other players. attacked players have (\d+)\+ \[dc\] ./);
-    if(evasion !== null)
     {
-       return noTargetEffect(room.otherPlayersAreAttackableEffect(game, evasion));
+        const numberRobustString = nr ?? new NumberRobustString(s);
+        const masked = numberRobustString.toString();
+        if (masked.startsWith("the active player may attack other players. attacked players have x+ [dc]")) {
+            const evasion = numberRobustString.numbers[0];
+            if (evasion !== undefined)
+                return noTargetEffect(room.otherPlayersAreAttackableEffect(game, evasion));
+        }
     }
     switch (s) {
         case "the active player may attack an additional time this turn.":
@@ -430,14 +636,13 @@ export function parseTheActivePlayerEffect(s: string, game: Game): ParsedEffect 
 // Some effects can handle the you may part by allowing selection of 0 items. In that case, we set youMayEffectHanging to false and let the rest of the effect handle the choice.
 //  For other effects, we need to handle the "you may" part at this level by prompting the user for a choice, and then if they choose yes, we parse and execute the rest of the effect.
 export function effectParser(s: string, game: Game, defaultEffect: EffectFunction = active.addInPlayEffect(game), selectionOnResolve = false, youMayEffectHanging = [false]): ParsedEffect {
-    const originalS = s;
-    // if (originalS == "Each time you die, after paying penalties, flip your character if able. Then recharge it. Discard your hand and loot 3."){
-    //     console.log("parsing special roll effect:", originalS);
-    // }
     s = s.replace("[Tap Effect] ", ""); // remove tap effect marker
     s = s.replace("[Curse Effect] ", ""); // remove curse effect marker
+    s = s.replace("!", "");
+
     s = s.toLowerCase();
     s = replaceDiceSymbols(s);
+    const nr = new NumberRobustString(s);
     if(s.startsWith("[curse] "))
         return parseCurseEffect(s.substring(8).trim(), game);
     if (s.startsWith("when you die, ") && s !== "when you die, before paying penalties, give this to another player.") {
@@ -460,7 +665,7 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         };
     }
     if(s.startsWith("the active player ") || s.startsWith("the first time the active player"))
-        return parseTheActivePlayerEffect(s, game);
+        return parseTheActivePlayerEffect(s, game, nr);
     if (s.startsWith("each time you deal combat damage to a monster,")) {
         const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, defaultEffect, true);
         return {
@@ -519,6 +724,8 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     }
     if (s.startsWith("each time you declare an attack, "))
         return parseEachTimeDeclareAttackEffect(s, game);
+    if(s.startsWith("the first time you kill a monster on your turn, "))
+        return parseFirstKillMonsterTurnEffect(s, game);
     if (s.startsWith("when this reaches 1 [hp] , ")) {
         const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, defaultEffect, true);
         return noTargetEffect(monster.whenThisReaches1HP(game, [restParsed.effectFunction], s))
@@ -543,11 +750,11 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     if (s.startsWith("when this dies, ") && !s.includes("killed")) // effects that include "killed" refers to the killer and need to be handled differently.
         return parseWhenThisDiesEffect(s, game);
     if (s.startsWith("when the active player rolls a"))
-        return parseWhenActivePlayerRollsEffect(s, game);
+        return parseWhenActivePlayerRollsEffect(s, game, nr);
     if (s.startsWith("each time a player rolls a"))
-        return parseEachTimeRollEffect(s, game);
+        return parseEachTimeRollEffect(s, game, nr);
     if(s.startsWith("each time the attacking player rolls an attack roll of"))
-        return parseEachTimeRollEffect(s, game);
+        return parseEachTimeRollEffect(s, game, nr);
     if (s.startsWith("each time you take damage, "))
         return parseOnDamageTakenEffect(s, game);
     if(s.startsWith("each time this takes damage, "))
@@ -568,7 +775,21 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
     if (s.startsWith("destroy 2 items you control")) {
         return { effectFunction: active.destroyTwoItemsEffect(game), targetSelectors: selectItemYouControl(game, 2) };
     }
-
+    if(s.startsWith("roll 3 times"))
+    {
+        const restTxt = "roll-" + s.substring(`roll 3 times`.length);
+        const restEffect = active.rollEffect(restTxt, game);
+        const effect: EffectFunction = async (data:EffectData) => {
+            const discardedLoot = data.targets[0];
+            data.targets = []; // clear targets to avoid confusion for the restEffect, which shouldn't care about the discarded loot
+            for(let i = 0; i < 3; i++){
+                await restEffect.effectFunction(data);
+            }
+            data.targets = [discardedLoot];
+            return true;
+        }
+        return noTargetEffect(effect);
+    }
     if(s.startsWith(`roll. if the discarded card had \"`))
     {
         const word = s.split(`\"`)[1]!;
@@ -605,11 +826,11 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         };
     }
     if (s.startsWith("destroy this.")) {
-        const restParsed = effectParser(s.substring(12).trim(), game, defaultEffect, selectionOnResolve, youMayEffectHanging);
+        const restParsed = effectParser(s.substring("destroy this.".length).trim(), game, defaultEffect, selectionOnResolve, youMayEffectHanging);
         return {
             effectFunction: (data:EffectData) => { 
                 const destroyResult = game.destroyCardsOrSouls([data.it]); 
-                if (s.substring(12).trim() === ".")
+                if (s.substring("destroy this.".length).trim() === ".")
                     return destroyResult;
                 return restParsed.effectFunction(data);
             },
@@ -644,136 +865,183 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         const restParsed = effectParser(rest, game, defaultEffect, true);
         return noTargetEffect(passive.onMonsterDeathEffect([restParsed.effectFunction], game, s));
     }
-    const gainAmount = parseNumber(s, /^gain\s+(\d+)\u00A2\.?,?$/u);
-    if (gainAmount !== null)
-        return { effectFunction: active.gainCoinsEffect(game, gainAmount), targetSelectors: noTargets }; 
-    const coinStolen = parseNumber(s, /^steal\s+(\d+)\u00A2 from a(nother)? player\.?$/u);
-    if (coinStolen !== null)
-        return { effectFunction: active.stealCoinsEffect(game, coinStolen), targetSelectors: selectAnotherPlayer(game) };
+    {
+        const parsed = applyNumberRobustChecks(nr, [
+            {
+                patterns: ["gain x¢"],
+                parse: (nr) => ({ effectFunction: active.gainCoinsEffect(game, nr.nextNumber()), targetSelectors: noTargets }),
+            },
+            {
+                patterns: ["steal x¢ from a player", "steal x¢ from another player"],
+                parse: (nr) => ({ effectFunction: active.stealCoinsEffect(game, nr.nextNumber()), targetSelectors: selectAnotherPlayer(game) }),
+            },
+        ]);
+        if (parsed !== null) return parsed;
+    }
         
     const deckName = parseText(s, /^look at the top 5 cards of the (\w+) deck\. put 1 on top and the rest on the bottom\./u);
     if (deckName !== "")
     {
         return { effectFunction: active.look5Put1TopRestBottomEffect(deckName, game), targetSelectors: noTargets };
     }
-    const treasureAmount = parseNumber(s, /^gain \+(\d+) treasures?\.?$/u);
-    if (treasureAmount !== null)
-        return { effectFunction: active.gainTreasuresEffect(game, treasureAmount), targetSelectors: noTargets };
-    const hpToHealEachMonster = parseNumber(s, /^each monster heals (\d+) \[hp\] ?\.?$/u);
-    if( hpToHealEachMonster !== null)
-            return noTargetEffect(active.healEachMonsterEffect(game, hpToHealEachMonster));
-    let hpToHeal = parseNumber(s, /^heal (\d+) \[hp\] ?\.?$/u);
-    if( hpToHeal === null)
-        hpToHeal = parseNumber(s, /^this heals (\d+) \[hp\] ?\.?$/u);
-    if (hpToHeal !== null)
-        return { effectFunction: active.healEffect(game, hpToHeal), targetSelectors: noTargets };
-    const thisHeals = parseNumber(s, /^this heals (\d+) \[hp\] ?\.?$/u);
-    if (thisHeals !== null)
-        return { effectFunction: monster.thisHealsEffect(game, thisHeals), targetSelectors: noTargets };
-    const loseAmount = parseNumber(s, /^lose\s+(\d+)\u00A2\.?$/u);
-    if (loseAmount !== null)
-        return { effectFunction: active.loseCoinsEffect(game, loseAmount), targetSelectors: noTargets };
-    const nbToLoot = parseNumber(s, /^loot\s+(\d+)\.?$/u);
-    if (nbToLoot !== null)
-        return { effectFunction: active.lootCardsEffect(game, nbToLoot), targetSelectors: noTargets };
-    const counterToRemove = parseNumber(s, /^remove (\d+) counters? from this\.?$/u);
-    if (counterToRemove !== null)
-        return { effectFunction: active.removeCountersFromThisEffect(game, counterToRemove), targetSelectors: noTargets };
-    const HPToPay = parseNumber(s, /^pay\s+(\d+) \[hp\] ?\.?$/u);
-    if (HPToPay !== null)
-        return { effectFunction: active.payHealthEffect(game, HPToPay), targetSelectors: noTargets };
-    const coinsToPay = parseNumber(s, /^pay\s+(\d+)\u00A2:?$/u);
-    if (coinsToPay !== null)
-        return { effectFunction: active.payCoinsEffect(game, coinsToPay), targetSelectors: noTargets };
-    const eachPlayerGains = parseNumber(s, /^each player gains\s+(\d+)\u00A2\.?$/u);
-    if (eachPlayerGains !== null)
-        return { effectFunction: active.eachPlayerGainsCoinsEffect(game, eachPlayerGains), targetSelectors: noTargets };
-    let toDiscard = /^discard [1a] loot card\.?/u.test(s) ? 1 : null;
-    if (toDiscard === null)
-        toDiscard = parseNumber(s, /^discard (\d+) loot cards?\.?$/u);
-    let forceDiscard = parseNumber(s, /^force a player to discard (\d+) loot cards?\.?/u);
-    if( forceDiscard !== null)
-        return { effectFunction: active.discardNLootCardsEffect(forceDiscard, game, true, true), targetSelectors: selectPlayer(game) };
-    if( toDiscard !== null)
-        return { effectFunction: active.discardNLootCardsEffect(toDiscard, game, selectionOnResolve), targetSelectors: selectLootInYourHand(game, toDiscard, toDiscard, selectionOnResolve)};
-    const eachPlayerLoots = parseNumber(s, /^each player loots\s+(\d+)\.?$/u);
-    if (eachPlayerLoots !== null)
-        return { effectFunction: active.eachPlayerLootsEffect(game, eachPlayerLoots), targetSelectors: noTargets };
+    {
+        const parsed = applyNumberRobustChecks(nr, [
+            {
+                patterns: ["gain x treasure", "gain x treasures"],
+                parse: (nr) => ({ effectFunction: active.gainTreasuresEffect(game, nr.nextNumber()), targetSelectors: noTargets }),
+            },
+            {
+                patterns: ["each monster heals x [hp]"],
+                parse: (nr) => noTargetEffect(active.healEachMonsterEffect(game, nr.nextNumber())),
+            },
+            {
+                patterns: ["heal x [hp]", "this heals x [hp]"],
+                // Preserve existing behavior: "this heals ..." resolves to active.healEffect here.
+                parse: (nr) => ({ effectFunction: active.healEffect(game, nr.nextNumber()), targetSelectors: noTargets }),
+            },
+            {
+                patterns: ["lose x¢"],
+                parse: (nr) => ({ effectFunction: active.loseCoinsEffect(game, nr.nextNumber()), targetSelectors: noTargets }),
+            },
+            {
+                patterns: ["loot x"],
+                parse: (nr) => ({ effectFunction: active.lootCardsEffect(game, nr.nextNumber()), targetSelectors: noTargets }),
+            },
+            {
+                patterns: ["remove x counter from this", "remove x counters from this"],
+                parse: (nr) => ({ effectFunction: active.removeCountersFromThisEffect(game, nr.nextNumber()), targetSelectors: noTargets }),
+            },
+            {
+                patterns: ["pay x [hp]"],
+                parse: (nr) => ({ effectFunction: active.payHealthEffect(game, nr.nextNumber()), targetSelectors: noTargets }),
+            },
+            {
+                patterns: ["pay x¢:", "pay x¢."],
+                parse: (nr) => ({ effectFunction: active.payCoinsEffect(game, nr.nextNumber()), targetSelectors: noTargets }),
+            },
+            {
+                patterns: ["each player gains x¢"],
+                parse: (nr) => ({ effectFunction: active.eachPlayerGainsCoinsEffect(game, nr.nextNumber()), targetSelectors: noTargets }),
+            },
+            {
+                patterns: ["force a player to discard x loot card", "force a player to discard x loot cards"],
+                parse: (nr) => ({ effectFunction: active.discardNLootCardsEffect(nr.nextNumber(), game, true, true), targetSelectors: selectPlayer(game) }),
+            },
+            {
+                patterns: ["discard a loot card"],
+                parse: () => ({ effectFunction: active.discardNLootCardsEffect(1, game, selectionOnResolve), targetSelectors: selectLootInYourHand(game, 1, 1, selectionOnResolve) }),
+            },
+            {
+                patterns: ["discard x loot card", "discard x loot cards"],
+                parse: (nr) => ((toDiscard) => ({ effectFunction: active.discardNLootCardsEffect(toDiscard, game, selectionOnResolve), targetSelectors: selectLootInYourHand(game, toDiscard, toDiscard, selectionOnResolve) }))(nr.nextNumber()),
+            },
+            {
+                patterns: ["each player loots x"],
+                parse: (nr) => ({ effectFunction: active.eachPlayerLootsEffect(game, nr.nextNumber()), targetSelectors: noTargets }),
+            },
+            {
+                patterns: ["then put x cards from your hand on top of the loot deck in any order."],
+                parse: (nr) => ({
+                    effectFunction: active.putXCardFromYourHandOnTopOfLootDeck(game, nr.nextNumber()),
+                    targetSelectors: noTargets,
+                })
+            },
+        ]);
+        if (parsed !== null) return parsed;
+
+        // Keep legacy fallback for this specific phrase (currently unreachable because of the switch case above,
+        // but left as-is to avoid surprising behavioral change during refactor).
+        const thisHeals = numberAtIfMaskedEqualsAny(nr, ["this heals x [hp]"]);
+        if (thisHeals !== null)
+            return { effectFunction: monster.thisHealsEffect(game, thisHeals), targetSelectors: noTargets };
+    }
     var deckName1 = parseText(s, /^look at the top 4 cards of the (\w+) deck\. you may put them back in any order\.?$/u);
     if (deckName1 === "")
         deckName1 = parseText(s, /^look at the top 4 cards of the (\w+) deck\. put them back in any order\.?$/u);
     if (deckName1 !== "")
         return { effectFunction: active.lookAndOrderEffect(deckName1, 4, game), targetSelectors: noTargets };
-    const coinsLostByEachPlayer = parseNumber(s, /^each player loses (\d+)\u00A2\.?$/u);
-    if (coinsLostByEachPlayer !== null)
-        return { effectFunction: active.eachPlayerLosesCoinsEffect(game, coinsLostByEachPlayer), targetSelectors: noTargets };
-    let damageToEachPlayer = parseNumber(s, /^each player takes (\d+) damage\.?!?$/u);
-    if( damageToEachPlayer === null)
-        damageToEachPlayer = parseNumber(s, /^deal (\d+) damage to each player\.?$/u);
-    if (damageToEachPlayer !== null)
-        return { effectFunction: active.dealDamageToEachPlayerEffect(game, damageToEachPlayer), targetSelectors: noTargets };
-    let damageToEachMonster = parseNumber(s, /^each monster takes (\d+) damage\.?$/u);
-    if( damageToEachMonster === null)
-        damageToEachMonster = parseNumber(s, /^deal (\d+) damage to each monster\.?$/u);
-    const shopCostReduction = parseNumber(s, /^shop items you purchase cost (\d+)\u00A2 less\.?$/u);
-    if (shopCostReduction !== null)
-        return { effectFunction: passive.shopItemsCostLessEffect(shopCostReduction, game), targetSelectors: noTargets };
-    if (damageToEachMonster !== null)
-        return { effectFunction: active.dealDamageToEachMonsterEffect(game, damageToEachMonster), targetSelectors: noTargets };
-    let damageToTake = parseNumber(s, /^take (\d+) damage\.?!?$/u);
-    if (damageToTake === null)
-        damageToTake = parseNumber(s, /^this takes (\d+) damage\.?$/u);
-    if (damageToTake !== null)
-        return { effectFunction: active.takeDamageEffect(game, damageToTake), targetSelectors: noTargets };
-    const damageToTake2 = parseNumber(s, /^take (\d+) damage and gain \d+\u00A2\.?$/u);
-    const coins = parseNumber(s, /^take \d+ damage and gain (\d+)\u00A2\.?$/u);
-    if (damageToTake2 !== null && coins !== null)
-        return { effectFunction: active.takeDamageGainCoinsEffect(s, damageToTake2, coins, game), targetSelectors: noTargets };
-    let damageToDeal = parseNumber(s, /^deal (\d+) damage to a monster or player\.?$/u);
-    if( damageToDeal === null )
-      damageToDeal = parseNumber(s, /^deal (\d+) damage to a player\.?$/u);
-    if (damageToDeal === null)
-      damageToDeal = parseNumber(s, /^deal (\d+) damage to a monster\.?$/u);
-    if(s === "deal 1 damage to them."){
-            damageToDeal = 1;
+    {
+        const nr = new NumberRobustString(s);
+        const parsed = applyNumberRobustChecks(nr, [
+            {
+                patterns: ["each player loses x¢"],
+                parse: (nr) => ({ effectFunction: active.eachPlayerLosesCoinsEffect(game, nr.nextNumber()), targetSelectors: noTargets }),
+            },
+            {
+                patterns: ["each player takes x damage", "deal x damage to each player"],
+                parse: (nr) => ({ effectFunction: active.dealDamageToEachPlayerEffect(game, nr.nextNumber()), targetSelectors: noTargets }),
+            },
+            {
+                patterns: ["each monster takes x damage", "deal x damage to each monster"],
+                parse: (nr) => ({ effectFunction: active.dealDamageToEachMonsterEffect(game, nr.nextNumber()), targetSelectors: noTargets }),
+            },
+            {
+                patterns: ["shop items you purchase cost x¢ less"],
+                parse: (nr) => ({ effectFunction: passive.shopItemsCostLessEffect(nr.nextNumber(), game), targetSelectors: noTargets }),
+            },
+            {
+                patterns: ["you take x damage", "take x damage", "this takes x damage"],
+                parse: (nr) => ({ effectFunction: active.takeDamageEffect(game, nr.nextNumber()), targetSelectors: noTargets }),
+            },
+            {
+                patterns: ["take x damage and gain x¢"],
+                parse: (nr) => ({ effectFunction: active.takeDamageGainCoinsEffect(s, nr.nextNumber(), nr.nextNumber(), game), targetSelectors: noTargets }),
+            },
+            {
+                patterns: ["deal x damage to a monster or player", "deal x damage to a player", "deal x damage to a monster"],
+                parse: (nr) => ({ effectFunction: active.dealDamageToTargetEffect(game, nr.nextNumber(), selectionOnResolve, decideEntitySelector(s, game)), targetSelectors: decideEntitySelector(s, game) }),
+            },
+        ]);
+        if (parsed !== null) return parsed;
+
+        if(s === "deal 1 damage to them."){
             selectionOnResolve = false;
+            return { effectFunction: active.dealDamageToTargetEffect(game, 1, selectionOnResolve, decideEntitySelector(s, game)), targetSelectors: decideEntitySelector(s, game) };
         }
-    if (damageToDeal !== null)
-        return { effectFunction: active.dealDamageToTargetEffect(game, damageToDeal, selectionOnResolve, decideEntitySelector(s, game)), targetSelectors: decideEntitySelector(s, game) };
+    }
     const slot = parseText(s, /^expand (\w+)s? slots by \d+\.?$/u)
     if (slot !== "")
     {
-        const numberToExpand = parseNumber(s, /^expand \w+ slots by (\d+)\.?$/u);
+        const numberToExpand = nr.numbers[0] ?? null;
         if (numberToExpand === null)
             throw new Error(`Could not parse number of slots to expand in effect: ${s}`);
         return { effectFunction: active.expandSlotsEffect(slot, numberToExpand, game), targetSelectors: noTargets };
     }
-    let countersToRemove = parseNumber(s, /^remove (\d+) counters? from this\.?$/u);
-    if (countersToRemove === null)
-        countersToRemove = /^remove a counter from this.?/.test(s) ? 1 : null;
-    if( countersToRemove !== null)
-        return { effectFunction: active.removeCountersEffect(game, countersToRemove), targetSelectors: noTargets };
-    const toAdd = parseNumber(s, /^add \+? ?(\d+) to a dice roll\.?$/u);
-    if( toAdd !== null)
-        return { effectFunction: active.addToDiceRollEffect(game, toAdd), targetSelectors: selectRoll(game) };
-    const hp = parseNumber(s, /^\+? ?(\d+) \[hp\] ?\.?$/u);
-    if (hp !== null)
-        return { effectFunction: passive.permanentStatModifierEffect([game.addHealth.bind(game)], hp, game), targetSelectors: noTargets };
-    const atk = parseNumber(s, /^\+? ?(\d+) \[atk\] ?\.?$/u);
-    if (atk !== null)
-        return { effectFunction: passive.permanentStatModifierEffect([game.addAttack.bind(game)], atk, game), targetSelectors: noTargets };
+    {
+        let countersToRemove = numberAtIfMaskedEqualsAny(nr, ["remove x counter from this", "remove x counters from this"]);
+        if (countersToRemove === null && maskedEqualsAny(nr, ["remove a counter from this"]))
+            countersToRemove = 1;
+        if( countersToRemove !== null)
+            return { effectFunction: active.removeCountersEffect(game, countersToRemove), targetSelectors: noTargets };
+
+        const toAdd = numberAtIfMaskedEqualsAny(nr, ["add x to a dice roll"]);
+        if( toAdd !== null)
+            return { effectFunction: active.addToDiceRollEffect(game, toAdd), targetSelectors: selectRoll(game) };
+
+        const parsed = applyNumberRobustChecks(nr, [
+            {
+                patterns: ["x [hp]"],
+                parse: (nr) => ({ effectFunction: passive.permanentStatModifierEffect([game.addHealth.bind(game)], nr.nextNumber(), game), targetSelectors: noTargets }),
+            },
+            {
+                patterns: ["x [atk]"],
+                parse: (nr) => ({ effectFunction: passive.permanentStatModifierEffect([game.addAttack.bind(game)], nr.nextNumber(), game), targetSelectors: noTargets }),
+            },
+        ]);
+        if (parsed !== null) return parsed;
+    }
     // Parse standard string-matched effects
-    const standardEffect = parseStandardEffect(s, game, selectionOnResolve, youMayEffectHanging);
+    const standardEffect = parseStandardEffect(s, game, nr, selectionOnResolve, youMayEffectHanging);
     if (standardEffect !== null) {
         return standardEffect;
     }
     // Parse standard string-matched monster effects
-    const standardMonsterEffect = parseStandardMonsterEffect(s, game);
+    const standardMonsterEffect = parseStandardMonsterEffect(s, game, nr);
     if (standardMonsterEffect !== null) {
         return standardMonsterEffect;
     }
 
-    const roomEffect = parseRoomEffect(s, game);
+    const roomEffect = parseRoomEffect(s, game, nr);
     if (roomEffect !== null) {
         return roomEffect;
     }
@@ -790,7 +1058,9 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
         s = s.replace(" and ", " if you do, ");
         return effectParser(s, game, defaultEffect, selectionOnResolve, youMayEffectHanging);
     }
-    return { effectFunction: defaultEffect, targetSelectors: noTargets };
+    console.log(`Could not parse effect: "${s}"`);
+    throw new Error(`Could not parse effect: "${s}"`);
+    // return { effectFunction: defaultEffect, targetSelectors: noTargets };
 }
 
 /**
@@ -798,9 +1068,381 @@ export function effectParser(s: string, game: Game, defaultEffect: EffectFunctio
  * Returns null if no match is found.
  * Returns a complete ParsedEffect with inline target selectors.
  */
-function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean, youMayEffectHanging: boolean[]): ParsedEffect | null {
+function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, selectionOnResolve: boolean, youMayEffectHanging: boolean[]): ParsedEffect | null {
+    // Number-robust parsing for standard effects.
+    // Keep this limited to cases where the extracted number(s) are actually used by the returned effect.
+    {
+        const parsed = applyNumberRobustChecks(nr, [
+            {
+                patterns: ["each time you die, before paying penalties, gain x¢"],
+                parse: (nr) => ({
+                    effectFunction: passive.beforeDeathPenaltyEffect([active.gainCoinsEffect(game, nr.nextNumber())], game),
+                    targetSelectors: noTargets,
+                }),
+            },
+            {
+                patterns: ["each time you die, before paying penalties, loot x"],
+                parse: (nr) => ({
+                    effectFunction: passive.beforeDeathPenaltyEffect([active.lootCardsEffect(game, nr.nextNumber())], game),
+                    targetSelectors: noTargets,
+                }),
+            },
+            {
+                patterns: ["flip your character if able. then recharge it. discard your hand and loot x"],
+                parse: (nr) => ({
+                    effectFunction: active.combineEffectFunctions([
+                        active.flipCharacterEffect(game),
+                        active.rechargeCharaEffect(game, [false]),
+                        active.discardHandEffect(game),
+                        active.lootCardsEffect(game, nr.nextNumber()),
+                    ]),
+                    targetSelectors: noTargets,
+                }),
+            },
+            {
+                patterns: ["when this is flipped to this side, loot x"],
+                parse: (nr) => ({
+                    effectFunction: passive.lootAfterFlippingEffect(game, nr.nextNumber()),
+                    targetSelectors: noTargets,
+                }),
+            },
+            {
+                patterns: ["choose a monster or player. the next instance of damage they take this turn is reduced to x"],
+                parse: (nr) => ({
+                    effectFunction: passive.setNextDamageToXEffect(nr.nextNumber(), game),
+                    targetSelectors: selectPlayerOrMonster(game),
+                }),
+            },
+            {
+                patterns: ["loot x during your loot step"],
+                parse: (nr) => ({
+                    effectFunction: passive.lootStepEffect([active.lootCardsEffect(game, nr.nextNumber())], game),
+                    targetSelectors: noTargets,
+                }),
+            },
+            {
+                patterns: ["prevent the next x damage you would take this turn"],
+                parse: (nr) => ({
+                    effectFunction: passive.preventNextDamageUpToEffect(nr.nextNumber(), game),
+                    targetSelectors: noTargets,
+                }),
+            },
+            {
+                patterns: ["choose a player. prevent the next x damage they would take this turn"],
+                parse: (nr) => ({
+                    effectFunction: passive.preventNextDamageUpToEffect(nr.nextNumber(), game),
+                    targetSelectors: selectPlayer(game),
+                }),
+            },
+            {
+                patterns: [
+                    "choose a player or monster. prevent the next instance of up to x damage they would take this turn",
+                    "choose a player. prevent the next instance of up to x damage they would take this turn",
+                ],
+                parse: (nr) => ({
+                    effectFunction: passive.preventNextDamageUpToEffect(nr.nextNumber(), game),
+                    targetSelectors: selectPlayerOrMonster(game),
+                }),
+            },
+            {
+                patterns: ["while you have x¢, you have x to your attack rolls"],
+                parse: (nr) => {
+                    const coinCount = nr.nextNumber();
+                    const diceMod = nr.nextNumber();
+                    return {
+                        effectFunction: passive.ConditionalStatModifierEffect(
+                            [game.addAttackDiceModifier.bind(game)],
+                            diceMod,
+                            (player: Player) => player.coins === coinCount,
+                            ["on:coin:gained:after", "on:coin:lost:after"],
+                            game,
+                            false,
+                        ),
+                        targetSelectors: noTargets,
+                    };
+                },
+            },
+            {
+                patterns: ["when you have x loot cards in your hand, you have x [atk]"],
+                parse: (nr) => {
+                    const lootCount = nr.nextNumber();
+                    const atk = nr.nextNumber();
+                    return {
+                        effectFunction: passive.ConditionalStatModifierEffect(
+                            [game.addAttack.bind(game)],
+                            atk,
+                            (player: Player) => player.hand.length === lootCount,
+                            ["on:loot:added:after", "on:loot:removed:after"],
+                            game,
+                        ),
+                        targetSelectors: noTargets,
+                    };
+                },
+            },
+            {
+                patterns: ["you gain x [atk] till the end of turn"],
+                parse: (nr) => ({
+                    effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game)], nr.nextNumber(), game, "issuer"),
+                    targetSelectors: noTargets,
+                }),
+            },
+            {
+                patterns: ["prevent the next x damage you would take this turn. when you prevent damage this way, deal x damage to another player"],
+                parse: (nr) => {
+                    const preventAmount = nr.nextNumber();
+                    const damageAmount = nr.nextNumber();
+                    return {
+                        effectFunction: passive.preventDamageAndDealDmgOnPreventEffect(preventAmount, damageAmount, game),
+                        targetSelectors: selectAnotherPlayer(game),
+                    };
+                },
+            },
+            {
+                patterns: ["choose a player or monster. they gain x [atk] till end of turn"],
+                parse: (nr) => ({
+                    effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game)], nr.nextNumber(), game, "next"),
+                    targetSelectors: selectPlayerOrMonster(game),
+                }),
+            },
+            {
+                patterns: ["gain x [atk] till end of turn", "you gain x [atk] till end of turn"],
+                parse: (nr) => ({
+                    effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game)], nr.nextNumber(), game, "issuer"),
+                    targetSelectors: selectPlayerOrMonster(game),
+                }),
+            },
+            {
+                patterns: ["each monster gains x [atk] till end of turn"],
+                parse: (nr) => ({
+                    effectFunction: passive.temporaryStatModifierEffect(
+                        [game.addAttackToEachMonster.bind(game)],
+                        nr.nextNumber(),
+                        game,
+                        "issuer",
+                    ),
+                    targetSelectors: noTargets,
+                }),
+            },
+            {
+                patterns: ["each monster gains x [dc] till end of turn"],
+                parse: (nr) => ({
+                    effectFunction: passive.temporaryStatModifierEffect([game.addDCToEachMonster.bind(game)], nr.nextNumber(), game, "issuer"),
+                    targetSelectors: noTargets,
+                }),
+            },
+            {
+                patterns: ["if you would take any amount of damage, take that much damage x instead"],
+                parse: (nr) => ({
+                    effectFunction: passive.takeDamagePlusEffect(nr.nextNumber(), game),
+                    targetSelectors: noTargets,
+                }),
+            },
+            {
+                patterns: ["each time a player dies, before paying penalties, loot x"],
+                parse: (nr) => ({
+                    effectFunction: passive.lootOnPlayerDeathEffect(nr.nextNumber(), game),
+                    targetSelectors: noTargets,
+                }),
+            },
+            {
+                patterns: ["if you would gain any number of ¢, gain that much x¢ instead"],
+                parse: (nr) => ({
+                    effectFunction: passive.gainPlusCoinsEffect(nr.nextNumber(), game),
+                    targetSelectors: noTargets,
+                }),
+            },
+            {
+                patterns: ["this item starts with x counters on it"],
+                parse: (nr) => ({
+                    effectFunction: passive.startWithNCountersEffect(nr.nextNumber(), game),
+                    targetSelectors: noTargets,
+                }),
+            },
+            {
+                patterns: [
+                    "reveal the top x cards of the monster deck. give any curse cards revealed to the player or players of your choosing. put the rest on the bottom of the deck in any order",
+                ],
+                parse: (nr) => noTargetEffect(active.revealTopCardsOfMonsterDeckEffect(game, nr.nextNumber())),
+            },
+            {
+                patterns: [
+                    "gain x [atk] for your first attack roll each turn",
+                    "you have x [atk] for your first attack roll each turn",
+                ],
+                parse: (nr) => ({
+                    effectFunction: passive.firstAttackRollStatModifierEffect(nr.nextNumber(), 0, 0, game),
+                    targetSelectors: noTargets,
+                }),
+            },
+            {
+                patterns: ["each time you would take damage, roll-\nx: prevent x of that damage"],
+                parse: (nr) => {
+                    const rollValue = nr.nextNumber();
+                    const preventAmount = nr.nextNumber();
+                    return {
+                        effectFunction: passive.preventDamageOnRollEffect([rollValue], preventAmount, game),
+                        targetSelectors: noTargets,
+                    };
+                },
+            },
+            {
+                patterns: ["[lvx effect] you have x to your first attack roll each turn"],
+                parse: (nr) => {
+                    const lvl = nr.nextNumber();
+                    const diceMod = nr.nextNumber();
+                    return {
+                        effectFunction: passive.lvlXaddListenerEffect([passive.firstAttackRollDiceModifier(diceMod, game)], lvl, game),
+                        targetSelectors: noTargets,
+                    };
+                },
+            },
+            {
+                patterns: ["[lvx effect] you have x [atk]"],
+                parse: (nr) => {
+                    const lvl = nr.nextNumber();
+                    const atk = nr.nextNumber();
+                    return {
+                        effectFunction: passive.lvlXaddListenerEffect(
+                            [passive.permanentStatModifierEffect([game.addAttack.bind(game)], atk, game)],
+                            lvl,
+                            game,
+                        ),
+                        targetSelectors: noTargets,
+                    };
+                },
+            },
+            {
+                patterns: ["[lvx effect] you may attack any number of times on your turn"],
+                parse: (nr) => {
+                    const lvl = nr.nextNumber();
+                    return {
+                        effectFunction: passive.lvlXaddListenerEffect(
+                            [passive.onYourTurnModifier([game.addAttackThisTurn.bind(game)], INFINITY, game)],
+                            lvl,
+                            game,
+                        ),
+                        targetSelectors: noTargets,
+                    };
+                },
+            },
+            {
+                patterns: ["each time you roll an attack roll of x, deal x damage to each other player"],
+                parse: (nr) => {
+                    const rollValue = nr.nextNumber();
+                    const damage = nr.nextNumber();
+                    return {
+                        effectFunction: passive.onAttackRollEffect([rollValue], active.dealDamageToEachOtherPlayerEffect(game, damage), game),
+                        targetSelectors: noTargets,
+                    };
+                },
+            },
+            {
+                patterns: ["deal x damage to another player"],
+                parse: (nr) => ({
+                    effectFunction: active.dealDamageToAPlayerEffect(game, nr.nextNumber(), false),
+                    targetSelectors: selectAnotherPlayer(game),
+                }),
+            },
+            {
+                patterns: ["each time another player gains ¢, they must give you x¢"],
+                parse: (nr) => noTargetEffect(passive.stealCoinOnGainEffect(nr.nextNumber(), game)),
+            },
+            {
+                patterns: ["if you have x¢, gain x¢"],
+                parse: (nr) => {
+                    const coinsCondition = nr.nextNumber();
+                    const gainAmount = nr.nextNumber();
+                    return { effectFunction: active.gainXCoinsIfYEffect(coinsCondition, gainAmount, game), targetSelectors: noTargets };
+                },
+            },
+            {
+                patterns: ["if you have x or more loot cards in your hand, loot x"],
+                parse: (nr) => {
+                    const threshold = nr.nextNumber();
+                    const lootAmount = nr.nextNumber();
+                    return { effectFunction: active.lootXIfYEffect(threshold, true, lootAmount, game), targetSelectors: noTargets };
+                },
+            },
+            {
+                patterns: ["if you have x loot cards in your hand, loot x"],
+                parse: (nr) => {
+                    const threshold = nr.nextNumber();
+                    const lootAmount = nr.nextNumber();
+                    return { effectFunction: active.lootXIfYEffect(threshold, false, lootAmount, game), targetSelectors: noTargets };
+                },
+            },
+            {
+                patterns: ["each other player takes x damage"],
+                parse: (nr) => ({ effectFunction: active.dealDamageToEachOtherPlayerEffect(game, nr.nextNumber()), targetSelectors: noTargets }),
+            },
+            {
+                patterns: [
+                    "look at the top x cards of a deck. put them back in any order",
+                    "look at the top x cards of a deck and put them back in any order",
+                ],
+                parse: (nr) => noTargetEffect(active.lookAndReorderTopCardsEffect(game, nr.nextNumber(), "selectOnResolve")),
+            },
+            {
+                patterns: ["gain x ¢ instead"],
+                parse: (nr) => {
+                    const fixed = nr.nextNumber();
+                    return { effectFunction: active.modifyCoinGainedEffect(game, () => fixed), targetSelectors: noTargets };
+                },
+            },
+            {
+                patterns: ["deal x damage to up to x monsters or players"],
+                parse: (nr) => {
+                    const damage = nr.nextNumber();
+                    const maxTargets = nr.nextNumber();
+                    return {
+                        effectFunction: active.dealDamageToUpToXMonstersOrPlayersEffect(game, maxTargets, damage),
+                        targetSelectors: selectPlayerOrMonster(game, 1, maxTargets),
+                    };
+                },
+            },
+            {
+                patterns: ["combat damage you deal on attack rolls of x is increased by x"],
+                parse: (nr) => {
+                    const rollValue = nr.nextNumber();
+                    const increaseBy = nr.nextNumber();
+                    return noTargetEffect(passive.combatDamageModifierOnAttackRollEffect(game, [rollValue], increaseBy));
+                },
+            },
+            {
+                patterns: ["if this has x+ counters, remove all of them and loot x"],
+                parse: (nr) => {
+                    const threshold = nr.nextNumber();
+                    const lootAmount = nr.nextNumber();
+                    return noTargetEffect(active.removeCounterAndLootIfAbove(game, threshold, lootAmount));
+                },
+            },
+            {
+                patterns: ["choose a monster. its [atk] becomes x"],
+                parse: (nr) => ({
+                    effectFunction: active.setMonsterAttackToXEffect(game, nr.nextNumber()),
+                    targetSelectors: selectMonster(game),
+                }),
+            },
+            {
+                patterns: ["you have x [hp] for each counter on this"],
+                parse: (nr) => noTargetEffect(passive.statModifierBasedOnCountersEffect(game, [game.addHealth.bind(game)], 1, nr.nextNumber())),
+            },
+            {
+                patterns: ["you have x [atk] for every x counters on this"],
+                parse: (nr) => {
+                    const atkPer = nr.nextNumber();
+                    const countersPer = nr.nextNumber();
+                    return noTargetEffect(passive.statModifierBasedOnCountersEffect(game, [game.addAttack.bind(game)], countersPer, atkPer));
+                },
+            },
+        ]);
+        if (parsed !== null) return parsed;
+    }
     switch (s) {
         // passive effects
+        case "[paid effect]":
+        case "":
+            return noTargetEffect(()=>true);
         case "each time you roll the same result twice in a row on an attack roll on the same turn, kill the monster you're attacking.":
             return { effectFunction: passive.killOnDoubleAttackRollEffect(game), targetSelectors: noTargets };
         case "the next time a player would loot, they loot from the top of the loot discard instead.":
@@ -809,28 +1451,29 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
             return { effectFunction: passive.goFirstInTurnOrderEffect(game), targetSelectors: noTargets };
         case "damage you would take is reduced to 1.":
             return { effectFunction: passive.reduceDamageToOneEffect(game), targetSelectors: noTargets };
+        case "this has the abilities of other items with gold counters on them.":
+            return noTargetEffect(passive.copyAbilitiesFromGoldCounterItemsEffect(game));
         case "this enters play deactivated.":
             return { effectFunction: passive.enterPlayDeactivatedEffect(game), targetSelectors: noTargets };
         case "cancel your attack on a monster.":
             return { effectFunction: active.cancelAttackOnMonsterEffect(game), targetSelectors: noTargets };
         case "when you would roll a 1, you may change the result to a 6.":
             return { effectFunction: passive.changeRollOneToSixEffect(game), targetSelectors: noTargets };
+        case "if you would loot, except during the loot step, instead loot that much +1.":
+            return { effectFunction: passive.lootPlusOneExceptLootStepEffect(game), targetSelectors: noTargets };
         case "when you die, before paying penalties, give this to another player.":
             return { effectFunction: passive.giveThisToAnotherPlayerOnDeathEffect(game), targetSelectors: noTargets };
         case "choose a non-active player. the next time the active player declares an attack this turn, the chosen player must make an attack roll after each attack roll the active player makes for the attack. if that monster dies this attack, the chosen player also gains the rewards.":
             return { effectFunction: active.nonActivePlayerHelpFight(game), targetSelectors: selectAliveNonActivePlayer(game) };
-        case "each time you die, before paying penalties, gain 8¢.":
-            return { effectFunction: passive.beforeDeathPenaltyEffect([active.gainCoinsEffect(game, 8)], game), targetSelectors: noTargets };
-        case "each time you die, before paying penalties, loot 3.":
-            return { effectFunction: passive.beforeDeathPenaltyEffect([active.lootCardsEffect(game, 3)], game), targetSelectors: noTargets };
+        case "choose a player. each item they control gains eternal till end of turn.":
+            return { effectFunction: passive.gainEternalTillEndOfTurnEffect(game), targetSelectors: selectPlayer(game) };
         case "each time you die, choose another player. that player dies.":
             return { effectFunction: passive.afterDeathPenaltyEffect([active.killTargetEffect(game, selectAnotherPlayer(game), true, false)], game), targetSelectors: noTargets };
-        case "flip your character if able. then recharge it. discard your hand and loot 3.":
-            return { effectFunction: active.combineEffects(game, [active.flipCharacterEffect(game), active.rechargeCharaEffect(game, [false]), active.discardHandEffect(game), active.lootCardsEffect(game, 3)]), targetSelectors: noTargets };
+        case "prevent all non-combat damage you would take.":
+            return { effectFunction: passive.preventNonCombatDamageEffect(game), targetSelectors: noTargets };
         case "flip this item.":
             return { effectFunction: active.flipThisItemEffect(game), targetSelectors: noTargets };
-        case "when this is flipped to this side, loot 1.":
-            return { effectFunction: passive.lootAfterFlippingEffect(game, 1), targetSelectors: noTargets };
+        
         case "you don't lose ¢ or discard loot cards when paying the death penalty.":
             return { effectFunction: passive.noDeathPenaltyCoinsAndLootEffect(game), targetSelectors: noTargets };
         case "if this would be destroyed, it becomes a soul instead.":
@@ -839,28 +1482,13 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
             return { effectFunction: passive.onFirstDamageEachTurnEffect([active.rechargeItemsEffect(game, true)], game), targetSelectors: noTargets };
         case "when you start the game, look at the top 3 cards of the treasure deck and choose one. it becomes your starting item and gains eternal. put the rest on the bottom of the treasure deck.":
             return { effectFunction: passive.startingItemEffect(game), targetSelectors: noTargets };
-        case "choose a monster or player. the next instance of damage they take this turn is reduced to 1.":
-            return { effectFunction: passive.setNextDamageToXEffect(1, game), targetSelectors: selectPlayerOrMonster(game) };
-        case "loot +1 during your loot step.":
-            return { effectFunction: passive.lootStepEffect([active.lootCardsEffect(game, 1)], game), targetSelectors: noTargets };
-        case "prevent the next 1 damage you would take this turn.":
-            return { effectFunction: passive.preventNextDamageUpToEffect(1, game), targetSelectors: noTargets };
-        case "prevent the next 2 damage you would take this turn":
-        case "prevent the next 2 damage you would take this turn.":
-            return { effectFunction: passive.preventNextDamageUpToEffect(2, game), targetSelectors: noTargets };
+        
         case "if another player would pay the death penalty, you choose what item they would destroy and you gain any loot cards and ¢ they would lose.":
             return { effectFunction: passive.replaceDeathPenaltyEffect(game), targetSelectors: noTargets };
-        case "while you have 0¢, you have +1 to your attack rolls.":
-            return { effectFunction: passive.ConditionalStatModifierEffect([game.addAttackDiceModifier.bind(game)], 1, (player: Player) => player.coins === 0, ["on:coin:gained:after","on:coin:lost:after"], game, false), targetSelectors: noTargets };
-        case "when you have 0 loot cards in your hand, you have +1 [atk] .":
-            return { effectFunction: passive.ConditionalStatModifierEffect([game.addAttack.bind(game)], 1, (player: Player) => player.hand.length === 0, ["on:loot:added:after","on:loot:removed:after"], game), targetSelectors: noTargets };
-        case "choose a player. prevent the next 1 damage they would take this turn.":
-            return { effectFunction: passive.preventNextDamageUpToEffect(1, game), targetSelectors: selectPlayer(game) };
+        
         case "choose a player or monster. prevent the next instance of damage they would take this turn.":
             return { effectFunction: passive.preventNextDamageUpToEffect(INFINITY, game), targetSelectors: selectPlayerOrMonster(game) };
-        case "choose a player or monster. prevent the next instance of up to 2 damage they would take this turn.":
-        case "choose a player. prevent the next instance of up to 2 damage they would take this turn.":
-            return { effectFunction: passive.preventNextDamageUpToEffect(2, game), targetSelectors: selectPlayerOrMonster(game) };
+        
         case "choose a player. till end of turn, if they would loot any number of loot cards, they loot double that number instead.":
             return { effectFunction: passive.lootDoubleThisTurnEffect(game), targetSelectors: selectPlayer(game) };
         case "before a dice is rolled, choose a number. if the next roll is that number, loot 3.":
@@ -871,26 +1499,15 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
             return { effectFunction: passive.noPriorityPassesTillEndOfTurnEffect(game), targetSelectors: noTargets };
         case "the next time you play a non-trinket, non-ambush loot card this turn, copy it.":
             return { effectFunction: passive.copyNextNonTrinketNonAmbushLootThisTurnEffect(game), targetSelectors: noTargets };
-        case "you gain +1 [atk] till the end of turn.":
-            return { effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game)], 1, game, "issuer"), targetSelectors: noTargets };
-        case "prevent the next 1 damage you would take this turn. when you prevent damage this way, deal 1 damage to another player.":
-            return { effectFunction: passive.preventDamageAndDealDmgOnPreventEffect(1, 1, game), targetSelectors: selectAnotherPlayer(game) };
+        case "put a room or monster not being attacked into discard.":
+            return { effectFunction: active.putRoomOrMonsterIntoDiscardEffect(game, false), targetSelectors: noTargets };
+        case "you may put a room or monster not being attacked into discard.":
+            return { effectFunction: active.putRoomOrMonsterIntoDiscardEffect(game, true), targetSelectors: noTargets };
         case "each other player may choose to gain 1¢. gain 1¢ + 1¢ for each player who did.":
             return noTargetEffect(active.eachOtherPlayerMayGainCoinEffect(game));
         case "choose a monster being attacked. heal that monster to full [hp] , then deal damage equal to the number of [hp] healed in this way to another monster. if it's not your turn, cancel the attack and the active player may make an additional attack this turn.":
             return {effectFunction: active.healMonsterThenDamageAnotherEffect(game), targetSelectors: selectMonsterBeingAttacked(game) };
-        case "choose a player or monster. they gain +1 [atk] till end of turn.":
-            return { effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game)], 1, game, "next"), targetSelectors: selectPlayerOrMonster(game) };
-        case "gain +1 [atk] till end of turn.":
-            return { effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game)], 1, game, "issuer"), targetSelectors: selectPlayerOrMonster(game) };
-        case "gain +2 [atk] till end of turn.":
-            return { effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game)], 2, game, "issuer"), targetSelectors: selectPlayerOrMonster(game) };
-        case "each monster gains +1 [atk] till end of turn.":
-            return { effectFunction: passive.temporaryStatModifierEffect([game.addAttackToEachMonster.bind(game)], 1, game, "issuer"), targetSelectors: noTargets };
-        case "each monster gains +1 [dc] till end of turn.":
-            return { effectFunction: passive.temporaryStatModifierEffect([game.addDCToEachMonster.bind(game)], 1, game, "issuer"), targetSelectors: noTargets };
-        case "if you would take any amount of damage, take that much damage +1 instead.":
-            return { effectFunction: passive.takeDamagePlusEffect(1, game), targetSelectors: noTargets };
+        
         case "each other player plays with their hand revealed.":
             return noTargetEffect(passive.eachOtherPlayerRevealsHandEffect(game));
         case "when you roll an attack roll of 1, end your turn. cancel everything that hasn't resolved.":
@@ -900,6 +1517,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
         case "if another player declares an attack on a monster, you may choose which monster they attack.":
             return noTargetEffect(passive.chooseMonsterWhenAnotherPlayerAttacksMonsterEffect(game));
         case "you gain +1 [hp] till the end of turn.":
+        case "you gain +1 [hp] till end of turn":
         case "gain +1 [hp] till end of turn.":
             return { effectFunction: passive.temporaryStatModifierEffect([game.addHealth.bind(game)], 1, game, "issuer"), targetSelectors: noTargets };
         case "choose a player.\nthey gain +2 [hp] till end of turn.":
@@ -911,31 +1529,20 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
         case "choose a player.\nthey gain +1 [atk] till end of turn and may attack an additional time this turn.":
             return { effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game), game.addAttackThisTurn.bind(game)], 1, game, "next"), targetSelectors: selectPlayer(game) };
         case "play an additional loot card this turn.":
+        case "play an additional loot card this turn":
             return { effectFunction: passive.temporaryStatModifierEffect([game.addLootPlay.bind(game)], 1, game, "issuer"), targetSelectors: noTargets };
-        case "each time a player dies, before paying penalties, loot 1.":
-            return { effectFunction: passive.lootOnPlayerDeathEffect(1, game), targetSelectors: noTargets };
-        case "if you would gain any number of \u00A2, gain that much +1\u00A2 instead.":
-            return { effectFunction: passive.gainPlusCoinsEffect(1, game), targetSelectors: noTargets };
-        case "this item starts with 9 counters on it.":
-            return { effectFunction: passive.startWithNCountersEffect(9, game), targetSelectors: noTargets };
-        case "reveal the top 6 cards of the monster deck. give any curse cards revealed to the player or players of your choosing. put the rest on the bottom of the deck in any order.":
-            return noTargetEffect(active.revealTopCardsOfMonsterDeckEffect(game, 6));
+        case "if this would be destroyed, if it has no counters on it, put a counter on it instead.":
+            return { effectFunction: passive.putCounterInsteadOfDestructionEffect(game), targetSelectors: noTargets };
+        case "you have +1 [hp] while this has a counter on it.":
+            return { effectFunction: passive.ConditionalStatModifierEffect([game.addHealth.bind(game)], 1, (player, card) => card.tags.counters > 0, ["on:counter:modified"], game, false ), targetSelectors: noTargets };
         case "if you would take damage while this has counters on it, remove that many counters and prevent that much damage.":
             return { effectFunction: passive.preventDamageByRemovingCountersEffect(game), targetSelectors: noTargets };
-        case "gain +1 [atk] for your first attack roll each turn.":
-            return { effectFunction: passive.firstAttackRollStatModifierEffect(1, 0, 0, game), targetSelectors: noTargets };
-        case "you have +1 [atk] for your first attack roll each turn.":
-            return { effectFunction: passive.firstAttackRollStatModifierEffect(1, 0, 0, game), targetSelectors: noTargets };
-        case "each time you would take damage, roll-\n6: prevent 1 of that damage.":
-            return { effectFunction: passive.preventDamageOnRollEffect([6], 1, game), targetSelectors: noTargets };
+        case "choose a player. prevent the next 1 damage they would take this turn. till end of turn, when that player dies, deal 2 damage to each player other than that player and you.":
+            return { effectFunction: passive.preventDamageAndDealOnDeathEffect(game, 1, 2), targetSelectors: selectAlivePlayer(game) };
         case "if you would gain any amount of ¢, this levels up by that much instead.":
             return { effectFunction: passive.gainCoinsLevelUpEffect(game), targetSelectors: noTargets };
-        case "[lv1 effect] you have +2 to your first attack roll each turn.":
-            return { effectFunction: passive.lvlXaddListenerEffect([passive.firstAttackRollDiceModifier(2, game)], 1, game), targetSelectors: noTargets };
-        case "[lv10 effect] you have +1 [atk] .":
-            return { effectFunction: passive.lvlXaddListenerEffect([passive.permanentStatModifierEffect([game.addAttack.bind(game)], 1, game)], 10, game), targetSelectors: noTargets };
-        case "[lv25 effect] you may attack any number of times on your turn.":
-            return { effectFunction: passive.lvlXaddListenerEffect([passive.onYourTurnModifier([game.addAttackThisTurn.bind(game)], INFINITY, game)], 25, game), targetSelectors: noTargets };
+        case "rewards are doubled till end of turn.":
+            return { effectFunction: passive.doubleRewardsTillEndOfTurnEffect(game), targetSelectors: noTargets };
         case "you have +1 to attack rolls.":
             return { effectFunction: passive.permanentStatModifierEffect([game.addAttackDiceModifier.bind(game)], 1, game), targetSelectors: noTargets };
         case "monsters have +1 [dc] on your turn.":
@@ -948,45 +1555,37 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
             return { effectFunction: passive.onYourTurnModifier([game.addAttackThisTurn.bind(game)], 1, game), targetSelectors: noTargets };
         case "you may play an additional loot card on your turn.":
             return { effectFunction: passive.onYourTurnModifier([game.addLootPlay.bind(game)], 1, game), targetSelectors: noTargets };
-        case "each time you roll an attack roll of 6, deal 1 damage to each other player.":
-            return { effectFunction: passive.onAttackRollEffect([6],active.dealDamageToEachOtherPlayerEffect(game, 1), game), targetSelectors: noTargets };
+        
         case "when this reaches 0 [hp] , the player attacking this gains its reward, then you flip it. that player may attack an additional time this turn.":
             return noTargetEffect(passive.flipAndAddAttackEffect(game));
         // active effects
-        case "deal 1 damage to another player.":
-            // Example of inline target selector specification
-            return {
-                effectFunction: active.dealDamageToAPlayerEffect(game, 1, false),
-                targetSelectors: selectAnotherPlayer(game)
-            };
+        case "when this enters play put a gold counter on another non-eternal item you control.":
+            return noTargetEffect(passive.giveCounterToAnotherItemOnEnterPlayEffect(game, "goldCounters"));
+        case "look at the top 5 cards of the monster or room deck and put them back in any order":
+            return { effectFunction: active.lookAndReorderTopCardsEffect(game, 5, undefined, "dataIssuer"), targetSelectors: selectDeck(game, 1, 1, (name) => ["room", "monster"].includes(name)) };
         case "choose a shop item. this gains the abilities of that item till end of turn.":
             return { effectFunction: passive.gainAbilitiesUntilEffect(game, "on:turn:end", selectShopItem(game)[0]!, false), targetSelectors: selectShopItem(game) };
         case "choose a shop item. this gains the abilities of that item till the start of your next turn. recharge this.":
             return { effectFunction: passive.gainAbilitiesUntilEffect(game, "on:turn:start", selectShopItem(game)[0]!, true), targetSelectors: selectShopItem(game) };
         case "prevent death, heal to full [hp] , and cancel your attack":
             return { effectFunction: active.preventDeathHealFullCancelAttackEffect(game), targetSelectors: noTargets };
+        case "choose up to 3 non-event monster cards in discard. put them in one or more monster slots not being attacked.":
+            return { effectFunction: active.putMonstersFromDiscardIntoSlotsEffect(game, 3), targetSelectors: selectXCardsFromDiscard(game, "monster", 0, 3, (card) => card instanceof MonsterCard && !card.isEvent) };
         case "before a dice is rolled, choose a number. till the end of turn, each time that number is rolled, deal 1 damage to a monster or player.":
             return { effectFunction: passive.chooseNumberDamageOnRollThisTurnEffect(game), targetSelectors: selectNumber1to6() };
         case "you may attack an additional time this turn.":
             return noTargetEffect(active.giveAdditionalAttackThisTurnEffect(game, 1));
         case "put counters on this equal to the amount of damage taken. then, if this has 6+ counters, remove 6 counters from this and gain +1 treasure.":
             return { effectFunction: active.addCountersAndGainTreasureEffect(6, 1, game), targetSelectors: noTargets };
-        case "each time another player gains ¢, they must give you 1¢.":
-            return noTargetEffect(passive.stealCoinOnGainEffect(1, game));
+        
         case "choose another player. they give you a loot card. reveal it":
             return { effectFunction: active.playerGivesLootCardEffect(game, true, true), targetSelectors: selectAnotherPlayer(game) };
         case "you must play that loot card if able. this doesn't use a loot play.":
             return { effectFunction: active.playForFreeTargetEffect(game), targetSelectors: noTargets };
-        case "if you have 0¢, gain 6¢.":
-            return { effectFunction: active.gainXCoinsIfYEffect(0, 6, game), targetSelectors: noTargets };
-        case "if you have 8 or more loot cards in your hand, loot 2.":
-            return { effectFunction: active.lootXIfYEffect(8, true, 2, game), targetSelectors: noTargets };
-        case "if you have 0 loot cards in your hand, loot 2.":
-            return { effectFunction: active.lootXIfYEffect(0, false, 2, game), targetSelectors: noTargets };
+        
         case "choose a player or monster":
             return { effectFunction: (data:EffectData) => { return true; }, targetSelectors: selectPlayerOrMonster(game) };
-        case "each other player takes 1 damage.":
-            return { effectFunction: active.dealDamageToEachOtherPlayerEffect(game, 1), targetSelectors: noTargets };
+        
         case "prevent death. if it's your turn, cancel everything that hasn't resolved and end it.":
             return { effectFunction: active.preventDeathEndTurnEffect(game), targetSelectors: noTargets };
         case "prevent death. if it's your turn, cancel everything that hasn't resolved and end your turn.":
@@ -994,11 +1593,8 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
         case "discard any number of loot cards":
             return { effectFunction: active.discardAnyNumberOfLootCardsEffect(game, youMayEffectHanging), targetSelectors: noTargets };
         case "give another non-eternal item you control to another player": 
-            return { effectFunction: active.giveItemToAnotherPlayerEffect(game), targetSelectors: [selectItemYouControl(game)[0]!, selectAnotherPlayer(game)[0]!] };
-        case "look at the top 5 cards of a deck. put them back in any order.":
-            return { effectFunction: active.lookAndReorderTopCardsEffect(game, 5), targetSelectors: selectDeck(game) };
-        case "look at the top 4 cards of a deck and put them back in any order.":
-            return { effectFunction: active.lookAndReorderTopCardsEffect(game, 4), targetSelectors: selectDeck(game) };
+            return { effectFunction: active.giveItemToAnotherPlayerEffect(game), targetSelectors: [selectAnotherItemYouControl(game)[0]!, selectAnotherPlayer(game)[0]!] };
+        
         case "put the top card of any discard on top of its deck.":
             return { effectFunction: active.putTopCardFromDiscardOnTopEffect(game), targetSelectors: selectTopAnyDiscard(game) };
         case "reroll an item they control.":
@@ -1017,6 +1613,8 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
             return { effectFunction: active.halfLootAndCoinsAndGiveItemEffect(game), targetSelectors: selectAnotherPlayer(game) };
         case "recharge an item.":
             return { effectFunction: active.rechargeItemsEffect(game, selectionOnResolve, youMayEffectHanging), targetSelectors: selectItem(game) };
+        case "cancel an attack on a monster and put that monster card on the bottom of the monster deck.":
+            return { effectFunction: active.cancelAttackAndPutMonsterOnBottomEffect(game), targetSelectors: selectMonsterBeingAttacked(game) };
         case "put the top card of a deck into discard.":
             return { effectFunction: active.discardTopOfDeckEffect(game), targetSelectors: selectDeck(game) };
         case "look at the top card of the loot deck. you may put it on the bottom.":
@@ -1053,16 +1651,17 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
             return { effectFunction: active.destroyOneEffect(game), targetSelectors: selectNonEternalItemFromAnywhere(game) };
         case "discard your hand":
             return { effectFunction: active.discardHandEffect(game), targetSelectors: noTargets };
+        case "destroy an item. if that item was controlled by a player, they steal an item from the shop.":
+            return { effectFunction: active.destroyItemStealFromShopEffect(game, false), targetSelectors: selectNonEternalItemFromAnywhere(game) };
         case "destroy an item. if it was controlled by a player, they may steal an item from the shop.":
-            return { effectFunction: active.destroyItemAndMaybeStealFromShopEffect(game), targetSelectors: selectNonEternalItemFromAnywhere(game) };
+            return { effectFunction: active.destroyItemStealFromShopEffect(game, true), targetSelectors: selectNonEternalItemFromAnywhere(game) };
         case "destroy an item you control.":
             return { effectFunction: active.destroyOneEffect(game), targetSelectors: selectItemYouControl(game) };
         case "destroy a soul you control.":
             return { effectFunction: active.destroyOneEffect(game, selectSoulYouControl(game)[0]), targetSelectors: noTargets };
         case "each player votes on an item in play. destroy the item with the most votes. if there is a tie, nothing happens.":
             return { effectFunction: active.eachPlayersVoteToDestroyItemEffect(game), targetSelectors: noTargets };
-        case "gain 1 ¢ instead.":
-            return { effectFunction: active.modifyCoinGainedEffect(game, (original) => 1), targetSelectors: noTargets };
+        
         case "gain double the number of ¢ you would've gained.":
             return { effectFunction: active.modifyCoinGainedEffect(game, (original) => original * 2), targetSelectors: noTargets };
         case "swap this with a non-eternal item another player controls.":
@@ -1099,19 +1698,23 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
         case "loot equal to the number of cards discarded in this way.":
             return { effectFunction: active.lootEqualToCardsDiscardedEffect(game), targetSelectors: noTargets };
         case "subtract up to 2 from a roll.":
-            return { effectFunction: active.subtractUpTo2FromRollEffect(game), targetSelectors: selectRollAndNumber(game, [0, 1, 2]) };
+            return { effectFunction: active.subtractUpToXFromRollEffect(game), targetSelectors: selectRollAndNumber(game, [0, 1, 2]) };
         case "add up to 2 to an attack roll.":
-            return { effectFunction: active.addUpTo2ToRollEffect(game, "attack"), targetSelectors: selectRollAndNumber(game, [0, 1, 2], 1, 1, "attack") };
+            return { effectFunction: active.addUpToXToRollEffect(game, "attack"), targetSelectors: selectRollAndNumber(game, [0, 1, 2], 1, 1, "attack") };
         case "add up to 2 to a non-attack roll.":
-            return { effectFunction: active.addUpTo2ToRollEffect(game, "non-attack"), targetSelectors: selectRollAndNumber(game, [0, 1, 2], 1, 1, "non-attack") };
+            return { effectFunction: active.addUpToXToRollEffect(game, "non-attack"), targetSelectors: selectRollAndNumber(game, [0, 1, 2], 1, 1, "non-attack") };
         case "each player votes on an item in play. destroy the item with the most votes. If there is a tie, nothing happens.":
             return { effectFunction: active.eachPlayersVoteToDestroyItemEffect(game), targetSelectors: noTargets };
+        case "change a number in the effect text of a card in play or loot being played by 1 till end of turn. the number can't go below 1 or above 6.":
+            return { effectFunction: active.changeNumberInEffectTextEffect(game), targetSelectors: selectCardInPlayOrLootBeingPlayed(game) };
         case "add or subtract 1 from any of your non-attack rolls.":
             return noTargetEffect(passive.addToYourRollValueEffect(game, [-1, 1], "non-attack", youMayEffectHanging));
-        case "die!":
+        case "abilities and the death penalty can't make you discard loot cards or lose ¢.":
+            return { effectFunction: passive.noLootDiscardOrCoinLossEffect(game), targetSelectors: noTargets };
+        case "die":
             return noTargetEffect(active.dieEffect(game));
         case "add 1 to a roll.":
-            return { effectFunction: active.add1ToRollEffect(), targetSelectors: selectRoll(game) };
+            return { effectFunction: active.addXToRollEffect(1), targetSelectors: selectRoll(game) };
         case "swap a non-eternal item you control with a non-eternal item they control.":
             return { effectFunction: active.swapNonEternalItemsEffect(game, youMayEffectHanging), targetSelectors: [selectItemYouControl(game)[0]!, selectAnotherPlayerNonEternalItem(game)[0]!] };
         case "choose a player. loot and gain ¢ until you have the same number of each as they do.":
@@ -1120,8 +1723,10 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
             return { effectFunction: active.flushOneMonsterSlotEffect(game, 1), targetSelectors: noTargets };
         case "you may put a monster not being attacked into discard and replace it with the top card of the monster deck.":
             return { effectFunction: active.flushOneMonsterSlotEffect(game, 0), targetSelectors: noTargets };
+        case "put the top card of the monster deck in a monster slot not being attacked.":
+            return { effectFunction: active.putTopMonsterInValidSlotEffect(game, false), targetSelectors: noTargets };
         case "you may put the top card of the monster deck in a monster slot not being attacked.":
-            return { effectFunction: active.putTopMonsterInValidSlotEffect(game), targetSelectors: noTargets };
+            return { effectFunction: active.putTopMonsterInValidSlotEffect(game, true), targetSelectors: noTargets };
         case "when this enters play, it becomes a soul.\n(it's no longer an item.)":
             return { effectFunction: active.enterPlayBecomeSoulEffect(game), targetSelectors: noTargets };
         case "cancel the ↷ or $ ability of an item or loot being played.":
@@ -1200,7 +1805,8 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
             return { effectFunction: active.eachPlayerDestroysASoulEffect(game), targetSelectors: noTargets };
         case "choose a dice roll. its controller rerolls it.":
             return { effectFunction: active.rerollDiceByControllerEffect(game), targetSelectors: selectRoll(game) };
-
+        case "give this to the player to your left.":
+            return { effectFunction: active.giveThisToPlayerOnLeftEffect(game), targetSelectors: noTargets };
         case "change the result of a dice roll to a number of your choosing.":
             return { effectFunction: active.changeRollDiceResultEffect(game), targetSelectors: selectRollAndNumber(game, [1, 2, 3, 4, 5, 6]) };
         case "change the result of a dice roll to a 3.":
@@ -1208,8 +1814,9 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
         case "change the result of a dice roll to a 1 or 6.":
             return { effectFunction: active.changeRollDiceResultEffect(game), targetSelectors: selectRollAndNumber(game, [1, 6]) };
         case "put a card from your hand on top of the loot deck.":
+        case "then put 1 card from your hand on top of the loot deck.":
         case "put a loot card from your hand on top of the loot deck.":
-            return { effectFunction: active.putCardFromHandOnTopOfDeckEffect(game), targetSelectors: noTargets };
+            return { effectFunction: active.putXCardFromYourHandOnTopOfLootDeck(game, 1), targetSelectors: noTargets };
         case "reroll an item you control.":
             return { effectFunction: active.rerollItemEffect(game, selectItemYouControl(game), selectionOnResolve), targetSelectors: selectItemYouControl(game) };
         case "reroll an item. (destroy that item and replace it with the top card of the treasure deck.)":
@@ -1230,28 +1837,22 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
             return { effectFunction: active.rechargeThisEffect(game), targetSelectors: noTargets };
         case "this becomes a soul. gain it.":
             return { effectFunction: active.thisBecomeSoulGainItEffect(game), targetSelectors: noTargets };
-        case "combat damage you deal on attack rolls of 6 is increased by 3.":
-            return noTargetEffect(passive.combatDamageModifierOnAttackRollEffect(game, [6], 3));
-        case "you have +1 [hp] for each counter on this.":
-            return noTargetEffect(passive.statModifierBasedOnCountersEffect(game, [game.addHealth.bind(game)], 1, 1));
-        case "you have +1 [atk] for every 2 counters on this.":
-            return noTargetEffect(passive.statModifierBasedOnCountersEffect(game, [game.addAttack.bind(game)], 2, 1));
-        case "if this has 3+ counters, remove all of them and loot 3.":
-            return noTargetEffect(active.removeCounterAndLootIfAbove(game, 3, 3));
-        case "choose a monster. its [atk] becomes 1.":
-            return { effectFunction: active.setMonsterAttackToXEffect(game, 1), targetSelectors: selectMonster(game) };
-        case "deal 1 damage to up to 2 monsters or players.":
-            return { effectFunction: active.dealDamageToUpToXMonstersOrPlayersEffect(game, 2, 1), targetSelectors: selectPlayerOrMonster(game, 1, 2) };
+        case "gain x¢, where x is the number of monster slots plus the number of loot cards in your hand.":
+            return { effectFunction: active.gainCoinsBasedOnMonsterSlotsAndLootInHandEffect(game), targetSelectors: noTargets };
+        case "choose another player. loot x, where x is the number of loot cards in that player's hand.":
+            return { effectFunction: active.lootBasedOnTargetPlayersLootCardsEffect(game), targetSelectors: selectPlayer(game) };
+        case "when this is destroyed, gain +1 treasure.":
+            return { effectFunction: passive.gainTreasureOnDestroyEffect(game, 1), targetSelectors: noTargets };
         default:
             return null; // No match found
         }
 }
 
-function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null {
+function parseStandardMonsterEffect(s: string, game: Game, nr: NumberRobustString): ParsedEffect | null {
 
     if(s.startsWith("this takes no combat damage on attack rolls of") || s.startsWith("you take no combat damage on attack rolls of"))
     {
-        const numbers = s.match(/\d+/g)?.map(numStr => parseInt(numStr, 10)) || [];
+        const numbers = nr.numbers;
         return noTargetEffect(monster.noCombatDamageOnAttackRollEffect(game, numbers));
     }
     if(s === "when an attack is declared on this, each non-active player rolls:\n4-6: they must make an attack roll against this after each attack roll the active player makes this attack.")
@@ -1276,43 +1877,104 @@ function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null 
             return noTargetEffect(monster.onAttackingPlayerActivatesItemEffect(game, s));
     if(s.startsWith("when the attacking player rolls an attack roll of "))
             return noTargetEffect(monster.onAttackingPlayerRollsEffect(game, s));
+
+    // Number-robust parsing for standard monster effects.
+    // Keep this limited to cases where the extracted number(s) are used by the returned effect.
+    {
+        const parsed = applyNumberRobustChecks(nr, [
+            {
+                patterns: ["when this dies, it deals x damage to the player who killed it"],
+                parse: (nr) => noTargetEffect(monster.dealDamageToKillerOnDeathEffect(game, nr.nextNumber())),
+            },
+            {
+                patterns: ["put it in the monster deck x cards from the top"],
+                parse: (nr) => noTargetEffect(monster.putInMonsterDeckNFromTopEffect(game, nr.nextNumber())),
+            },
+            {
+                patterns: ["after gaining rewards, the active player rolls-\nx or x: put this on top of the monster deck"],
+                parse: (nr) => {
+                    // Use the extracted roll values directly.
+                    const rolls = nr.numbers.slice();
+                    return noTargetEffect(monster.putOnTopOfMonsterDeckOnRollEffect(game, rolls));
+                },
+            },
+            {
+                patterns: ["when this dies on an attack roll of x, double its rewards"],
+                parse: (nr) => noTargetEffect(monster.doubleRewardsOnDeathRollEffect(game, [nr.nextNumber()])),
+            },
+            {
+                patterns: ["it deals x damage to each player"],
+                parse: (nr) => noTargetEffect(active.dealDamageToEachPlayerEffect(game, nr.nextNumber())),
+            },
+            {
+                patterns: ["it deals x damage to each non-active player"],
+                parse: (nr) => noTargetEffect(active.dealDamageToEachPlayerEffect(game, nr.nextNumber(), false)),
+            },
+            {
+                patterns: ["this gains x [atk] till end of turn"],
+                parse: (nr) => noTargetEffect(passive.temporaryStatModifierEffect([game.addAttack.bind(game)], nr.nextNumber(), game, "issuer")),
+            },
+            {
+                patterns: ["it gains x [atk] till end of turn"],
+                parse: (nr) => noTargetEffect(passive.temporaryStatModifierEffect([game.addAttack.bind(game)], nr.nextNumber(), game, "issuer")),
+            },
+            {
+                patterns: ["other monsters have x [dc]"],
+                parse: (nr) => noTargetEffect(monster.monstersGainDCEffect(game, nr.nextNumber(), false)),
+            },
+            {
+                patterns: ["monsters have x [dc]"],
+                parse: (nr) => noTargetEffect(monster.monstersGainDCEffect(game, nr.nextNumber(), true)),
+            },
+            {
+                patterns: ["monsters have x [hp]"],
+                parse: (nr) => noTargetEffect(monster.monstersGainHPEffect(game, nr.nextNumber())),
+            },
+            {
+                patterns: ["it heals x [hp]"],
+                parse: (nr) => noTargetEffect(active.healEffect(game, nr.nextNumber())),
+            },
+            {
+                patterns: ["look at the top x cards of the monster deck and put them back in any order"],
+                parse: (nr) => noTargetEffect(active.lookAndReorderTopCardsEffect(game, nr.nextNumber(), "monster", "currentPlayer")),
+            },
+            {
+                patterns: [
+                    "deal x damage to the player to your left",
+                    "deal x damage to the player to the active player's left",
+                ],
+                parse: (nr) => noTargetEffect(monster.dealDamageToPlayerToTheEffect(game, nr.nextNumber(), "left")),
+            },
+            {
+                patterns: ["deal x damage to the player to your right"],
+                parse: (nr) => noTargetEffect(monster.dealDamageToPlayerToTheEffect(game, nr.nextNumber(), "right")),
+            },
+            {
+                patterns: ["look at the top x cards of the loot deck. put them back in any order"],
+                parse: (nr) => noTargetEffect(active.lookAndReorderTopCardsEffect(game, nr.nextNumber(), "loot")),
+            },
+            {
+                patterns: ["when any player controls a soul, players who control the most souls or tied for the most must pay each other player x¢ to attack"],
+                parse: (nr) => noTargetEffect(room.payOtherPlayersToAttackEffect(game, nr.nextNumber())),
+            },
+        ]);
+        if (parsed !== null) return parsed;
+    }
     switch (s) {
-        case "when this dies, it deals 1 damage to the player who killed it.":
-            return noTargetEffect(monster.dealDamageToKillerOnDeathEffect(game, 1));
-        case "put it in the monster deck 6 cards from the top.":
-            return noTargetEffect(monster.putInMonsterDeck6FromTopEffect(game));
+        
         case "search the monster deck for a card named the bloat and put it in a monster slot not being attacked":
             return noTargetEffect(monster.searchForBloatEffect(game));
-        case "after gaining rewards, the active player rolls-\n1 or 6: put this on top of the monster deck.":
-            return noTargetEffect(monster.putOnTopOfMonsterDeckOnRollEffect(game, [1, 6]));
+        
         case "when this dies, the player that killed it discards their hand.":
             return noTargetEffect(monster.killerDiscardsHandOnDeathEffect(game));
-        case "when this dies on an attack roll of 6, double its rewards.":
-            return noTargetEffect(monster.doubleRewardsOnDeathRollEffect(game, [6]));
-        case "it deals 1 damage to each player.":
-            return noTargetEffect(active.dealDamageToEachPlayerEffect(game, 1));
-        case "it deals 1 damage to each non-active player.":
-            return noTargetEffect(active.dealDamageToEachPlayerEffect(game, 1, false));
-        case "this gains +2 [atk] till end of turn.":
-            return noTargetEffect(passive.temporaryStatModifierEffect([game.addAttack.bind(game)], 2, game, "issuer"));
-        case "it gains +1 [atk] till end of turn.":
-            return noTargetEffect(passive.temporaryStatModifierEffect([game.addAttack.bind(game)], 1, game, "issuer"));
-        case "other monsters have +1 [dc] .":
-            return noTargetEffect(monster.monstersGainDCEffect(game, 1, false));
-        case "monsters have +1 [dc] .":
-            return noTargetEffect(monster.monstersGainDCEffect(game, 1, true));
-        case "monsters have +1 [hp] .":
-            return noTargetEffect(monster.monstersGainHPEffect(game, 1));
-        case "it heals 1 [hp] .":
-            return noTargetEffect(active.healEffect(game, 1));
+        
         case "when another monster dies, this dies.":
             return noTargetEffect(monster.dieWhenAnotherMonsterDiesEffect(game));
         case "this can't be attacked.":
             return noTargetEffect(monster.cantBeAttackedEffect(game));
         case "damage dealt to this is also dealt to the player to the active player's right.":
             return noTargetEffect(monster.damageAlsoPlayerToTheEffect(game, "right"));
-        case "look at the top 5 cards of the monster deck and put them back in any order.":
-            return noTargetEffect(active.lookAndReorderTopCardsEffect(game, 5, "monster", "currentPlayer"));
+        
         case "damage dealt to this is also dealt to the player to the active player's left.":
             return noTargetEffect(monster.damageAlsoPlayerToTheEffect(game, "left"));
         case "damage this deals to the active player is also dealt to the player to their left.":
@@ -1327,13 +1989,7 @@ function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null 
             return noTargetEffect(monster.dealDamageToAttackingPlayerEffect(game, 1));
         case "every other time this takes damage each turn, it gains +1 [dc] till end of turn.":
             return noTargetEffect(monster.onEveryOtherDamageEffect(game, passive.temporaryStatModifierEffect([game.addDC.bind(game)], 1, game, "issuer")));
-        case "deal 1 damage to the player to your left.":
-        case "deal 1 damage to the player to the active player's left.":
-            return noTargetEffect(monster.dealDamageToPlayerToTheEffect(game, 1, "left"));
-        case "deal 1 damage to the player to your right.":
-            return noTargetEffect(monster.dealDamageToPlayerToTheEffect(game, 1, "right"));
-        case "look at the top 6 cards of the loot deck. put them back in any order":
-            return noTargetEffect(active.lookAndReorderTopCardsEffect(game, 6, "loot"));
+        
         case "you must attack on your turn if able.":
             return noTargetEffect(monster.attackRequirementEachTurnEffect(game, "any", 1, "total"));
         case "the first time this would die each turn, prevent death. this heals 2 [hp] and gains +1 [dc] and -1 [atk] till end of turn.":
@@ -1348,42 +2004,99 @@ function parseStandardMonsterEffect(s: string, game: Game): ParsedEffect | null 
             return noTargetEffect(monster.OnDamageByActivePlayerRollDealDamageEffect(game));
         case "they take 1 damage.":
             return noTargetEffect(monster.targetTakeDamageEffect(game, 1));
-        case "when any player controls a soul, players who control the most souls or tied for the most must pay each other player 2¢ to attack.":
-            return noTargetEffect(room.payOtherPlayersToAttackEffect(game, 2));
+        
         default:
             return null; // No match found
     }
 }
 
-function parseRoomEffect(s: string, game: Game): ParsedEffect | null {
+function parseRoomEffect(s: string, game: Game, nr: NumberRobustString): ParsedEffect | null {
+
+    // Number-robust parsing for room effects.
+    // Keep this limited to cases where the extracted number(s) are used by the returned effect.
+    {
+        const parsed = applyNumberRobustChecks(nr, [
+            {
+                patterns: ["at the start of each turn, the active player gains x¢"],
+                parse: (nr) => noTargetEffect(room.gainCoinsAtStartOfTurnEffect(game, nr.nextNumber(), true)),
+            },
+            {
+                patterns: ["shop items the active player purchases cost x¢ less"],
+                parse: (nr) => noTargetEffect(room.cheaperShopItemsEffect(game, nr.nextNumber())),
+            },
+            {
+                patterns: ["each time a player declares an attack, before choosing what to attack, they may look at the top x cards of the monster deck and put them back in any order"],
+                parse: (nr) => noTargetEffect(room.lookAtTopNOnAttackEffect(game, nr.nextNumber())),
+            },
+            {
+                patterns: ["each time a player dies, each other player gains x¢"],
+                parse: (nr) => noTargetEffect(room.gainCoinsOnPlayerDeathEffect(game, nr.nextNumber())),
+            },
+            {
+                patterns: ["each time a player dies, each other player loots x"],
+                parse: (nr) => noTargetEffect(room.lootOnPlayerDeathEffect(game, nr.nextNumber())),
+            },
+            {
+                patterns: ["at the end of the turn, the active player loses x¢"],
+                parse: (nr) => noTargetEffect(room.loseCoinsAtEndOfTurnEffect(game, nr.nextNumber())),
+            },
+            {
+                patterns: ["at the end of each turn, the active player discards a loot card"],
+                parse: (nr) => noTargetEffect(room.discardLootAtEndOfTurnEffect(game, 1)),
+            },
+            {
+                patterns: ["at the end of each turn, the active player discards x loot card"],
+                parse: (nr) => noTargetEffect(room.discardLootAtEndOfTurnEffect(game, nr.nextNumber())),
+            },
+            {
+                patterns: ["monsters have x [atk]"],
+                parse: (nr) => noTargetEffect(room.monstersGainAttackEffect(game, nr.nextNumber(), true)),
+            },
+            {
+                patterns: ["a monster gains x [dc] till end of turn"],
+                parse: (nr) => ({
+                    effectFunction: passive.temporaryStatModifierEffect([game.addDC.bind(game)], nr.nextNumber(), game, "next"),
+                    targetSelectors: selectMonster(game),
+                }),
+            },
+            {
+                patterns: ["a monster gains -x [dc] till end of turn"],
+                parse: (nr) => ({
+                    effectFunction: passive.temporaryStatModifierEffect([game.addDC.bind(game)], -nr.nextNumber(), game, "next"),
+                    targetSelectors: selectMonster(game),
+                }),
+            },
+            {
+                patterns: ["when this enters play, each player discards their hands and loots x"],
+                parse: (nr) => noTargetEffect(room.discardHandsAndLootEffect(game, nr.nextNumber())),
+            },
+            {
+                patterns: ["each time a player loots, they take x damage"],
+                parse: (nr) => noTargetEffect(room.takeDamageOnLootEffect(game, nr.nextNumber())),
+            },
+            {
+                patterns: ["players have x [hp]"],
+                parse: (nr) => noTargetEffect(room.allPlayersPermanentStatModifierEffect([game.addHealth], nr.nextNumber(), game)),
+            },
+            {
+                patterns: ["each time a player deals damage to a monster, they deal x damage to the player to their left"],
+                parse: (nr) => noTargetEffect(room.WhenDealDamageMonsterDealDamageToPlayerToTheEffect(game, nr.nextNumber(), "left")),
+            },
+        ]);
+        if (parsed !== null) return parsed;
+    }
 
     switch (s) {
         case "players can't gain souls.":
             return noTargetEffect(room.preventGainSoulsEffect(game));
         case "each time the active player attacks the top of the monster deck, after putting it in a monster slot, they may cancel their attack.":
             return noTargetEffect(room.cancelAttackOnTopOfMonsterDeckEffect(game));
-        case "at the start of each turn, the active player gains 3¢.":
-            return noTargetEffect(room.gainCoinsAtStartOfTurnEffect(game, 3, true));
-        case "shop items the active player purchases cost 5¢ less.":
-            return noTargetEffect(room.cheaperShopItemsEffect(game, 5));
-        case "each time a player declares an attack, before choosing what to attack, they may look at the top 3 cards of the monster deck and put them back in any order.":
-            return noTargetEffect(room.lookAtTopNOnAttackEffect(game, 3));
+        
         case "rewards are doubled.":
             return noTargetEffect(room.doubleRewardsEffect(game));
         case "when a player dies, if that player was attacked this turn, that player gives the active player the item they would destroy for the death penalty.":
             return noTargetEffect(room.giveDeathPenaltyItemToActivePlayerEffect(game));
-        case "each time a player dies, each other player gains 4¢.":
-            return noTargetEffect(room.gainCoinsOnPlayerDeathEffect(game, 4));
-        case "each time a player dies, each other player loots 1.":
-            return noTargetEffect(room.lootOnPlayerDeathEffect(game, 1));
-        case "at the end of the turn, the active player loses 2¢.":
-            return noTargetEffect(room.loseCoinsAtEndOfTurnEffect(game, 2));
-        case "at the end of each turn, the active player discards a loot card.":
-            return noTargetEffect(room.discardLootAtEndOfTurnEffect(game, 1));
-        case "monsters have +1 [atk] .":
-            return noTargetEffect(room.monstersGainAttackEffect(game, 1, true));
-        case "a monster gains -1 [dc] till end of turn.":
-            return {effectFunction: passive.temporaryStatModifierEffect([game.addDC.bind(game)], -1, game, "next"), targetSelectors: selectMonster(game) };
+        
         case "the player who killed it kills another player.":
             return noTargetEffect(room.targetNextKillsAnotherPlayerEffect(game));
         case "at the start of the turn, the active player may reroll an item they control.":
@@ -1398,8 +2111,7 @@ function parseRoomEffect(s: string, game: Game): ParsedEffect | null {
             return noTargetEffect(active.rerollEachItemEffect(game, "currentPlayer"));
         case "when this enters play, each player rerolls each of their items.":
             return noTargetEffect(active.rerollEachItemEffect(game, "eachPlayer"));
-        case "when this enters play, each player discards their hands and loots 3.":
-            return noTargetEffect(room.discardHandsAndLootEffect(game, 3));
+        
         case "when this enters play, put each shop item into discard.":
             return noTargetEffect(active.flushShopEffect(game, "discard"));
         case "when this enters play, put each monster into discard.":
@@ -1417,14 +2129,12 @@ function parseRoomEffect(s: string, game: Game): ParsedEffect | null {
             return noTargetEffect(room.canBeAttackedEffect(game));
         case "each time a player would roll a 1 or 6, they may reroll it.":
             return noTargetEffect(room.rerollOn1Or6Effect(game));
-        case "each time a player loots, they take 1 damage.":
-            return noTargetEffect(room.takeDamageOnLootEffect(game, 1));
+        
         case "players have +1 [atk] .":
             return noTargetEffect(room.playersGainAttackEffect(game, 1));
         case "players who control the most items or tied for the most may only recharge one item during their recharge step.":
             return noTargetEffect(passive.rechargeOneDuringRechargeStepEffect(game));
-        case "players have +1 [hp] .":
-            return noTargetEffect(room.allPlayersPermanentStatModifierEffect([game.addHealth], 1, game));
+        
         case "players have +1 [atk] .":
             return noTargetEffect(room.allPlayersPermanentStatModifierEffect([game.addAttack], 1, game));
         case "when a player dies, before paying penalties, they must destroy an item they control.":
@@ -1433,8 +2143,7 @@ function parseRoomEffect(s: string, game: Game): ParsedEffect | null {
             return noTargetEffect(room.deactivateCharacterAtEndOfTurnEffect(game));
         case "at the start of the turn, the active player may pay [hp] until they have 1 [hp] . if they do, each time a monster dies this turn, they gain +1 treasure.":
             return noTargetEffect(room.payHpForTreasureBoostEffect(game));
-        case "each time a player deals damage to a monster, they deal 1 damage to the player to their left.":
-            return noTargetEffect(room.WhenDealDamageMonsterDealDamageToPlayerToTheEffect(game, 1, "left"));
+        
         case "note each goal as players complete them.":
             return noTargetEffect((data: EffectData) => true);
         case "players who control the fewest souls or tied for fewest have +1 [atk] and may attack an additional time on their turn.":

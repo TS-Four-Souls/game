@@ -326,10 +326,14 @@ export class Encounters extends Slots<MonsterCard> {
      * @param monster - The Monster entity to flush
      * @throws {Error} If the monster is not found in any slot
      */
-    flushMonster(monster: Monster): void {
+    flushMonster(monster: Monster, place: "discard" | "bottom"): void {
         const idx = this._slots.findIndex(slot => slot.includes(monster.card));
         if (idx >= 0) {
-            this.discardTop(idx);
+            if (place === "discard") {
+                this.discardTop(idx);
+            } else {
+                this.moveToBottom(idx);
+            }
             this.fillEmptySpots(false);
         }
 

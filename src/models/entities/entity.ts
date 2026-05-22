@@ -24,7 +24,7 @@ export abstract class Entity {
   private _temporaryEffects: TemporaryEffect[] = [];
 
   get evasion(): number {
-    return this._evasion;
+    return Math.max(0, Math.min(this._evasion, 6));
   }
 
   set baseAttackPoints(value: number) {
@@ -33,7 +33,7 @@ export abstract class Entity {
   }
 
   set evasion(value: number) {
-    this._evasion = Math.max(0, Math.min(value, 6)); // Evasion must be between 0 and 6
+    this._evasion = value; // Value can be set to anything, but getter will ensure it is between 0 and 6.
   }
 
   get attackable(): boolean {

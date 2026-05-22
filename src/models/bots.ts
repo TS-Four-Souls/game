@@ -201,6 +201,7 @@ export class Bot {
     }
 
     get allActions(): Action[] {
+        // console.log(`Generating all possible actions for bot ${this._me.id} in with items:`, this._me.inPlay.filter(card => card.activeEffectList.length > 0).map(card => card.name));
         return [
             new DeclareAttackAction(this._me),
             new DeclarePurchaseAction(this._me),

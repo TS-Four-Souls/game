@@ -3,6 +3,7 @@ import type { FlipData, BonusSoulCardType, CardRewards, CharacterCardType, Etern
 import { print, shuffle } from '@/utils/auxiliary';
 import type { Entity } from './entities/entity';
 import { Player } from './entities/player';
+import { combineEffectFunctions } from './effects/activeEffect';
 import type { GameParameters } from './gameParameters';
 import { StackElement } from './stackElement';
 import { TargetBuilder } from './targetBuilder';
@@ -152,6 +153,16 @@ export class Effect {
     // }
 
 }
+
+function combineEffects(effect1: Effect, effect2: Effect): Effect {
+    if(effect1.type !== "active" || effect2.type !== "active") {
+        throw new Error("Only active effects can be combined.");
+    }
+    const descr = `${effect1.description} ${effect2.description}`;
+    const effect = combineEffectFunctions([effect1.effectFunction, effect2.effectFunction]);
+    return new Effect(descr, "active", effect, effect1.targetsSelector.concat(effect2.targetsSelector));
+
+}
 // Effect handler manages multiple effects of the same type of a card.
 class EffectHandler{
     protected _effects: Effect[] = [];
@@ -199,8 +210,11 @@ class ActiveEffectHandler extends EffectHandler {
         switch (effect.type){
             case "active":
                 if (this._activeEffect !== null)
-                    throw new Error("Cannot have multiple active effects in an ActiveEffectHandler.");
-                this._activeEffect = effect;
+                {
+                    this._activeEffect = combineEffects(this._activeEffect, effect);
+                }
+                else
+                    this._activeEffect = effect;
                 break;
             case "paid":
                 this._effects.push(effect);
@@ -292,6 +306,11 @@ class EffectInterface {
         this.it = it;
     }
 
+    reset(): void {
+        this.activeEffects = new ActiveEffectHandler();
+        this.passiveEffects = new PassiveEffectHandler();
+    }
+
     addEffect(effect: Effect): void {
         if(effect.type === "passive") {
             this.passiveEffects.addEffect(effect);
@@ -315,6 +334,7 @@ class EffectInterface {
         // Execute payment if it exists
         if (effect.hasPayment()) {
             if (!await effect.executePayment(data)) {
+                // console.log(`issuer: ${issuer.id}, ${data.issuer.id},  owner: ${this.it.owner.id} card: ${this.it.name}, effect: ${effect.description}, in play: ${(issuer as Player).inPlay.map(c => c.name).join(", ")}`);
                 throw new Error(`Payment denied for ${this.it.slug}, with targets: ${JSON.stringify(TargetBuilder.convertToSelectionItems(data.targets))}.`);
             }
             // Effect gets second element of targets array
@@ -593,6 +613,10 @@ class Card {
     isSameCard(other: Card): boolean {
         return this.getIdentityHash() === other.getIdentityHash();
     }
+    resetEffects(): void {
+        this._effectInterface.reset();
+        this._flippedEffectInterface.reset();
+    }
     cleanup(): void {
         for (const cleaner of this._cleanup) {
             cleaner();
@@ -780,11 +804,12 @@ export class ItemCard extends Card {
     this._eternal = eternal;
   }
 }
-
+// "discardNextTime" turns into "discard" after the first time the card is played.
+type AfterEffectType = "discard" | "addInPlay" | "nothing" | "discardNextTime";
 class LootCard extends ItemCard {
     protected _reward: CardRewards | undefined;
     protected _trinket: boolean = false;
-    protected _afterEffect: "discard" | "addInPlay" | "nothing" = "discard";
+    protected _afterEffect: AfterEffectType = "discard";
 
     constructor(id: number, globalId: number, json: LootCardType) {
         super(id, globalId, json);
@@ -798,11 +823,11 @@ class LootCard extends ItemCard {
         }
     }
 
-    get afterEffect(): "discard" | "addInPlay" | "nothing" {
+    get afterEffect(): AfterEffectType {
         return this._afterEffect;
     }
 
-    set afterEffect(value: "discard" | "addInPlay" | "nothing") {
+    set afterEffect(value: AfterEffectType) {
         this._afterEffect = value;
     }
 
@@ -827,18 +852,22 @@ class LootCard extends ItemCard {
 // Wrapper class to hold loot card effect resolution on the stack
 export class LootCardEffect extends StackElement {
     private _card: LootCard;
-    private targets: any[];
-    private issuer: Player;
+    private _targets: any[];
+    private _issuer: Player;
 
     constructor(issuer: Player, card: LootCard, targets: any[]) {
         super();
         this._card = card;
-        this.targets = targets;
-        this.issuer = issuer;
+        this._targets = targets;
+        this._issuer = issuer;
     }
 
     get card(): LootCard {
         return this._card;
+    }
+
+    get issuer(): Player {
+        return this._issuer;
     }
 
     async onResolve(): Promise<void> {
@@ -853,6 +882,10 @@ export class LootCardEffect extends StackElement {
             issuer: this.issuer.json,
             ...super.baseJson,
          } ;
+    }
+
+    get targets(): any[] {
+        return this._targets;
     }
 }
 

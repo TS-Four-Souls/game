@@ -431,6 +431,11 @@ export class ActionHandler {
 
   /** Validates whether a card can currently be activated by its owner. */
   canActivate(card: Card, owner: Player): Capability {
+    // Ensure the owner actually has the item in-play (prevents bots/actions from trying to activate
+    // items they no longer own because the game state changed between action selection and execution).
+    if (card instanceof ItemCard && !owner.inPlay.includes(card)) {
+      return `You do not own the specified item.`;
+    }
     if (card instanceof ItemCard && card.activeEffectList.length === 0) {
       return "This card has no active effects, there is nothing to activate.";
     }
@@ -448,6 +453,8 @@ export class ActionHandler {
             TargetBuilder.verifyPaiementCanBeMade(this.game, owner, card, e.description) === true) && 
               TargetBuilder.validTargetExists(this.game, owner, card, e.index) === true)
     )) {
+      if(card.activeEffectList.length === 1 && card.activeEffectList[0]!.index === "tap" && !card.charged)
+        return "This card is not charged.";
       return "This card has no effects usable now.";
     }
     if(card instanceof ItemCard)
