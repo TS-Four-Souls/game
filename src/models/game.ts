@@ -2023,7 +2023,7 @@ export class Game extends SelectionHandler {
     // Players can reorder their own effects if they have multiple. 
     // Current player can also reorder game effects if multiple are triggered at the same time.
     // Game effects are always resolved before player effects, and player effects are resolved in turn order starting from the current player.
-    if(count > 2)
+    if(count > 1)
       this.stack.reorderStack(this.currentPlayer, count);
   }
 
