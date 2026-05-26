@@ -2222,8 +2222,6 @@ export function lootFromDiscardEffect(game: Game): EffectFunction {
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:loot:would", (eventData: OnLootWouldData) => {
             const { eventIssuer, numberOfCards } = eventData;
-            const target = data.next;
-            if (target !== eventIssuer) return;
             while(numberOfCards[0]! > 0)
             {
                 const card = 

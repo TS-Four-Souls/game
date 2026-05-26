@@ -804,7 +804,7 @@ function parseStandardEffect(s: string, game: Game, selectionOnResolve: boolean,
         case "each time you roll the same result twice in a row on an attack roll on the same turn, kill the monster you're attacking.":
             return { effectFunction: passive.killOnDoubleAttackRollEffect(game), targetSelectors: noTargets };
         case "the next time a player would loot, they loot from the top of the loot discard instead.":
-            return { effectFunction: passive.lootFromDiscardEffect(game), targetSelectors: selectPlayer(game) };
+            return noTargetEffect(passive.lootFromDiscardEffect(game));
         case "if you control this as the game starts, you go first.":
             return { effectFunction: passive.goFirstInTurnOrderEffect(game), targetSelectors: noTargets };
         case "damage you would take is reduced to 1.":
