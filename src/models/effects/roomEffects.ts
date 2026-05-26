@@ -315,20 +315,6 @@ export function CurrentPlayerDecidesToChangeRoom(game: Game): EffectFunction{
     }
 }
 
-export function playersGainAttackEffect(game: Game, amount: number): EffectFunction {
-    return (data: EffectData) => {
-        for(const player of game.players)
-            game.addAttack(player, amount, data.it);
-        
-        data.it.cleaners.push(() => {
-            for(const player of game.players)
-                game.addAttack(player, -amount, data.it);
-        });
-        return true;
-    };
-}
-
-
 export function takeDamageOnLootEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
         let offLoot: (() => void) | null = null;
@@ -462,14 +448,14 @@ export function mayRerollItemAtStartOfTurnEffect(game: Game): EffectFunction {
     };
 }
 
-export function mayGainTreasureAtStartOfTurnEffect(game: Game): EffectFunction {
+export function mayGainTreasureAtStartOfTurnEffect(game: Game, x: number): EffectFunction {
      return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
             const effect: EffectFunction = async (effectData: EffectData) => {
-                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "You may gain a treasure.", false, true, false)).selected[0] as ItemCard | undefined;
+                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], `You may gain ${x} treasure.`, false, true, false)).selected[0] as ItemCard | undefined;
                 if(selected !== undefined) {
-                    game.gainTreasure(game.currentPlayer, 1);
+                    game.gainTreasure(game.currentPlayer, x);
                     return true;
                 }
                 return false;
@@ -486,12 +472,12 @@ export function mayGainTreasureAtStartOfTurnEffect(game: Game): EffectFunction {
     };
 }
 
-export function damageIfLowLootAtEndOfTurnEffect(game: Game, amount: number): EffectFunction {
+export function damageIfLowLootAtEndOfTurnEffect(game: Game, lootThreshold: number, amount: number): EffectFunction {
      return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
         offTurnStart = game.emitter.on("on:turn:end", (eventData) => {
             const effect: EffectFunction = async (effectData: EffectData) => {
-                if(game.currentPlayer.hand.length > 1) return false;
+                if(game.currentPlayer.hand.length > lootThreshold) return false;
                 game.dealDamage(game.currentPlayer, game.currentPlayer, data.it, amount);
                 return false;
             };
@@ -537,10 +523,10 @@ export function discardHandsAndLootEffect(game: Game, amount: number): EffectFun
     };
 }
 
-export function enterPlayRerollItemsDiscardHandsLootAndFlushMonstersEffect(game: Game): EffectFunction {
+export function enterPlayRerollItemsDiscardHandsLootAndFlushMonstersEffect(game: Game, lootAmount: number): EffectFunction {
     return (data: EffectData) => {
         flushMonsterSlotsEffect(game, "discard")(data);
-        discardHandsAndLootEffect(game, 3)(data);
+        discardHandsAndLootEffect(game, lootAmount)(data);
         for(const item of visibleItemSelector((c) => c.eternal === false, game)(data.issuer as Player)) {
             game.reroll(item);
         }
@@ -709,7 +695,7 @@ export function playerMustDestroyItemOnDeathEffect(game: Game): EffectFunction {
     };
 }
 
-export function onAttackDeclaredNonActivePlayersRollToJoinEffect(game: Game): EffectFunction {
+export function onAttackDeclaredNonActivePlayersRollToJoinEffect(game: Game, minRoll: number, maxRoll: number): EffectFunction {
     return (data: EffectData) => {
         let offAttackDeclared: (() => void) | null = null;
         offAttackDeclared = game.emitter.on("on:attack:declared:animated", async (eventData) => {
@@ -722,14 +708,12 @@ export function onAttackDeclaredNonActivePlayersRollToJoinEffect(game: Game): Ef
             for(const player of game.players) {
                 if(player !== game.currentPlayer && !player.isDead) {
                     const roll = game.rollDice(player, false, data.it);
-                    roll.attachEffect([
-                        (data: EffectData) => true, 
-                        (data: EffectData) => true, 
-                        (data: EffectData) => true, 
-                        makeAnAttackRollAfterEachAttackRollEffect(game),
-                        makeAnAttackRollAfterEachAttackRollEffect(game),
-                        makeAnAttackRollAfterEachAttackRollEffect(game),
-                        ], data.it, [], player);
+                    roll.attachEffect(
+                        [1,2,3,4,5,6].map(value => 
+                            (value >= minRoll && value <= maxRoll) ?
+                                makeAnAttackRollAfterEachAttackRollEffect(game) : (() => true)
+                        )
+                        , data.it, [], player);
                 }
             }
         });
@@ -743,23 +727,23 @@ export function onAttackDeclaredNonActivePlayersRollToJoinEffect(game: Game): Ef
     };
 }
 
-export function rerollOn1Or6Effect(game: Game): EffectFunction {
+export function rerollOnXOrYEffect(game: Game, values: number[]): EffectFunction {
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         offRoll = game.emitter.on("on:dice:would-roll", (eventData) => {
             data.targets = []; // Clear targets to prevent other effects from modifying the roll
             data.clearSelectionRecord(); // Clear selection record to prevent other effects from modifying the roll
             const { eventIssuer, diceRoll } = eventData;
-            if(diceRoll.value === 1 || diceRoll.value === 6) {
+            if(values.includes(diceRoll.value)) {
                 const effect: EffectFunction = async (effectData: EffectData) => {
-                    const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "You rolled a 1 or a 6. Do you want to reroll?", false, true, false)).selected[0] as Card | undefined;
+                    const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "You rolled a " + values[0] + " or a " + values[1] + ". Do you want to reroll?", false, true, false)).selected[0] as Card | undefined;
                     if(selected) {
                         diceRoll.roll();
                         return true;
                     }
                     return false;
                 };
-                addPassiveEffectToStack(game, effect, data, "You rolled a 1 or a 6. Do you want to reroll?");
+                addPassiveEffectToStack(game, effect, data, "You rolled a " + values[0] + " or a " + values[1] + ". Do you want to reroll?");
             }
         });
 
@@ -796,12 +780,12 @@ export function allPlayersPermanentStatModifierEffect(
         return true;
     };
 }
-export function payHpForTreasureBoostEffect(game: Game): EffectFunction {
+export function payHpForTreasureBoostEffect(game: Game, hpAfterPay: number, treasureAmount: number): EffectFunction {
     return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
             const effect: EffectFunction = async (effectData: EffectData) => {
-                const difference = game.currentPlayer.currentHealthPoints - 1;
+                const difference = Math.max(0, game.currentPlayer.currentHealthPoints - hpAfterPay);
                 const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "You can pay " + difference + " HP to gain a treasure each time a monster dies this turn. Do you want to?", false, true, false)).selected[0] as Card | undefined;
                 if(selected !== undefined) {
                     game.dealDamage(game.currentPlayer, game.currentPlayer, data.it, difference, (data: EffectData) => {
@@ -809,7 +793,7 @@ export function payHpForTreasureBoostEffect(game: Game): EffectFunction {
                         offMonsterDeath = game.emitter.on("on:death:monster", (eventData) => {
                              const { eventIssuer } = eventData;
                              if(eventIssuer instanceof Monster) {
-                                 game.gainTreasure(game.currentPlayer, 1);
+                                 game.gainTreasure(game.currentPlayer, treasureAmount);
                              }
                         });
                         data.it.cleaners.push(() => {
@@ -855,7 +839,7 @@ export function WhenDealDamageMonsterDealDamageToPlayerToTheEffect(game: Game, a
     };
 }
 
-export function playersWithFewestSoulsAttackBoostEffect(game: Game): EffectFunction {
+export function playersWithFewestSoulsAttackBoostEffect(game: Game, attackBoost: number): EffectFunction {
     return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
         let offSoulGained: (() => void) | null = null;
@@ -866,7 +850,7 @@ export function playersWithFewestSoulsAttackBoostEffect(game: Game): EffectFunct
             playersWithFewestSouls = game.players.filter(p => p.totalSouls === minSouls);
             for(const player of playersWithFewestSouls) 
             {
-                game.addAttack(player, 1, data.it);
+                game.addAttack(player, attackBoost, data.it);
             }
             if(playersWithFewestSouls.includes(game.currentPlayer) && shouldAddAttackThisTurn)
                 game.currentPlayer.attackThisTurn += 1;
@@ -874,7 +858,7 @@ export function playersWithFewestSoulsAttackBoostEffect(game: Game): EffectFunct
         function removeEffect() {
             for(const player of playersWithFewestSouls) 
             {
-                game.addAttack(player, -1, data.it);
+                game.addAttack(player, -attackBoost, data.it);
             }
             if(playersWithFewestSouls.includes(game.currentPlayer))
             {

@@ -87,14 +87,14 @@ export function activePlayerSelectTargetEffect(game: Game, effectFunction: Effec
     };
 }
 
-export function whenThisReaches1HP(game: Game, effectFunctions: EffectFunction[], description: string): EffectFunction {
+export function whenThisReachesXHP(game: Game, x: number, effectFunctions: EffectFunction[], description: string): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         offDamage = game.emitter.on("on:damage:taken", (eventData: OnDamageTakenData) => {
             const { eventIssuer, target, source, damage } = eventData;
             if (data.issuer !== eventIssuer) return;
             const currentHP = data.issuer.currentHealthPoints;
-            if (currentHP === 1) {
+            if (currentHP === x) {
 
                const effect = async (effectData: EffectData) => {
                     for (const func of effectFunctions) {
@@ -637,16 +637,16 @@ export function onAttackingPlayerRollsEffect(game: Game, s: string): EffectFunct
     };
 }
 
-export function activePlayerChoosePlayerDiscard2Effect(game: Game): EffectFunction {
+export function activePlayerChoosePlayerDiscardXEffect(game: Game, x: number): EffectFunction {
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
         
-        const targetSelection = await data.selectAndRecord(game, player, 1, 1, game.players, "Select a player who discards 2 loot cards.", true, true);
+        const targetSelection = await data.selectAndRecord(game, player, 1, 1, game.players, `Select a player who discards ${x} loot cards.`, true, true);
         const targetPlayer = targetSelection.selected[0] as Player;
         if(!targetPlayer){
-            throw new Error("No player selected for activePlayerChoosePlayerDiscard2Effect.");
+            throw new Error("No player selected for activePlayerChoosePlayerDiscardXEffect.");
         }
-        await active.discardNLootCardsEffect(2, game, true)(new EffectData(data.it, () => targetPlayer, []));
+        await active.discardNLootCardsEffect(x, game, true)(new EffectData(data.it, () => targetPlayer, []));
         return true;
     };
 }
@@ -706,7 +706,7 @@ export function preventDamageOnRollEffect(game: Game, rolls: number[]): EffectFu
     };
 }
 
-export function preventDeathFirstTimeEachTurnHealAndStatModifierEffect(game: Game): EffectFunction {
+export function preventDeathFirstTimeEachTurnHealAndStatModifierEffect(game: Game, heal: number, dc: number, atk: number): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurnStart: (() => void) | null = null;
@@ -722,12 +722,12 @@ export function preventDeathFirstTimeEachTurnHealAndStatModifierEffect(game: Gam
                 if(data.issuer instanceof Monster === false)
                     throw new Error("preventDeathFirstTimeEachTurnHealAndStatModifierEffect can only be applied to monsters.");
                 game.preventDeath(eventIssuer as Entity);
-                data.issuer.heal(1); // heal 1 + 1 from death prevention.
-                game.addDC(data.issuer, 1, data.it); // add +1 DC
-                game.addAttack(data.issuer, -1, data.it); // lose 1 attack
+                data.issuer.heal(heal - data.issuer.currentHealthPoints); // heal the specified amount from death prevention.
+                game.addDC(data.issuer, dc, data.it); // add the specified + DC
+                game.addAttack(data.issuer, atk, data.it); // lose the specified amount of attack
                 return true;
             };
-            addPassiveEffectToStack(game, effect, data, `The first time each turn ${data.it.name} would be reduced to 0 health, prevent that damage, heal 2 HP, and give it +2 attack.`);
+            addPassiveEffectToStack(game, effect, data, `The first time each turn ${data.it.name} would be reduced to 0 health, prevent that damage, heal ${heal} HP, and give it +${dc} DC and ${atk} ATK.`);
         });
 
         offTurnStart = game.emitter.on("on:turn:start", (eventData: OnTurnEndData) => {
@@ -848,14 +848,14 @@ export function dealDamageToAttackingPlayerEffect(game: Game, damage: number): E
     };
 }
 
-export function bossRushEffect(game: Game): EffectFunction {
+export function bossRushEffect(game: Game, bossCount: number): EffectFunction {
     return async (data: EffectData) => {
         let bosses = [];
         if(!(data.it instanceof MonsterCard))
             return false;
         data.it.afterEffect = "handled"; 
-        // draw 2 boss cards 
-        while(bosses.length < 2 && game.decks.monster.cards.length > 0) {
+        // draw the specified number of boss cards 
+        while(bosses.length < bossCount && game.decks.monster.cards.length > 0) {
             const card = game.decks.monster.draw();
             if(card instanceof MonsterCard && card.subtype === "boss") {
                 bosses.push(card);
@@ -874,7 +874,7 @@ export function bossRushEffect(game: Game): EffectFunction {
             return false;
         const indices = new Map<string, number>();
         options.forEach(c => indices.set(c.name, game.encounters.slots.findIndex(s => s.includes(c))));
-        const selection = await data.selectAndRecord(game, game.currentPlayer, 1, 2, options, "Select slots to place the bosses in.", true, true);
+        const selection = await data.selectAndRecord(game, game.currentPlayer, 1, bossCount, options, "Select slots to place the bosses in.", true, true);
         const selectedMonsters = selection.selected;
         const selectedIndices = selectedMonsters.map(c => indices.get(c.name)!);
         

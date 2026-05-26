@@ -623,7 +623,7 @@ export function lookAtHands(game: Game): EffectFunction {
     };
 }
 
-export function deal2DamageDividedAsYouChooseEffect(game: Game): EffectFunction {
+export function dealXDamageDividedAsYouChooseEffect(game: Game, damage: number): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const player = data.issuer;
@@ -632,11 +632,11 @@ export function deal2DamageDividedAsYouChooseEffect(game: Game): EffectFunction 
         if(!firstTarget)
             return false;
         if(!secondTarget)
-            game.dealDamage(player, firstTarget, data.it, 2);
+            game.dealDamage(player, firstTarget, data.it, damage);
         else
         {
-            game.dealDamage(player, firstTarget, data.it, 1);
-            game.dealDamage(player, secondTarget, data.it, 1);
+            game.dealDamage(player, firstTarget, data.it, Math.ceil(damage/2));
+            game.dealDamage(player, secondTarget, data.it, Math.floor(damage/2));
         }
         return true;
     };
@@ -701,13 +701,13 @@ export function flipThisItemEffect(game: Game): EffectFunction {
     };
 }
 
-export function addCountersAndGainTreasureEffect(countersThreshold: number, treasureToGain: number, game: Game): EffectFunction {
+export function addCountersAndGainTreasureEffect(countersThreshold: number, toRemove:number, treasureToGain: number, game: Game): EffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const dmg = data.next as number;
         game.addToCounter(data.issuer, data.it, "counters", dmg);
         if (data.it.tags.counters >= countersThreshold) {
-            game.addToCounter(data.issuer, data.it, "counters", -countersThreshold);
+            game.addToCounter(data.issuer, data.it, "counters", -toRemove);
             game.gainTreasure(data.issuer, treasureToGain);
         }
         return true;
@@ -959,13 +959,13 @@ export function putCountersOnItemEffect(amount: number, game: Game): EffectFunct
         return true;
     };
 }
-export function rerollDiceRoll2Effect(game: Game): EffectFunction {
+export function rerollDiceRollXEffect(game: Game, numberOfDice: number): EffectFunction {
     return async (data: EffectData) => {
         const diceRoll = data.next;
         if(!(diceRoll instanceof DiceRoll))
             throw new Error("Expected a DiceRoll instance.");
         const values = [];
-                for(let i = 0; i < 2; i++)
+                for(let i = 0; i < numberOfDice; i++)
                     values.push(diceRoll.issuer.rollDice(game.random, diceRoll.attackRoll, diceRoll.card).value);
         const chooser = (await data.selectAndRecord(game, diceRoll.issuer as Player, 1, 1, game.players.filter((p) => p !== diceRoll.issuer), `Select a player to choose the dice rolls result between ${values[0]} and ${values[1]}.`, true, true)).selected[0] as Player;
         if(!chooser)
@@ -1036,7 +1036,7 @@ export function putRoomOrMonsterIntoDiscardEffect(game: Game, youMay: boolean): 
     };
 }
 
-export function eachOtherPlayerMayGainCoinEffect(game: Game): EffectFunction {
+export function eachOtherPlayerMayGainCoinEffect(game: Game, coinOther: number, baseCoinIssuer: number, VariableCoinIssuer: number): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const issuer = data.issuer;
@@ -1045,17 +1045,17 @@ export function eachOtherPlayerMayGainCoinEffect(game: Game): EffectFunction {
             min: 0,
             max: 1,
             options: [data.it],
-            description: "You may choose to gain a coin.",
+            description: `You may choose to gain ${coinOther} coin.`,
             canUseOnBoardSelection: false,
         })));
-        let issuerGains = 1;
+        let issuerGains = baseCoinIssuer;
         for (const selection of selections) {
             if (selection.selected.length > 0) {
                 const player = game.getPlayerById(selection.playerId);
                 if(player)
                     {
-                        game.gainCoins(player, 1, data.it);
-                        issuerGains += 1;
+                        game.gainCoins(player, coinOther, data.it);
+                        issuerGains += VariableCoinIssuer;
                     }
                 else
                     throw new Error(`Player with id ${selection.playerId} not found.`);
@@ -1087,12 +1087,12 @@ export function destroyYourItemOnYourNextTurnEndEffect(game: Game): EffectFuncti
     };
 }
 
-export function chooseAnotherPlayerAndLoot1Effect(game: Game): EffectFunction {
+export function chooseAnotherPlayerAndLootXEffect(game: Game, lootAmount: number): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const targetPlayer = (await data.selectAndRecord(game, data.issuer, 1, 1, game.players.filter((p) => p !== data.issuer), "Select another player.", true, true)).selected[0]!;
-        game.loot(data.issuer, 1);
-        game.loot(targetPlayer, 1);
+        game.loot(data.issuer, lootAmount);
+        game.loot(targetPlayer, lootAmount);
         return true;
     };
 }
@@ -1204,7 +1204,7 @@ export function playForFreeTargetEffect(game: Game): EffectFunction {
     };
 }
 
-export function changeNumberInEffectTextEffect(game: Game): EffectFunction {
+export function changeNumberInEffectTextEffect(game: Game, val: number, min: number, max: number): EffectFunction {
     return async (data: EffectData) => {
         let offEndTurn : null | (() => void) = null;
         let cleanTarget = () => {};
@@ -1217,7 +1217,7 @@ export function changeNumberInEffectTextEffect(game: Game): EffectFunction {
         if(!selection || selection.length === 0)
             return false;
         const num = parseInt(selection.at(-1)!);
-        const possibilities = [...(num > 1 ? [num - 1] : []), ...(num < 6 ? [num + 1] : [])];
+        const possibilities = [...(num > min + val - 1 ? [num - val] : []), ...(num < max + val - 1 ? [num + val] : [])];
         const newNumber = (await data.selectAndRecord(game, data.issuer as Player, 1, 1, possibilities, "Select the new number.", true, true)).selected[0] as number;
 
         const newOutcomes = targetCard.effectOutcomes.map((outcome) => {
@@ -1343,12 +1343,12 @@ export function stealAPlayerRandomLootCardEffect(game: Game): EffectFunction {
 }
 
 
-export function destroyThisAndLoot2Effect(game: Game): EffectFunction {
+export function destroyThisAndLootXEffect(game: Game, lootAmount: number): EffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const destroyed = game.destroyCardsOrSouls([data.it]);
         if(destroyed)
-            game.loot(data.issuer, 2);
+            game.loot(data.issuer, lootAmount);
         return destroyed;
     };
 }
@@ -1890,11 +1890,11 @@ export function obtainRollResults(s: string): string[] {
             switch (line[1]) {
                 case '-':
                     for (let i = Number(line[0]); i <= Number(line[2]); i++) {
-                        results[i - 1] = line.substring(4).trim();
+                        results[i - 1] = results[i - 1] === "" ? line.substring(4).trim() : results[i - 1] + ", then " + line.substring(4).trim();
                     }
                     break;
                 default:
-                    results[Number(line[0]) - 1] = line.substring(3).trim();
+                    results[Number(line[0]) - 1] = results[Number(line[0]) - 1] === "" ? line.substring(3).trim() : results[Number(line[0]) - 1] + ", then " + line.substring(3).trim();
                     break;
             }
         }
@@ -2261,7 +2261,7 @@ export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, de
     };
 }
 
-export function addOrSubtract1FromRollEffect(game: Game): EffectFunction {
+export function addOrSubtractXFromRollEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         const choosenDiceRoll: DiceRoll = data.next as DiceRoll;
         const value = data.next as number;

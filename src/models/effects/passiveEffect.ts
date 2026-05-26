@@ -339,15 +339,15 @@ export function combatDamageModifierOnAttackRollEffect(game: Game, attackRolls: 
     };
 }
 
-export function endTurnOnAttackRollOneEffect(game: Game) {
+export function endTurnOnAttackRollXEffect(game: Game, rollValue: number) {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
 
         offDamage = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
             const { eventIssuer, dice, damageDealt } = eventData;
             if (eventIssuer !== data.issuer) return;
-            if (dice.value !== 1) return;
-            addPassiveEffectToStack(game, active.endTurnAndResetStackEffect(game), data, "End your turn on attack roll of 1.");
+            if (dice.value !== rollValue) return;
+            addPassiveEffectToStack(game, active.endTurnAndResetStackEffect(game), data, `End your turn on attack roll of ${rollValue}.`);
         });
 
         data.it.cleaners.push(() => {
@@ -380,16 +380,16 @@ export function chooseMonsterWhenAnotherPlayerAttacksMonsterEffect(game: Game): 
 }
 
 
-export function roll4Choose1Effect(game: Game) {
+export function rollXChoose1Effect(game: Game, x: number) {
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         offRoll = game.emitter.on("on:dice:being-rolled", async ({ eventIssuer, diceRoll }) => {
             const effect:EffectFunction = async (effectData: EffectData) => {
                 const values = [diceRoll.value];
-                for(let i = 0; i < 3; i++)
+                for(let i = 0; i < x; i++)
                     values.push(eventIssuer.rollDice(game.random, diceRoll.attackRoll, diceRoll.card).value);
                 if(!(data.issuer instanceof Player))
-                    throw new Error("roll4Choose1Effect issuer should be a player.");
+                    throw new Error("rollXChoose1Effect issuer should be a player.");
                 const newValue = (await data.selectAndRecord(game, data.issuer, 1, 1, values, "Choose the result of this dice roll.", true, true)).selected[0]!;
                 diceRoll.value = newValue;
                 return true;
@@ -857,7 +857,7 @@ export function preventNonCombatDamageEffect(game: Game): EffectFunction {
     };
 }
 
-export function chooseNumberDamageOnRollThisTurnEffect(game: Game): EffectFunction {
+export function chooseNumberDamageOnRollThisTurnEffect(game: Game, damageAmount: number): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
@@ -869,8 +869,8 @@ export function chooseNumberDamageOnRollThisTurnEffect(game: Game): EffectFuncti
         offDamage = game.emitter.on("on:dice:resolved", async (eventData: OnDiceBeingRolledData) => {
             const { eventIssuer, diceRoll } = eventData;
             if (diceRoll.value !== nb) return;
-            const effect = active.dealDamageToTargetEffect(game, 1, true, selectPlayerOrMonster(game));
-            addPassiveEffectToStack(game, effect, data, `Deal 1 damage to a target because a ${nb} was rolled.`);
+            const effect = active.dealDamageToTargetEffect(game, damageAmount, true, selectPlayerOrMonster(game));
+            addPassiveEffectToStack(game, effect, data, `Deal ${damageAmount} damage to a target because a ${nb} was rolled.`);
         });
 
         offTurn = game.emitter.on("on:turn:end", ({ eventIssuer }) => {
@@ -1377,8 +1377,8 @@ export function giveCounterToAnotherItemOnEnterPlayEffect(game: Game, counterTyp
 }
 
 
-// Reduces any damage to a maximum of 1.
-export function reduceDamageToOneEffect(game: Game): EffectFunction {
+// Reduces any damage to a maximum of x.
+export function reduceDamageToXEffect(game: Game, maxDamage: number): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         // Listen for the next damage event on this player
@@ -1388,12 +1388,12 @@ export function reduceDamageToOneEffect(game: Game): EffectFunction {
             
             // Create the effect that will execute when the stack resolves
             const effect = (effectData: EffectData) => {
-                damageArray[0] = Math.min(damageArray[0] ?? 0, 1);
+                damageArray[0] = Math.min(damageArray[0] ?? 0, maxDamage);
                 return true;
             };
             
             // Add to stack instead of executing immediately
-            addPassiveEffectToStack(game, effect, data, "Reduce damage to 1");
+            addPassiveEffectToStack(game, effect, data, `Reduce damage to ${maxDamage}`);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -1414,7 +1414,7 @@ export function enterPlayDeactivatedEffect(game: Game): EffectFunction {
     };
 }
 
-export function lootOnNextRollEffect(game: Game): EffectFunction {
+export function lootOnNextRollEffect(game: Game, x: number): EffectFunction {
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         // Listen for the next roll event on this player
@@ -1428,12 +1428,12 @@ export function lootOnNextRollEffect(game: Game): EffectFunction {
                 // Create the effect that will execute when the stack resolves
                 const effect = (effectData: EffectData) => {
                     if (!(effectData.issuer instanceof Player)) return false;
-                    game.loot(effectData.issuer, 3, "other");
+                    game.loot(effectData.issuer, x, "other");
                     return true;
                 };
                 
                 // Add to stack instead of executing immediately
-                addPassiveEffectToStack(game, effect, data, "Loot 3 from correct roll");
+                addPassiveEffectToStack(game, effect, data, `Loot ${x} from correct roll`);
             }
             offRoll?.();
             offRoll = null;
@@ -1749,7 +1749,7 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
     };
 }
 
-export function lootPlusOneExceptLootStepEffect(game: Game): EffectFunction {
+export function lootPlusXExceptLootStepEffect(game: Game, x: number): EffectFunction {
     return (data: EffectData) => {
         let offLoot: (() => void) | null = null;
         // Listen for the next loot event on this player
@@ -1757,7 +1757,7 @@ export function lootPlusOneExceptLootStepEffect(game: Game): EffectFunction {
             const { eventIssuer } = eventData;
             if (data.issuer !== eventIssuer) return;
             if(eventData.reason === "lootStep") return; // Does not apply during the loot step
-            eventData.numberOfCards[0]! += 1;
+            eventData.numberOfCards[0]! += x;
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -1770,24 +1770,24 @@ export function lootPlusOneExceptLootStepEffect(game: Game): EffectFunction {
 }
 
 
-export function changeRollOneToSixEffect(game: Game): EffectFunction {
+export function changeRollXToYEffect(game: Game, x: number, y: number): EffectFunction {
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         // Listen for the next would roll event on this player
         offRoll = game.emitter.on("on:dice:would-roll", ({eventIssuer, diceRoll}: OnDiceWouldRollData) => {
             if (data.issuer !== diceRoll.issuer) return;
-            if (diceRoll.value === 1) {
+            if (diceRoll.value === x) {
                 // Create the effect that will execute when the stack resolves
                 const effect = async (effectData: EffectData) => {
                     if (!(effectData.issuer instanceof Player)) return false;
-                    const value = (await effectData.selectAndRecord(game, effectData.issuer, 0, 1, [6], "You may select a result to change the roll to.", true, true)).selected[0]!;
+                    const value = (await effectData.selectAndRecord(game, effectData.issuer, 0, 1, [y], "You may select a result to change the roll to.", true, true)).selected[0]!;
                     if(!value) return false; // Player chose not to change the roll
                     diceRoll.value = value;
                     return true;
                 };
                 
                 // Add to stack instead of executing immediately
-                addPassiveEffectToStack(game, effect, data, "Change roll 1 to 6");
+                addPassiveEffectToStack(game, effect, data, `You may change roll ${x} to ${y}`);
             }
         });
         // Store cleanup function on the card for when it's removed/destroyed
@@ -2598,11 +2598,11 @@ export function goFirstInTurnOrderEffect(game: Game): EffectFunction {
     };
 }
 
-export function startingItemEffect(game: Game): EffectFunction {
+export function startingItemEffect(game: Game, x: number): EffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = game.emitter.on("on:game:start:before", async () => {
             if (!(data.issuer instanceof Player)) return;
-            const options: TreasureCard[] = game.decks["treasure"]!.drawSeveral(3);
+            const options: TreasureCard[] = game.decks["treasure"]!.drawSeveral(x);
             const selection = await data.selectAndRecord(game, data.issuer, 1, 1, options, "Select a starting eternal treasure.", true, true);
             selection.selected[0]?.setEternal(true);
             game.addInPlay(data.issuer, selection.selected[0]!); 
