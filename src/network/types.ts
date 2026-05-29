@@ -27,4 +27,5 @@ export type Room = {
   params: GameParameters;
   characters: RoomCharacter[];
   game?: Game;
+  createdAt: Date;
 };

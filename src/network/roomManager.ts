@@ -56,6 +56,7 @@ class RoomManager {
         sendRoomChangedToAll(room);
       }),
       characters: RoomManager.generateCharacterAndEternalPairs(),
+      createdAt: new Date(),
     };
     this.rooms.set(roomId, room);
     return room;
@@ -104,6 +105,23 @@ class RoomManager {
 
   findRoom(roomId: string): Room | undefined {
     return this.rooms.get(roomId);
+  }
+
+  roomStats() {
+    return Array.from(this.rooms.values()).map((room) => ({
+      id: room.id,
+      createdAt: room.createdAt.toLocaleString("fr-FR"),
+      lastAction: new Date(room.users.reduce(
+        (acc, user) => Math.max(acc, user.lastActionTimestamp.getTime()),
+        0,
+      )).toLocaleString("fr-FR"),
+      users: room.users.length,
+      game: room.game
+        ? {
+            round: room.game.turnHandler.round,
+          }
+        : false,
+    }));
   }
 }
 
