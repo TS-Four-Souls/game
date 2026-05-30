@@ -1659,14 +1659,10 @@ export function becomeSoulInsteadOfDestructionEffect(game: Game): EffectFunction
         // Listen for the next damage event on this player
         offDestroy = game.emitter.on("on:item:destroyed", (eventData: OnItemDestroyedData) => {
             const { eventIssuer, cards } = eventData;
+            eventData.cards = eventData.cards.filter(c => c !== data.it);
             if (!(data.issuer instanceof Player)) return;
             if (!cards.includes(data.it)) return;
             data.it.soul = 1;
-            const index = cards.indexOf(data.it);
-            if (index > -1) {
-                cards.splice(index, 1);
-            }
-
             game.addSoul(data.issuer, data.it);
             if(!(data.it instanceof ItemCard))
                 throw new Error("becomeSoulInsteadOfDestructionEffect can only be applied to ItemCards.");

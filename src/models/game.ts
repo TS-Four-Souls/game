@@ -416,7 +416,7 @@ export class Game extends SelectionHandler {
       for (const item of itemsToLose) {
         if(!(item instanceof ItemCard))
           throw new Error("Selected card is not an ItemCard.");
-        this.removeInPlay(player, item);
+        // this.removeInPlay(player, item);
         this.destroyCardsOrSouls([item]);
       }
     }
@@ -1957,7 +1957,9 @@ export class Game extends SelectionHandler {
   destroyCardsOrSouls(cards: Card[]): boolean {
     if (cards.length === 0 || cards.some((card) => card === undefined) || cards.some((card) => card instanceof LootCard && card.soul === 0 && card.trinket === false))
       return false;
-    this.emit("on:item:destroyed", { eventIssuer: null, cards });
+    const eventData = { eventIssuer: null, cards };
+    this.emit("on:item:destroyed", eventData);
+    cards = eventData.cards;
     cards.forEach((card) => {
       if(card instanceof ItemCard)
         if(this.shop.removeCard(card)) {
