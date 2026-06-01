@@ -59,8 +59,10 @@ export const enterIntroStep = (socket: Socket) => {
             leaveCurrentStep(socket);
             if (room.game === undefined) {
               enterStartStep(socket, room, user);
-            } else {
+            } else if (user.name) {
               enterGameStep(socket, room, user);
+            } else {
+              return callback({ status: 400, error: "The game already before you could enter your name. It's too late for you to join." });
             }
           } else {
             if (room.users.length >= 4) {
