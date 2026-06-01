@@ -19,6 +19,7 @@ import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
 import type { HistoricEntry } from "@/models/historyHandler";
 import { enterStartStep } from "./startStep";
 import { globalEndpoints } from "./global";
+import { roomManager } from "./roomManager";
 
 export const enterGameStep = (socket: Socket, room: Room, user: User) => {
   if (!room.game) {
@@ -322,6 +323,7 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
         });
       }
 
+      roomManager.saveGameLogs(room.id, false);
       room.game = undefined;
       for (const user of room.users) {
         if (!user.name) continue;

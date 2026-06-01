@@ -1,2 +1,12 @@
 - Make sure the server doesn't crash when there is a throw in one room
 - Spam prevention: one IP cannot create more than X rooms per minutes
+- room not purged
+    -> no logs :sadface
+- admin dashboard
+    - download logs
+    - rooms details
+    - contact requests
+    - disable 
+- network stability
+- archive contact requests
+- translations
