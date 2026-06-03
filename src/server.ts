@@ -2,7 +2,7 @@ import { Server as Engine, type WebSocketData } from "@socket.io/bun-engine";
 import { Server } from "socket.io";
 import type { ClientToServerEvents, ServerToClientEvents } from "./shared/api";
 import { enterIntroStep } from "./network/introStep";
-import { roomManager } from "./network/roomManager";
+import { adminHandler } from "./network/adminHandler";
 
 const PORT = process.env.PORT || 3000;
 const HOSTNAME = process.env.HOSTNAME || "localhost";
@@ -41,10 +41,10 @@ export default {
   port: PORT,
   hostname: HOSTNAME,
   ...engineHandler,
-  fetch(req: Request, server: Bun.Server<WebSocketData>) {
+  async fetch(req: Request, server: Bun.Server<WebSocketData>) {
     const url = new URL(req.url);
-    if (url.pathname === "/admin") {
-      return Response.json(roomManager.roomStats());
+    if (url.pathname.startsWith("/admin")) {
+      return await adminHandler(req);
     }
     return engineHandler.fetch(req, server);
   },

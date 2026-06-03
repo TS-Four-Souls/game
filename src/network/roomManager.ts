@@ -7,7 +7,7 @@ import {
   sendUserAssigned,
 } from "./utils";
 import { CARD_SETS } from "@/models/game";
-import type { RoomCharacter } from "@/shared/api";
+import type { AdminRoom, RoomCharacter } from "@/shared/api";
 import { enterIntroStep } from "./introStep";
 import bun from "bun";
 
@@ -22,9 +22,17 @@ class RoomManager {
   }
 
   private pruneInactiveRooms() {
-    console.log("[RoomManager] Pruning inactive rooms. Threshold is", Date.now() - INACTIVE_ROOM_TIMEOUT);
+    console.log(
+      "[RoomManager] Pruning inactive rooms. Threshold is",
+      Date.now() - INACTIVE_ROOM_TIMEOUT,
+    );
     this.rooms.forEach((room) => {
-      console.log("[RoomManager] Checking room", room.id, "Last action timestamp", room.lastActionTimestamp.getTime());
+      console.log(
+        "[RoomManager] Checking room",
+        room.id,
+        "Last action timestamp",
+        room.lastActionTimestamp.getTime(),
+      );
       if (
         room.lastActionTimestamp.getTime() <
         Date.now() - INACTIVE_ROOM_TIMEOUT
@@ -114,22 +122,35 @@ class RoomManager {
     return fileName;
   }
 
+  async getGameLogs(filename: string): Promise<string | undefined> {
+    return Bun.file(`db/bug-logs/${filename}`).text();
+  }
+
   findRoom(roomId: string): Room | undefined {
     return this.rooms.get(roomId);
   }
 
-  roomStats() {
-    return Array.from(this.rooms.values()).map((room) => ({
-      id: room.id,
-      createdAt: room.createdAt.toLocaleString("fr-FR"),
-      lastAction: new Date(room.lastActionTimestamp).toLocaleString("fr-FR"),
-      users: room.users.length,
-      game: room.game
-        ? {
-            round: room.game.turnHandler.round,
-          }
-        : false,
-    }));
+  get adminRooms(): AdminRoom[] {
+    return Array.from(this.rooms.values())
+      .map((room) => ({
+        id: room.id,
+        createdAt: room.createdAt.toISOString(),
+        lastAction: room.lastActionTimestamp.toISOString(),
+        users: room.users.length,
+        game: room.game
+          ? {
+              round: room.game.turnHandler.round,
+              maxSoul: room.game.players.reduce(
+                (max, player) => Math.max(max, player.totalSouls),
+                0,
+              ),
+            }
+          : (false as const),
+      }))
+      .sort(
+        (a, b) =>
+          new Date(b.lastAction).getTime() - new Date(a.lastAction).getTime(),
+      );
   }
 }
 

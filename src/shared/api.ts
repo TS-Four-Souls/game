@@ -35,8 +35,6 @@ const deckNameSchema = z.union([
 ]);
 export type DeckName = z.infer<typeof deckNameSchema>;
 
-const deckTypeEnum = z.enum(["monster", "treasure", "loot", "bsoul", "room"]);
-
 const deckConfigCardSchema = z.object({
   name: z.string(),
   slug: z.string(),
@@ -1060,3 +1058,31 @@ export interface ClientToServerEvents {
 
   quitGame: (callback: (response: Responses.QuitGame) => void) => void;
 }
+
+export type AdminRoom = {
+  id: string;
+  createdAt: string;
+  lastAction: string;
+  users: number;
+  game:
+    | {
+        round: number;
+        maxSoul: number;
+      }
+    | false;
+};
+
+export type AdminMessage = {
+  id: string;
+  createdAt: string;
+  type: ContactType;
+  description: string;
+  email: string | null;
+  logs: string | null;
+  resolved: boolean;
+};
+
+export type AdminResponse = {
+  rooms: AdminRoom[];
+  messages: AdminMessage[];
+};
