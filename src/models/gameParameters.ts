@@ -266,7 +266,7 @@ export class GameParameters {
         this.character = new CharacterDeckParameter(4, 100, onChange, this._filter);
         this.monster = new DeckParameter("monster", 50, 1000, onChange, this._filter);
         this.treasure = new DeckParameter("treasure", 50, 1000, onChange, this._filter);
-        this.loot = new DeckParameter("loot", 100, 1000, onChange, this._filter);
+        this.loot = new DeckParameter("loot", 50, 1000, onChange, this._filter);
         this.bsoul = new DeckParameter("bsoul", 3, 100, onChange, this._filter);
         this.room = new DeckParameter("room", 10, 100, onChange, this._filter);
         this.nbItemsInShop = new NumericGameParameter(0, 2, 6, onChange);
