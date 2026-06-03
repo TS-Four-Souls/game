@@ -1204,8 +1204,7 @@ export function deactivateItemEffect(game: Game, selectionOnResolve: boolean = f
 export function destroyThisEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        game.destroyCardsOrSouls([data.it]);
-        return true;
+        return game.destroyCardsOrSouls([data.it]);
     };
 }
 
