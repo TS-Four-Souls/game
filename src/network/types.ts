@@ -14,7 +14,6 @@ export const DEFAULT_CHARACTER: RoomCharacter = {
 
 export type User = {
   id: string;
-  lastActionTimestamp: Date;
   socket: Socket;
   name?: string;
   character: RoomCharacter;
@@ -23,6 +22,7 @@ export type User = {
 
 export type Room = {
   id: string;
+  lastActionTimestamp: Date;
   users: User[];
   params: GameParameters;
   characters: RoomCharacter[];

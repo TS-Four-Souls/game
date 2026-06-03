@@ -6,6 +6,7 @@ import {
   sendRoomChangedToUser,
   leaveCurrentStep,
   errorGuardedEndpoint,
+  registerRoomActivity,
 } from "./utils";
 import {
   executeActivateRequest,
@@ -36,10 +37,6 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
   sendRoomChangedToUser(room, user);
 
   globalEndpoints(socket, room);
-
-  socket.onAny(() => {
-    user.lastActionTimestamp = new Date();
-  });
 
   socket.on("saveGame", (callback) =>
     errorGuardedEndpoint(callback, () => {
@@ -135,6 +132,7 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
 
   socket.on("resolve", (callback) =>
     errorGuardedEndpoint(callback, async () => {
+      registerRoomActivity(room);
       game.addToHistory({ type: "Resolve", issuer: player.id });
       await game.actions.resolveStack();
       return callback({ status: 200 });

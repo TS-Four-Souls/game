@@ -8,6 +8,7 @@ import {
   updatePlayerCount,
   leaveCurrentStep,
   errorGuardedEndpoint,
+  registerRoomActivity,
 } from "./utils";
 import { Game } from "@/models/game";
 import { enterGameStep } from "./gameStep";
@@ -21,10 +22,6 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
   sendRoomChangedToUser(room, user);
 
   globalEndpoints(socket, room);
-
-  socket.onAny(() => {
-    user.lastActionTimestamp = new Date();
-  });
 
   socket.on("leaveRoom", (callback) =>
     errorGuardedEndpoint(callback, () => {
@@ -146,6 +143,7 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
           schemas.setGameParameterRequest,
           callback,
           (payload) => {
+            registerRoomActivity(room);
             room.params.setParameterByKey(payload.parameter, payload.value);
           },
         ),
