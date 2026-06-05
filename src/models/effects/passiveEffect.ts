@@ -316,16 +316,25 @@ export function lvlXaddListenerEffect(
     lvl: number,
     game: Game): EffectFunction {
 
-    return (data: EffectData) => {
-        let offTurn = game.emitter.on("on:counter:modified", async (eventData: OnCounterModifiedData) => {
-            const { eventIssuer } = eventData;
-            if (data.issuer !== eventIssuer) return;
-            if (data.it.tags.counters === undefined || data.it.tags.counters < lvl) return;
-
+    return async (data: EffectData) => {
+        if (data.it.tags.counters !== undefined || data.it.tags.counters >= lvl)
+        {
             for (const func of functions)
                 await func(data);
-            offTurn();
-        });
+        }
+        else
+            {
+
+            let offTurn = game.emitter.on("on:counter:modified", async (eventData: OnCounterModifiedData) => {
+                const { eventIssuer } = eventData;
+                if (data.issuer !== eventIssuer) return;
+                if (data.it.tags.counters === undefined || data.it.tags.counters < lvl) return;
+                
+                for (const func of functions)
+                    await func(data);
+                offTurn();
+            });
+        }
         return true;
     };
 }

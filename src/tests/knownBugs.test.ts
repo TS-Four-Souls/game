@@ -92,6 +92,22 @@ describe("Known bugs that have be corrected", () => {
         expect(player2.inPlay.map((c) => c.slug)).toContain("b2-brimstone");
     });
 
+    it("stealing bumbo keep counters but not effects", async () => {
+        const bumbo = game.obtainCard("b2-bum_bo") as ItemCard;
+        game.addInPlay(player1, bumbo);
+        game.gainCoins(player1, 40, "gift");
+        expect(bumbo.tags.counters || 0).toBe(40);
+        expect(game.getAttack(player1)).toBe(2);
+        expect(game.getAttack(player2)).toBe(1);
+        expect(player1.coins).toBe(0);
+        game.stealItemAnywhere(player2, bumbo);
+        expect(player1.inPlay).not.toContain(bumbo);
+        expect(player2.inPlay).toContain(bumbo);
+        expect(bumbo.tags.counters || 0).toBe(40);
+        expect(game.getAttack(player1)).toBe(1);
+        expect(game.getAttack(player2)).toBe(2);
+    });
+
 
     it("curse removed on death", async () => {
         const pain = game.obtainCard("b2-curse_of_pain") as MonsterCard;
