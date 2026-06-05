@@ -219,7 +219,9 @@ class BooleanGameParameter {
 
 export class GameParameters {
     readonly miniDraft: BooleanGameParameter;
+    readonly nbSoulsToWin: NumericGameParameter;
     readonly nbItemsInShop: NumericGameParameter;
+    readonly timer: NumericGameParameter;
     readonly nbRooms: NumericGameParameter;
     readonly nbEncounters: NumericGameParameter;
     readonly deathPenaltyCoins: NumericGameParameter;
@@ -263,15 +265,17 @@ export class GameParameters {
         this._currentNbPlayers = 0;
         this.miniDraft = new BooleanGameParameter(false, onChange);
         this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
+        this.nbSoulsToWin = new NumericGameParameter(1, 4, 20, onChange);
         this.character = new CharacterDeckParameter(4, 100, onChange, this._filter);
         this.monster = new DeckParameter("monster", 50, 1000, onChange, this._filter);
         this.treasure = new DeckParameter("treasure", 50, 1000, onChange, this._filter);
-        this.loot = new DeckParameter("loot", 100, 1000, onChange, this._filter);
+        this.loot = new DeckParameter("loot", 50, 1000, onChange, this._filter);
         this.bsoul = new DeckParameter("bsoul", 3, 100, onChange, this._filter);
         this.room = new DeckParameter("room", 10, 100, onChange, this._filter);
         this.nbItemsInShop = new NumericGameParameter(0, 2, 6, onChange);
         this.nbRooms = new NumericGameParameter(1, 1, 1, onChange);
         this.nbEncounters = new NumericGameParameter(1, 2, 6, onChange);
+        this.timer = new NumericGameParameter(1, 8, 100, onChange);
         this.deathPenaltyCoins = new NumericGameParameter(0, 1, 20, onChange);
         this.deathPenaltyItem = new NumericGameParameter(0, 1, 10, onChange);
         this.deathPenaltyLoot = new NumericGameParameter(0, 1, 10, onChange);
@@ -284,14 +288,14 @@ export class GameParameters {
         this.lootPlayPerTurn = new NumericGameParameter(1, 1, 10, onChange);
         this.allowCheatOptions = new BooleanGameParameter(true, onChange);
         this.playWithBonusSouls = new BooleanGameParameter(true, onChange);
-        this.playWithRooms = new BooleanGameParameter(true, onChange);
+        this.playWithRooms = new BooleanGameParameter(false, onChange);
     }
 
     toJson(): GameParametersJson {
         const decks: DeckConfig = {
             useBonusSouls: {text: "Use bonus souls?", value: this.playWithBonusSouls.value},
-            useRooms: {text: "Use rooms?", value: this.playWithRooms.value},
-            ...(this._deckMode === "standard" ? {nbPlayerCardRestriction: {text: "Number player card restriction", value: this.nbPlayerCardRestriction.value}} : {}),
+            //useRooms: {text: "Use rooms?", value: this.playWithRooms.value},
+            ...(this._deckMode === "standard" && this._currentNbPlayers < 3 ? {nbPlayerCardRestriction: {text: "Number player card restriction", value: this.nbPlayerCardRestriction.value}} : {}),
             character: {total: this.character.count, cards: this.character.json()},
             monster: {total: this.monster.count, cards: this.monster.json()},
             treasure: {total: this.treasure.count, cards: this.treasure.json()},
@@ -301,8 +305,10 @@ export class GameParameters {
         }
         return {
             miniDraft: {text: "Mini-draft", value: this.miniDraft.value},//: At the start of the game, lay out (number of players + 1) treasure cards. Each player choose one of them and gain them, in turn order. Put the last card on the bottom of the treasure deck. Repeat this process with the order reversed.
+            nbSoulsToWin: {text: "Number of souls to win", value: this.nbSoulsToWin.value},
             allowCheatOptions: {text: "Allow cheat options", value: this.allowCheatOptions.value},
             nbItemsInShop: {text: "Number of items in the shop", value: this.nbItemsInShop.value},
+            timer: {text: "Number of rounds before losing.", value: this.timer.value},
             nbEncounters: {text: "Number of encounters", value: this.nbEncounters.value},
             // nbRooms: {text: "Number of rooms", value: this.nbRooms.value},
             deathPenaltyCoins: {text: "Death penalty coins", value: this.deathPenaltyCoins.value},

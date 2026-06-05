@@ -7,7 +7,7 @@ import {
   sendUserAssigned,
 } from "./utils";
 import { CARD_SETS } from "@/models/game";
-import type { RoomCharacter } from "@/shared/api";
+import type { AdminRoom, RoomCharacter } from "@/shared/api";
 import { enterIntroStep } from "./introStep";
 import bun from "bun";
 
@@ -22,28 +22,40 @@ class RoomManager {
   }
 
   private pruneInactiveRooms() {
+    console.log(
+      "[RoomManager] Pruning inactive rooms. Threshold is",
+      Date.now() - INACTIVE_ROOM_TIMEOUT,
+    );
     this.rooms.forEach((room) => {
+      console.log(
+        "[RoomManager] Checking room",
+        room.id,
+        "Last action timestamp",
+        room.lastActionTimestamp.getTime(),
+      );
       if (
-        room.users.every(
-          (user) =>
-            user.lastActionTimestamp.getTime() <
-            Date.now() - INACTIVE_ROOM_TIMEOUT,
-        )
+        room.lastActionTimestamp.getTime() <
+        Date.now() - INACTIVE_ROOM_TIMEOUT
       ) {
-        room.users.forEach((user) => {
-          leaveCurrentStep(user.socket);
-          enterIntroStep(user.socket);
-          sendUserAssigned(user.socket, null);
-          sendRoomChangedToUser(null, user);
+        try {
+          room.users.forEach((user) => {
+            leaveCurrentStep(user.socket);
+            enterIntroStep(user.socket);
+            sendUserAssigned(user.socket, null);
+            sendRoomChangedToUser(null, user);
 
-          user.socket.emit("on:room:broadcast", {
-            type: "error",
-            title: "Room purged",
-            message:
-              "The room has been purged because it has been inactive for too long.",
+            user.socket.emit("on:room:broadcast", {
+              type: "error",
+              title: "Room purged",
+              message:
+                "The room has been purged because it has been inactive for too long.",
+            });
           });
-        });
-        this.deleteRoom(room.id);
+        } catch (error) {
+          console.error("[RoomManager] Error pruning inactive room", error);
+        } finally {
+          this.deleteRoom(room.id);
+        }
       }
     });
   }
@@ -52,10 +64,12 @@ class RoomManager {
     const room: Room = {
       id: roomId,
       users: [user],
+      lastActionTimestamp: new Date(),
       params: new GameParameters(() => {
         sendRoomChangedToAll(room);
       }),
       characters: RoomManager.generateCharacterAndEternalPairs(),
+      createdAt: new Date(),
     };
     this.rooms.set(roomId, room);
     return room;
@@ -77,8 +91,14 @@ class RoomManager {
   };
 
   deleteRoom(roomId: string) {
-    this.saveGameLogs(roomId, false);
-    this.rooms.delete(roomId);
+    try {
+      this.saveGameLogs(roomId, false);
+    } catch (error) {
+      console.error("[RoomManager] Error saving game logs", error);
+    } finally {
+      this.rooms.delete(roomId);
+      console.log("[RoomManager] Room", roomId, "deleted");
+    }
   }
 
   saveGameLogs(roomId: string, bugReport: boolean): string | undefined {
@@ -102,8 +122,35 @@ class RoomManager {
     return fileName;
   }
 
+  async getGameLogs(filename: string): Promise<string | undefined> {
+    return Bun.file(`db/bug-logs/${filename}`).text();
+  }
+
   findRoom(roomId: string): Room | undefined {
     return this.rooms.get(roomId);
+  }
+
+  get adminRooms(): AdminRoom[] {
+    return Array.from(this.rooms.values())
+      .map((room) => ({
+        id: room.id,
+        createdAt: room.createdAt.toISOString(),
+        lastAction: room.lastActionTimestamp.toISOString(),
+        users: room.users.length,
+        game: room.game
+          ? {
+              round: room.game.turnHandler.round,
+              maxSoul: room.game.players.reduce(
+                (max, player) => Math.max(max, player.totalSouls),
+                0,
+              ),
+            }
+          : (false as const),
+      }))
+      .sort(
+        (a, b) =>
+          new Date(b.lastAction).getTime() - new Date(a.lastAction).getTime(),
+      );
   }
 }
 

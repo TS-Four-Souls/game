@@ -21,7 +21,6 @@ export const enterIntroStep = (socket: Socket) => {
 
       const user: User = {
         id: generateUserId(),
-        lastActionTimestamp: new Date(),
         socket,
         character: DEFAULT_CHARACTER,
         isHost: true,
@@ -55,12 +54,17 @@ export const enterIntroStep = (socket: Socket) => {
               return callback({ status: 400, error: "User not found" });
             }
             user.socket = socket;
-            user.lastActionTimestamp = new Date();
             leaveCurrentStep(socket);
             if (room.game === undefined) {
               enterStartStep(socket, room, user);
-            } else {
+            } else if (user.name) {
               enterGameStep(socket, room, user);
+            } else {
+              return callback({
+                status: 400,
+                error:
+                  "The game already before you could enter your name. It's too late for you to join.",
+              });
             }
           } else {
             if (room.users.length >= 4) {
@@ -74,7 +78,6 @@ export const enterIntroStep = (socket: Socket) => {
             }
             const user: User = {
               id: generateUserId(),
-              lastActionTimestamp: new Date(),
               socket,
               character: DEFAULT_CHARACTER,
               isHost: false,

@@ -1263,25 +1263,38 @@ export class Game extends SelectionHandler {
         monster.resetEntityFlags();
       }
       this.turnHandler.endTurn();
+      if(this.turnHandler.round > this.gameParameters.timer.value)
+        this.win(null);
       this.dispatch();
       this.startTurn();
     });
   }
 
-  win(player: Player): void {
+  win(player: Player | null): void {
     if(this._isWon)
       return;
     this._isWon = true;
-    for(const p of this.players)
+    if(player === null)
     {
-      const isWinner = p.id === player.id;
       this._onRoomBroadcast.dispatch({
         type: "victory",
-        title: isWinner ? "YOU WON!" : `${player.id} won, BUT MORE IMPORTANTLY, YOU LOST!`,
-        message: isWinner ? "Congratulations!" : `Next time, cheat!`,
-        players: [p.id],
+        title: `TIME'S UP! EVERYBODY LOSES!`,
+        message: `You can keep playing, but you won't see the MAGNIFICIENT VICTORY POPUP!`,
+        players: this.players.map(p => p.id),
       });
     }
+    else 
+      for(const p of this.players)
+      {
+        const isWinner = p.id === player.id;
+
+        this._onRoomBroadcast.dispatch({
+          type: "victory",
+          title: isWinner ? "YOU WON!" : `${player.id} won, BUT MORE IMPORTANTLY, YOU LOST!`,
+          message: isWinner ? "Congratulations!" : `Next time, cheat!`,
+          players: [p.id],
+        });
+      }
   }
 
 
@@ -1289,7 +1302,7 @@ export class Game extends SelectionHandler {
    * Draws and initializes the three bonus soul cards.
    */
   initializeBonusSouls(): void {
-    if(this.decks["bsoul"]._order!.length !== 0) {
+    if(this.decks["bsoul"]._order!.length !== 0 && this.gameParameters.playWithBonusSouls.value) {
       this._bonusSouls = this.decks["bsoul"]!.drawSeveral(3);
       for (const soul of this._bonusSouls) {
         soul.cleanup = bSoulEffectParser(soul, this);
@@ -1300,7 +1313,7 @@ export class Game extends SelectionHandler {
   initializeWinningCondition(): void {
     let offSoulGained: (() => void) | null = null;
         offSoulGained = this.emitter.on("on:soul:gained", async ({ eventIssuer }) => {
-          if(eventIssuer.totalSouls >= 4)
+          if(eventIssuer.totalSouls >= this.gameParameters.nbSoulsToWin.value)
           {
               this.win(eventIssuer);
               offSoulGained!();

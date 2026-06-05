@@ -1,1 +1,35 @@
-- Make sure the server doesn't crash when there is a throw in one room
+## QoL and accessibility
+
+- better support for touchscreens
+- better visiblity for counters and stats on cards
+    - maybe an animation when values change
+    - see the counters and live stats on hover preview
+- network stability
+- music, sound effects
+- have some way to see the destoyed cards
+
+## Expand audience
+
+- translations
+    1. localized cards -> ask yuggy
+    2. translate the UI
+- Discord server for matchmaking and general discussion
+- reply button in admin page for messages with email
+
+## New cards and rulesets
+
+- work on the other card sets
+    - release Four Souls+
+    - release Requiem
+
+## New game modes (e.g: Solitaire, Co-op, Team)
+
+- select a soul goal (default to 4)
+- select a max round count (disabled by default)
+- play as multiple player instances
+- team mode
+    - the total number of souls of the team counts towards the soul goal
+- select loot card visiblity
+    - only show own cards (default)
+    - see cards of other members of the team (useful when in team mode)
+    - see everyone's cards

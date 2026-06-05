@@ -107,5 +107,8 @@ export const updatePlayerCount = (room: Room) => {
 
 export const leaveCurrentStep = (socket: Socket) => {
   socket.removeAllListeners();
-  socket.offAny();
+};
+
+export const registerRoomActivity = (room: Room) => {
+  room.lastActionTimestamp = new Date();
 };
