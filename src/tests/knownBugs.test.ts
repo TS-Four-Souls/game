@@ -92,6 +92,22 @@ describe("Known bugs that have be corrected", () => {
         expect(player2.inPlay.map((c) => c.slug)).toContain("b2-brimstone");
     });
 
+    it("donation machine can not give itself", async () => {
+        const donationMachine = game.obtainCard("b2-donation_machine") as ItemCard;
+        game.addInPlay(player1, donationMachine);
+        player1.gainCoins(10);
+        expect(donationMachine.targetStillValid(player1, 0, [donationMachine])).toBe(false);
+
+        const mc = game.obtainCard("b2-modeling_clay") as ItemCard;
+        game.addInPlay(player1, mc);
+        game.recharge(mc);
+        await game.activateItem(player1, mc, [donationMachine], "tap");
+        await game.actions.resolveStack();
+        expect(mc.targetStillValid(player1, 0, [donationMachine])).toBe(true);
+        expect(mc.targetStillValid(player1, 0, [mc])).toBe(false);
+        expect(donationMachine.targetStillValid(player1, 0, [mc])).toBe(true);
+    });
+
     it("stealing bumbo keep counters but not effects", async () => {
         const bumbo = game.obtainCard("b2-bum_bo") as ItemCard;
         game.addInPlay(player1, bumbo);
