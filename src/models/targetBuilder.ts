@@ -165,7 +165,7 @@ export class TargetBuilder {
             throw new Error(`Item not found.`);
         if(throwIfNotCharged && effectId === "tap" && !item.charged)
             throw new Error(`Item ${item.name} is not charged.`);
-        // console.log("TargetBuilder.getNextSelector for item:", item.name, "effectId:", effectId, "partialChoices:", partialChoices);
+        // console.log("TargetBuilder.getNextSelector for item:", item.name, "effectId:", effectId, "partialChoices:", partialChoices, item.activeEffectList);
 
         const rootSelectors = [... item.getEffectTarget(effectId)];
 
@@ -537,7 +537,7 @@ export class TargetBuilder {
         let targets: any[] = [];
         let options = TargetBuilder.getNextSelectorRaw(game, player, item, targets, effectId, false);
         while(!options.complete)
-        {
+            {
             if(options.isChooseOne)
             {
                 const feasibleChoices = []
@@ -583,7 +583,7 @@ export class TargetBuilder {
         s = s.trim().toLowerCase();
         const coins = parseNumber(s, /^\[paid effect\] pay\s+(\d+)\u00A2:?/u);
         if (coins !== null) {
-            if (player.coins < coins) {
+            if (!game.canLoseCoins(player, coins, false, "paiement")) {
                 return `You don't have enough coins to pay this cost.`;
             }
         }
@@ -608,6 +608,11 @@ export class TargetBuilder {
                 return `You don't have enough loot cards to pay this cost.`;
             }
         }
+        if(s.startsWith("[paid effect] destroy this") && card.eternal)
+            return "you can not destroy an eternal item.";
+        if(s.startsWith("[paid effect] give another non-eternal item you control") && player.inPlay.filter(i => i !== card && !i.eternal).length === 0)
+            return "you have no item to give.";
+        
         return true;
     }
 

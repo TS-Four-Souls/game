@@ -87,7 +87,7 @@ describe("Requiem Loots ", () => {
         game.addCardToHand(player1, loot);
         game.gainTreasure(player1, 1);
         const treas = player1.inPlay[2]!;
-        game.actions.playCard(player1, 0, [treas]);
+        game.actions.playCard(player1, 0, []);
         game.select = async (player: Player, min: number, max: number, Options: any[]) => { //monster 0
             if(Options.includes(treas))
                 return {selected: [treas], remaining: []};
@@ -99,6 +99,7 @@ describe("Requiem Loots ", () => {
         expect((loot.tags.copiedCards as ItemCard[]).map((c) => c.slug).includes(treas.slug)).toBe(true);
         game.random = () => 0.01;
         const roll = game.rollDice(player1, true, loot);
+        expect(game.actions.canActivate(loot, player1)).toBe(true);
         await game.activateItem(player1, loot, [loot.tags.copiedCards[0], roll]);
         await game.actions.resolveStack();
         await game.actions.resolveStack();

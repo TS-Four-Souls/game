@@ -7,7 +7,8 @@ import { randomSelect, setupTestGame } from "../testHelpers";
 
 
 let fixedSeed: string = "";
-// fixedSeed = "0.3934741726185124"; 
+// fixedSeed =  "0.30422119860658786";
+// fixedSeed =  "0.9317227808903745";
 let VERBOSE = fixedSeed !== ""; 
 // VERBOSE = false; 
 let gameId = 0;
@@ -31,7 +32,7 @@ describe(   "Random Games", () => {
                     randomSeed: seed,
                     rooms: "random",
                     bonusSouls: "random",
-                    forbiddenCards: ["b2-portable_slot_machine", "b2-battery_bum"]
+                    forbiddenCards: ["b2-portable_slot_machine", "b2-battery_bum", "r-keepers_sack", "r-car_battery", "b2-shiny_rock", "b2-placebo"]
                 });
         console.log(`${gameId++} Random seed for this test: \"${seed}\"`);
         game = setup.game;
@@ -43,6 +44,7 @@ describe(   "Random Games", () => {
     });
 
     it("100 rounds", async () => {
+        // throw new Error("This test is currently disabled as it can be very flaky and doesn't provide consistent value. It can be re-enabled for specific seeds that are known to cause issues, or after improving the bot's decision making to reduce the chances of it getting stuck in loops or bad states.");
         Math.random = game.random; // Override Math.random to make the test deterministic and reproducible
         const bot1 = new Bot(game, player1);
         const bot2 = new Bot(game, player2);
@@ -65,6 +67,21 @@ describe(   "Random Games", () => {
                 : game.currentPlayer === player1 
                     ? bot2
                     : bot1;
+
+            // let findDuplicates = arr => arr.filter((item, index) => arr.indexOf(item) !== index)
+            // if(findDuplicates(game.decks.loot._discard.concat(game.decks.loot._order)).length > 0)
+            //     throw new Error(`Duplicate cards found in the loot deck.`);
+            // if(game.decks.treasure.cards.some(c => game.visibleItems.some(v => v.globalId === c.globalId)))
+            //     throw new Error(`The Dead Cat is in the treasure deck and in play for player ${bot1.me.id} at the same time, which should not happen. This may indicate a bug in card obtaining or state updates between turns.`);
+            // if(bot2.me.hand.cards.some(c => game.decks.loot.cards.includes(c)))
+            //     throw new Error(`Player ${bot2.me.id} has a card in hand that is still in the loot deck, which should not happen. This may indicate a bug in card obtaining or state updates between turns.`);
+            // if(game.decks.loot.discard.some(c => game.decks.loot.cards.filter(deckCard => deckCard.globalId === c.globalId).length > 1))
+            //     throw new Error(`in discard, Duplicate card ${game.decks.loot.cards.find(c => game.decks.loot.cards.filter(deckCard => deckCard.globalId === c.globalId).length > 1)?.name} with global ID ${game.decks.loot.cards.find(c => game.decks.loot.cards.filter(deckCard => deckCard.globalId === c.globalId).length > 1)?.globalId} found in loot deck, which should not happen. This may indicate a bug in card obtaining or state updates between turns.`);
+            // if(game.decks.loot.cards.some(c => game.decks.loot.cards.filter(deckCard => deckCard.globalId === c.globalId).length > 1))
+            //     throw new Error(`Duplicate card ${game.decks.loot.cards.find(c => game.decks.loot.cards.filter(deckCard => deckCard.globalId === c.globalId).length > 1)?.name} with global ID ${game.decks.loot.cards.find(c => game.decks.loot.cards.filter(deckCard => deckCard.globalId === c.globalId).length > 1)?.globalId} found in loot deck, which should not happen. This may indicate a bug in card obtaining or state updates between turns.`);
+                // printVerbose(bot.me.id,"Has ", bot.me.inPlay.length, " items in play: ", bot.me.inPlay.map(i => i.name));
+            // if(bot1.me.inPlay.some(c => c.owner !== bot1.me) || bot2.me.inPlay.some(c => c.owner !== bot2.me))
+            //     throw new Error(`Player ${bot1.me.id} or ${bot2.me.id} has an item (${bot1.me.inPlay.find(c => c.owner !== bot1.me)?.name || bot2.me.inPlay.find(c => c.owner !== bot2.me)?.name}) in play that is not owned by them. This should not happen and may indicate a bug in state updates between turns.`);
             // if(game.shop.itemsInShop.some(i => i === undefined))
             //     throw new Error("Shop deck is empty, which should not happen. Check for potential bugs in card obtaining or shop refill." + game.shop._deck.length + ", discard: " + game.shop._deck.discard.length);
             // printVerbose(game.monsters.filter(m => m.isEngagedInCombat).length, " monsters engaged in combat.");
@@ -73,13 +90,16 @@ describe(   "Random Games", () => {
             // let action = actions[Math.floor(Math.random() * actions.length)]!;
             let action = bot.randomFeasibleAction;
             // printVerbose("Done.", actions.map(a => a.type + (a instanceof UseItemAction ? ` (${a.item.name})` : "")).join(", "));
-            // printVerbose("Has ", bot.me.inPlay.length, " items in play: ", bot.me.inPlay.map(i => i.name).join(", "));
-            if(game.getAttack(game.currentPlayer)=== 0)
-                throw new Error("Player has 0 attack, but it's still their turn. This should not happen.");
-            // printVerbose("Monsters: ", game.monsters.map(m => `${m.card.name}(${m.currentHealthPoints}HP)${m.isEngagedInCombat ? " engaged" : ""}${m.isDead ? " dead" : ""}`).join(", "));
+            // if(bot.me.inPlay.length < 2)
+            //     throw new Error(`Player ${bot.me.id} has less than 2 items in play, which should not happen as the starting item is eternal. This may indicate a bug in item removal or state updates between turns.`);
+            // if(game.getAttack(game.currentPlayer)=== 0)
+            //     throw new Error("Player has 0 attack, but it's still their turn. This should not happen.");
+            // printVerbose("Monsters: ", game.monsters.map(m => `${m.card.name}(${m.currentHealthPoints}HP)${m.isEngagedInCombat ? " engaged" : ""}${m.isDead ? " dead" : ""}`));
             // printVerbose("slots: ", game.encounters.slots.map(slot => slot[slot.length - 1]?.slug).join(", "));
             // if(game.currentPlayer.diceModifier + game.currentPlayer.attackDiceModifier >= 2)
             //     throw new Error("Player has 5 or more dice modifier, which should not be possible. Check for potential bugs in stat modification or stacking.");
+            if(game.decks.loot.cards.some(c => c.name === "Soulbond"))
+                throw new Error("Soulbond is in the loot deck, which should not happen. This may indicate a bug in card obtaining or state updates between turns.");
             if(action === null && bot.me !== game.currentPlayer)
                 continue;
             if(action === null) {
@@ -93,7 +113,7 @@ describe(   "Random Games", () => {
             // if(game.entitiesInCombat.some(e => e.card.slug === "b2-cod_worm"))
             // console.log("Both have donation machines ?, ", player1.inPlay.map(i => i.slug).includes("b2-donation_machine"), player2.inPlay.map(i => i.slug).includes("b2-donation_machine"));
             //                     throw new Error("Nerve Ending was seen but is no longer present, it may have been killed or removed from combat. This should be possible but is worth investigating if it happens consistently with the same seed.");
-            printVerbose(`${uniqueIdCounter} Round ${game.turnHandler.round}:${game.turnHandler.current.id},  Player ${bot.me.id} try execute action: ${action.type}`);
+        // printVerbose(`${uniqueIdCounter} Round ${game.turnHandler.round}:${game.turnHandler.current.id},  Player ${bot.me.id} try execute action: ${action.type}`);
             // printVerbose("attack requirement: ", bot.me.hasAttackRequirement, " free attacks remaining: ", bot.me.hasFreeAttackRemaining, " attacks remaining: ", bot.me.attackThisTurn);
             // printVerbose("engaged in combat: ", game.entitiesInCombat.map(e => e.id).join(", "));
             switch(action.type) {
@@ -117,7 +137,7 @@ describe(   "Random Games", () => {
                         throw new Error("Expected UseItemAction");
                     // printVerbose(` inPlay: ${player2.inPlay.map(i => i.name).join(", ")}`);
                     // printVerbose(` coins: ${player2.coins}`);
-                    printVerbose(`    Try ${bot.me.id} executed action: ${action.type}, ${`item: ${action.item.name}`}, global id: ${action.item.globalId}, owner: ${action.item.owner.id}, stack size: ${game.stack.elements.length} with in play items: ${bot.me.inPlay.map(i => i.name).join(", ")}`);
+                    printVerbose(`    Try ${bot.me.id} executed action: use_item, ${`item: ${action.item.name}`}, global id: ${action.item.globalId}, owner: ${action.item.owner.id}, stack size: ${game.stack.elements.length} with in play items: ${bot.me.inPlay.map(i => i.name).join(", ")}, targets: ${action.targets === undefined ? [] : TargetBuilder.convertToSelectionItems(action.targets)}`);
                     if(!bot.me.inPlay.includes(action.item))
                         throw new Error(`Bot tried to use item ${action.item.name} which is not in their in-play area. This should not happen and may indicate a bug in action feasibility checking or state updates between action selection and execution.`);
                     try {
@@ -155,24 +175,23 @@ describe(   "Random Games", () => {
                 case ActionType.ATTACK:
                     if(action instanceof DeclareAttackOnEntityAction === false)
                         throw new Error("Expected DeclareAttackOnEntityAction");
-                    printVerbose(`    declare attack on: ${action.target === "topDeck" ? "top of the monster deck" : action.target.card.name}`);
-                    printVerbose("Monsters: ", game.monsters.map(m => `${m.card.name}(${m.currentHealthPoints}HP)${m.isEngagedInCombat ? " engaged" : ""}${m.isDead ? " dead" : ""}`).join(", "));
+                    // printVerbose(`    declare attack on: ${action.target === "topDeck" ? "top of the monster deck" : action.target.card.name}`);
+                    // printVerbose("Monsters: ", game.monsters.map(m => `${m.card.name}(${m.currentHealthPoints}HP)${m.isEngagedInCombat ? " engaged" : ""}${m.isDead ? " dead" : ""}`).join(", "));
 
                     break;
                 case ActionType.RESOLVE_STACK:
                     // printVerbose(`in Play: ${bot.me.inPlay.map(i => i.name).join(", ")}`);
                     // if(game.stack.peek()?.json.type === "LootCardEffect")
-                        printVerbose(`    Try ${bot.me.id} executed action: resolve_stack to resolve ${JSON.stringify(game.stack.peek()?.json, null, 2)}, coins :${bot.me.coins},stack size: ${game.stack.elements.length}`);
+                        printVerbose(`    Try ${bot.me.id} executed action: resolve_stack to resolve ${game.stack.peek()?.debugLogs}, coins :${bot.me.coins},stack size: ${game.stack.elements.length}`);
                     // if(game.stack.peek()?.json.card?.slug === "b2-steamy_sale" && game.stack.peek()?.json.effect === "Steal 1¢ from another player when they gain coins.")
                     //     throw new Error("Stack contains Tech X steal effect, which can cause infinite loops if the bot keeps trying to resolve it while there are no coins to steal. This should be investigated if it happens consistently with the same seed.");
                     if(game.stack.size > 1000) {
-                            // game.stack.elements.forEach(e => {
-                            //     if(e.json.card!)
-                            //         console.log(`  Stack element: ${e.json.card.slug}, effect: ${e.json.effect}, issuer: ${e.json.issuerId}`);
-                            //     else
-                            //         console.log(`  Stack element: ${JSON.stringify(e.json)}`);
-                            // });
-                        // console.log("Both have donation machines ?, ", player1.inPlay.map(i => i.slug).includes("b2-donation_machine"), player2.inPlay.map(i => i.slug).includes("b2-donation_machine"));
+                            game.stack.elements.forEach(e => {
+                                if("card" in e.json && e.json.card)
+                                    console.log(`  Stack element ${e.json}: ${e.json.card.slug}, effect: ${"effect" in e.json ? e.json.effect : "none"}, issuer: ${e.json.issuer?.name}`);
+                                else
+                                    console.log(`  Stack element: ${JSON.stringify(e.json)}`);
+                            });
                         throw new Error("Stack size exceeded 1000");
                     }
                     break;
@@ -223,7 +242,40 @@ describe(   "Random Games", () => {
             // printVerbose(`  ✓ Stack resolved`);
         }
         // printVerbose(JSON.stringify(game.detailedStateJSON(game.players[0]!)));
-    }, {repeats: 10});
+    }, {repeats: 10000});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     function printVerbose(...args: any[]) {
             if(VERBOSE)

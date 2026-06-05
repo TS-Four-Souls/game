@@ -60,10 +60,11 @@ describe("Four Souls+2 Eternal Items", () => {
         const hand1 = player1.hand.length;
         const hand2 = player2.hand.length;
         await game.actions.resolveStack();// death
+        await game.actions.resolveStack();// effect when this reaches 0 hp
         await game.actions.resolveStack();// effect flip
         expect(game.stack.isEmpty()).toBe(true);
-        expect(player1.hand.length).toBe(hand1 + 1);
         expect(player2.hand.length).toBe(hand2 + 2);
+        expect(player1.hand.length).toBe(hand1 + 1);
         expect(eternal.flipped).toBe(false);
         expect(eternal.entity).toBeUndefined();
         expect(game.animatedList.all.length).toBe(0);

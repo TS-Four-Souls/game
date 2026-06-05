@@ -76,10 +76,24 @@ export abstract class Slots<T extends Card> {
         if (i < 0 || i >= this._slots.length || j < 0 || j >= this._slots[i]!.length) {
             return undefined;
         }
+        // if removing the top card, delegate to removeTop so subclasses can override behavior
+        if (j === this._slots[i]!.length - 1)
+            return this.removeTop(i);
         const card = this._slots[i]![j];
         this._slots[i]!.splice(j, 1);
         this.fillEmptySpots();
         return card;
+    }
+
+    obtainCardFromDiscard(slug: string, globalId?: number): T | undefined {
+        const card = globalId === undefined
+            ? this._deck.discard.find(card => card.slug === slug)
+            : this._deck.discard.find(card => card.slug === slug && card.globalId === globalId);
+        if (card) {
+            this._deck.remove(card);
+            return card;
+        }
+        return undefined;
     }
 
     /**

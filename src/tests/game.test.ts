@@ -24,6 +24,9 @@ class DummyStackElement extends StackElement {
       id: this.stackId,
     };
   }
+  get debugLogs(): string {
+    return `Dummy Stack Element: ${this.label}`;
+  }
 
   async onResolve(): Promise<boolean> {
     return true;

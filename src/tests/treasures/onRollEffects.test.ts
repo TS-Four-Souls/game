@@ -1,12 +1,10 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { Game } from "../../models/game";
+import type { Card, LootCard, TreasureCard } from "@/models/cards";
+import { setupTestGame } from "@/tests/testHelpers";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../../models/entities/player";
-import { DamageOnStack, DiceRoll } from "../../models/stackElement";
-import { pl } from "zod/locales";
-import type { LootCard, ItemCard, TreasureCard, Card } from "@/models/cards";
-import { InplayType, MonsterCard, CharacterCard } from "@/models/cards";
+import { Game } from "../../models/game";
+import { DiceRoll } from "../../models/stackElement";
 import { inplayUnchargedItemSelector } from "@/models/targetSelector";
-import { dischargeEachItemsAndRemoveCoins, setupTestGame } from "@/tests/testHelpers";
 
 describe("Treasure - \"Each time a player rolls a\" effect", () => {
     let game: Game;

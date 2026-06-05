@@ -10,8 +10,8 @@ import { DeathPenaltyValues } from '../handlers/deathHandler';
 // Event Data Types
 // ============================================================================
 
-export type LoseCoinsReason = "paiement" | "effect" | "death" | "gift" | "other";
-
+export type LoseCoinsReason = "paiement" | "purchase" | "effect" | "death" | "gift" | "other";
+export type RechargeReason = Card | "rechargeStep" | "other";
 /** Data emitted when an entity is about to die (can be prevented) */
 export type OnDeathWouldDeathData = {
   eventIssuer: Entity;
@@ -144,8 +144,10 @@ export type OnAttackRollData = {
   eventIssuer: Player;
   target: Entity;
   dice: DiceRoll;
-  damageDealt: number[];
-  damageReceived: number[];
+  damageDealtAdd: number[];
+  damageDealtMult: number[];
+  damageReceivedAdd: number[];
+  damageReceivedMult: number[];
   evasion: number[];
 };
 
@@ -162,6 +164,21 @@ export type OnPurchaseSuccessData = {
   index: number | "top";
 };
 
+/** Data emitted before an item is recharged. Note that eventIssuer is always null. */
+export type OnRechargeData = {
+  eventIssuer: Player | null;
+  card: ItemCard;
+  reason: RechargeReason;
+  shouldRecharge: boolean;
+};
+
+/** Data emitted when a player gains items */
+export type OnItemGainedData = {
+  eventIssuer: Player;
+  amount: number;
+};
+
+/** Data emitted when a player would have to discard loot cards (can be modified) */
 export type OnLootWouldDiscardData = {
   eventIssuer: Player;
   indice: number[];
@@ -311,7 +328,8 @@ export type OnYourTurnData = {
 export type OnLootPlayedData = {
   eventIssuer: Player;
   card: LootCard;
-  targets?: any[];
+  targets: any[];
+  stackId: number;
 };
 /**
  * eventIssuer gives coins to target. 
@@ -393,6 +411,8 @@ export type TriggerEventDataMap = {
   "on:soul:removed": OnSoulGainedOrRemovedData;
   "on:coin:given": OnCoinGivenData;
   "on:purchase:success": OnPurchaseSuccessData;
+  "on:recharge": OnRechargeData;
+  "on:item:gained": OnItemGainedData;
 };
 
 export type TriggerEvent = keyof TriggerEventDataMap;

@@ -222,8 +222,10 @@ export class ActionHandler {
     }
     // damageDealt and damageReceived will be increased by the attack
     // of the dealer and receiver respectively in getAttackRollEffect.
-    const damageDealt = [0];
-    const damageReceived = [0];
+    const damageDealtAdditional = [0];
+    const damageDealtMultiplier = [1];
+    const damageReceivedAdditional = [0];
+    const damageReceivedMultiplier = [1];
     const evasion = [this.game.getDC(target)];
     const dice = this.game.rollDice(player, true);
 
@@ -231,8 +233,10 @@ export class ActionHandler {
       eventIssuer: player,
       target: target,
       dice,
-      damageDealt,
-      damageReceived,
+      damageDealtAdd: damageDealtAdditional,
+      damageDealtMult: damageDealtMultiplier,
+      damageReceivedAdd: damageReceivedAdditional,
+      damageReceivedMult: damageReceivedMultiplier,
       evasion,
     });
     if (player.attackRollThisTurn === 1)
@@ -240,15 +244,19 @@ export class ActionHandler {
         eventIssuer: player,
         target: target,
         dice,
-        damageDealt,
-        damageReceived,
+        damageDealtAdd: damageDealtAdditional,
+        damageDealtMult: damageDealtMultiplier,
+        damageReceivedAdd: damageReceivedAdditional,
+        damageReceivedMult: damageReceivedMultiplier,
         evasion,
       });
 
     dice.attachEffect(
       getAttackRollEffect(
-        damageDealt[0]!,
-        damageReceived[0]!,
+        damageDealtAdditional[0]!,
+        damageDealtMultiplier[0]!,
+        damageReceivedAdditional[0]!,
+        damageReceivedMultiplier[0]!,
         evasion[0]!,
         this.game
       ),
@@ -397,12 +405,13 @@ export class ActionHandler {
         card: playedCard.jsonAPI,
         player: player.id,
       });
-      this.game.addToStack(lootCardEffect);
+      const idx = this.game.addToStack(lootCardEffect);
       player.remainingLootPlay -= 1;
       this.game.emit("on:loot:played", {
         eventIssuer: player,
         card: playedCard,
         targets: targets,
+        stackId: idx
       });
       return `You have played the card: ${playedCard.name} to your in-play area.\n`;
     }
@@ -436,6 +445,8 @@ export class ActionHandler {
     if (card instanceof ItemCard && !owner.inPlay.includes(card)) {
       return `You do not own the specified item.`;
     }
+    if(card.type === "loot" && !card.canBeActivated)
+      return "You cannot activate this card.";
     if (card instanceof ItemCard && card.activeEffectList.length === 0) {
       return "This card has no active effects, there is nothing to activate.";
     }

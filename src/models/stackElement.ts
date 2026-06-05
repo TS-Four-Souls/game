@@ -42,6 +42,8 @@ export abstract class StackElement {
   }
 
   abstract get json(): StackElementJson;
+  abstract get debugLogs(): string;
+
   abstract onResolve(): Promise<void | boolean>;
 }
 
@@ -118,6 +120,10 @@ export class DiceRoll extends StackElement {
       ...super.baseJson,
       modifier: (this._attackRoll ? this._issuer.attackDiceModifier : 0) + this._issuer.diceModifier,
     }
+  }
+
+  override get debugLogs(): string {
+    return `${this.attackRoll ? "Attack" : "Dice"} Roll: ${this.value} (Issuer: ${this.issuer.id}, Card: ${this._card ? this._card.name : "N/A"}, Targets: ${!this._attackRoll ? TargetBuilder.convertToSelectionItems(this._targets) : "N/A"}, Modifier: ${(this._attackRoll ? this._issuer.attackDiceModifier : 0) + this._issuer.diceModifier})`;
   }
   set value(v: number) {
     const prev = this._value;
@@ -208,6 +214,9 @@ export class DamageOnStack extends StackElement {
       ...super.baseJson,
     };
   }
+  override get debugLogs(): string {
+    return `${this.from.id} deals ${this.damage[0]} damage to ${this.receiver.id} with source ${this._source instanceof DiceRoll ? "Dice Roll" : this._source.name} (Targets: ${TargetBuilder.convertToSelectionItems(this._targets)})`;
+  }
 };
 
 export class DeathOnStack extends StackElement {
@@ -243,5 +252,9 @@ export class DeathOnStack extends StackElement {
       source: sourceName,
       ...super.baseJson,
     };
+  }
+  override get debugLogs(): string {
+    const sourceName = this.source instanceof DiceRoll ? "Dice Roll" : this.source.name;
+    return `${this.from.id} kills ${this.receiver.id} with source ${sourceName}`;
   }
 };

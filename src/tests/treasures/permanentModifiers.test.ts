@@ -303,8 +303,10 @@ describe("Treasure - Permanent Modifiers", () => {
                 eventIssuer: player1,
                 target: monster,
                 dice: attackRoll,
-                damageDealt: [player1.attackPoints],
-                damageReceived: [monster.attackPoints],
+                damageDealtAdd: [player1.attackPoints],
+                damageReceivedAdd: [monster.attackPoints],
+                damageDealtMult: [0],
+                damageReceivedMult: [0],
                 evasion: [monster.evasion],
             });
         }

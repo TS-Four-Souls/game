@@ -438,6 +438,7 @@ describe("Treasure - Passive effects", () => {
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 1);
         game.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // remove purchased item from inPlay to ensure basic second purchase.
+        game.resetStack();
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 1);
         

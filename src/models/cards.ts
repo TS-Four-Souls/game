@@ -334,8 +334,7 @@ class EffectInterface {
         // Execute payment if it exists
         if (effect.hasPayment()) {
             if (!await effect.executePayment(data)) {
-                // console.log(`issuer: ${issuer.id}, ${data.issuer.id},  owner: ${this.it.owner.id} card: ${this.it.name}, effect: ${effect.description}, in play: ${(issuer as Player).inPlay.map(c => c.name).join(", ")}`);
-                throw new Error(`Payment denied for ${this.it.slug}, with targets: ${JSON.stringify(TargetBuilder.convertToSelectionItems(data.targets))}.`);
+                throw new Error(`Payment denied for ${this.it.slug}, with targets: "${JSON.stringify(TargetBuilder.convertToSelectionItems(data.targets))}".`);
             }
             // Effect gets second element of targets array
             return new EffectOnStack(effect.effectFunction, data, effect.description);
@@ -431,6 +430,7 @@ class Card {
     protected _eternal: boolean = false;
     protected _flipped: boolean = false;
     protected _canBeDiscarded: boolean = true;
+    protected _canBeActivated: boolean = true;
     protected _cleanup: (() => void)[] = [];
     protected _onFlip: (() => void)[] = [];
     protected _otherSideCard: Card | null = null;
@@ -472,7 +472,7 @@ class Card {
     }
 
     get activeEffectList(): {index: "tap" | number, description: string}[] {
-        if(this instanceof LootCard && this.trinket)
+        if(this instanceof LootCard && this.trinket && !this.canBeActivated)
             return [];
         if(this instanceof MonsterCard && this.isCurse)
             return [];
@@ -502,6 +502,12 @@ class Card {
     }
     set entity(value: Entity | undefined) {
         this._entity = value;
+    }
+    get canBeActivated(): boolean {
+        return this._canBeActivated;
+    }
+    set canBeActivated(value: boolean) {
+        this._canBeActivated = value;
     }
     get charged(): boolean {
         return this._charged;
@@ -666,11 +672,14 @@ class Card {
             json: this._json,
             slug: this._slug,
             name: this._name,
+            canBeActivated: this._canBeActivated,
+            type: this._type,
             subtype: this._subtype,
             effectOutcomes: this._effectOutcomes,
             effectInterface: this._effectInterface,
             cleanup: [...this._cleanup], // Store a COPY of the cleanup array
             owner: this._owner,
+            flipData: this._flipData,
         };
 
         // Don't cleanup here - we need to preserve the original effectInterface state
@@ -680,8 +689,11 @@ class Card {
         this._json = otherCard._json;
         this._slug = otherCard._slug;
         this._name = otherCard._name;
+        this._type = otherCard._type;
+        this._canBeActivated = otherCard._canBeActivated;
         this._subtype = otherCard._subtype;
         this._effectOutcomes = otherCard._effectOutcomes;
+        this._flipData = otherCard.flipData;
         
         // Create a new effect interface
         this._effectInterface = new EffectInterface(this);
@@ -703,10 +715,13 @@ class Card {
             this._json = originalState.json;
             this._slug = originalState.slug;
             this._name = originalState.name;
+            this._type = originalState.type;
+            this._canBeActivated = originalState.canBeActivated;
             this._subtype = originalState.subtype;
             this._effectOutcomes = originalState.effectOutcomes;
             this._effectInterface = originalState.effectInterface;
             this._cleanup = originalState.cleanup; // Restore the original cleanup array
+            this._flipData = originalState.flipData;
             
             // Re-subscribe effects if we have an owner
             if (originalState.owner) {
@@ -816,6 +831,7 @@ class LootCard extends ItemCard {
         this._inplayType = InplayType.PLAYABLE;
         this._reward = json.rewards;
         this._effectInterface = new EffectInterface(this);
+        this.canBeActivated = false;
         if (json.trinket) {
             this._trinket = json.trinket;
             this._inplayType = InplayType.PASSIVE;
@@ -882,6 +898,9 @@ export class LootCardEffect extends StackElement {
             issuer: this.issuer.json,
             ...super.baseJson,
          } ;
+    }
+    override get debugLogs(): string {
+        return `LootCardEffect from ${this.issuer.id} for card ${this.card.name} with targets: ${JSON.stringify(TargetBuilder.convertToSelectionItems(this.targets))}`;
     }
 
     get targets(): any[] {
@@ -1237,6 +1256,10 @@ export class EffectOnStack extends StackElement {
             ...super.baseJson,
         };
     }
+
+    override get debugLogs(): string {
+        return `effect from ${this._data.issuer.id} for card ${this.data.it.name}  with effect ${this._description} with targets: ${JSON.stringify(TargetBuilder.convertToSelectionItems(this._data.targets))}`;
+    }
 }
 class Deck<T extends Card> {
     _type: DeckType;
@@ -1366,6 +1389,23 @@ class Deck<T extends Card> {
     addDiscardTop(card: T): void {
         assertCardMatchesDeck(this._type, card);
         this._discard.push(card.id);
+    }
+
+    getFromDiscard(card: T): boolean {
+        assertCardMatchesDeck(this._type, card);
+        const cardId = card.id;
+        const setCardId = this._set.id(card);
+        if(cardId !== setCardId)
+        {
+            throw new Error("Card to get from discard does not belong to this deck's card set.");
+        }
+        const index = this._discard.indexOf(cardId);
+        if(index >= 0)
+        {
+            this._discard.splice(index, 1);
+            return true;
+        }
+        return false;
     }
 
     drawTopDiscard(): T | null {

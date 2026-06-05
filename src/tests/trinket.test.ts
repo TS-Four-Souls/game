@@ -1,9 +1,8 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { Game } from "../models/game";
+import { setupTestGame } from "@/tests/testHelpers";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../models/entities/player";
+import { Game } from "../models/game";
 import { DiceRoll } from "../models/stackElement";
-import type { CharacterCard, MonsterCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame } from "@/tests/testHelpers";
 
 describe("Loot Card", () => {
     let game: Game;

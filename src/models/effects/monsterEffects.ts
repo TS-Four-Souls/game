@@ -92,8 +92,8 @@ export function whenThisReachesXHP(game: Game, x: number, effectFunctions: Effec
         let offDamage: (() => void) | null = null;
         offDamage = game.emitter.on("on:damage:taken", (eventData: OnDamageTakenData) => {
             const { eventIssuer, target, source, damage } = eventData;
-            if (data.issuer !== eventIssuer) return;
-            const currentHP = data.issuer.currentHealthPoints;
+            if (data.issuer !== eventIssuer && data.it.entity !== eventIssuer) return;
+            const currentHP = eventIssuer.currentHealthPoints;
             if (currentHP === x) {
 
                const effect = async (effectData: EffectData) => {
@@ -234,6 +234,9 @@ export function putOnTopOfMonsterDeckOnRollEffect(game: Game, rolls: number[]): 
                 if(!(data.it instanceof MonsterCard))
                     throw new Error("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards.");
                 data.it.afterEffect = "nothing"; // Card placement is handled by this effect
+                if(game.decks.monster.discard.includes(data.it)) {
+                    game.encounters.obtainCardFromDiscard(data.it.slug, data.it.globalId);
+                }
                 game.decks.monster.addTopPosition(data.it);
                 return true;
             }

@@ -1,36 +1,38 @@
-import { Player } from "../entities/player";
-import { DiceRoll } from "../stackElement";
-import { LootCard, ItemCard, TreasureCard, LootCardEffect, EffectOnStack, MonsterCard, Card, Effect } from "../cards";
-import { EffectData, type EffectFunction, type TargetsSelector } from "../types/cardTypes";
-import { Game } from "../game";
 import { type TriggerEvent } from '@/models/types/eventTypes';
-import { Monster } from "../entities/monster";
-import { TargetBuilder } from "../targetBuilder";
-import * as active from "./activeEffect";
 import type { TemporaryEffect } from "@/shared/api";
+import { Card, EffectOnStack, ItemCard, LootCard, LootCardEffect, MonsterCard, TreasureCard } from "../cards";
+import { Entity } from "../entities/entity";
+import { Monster } from "../entities/monster";
+import { Player } from "../entities/player";
+import { Game } from "../game";
+import { DiceRoll } from "../stackElement";
+import { TargetBuilder } from "../targetBuilder";
+import { EffectData, type EffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type {
-    OnDamageWouldTakeData,
-    OnTurnEndData,
-    OnTurnStartData,
+    OnAttackRollData,
+    OnCardFlippedData,
     OnCoinGainedData,
+    OnCoinsLostBeforeData,
+    OnCounterModifiedData,
+    OnDamageTakenData,
+    OnDamageWouldTakeData,
     OnDeathAfterPenaltyData,
     OnDeathBeforePenaltyData,
     OnDeathMonsterData,
-    OnAttackRollData,
-    OnDamageTakenData,
+    OnDeathPenaltyData,
     OnDiceBeingRolledData,
     OnDiceWouldRollData,
-    OnLootPlayedData,
     OnItemDestroyedData,
+    OnItemGainedData,
+    OnLootPlayedData,
     OnLootStepData,
     OnLootWouldData,
-    OnDeathPenaltyData,
-    OnDeathAnimatedData,
-    OnCardFlippedData,
     OnLootWouldDiscardData,
-    OnCoinsLostBeforeData
+    OnRechargeData,
+    OnTurnEndData,
+    OnTurnStartData
 } from "../types/eventTypes";
-import { Entity } from "../entities/entity";
+import * as active from "./activeEffect";
 import { selectPlayerOrMonster, type ParsedEffect } from "./effectParser";
 function getTemporaryEffect(data: EffectData, description: string): TemporaryEffect {
     return{
@@ -97,6 +99,23 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): EffectF
     };
 }
 
+export function onlyRechargeableByOwnAbilitiesEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offRecharge: (() => void) | null = null;
+
+        offRecharge = game.emitter.on("on:recharge", (eventData: OnRechargeData) => {
+            if (data.it !== eventData.card) return;
+            if(eventData.reason === data.it) return;
+            eventData.shouldRecharge = false;
+        });
+        data.it.cleaners.push(() => {
+            offRecharge?.();
+            offRecharge = null;
+        });
+        return true;
+    };
+}
+
 // NOT a triggered effect. This effect is always activated through the stack.
 // Card text examples: "+X [stat] till end of turn" or "Gain +X [stat] this turn."
 // This modifies the stat value directly rather than replacing an event.
@@ -104,7 +123,8 @@ export function temporaryStatModifierEffect(
     adders: ((entity: Entity, value: number, source: Card) => void)[],
     amount: number,
     game: Game,
-    targetType: "current" | "next" | "issuer" | "selectionOnResolve"
+    targetType: "current" | "next" | "issuer" | "selectionOnResolve",
+    onResolveTargets?: TargetsSelector
 ): EffectFunction {
     return async (data:EffectData) => {
         let target = null;
@@ -123,9 +143,11 @@ export function temporaryStatModifierEffect(
                 target = data.issuer;
                 break;
             case "selectionOnResolve":
+                if(!onResolveTargets)
+                    throw new Error("selectionOnResolve targetType requires an onResolveTargets function.");
                 if(data.issuer instanceof Player === false)
                     throw new Error("selectionOnResolve targetType can only be used when issuer is a Player.");
-                target = (await data.selectAndRecord(game, data.issuer, 1, 1, data.targets, "Select the target for this effect.", true, true)).selected[0];
+                target = (await data.selectAndRecord(game, data.issuer, 1, 1, onResolveTargets.selector(data.issuer), "Select the target for this effect.", true, true)).selected[0];
                 break;
             default:
                 throw new Error(`Invalid targetType ${targetType} for temporaryStatModifierEffect.`);
@@ -140,7 +162,7 @@ export function temporaryStatModifierEffect(
         //         ? next 
         //         : data.issuer;
         if(!target || !(target instanceof Entity))
-            throw new Error("temporaryStatModifierEffect target must be an entity.");
+            return false;
         const temp: TemporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
         target.addTemporaryEffect(temp);
 
@@ -192,6 +214,52 @@ export function onFirstKillMonsterYourTurnEffect(effectFunctions: EffectFunction
 
         return true;
     }
+}
+
+export function preventDamageNotOnYourTurnEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+
+        offDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
+            const { eventIssuer, damageArray } = eventData;
+            if (data.issuer !== eventIssuer) return;
+            if(game.currentPlayer === data.issuer) return;
+            damageArray[0] = 0;
+        });
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
+export function cancelLootCardThatTargetsYouEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let asBeenUsedThisTurn = false;
+        let offLoot: (() => void) | null = null;
+        let offTurnEnd: (() => void) | null = null;
+
+        offTurnEnd = game.emitter.on("till:turn:end", ({ eventIssuer }) => {
+            asBeenUsedThisTurn = false;
+        });
+
+        offLoot = game.emitter.on("on:loot:played", (eventData: OnLootPlayedData) => {
+            const { eventIssuer, card, targets, stackId } = eventData;
+            if (data.issuer === eventIssuer) return;
+            if (asBeenUsedThisTurn) return;
+            if (!targets.some(target => target.id === data.issuer?.id || (target instanceof Card && game.getOwner(target) === data.issuer))) return;
+            const effect: EffectFunction = (effectData: EffectData) => {
+                const element = game.stack.elements.find(el => el.stackId === stackId);
+                if(element === undefined) return false;
+                game.cancelStackElement(element);
+                return true;
+            }
+            addPassiveEffectToStack(game, effect, data, "Cancel the first loot card that targets you each turn.");
+            asBeenUsedThisTurn = true;
+        });
+        return true;
+    };
 }
 
 /**
@@ -249,10 +317,10 @@ export function lvlXaddListenerEffect(
     game: Game): EffectFunction {
 
     return (data: EffectData) => {
-        let offTurn = game.emitter.on("on:coin:gained:after", async (eventData: OnCoinGainedData) => {
+        let offTurn = game.emitter.on("on:counter:modified", async (eventData: OnCounterModifiedData) => {
             const { eventIssuer } = eventData;
             if (data.issuer !== eventIssuer) return;
-            if (data.it.tags.levels === undefined || data.it.tags.levels < lvl) return;
+            if (data.it.tags.counters === undefined || data.it.tags.counters < lvl) return;
 
             for (const func of functions)
                 await func(data);
@@ -321,15 +389,28 @@ export function rollAndMayChangeNextRollForThis(game: Game): ParsedEffect {
     };
 }
 
-export function combatDamageModifierOnAttackRollEffect(game: Game, attackRolls: number[], modifier: number) {
+export function combatDamageModifierOnAttackRollEffect(game: Game, attackRolls: number[], modifier: number | "double", side: "taken" | "dealt"): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
 
         offDamage = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
-            const { eventIssuer, dice, damageDealt } = eventData;
+            const { eventIssuer, dice, damageDealtAdd, damageDealtMult, damageReceivedAdd, damageReceivedMult } = eventData;
             if (eventIssuer !== data.issuer) return;
             if (!attackRolls.includes(dice.value)) return;
-            damageDealt[0]! += modifier;
+            if(side === "taken"){
+                if (modifier === "double") {
+                    damageReceivedMult[0]! *= 2;
+                } else {
+                    damageReceivedAdd[0]! += modifier;
+                }
+            }
+            if(side === "dealt"){
+                if (modifier === "double") {
+                    damageDealtMult[0]! *= 2;
+                } else {
+                    damageDealtAdd[0]! += modifier;
+                }
+            }
         });
 
         data.it.cleaners.push(() => {
@@ -344,7 +425,7 @@ export function endTurnOnAttackRollXEffect(game: Game, rollValue: number) {
         let offDamage: (() => void) | null = null;
 
         offDamage = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
-            const { eventIssuer, dice, damageDealt } = eventData;
+            const { eventIssuer, dice } = eventData;
             if (eventIssuer !== data.issuer) return;
             if (dice.value !== rollValue) return;
             addPassiveEffectToStack(game, active.endTurnAndResetStackEffect(game), data, `End your turn on attack roll of ${rollValue}.`);
@@ -660,10 +741,10 @@ export function firstAttackRollStatModifierEffect(
         };
         // Register cleanup to reverse at end of turn
         offAttack = game.emitter.on("on:attack:roll:first-time-each-turn", (eventData: OnAttackRollData) => {
-            const { eventIssuer, target, dice, damageDealt, damageReceived, evasion } = eventData;
+            const { eventIssuer, target, dice, damageDealtAdd, damageReceivedAdd, evasion } = eventData;
             if (data.issuer !== eventIssuer) return;
-            damageDealt[0]! += damageDealtModifier;
-            damageReceived[0]! += damageReceivedModifier;
+            damageDealtAdd[0]! += damageDealtModifier;
+            damageReceivedAdd[0]! += damageReceivedModifier;
             evasion[0]! += evasionModifier;
         });
 
@@ -830,6 +911,28 @@ export function gainTreasureOnDestroyEffect(game: Game, amount: number): EffectF
             if(!data.issuer || !(data.issuer instanceof Player))
                 return;
             game.gainTreasure(data.issuer, amount);
+        });
+
+        data.it.cleaners.push(() => {
+            offDestroy?.();
+            offDestroy = null;
+        });
+        return true;
+    };
+}
+
+export function gainCoinsAndLootOnDestroyBasedOnCountersEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offDestroy: (() => void) | null = null;
+
+        offDestroy = game.emitter.on("on:item:destroyed", (eventData: OnItemDestroyedData) => {
+            if (!eventData.cards.includes(data.it)) return;
+            if(!data.issuer || !(data.issuer instanceof Player))
+                return;
+            const counters = data.it.tags.counters || 0;
+            game.gainCoins(data.issuer, counters, data.it);
+            game.loot(data.issuer, counters, "other");
+
         });
 
         data.it.cleaners.push(() => {
@@ -1165,24 +1268,27 @@ export function statModifierBasedOnCountersEffect(game: Game,
     countersPerModifier: number, 
     modifier: number): EffectFunction {
     return (data: EffectData) => {
+        const issuer = data.issuer;
+        if(!(issuer instanceof Player))
+            throw new Error("statModifierBasedOnCountersEffect can only be applied to Players.");
         const toAdd = Math.floor((data.it.tags.counters ?? 0) / countersPerModifier);
         for (const adder of adders) {
-            adder(data.issuer, toAdd * modifier, data.it);
+            adder(issuer, toAdd * modifier, data.it);
         }
         let offCounterModifier: (() => void) | null = null;
         offCounterModifier = game.emitter.on("on:counter:modified", ({ eventIssuer, card, counterName, previousValue, newValue }) => {
-            if(data.issuer !== eventIssuer) return;
+            if(issuer !== eventIssuer) return;
             if(card !== data.it) return;
             const toAdd = Math.floor(newValue / countersPerModifier) - Math.floor(previousValue / countersPerModifier);
             if(toAdd === 0) return;
             for (const adder of adders) {
-                adder(data.issuer, toAdd * modifier, data.it);
+                adder(issuer, toAdd * modifier, data.it);
             }
         });
 
         data.it.cleaners.push(() => {
             for (const adder of adders) {
-                adder(data.issuer, -Math.floor((data.it.tags.counters ?? 0) / countersPerModifier) * modifier, data.it); // Remove all modifiers from this effect.
+                adder(issuer, -Math.floor((data.it.tags.counters ?? 0) / countersPerModifier) * modifier, data.it); // Remove all modifiers from this effect.
             }
             offCounterModifier?.();
             offCounterModifier = null;
@@ -1251,15 +1357,17 @@ export function onAnotherPlayerEventEffect(
     triggerEvent: TriggerEvent,
     effectFunctions: EffectFunction[],
     game: Game,
-    description: string
+    description: string,
+    condition: (effectData: EffectData, eventData: any) => boolean = () => true,
 ): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
-        offDamage = game.emitter.on(triggerEvent, ({ eventIssuer }) => {
+        offDamage = game.emitter.on(triggerEvent, (eventData) => {
+            const eventIssuer = eventData.eventIssuer;
             if (data.issuer === eventIssuer) return;
             if(!(eventIssuer instanceof Player)) return;
-            
+            if(!condition(data, eventData)) return;
             // Add all effects as a single stack element
             const effect = async (effectData: EffectData) => {
                 for (const func of effectFunctions) {
@@ -1287,13 +1395,16 @@ export function onAnyEventEffect(
     triggerEvent: TriggerEvent,
     effectFunctions: EffectFunction[],
     game: Game,
-    description: string
+    description: string,
+    condition: (effectData: EffectData, eventData: any) => boolean = () => true,
 ): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
-        offDamage = game.emitter.on(triggerEvent, ({ eventIssuer }) => {
-            if (eventIssuer) {
+        offDamage = game.emitter.on(triggerEvent, (eventData) => {
+            const eventIssuer = eventData.eventIssuer;
+            if(!condition(data, eventData)) return;
+            if (eventIssuer && eventIssuer instanceof Entity) {
                 data.issuerProvider = () => eventIssuer;
             }
             
@@ -1318,6 +1429,7 @@ export function onAnyEventEffect(
 
 export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
+        // console.log("Activating copyAbilitiesFromGoldCounterItemsEffect", data.issuer.id);
         if(!(data.it instanceof ItemCard)) return false;
         if(!data.issuer || !(data.issuer instanceof Player)) return false;
         const goldenItems = game.visibleItems.filter(item => item.tags.goldCounters !== undefined && item.tags.goldCounters > 0);
@@ -1331,7 +1443,7 @@ export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): EffectFunct
             if(!(data.it instanceof ItemCard)) return;
             if(!data.issuer || !(data.issuer instanceof Player)) return false;
             if(!(card instanceof ItemCard)) return;
-            if (!card.tags.goldCounters) return;
+            if (card.tags.goldCounters === undefined) return;
             if (card.tags.goldCounters > 0 && previousValue === 0) {
                 game.gainAbilities(data.issuer, data.it, card);
             }
@@ -1339,12 +1451,10 @@ export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): EffectFunct
                 const toRemove = (data.it.tags.copiedCards as ItemCard[]).find(c => c.slug === card.slug);
                 toRemove?.cleanup();
                 data.it.tags.copiedCards = (data.it.tags.copiedCards as ItemCard[]).filter(c => c !== toRemove);
-
             }
         });
         
         data.it.cleaners.push(() => {
-
             data.it.swapEffectInterfaces();
             offCounterChange?.();
             offCounterChange = null;
@@ -1442,6 +1552,58 @@ export function lootOnNextRollEffect(game: Game, x: number): EffectFunction {
     };
 }
 
+export function soulDiffDCModifierOnYourTurnEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offTurn: (() => void) | null = null;
+        let offEndTurn: (() => void) | null = null;
+        let offGainSoul: (() => void) | null = null;
+        let diff = 0;
+        if(game.currentPlayer === data.issuer) {
+            diff = Math.max(...game.players.map((p) => p.totalSouls)) - game.currentPlayer.totalSouls;
+            game.addDCToEachMonster(data.issuer, -diff, data.it);
+        }
+
+        offTurn = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
+            const { eventIssuer } = eventData;
+            if (data.issuer !== eventIssuer) return;
+            if(!(data.issuer instanceof Player)) return;
+
+            // Calculate the difference in souls
+            diff = Math.max(...game.players.map((p) => p.totalSouls)) - data.issuer.totalSouls;
+            game.addDCToEachMonster(data.issuer, -diff, data.it);
+        });
+
+        offGainSoul = game.emitter.on("on:soul:gained", ({ eventIssuer }) => {
+            if(!(data.issuer instanceof Player)) return;
+            const newDiff = Math.max(...game.players.map((p) => p.totalSouls)) - data.issuer.totalSouls;
+            if(newDiff !== diff) {
+                game.addDCToEachMonster(data.issuer, - newDiff + diff, data.it);
+                diff = newDiff;
+            }
+        });
+        
+
+        offEndTurn = game.emitter.on("on:turn:end", (eventData: OnTurnEndData) => {
+            const { eventIssuer } = eventData;
+            if (data.issuer !== eventIssuer) return;
+            if(!(data.issuer instanceof Player)) return;
+
+            // Remove the DC modifier at the end of the turn
+            game.addDCToEachMonster(data.issuer, diff, data.it);
+            diff = 0;
+        });
+        data.it.cleaners.push(() => {
+            offTurn?.();
+            offTurn = null;
+            offEndTurn?.();
+            offEndTurn = null;
+            offGainSoul?.();
+            offGainSoul = null;
+        });
+        return true;
+    };
+}
+
 export function gainAbilitiesUntilEffect(game: Game, triggerEvent: TriggerEvent, targetsSelector: TargetsSelector, recharge: boolean): EffectFunction {
     return async (data: EffectData) => {
         const issuer = data.issuer;
@@ -1460,7 +1622,7 @@ export function gainAbilitiesUntilEffect(game: Game, triggerEvent: TriggerEvent,
         const copiedRef = game.gainAbilities(issuer, data.it, target);
         
         if(recharge)
-            game.recharge(data.it as ItemCard);
+            game.recharge(data.it as ItemCard, data.it);
 
         offTrigger = game.emitter.on(triggerEvent, (eventData: any) => {
             if (data.issuer !== eventData.eventIssuer) return;
@@ -1494,7 +1656,9 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): Effec
                 if (!(effectData.issuer instanceof Player)) return false;
                 try{
                     const newTargets = await TargetBuilder.buildTargetsOnResolve(game, eventIssuer, card, "tap");
-                    const lootCardEffect = new LootCardEffect(eventIssuer, card, newTargets);
+                    const copy = game.copyCard(card, eventIssuer) as LootCard; 
+                    copy.afterEffect = "nothing";
+                    const lootCardEffect = new LootCardEffect(eventIssuer, copy, newTargets);
                     game.addToStack(lootCardEffect);
                     return true;
                 } catch (error) {
@@ -1799,40 +1963,60 @@ export function changeRollXToYEffect(game: Game, x: number, y: number): EffectFu
     };
 }
 
-export function giveThisToAnotherPlayerOnDeathEffect(game: Game): EffectFunction {
+export function changeRollToXIfItIsXEffect(game: Game, values: number[], x: number): EffectFunction {
     return (data: EffectData) => {
-        let offDeath: (() => void) | null = null;
-        // Listen for the next damage event on this player
-        offDeath = game.emitter.on("on:death:before-penalty", (eventData: OnDeathBeforePenaltyData) => {
-            const { eventIssuer } = eventData;
-            if (data.issuer !== eventIssuer) return;
-            if (!(data.issuer instanceof Player)) return;
-            
-            // Create the effect that will execute when the stack resolves
-            const effect = async (effectData: EffectData) => {
-                if (!(effectData.issuer instanceof Player)) return false;
-                const otherPlayers = game.players.filter(p => p !== effectData.issuer);
-                if (otherPlayers.length === 0) return true;
-                const selection = await effectData.selectAndRecord(game, effectData.issuer, 1, 1, otherPlayers, "Select a player to give the item to.", true, true);
-                if (selection.selected.length > 0) {
-                    const chosenPlayer = selection.selected[0]!;
-                    game.give(effectData.issuer, chosenPlayer, effectData.it);
-                    effectData.issuerProvider = () => chosenPlayer;
-                }
-                return true;
-            };
-            
-            // Add to stack instead of executing immediately
-            addPassiveEffectToStack(game, effect, data, "Give item to another player on death");
+        let offEndTurn: (() => void) | null = null;
+        let offRoll: (() => void) | null = null;
+        // Listen for the next would roll event on this player
+        offRoll = game.emitter.on("on:dice:would-roll", ({eventIssuer, diceRoll}: OnDiceWouldRollData) => {
+            if (values.includes(diceRoll.value)) {
+                // Create the effect that will execute when the stack resolves
+                const effect = async (effectData: EffectData) => {
+                    diceRoll.value = x;
+                    return true;
+                };
+                
+                // Add to stack instead of executing immediately
+                addPassiveEffectToStack(game, effect, data, `Change the roll to ${x}`);
+            }
         });
+        offEndTurn = game.emitter.on("till:turn:end", () => {
+            offRoll?.();
+            offRoll = null;
+            offEndTurn?.();
+            offEndTurn = null;
+        });
+
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
-            offDeath?.();
-            offDeath = null;
+            offRoll?.();
+            offRoll = null;
+            offEndTurn?.();
+            offEndTurn = null;
         });
         return true;
     };
 }
+
+
+export function gainPlusTreasureEffect(game: Game, amount: number): EffectFunction {
+    return (data: EffectData) => {
+        let offGainTreasure: (() => void) | null = null;
+        offGainTreasure = game.emitter.on("on:item:gained", (eventData: OnItemGainedData) => {
+            if (data.issuer !== eventData.eventIssuer) return;
+            if (data.issuer instanceof Player === false) return false;
+            eventData.amount ++;
+            return true;
+        });
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offGainTreasure?.();
+            offGainTreasure = null;
+        });
+        return true;
+    };
+}
+
 
 export function onFirstDamageEachTurnEffect(functions: EffectFunction[], game: Game): EffectFunction {
     return (data: EffectData) => {
@@ -1905,6 +2089,26 @@ export function shopItemsCostLessEffect(discount: number, game: Game): EffectFun
         return true;
     };
 }
+
+export function itemCostLessToActivateEffect(game: Game, discount: number): EffectFunction {
+    return (data: EffectData) => {
+        let offLoseCoin: (() => void) | null = null;
+        if(!(data.issuer instanceof Player))
+            throw new Error("itemCostLessToActivateEffect can only be applied to Players.");
+        offLoseCoin = game.emitter.on("on:coin:lost:before", (eventData: OnCoinsLostBeforeData) => {
+                const { eventIssuer, coinToLose, reason } = eventData;
+            if (data.issuer !== eventIssuer) return;
+            if(reason !== "paiement") return;
+            eventData.coinToLose = Math.max(0, coinToLose - discount);
+        });
+        data.it.cleaners.push(() => {
+            offLoseCoin?.();
+            offLoseCoin = null;
+        });
+        return true;
+    };
+}
+
 
 export function onMonsterDeathEffect(
     effectFunctions: EffectFunction[],
@@ -2067,23 +2271,6 @@ export function lootAfterFlippingEffect(game: Game, amount: number): EffectFunct
     };
 }
 
-export function flipAndAddAttackEffect(game: Game): EffectFunction {
-    return (data: EffectData) => {
-        let offDeathAnimated: (() => void) | null = null;
-        
-        offDeathAnimated = game.emitter.on("on:death:animated", (eventData: OnDeathAnimatedData) => {
-            if(eventData.eventIssuer.card !== data.it) return;
-            const owner = game.getOwner(data.it);
-            if(owner === null)
-                throw new Error("gainRewardFlipAndAttackAgainEffect can only be applied to cards owned by a player.");
-            game.flip(owner, data.it);
-            game.addAttackThisTurn(game.currentPlayer, 1, data.it);
-        });
-
-        return true;
-    };
-}
-
 // Each time you roll an attack roll, 
 export function onAttackRollEffect(
     rollValues: number[],
@@ -2094,7 +2281,7 @@ export function onAttackRollEffect(
         let offEffect: (() => void) | null = null;
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
-            const { eventIssuer, target, dice, damageDealt, damageReceived, evasion } = eventData;
+            const { eventIssuer, target, dice, evasion } = eventData;
             if (data.issuer !== eventIssuer) return;
             if (rollValues.includes(dice.value)) {
                 // Create the effect that will execute when the stack resolves
@@ -2441,7 +2628,7 @@ export function killOnDoubleAttackRollEffect(game: Game): EffectFunction {
         let prevRollThisTurn: number | null = null;
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
-            const { eventIssuer, target, dice, damageDealt, damageReceived, evasion } = eventData;
+            const { eventIssuer, target, dice } = eventData;
             if(prevRollThisTurn === dice.value)
                 game.kill(data.issuer, target, data.it);
             prevRollThisTurn = dice.value;
@@ -2526,14 +2713,13 @@ export function gainCoinsLevelUpEffect(
             offEffect?.();
             offEffect = null;
         };
-        data.it.tags.levels = data.it.tags.levels ?? 0; // At least level 0.
 
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:coin:gained", (eventData: OnCoinGainedData) => {
             const { eventIssuer, coinGained } = eventData;
             if (data.issuer !== eventIssuer) return;
             const current = coinGained[0] ?? 0;
-            data.it.tags.levels += current;
+            game.addToCounter(data.issuer, data.it, "counters", current);
             coinGained[0] = 0;
         });
 
@@ -2601,11 +2787,7 @@ export function goFirstInTurnOrderEffect(game: Game): EffectFunction {
 export function startingItemEffect(game: Game, x: number): EffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = game.emitter.on("on:game:start:before", async () => {
-            if (!(data.issuer instanceof Player)) return;
-            const options: TreasureCard[] = game.decks["treasure"]!.drawSeveral(x);
-            const selection = await data.selectAndRecord(game, data.issuer, 1, 1, options, "Select a starting eternal treasure.", true, true);
-            selection.selected[0]?.setEternal(true);
-            game.addInPlay(data.issuer, selection.selected[0]!); 
+            await active.selectEternalAmongX(game, x)(data);
             offEffect?.();
             offEffect = null;
             await game.resolveCallbacks();

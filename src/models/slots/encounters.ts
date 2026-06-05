@@ -91,6 +91,7 @@ export class Encounters extends Slots<MonsterCard> {
         }
     }
 
+
     /**
      * Obtains a specific card from the encounter area by its slug.
      * Searches all slots, then the discard pile, then the deck.

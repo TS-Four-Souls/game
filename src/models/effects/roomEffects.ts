@@ -57,29 +57,41 @@ export function cancelAttackOnTopOfMonsterDeckEffect(game: Game): EffectFunction
     };
 }
 
-export function otherPlayersAreAttackableEffect(game: Game, evasion: number): EffectFunction {
+export function otherPlayersAreAttackableEffect(game: Game, evasion: number, onlyIssuer: boolean = false, condition: (player: Player) => boolean = ()=>true): EffectFunction {
     return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
-        for(const player of game.players) {
-            if(player !== game.currentPlayer) {
-                game.makePlayerAttackable(player, evasion);
+        let offTurnEnd: (() => void) | null = null;
+        if(!onlyIssuer || game.currentPlayer === data.issuer)
+            for(const player of game.players) {
+                if(player !== game.currentPlayer && condition(player)) {
+                    game.makePlayerAttackable(player, evasion);
+                }
             }
-        }
         game.makePlayerUnattackable(game.currentPlayer);
 
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
+            if(onlyIssuer && eventData.eventIssuer !== data.issuer) return;
             for(const player of game.players) {
-                if(player !== game.currentPlayer) {
+                if(player !== game.currentPlayer && condition(player)) {
                     game.makePlayerAttackable(player, evasion);
                 }
             }
             game.makePlayerUnattackable(game.currentPlayer);
         });
-
+        if(onlyIssuer)
+        {
+            offTurnEnd = game.emitter.on("on:turn:end", (eventData) => {
+                if(eventData.eventIssuer !== data.issuer) return;
+                for(const player of game.players)
+                    game.makePlayerUnattackable(player);
+            });
+        }
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
             offTurnStart?.();
             offTurnStart = null;
+            offTurnEnd?.();
+            offTurnEnd = null;
             for(const player of game.players) {
                 game.makePlayerUnattackable(player);
             }
@@ -514,10 +526,12 @@ export function discardHandsAndLootEffect(game: Game, amount: number): EffectFun
         for(const player of game.players)
         {
             const handSize = player.hand.length;
+            let success = true;
             for(let i = 0; i < handSize; i++) {
-                game.discardFromHandAtIndex(player, 0, "effect");
+                success = game.discardFromHandAtIndex(player, 0, "effect") && success;
             }
-            game.loot(player, amount);
+            if(success)
+                game.loot(player, amount);
         }
         return true;
     };
@@ -617,7 +631,12 @@ export function canBeAttackedEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         const card = data.it;
         if(card.json.stats === undefined)
+        {
+            console.log(card.effectOutcomes);
+            console.log(card.flipData?.effectOutcome);
+            console.log(card.flipped);
             throw new Error("Expected card stats to be defined for canBeAttackedEffect.");
+        }
         const { healthPoints, attackPoints, evasionPoints } = card.json.stats;
         if(healthPoints === undefined || attackPoints === undefined || evasionPoints === undefined)
             throw new Error("Expected all card stats to be defined for canBeAttackedEffect.");
