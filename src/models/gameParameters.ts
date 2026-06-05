@@ -219,6 +219,7 @@ class BooleanGameParameter {
 
 export class GameParameters {
     readonly miniDraft: BooleanGameParameter;
+    readonly nbSoulsToWin: NumericGameParameter;
     readonly nbItemsInShop: NumericGameParameter;
     readonly nbRooms: NumericGameParameter;
     readonly nbEncounters: NumericGameParameter;
@@ -263,6 +264,7 @@ export class GameParameters {
         this._currentNbPlayers = 0;
         this.miniDraft = new BooleanGameParameter(false, onChange);
         this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
+        this.nbSoulsToWin = new NumericGameParameter(1, 4, 20, onChange);
         this.character = new CharacterDeckParameter(4, 100, onChange, this._filter);
         this.monster = new DeckParameter("monster", 50, 1000, onChange, this._filter);
         this.treasure = new DeckParameter("treasure", 50, 1000, onChange, this._filter);
@@ -301,8 +303,9 @@ export class GameParameters {
         }
         return {
             miniDraft: {text: "Mini-draft", value: this.miniDraft.value},//: At the start of the game, lay out (number of players + 1) treasure cards. Each player choose one of them and gain them, in turn order. Put the last card on the bottom of the treasure deck. Repeat this process with the order reversed.
+            nbSoulsToWin: {text: "Number of souls to win", value: this.nbSoulsToWin.value},
             allowCheatOptions: {text: "Allow cheat options", value: this.allowCheatOptions.value},
-            nbItemsInShop: {text: "Number of items in the shop", value: this.nbItemsInShop.value},
+            nbItemsInShop: {text: "Number ofsfdfds items in the shop", value: this.nbItemsInShop.value},
             nbEncounters: {text: "Number of encounters", value: this.nbEncounters.value},
             // nbRooms: {text: "Number of rooms", value: this.nbRooms.value},
             deathPenaltyCoins: {text: "Death penalty coins", value: this.deathPenaltyCoins.value},

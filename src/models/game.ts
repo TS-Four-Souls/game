@@ -1190,7 +1190,7 @@ export class Game extends SelectionHandler {
   initializeWinningCondition(): void {
     let offSoulGained: (() => void) | null = null;
         offSoulGained = this.emitter.on("on:soul:gained", async ({ eventIssuer }) => {
-          if(eventIssuer.totalSouls >= 4)
+          if(eventIssuer.totalSouls >= this.gameParameters.nbSoulsToWin.value)
           {
               this.win(eventIssuer);
               offSoulGained!();
