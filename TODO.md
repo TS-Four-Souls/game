@@ -7,14 +7,14 @@
 - network stability
 - music, sound effects
 - have some way to see the destoyed cards
+- being able to rename the player name
 
 ## Expand audience
 
 - translations
-    1. localized cards -> ask yuggy
+    1. localized cards -> ask yuggy -> only fan translations
     2. translate the UI
 - Discord server for matchmaking and general discussion
-- reply button in admin page for messages with email
 
 ## New cards and rulesets
 

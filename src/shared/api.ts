@@ -801,6 +801,97 @@ const kickFromRoomRequestSchema = z.object({
   name: z.string(),
 });
 
+const adminLoginRequestSchema = z.object({
+  password: z.string(),
+});
+
+const adminRoomSchema = z.object({
+  id: z.string(),
+  createdAt: z.string(),
+  lastAction: z.string(),
+  users: z.number(),
+  game: z.union([
+    z.object({
+      round: z.number(),
+      maxSoul: z.number(),
+    }),
+    z.literal(false),
+  ]),
+});
+export type AdminRoom = z.infer<typeof adminRoomSchema>;
+
+const adminMessageSchema = z.object({
+  id: z.number(),
+  createdAt: z.string(),
+  type: contactTypeSchema,
+  description: z.string(),
+  email: z.string().nullable(),
+  logs: z.string().nullable(),
+  resolved: z.boolean(),
+  reply: z.string().nullable(),
+});
+export type AdminMessage = z.infer<typeof adminMessageSchema>;
+
+const adminResponseSchema = z.object({
+  rooms: z.array(adminRoomSchema),
+  messages: z.array(adminMessageSchema),
+});
+export type AdminResponse = z.infer<typeof adminResponseSchema>;
+
+const adminGetLogsRequestSchema = z.object({
+  id: z.number(),
+});
+export type AdminGetLogsRequest = z.infer<typeof adminGetLogsRequestSchema>;
+
+const adminGetLogsResponseSchema = z.union([
+  z.object({
+    status: z.literal(200),
+    logs: z.string(),
+  }),
+  z.object({
+    status: z.literal(400),
+    error: z.string(),
+  }),
+  z.object({
+    status: z.literal(500),
+    error: z.string(),
+  }),
+]);
+export type AdminGetLogsResponse = z.infer<typeof adminGetLogsResponseSchema>;
+
+const adminChangeMessageStatusRequestSchema = z.object({
+  id: z.number(),
+  resolved: z.boolean(),
+});
+export type AdminChangeMessageStatusRequest = z.infer<
+  typeof adminChangeMessageStatusRequestSchema
+>;
+
+const adminReplyToMessageRequestSchema = z.object({
+  id: z.number(),
+  message: z.string(),
+});
+export type AdminReplyToMessageRequest = z.infer<
+  typeof adminReplyToMessageRequestSchema
+>;
+
+const adminReplyToMessageResponseSchema = z.union([
+  z.object({
+    status: z.literal(200),
+  }),
+  z.object({
+    status: z.literal(400),
+    error: z.string(),
+  }),
+  z.object({
+    status: z.literal(500),
+    error: z.string(),
+  }),
+]);
+export type AdminReplyToMessageResponse = z.infer<
+  typeof adminReplyToMessageResponseSchema
+>;
+
 export const schemas = {
   issuer: issuerSchema,
   room: roomSchema,
@@ -825,6 +916,10 @@ export const schemas = {
   loadGameParametersRequest: loadGameParametersRequestSchema,
   selectCharacterRequest: selectCharacterRequestSchema,
   kickFromRoomRequest: kickFromRoomRequestSchema,
+  adminLoginRequest: adminLoginRequestSchema,
+  adminGetLogsRequest: adminGetLogsRequestSchema,
+  adminChangeMessageStatusRequest: adminChangeMessageStatusRequestSchema,
+  adminReplyToMessageRequest: adminReplyToMessageRequestSchema,
 };
 
 export namespace Requests {
@@ -857,6 +952,14 @@ export namespace Requests {
   >;
   export type SelectCharacter = z.infer<typeof selectCharacterRequestSchema>;
   export type KickFromRoom = z.infer<typeof kickFromRoomRequestSchema>;
+  export type AdminLogin = z.infer<typeof adminLoginRequestSchema>;
+  export type AdminGetLogs = z.infer<typeof adminGetLogsRequestSchema>;
+  export type AdminChangeMessageStatus = z.infer<
+    typeof adminChangeMessageStatusRequestSchema
+  >;
+  export type AdminReplyToMessage = z.infer<
+    typeof adminReplyToMessageRequestSchema
+  >;
 }
 
 export namespace Responses {
@@ -897,12 +1000,17 @@ export namespace Responses {
   export type LoadGameParameters = BasicResponse;
   export type ResetGameParameters = BasicResponse;
   export type SelectCharacter = BasicResponse;
+  export type AdminLogin = BasicResponse;
+  export type AdminGetLogs = AdminGetLogsResponse;
+  export type AdminChangeMessageStatus = BasicResponse;
+  export type AdminReplyToMessage = AdminReplyToMessageResponse;
 }
 
 export interface ServerToClientEvents {
   "on:room:changed": (room: Room | null) => void;
   "on:user:assigned": (userId: string | null) => void;
   "on:room:broadcast": (broadcast: RoomBroadcast) => void;
+  "on:admin:changed": (admin: AdminResponse) => void;
 }
 
 export interface ClientToServerEvents {
@@ -1060,32 +1168,24 @@ export interface ClientToServerEvents {
   ) => void;
 
   quitGame: (callback: (response: Responses.QuitGame) => void) => void;
+
+  adminLogin: (
+    request: Requests.AdminLogin,
+    callback: (response: Responses.AdminLogin) => void,
+  ) => void;
+
+  adminGetLogs: (
+    request: Requests.AdminGetLogs,
+    callback: (response: Responses.AdminGetLogs) => void,
+  ) => void;
+
+  adminChangeMessageStatus: (
+    request: Requests.AdminChangeMessageStatus,
+    callback: (response: Responses.AdminChangeMessageStatus) => void,
+  ) => void;
+
+  adminReplyToMessage: (
+    request: Requests.AdminReplyToMessage,
+    callback: (response: Responses.AdminReplyToMessage) => void,
+  ) => void;
 }
-
-export type AdminRoom = {
-  id: string;
-  createdAt: string;
-  lastAction: string;
-  users: number;
-  game:
-    | {
-        round: number;
-        maxSoul: number;
-      }
-    | false;
-};
-
-export type AdminMessage = {
-  id: string;
-  createdAt: string;
-  type: ContactType;
-  description: string;
-  email: string | null;
-  logs: string | null;
-  resolved: boolean;
-};
-
-export type AdminResponse = {
-  rooms: AdminRoom[];
-  messages: AdminMessage[];
-};

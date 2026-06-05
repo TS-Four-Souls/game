@@ -11,9 +11,30 @@ import { schemas } from "@/shared/api";
 import { enterGameStep } from "./gameStep";
 import { globalEndpoints } from "./global";
 import { roomManager } from "./roomManager";
+import { enterAdminStep } from "./adminStep";
 
 export const enterIntroStep = (socket: Socket) => {
   globalEndpoints(socket);
+
+  socket.on("adminLogin", (payload, callback) =>
+    errorGuardedEndpoint(callback, () =>
+      payloadGuardedEndpoint(
+        payload,
+        schemas.adminLoginRequest,
+        callback,
+        (payload) => {
+          if (payload.password !== process.env.FRONT_ADMIN_PASSWORD) {
+            console.log("[🔌 Socket] Admin login attempt with invalid password");
+            return callback({ status: 400, error: "Invalid password" });
+          }
+          console.log("[🔌 Socket] Admin login attempt with valid password");
+          leaveCurrentStep(socket);
+          enterAdminStep(socket);
+          return callback({ status: 200 });
+        },
+      ),
+    ),
+  );
 
   socket.on("createRoom", (callback) =>
     errorGuardedEndpoint(callback, () => {
