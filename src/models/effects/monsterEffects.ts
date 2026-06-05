@@ -627,6 +627,8 @@ export function onAttackingPlayerRollsEffect(game: Game, s: string): EffectFunct
             const { eventIssuer, diceRoll: attackRoll } = eventData;
             if (!(eventIssuer instanceof Player)) return;
             if (!(eventIssuer.isEngagedInCombat)) return;
+            if(attackRoll.attackRoll !== true) return;
+            if(data.it.entity?.isEngagedInCombat === false) return;
             if(attackRoll?.value !== roll) return;
             const newData = new EffectData(data.it, () => eventIssuer as Player, []);
             addPassiveEffectToStack(game, effect.effectFunction, newData, `When the attacking player rolls an attack roll of ${roll} ${rest}`);
