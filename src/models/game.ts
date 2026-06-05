@@ -789,6 +789,7 @@ export class Game extends SelectionHandler {
       gainer.canBeActivated = true;
         gainer.addEffect(new Effect("Use a card effect.",
             "active",
+            gainer,
             async (effectData: EffectData) => {
               const effectIssuer = effectData.issuer;
                 if(effectIssuer instanceof Player === false)
@@ -1839,6 +1840,7 @@ export class Game extends SelectionHandler {
         const effect: Effect = new Effect(
           outcome,
           effectType,
+          card,
           effectParsed.effectFunction,
           [...paymentParsed.targetSelectors, ...effectParsed.targetSelectors],
           paymentParsed.effectFunction
@@ -1850,6 +1852,7 @@ export class Game extends SelectionHandler {
         const effect: Effect = new Effect(
           outcome,
           effectType,
+          card,
           parsed.effectFunction,
           parsed.targetSelectors
         );

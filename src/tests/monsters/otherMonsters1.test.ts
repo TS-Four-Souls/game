@@ -311,7 +311,7 @@ describe("Monsters - Various 1", () => {
         
         const targetsSel = manual.getEffectTarget("tap");
         expect(targetsSel.length).toBe(1);
-        const targetableMonsters = targetsSel[0]?.selector(player2);
+        const targetableMonsters = targetsSel[0]?.selector(player2, manual);
         expect(targetableMonsters).toContain(game.monsters[1]);
         expect(targetableMonsters).not.toContain(game.monsters[0]);
     });

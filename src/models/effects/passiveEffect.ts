@@ -147,7 +147,7 @@ export function temporaryStatModifierEffect(
                     throw new Error("selectionOnResolve targetType requires an onResolveTargets function.");
                 if(data.issuer instanceof Player === false)
                     throw new Error("selectionOnResolve targetType can only be used when issuer is a Player.");
-                target = (await data.selectAndRecord(game, data.issuer, 1, 1, onResolveTargets.selector(data.issuer), "Select the target for this effect.", true, true)).selected[0];
+                target = (await data.selectAndRecord(game, data.issuer, 1, 1, onResolveTargets.selector(data.issuer, data.it), "Select the target for this effect.", true, true)).selected[0];
                 break;
             default:
                 throw new Error(`Invalid targetType ${targetType} for temporaryStatModifierEffect.`);
@@ -1613,9 +1613,9 @@ export function gainAbilitiesUntilEffect(game: Game, triggerEvent: TriggerEvent,
             throw new Error("gainAbilitiesUntilEffect issuer must be a Player.");
         
         let offTrigger: (() => void) | null = null;
-        if(targetsSelector.selector(issuer).length === 0)
+        if(targetsSelector.selector(issuer, data.it).length === 0)
             return false;
-        const target = (await data.selectAndRecord(game, issuer, 1, 1, targetsSelector.selector(issuer), "Select a card to gain its abilities.", true)).selected[0]!;
+        const target = (await data.selectAndRecord(game, issuer, 1, 1, targetsSelector.selector(issuer, data.it), "Select a card to gain its abilities.", true)).selected[0]!;
         if(!target || !(target instanceof ItemCard)) {
             throw new Error("gainAbilitiesUntilEffect target must be a Card.");
         }

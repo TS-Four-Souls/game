@@ -171,7 +171,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         let winner = "";
-        game.win = (player) => {
+        game.win = (player: Player) => {
             winner = player.id;
         };
 
@@ -190,7 +190,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         let winner = "";
-        game.win = (player) => {
+        game.win = (player: Player) => {
             winner = player.id;
         };
 
@@ -209,7 +209,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         let winner = "";
-        game.win = (player) => {
+        game.win = (player: Player) => {
             winner = player.id;
         };
 

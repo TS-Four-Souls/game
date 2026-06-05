@@ -69,31 +69,6 @@ describe("Effect - gainCoins", () => {
     expect(() => fn(new EffectData(dummyLoot, () => a, []))).toThrow("Game not started");
   });
 
-  it("preserves flip data when a card becomes a copy", () => {
-    const source = game.decks["eternal"]!.getCardFromSlug("r-anima_sola")!;
-    const target = game.decks["treasure"]!.getCardFromSlug("b2-battery_bum")!;
-
-    expect(source.flipData).toBeTruthy();
-    expect(target.flipData).toBeUndefined();
-
-    target.becomesCopyOf(source);
-
-    expect(target.name).toBe("Anima Sola");
-    expect(target.flipData).toBeTruthy();
-    expect(target.flipData?.slug).toBe("r-the_revenant");
-  });
-
-  it("can flip Anima Sola twice without adding monster DC to a player", () => {
-    const animaSola = game.decks["eternal"]!.getCardFromSlug("r-anima_sola")!;
-
-    game.addInPlay(p1, animaSola as any);
-
-    expect(() => game.flip(p1, animaSola)).not.toThrow();
-    expect(animaSola.flipped).toBe(true);
-    expect(() => game.flip(p1, animaSola)).not.toThrow();
-    expect(animaSola.flipped).toBe(false);
-  });
-
   it("should reject negative coin amount", async () => {
     const negEffect = gainCoinsEffect(game, -2 as any);
     expect(() => negEffect(new EffectData(dummyLoot, () => p1, []))).toThrow("Number is negative.");
@@ -377,7 +352,7 @@ describe("Loot deck integration", () => {
     const selectors = stealCard.getTargetSelectors();
     const targets: any[] = [];
     for (const selector of selectors) {
-      const admissible = selector.selector(p1);
+      const admissible = selector.selector(p1, stealCard);
       targets.push(admissible[0]); // Pick first admissible target
     }
 

@@ -193,7 +193,7 @@ function parseLvXEffect(s: string, game: Game, nr?: NumberRobustString): ParsedE
  */
 const createSelector = (
     description: string,
-    selector: (player: Player) => any[],
+    selector: (player: Player, card: Card) => any[],
     min: number = 1,
     max: number = 1,
 ): TargetsSelector => ({ description, selector, min, max });
@@ -288,31 +288,38 @@ const selectNonEternalItemOrASoul = (game: Game, min: number = 1, max: number = 
     [createSelector("Choose a non-eternal item or a soul", itemAndSoulSelector((player: Player, card: ItemCard) => card.eternal === false, game), min, max)];
 
 const selectNonEternalTapItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
-    [createSelector("Choose a non-eternal item", visibleItemSelector((card: ItemCard, issuer: Player) => card.eternal === false && card.activeEffectList.length > 0 && card.hasTapEffect() && card.slug != "b2-placebo", game), min, max)];
+    [createSelector("Choose a non-eternal item", visibleItemSelector((card: ItemCard, issuer: Player) => card.eternal === false && card.activeEffectList.length > 0 && card.hasTapEffect() && card.slug != "b2-placebo", false, game), min, max)];
 
 const selectAnyTapItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
-    [createSelector("Choose any tap item", visibleItemSelector((card: ItemCard, issuer: Player) => card.activeEffectList.length > 0 && card.hasTapEffect(), game), min, max)];
+    [createSelector("Choose any tap item", visibleItemSelector((card: ItemCard, issuer: Player) => card.activeEffectList.length > 0 && card.hasTapEffect(), false, game), min, max)];
 
 const selectAnotherPlayerNonEternalItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
     [createSelector("Choose another player's non-eternal item", inAnotherplayItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), min, max)];
 
 const selectNonEternalPassiveItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
-    [createSelector("Choose a non-eternal passive item", visibleItemSelector((card: ItemCard, issuer: Player) => card.eternal === false && card.activeEffectList.length === 0, game), min, max)];
+    [createSelector("Choose a non-eternal passive item", visibleItemSelector((card: ItemCard, issuer: Player) => card.eternal === false && card.activeEffectList.length === 0, false, game), min, max)];
 
 const selectItemYouControl = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
-    [createSelector("Select an item you control", YourItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), min, max)];
+    [createSelector("Select an item you control", YourItemSelector((player: Player, card: ItemCard) => card.eternal === false, false, game), min, max)];
 
 const selectEternalItemYouControl = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
-    [createSelector("Select an item you control", YourItemSelector((player: Player, card: ItemCard) => card.eternal === true, game), min, max)];
+    [createSelector("Select an item you control", YourItemSelector((player: Player, card: ItemCard) => card.eternal === true, false, game), min, max)];
 
 const selectAnotherItemYouControl = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
-    [createSelector("Select an item you control", YourItemSelector((player: Player, card: ItemCard) => card.eternal === false && card.name !== "Donation Machine", game), min, max)];
+    [createSelector("Select an item you control", YourItemSelector((player: Player, card: ItemCard) => card.eternal === false, true, game), min, max)];
 
 const selectSoulYouControl = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
     [createSelector("Destroy a soul you control", (issuer: Player) => issuer.souls, min, max)];
 
 const selectNonEternalItemFromAnywhere = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
-    [createSelector("Select a non-eternal item from a player or from the shop", visibleItemSelector((card: ItemCard, issuer: Player) => card.eternal === false, game), min, max)];
+    [createSelector("Select a non-eternal item from a player or from the shop", visibleItemSelector((card: ItemCard, issuer: Player) => card.eternal === false, false, game), min, max)];
+
+const selectAnotherNonEternalItemFromAnywhere = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Select a non-eternal item from a player or from the shop", visibleItemSelector((card: ItemCard, issuer: Player) => card.eternal === false, true, game), min, max)];
+
+const selectAnotherItemFromAnywhere = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
+    [createSelector("Select a non-eternal item from a player or from the shop", visibleItemSelector((card: ItemCard, issuer: Player) => true, true, game), min, max)];
+
 
 const selectPlayerWithMostSouls = (game: Game, min: number = 1, max: number = min): TargetsSelector[] => 
     [createSelector("Choose a player with the most souls or tied for the most", playerSelector((p) => p.souls.length === Math.max(...game.players.map(p => p.souls.length)), game), min, max)];
@@ -1635,7 +1642,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "look at the top card of the treasure deck, you may put it on the bottom.":
             return { effectFunction: active.LookAndPutBottomEffect("treasure", game), targetSelectors: noTargets };
         case "recharge another item.":
-            return { effectFunction: active.rechargeItemsEffect(game, selectionOnResolve), targetSelectors: selectItem(game) };
+            return { effectFunction: active.rechargeItemsEffect(game, selectionOnResolve), targetSelectors: selectAnotherItemFromAnywhere(game) };
         case "look at a player's hand. you may swap a card from your hand with one of theirs.":
             return { effectFunction: active.lookAtPlayerHandAndSwapEffect(game), targetSelectors: selectPlayer(game) };
         case "look at their hand and steal a loot card from them.":
@@ -1659,7 +1666,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "destroy an item or soul.":
             return { effectFunction: active.destroyOneEffect(game), targetSelectors: selectNonEternalItemOrASoul(game) };
         case "destroy another item":
-            return { effectFunction: active.destroyOneEffect(game), targetSelectors: selectNonEternalItemFromAnywhere(game) };
+            return { effectFunction: active.destroyOneEffect(game), targetSelectors: selectAnotherNonEternalItemFromAnywhere(game) };
         case "discard your hand":
             return { effectFunction: active.discardHandEffect(game), targetSelectors: noTargets };
         case "destroy an item. if that item was controlled by a player, they steal an item from the shop.":

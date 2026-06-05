@@ -332,7 +332,7 @@ export function destroyOneEffect(game: Game, selector: TargetsSelector|undefined
         if(selector !== undefined) {
             if(data.issuer instanceof Player === false)
                 throw new Error("Effect issuer is not a player in destroyOneEffect.");
-            toDestroy = (await data.selectAndRecord(game, data.issuer as Player, 1, 1, selector.selector(data.issuer), "Select a card to destroy.", true, true)).selected[0] as Card;
+            toDestroy = (await data.selectAndRecord(game, data.issuer as Player, 1, 1, selector.selector(data.issuer, data.it), "Select a card to destroy.", true, true)).selected[0] as Card;
         }
         return game.destroyCardsOrSouls([toDestroy]);
     };
@@ -540,7 +540,7 @@ export function cancelStackElementEffect(game: Game, selectors: TargetsSelector[
     return async (data: EffectData) => {
         const toRemove = !selectionOnResolve 
             ? data.next as StackElement 
-            : (await data.selectAndRecord(game, data.issuer as Player, 1, 1, selectors[0]?.selector(data.issuer as Player)!, selectors[0]?.description, true, true)).selected[0] as StackElement;
+            : (await data.selectAndRecord(game, data.issuer as Player, 1, 1, selectors[0]?.selector(data.issuer as Player, data.it)!, selectors[0]?.description, true, true)).selected[0] as StackElement;
             game.cancelStackElement(toRemove);
             if(toRemove instanceof LootCardEffect && !game.decks.loot.discard.includes(toRemove.card)) // must handle the discard.
                 game.discard(toRemove.card);
@@ -1605,7 +1605,7 @@ export function changeNumberInEffectTextEffect(game: Game, val: number, min: num
 export function eachPlayersVoteToDestroyItemEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const ListOfItems = visibleItemSelector((card) => card.eternal === false, game)(data.issuer);
+        const ListOfItems = visibleItemSelector((card, issuer) => card.eternal === false, false, game)(data.issuer, data.it);
 
         // Request votes from all players in parallel
         const voteRequests = game.players.map(player => ({
@@ -1994,7 +1994,7 @@ export function rerollItemEffect(game: Game, selectors: TargetsSelector[] = [], 
         {
             if(data.issuer instanceof Player === false) 
                 throw new Error("Issuer must be a player for selection on resolve reroll effect");
-            card = (await data.selectAndRecord(game, data.issuer, 1, 1, selectors[0]!.selector(data.issuer), "Select an item to reroll.", true, true)).selected[0];
+            card = (await data.selectAndRecord(game, data.issuer, 1, 1, selectors[0]!.selector(data.issuer, data.it), "Select an item to reroll.", true, true)).selected[0];
         }
         if(card !== undefined && game.visibleItems.includes(card as ItemCard))
             game.reroll(card);
@@ -2459,7 +2459,7 @@ export function killTargetEffect(game: Game, selectors: TargetsSelector[] = [], 
         if(selectionOnResolve){
             if(issuer instanceof Player === false) 
                 throw new Error("Issuer should be a player to select target for killTargetEffect.");
-            const target = await data.selectAndRecord(game, issuer as Player, 1, 1, selectors[0]!.selector(issuer), "Select a target to kill.", true, true);
+            const target = await data.selectAndRecord(game, issuer as Player, 1, 1, selectors[0]!.selector(issuer, data.it), "Select a target to kill.", true, true);
             if(target.selected.length === 0) return false;
             game.kill(issuer, target.selected[0] as Entity, data.it);
             return true;
@@ -2635,7 +2635,7 @@ export function addOrRemoveCounterOnCardEffect(game: Game, amount: number, type:
         if (data.issuer instanceof Player === false) return false;
         if(target === "selectionOnResolve" && targetSelector.length === 0)
             return false;
-        const card = target === "next" ? data.next as Card : (await data.selectAndRecord(game, data.issuer, youMayEffectHanging[0] ? 1 : 0, 1, targetSelector[0]!.selector(data.issuer), "Select a card to add or remove counters from.", true, true)).selected[0] as Card;
+        const card = target === "next" ? data.next as Card : (await data.selectAndRecord(game, data.issuer, youMayEffectHanging[0] ? 1 : 0, 1, targetSelector[0]!.selector(data.issuer, data.it), "Select a card to add or remove counters from.", true, true)).selected[0] as Card;
         youMayEffectHanging[0] = false;
         if(!card)
             return false;
@@ -2715,9 +2715,9 @@ export function dealDamageToTargetEffect(game: Game, amount: number, selectionOn
         if(selectionOnResolve){
             if(data.issuer instanceof Player === false) 
                 throw new Error("Issuer should be a player to select target for dealDamageToTargetEffect.");
-            if(selectors[0]!.selector(data.issuer).length === 0)
+            if(selectors[0]!.selector(data.issuer, data.it).length === 0)
                 return false;
-            const selectionResult = (await data.selectAndRecord(game, data.issuer, 1, 1, selectors[0]!.selector(data.issuer), `Select a target to deal ${amount} damage to.`, true, true));
+            const selectionResult = (await data.selectAndRecord(game, data.issuer, 1, 1, selectors[0]!.selector(data.issuer, data.it), `Select a target to deal ${amount} damage to.`, true, true));
             target = selectionResult.selected[0];
         }
         if(!(target instanceof Entity))

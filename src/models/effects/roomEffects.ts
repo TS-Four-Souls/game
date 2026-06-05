@@ -541,7 +541,7 @@ export function enterPlayRerollItemsDiscardHandsLootAndFlushMonstersEffect(game:
     return (data: EffectData) => {
         flushMonsterSlotsEffect(game, "discard")(data);
         discardHandsAndLootEffect(game, lootAmount)(data);
-        for(const item of visibleItemSelector((c) => c.eternal === false, game)(data.issuer as Player)) {
+        for(const item of visibleItemSelector((c, p) => c.eternal === false, false, game)(data.issuer as Player, data.it)) {
             game.reroll(item);
         }
         return true;

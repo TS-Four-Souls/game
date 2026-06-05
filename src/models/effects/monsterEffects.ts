@@ -80,7 +80,7 @@ export function activePlayerIsTargetedByEffect(game: Game, effectFunction: Effec
 export function activePlayerSelectTargetEffect(game: Game, effectFunction: EffectFunction, ts: TargetsSelector, record: boolean = true): EffectFunction {
     return async (data: EffectData) => {
         const issuer = game.currentPlayer as Player;
-        const target = (await data.selectAndRecord(game, issuer as Player, ts.min, ts.max, ts.selector(issuer as Player), ts.description, true, record)).selected;
+        const target = (await data.selectAndRecord(game, issuer as Player, ts.min, ts.max, ts.selector(issuer as Player, data.it), ts.description, true, record)).selected;
         if(target.length > 0)
             await effectFunction(new EffectData(data.it, () => issuer, target));
         return true;

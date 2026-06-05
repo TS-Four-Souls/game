@@ -395,8 +395,8 @@ export class ActionHandler {
   
       if (targets.length === 0) {
         if (playedCard.getTargetSelectors().length === 1)
-          if (playedCard.getTargetSelectors()[0]?.selector(player).length === 1)
-            targets = playedCard.getTargetSelectors()[0]!.selector(player)[0];
+          if (playedCard.getTargetSelectors()[0]?.selector(player, playedCard).length === 1)
+            targets = playedCard.getTargetSelectors()[0]!.selector(player, playedCard)[0];
       }
       const lootCardEffect = new LootCardEffect(player, playedCard, targets);
       this.game.addAnimation({

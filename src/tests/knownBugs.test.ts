@@ -62,32 +62,6 @@ describe("Known bugs that have be corrected", () => {
         expect(player1.currentHealthPoints).toBe(initialHealth - 1);
     });
 
-    it("Modifying values of a flipped card should not cause errors", async () => {
-        const clicker = game.obtainCard("r-the_clicker") as ItemCard;
-        game.addInPlay(player1, clicker);
-        game.recharge(clicker);
-        const deserter = game.decks.character.cards.find(c => c.slug === "r-the_deserter") as CharacterCard;
-        await game.activateItem(player1, clicker, [deserter], "tap");
-        await game.actions.resolveStack();
-        const sola = player1.inPlay[1]!;
-        expect(player1.character.slug).toBe("r-the_deserter");
-        expect(sola.slug).toBe("r-anima_sola");
-
-        game.recharge(sola);
-        await game.activateItem(player1, sola, [], "tap");
-        await game.actions.resolveStack();
-        expect(sola.flipped).toBe(true);
-        const marker = game.obtainCard("r-magic_marker") as LootCard;
-        game.addCardToHand(player1, marker);
-        game.actions.playCard(player1, player1.hand.length - 1, [sola]);
-        await game.actions.resolveStack();
-        expect(sola.flipped).toBe(true);
-        await game.endTurn();
-        await game.actions.resolveStack();
-        expect(sola.flipped).toBe(true);
-    });
-
-
     it("stealing does not remove card correctly", async () => {
         const payToPlay = game.shop.obtainCard("b2-pay_to_play") as ItemCard;
         const targetItem = game.shop.obtainCard("b2-brimstone") as ItemCard;

@@ -27,9 +27,9 @@ export function itemAndSoulSelector(filter: (player: Player, card: ItemCard) => 
     };
 }
 
-export function YourItemSelector(filter: (player: Player, card: ItemCard) => boolean, game: Game): (issuer: Player) => any[] {
-    return (issuer: Player) => {
-        return game.inPlayItems.filter(({ player, card }) => player === issuer &&filter(player, card)).map(({ card }) => card);
+export function YourItemSelector(filter: (player: Player, card: ItemCard) => boolean, anotherItem: boolean, game: Game): (issuer: Player, card: Card) => any[] {
+    return (issuer: Player, c: Card) => {
+        return game.inPlayItems.filter(({ player, card }) => player === issuer && (!anotherItem || c !== card) && filter(player, card)).map(({ card }) => card);
     };
 }
 export function inAnotherplayItemSelector(filter: (player: Player, card: ItemCard) => boolean, game: Game): (issuer: Player) => any[] {
@@ -38,9 +38,9 @@ export function inAnotherplayItemSelector(filter: (player: Player, card: ItemCar
     };
 }
 
-export function visibleItemSelector(filter: (card: ItemCard, issuer: Player) => boolean, game: Game): (issuer: Player) => any[] {
-    return (issuer: Player) => {
-        return game.visibleItems.filter((card) => filter(card, issuer));
+export function visibleItemSelector(filter: (card: ItemCard, issuer: Player) => boolean, anotherItem: boolean, game: Game): (issuer: Player, card: Card) => any[] {
+    return (issuer: Player, card: Card) => {
+        return game.visibleItems.filter((c) => (!anotherItem || c !== card) && filter(c, issuer));
     };
 }
 

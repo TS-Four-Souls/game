@@ -16,7 +16,7 @@ export type EffectType =
  */
 export type TargetsSelector = {
     description: string;
-    selector: (player: Player) => any[];
+    selector: (player: Player, card: Card) => any[];
     min: number;
     max: number;
 };

@@ -11,6 +11,7 @@ import { isChooseOneOptions } from './targetSelector';
 import { EffectData, type CardSetsCollection, type DecksCollection, type DeckType, type DeckTypeToCardType, type EffectFunction, type EffectType, type TargetsSelector } from './types/cardTypes';
 
 export class Effect {
+    protected _card: Card;
     protected _description: string;
     protected _effectFunction: EffectFunction;
     protected _paymentFunction?: EffectFunction;
@@ -21,19 +22,24 @@ export class Effect {
 
     constructor(description: string,
         type: EffectType,
+        card: Card,
         effectFunction: EffectFunction
             = (data: EffectData) => { return true; },
         targetsSelector: TargetsSelector[]
-            = [{ description: "", selector: (issuer: Player) => [], min: 0, max: 0 }],
-        paymentFunction?: EffectFunction
+            = [{ description: "", selector: (issuer: Player, card: Card) => [], min: 0, max: 0 }],
+        paymentFunction?: EffectFunction,
     ) {
         this._description = description;
         this._type = type;
         this._effectFunction = effectFunction;
         this._targetsSelector = targetsSelector;
         this._paymentFunction = paymentFunction;
+        this._card = card;
     }
 
+    get card(): Card {
+        return this._card;
+    }
     get description(): string {
         return this._description;
     }
@@ -76,12 +82,12 @@ export class Effect {
         
         const targetsList = chooseOneArray.slice(1);
         if (targetsList.length > 0) {
-            for (const admissibleTarget of this._targetsSelector[0]!.selector(issuer)) {
+            for (const admissibleTarget of this._targetsSelector[0]!.selector(issuer, this.card)) {
                 if (admissibleTarget.description.toLowerCase() === descr.toLowerCase()) {
                     let admisibleTargetsIndex = 0;
                     let nbTargetsForSelector = 0;
                     for (const t of targetsList) {
-                        if (((admissibleTarget.admissibleTargets[admisibleTargetsIndex]) as TargetsSelector).selector(issuer).includes(t)) {
+                        if (((admissibleTarget.admissibleTargets[admisibleTargetsIndex]) as TargetsSelector).selector(issuer, this.card).includes(t)) {
                             nbTargetsForSelector++;
                         } else if(nbTargetsForSelector >= ((admissibleTarget.admissibleTargets[admisibleTargetsIndex]) as TargetsSelector).min) {
                             admisibleTargetsIndex++;
@@ -102,7 +108,7 @@ export class Effect {
         // Check if the first selector is a choose-one selector
         if (this._targetsSelector.length > 0) {
             const firstSelector = this._targetsSelector[0]!;
-            const admissibleTargets = firstSelector.selector(issuer);
+            const admissibleTargets = firstSelector.selector(issuer, this.card);
             
             // If this is a choose-one selector and targets are provided
             if (admissibleTargets.length > 0 && isChooseOneOptions(admissibleTargets[0])) {
@@ -121,7 +127,7 @@ export class Effect {
             if (targetIndex >= targets.length) break;
             
             const selector = this._targetsSelector[i]!;
-            const admissibleTargets = selector.selector(issuer);
+            const admissibleTargets = selector.selector(issuer, this.card);
             
             if (admissibleTargets.length > 0 && isChooseOneOptions(admissibleTargets[0])) {
                 // Should not reach here with new format
@@ -160,7 +166,7 @@ function combineEffects(effect1: Effect, effect2: Effect): Effect {
     }
     const descr = `${effect1.description} ${effect2.description}`;
     const effect = combineEffectFunctions([effect1.effectFunction, effect2.effectFunction]);
-    return new Effect(descr, "active", effect, effect1.targetsSelector.concat(effect2.targetsSelector));
+    return new Effect(descr, "active", effect1.card, effect, effect1.targetsSelector.concat(effect2.targetsSelector));
 
 }
 // Effect handler manages multiple effects of the same type of a card.

@@ -50,10 +50,11 @@ export class TargetBuilder {
         rootSelectors: TargetsSelector[],
         selectorIndex: number,
         selector: TargetsSelector | undefined,
-        player: Player
+        player: Player,
+        item: ItemCard
     ): { selector: TargetsSelector | undefined; selectorIndex: number } {
         while (selector) {
-            const possibleTargets = selector.selector(player);
+            const possibleTargets = selector.selector(player, item);
             if (!TargetBuilder.shouldAutofillSelector(selector, possibleTargets)) {
                 break;
             }
@@ -91,10 +92,11 @@ export class TargetBuilder {
         selectorIndex: number,
         selector: TargetsSelector | undefined,
         player: Player,
+        item: ItemCard,
         result: any[]
     ): { selector: TargetsSelector | undefined; selectorIndex: number } {
         while (selector) {
-            const possibleTargets = selector.selector(player);
+            const possibleTargets = selector.selector(player, item);
             if (!TargetBuilder.shouldAutofillSelector(selector, possibleTargets)) {
                 break;
             }
@@ -178,7 +180,7 @@ export class TargetBuilder {
         // Walk through choices using for loop
         let choicesProcessed = 0;
         for (let i = 0; i < partialChoices.length; i++) {
-            const normalized = TargetBuilder.normalizeSelectorForPrompt(rootSelectors, selectorIndex, selector, player);
+            const normalized = TargetBuilder.normalizeSelectorForPrompt(rootSelectors, selectorIndex, selector, player, item);
             if (normalized.selectorIndex !== selectorIndex) {
                 choicesProcessed = 0;
             }
@@ -189,7 +191,7 @@ export class TargetBuilder {
                 return TargetBuilder.completeResponse();
             }
 
-            const possibleTargets: any[] = selector.selector(player);
+            const possibleTargets: any[] = selector.selector(player, item);
             const choice = partialChoices[i]!;
 
             // Check if this is a choose-one selector
@@ -235,7 +237,7 @@ export class TargetBuilder {
             return TargetBuilder.completeResponse();
         }
 
-        const normalized = TargetBuilder.normalizeSelectorForPrompt(rootSelectors, selectorIndex, selector, player);
+        const normalized = TargetBuilder.normalizeSelectorForPrompt(rootSelectors, selectorIndex, selector, player, item);
         selectorIndex = normalized.selectorIndex;
         selector = normalized.selector;
 
@@ -244,7 +246,7 @@ export class TargetBuilder {
         }
 
         // Get the next selector to display
-        const possibleTargets = selector.selector(player);
+        const possibleTargets = selector.selector(player, item);
         
         // Check if this is a choose-one selector
         const isChooseOne = possibleTargets.length > 0 && isChooseOneOptions(possibleTargets[0]);
@@ -464,12 +466,13 @@ export class TargetBuilder {
                 selectorIndex,
                 selector,
                 player,
+                item,
                 result
             );
             selectorIndex = advanced.selectorIndex;
             selector = advanced.selector;
             if (!selector) break;
-            const possibleTargets = selector.selector(player);
+            const possibleTargets = selector.selector(player, item);
 
             // Check if this is a choose-one selector
             if (possibleTargets.length > 0 && isChooseOneOptions(possibleTargets[0])) {
