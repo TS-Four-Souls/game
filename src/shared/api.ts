@@ -381,6 +381,7 @@ export type DeckConfigPatch = z.infer<typeof decksConfigPatchSchema>;
 const gameParametersSchema = z.object({
   miniDraft: booleanGameParameterSchema,
   nbSoulsToWin: numberGameParameterSchema,
+  timer: numberGameParameterSchema,
   nbItemsInShop: numberGameParameterSchema,
   nbEncounters: numberGameParameterSchema,
   // nbRooms: numberGameParameterSchema,
@@ -732,6 +733,7 @@ const detailedStateSchema = z.object({
     })
     .optional(),
   turn: z.string(),
+  round: z.number(),
   stack: z.array(z.lazy(() => stackElementSchema)),
   firstCardTreasureDeck: cardSchema.optional(),
   history: z.array(stackElementSchema),

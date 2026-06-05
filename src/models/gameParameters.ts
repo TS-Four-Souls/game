@@ -221,6 +221,7 @@ export class GameParameters {
     readonly miniDraft: BooleanGameParameter;
     readonly nbSoulsToWin: NumericGameParameter;
     readonly nbItemsInShop: NumericGameParameter;
+    readonly timer: NumericGameParameter;
     readonly nbRooms: NumericGameParameter;
     readonly nbEncounters: NumericGameParameter;
     readonly deathPenaltyCoins: NumericGameParameter;
@@ -274,6 +275,7 @@ export class GameParameters {
         this.nbItemsInShop = new NumericGameParameter(0, 2, 6, onChange);
         this.nbRooms = new NumericGameParameter(1, 1, 1, onChange);
         this.nbEncounters = new NumericGameParameter(1, 2, 6, onChange);
+        this.timer = new NumericGameParameter(1, 8, 100, onChange);
         this.deathPenaltyCoins = new NumericGameParameter(0, 1, 20, onChange);
         this.deathPenaltyItem = new NumericGameParameter(0, 1, 10, onChange);
         this.deathPenaltyLoot = new NumericGameParameter(0, 1, 10, onChange);
@@ -305,7 +307,8 @@ export class GameParameters {
             miniDraft: {text: "Mini-draft", value: this.miniDraft.value},//: At the start of the game, lay out (number of players + 1) treasure cards. Each player choose one of them and gain them, in turn order. Put the last card on the bottom of the treasure deck. Repeat this process with the order reversed.
             nbSoulsToWin: {text: "Number of souls to win", value: this.nbSoulsToWin.value},
             allowCheatOptions: {text: "Allow cheat options", value: this.allowCheatOptions.value},
-            nbItemsInShop: {text: "Number ofsfdfds items in the shop", value: this.nbItemsInShop.value},
+            nbItemsInShop: {text: "Number of items in the shop", value: this.nbItemsInShop.value},
+            timer: {text: "Number of rounds before losing.", value: this.timer.value},
             nbEncounters: {text: "Number of encounters", value: this.nbEncounters.value},
             // nbRooms: {text: "Number of rooms", value: this.nbRooms.value},
             deathPenaltyCoins: {text: "Death penalty coins", value: this.deathPenaltyCoins.value},
