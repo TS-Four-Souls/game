@@ -275,7 +275,7 @@ export class GameParameters {
         this.nbItemsInShop = new NumericGameParameter(0, 2, 6, onChange);
         this.nbRooms = new NumericGameParameter(1, 1, 1, onChange);
         this.nbEncounters = new NumericGameParameter(1, 2, 6, onChange);
-        this.timer = new NumericGameParameter(1, 8, 100, onChange);
+        this.timer = new NumericGameParameter(0, 0, 100, onChange);
         this.deathPenaltyCoins = new NumericGameParameter(0, 1, 20, onChange);
         this.deathPenaltyItem = new NumericGameParameter(0, 1, 10, onChange);
         this.deathPenaltyLoot = new NumericGameParameter(0, 1, 10, onChange);
