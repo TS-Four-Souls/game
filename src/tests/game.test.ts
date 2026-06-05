@@ -990,7 +990,7 @@ describe("Game - Damage System", () => {
                             treasureDeck: ["b2-boomerang", "b2-guppys_head", "b2-blank_card", "b2-tech_x", "b2-the_battery", "b2-lucky_foot", "b2-mini_mush", "b2-spoon_bender"],
                             bonusSouls: [],
                             playerCount: 2,
-                            rooms: false,
+                            rooms: true,
                         });
             game = setup.game;
             player1 = setup.player1;
