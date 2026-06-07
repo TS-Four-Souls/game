@@ -1153,7 +1153,7 @@ export class Game extends SelectionHandler {
         monster.resetEntityFlags();
       }
       this.turnHandler.endTurn();
-      if(this.turnHandler.round > this.gameParameters.timer.value)
+      if(this.turnHandler.round > this.gameParameters.timer.value && this.gameParameters.timer.value > 0)
         this.win(null);
       this.dispatch();
       this.startTurn();
