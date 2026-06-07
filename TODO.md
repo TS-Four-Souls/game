@@ -8,6 +8,7 @@
 - music, sound effects
 - have some way to see the destoyed cards
 - being able to rename the player name
+- split game parameters into categories
 
 ## Expand audience
 
