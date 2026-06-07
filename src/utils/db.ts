@@ -13,8 +13,21 @@ db.run(`
     logs TEXT
   )`);
 
+/* Migration 1: Add resolved column */
 try {
   db.run(`ALTER TABLE reports ADD COLUMN resolved BOOLEAN DEFAULT FALSE`);
+} catch (error) {
+  if (
+    error instanceof SQLiteError &&
+    !error.message.startsWith("duplicate column name")
+  ) {
+    console.error(error.message);
+  }
+}
+
+/* Migration 2: Add reply column */
+try {
+  db.run(`ALTER TABLE reports ADD COLUMN reply TEXT`);
 } catch (error) {
   if (
     error instanceof SQLiteError &&
@@ -39,13 +52,23 @@ export const insertReport = (
   );
 };
 
-export const markReportAsResolved = (id: number) => {
-  db.run(`UPDATE reports SET resolved = TRUE WHERE id = ?`, [id]);
+export const updateReportStatus = (id: number, resolved: boolean) => {
+  db.run(`UPDATE reports SET resolved = ? WHERE id = ?`, [resolved, id]);
 };
 
 export const getAdminMessages = (): AdminMessage[] => {
   const messages = db.prepare(`SELECT * FROM reports`).all();
-  return messages.map((message: any) => ({
+  return messages.map(dbObjectToAdminMessage);
+};
+
+export const getAdminMessageById = (id: number): AdminMessage | null => {
+  const message = db.prepare(`SELECT * FROM reports WHERE id = ?`).get(id);
+  if (!message) return null;
+  return dbObjectToAdminMessage(message);
+};
+
+const dbObjectToAdminMessage = (message: any): AdminMessage => {
+  return {
     id: message.id,
     createdAt: message.created_at,
     type: message.type as ContactType,
@@ -53,5 +76,10 @@ export const getAdminMessages = (): AdminMessage[] => {
     email: message.email,
     logs: message.logs,
     resolved: message.resolved,
-  }));
+    reply: message.reply,
+  };
+};
+
+export const updateReportReply = (id: number, reply: string) => {
+  db.run(`UPDATE reports SET reply = ? WHERE id = ?`, [reply, id]);
 };

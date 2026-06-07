@@ -1,6 +1,8 @@
 import type { z, ZodType } from "zod";
 import type { Room, Socket, User } from "./types";
 import type { Room as RoomPayload } from "@/shared/api";
+import { roomManager } from "./roomManager";
+import { getAdminMessages } from "@/utils/db";
 
 export const errorGuardedEndpoint = async (
   callback: (response: { status: 400; error: string }) => void,
@@ -50,6 +52,13 @@ export const sendRoomChangedToUser = (room: Room | null, user: User) => {
     "on:room:changed",
     room ? generateRoomChangedPayload(room, user) : null,
   );
+};
+
+export const sendAdminChanged = (socket: Socket) => {
+  socket.emit("on:admin:changed", {
+    rooms: roomManager.adminRooms,
+    messages: getAdminMessages(),
+  });
 };
 
 const generateRoomChangedPayload = (
