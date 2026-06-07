@@ -275,7 +275,7 @@ export class GameParameters {
         this.nbItemsInShop = new NumericGameParameter(0, 2, 6, onChange);
         this.nbRooms = new NumericGameParameter(1, 1, 1, onChange);
         this.nbEncounters = new NumericGameParameter(1, 2, 6, onChange);
-        this.timer = new NumericGameParameter(1, 8, 100, onChange);
+        this.timer = new NumericGameParameter(0, 0, 100, onChange);
         this.deathPenaltyCoins = new NumericGameParameter(0, 1, 20, onChange);
         this.deathPenaltyItem = new NumericGameParameter(0, 1, 10, onChange);
         this.deathPenaltyLoot = new NumericGameParameter(0, 1, 10, onChange);
@@ -308,7 +308,7 @@ export class GameParameters {
             nbSoulsToWin: {text: "Number of souls to win", value: this.nbSoulsToWin.value},
             allowCheatOptions: {text: "Allow cheat options", value: this.allowCheatOptions.value},
             nbItemsInShop: {text: "Number of items in the shop", value: this.nbItemsInShop.value},
-            timer: {text: "Number of rounds before losing.", value: this.timer.value},
+            timer: {text: "Number of rounds before losing", value: this.timer.value, replaceZeroWith: "∞"},
             nbEncounters: {text: "Number of encounters", value: this.nbEncounters.value},
             // nbRooms: {text: "Number of rooms", value: this.nbRooms.value},
             deathPenaltyCoins: {text: "Death penalty coins", value: this.deathPenaltyCoins.value},

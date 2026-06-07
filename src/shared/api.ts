@@ -347,6 +347,7 @@ const booleanGameParameterSchema = z.object({
 const numberGameParameterSchema = z.object({
   text: z.string(),
   value: z.number(),
+  replaceZeroWith: z.string().optional(),
 });
 const decksConfigSchema = z.object({
   useBonusSouls: booleanGameParameterSchema,
