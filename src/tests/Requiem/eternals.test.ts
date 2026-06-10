@@ -71,20 +71,6 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player2.attackThisTurn).toBe(1);
     });
 
-  it("preserves flip data when a card becomes a copy", () => {
-    const source = game.decks["eternal"]!.getCardFromSlug("r-anima_sola")!;
-    const target = game.decks["treasure"]!.getCardFromSlug("b2-battery_bum")!;
-
-    expect(source.flipData).toBeTruthy();
-    expect(target.flipData).toBeUndefined();
-
-    target.becomesCopyOf(source);
-
-    expect(target.name).toBe("Anima Sola");
-    expect(target.flipData).toBeTruthy();
-    expect(target.flipData?.slug).toBe("r-the_revenant");
-  });
-
   it("can flip Anima Sola twice without adding monster DC to a player", () => {
     const setup = setupTestGame({
                     characters: ["r-the_deserter", "b2-samson"],

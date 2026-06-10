@@ -52,7 +52,7 @@ describe("Discard", () => {
         expect(game.decks['loot']!.discard.length).toBe(0);
         game.kill(player1, player1, player1.inPlay[0]!);
         await game.resolveEntireStack();
-        expect(game.decks['loot']!.discard.length).toBe(0);
+        expect(game.decks['loot']!.discard.length).toBe(1);
         expect(game.decks['monster']!.discard.length).toBe(0);
         expect(game.decks['treasure']!.discard.length).toBe(0);
     });
@@ -183,16 +183,13 @@ describe("Discard", () => {
         game.addInPlay(player1, treasureCard);
         
         const initialDiscardSize = game.decks['treasure']!.discard.length;
-        const initialDestroyedSize = game.destroyedCards.length;
         
         // Destroy the treasure
         game.destroyCardsOrSouls([treasureCard]);
         
         // Card should be destroyed (not in discard)
-        expect(game.decks['treasure']!.discard.length).toBe(initialDiscardSize);
-        expect(game.destroyedCards.length).toBe(initialDestroyedSize + 1);
-        expect(game.destroyedCards).toContain(treasureCard);
-        expect(game.decks['treasure']!.discard).not.toContain(treasureCard);
+        expect(game.decks['treasure']!.discard.length).toBe(initialDiscardSize + 1);
+        expect(game.decks['treasure']!.discard).toContain(treasureCard);
         expect(player1.inPlay).not.toContain(treasureCard);
     });
 
@@ -203,17 +200,14 @@ describe("Discard", () => {
         player1.addSoul(monsterCard);
         
         const initialDiscardSize = game.decks['monster']!.discard.length;
-        const initialDestroyedSize = game.destroyedCards.length;
         const initialSouls = player1.totalSouls;
         
         // Destroy the soul
         game.destroyCardsOrSouls([monsterCard]);
         
         // Card should be destroyed (not in discard)
-        expect(game.decks['monster']!.discard.length).toBe(initialDiscardSize);
-        expect(game.destroyedCards.length).toBe(initialDestroyedSize + 1);
-        expect(game.destroyedCards).toContain(monsterCard);
-        expect(game.decks['monster']!.discard).not.toContain(monsterCard);
+        expect(game.decks['monster']!.discard.length).toBe(initialDiscardSize+1);
+        expect(game.decks['monster']!.discard).toContain(monsterCard);
         expect(player1.souls).not.toContain(monsterCard);
         expect(player1.totalSouls).toBe(initialSouls - monsterCard.soul);
     });

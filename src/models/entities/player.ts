@@ -2,7 +2,6 @@ import { Entity } from "@/models/entities/entity";
 import type { Animation, Capability, EntityType, IdentifierType } from "@/shared/api";
 import { Card, CharacterCard, EffectOnStack, Hand, ItemCard, LootCard, MonsterCard } from "../cards";
 import type { Game } from "../game";
-import { Monster } from "./monster";
 import { DiceRoll } from "../stackElement";
 
 /**
@@ -59,11 +58,11 @@ export class Player extends Entity {
   /** @private Counter for effects that let player see top of treasure deck (0 or 1) */
   private _canSeeTopOfTreasureDeck: number = 0;
   
-  /** @private Monsters or deck that this player must attack, with the card that gave the requirement */
-  private _mustAttackMonster: { target: Monster[] | "topDeck" | "any", source: Card }[] = [];
+  /** @private Entities or deck that this player must attack, with the card that gave the requirement */
+  private _mustAttackEntity: { target: Entity[] | "topDeck" | "any", source: Card }[] = [];
 
-  /** @private List of monsters or deck positions the player may attack additionally. Note that non-free attacks are consumed first.*/
-  private _mayAttackForFree: { target: Monster | "topDeck", nb: number }[] = [];
+  /** @private List of entities or deck positions the player may attack additionally. Note that non-free attacks are consumed first.*/
+  private _mayAttackForFree: { target: Entity | "topDeck", nb: number }[] = [];
 
   private _diceModifier: number = 0;
 
@@ -107,56 +106,56 @@ export class Player extends Entity {
     return character?.globalId ?? -1;
   }
   /**
-   * Gets the list of monsters or deck positions this player must attack, with source cards.
+   * Gets the list of entities or deck positions this player must attack, with source cards.
    * @returns Array of required attack targets with their source cards
    */
-  get mustAttackMonster(): { target: Monster[] | "topDeck" | "any", source: Card }[] {
-    return this._mustAttackMonster;
+  get mustAttackEntity(): { target: Entity[] | "topDeck" | "any", source: Card }[] {
+    return this._mustAttackEntity;
   }
 
   requirementListPRINT(): void {
-    if(this.mustAttackMonster.length === 0) return;
-    for(const req of this.mustAttackMonster)
+    if(this.mustAttackEntity.length === 0) return;
+    for(const req of this.mustAttackEntity)
     {
       if(req.target === "topDeck")
         console.log(`Must attack top of deck, source: ${req.source.name}`);
       else if(req.target === "any")
         console.log(`Must attack any, source: ${req.source.name}`);
       else 
-        for(const monster of req.target as Monster[])
-          console.log(`Must attack monster: ${monster.name}, source: ${req.source.name}`);
+        for(const entity of req.target as Entity[])
+          console.log(`Must attack entity: ${entity.id}, source: ${req.source.name}`);
     }
     return;
   }
 
   requirementListJSON(game: Game): {target: IdentifierType | "topDeck", source: IdentifierType}[] {
-    if(this.mustAttackMonster.length === 0) return [];
+    if(this.mustAttackEntity.length === 0) return [];
     const list: {target: IdentifierType | "topDeck", source: IdentifierType}[] = [];
     let sourceAny = undefined;
-    for(const req of this.mustAttackMonster)
+    for(const req of this.mustAttackEntity)
     {
       if(req.target === "topDeck")
         list.push({ target: "topDeck", source: req.source.jsonAPI });
       else if(req.target === "any")
         sourceAny = req.source.jsonAPI;
       else 
-        for(const monster of req.target as Monster[])
-          list.push({ target: monster.card.jsonAPI, source: req.source.jsonAPI });
+        for(const entity of req.target as Entity[])
+          list.push({ target: entity.card, source: req.source.jsonAPI });
     }
     if(list.length === 0 && sourceAny !== undefined)
     {
       list.push({ target: "topDeck", source: sourceAny });
-      for(const monster of game.monsters)
-        list.push({ target: monster.card.jsonAPI, source: sourceAny });
+      for(const entity of game.attackableEntities)
+        list.push({ target: entity.card.jsonAPI, source: sourceAny });
     }
     return list;
   }
 
-  get mayAttackForFree(): { target: Monster | "topDeck", nb: number }[] {
+  get mayAttackForFree(): { target: Entity | "topDeck", nb: number }[] {
     return this._mayAttackForFree;
   }
 
-  mayAttackForFreeThis(target: Monster | "topDeck", nb: number): void {
+  mayAttackForFreeThis(target: Entity | "topDeck", nb: number): void {
     this._mayAttackForFree.push({ target, nb });
   }
 
@@ -173,43 +172,45 @@ export class Player extends Entity {
     return this._mayAttackForFree.some(free => free.nb > 0);
   }
   /**
-   * Adds a monster or deck position to the list of required attack targets.
-   * @param value - The monster or "topDeck" that must be attacked
+   * Adds a entity or deck position to the list of required attack targets.
+   * @param value - The entity or "topDeck" that must be attacked
    * @param source - The card that gave this requirement
    */
-  mustAttack(value: Monster[] | "topDeck" | "any", source: Card) {
-    this._mustAttackMonster.push({ target: value, source });
-    this.attackThisTurn = Math.max(this.attackThisTurn, this._mustAttackMonster.length); // Ensure at least 1 attack this turn
+  mustAttack(value: Entity[] | "topDeck" | "any", source: Card) {
+    this._mustAttackEntity.push({ target: value, source });
+    this.attackThisTurn = Math.max(this.attackThisTurn, this._mustAttackEntity.length); // Ensure at least 1 attack this turn
   }
   
   /**
    * Returns true if the player has any attack requirement (must attack)
    */
   get hasAttackRequirement(): boolean {
-    return this._mustAttackMonster.length > 0;
+    return this._mustAttackEntity.length > 0;
   }
   
   /**
    * Returns true if player must attack the top of the monster deck
    */
   mustAttackTopDeck(): boolean {
-    return this._mustAttackMonster.some(req => req.target === "topDeck");
+    return this._mustAttackEntity.some(req => req.target === "topDeck");
   }
   
   /**
    * Returns true if attacking this element satisfies the requirement
    */
   canAttackThisEntity(elem: (Entity | "topDeck")): Capability {
+    if(elem === this)
+      return "You cannot attack yourself.";
     if(elem !== "topDeck" && !elem.attackable) return "This target is unattackable";
-    if (this._mustAttackMonster.length > 0)
+    if (this._mustAttackEntity.length > 0)
     {
-      const requirements = this._mustAttackMonster.some(
+      const requirements = this._mustAttackEntity.some(
           req => req.target === elem 
-          || (Array.isArray(req.target) && elem instanceof Monster && req.target.includes(elem))) 
-          || this._mustAttackMonster.every(req => req.target === "any"); // Must be in the list
+          || (Array.isArray(req.target) && elem instanceof Entity && req.target.includes(elem))) 
+          || this._mustAttackEntity.every(req => req.target === "any"); // Must be in the list
       if(requirements !== true){
         return "You have attack requirements."
-        + ` You must attack ${this._mustAttackMonster.map(req => req.target instanceof Array ? req.target[0]!.card.name : req.target).join(", ")}.`;
+        + ` You must attack ${this._mustAttackEntity.map(req => req.target instanceof Array ? req.target[0]!.card.name : req.target).join(", ")}.`;
       }
       return true;
     }
@@ -228,33 +229,33 @@ export class Player extends Entity {
     return true;
   }
   /**
-   * Monsters can be flushed, or forced removed leading to outdated attack requirements. 
+   * Entities can be flushed, or forced removed leading to outdated attack requirements. 
    * This function clears any requirements that can no longer be fulfilled.
    * @param elems 
    * @return true if the player has no more attack requirements, attacks remaining and free attacks, and is currently engaged in combat (used to check if combat should end after clearing requirements)
    */
   clearOutdatedAttackRequirements(elems: Entity[]): boolean {
-    this._mustAttackMonster = this._mustAttackMonster.filter(req => {
+    this._mustAttackEntity = this._mustAttackEntity.filter(req => {
       return !(req.target instanceof Array && req.target.every(t => !elems.includes(t)));
     });
     return (!this.hasAttackRequirement && !this.hasFreeAttackRemaining && this.attackThisTurn <= 0 && this.isEngagedInCombat)
   }
 
   /**
-   * Remove a monster from the must-attack list (call after attacking it)
+   * Remove an entity from the must-attack list (call after attacking it)
    */
   clearAttackRequirement(elem?: Entity | "topDeck" | "any"): void {
     
     if (!elem) {
       // Clear all requirements
-      this._mustAttackMonster = [];
+      this._mustAttackEntity = [];
       return;
     }
 
-    // Otherwise, remove the specific monster from the list
-    const index = this._mustAttackMonster.findIndex(req => req.target === elem || (Array.isArray(req.target) && elem instanceof Monster && req.target.includes(elem)));
+    // Otherwise, remove the specific entity from the list
+    const index = this._mustAttackEntity.findIndex(req => req.target === elem || (Array.isArray(req.target) && elem instanceof Entity && req.target.includes(elem)));
     if (index !== -1) {
-      this._mustAttackMonster.splice(index, 1);
+      this._mustAttackEntity.splice(index, 1);
     }
   }
 
@@ -263,7 +264,7 @@ export class Player extends Entity {
    * If `elem` is provided, only requirements matching that target are removed.
    */
   clearAttackRequirementsFromSource(source: Card, elem?: Entity | "topDeck" | "any"): void {
-    this._mustAttackMonster = this._mustAttackMonster.filter((req) => {
+    this._mustAttackEntity = this._mustAttackEntity.filter((req) => {
       if (req.source !== source) {
         return true;
       }
@@ -276,7 +277,7 @@ export class Player extends Entity {
         return false;
       }
 
-      if (Array.isArray(req.target) && elem instanceof Monster && req.target.includes(elem)) {
+      if (Array.isArray(req.target) && elem instanceof Entity && req.target.includes(elem)) {
         return false;
       }
 
@@ -675,7 +676,7 @@ export class Player extends Entity {
     this.resetCanIActivateThisTurn();
     this.resetCanIUseLootThisTurn();
     this._attackedIdsThisTurn = [];
-    this._mustAttackMonster = [];
+    this._mustAttackEntity = [];
     this._mayAttackForFree = [];
     this.resetEntityFlags();
   }

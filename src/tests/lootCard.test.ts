@@ -1183,7 +1183,7 @@ describe("Loot Card", () => {
 
         // Item should be destroyed from player1
         expect(player1.inPlay).not.toContain(itemToDestroy);
-        expect(game.destroyedCards).toContain(itemToDestroy);
+        expect(game.decks.treasure.discard).toContain(itemToDestroy);
 
         // Item should be stolen from player2 to player1
         expect(player2.inPlay).not.toContain(itemToSteal);
@@ -1215,7 +1215,7 @@ describe("Loot Card", () => {
 
         // Item should be destroyed from player1
         expect(player1.inPlay).not.toContain(itemToDestroy);
-        expect(game.destroyedCards).toContain(itemToDestroy);
+        expect(game.decks.treasure.discard).toContain(itemToDestroy);
 
         // Item should be stolen from shop to player1
         expect(game.shop.itemsInShop).not.toContain(shopItem);
@@ -1495,7 +1495,7 @@ describe("Loot Card", () => {
         await game.actions.resolveStack();
 
         expect(player1.curses).not.toContain(curses[0]!);
-        expect(game.destroyedCards).toContain(curses[0]!);
+        expect(game.decks.monster.discard).toContain(curses[0]!);
     });
 
     it("b2-dagaz: destroys a chosen curse when that option is selected", async () => {
@@ -1521,7 +1521,7 @@ describe("Loot Card", () => {
         expect(player1.curses.map(card => card.slug)).toContain(curses[0]!.slug);
         expect(player1.curses.map(card => card.slug)).toContain(curses[2]!.slug);
         expect(player2.curses.map(card => card.slug)).not.toContain(curses[1]!.slug);
-        expect(game.destroyedCards.map(card => card.slug)).toContain(curses[1]!.slug);
+        expect(game.decks.monster.discard.map(card => card.slug)).toContain(curses[1]!.slug);
     });
 
     it("b2-dagaz: destroys nothing when the curse is not available anymore.", async () => {

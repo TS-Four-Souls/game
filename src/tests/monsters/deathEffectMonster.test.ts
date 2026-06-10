@@ -1,11 +1,10 @@
-import { describe, it, expect, beforeEach, expectTypeOf } from "bun:test";
-import { Game } from "../../models/game";
-import { Player } from "../../models/entities/player";
-import { DiceRoll } from "../../models/stackElement";
-import type { Hand, LootCard } from "@/models/cards";
+import type { LootCard } from "@/models/cards";
 import { MonsterCard } from "@/models/cards";
-import { setupTestGame, emptyHands, mockGameSelections } from "../testHelpers";
-import { he, pl } from "zod/locales";
+import { beforeEach, describe, expect, it } from "bun:test";
+import { Player } from "../../models/entities/player";
+import { Game } from "../../models/game";
+import { DiceRoll } from "../../models/stackElement";
+import { mockGameSelections, setupTestGame } from "../testHelpers";
 
 describe("Monsters - On death effects", () => {
     let game: Game;
@@ -626,7 +625,7 @@ describe("Monsters - On death effects", () => {
         await game.resolveEntireStack(); 
         expect(game.stack.size).toBe(0);
 
-        expect(game.decks["monster"]?.cards[6]!.slug).toBe(card.slug);
+        expect(game.decks.monster.cards[5]!.slug).toBe(card.slug);
     });
 
     it("put the bloat in a slot when peep dies.", async () => {
@@ -702,6 +701,7 @@ describe("Monsters - On death effects", () => {
         expect(game.stack.size).toBe(0);
         expect(game.decks["monster"]!.cards[0]!.slug).not.toBe("b2-rag_man");
         expect(game.currentPlayer.souls.length).toBe(1);
+        expect(game.decks.monster.discard.includes(card)).toBe(false);
     });
     
     it("discard killer hand when sloth dies. (p1)", async () => {

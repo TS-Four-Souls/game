@@ -429,9 +429,10 @@ class Card {
     protected _effectOutcomes: string[];
     protected _effectInterface: EffectInterface;
     protected _flippedEffectInterface: EffectInterface;
+    protected _outsideGame: boolean = false;
     protected _souls: number = 0;
     protected _charged: boolean = true;
-    protected _owner!: Entity;
+    protected _owner: Entity | undefined;
     protected _associatedEntity!: Entity;
     protected _eternal: boolean = false;
     protected _flipped: boolean = false;
@@ -464,6 +465,7 @@ class Card {
         this._flippedEffectInterface = new EffectInterface(this);
         this._flipData = this._json.flip;
         this._minimumPlayers = this._json.minimumPlayers || 1;
+        this._outsideGame = this._json.outsideGame || false;
         this._effectOutcomes = this._json.effectOutcome || [];
     }
     toString() : string {
@@ -484,10 +486,12 @@ class Card {
             return [];
         return this._effectInterface.activeEffectList;
     }
+    get outsideGame(): boolean {
+        return this._outsideGame;
+    }
     get flipped(): boolean {
         return this._flipped;
     }
-
     swapEffectInterfaces(): void {
         [this._effectInterface, this._flippedEffectInterface] = [this._flippedEffectInterface, this._effectInterface];
     }
@@ -586,9 +590,11 @@ class Card {
         return this._cleanup;
     }
     get owner(): Entity {
+        if(!this._owner)
+            throw new Error(`Card ${this.name} does not have an owner.`);
         return this._owner;
     }
-    set owner(value: Entity) {
+    set owner(value: Entity | undefined) {
         this._owner = value;
     }
     get canBeDiscarded(): boolean{
@@ -630,7 +636,7 @@ class Card {
         this._flippedEffectInterface.reset();
     }
     cleanup(): void {
-        for (const cleaner of this._cleanup) {
+        for (const cleaner of this._cleanup.toReversed()) {
             cleaner();
         }
         this._cleanup = [];
@@ -673,9 +679,12 @@ class Card {
      * @param attachEffects - Optional callback to attach effects to this card
      */
     becomesCopyOf(otherCard: Card, attachEffects?: (card: Card) => void): { originalState: any, restore: () => void } {
+        // verify that the card is still in play.
         // Store original state including cleanup array
+        // console.log(`becomesCopyOf called on ${this.name} to copy ${otherCard.name}. Current tags: ${JSON.stringify(this.effectOutcomes)}. Current cleanup length: ${this._cleanup.length}.`);
         const originalState = {
             json: this._json,
+            tags: this._tags,
             slug: this._slug,
             name: this._name,
             canBeActivated: this._canBeActivated,
@@ -692,31 +701,29 @@ class Card {
         // Cleanup will happen in restore() for the copied effects only
         
         // Copy properties from the other card
+        const originalFlipData = this._flipData; // Preserve the flip data of the original card
         this._json = otherCard._json;
+        this._json.flip = originalFlipData; // Restore original flip data
+        // this._tags = otherCard._tags;
         this._slug = otherCard._slug;
         this._name = otherCard._name;
         this._type = otherCard._type;
         this._canBeActivated = otherCard._canBeActivated;
         this._subtype = otherCard._subtype;
         this._effectOutcomes = otherCard._effectOutcomes;
-        this._flipData = otherCard.flipData;
+        this._flipData = originalFlipData;
         
         // Create a new effect interface
         this._effectInterface = new EffectInterface(this);
-        
-        // Clear cleanup array for the transformed state
-        this._cleanup = [];
         
         // Attach effects if callback provided
         if (attachEffects) {
             attachEffects(this);
         }
-        
+        const prevIdx = this._tags.lastCopiedRestoreOriginalStateIndex;
         // Restore function
-        const restore = () => {
-            // Clean up copied effects
-            this.cleanup();
-            
+        const restoreOriginalState = () => {
+            // console.log(`Restoring original state for ${originalState.name} ${this.globalId} after copying ${otherCard.name} ${otherCard.globalId}. Current cleanup length: ${this._cleanup.length}.`);
             // Restore original properties
             this._json = originalState.json;
             this._slug = originalState.slug;
@@ -726,15 +733,23 @@ class Card {
             this._subtype = originalState.subtype;
             this._effectOutcomes = originalState.effectOutcomes;
             this._effectInterface = originalState.effectInterface;
-            this._cleanup = originalState.cleanup; // Restore the original cleanup array
             this._flipData = originalState.flipData;
-            
-            // Re-subscribe effects if we have an owner
-            if (originalState.owner) {
-                this._effectInterface.subscribeAll(() => originalState.owner);
+            this._tags.lastCopiedRestoreOriginalStateIndex = prevIdx; // Restore the previous index for potential nested copies
+            this._tags.restore = undefined;
+        };
+         this._cleanup.push(restoreOriginalState);
+        this._tags.lastCopiedRestoreOriginalStateIndex = this._cleanup.length - 1; // Store the index of the restore function in tags for potential external access
+        // Cleanup anything that happened after the copy.
+        const restore = () => {
+            // Call all cleanup functions to restore original state
+            for (let i = this._cleanup.length - 1; i >= originalState.cleanup.length; i--) {
+                this._cleanup[i]!();
             }
+            this._cleanup = this._cleanup.slice(0, originalState.cleanup.length); // Restore original cleanup array
         };
 
+        this._tags.restore = restore;
+        
         return { originalState, restore };
     }
 }
@@ -772,24 +787,6 @@ export class ItemCard extends Card {
     return this._effectInterface.getTargetSelectors(effectId);
   }
 
-  // recharge(): boolean {
-  //     if (this._inplayType === InplayType.UNCHARGED) {
-  //         this._inplayType = InplayType.CHARGED;
-  //         return true;
-  //     }
-  //     return false;
-  // }
-
-  // activate(): boolean {
-  //     if (this._inplayType === InplayType.CHARGED) {
-  //         this._inplayType = InplayType.UNCHARGED;
-  //         return true;
-  //     }
-  //     if (this._inplayType === InplayType.PAID) {
-  //         return true;
-  //     }
-  //     return false;
-  // }
   get cost(): string {
     return this._cost;
   }
@@ -807,11 +804,11 @@ export class ItemCard extends Card {
       case "tap":
         if (this._charged === true) {
           this._charged = false;
-          return this._effectInterface.tapEffect(this._owner, targets);
+          return this._effectInterface.tapEffect(this.owner, targets);
         }
         throw new Error("Cannot activate uncharged item");
       default:
-        return await this._effectInterface.paidEffect(this._owner, targets, effectId);
+        return await this._effectInterface.paidEffect(this.owner, targets, effectId);
     }
   }
   targetStillValid(
@@ -987,6 +984,7 @@ class MonsterCard extends Card {
     protected _evasion: number = 0;
     protected _reward: CardRewards;
     protected _afterEffect: "discard" | "handled" | "nothing" = "discard";
+    protected _indomitable: boolean = false;
 
     constructor(id: number, globalId: number, json: MonsterCardType) {
         super(id, globalId, json);
@@ -1004,7 +1002,7 @@ class MonsterCard extends Card {
             this._healthPoints = json.stats.healthPoints || 0;
             this._attackPoints = json.stats.attackPoints || 0;
             this._evasion = json.stats.evasionPoints || 0;
-
+            this._indomitable = json.indomitable || false;
             if (json.rewards){
                 if (json.rewards.soul) {
                     this._monsterType = MonsterType.BOSS;
@@ -1023,6 +1021,12 @@ class MonsterCard extends Card {
     }
     get isEvent(): boolean {
         return this._monsterType === MonsterType.EVENT;
+    }
+    get indomitable(): boolean {
+        return this._indomitable;
+    }
+    set indomitable(value: boolean) {
+        this._indomitable = value;
     }
     get healthPoints(): number {
         return this._healthPoints;
@@ -1264,7 +1268,7 @@ export class EffectOnStack extends StackElement {
     }
 
     override get debugLogs(): string {
-        return `effect from ${this._data.issuer.id} for card ${this.data.it.name}  with effect ${this._description} with targets: ${JSON.stringify(TargetBuilder.convertToSelectionItems(this._data.targets))}`;
+        return `card effect ${this.data.it.name} ${this.data.it.globalId} ISSUER ${this._data.issuer.id} EFFECT "${this._description}" TARGETS: ${JSON.stringify(TargetBuilder.convertToSelectionItems(this._data.targets))}`;
     }
 }
 class Deck<T extends Card> {
@@ -1383,6 +1387,8 @@ class Deck<T extends Card> {
     }
     addCardAtPosFromTop(card: T, positionFromTop: number): void {
         assertCardMatchesDeck(this._type, card);
+        if(positionFromTop > this._order.length)
+            this.resetDiscard();
         const posFromEnd = Math.max(this._order.length - positionFromTop, 0);
         this._order.splice(posFromEnd, 0, card.id);
     }

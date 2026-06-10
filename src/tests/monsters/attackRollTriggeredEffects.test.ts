@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { Game } from "../../models/game";
-import { Player } from "../../models/entities/player";
-import { DiceRoll } from "../../models/stackElement";
 import type { LootCard } from "@/models/cards";
 import { MonsterCard } from "@/models/cards";
-import { setupTestGame, emptyHands, mockGameSelections } from "../testHelpers";
+import { beforeEach, describe, expect, it } from "bun:test";
+import { Player } from "../../models/entities/player";
+import { Game } from "../../models/game";
+import { DiceRoll } from "../../models/stackElement";
+import { emptyHands, mockGameSelections, setupTestGame } from "../testHelpers";
 
 describe("Monsters - Attack Roll Triggered Effects", () => {
     let game: Game;
@@ -333,6 +333,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const setup4 = setupTestGame({
                 characters: ["b2-samson", "b2-isaac", "b2-the_forgotten", "b2-judas"],
                 monsters: ["b2-fly", "b2-fatty"],
+                monsterDeck: ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip","b2-leech","b2-gurdy"],
                 playerCount: 4
             });
             const game4 = setup4.game;
@@ -572,6 +573,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const setup3 = setupTestGame({
                 characters: ["b2-samson", "b2-isaac", "b2-the_forgotten"],
                 monsters: ["b2-fly", "b2-fatty"],
+                monsterDeck: ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip","b2-leech","b2-gurdy"],
                 playerCount: 3
             });
             const game3 = setup3.game;

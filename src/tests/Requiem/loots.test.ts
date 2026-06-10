@@ -1,8 +1,7 @@
-import type { ItemCard, LootCard, RoomCard } from "@/models/cards";
+import type { ItemCard, LootCard } from "@/models/cards";
 import { beforeEach, describe, expect, it } from "bun:test";
-import { Game } from "../../models/game";
-import { DamageOnStack } from "../../models/stackElement";
 import { Player } from "../../models/entities/player";
+import { Game } from "../../models/game";
 import { setupTestGame } from "../testHelpers";
 
 

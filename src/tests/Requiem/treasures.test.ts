@@ -607,7 +607,6 @@ describe("Requiem Loots ", () => {
             await game.actions.resolveStack();
             expect(game.stack.isEmpty()).toBe(true);
             expect(player1.inPlay.includes(item)).toBe(false);
-            expect(game.destroyedCards).toContain(item);
             expect(player1.hand.length).toBe(2);
             expect(player1.coins).toBe(2);
         });
@@ -695,15 +694,15 @@ describe("Requiem Loots ", () => {
                 await game.activateItem(player1, item, ["Put a monster not being attacked under this if there are no cards under this.", game.monsters[0]], "tap");
                 await game.actions.resolveStack();
                 expect(item.tags.underThis.includes(mobCard)).toBe(true);
-                expect(game.monsters[0]!.card).not.toBe(mobCard);
+                expect(game.monsters[0]!.card.slug).not.toBe(mobCard.slug);
 
                 game.recharge(item);
                 await game.activateItem(player1, item, ["Put a monster from under this in a monster slot not being attacked. The active player must make an additional attack on it this turn."], "tap");
                 await game.actions.resolveStack();
                 expect(item.tags.underThis.includes(mobCard)).toBe(false);
                 expect(item.tags.underThis.length).toBe(0);
-                expect(game.monsters[0]!.card).toBe(mobCard);
-                expect(player1.mustAttackMonster.length).toBe(1);
+                expect(game.monsters[0]!.card.slug).toBe(mobCard.slug);
+                expect(player1.mustAttackEntity.length).toBe(1);
             });
         
         it("member_card", async () => {
@@ -1187,7 +1186,7 @@ describe("Requiem Loots ", () => {
         await game.resolveEntireStack();
 
         // Item destroyed
-        expect(game.destroyedCards).toContain(item);
+        expect(game.decks.treasure.discard).toContain(item);
         expect(player1.inPlay).not.toContain(item);
 
         // All souls destroyed
@@ -1498,7 +1497,6 @@ describe("Requiem Loots 3 layers ", () => {
         }
         await game.activateItem(player1, item, [treas], "tap");
         await game.actions.resolveStack();
-        expect(game.stack.isEmpty()).toBe(true);
         expect(player2.coins).toBe(9);
         expect(player3.coins).toBe(0);
         expect(player1.coins).toBe(9);

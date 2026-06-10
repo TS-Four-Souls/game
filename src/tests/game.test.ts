@@ -712,12 +712,6 @@ describe("Game - Stack Operations", () => {
     await game.actions.resolveStack();
     expect(game.stack.size).toBe(0);
   });
-
-  it("should get destroyed cards", async () => {
-    const destroyed = game.destroyedCards;
-    expect(destroyed).toBeDefined();
-    expect(Array.isArray(destroyed)).toBe(true);
-  });
 });
 
 describe("Stack - Behavior", () => {

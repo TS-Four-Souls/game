@@ -62,7 +62,7 @@ describe("Event Monsters - Other Events", () => {
 
     // b2-ambush: The active player must attack the monster deck 2 times this turn.
     it("ambush - active player must attack monster deck 2 times", async () => {
-        const initialAttacks = player1.mustAttackMonster.length;
+        const initialAttacks = player1.mustAttackEntity.length;
         const ambush = game.obtainCard("b2-ambush") as MonsterCard;
         game.decks["monster"]!.addTopPosition(ambush);
         
@@ -72,7 +72,7 @@ describe("Event Monsters - Other Events", () => {
         await game.actions.resolveStack();
         
         // Player should be forced to attack the monster deck 2 additional times
-        expect(player1.mustAttackMonster.length).toBe(initialAttacks + 2);
+        expect(player1.mustAttackEntity.length).toBe(initialAttacks + 2);
         await expect(game.actions.nextTurn(player1)).rejects.toThrow();
 
         game.actions.declareAttack(player1);
@@ -80,7 +80,7 @@ describe("Event Monsters - Other Events", () => {
         game.kill(player1, game.monsters[0]!, ambush);
         game.actions.resolveStack();
         
-        expect(player1.mustAttackMonster.length).toBe(initialAttacks + 1);
+        expect(player1.mustAttackEntity.length).toBe(initialAttacks + 1);
         expect(player1.isEngagedInCombat).toBe(false);
         await expect(game.actions.nextTurn(player1)).rejects.toThrow();
 
@@ -89,13 +89,13 @@ describe("Event Monsters - Other Events", () => {
         game.kill(player1, game.monsters[0]!, ambush);
         game.actions.resolveStack();
 
-        expect(player1.mustAttackMonster.length).toBe(initialAttacks);
+        expect(player1.mustAttackEntity.length).toBe(initialAttacks);
         expect(player1.isEngagedInCombat).toBe(false);
     });
 
     // b2-ambush: The active player must attack the monster deck 2 times this turn.
     it("ambush - add only 1 additional attack if already attacked top deck.", async () => {
-        const initialAttacks = player1.mustAttackMonster.length;
+        const initialAttacks = player1.mustAttackEntity.length;
         const ambush = game.obtainCard("b2-ambush") as MonsterCard;
         game.decks["monster"]!.addTopPosition(ambush);
         
@@ -106,7 +106,7 @@ describe("Event Monsters - Other Events", () => {
         await game.actions.resolveStack();
         
         // Player should be forced to attack the monster deck 2 additional times
-        expect(player1.mustAttackMonster.length).toBe(initialAttacks + 1);
+        expect(player1.mustAttackEntity.length).toBe(initialAttacks + 1);
         await expect(game.actions.nextTurn(player1)).rejects.toThrow();
 
         game.actions.declareAttack(player1);
@@ -114,9 +114,9 @@ describe("Event Monsters - Other Events", () => {
         game.kill(player1, game.monsters[0]!, ambush);
         game.actions.resolveStack();
         
-        expect(player1.mustAttackMonster.length).toBe(0);
+        expect(player1.mustAttackEntity.length).toBe(0);
         expect(player1.isEngagedInCombat).toBe(false);
-        expect(player1.mustAttackMonster.length).toBe(initialAttacks);
+        expect(player1.mustAttackEntity.length).toBe(initialAttacks);
         expect(player1.isEngagedInCombat).toBe(false);
         await expect(game.actions.nextTurn(player1)).resolves.toBeUndefined();
     });

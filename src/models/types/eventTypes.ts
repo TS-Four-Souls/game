@@ -3,7 +3,7 @@ import type { Monster } from '../entities/monster';
 import type { Entity } from '../entities/entity';
 import { Animated } from "../entities/animated";
 import type { DeathOnStack, DiceRoll } from '../stackElement';
-import type { ItemCard, Card, LootCard } from '../cards';
+import type { ItemCard, Card, LootCard, MonsterCard } from '../cards';
 import type { DamageSource } from '../game';
 import { DeathPenaltyValues } from '../handlers/deathHandler';
 // ============================================================================
@@ -49,6 +49,7 @@ export type OnDeathMonsterData = {
   target: Entity;
   source: DamageSource;
   ability?: any;
+  rewardGainer: Player;
 };
 
 /** Data emitted when an animated object dies */
@@ -154,7 +155,7 @@ export type OnAttackRollData = {
 /** Data emitted when a soul is gained */
 export type OnSoulGainedOrRemovedData = {
   eventIssuer: Player;
-  soul: Card;
+  soul: Card | null;
 };
 
 /** Data emitted when a purchase is successful */
@@ -170,6 +171,12 @@ export type OnRechargeData = {
   card: ItemCard;
   reason: RechargeReason;
   shouldRecharge: boolean;
+};
+
+/** Data emitted when a player gains items */
+export type OnCardDiscardBeforeData = {
+  eventIssuer: Player;
+  card: Card | null;
 };
 
 /** Data emitted when a player gains items */
@@ -408,11 +415,13 @@ export type TriggerEventDataMap = {
   "on:game:start:before": OnGameStartBeforeData;
   "on:game:start": OnGameStartData;
   "on:soul:gained": OnSoulGainedOrRemovedData;
+  "on:soul:gained:before": OnSoulGainedOrRemovedData;
   "on:soul:removed": OnSoulGainedOrRemovedData;
   "on:coin:given": OnCoinGivenData;
   "on:purchase:success": OnPurchaseSuccessData;
   "on:recharge": OnRechargeData;
   "on:item:gained": OnItemGainedData;
+  "on:card:discarded:before": OnCardDiscardBeforeData;
 };
 
 export type TriggerEvent = keyof TriggerEventDataMap;

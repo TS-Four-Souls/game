@@ -210,7 +210,7 @@ export class Bot {
             new ResolveStackAction(this._me),
             ...this._me.hand.cards.map((card, index) => new PlayLootAction(this._me, index)),
             ...this._me.inPlay.filter(card => card.activeEffectList.length > 0).map(card => new UseItemAction(this._me, card as ItemCard)),
-            ...(this._me.isEngagedInCombat ? [new DeclareAttackOnEntityAction(this._me, "topDeck"), ...this.game.monsters.map(monster => new DeclareAttackOnEntityAction(this._me, monster))] : []),
+            ...(this._me.isEngagedInCombat ? [new DeclareAttackOnEntityAction(this._me, "topDeck"), ...this.game.attackableEntities.map(e => new DeclareAttackOnEntityAction(this._me, e))] : []),
             new PurchaseAction(this._me),
             new CancelPurchaseAction(this._me),
         ];

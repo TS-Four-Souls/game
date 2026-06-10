@@ -72,6 +72,14 @@ type GuppyCard = {
   guppy?: true;
 };
 
+type IndomitableCard = {
+  indomitable?: true;
+};
+
+type OutsideCard = {
+  outsideGame?: true;
+};
+
 type TrinketCard = {
   trinket?: true;
 };
@@ -101,7 +109,7 @@ export type FlipData = {
 };
 
 /* Card */
-export type Card = CardMeta & {
+export type Card = CardMeta & OutsideCard & {
   front: string;
   back: string;
   name: string;
@@ -134,7 +142,7 @@ export type TreasureCardType = Card &
   };
 
 export type MonsterCardType = Card &
-  CurseCard & {
+  CurseCard & IndomitableCard & {
     type: CardType.Monster;
     subtype: MonsterCardSubtype;
   };

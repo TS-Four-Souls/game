@@ -52,7 +52,24 @@ export async function randomSelect<T>(
     const selected = shuffledOptions.slice(0, nbToSelect);
     const remaining = shuffledOptions.slice(nbToSelect);
     return { selected: selected, remaining: remaining };
-}     
+} 
+
+export async function randomSelectMultiple<T>(
+        selections: Array<
+        {
+          player: Player;
+          min: number;
+          max: number;
+          options: T[];
+          description: string;
+          skippable?: boolean;
+          canUseOnBoardSelection: boolean;
+        }>
+      ): Promise<Array<{ playerId: string; selected: T[]; remaining: T[] }>> {
+        return Promise.all(selections.map(async s => {
+            const res = await randomSelect(s.player, s.min, s.max, s.options, s.description, s.skippable, s.canUseOnBoardSelection);
+            return {playerId: s.player.id, selected: res.selected, remaining: res.remaining};}));
+      };
 
 /**
  * Configuration options for setting up a test game.
@@ -214,6 +231,15 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
             }
             game.decks.bsoul.addTopPosition(soulCard);
         }
+    }
+
+    // initialize monster deck with specified cards. Ensuring encounters to be initialized with expected monsters.
+    for (const slug of monsterDeck) {
+        const monsterCard = game.obtainCard(slug);
+        if (!monsterCard) {
+            throw new Error(`Monster card not found: ${slug}`);
+        }
+        game.decks["monster"]!.addTopPosition(monsterCard as MonsterCard);
     }
 
     // Assign characters

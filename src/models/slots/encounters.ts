@@ -1,4 +1,4 @@
-import { type Deck, EffectData, EffectOnStack, MonsterCard, MonsterType } from "../cards";
+import { type Deck, Effect, EffectData, EffectOnStack, MonsterCard, MonsterType } from "../cards";
 import { Monster } from "../entities/monster";
 import { Player } from "../entities/player";
 import type { Game } from "../game";
@@ -178,7 +178,7 @@ export class Encounters extends Slots<MonsterCard> {
      */
     override flush(): void {
         for (let i = 0; i < this._slots.length; i++) {
-            if (this.monsterIn(i) !== undefined && !this.monsterIn(i)?.isEngagedInCombat)
+            if (this.canFlushIndex(i))
                 this.discardTop(i);
         }
         this.fillEmptySpots(false);
@@ -191,9 +191,9 @@ export class Encounters extends Slots<MonsterCard> {
      */
     override flushToBottom(): void {
         for (let i = 0; i < this._slots.length; i++) {
-            if (this.monsterIn(i) !== undefined && this.monsterIn(i)!.isEngagedInCombat === true)
-                continue;
-            this.moveToBottom(i);
+            if (this.canFlushIndex(i)) {
+                this.moveToBottom(i);
+            }
         }
         this.fillEmptySpots();
     }
@@ -204,7 +204,7 @@ export class Encounters extends Slots<MonsterCard> {
     override flushAndDraw(): void {
         this.flush();
         for (let i = 0; i < this._slots.length; i++) {
-            if (this._slots[i]!.length > 1 && (this.monsterIn(i) === undefined || this.monsterIn(i)!.isEngagedInCombat === false))
+            if (this._slots[i]!.length > 1 && (this.coverableSlots.includes(this._slots[i]![this._slots[i]!.length - 1]!)))
                 this.draw(i);
         }
     }
@@ -245,12 +245,21 @@ export class Encounters extends Slots<MonsterCard> {
      * @param index - The slot index to create a monster at
      */
     createMonsterAtSlot(index: number): void {
-        const toClean = this._monstersInPlay[index];
-        if (toClean !== undefined) {
-            toClean.card.cleanup();
-            this._game.stack.clearEffectsFromEntity(toClean);
-        }
         const card = this._slots[index]![this._slots[index]!.length - 1]!;
+        if(card.indomitable)
+        {
+            const currentSlotSize = this._slots.length;
+            this._slots[index]!.pop();
+            this.expand(1, [card]);
+            index = currentSlotSize;
+        } else
+        {
+            const toClean = this._monstersInPlay[index];
+            if (toClean !== undefined) {
+                toClean.card.cleanup();
+                this._game.stack.clearEffectsFromEntity(toClean);
+            }
+        }
         if (card.encounterType !== MonsterType.EVENT) {
             const monster = new Monster(card, this);
             monster.addHealthPoints(this.healthModifier);
@@ -273,6 +282,10 @@ export class Encounters extends Slots<MonsterCard> {
      */
     get nonAttackedSlots(): MonsterCard[] {
         return this._slots.filter((slot, index) => slot.length === 0 || (!(this.monsterIn(index)?.isEngagedInCombat || this.visible[index]?.encounterType === MonsterType.EVENT))).map(slot => slot[slot.length - 1]!).filter(card => card !== undefined);
+    }
+
+    canFlushIndex(index: number): boolean {
+        return this.monsterIn(index) !== undefined && this.monsterIn(index)!.isEngagedInCombat !== true;
     }
 
     /**
@@ -305,6 +318,28 @@ export class Encounters extends Slots<MonsterCard> {
         this.attackModifier += value;
     }
 
+    get coverableSlots(): MonsterCard[] {
+        return this.nonEngagedInCombat.filter(card => !card.indomitable);
+    }
+
+    /**
+     * player selects a valid slot index to draw a card from the monster deck into.
+     * Valid slots must not be: an event, a monster engaged in combat, a monster dead, or an indomitable monster.
+     * @param game 
+     * @param player 
+     * @param data - EffectData containing the selection context
+     * @returns The index of the slot the card was drawn into 
+     */
+    async selectValidIndexAndDraw(game: Game, player: Player, data: EffectData): Promise<number>
+    {
+        const selection = (await data.selectAndRecord(game, player, 1, 1, this.coverableSlots, "Where do you want to put The Bloat?", true, true)).selected[0];
+        if(selection === undefined)
+            throw new Error("No selection made for searchForBloatEffect.");
+        const index:number = this.visible.indexOf(selection as MonsterCard);
+        this.draw(index);
+        return index;
+    }
+
     /**
      * Forces a specific monster card into a slot, replacing the current top card.
      * The replaced card is moved back into the deck at the bottom position.
@@ -327,7 +362,7 @@ export class Encounters extends Slots<MonsterCard> {
      * @param monster - The Monster entity to flush
      * @throws {Error} If the monster is not found in any slot
      */
-    flushMonster(monster: Monster, place: "discard" | "bottom"): void {
+    flushMonster(monster: Monster, place: "discard" | "bottom"): boolean {
         const idx = this._slots.findIndex(slot => slot.includes(monster.card));
         if (idx >= 0) {
             if (place === "discard") {
@@ -336,10 +371,9 @@ export class Encounters extends Slots<MonsterCard> {
                 this.moveToBottom(idx);
             }
             this.fillEmptySpots(false);
+            return true;
         }
-
-        else
-            throw new Error("Monster not found in encounters");
+        return false
     }
 
     /**
@@ -402,7 +436,7 @@ export class Encounters extends Slots<MonsterCard> {
     }
 
     get nonEngagedInCombat(): MonsterCard[] {
-        return this.visible.map((monster, index) => ((this.monsterIn(index) === undefined || this.monsterIn(index)?.isEngagedInCombat) ? -1 : monster)).filter(index => index !== -1);
+        return this.visible.map((monster, index) => (!this.canFlushIndex(index) ? -1 : monster)).filter(index => index !== -1);
     }
 
     /**

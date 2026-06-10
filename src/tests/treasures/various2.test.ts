@@ -56,7 +56,7 @@ describe("Tap/Paid effects 2", () => {
         
         expect(voteCount).toBe(3); // All 3 players should have voted
         expect(player1.inPlay).not.toContain(breakfast); // breakfast should be destroyed
-        expect(game.destroyedCards).toContain(breakfast);
+        expect(game.decks.treasure.discard).toContain(breakfast);
     });
 
     it("remote_detonator - does nothing on tie", async () => {
@@ -744,7 +744,7 @@ describe("Force Attack Monster", () => {
         game.actions.declareAttack(game.currentPlayer);
         await game.actions.declareAttackOnEntity(game.currentPlayer, monster);
 
-        // Should be able to end turn now (mustAttackMonster was cleared)
+        // Should be able to end turn now (mustAttackEntity was cleared)
         expect(game.currentPlayer.hasAttackRequirement).toBe(false);
         game.currentPlayer.combatEnded();
         monster.combatEnded();
@@ -789,7 +789,7 @@ describe("Force Attack Monster", () => {
         }).not.toThrow();
     });
 
-    it("should clear mustAttackMonster at start of next turn", async () => {
+    it("should clear mustAttackEntity at start of next turn", async () => {
         const monster = game.monsters[0]!;
 
         // Set forced attack and satisfy it
@@ -808,7 +808,7 @@ describe("Force Attack Monster", () => {
         game.endTurn();
         await game.actions.resolveStack();
 
-        // mustAttackMonster should still be null
+        // mustAttackEntity should still be null
         expect(game.currentPlayer.hasAttackRequirement).toBe(false);
     });
 
@@ -865,7 +865,7 @@ describe("Force Attack Monster", () => {
             await game.actions.resolveStack();
 
             // Active player (player1) should have forced attack constraint
-            expect(game.currentPlayer.mustAttackMonster![0]!.target[0]).toBe(targetMonster);
+            expect(game.currentPlayer.mustAttackEntity![0]!.target[0]).toBe(targetMonster);
         });
 
         it("prevents ending turn without attacking the forced monster", async () => {
@@ -932,7 +932,7 @@ describe("Force Attack Monster", () => {
             await game.actions.resolveStack();
 
             // Player should still be forced to attack despite having 0 or negative attacks
-            expect(game.currentPlayer.mustAttackMonster![0]!.target[0]).toBe(targetMonster);
+            expect(game.currentPlayer.mustAttackEntity![0]!.target[0]).toBe(targetMonster);
 
             // Player can still attack the forced monster (bypasses limit)
             game.actions.declareAttack(game.currentPlayer);
@@ -951,7 +951,7 @@ describe("Force Attack Monster", () => {
             await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.actions.resolveStack();
 
-            expect(game.currentPlayer.mustAttackMonster![0]!.target[0]).toBe(targetMonster);
+            expect(game.currentPlayer.mustAttackEntity![0]!.target[0]).toBe(targetMonster);
 
             // Attack the monster to satisfy constraint
             game.actions.declareAttack(game.currentPlayer);
@@ -986,7 +986,7 @@ describe("Force Attack Monster", () => {
             await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.actions.resolveStack();
 
-            expect(game.currentPlayer.mustAttackMonster![0]!.target[0]).toBe(targetMonster);
+            expect(game.currentPlayer.mustAttackEntity![0]!.target[0]).toBe(targetMonster);
 
             // Kill the monster directly
             game.kill(player1, targetMonster, monsterManual);
@@ -1012,7 +1012,7 @@ describe("Force Attack Monster", () => {
             await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.actions.resolveStack();
 
-            expect(game.currentPlayer.mustAttackMonster![0]!.target[0]).toBe(targetMonster);
+            expect(game.currentPlayer.mustAttackEntity![0]!.target[0]).toBe(targetMonster);
 
             // Discard the monster
             game.discardMonster(player1, monsterPosition);
@@ -1036,7 +1036,7 @@ describe("Force Attack Monster", () => {
             await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.actions.resolveStack();
 
-            expect(game.currentPlayer.mustAttackMonster![0]!.target[0]).toBe(
+            expect(game.currentPlayer.mustAttackEntity![0]!.target[0]).toBe(
               targetMonster
             );
 
@@ -1059,8 +1059,8 @@ describe("Force Attack Monster", () => {
             await game.actions.resolveStack();
 
             // Only current player (player1) should have the constraint
-            expect(player1.mustAttackMonster![0]!.target[0]).toBe(targetMonster);
-            expect(player2.mustAttackMonster.length).toBe(0);
+            expect(player1.mustAttackEntity![0]!.target[0]).toBe(targetMonster);
+            expect(player2.mustAttackEntity.length).toBe(0);
         });
 
         it("does not prevent attacking other monsters after forced monster is attacked", async () => {
@@ -1112,14 +1112,14 @@ describe("Force Attack Monster", () => {
     //         await game.actions.resolveStack();
 
     //         // Should force attack on second monster specifically
-    //         expect(game.currentPlayer.mustAttackMonster![0]).toBe(secondMonster);
+    //         expect(game.currentPlayer.mustAttackEntity![0]).toBe(secondMonster);
 
     //         // Attacking first monster should not clear the constraint
     //         game.actions.declareAttack(game.currentPlayer);
     //         await game.actions.resolveStack();
     //         await game.declareAttackOnMonster(game.currentPlayer, firstMonster);
     //         await game.actions.resolveStack();
-    //         expect(game.currentPlayer.mustAttackMonster![0]).toBe(secondMonster);
+    //         expect(game.currentPlayer.mustAttackEntity![0]).toBe(secondMonster);
 
     //         game.kill(firstMonster, firstMonster, monsterManual);
     //         await game.actions.resolveStack();

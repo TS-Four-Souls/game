@@ -413,6 +413,7 @@ describe("Treasure - Passive effects", () => {
         const result1 = game.actions.purchase(player1, 1);
         expect(result1).toContain("successful");
         game.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // remove purchased item from inPlay to ensure basic second purchase.
+        game.resetStack();
         // Without theres_options, second purchase would fail
         // With theres_options, it should succeed
         game.actions.declarePurchase(player1);

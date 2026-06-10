@@ -132,6 +132,7 @@ export abstract class Slots<T extends Card> {
      */
     draw(position: number) : void {
         const card = this._deck.draw();
+        card.owner = undefined;
         if(card === undefined)
             throw new Error(`Cannot draw card from deck for slot ${position}.`);
         this._slots[position]!.push(card);
@@ -233,8 +234,9 @@ export abstract class Slots<T extends Card> {
      * 
      * @param n - Number of new slots to add
      */
-    expand(n: number): void {
-        for (let i = 0; i < n; i++)
+    expand(n: number, array: T[] = []): void {
+        this._slots.push(array);
+        for (let i = 1; i < n; i++)
             this._slots.push([]);
         this.fillEmptySpots();
     }

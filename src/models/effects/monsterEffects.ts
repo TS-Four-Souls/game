@@ -10,22 +10,26 @@ import { Player } from "../entities/player";
 import { DiceRoll } from "../stackElement";
 import { EffectData, type EffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type {
+    OnAttackDeclaredData,
     OnAttackDeclaredMonsterData,
     OnDamageTakenData,
     OnDamageWouldTakeData,
     OnDeathMonsterData,
     OnDeathWouldDeathData,
     OnDiceBeingRolledData,
+    OnDiceResolvedData,
     OnGetMonsterAttackPointsData,
     OnGetMonsterEvasionData,
     OnItemActivatedData,
     OnSoulGainedOrRemovedData,
     OnTurnEndData,
+    OnCardFlippedData,
 } from "../types/eventTypes";
 import * as active from "./activeEffect";
 import { addInPlayEffect } from "./activeEffect";
 import { effectParser } from "./effectParser";
 import { addPassiveEffectToStack } from "./passiveEffect";
+import { makeAnAttackRollAfterEachAttackRollEffect } from './roomEffects';
 
 export function thisHealsEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
@@ -34,7 +38,7 @@ export function thisHealsEffect(game: Game, amount: number): EffectFunction {
             target = game.monsters.find((m) => m.json.globalId === data.it.globalId)!;
         if(!target)
             throw new Error("thisHealsEffect effect could not find the monster to heal.");
-        target.heal(amount);
+        game.heal(target, amount);
         return true;
     };
 }
@@ -51,6 +55,154 @@ export function activePlayerMustMakeAdditionalAttackEffect(game: Game): EffectFu
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
         game.playerMustAttack(player, "any", data.it);
+        return true;
+    };
+}
+
+export function attackRollsAgainstEachOtherPlayerEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offAttackDeclared: (() => void) | null = null;
+        offAttackDeclared = game.emitter.on("on:attack:declared:monster", (eventData: OnAttackDeclaredMonsterData) => {
+            const { eventIssuer, monster } = eventData;
+            if (data.issuer !== monster[0]) return;
+                const otherPlayers = game.players.filter(p => p !== eventIssuer);
+                for(const player of otherPlayers) {
+                    makeAnAttackRollAfterEachAttackRollEffect(game)(new EffectData(data.it, () => player, []));
+                }
+                return true;
+        });
+        data.it.cleaners.push(() => {
+            offAttackDeclared?.();
+            offAttackDeclared = null;
+        });
+        return true;
+    };
+}
+
+export function killerGainsRewardsEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offDeath: (() => void) | null = null;
+
+        offDeath = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
+            const { eventIssuer, target, source } = eventData;
+            if (data.issuer !== eventIssuer) return;
+            const player = target instanceof Player ? target : eventIssuer;
+            if(player instanceof Player === false)
+                return false;
+            eventData.rewardGainer = player;
+        });
+        data.it.cleaners.push(() => {
+            offDeath?.();
+            offDeath = null;
+        });
+        return true;
+    };
+}
+
+export function discardEachOtherMonsterEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        for(const monster of game.monsters)
+            if(monster !== data.it.entity)
+                game.encounters.flushMonster(monster, "discard");
+        return true;
+    };
+}
+
+export function putHarbingersIntoMonsterSlotEffect(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        const card = game.obtainCardFromOutsideGame("r-the_harbingers");
+        if(!card || !(card instanceof MonsterCard))
+            return false;
+        const index:number = 0; // does not matter, it is indomitable, so it move to an expended slot anyway.
+        game.encounters._deck.addTopPosition(card);
+        game.encounters.draw(index);
+        return true;
+    };
+}
+
+export function flipIfXCountersEffect(game: Game, x: number): EffectFunction {
+    return (data: EffectData) => {
+        let offCounterAdded: (() => void) | null = null;
+        offCounterAdded = game.emitter.on("on:counter:modified", (eventData) => {
+            if (data.it !== eventData.card) return;
+            if (eventData.newValue < x) return;
+            game.flip(data.it.owner as Player, data.it);
+        });
+        data.it.cleaners.push(() => {
+            offCounterAdded?.();
+            offCounterAdded = null;
+        });
+        return true;
+    };
+}
+
+export function preventDeathGainTreasureCancelAttackAndHealEffect(game: Game, x: number): EffectFunction {
+    return (data: EffectData) => {
+        let offWouldDeath: (() => void) | null = null;
+        offWouldDeath = game.emitter.on("on:death:would-death", (eventData: OnDeathWouldDeathData) => {
+            if(eventData.eventIssuer.card !== data.it) return;
+            game.preventDeath(eventData.eventIssuer);
+            game.addToCounter(data.issuer, data.it, "counters", 1);
+            game.heal(data.issuer, 9999);
+            game.gainTreasure(game.currentPlayer, x);
+            game.endCombat();
+        });
+
+        data.it.cleaners.push(() => {
+            offWouldDeath?.();
+            offWouldDeath = null;
+        });
+        return true;
+    };
+}
+
+export function eachPlayerRollLowestOrTiedForLowestDiesEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        const targets = game.players.filter(p => !p.isDead);
+        const dices:DiceRoll[] = [];
+        if(data.issuer instanceof Monster === false)
+            throw new Error("eachPlayerRollLowestOrTiedForLowestDiesEffect can only be applied when the issuer is a monster.");
+        const effect:EffectFunction = (effectData: EffectData) => {
+            const lowestValue = Math.min(...dices.map(d => d.value));
+            const playersToDie = dices.filter((dice) => dice.value === lowestValue).map(d => d.issuer);
+            for(const player of playersToDie) {
+                game.kill(data.issuer, player, data.it);
+            }
+            return true;
+        }
+        addPassiveEffectToStack(game, effect, data, `Each player who rolls the lowest or tied for the lowest dies.`);
+        for(const target of targets) {
+            dices.push(game.rollDice(target, false, data.it));
+        }
+        return true;
+    };
+}
+
+export function onFlipOrAttackedRollLowestDieEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offFlip: (() => void) | null = null;
+        let offAttacked: (() => void) | null = null;
+
+        offAttacked = game.emitter.on("on:attack:declared:monster", (eventData: OnAttackDeclaredMonsterData) => {
+            if (data.issuer !== eventData.monster[0]) return;
+            eachPlayerRollLowestOrTiedForLowestDiesEffect(game)(data);
+        });
+
+        
+        offFlip = game.emitter.on("on:card:flipped", (eventData: OnCardFlippedData) => {
+            const { eventIssuer, card } = eventData;
+            if (data.issuer !== eventIssuer) return;
+            if(card !== data.it) return;
+            eachPlayerRollLowestOrTiedForLowestDiesEffect(game)(data);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offFlip?.();
+            offFlip = null;
+            offAttacked?.();
+            offAttacked = null;
+        });
         return true;
     };
 }
@@ -188,6 +340,31 @@ return (data: EffectData) => {
     };
 }
 
+export function dealDamageOnAttackDeclarationEffect(game: Game, minRoll: number, maxRoll: number, damage: number): EffectFunction {
+    return (data: EffectData) => {
+        let offAttackDeclared: (() => void) | null = null;
+        offAttackDeclared = game.emitter.on("on:attack:declared", (eventData: OnAttackDeclaredData) => {
+            const { eventIssuer } = eventData;
+            const effect = (effectData: EffectData) => {
+                const roll = game.rollDice(game.currentPlayer, false, data.it);
+                roll.attachEffect([1,2,3,4,5,6].map(n => (rollData: EffectData) => {
+                    if(roll.value >= minRoll && roll.value <= maxRoll) {
+                        game.dealDamage(data.issuer, eventIssuer, data.it, damage);
+                    }
+                    return true;
+                }), data.it, []);
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, "Each time a player declares an attack, the active player rolls-\n1-2: This deals 1 damage to that player.");
+        });
+        data.it.cleaners.push(() => {
+            offAttackDeclared?.();
+            offAttackDeclared = null;
+        });
+        return true;
+    };
+}
+
 export function putInMonsterDeckNFromTopEffect(game: Game, n: number): EffectFunction {
     return async (data: EffectData) => {
         const monsterDeck = game.decks.monster;
@@ -197,8 +374,9 @@ export function putInMonsterDeckNFromTopEffect(game: Game, n: number): EffectFun
         if (!Number.isFinite(n) || n < 1) {
             throw new Error(`Invalid n for putInMonsterDeckNFromTopEffect: ${n}`);
         }
-        data.it.afterEffect = "nothing"; // Card placement is handled by this effect
-        monsterDeck.addCardAtPosFromTop(data.it, n);
+        data.it.afterEffect = "handled"; // Card placement is handled by this effect
+        game.encounters.removeFromSlot(data.it);
+        monsterDeck.addCardAtPosFromTop(data.it, n-1);
         return true;
     };
 }
@@ -212,12 +390,8 @@ export function searchForBloatEffect(game: Game): EffectFunction {
         const theBloat = game.decks["monster"]!.drawCardAt(indexBloat);
         if(!theBloat)
             return false;
-        const selection = (await data.selectAndRecord(game, player, 1, 1, game.encounters.nonEngagedInCombat, "Where do you want to put The Bloat?", true, true)).selected[0];
-        if(selection === undefined)
-            throw new Error("No selection made for searchForBloatEffect.");
-        const index:number = game.encounters.visible.indexOf(selection as MonsterCard);
         game.encounters._deck.addTopPosition(theBloat);
-        game.encounters.draw(index);
+        await game.encounters.selectValidIndexAndDraw(game, player, data);
         return true;
     };
 }
@@ -226,19 +400,25 @@ export function putOnTopOfMonsterDeckOnRollEffect(game: Game, rolls: number[]): 
     return (data: EffectData) => {
         if(!(data.it instanceof MonsterCard))
             throw new Error("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards.");
-        data.it.afterEffect = "discard"; // Card placement is handled by the game by default
+        data.it.afterEffect = "nothing"; // Card placement is handled by the game by default
         
         const roll = game.rollDice(game.currentPlayer as Player, false, data.it);
         roll.attachEffect([1,2,3,4,5,6].map(n => (data:EffectData) => {
+            if(!(data.it instanceof MonsterCard))
+                throw new Error("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards.");
+            game.encounters.removeFromSlot(data.it);
             if(rolls.includes(n)) {
-                if(!(data.it instanceof MonsterCard))
-                    throw new Error("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards.");
-                data.it.afterEffect = "nothing"; // Card placement is handled by this effect
+                // data.it.afterEffect = "handled"; // Card placement is handled by this effect
                 if(game.decks.monster.discard.includes(data.it)) {
                     game.encounters.obtainCardFromDiscard(data.it.slug, data.it.globalId);
                 }
                 game.decks.monster.addTopPosition(data.it);
                 return true;
+            }else
+            {
+                if(!data.it.entity || !(data.it.entity instanceof Monster))
+                    throw new Error("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards that are in play.");
+                data.it.afterEffect = "discard";
             }
             return false;
         }), data.it, []);
@@ -335,7 +515,7 @@ export function noCombatDamageOnAttackRollEffect(game: Game, rollValues: number[
                 damageArray[0] = 0; // remove all damage
                 return true;
             };
-            addPassiveEffectToStack(game, effect, data, `When ${data.it.name} is attacked, if the attack roll is ${rollValues.join(" or ")}, it takes no combat damage.`);
+            addPassiveEffectToStack(game, effect, data, `When ${data.it.name} is attacked, if the attack roll is ${rollValues.join(" or ")}, it takes no combat damage ${roll.value} ${minDiceValue} ${maxValidValue}.`);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -356,8 +536,8 @@ export function monstersGainDCEffect(game: Game, amount: number, includeSelf: bo
         data.it.cleaners.push(() => {
             game.addDCToEachMonster(data.issuer as Entity, -amount, data.it);
             if(!includeSelf) {
-            (data.issuer as Monster).addEvasion(amount);
-        }
+                (data.issuer as Monster).addEvasion(amount);
+            }
         });
         return true;
     };
@@ -642,6 +822,76 @@ export function onAttackingPlayerRollsEffect(game: Game, s: string): EffectFunct
     };
 }
 
+export function onlyTakesCombatDamageOnAttackRollEffect(game: Game, values: number[]): EffectFunction {
+    return async (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        offDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
+            const { eventIssuer, target, source, damageArray } = eventData;
+            if (data.issuer !== eventIssuer) return;
+            if(!(source instanceof DiceRoll)) return;
+            if(source.attackRoll !== true) return;
+            if(target.attackDiceModifier + ((target as Player).diceModifier || 0 ) + 1 > Math.max(...values)) 
+            {
+                const effect = (effectData: EffectData) => {
+                    game.endCombat();
+                    return true;
+                };
+                addPassiveEffectToStack(game, effect, data, `${data.it.name} and ${target.card.name} cannot damage each other. They opted for a truce.`);
+                return false;
+            }
+            if(!values.includes(source.value)) {
+                const effect = (effectData: EffectData) => {
+                    damageArray[0] = 0; // remove all damage
+                    return true;
+                };
+                addPassiveEffectToStack(game, effect, data, `${data.it.name} only takes combat damage on an attack roll of ${values.join(" or ")} (current roll: ${source.value}).`);
+            }
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
+export function cancelAttackAfterSecondAttackRollEffect(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        let offTurnEnd: (() => void) | null = null;
+        let atkCount = 0;
+        offDamage = game.emitter.on("on:dice:resolved", (eventData: OnDiceResolvedData) => {
+            const { diceRoll, eventIssuer } = eventData;
+            if (data.issuer.isEngagedInCombat !== true) return;
+            if(diceRoll.attackRoll !== true) return;
+            atkCount++;
+            if(atkCount === 2) {
+                const effect = (effectData: EffectData) => {
+                    game.endCombat();
+                    return true;
+                };
+                addPassiveEffectToStack(game, effect, data, "When the attacking player makes their second attack roll this turn, after combat damage, cancel the attack.");
+            }
+        });
+
+        offTurnEnd = game.emitter.on("on:turn:end", (eventData: OnTurnEndData) => {
+            atkCount = 0;
+        });
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+            offTurnEnd?.();
+            offTurnEnd = null;
+        });
+        return true;
+    };
+}
+
+
+
 export function activePlayerChoosePlayerDiscardXEffect(game: Game, x: number): EffectFunction {
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
@@ -727,7 +977,7 @@ export function preventDeathFirstTimeEachTurnHealAndStatModifierEffect(game: Gam
                 if(data.issuer instanceof Monster === false)
                     throw new Error("preventDeathFirstTimeEachTurnHealAndStatModifierEffect can only be applied to monsters.");
                 game.preventDeath(eventIssuer as Entity);
-                data.issuer.heal(heal - data.issuer.currentHealthPoints); // heal the specified amount from death prevention.
+                game.heal(data.issuer, heal - data.issuer.currentHealthPoints); // heal the specified amount from death prevention.
                 game.addDC(data.issuer, dc, data.it); // add the specified + DC
                 game.addAttack(data.issuer, atk, data.it); // lose the specified amount of attack
                 return true;
@@ -770,7 +1020,7 @@ export function forceAttackThisEachTurnEffect(game: Game): EffectFunction {
             const { eventIssuer } = eventData;
             if(!data.issuer || !(data.issuer instanceof Monster)) return;
             if(!eventIssuer || !(eventIssuer instanceof Player)) return;
-            if(eventIssuer.mustAttackMonster.some(req => (req.target instanceof Array) && req.target.includes(data.issuer as Monster) && req.source === data.it)) return; // if the player already must attack this monster, do not add another requirement
+            if(eventIssuer.mustAttackEntity.some(req => (req.target instanceof Array) && req.target.includes(data.issuer as Monster) && req.source === data.it)) return; // if the player already must attack this monster, do not add another requirement
             game.playerMustAttack(eventIssuer, [data.issuer], data.it);
         });
 
@@ -871,7 +1121,7 @@ export function bossRushEffect(game: Game, bossCount: number): EffectFunction {
         for(const card of bosses)
             game.addTopPosition("monster", card);
         
-        const options = [...game.encounters.nonEngagedInCombat];
+        const options = [...game.encounters.coverableSlots];
 
         if(game.encounters.visible.includes(data.it))
             options.push(data.it);
@@ -981,6 +1231,48 @@ export function dealDamageToPlayerToTheEffect(game: Game, damage: number, direct
     return (data: EffectData) => {
         const player = game.getPlayerToThe(direction);
         game.dealDamage(data.issuer as Entity, player as Entity, data.it, damage);
+        return true;
+    };
+}
+
+export function playersWithMostItemsDieEffect(game: Game): EffectFunction {
+    return async (data: EffectData) => {
+        const maxSouls = Math.max(...game.players.map(p => p.totalSouls));
+        const playersToDie = game.players.filter(p => p.totalSouls === maxSouls && !p.isDead);
+        for (const player of playersToDie) {
+            game.kill(player, player, data.it);
+        }
+        return true;
+    };
+}
+
+export function noCombatDamageEveryOtherAttackRollEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offAttackRoll: (() => void) | null = null;
+        let offEndTurn: (() => void) | null = null;
+        let prevent = false;
+        
+        offAttackRoll = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
+            const { eventIssuer, source } = eventData;
+            if (data.issuer !== eventIssuer) return;
+            if(!(source instanceof DiceRoll)) return;
+            if((source as DiceRoll).attackRoll !== true) return;
+            if(prevent) {
+                eventData.damageArray[0] = 0; // prevent all damage
+            }
+            prevent = !prevent; // toggle prevent on each attack roll
+        });
+
+        offEndTurn = game.emitter.on("on:turn:end", (eventData: OnTurnEndData) => {
+            prevent = false; // reset at end of turn
+        });
+
+        data.it.cleaners.push(() => {
+            offAttackRoll?.();
+            offAttackRoll = null;
+            offEndTurn?.();
+            offEndTurn = null;
+        });
         return true;
     };
 }

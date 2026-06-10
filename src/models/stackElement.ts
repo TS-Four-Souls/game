@@ -215,7 +215,7 @@ export class DamageOnStack extends StackElement {
     };
   }
   override get debugLogs(): string {
-    return `${this.from.id} deals ${this.damage[0]} damage to ${this.receiver.id} with source ${this._source instanceof DiceRoll ? "Dice Roll" : this._source.name} (Targets: ${TargetBuilder.convertToSelectionItems(this._targets)})`;
+    return `${this.from.id} deals ${this.damage[0]} damage to ${this.receiver.id} (${this.receiver.currentHealthPoints})HP with source ${this._source instanceof DiceRoll ? "Dice Roll" : this._source.name} (Targets: ${TargetBuilder.convertToSelectionItems(this._targets)})`;
   }
 };
 

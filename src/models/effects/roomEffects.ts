@@ -12,16 +12,22 @@ import { visibleItemSelector } from "../targetSelector";
 import { Monster } from "../entities/monster";
 import { Entity } from "../entities/entity";
 import { Animated } from "../entities/animated";
+import type { DiceRoll } from "../stackElement";
 
-export function preventGainSoulsEffect(game: Game): EffectFunction {
+export function preventGainSoulsEffect(game: Game, issuerType: "all" | "issuer"): EffectFunction {
     return (data: EffectData) => {
-        const addSoul = game.addSoul.bind(game);
-        game.addSoul = (player: Player, soulCard: Card) => {
-            game.discard(soulCard);
-        }
+        let offGainSoulBefore: (() => void) | null = null;
 
+        offGainSoulBefore = game.emitter.on("on:soul:gained:before", (eventData) => {
+            const { eventIssuer, soul } = eventData;
+            if(issuerType === "issuer" && eventIssuer !== data.issuer) return;
+            if (soul) {
+                eventData.soul = null;
+            }
+        });
         data.it.cleaners.push(() => {
-            game.addSoul = addSoul;
+            offGainSoulBefore?.();
+            offGainSoulBefore = null;
         });
         return true;
     };
@@ -347,30 +353,6 @@ export function takeDamageOnLootEffect(game: Game, amount: number): EffectFuncti
     };
 }
 
-export function discardLootAtEndOfTurnEffect(game: Game, amount: number): EffectFunction {
-     return (data: EffectData) => {
-        let offTurnStart: (() => void) | null = null;
-        offTurnStart = game.emitter.on("on:turn:end", (eventData) => {
-            const effect: EffectFunction = async (effectData: EffectData) => {
-                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 1, amount, game.currentPlayer.hand.cards, `Discard ${amount} loot cards.`, true)).selected as LootCard[];
-                for(const card of selected) {
-                    game.removeCardFromHand(game.currentPlayer, card);
-                }
-
-                return true;
-            }
-            addPassiveEffectToStack(game, effect, data, `Discard ${amount} loot cards.`);
-        });
-
-        // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleaners.push(() => {
-            offTurnStart?.();
-            offTurnStart = null;
-        });
-        return true;
-    };
-}
-
 export function deactivateCharacterAtEndOfTurnEffect(game: Game): EffectFunction {
      return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
@@ -644,6 +626,7 @@ export function canBeAttackedEffect(game: Game): EffectFunction {
         card.entity.attackable = true;
         game.addAnimated(card.entity as Animated);
         card.cleaners.push(() => {
+            if(!card.entity) return;
             game.removeAnimated(card.entity as Animated);
             card.entity!.attackable = false;
             card.entity = undefined;
@@ -656,11 +639,13 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): EffectFun
     return (data: EffectData) => {
         let offAttackRolled: (() => void) | null = null;
         let offCombatEnd: (() => void) | null = null;
-
+        // console.log("Registering makeAnAttackRollAfterEachAttackRollEffect for", data.it.name, " current player:", game.currentPlayer.id, " issuer:", data.issuer.id);
         offAttackRolled = game.emitter.on("on:attack:roll", (eventData) => {
             if(eventData.eventIssuer !== game.currentPlayer) {
                 return; // Not the current player, ignore
             }
+            if(data.issuer === game.currentPlayer)
+                throw new Error("Expected issuer to not be the active player for makeAnAttackRollAfterEachAttackRollEffect.");
             if(data.issuer.isDead)
                 return; // Dead, ignore
             const effect: EffectFunction = (effectData: EffectData) => {
@@ -677,12 +662,16 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): EffectFun
         offCombatEnd = game.emitter.on("on:combat:end", (eventData) => {
             offAttackRolled?.();
             offAttackRolled = null;
+            offCombatEnd?.();
+            offCombatEnd = null;
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
             offAttackRolled?.();
             offAttackRolled = null;
+            offCombatEnd?.();
+            offCombatEnd = null;
         });
         return true;
     };
@@ -724,6 +713,7 @@ export function onAttackDeclaredNonActivePlayersRollToJoinEffect(game: Game, min
             if(eventIssuer !== game.currentPlayer) {
                 return; // Not the current player, ignore
             }
+            const rolls:DiceRoll[] = [];
             for(const player of game.players) {
                 if(player !== game.currentPlayer && !player.isDead) {
                     const roll = game.rollDice(player, false, data.it);
@@ -733,8 +723,15 @@ export function onAttackDeclaredNonActivePlayersRollToJoinEffect(game: Game, min
                                 makeAnAttackRollAfterEachAttackRollEffect(game) : (() => true)
                         )
                         , data.it, [], player);
+                    rolls.push(roll);
                 }
             }
+            let offCombatEnd: (() => void) | null = null;
+            offCombatEnd = game.emitter.on("on:combat:end", (eventData) => {
+                rolls.forEach(roll => game.stack.cancelElement(roll));
+                offCombatEnd?.();
+                offCombatEnd = null;
+            });
         });
 
         // Store cleanup function on the card for when it's removed/destroyed

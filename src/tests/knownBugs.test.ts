@@ -24,7 +24,6 @@ describe("Known bugs that have be corrected", () => {
         game.addCardToHand(player1, questionMark);
         game.actions.playCard(player1, player1.hand.length - 1, [chaosCard]);
         await game.actions.resolveStack();
-        expect(game.destroyedCards).not.toContain(questionMark);
         expect(game.decks.loot.discard.map(c=>c.slug)).toContain(questionMark.slug);
     });
     it("discard 1 loots on death", async () => {

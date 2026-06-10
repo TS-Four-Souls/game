@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { Game } from "../../models/game";
+import type { LootCard } from "@/models/cards";
+import { ItemCard, MonsterCard } from "@/models/cards";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../../models/entities/player";
+import { Game } from "../../models/game";
 import { DiceRoll } from "../../models/stackElement";
-import type { LootCard, Card } from "@/models/cards";
-import { MonsterCard, CharacterCard, ItemCard } from "@/models/cards";
-import { setupTestGame, emptyHands } from "../testHelpers";
+import { setupTestGame } from "../testHelpers";
 
 describe("Monsters - Roll Triggered Effects", () => {
     let game: Game;

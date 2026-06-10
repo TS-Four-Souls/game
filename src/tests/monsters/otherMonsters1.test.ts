@@ -230,14 +230,14 @@ describe("Monsters - Various 1", () => {
         await game.actions.resolveStack(); // resolve death
         await game.actions.resolveStack(); // resolve effect
         expect(game.encounters.visible[0]!.slug).toBe("b2-gurdy"); // sanity check
-
+        
         game.actions.attackRoll(player1);
         expect(game.stack._stack.length).toBe(1);
         roll = game.stack._stack[0] as DiceRoll;
         if(!(roll instanceof DiceRoll)) {
             throw new Error("Expected a DiceRoll on the stack.");
         }
-        // Force the roll to be 4 (should miss because of evasion +1)
+        // Force the roll to be 4 
         roll.value = initEvasion;
 
         expect(game.stack._stack.length).toBe(1);

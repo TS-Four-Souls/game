@@ -14,6 +14,7 @@ import type {
     OnCoinGainedData,
     OnCoinsLostBeforeData,
     OnCounterModifiedData,
+    OnCardDiscardBeforeData,
     OnDamageTakenData,
     OnDamageWouldTakeData,
     OnDeathAfterPenaltyData,
@@ -97,6 +98,121 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): EffectF
 
         return true;
     };
+}
+
+export function preventDamageToCurrentPlayerAndDealToRandomPlayerEffect(game: Game, damage: number): EffectFunction {
+    return (data:EffectData) => {
+        let offDamage: (() => void) | null = null;
+
+        offDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
+            const { eventIssuer, target } = eventData;
+            if (data.issuer !== target) return;
+            if(game.currentPlayer !== eventIssuer) return;
+            const effect: EffectFunction = async (effectData: EffectData) => {
+                eventData.damageArray[0] = 0;
+                const target = game.players[Math.floor(game.random() * game.players.length)]!;
+                game.dealDamage(data.issuer, target, data.it, damage);
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, "When this would deal combat damage to the active player, prevent it, then this deals damage to a player chosen at random.");
+        });
+
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
+/**
+ *each living player votes either whip or whiff-
+ * if whip wins, prevent the damage this would take and each non-active player takes x damage.
+ * if whiff wins or there is a tie, the active player loots x.":
+ * @param game 
+ * @param damageIfWhipWins 
+ * @param lootIfWhiffWins 
+ * @returns 
+ */
+
+export function voteOnWhipOrWhiffEffect(game: Game, damageIfWhipWins: number, lootIfWhiffWins: number): EffectFunction {
+    return async (data: EffectData) => {
+        let offWouldTakeDamage: (() => void) | null = null;
+
+        offWouldTakeDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
+            if(eventData.eventIssuer !== data.it.entity) return false;
+                     // Request votes from all players in parallel
+            const effect: EffectFunction = async (data: EffectData) => {
+                const voteRequests = game.players.filter(p => !p.isDead).map(player => ({
+                    player,
+                    min: 1,
+                    max: 1,
+                    options: [`WHIP! (prevent the damage this would take and each non-active player takes ${damageIfWhipWins} damage)`, 
+                            `WHIFF! (the active player loots ${lootIfWhiffWins})`],
+                    description: "Vote for one.",
+                    canUseOnBoardSelection: true,
+                }));
+                const voteResults = await data.selectMultipleAndRecord(game, voteRequests);
+
+                // Count the votes
+                const votes = {"WHIP": 0, "WHIFF": 0};
+                for (const result of voteResults) {
+                    const vote = result.selected[0]!;
+                    if(vote.startsWith("WHIP"))
+                        votes["WHIP"]++;
+                    else if(vote.startsWith("WHIFF"))
+                        votes["WHIFF"]++;
+                    else 
+                        throw new Error(`Invalid vote option: ${vote}`);
+                }
+                if(votes["WHIP"] > votes["WHIFF"]) {
+                    eventData.damageArray[0] = 0; // prevent the damage this would take
+                    for(const player of game.players) {
+                        if(player !== game.currentPlayer && !player.isDead) {
+                            game.dealDamage(data.issuer, player, data.it, damageIfWhipWins);
+                        }
+                    }
+                } else {
+                    game.loot(game.currentPlayer, lootIfWhiffWins);
+                }
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, "Vote whip or whiff.");
+        });
+
+        data.it.cleaners.push(() => {
+            offWouldTakeDamage?.();
+            offWouldTakeDamage = null;
+        });
+        return true;
+    };
+}
+
+export function extraAttackAndDeathTriggerEffect(game: Game, dc: number): EffectFunction {
+    return async (data:EffectData) => {
+        let offDeath: (() => void) | null = null;
+        let offTurnEnd: (() => void) | null = null;
+        const issuer = game.currentPlayer;
+        const target = (await data.selectAndRecord(game, issuer as Player, 1, 1, game.players.filter(p => p !== issuer && !p.isDead), "Select a player to attack.", true, true)).selected[0];
+        if(!target) return false;
+        game.makePlayerAttackable(target, dc);
+        game.playerMustAttack(issuer, [target], data.it);
+        offDeath = game.emitter.on("on:death:penalty", async (eventData: OnDeathPenaltyData) => {
+            if(eventData.eventIssuer !== target) return;
+            eventData.itemsLost.forEach(item => {
+                game.give(target, issuer, item);
+            });
+            eventData.itemsLost = [];
+        });
+        offTurnEnd = game.emitter.on("on:turn:end", ({ eventIssuer }) => {
+                offDeath?.();
+                offTurnEnd?.();
+                offDeath = null;
+                offTurnEnd = null;
+        });
+
+        return true;
+    }
 }
 
 export function onlyRechargeableByOwnAbilitiesEffect(game: Game): EffectFunction {
@@ -334,6 +450,10 @@ export function lvlXaddListenerEffect(
                     await func(data);
                 offTurn();
             });
+
+            data.it.cleaners.push(() => {
+                offTurn?.();
+            });
         }
         return true;
     };
@@ -470,24 +590,28 @@ export function chooseMonsterWhenAnotherPlayerAttacksMonsterEffect(game: Game): 
 }
 
 
-export function rollXChoose1Effect(game: Game, x: number) {
+export function rollXChoose1Effect(game: Game, x: number, onlyOnce: boolean, chooserType: "issuer" | "left"): EffectFunction {
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         offRoll = game.emitter.on("on:dice:being-rolled", async ({ eventIssuer, diceRoll }) => {
             const effect:EffectFunction = async (effectData: EffectData) => {
                 const values = [diceRoll.value];
-                for(let i = 0; i < x; i++)
+                for(let i = 0; i < x - 1; i++)
                     values.push(eventIssuer.rollDice(game.random, diceRoll.attackRoll, diceRoll.card).value);
-                if(!(data.issuer instanceof Player))
+                const chooser = chooserType === "issuer" ? data.issuer : game.turnHandler.getPlayerTo(eventIssuer, "left");
+                if(!(chooser instanceof Player))
                     throw new Error("rollXChoose1Effect issuer should be a player.");
-                const newValue = (await data.selectAndRecord(game, data.issuer, 1, 1, values, "Choose the result of this dice roll.", true, true)).selected[0]!;
+                const newValue = (await data.selectAndRecord(game, chooser, 1, 1, values, "Choose the result of this dice roll.", true, true)).selected[0]!;
                 diceRoll.value = newValue;
                 return true;
             }
 
             addPassiveEffectToStack(game, effect, data, "Select the result of the next dice roll among four results.");
-            offRoll?.();
-            offRoll = null;
+            if(onlyOnce)
+            {
+                offRoll?.();
+                offRoll = null;
+            }
         });
         data.it.cleaners.push(() => {
             offRoll?.();
@@ -643,8 +767,8 @@ export function giveCurseToEffect(restEffectFunction: EffectFunction, game: Game
         if (giveTo !== eventIssuer) return;
         if(!(data.it instanceof MonsterCard))
             throw new Error("Curse effect can only be applied by MonsterCards.");
-        game.removeCurse(giveTo, data.it);
         game.discard(data.it);
+        game.removeCurse(giveTo, data.it);
         offDeath?.();
         offDeath = null;
     });
@@ -667,8 +791,8 @@ export function curseEffect(restEffectFunction: EffectFunction, game: Game): Eff
                 throw new Error("Curse effect can only be applied to Players.");
             if(!(data.it instanceof MonsterCard))
                 throw new Error("Curse effect can only be applied by MonsterCards.");
-            game.removeCurse(data.issuer, data.it);
             game.discard(data.it);
+            game.removeCurse(data.issuer, data.it);
             offDeath?.();
             offDeath = null;
         });
@@ -1047,9 +1171,9 @@ export function onYourEventEffect(
     condition: (effectData: EffectData, eventData: any) => boolean = () => true,
 ): EffectFunction {
     return (data: EffectData) => {
-        let offDamage: (() => void) | null = null;
+        let offEvent: (() => void) | null = null;
         
-        offDamage = game.emitter.on(triggerEvent, (eventData) => {
+        offEvent = game.emitter.on(triggerEvent, (eventData) => {
             const eventIssuer = eventData.eventIssuer;
             if (data.issuer !== eventIssuer) return;
             if (duringYourTurnOnly && game.currentPlayer !== data.issuer) return;
@@ -1071,8 +1195,8 @@ export function onYourEventEffect(
 
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
-            offDamage?.();
-            offDamage = null;
+            offEvent?.();
+            offEvent = null;
         });
         return true;
     };
@@ -1286,7 +1410,6 @@ export function statModifierBasedOnCountersEffect(game: Game,
         }
         let offCounterModifier: (() => void) | null = null;
         offCounterModifier = game.emitter.on("on:counter:modified", ({ eventIssuer, card, counterName, previousValue, newValue }) => {
-            if(issuer !== eventIssuer) return;
             if(card !== data.it) return;
             const toAdd = Math.floor(newValue / countersPerModifier) - Math.floor(previousValue / countersPerModifier);
             if(toAdd === 0) return;
@@ -1519,6 +1642,38 @@ export function reduceDamageToXEffect(game: Game, maxDamage: number): EffectFunc
         data.it.cleaners.push(() => {
             offDamage?.();
             offDamage = null;
+        });
+        return true;
+    };
+}
+
+export function redirectSoulGainEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offSoulGain: (() => void) | null = null;
+        
+        offSoulGain = game.emitter.on("on:soul:gained:before", (eventData) => {
+            const { eventIssuer, soul } = eventData;
+            if (eventIssuer !== game.currentPlayer) return;
+            if(data.issuer.card !== soul) return;
+            eventData.soul = null; // Prevent the soul from being gained by the original target for now.
+            game.removeSoul(eventIssuer, soul);
+            const effect = async (effectData: EffectData) => {
+                const target = (await data.selectAndRecord(game, eventIssuer, 1, 1, game.players.filter(p => p !== eventIssuer), "Select who gain the soul instead.", true)).selected[0]!;
+                if(!(target instanceof Player)) return false;
+                game.addSoul(target, soul);
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, `Redirect soul gain to this card.`);
+            offSoulGain?.();
+            offSoulGain = null;
+        });
+
+        // // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            if(data.issuer.isDead) // Soul will be gained, and will remove the listener.
+                return;
+            offSoulGain?.();
+            offSoulGain = null;
         });
         return true;
     };
@@ -1789,6 +1944,7 @@ export function ConditionalStatModifierEffect(
         
         let currentlyActive = false;
         let adderStackId: number | null = null;
+        let removerStackId: number | null = null;
         const applyModifierIfConditionMet = (player: Player) => {
             const shouldBeActive = condition(player, data.it);
             
@@ -1809,9 +1965,10 @@ export function ConditionalStatModifierEffect(
                         adder(player, amount, data.it);
                 }
             } else if (!shouldBeActive && currentlyActive) {
-                if (useStack) {
+                if (useStack && removerStackId === null) {
                     // Create the effect that will execute when the stack resolves
                     const effect = (effectData: EffectData) => {
+                        removerStackId = null;
                         if(currentlyActive === false) return true; // Already removed by another trigger
                         currentlyActive = false;
                         const index = game.stack.elements.findIndex(element => element.stackId === adderStackId);
@@ -1827,7 +1984,7 @@ export function ConditionalStatModifierEffect(
                         }
                         return true;
                     };
-                    addPassiveEffectToStack(game, effect, data, "Remove conditional stat modifier");
+                    removerStackId = addPassiveEffectToStack(game, effect, data, "Remove conditional stat modifier");
                 } else {
                     currentlyActive = false;
                     for (const adder of adders)
@@ -1859,13 +2016,13 @@ export function ConditionalStatModifierEffect(
                         game.stack.removeAt(index);
                         adderStackId = null;
                     }
-                    else 
-                        for (const adder of adders)
-                    {
-                    if(!(data.issuer instanceof Player)) 
-                        throw new Error("ConditionalStatModifierEffect can only be removed from Players.");
-                    adder(data.issuer, -amount, data.it);
-                }
+                else 
+                    for (const adder of adders)
+                        {
+                            if(!(data.issuer instanceof Player)) 
+                                throw new Error("ConditionalStatModifierEffect can only be removed from Players.");
+                            adder(data.issuer, -amount, data.it);
+                        }
             }
             // Remove event listeners
             for (const offEvent of offEvents) {
@@ -1967,6 +2124,36 @@ export function changeRollXToYEffect(game: Game, x: number, y: number): EffectFu
         data.it.cleaners.push(() => {
             offRoll?.();
             offRoll = null;
+        });
+        return true;
+    };
+}
+
+export function giveThisToAnotherPlayerInsteadOfDiscardEffect(game: Game): EffectFunction {
+    return (data: EffectData) => {
+        let offDiscard: (() => void) | null = null;
+        offDiscard = game.emitter.on("on:card:discarded:before", (eventData: OnCardDiscardBeforeData) => {
+            if(data.it !== eventData.card) return;
+            eventData.card = null; // Prevent the card from being discarded for now.
+            data.it.cleanup();
+            const effect = async (effectData: EffectData) => {
+                if (!(effectData.issuer instanceof Player)) return false;
+                if(data.it instanceof MonsterCard === false) return false;
+                const otherPlayers = game.players.filter(p => p !== effectData.issuer);
+                if (otherPlayers.length === 0) return true; // No other players to give the card to, so just let it be discarded.
+                const selection = await effectData.selectAndRecord(game, effectData.issuer, 1, 1, otherPlayers, "Select a player to give this card to instead of discarding it.", true, true);
+                if (selection.selected.length > 0) {
+                    const chosenPlayer = selection.selected[0]!;
+                    game.addCurse(chosenPlayer, data.it);
+                }
+                return true;
+            };
+            offDiscard?.();
+            offDiscard = null;
+            addPassiveEffectToStack(game, effect, data, `Give this card to another player instead of discarding it.`);
+        });
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
         });
         return true;
     };

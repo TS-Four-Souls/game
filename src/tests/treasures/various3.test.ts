@@ -16,7 +16,7 @@ describe("Tap/Paid effects 1", () => {
             characters: ["b2-samson", "b2-isaac"],
             monsters: ["b2-fly", "b2-fatty"],
             monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
-            treasureDeck: ["b2-blank_card"],
+            treasureDeck: ["b2-blank_card", "b2-boomerang", "b2-guppys_head", "b2-tech_x", "b2-the_battery", "b2-lucky_foot", "b2-mini_mush", "b2-spoon_bender"],
         });
         game = setup.game;
         player1 = setup.player1;
@@ -93,8 +93,8 @@ describe("Tap/Paid effects 1", () => {
         // Two items should be destroyed
         expect(player1.inPlay).not.toContain(item1);
         expect(player1.inPlay).not.toContain(item2);
-        expect(game.destroyedCards).toContain(item1);
-        expect(game.destroyedCards).toContain(item2);
+        expect(game.decks.treasure.discard).toContain(item1);
+        expect(game.decks.treasure.discard).toContain(item2);
 
         // Target item should be stolen
         expect(player2.inPlay).not.toContain(targetItem);
@@ -169,11 +169,11 @@ describe("Tap/Paid effects 1", () => {
 
         // Target item should be destroyed
         expect(player1.inPlay).not.toContain(targetItem);
-        expect(game.destroyedCards).toContain(targetItem);
+        expect(game.decks.treasure.discard).toContain(targetItem);
 
         // Glass cannon should be destroyed and player loots 2
         expect(player1.inPlay).not.toContain(glassCannon);
-        expect(game.destroyedCards).toContain(glassCannon);
+        expect(game.decks.treasure.discard).toContain(glassCannon);
         expect(player1.hand.length).toBe(initialHandSize + 2);
     });
 
@@ -200,7 +200,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Target item should be destroyed
         expect(player1.inPlay).not.toContain(targetItem);
-        expect(game.destroyedCards).toContain(targetItem);
+        expect(game.decks.treasure.discard).toContain(targetItem);
 
         // Glass cannon should remain and be recharged
         expect(player1.inPlay).toContain(glassCannon);
@@ -325,7 +325,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Box should be destroyed
         expect(player1.inPlay).not.toContain(box);
-        expect(game.destroyedCards).toContain(box);
+        expect(game.decks.treasure.discard).toContain(box);
 
         // Play all 3 loot cards (normally can only play 1 per turn)
         game.actions.playCard(player1, 0);
@@ -435,7 +435,7 @@ describe("Tap/Paid effects 1", () => {
         await game.actions.resolveStack(); // Resolve gain 1¢
 
         expect(player1.inPlay).not.toContain(pandorasBox);
-        expect(game.destroyedCards).toContain(pandorasBox);
+        expect(game.decks.treasure.discard).toContain(pandorasBox);
         expect(player1.coins).toBe(initialCoins + 1);
     });
 
@@ -586,15 +586,20 @@ describe("Tap/Paid effects 1", () => {
 
         // d4 should be destroyed
         expect(player1.inPlay).not.toContain(theD4);
-        expect(game.destroyedCards).toContain(theD4);
+        expect(game.decks.treasure.discard).toContain(theD4);
 
         // player1's non-d4 items should be rerolled (destroyed and replaced)
         expect(player1.inPlay).not.toContain(item1);
         expect(player1.inPlay).not.toContain(item2);
         expect(player1.inPlay).not.toContain(item3);
-        expect(game.destroyedCards).toContain(item1);
-        expect(game.destroyedCards).toContain(item2);
-        expect(game.destroyedCards).toContain(item3);
+        expect(game.decks.treasure.discard).toContain(item1);
+        expect(game.decks.treasure.discard).toContain(item2);
+        expect(game.decks.treasure.discard).toContain(item3);
+        if(player1.inPlay.length !== initialItemCount) {
+            console.log("Expected item count:", initialItemCount);
+            console.log("Actual item count:", player1.inPlay.length);
+            console.log("In play cards:", player1.inPlay.map(c => c.slug));
+        }
         expect(player1.inPlay.length).toBe(initialItemCount); // Same count but different items
     });
 
@@ -686,7 +691,8 @@ describe("Tap/Paid effects 1", () => {
 
         // moms_shovel should be destroyed
         expect(player1.inPlay).not.toContain(momsShovel);
-        expect(game.destroyedCards).toContain(momsShovel);
+        expect(game.decks.treasure.discard).toContain(momsShovel);
+
 
         // Soul should be stolen
         expect(player1.souls.length).toBe(player1InitialSouls + 1);

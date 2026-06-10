@@ -370,6 +370,7 @@ describe("Requiem Rooms", () => {
     });
     it("the_mirror", async () => {
         const room = game.obtainCard("r-the_mirror") as RoomCard;
+        expect(room).toBeDefined();
         game.rooms?.forceRoomAtSlot(0, room);
         await game.endTurn();
         await game.actions.resolveStack();
@@ -1060,19 +1061,19 @@ describe("Requiem Rooms", () => {
         const room = game.obtainCard("r-blood_lust") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         game.resetStack();
-        expect(player1.mustAttackMonster.map((m) => m.target)).toEqual(["any", "any"]);
+        expect(player1.mustAttackEntity.map((m) => m.target)).toEqual(["any", "any"]);
     });
 
     it("Blood Lust cleanup on room replace", async () => {
         const bloodLust = game.obtainCard("r-blood_lust") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, bloodLust);
         game.resetStack();
-        expect(player1.mustAttackMonster.map((m) => m.target)).toEqual(["any", "any"]);
+        expect(player1.mustAttackEntity.map((m) => m.target)).toEqual(["any", "any"]);
 
         const replacement = game.obtainCard("r-blessing_of_gluttony") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, replacement);
 
-        expect(player1.mustAttackMonster.map((m) => m.target)).toEqual([]);
+        expect(player1.mustAttackEntity.map((m) => m.target)).toEqual([]);
     });
 
     it("Blood Donation", async () => {
@@ -1102,7 +1103,7 @@ describe("Requiem Rooms", () => {
         const replacement = game.obtainCard("r-blessing_of_gluttony") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, replacement);
 
-        expect(player1.mustAttackMonster.some((m) => m.target === "topDeck")).toBe(false);
+        expect(player1.mustAttackEntity.some((m) => m.target === "topDeck")).toBe(false);
     });
 
     it("Blessing Of The Sack", async () => {

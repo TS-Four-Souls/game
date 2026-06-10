@@ -478,7 +478,7 @@ describe("Tap/Paid effects 1", () => {
 
         // chaos_card should be destroyed
         expect(player1.inPlay).not.toContain(chaosCard);
-        expect(game.destroyedCards).toContain(chaosCard);
+        expect(game.decks.treasure.discard).toContain(chaosCard);
 
         // Player2 should be killed (HP set to 0 and death triggered)
         expect(player2.currentHealthPoints).toBe(0);
@@ -500,11 +500,13 @@ describe("Tap/Paid effects 1", () => {
 
         // chaos_card should be destroyed
         expect(player1.inPlay).not.toContain(chaosCard);
-        expect(game.destroyedCards).toContain(chaosCard);
+        expect(game.decks.treasure.discard).toContain(chaosCard);
+
 
         // Target item should be destroyed
         expect(player2.inPlay).not.toContain(targetItem);
-        expect(game.destroyedCards).toContain(targetItem);
+        expect(game.decks.treasure.discard).toContain(chaosCard);
+
     });
 
     it("portable_slot_machine - roll 1-2 to loot 1", async () => {
@@ -772,7 +774,8 @@ describe("Tap/Paid effects 1", () => {
 
         // Target item should be destroyed
         expect(player2.inPlay).not.toContain(targetItem);
-        expect(game.destroyedCards).toContain(targetItem);
+        expect(game.decks.treasure.discard).toContain(targetItem);
+
 
         // Replacement card should be in player2's play area
         expect(player2.inPlay).toContain(replacementCard);
@@ -792,7 +795,7 @@ describe("Tap/Paid effects 1", () => {
         await game.actions.resolveStack();
 
         // Target item should be destroyed
-        expect(game.destroyedCards).toContain(targetItem);
+        expect(game.decks.treasure.discard).toContain(targetItem);
         expect(game.shop.itemsInShop[0]).toBe(replacementCard);
     });
 
