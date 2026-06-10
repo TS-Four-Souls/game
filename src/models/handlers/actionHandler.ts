@@ -682,7 +682,7 @@ export class ActionHandler {
     });
   }
 
-  debugLoot(player: Player, lootCards: LootCard[]): void {
+  debugLoot(player: Player, lootCards: LootCard[], broadcastName: boolean = true): void {
     if(!this.game.gameParameters.allowCheatOptions.value)
       throw new Error("Cheat options are not allowed in this game.");
     for (const card of lootCards) {
@@ -692,7 +692,7 @@ export class ActionHandler {
     this.game.toast({
       type: "warning",
       title: `${player.id} used a cheat to loot ${lootCards.length} loot card(s).`,
-      message: `They obtained ${lootCards.map((c) => c.name).join(", ")}.`,
+      message: `They obtained ${broadcastName ? lootCards.map((c) => c.name).join(", ") : `${lootCards.length} loot card${lootCards.length > 1 ? "s" : ""}`}.`,
       players: this.game.players.map((p) => p.id),
     });
   }

@@ -524,6 +524,22 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
           break;
         }
 
+        case "DebugLootTop": {
+          const player = game.getPlayerByIssuer(remapIssuer(game, entry.issuer));
+          const topCard = game.decks.loot.cards[0];
+          if(topCard)
+            game.actions.debugLoot(player, [topCard], false);
+          break;
+        }
+
+        case "DebugGainTreasureTop": {
+          const player = game.getPlayerByIssuer(remapIssuer(game, entry.issuer));
+          const topCard = game.decks.treasure.cards[0];
+          if(topCard)
+            game.actions.debugGainTreasures(player, [topCard]);
+          break;
+        }
+
         case "DebugLoot": {
           const player = game.getPlayerByIssuer(remapIssuer(game, entry.issuer));
           const cards = (entry.payload as any).cards;

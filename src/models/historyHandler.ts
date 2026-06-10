@@ -45,6 +45,8 @@ export type UserRequest =
   | { type: "GiveCoins"; payload: Requests.GiveCoins; issuer: Issuer }
   | { type: "AttackMonster"; payload: Requests.AttackMonster; issuer: Issuer }
   | { type: "AttackRoll"; issuer: Issuer }
+  | { type: "DebugLootTop"; issuer: Issuer }
+  | { type: "DebugGainTreasureTop"; issuer: Issuer }
   | { type: "DebugLoot"; payload: Requests.DebugLoot; issuer: Issuer }
   | { type: "DebugListLoot"; issuer: Issuer }
   | { type: "DebugListMonsterDeck"; issuer: Issuer }

@@ -334,6 +334,47 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
   );
 
   if (game.gameParameters.allowCheatOptions.value) {
+    socket.on("debugLootTop", (callback) =>
+      errorGuardedEndpoint(callback,
+          () => {
+            game.addToHistory({
+              type: "DebugLootTop",
+              issuer: player.id,
+            });
+            const topCard = game.decks.loot.cards[0];
+            if(!topCard) {
+              return callback({
+                status: 400,
+                error: "Loot deck is empty",
+              });
+            }
+            game.actions.debugLoot(player, [topCard], false);
+            return callback({ status: 200 });
+          },
+      ),
+    );
+
+    socket.on("debugGainTreasureTop", (callback) =>
+      errorGuardedEndpoint(callback,
+          () => {
+            game.addToHistory({
+              type: "DebugGainTreasureTop",
+              issuer: player.id,
+            });
+            const topCard = game.decks.treasure.cards[0];
+            if(!topCard) {
+              return callback({
+                status: 400,
+                error: "Treasure deck is empty",
+              });
+            }
+            game.actions.debugGainTreasures(player, [topCard]);
+            return callback({ status: 200 });
+          },
+      ),
+    );
+
+
     socket.on("debugLoot", (payload, callback) =>
       errorGuardedEndpoint(callback, () =>
         payloadGuardedEndpoint(
