@@ -1352,7 +1352,7 @@ class Deck<T extends Card> {
     }
 
     drawCardAt(positionFromTop: number): T {
-        if (this._order.length < positionFromTop + 1) {
+        if (this._order.length - 1 < positionFromTop + 1) {
             this.resetDiscard();
         }
         const posFromEnd: number = this._order.length - 1 - positionFromTop;

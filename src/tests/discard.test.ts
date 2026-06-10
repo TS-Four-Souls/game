@@ -17,6 +17,19 @@ describe("Discard", () => {
         player2 = setup.player2!;
     });
 
+    it("discard is shuffled back when deck is empty", async () => {
+        game.decks.loot.addDiscardTop(game.decks.loot.draw());
+        const discard = game.decks.loot.discard[0]!;
+        const initialLootDeckSize = game.decks.loot.length; 
+        game.loot(player1, initialLootDeckSize-1);
+        expect(game.decks.loot.length).toBe(1);
+        expect(game.decks.loot.cards[0]).not.toBe(discard);
+        game.loot(player1, 1);
+        expect(game.decks.loot.length).toBe(1);
+        expect(game.decks.loot.discard.length).toBe(0);
+        expect(game.decks.loot.cards[0]).toBe(discard);
+    });
+
     it("discard 1 loots on death", async () => {
         game.loot(player1, 10);
         const handSize = player1.hand.length;
