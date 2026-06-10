@@ -1,4 +1,4 @@
-import { type Deck, Effect, EffectData, EffectOnStack, MonsterCard, MonsterType } from "../cards";
+import { type Deck, EffectData, EffectOnStack, MonsterCard, MonsterType } from "../cards";
 import { Monster } from "../entities/monster";
 import { Player } from "../entities/player";
 import type { Game } from "../game";

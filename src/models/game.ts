@@ -3,7 +3,6 @@ import {
   Card,
   CharacterCard,
   Deck,
-  Effect,
   EffectOnStack,
   EternalCard,
   Hand,
@@ -20,6 +19,7 @@ import {
   isDeckType,
   isSameSlug
 } from "@/models/cards";
+import { Effect } from './effects/effects';
 import {
   targetGetCoinRollEffect,
   targetGetLootRollEffect,
