@@ -85,7 +85,7 @@ export const isChooseOneOptions = (x: any): x is ChooseOneOptions => {
 // }
 export function deckSelector(filter: (name: string) => boolean = () => true, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
-        return [game.decks.loot, game.decks.treasure, game.decks.monster, ...(game.decks.room !== undefined ? [game.decks.room] : [])].filter((deck) => filter(deck._type));
+        return [game.decks.loot, game.decks.treasure, game.decks.monster, ...(game.rooms !== undefined ? [game.decks.room] : [])].filter((deck) => filter(deck._type));
         return Object.keys(game.decks).filter((deckName) => filter(deckName)
             && deckName !== "character"
             && deckName !== "eternal"
