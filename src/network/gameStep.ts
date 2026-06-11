@@ -32,7 +32,7 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
   if (user.name === undefined) {
     throw new Error("User name not found");
   }
-  const player = game.getPlayerById(user.name);
+  const player = game.entityHandler.getPlayerById(user.name);
 
   sendRoomChangedToUser(room, user);
 
@@ -294,7 +294,7 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
         schemas.giveCoinsRequest,
         callback,
         (payload) => {
-          const target = game.getPlayerById(payload.target);
+          const target = game.entityHandler.getPlayerById(payload.target);
           const amount = payload.coins;
           if (!game.giveCoins(player, target, amount))
             throw new Error("amount of coins invalid");

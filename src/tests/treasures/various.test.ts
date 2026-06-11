@@ -95,7 +95,7 @@ describe("Treasure - Passive effects", () => {
         const initialHP = player1.currentHealthPoints;
 
         // Take 5 damage, should only lose 1 HP due to dry_baby effect
-        game.dealDamage(player2, player1, dryBaby, 5);
+        game.entityHandler.dealDamage(player2, player1, dryBaby, 5);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -109,7 +109,7 @@ describe("Treasure - Passive effects", () => {
         const initialHP = player1.currentHealthPoints;
 
         // Take 1 damage, should still lose 1 HP
-        game.dealDamage(player2, player1, dryBaby, 1);
+        game.entityHandler.dealDamage(player2, player1, dryBaby, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -123,10 +123,10 @@ describe("Treasure - Passive effects", () => {
         const initialHP = player1.currentHealthPoints;
 
         // Take damage multiple times
-        game.dealDamage(player2, player1, dryBaby, 3);
+        game.entityHandler.dealDamage(player2, player1, dryBaby, 3);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        game.dealDamage(player2, player1, dryBaby, 4);
+        game.entityHandler.dealDamage(player2, player1, dryBaby, 4);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -161,7 +161,7 @@ describe("Treasure - Passive effects", () => {
         expect(shopItem).toBeDefined();
 
         // Purchase the item - normal price is 10¢, should be 5¢ with steamy sale
-        game.addPurchaseThisTurn(player1, 1); // allow purchase
+        game.entityHandler.addPurchaseThisTurn(player1, 1); // allow purchase
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0); // index 0 is first shop slot
 
@@ -180,7 +180,7 @@ describe("Treasure - Passive effects", () => {
         player1.gainCoins(5);
 
         // Should be able to purchase with reduced price
-        game.addPurchaseThisTurn(player1, 1); // allow purchase
+        game.entityHandler.addPurchaseThisTurn(player1, 1); // allow purchase
         game.actions.declarePurchase(player1);
         const result = game.actions.purchase(player1, 1);
 
@@ -243,18 +243,18 @@ describe("Treasure - Passive effects", () => {
     // Note: Transfer mechanism needs verification
 
     it("baby_haunt - transfers to another player on death", async () => {
-        const initEvastion = game.getDC(game.monsters[0]!);
+        const initEvastion = game.entityHandler.getDC(game.monsters[0]!);
         const babyHaunt = game.shop.obtainCard("b2-baby_haunt") as TreasureCard;
         game.addInPlay(player1, babyHaunt);
 
         expect(player1.inPlay.map((c) => c.slug)).toContain(babyHaunt.slug);
         expect(player2.inPlay.map((c) => c.slug)).not.toContain(babyHaunt.slug);
-        expect(game.getDC(game.monsters[0]!)).toBe(initEvastion + 1);
+        expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(initEvastion + 1);
         // Kill player1
-        game.kill(player1, player1, babyHaunt);
+        game.entityHandler.kill(player1, player1, babyHaunt);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(game.getDC(game.monsters[0]!)).toBe(initEvastion);
+        expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(initEvastion);
 
         // baby_haunt should now be with player2
         expect(player1.inPlay.map((c) => c.slug)).not.toContain(babyHaunt.slug);
@@ -262,7 +262,7 @@ describe("Treasure - Passive effects", () => {
 
         game.endTurn();
         await game.actions.resolveStack();
-        expect(game.getDC(game.monsters[0]!)).toBe(initEvastion + 1);
+        expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(initEvastion + 1);
     });
 
     // b2-daddy_haunt    "When you die, before paying penalties, give this to another player."
@@ -275,7 +275,7 @@ describe("Treasure - Passive effects", () => {
         expect(player2.inPlay.map((c) => c.slug)).not.toContain(daddyHaunt.slug);
 
         // Kill player1
-        game.kill(player1, player1, daddyHaunt);
+        game.entityHandler.kill(player1, player1, daddyHaunt);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -284,7 +284,7 @@ describe("Treasure - Passive effects", () => {
         expect(player2.inPlay.map((c) => c.slug)).toContain(daddyHaunt.slug);
 
         // Kill player1
-        game.kill(player2, player2, daddyHaunt);
+        game.entityHandler.kill(player2, player2, daddyHaunt);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -330,7 +330,7 @@ describe("Treasure - Passive effects", () => {
         };
 
         // Take damage
-        game.dealDamage(player2, player1, theHabit, 1);
+        game.entityHandler.dealDamage(player2, player1, theHabit, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -345,7 +345,7 @@ describe("Treasure - Passive effects", () => {
         game.addInPlay(player1, theHabit);
         game.addInPlay(player1, battery1);
         game.addInPlay(player1, battery2);
-        game.addHealth(player1, 10); // Ensure player1 has enough HP
+        game.entityHandler.addHealth(player1, 10); // Ensure player1 has enough HP
         // Discharge both items
         battery1.charged = false;
         battery2.charged = false;
@@ -360,7 +360,7 @@ describe("Treasure - Passive effects", () => {
         };
 
         // Take damage twice
-        game.dealDamage(player2, player1, theHabit, 1);
+        game.entityHandler.dealDamage(player2, player1, theHabit, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -369,7 +369,7 @@ describe("Treasure - Passive effects", () => {
         expect(battery2.charged).toBe(false);
 
         // Take damage again in same turn
-        game.dealDamage(player2, player1, theHabit, 1);
+        game.entityHandler.dealDamage(player2, player1, theHabit, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -384,7 +384,7 @@ describe("Treasure - Passive effects", () => {
         await game.actions.resolveStack(); // Resolve any stack effects
 
         // Take damage in new turn
-        game.dealDamage(player2, player1, theHabit, 1);
+        game.entityHandler.dealDamage(player2, player1, theHabit, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack();

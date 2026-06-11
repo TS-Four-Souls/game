@@ -40,7 +40,7 @@ export function thisHealsEffect(game: Game, amount: number): EffectFunction {
             target = game.monsters.find((m) => m.json.globalId === data.it.globalId)!;
         if(!target)
             throw new Error("thisHealsEffect effect could not find the monster to heal.");
-        game.heal(target, amount);
+        game.entityHandler.heal(target, amount);
         return true;
     };
 }
@@ -56,7 +56,7 @@ export function activePlayerMayAttackMonsterDeckEffect(game: Game, numberOfTimes
 export function activePlayerMustMakeAdditionalAttackEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
-        game.playerMustAttack(player, "any", data.it);
+        game.entityHandler.playerMustAttack(player, "any", data.it);
         return true;
     };
 }
@@ -143,11 +143,11 @@ export function preventDeathGainTreasureCancelAttackAndHealEffect(game: Game, x:
         let offWouldDeath: (() => void) | null = null;
         offWouldDeath = game.emitter.on("on:death:would-death", (eventData: OnDeathWouldDeathData) => {
             if(eventData.eventIssuer.card !== data.it) return;
-            game.preventDeath(eventData.eventIssuer);
+            game.entityHandler.preventDeath(eventData.eventIssuer);
             game.addToCounter(data.issuer, data.it, "counters", 1);
-            game.heal(data.issuer, 9999);
+            game.entityHandler.heal(data.issuer, 9999);
             game.gainTreasure(game.currentPlayer, x);
-            game.endCombat();
+            game.entityHandler.endCombat();
         });
 
         data.it.cleaners.push(() => {
@@ -168,7 +168,7 @@ export function eachPlayerRollLowestOrTiedForLowestDiesEffect(game: Game): Effec
             const lowestValue = Math.min(...dices.map(d => d.value));
             const playersToDie = dices.filter((dice) => dice.value === lowestValue).map(d => d.issuer);
             for(const player of playersToDie) {
-                game.kill(data.issuer, player, data.it);
+                game.entityHandler.kill(data.issuer, player, data.it);
             }
             return true;
         }
@@ -274,7 +274,7 @@ export function targetTakeDamageEffect(game: Game, damage: number): EffectFuncti
         const target = data.next;
         if(!(target instanceof Entity))
             throw new Error("targetTakeDamageEffect can only be applied to entity targets.");
-        game.dealDamage(data.issuer as Entity, data.targets[0] as Entity, data.it, damage);
+        game.entityHandler.dealDamage(data.issuer as Entity, data.targets[0] as Entity, data.it, damage);
         return true;
     };
 }
@@ -304,7 +304,7 @@ export function OnDamageByActivePlayerRollDealDamageEffect(game: Game, numbers: 
                         for(let i=0; i < ranges.length; i++) {
                             if(n >= ranges[i]![0]! && n <= ranges[i]![1]!) {
                                 for (const t of groups[i]!) {
-                                    game.dealDamage(data.issuer as Entity, t as Entity, data.it, dmgs[i]!);
+                                    game.entityHandler.dealDamage(data.issuer as Entity, t as Entity, data.it, dmgs[i]!);
                                 }
                             }
                         }
@@ -336,7 +336,7 @@ return (data: EffectData) => {
             
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
-                game.dealDamage(eventIssuer as Entity, target as Entity, data.it, damage);
+                game.entityHandler.dealDamage(eventIssuer as Entity, target as Entity, data.it, damage);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `When ${data.it.name} dies, it deals ${damage} damage to the player who killed it.`);
@@ -360,7 +360,7 @@ export function dealDamageOnAttackDeclarationEffect(game: Game, minRoll: number,
                 const roll = game.rollDice(game.currentPlayer, false, data.it);
                 roll.attachEffect([1,2,3,4,5,6].map(n => (rollData: EffectData) => {
                     if(roll.value >= minRoll && roll.value <= maxRoll) {
-                        game.dealDamage(data.issuer, eventIssuer, data.it, damage);
+                        game.entityHandler.dealDamage(data.issuer, eventIssuer, data.it, damage);
                     }
                     return true;
                 }), data.it, []);
@@ -485,7 +485,7 @@ export function noCombatDamageOnAttackRollEffect(game: Game, rollValues: number[
             if(rollValues.includes(6) && minDiceValue > maxValidValue) 
                 {
                     const effect = (effectData: EffectData) => {
-                        game.endCombat();
+                        game.entityHandler.endCombat();
                         return true;
                     };
                     addPassiveEffectToStack(game, effect, data, `${data.it.name} and ${target.card.name} cannot damage each other. They opted for a truce.`);
@@ -510,12 +510,12 @@ export function noCombatDamageOnAttackRollEffect(game: Game, rollValues: number[
 
 export function monstersGainDCEffect(game: Game, amount: number, includeSelf: boolean): EffectFunction {
     return (data: EffectData) => {
-        game.addDCToEachMonster(data.issuer as Entity, amount, data.it);
+        game.entityHandler.addDCToEachMonster(data.issuer as Entity, amount, data.it);
         if(!includeSelf) {
             (data.issuer as Monster).addEvasion(-amount);
         }
         data.it.cleaners.push(() => {
-            game.addDCToEachMonster(data.issuer as Entity, -amount, data.it);
+            game.entityHandler.addDCToEachMonster(data.issuer as Entity, -amount, data.it);
             if(!includeSelf) {
                 (data.issuer as Monster).addEvasion(amount);
             }
@@ -544,7 +544,7 @@ export function dieWhenAnotherMonsterDiesEffect(game: Game): EffectFunction {
             
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
-                game.kill(eventIssuer, data.issuer as Monster, source);
+                game.entityHandler.kill(eventIssuer, data.issuer as Monster, source);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `When another monster dies, ${data.it.name} dies.`);
@@ -580,7 +580,7 @@ export function damageAlsoPlayerToTheEffect(game: Game, direction: "left" | "rig
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
                 const player = game.getPlayerToThe(direction);
-                game.dealDamage(eventIssuer as Entity, player as Entity, source, damage);
+                game.entityHandler.dealDamage(eventIssuer as Entity, player as Entity, source, damage);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `Damage dealt to ${data.it.name} is also dealt to the player to their ${direction}.`);
@@ -608,7 +608,7 @@ export function damageDealtToActivePlayerAlsoToTheEffect(game: Game, direction: 
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
                 const player = game.getPlayerToThe(direction);
-                game.dealDamage(eventIssuer as Entity, player as Entity, source, damage);
+                game.entityHandler.dealDamage(eventIssuer as Entity, player as Entity, source, damage);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `Damage dealt to ${data.it.name} is also dealt to the player to the active player's ${direction}.`);
@@ -814,7 +814,7 @@ export function onlyTakesCombatDamageOnAttackRollEffect(game: Game, values: numb
             if(target.attackDiceModifier + ((target as Player).diceModifier || 0 ) + 1 > Math.max(...values)) 
             {
                 const effect = (effectData: EffectData) => {
-                    game.endCombat();
+                    game.entityHandler.endCombat();
                     return true;
                 };
                 addPassiveEffectToStack(game, effect, data, `${data.it.name} and ${target.card.name} cannot damage each other. They opted for a truce.`);
@@ -850,7 +850,7 @@ export function cancelAttackAfterSecondAttackRollEffect(game: Game): EffectFunct
             atkCount++;
             if(atkCount === 2) {
                 const effect = (effectData: EffectData) => {
-                    game.endCombat();
+                    game.entityHandler.endCombat();
                     return true;
                 };
                 addPassiveEffectToStack(game, effect, data, "When the attacking player makes their second attack roll this turn, after combat damage, cancel the attack.");
@@ -965,10 +965,10 @@ export function preventDeathFirstTimeEachTurnHealAndStatModifierEffect(game: Gam
             const effect = (effectData: EffectData) => {
                 if(data.issuer instanceof Monster === false)
                     throw new Error("preventDeathFirstTimeEachTurnHealAndStatModifierEffect can only be applied to monsters.");
-                game.preventDeath(eventIssuer as Entity);
-                game.heal(data.issuer, heal - data.issuer.currentHealthPoints); // heal the specified amount from death prevention.
-                game.addDC(data.issuer, dc, data.it); // add the specified + DC
-                game.addAttack(data.issuer, atk, data.it); // lose the specified amount of attack
+                game.entityHandler.preventDeath(eventIssuer as Entity);
+                game.entityHandler.heal(data.issuer, heal - data.issuer.currentHealthPoints); // heal the specified amount from death prevention.
+                game.entityHandler.addDC(data.issuer, dc, data.it); // add the specified + DC
+                game.entityHandler.addAttack(data.issuer, atk, data.it); // lose the specified amount of attack
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `The first time each turn ${data.it.name} would be reduced to 0 health, prevent that damage, heal ${heal} HP, and give it +${dc} DC and ${atk} ATK.`);
@@ -977,8 +977,8 @@ export function preventDeathFirstTimeEachTurnHealAndStatModifierEffect(game: Gam
         offTurnStart = game.emitter.on("on:turn:start", (eventData: OnTurnEndData) => {
             if (!hasPreventedDeathThisTurn) return;
             // reset stats
-            game.addDC(data.issuer, -1, data.it);
-            game.addAttack(data.issuer, +1, data.it);
+            game.entityHandler.addDC(data.issuer, -1, data.it);
+            game.entityHandler.addAttack(data.issuer, +1, data.it);
             hasPreventedDeathThisTurn = false;
         });
 
@@ -986,8 +986,8 @@ export function preventDeathFirstTimeEachTurnHealAndStatModifierEffect(game: Gam
         data.it.cleaners.push(() => {
             if(hasPreventedDeathThisTurn) {
                 // reset stats if needed
-                game.addDC(data.issuer, -1, data.it);
-                game.addAttack(data.issuer, +1, data.it);
+                game.entityHandler.addDC(data.issuer, -1, data.it);
+                game.entityHandler.addAttack(data.issuer, +1, data.it);
             }
             offDamage?.();
             offDamage = null;
@@ -1003,14 +1003,14 @@ export function forceAttackThisEachTurnEffect(game: Game): EffectFunction {
         let offTurnStart: (() => void) | null = null;
         if(!data.issuer || !(data.issuer instanceof Monster)) 
             throw new Error("forceAttackThisEachTurnEffect can only be applied to monsters.");
-        game.playerMustAttack(game.currentPlayer, [data.issuer], data.it);
+        game.entityHandler.playerMustAttack(game.currentPlayer, [data.issuer], data.it);
         
         offTurnStart = game.emitter.on("on:turn:start", (eventData: OnTurnEndData) => {
             const { eventIssuer } = eventData;
             if(!data.issuer || !(data.issuer instanceof Monster)) return;
             if(!eventIssuer || !(eventIssuer instanceof Player)) return;
             if(eventIssuer.mustAttackEntity.some(req => (req.target instanceof Array) && req.target.includes(data.issuer as Monster) && req.source === data.it)) return; // if the player already must attack this monster, do not add another requirement
-            game.playerMustAttack(eventIssuer, [data.issuer], data.it);
+            game.entityHandler.playerMustAttack(eventIssuer, [data.issuer], data.it);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -1032,7 +1032,7 @@ export function attackRequirementEachTurnEffect(game: Game, whom: "any" | "topDe
         if(game.currentPlayer === data.issuer) {
             const additionalTimes = type === "additional" ? times : times - game.currentPlayer.attackedIdsThisTurn.filter((id) => id === "topDeck" || whom === "any").length;
             for (let i = 0; i < additionalTimes; i++) {
-                game.playerMustAttack(data.issuer as Player, whom, data.it);
+                game.entityHandler.playerMustAttack(data.issuer as Player, whom, data.it);
             }
         }
         offTurnStart = game.emitter.on("on:turn:start", (eventData: OnTurnEndData) => {
@@ -1041,7 +1041,7 @@ export function attackRequirementEachTurnEffect(game: Game, whom: "any" | "topDe
             if(eventIssuer !== data.issuer) return;
             const additionalTimes = type === "additional" ? times : times - data.issuer.attackedIdsThisTurn.filter((id) => id === "topDeck" || whom === "any").length;
             for (let i = 0; i < additionalTimes; i++) {
-                game.playerMustAttack(data.issuer as Player, whom, data.it);
+                game.entityHandler.playerMustAttack(data.issuer as Player, whom, data.it);
             }
         });
 
@@ -1069,7 +1069,7 @@ export function activePlayerChooseLivingPlayerTakeDamageEffect(game: Game, damag
         if(!targetPlayer){
             throw new Error("No player selected for activePlayerChooseLivingPlayerTakeDamageEffect.");
         }
-        game.dealDamage(data.issuer as Entity, targetPlayer as Entity, data.it, damage);
+        game.entityHandler.dealDamage(data.issuer as Entity, targetPlayer as Entity, data.it, damage);
         return true;
     }
 };
@@ -1078,7 +1078,7 @@ export function dealDamageToEachOtherMonsterEffect(game: Game, damage: number): 
     return (data: EffectData) => {
         game.monsters.forEach(monster => {
             if(monster !== data.issuer) {
-                game.dealDamage(data.issuer as Entity, monster as Entity, data.it, damage);
+                game.entityHandler.dealDamage(data.issuer as Entity, monster as Entity, data.it, damage);
             }
         });
         return true;
@@ -1087,7 +1087,7 @@ export function dealDamageToEachOtherMonsterEffect(game: Game, damage: number): 
 
 export function dealDamageToAttackingPlayerEffect(game: Game, damage: number): EffectFunction {
     return (data: EffectData) => {
-        game.dealDamage(data.issuer as Entity, game.currentPlayer as Player, data.it, damage);
+        game.entityHandler.dealDamage(data.issuer as Entity, game.currentPlayer as Player, data.it, damage);
         return true;
     };
 }
@@ -1132,7 +1132,7 @@ export function bossRushEffect(game: Game, bossCount: number): EffectFunction {
         const monsters = selectedIndices.map(idx => game.encounters.monsters[idx]!);
         game.encounters.removeCard(data.it);
         game.encounters._deck.addDiscardTop(data.it); 
-        game.playerMustAttack(game.currentPlayer, monsters, data.it);
+        game.entityHandler.playerMustAttack(game.currentPlayer, monsters, data.it);
         return true;
     };
 }
@@ -1219,7 +1219,7 @@ export function onEveryOtherDamageEffect(game: Game, effect: EffectFunction): Ef
 export function dealDamageToPlayerToTheEffect(game: Game, damage: number, direction: "left" | "right"): EffectFunction {
     return (data: EffectData) => {
         const player = game.getPlayerToThe(direction);
-        game.dealDamage(data.issuer as Entity, player as Entity, data.it, damage);
+        game.entityHandler.dealDamage(data.issuer as Entity, player as Entity, data.it, damage);
         return true;
     };
 }
@@ -1229,7 +1229,7 @@ export function playersWithMostItemsDieEffect(game: Game): EffectFunction {
         const maxSouls = Math.max(...game.players.map(p => p.totalSouls));
         const playersToDie = game.players.filter(p => p.totalSouls === maxSouls && !p.isDead);
         for (const player of playersToDie) {
-            game.kill(player, player, data.it);
+            game.entityHandler.kill(player, player, data.it);
         }
         return true;
     };

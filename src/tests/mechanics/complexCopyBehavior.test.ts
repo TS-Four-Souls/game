@@ -55,7 +55,7 @@ let game: Game;
         expect(player1.coins).toBe(1);
         await game.endTurn();
         game.obtainCard(bs.slug, bs.globalId);
-        game.addLootPlay(player1, 1, loot);
+        game.entityHandler.addLootPlay(player1, 1, loot);
         game.addCardToHand(player1, bs);
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();
@@ -69,10 +69,10 @@ let game: Game;
         game.addInPlay(player1, bs);
         game.actions.playCard(player1, 0, [bs]);
         await game.actions.resolveStack();
-        expect(game.getAttack(player1)).toBe(3);
+        expect(game.entityHandler.getAttack(player1)).toBe(3);
         await game.endTurn();
         expect(game.stack.isEmpty()).toBe(true);
-        expect(game.getAttack(player1)).toBe(2);
+        expect(game.entityHandler.getAttack(player1)).toBe(2);
     });
 
     it("Diplopia copies, recharge, copies. Should end up only with copy 2 active.", async () => {

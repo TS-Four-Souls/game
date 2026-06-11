@@ -46,7 +46,7 @@ export function cancelAttackOnTopOfMonsterDeckEffect(game: Game): EffectFunction
             const effect = async (effectData: EffectData) => {
                 const selection = await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "Do you want to cancel the attack?", false, true, false);
                 if (selection.selected.length > 0) {
-                    game.endCombat();
+                    game.entityHandler.endCombat();
                 }
                 return true;
             };
@@ -234,14 +234,14 @@ export function doubleRewardsEffect(game: Game): EffectFunction {
 export function activePlayerMustAttackTopDeck(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
-        game.playerMustAttack(game.currentPlayer, "topDeck", data.it);
+        game.entityHandler.playerMustAttack(game.currentPlayer, "topDeck", data.it);
         let init: Player | null = game.currentPlayer;
 
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
             if(init === eventData.eventIssuer)
                 return;
             init = null;
-            game.playerMustAttack(game.currentPlayer, "topDeck", data.it);
+            game.entityHandler.playerMustAttack(game.currentPlayer, "topDeck", data.it);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -258,14 +258,14 @@ export function activePlayerMustAttackTopDeck(game: Game): EffectFunction {
 export function activePlayerMustAttackAdditionalTimeEffect(game: Game): EffectFunction {
      return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
-        game.playerMustAttack(game.currentPlayer, "any", data.it);
+        game.entityHandler.playerMustAttack(game.currentPlayer, "any", data.it);
         let init: Player | null = game.currentPlayer;
 
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
             if(init === eventData.eventIssuer)
                 return;
             init = null;
-            game.playerMustAttack(game.currentPlayer, "any", data.it);
+            game.entityHandler.playerMustAttack(game.currentPlayer, "any", data.it);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -338,7 +338,7 @@ export function takeDamageOnLootEffect(game: Game, amount: number): EffectFuncti
         let offLoot: (() => void) | null = null;
         offLoot = game.emitter.on("on:loot:added:after", (eventData) => {
             const effect: EffectFunction = (effectData: EffectData) => {
-                game.dealDamage(eventData.eventIssuer, eventData.eventIssuer, data.it, amount);
+                game.entityHandler.dealDamage(eventData.eventIssuer, eventData.eventIssuer, data.it, amount);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `Take ${amount} damage each time you loot.`); // Add the damage as a separate stack element to avoid issues with the loot event data being modified by other effects in the stack
@@ -391,12 +391,12 @@ export function loseCoinsAtEndOfTurnEffect(game: Game, amount: number): EffectFu
 
 export function monstersGainAttackEffect(game: Game, amount: number, includeSelf: boolean): EffectFunction {
     return (data: EffectData) => {
-        game.addAttackToEachMonster(data.issuer as Entity, amount, data.it);
+        game.entityHandler.addAttackToEachMonster(data.issuer as Entity, amount, data.it);
         if(!includeSelf) {
             (data.issuer as Monster).addEvasion(-amount);
         }
         data.it.cleaners.push(() => {
-            game.addAttackToEachMonster(data.issuer as Entity, -amount, data.it);
+            game.entityHandler.addAttackToEachMonster(data.issuer as Entity, -amount, data.it);
             if(!includeSelf) {
             (data.issuer as Monster).addEvasion(amount);
         }
@@ -413,7 +413,7 @@ export function targetNextKillsAnotherPlayerEffect(game: Game): EffectFunction {
         if(game.players.filter(p => p !== killer && p.isDead == false).length === 0)
             return false; // No valid targets to kill
         const selected = (await data.selectAndRecord(game, killer, 1, 1, game.players.filter(p => p !== killer && p.isDead == false), "Select a player to kill.")).selected[0]! as Player;
-        game.kill(killer, selected, data.it);
+        game.entityHandler.kill(killer, selected, data.it);
         return true;
     };
 }
@@ -472,7 +472,7 @@ export function damageIfLowLootAtEndOfTurnEffect(game: Game, lootThreshold: numb
         offTurnStart = game.emitter.on("on:turn:end", (eventData) => {
             const effect: EffectFunction = async (effectData: EffectData) => {
                 if(game.currentPlayer.hand.length > lootThreshold) return false;
-                game.dealDamage(game.currentPlayer, game.currentPlayer, data.it, amount);
+                game.entityHandler.dealDamage(game.currentPlayer, game.currentPlayer, data.it, amount);
                 return false;
             };
             addPassiveEffectToStack(game, effect, data, "You may gain a treasure.");
@@ -624,10 +624,10 @@ export function canBeAttackedEffect(game: Game): EffectFunction {
             throw new Error("Expected all card stats to be defined for canBeAttackedEffect.");
         card.entity = new Animated(card, card.slug, attackPoints, healthPoints, evasionPoints);
         card.entity.attackable = true;
-        game.addAnimated(card.entity as Animated);
+        game.entityHandler.addAnimated(card.entity as Animated);
         card.cleaners.push(() => {
             if(!card.entity) return;
-            game.removeAnimated(card.entity as Animated);
+            game.entityHandler.removeAnimated(card.entity as Animated);
             card.entity!.attackable = false;
             card.entity = undefined;
         });
@@ -789,7 +789,7 @@ export function payHpForTreasureBoostEffect(game: Game, hpAfterPay: number, trea
                 const difference = Math.max(0, game.currentPlayer.currentHealthPoints - hpAfterPay);
                 const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "You can pay " + difference + " HP to gain a treasure each time a monster dies this turn. Do you want to?", false, true, false)).selected[0] as Card | undefined;
                 if(selected !== undefined) {
-                    game.dealDamage(game.currentPlayer, game.currentPlayer, data.it, difference, (data: EffectData) => {
+                    game.entityHandler.dealDamage(game.currentPlayer, game.currentPlayer, data.it, difference, (data: EffectData) => {
                         let offMonsterDeath: (() => void) | null = null;
                         offMonsterDeath = game.emitter.on("on:death:monster", (eventData) => {
                              const { eventIssuer } = eventData;
@@ -826,7 +826,7 @@ export function WhenDealDamageMonsterDealDamageToPlayerToTheEffect(game: Game, a
             const { eventIssuer, target, damage } = eventData;
             if(eventIssuer instanceof Monster && damage > 0 && target instanceof Player ) {
                 const effect: EffectFunction = (effectData: EffectData) => {
-                    game.dealDamage(target, game.turnHandler.getPlayerTo(target, direction), data.it, amount);
+                    game.entityHandler.dealDamage(target, game.turnHandler.getPlayerTo(target, direction), data.it, amount);
                     return true;
                 };
                 addPassiveEffectToStack(game, effect, data, `When a monster takes damage, the player to their ${direction} also takes ${amount} damage.`);
@@ -851,7 +851,7 @@ export function playersWithFewestSoulsAttackBoostEffect(game: Game, attackBoost:
             playersWithFewestSouls = game.players.filter(p => p.totalSouls === minSouls);
             for(const player of playersWithFewestSouls) 
             {
-                game.addAttack(player, attackBoost, data.it);
+                game.entityHandler.addAttack(player, attackBoost, data.it);
             }
             if(playersWithFewestSouls.includes(game.currentPlayer) && shouldAddAttackThisTurn)
                 game.currentPlayer.attackThisTurn += 1;
@@ -859,7 +859,7 @@ export function playersWithFewestSoulsAttackBoostEffect(game: Game, attackBoost:
         function removeEffect() {
             for(const player of playersWithFewestSouls) 
             {
-                game.addAttack(player, -attackBoost, data.it);
+                game.entityHandler.addAttack(player, -attackBoost, data.it);
             }
             if(playersWithFewestSouls.includes(game.currentPlayer))
             {

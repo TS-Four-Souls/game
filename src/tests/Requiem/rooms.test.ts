@@ -68,7 +68,7 @@ describe("Requiem Rooms", () => {
         const room = game.obtainCard("r-red_champions") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         expect(game.monsters.map(m => m.healthPoints)).toEqual([2,5]);
-        game.kill(player1, game.monsters[1]!, room);
+        game.entityHandler.kill(player1, game.monsters[1]!, room);
         await game.actions.resolveStack();
         expect(game.monsters.map(m => m.healthPoints)).toEqual([2,6]);
         game.discard(room);
@@ -81,7 +81,7 @@ describe("Requiem Rooms", () => {
         game.rooms?.forceRoomAtSlot(0, room);
         game.addCardToHand(player1, loot);
         game.addCardToHand(player1, game.copyCard(loot) as LootCard);
-        game.addLootPlay(player1, 10);
+        game.entityHandler.addLootPlay(player1, 10);
         game.recharge(player1.character);
         await game.activateItem(player1, player1.inPlay[0]!, [], "tap");
         await game.actions.resolveStack();
@@ -96,7 +96,7 @@ describe("Requiem Rooms", () => {
     it("social_goals discard", async () => {
         const room = game.obtainCard("r-social_goals") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
-        game.kill(player1, game.monsters[0]!, room);
+        game.entityHandler.kill(player1, game.monsters[0]!, room);
         await game.actions.resolveStack();
         await game.endTurn();
         expect(game.rooms?.activeRooms[0]).toBe(room);
@@ -124,7 +124,7 @@ describe("Requiem Rooms", () => {
         game.rooms?.forceRoomAtSlot(0, room);
         expect(room.tags.counters).toBe(0);
         // Test purchase goal
-        game.kill(player1, game.monsters[0]!, room);
+        game.entityHandler.kill(player1, game.monsters[0]!, room);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.endTurn();
@@ -138,7 +138,7 @@ describe("Requiem Rooms", () => {
         expect(room.tags.counters).toBe(0);
         // Test purchase goal
         game.gainCoins(player1, 60, "gift");
-        game.addPurchaseThisTurn(player1, 3);
+        game.entityHandler.addPurchaseThisTurn(player1, 3);
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, "top");
         game.actions.declarePurchase(player1);
@@ -149,12 +149,12 @@ describe("Requiem Rooms", () => {
         expect(room.tags.counters).toBe(1);
 
         // test murder goal
-        game.kill(player1, game.monsters[0]!, room);
+        game.entityHandler.kill(player1, game.monsters[0]!, room);
         await game.actions.resolveStack();
-        game.kill(player1, game.monsters[0]!, room);
+        game.entityHandler.kill(player1, game.monsters[0]!, room);
         await game.actions.resolveStack();
         expect(room.tags.counters).toBe(1);
-        game.kill(player1, game.monsters[0]!, room);
+        game.entityHandler.kill(player1, game.monsters[0]!, room);
         await game.actions.resolveStack();
         expect(room.tags.counters).toBe(2);
 
@@ -222,7 +222,7 @@ describe("Requiem Rooms", () => {
         game.resetStack();
         expect(player1.coins).toBe(0);
         game.addSoul(player2, soul);
-        game.addPurchaseThisTurn(player1, 1);
+        game.entityHandler.addPurchaseThisTurn(player1, 1);
         game.gainCoins(player1, 10, "gift");
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
@@ -275,7 +275,7 @@ describe("Requiem Rooms", () => {
         expect(player1.coins).toBe(3);
         expect(player1.inPlay.length).toBe(3);
 
-        game.addPurchaseThisTurn(player1, 1);
+        game.entityHandler.addPurchaseThisTurn(player1, 1);
         game.gainCoins(player1, 7, "gift");
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
@@ -290,51 +290,51 @@ describe("Requiem Rooms", () => {
         soul.soul = 2;
         game.addSoul(player2, soul);
         game.rooms?.forceRoomAtSlot(0, room);
-        expect(game.players.map(p => game.getAttack(p))).toEqual([2,1]);
+        expect(game.players.map(p => game.entityHandler.getAttack(p))).toEqual([2,1]);
        
          expect(player1.attackThisTurn).toBe(2);
         expect(player2.attackThisTurn).toBe(0);
         game.actions.declareAttack(player1);
         game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-        game.kill(player1, game.monsters[0]!, room);
+        game.entityHandler.kill(player1, game.monsters[0]!, room);
         await game.actions.resolveStack();
         expect(player1.attackThisTurn).toBe(1);
-        expect(game.players.map(p => game.getAttack(p))).toEqual([2,1]);
+        expect(game.players.map(p => game.entityHandler.getAttack(p))).toEqual([2,1]);
     });
     it("might_for_the_meek become powerful second attack does not give it back.", async () => {
         const room = game.obtainCard("r-might_for_the_meek") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
-        expect(game.players.map(p => game.getAttack(p))).toEqual([2,2]);
+        expect(game.players.map(p => game.entityHandler.getAttack(p))).toEqual([2,2]);
         expect(player1.attackThisTurn).toBe(2);
         expect(player2.attackThisTurn).toBe(0);
          game.actions.declareAttack(player1);
         game.actions.declareAttackOnEntity(player1, game.monsters[0]!);
-        game.kill(player1, game.monsters[0]!, room);
+        game.entityHandler.kill(player1, game.monsters[0]!, room);
         await game.actions.resolveStack();
         game.actions.declareAttack(player1);
         expect(player1.attackThisTurn).toBe(1);
         game.actions.declareAttackOnEntity(player1, game.monsters[0]!);
-        game.kill(player1, game.monsters[0]!, room);
+        game.entityHandler.kill(player1, game.monsters[0]!, room);
         await game.actions.resolveStack();
-        expect(game.players.map(p => game.getAttack(p))).toEqual([1,2]);
+        expect(game.players.map(p => game.entityHandler.getAttack(p))).toEqual([1,2]);
         expect(player1.attackThisTurn).toBe(0);
     });
     it("might_for_the_meek become powerful => lose free attack", async () => {
         const room = game.obtainCard("r-might_for_the_meek") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
-        expect(game.players.map(p => game.getAttack(p))).toEqual([2,2]);
+        expect(game.players.map(p => game.entityHandler.getAttack(p))).toEqual([2,2]);
         expect(player1.attackThisTurn).toBe(2);
         expect(player2.attackThisTurn).toBe(0);
         game.actions.declareAttack(player1);
         game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-        game.kill(player1, game.monsters[0]!, room);
+        game.entityHandler.kill(player1, game.monsters[0]!, room);
         await game.actions.resolveStack();
         expect(player1.attackThisTurn).toBe(0);
     });
     it("splash_damage", async () => {
         const room = game.obtainCard("r-splash_damage") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
-        game.dealDamage(player2, game.monsters[0]!, room, 1);
+        game.entityHandler.dealDamage(player2, game.monsters[0]!, room, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -345,7 +345,7 @@ describe("Requiem Rooms", () => {
     it("splash_damage", async () => {
         const room = game.obtainCard("r-splash_damage") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
-        game.dealDamage(player2, game.monsters[0]!, room, 1);
+        game.entityHandler.dealDamage(player2, game.monsters[0]!, room, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -363,7 +363,7 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(2);
-        game.kill(player2, game.monsters[0]!, room);
+        game.entityHandler.kill(player2, game.monsters[0]!, room);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player2.inPlay.length).toBe(2);
@@ -376,7 +376,7 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(1);
-        game.kill(player2, game.monsters[0]!, room);
+        game.entityHandler.kill(player2, game.monsters[0]!, room);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player2.inPlay.length).toBe(3);
@@ -394,7 +394,7 @@ describe("Requiem Rooms", () => {
         const room = game.obtainCard("r-shadow_of_war") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         game.gainTreasure(player1, 3);
-        game.kill(player1, player1, room);
+        game.entityHandler.kill(player1, player1, room);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.inPlay.length).toBe(3);
@@ -564,7 +564,7 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.animatedList.all[0]?.currentHealthPoints).toBe(7);
-        game.kill(player1, game.animatedList.all[0]!, room);
+        game.entityHandler.kill(player1, game.animatedList.all[0]!, room);
         await game.actions.resolveStack();
         expect(player1.inPlay.length).toBe(3);
         expect(player2.inPlay.length).toBe(3);
@@ -850,7 +850,7 @@ describe("Requiem Rooms", () => {
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             return { selected: [player2], remaining: Options } as any;
         };
-        game.kill(player1, game.monsters[0]!, room);
+        game.entityHandler.kill(player1, game.monsters[0]!, room);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -861,7 +861,7 @@ describe("Requiem Rooms", () => {
         game.rooms?.forceRoomAtSlot(0, room);
         game.resetStack();
         game.random = () => 0.9;
-        game.addHealth(player1, 1); // to be able to survive the room effect.
+        game.entityHandler.addHealth(player1, 1); // to be able to survive the room effect.
         await game.actions.activateRoom(player1, room, [], 0);
         expect(player1.currentHealthPoints).toBe(2);
         await game.actions.resolveStack(); // effect
@@ -922,7 +922,7 @@ describe("Requiem Rooms", () => {
         game.rooms?.forceRoomAtSlot(0, room);
         game.resetStack();
         expect(player1.hasAttackRequirement).toBe(false);
-        game.kill(player1, game.monsters[0]!, room);
+        game.entityHandler.kill(player1, game.monsters[0]!, room);
         await game.actions.resolveStack();
         game.random = () => 0.9;
         await game.actions.resolveStack();
@@ -964,7 +964,7 @@ describe("Requiem Rooms", () => {
         game.resetStack();
         const loot = game.obtainCard("b2-bomb")! as LootCard;
         game.addCardToHand(player1, loot);
-        game.addHealth(player1, 2); // to be able to survive the bomb damage and verify the 3 damage are correctly applied
+        game.entityHandler.addHealth(player1, 2); // to be able to survive the bomb damage and verify the 3 damage are correctly applied
         game.random = () => 0.9;
         await game.actions.activateRoom(player1, room, [loot], 0);
         await game.actions.resolveStack();
@@ -1034,11 +1034,11 @@ describe("Requiem Rooms", () => {
         const room = game.obtainCard("r-blood_money") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         game.resetStack();
-        game.kill(player1, player1, room);
+        game.entityHandler.kill(player1, player1, room);
         await game.actions.resolveStack();
         expect(player1.coins).toBe(0);
         expect(player2.coins).toBe(4);
-        game.kill(player2, player2, room);
+        game.entityHandler.kill(player2, player2, room);
         await game.actions.resolveStack();
         expect(player1.coins).toBe(4);
         expect(player2.coins).toBe(3);
@@ -1049,11 +1049,11 @@ describe("Requiem Rooms", () => {
         const room = game.obtainCard("r-spoils_of_war") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         game.resetStack();
-        game.kill(player1, player1, room);
+        game.entityHandler.kill(player1, player1, room);
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(0);
         expect(player2.hand.length).toBe(1);
-        game.kill(player2, player2, room);
+        game.entityHandler.kill(player2, player2, room);
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(1);
         expect(player2.hand.length).toBe(0);
@@ -1114,7 +1114,7 @@ describe("Requiem Rooms", () => {
         const old = game.rooms?._slots[0]![0];
         game.rooms?.forceRoomAtSlot(0, room);
         game.resetStack();
-        game.kill(player1, game.monsters[0]!, room);
+        game.entityHandler.kill(player1, game.monsters[0]!, room);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -1138,11 +1138,11 @@ describe("Requiem Rooms", () => {
     });
 
     it("black_champions - Monsters have +1 [ATK] .", async () => {
-        const atk = game.monsters.map(m => game.getAttack(m) + 1);
+        const atk = game.monsters.map(m => game.entityHandler.getAttack(m) + 1);
         const room = game.obtainCard("r-black_champions") as RoomCard;
         game.resetStack();
         game.rooms?.forceRoomAtSlot(0, room);
-        expect(game.monsters.map(m => game.getAttack(m))).toEqual(atk);
+        expect(game.monsters.map(m => game.entityHandler.getAttack(m))).toEqual(atk);
     });
 
     it("Beggar 2", async () => {
@@ -1334,7 +1334,7 @@ describe("Requiem Rooms", () => {
 
         const init = player1.inPlay.length;
         game.actions.declareAttackOnEntity(player1, player2);
-        game.kill(player1, player2, room);
+        game.entityHandler.kill(player1, player2, room);
         await game.actions.resolveStack();
         expect(player2.isDead).toBe(true);
         expect(player1.inPlay.length).toBe(init + 1);
@@ -1351,7 +1351,7 @@ describe("Requiem Rooms", () => {
 
         const init = player1.inPlay.length;
         game.actions.declareAttackOnEntity(player1, player2);
-        game.kill(player1, player2, room);
+        game.entityHandler.kill(player1, player2, room);
         await game.actions.resolveStack();
         expect(player2.isDead).toBe(true);
         expect(player1.inPlay.length).toBe(init + 1);
@@ -1368,7 +1368,7 @@ describe("Requiem Rooms", () => {
 
         const init = player1.inPlay.length;
         game.actions.declareAttackOnEntity(player1, player2);
-        game.kill(player1, player2, room);
+        game.entityHandler.kill(player1, player2, room);
         await game.actions.resolveStack();
         expect(player2.isDead).toBe(true);
         expect(player1.inPlay.length).toBe(init + 1);

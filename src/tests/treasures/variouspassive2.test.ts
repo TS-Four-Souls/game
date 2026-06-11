@@ -36,7 +36,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
     it("bobs_brain - roll 1-2: deal 1 damage to a monster", async () => {
         const bobsBrain = game.shop.obtainCard("b2-bobs_brain") as TreasureCard;
         game.addInPlay(player1, bobsBrain);
-        game.addAttackThisTurn(player1, 1); // Give player1 an attack to use
+        game.entityHandler.addAttackThisTurn(player1, 1); // Give player1 an attack to use
 
         const monster = game.monsters[0]!;
         const initialMonsterHP = monster.currentHealthPoints;
@@ -64,7 +64,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
     it("bobs_brain - roll 3-4: deal 1 damage to a player", async () => {
         const bobsBrain = game.shop.obtainCard("b2-bobs_brain") as TreasureCard;
         game.addInPlay(player1, bobsBrain);
-        game.addAttackThisTurn(player1, 1); // Give player1 an attack to use
+        game.entityHandler.addAttackThisTurn(player1, 1); // Give player1 an attack to use
 
         const monster = game.monsters[0]!;
         const initialHP = player2.currentHealthPoints;
@@ -94,7 +94,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
     it("bobs_brain - roll 5-6: take 1 damage", async () => {
         const bobsBrain = game.shop.obtainCard("b2-bobs_brain") as TreasureCard;
         game.addInPlay(player1, bobsBrain);
-        game.addAttackThisTurn(player1, 1); // Give player1 an attack to use
+        game.entityHandler.addAttackThisTurn(player1, 1); // Give player1 an attack to use
         const monster = game.monsters[0]!;
         const initialHP = player1.currentHealthPoints;
 
@@ -204,7 +204,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         game.addInPlay(player1, guppysCollar);
 
         // Kill player1
-        game.kill(player2, player1, guppysCollar);
+        game.entityHandler.kill(player2, player1, guppysCollar);
         await game.actions.resolveStack(); // Resolve any stack effects
 
         // Get the dice roll and set it to 2
@@ -228,7 +228,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         game.addInPlay(player1, guppysCollar);
 
         // Kill player1
-        game.kill(player2, player1, guppysCollar);
+        game.entityHandler.kill(player2, player1, guppysCollar);
         await game.actions.resolveStack(); // Resolve any stack effects
 
         // Get the dice roll and set it to 5
@@ -257,7 +257,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         expect(monster).toBeDefined();
 
         // Kill the monster
-        game.kill(player2, monster, midasTouch);
+        game.entityHandler.kill(player2, monster, midasTouch);
         await game.actions.resolveStack(); // death on stack
         await game.actions.resolveStack(); // gain coins
 
@@ -265,7 +265,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         expect(player1.coins).toBe(initialCoins + 3 + 1);
 
         // Kill the player
-        game.kill(player2, player2, midasTouch);
+        game.entityHandler.kill(player2, player2, midasTouch);
         await game.actions.resolveStack(); // death on stack
 
         // Player should gain 3¢
@@ -282,8 +282,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const monster1 = game.monsters[0]!;
         const monster2 = game.monsters[1]!;
 
-        game.kill(player2, monster1, midasTouch);
-        game.kill(player2, monster2, midasTouch);
+        game.entityHandler.kill(player2, monster1, midasTouch);
+        game.entityHandler.kill(player2, monster2, midasTouch);
         await game.actions.resolveStack(); // death on stack
         await game.actions.resolveStack(); // gain coins
         await game.actions.resolveStack(); // death on stack
@@ -300,7 +300,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const initialHandSize = player1.hand.length;
 
         // Take damage
-        game.dealDamage(player2, player1, fannyPack, 1);
+        game.entityHandler.dealDamage(player2, player1, fannyPack, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
 
@@ -311,14 +311,14 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
     it("fanny_pack - triggers on multiple damage instances", async () => {
         const fannyPack = game.shop.obtainCard("b2-fanny_pack") as TreasureCard;
         game.addInPlay(player1, fannyPack);
-        game.addHealth(player1, 10); // Ensure player has enough health
+        game.entityHandler.addHealth(player1, 10); // Ensure player has enough health
         const initialHandSize = player1.hand.length;
 
         // Take damage twice
-        game.dealDamage(player2, player1, fannyPack, 1);
+        game.entityHandler.dealDamage(player2, player1, fannyPack, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
-        game.dealDamage(player2, player1, fannyPack, 1);
+        game.entityHandler.dealDamage(player2, player1, fannyPack, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
 
@@ -333,7 +333,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const initialHP = player2.currentHealthPoints;
 
         // Take damage to trigger the effect
-        game.dealDamage(player2, player1, curseOfTheTower, 1);
+        game.entityHandler.dealDamage(player2, player1, curseOfTheTower, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
 
@@ -364,7 +364,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
 
         // Take damage to trigger the effect
-        game.dealDamage(player2, player1, curseOfTheTower, 1);
+        game.entityHandler.dealDamage(player2, player1, curseOfTheTower, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
 
@@ -391,7 +391,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const initialCoins = player1.coins;
 
         // Kill the player
-        game.kill(player2, player1, greedsGullet);
+        game.entityHandler.kill(player2, player1, greedsGullet);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
 
@@ -406,7 +406,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const initialHandSize = player1.hand.length;
 
         // Kill the player
-        game.kill(player2, player1, suicideKing);
+        game.entityHandler.kill(player2, player1, suicideKing);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
 

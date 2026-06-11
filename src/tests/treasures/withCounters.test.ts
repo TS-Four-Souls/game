@@ -37,14 +37,14 @@ describe("Treasure - with counters effect", () => {
     it("the_dead_cat", async () => {
         const theDeadCat = game.shop.obtainCard("b2-the_dead_cat") as ItemCard;
         game.addInPlay(player1, theDeadCat);
-        game.addHealth(player1, 10); // Ensure player has health to take damage
+        game.entityHandler.addHealth(player1, 10); // Ensure player has health to take damage
         const initHP = player1.currentHealthPoints;
         expect(theDeadCat.tags.counters).toBe(9);
 
         // Simulate taking 3 damage
         let damageToTake = 3;
         let countersBefore = theDeadCat.tags.counters;
-        game.dealDamage(player1, player1, theDeadCat, damageToTake);
+        game.entityHandler.dealDamage(player1, player1, theDeadCat, damageToTake);
         await game.actions.resolveStack();
 
         let countersAfter = theDeadCat.tags.counters;
@@ -56,7 +56,7 @@ describe("Treasure - with counters effect", () => {
         // Simulate taking 3 damage
         damageToTake = 7;
         countersBefore = theDeadCat.tags.counters;
-        game.dealDamage(player1, player1, theDeadCat, damageToTake);
+        game.entityHandler.dealDamage(player1, player1, theDeadCat, damageToTake);
         await game.actions.resolveStack();
 
         countersAfter = theDeadCat.tags.counters;
@@ -96,7 +96,7 @@ describe("Treasure - with counters effect", () => {
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, monster);
 
-        game.addHealth(monster, 20);
+        game.entityHandler.addHealth(monster, 20);
 
         // First attack roll of the turn
         game.actions.attackRoll(player1);
@@ -156,7 +156,7 @@ describe("Treasure - with counters effect", () => {
     it("cambion_conception - damage counter and treasure gain", async () => {
         const cambionConception = game.shop.obtainCard("b2-cambion_conception") as TreasureCard;
         game.addInPlay(player1, cambionConception);
-        game.addHealth(player1, 200); // Give player enough health to take damage
+        game.entityHandler.addHealth(player1, 200); // Give player enough health to take damage
 
         const initNbTreasure = player1.inPlay.length;
 
@@ -164,14 +164,14 @@ describe("Treasure - with counters effect", () => {
         expect(cambionConception.tags.counters).toBeUndefined();
 
         // Test: take 2 damage, should add 2 counters
-        game.dealDamage(player2, player1, cambionConception, 2);
+        game.entityHandler.dealDamage(player2, player1, cambionConception, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(2);
         expect(player1.inPlay.length).toBe(initNbTreasure); // No treasure yet
 
         // Test: take 3 more damage, should add 3 counters (total 5)
-        game.dealDamage(player2, player1, cambionConception, 3);
+        game.entityHandler.dealDamage(player2, player1, cambionConception, 3);
         await game.actions.resolveStack(); // resolve damage
         await game.actions.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(5);
@@ -179,7 +179,7 @@ describe("Treasure - with counters effect", () => {
 
         // Test: take 1 more damage, should reach 6 counters
         // This should trigger: remove 6 counters and gain +1 treasure
-        game.dealDamage(player2, player1, cambionConception, 1);
+        game.entityHandler.dealDamage(player2, player1, cambionConception, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(0); // 6 counters removed
@@ -188,7 +188,7 @@ describe("Treasure - with counters effect", () => {
 
         // Test: take 8 damage at once
         // Should add 8 counters, then immediately remove 6 and gain treasure
-        game.dealDamage(player2, player1, cambionConception, 8);
+        game.entityHandler.dealDamage(player2, player1, cambionConception, 8);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(2); // 8 added, 6 removed, 2 remaining
@@ -197,7 +197,7 @@ describe("Treasure - with counters effect", () => {
 
         // Test: take 4 more damage (2 + 4 = 6)
         // Should trigger treasure gain again
-        game.dealDamage(player2, player1, cambionConception, 4);
+        game.entityHandler.dealDamage(player2, player1, cambionConception, 4);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(0); // 6 removed again
@@ -205,7 +205,7 @@ describe("Treasure - with counters effect", () => {
         game.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // Remove gained treasure for further tests
 
         // Test: take exactly 6 damage
-        game.dealDamage(player2, player1, cambionConception, 6);
+        game.entityHandler.dealDamage(player2, player1, cambionConception, 6);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(0); // Should remove 6 and be at 0
@@ -213,7 +213,7 @@ describe("Treasure - with counters effect", () => {
         game.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // Remove gained treasure for further tests
 
         // Test: take 13 damage (should only trigger once, leaving 7 counters)
-        game.dealDamage(player2, player1, cambionConception, 13);
+        game.entityHandler.dealDamage(player2, player1, cambionConception, 13);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(7); // 13 added, 6 removed, 7 remaining
@@ -254,7 +254,7 @@ describe("Treasure - with counters effect", () => {
 
         // Test: Paid effect - remove 3 counters to kill a player or monster
         const monster = game.monsters[0]!;
-        game.addHealth(monster, 10);
+        game.entityHandler.addHealth(monster, 10);
         const initialMonsterHP = monster.currentHealthPoints;
 
         // Use paid effect to kill the monster
@@ -291,7 +291,7 @@ describe("Treasure - with counters effect", () => {
         expect(techX.tags.counters).toBe(4);
 
         // Kill player2
-        game.addHealth(player2, 10);
+        game.entityHandler.addHealth(player2, 10);
         const player2HP = player2.currentHealthPoints;
         await game.activateItem(player1, techX, [player2], 0);
         await game.actions.resolveStack();
@@ -306,7 +306,7 @@ describe("Treasure - with counters effect", () => {
     it("the_poop - gain counters on damage, paid effect to prevent damage", async () => {
         const thePoop = game.shop.obtainCard("b2-the_poop") as TreasureCard;
         game.addInPlay(player1, thePoop);
-        game.addHealth(player1, 20); // Give player enough health
+        game.entityHandler.addHealth(player1, 20); // Give player enough health
 
         const initialHP = player1.currentHealthPoints;
 
@@ -314,14 +314,14 @@ describe("Treasure - with counters effect", () => {
         expect(thePoop.tags.counters).toBeUndefined();
 
         // Test: taking 1 damage should add 1 counter
-        game.dealDamage(player2, player1, thePoop, 1);
+        game.entityHandler.dealDamage(player2, player1, thePoop, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
         expect(thePoop.tags.counters).toBe(1);
         expect(player1.currentHealthPoints).toBe(initialHP - 1);
 
         // Test: taking 3 damage should add 3 more counters
-        game.dealDamage(player2, player1, thePoop, 3);
+        game.entityHandler.dealDamage(player2, player1, thePoop, 3);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
 
@@ -336,14 +336,14 @@ describe("Treasure - with counters effect", () => {
 
         // Now take 1 damage - should be prevented
         const hpBeforePrevent = player1.currentHealthPoints;
-        game.dealDamage(player2, player1, thePoop, 1);
+        game.entityHandler.dealDamage(player2, player1, thePoop, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
         expect(player1.currentHealthPoints).toBe(hpBeforePrevent); // No damage taken (prevented)
         expect(thePoop.tags.counters).toBe(1); // Counter not added since damage was prevented
 
         // Test: taking damage after prevention expired should add counter normally
-        game.dealDamage(player2, player1, thePoop, 2);
+        game.entityHandler.dealDamage(player2, player1, thePoop, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
         expect(thePoop.tags.counters).toBe(2); // 1 + 1
@@ -357,7 +357,7 @@ describe("Treasure - with counters effect", () => {
         expect(thePoop.tags.counters).toBe(0); // 2 counters removed
 
         const hpBefore = player1.currentHealthPoints;
-        game.dealDamage(player2, player1, thePoop, 5);
+        game.entityHandler.dealDamage(player2, player1, thePoop, 5);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
         expect(player1.currentHealthPoints).toBe(hpBefore - 3); // 5 damage - 2 prevented = 3 actual damage
@@ -371,7 +371,7 @@ describe("Treasure - with counters effect", () => {
         // This depends on implementation
 
         // Verify we can still gain counters
-        game.dealDamage(player2, player1, thePoop, 2);
+        game.entityHandler.dealDamage(player2, player1, thePoop, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
         expect(thePoop.tags.counters).toBe(1); // Counters work again

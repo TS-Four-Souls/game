@@ -33,7 +33,7 @@ describe("Discard", () => {
     it("discard 1 loots on death", async () => {
         game.loot(player1, 10);
         const handSize = player1.hand.length;
-        game.kill(player1, player1, player1.hand._hand[0] as Card);
+        game.entityHandler.kill(player1, player1, player1.hand._hand[0] as Card);
         expect(game.decks['loot']!.discard.length).toBe(0);
         await game.resolveEntireStack();
         expect(game.stack.size).toBe(0);
@@ -45,7 +45,7 @@ describe("Discard", () => {
         game.addCardToHand(player1, game.obtainCard("b2-a_dime")! as LootCard);
         game.addCardToHand(player1, game.obtainCard("b2-a_nickel")! as LootCard);
         game.actions.playCard(player1, 0);
-        game.addLootPlay(player1, 1);
+        game.entityHandler.addLootPlay(player1, 1);
         game.actions.playCard(player1, 0);
         expect(game.decks['loot']!.discard.length).toBe(0);
         await game.actions.resolveStack();
@@ -63,7 +63,7 @@ describe("Discard", () => {
         await game.resolveEntireStack();
         expect(game.stack.size).toBe(0);
         expect(game.decks['loot']!.discard.length).toBe(0);
-        game.kill(player1, player1, player1.inPlay[0]!);
+        game.entityHandler.kill(player1, player1, player1.inPlay[0]!);
         await game.resolveEntireStack();
         expect(game.decks['loot']!.discard.length).toBe(1);
         expect(game.decks['monster']!.discard.length).toBe(0);
@@ -80,7 +80,7 @@ describe("Discard", () => {
         expect(game.decks['monster']!.discard.length).toBe(0);
         expect(game.decks['treasure']!.discard.length).toBe(0);
         expect(player1.curses.map(c => c.slug)).toContain("b2-curse_of_loss");
-        game.kill(player1, player1, player1.inPlay[0]!);
+        game.entityHandler.kill(player1, player1, player1.inPlay[0]!);
         await game.resolveEntireStack();
         expect(player1.curses.map(c => c.slug)).not.toContain("b2-curse_of_loss");
 
@@ -97,7 +97,7 @@ describe("Discard", () => {
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         const mobster = game.monsters[0]!;
-        game.kill(mobster, player1, ewaz);
+        game.entityHandler.kill(mobster, player1, ewaz);
         await game.actions.resolveStack();
         game.endTurn();
         await game.actions.resolveStack();
@@ -126,7 +126,7 @@ describe("Discard", () => {
         const initialDiscardSize = game.decks['monster']!.discard.length;
         
         // Kill the monster
-        game.kill(player1, monster, monsterCard);
+        game.entityHandler.kill(player1, monster, monsterCard);
         await game.resolveEntireStack();
         
         // Monster should become a soul, not be discarded
@@ -148,7 +148,7 @@ describe("Discard", () => {
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         
         const monster = game.monsters[0]!;
-        game.kill(player1, monster, monsterCard);
+        game.entityHandler.kill(player1, monster, monsterCard);
         await game.resolveEntireStack();
         
         // Monster should go to discard pile

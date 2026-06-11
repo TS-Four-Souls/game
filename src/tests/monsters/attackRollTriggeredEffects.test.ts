@@ -33,14 +33,14 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             game.monsterSlots.forceSetMonsterAtSlot(0, swarmOfFlies);
             
             const swarmMonster = game.monsters[0]!;
-            game.addHealth(player1, 10); // Ensure player has enough HP to take damage
+            game.entityHandler.addHealth(player1, 10); // Ensure player has enough HP to take damage
             const initialHP = player1.currentHealthPoints;
             
             // Declare attack
             game.actions.declareAttack(player1);
             await game.actions.declareAttackOnEntity(player1, swarmMonster);
             
-            game.addHealth(swarmMonster, 10); // Ensure monster has HP to survive
+            game.entityHandler.addHealth(swarmMonster, 10); // Ensure monster has HP to survive
             
             // Make attack roll
             game.actions.attackRoll(player1);
@@ -70,7 +70,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             game.actions.declareAttack(player1);
             await game.actions.declareAttackOnEntity(player1, swarmMonster);
             
-            game.addHealth(swarmMonster, 10);
+            game.entityHandler.addHealth(swarmMonster, 10);
             
             game.actions.attackRoll(player1);
             
@@ -91,13 +91,13 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             game.monsterSlots.forceSetMonsterAtSlot(0, swarmOfFlies);
             
             const swarmMonster = game.monsters[0]!;
-            game.addHealth(player1, 10);
+            game.entityHandler.addHealth(player1, 10);
             const initialHP = player1.currentHealthPoints;
             
             // First attack
             game.actions.declareAttack(player1);
             await game.actions.declareAttackOnEntity(player1, swarmMonster);
-            game.addHealth(swarmMonster, 10);
+            game.entityHandler.addHealth(swarmMonster, 10);
             
             game.actions.attackRoll(player1);
             const dice1 = game.stack.elements[0] as DiceRoll;
@@ -135,10 +135,10 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             game.monsterSlots.forceSetMonsterAtSlot(0, chub);
             
             const chubMonster = game.monsters[0]!;
-            game.addHealth(player1, 10);
+            game.entityHandler.addHealth(player1, 10);
             
             // Reduce chub's health so it can heal
-            game.dealDamage(chubMonster, chubMonster, chubMonster.card, 3);
+            game.entityHandler.dealDamage(chubMonster, chubMonster, chubMonster.card, 3);
             await game.actions.resolveStack(); // resolve the dice roll and chub healing effect
 
             const initialMonsterHP = chubMonster.currentHealthPoints;
@@ -168,7 +168,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             game.monsterSlots.forceSetMonsterAtSlot(0, chub);
             
             const chubMonster = game.monsters[0]!;
-            game.dealDamage(chubMonster, chubMonster, chubMonster.card, 2);
+            game.entityHandler.dealDamage(chubMonster, chubMonster, chubMonster.card, 2);
             await game.actions.resolveStack();
 
             const initialMonsterHP = chubMonster.currentHealthPoints;
@@ -196,7 +196,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             game.monsterSlots.forceSetMonsterAtSlot(0, chub);
             
             const chubMonster = game.monsters[0]!;
-            game.dealDamage(chubMonster, chubMonster, chubMonster.card, 3);
+            game.entityHandler.dealDamage(chubMonster, chubMonster, chubMonster.card, 3);
             await game.actions.resolveStack();
 
             const initialMonsterHP = chubMonster.currentHealthPoints;
@@ -239,7 +239,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const maxHP = chubMonster.healthPoints;
             
             // Set chub to 1 HP below max
-            game.dealDamage(chubMonster, chubMonster, chubMonster.card, 1);
+            game.entityHandler.dealDamage(chubMonster, chubMonster, chubMonster.card, 1);
             await game.actions.resolveStack();
 
             
@@ -269,15 +269,15 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             game.monsterSlots.forceSetMonsterAtSlot(0, satan);
             
             const satanMonster = game.monsters[0]!;
-            game.addHealth(player1, 10);
-            game.addHealth(player2, 5);
+            game.entityHandler.addHealth(player1, 10);
+            game.entityHandler.addHealth(player2, 5);
             
             expect(player2.isDead).toBe(false);
             
             game.actions.declareAttack(player1);
             await game.actions.declareAttackOnEntity(player1, satanMonster);
             
-            game.addHealth(satanMonster, 10);
+            game.entityHandler.addHealth(satanMonster, 10);
             
             // Make attack roll
             game.actions.attackRoll(player1);
@@ -303,14 +303,14 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             game.monsterSlots.forceSetMonsterAtSlot(0, satan);
             
             const satanMonster = game.monsters[0]!;
-            game.addHealth(player2, 5);
+            game.entityHandler.addHealth(player2, 5);
             
             expect(player2.isDead).toBe(false);
             
             game.actions.declareAttack(player1);
             await game.actions.declareAttackOnEntity(player1, satanMonster);
             
-            game.addHealth(satanMonster, 10);
+            game.entityHandler.addHealth(satanMonster, 10);
             
             game.actions.attackRoll(player1);
             
@@ -349,15 +349,15 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             game4.monsterSlots.forceSetMonsterAtSlot(0, satan);
             
             const satanMonster = game4.monsters[0]!;
-            game4.addHealth(player1_4, 10);
-            game4.addHealth(player2_4, 5);
-            game4.addHealth(player3, 5);
-            game4.addHealth(player4, 5);
+            game4.entityHandler.addHealth(player1_4, 10);
+            game4.entityHandler.addHealth(player2_4, 5);
+            game4.entityHandler.addHealth(player3, 5);
+            game4.entityHandler.addHealth(player4, 5);
             
             // First attack roll of 6 - kill player2
             game4.actions.declareAttack(player1_4);
             await game4.actions.declareAttackOnEntity(player1_4, satanMonster);
-            game4.addHealth(satanMonster, 10);
+            game4.entityHandler.addHealth(satanMonster, 10);
             
             game4.actions.attackRoll(player1_4);
             const dice1 = game4.stack.elements[0] as DiceRoll;
@@ -393,13 +393,13 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             game.monsterSlots.forceSetMonsterAtSlot(0, satan);
             
             const satanMonster = game.monsters[0]!;
-            game.addHealth(player1, 10);
+            game.entityHandler.addHealth(player1, 10);
             
             expect(player1.isDead).toBe(false);
             
             game.actions.declareAttack(player1);
             await game.actions.declareAttackOnEntity(player1, satanMonster);
-            game.addHealth(satanMonster, 10);
+            game.entityHandler.addHealth(satanMonster, 10);
             
             game.actions.attackRoll(player1);
             const dice = game.stack.elements[0] as DiceRoll;
@@ -425,7 +425,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             game.monsterSlots.forceSetMonsterAtSlot(0, ringOfFlies);
             
             const ringMonster = game.monsters[0]!;
-            game.addHealth(player1, 10);
+            game.entityHandler.addHealth(player1, 10);
             
             // Give player2 some loot cards
             const lootCard1 = game.decks["loot"]!.draw() as LootCard;
@@ -472,7 +472,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             
             game.actions.declareAttack(player1);
             await game.actions.declareAttackOnEntity(player1, ringMonster);
-            game.addHealth(ringMonster, 10);
+            game.entityHandler.addHealth(ringMonster, 10);
             
             game.actions.attackRoll(player1);
             
@@ -509,7 +509,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             // First attack roll of 3
             game.actions.declareAttack(player1);
             await game.actions.declareAttackOnEntity(player1, ringMonster);
-            game.addHealth(ringMonster, 10);
+            game.entityHandler.addHealth(ringMonster, 10);
             
             game.actions.attackRoll(player1);
             const dice1 = game.stack.elements[0] as DiceRoll;
@@ -553,7 +553,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             
             game.actions.declareAttack(player1);
             await game.actions.declareAttackOnEntity(player1, ringMonster);
-            game.addHealth(ringMonster, 10);
+            game.entityHandler.addHealth(ringMonster, 10);
             
             game.actions.attackRoll(player1);
             const dice = game.stack.elements[0] as DiceRoll;
@@ -600,7 +600,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             
             game3.actions.declareAttack(player1_3);
             await game3.actions.declareAttackOnEntity(player1_3, ringMonster);
-            game3.addHealth(ringMonster, 10);
+            game3.entityHandler.addHealth(ringMonster, 10);
             
             game3.actions.attackRoll(player1_3);
             const dice = game3.stack.elements[0] as DiceRoll;

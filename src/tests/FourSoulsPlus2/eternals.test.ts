@@ -45,7 +45,7 @@ describe("Four Souls+2 Eternal Items", () => {
             };
         return { selected: Options.slice(0, max), remaining: Options.slice(max) };
     };
-        game.dealDamage(player1, player1, player1.inPlay[0]!, 1);
+        game.entityHandler.dealDamage(player1, player1, player1.inPlay[0]!, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -77,7 +77,7 @@ describe("Four Souls+2 Eternal Items", () => {
             };
         return { selected: Options.slice(0, max), remaining: Options.slice(max) };
     };
-        game.dealDamage(player1, player1, player1.inPlay[0]!, 1);
+        game.entityHandler.dealDamage(player1, player1, player1.inPlay[0]!, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -108,7 +108,7 @@ describe("Four Souls+2 Eternal Items", () => {
             };
         return { selected: Options.slice(0, max), remaining: Options.slice(max) };
     };
-        game.dealDamage(player1, player1, player1.inPlay[0]!, 1);
+        game.entityHandler.dealDamage(player1, player1, player1.inPlay[0]!, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -134,12 +134,12 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.inPlay[1]!.slug).toBe("fsp2-dark_arts");
 
         const handSize = player1.hand.cards.length;
-        game.kill(player2, player2, player1.inPlay[0]!);
+        game.entityHandler.kill(player2, player2, player1.inPlay[0]!);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.hand.cards.length).toBe(handSize + 1);
 
-        game.kill(player1, player1, player1.inPlay[0]!);
+        game.entityHandler.kill(player1, player1, player1.inPlay[0]!);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();

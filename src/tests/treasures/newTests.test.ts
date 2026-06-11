@@ -332,7 +332,7 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
         const sackOfPennies = game.obtainCard("b2-sack_of_pennies") as ItemCard;
         game.addInPlay(player1, modelingClay);
         game.addInPlay(player1, sackOfPennies);
-        game.addHealth(player1, 10); // Ensure player1 has enough HP
+        game.entityHandler.addHealth(player1, 10); // Ensure player1 has enough HP
         // Transform
         game.recharge(modelingClay);
         await game.activateItem(player1, modelingClay, [sackOfPennies]);

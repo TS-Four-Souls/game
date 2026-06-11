@@ -71,7 +71,7 @@ export class ActionHandler {
       this.canDeclareAttack(player, true);
       player.clearOutdatedAttackRequirements(this.game.attackableEntities);
       player.engageInCombat();
-      this.game.addEntityInCombat(player);
+      this.game.entityHandler.addEntityInCombat(player);
       this.game.emit("on:attack:declared", { eventIssuer: player });
       this.game.dispatch();
     }
@@ -82,7 +82,7 @@ export class ActionHandler {
     canDeclareAttackOnEntity(player: Player,
       entity: Entity | "topDeck", shouldThrow: boolean = false): Capability {
       try {
-        this.game.endCombatIfInvalid(player);
+        this.game.entityHandler.endCombatIfInvalid(player);
         this.game.assert.emptyStack();
         if (entity !== "topDeck" && !entity.attackable) {
           throw new Error("This entity cannot be attacked.");
@@ -152,7 +152,7 @@ export class ActionHandler {
             ) {
               player.clearAttackRequirement(target);
               player.clearAttackRequirement("any");
-              this.game.endCombat();
+              this.game.entityHandler.endCombat();
               return; // drawn event.
             }
             target = this.game.encounters.monsterIn(drawInIndex)!;
@@ -164,7 +164,7 @@ export class ActionHandler {
             return; // if the target is already dead, do nothing.
           }
           target.engageInCombat();
-          this.game.addEntityInCombat(target);
+          this.game.entityHandler.addEntityInCombat(target);
           if (target.isEngagedInCombat === false)
             throw new Error("Monster should be engaged in combat now.");
           
@@ -226,7 +226,7 @@ export class ActionHandler {
     const damageDealtMultiplier = [1];
     const damageReceivedAdditional = [0];
     const damageReceivedMultiplier = [1];
-    const evasion = [this.game.getDC(target)];
+    const evasion = [this.game.entityHandler.getDC(target)];
     const dice = this.game.rollDice(player, true);
 
     this.game.emit("on:attack:roll", {
@@ -330,7 +330,7 @@ export class ActionHandler {
         this.game.assert.noOngoingAttack();
         this.game.assert.noEntityIsEngagedInCombat();
         this.game.assert.noPendingSelection();
-        this.game.forcedAttackSatisfied(player);
+        this.game.entityHandler.forcedAttackSatisfied(player);
       }
       catch (e) {
         if (shouldThrow) throw e;

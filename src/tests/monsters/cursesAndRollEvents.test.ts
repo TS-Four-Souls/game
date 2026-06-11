@@ -388,7 +388,7 @@ describe("Event Monsters - Roll Effects (Chests)", () => {
     it("secret_room - roll 1: take 3 damage", async () => {
         const secretRoom = game.obtainCard("b2-secret_room") as MonsterCard;
         game.decks["monster"]!.addTopPosition(secretRoom);
-        game.addHealth(player1, 5); // Ensure player has enough health to take damage
+        game.entityHandler.addHealth(player1, 5); // Ensure player has enough health to take damage
         const initialHP = player1.currentHealthPoints;
         
         game.monsterSlots.discardTop(0);
@@ -520,7 +520,7 @@ describe("Event Monsters - Expansion Effects", () => {
         const initialMonsterSlots = game.monsterSlots._slots.length;
         
         // Kill the monster
-        game.kill(player1, monster, mom);
+        game.entityHandler.kill(player1, monster, mom);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -536,7 +536,7 @@ describe("Event Monsters - Expansion Effects", () => {
         const initialMonsterSlots = game.monsterSlots.slots.length;
         
         // Kill the monster
-        game.kill(player1, monster, mulligan);
+        game.entityHandler.kill(player1, monster, mulligan);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -552,7 +552,7 @@ describe("Event Monsters - Expansion Effects", () => {
         const initialShopSlots = game.shop.itemsInShop.length;
         
         // Kill the monster
-        game.kill(player1, monster, hanger);
+        game.entityHandler.kill(player1, monster, hanger);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -671,7 +671,7 @@ describe("Event Monsters - Curse Effects", () => {
         await game.actions.resolveStack(); // resolve the event addition
         
         // Kill the player
-        game.kill(player1, player1, curseOfLoss);
+        game.entityHandler.kill(player1, player1, curseOfLoss);
         await game.actions.resolveStack(); // death resolution
         const effect = game.stack._stack[0] as EffectOnStack ;
         effect.targets = [soulCard]; // Choose soul to destroy

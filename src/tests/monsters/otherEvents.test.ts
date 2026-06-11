@@ -77,7 +77,7 @@ describe("Event Monsters - Other Events", () => {
 
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-        game.kill(player1, game.monsters[0]!, ambush);
+        game.entityHandler.kill(player1, game.monsters[0]!, ambush);
         game.actions.resolveStack();
         
         expect(player1.mustAttackEntity.length).toBe(initialAttacks + 1);
@@ -86,7 +86,7 @@ describe("Event Monsters - Other Events", () => {
 
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-        game.kill(player1, game.monsters[0]!, ambush);
+        game.entityHandler.kill(player1, game.monsters[0]!, ambush);
         game.actions.resolveStack();
 
         expect(player1.mustAttackEntity.length).toBe(initialAttacks);
@@ -111,7 +111,7 @@ describe("Event Monsters - Other Events", () => {
 
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-        game.kill(player1, game.monsters[0]!, ambush);
+        game.entityHandler.kill(player1, game.monsters[0]!, ambush);
         game.actions.resolveStack();
         
         expect(player1.mustAttackEntity.length).toBe(0);
@@ -210,7 +210,7 @@ describe("Event Monsters - Other Events", () => {
         const initialAttacks = player1.attackThisTurn;
          
         // Mock select to choose no monsters to move
-        const originalSelect = game.select.bind(game);
+        const originalSelect = game.select.bind(game.entityHandler);
         game.select = async <T>(player: Player, min: number, max: number, options: T[], description?: string) => {
             if (min === 0) {
                 return { selected: [] as T[], remaining: options };
@@ -300,7 +300,7 @@ describe("Event Monsters - Other Events", () => {
     });
 
     it("devil_deal - option 3: take 2 damage, search for guppy item", async () => {
-        game.addHealth(player1, 5);
+        game.entityHandler.addHealth(player1, 5);
 
         const devilDeal = game.obtainCard("b2-devil_deal") as MonsterCard;
         game.decks["monster"]!.addTopPosition(devilDeal);

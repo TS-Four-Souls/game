@@ -188,7 +188,7 @@ describe("Treasure - Permanent Modifiers", () => {
 
             expect(monster.currentHealthPoints).toBe(initialMonsterHealth - baseAttack - baseAttack - 1);
             game.removeInPlay(player1, item);
-            game.endCombat();
+            game.entityHandler.endCombat();
             game.endTurn();
             await game.actions.resolveStack();
             game.endTurn();
@@ -199,7 +199,7 @@ describe("Treasure - Permanent Modifiers", () => {
     it("b2-belly_button: Each time you take damage, you may recharge your character", async () => {
         const bellyButton = game.shop.obtainCard("b2-belly_button") as TreasureCard;
         const dummyCard = { slug: "test", name: "Test" } as any;
-        game.addHealth(player1, 10); // Ensure player has enough health
+        game.entityHandler.addHealth(player1, 10); // Ensure player has enough health
         game.addInPlay(player1, bellyButton);
         
         // Character starts uncharged (based on test failures)
@@ -216,7 +216,7 @@ describe("Treasure - Permanent Modifiers", () => {
         
         // Deal damage to player1
         const initialHP = player1.currentHealthPoints;
-        game.dealDamage(player2, player1, dummyCard, 1);
+        game.entityHandler.dealDamage(player2, player1, dummyCard, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
 
@@ -229,7 +229,7 @@ describe("Treasure - Permanent Modifiers", () => {
         expect(character.charged).toBe(false);
         
         // Take damage again - should recharge again
-        game.dealDamage(player2, player1, dummyCard, 2);
+        game.entityHandler.dealDamage(player2, player1, dummyCard, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
         expect(character.charged).toBe(true);

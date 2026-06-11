@@ -29,7 +29,7 @@ describe("Known bugs that have be corrected", () => {
     it("discard 1 loots on death", async () => {
         game.loot(player1, 10);
         const handSize = player1.hand.length;
-        game.kill(player1, player1, player1.hand._hand[0] as Card);
+        game.entityHandler.kill(player1, player1, player1.hand._hand[0] as Card);
         await game.resolveEntireStack();
         expect(game.stack.size).toBe(0);
         expect(player1.hand.length).toBe(handSize - 1);
@@ -46,13 +46,13 @@ describe("Known bugs that have be corrected", () => {
         game.actions.playCard(player1, 0);
         await game.actions.resolveStack();
 
-        game.dealDamage(player2, player1, loot, 1);
+        game.entityHandler.dealDamage(player2, player1, loot, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
         expect(player1.coins).toBe(initialCoins + 1);
         expect(player1.currentHealthPoints).toBe(initialHealth - 1);
 
-        game.dealDamage(player2, player1, loot, 1);
+        game.entityHandler.dealDamage(player2, player1, loot, 1);
         const dmgOnStck = game.stack.peek()! as DamageOnStack;
         dmgOnStck.damage = [0]; // modify damage to 0
         await game.actions.resolveStack();
@@ -112,15 +112,15 @@ describe("Known bugs that have be corrected", () => {
         game.addInPlay(player1, bumbo);
         game.gainCoins(player1, 40, "gift");
         expect(bumbo.tags.counters || 0).toBe(40);
-        expect(game.getAttack(player1)).toBe(2);
-        expect(game.getAttack(player2)).toBe(1);
+        expect(game.entityHandler.getAttack(player1)).toBe(2);
+        expect(game.entityHandler.getAttack(player2)).toBe(1);
         expect(player1.coins).toBe(0);
         game.stealItemAnywhere(player2, bumbo);
         expect(player1.inPlay).not.toContain(bumbo);
         expect(player2.inPlay).toContain(bumbo);
         expect(bumbo.tags.counters || 0).toBe(40);
-        expect(game.getAttack(player1)).toBe(1);
-        expect(game.getAttack(player2)).toBe(2);
+        expect(game.entityHandler.getAttack(player1)).toBe(1);
+        expect(game.entityHandler.getAttack(player2)).toBe(2);
     });
 
 
@@ -146,7 +146,7 @@ describe("Known bugs that have be corrected", () => {
         expect(game.stack.size).toBe(0);
         expect(player1.currentHealthPoints).toBe(1);
 
-        game.kill(player1, player1, pain);
+        game.entityHandler.kill(player1, player1, pain);
         await game.actions.resolveStack(); // death on stack
         expect(player1.curses.length).toBe(0);
 
@@ -200,7 +200,7 @@ describe("Known bugs that have be corrected", () => {
         game.actions.declareAttack(player1);
         game.drawMonster(player1, 0);
         const monster = game.monsters[0]!;
-        game.kill(player1, monster, player1.inPlay[0]!);
+        game.entityHandler.kill(player1, monster, player1.inPlay[0]!);
         await game.resolveEntireStack();
         expect(game.monsters[0]).not.toBe(monster);
         expect(game.encounters.visible[0]?.slug).not.toBe(monster.card.slug);
@@ -237,7 +237,7 @@ describe("Known bugs that have be corrected", () => {
 
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, game.monsters[0]!);
-        game.kill(player1, game.monsters[0]!, player1.inPlay[0]!);
+        game.entityHandler.kill(player1, game.monsters[0]!, player1.inPlay[0]!);
         await game.actions.resolveStack(); // when this dies 
         expect(game.stack.size).toBe(1);
         await game.actions.resolveStack(); // gold chest top deck
@@ -250,7 +250,7 @@ describe("Known bugs that have be corrected", () => {
     it("b2-keeper_head - Prevented damage should not steal coins.", async () => {
         const card = game.obtainCard("b2-keeper_head") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.addHealth(player1, 10); // Prevent death by damage
+        game.entityHandler.addHealth(player1, 10); // Prevent death by damage
 
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;

@@ -266,7 +266,7 @@ describe("Four Souls+2 Treasures", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 2);
-        game.kill(player1, game.encounters.monsterIn(1)!, player1.inPlay[0]!); // kill Fatty
+        game.entityHandler.kill(player1, game.encounters.monsterIn(1)!, player1.inPlay[0]!); // kill Fatty
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 4);
@@ -278,7 +278,7 @@ describe("Four Souls+2 Treasures", () => {
         const hp = player1.currentHealthPoints;
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, game.encounters.monsterIn(0)!);
-        game.dealDamage(player2, player1, card1, hp);
+        game.entityHandler.dealDamage(player2, player1, card1, hp);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.currentHealthPoints).toBe(hp);
@@ -470,7 +470,7 @@ describe("Four Souls+2 Treasures", () => {
         expect(player1.souls.length).toBe(1);
 
         game.addCardToHand(player2, game.obtainCard("b2-lost_soul")! as LootCard);
-        game.addLootPlay(player2, 1);
+        game.entityHandler.addLootPlay(player2, 1);
         game.actions.playCard(player2, player2.hand.length - 1);
         await game.actions.resolveStack();
         expect(player2.souls.length).toBe(1);
@@ -523,10 +523,10 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-the_wiz - Monsters have +1 [DC] on your turn,  Each time you deal combat damage, deal 1 damage to another monster or player.", async () => {
         const card1 = game.obtainCard("fsp2-the_wiz") as TreasureCard;
-        const evastion = [game.getDC(game.encounters.monsterIn(0)!), game.getDC(game.encounters.monsterIn(1)!)];
+        const evastion = [game.entityHandler.getDC(game.encounters.monsterIn(0)!), game.entityHandler.getDC(game.encounters.monsterIn(1)!)];
         game.addInPlay(player1, card1);
-        expect(game.getDC(game.encounters.monsterIn(0)!)).toBe(evastion[0]!+1);
-        expect(game.getDC(game.encounters.monsterIn(1)!)).toBe(evastion[1]!+1);
+        expect(game.entityHandler.getDC(game.encounters.monsterIn(0)!)).toBe(evastion[0]!+1);
+        expect(game.entityHandler.getDC(game.encounters.monsterIn(1)!)).toBe(evastion[1]!+1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, game.encounters.monsterIn(0)!);
         game.random = () => 0.99;
@@ -548,7 +548,7 @@ describe("Four Souls+2 Treasures", () => {
         expect(player1.attackPoints).toBe(1);
         game.addInPlay(player1, card1);
         expect(player1.attackPoints).toBe(4);
-        game.dealDamage(player2, player1, card1, 1);
+        game.entityHandler.dealDamage(player2, player1, card1, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -562,7 +562,7 @@ describe("Four Souls+2 Treasures", () => {
         game.addInPlay(player1, card1);
         expect(player1.currentHealthPoints).toBe(hp+2);
         game.loot(player1, 2);
-        game.dealDamage(player2, player1, card1, 1);
+        game.entityHandler.dealDamage(player2, player1, card1, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.currentHealthPoints).toBe(hp+1);
@@ -572,11 +572,11 @@ describe("Four Souls+2 Treasures", () => {
     it("fsp2-polyphemus - +2 [ATK], +1 [DC]", async () => {
         const card1 = game.obtainCard("fsp2-polyphemus") as TreasureCard;
         expect(player1.attackPoints).toBe(1);
-        const evastion = [game.getDC(game.encounters.monsterIn(0)!), game.getDC(game.encounters.monsterIn(1)!)];
+        const evastion = [game.entityHandler.getDC(game.encounters.monsterIn(0)!), game.entityHandler.getDC(game.encounters.monsterIn(1)!)];
         game.addInPlay(player1, card1);
         expect(player1.attackPoints).toBe(3);
-        expect(game.getDC(game.encounters.monsterIn(0)!)).toBe(evastion[0]!+1);
-        expect(game.getDC(game.encounters.monsterIn(1)!)).toBe(evastion[1]!+1);
+        expect(game.entityHandler.getDC(game.encounters.monsterIn(0)!)).toBe(evastion[0]!+1);
+        expect(game.entityHandler.getDC(game.encounters.monsterIn(1)!)).toBe(evastion[1]!+1);
     });
 
     it("fsp2-rainbow_baby - [Tap Effect] Choose one- Each player takes 1 damage.", async () => {

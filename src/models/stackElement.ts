@@ -195,7 +195,7 @@ export class DamageOnStack extends StackElement {
   }
 
   async onResolve(): Promise<void> {
-    this.game.resolveDamage(this.from, this.receiver, this._source, this.damage[0]!);
+    this.game.entityHandler.resolveDamage(this.from, this.receiver, this._source, this.damage[0]!);
     if(this._effect) {
       const card = this._source instanceof DiceRoll ? this._source.card! : this._source;
       if(this.from instanceof Player === false)
@@ -239,7 +239,7 @@ export class DeathOnStack extends StackElement {
     this.game = game;
   }
   async onResolve(): Promise<void> {
-    await this.game.resolveDeath(this.receiver, this.from, this.source);
+    await this.game.entityHandler.resolveDeath(this.receiver, this.from, this.source);
   }
 
   override get json(): DeathOnStackJson {

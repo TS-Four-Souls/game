@@ -23,15 +23,15 @@ describe("Four Souls+2 Attack Requirements", () => {
 
     it("If must attack top deck and 2 must attack any, player must attack top deck first then any.", async () => {
         const source = player1.inPlay[0]!;
-        game.playerMustAttack(player1, "any", source);
-        game.playerMustAttack(player1, "any", source);
-        game.playerMustAttack(player1, "topDeck", source);
+        game.entityHandler.playerMustAttack(player1, "any", source);
+        game.entityHandler.playerMustAttack(player1, "any", source);
+        game.entityHandler.playerMustAttack(player1, "topDeck", source);
         expect(game.actions.canEndTurn(player1, false)).not.toBe(true);
         game.actions.declareAttack(player1);
         expect(player1.canAttackThisEntity("topDeck")).toBe(true);
         expect(player1.canAttackThisEntity(game.monsters[0]!)).not.toBe(true);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-        game.endCombat();
+        game.entityHandler.endCombat();
         expect(player1.hasAttackRequirement).toBe(true);
         expect(game.actions.canEndTurn(player1, false)).not.toBe(true);
         expect(player1.canAttackThisEntity("topDeck")).toBe(true);
@@ -41,14 +41,14 @@ describe("Four Souls+2 Attack Requirements", () => {
 
     it("If must attack top deck and must attack any, player can only attack top deck.", async () => {
         const source = player1.inPlay[0]!;
-        game.playerMustAttack(player1, "any", source);
-        game.playerMustAttack(player1, "topDeck", source);
+        game.entityHandler.playerMustAttack(player1, "any", source);
+        game.entityHandler.playerMustAttack(player1, "topDeck", source);
         expect(game.actions.canEndTurn(player1, false)).not.toBe(true);
         game.actions.declareAttack(player1);
         expect(player1.canAttackThisEntity("topDeck")).toBe(true);
         expect(player1.canAttackThisEntity(game.monsters[0]!)).not.toBe(true);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-        game.endCombat();
+        game.entityHandler.endCombat();
         expect(game.actions.canEndTurn(player1, false)).toBe(true);
     });
 
@@ -56,20 +56,20 @@ describe("Four Souls+2 Attack Requirements", () => {
         const source = player1.inPlay[0]!;
         const mob1 = game.monsters[0]!;
         const mob2 = game.monsters[1]!;
-        game.playerMustAttack(player1, [mob1], source);
-        game.playerMustAttack(player1, [mob2], source);
+        game.entityHandler.playerMustAttack(player1, [mob1], source);
+        game.entityHandler.playerMustAttack(player1, [mob2], source);
         game.actions.declareAttack(player1);
         expect(player1.canAttackThisEntity("topDeck")).not.toBe(true);
         expect(player1.canAttackThisEntity(mob1)).toBe(true);
         expect(player1.canAttackThisEntity(mob2)).toBe(true);
         await game.actions.declareAttackOnEntity(player1, mob1);
-        game.endCombat();
+        game.entityHandler.endCombat();
         game.actions.declareAttack(player1);
         expect(game.actions.canEndTurn(player1, false)).not.toBe(true);
         expect(player1.canAttackThisEntity(mob1)).not.toBe(true);
         expect(player1.canAttackThisEntity(mob2)).toBe(true);
         await game.actions.declareAttackOnEntity(player1, mob2);
-        game.endCombat();
+        game.entityHandler.endCombat();
         expect(game.actions.canEndTurn(player1, false)).toBe(true);
     });
 
@@ -77,7 +77,7 @@ describe("Four Souls+2 Attack Requirements", () => {
         const source = player1.inPlay[0]!;
         const mob1 = game.monsters[0]!;
         const mob2 = game.monsters[1]!;
-        game.playerMustAttack(player1, [mob1, mob2], source);
+        game.entityHandler.playerMustAttack(player1, [mob1, mob2], source);
 
         game.encounters.discardTop(0);
 
@@ -88,13 +88,13 @@ describe("Four Souls+2 Attack Requirements", () => {
         const source = player1.inPlay[0]!;
         const mob1 = game.monsters[0]!;
         const mob2 = game.monsters[1]!;
-        game.playerMustAttack(player1, [mob1, mob2], source);
+        game.entityHandler.playerMustAttack(player1, [mob1, mob2], source);
         game.actions.declareAttack(player1);
         expect(game.actions.canDeclareAttackOnEntity(player1, mob1)).toBe(true);
         expect(game.actions.canDeclareAttackOnEntity(player1, mob2)).toBe(true);
         expect(game.actions.canDeclareAttackOnEntity(player1, "topDeck")).not.toBe(true);
         game.actions.declareAttackOnEntity(player1, mob1);
-        game.endCombat();
+        game.entityHandler.endCombat();
         expect(game.actions.canEndTurn(player1, false)).toBe(true);
     });
 });

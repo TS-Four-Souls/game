@@ -32,7 +32,7 @@ function isUserRequestEntry(entry: unknown): entry is UserRequest {
 }
 
 function remapIssuer(game: Game, issuer: Issuer): Issuer {
-  const player = game.getPlayerById(issuer);
+  const player = game.entityHandler.getPlayerById(issuer);
   return player.id;
 }
 
@@ -46,7 +46,7 @@ function remapSubmitSelectionRequestId(
   if (mapped) {
     return mapped;
   }
-  const player = game.getPlayerById(issuer);
+  const player = game.entityHandler.getPlayerById(issuer);
   const pendingRequestId = game.detailedStateJSON(player).me.pendingSelection?.requestId;
   if (!pendingRequestId) {
     return loggedRequestId;
@@ -257,7 +257,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
     maxTicks: number = 25,
   ): Promise<string | undefined> => {
     for (let i = 0; i < maxTicks; i++) {
-      const player = game.getPlayerById(issuer);
+      const player = game.entityHandler.getPlayerById(issuer);
       const requestId = game.detailedStateJSON(player).me.pendingSelection?.requestId;
       if (requestId) {
         return requestId;
@@ -362,13 +362,13 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         }
 
         case "DeclareAttack": {
-          const player = game.getPlayerById(remapIssuer(game, entry.issuer));
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
           game.actions.declareAttack(player);
           break;
         }
 
         case "AttackMonster": {
-          const player = game.getPlayerById(remapIssuer(game, entry.issuer));
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
           executeAttackMonsterRequest(game, entry.payload, player);
           break;
         }
@@ -391,7 +391,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         }
 
         case "AttackRoll": {
-          const player = game.getPlayerById(remapIssuer(game, entry.issuer));
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
           game.actions.attackRoll(player);
           break;
         }
@@ -421,7 +421,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
           );
 
           try {
-            const player = game.getPlayerById(issuer);
+            const player = game.entityHandler.getPlayerById(issuer);
             game.submitSelection(player, requestId, entry.payload.selections);
             await settleActivePromisesAfterSubmitSelection();
           } catch (error) {
@@ -437,7 +437,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
               throw error;
             }
 
-            const player = game.getPlayerById(issuer);
+            const player = game.entityHandler.getPlayerById(issuer);
             submitSelectionRequestIdMap.set(entry.payload.requestId, fallbackRequestId);
             game.submitSelection(player, fallbackRequestId, entry.payload.selections);
             await settleActivePromisesAfterSubmitSelection();
@@ -447,7 +447,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
 
         case "InsertStackElementBefore": {
           game.insertStackElementBefore(
-            game.getPlayerById(remapIssuer(game, entry.issuer)),
+            game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer)),
             entry.payload.elementToMoveStackId,
             entry.payload.targetStackId,
           );
@@ -455,14 +455,14 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         }
 
         case "PlayCard": {
-          const player = game.getPlayerById(remapIssuer(game, entry.issuer));
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
           executePlayCardRequest(game, entry.payload, player);
           break;
         }
 
         case "Activate": {
           try {
-          const player = game.getPlayerById(remapIssuer(game, entry.issuer));
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
           await executeActivateRequest(game, entry.payload, player);
           break;
           } catch (error) {
@@ -474,7 +474,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
 
         case "ActivateRoom": {
           try {
-          const player = game.getPlayerById(remapIssuer(game, entry.issuer));
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
           await executeActivateRoomRequest(game, entry.payload, player);
           break;
           } catch (error) {
@@ -485,24 +485,24 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         }
 
         case "DeclarePurchase": {
-          const player = game.getPlayerById(remapIssuer(game, entry.issuer));
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
           game.actions.declarePurchase(player);
           break;
         }
 
         case "CancelPurchase": {
-          const player = game.getPlayerById(remapIssuer(game, entry.issuer));
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
           game.actions.cancelPurchase(player);
           break;
         }
 
         case "Purchase": {
-          game.actions.purchase(game.getPlayerById(remapIssuer(game, entry.issuer)), entry.payload.index);
+          game.actions.purchase(game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer)), entry.payload.index);
           break;
         }
 
         case "EndTurn": {
-          activeTurnCallbackPromise = game.actions.nextTurn(game.getPlayerById(remapIssuer(game, entry.issuer)));
+          activeTurnCallbackPromise = game.actions.nextTurn(game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer)));
           if(!game.hasPendingSelections) {
             await activeTurnCallbackPromise;
             activeTurnCallbackPromise = null;
@@ -511,8 +511,8 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         }
 
         case "GiveCoins": {
-          const from = game.getPlayerById(remapIssuer(game, entry.issuer));
-          const to = game.getPlayerById(entry.payload.target);
+          const from = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          const to = game.entityHandler.getPlayerById(entry.payload.target);
           // Match live server behavior: request is not awaited, and resolution continues
           // once SubmitSelection arrives in subsequent log entries.
           activeGiveCoinsPromise = game.giveCoins(from, to, entry.payload.coins);
@@ -524,7 +524,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         }
 
         case "DebugLootTop": {
-          const player = game.getPlayerById(remapIssuer(game, entry.issuer));
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
           const topCard = game.decks.loot.cards[0];
           if(topCard)
             game.actions.debugLoot(player, [topCard], false);
@@ -532,7 +532,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         }
 
         case "DebugGainTreasureTop": {
-          const player = game.getPlayerById(remapIssuer(game, entry.issuer));
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
           const topCard = game.decks.treasure.cards[0];
           if(topCard)
             game.actions.debugGainTreasures(player, [topCard]);
@@ -540,7 +540,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         }
 
         case "DebugLoot": {
-          const player = game.getPlayerById(remapIssuer(game, entry.issuer));
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
           const cards = (entry.payload as any).cards;
           if (cards && cards.length > 0) {
             for (const ref of cards) {
@@ -552,13 +552,13 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         }
 
         case "DebugGainCoins": {
-          const player = game.getPlayerById(remapIssuer(game, entry.issuer));
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
           game.actions.debugGainCoins(player, entry.payload.coins);
           break;
         }
 
         case "DebugPutMonsterCardInSlot": {
-          const player = game.getPlayerById(remapIssuer(game, entry.issuer));
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
           const cardRef = entry.payload.card;
           if (cardRef) {
             const card = game.obtainCard(cardRef.slug, cardRef.globalId) as MonsterCard;
@@ -572,7 +572,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         }
 
         case "DebugGainTreasure": {
-          const player = game.getPlayerById(remapIssuer(game, entry.issuer));
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
           const cards = (entry.payload as any).cards;
           if (cards && cards.length > 0) {
             for (const ref of cards) {
@@ -588,7 +588,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
 
         
         case "DebugRemoveCards":
-          const player = game.getPlayerById(remapIssuer(game, entry.issuer));
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
           const payload = entry.payload as any;
           if (payload.cards !== undefined || payload.slugs !== undefined) {
                 const refs = (payload.cards ?? payload.slugs)!;

@@ -117,7 +117,7 @@ describe(   "Random Games", () => {
             // printVerbose("Done.", actions.map(a => a.type + (a instanceof UseItemAction ? ` (${a.item.name})` : "")).join(", "));
             // if(bot.me.inPlay.length < 2)
             //     throw new Error(`Player ${bot.me.id} has less than 2 items in play, which should not happen as the starting item is eternal. This may indicate a bug in item removal or state updates between turns.`);
-            // if(game.getAttack(game.currentPlayer)=== 0)
+            // if(game.entityHandler.getAttack(game.currentPlayer)=== 0)
             //     throw new Error("Player has 0 attack, but it's still their turn. This should not happen.");
             // printVerbose("Monsters: ", game.monsters.map(m => `${m.card.name}(${m.currentHealthPoints}HP)${m.isEngagedInCombat ? " engaged" : ""}${m.isDead ? " dead" : ""}`));
             // printVerbose("slots: ", game.encounters.slots.map(slot => slot[slot.length - 1]?.slug).join(", "));

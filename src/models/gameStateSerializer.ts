@@ -60,8 +60,8 @@ export class GameStateSerializer {
       ...(item.entity ? {
               stats: {
                 healthPoints: item.entity.currentHealthPoints,
-                attackPoints: this.game.getAttack(item.entity),
-                evasionPoints: this.game.getDC(item.entity),
+                attackPoints: this.game.entityHandler.getAttack(item.entity),
+                evasionPoints: this.game.entityHandler.getDC(item.entity),
                 isEngagedInCombat: item.entity.isEngagedInCombat,
                 capabilities: {
                   targetable: this.game.actions.canDeclareAttackOnEntity(player, item.entity, false),
@@ -84,8 +84,8 @@ export class GameStateSerializer {
       ...(item.entity ? {
               stats: {
                 healthPoints: item.entity.currentHealthPoints,
-                attackPoints: this.game.getAttack(item.entity),
-                evasionPoints: this.game.getDC(item.entity),
+                attackPoints: this.game.entityHandler.getAttack(item.entity),
+                evasionPoints: this.game.entityHandler.getDC(item.entity),
                 isEngagedInCombat: item.entity.isEngagedInCombat,
                 capabilities: {
                   targetable: this.game.actions.canDeclareAttackOnEntity(player, item.entity, false),
@@ -109,8 +109,8 @@ export class GameStateSerializer {
       ...(curse.entity ? {
               stats: {
                 healthPoints: curse.entity.currentHealthPoints,
-                attackPoints: this.game.getAttack(curse.entity),
-                evasionPoints: this.game.getDC(curse.entity),
+                attackPoints: this.game.entityHandler.getAttack(curse.entity),
+                evasionPoints: this.game.entityHandler.getDC(curse.entity),
                 isEngagedInCombat: curse.entity.isEngagedInCombat,
                 capabilities: {
                   targetable: this.game.actions.canDeclareAttackOnEntity(player, curse.entity, false),
@@ -186,8 +186,8 @@ export class GameStateSerializer {
             ...(m.monster ? {
               stats: {
                 healthPoints: m.monster.currentHealthPoints,
-                attackPoints: this.game.getAttack(m.monster),
-                evasionPoints: this.game.getDC(m.monster),
+                attackPoints: this.game.entityHandler.getAttack(m.monster),
+                evasionPoints: this.game.entityHandler.getDC(m.monster),
                 isEngagedInCombat: m.monster.isEngagedInCombat,
                 capabilities: {
                   targetable: this.game.actions.canDeclareAttackOnEntity(player, m.monster, false),

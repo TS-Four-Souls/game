@@ -22,7 +22,7 @@ export class AssertHandler {
   }
 
   currentPlayerIsNotEngagedInCombat(): void {
-    this.game.endCombatIfInvalid(this.game.currentPlayer);
+    this.game.entityHandler.endCombatIfInvalid(this.game.currentPlayer);
     if (this.game.currentPlayer!.isEngagedInCombat) {
       throw new Error("You are currently engaged in combat");
     }

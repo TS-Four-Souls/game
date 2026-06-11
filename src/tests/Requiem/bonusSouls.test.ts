@@ -32,7 +32,7 @@ describe("Four Souls+2 Loot Cards", () => {
         const soul1 = game.obtainCard("b2-lost_soul")! as LootCard;
         const soul2 = game.copyCard(soul1) as LootCard;
         const soul3 = game.copyCard(soul1) as LootCard;
-        game.addLootPlay(player1, 2);
+        game.entityHandler.addLootPlay(player1, 2);
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             expect(Options.length).toBe(1);
                 return { selected: [Options[0]], remaining: [] } as any;
@@ -69,7 +69,7 @@ it("Soul of Lust - each time a player kills a monster, put a counter on this. - 
             game.addTopPosition("monster", game.obtainCard(monster)!);
         }
         for(let i=0; i<6; i++) {
-            game.kill(player1, game.monsters[0]!, player1.inPlay[0]!);
+            game.entityHandler.kill(player1, game.monsters[0]!, player1.inPlay[0]!);
             await game.actions.resolveStack();
             expect(game.currentPlayer.totalSouls).toBe((i === 5 ? 1 : 0));
             await game.endTurn();
@@ -91,7 +91,7 @@ it("Soul of Wrath - each time a player dies, put a counter on this. - 6 counters
         ({ game, player1, player2 } = setupBonusSoulsTestGame("r-soul_of_wrath"));
 
         for(let i=0; i<6; i++) {
-            game.kill(player1, game.currentPlayer, player1.inPlay[0]!);
+            game.entityHandler.kill(player1, game.currentPlayer, player1.inPlay[0]!);
             await game.actions.resolveStack();
             expect(game.currentPlayer.totalSouls).toBe((i === 5 ? 1 : 0));
             await game.endTurn();

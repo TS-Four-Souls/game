@@ -33,7 +33,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         game.monsterSlots.forceSetMonsterAtSlot(0, cursedHorf);
         
-        game.addHealth(player1, 10); // Ensure player has enough HP to take damage
+        game.entityHandler.addHealth(player1, 10); // Ensure player has enough HP to take damage
         const initialHP = player1.currentHealthPoints;
         
         // Create a dice roll (simulating any roll - attack, loot card effect, etc.)
@@ -88,7 +88,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         game.monsterSlots.forceSetMonsterAtSlot(0, cursedHorf);
         
-        game.addLootPlay(player2, 1); // Give player 2 a loot play
+        game.entityHandler.addLootPlay(player2, 1); // Give player 2 a loot play
         
         const initialHP = player2.currentHealthPoints;
         
@@ -115,7 +115,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         expect(cursedHorf).toBeInstanceOf(MonsterCard);
         
         game.monsterSlots.forceSetMonsterAtSlot(0, cursedHorf);
-        game.addHealth(player1, 10); // Ensure player has enough HP to take damage
+        game.entityHandler.addHealth(player1, 10); // Ensure player has enough HP to take damage
         const initialHP = player1.currentHealthPoints;
         
         // First roll
@@ -498,7 +498,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, holyDinga);
         
         // Damage player first so they can heal
-        game.dealDamage(player1, player1, holyDinga, 1);
+        game.entityHandler.dealDamage(player1, player1, holyDinga, 1);
         await game.actions.resolveStack();
         const initialHP = player1.currentHealthPoints;
         
@@ -523,7 +523,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         game.monsterSlots.forceSetMonsterAtSlot(0, holyDinga);
         
-        game.dealDamage(player1, player1, holyDinga, 1);
+        game.entityHandler.dealDamage(player1, player1, holyDinga, 1);
         await game.actions.resolveStack();
         const initialHP = player1.currentHealthPoints;
         
@@ -547,7 +547,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         game.monsterSlots.forceSetMonsterAtSlot(0, cursedPsyHorf);
         
-        game.addHealth(player1, 10); // Ensure player has enough HP to take damage
+        game.entityHandler.addHealth(player1, 10); // Ensure player has enough HP to take damage
         const initialHP = player1.currentHealthPoints;
         
         // Give player 1 an activatable item
@@ -570,7 +570,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         game.monsterSlots.forceSetMonsterAtSlot(0, cursedPsyHorf);
         
-        game.addHealth(player2, 10);
+        game.entityHandler.addHealth(player2, 10);
         const initialHP = player2.currentHealthPoints;
         
         // Give player 2 an activatable item
@@ -697,7 +697,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, daddyMonster);
         
-        game.addHealth(daddyMonster, 10);
+        game.entityHandler.addHealth(daddyMonster, 10);
         
         // Make attack roll
         game.actions.attackRoll(player1);
@@ -730,7 +730,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, daddyMonster);
         
-        game.addHealth(daddyMonster, 10);
+        game.entityHandler.addHealth(daddyMonster, 10);
         
         game.actions.attackRoll(player1);
         

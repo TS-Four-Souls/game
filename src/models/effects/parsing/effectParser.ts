@@ -605,7 +605,7 @@ export function parseTheActivePlayerEffect(s: string, game: Game, nr?: NumberRob
         case "the active player rerolls each item they control":
             return noTargetEffect(active.rerollEachItemEffect(game, "currentPlayer"));
         case "the active player may attack an additional time this turn":
-            return noTargetEffect(passive.temporaryStatModifierEffect([game.addAttackThisTurn.bind(game)], 1, game, "current"));
+            return noTargetEffect(passive.temporaryStatModifierEffect([game.entityHandler.addAttackThisTurn.bind(game.entityHandler)], 1, game, "current"));
         case "the active player must attack this once each turn if able":
             return noTargetEffect(monster.forceAttackThisEachTurnEffect(game));
         case "the active player must attack the monster deck once each turn if able":
@@ -719,11 +719,11 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "prevent all damage you would take while it's not your turn":
             return noTargetEffect(passive.preventDamageNotOnYourTurnEffect(game));
         case "it gains x [dc] till end of turn":
-            return noTargetEffect(passive.temporaryStatModifierEffect([game.addDC.bind(game)], nr.nextNumber(), game, "issuer"));
+            return noTargetEffect(passive.temporaryStatModifierEffect([game.entityHandler.addDC.bind(game.entityHandler)], nr.nextNumber(), game, "issuer"));
         case "it gains -x [dc] till end of turn":
-            return noTargetEffect(passive.temporaryStatModifierEffect([game.addDC.bind(game)], -nr.nextNumber(), game, "issuer"));
+            return noTargetEffect(passive.temporaryStatModifierEffect([game.entityHandler.addDC.bind(game.entityHandler)], -nr.nextNumber(), game, "issuer"));
         case "choose a monster. it gains -x [dc] , till end of turn":
-            return noTargetEffect(passive.temporaryStatModifierEffect([game.addDC.bind(game)], -nr.nextNumber(), game, "selectionOnResolve", selectMonster(game, 1, 1)[0]!));
+            return noTargetEffect(passive.temporaryStatModifierEffect([game.entityHandler.addDC.bind(game.entityHandler)], -nr.nextNumber(), game, "selectionOnResolve", selectMonster(game, 1, 1)[0]!));
         case "look at the top x cards of the room or monster deck. you may put one of those in a slot and the rest back. this can't be activated during an attack":
             return { effectFunction: active.lookAtTop3Put1InSlotEffect(game, nr.nextNumber()), targetSelectors: selectDeck(game, 1, 1, (name) => ["room", "monster"].includes(name)) };
         case "players can be attacked and have x+ [dc]":
@@ -757,9 +757,9 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
             return noTargetEffect(passive.itemCostLessToActivateEffect(game, nr.nextNumber()));
         case "you have x [hp]":
         case "x [hp]":
-            return noTargetEffect(passive.permanentStatModifierEffect([game.addHealth.bind(game)], nr.nextNumber(), game));
+            return noTargetEffect(passive.permanentStatModifierEffect([game.entityHandler.addHealth.bind(game.entityHandler)], nr.nextNumber(), game));
         case "x [atk]":
-            return noTargetEffect(passive.permanentStatModifierEffect([game.addAttack.bind(game)], nr.nextNumber(), game));
+            return noTargetEffect(passive.permanentStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], nr.nextNumber(), game));
         case "flip your character if able. then recharge it. discard your hand and loot x":
             return noTargetEffect( active.combineEffectFunctions([
                     active.flipCharacterEffect(game),
@@ -794,7 +794,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
             const coinCount = nr.nextNumber();
             const diceMod = nr.nextNumber();
             return noTargetEffect(passive.ConditionalStatModifierEffect(
-                    [game.addAttackDiceModifier.bind(game)],
+                    [game.entityHandler.addAttackDiceModifier.bind(game.entityHandler)],
                     diceMod,
                     (player: Player) => player.coins === coinCount,
                     ["on:coin:gained:after", "on:coin:lost:after"],
@@ -806,7 +806,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
             const lootCount = nr.nextNumber();
             const atk = nr.nextNumber();
             return noTargetEffect(passive.ConditionalStatModifierEffect(
-                    [game.addAttack.bind(game)],
+                    [game.entityHandler.addAttack.bind(game.entityHandler)],
                     atk,
                     (player: Player) => player.hand.length === lootCount,
                     ["on:loot:added:after", "on:loot:removed:after"],
@@ -814,7 +814,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
                 ));
         }
         case "you gain x [atk] till the end of turn":
-            return noTargetEffect(passive.temporaryStatModifierEffect([game.addAttack.bind(game)], nr.nextNumber(), game, "issuer"));
+            return noTargetEffect(passive.temporaryStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], nr.nextNumber(), game, "issuer"));
         case "prevent the next x damage you would take this turn. when you prevent damage this way, deal x damage to another player": {
             const preventAmount = nr.nextNumber();
             const damageAmount = nr.nextNumber();
@@ -825,26 +825,26 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         }
         case "choose a player or monster. they gain x [atk] till end of turn":
             return {
-                effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game)], nr.nextNumber(), game, "next"),
+                effectFunction: passive.temporaryStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], nr.nextNumber(), game, "next"),
                 targetSelectors: selectPlayerOrMonster(game),
             };
         case "gain x [atk] till end of turn":
         case "you gain x [atk] till end of turn":
             return {
-                effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game)], nr.nextNumber(), game, "issuer"),
+                effectFunction: passive.temporaryStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], nr.nextNumber(), game, "issuer"),
                 targetSelectors: selectPlayerOrMonster(game),
             };
         case "each monster gains x [atk] till end of turn":
             return noTargetEffect(passive.temporaryStatModifierEffect(
-                    [game.addAttackToEachMonster.bind(game)],
+                    [game.entityHandler.addAttackToEachMonster.bind(game.entityHandler)],
                     nr.nextNumber(),
                     game,
                     "issuer",
                 ));
         case "each monster gains x [dc] till end of turn":
-            return noTargetEffect(passive.temporaryStatModifierEffect([game.addDCToEachMonster.bind(game)], nr.nextNumber(), game, "issuer"));
+            return noTargetEffect(passive.temporaryStatModifierEffect([game.entityHandler.addDCToEachMonster.bind(game.entityHandler)], nr.nextNumber(), game, "issuer"));
         case "each monster gains -x [dc] till end of turn":
-            return noTargetEffect(passive.temporaryStatModifierEffect([game.addDCToEachMonster.bind(game)], -nr.nextNumber(), game, "issuer"));
+            return noTargetEffect(passive.temporaryStatModifierEffect([game.entityHandler.addDCToEachMonster.bind(game.entityHandler)], -nr.nextNumber(), game, "issuer"));
         case "if you would take any amount of damage, take that much damage x instead":
             return noTargetEffect(passive.takeDamagePlusEffect(nr.nextNumber(), game));
         case "roll and gain ¢ equal to the result":
@@ -925,11 +925,11 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "choose a monster. its [atk] becomes x":
             return { effectFunction: active.setMonsterAttackToXEffect(game, nr.nextNumber()), targetSelectors: selectMonster(game) };
         case "you have x [hp] for each counter on this":
-            return noTargetEffect(passive.statModifierBasedOnCountersEffect(game, [game.addHealth.bind(game)], 1, nr.nextNumber()));
+            return noTargetEffect(passive.statModifierBasedOnCountersEffect(game, [game.entityHandler.addHealth.bind(game.entityHandler)], 1, nr.nextNumber()));
         case "you have x [atk] for every x counters on this": {
             const atkPer = nr.nextNumber();
             const countersPer = nr.nextNumber();
-            return noTargetEffect(passive.statModifierBasedOnCountersEffect(game, [game.addAttack.bind(game)], countersPer, atkPer));
+            return noTargetEffect(passive.statModifierBasedOnCountersEffect(game, [game.entityHandler.addAttack.bind(game.entityHandler)], countersPer, atkPer));
         }
         case "you and that player each gain x treasure":
             const treasureAmount = nr.nextNumber();
@@ -952,9 +952,9 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "you have x to your first attack roll each turn":
             return noTargetEffect(passive.firstAttackRollDiceModifier(nr.nextNumber(), game));
         case "you have x [atk]":
-            return noTargetEffect(passive.permanentStatModifierEffect([game.addAttack.bind(game)], nr.nextNumber(), game));
+            return noTargetEffect(passive.permanentStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], nr.nextNumber(), game));
         case "you may attack any number of times on your turn":
-            return noTargetEffect(passive.onYourTurnModifier([game.addAttackThisTurn.bind(game)], INFINITY, game));
+            return noTargetEffect(passive.onYourTurnModifier([game.entityHandler.addAttackThisTurn.bind(game.entityHandler)], INFINITY, game));
         case "you may attack players who control more souls than you. they have x [dc] for the attack":
             return noTargetEffect(room.otherPlayersAreAttackableEffect(game, nr.nextNumber(), true, (player: Player) => player.totalSouls > game.currentPlayer.totalSouls));
         case "subtract up to x from a roll":
@@ -976,7 +976,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
             const nbSouls1 = nr.nextNumber();
             const nbSouls2 = nr.nextNumber();
             const atkBonus = nr.nextNumber();
-            return noTargetEffect(passive.ConditionalStatModifierEffect([game.addAttack.bind(game)], atkBonus, (player: Player) => [nbSouls1, nbSouls2].includes(player.totalSouls), ["on:soul:gained", "on:soul:removed"], game, true));
+            return noTargetEffect(passive.ConditionalStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], atkBonus, (player: Player) => [nbSouls1, nbSouls2].includes(player.totalSouls), ["on:soul:gained", "on:soul:removed"], game, true));
         case "when this would deal combat damage to the active player, prevent it, then this deals x damage to a player chosen at random":
             return noTargetEffect(passive.preventDamageToCurrentPlayerAndDealToRandomPlayerEffect(game, nr.nextNumber()));
         case "choose a player. you must make an additional attack against them. they have x+ [dc] for the attack.\nwhen that player dies this turn, they give the active player the item they would destroy for the death penalty":
@@ -986,11 +986,11 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "while this has x counters on it, you have x [atk]":
             const counters = nr.nextNumber();
             const atkBonus2 = nr.nextNumber();
-            return noTargetEffect(passive.ConditionalStatModifierEffect([game.addAttack.bind(game)], atkBonus2, (player: Player, card: Card) => card.tags.counters === counters, ["on:counter:modified"], game, false));
+            return noTargetEffect(passive.ConditionalStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], atkBonus2, (player: Player, card: Card) => card.tags.counters === counters, ["on:counter:modified"], game, false));
         case "if you control x+ souls, you have x [atk] instead":
             const nbSouls = nr.nextNumber();
             const atk = nr.nextNumber();
-            return noTargetEffect(passive.ConditionalStatModifierEffect([game.addAttack.bind(game)], atk, (player: Player) => player.totalSouls >= nbSouls, ["on:soul:gained", "on:soul:removed"], game, true));
+            return noTargetEffect(passive.ConditionalStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], atk, (player: Player) => player.totalSouls >= nbSouls, ["on:soul:gained", "on:soul:removed"], game, true));
         case "choose a dice roll. its controller rerolls it, but rolls x dice instead. they choose another player. that player chooses one of the rolls as the result":
             return { effectFunction: active.rerollDiceRollXEffect(game, nr.nextNumber()), targetSelectors: selectRoll(game) };
         case "each time the active player deals damage to this, they roll-\nx-x: they take x damage.\nx-x: each player takes x damage.\nx-x: this takes x damage":
@@ -1049,25 +1049,25 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "you gain x [hp] till the end of turn":
         case "you gain x [hp] till end of turn":
         case "gain x [hp] till end of turn":
-            return noTargetEffect(passive.temporaryStatModifierEffect([game.addHealth.bind(game)], nr.nextNumber(), game, "issuer"));
+            return noTargetEffect(passive.temporaryStatModifierEffect([game.entityHandler.addHealth.bind(game.entityHandler)], nr.nextNumber(), game, "issuer"));
         case "choose a player.\nthey gain x [hp] till end of turn":
-            return { effectFunction: passive.temporaryStatModifierEffect([game.addHealth.bind(game)], nr.nextNumber(), game, "next"), targetSelectors: selectPlayer(game) };
+            return { effectFunction: passive.temporaryStatModifierEffect([game.entityHandler.addHealth.bind(game.entityHandler)], nr.nextNumber(), game, "next"), targetSelectors: selectPlayer(game) };
         case "choose a player.\nthey gain x [atk] and x [hp] till end of turn":
-            return { effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game), game.addHealth.bind(game)], nr.nextNumber(), game, "next"), targetSelectors: selectPlayer(game) };
+            return { effectFunction: passive.temporaryStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler), game.entityHandler.addHealth.bind(game.entityHandler)], nr.nextNumber(), game, "next"), targetSelectors: selectPlayer(game) };
         case "choose a player.\nthey gain x [atk] and x to dice rolls till end of turn":
-            return { effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game), game.addDiceModifier.bind(game)], nr.nextNumber(), game, "next"), targetSelectors: selectPlayer(game) };
+            return { effectFunction: passive.temporaryStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler), game.entityHandler.addDiceModifier.bind(game.entityHandler)], nr.nextNumber(), game, "next"), targetSelectors: selectPlayer(game) };
         case "choose a player.\nthey gain x [atk] till end of turn and may attack an additional time this turn":
-            return { effectFunction: passive.temporaryStatModifierEffect([game.addAttack.bind(game), game.addAttackThisTurn.bind(game)], nr.nextNumber(), game, "next"), targetSelectors: selectPlayer(game) };
+            return { effectFunction: passive.temporaryStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler), game.entityHandler.addAttackThisTurn.bind(game.entityHandler)], nr.nextNumber(), game, "next"), targetSelectors: selectPlayer(game) };
         case "you have x [hp] while this has a counter on it":
-            return noTargetEffect(passive.ConditionalStatModifierEffect([game.addHealth.bind(game)], nr.nextNumber(), (player, card) => card.tags.counters > 0, ["on:counter:modified"], game, false ));
+            return noTargetEffect(passive.ConditionalStatModifierEffect([game.entityHandler.addHealth.bind(game.entityHandler)], nr.nextNumber(), (player, card) => card.tags.counters > 0, ["on:counter:modified"], game, false ));
         case "choose a player. prevent the next x damage they would take this turn. till end of turn, when that player dies, deal x damage to each player other than that player and you":
             return { effectFunction: passive.preventDamageAndDealOnDeathEffect(game, nr.nextNumber(), nr.nextNumber()), targetSelectors: selectAlivePlayer(game) };
         case "you have x to attack rolls":
-            return noTargetEffect(passive.permanentStatModifierEffect([game.addAttackDiceModifier.bind(game)], nr.nextNumber(), game));
+            return noTargetEffect(passive.permanentStatModifierEffect([game.entityHandler.addAttackDiceModifier.bind(game.entityHandler)], nr.nextNumber(), game));
         case "monsters have x [dc] on your turn":
-            return noTargetEffect(passive.onYourTurnModifier([game.addDCToEachMonster.bind(game)], nr.nextNumber(), game));
+            return noTargetEffect(passive.onYourTurnModifier([game.entityHandler.addDCToEachMonster.bind(game.entityHandler)], nr.nextNumber(), game));
         case "monsters have x [atk] on your turn":
-            return noTargetEffect(passive.onYourTurnModifier([game.addAttackToEachMonster.bind(game)], nr.nextNumber(), game));
+            return noTargetEffect(passive.onYourTurnModifier([game.entityHandler.addAttackToEachMonster.bind(game.entityHandler)], nr.nextNumber(), game));
         case "look at the top x cards of the monster or room deck and put them back in any order":
             return { effectFunction: active.lookAndReorderTopCardsEffect(game, nr.nextNumber(), undefined, "dataIssuer"), targetSelectors: selectDeck(game, 1, 1, (name) => ["room", "monster"].includes(name)) };
         case "choose up to x non-event monster cards in discard. put them in one or more monster slots not being attacked":
@@ -1167,7 +1167,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
             return noTargetEffect(passive.chooseMonsterWhenAnotherPlayerAttacksMonsterEffect(game));
         case "play an additional loot card this turn":
         case "play an additional loot card this turn":
-            return noTargetEffect(passive.temporaryStatModifierEffect([game.addLootPlay.bind(game)], 1, game, "issuer"));
+            return noTargetEffect(passive.temporaryStatModifierEffect([game.entityHandler.addLootPlay.bind(game.entityHandler)], 1, game, "issuer"));
         case "if this would be destroyed, if it has no counters on it, put a counter on it instead":
             return noTargetEffect(passive.putCounterInsteadOfDestructionEffect(game));
         case "if you would take damage while this has counters on it, remove that many counters and prevent that much damage":
@@ -1179,13 +1179,13 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "rewards are doubled till end of turn":
             return noTargetEffect(passive.doubleRewardsTillEndOfTurnEffect(game));
         case "you may look at the top card of the treasure deck at any time on your turn":
-            return noTargetEffect(passive.onYourTurnModifier([game.addCanSeeTopOfTreasureDeck.bind(game)], 1, game));
+            return noTargetEffect(passive.onYourTurnModifier([game.entityHandler.addCanSeeTopOfTreasureDeck.bind(game.entityHandler)], 1, game));
         case "you may purchase an additional time on your turn":
-            return noTargetEffect(passive.onYourTurnModifier([game.addPurchaseThisTurn.bind(game)], 1, game));
+            return noTargetEffect(passive.onYourTurnModifier([game.entityHandler.addPurchaseThisTurn.bind(game.entityHandler)], 1, game));
         case "you may attack an additional time on your turn":
-            return noTargetEffect(passive.onYourTurnModifier([game.addAttackThisTurn.bind(game)], 1, game));
+            return noTargetEffect(passive.onYourTurnModifier([game.entityHandler.addAttackThisTurn.bind(game.entityHandler)], 1, game));
         case "you may play an additional loot card on your turn":
-            return noTargetEffect(passive.onYourTurnModifier([game.addLootPlay.bind(game)], 1, game));
+            return noTargetEffect(passive.onYourTurnModifier([game.entityHandler.addLootPlay.bind(game.entityHandler)], 1, game));
         case "put a gold counter on another non-eternal item you control":
             return noTargetEffect(passive.giveCounterToAnotherItemOnEnterPlayEffect(game, "goldCounters"));
         case "choose a shop item. this gains the abilities of that item till end of turn":
@@ -1478,7 +1478,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
             return noTargetEffect(active.dealDamageToEachPlayerEffect(game, nr.nextNumber(), false));
         case "this gains x [atk] till end of turn":
         case "it gains x [atk] till end of turn":
-            return noTargetEffect(passive.temporaryStatModifierEffect([game.addAttack.bind(game)], nr.nextNumber(), game, "issuer"));
+            return noTargetEffect(passive.temporaryStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], nr.nextNumber(), game, "issuer"));
         case "other monsters have x [dc]":
             return noTargetEffect(monster.monstersGainDCEffect(game, nr.nextNumber(), false));
         case "monsters have x [dc]":
@@ -1526,7 +1526,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "it deals x damage to the attacking player":
             return noTargetEffect(monster.dealDamageToAttackingPlayerEffect(game, nr.nextNumber()));
         case "every other time this takes damage each turn, it gains x [dc] till end of turn":
-            return noTargetEffect(monster.onEveryOtherDamageEffect(game, passive.temporaryStatModifierEffect([game.addDC.bind(game)], nr.nextNumber(), game, "issuer")));
+            return noTargetEffect(monster.onEveryOtherDamageEffect(game, passive.temporaryStatModifierEffect([game.entityHandler.addDC.bind(game.entityHandler)], nr.nextNumber(), game, "issuer")));
         case "reveal cards from the top of the monster deck till you reveal x boss cards. put them in one or more monster slots not being attacked and the rest into discard. the active player must make an additional attack on one of them this turn":
             return noTargetEffect(monster.bossRushEffect(game, nr.nextNumber()));
         case "look at the top x cards of a deck and put them back in any order":
@@ -1577,12 +1577,12 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
             return noTargetEffect(room.monstersGainAttackEffect(game, nr.nextNumber(), true));
         case "a monster gains x [dc] till end of turn":
             return {
-                effectFunction: passive.temporaryStatModifierEffect([game.addDC.bind(game)], nr.nextNumber(), game, "next"),
+                effectFunction: passive.temporaryStatModifierEffect([game.entityHandler.addDC.bind(game.entityHandler)], nr.nextNumber(), game, "next"),
                 targetSelectors: selectMonster(game),
             };
         case "a monster gains -x [dc] till end of turn":
             return {
-                effectFunction: passive.temporaryStatModifierEffect([game.addDC.bind(game)], -nr.nextNumber(), game, "next"),
+                effectFunction: passive.temporaryStatModifierEffect([game.entityHandler.addDC.bind(game.entityHandler)], -nr.nextNumber(), game, "next"),
                 targetSelectors: selectMonster(game),
             };
         case "note each goal as players complete them. this room can't be put into discard till x goals are completed.\nx. play x loot cards.\nx. kill x monsters.\nx. give at least x¢ to another player at one time.\nx. purchase x items.\nx. roll a x three times. when x goals are completed, each player gains x treasure":
@@ -1592,7 +1592,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "each time a player loots, they take x damage":
             return noTargetEffect(room.takeDamageOnLootEffect(game, nr.nextNumber()));
         case "players have x [hp]":
-            return noTargetEffect(room.allPlayersPermanentStatModifierEffect([game.addHealth], nr.nextNumber(), game));
+            return noTargetEffect(room.allPlayersPermanentStatModifierEffect([game.entityHandler.addHealth], nr.nextNumber(), game));
         case "each time a player deals damage to a monster, they deal x damage to the player to their left":
             return noTargetEffect(room.WhenDealDamageMonsterDealDamageToPlayerToTheEffect(game, nr.nextNumber(), "left"));
         case "at the start of each turn, the active player gains x¢":
@@ -1606,7 +1606,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "each time a player would roll a x or x, they may reroll it":
             return noTargetEffect(room.rerollOnXOrYEffect(game, [nr.nextNumber(), nr.nextNumber()]));
         case "players have x [atk]":
-            return noTargetEffect(room.allPlayersPermanentStatModifierEffect([game.addAttack], nr.nextNumber(), game));
+            return noTargetEffect(room.allPlayersPermanentStatModifierEffect([game.entityHandler.addAttack], nr.nextNumber(), game));
         case "at the start of the turn, the active player may pay [hp] until they have x [hp] . if they do, each time a monster dies this turn, they gain x treasure":
             return noTargetEffect(room.payHpForTreasureBoostEffect(game, nr.nextNumber(), nr.nextNumber()));
         case "players who control the fewest souls or tied for fewest have x [atk] and may attack an additional time on their turn":

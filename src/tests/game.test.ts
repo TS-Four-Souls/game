@@ -77,7 +77,7 @@ describe("Game", () => {
 
   it("should throw error when retrieving non-existent player", async () => {
     expect(() => {
-      game.getPlayerById("nonexistent");
+      game.entityHandler.getPlayerById("nonexistent");
     }).toThrow("Player not found");
   });
 
@@ -603,9 +603,9 @@ describe("Game - Multiple Players", () => {
     game.addPlayer(player2);
     game.addPlayer(player3);
     
-    expect(() => game.getPlayerById("player1")).not.toThrow();
-    expect(() => game.getPlayerById("player2")).not.toThrow();
-    expect(() => game.getPlayerById("player3")).not.toThrow();
+    expect(() => game.entityHandler.getPlayerById("player1")).not.toThrow();
+    expect(() => game.entityHandler.getPlayerById("player2")).not.toThrow();
+    expect(() => game.entityHandler.getPlayerById("player3")).not.toThrow();
   });
 
   it("should maintain player order", async () => {
@@ -1003,7 +1003,7 @@ describe("Game - Damage System", () => {
     const initialHealth = player2.currentHealthPoints;
     const mockCard = { name: "Test Card" } as any;
     
-    game.dealDamage(player1, player2, mockCard, 1);
+    game.entityHandler.dealDamage(player1, player2, mockCard, 1);
     await game.actions.resolveStack();
     expect(player2.currentHealthPoints).toBe(initialHealth - 1);
   });
@@ -1012,7 +1012,7 @@ describe("Game - Damage System", () => {
     const initialHealth = player2.currentHealthPoints;
     const mockCard = { name: "Test Card" } as any;
     
-    game.dealDamage(player1, player2, mockCard, 0);
+    game.entityHandler.dealDamage(player1, player2, mockCard, 0);
     await game.actions.resolveStack();
     await game.actions.resolveStack();
     
@@ -1022,7 +1022,7 @@ describe("Game - Damage System", () => {
   it("should handle damage that kills entity", async () => {
     const mockCard = { name: "Test Card" } as any;
     
-    game.dealDamage(player1, player2, mockCard, 100);
+    game.entityHandler.dealDamage(player1, player2, mockCard, 100);
     await game.actions.resolveStack();
     await game.actions.resolveStack();
 

@@ -97,7 +97,7 @@ const generateRoomChangedPayload = (
     ...(recipient.name
       ? {
           game: room.game?.detailedStateJSON(
-            room.game.getPlayerById(recipient.name),
+            room.game.entityHandler.getPlayerById(recipient.name),
           ),
         }
       : {}),

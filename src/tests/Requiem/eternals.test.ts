@@ -115,7 +115,7 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.activateItem(player1, player1.character, [], "tap");
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(11);
-        game.kill(player1, player1, eternal);
+        game.entityHandler.kill(player1, player1, eternal);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(3);
@@ -129,7 +129,7 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.endTurn();
         await game.actions.resolveStack();
 
-        game.kill(player1, player1, eternal);
+        game.entityHandler.kill(player1, player1, eternal);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(3);
@@ -226,7 +226,7 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        game.addAttack(player1, 10);
+        game.entityHandler.addAttack(player1, 10);
         game.actions.attackRoll(player1);
         expect(game.stack.size).toBe(2);
         await game.actions.resolveStack(); // effect
@@ -261,7 +261,7 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.actions.resolveStack();
         game.actions.declareAttack(player1);
         game.actions.declareAttackOnEntity(player1, game.monsters[1]!);
-        game.addAttack(player2, 10);
+        game.entityHandler.addAttack(player2, 10);
         game.random = () => 0.99; // Roll only 6
         game.actions.attackRoll(player1);
         expect(game.stack.size).toBe(2);
@@ -298,7 +298,7 @@ describe("Four Souls+2 Eternal Items", () => {
         game.gainTreasure(player1, 1);
         game.gainTreasure(player2, 1);
 
-        game.kill(player1, player1, eternal);
+        game.entityHandler.kill(player1, player1, eternal);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -502,7 +502,7 @@ describe("Four Souls+2 Eternal Items", () => {
         const eternal = player1.inPlay[1]!;
         expect(eternal.slug).toBe("r-sumptorium");
 
-        game.dealDamage(player1, player1, eternal, 1);
+        game.entityHandler.dealDamage(player1, player1, eternal, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(eternal.tags.counters).toBe(1);
@@ -543,7 +543,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.currentHealthPoints).toBe(player1.healthPoints);
 
         game.random = () => 2/6-0.001; // Roll only 6
-        game.addDC(game.monsters[1]!, 10);
+        game.entityHandler.addDC(game.monsters[1]!, 10);
         game.actions.attackRoll(player1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -570,8 +570,8 @@ describe("Four Souls+2 Eternal Items", () => {
         const monster = game.monsters[1]!;
         expect(monster.card.slug).toBe("b2-fatty");
         const initialHp = monster.currentHealthPoints;
-        game.addHealth(game.monsters[0]!, 10);
-        game.dealDamage(player1, monster, eternal, initialHp - 1);
+        game.entityHandler.addHealth(game.monsters[0]!, 10);
+        game.entityHandler.dealDamage(player1, monster, eternal, initialHp - 1);
         await game.actions.resolveStack();
         expect(monster.currentHealthPoints).toBe( 1);
         game.recharge(eternal);
@@ -742,7 +742,7 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.activateItem(player1, eternal, [], "tap");
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(11);
-        game.kill(player1, game.monsters[0]!, eternal);
+        game.entityHandler.kill(player1, game.monsters[0]!, eternal);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -773,7 +773,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(eternal.slug).toBe("r-book_of_virtues");
 
         const lootsInHands = game.players.map(p => p.hand.length);
-        game.kill(player1, game.monsters[0]!, eternal);
+        game.entityHandler.kill(player1, game.monsters[0]!, eternal);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -809,17 +809,17 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.attackThisTurn).toBe(2);
         expect(player1.attackPoints).toBe(1);
         expect(player1.healthPoints).toBe(2);
-        game.kill(player1, game.monsters[0]!, eternal);
+        game.entityHandler.kill(player1, game.monsters[0]!, eternal);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.healthPoints).toBe(3);
-        game.kill(player2, game.monsters[0]!, eternal);
+        game.entityHandler.kill(player2, game.monsters[0]!, eternal);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.healthPoints).toBe(3);
-        game.kill(player1, player2, eternal);
+        game.entityHandler.kill(player1, player2, eternal);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);

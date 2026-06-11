@@ -215,11 +215,11 @@ describe("Requiem Loots ", () => {
             let item = game.obtainCard("r-ultra_flesh_kid") as ItemCard;
             expect(item).toBeDefined();
             game.addInPlay(player1, item);
-            game.kill(player1, player2, item);
+            game.entityHandler.kill(player1, player2, item);
             await game.actions.resolveStack();
             await game.actions.resolveStack();
             expect(item.tags.counters).toBe(1);
-            game.kill(player1, game.monsters[0]!, item);
+            game.entityHandler.kill(player1, game.monsters[0]!, item);
             await game.actions.resolveStack();
             await game.actions.resolveStack();
             expect(item.tags.counters).toBe(2);
@@ -462,26 +462,26 @@ describe("Requiem Loots ", () => {
             let item = game.obtainCard("r-lodestone") as ItemCard;
             expect(item).toBeDefined();
             game.addInPlay(player1, item);
-            game.addDC(game.monsters[0]!, 1, item);
-            const initDC = game.getDC(game.monsters[0]!);
+            game.entityHandler.addDC(game.monsters[0]!, 1, item);
+            const initDC = game.entityHandler.getDC(game.monsters[0]!);
             game.random = () => 2/6 -0.01;
             game.rollDice(player1, false, item);
             await game.resolveEntireStack();
-            expect(game.getDC(game.monsters[0]!)).toBe(3);
+            expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(3);
             game.random = () => 3/6 -0.01;
             game.rollDice(player1, false, item);
             await game.resolveEntireStack();
-            expect(game.getDC(game.monsters[0]!)).toBe(2);
+            expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(2);
             game.random = () => 3/6 -0.01;
             game.rollDice(player2, false, item);
             await game.resolveEntireStack();
-            expect(game.getDC(game.monsters[0]!)).toBe(1);
+            expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(1);
             game.random = () => 3/6 -0.01;
             game.rollDice(player2, false, item);
             await game.resolveEntireStack();
-            expect(game.getDC(game.monsters[0]!)).toBe(1);
+            expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(1);
             await game.endTurn();
-            expect(game.getDC(game.monsters[0]!)).toBe(initDC);
+            expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(initDC);
         });
     
         it("lil_chest 5-6", async () => {
@@ -494,7 +494,7 @@ describe("Requiem Loots ", () => {
                     card.charged = false;
             }
             const loot = player2.hand.cards[0] as LootCard;
-            game.kill(player2, game.monsters[0]!, item);
+            game.entityHandler.kill(player2, game.monsters[0]!, item);
             game.random = () => 0.9;
             await game.actions.resolveStack();
             await game.actions.resolveStack();
@@ -509,7 +509,7 @@ describe("Requiem Loots ", () => {
             game.addInPlay(player2, item);
             game.loot(player2, 1);
             const loot = player2.hand.cards[0] as LootCard;
-            game.kill(player2, game.monsters[0]!, item);
+            game.entityHandler.kill(player2, game.monsters[0]!, item);
             game.random = () => 0.4;
             await game.actions.resolveStack();
             await game.actions.resolveStack();
@@ -524,7 +524,7 @@ describe("Requiem Loots ", () => {
             expect(item).toBeDefined();
             game.addInPlay(player2, item);
 
-            game.kill(player2, game.monsters[0]!, item);
+            game.entityHandler.kill(player2, game.monsters[0]!, item);
             game.random = () => 0.01;
             await game.actions.resolveStack();
             await game.actions.resolveStack();
@@ -537,7 +537,7 @@ describe("Requiem Loots ", () => {
             let item = game.obtainCard("r-keepers_sack") as ItemCard;
             expect(item).toBeDefined();
             game.addInPlay(player1, item);
-            game.addHealth(player1, 5, item);
+            game.entityHandler.addHealth(player1, 5, item);
             await game.actions.resolveStack();
 
             expect(player1.coins).toBe(14);
@@ -602,7 +602,7 @@ describe("Requiem Loots ", () => {
             expect(item).toBeDefined();
             game.addInPlay(player1, item);
 
-            game.kill(player1, player1, item);
+            game.entityHandler.kill(player1, player1, item);
             await game.actions.resolveStack();
             await game.actions.resolveStack();
             expect(game.stack.isEmpty()).toBe(true);
@@ -616,7 +616,7 @@ describe("Requiem Loots ", () => {
             expect(item).toBeDefined();
             game.addInPlay(player1, item);
 
-            game.kill(player1, game.monsters[0]!, item);
+            game.entityHandler.kill(player1, game.monsters[0]!, item);
             await game.actions.resolveStack();
             await game.actions.resolveStack();
             expect(item.tags.counters).toBe(1);
@@ -639,27 +639,27 @@ describe("Requiem Loots ", () => {
         it("handicapped_placard", async () => {
             const gurdy = game.obtainCard("b2-gurdy") as MonsterCard;
             game.encounters.forceSetMonsterAtSlot(0, gurdy);
-            expect(game.getDC(game.monsters[0]!)).toBe(4);
+            expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(4);
             const soul1 = game.decks.treasure.draw();
             soul1.soul = 1;
             game.addSoul(player2, soul1);
             let item = game.obtainCard("r-handicapped_placard") as ItemCard;
             expect(item).toBeDefined();
             game.addInPlay(player1, item);
-            expect(game.getDC(game.monsters[0]!)).toBe(3);
+            expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(3);
             const soul2 = game.decks.treasure.draw();
             soul2.soul = 1;
             game.addSoul(player2, soul2);
-            expect(game.getDC(game.monsters[0]!)).toBe(2);
+            expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(2);
             await game.endTurn();
-            expect(game.getDC(game.monsters[0]!)).toBe(4);
+            expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(4);
             await game.endTurn();
 
-            expect(game.getDC(game.monsters[0]!)).toBe(2);
+            expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(2);
             const soul3 = game.decks.treasure.draw();
             soul3.soul = 4;
             game.addSoul(player1, soul3);
-            expect(game.getDC(game.monsters[0]!)).toBe(4);
+            expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(4);
         });
     
         it("gnawed_leaf", async () => {
@@ -667,7 +667,7 @@ describe("Requiem Loots ", () => {
             expect(item).toBeDefined();
             game.addInPlay(player2, item);
 
-            game.dealDamage(player1, player2, item, 2);
+            game.entityHandler.dealDamage(player1, player2, item, 2);
             await game.actions.resolveStack();
             await game.actions.resolveStack();
             await game.actions.resolveStack();
@@ -768,10 +768,10 @@ describe("Requiem Loots ", () => {
             game.actions.declareAttack(player1);
             const mob = game.monsters[0]!;
             await game.actions.declareAttackOnEntity(player1, mob);
-            game.addHealth(player1, 10, item);
-            game.addHealth(mob, 10, item);
-            game.addAttack(player1, 2, item);
-            game.addAttack(mob, 2, item);
+            game.entityHandler.addHealth(player1, 10, item);
+            game.entityHandler.addHealth(mob, 10, item);
+            game.entityHandler.addAttack(player1, 2, item);
+            game.entityHandler.addAttack(mob, 2, item);
 
             game.random = () => 0.01;
             game.actions.attackRoll(player1);
@@ -798,7 +798,7 @@ describe("Requiem Loots ", () => {
             await game.actions.resolveStack();
             expect(player1.hand.length).toBe(0);
             expect(player2.hand.length).toBe(2);
-            game.kill(player1, player1, item);
+            game.entityHandler.kill(player1, player1, item);
             await game.actions.resolveStack();
             await game.actions.resolveStack();
             await game.actions.resolveStack();
@@ -929,7 +929,7 @@ describe("Requiem Loots ", () => {
         game.gainTreasure(player2, 1);
         expect(player1.inPlay.length).toBe(8);
         expect(player2.inPlay.length).toBe(3);
-        game.kill(player1, player1, item);
+        game.entityHandler.kill(player1, player1, item);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.inPlay.length).toBe(6);
@@ -1090,7 +1090,7 @@ describe("Requiem Loots ", () => {
         let item = game.obtainCard("r-blood_puppy") as ItemCard;
         expect(item).toBeDefined();
         game.addInPlay(player1, item);
-        game.kill(player1, player2, item);
+        game.entityHandler.kill(player1, player2, item);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -1235,8 +1235,8 @@ describe("Requiem Loots ", () => {
         expect(item).toBeDefined();
         game.addInPlay(player1, item);
 
-        game.addHealth(player1, 10, item);
-        game.addHealth(game.monsters[0]!, 10, item);
+        game.entityHandler.addHealth(player1, 10, item);
+        game.entityHandler.addHealth(game.monsters[0]!, 10, item);
         let curr = player1.currentHealthPoints;
         game.actions.declareAttack(player1);
         game.actions.declareAttackOnEntity(player1, game.monsters[0]!);
@@ -1297,7 +1297,7 @@ describe("Requiem Loots ", () => {
         expect(item).toBeDefined();
         game.addInPlay(player1, item);
         for(const entity of [...game.players, ...game.monsters])
-            game.addHealth(entity, 3, item);
+            game.entityHandler.addHealth(entity, 3, item);
         await game.activateItem(player1, item, [], "tap");
         await game.actions.resolveStack();
         await game.resolveEntireStack();
@@ -1316,7 +1316,7 @@ describe("Requiem Loots ", () => {
         await game.actions.resolveStack();
         expect(player1.coins).toBe(1);
         
-        game.dealDamage(player1, player1, item, 2);
+        game.entityHandler.dealDamage(player1, player1, item, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -1328,7 +1328,7 @@ describe("Requiem Loots ", () => {
         await game.actions.resolveStack();
         expect(player1.coins).toBe(2);
         
-        game.dealDamage(player1, mob, item, 2);
+        game.entityHandler.dealDamage(player1, mob, item, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);

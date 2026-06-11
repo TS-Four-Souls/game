@@ -56,7 +56,7 @@ describe("Monster Rewards - Verification", () => {
         const initialInPlayCount = player1.inPlay.length;
 
         // Kill the monster
-        game.kill(player1, monsterEntity, monster);
+        game.entityHandler.kill(player1, monsterEntity, monster);
         // Resolve the death and rewards
         await game.actions.resolveStack();
         if( game.stack.elements.length > 1) // black bony effect add effect on stack on death.
@@ -198,7 +198,7 @@ describe("Monster Rewards - Verification", () => {
             const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
             const initialSouls = player1.souls.length;
 
-            game.kill(player1, monsterEntity, monster);
+            game.entityHandler.kill(player1, monsterEntity, monster);
             await game.actions.resolveStack();
 
             // Should have both treasure and soul
@@ -217,7 +217,7 @@ describe("Monster Rewards - Verification", () => {
             const initialSouls = player1.souls.length;
             const initialLoot = player1.hand.length;
 
-            game.kill(player1, monsterEntity, monster);
+            game.entityHandler.kill(player1, monsterEntity, monster);
             await game.actions.resolveStack();
 
             // Should have both coins and soul
@@ -239,7 +239,7 @@ describe("Monster Rewards - Verification", () => {
     //         const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
     //         const initialSouls = player1.souls.length;
 
-    //         game.kill(player1, monsterEntity, monster);
+    //         game.entityHandler.kill(player1, monsterEntity, monster);
     //         await game.actions.resolveStack();
 
     //         // Nothing should have changed
@@ -260,7 +260,7 @@ describe("Monster Rewards - Verification", () => {
             const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
             const initialSouls = player1.souls.length;
 
-            game.kill(player1, monsterEntity, monster);
+            game.entityHandler.kill(player1, monsterEntity, monster);
             await game.actions.resolveStack();
 
             // Should only gain coins, nothing else
@@ -278,7 +278,7 @@ describe("Monster Rewards - Verification", () => {
             const initialTreasures = player1.inPlay.filter(c => c instanceof TreasureCard).length;
             const initialSouls = player1.souls.length;
 
-            game.kill(player1, monsterEntity, monster);
+            game.entityHandler.kill(player1, monsterEntity, monster);
             await game.actions.resolveStack();
 
             // Should only gain loot, nothing else
@@ -296,7 +296,7 @@ describe("Monster Rewards - Verification", () => {
             const initialHandSize = player1.hand.length;
             const initialSouls = player1.souls.length;
 
-            game.kill(player1, monsterEntity, monster);
+            game.entityHandler.kill(player1, monsterEntity, monster);
             await game.actions.resolveStack();
 
             // Should only gain treasures, nothing else

@@ -211,12 +211,12 @@ describe("Tap/Paid effects 1", () => {
     it("daddy_haunt - damage increased by 1", async () => {
         const daddyHaunt = game.shop.obtainCard("b2-daddy_haunt") as ItemCard;
         game.addInPlay(player1, daddyHaunt);
-        game.addHealth(player1, 10); // Heal player1 to full health
+        game.entityHandler.addHealth(player1, 10); // Heal player1 to full health
 
         const initialHp = player1.currentHealthPoints;
 
         // Deal 2 damage to player1
-        game.dealDamage(player2, player1, daddyHaunt, 2);
+        game.entityHandler.dealDamage(player2, player1, daddyHaunt, 2);
         await game.actions.resolveStack();
 
         // Player should take 3 damage (2 + 1 from curse)
@@ -226,12 +226,12 @@ describe("Tap/Paid effects 1", () => {
     it("daddy_haunt - single damage becomes 2", async () => {
         const daddyHaunt = game.shop.obtainCard("b2-daddy_haunt") as ItemCard;
         game.addInPlay(player1, daddyHaunt);
-        game.addHealth(player1, 10); // Heal player1 to full health
+        game.entityHandler.addHealth(player1, 10); // Heal player1 to full health
 
         const initialHp = player1.currentHealthPoints;
 
         // Deal 1 damage to player1
-        game.dealDamage(player2, player1, daddyHaunt, 1);
+        game.entityHandler.dealDamage(player2, player1, daddyHaunt, 1);
         await game.actions.resolveStack();
 
         // Player should take 2 damage (1 + 1 from curse)
@@ -719,7 +719,7 @@ describe("Tap/Paid effects 1", () => {
         await game.actions.resolveStack();
 
         // Deal 5 damage to monster - should be reduced to 1
-        game.dealDamage(player1, monster, momsBra, 5);
+        game.entityHandler.dealDamage(player1, monster, momsBra, 5);
         await game.actions.resolveStack();
 
         expect(monster.currentHealthPoints).toBe(initialHp - 1);
@@ -738,7 +738,7 @@ describe("Tap/Paid effects 1", () => {
         await game.actions.resolveStack();
 
         // Deal 5 damage to player2 - should be reduced to 1
-        game.dealDamage(player1, player2, momsBra, 5);
+        game.entityHandler.dealDamage(player1, player2, momsBra, 5);
         await game.actions.resolveStack();
 
         expect(player2.currentHealthPoints).toBe(initialHp - 1);
@@ -902,7 +902,7 @@ describe("Tap/Paid effects 1", () => {
         await game.actions.resolveStack();
 
         // Deal 3 damage to player1 - should prevent 1 and deal 1 to player2
-        game.dealDamage(player1, player1, hostHat, 3);
+        game.entityHandler.dealDamage(player1, player1, hostHat, 3);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -926,7 +926,7 @@ describe("Tap/Paid effects 1", () => {
         const player2HpAfterActivation = player2.currentHealthPoints;
 
         // First damage - prevented
-        game.dealDamage(player1, player1, hostHat, 2);
+        game.entityHandler.dealDamage(player1, player1, hostHat, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -937,7 +937,7 @@ describe("Tap/Paid effects 1", () => {
         const player2HpAfterFirstDamage = player2.currentHealthPoints;
 
         // Second damage - not prevented (already used)
-        game.dealDamage(player1, player1, hostHat, 2);
+        game.entityHandler.dealDamage(player1, player1, hostHat, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();

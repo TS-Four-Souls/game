@@ -39,7 +39,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, monster);
 
-        game.addHealth(monster, 10);
+        game.entityHandler.addHealth(monster, 10);
 
         // First attack roll - should not trigger the effect
         game.actions.attackRoll(player2);
@@ -67,7 +67,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         // card roll
         player1.hand.addToHand(card);
-        game.addLootPlay(player1, 1);
+        game.entityHandler.addLootPlay(player1, 1);
         const playCard = game.actions.playCard(player1, 0);
         await game.actions.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
@@ -96,8 +96,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, monster);
 
-        game.addHealth(monster, 10);
-        game.addHealth(player2, 10);
+        game.entityHandler.addHealth(monster, 10);
+        game.entityHandler.addHealth(player2, 10);
 
         // First attack roll - should not trigger the effect
         game.actions.attackRoll(player2);
@@ -125,7 +125,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         expect(game.stack.size).toBe(0);
 
         // card roll
-        game.addLootPlay(player1, 1);
+        game.entityHandler.addLootPlay(player1, 1);
         const playCard = game.actions.playCard(player1, 0);
         await game.actions.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
@@ -154,8 +154,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, monster);
 
-        game.addHealth(monster, 10);
-        game.addHealth(player2, 10);
+        game.entityHandler.addHealth(monster, 10);
+        game.entityHandler.addHealth(player2, 10);
 
         // First attack roll - should not trigger the effect
         game.actions.attackRoll(player2);
@@ -184,7 +184,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         sack.charged = false;
 
         // card roll
-        game.addLootPlay(player1, 1);
+        game.entityHandler.addLootPlay(player1, 1);
         const playCard = game.actions.playCard(player1, 0);
         await game.actions.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
@@ -214,8 +214,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, monster);
 
-        game.addHealth(monster, 10);
-        game.addHealth(player2, 10);
+        game.entityHandler.addHealth(monster, 10);
+        game.entityHandler.addHealth(player2, 10);
 
         // First attack roll - should not trigger the effect
         game.actions.attackRoll(player2);
@@ -244,7 +244,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         recharged.charged = false;
 
         // card roll
-        game.addLootPlay(player1, 1);
+        game.entityHandler.addLootPlay(player1, 1);
         const playCard = game.actions.playCard(player1, 0);
         await game.actions.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
@@ -271,8 +271,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, monster);
 
-        game.addHealth(monster, 10);
-        game.addHealth(player2, 10);
+        game.entityHandler.addHealth(monster, 10);
+        game.entityHandler.addHealth(player2, 10);
         const initialHandSize = player1.hand.length;
 
         // First attack roll - should not trigger the effect
@@ -311,7 +311,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         cardToDiscard = player1.hand.cards[1]!;
         cardToAdd = game.decks["loot"]!.cards[0]!;
         expect(game.stack.size).toBe(0);
-        game.addLootPlay(player1, 1);
+        game.entityHandler.addLootPlay(player1, 1);
         const playCard = game.actions.playCard(player1, 0);
         await game.actions.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
@@ -344,8 +344,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, monster);
 
-        game.addHealth(monster, 10);
-        game.addHealth(player2, 10);
+        game.entityHandler.addHealth(monster, 10);
+        game.entityHandler.addHealth(player2, 10);
         const initialHandSize = player1.hand.length;
 
         // First attack roll - should not trigger the effect
@@ -412,8 +412,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, monster);
         
-        game.addHealth(monster, 10);
-        game.addHealth(player2, 10);
+        game.entityHandler.addHealth(monster, 10);
+        game.entityHandler.addHealth(player2, 10);
         const initHP = player2.currentHealthPoints;
 
 
@@ -477,8 +477,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, monster);
         
-        game.addHealth(monster, 10);
-        game.addHealth(player2, 10);
+        game.entityHandler.addHealth(monster, 10);
+        game.entityHandler.addHealth(player2, 10);
         let topTreasure = game.decks["loot"]!.cards[0]!;
 
         // First attack roll - should not trigger the effect
@@ -543,8 +543,8 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, monster);
 
-        game.addHealth(monster, 10);
-        game.addHealth(player2, 10);
+        game.entityHandler.addHealth(monster, 10);
+        game.entityHandler.addHealth(player2, 10);
         const initialHandSize = player1.hand.length;
 
         // First attack roll - should not trigger the effect
@@ -611,7 +611,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
 
         // card roll
         player2.hand.addToHand(card);
-        game.addLootPlay(player2, 1);
+        game.entityHandler.addLootPlay(player2, 1);
         const playCard = game.actions.playCard(player2, 0);
         await game.actions.resolveStack();
         const cardRoll = game.stack._stack[0] as DiceRoll | undefined;
@@ -638,14 +638,14 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         // Store references to current monsters
         const remainingMonster = game.monsters[0]!;
         const attackedMonster = game.monsters[1]!;
-        game.addHealth(remainingMonster, 10);
-        game.addHealth(player2, 10);
+        game.entityHandler.addHealth(remainingMonster, 10);
+        game.entityHandler.addHealth(player2, 10);
 
         game.endTurn();
         await game.actions.resolveStack();
         game.discardFromHandAtIndex(player2, 0);
 
-        game.addAttackThisTurn(player2, 1); // Ensure player can attack
+        game.entityHandler.addAttackThisTurn(player2, 1); // Ensure player can attack
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, attackedMonster);
         // First attack roll - should not trigger the effect
@@ -709,12 +709,12 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         game.endTurn();
         await game.actions.resolveStack();
         game.addInPlay(player1, theD10);
-        game.addAttackThisTurn(player2, 1); // Ensure player can attack
+        game.entityHandler.addAttackThisTurn(player2, 1); // Ensure player can attack
 
         const monster0 = game.monsters[0]!;
         const monster1 = game.monsters[1]!;
-        game.addHealth(monster0, 10);
-        game.addHealth(player2, 10);
+        game.entityHandler.addHealth(monster0, 10);
+        game.entityHandler.addHealth(player2, 10);
 
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, monster0);

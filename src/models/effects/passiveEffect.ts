@@ -112,7 +112,7 @@ export function preventDamageToCurrentPlayerAndDealToRandomPlayerEffect(game: Ga
             const effect: EffectFunction = async (effectData: EffectData) => {
                 eventData.damageArray[0] = 0;
                 const target = game.players[Math.floor(game.random() * game.players.length)]!;
-                game.dealDamage(data.issuer, target, data.it, damage);
+                game.entityHandler.dealDamage(data.issuer, target, data.it, damage);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, "When this would deal combat damage to the active player, prevent it, then this deals damage to a player chosen at random.");
@@ -170,7 +170,7 @@ export function voteOnWhipOrWhiffEffect(game: Game, damageIfWhipWins: number, lo
                     eventData.damageArray[0] = 0; // prevent the damage this would take
                     for(const player of game.players) {
                         if(player !== game.currentPlayer && !player.isDead) {
-                            game.dealDamage(data.issuer, player, data.it, damageIfWhipWins);
+                            game.entityHandler.dealDamage(data.issuer, player, data.it, damageIfWhipWins);
                         }
                     }
                 } else {
@@ -197,7 +197,7 @@ export function extraAttackAndDeathTriggerEffect(game: Game, dc: number): Effect
         const target = (await data.selectAndRecord(game, issuer as Player, 1, 1, game.players.filter(p => p !== issuer && !p.isDead), "Select a player to attack.", true, true)).selected[0];
         if(!target) return false;
         game.makePlayerAttackable(target, dc);
-        game.playerMustAttack(issuer, [target], data.it);
+        game.entityHandler.playerMustAttack(issuer, [target], data.it);
         offDeath = game.emitter.on("on:death:penalty", async (eventData: OnDeathPenaltyData) => {
             if(eventData.eventIssuer !== target) return;
             eventData.itemsLost.forEach(item => {
@@ -631,17 +631,17 @@ export function noPriorityPassesOnYourTurnEffect(game: Game): EffectFunction {
 
         // Apply immediately if this effect starts during issuer's turn.
         if (game.currentPlayer === issuer) {
-            game.applyLootOrActivateRestrictionForCurrentTurn(issuer);
+            game.entityHandler.applyLootOrActivateRestrictionForCurrentTurn(issuer);
         }
 
         let offStartTurn = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
             if (eventIssuer !== issuer) return;
-            game.applyLootOrActivateRestrictionForCurrentTurn(issuer);
+            game.entityHandler.applyLootOrActivateRestrictionForCurrentTurn(issuer);
         });
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
             if(game.currentPlayer === issuer)
-                game.applyLootOrActivateRestrictionForCurrentTurn(issuer, -1);
+                game.entityHandler.applyLootOrActivateRestrictionForCurrentTurn(issuer, -1);
             offStartTurn();
         });
         return true;
@@ -656,10 +656,10 @@ export function noPriorityPassesTillEndOfTurnEffect(game: Game): EffectFunction 
         if(!(issuer instanceof Player))
             throw new Error("noPriorityPassesTillEndOfTurnEffect can only be applied to Players.");
 
-        game.applyLootOrActivateRestrictionForCurrentTurn(issuer);
+        game.entityHandler.applyLootOrActivateRestrictionForCurrentTurn(issuer);
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
-            game.applyLootOrActivateRestrictionForCurrentTurn(issuer, -1);
+            game.entityHandler.applyLootOrActivateRestrictionForCurrentTurn(issuer, -1);
         });
         return true;
     };
@@ -821,13 +821,13 @@ export function firstAttackRollDiceModifier(
             throw new Error("firstAttackRollDiceModifier can only be applied to Players.");
         let active = issuer.attackRollThisTurn ===  0;
         if(active)
-            game.addAttackDiceModifier(issuer, amount, data.it);
+            game.entityHandler.addAttackDiceModifier(issuer, amount, data.it);
 
         let offTurn = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
             const { eventIssuer } = eventData;
             if (eventIssuer !== issuer) return;
             if(active) return;
-            game.addAttackDiceModifier(issuer, amount, data.it);
+            game.entityHandler.addAttackDiceModifier(issuer, amount, data.it);
             active = true;
         });
 
@@ -838,7 +838,7 @@ export function firstAttackRollDiceModifier(
             if(issuer.attackRollThisTurn > 1)
             {
                 active = false;
-                game.addAttackDiceModifier(issuer, -amount, data.it);
+                game.entityHandler.addAttackDiceModifier(issuer, -amount, data.it);
             }
         });
 
@@ -848,7 +848,7 @@ export function firstAttackRollDiceModifier(
             if(active)
             {
                 active = false;
-                game.addAttackDiceModifier(data.issuer, -amount, data.it);
+                game.entityHandler.addAttackDiceModifier(data.issuer, -amount, data.it);
             }
             offTurn();
             offTurnEnd();
@@ -1725,7 +1725,7 @@ export function soulDiffDCModifierOnYourTurnEffect(game: Game): EffectFunction {
         let diff = 0;
         if(game.currentPlayer === data.issuer) {
             diff = Math.max(...game.players.map((p) => p.totalSouls)) - game.currentPlayer.totalSouls;
-            game.addDCToEachMonster(data.issuer, -diff, data.it);
+            game.entityHandler.addDCToEachMonster(data.issuer, -diff, data.it);
         }
 
         offTurn = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
@@ -1735,14 +1735,14 @@ export function soulDiffDCModifierOnYourTurnEffect(game: Game): EffectFunction {
 
             // Calculate the difference in souls
             diff = Math.max(...game.players.map((p) => p.totalSouls)) - data.issuer.totalSouls;
-            game.addDCToEachMonster(data.issuer, -diff, data.it);
+            game.entityHandler.addDCToEachMonster(data.issuer, -diff, data.it);
         });
 
         offGainSoul = game.emitter.on("on:soul:gained", ({ eventIssuer }) => {
             if(!(data.issuer instanceof Player)) return;
             const newDiff = Math.max(...game.players.map((p) => p.totalSouls)) - data.issuer.totalSouls;
             if(newDiff !== diff) {
-                game.addDCToEachMonster(data.issuer, - newDiff + diff, data.it);
+                game.entityHandler.addDCToEachMonster(data.issuer, - newDiff + diff, data.it);
                 diff = newDiff;
             }
         });
@@ -1754,7 +1754,7 @@ export function soulDiffDCModifierOnYourTurnEffect(game: Game): EffectFunction {
             if(!(data.issuer instanceof Player)) return;
 
             // Remove the DC modifier at the end of the turn
-            game.addDCToEachMonster(data.issuer, diff, data.it);
+            game.entityHandler.addDCToEachMonster(data.issuer, diff, data.it);
             diff = 0;
         });
         data.it.cleaners.push(() => {
@@ -1860,7 +1860,7 @@ export function replaceDeathPenaltyEffect(game: Game): EffectFunction {
         // Listen for the next death penalty event on this player
         const issuer = data.issuer;
         if (!(issuer instanceof Player)) return false;
-        let OriginalDeathPenaltyItems = game.deathPenaltyItems.bind(game);
+        let OriginalDeathPenaltyItems = game.deathPenaltyItems.bind(game.entityHandler);
         game.deathPenaltyItems = async (player: Player): Promise<ItemCard[]> => {
             const setOfLosableItems = player.inPlay.filter(
               (c) =>
@@ -1928,7 +1928,7 @@ export function putCounterInsteadOfDestructionEffect(game: Game): EffectFunction
     };
 }
 
-// [game.addAttackDiceModifier.bind(game)], 1, (player: Player) => player.coins === 0, ["on:coin:gained:after", "on:coin:lost:after"], game);
+// [game.entityHandler.addAttackDiceModifier.bind(game.entityHandler)], 1, (player: Player) => player.coins === 0, ["on:coin:gained:after", "on:coin:lost:after"], game);
 // HYBRID EFFECT: Can be either a replacement effect or triggered effect depending on useStack parameter.
 // Modifies stats based on a condition (e.g., "while you have 0¢").
 export function ConditionalStatModifierEffect(
@@ -2068,7 +2068,7 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
             const selection = await data.selectAndRecord(game, data.issuer, 1, 1, otherPlayers, "Select a player to deal damage to.", true, true);
             if (selection.selected.length > 0) {
                 const chosenPlayer = selection.selected[0]!;
-                game.dealDamage(data.issuer, chosenPlayer, data.it, deal);
+                game.entityHandler.dealDamage(data.issuer, chosenPlayer, data.it, deal);
             }
             cleanup(); // One-shot: remove listeners after first use
         });
@@ -2719,7 +2719,7 @@ export function preventDamageAndDealOnDeathEffect(game: Game, damagePrevented: n
 
             for(const player of game.players) {
                 if(player !== data.issuer && !player.isDead && player !== eventIssuer) {
-                    game.dealDamage(data.issuer, player, data.it, damageAmount);
+                    game.entityHandler.dealDamage(data.issuer, player, data.it, damageAmount);
                 }
             }
 
@@ -2823,7 +2823,7 @@ export function killOnDoubleAttackRollEffect(game: Game): EffectFunction {
         offEffect = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
             const { eventIssuer, target, dice } = eventData;
             if(prevRollThisTurn === dice.value)
-                game.kill(data.issuer, target, data.it);
+                game.entityHandler.kill(data.issuer, target, data.it);
             prevRollThisTurn = dice.value;
         });
 
