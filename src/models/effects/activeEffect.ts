@@ -15,11 +15,8 @@ import { DamageOnStack, DiceRoll, } from "../stackElement";
 import { TargetBuilder } from "../targetBuilder";
 import { deckSelector, inplayUnchargedItemSelector as inplayChargeableItemSelector, visibleItemSelector } from "../targetSelector";
 import { type DeckType, EffectData, type EffectFunction, type TargetsSelector } from "../types/cardTypes";
-import type { OnDamageWouldTakeData, OnTurnEndData } from "../types/eventTypes";
-import type { NumberRobustString } from "./effectParser";
-import { effectParser, type ParsedEffect } from "./effectParser";
-import { putOnTopOfMonsterDeckOnRollEffect } from "./monsterEffects";
-import * as passive from "./passiveEffect";
+import type { OnTurnEndData } from "../types/eventTypes";
+import { effectParser, type ParsedEffect } from "./parsing/effectParser";
 import { addPassiveEffectToStack } from "./passiveEffect";
 import * as room from "./roomEffects";
 
@@ -379,8 +376,11 @@ export function expandSlotsEffect(slotText: string, numberToExpand: number, game
     };
 }
 
-export function shuffleDeckEffect(game: Game, deckName: DeckType): EffectFunction {
+export function shuffleDeckEffect(game: Game, deckName: string): EffectFunction {
     return (data: EffectData) => {
+        if (!isDeckType(deckName)) {
+            throw new Error(`Invalid deck type: ${deckName}`);
+        }
         game.decks[deckName]!.shuffle();
         return true;
     };
@@ -1156,10 +1156,12 @@ export function lookAtPlayerHandAndTopOfDeckEffect(game: Game): EffectFunction {
 
 // Look at the top card of a deck. You may put it back.
 export function LookAndPutBottomEffect(
-    deckName: DeckType,
+    deckName: string,
     game: Game
 ): EffectFunction {
     return async (data:EffectData) => {
+        if(!isDeckType(deckName))
+            throw new Error(`Invalid deck type: ${deckName}`);
         if (data.issuer instanceof Player === false) return false;
         const deck = game.decks[deckName];
         if (!deck) {
@@ -1225,7 +1227,7 @@ export function discardAnyNumberOfShopItemsEffect(game: Game, min: number, max: 
         }
         for (const card of selectionResult) {
             const index = shop.itemsInShop.indexOf(card);
-            game.discardFromShop(index);
+            game.shop.discardTop(index);
         }
         data.addTarget(selectionResult.length);
         return true;
@@ -1805,17 +1807,6 @@ export function stealAPlayerRandomLootCardEffect(game: Game): EffectFunction {
             game.stealLootCard(data.issuer, targetPlayer, cardToSteal as LootCard);
         }
         return true;
-    };
-}
-
-
-export function destroyThisAndLootXEffect(game: Game, lootAmount: number): EffectFunction {
-    return (data: EffectData) => {
-        if (data.issuer instanceof Player === false) return false;
-        const destroyed = game.destroyCardsOrSouls([data.it]);
-        if(destroyed)
-            game.loot(data.issuer, lootAmount);
-        return destroyed;
     };
 }
 
@@ -2454,34 +2445,36 @@ export function obtainRollResults(s: string): string[] {
     return results;
 }
 
-export function rollEffect(s: string, nr: NumberRobustString, game: Game, issuerIsCurrentPlayer: boolean = false): ParsedEffect {
-    switch (nr.masked){
-        case "roll-\ndeal damage to them equal to the result.":
-            return dealRollDamageEffect(s, game);
-        case "roll-\nyou may change the result of your next roll this turn to this result.":
-            return passive.rollAndMayChangeNextRollForThis(game);
-        case "roll-\nif the roll is less than the number of counters on this, destroy it and all other items you control.":
-            return rollAndDestroyIfLessThanCounters(game);
-        case "roll-\ngain x¢, where x is x times the result.":
-            return rollAndGainXTimesResultEffect(game, nr.nextNumber());
-        case "roll-\nx or x: put this on top of the monster deck.":
-            return { effectFunction: putOnTopOfMonsterDeckOnRollEffect(game, nr.numbers.slice()), targetSelectors: [] };
-            
-    }
-    const rollResults = obtainRollResults(s);
-    const parsedEffects: ParsedEffect[] = rollResults.map(effectText => effectParser(effectText, game, ()=>{throw new Error(`Not implemented.`)}, true));
-    const effects: EffectFunction[] = parsedEffects.map(p => p.effectFunction);
-    return {
-        effectFunction: (data: EffectData) => {
-            const issuer = issuerIsCurrentPlayer ? game.currentPlayer : data.issuer;
-            if (issuer instanceof Player === false) return false;
-            const result = game.rollDice(issuer, false, data.it);
-            result.attachEffect(effects, data.it, data.targets, data.issuer);
-            return true;
-        },
-        targetSelectors: [] // roll has special target handling based on the roll result
+export function putOnTopOfMonsterDeckOnRollEffect(game: Game, rolls: number[]): EffectFunction {
+    return (data: EffectData) => {
+        if(!(data.it instanceof MonsterCard))
+            throw new Error("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards.");
+        data.it.afterEffect = "nothing"; // Card placement is handled by the game by default
+        
+        const roll = game.rollDice(game.currentPlayer as Player, false, data.it);
+        roll.attachEffect([1,2,3,4,5,6].map(n => (data:EffectData) => {
+            if(!(data.it instanceof MonsterCard))
+                throw new Error("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards.");
+            game.encounters.removeFromSlot(data.it);
+            if(rolls.includes(n)) {
+                // data.it.afterEffect = "handled"; // Card placement is handled by this effect
+                if(game.decks.monster.discard.includes(data.it)) {
+                    game.encounters.obtainCardFromDiscard(data.it.slug, data.it.globalId);
+                }
+                game.decks.monster.addTopPosition(data.it);
+                return true;
+            }else
+            {
+                if(!data.it.entity || !(data.it.entity instanceof Monster))
+                    throw new Error("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards that are in play.");
+                data.it.afterEffect = "discard";
+            }
+            return false;
+        }), data.it, []);
+        return true;
     };
 }
+
 
 export function rollAndGainXTimesResultEffect(game: Game, mult: number): ParsedEffect {
     return {

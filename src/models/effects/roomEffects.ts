@@ -705,39 +705,24 @@ export function playerMustDestroyItemOnDeathEffect(game: Game): EffectFunction {
 
 export function onAttackDeclaredNonActivePlayersRollToJoinEffect(game: Game, minRoll: number, maxRoll: number): EffectFunction {
     return (data: EffectData) => {
-        let offAttackDeclared: (() => void) | null = null;
-        offAttackDeclared = game.emitter.on("on:attack:declared:animated", async (eventData) => {
-            const { eventIssuer, animated } = eventData;
-            if(animated[0] !== data.it.entity!)
-                return 
-            if(eventIssuer !== game.currentPlayer) {
-                return; // Not the current player, ignore
+        const rolls:DiceRoll[] = [];
+        for(const player of game.players) {
+            if(player !== game.currentPlayer && !player.isDead) {
+                const roll = game.rollDice(player, false, data.it);
+                roll.attachEffect(
+                    [1,2,3,4,5,6].map(value => 
+                        (value >= minRoll && value <= maxRoll) ?
+                            makeAnAttackRollAfterEachAttackRollEffect(game) : (() => true)
+                    )
+                    , data.it, [], player);
+                rolls.push(roll);
             }
-            const rolls:DiceRoll[] = [];
-            for(const player of game.players) {
-                if(player !== game.currentPlayer && !player.isDead) {
-                    const roll = game.rollDice(player, false, data.it);
-                    roll.attachEffect(
-                        [1,2,3,4,5,6].map(value => 
-                            (value >= minRoll && value <= maxRoll) ?
-                                makeAnAttackRollAfterEachAttackRollEffect(game) : (() => true)
-                        )
-                        , data.it, [], player);
-                    rolls.push(roll);
-                }
-            }
-            let offCombatEnd: (() => void) | null = null;
-            offCombatEnd = game.emitter.on("on:combat:end", (eventData) => {
-                rolls.forEach(roll => game.stack.cancelElement(roll));
-                offCombatEnd?.();
-                offCombatEnd = null;
-            });
-        });
-
-        // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleaners.push(() => {
-            offAttackDeclared?.();
-            offAttackDeclared = null;
+        }
+        let offCombatEnd: (() => void) | null = null;
+        offCombatEnd = game.emitter.on("on:combat:end", (eventData) => {
+            rolls.forEach(roll => game.stack.cancelElement(roll));
+            offCombatEnd?.();
+            offCombatEnd = null;
         });
         return true;
     };
@@ -909,7 +894,7 @@ export function playersWithFewestSoulsAttackBoostEffect(game: Game, attackBoost:
 }
 
 
-export function playersWithFewestSoulsFreeShopItemEffect(game: Game): EffectFunction {
+export function playersWithFewestSoulsShopItemPriceReductionEffect(game: Game, priceReduction: number): EffectFunction {
     return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
         let offPurchase: (() => void) | null = null;
@@ -925,7 +910,7 @@ export function playersWithFewestSoulsFreeShopItemEffect(game: Game): EffectFunc
             let minSouls = Math.min(...game.players.map(p => p.totalSouls));
             playersWithFewestSouls = game.players.filter(p => p.totalSouls === minSouls);
             if(playersWithFewestSouls.includes(game.currentPlayer) && pay0Next)
-                game.currentPlayer.priceModifier -= 999;
+                game.currentPlayer.priceModifier -= game.gameParameters.shopPrice.value - priceReduction;
         }
         /** When a shop item is purchase, if the current player has his cost reduced, remove the reduction.
          */
@@ -939,7 +924,7 @@ export function playersWithFewestSoulsFreeShopItemEffect(game: Game): EffectFunc
         function removeEffect() {
             if(playersWithFewestSouls.includes(game.currentPlayer) && pay0Next)
             {
-                game.currentPlayer.priceModifier += 999;
+                game.currentPlayer.priceModifier += game.gameParameters.shopPrice.value - priceReduction;
             }
         }
         
@@ -989,7 +974,19 @@ export function flushShopOrUnattackedMonstersEffect(game: Game): EffectFunction 
  * 
  * when 4 goals are completed, each player gains +2 treasure.
  */
-export function socialGoalsEffect(game: Game): EffectFunction {
+export function socialGoalsEffect(game: Game, numbers: number[]): EffectFunction {
+    if(numbers.length < 13) {
+        throw new Error("Expected 13 numbers for socialGoalsEffect, got " + numbers.length);
+    }
+    const discardObjective = numbers[0]!;
+    const goalsLoot = numbers[2]!;
+    const goalsMonster = numbers[4]!;
+    const goalsDonation = numbers[6]!;
+    const goalsPurchase = numbers[8]!;
+    const goalsRoll = numbers[10]!;
+    const goalsObjective = numbers[11]!;
+    const nbTreasure = numbers[12]!;
+
     return (data: EffectData) => {
         data.it.canBeDiscarded = false; // Prevent the card from being discarded until goals are completed
         data.it.tags.counters = 0;
@@ -1001,21 +998,25 @@ export function socialGoalsEffect(game: Game): EffectFunction {
 
         function tryResolve() {
             let goalsCompleted = 0;
-            if(lootPlayed >= 5) goalsCompleted++;
-            if(monstersKilled >= 3) goalsCompleted++;
+            if(lootPlayed >= goalsLoot) goalsCompleted++;
+            if(monstersKilled >= goalsMonster) goalsCompleted++;
             if(sixCoinGiven) goalsCompleted++;
-            if(itemsPurchased >= 3) goalsCompleted++;
+            if(itemsPurchased >= goalsPurchase) goalsCompleted++;
             if(sixesRolled >= 3) goalsCompleted++;
             data.it.tags.counters = goalsCompleted;
-            if(goalsCompleted >= 4)
+            if(goalsCompleted >= discardObjective)
+                data.it.canBeDiscarded = true; 
+            if(goalsCompleted >= goalsObjective)
             {
                 for(const player of game.players) {
-                    game.gainTreasure(player, 2);
+                    game.gainTreasure(player, nbTreasure);
                 }
                 data.it.canBeDiscarded = true; 
                 game.discard(data.it);
             }
         }
+        
+        tryResolve()
 
         let offLootPlayed: (() => void) | null = null;
         let offMonsterKilled: (() => void) | null = null;
@@ -1040,7 +1041,7 @@ export function socialGoalsEffect(game: Game): EffectFunction {
 
         offRoll = game.emitter.on("on:dice:resolved", (eventData) => {
             const { diceRoll } = eventData;
-            if(diceRoll.value === 6) {
+            if(diceRoll.value === goalsRoll) {
                 sixesRolled++;
                 tryResolve();
             }
@@ -1048,7 +1049,7 @@ export function socialGoalsEffect(game: Game): EffectFunction {
 
         offDonation = game.emitter.on("on:coin:given", (eventData) => {
             const { eventIssuer, amount, target } = eventData;
-            if(amount >= 6) {
+            if(amount >= goalsDonation) {
                 sixCoinGiven = true;
                 tryResolve();
             }
@@ -1187,21 +1188,3 @@ export function payOtherPlayersToAttackEffect(game: Game, amount: number): Effec
         return true;
     }
 }
-// export function playersWithFewestSoulsFreeShopItemEffect(game: Game): EffectFunction {
-//     return (data: EffectData) => {
-//         let offTurnStart: (() => void) | null = null;
-//         let active = true;
-//         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
-//             active = false;
-//         });
-
-        
-//         // Store cleanup function on the card for when it's removed/destroyed
-//         data.it.cleaners.push(() => {
-//             active = false;
-//             offTurnStart?.();
-//             offTurnStart = null;
-//         });
-//         return true;
-//     };
-// }

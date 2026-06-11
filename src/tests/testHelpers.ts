@@ -203,7 +203,7 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
     mockGameSelections(game);
     
     // Setup game
-    game.setupGame();
+    game.setupDecks();
     for(const slug of forbiddenCards) {
         const card = game.obtainCard(slug);
         if(card === undefined) {

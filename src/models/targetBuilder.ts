@@ -1,7 +1,6 @@
 import { shuffle } from "@/utils/auxiliary";
 import type { DeckName, SelectionItem, TargetSelectorResponse } from "../shared/api";
 import { Card, ItemCard, LootCard, type TargetsSelector } from "./cards";
-import { parseNumber } from "./effects/effectParser";
 import { Entity } from "./entities/entity";
 import type { Game } from "./game";
 import type { Player } from "./entities/player";
@@ -745,4 +744,10 @@ export class TargetBuilder {
         }
         return "No valid targets found for any effect.";
     }
+}
+
+// Returns the numeric amount if matched, otherwise null
+export function parseNumber(text: string, re: RegExp): number | null {
+    const m = text.trim().match(re);
+    return m ? Number(m[1]) : null;
 }

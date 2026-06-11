@@ -34,7 +34,8 @@ import type {
     OnTurnStartData
 } from "../types/eventTypes";
 import * as active from "./activeEffect";
-import { selectPlayerOrMonster, type ParsedEffect } from "./effectParser";
+import { type ParsedEffect } from "./parsing/effectParser";
+import {selectPlayerOrMonster} from "@/models/effects/parsing/selectors.ts";
 function getTemporaryEffect(data: EffectData, description: string): TemporaryEffect {
     return{
             card: data.it.jsonAPI,

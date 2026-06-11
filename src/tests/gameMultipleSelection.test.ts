@@ -20,7 +20,7 @@ describe("Game.selectMultiple", () => {
     game.addPlayer(player1);
     game.addPlayer(player2);
     game.addPlayer(player3);
-    game.setupGame();
+    game.setupDecks();
     game.start(null);
     
     // Clear any pending selections to ensure clean state

@@ -599,12 +599,15 @@ describe("Requiem Rooms", () => {
         game.actions.declarePurchase(player2);
         game.actions.purchase(player2, 0);
         game.removeInPlay(player2, player2.inPlay[2]!);
+        game.resetStack();
         await game.endTurn();
         await game.actions.resolveStack();
         expect(player2.hand.length).toBe(3);
         game.gainCoins(player1, 10, "gift");
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, "top");
+        game.removeInPlay(player1, player1.inPlay[2]!);
+        game.resetStack();
         await game.endTurn();
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(0);

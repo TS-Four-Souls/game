@@ -17,22 +17,3 @@ export async function miniDraft(game: Game): Promise<void> {
         }
     }
 }
-
-/**
- * Each player starts with an Eden character card instead of a random one.
- * @param game 
- * @returns Set of eden character cards for each player.
- */
-export function edenGame(game: Game): CharacterCard[] {
-    const edens = [game.obtainCard("b2-eden")] as CharacterCard[];
-    let first = true;
-    for(const player of game.players) {
-        if(first)
-        {
-            first = false;
-        }
-        else
-            edens.push(game.copyCard(edens[0]!) as CharacterCard);
-    }
-    return edens;
-}

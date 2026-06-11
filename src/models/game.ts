@@ -4,7 +4,6 @@ import {
   CharacterCard,
   Deck,
   EffectOnStack,
-  EternalCard,
   Hand,
   ItemCard,
   LoadDecks,
@@ -14,20 +13,18 @@ import {
   MonsterCard,
   MonsterType,
   TreasureCard,
-  createCardFromJson,
   createEmptyDecksCollection,
   isDeckType,
   isSameSlug
 } from "@/models/cards";
-import { Effect } from './effects/effects';
 import {
+  selectEternalAmongX,
   targetGetCoinRollEffect,
   targetGetLootRollEffect,
-  targetGetTreasureRollEffect,
-  selectEternalAmongX
+  targetGetTreasureRollEffect
 } from "@/models/effects/activeEffect";
 import { bSoulEffectParser } from "@/models/effects/bonusSoulEffects";
-import { effectParser } from "@/models/effects/effectParser";
+import { effectParser } from "@/models/effects/parsing/effectParser";
 import { CurrentPlayerDecidesToChangeRoom } from "@/models/effects/roomEffects";
 import { Animated } from "@/models/entities/animated";
 import { Entity } from "@/models/entities/entity";
@@ -37,12 +34,13 @@ import { Stack, type StackElement } from "@/models/stack";
 import { DamageOnStack, DeathOnStack, DiceRoll } from "@/models/stackElement";
 import type { DeckType, DeckTypeToCardType, DecksCollection, EffectType, TargetsSelector } from "@/models/types/cardTypes";
 import { EffectData } from "@/models/types/cardTypes";
-import { type TriggerEvent, type LoseCoinsReason, type RechargeReason } from '@/models/types/eventTypes';
-import type { Animation, DetailedState, GameParametersJson, Issuer, StackElementJson } from "@/shared/api";
+import { type LoseCoinsReason, type RechargeReason, type TriggerEvent } from '@/models/types/eventTypes';
+import type { Animation, DetailedState, Issuer, StackElementJson } from "@/shared/api";
 import { shuffle } from "@/utils/auxiliary";
 import { loadCards } from "@/utils/loadCards";
 import { generateAnimationId } from "@/utils/random";
 import { Signal, type ReadableSignal } from "micro-signals";
+import { Effect } from './effects/effects';
 import { addPassiveEffectToStack } from "./effects/passiveEffect";
 import { AnimatedList } from "./entities/animated";
 import { GameEventEmitter } from "./eventEmmitter";
@@ -50,17 +48,16 @@ import { GameParameters } from "./gameParameters";
 import { GameStateSerializer } from "./gameStateSerializer";
 import { ActionHandler } from "./handlers/actionHandler";
 import { AssertHandler } from "./handlers/assertHandler";
+import { DeathPenaltyValues } from "./handlers/deathHandler";
 import { HistoricHandler, type HistoricEntry } from "./historyHandler";
 import type { ServerRoomBroadcast } from "./roomBroadcast";
 import { SelectionHandler, type PendingSelection } from "./selection";
 import { Encounters } from "./slots/encounters";
 import { Rooms } from "./slots/rooms";
 import { Shop } from "./slots/shop";
-import { TurnHandler } from "./turnHandler";
-import { edenGame, miniDraft } from "./variants";
-import { DeathPenaltyValues } from "./handlers/deathHandler";
-import type { GenericCardType } from "@/types/cardTypes";
 import { TargetBuilder } from "./targetBuilder";
+import { TurnHandler } from "./turnHandler";
+import { miniDraft } from "./variants";
 // Type representing sources of damage - either a card ability or a dice roll
 export type DamageSource = Card | DiceRoll;
 
@@ -93,9 +90,10 @@ export class Game extends SelectionHandler {
   private _isWon: boolean = false;
   private _entitiesInCombat: Entity[] = [];
   private _gameStateSerializer: GameStateSerializer;
-  private _assertHandler: AssertHandler = new AssertHandler(this);
   readonly gameParameters = new GameParameters(() => this.dispatch());
+  readonly _assertHandler: AssertHandler = new AssertHandler(this);
   readonly _actionHandler = new ActionHandler(this);
+  // readonly _gameStartHandler = new GameStartHandler(this);
 
   private _onStateChange: Signal<void> = new Signal();
   onStateChange: ReadableSignal<void> = this._onStateChange.readOnly();
@@ -387,6 +385,17 @@ export class Game extends SelectionHandler {
     }
     return [];
   }
+  /** Shortcut to queue death for an entity from a given source. */
+  kill(killer: Entity, entity: Entity, source: DamageSource): void {
+    this.assert.gameStarted();
+    try{
+      this.assert.isAlive(entity);
+      this.assert.entityIsInPlay(entity);
+    }catch{
+      return; // if the receiver is not alive or not in play anymore, do nothing.
+    }
+    this.death(entity, killer, source);
+  }
   /**
    * Applies all death penalties configured for a player.
    * It can be override by a specific passive effect.
@@ -455,7 +464,11 @@ export class Game extends SelectionHandler {
       deathOnStack: deathOnStack,
     });
   }
-
+  /** Cancels previous death entry for a player and stabilizes at 1 HP if needed. */
+  preventDeath(entity: Entity): void {
+    this.stack.cancelPreviousDeath(entity);
+    if (entity.currentHealthPoints === 0) this.heal(entity, 1);
+  }
   /**
    * Grants coin/loot/treasure rewards when a monster dies to the current player.
    */
@@ -1181,14 +1194,7 @@ export class Game extends SelectionHandler {
         });
       });
   }
-
-  /**
-   * Discards a shop card at a given slot index.
-   */
-  discardFromShop(index: number): void {
-    return this.shop.discardTop(index);
-  }
-
+  
   /**
    * Recharges every in-play item for a player.
    */
@@ -1269,7 +1275,7 @@ export class Game extends SelectionHandler {
     if(this.rooms.activeRooms.every((room) => room.canBeDiscarded === false)) return;
     const data:EffectData = new EffectData(this.rooms.activeRooms[0]!, () => this.currentPlayer, []);
     addPassiveEffectToStack(this, CurrentPlayerDecidesToChangeRoom(this), data, "A monster died this turn, you can choose to put a room card into discard.");
-    }
+  }
 
 
   /**
@@ -1367,7 +1373,7 @@ export class Game extends SelectionHandler {
   /**
    * Creates decks and attaches parsed effects to all cards.
    */
-  setupGame(): void {
+  setupDecks(): void {
     if(this._decks["character"]._order!.length !== 0)
       return;
     this._decks = LoadDecks(
@@ -1390,7 +1396,7 @@ export class Game extends SelectionHandler {
    * @returns set of character cards in the same order
    */
   getCharactersFromSlugs(slugs: string[]): CharacterCard[] {
-    this.setupGame();
+    this.setupDecks();
     const characters: CharacterCard[] = [];
     for (const slug of slugs) {
       if(slug === "random")
@@ -1499,7 +1505,7 @@ export class Game extends SelectionHandler {
     }
     if(this.gameParameters.miniDraft.value)
       await miniDraft(this);
-  }
+  } 
 
   /**
    * Transfers a card between players when legal.
@@ -1603,7 +1609,7 @@ export class Game extends SelectionHandler {
    * Draws random character cards and assigns them to players.
    */
   assignRandomCharacterToPlayers(): void {
-    this.setupGame();
+    this.setupDecks();
     const characterDeck = this.decks["character"];
     if (!characterDeck) {
       throw new Error("No character deck found");
@@ -1890,7 +1896,7 @@ export class Game extends SelectionHandler {
         card.addEffect(effect);
       } else {
         // Regular effects (passive/active)
-        const parsed = effectParser(outcome, this, () => {throw new Error(`Could not parse effect: ${outcome}`);}, card instanceof MonsterCard);
+        const parsed = effectParser(outcome, this, card instanceof MonsterCard);
         const effect: Effect = new Effect(
           outcome,
           effectType,
@@ -2099,11 +2105,6 @@ export class Game extends SelectionHandler {
   /** Replaces a player's hand and returns the previous one. */
   setHand(player: Player, hand: Hand): Hand {
     return player.setHand(hand);
-  }
-  /** Cancels previous death entry for a player and stabilizes at 1 HP if needed. */
-  preventDeath(entity: Entity): void {
-    this.stack.cancelPreviousDeath(entity);
-    if (entity.currentHealthPoints === 0) this.heal(entity, 1);
   }
   /** Draws treasure cards and puts them directly in play for the player. */
   gainTreasure(player: Player, nb: number = 1): void {
@@ -2351,17 +2352,6 @@ export class Game extends SelectionHandler {
     this.encounters.discardTop(position);
     return `You have discarded the monster at position ${position}.\n`;
   }
-  /** Shortcut to queue death for an entity from a given source. */
-  kill(killer: Entity, entity: Entity, source: DamageSource): void {
-    this.assert.gameStarted();
-    try{
-      this.assert.isAlive(entity);
-      this.assert.entityIsInPlay(entity);
-    }catch{
-      return; // if the receiver is not alive or not in play anymore, do nothing.
-    }
-    this.death(entity, killer, source);
-  }
 
   /** Draws a new monster into the chosen encounter slot during combat. */
   drawMonster(player: Player, position: number): string {
@@ -2577,24 +2567,12 @@ export class Game extends SelectionHandler {
     return result;
   }
 
-  /* PRIVATE METHODS */
-
-  private healEveryone(): void {
-    this.players.forEach((p) => this.heal(p));
-    this.monsters.forEach((m) => this.heal(m));
-  }
-
   get bonusSouls(): BsoulCard[] | undefined {
     return this._bonusSouls;
   }
   
   get pendingMultipleSelections(): Map<string, PendingSelection> {
     return this._pendingMultipleSelections;
-  }
-
-  /** Resolves a player from issuer credentials. */
-  getPlayerByIssuer(issuer: Issuer): Player {
-    return this.getPlayerById(issuer);
   }
 
   /** Finds a player by id or throws. */
@@ -2605,5 +2583,12 @@ export class Game extends SelectionHandler {
       }
     }
     throw new Error("Player not found");
+  }
+
+  /* PRIVATE METHODS */
+
+  private healEveryone(): void {
+    this.players.forEach((p) => this.heal(p));
+    this.monsters.forEach((m) => this.heal(m));
   }
 }

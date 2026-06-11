@@ -24,12 +24,14 @@ import type {
     OnSoulGainedOrRemovedData,
     OnTurnEndData,
     OnCardFlippedData,
+    OnAttackDeclaredAnimatedData,
 } from "../types/eventTypes";
 import * as active from "./activeEffect";
 import { addInPlayEffect } from "./activeEffect";
-import { effectParser } from "./effectParser";
+import { effectParser } from "./parsing/effectParser";
 import { addPassiveEffectToStack } from "./passiveEffect";
 import { makeAnAttackRollAfterEachAttackRollEffect } from './roomEffects';
+import { Animated } from '../entities/animated';
 
 export function thisHealsEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
@@ -279,7 +281,11 @@ export function targetTakeDamageEffect(game: Game, damage: number): EffectFuncti
 /**
  * each time the active player deals damage to this, they roll-\n1-2: they take 1 damage.\n3-4: each player takes 1 damage.\n5-6: this takes 1 damage.
  */
-export function OnDamageByActivePlayerRollDealDamageEffect(game: Game): EffectFunction {
+export function OnDamageByActivePlayerRollDealDamageEffect(game: Game, numbers: number[]): EffectFunction {
+    if(numbers.length < 9)
+        throw new Error("OnDamageByActivePlayerRollDealDamageEffect requires an array of 9 numbers as parameter, representing the roll thresholds for each outcome.");
+    const ranges = [[numbers[0], numbers[1]], [numbers[3], numbers[4]], [numbers[6], numbers[7]]];
+    const dmgs = [numbers[2], numbers[5], numbers[8]];
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         offDamage = game.emitter.on("on:damage:taken", (eventData: OnDamageTakenData) => {
@@ -289,19 +295,24 @@ export function OnDamageByActivePlayerRollDealDamageEffect(game: Game): EffectFu
             if(!(target instanceof Player)) return;
             if(game.currentPlayer !== target) return;
             if(damage === undefined || damage < 1) return;
+            const groups = [[target], game.players, [data.issuer as Entity]];
+            
             const effect = async (effectData: EffectData) => {
                 const roll = game.rollDice(target, false, data.it);
-                const targets: Entity[][] = [[target], [target], game.players, game.players, [data.issuer], [data.issuer]];
                 roll.attachEffect(
-                    targets.map((group) => () => {
-                        for (const t of group) {
-                            game.dealDamage(data.issuer as Entity, t as Entity, data.it, 1);
+                    [1,2,3,4,5,6].map(n => (rollData: EffectData) => {
+                        for(let i=0; i < ranges.length; i++) {
+                            if(n >= ranges[i]![0]! && n <= ranges[i]![1]!) {
+                                for (const t of groups[i]!) {
+                                    game.dealDamage(data.issuer as Entity, t as Entity, data.it, dmgs[i]!);
+                                }
+                            }
                         }
                         return true;
                     }), data.it, []);
                 return true;
             }
-            addPassiveEffectToStack(game, effect, data, `Each time the active player deals damage to ${data.it.name}, they roll a die: on 1-2, they take 1 damage; on 3-4, each player takes 1 damage; on 5-6, ${data.it.name} takes 1 damage.`);
+            addPassiveEffectToStack(game, effect, data, `Each time the active player deals damage to ${data.it.name}, they roll a die. If they roll ${ranges[0]![0]}-${ranges[0]![1]}, they take ${dmgs[0]} damage. If they roll ${ranges[1]![0]}-${ranges[1]![1]}, each player takes ${dmgs[1]} damage. If they roll ${ranges[2]![0]}-${ranges[2]![1]}, ${data.it.name} takes ${dmgs[2]} damage.`);
 
         }
         );
@@ -392,36 +403,6 @@ export function searchForBloatEffect(game: Game): EffectFunction {
             return false;
         game.encounters._deck.addTopPosition(theBloat);
         await game.encounters.selectValidIndexAndDraw(game, player, data);
-        return true;
-    };
-}
-
-export function putOnTopOfMonsterDeckOnRollEffect(game: Game, rolls: number[]): EffectFunction {
-    return (data: EffectData) => {
-        if(!(data.it instanceof MonsterCard))
-            throw new Error("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards.");
-        data.it.afterEffect = "nothing"; // Card placement is handled by the game by default
-        
-        const roll = game.rollDice(game.currentPlayer as Player, false, data.it);
-        roll.attachEffect([1,2,3,4,5,6].map(n => (data:EffectData) => {
-            if(!(data.it instanceof MonsterCard))
-                throw new Error("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards.");
-            game.encounters.removeFromSlot(data.it);
-            if(rolls.includes(n)) {
-                // data.it.afterEffect = "handled"; // Card placement is handled by this effect
-                if(game.decks.monster.discard.includes(data.it)) {
-                    game.encounters.obtainCardFromDiscard(data.it.slug, data.it.globalId);
-                }
-                game.decks.monster.addTopPosition(data.it);
-                return true;
-            }else
-            {
-                if(!data.it.entity || !(data.it.entity instanceof Monster))
-                    throw new Error("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards that are in play.");
-                data.it.afterEffect = "discard";
-            }
-            return false;
-        }), data.it, []);
         return true;
     };
 }
@@ -679,7 +660,7 @@ export function statModifierWhileAtHealthEffect(game: Game, s: string): EffectFu
 
 export function OnDealsCombatDamageEffect(game: Game, s: string): EffectFunction {
     const rest = s.substring("each time this deals combat damage to a player, they ".length).trim();
-    const effect = effectParser(rest, game, addInPlayEffect(game), true);
+    const effect = effectParser(rest, game, true);
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
@@ -702,7 +683,7 @@ export function OnDealsCombatDamageEffect(game: Game, s: string): EffectFunction
 
 export function OnDealsDamageEffect(game: Game, s: string): EffectFunction {
     const rest = s.substring(s.indexOf(",")+1).trim();
-    const effect = effectParser(rest, game, addInPlayEffect(game), false);
+    const effect = effectParser(rest, game, false);
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
@@ -762,7 +743,7 @@ export function combatDamageIsEffect(game: Game, s: string): EffectFunction {
 
 export function onAttackingPlayerActivatesItemEffect(game: Game, s: string): EffectFunction {
     const rest = s.substring("each time the attacking player activates an item, they ".length).trim();
-    const effect = effectParser(rest, game, addInPlayEffect(game), true);
+    const effect = effectParser(rest, game, true);
     return (data: EffectData) => {
         let offActivate: (() => void) | null = null;
         
@@ -799,7 +780,7 @@ export function playerWithMostCoinsLosesAllEffect(game: Game): EffectFunction {
 export function onAttackingPlayerRollsEffect(game: Game, s: string): EffectFunction {
     const roll = s.match(/\d+/g)?.map(numStr => parseInt(numStr, 10))[0];
     const rest = s.substring("when the attacking player rolls an attack roll of ".length +2).trim();
-    const effect = effectParser(rest, game, addInPlayEffect(game), true);
+    const effect = effectParser(rest, game, true);
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         
@@ -908,16 +889,24 @@ export function activePlayerChoosePlayerDiscardXEffect(game: Game, x: number): E
 
 export function onAttackDeclaredEffect(game: Game, s: string): EffectFunction {
     const rest = s.substring("when an attack is declared on this, ".length).trim();
-    const effect = effectParser(rest, game, addInPlayEffect(game), true);
+    const effect = effectParser(rest, game, true);
     return (data: EffectData) => {
         let offAttackDeclared: (() => void) | null = null;
-        offAttackDeclared = game.emitter.on("on:attack:declared:monster", (eventData: OnAttackDeclaredMonsterData) => {
-            const { eventIssuer, monster } = eventData;
-            if (data.issuer !== monster[0]) return;
-            if (!(eventIssuer instanceof Player)) return;
-            const newData = new EffectData(data.it, () => eventIssuer as Player, []);
-            addPassiveEffectToStack(game, effect.effectFunction, newData, `When an attack is declared on ${data.it.name}, the active player ${rest}`);
-        });
+        offAttackDeclared = data.it.entity instanceof Monster 
+        ?   game.emitter.on("on:attack:declared:monster", (eventData: OnAttackDeclaredMonsterData) => {
+                const { eventIssuer, monster } = eventData;
+                if (data.it.entity !== monster[0]) return;
+                if (!(eventIssuer instanceof Player)) return;
+                const newData = new EffectData(data.it, () => eventIssuer as Player, []);
+                addPassiveEffectToStack(game, effect.effectFunction, newData, `When an attack is declared on ${data.it.name}, the active player ${rest}`);
+            })
+        :   game.emitter.on("on:attack:declared:animated", (eventData: OnAttackDeclaredAnimatedData) => {
+                const { eventIssuer, animated } = eventData;
+                if (data.it.entity !== animated[0]) return;
+                if (!(eventIssuer instanceof Player)) return;
+                const newData = new EffectData(data.it, () => eventIssuer as Player, []);
+                addPassiveEffectToStack(game, effect.effectFunction, newData, `When an attack is declared on ${data.it.name}, the active player ${rest}`);
+            });
 
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
@@ -1179,7 +1168,7 @@ export function playerWithMostSoulsWinsEffect(game: Game): EffectFunction {
 
 export function onTakesCombatDamageEffect(game: Game, s: string, rolls: number[] = []): EffectFunction {
     const rest = s.substring(s.indexOf(",")+1).trim();
-    const effect = effectParser(rest, game, addInPlayEffect(game), false);
+    const effect = effectParser(rest, game, false);
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         

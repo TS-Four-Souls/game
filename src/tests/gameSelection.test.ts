@@ -14,7 +14,7 @@ describe("Game Selection System", () => {
 
     beforeEach(() => {
         game = new Game();
-        game.setupGame();
+        game.setupDecks();
         const chara = [{issuer: "Player 1", character: "b2-isaac"}, {issuer: "Player 2", character: "b2-judas"}, {issuer: "Player 3", character: "b2-samson"}];
         game.start(chara, false);
         player1 = game.players[0]!;
