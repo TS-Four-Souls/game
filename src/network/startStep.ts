@@ -1,5 +1,5 @@
 import { type Room, type Socket, type User } from "./types";
-import { schemas } from "@/shared/api";
+import { schemas, Team } from "@/shared/api";
 import {
   payloadGuardedEndpoint,
   sendRoomChangedToAll,
@@ -196,6 +196,7 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
               isCopy: true,
               isActive: false,
               character: original.instance.character,
+              team: original.instance.team,
             });
             updatePlayerCount(room);
             sendRoomChangedToAll(room);
@@ -326,6 +327,7 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
           issuer: string;
           character: string;
           user: string;
+          team: Team;
         }[] = [];
         for (const user of room.users) {
           for (const instance of user.instances) {
@@ -333,6 +335,7 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
               issuer: instance.name,
               character: instance.character.character,
               user: user.socket.id,
+              team: instance.team,
             });
           }
         }

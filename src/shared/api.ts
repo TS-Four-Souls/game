@@ -440,6 +440,18 @@ const createRoomRequestSchema = z.object({
 
 const setNameRequestSchema = z.string();
 
+export enum Team {
+  Team1 = 1,
+  Team2 = 2,
+  Team3 = 3,
+  Team4 = 4,
+}
+
+const setTeamRequestSchema = z.object({
+  name: z.string(),
+  team: z.enum(Team),
+});
+
 const basicResponseSchema = z.union([
   z.object({
     status: z.literal(200),
@@ -925,6 +937,7 @@ export const schemas = {
   room: roomSchema,
   createRoomRequest: createRoomRequestSchema,
   setNameRequest: setNameRequestSchema,
+  setTeamRequest: setTeamRequestSchema,
   attackMonsterRequest: attackMonsterSchema,
   debugLootRequest: debugLootRequestSchema,
   debugRemoveCardsRequest: debugRemoveCardsRequestSchema,
@@ -956,6 +969,7 @@ export const schemas = {
 export namespace Requests {
   export type CreateRoom = z.infer<typeof createRoomRequestSchema>;
   export type SetName = z.infer<typeof setNameRequestSchema>;
+  export type SetTeam = z.infer<typeof setTeamRequestSchema>;
   export type SetGameParameter = z.infer<typeof setGameParameterRequestSchema>;
   export type SubmitSelection = z.infer<typeof submitSelectionSchema>;
   export type InsertStackElementBefore = z.infer<
@@ -998,6 +1012,7 @@ export namespace Requests {
 
 export namespace Responses {
   export type SetName = BasicResponse;
+  export type SetTeam = BasicResponse;
   export type SetGameParameter = BasicResponse;
   export type Start = BasicResponse;
   export type Rollback = BasicResponse;
@@ -1076,6 +1091,11 @@ export interface ClientToServerEvents {
   setName: (
     request: Requests.SetName,
     callback: (response: Responses.SetName) => void,
+  ) => void;
+
+  setTeam: (
+    request: Requests.SetTeam,
+    callback: (response: Responses.SetTeam) => void,
   ) => void;
 
   start: (callback: (response: Responses.Start) => void) => void;

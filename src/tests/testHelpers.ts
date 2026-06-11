@@ -4,7 +4,7 @@ import { Game } from "../models/game";
 import { Player } from "../models/entities/player";
 import { shuffle } from "@/utils/auxiliary";
 import { GameParameters } from "@/models/gameParameters";
-import type { DeckConfigPatch } from "@/shared/api";
+import { Team, type DeckConfigPatch } from "@/shared/api";
 
 
 export function emptyHands(game: Game): void {
@@ -246,7 +246,7 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
     const charactersFull = characters ? characters :
     game.decks.character.cards.splice(0, playerCount).map(c => c.slug);
     // Start the game
-    const charas = charactersFull?.map((slug, index) => ({issuer: `Player ${index + 1}`, character: slug}));
+    const charas = charactersFull?.map((slug, index) => ({issuer: `Player ${index + 1}`, character: slug, team: Team[`Team${index + 1}` as keyof typeof Team]}));
     game.start(charas, false);
     const players = game.players;
     dischargeEachItemsAndRemoveCoins(game);

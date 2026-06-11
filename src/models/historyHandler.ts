@@ -1,6 +1,7 @@
 import { generateHistoryId } from "@/utils/random";
 import fs from "fs";
 import {
+  Team,
   type DetailedState,
   type GameParametersJson,
   type Issuer,
@@ -20,7 +21,11 @@ export type UserRequest =
   | { type: "Join"; payload: Requests.SetName }
   | { type: "Rejoin" }
   | { type: "SetGameParameter"; payload: Requests.SetGameParameter }
-  | { type: "Start"; players: { issuer: string; character: string }[], params: GameParametersJson }
+  | {
+      type: "Start";
+      players: { issuer: string; character: string; team: Team }[];
+      params: GameParametersJson;
+    }
   | { type: "Reset" }
   | { type: "Rollback"; issuer: Issuer }
   | { type: "DeclareAttack"; issuer: Issuer }

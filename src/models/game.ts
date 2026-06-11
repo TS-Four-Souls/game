@@ -1,46 +1,27 @@
 import {
   BsoulCard,
   Card,
-  CharacterCard,
-  Deck,
   EffectOnStack,
-  Hand,
   ItemCard,
-  LoadDecks,
   LoadsCardSets,
   LootCard,
-  LootCardEffect,
   MonsterCard,
-  MonsterType,
-  TreasureCard,
-  createEmptyDecksCollection,
-  isDeckType,
-  isSameSlug
+  TreasureCard
 } from "@/models/cards";
-import {
-  selectEternalAmongX,
-  targetGetCoinRollEffect,
-  targetGetLootRollEffect,
-  targetGetTreasureRollEffect
-} from "@/models/effects/activeEffect";
-import { bSoulEffectParser } from "@/models/effects/bonusSoulEffects";
-import { effectParser } from "@/models/effects/parsing/effectParser";
 import { CurrentPlayerDecidesToChangeRoom } from "@/models/effects/roomEffects";
-import { Animated } from "@/models/entities/animated";
 import { Entity } from "@/models/entities/entity";
 import { Monster } from "@/models/entities/monster";
 import { Player } from "@/models/entities/player";
 import { Stack, type StackElement } from "@/models/stack";
-import { DamageOnStack, DeathOnStack, DiceRoll } from "@/models/stackElement";
-import type { DeckType, DeckTypeToCardType, DecksCollection, EffectType, TargetsSelector } from "@/models/types/cardTypes";
+import { DiceRoll } from "@/models/stackElement";
+import type { DeckType, DecksCollection } from "@/models/types/cardTypes";
 import { EffectData } from "@/models/types/cardTypes";
-import { type LoseCoinsReason, type RechargeReason, type TriggerEvent } from '@/models/types/eventTypes';
-import type { Animation, DetailedState, Issuer, StackElementJson } from "@/shared/api";
+import { type LoseCoinsReason, type TriggerEvent } from '@/models/types/eventTypes';
+import type { Animation, DetailedState, StackElementJson, Team } from "@/shared/api";
 import { shuffle } from "@/utils/auxiliary";
 import { loadCards } from "@/utils/loadCards";
 import { generateAnimationId } from "@/utils/random";
 import { Signal, type ReadableSignal } from "micro-signals";
-import { Effect } from './effects/effects';
 import { addPassiveEffectToStack } from "./effects/passiveEffect";
 import { AnimatedList } from "./entities/animated";
 import { GameEventEmitter } from "./eventEmmitter";
@@ -48,18 +29,16 @@ import { GameParameters } from "./gameParameters";
 import { GameStateSerializer } from "./gameStateSerializer";
 import { ActionHandler } from "./handlers/actionHandler";
 import { AssertHandler } from "./handlers/assertHandler";
-import { DeathPenaltyValues } from "./handlers/deathHandler";
+import { CardHandler } from "./handlers/cardHandler";
+import { EntityHandler } from "./handlers/entityHandler";
 import { HistoricHandler, type HistoricEntry } from "./historyHandler";
 import type { ServerRoomBroadcast } from "./roomBroadcast";
 import { SelectionHandler, type PendingSelection } from "./selection";
 import { Encounters } from "./slots/encounters";
 import { Rooms } from "./slots/rooms";
 import { Shop } from "./slots/shop";
-import { TargetBuilder } from "./targetBuilder";
 import { TurnHandler } from "./turnHandler";
 import { miniDraft } from "./variants";
-import { EntityHandler } from "./handlers/entityHandler";
-import { CardHandler } from "./handlers/cardHandler";
 // Type representing sources of damage - either a card ability or a dice roll
 export type DamageSource = Card | DiceRoll;
 
@@ -620,7 +599,7 @@ export class Game extends SelectionHandler {
   /**
    * Starts the game lifecycle and executes initial setup.
    */
-  start(players: { issuer: string; character: string; user?: string }[] | null = null, shufflePlayerOrder: boolean = true): void{
+  start(players: { issuer: string; character: string; user?: string, team: Team }[] | null = null, shufflePlayerOrder: boolean = true): void{
     this.assert.gameNotStarted();
     if (players && players.length > 0) {
       for (const p of players) 

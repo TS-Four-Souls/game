@@ -15,7 +15,7 @@ import {
   updatePlayerCount,
 } from "./utils";
 import { enterStartStep } from "./startStep";
-import { schemas } from "@/shared/api";
+import { schemas, Team } from "@/shared/api";
 import { enterGameStep } from "./gameStep";
 import { globalEndpoints } from "./global";
 import { roomManager } from "./roomManager";
@@ -80,6 +80,7 @@ export const enterIntroStep = (socket: Socket) => {
             isCopy: false,
             isActive: true,
             character: DEFAULT_CHARACTER,
+            team: Team.Team1,
           };
 
           const user: User = {
@@ -171,12 +172,21 @@ export const enterIntroStep = (socket: Socket) => {
               });
             }
 
+            const firstUnusedTeam =
+              [Team.Team1, Team.Team2, Team.Team3, Team.Team4].find(
+                (team) =>
+                  !room.users.some((user) =>
+                    user.instances.some((instance) => instance.team === team),
+                  ),
+              ) ?? Team.Team1;
+
             const instance: Instance = {
               id: generateUserId(),
               name: payload.name,
               isCopy: false,
               isActive: true,
               character: DEFAULT_CHARACTER,
+              team: firstUnusedTeam,
             };
             const user: User = {
               instances: [instance],

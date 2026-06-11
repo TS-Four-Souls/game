@@ -3,6 +3,7 @@ import type { GameParameters } from "../models/gameParameters";
 import type { Game } from "../models/game";
 import type { ClientToServerEvents, ServerToClientEvents } from "@/shared/api";
 import type { Socket as SocketIO, Server as ServerIO } from "socket.io";
+import type { Team } from "@/shared/api";
 
 export type Socket = SocketIO<ClientToServerEvents, ServerToClientEvents>;
 export type Server = ServerIO<ClientToServerEvents, ServerToClientEvents>;
@@ -18,6 +19,7 @@ export type Instance = {
   isCopy: boolean;
   isActive: boolean;
   character: RoomCharacter;
+  team: Team;
 };
 
 export type User = {

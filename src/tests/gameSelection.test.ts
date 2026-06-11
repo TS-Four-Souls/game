@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../models/game";
 import { Player } from "../models/entities/player";
-import type { CharacterCard } from "@/models/cards";
-import type { DetailedState } from "@/shared/api";
+import { type DetailedState, Team } from "@/shared/api";
 import { setTimeout } from "timers/promises";
 import { TargetBuilder } from "@/models/targetBuilder";
 
@@ -15,7 +14,7 @@ describe("Game Selection System", () => {
     beforeEach(() => {
         game = new Game();
         game.cardHandler.setupDecks();
-        const chara = [{issuer: "Player 1", character: "b2-isaac"}, {issuer: "Player 2", character: "b2-judas"}, {issuer: "Player 3", character: "b2-samson"}];
+        const chara = [{issuer: "Player 1", character: "b2-isaac", team: Team.Team1}, {issuer: "Player 2", character: "b2-judas", team: Team.Team2}, {issuer: "Player 3", character: "b2-samson", team: Team.Team3}];
         game.start(chara, false);
         player1 = game.players[0]!;
         player2 = game.players[1]!;
