@@ -434,6 +434,10 @@ export function isParameterKey(key: string): key is keyof GameParametersJson {
   return key in gameParametersSchema.shape;
 }
 
+const createRoomRequestSchema = z.object({
+  name: z.string(),
+});
+
 const setNameRequestSchema = z.string();
 
 const basicResponseSchema = z.union([
@@ -791,10 +795,18 @@ const saveGameResponseSchema = z.union([
 ]);
 export type SaveGameResponse = z.infer<typeof saveGameResponseSchema>;
 
-const enterRoomRequestSchema = z.object({
-  roomId: z.string(),
-  userId: z.string().optional(),
-});
+const enterRoomRequestSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("rejoin"),
+    roomId: z.string(),
+    userId: z.string(),
+  }),
+  z.object({
+    type: z.literal("join"),
+    roomId: z.string(),
+    name: z.string(),
+  }),
+]);
 
 const loadGameRequestSchema = z.string();
 
@@ -911,6 +923,7 @@ export type AdminReplyToMessageResponse = z.infer<
 export const schemas = {
   issuer: issuerSchema,
   room: roomSchema,
+  createRoomRequest: createRoomRequestSchema,
   setNameRequest: setNameRequestSchema,
   attackMonsterRequest: attackMonsterSchema,
   debugLootRequest: debugLootRequestSchema,
@@ -941,6 +954,7 @@ export const schemas = {
 };
 
 export namespace Requests {
+  export type CreateRoom = z.infer<typeof createRoomRequestSchema>;
   export type SetName = z.infer<typeof setNameRequestSchema>;
   export type SetGameParameter = z.infer<typeof setGameParameterRequestSchema>;
   export type SubmitSelection = z.infer<typeof submitSelectionSchema>;
@@ -1037,7 +1051,10 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
-  createRoom: (callback: (response: Responses.CreateRoom) => void) => void;
+  createRoom: (
+    request: Requests.CreateRoom,
+    callback: (response: Responses.CreateRoom) => void,
+  ) => void;
 
   enterRoom: (
     request: Requests.EnterRoom,

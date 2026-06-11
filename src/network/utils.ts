@@ -45,7 +45,7 @@ export const sendRoomChangedToUser = (room: Room | null, user: User) => {
         "on:room:changed",
         room ? generateRoomChangedPayload(room, instance) : null,
       );
-    } else if (room?.game && instance.name) {
+    } else if (room?.game) {
       room.game.detailedStateJSON(
         room.game.entityHandler.getPlayerById(instance.name),
       );
@@ -68,29 +68,20 @@ const generateRoomChangedPayload = (
     id: room.id,
     players: room.users
       .map((user) =>
-        user.instances.flatMap((instance) => {
-          if (!instance.name) return [];
-          return {
-            isMe: user.instances.some(
-              (instance) => instance.id === recipient.id,
-            ),
-            isHost: user.isHost,
-            isCopy: instance.isCopy,
-            name: instance.name,
-            character: instance.character,
-          };
-        }),
+        user.instances.flatMap((instance) => ({
+          isMe: user.instances.some((instance) => instance.id === recipient.id),
+          isHost: user.isHost,
+          isCopy: instance.isCopy,
+          name: instance.name,
+          character: instance.character,
+        })),
       )
       .flat(),
     characters: room.characters,
     gameParameters: room.params.toJson(),
-    ...(recipient.name
-      ? {
-          game: room.game?.detailedStateJSON(
-            room.game.entityHandler.getPlayerById(recipient.name),
-          ),
-        }
-      : {}),
+    game: room.game?.detailedStateJSON(
+      room.game.entityHandler.getPlayerById(recipient.name),
+    ),
   };
 };
 

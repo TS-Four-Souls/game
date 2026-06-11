@@ -44,30 +44,38 @@ export const enterIntroStep = (socket: Socket) => {
     ),
   );
 
-  socket.on("createRoom", (callback) =>
-    errorGuardedEndpoint(callback, () => {
-      const roomId = generateRoomId();
+  socket.on("createRoom", (payload, callback) =>
+    errorGuardedEndpoint(callback, () =>
+      payloadGuardedEndpoint(
+        payload,
+        schemas.createRoomRequest,
+        callback,
+        (payload) => {
+          const roomId = generateRoomId();
 
-      const instance: Instance = {
-        id: generateUserId(),
-        isCopy: false,
-        isActive: true,
-        character: DEFAULT_CHARACTER,
-      };
+          const instance: Instance = {
+            id: generateUserId(),
+            name: payload.name,
+            isCopy: false,
+            isActive: true,
+            character: DEFAULT_CHARACTER,
+          };
 
-      const user: User = {
-        socket,
-        isHost: true,
-        instances: [instance],
-      };
-      sendUserAssigned(socket, instance);
+          const user: User = {
+            socket,
+            isHost: true,
+            instances: [instance],
+          };
+          sendUserAssigned(socket, instance);
 
-      const room: Room = roomManager.createRoom(roomId, user);
+          const room: Room = roomManager.createRoom(roomId, user);
 
-      leaveCurrentStep(socket);
-      enterStartStep(socket, room, user);
-      return callback({ status: 200 });
-    }),
+          leaveCurrentStep(socket);
+          enterStartStep(socket, room, user);
+          return callback({ status: 200 });
+        },
+      ),
+    ),
   );
 
   socket.on("enterRoom", (payload, callback) =>
@@ -83,7 +91,7 @@ export const enterIntroStep = (socket: Socket) => {
             return callback({ status: 400, error: "Room not found" });
           }
 
-          if (payload.userId) {
+          if (payload.type === "rejoin") {
             const joinAsUser = room.users.find((user) =>
               user.instances.some((instance) => instance.id === payload.userId),
             );
@@ -109,6 +117,7 @@ export const enterIntroStep = (socket: Socket) => {
             }
             const instance: Instance = {
               id: generateUserId(),
+              name: payload.name,
               isCopy: false,
               isActive: true,
               character: DEFAULT_CHARACTER,

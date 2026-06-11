@@ -34,9 +34,6 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
   if (!activeInstance) {
     throw new Error("No active instance found");
   }
-  if (!activeInstance.name) {
-    throw new Error("Active instance has no name");
-  }
   const player = game.entityHandler.getPlayerById(activeInstance.name);
 
   sendRoomChangedToUser(room, user);
@@ -67,7 +64,7 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
       game.onRoomBroadcast.add((broadcast) => {
         room.users.forEach((user) => {
           user.instances.forEach((instance) => {
-            if (!instance.name || !instance.isActive) return;
+            if (!instance.isActive) return;
             if (broadcast.players.includes(instance.name)) {
               user.socket.emit("on:room:broadcast", {
                 type: broadcast.type,

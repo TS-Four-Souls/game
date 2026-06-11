@@ -14,11 +14,10 @@ export const DEFAULT_CHARACTER: RoomCharacter = {
 
 export type Instance = {
   id: string;
-  name?: string;
+  name: string;
   isCopy: boolean;
   isActive: boolean;
   character: RoomCharacter;
-  teamId?: number;
 };
 
 export type User = {

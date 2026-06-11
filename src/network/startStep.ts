@@ -264,7 +264,7 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
             room.game.onRoomBroadcast.add((broadcast) => {
               room.users.forEach((user) => {
                 user.instances.forEach((instance) => {
-                  if (!instance.name || !instance.isActive) return;
+                  if (!instance.isActive) return;
                   if (broadcast.players.includes(instance.name)) {
                     user.socket.emit("on:room:broadcast", {
                       type: broadcast.type,
@@ -282,7 +282,7 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
               const activeInstance = user.instances.find(
                 (instance) => instance.isActive,
               );
-              if (!activeInstance || !activeInstance.name) continue;
+              if (!activeInstance) continue;
               leaveCurrentStep(user.socket);
               enterGameStep(user.socket, room, user);
               user.socket.emit("on:room:broadcast", {
@@ -311,7 +311,7 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
         game.onRoomBroadcast.add((broadcast) => {
           room.users.forEach((user) => {
             user.instances.forEach((instance) => {
-              if (!instance.name || !instance.isActive) return;
+              if (!instance.isActive) return;
               if (broadcast.players.includes(instance.name)) {
                 user.socket.emit("on:room:broadcast", {
                   type: broadcast.type,
@@ -330,7 +330,6 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
         }[] = [];
         for (const user of room.users) {
           for (const instance of user.instances) {
-            if (!instance.name) continue;
             playersWithCharacters.push({
               issuer: instance.name,
               character: instance.character.character,
@@ -350,7 +349,6 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
         room.game = game;
 
         for (const user of room.users) {
-          if (user.instances.every((instance) => !instance.name)) continue;
           const socket = user.socket;
           leaveCurrentStep(socket);
           enterGameStep(socket, room, user);
