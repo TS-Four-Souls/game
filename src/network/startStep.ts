@@ -101,7 +101,6 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
           }
 
           activeInstance.name = payload;
-          updatePlayerCount(room);
           sendRoomChangedToAll(room);
         },
       ),

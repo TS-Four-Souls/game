@@ -10,7 +10,9 @@ import {
   errorGuardedEndpoint,
   leaveCurrentStep,
   payloadGuardedEndpoint,
+  sendRoomChangedToAll,
   sendUserAssigned,
+  updatePlayerCount,
 } from "./utils";
 import { enterStartStep } from "./startStep";
 import { schemas } from "@/shared/api";
@@ -51,6 +53,25 @@ export const enterIntroStep = (socket: Socket) => {
         schemas.createRoomRequest,
         callback,
         (payload) => {
+          if (payload.name.length === 0) {
+            return callback({ status: 400, error: "A name is required" });
+          }
+
+          if (payload.name.length > 16) {
+            return callback({
+              status: 400,
+              error: "Your name needs to be less than 16 characters",
+            });
+          }
+
+          if (!/^[a-zA-Z0-9_]+$/.test(payload.name)) {
+            return callback({
+              status: 400,
+              error:
+                "Your name can only contain letters, numbers and underscores",
+            });
+          }
+
           const roomId = generateRoomId();
 
           const instance: Instance = {
@@ -69,6 +90,7 @@ export const enterIntroStep = (socket: Socket) => {
           sendUserAssigned(socket, instance);
 
           const room: Room = roomManager.createRoom(roomId, user);
+          updatePlayerCount(room);
 
           leaveCurrentStep(socket);
           enterStartStep(socket, room, user);
@@ -109,12 +131,46 @@ export const enterIntroStep = (socket: Socket) => {
             if (room.users.length >= 4) {
               return callback({ status: 400, error: "Room is full" });
             }
+
             if (room.game !== undefined) {
               return callback({
                 status: 400,
                 error: "Game is already started",
               });
             }
+
+            if (payload.name.length === 0) {
+              return callback({ status: 400, error: "A name is required" });
+            }
+
+            if (payload.name.length > 16) {
+              return callback({
+                status: 400,
+                error: "Your name needs to be less than 16 characters",
+              });
+            }
+
+            if (!/^[a-zA-Z0-9_]+$/.test(payload.name)) {
+              return callback({
+                status: 400,
+                error:
+                  "Your name can only contain letters, numbers and underscores",
+              });
+            }
+
+            if (
+              room.users.some((user) =>
+                user.instances.some(
+                  (instance) => instance.name === payload.name,
+                ),
+              )
+            ) {
+              return callback({
+                status: 400,
+                error: "That name is already taken",
+              });
+            }
+
             const instance: Instance = {
               id: generateUserId(),
               name: payload.name,
@@ -130,9 +186,11 @@ export const enterIntroStep = (socket: Socket) => {
             sendUserAssigned(socket, instance);
 
             room.users.push(user);
+            updatePlayerCount(room);
 
             leaveCurrentStep(socket);
             enterStartStep(socket, room, user);
+            sendRoomChangedToAll(room);
           }
           return callback({ status: 200 });
         },
