@@ -1380,7 +1380,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
             return { effectFunction: active.rerollEachItemEffect(game), targetSelectors: selectPlayer(game) };
         case "steal a loot card from them at random":
             return noTargetEffect(active.stealRandomLootCardEffect(game));
-        case "you must steal a loot card from from another player at random":
+        case "you must steal a loot card from another player at random":
             return noTargetEffect(active.stealAPlayerRandomLootCardEffect(game));
         case "choose a monster. the active player must attack that monster this turn if able":
             return { effectFunction: active.forceAttackMonsterEffect(game), targetSelectors: selectAttackableMonster(game) };
