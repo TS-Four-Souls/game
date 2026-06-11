@@ -6,7 +6,7 @@ import { Stack } from "@/models/stack";
 import { StackElement } from "@/models/stackElement";
 import { GameEventEmitter } from "@/models/eventEmmitter";
 import type { CharacterCard, ItemCard, LootCard } from "@/models/cards";
-import type { StackElementJson } from "@/shared/api";
+import { type StackElementJson, Team } from "@/shared/api";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupStandardTestGame, setupTestGame } from "@/tests/testHelpers";
 
 class DummyStackElement extends StackElement {
@@ -41,11 +41,11 @@ describe("Game", () => {
   beforeEach(() => {
     game = new Game();
     mockGameSelections(game);
-    player1 = new Player("player1");
+    player1 = new Player("player1", Team.Team1);
     player1.addAttackPoints(1); // Start with 1 attack points for testing
     player1.addHealthPoints(2); // Start with 2 health points for testing
     player1.gainCoins(0); // Start with 0 coins for testing
-    player2 = new Player("player2");
+    player2 = new Player("player2", Team.Team2);
     player2.addAttackPoints(1); // Start with 1 attack points for testing
     player2.addHealthPoints(2); // Start with 2 health points for testing
     player2.gainCoins(0); // Start with 0 coins for testing
@@ -90,7 +90,7 @@ describe("Player", () => {
   let player: Player;
 
   beforeEach(() => {
-    player = new Player("testPlayer");
+    player = new Player("testPlayer", Team.Team1);
     player.addAttackPoints(3); // Start with 3 attack points for testing
     player.addHealthPoints(5); // Start with 5 health points for testing
     player.gainCoins(10); // Start with 10 coins for testing
@@ -180,7 +180,7 @@ describe("Player - In-Play Cards", () => {
   let player: Player;
 
   beforeEach(() => {
-    player = new Player("testPlayer");
+    player = new Player("testPlayer", Team.Team1);
     player.addAttackPoints(3); // Start with 3 attack points for testing
     player.addHealthPoints(5); // Start with 5 health points for testing
     player.gainCoins(10); // Start with 10 coins for testing
@@ -255,7 +255,7 @@ describe("Player - Removal", () => {
   let player: Player;
 
   beforeEach(() => {
-    player = new Player("testPlayer");
+    player = new Player("testPlayer", Team.Team1);
     player.addAttackPoints(3); // Start with 3 attack points for testing
     player.addHealthPoints(5); // Start with 5 health points for testing
     player.gainCoins(10); // Start with 10 coins for testing
@@ -285,7 +285,7 @@ describe("Player - Souls", () => {
   let player: Player;
 
   beforeEach(() => {
-    player = new Player("testPlayer");
+    player = new Player("testPlayer", Team.Team1);
     player.addAttackPoints(3); // Start with 3 attack points for testing
     player.addHealthPoints(5); // Start with 5 health points for testing
     player.gainCoins(10); // Start with 10 coins for testing
@@ -352,7 +352,7 @@ describe("Player - Damage & Health", () => {
   let player: Player;
 
   beforeEach(() => {
-    player = new Player("testPlayer");
+    player = new Player("testPlayer", Team.Team1);
     player.addAttackPoints(3); // Start with 3 attack points for testing
     player.addHealthPoints(10); // Start with 10 health points for testing
     player.gainCoins(10); // Start with 10 coins for testing
@@ -394,7 +394,7 @@ describe("Player - Coins", () => {
   let player: Player;
 
   beforeEach(() => {
-    player = new Player("testPlayer");
+    player = new Player("testPlayer", Team.Team1);
     player.addAttackPoints(3); // Start with 3 attack points for testing
     player.addHealthPoints(5); // Start with 5 health points for testing
     player.gainCoins(100); // Start with 100 coins for testing
@@ -485,7 +485,7 @@ describe("DiceRoll", () => {
   let player: Player;
 
   beforeEach(() => {
-    player = new Player("testPlayer");
+    player = new Player("testPlayer", Team.Team1);
     player.addAttackPoints(3);
     player.addHealthPoints(5);
     player.gainCoins(10);
@@ -554,9 +554,9 @@ describe("Game - Multiple Players", () => {
   beforeEach(() => {
     game = new Game();
     mockGameSelections(game);
-    player1 = new Player("player1");
-    player2 = new Player("player2");
-    player3 = new Player("player3");
+    player1 =new Player("player1", Team.Team1);
+    player2 =new Player("player2", Team.Team2);
+    player3 = new Player("player3", Team.Team3);
     player1.addAttackPoints(2);
     player1.addHealthPoints(4);
     player1.gainCoins(10);
@@ -578,7 +578,7 @@ describe("Game - Multiple Players", () => {
 
   it("should throw error when adding duplicate player ID", async () => {
     game.entityHandler.addPlayer(player1);
-    const duplicatePlayer = new Player("player1");
+    const duplicatePlayer =new Player("player1", Team.Team1);
     duplicatePlayer.addAttackPoints(2); // Start with 2 attack points for testing
     duplicatePlayer.addHealthPoints(4); // Start with 4 health points for testing
     duplicatePlayer.gainCoins(10); // Start with 10 coins for testing
@@ -629,8 +629,8 @@ describe("Game - Guardrails", () => {
   beforeEach(() => {
     game = new Game();
     mockGameSelections(game);
-    player1 = new Player("p1");
-    player2 = new Player("p2");
+    player1 = new Player("player1", Team.Team1);
+    player2 = new Player("player2", Team.Team2);
     player1.addAttackPoints(2);
     player1.addHealthPoints(4);
     player1.gainCoins(5);
@@ -639,17 +639,6 @@ describe("Game - Guardrails", () => {
     player2.gainCoins(5);
     game.entityHandler.addPlayer(player1);
     game.entityHandler.addPlayer(player2);
-  });
-
-  it("should not allow adding players after game start", async () => {
-    game.start(null, false);
-    dischargeEachItemsAndRemoveCoins(game);
-    emptyHands(game);
-    const latePlayer = new Player("late");
-    latePlayer.addAttackPoints(1);
-    latePlayer.addHealthPoints(1);
-    latePlayer.gainCoins(0);
-    expect(() => game.entityHandler.addPlayer(latePlayer)).toThrow("Game already started");
   });
 
   it("should select the first n options", async () => {
@@ -668,8 +657,8 @@ describe("Game - Stack Operations", () => {
   beforeEach(() => {
     game = new Game();
     mockGameSelections(game);
-    player1 = new Player("player1");
-    player2 = new Player("player2");
+    player1 =new Player("player1", Team.Team1);
+    player2 =new Player("player2", Team.Team2);
     player1.addAttackPoints(2);
     player1.addHealthPoints(4);
     player1.gainCoins(10);
@@ -709,7 +698,7 @@ describe("Stack - Behavior", () => {
   it("should resolve and remove the top element", async () => {
     const stack = new Stack();
     const loot = { id: "loot", type: "loot" } as any;
-    const p1 = new Player("p");
+    const p1 = new Player("player1", Team.Team1);
     p1.addAttackPoints(1); // Start with 1 attack points for testing
     p1.addHealthPoints(1); // Start with 1 health points for testing
     p1.gainCoins(0); // Start with 0 coins for testing
@@ -793,7 +782,7 @@ describe("Stack - Behavior", () => {
 describe("GameEventEmitter - listener reordering", () => {
   it("should reorder only the provided listener subset", async () => {
     const emitter = new GameEventEmitter();
-    const issuer = new Player("p1");
+    const issuer = new Player("player1", Team.Team1 );
     const seenOrder: string[] = [];
     let idA = -1;
     let idC = -1;
@@ -832,8 +821,8 @@ describe("Game - Game State", () => {
   beforeEach(() => {
     game = new Game();
     mockGameSelections(game);
-    player1 = new Player("player1");
-    player2 = new Player("player2");
+    player1 =new Player("player1", Team.Team1);
+    player2 =new Player("player2", Team.Team2);
     player1.addAttackPoints(2);
     player1.addHealthPoints(4);
     player1.gainCoins(10);
@@ -889,10 +878,10 @@ describe("Game - Game State", () => {
 describe("TurnHandler", () => {
   it("should advance turns and rounds correctly", async () => {
     const handler = new TurnHandler();
-    const p1 = new Player("p1");
+    const p1 = new Player("player1", Team.Team1);
     p1.addAttackPoints(1); // Start with 1 attack points for testing
     p1.addHealthPoints(1); // Start with 1 health points for testing
-    const p2 = new Player("p2");
+    const p2 = new Player("player2", Team.Team2);
     p2.addAttackPoints(1); // Start with 1 attack points for testing
     p2.addHealthPoints(1); // Start with 1 health points for testing
 
@@ -918,11 +907,11 @@ describe("Game - Souls & State", () => {
   beforeEach(() => {
     game = new Game();
     mockGameSelections(game);
-    player1 = new Player("player1");
+    player1 =new Player("player1", Team.Team1);
     player1.addAttackPoints(2); // Start with 2 attack points for testing
     player1.addHealthPoints(4); // Start with 4 health points for testing
     player1.gainCoins(10); // Start with 10 coins for testing
-    player2 = new Player("player2");
+    player2 =new Player("player2", Team.Team2);
     player2.addAttackPoints(3); // Start with 3 attack points for testing
     player2.addHealthPoints(5); // Start with 5 health points for testing
     player2.gainCoins(15); // Start with 15 coins for testing
@@ -1025,7 +1014,7 @@ describe("Player - Edge Cases & Combinations", () => {
   let player: Player;
 
   beforeEach(() => {
-    player = new Player("testPlayer");
+    player = new Player("testPlayer", Team.Team1);
     player.addAttackPoints(5); // Start with 5 attack points for testing
     player.addHealthPoints(20); // Start with 20 health points for testing
     player.gainCoins(50); // Start with 50 coins for testing

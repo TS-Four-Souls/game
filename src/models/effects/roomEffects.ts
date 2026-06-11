@@ -711,7 +711,7 @@ export function onAttackDeclaredNonActivePlayersRollToJoinEffect(game: Game, min
                 const roll = game.rollDice(player, false, data.it);
                 roll.attachEffect(
                     [1,2,3,4,5,6].map(value => 
-                        (value >= minRoll && value <= maxRoll) ?
+                        (value >= minRoll && value <= maxRoll && data.issuer.isEngagedInCombat) ?
                             makeAnAttackRollAfterEachAttackRollEffect(game) : (() => true)
                     )
                     , data.it, [], player);

@@ -332,6 +332,14 @@ export class EntityHandler {
       }
   }
 
+  initializeTeams(): void{
+    for(const player of this.game.players)
+    {
+      const soulOwner = this.game.players.find(p => p.team === player.team);
+      player.soulsInCommonWith(soulOwner!);
+    }
+  }
+
   /**
    * Computes current monster attack after replacement/modifier effects.
    */

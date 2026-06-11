@@ -2,6 +2,7 @@ import { describe, test, expect, beforeEach } from "bun:test";
 import { Game } from "@/models/game";
 import { Player } from "@/models/entities/player";
 import { setTimeout } from "timers/promises";
+import { Team } from "@/shared/api";
 
 describe("Game.selectMultiple", () => {
   let game: Game;
@@ -13,10 +14,10 @@ describe("Game.selectMultiple", () => {
     game = new Game();
     // NOTE: Do NOT use mockGameSelections here - we want to test the real implementation
     
-    player1 = new Player("Alice");
-    player2 = new Player("Bob");
-    player3 = new Player("Charlie");
-    
+    player1 = new Player("Alice", Team.Team1);
+    player2 = new Player("Bob", Team.Team2);
+    player3 = new Player("Charlie", Team.Team3);
+
     game.entityHandler.addPlayer(player1);
     game.entityHandler.addPlayer(player2);
     game.entityHandler.addPlayer(player3);

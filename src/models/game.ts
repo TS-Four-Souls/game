@@ -603,7 +603,7 @@ export class Game extends SelectionHandler {
     this.assert.gameNotStarted();
     if (players && players.length > 0) {
       for (const p of players) 
-        this.entityHandler.addPlayer(new Player(p.issuer));
+        this.entityHandler.addPlayer(new Player(p.issuer, p.team));
       const chara = this.cardHandler.getCharactersFromSlugs(players.map((p) => p.character));
       this.cardHandler.assignCharactersToPlayers(chara);
     }
@@ -616,6 +616,7 @@ export class Game extends SelectionHandler {
       shuffle(this.random, this.players);
     }
     this.turnHandler.initialize(this.players);
+    this.entityHandler.initializeTeams();
     this._historicHandler.recordInitialGameState(this);
     
     this.initializeWinningCondition();

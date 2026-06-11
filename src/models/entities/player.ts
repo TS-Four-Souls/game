@@ -1,5 +1,5 @@
 import { Entity } from "@/models/entities/entity";
-import type { Animation, Capability, EntityType, IdentifierType } from "@/shared/api";
+import type { Animation, Capability, EntityType, IdentifierType, Team } from "@/shared/api";
 import { Card, CharacterCard, EffectOnStack, Hand, ItemCard, LootCard, MonsterCard } from "../cards";
 import type { Game } from "../game";
 import { DiceRoll } from "../stackElement";
@@ -73,6 +73,8 @@ export class Player extends Entity {
   private _priceModifier: number = 0;
 
   private _animations: Animation[] = [];
+
+  private _team: Team;
   /**
    * Creates a new Player instance.
    * 
@@ -80,15 +82,21 @@ export class Player extends Entity {
    */
   constructor(
     id: string,
+    team: Team,
     user: string = crypto.randomUUID(),
   ) {
     super(id, 0, 0);
+    this._team = team;
     this._hand = new Hand();
     this._inPlay = [];
     this._souls = [];
     this._remainingLootPlay = 0;
     this.attackable = false;
     this.user = user;
+  }
+
+  get team(): Team {
+    return this._team;
   }
 
   get slug(): string {
@@ -456,6 +464,10 @@ export class Player extends Entity {
    */
   get souls(): Card[] {
     return this._souls;
+  }
+
+  soulsInCommonWith(player: Player){
+    this._souls = player.souls;
   }
 
   /**
