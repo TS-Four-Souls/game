@@ -26,19 +26,19 @@ describe("Treasure - Permanent Modifiers", () => {
         const breakfast = game.shop.obtainCard("b2-breakfast") as TreasureCard;
         const dinner = game.shop.obtainCard("b2-dinner") as TreasureCard;
         const initialHealth = player1.currentHealthPoints;
-        game.addInPlay(player1, breakfast);
+        game.cardHandler.addInPlay(player1, breakfast);
         expect(player1.currentHealthPoints).toBe(initialHealth + 1);
-        game.addInPlay(player1, dinner);
+        game.cardHandler.addInPlay(player1, dinner);
         expect(player1.currentHealthPoints).toBe(initialHealth + 2);
 
-        game.removeInPlay(player1, breakfast);
+        game.cardHandler.removeInPlay(player1, breakfast);
         expect(player1.currentHealthPoints).toBe(initialHealth + 1);
         
         game.endTurn();
         await game.actions.resolveStack();
         
         expect(player1.currentHealthPoints).toBe(initialHealth + 1);
-        game.removeInPlay(player1, dinner);
+        game.cardHandler.removeInPlay(player1, dinner);
         expect(player1.currentHealthPoints).toBe(initialHealth);
     });
 
@@ -46,13 +46,13 @@ describe("Treasure - Permanent Modifiers", () => {
         const brimstone = game.shop.obtainCard("b2-brimstone") as TreasureCard;
         const ipecac = game.shop.obtainCard("b2-ipecac") as TreasureCard;
         const initialAttack = player1.attackPoints;
-        game.addInPlay(player1, brimstone);
+        game.cardHandler.addInPlay(player1, brimstone);
         expect(player1.attackPoints).toBe(initialAttack + 1);
-        game.addInPlay(player1, ipecac);
+        game.cardHandler.addInPlay(player1, ipecac);
         expect(player1.attackPoints).toBe(initialAttack + 2);
-        game.removeInPlay(player1, brimstone);
+        game.cardHandler.removeInPlay(player1, brimstone);
         expect(player1.attackPoints).toBe(initialAttack + 1);
-        game.removeInPlay(player1, ipecac);
+        game.cardHandler.removeInPlay(player1, ipecac);
         expect(player1.attackPoints).toBe(initialAttack);
     });
 
@@ -60,13 +60,13 @@ describe("Treasure - Permanent Modifiers", () => {
         const meat = game.shop.obtainCard("b2-meat") as TreasureCard;
         const synthoil = game.shop.obtainCard("b2-synthoil") as TreasureCard;
         const initialRoll = player1.attackDiceModifier;
-        game.addInPlay(player1, meat);
+        game.cardHandler.addInPlay(player1, meat);
         expect(player1.attackDiceModifier).toBe(initialRoll + 1);
-        game.addInPlay(player1, synthoil);
+        game.cardHandler.addInPlay(player1, synthoil);
         expect(player1.attackDiceModifier).toBe(initialRoll + 2);
-        game.removeInPlay(player1, meat);
+        game.cardHandler.removeInPlay(player1, meat);
         expect(player1.attackDiceModifier).toBe(initialRoll + 1);
-        game.removeInPlay(player1, synthoil);
+        game.cardHandler.removeInPlay(player1, synthoil);
         expect(player1.attackDiceModifier).toBe(initialRoll);
     });
 
@@ -78,7 +78,7 @@ describe("Treasure - Permanent Modifiers", () => {
         await game.actions.resolveStack();
         const initialAtkLim = player1.attackThisTurn;
         expect(initialAtkLim).toBe(1); // because it's his turn
-        game.addInPlay(player1, cb);
+        game.cardHandler.addInPlay(player1, cb);
         expect(player1.attackThisTurn).toBe(initialAtkLim + 1);
         game.endTurn();
         await game.actions.resolveStack();
@@ -86,7 +86,7 @@ describe("Treasure - Permanent Modifiers", () => {
         game.endTurn();
         await game.actions.resolveStack();
         expect(player1.attackThisTurn).toBe(2);
-        game.removeInPlay(player1, cb);
+        game.cardHandler.removeInPlay(player1, cb);
         expect(player1.attackThisTurn).toBe(1);
         game.endTurn();
         await game.actions.resolveStack();
@@ -104,7 +104,7 @@ describe("Treasure - Permanent Modifiers", () => {
         await game.actions.resolveStack();
         const initialLootPlay = player1.remainingLootPlay;
         expect(initialLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value); // because it's his turn
-        game.addInPlay(player1, cb);
+        game.cardHandler.addInPlay(player1, cb);
         expect(player1.remainingLootPlay).toBe(initialLootPlay + 1);
         game.endTurn();
         await game.actions.resolveStack();
@@ -112,7 +112,7 @@ describe("Treasure - Permanent Modifiers", () => {
         game.endTurn();
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value+1);
-        game.removeInPlay(player1, cb);
+        game.cardHandler.removeInPlay(player1, cb);
         expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value);
         game.endTurn();
         await game.actions.resolveStack();
@@ -130,7 +130,7 @@ describe("Treasure - Permanent Modifiers", () => {
         await game.actions.resolveStack();
         const initialLootPlay = player1.remainingLootPlay;
         expect(initialLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value); // because it's his turn
-        game.addInPlay(player1, cb);
+        game.cardHandler.addInPlay(player1, cb);
         expect(player1.remainingLootPlay).toBe(initialLootPlay + 1);
         game.endTurn();
         await game.actions.resolveStack();
@@ -138,7 +138,7 @@ describe("Treasure - Permanent Modifiers", () => {
         game.endTurn();
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value + 1);
-        game.removeInPlay(player1, cb);
+        game.cardHandler.removeInPlay(player1, cb);
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value);
         game.endTurn();
@@ -154,7 +154,7 @@ describe("Treasure - Permanent Modifiers", () => {
         for (const name of ["b2-champion_belt", "b2-polydactyly"]) {
             const item = game.shop.obtainCard(name)!;
             const baseAttack = player1.attackPoints;
-            game.addInPlay(player1, item);
+            game.cardHandler.addInPlay(player1, item);
 
             const monster = game.monsters[0]!;
             monster.addHealthPoints(10);
@@ -187,7 +187,7 @@ describe("Treasure - Permanent Modifiers", () => {
             await game.actions.resolveStack();
 
             expect(monster.currentHealthPoints).toBe(initialMonsterHealth - baseAttack - baseAttack - 1);
-            game.removeInPlay(player1, item);
+            game.cardHandler.removeInPlay(player1, item);
             game.entityHandler.endCombat();
             game.endTurn();
             await game.actions.resolveStack();
@@ -200,14 +200,14 @@ describe("Treasure - Permanent Modifiers", () => {
         const bellyButton = game.shop.obtainCard("b2-belly_button") as TreasureCard;
         const dummyCard = { slug: "test", name: "Test" } as any;
         game.entityHandler.addHealth(player1, 10); // Ensure player has enough health
-        game.addInPlay(player1, bellyButton);
+        game.cardHandler.addInPlay(player1, bellyButton);
         
         // Character starts uncharged (based on test failures)
         const character = player1.character;
         expect(character.charged).toBe(false);
         
         // Recharge the character manually first
-        game.recharge(character);
+        game.cardHandler.recharge(character);
         expect(character.charged).toBe(true);
         
         // Tap the character to make it uncharged
@@ -253,7 +253,7 @@ describe("Treasure - Permanent Modifiers", () => {
 
         const brimstone = testGame.shop.obtainCard("b2-brimstone") as TreasureCard;
         
-        testGame.addInPlay(p1, brimstone);
+        testGame.cardHandler.addInPlay(p1, brimstone);
         
         const monster = testGame.monsters[0]!;
         monster.addHealthPoints(10);
@@ -284,7 +284,7 @@ describe("Treasure - Permanent Modifiers", () => {
     it("b2-ipecac: Each time you roll an attack roll of 6, deal 1 damage to each other player", async () => {
         const ipecac = game.shop.obtainCard("b2-ipecac") as TreasureCard;
         
-        game.addInPlay(player1, ipecac);
+        game.cardHandler.addInPlay(player1, ipecac);
         
         const monster = game.monsters[0]!;
         monster.addHealthPoints(10);

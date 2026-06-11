@@ -23,9 +23,9 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const treas1 = game.obtainCard("b2-goat_head")! as TreasureCard;
         const treas2 = game.obtainCard("b2-the_blue_map")! as TreasureCard;
         const treas3 = game.obtainCard("b2-the_map")! as TreasureCard;
-        game.addInPlay(player1, treas1);
-        game.addInPlay(player1, treas2);
-        game.addInPlay(player1, treas3);
+        game.cardHandler.addInPlay(player1, treas1);
+        game.cardHandler.addInPlay(player1, treas2);
+        game.cardHandler.addInPlay(player1, treas3);
     });
 
     function triggerEndTurnEffects() {

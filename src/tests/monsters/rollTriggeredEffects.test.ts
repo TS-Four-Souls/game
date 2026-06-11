@@ -552,8 +552,8 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         // Give player 1 an activatable item
         const item = game.obtainCard("b2-sack_of_pennies") as ItemCard;
-        game.addInPlay(player1, item);
-        game.recharge(item);
+        game.cardHandler.addInPlay(player1, item);
+        game.cardHandler.recharge(item);
 
         // Activate the item
         await game.activateItem(player1, item);
@@ -575,7 +575,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         // Give player 2 an activatable item
         const item = game.obtainCard("b2-sack_of_pennies") as ItemCard;
-        game.addInPlay(player2, item);
+        game.cardHandler.addInPlay(player2, item);
         
         // Player 2 activates the item
         await game.activateItem(player2, item);
@@ -596,11 +596,11 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         // Give player 1 two activatable items
         const item1 = game.obtainCard("b2-sack_of_pennies") as ItemCard;
-        game.addInPlay(player1, item1);
-        game.recharge(item1);
+        game.cardHandler.addInPlay(player1, item1);
+        game.cardHandler.recharge(item1);
         const item2 = game.obtainCard("b2-tech_x") as ItemCard;
-        game.addInPlay(player2, item2);
-        game.recharge(item2);
+        game.cardHandler.addInPlay(player2, item2);
+        game.cardHandler.recharge(item2);
         
         // Activate first item
         await game.activateItem(player1, item1);

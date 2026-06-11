@@ -34,7 +34,7 @@ describe("Requiem Rooms", () => {
 
         const soul = game.obtainCard("b2-lost_soul")!;
         soul.soul = 2;
-        game.addSoul(player1, soul);
+        game.cardHandler.addSoul(player1, soul);
 
         game.loseCoins(player1, player1.coins, true);
         game.gainCoins(player1, 1, "gift");
@@ -50,7 +50,7 @@ describe("Requiem Rooms", () => {
         const soul = game.obtainCard("b2-lost_soul")!;
         soul.soul = 1;
         soul.soul = 1;
-        game.addSoul(player1, soul);
+        game.cardHandler.addSoul(player1, soul);
 
         game.loseCoins(player1, player1.coins, true);
         game.loseCoins(player2, player2.coins, true);
@@ -71,7 +71,7 @@ describe("Requiem Rooms", () => {
         game.entityHandler.kill(player1, game.monsters[1]!, room);
         await game.actions.resolveStack();
         expect(game.monsters.map(m => m.healthPoints)).toEqual([2,6]);
-        game.discard(room);
+        game.cardHandler.discard(room);
         expect(game.monsters.map(m => m.healthPoints)).toEqual([1,5]);
     });
 
@@ -79,15 +79,15 @@ describe("Requiem Rooms", () => {
         const loot = game.obtainCard("b2-a_penny")! as LootCard;
         const room = game.obtainCard("r-shadow_of_famine") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
-        game.addCardToHand(player1, loot);
-        game.addCardToHand(player1, game.copyCard(loot) as LootCard);
+        game.cardHandler.addCardToHand(player1, loot);
+        game.cardHandler.addCardToHand(player1, game.cardHandler.copyCard(loot) as LootCard);
         game.entityHandler.addLootPlay(player1, 10);
-        game.recharge(player1.character);
+        game.cardHandler.recharge(player1.character);
         await game.activateItem(player1, player1.inPlay[0]!, [], "tap");
         await game.actions.resolveStack();
         expect(game.actions.canActivate(player1.character, player1)).not.toBe(true);
         expect(game.actions.canPlayCard(player1)).toBe(true);
-        game.recharge(player1.character);
+        game.cardHandler.recharge(player1.character);
         game.actions.playCard(player1, player1.hand.length - 1, []);
         await game.actions.resolveStack();
         expect(game.actions.canPlayCard(player1)).not.toBe(true);
@@ -108,13 +108,13 @@ describe("Requiem Rooms", () => {
         expect(room.tags.counters).toBe(0);
         const loot = game.obtainCard("b2-a_penny")! as LootCard;
         for(let i = 0; i < 4; i++) {
-            const copy = game.copyCard(loot) as LootCard;
-            game.addCardToHand(player1, copy);
+            const copy = game.cardHandler.copyCard(loot) as LootCard;
+            game.cardHandler.addCardToHand(player1, copy);
             game.actions.playCard(player1, player1.hand.length-1, []);
             expect(room.tags.counters).toBe(0);
         }
-        const copy = game.copyCard(loot) as LootCard;
-        game.addCardToHand(player1, copy);
+        const copy = game.cardHandler.copyCard(loot) as LootCard;
+        game.cardHandler.addCardToHand(player1, copy);
         game.actions.playCard(player1, player1.hand.length-1, []);
         expect(room.tags.counters).toBe(1);
     });
@@ -206,22 +206,22 @@ describe("Requiem Rooms", () => {
     it("pity_for_the_poor become weak was strong become weak", async () => {
         const room = game.obtainCard("r-pity_for_the_poor") as RoomCard;
         for(let i = 0; i < 10; i++) 
-            game.addTopPosition("treasure", game.copyCard(game.decks.treasure.cards[0]!)!);
+            game.cardHandler.addTopPosition("treasure", game.cardHandler.copyCard(game.decks.treasure.cards[0]!)!);
         game.shop.removeTop(0);
         game.rooms?.forceRoomAtSlot(0, room);
         const soul = game.obtainCard("b2-lost_soul")!;
-        const soul2 = game.copyCard(soul);
+        const soul2 = game.cardHandler.copyCard(soul);
         soul2.soul = 1;
         soul.soul = 2;
-        game.addSoul(player1, soul2);
+        game.cardHandler.addSoul(player1, soul2);
         game.gainCoins(player1, 10, "gift");
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
         expect(player1.inPlay.length).toBe(3);
-        game.removeInPlay(player1, player1.inPlay[2]!);
+        game.cardHandler.removeInPlay(player1, player1.inPlay[2]!);
         game.resetStack();
         expect(player1.coins).toBe(0);
-        game.addSoul(player2, soul);
+        game.cardHandler.addSoul(player2, soul);
         game.entityHandler.addPurchaseThisTurn(player1, 1);
         game.gainCoins(player1, 10, "gift");
         game.actions.declarePurchase(player1);
@@ -234,12 +234,12 @@ describe("Requiem Rooms", () => {
     it("pity_for_the_poor become weak", async () => {
         const room = game.obtainCard("r-pity_for_the_poor") as RoomCard;
         for(let i = 0; i < 10; i++) 
-            game.addTopPosition("treasure", game.copyCard(game.decks.treasure.cards[0]!)!);
+            game.cardHandler.addTopPosition("treasure", game.cardHandler.copyCard(game.decks.treasure.cards[0]!)!);
         game.shop.removeTop(0);
         game.rooms?.forceRoomAtSlot(0, room);
         const soul = game.obtainCard("b2-lost_soul")!;
         soul.soul = 2;
-        game.addSoul(player2, soul);
+        game.cardHandler.addSoul(player2, soul);
         game.gainCoins(player1, 10, "gift");
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
@@ -251,11 +251,11 @@ describe("Requiem Rooms", () => {
         const room = game.obtainCard("r-pity_for_the_poor") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         for(let i = 0; i < 10; i++) 
-            game.addTopPosition("treasure", game.copyCard(game.decks.treasure.cards[0]!)!);
+            game.cardHandler.addTopPosition("treasure", game.cardHandler.copyCard(game.decks.treasure.cards[0]!)!);
         game.shop.removeTop(0);
         const soul = game.obtainCard("b2-lost_soul")!;
         soul.soul = 2;
-        game.addSoul(player1, soul);
+        game.cardHandler.addSoul(player1, soul);
         game.gainCoins(player1, 10, "gift");
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
@@ -267,7 +267,7 @@ describe("Requiem Rooms", () => {
         const room = game.obtainCard("r-pity_for_the_poor") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         for(let i = 0; i < 10; i++) 
-            game.addTopPosition("treasure", game.copyCard(game.decks.treasure.cards[0]!)!);
+            game.cardHandler.addTopPosition("treasure", game.cardHandler.copyCard(game.decks.treasure.cards[0]!)!);
         game.shop.removeTop(0);
         game.gainCoins(player1, 3, "gift");
         game.actions.declarePurchase(player1);
@@ -288,7 +288,7 @@ describe("Requiem Rooms", () => {
         const room = game.obtainCard("r-might_for_the_meek") as RoomCard;
         const soul = game.obtainCard("b2-lost_soul")!;
         soul.soul = 2;
-        game.addSoul(player2, soul);
+        game.cardHandler.addSoul(player2, soul);
         game.rooms?.forceRoomAtSlot(0, room);
         expect(game.players.map(p => game.entityHandler.getAttack(p))).toEqual([2,1]);
        
@@ -384,7 +384,7 @@ describe("Requiem Rooms", () => {
     it("spider_webs", async () => {
         const room = game.obtainCard("r-spider_webs") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
-        game.recharge(player1.character);
+        game.cardHandler.recharge(player1.character);
         expect(player1.character.charged).toBe(true);
         await game.endTurn();
         await game.actions.resolveStack();
@@ -434,7 +434,7 @@ describe("Requiem Rooms", () => {
         game.rooms?.forceRoomAtSlot(0, room);
         game.loot(player2, 1);
         const item = game.obtainCard("b2-blank_card")! as ItemCard;
-        game.addInPlay(player2, item);
+        game.cardHandler.addInPlay(player2, item);
         const monst1 = game.monsters[0]!.card.slug;
         const monst2 = game.monsters[1]!.card.slug;
         const card = player2.hand.cards[0]!;
@@ -471,7 +471,7 @@ describe("Requiem Rooms", () => {
         game.random = () => 0.5;
         const card = game.obtainCard("b2-blank_card")! as ItemCard;
         const monst = game.monsters[0]!.card.slug;
-        game.addInPlay(player2, card);
+        game.cardHandler.addInPlay(player2, card);
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -499,9 +499,9 @@ describe("Requiem Rooms", () => {
         for(const slug of ["b2-blank_card", "b2-tech_x", "b2-the_battery", "b2-lucky_foot", "b2-mini_mush"])
         {
             const card = game.obtainCard(slug)! as ItemCard;
-            game.addInPlay(player1, card);
+            game.cardHandler.addInPlay(player1, card);
         }
-        game.rechargeMultiple(player1);
+        game.cardHandler.rechargeMultiple(player1);
         for(const card of player1.inPlay) 
             card.deactivate();
         expect(player1.inPlay.every(c => c.charged)).toBe(false);
@@ -520,7 +520,7 @@ describe("Requiem Rooms", () => {
         const room = game.obtainCard("r-laser_eye") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         const loot = game.obtainCard("b2-a_penny")! as LootCard;
-        game.addCardToHand(player1, loot);
+        game.cardHandler.addCardToHand(player1, loot);
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -577,7 +577,7 @@ describe("Requiem Rooms", () => {
         game.rooms?.forceRoomAtSlot(0, room);
         const soul = game.obtainCard("b2-lost_soul")!;
         soul.soul = 1;
-        game.addSoul(player1, soul);
+        game.cardHandler.addSoul(player1, soul);
         await game.endTurn();
         expect(game.currentPlayer.id).toBe(player2.id);
         await game.endTurn();
@@ -598,7 +598,7 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         game.actions.declarePurchase(player2);
         game.actions.purchase(player2, 0);
-        game.removeInPlay(player2, player2.inPlay[2]!);
+        game.cardHandler.removeInPlay(player2, player2.inPlay[2]!);
         game.resetStack();
         await game.endTurn();
         await game.actions.resolveStack();
@@ -606,7 +606,7 @@ describe("Requiem Rooms", () => {
         game.gainCoins(player1, 10, "gift");
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, "top");
-        game.removeInPlay(player1, player1.inPlay[2]!);
+        game.cardHandler.removeInPlay(player1, player1.inPlay[2]!);
         game.resetStack();
         await game.endTurn();
         await game.actions.resolveStack();
@@ -901,7 +901,7 @@ describe("Requiem Rooms", () => {
         game.resetStack();
         const loot = game.obtainCard("fsp2-gold_key")! as LootCard;
         const monster = game.monsters[0]!;
-        game.addCardToHand(player1, loot);
+        game.cardHandler.addCardToHand(player1, loot);
         game.random = () => 0.99;
         await game.actions.activateRoom(player1, room, [loot], 0);
         await game.actions.resolveStack();
@@ -935,7 +935,7 @@ describe("Requiem Rooms", () => {
         game.resetStack();
         const loot = game.obtainCard("b2-bomb")! as LootCard;
         const monster = game.monsters[0]!;
-        game.addCardToHand(player1, loot);
+        game.cardHandler.addCardToHand(player1, loot);
         game.random = () => 0.5;
         await game.actions.activateRoom(player1, room, [loot], 0);
         await game.actions.resolveStack();
@@ -963,7 +963,7 @@ describe("Requiem Rooms", () => {
         game.rooms?.forceRoomAtSlot(0, room);
         game.resetStack();
         const loot = game.obtainCard("b2-bomb")! as LootCard;
-        game.addCardToHand(player1, loot);
+        game.cardHandler.addCardToHand(player1, loot);
         game.entityHandler.addHealth(player1, 2); // to be able to survive the bomb damage and verify the 3 damage are correctly applied
         game.random = () => 0.9;
         await game.actions.activateRoom(player1, room, [loot], 0);
@@ -983,7 +983,7 @@ describe("Requiem Rooms", () => {
         game.resetStack();
         const loot = game.obtainCard("b2-a_penny")! as LootCard;
         const monster = game.monsters[0]!;
-        game.addCardToHand(player1, loot);
+        game.cardHandler.addCardToHand(player1, loot);
         game.random = () => 0.5;
         await game.actions.activateRoom(player1, room, [loot], 0);
         await game.actions.resolveStack();
@@ -1001,7 +1001,7 @@ describe("Requiem Rooms", () => {
         game.rooms?.forceRoomAtSlot(0, room);
         game.resetStack();
         const loot = game.obtainCard("b2-a_penny")! as LootCard;
-        game.addCardToHand(player1, loot);
+        game.cardHandler.addCardToHand(player1, loot);
         game.random = () => 0.9;
         await game.actions.activateRoom(player1, room, [loot], 0);
         await game.actions.resolveStack();
@@ -1152,7 +1152,7 @@ describe("Requiem Rooms", () => {
         game.resetStack();
         game.gainCoins(player1, 30, "gift");
         for(const card of [... player1.hand.cards]) {
-            game.removeCardFromHand(player1, card);
+            game.cardHandler.removeCardFromHand(player1, card);
         }
         
         game.random = () => 6/6 - 0.01;
@@ -1175,7 +1175,7 @@ describe("Requiem Rooms", () => {
         game.resetStack();
         game.gainCoins(player1, 30, "gift");
         for(const card of [... player1.hand.cards]) {
-            game.removeCardFromHand(player1, card);
+            game.cardHandler.removeCardFromHand(player1, card);
         }
         
         await game.actions.activateRoom(game.currentPlayer, room, [], 0);
@@ -1312,7 +1312,7 @@ describe("Requiem Rooms", () => {
         game.rooms?.forceRoomAtSlot(0, room);
         game.resetStack();
         const loot = game.obtainCard("b2-lost_soul")! as LootCard;
-        game.addCardToHand(player1, loot);
+        game.cardHandler.addCardToHand(player1, loot);
         game.actions.playCard(player1, player1.hand.cards.findIndex(c => c === loot));
         await game.actions.resolveStack();
         game.gainCoins(player1, 100, "gift");

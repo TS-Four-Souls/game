@@ -63,8 +63,8 @@ describe("Effect - gainCoins", () => {
     b.addAttackPoints(1); // Start with 1 attack points for testing
     b.addHealthPoints(1); // Start with 1 health points for testing
     b.gainCoins(0); // Start with 0 coins for testing
-    freshGame.addPlayer(a);
-    freshGame.addPlayer(b);
+    freshGame.entityHandler.addPlayer(a);
+    freshGame.entityHandler.addPlayer(b);
     const fn = gainCoinsEffect(freshGame, 3);
     expect(() => fn(new EffectData(dummyLoot, () => a, []))).toThrow("Game not started");
   });
@@ -107,8 +107,8 @@ describe("Effect - additional unique implementations", () => {
     const { game, p1 } = setupDecks();
     Object.defineProperty(game, "currentPlayer", { get: () => p1 });
     let added = false, extra = false;
-    game.addBottomPosition = () => { added = true; };
-    game.addExtraTurn = () => { extra = true; };
+    game.cardHandler.addBottomPosition = () => { added = true; };
+    game.entityHandler.addExtraTurn = () => { extra = true; };
     const parsed = effect.effectParser("Put this on the bottom of the loot deck. If you do, take an extra turn after this one if it's your turn.", game);
     // Use a real loot card
     const card = game.decks["loot"]!.cards[0]!;

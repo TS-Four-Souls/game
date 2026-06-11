@@ -545,7 +545,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
           if (cards && cards.length > 0) {
             for (const ref of cards) {
               const card = game.obtainCard(ref.slug, ref.globalId) as LootCard;
-              game.addCardToHand(player, card);
+              game.cardHandler.addCardToHand(player, card);
             }
           }
           break;
@@ -580,7 +580,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
               if (!(card instanceof ItemCard)) {
                 throw new Error(`Card ${ref.slug} is not an ItemCard`);
               }
-              game.addInPlay(player, card);
+              game.cardHandler.addInPlay(player, card);
             }
           }
           break;

@@ -42,8 +42,8 @@ describe("Discard", () => {
     });
 
     it("discard card on play", async () => {
-        game.addCardToHand(player1, game.obtainCard("b2-a_dime")! as LootCard);
-        game.addCardToHand(player1, game.obtainCard("b2-a_nickel")! as LootCard);
+        game.cardHandler.addCardToHand(player1, game.obtainCard("b2-a_dime")! as LootCard);
+        game.cardHandler.addCardToHand(player1, game.obtainCard("b2-a_nickel")! as LootCard);
         game.actions.playCard(player1, 0);
         game.entityHandler.addLootPlay(player1, 1);
         game.actions.playCard(player1, 0);
@@ -57,7 +57,7 @@ describe("Discard", () => {
     });
     
     it("discard trinket on play", async () => {
-        game.addCardToHand(player1, game.obtainCard("b2-swallowed_penny")! as LootCard);
+        game.cardHandler.addCardToHand(player1, game.obtainCard("b2-swallowed_penny")! as LootCard);
         game.actions.playCard(player1, 0);
         expect(game.decks['loot']!.discard.length).toBe(0);
         await game.resolveEntireStack();
@@ -101,7 +101,7 @@ describe("Discard", () => {
         await game.actions.resolveStack();
         game.endTurn();
         await game.actions.resolveStack();
-        game.addCardToHand(player2, ewaz);
+        game.cardHandler.addCardToHand(player2, ewaz);
         game.actions.playCard(player2, player2.hand.length - 1);
         game.actions.resolveStack();
         expect(game.encounters.visible[0]!.slug).not.toBe("b2-moms_hand");
@@ -193,12 +193,12 @@ describe("Discard", () => {
 
     it("destroy treasure does not put it in discard", async () => {
         const treasureCard = game.shop.obtainCard("b2-bobs_brain") as ItemCard;
-        game.addInPlay(player1, treasureCard);
+        game.cardHandler.addInPlay(player1, treasureCard);
         
         const initialDiscardSize = game.decks['treasure']!.discard.length;
         
         // Destroy the treasure
-        game.destroyCardsOrSouls([treasureCard]);
+        game.cardHandler.destroyCardsOrSouls([treasureCard]);
         
         // Card should be destroyed (not in discard)
         expect(game.decks['treasure']!.discard.length).toBe(initialDiscardSize + 1);
@@ -216,7 +216,7 @@ describe("Discard", () => {
         const initialSouls = player1.totalSouls;
         
         // Destroy the soul
-        game.destroyCardsOrSouls([monsterCard]);
+        game.cardHandler.destroyCardsOrSouls([monsterCard]);
         
         // Card should be destroyed (not in discard)
         expect(game.decks['monster']!.discard.length).toBe(initialDiscardSize+1);

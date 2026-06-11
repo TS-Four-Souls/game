@@ -210,7 +210,7 @@ describe("Event Monsters - Other Events", () => {
         const initialAttacks = player1.attackThisTurn;
          
         // Mock select to choose no monsters to move
-        const originalSelect = game.select.bind(game.entityHandler);
+        const originalSelect = game.select.bind(game);
         game.select = async <T>(player: Player, min: number, max: number, options: T[], description?: string) => {
             if (min === 0) {
                 return { selected: [] as T[], remaining: options };

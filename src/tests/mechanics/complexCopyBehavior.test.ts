@@ -25,11 +25,11 @@ let game: Game;
         const mc = game.obtainCard("b2-modeling_clay") as ItemCard;
         const pb = game.obtainCard("r-punching_bag") as ItemCard;
         const mm = game.obtainCard("r-magic_marker") as LootCard;
-        game.addInPlay(player1, mc);
-        game.addInPlay(player2, pb);
-        game.addCardToHand(player1, mm);
+        game.cardHandler.addInPlay(player1, mc);
+        game.cardHandler.addInPlay(player2, pb);
+        game.cardHandler.addCardToHand(player1, mm);
 
-        game.recharge(pb);
+        game.cardHandler.recharge(pb);
         await game.activateItem(player1, mc, [pb], "tap");
         await game.actions.resolveStack();
         expect(player1.healthPoints).toBe(4);
@@ -45,9 +45,9 @@ let game: Game;
     
     it("magic_marker (loot card)", async () => {
         const bs = game.obtainCard("b2-two_cents") as LootCard;
-        game.addCardToHand(player1, bs);
+        game.cardHandler.addCardToHand(player1, bs);
         let loot = game.obtainCard("r-magic_marker") as LootCard;
-        game.addCardToHand(player1, loot);
+        game.cardHandler.addCardToHand(player1, loot);
         game.actions.playCard(player1, 0, []);
         game.actions.playCard(player1, 0, [game.stack.peek()!]);
         await game.actions.resolveStack();
@@ -56,7 +56,7 @@ let game: Game;
         await game.endTurn();
         game.obtainCard(bs.slug, bs.globalId);
         game.entityHandler.addLootPlay(player1, 1, loot);
-        game.addCardToHand(player1, bs);
+        game.cardHandler.addCardToHand(player1, bs);
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();
         expect(player1.coins).toBe(3);
@@ -64,9 +64,9 @@ let game: Game;
 
     it("magic_marker (item card)", async () => {
         let loot = game.obtainCard("r-magic_marker") as LootCard;
-        game.addCardToHand(player1, loot);
+        game.cardHandler.addCardToHand(player1, loot);
         const bs = game.obtainCard("b2-brimstone") as ItemCard;
-        game.addInPlay(player1, bs);
+        game.cardHandler.addInPlay(player1, bs);
         game.actions.playCard(player1, 0, [bs]);
         await game.actions.resolveStack();
         expect(game.entityHandler.getAttack(player1)).toBe(3);
@@ -79,13 +79,13 @@ let game: Game;
         const diplo = game.obtainCard("b2-diplopia") as ItemCard;
         const a = game.obtainCard("b2-dinner") as ItemCard;
         const b = game.obtainCard("b2-brimstone") as ItemCard;
-        game.addInPlay(player1, diplo);
-        game.addInPlay(player2, a);
-        game.addInPlay(player2, b);
+        game.cardHandler.addInPlay(player1, diplo);
+        game.cardHandler.addInPlay(player2, a);
+        game.cardHandler.addInPlay(player2, b);
 
-        game.recharge(diplo);
+        game.cardHandler.recharge(diplo);
         await game.activateItem(player1, diplo, [a], "tap");
-        game.recharge(diplo);
+        game.cardHandler.recharge(diplo);
         await game.activateItem(player1, diplo, [b], "tap");
         await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(2);
@@ -112,14 +112,14 @@ let game: Game;
         const diplo = game.obtainCard("b2-diplopia") as ItemCard;
         const a = game.obtainCard("b2-modeling_clay") as ItemCard;
         const b = game.obtainCard("b2-brimstone") as ItemCard;
-        game.addInPlay(player1, a);
-        game.addInPlay(player2, diplo);
-        game.addInPlay(player2, b);
+        game.cardHandler.addInPlay(player1, a);
+        game.cardHandler.addInPlay(player2, diplo);
+        game.cardHandler.addInPlay(player2, b);
 
-        game.recharge(diplo);
+        game.cardHandler.recharge(diplo);
         await game.activateItem(player1, a, [diplo], "tap");
         await game.actions.resolveStack();
-        game.recharge(a);
+        game.cardHandler.recharge(a);
         await game.activateItem(player1, a, [b], "tap");
         await game.actions.resolveStack();
         expect(a.slug).toBe("b2-brimstone");
@@ -132,17 +132,17 @@ let game: Game;
     
     it("undefined listeners do not stack.", async () => {
         const diplo = game.obtainCard("r-undefined") as ItemCard;
-        game.addInPlay(player2, diplo);
+        game.cardHandler.addInPlay(player2, diplo);
         game.shop.discardTop(1);
         const item = game.shop.itemsInShop[1]!;
         
-        game.recharge(diplo);
+        game.cardHandler.recharge(diplo);
         await game.activateItem(player2, diplo, [item], "tap");
         await game.actions.resolveStack();
         await game.endTurn();
         await game.actions.resolveStack();
 
-        game.recharge(diplo);
+        game.cardHandler.recharge(diplo);
         await game.actions.resolveStack();
         await game.activateItem(player2, diplo, [item], "tap");
         await game.actions.resolveStack();
@@ -156,10 +156,10 @@ let game: Game;
     it("copying an attackable card.", async () => {
         const a = game.obtainCard("b2-modeling_clay") as ItemCard;
         const b = game.obtainCard("r-punching_bag") as ItemCard;
-        game.addInPlay(player1, a);
-        game.addInPlay(player2, b);
+        game.cardHandler.addInPlay(player1, a);
+        game.cardHandler.addInPlay(player2, b);
 
-        game.recharge(a);
+        game.cardHandler.recharge(a);
         await game.activateItem(player1, a, [b], "tap");
         await game.actions.resolveStack();
         expect(a.entity).toBeDefined();

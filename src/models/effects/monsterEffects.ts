@@ -128,7 +128,7 @@ export function flipIfXCountersEffect(game: Game, x: number): EffectFunction {
         offCounterAdded = game.emitter.on("on:counter:modified", (eventData) => {
             if (data.it !== eventData.card) return;
             if (eventData.newValue < x) return;
-            game.flip(data.it.owner as Player, data.it);
+            game.cardHandler.flip(data.it.owner as Player, data.it);
         });
         data.it.cleaners.push(() => {
             offCounterAdded?.();
@@ -144,7 +144,7 @@ export function preventDeathGainTreasureCancelAttackAndHealEffect(game: Game, x:
         offWouldDeath = game.emitter.on("on:death:would-death", (eventData: OnDeathWouldDeathData) => {
             if(eventData.eventIssuer.card !== data.it) return;
             game.entityHandler.preventDeath(eventData.eventIssuer);
-            game.addToCounter(data.issuer, data.it, "counters", 1);
+            game.cardHandler.addToCounter(data.issuer, data.it, "counters", 1);
             game.entityHandler.heal(data.issuer, 9999);
             game.gainTreasure(game.currentPlayer, x);
             game.entityHandler.endCombat();
@@ -422,7 +422,7 @@ return (data: EffectData) => {
                 for(let i=0; i < handSize; i++)
                 {
 
-                    game.discardFromHandAtIndex(target as Player, 0, "effect");
+                    game.cardHandler.discardFromHandAtIndex(target as Player, 0, "effect");
                 }
                 return true;
             };
@@ -452,7 +452,7 @@ export function doubleRewardsOnDeathRollEffect(game: Game, rollValues: number[])
             
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
-                game.entityRewards(data.issuer as Monster);
+                game.entityHandler.entityRewards(data.issuer as Monster);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `When ${data.it.name} dies, if the killing roll was ${rollValues.join(" or ")}, it grants double rewards.`);
@@ -1104,11 +1104,11 @@ export function bossRushEffect(game: Game, bossCount: number): EffectFunction {
             if(card instanceof MonsterCard && card.subtype === "boss") {
                 bosses.push(card);
             } else {
-                game.discard(card);
+                game.cardHandler.discard(card);
             }
         }
         for(const card of bosses)
-            game.addTopPosition("monster", card);
+            game.cardHandler.addTopPosition("monster", card);
         
         const options = [...game.encounters.coverableSlots];
 

@@ -663,7 +663,7 @@ describe("Event Monsters - Curse Effects", () => {
         // Add a soul to player
         const soulCard = game.obtainCard("b2-blank_card") as ItemCard;
         soulCard.soul = 2;
-        game.addSoul(player1, soulCard);
+        game.cardHandler.addSoul(player1, soulCard);
         const initialSouls = player1.souls.length;
         
         // Draw the curse

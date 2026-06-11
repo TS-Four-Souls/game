@@ -45,7 +45,7 @@ export class Shop extends Slots<TreasureCard> {
         if (game.loseCoins(player, price, false, "purchase") === price) {
             const card = this._deck.draw();
             if (card) {
-                game.addInPlay(player, card);
+                game.cardHandler.addInPlay(player, card);
                 return true;
             }
         }
@@ -67,7 +67,7 @@ export class Shop extends Slots<TreasureCard> {
         if (game.loseCoins(player, price, false, "purchase") === price) {
             if (this.itemsInShop[index] === undefined)
                 throw new Error(`Cannot purchase from shop slot ${index}, it is empty. The deck has ${this._deck.cards.length} cards left.`);
-            game.addInPlay(player, this.itemsInShop[index]);
+            game.cardHandler.addInPlay(player, this.itemsInShop[index]);
             this._slots[index]?.pop();
             this.fillEmptySpots();
             return true;

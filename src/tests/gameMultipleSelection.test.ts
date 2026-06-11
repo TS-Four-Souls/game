@@ -17,10 +17,10 @@ describe("Game.selectMultiple", () => {
     player2 = new Player("Bob");
     player3 = new Player("Charlie");
     
-    game.addPlayer(player1);
-    game.addPlayer(player2);
-    game.addPlayer(player3);
-    game.setupDecks();
+    game.entityHandler.addPlayer(player1);
+    game.entityHandler.addPlayer(player2);
+    game.entityHandler.addPlayer(player3);
+    game.cardHandler.setupDecks();
     game.start(null);
     
     // Clear any pending selections to ensure clean state

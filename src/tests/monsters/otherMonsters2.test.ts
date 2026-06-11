@@ -306,7 +306,7 @@ describe("Monsters - Various 2", () => {
         const init = player1.currentHealthPoints;
         const chara = player1.inPlay[0]! as ItemCard;
 
-        game.recharge(chara);
+        game.cardHandler.recharge(chara);
         await game.activateItem(player1, chara, []); // Activate first item
         await game.actions.resolveStack(); // item activation
         await game.actions.resolveStack(); // effect

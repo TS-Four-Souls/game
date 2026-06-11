@@ -158,12 +158,12 @@ export class EntityHandler {
       for (const item of itemsToLose) {
         if(!(item instanceof ItemCard))
           throw new Error("Selected card is not an ItemCard.");
-        this.game.destroyCardsOrSouls([item]);
+        this.game.cardHandler.destroyCardsOrSouls([item]);
       }
     }
     if (lootCardsToLose && lootCardsToLose.length > 0) {
       for (const loot of lootCardsToLose) {
-        this.game.discardFromHandAtIndex(player, player.hand._hand.indexOf(loot), "death");
+        this.game.cardHandler.discardFromHandAtIndex(player, player.hand._hand.indexOf(loot), "death");
       }
     }
     this.game.dispatch();
@@ -232,28 +232,6 @@ export class EntityHandler {
   }
 
   /**
-   * Applies post-death monster card destination (soul or discard).
-   */
-  obtainMonsterSoulOrDiscard(monster: Monster): void {
-    const card = monster.card;
-    if(card.afterEffect === "handled" || card.afterEffect === "nothing")
-      return; // Card is already handled by its afterEffect, so do nothing here.
-    if (card.rewards?.soul !== undefined) {
-      if (typeof card.rewards?.soul !== "number")
-        throw new Error("Monster soul reward must be a number.");
-      card.soul = card.rewards?.soul;
-      this.game.addAnimation({
-        id: this.game.nextAnimationId,
-        type: "obtainMonsterSoul",
-        card: card.jsonAPI,
-        player: this.game.currentPlayer.id,
-      });
-      this.game.addSoul(this.game.currentPlayer, card);
-    } else this.game.discard(card);
-    this.game.dispatch();
-  }
-
-  /**
    * Resolves a pending death and its before/after trigger windows.
    * Should only be called by DeathOnStack objects.
    */
@@ -296,10 +274,10 @@ export class EntityHandler {
         };
         this.game.emit("on:death:monster", eventData);
         this.monsterDiedThisTurn = true;
-        this.game.entityRewards(receiver, eventData.rewardGainer);
+        this.entityRewards(receiver, eventData.rewardGainer);
         void this.game.executeWhenStackSubset(stackIds, async () => {
           this.game.encounters.kill(receiver); // should only kill once its effects are resolved: should be moved in the resolvewhenstackempty
-          this.game.obtainMonsterSoulOrDiscard(receiver);
+          this.game.cardHandler.obtainMonsterSoulOrDiscard(receiver);
           this.game.resolveCallbacks();
         }).catch((error) => {
           console.error("Failed to finish monster death resolution", error);
@@ -310,9 +288,9 @@ export class EntityHandler {
           target: from,
           source: source,
         });
-        this.game.entityRewards(receiver);
+        this.entityRewards(receiver);
         if(!receiver.card.eternal)
-          this.game.destroyCardsOrSouls([receiver.card]);
+          this.game.cardHandler.destroyCardsOrSouls([receiver.card]);
       }
       this.game.emit("on:death:after-penalty", {
         eventIssuer: receiver,

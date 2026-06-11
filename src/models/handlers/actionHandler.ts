@@ -289,7 +289,7 @@ export class ActionHandler {
     // Add to history
     this.game.addToHistory(elem.json);
     if (elem instanceof LootCardEffect && elem.card instanceof LootCard)
-      this.game.handleLootCardEffectResolution(elem);
+      this.game.cardHandler.handleLootCardEffectResolution(elem);
     this.game.dispatch();
     await this.game.resolveCallbacks();
   }
@@ -612,10 +612,10 @@ export class ActionHandler {
           const loot = card as LootCard;
           if(!loot)
             throw new Error(`Card ${card.name} is not a LootCard.`);
-          this.game.removeCardFromHand(player, loot);
+          this.game.cardHandler.removeCardFromHand(player, loot);
           if(loot.trinket)
-            this.game.removeInPlay(player, loot);
-          this.game.discard(loot);
+            this.game.cardHandler.removeInPlay(player, loot);
+          this.game.cardHandler.discard(loot);
           break;
         case "treasure":
           const treasure = card as TreasureCard;
@@ -624,20 +624,20 @@ export class ActionHandler {
           if(this.game.shop.itemsInShop.includes(treasure))
             this.game.shop.removeCard(treasure);
           else
-            this.game.removeInPlay(player, treasure);
-          this.game.discard(treasure);
+            this.game.cardHandler.removeInPlay(player, treasure);
+          this.game.cardHandler.discard(treasure);
           break;
         case "monster":
           const monster = card as MonsterCard;
           if(!monster)            
             throw new Error(`Card ${card.name} is not a MonsterCard.`);
           if(monster.isCurse)
-            this.game.removeCurse(player, monster);
+            this.game.cardHandler.removeCurse(player, monster);
           else
           {
             const toDiscard = this.game.encounters.obtainCard(monster.slug, monster.globalId);
             if(toDiscard)
-              this.game.discard(toDiscard);
+              this.game.cardHandler.discard(toDiscard);
           }
           break;
         default:
@@ -660,7 +660,7 @@ export class ActionHandler {
       const targetCard = this.game.obtainCard(card.slug, card.globalId, "treasure")!;
       if (targetCard instanceof ItemCard === false)
         throw new Error(`Card ${targetCard.name} is not an ItemCard`);
-      this.game.addInPlay(player, targetCard);
+      this.game.cardHandler.addInPlay(player, targetCard);
     }
     this.game.toast({
       type: "warning",
@@ -687,7 +687,7 @@ export class ActionHandler {
       throw new Error("Cheat options are not allowed in this game.");
     for (const card of lootCards) {
       const targetCard = this.game.obtainCard(card.slug, card.globalId, "loot")! as LootCard;
-      this.game.addCardToHand(player, targetCard);
+      this.game.cardHandler.addCardToHand(player, targetCard);
     }
     this.game.toast({
       type: "warning",
@@ -700,7 +700,7 @@ export class ActionHandler {
     if (!card) {
       throw new Error("Card not found in the game.");
     }
-    this.game.addTopPosition("monster", card);
+    this.game.cardHandler.addTopPosition("monster", card);
     this.game.encounters.draw(index);
     this.game.dispatch();
     this.game.toast({

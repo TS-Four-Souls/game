@@ -19,9 +19,9 @@ describe("Known bugs that have be corrected", () => {
     });
     it("playing question mark on chaos card should NOT destroy question mark.", async () => {
         const chaosCard = game.obtainCard("b2-chaos_card") as ItemCard;
-        game.addInPlay(player1, chaosCard);
+        game.cardHandler.addInPlay(player1, chaosCard);
         const questionMark = game.obtainCard("fsp2-questionmark_card") as LootCard;
-        game.addCardToHand(player1, questionMark);
+        game.cardHandler.addCardToHand(player1, questionMark);
         game.actions.playCard(player1, player1.hand.length - 1, [chaosCard]);
         await game.actions.resolveStack();
         expect(game.decks.loot.discard.map(c=>c.slug)).toContain(questionMark.slug);
@@ -66,8 +66,8 @@ describe("Known bugs that have be corrected", () => {
         const targetItem = game.shop.obtainCard("b2-brimstone") as ItemCard;
         expect(player1.attackPoints).toBe(1);
         expect(player2.attackPoints).toBe(1);
-        game.addInPlay(player2, payToPlay);
-        game.addInPlay(player1, targetItem);
+        game.cardHandler.addInPlay(player2, payToPlay);
+        game.cardHandler.addInPlay(player1, targetItem);
         expect(player1.attackPoints).toBe(2);
         expect(player2.attackPoints).toBe(1);
 
@@ -93,13 +93,13 @@ describe("Known bugs that have be corrected", () => {
 
     it("donation machine can not give itself", async () => {
         const donationMachine = game.obtainCard("b2-donation_machine") as ItemCard;
-        game.addInPlay(player1, donationMachine);
+        game.cardHandler.addInPlay(player1, donationMachine);
         player1.gainCoins(10);
         expect(donationMachine.targetStillValid(player1, 0, [donationMachine])).toBe(false);
 
         const mc = game.obtainCard("b2-modeling_clay") as ItemCard;
-        game.addInPlay(player1, mc);
-        game.recharge(mc);
+        game.cardHandler.addInPlay(player1, mc);
+        game.cardHandler.recharge(mc);
         await game.activateItem(player1, mc, [donationMachine], "tap");
         await game.actions.resolveStack();
         expect(mc.targetStillValid(player1, 0, [donationMachine])).toBe(true);
@@ -109,13 +109,13 @@ describe("Known bugs that have be corrected", () => {
 
     it("stealing bumbo keep counters but not effects", async () => {
         const bumbo = game.obtainCard("b2-bum_bo") as ItemCard;
-        game.addInPlay(player1, bumbo);
+        game.cardHandler.addInPlay(player1, bumbo);
         game.gainCoins(player1, 40, "gift");
         expect(bumbo.tags.counters || 0).toBe(40);
         expect(game.entityHandler.getAttack(player1)).toBe(2);
         expect(game.entityHandler.getAttack(player2)).toBe(1);
         expect(player1.coins).toBe(0);
-        game.stealItemAnywhere(player2, bumbo);
+        game.cardHandler.stealItemAnywhere(player2, bumbo);
         expect(player1.inPlay).not.toContain(bumbo);
         expect(player2.inPlay).toContain(bumbo);
         expect(bumbo.tags.counters || 0).toBe(40);
@@ -127,7 +127,7 @@ describe("Known bugs that have be corrected", () => {
     it("curse removed on death", async () => {
         const pain = game.obtainCard("b2-curse_of_pain") as MonsterCard;
         const blank = game.obtainCard("b2-blank_card") as ItemCard;
-        game.addInPlay(player1, blank); // to discard on death
+        game.cardHandler.addInPlay(player1, blank); // to discard on death
         game.decks["monster"]?.addTopPosition(pain);
 
         game.encounters.draw(0);
@@ -163,7 +163,7 @@ describe("Known bugs that have be corrected", () => {
         const pain = game.obtainCard("b2-curse_of_pain") as MonsterCard;
         const blank = game.obtainCard("b2-blank_card") as ItemCard;
         const dagaz = game.obtainCard("b2-dagaz") as LootCard;
-        game.addInPlay(player1, blank); // to discard on death
+        game.cardHandler.addInPlay(player1, blank); // to discard on death
         game.decks["monster"]?.addTopPosition(pain);
 
         game.encounters.draw(0);
@@ -182,7 +182,7 @@ describe("Known bugs that have be corrected", () => {
         expect(game.stack.size).toBe(0);
         expect(player1.currentHealthPoints).toBe(1);
 
-        game.addCardToHand(player1, dagaz);
+        game.cardHandler.addCardToHand(player1, dagaz);
         game.actions.playCard(player1, player1.hand.length - 1, ["Destroy a curse.", pain]);
         await game.actions.resolveStack(); // death on stack
         expect(player1.curses.length).toBe(0);
@@ -209,7 +209,7 @@ describe("Known bugs that have be corrected", () => {
     it("start of the turn resolve after loot", async () => {
 
         const loot = game.obtainCard("b2-cains_eye") as LootCard;
-        game.addCardToHand(player1, loot);
+        game.cardHandler.addCardToHand(player1, loot);
         game.actions.playCard(player1, player1.hand.length - 1, []);
         await game.actions.resolveStack();
         game.endTurn();
@@ -258,7 +258,7 @@ describe("Known bugs that have be corrected", () => {
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, monster);
         const loot = game.obtainCard("b2-soul_heart") as LootCard;
-        game.addCardToHand(player1, loot);
+        game.cardHandler.addCardToHand(player1, loot);
         game.actions.playCard(player1, player1.hand.length - 1, [player1]);
         await game.actions.resolveStack(); // damage
         game.actions.attackRoll(player1);

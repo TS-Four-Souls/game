@@ -166,7 +166,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-moms_heart") as MonsterCard;
         const card2 = game.obtainCard("b2-boomerang") as TreasureCard;
         card2.soul = 2;
-        game.addSoul(player2, card2);
+        game.cardHandler.addSoul(player2, card2);
         game.decks.monster.addTopPosition(card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
@@ -185,7 +185,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-moms_heart") as MonsterCard;
         const card2 = game.obtainCard("b2-boomerang") as TreasureCard;
         card2.soul = 2;
-        game.addSoul(player2, card2);
+        game.cardHandler.addSoul(player2, card2);
         game.decks.monster.addTopPosition(card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
@@ -204,7 +204,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-moms_heart") as MonsterCard;
         const card2 = game.obtainCard("b2-boomerang") as TreasureCard;
         card2.soul = 3;
-        game.addSoul(player2, card2);
+        game.cardHandler.addSoul(player2, card2);
         game.decks.monster.addTopPosition(card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
@@ -256,12 +256,12 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const card1 = game.obtainCard("fsp2-curse_of_impulse") as MonsterCard;
         const c = game.obtainCard("b2-boomerang") as TreasureCard;
         const c2 = game.obtainCard("b2-blank_card") as TreasureCard;
-        game.addInPlay(player1, c);
-        game.addInPlay(player1, c2);
+        game.cardHandler.addInPlay(player1, c);
+        game.cardHandler.addInPlay(player1, c2);
         game.decks.monster.addTopPosition(card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-        game.rechargeMultiple(player1);
+        game.cardHandler.rechargeMultiple(player1);
         expect(player1.inPlay.every(i => i.charged || !i.isActiveItem)).toBe(true);
         await game.actions.resolveStack(); // give curse to themselves
         game.endTurn();

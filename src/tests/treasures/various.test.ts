@@ -40,7 +40,7 @@ describe("Treasure - Passive effects", () => {
 
     it("moms_coin_purse - loot +1 during loot step", async () => {
         const momsCoinPurse = game.shop.obtainCard("b2-moms_coin_purse") as TreasureCard;
-        game.addInPlay(player1, momsCoinPurse);
+        game.cardHandler.addInPlay(player1, momsCoinPurse);
 
         const initialHandSize = player1.hand.length;
 
@@ -56,7 +56,7 @@ describe("Treasure - Passive effects", () => {
 
     it("moms_purse - loot +1 during loot step", async () => {
         const momsPurse = game.shop.obtainCard("b2-moms_purse") as TreasureCard;
-        game.addInPlay(player1, momsPurse);
+        game.cardHandler.addInPlay(player1, momsPurse);
 
         const initialHandSize = player1.hand.length;
 
@@ -72,8 +72,8 @@ describe("Treasure - Passive effects", () => {
     it("moms_coin_purse + moms_purse - stack to loot +2", async () => {
         const momsCoinPurse = game.shop.obtainCard("b2-moms_coin_purse") as TreasureCard;
         const momsPurse = game.shop.obtainCard("b2-moms_purse") as TreasureCard;
-        game.addInPlay(player1, momsCoinPurse);
-        game.addInPlay(player1, momsPurse);
+        game.cardHandler.addInPlay(player1, momsCoinPurse);
+        game.cardHandler.addInPlay(player1, momsPurse);
 
         const initialHandSize = player1.hand.length;
 
@@ -90,7 +90,7 @@ describe("Treasure - Passive effects", () => {
 
     it("dry_baby - reduce damage to 1", async () => {
         const dryBaby = game.shop.obtainCard("b2-dry_baby") as TreasureCard;
-        game.addInPlay(player1, dryBaby);
+        game.cardHandler.addInPlay(player1, dryBaby);
 
         const initialHP = player1.currentHealthPoints;
 
@@ -104,7 +104,7 @@ describe("Treasure - Passive effects", () => {
 
     it("dry_baby - 1 damage stays as 1", async () => {
         const dryBaby = game.shop.obtainCard("b2-dry_baby") as TreasureCard;
-        game.addInPlay(player1, dryBaby);
+        game.cardHandler.addInPlay(player1, dryBaby);
 
         const initialHP = player1.currentHealthPoints;
 
@@ -118,7 +118,7 @@ describe("Treasure - Passive effects", () => {
 
     it("dry_baby - multiple damage instances each reduced to 1", async () => {
         const dryBaby = game.shop.obtainCard("b2-dry_baby") as TreasureCard;
-        game.addInPlay(player1, dryBaby);
+        game.cardHandler.addInPlay(player1, dryBaby);
 
         const initialHP = player1.currentHealthPoints;
 
@@ -140,7 +140,7 @@ describe("Treasure - Passive effects", () => {
         const momsShovel = game.shop.obtainCard("b2-moms_shovel") as ItemCard;
 
         // Add to play
-        game.addInPlay(player1, momsShovel);
+        game.cardHandler.addInPlay(player1, momsShovel);
 
         // Should be deactivated (charged = false)
         expect(momsShovel.charged).toBe(false);
@@ -150,7 +150,7 @@ describe("Treasure - Passive effects", () => {
 
     it("steamy_sale - shop items cost 5¢ less", async () => {
         const steamySale = game.shop.obtainCard("b2-steamy_sale") as TreasureCard;
-        game.addInPlay(player1, steamySale);
+        game.cardHandler.addInPlay(player1, steamySale);
 
         // Give player enough coins
         player1.gainCoins(20);
@@ -174,7 +174,7 @@ describe("Treasure - Passive effects", () => {
 
     it("steamy_sale - purchasing with exact coins", async () => {
         const steamySale = game.shop.obtainCard("b2-steamy_sale") as TreasureCard;
-        game.addInPlay(player1, steamySale);
+        game.cardHandler.addInPlay(player1, steamySale);
 
         // Give player exactly 5 coins (reduced price)
         player1.gainCoins(5);
@@ -193,7 +193,7 @@ describe("Treasure - Passive effects", () => {
 
     it("sacred_heart - change roll of 1 to 6", async () => {
         const sacredHeart = game.shop.obtainCard("b2-sacred_heart") as TreasureCard;
-        game.addInPlay(player1, sacredHeart);
+        game.cardHandler.addInPlay(player1, sacredHeart);
 
         // Roll a dice and set it to 1
         const dice = game.rollDice(player1, false, sacredHeart);
@@ -211,7 +211,7 @@ describe("Treasure - Passive effects", () => {
 
     it("sacred_heart - choose not to change roll of 1", async () => {
         const sacredHeart = game.shop.obtainCard("b2-sacred_heart") as TreasureCard;
-        game.addInPlay(player1, sacredHeart);
+        game.cardHandler.addInPlay(player1, sacredHeart);
 
         // Roll a dice and set it to 1
         const dice = player1.rollDice(Math.random, false, sacredHeart);
@@ -226,7 +226,7 @@ describe("Treasure - Passive effects", () => {
 
     it("sacred_heart - doesn't affect rolls other than 1", async () => {
         const sacredHeart = game.shop.obtainCard("b2-sacred_heart") as TreasureCard;
-        game.addInPlay(player1, sacredHeart);
+        game.cardHandler.addInPlay(player1, sacredHeart);
 
         // Roll a dice and set it to 3
         const dice = player1.rollDice(Math.random, false, sacredHeart);
@@ -245,7 +245,7 @@ describe("Treasure - Passive effects", () => {
     it("baby_haunt - transfers to another player on death", async () => {
         const initEvastion = game.entityHandler.getDC(game.monsters[0]!);
         const babyHaunt = game.shop.obtainCard("b2-baby_haunt") as TreasureCard;
-        game.addInPlay(player1, babyHaunt);
+        game.cardHandler.addInPlay(player1, babyHaunt);
 
         expect(player1.inPlay.map((c) => c.slug)).toContain(babyHaunt.slug);
         expect(player2.inPlay.map((c) => c.slug)).not.toContain(babyHaunt.slug);
@@ -269,7 +269,7 @@ describe("Treasure - Passive effects", () => {
 
     it("daddy_haunt - transfers to another player on death", async () => {
         const daddyHaunt = game.shop.obtainCard("b2-daddy_haunt") as TreasureCard;
-        game.addInPlay(player1, daddyHaunt);
+        game.cardHandler.addInPlay(player1, daddyHaunt);
 
         expect(player1.inPlay.map((c) => c.slug)).toContain(daddyHaunt.slug);
         expect(player2.inPlay.map((c) => c.slug)).not.toContain(daddyHaunt.slug);
@@ -297,12 +297,12 @@ describe("Treasure - Passive effects", () => {
 
     it("the_chest - becomes a soul when destroyed", async () => {
         const theChest = game.shop.obtainCard("b2-the_chest") as TreasureCard;
-        game.addInPlay(player1, theChest);
+        game.cardHandler.addInPlay(player1, theChest);
 
         const initialSouls = player1.totalSouls;
 
         // Destroy the chest
-        game.destroyCardsOrSouls([theChest]);
+        game.cardHandler.destroyCardsOrSouls([theChest]);
 
         // The chest should no longer be in play
         expect(player1.inPlay.map((c) => c.slug)).not.toContain(theChest.slug);
@@ -317,8 +317,8 @@ describe("Treasure - Passive effects", () => {
     it("the_habit - recharge item on first damage each turn", async () => {
         const theHabit = game.shop.obtainCard("b2-the_habit") as TreasureCard;
         const battery = game.shop.obtainCard("b2-the_battery") as ItemCard;
-        game.addInPlay(player1, theHabit);
-        game.addInPlay(player1, battery);
+        game.cardHandler.addInPlay(player1, theHabit);
+        game.cardHandler.addInPlay(player1, battery);
 
         // Discharge the battery
         battery.charged = false;
@@ -342,9 +342,9 @@ describe("Treasure - Passive effects", () => {
         const theHabit = game.shop.obtainCard("b2-the_habit") as TreasureCard;
         const battery1 = game.shop.obtainCard("b2-the_battery") as ItemCard;
         const battery2 = game.shop.obtainCard("b2-sack_of_pennies") as ItemCard;
-        game.addInPlay(player1, theHabit);
-        game.addInPlay(player1, battery1);
-        game.addInPlay(player1, battery2);
+        game.cardHandler.addInPlay(player1, theHabit);
+        game.cardHandler.addInPlay(player1, battery1);
+        game.cardHandler.addInPlay(player1, battery2);
         game.entityHandler.addHealth(player1, 10); // Ensure player1 has enough HP
         // Discharge both items
         battery1.charged = false;
@@ -401,7 +401,7 @@ describe("Treasure - Passive effects", () => {
         await game.actions.resolveStack(); // Resolve any stack effects
         game.endTurn(); // end p2 turn, p1's turn starts
         await game.actions.resolveStack(); // Resolve any stack effects
-        game.addInPlay(player1, theresOptions);
+        game.cardHandler.addInPlay(player1, theresOptions);
         
         // Give player enough coins for two purchases
         player1.gainCoins(30);
@@ -412,7 +412,7 @@ describe("Treasure - Passive effects", () => {
         game.actions.declarePurchase(player1);
         const result1 = game.actions.purchase(player1, 1);
         expect(result1).toContain("successful");
-        game.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // remove purchased item from inPlay to ensure basic second purchase.
+        game.cardHandler.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // remove purchased item from inPlay to ensure basic second purchase.
         game.resetStack();
         // Without theres_options, second purchase would fail
         // With theres_options, it should succeed
@@ -430,7 +430,7 @@ describe("Treasure - Passive effects", () => {
         await game.actions.resolveStack(); // Resolve any stack effects
         game.endTurn(); // end p2 turn, p1's turn starts
         await game.actions.resolveStack(); // Resolve any stack effects
-        game.addInPlay(player1, theresOptions);
+        game.cardHandler.addInPlay(player1, theresOptions);
         
         // Give player enough coins
         player1.gainCoins(40);
@@ -438,7 +438,7 @@ describe("Treasure - Passive effects", () => {
         // Purchase first two items should succeed
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 1);
-        game.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // remove purchased item from inPlay to ensure basic second purchase.
+        game.cardHandler.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // remove purchased item from inPlay to ensure basic second purchase.
         game.resetStack();
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 1);
@@ -454,7 +454,7 @@ describe("Treasure - Passive effects", () => {
 
     it("theres_options - resets each turn", async () => {
         const theresOptions = game.shop.obtainCard("b2-theres_options") as TreasureCard;
-        game.addInPlay(player1, theresOptions);
+        game.cardHandler.addInPlay(player1, theresOptions);
         
         // Give player enough coins
         player1.gainCoins(50);
@@ -462,11 +462,11 @@ describe("Treasure - Passive effects", () => {
         // Use both purchases this turn
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 1);
-        game.removeInPlay(player1, player1.inPlay[3]!); // remove purchased item from inPlay to ensure basic second purchase.
+        game.cardHandler.removeInPlay(player1, player1.inPlay[3]!); // remove purchased item from inPlay to ensure basic second purchase.
         await game.actions.resolveStack(); // Resolve any stack effects
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 1);
-        game.removeInPlay(player1, player1.inPlay[3]!); // remove purchased item from inPlay to ensure basic second purchase.
+        game.cardHandler.removeInPlay(player1, player1.inPlay[3]!); // remove purchased item from inPlay to ensure basic second purchase.
         
         // Third purchase should fail
         
@@ -485,10 +485,10 @@ describe("Treasure - Passive effects", () => {
         // Should be able to purchase twice again in new turn
         game.actions.declarePurchase(player1);
         const result4 = game.actions.purchase(player1, 1);
-        game.removeInPlay(player1, player1.inPlay[3]!); // remove purchased item from inPlay to ensure basic second purchase.
+        game.cardHandler.removeInPlay(player1, player1.inPlay[3]!); // remove purchased item from inPlay to ensure basic second purchase.
         game.actions.declarePurchase(player1);
         const result5 = game.actions.purchase(player1, 1);
-        game.removeInPlay(player1, player1.inPlay[3]!); // remove purchased item from inPlay to ensure basic second purchase.
+        game.cardHandler.removeInPlay(player1, player1.inPlay[3]!); // remove purchased item from inPlay to ensure basic second purchase.
         expect(result4).toContain("successful");
         expect(result5).toContain("successful");
     });

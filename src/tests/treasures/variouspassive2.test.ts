@@ -35,7 +35,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("bobs_brain - roll 1-2: deal 1 damage to a monster", async () => {
         const bobsBrain = game.shop.obtainCard("b2-bobs_brain") as TreasureCard;
-        game.addInPlay(player1, bobsBrain);
+        game.cardHandler.addInPlay(player1, bobsBrain);
         game.entityHandler.addAttackThisTurn(player1, 1); // Give player1 an attack to use
 
         const monster = game.monsters[0]!;
@@ -63,7 +63,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("bobs_brain - roll 3-4: deal 1 damage to a player", async () => {
         const bobsBrain = game.shop.obtainCard("b2-bobs_brain") as TreasureCard;
-        game.addInPlay(player1, bobsBrain);
+        game.cardHandler.addInPlay(player1, bobsBrain);
         game.entityHandler.addAttackThisTurn(player1, 1); // Give player1 an attack to use
 
         const monster = game.monsters[0]!;
@@ -93,7 +93,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("bobs_brain - roll 5-6: take 1 damage", async () => {
         const bobsBrain = game.shop.obtainCard("b2-bobs_brain") as TreasureCard;
-        game.addInPlay(player1, bobsBrain);
+        game.cardHandler.addInPlay(player1, bobsBrain);
         game.entityHandler.addAttackThisTurn(player1, 1); // Give player1 an attack to use
         const monster = game.monsters[0]!;
         const initialHP = player1.currentHealthPoints;
@@ -120,13 +120,13 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
     it("shiny_rock - gain 1¢ when activating an item", async () => {
         const shinyRock = game.shop.obtainCard("b2-shiny_rock") as TreasureCard;
         const battery = game.shop.obtainCard("b2-the_battery") as ItemCard;
-        game.addInPlay(player1, shinyRock);
-        game.addInPlay(player1, battery);
+        game.cardHandler.addInPlay(player1, shinyRock);
+        game.cardHandler.addInPlay(player1, battery);
 
         const initialCoins = player1.coins;
 
         // Activate the battery
-        game.recharge(battery);
+        game.cardHandler.recharge(battery);
         await game.activateItem(player1, battery);
         await game.actions.resolveStack();
 
@@ -138,18 +138,18 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const shinyRock = game.shop.obtainCard("b2-shiny_rock") as TreasureCard;
         const battery1 = game.shop.obtainCard("b2-the_battery") as ItemCard;
         const battery2 = game.shop.obtainCard("b2-sack_of_pennies") as ItemCard;
-        game.addInPlay(player1, shinyRock);
-        game.addInPlay(player1, battery1);
-        game.addInPlay(player1, battery2);
+        game.cardHandler.addInPlay(player1, shinyRock);
+        game.cardHandler.addInPlay(player1, battery1);
+        game.cardHandler.addInPlay(player1, battery2);
 
         const initialCoins = player1.coins;
 
         // Activate both items
-        game.recharge(battery1);
+        game.cardHandler.recharge(battery1);
         await game.activateItem(player1, battery1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
-        game.recharge(battery2);
+        game.cardHandler.recharge(battery2);
         await game.activateItem(player1, battery2); // gain 1 coin
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack();
@@ -160,7 +160,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("dads_lost_coin - force player to reroll a 1", async () => {
         const dadsLostCoin = game.shop.obtainCard("b2-dads_lost_coin") as TreasureCard;
-        game.addInPlay(player1, dadsLostCoin);
+        game.cardHandler.addInPlay(player1, dadsLostCoin);
 
         // Mock game.select to choose to force reroll
         game.select = async (_issuer, _min, _max, opts, _optional) => {
@@ -181,7 +181,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("dads_lost_coin - choose not to force reroll", async () => {
         const dadsLostCoin = game.shop.obtainCard("b2-dads_lost_coin") as TreasureCard;
-        game.addInPlay(player1, dadsLostCoin);
+        game.cardHandler.addInPlay(player1, dadsLostCoin);
 
         // Mock game.select to choose NOT to force reroll
         game.select = async (_issuer, _min, _max, opts, _optional) => {
@@ -201,7 +201,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("guppys_collar - roll 1-3: prevent death", async () => {
         const guppysCollar = game.shop.obtainCard("b2-guppys_collar") as TreasureCard;
-        game.addInPlay(player1, guppysCollar);
+        game.cardHandler.addInPlay(player1, guppysCollar);
 
         // Kill player1
         game.entityHandler.kill(player2, player1, guppysCollar);
@@ -225,7 +225,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("guppys_collar - roll 4-6: death not prevented", async () => {
         const guppysCollar = game.shop.obtainCard("b2-guppys_collar") as TreasureCard;
-        game.addInPlay(player1, guppysCollar);
+        game.cardHandler.addInPlay(player1, guppysCollar);
 
         // Kill player1
         game.entityHandler.kill(player2, player1, guppysCollar);
@@ -248,7 +248,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("the_midas_touch - gain 3¢ when a monster dies", async () => {
         const midasTouch = game.shop.obtainCard("b2-the_midas_touch") as TreasureCard;
-        game.addInPlay(player1, midasTouch);
+        game.cardHandler.addInPlay(player1, midasTouch);
 
         const initialCoins = player1.coins;
 
@@ -274,7 +274,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("the_midas_touch - triggers multiple times", async () => {
         const midasTouch = game.shop.obtainCard("b2-the_midas_touch") as TreasureCard;
-        game.addInPlay(player1, midasTouch);
+        game.cardHandler.addInPlay(player1, midasTouch);
 
         const initialCoins = player1.coins;
 
@@ -295,7 +295,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("fanny_pack - loot 1 when taking damage", async () => {
         const fannyPack = game.shop.obtainCard("b2-fanny_pack") as TreasureCard;
-        game.addInPlay(player1, fannyPack);
+        game.cardHandler.addInPlay(player1, fannyPack);
 
         const initialHandSize = player1.hand.length;
 
@@ -310,7 +310,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("fanny_pack - triggers on multiple damage instances", async () => {
         const fannyPack = game.shop.obtainCard("b2-fanny_pack") as TreasureCard;
-        game.addInPlay(player1, fannyPack);
+        game.cardHandler.addInPlay(player1, fannyPack);
         game.entityHandler.addHealth(player1, 10); // Ensure player has enough health
         const initialHandSize = player1.hand.length;
 
@@ -328,7 +328,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("curse_of_the_tower - roll 1-3: other players take 1 damage", async () => {
         const curseOfTheTower = game.shop.obtainCard("b2-curse_of_the_tower") as TreasureCard;
-        game.addInPlay(player1, curseOfTheTower);
+        game.cardHandler.addInPlay(player1, curseOfTheTower);
 
         const initialHP = player2.currentHealthPoints;
 
@@ -356,7 +356,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("curse_of_the_tower - roll 4-6: deal 1 damage to a monster", async () => {
         const curseOfTheTower = game.shop.obtainCard("b2-curse_of_the_tower") as TreasureCard;
-        game.addInPlay(player1, curseOfTheTower);
+        game.cardHandler.addInPlay(player1, curseOfTheTower);
 
         const monster = game.monsters[0]!;
         expect(monster).toBeDefined();
@@ -386,7 +386,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("greeds_gullet - gain 8¢ when dying", async () => {
         const greedsGullet = game.shop.obtainCard("b2-greeds_gullet") as TreasureCard;
-        game.addInPlay(player1, greedsGullet);
+        game.cardHandler.addInPlay(player1, greedsGullet);
 
         const initialCoins = player1.coins;
 
@@ -401,7 +401,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("suicide_king - loot 3 when dying", async () => {
         const suicideKing = game.shop.obtainCard("b2-suicide_king") as TreasureCard;
-        game.addInPlay(player1, suicideKing);
+        game.cardHandler.addInPlay(player1, suicideKing);
 
         const initialHandSize = player1.hand.length;
 

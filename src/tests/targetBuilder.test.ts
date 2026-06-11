@@ -54,9 +54,9 @@ describe("Target Builder Interface", () => {
     ) as ItemCard;
     if (!item) return; // Skip if no item in shop
 
-    game.addInPlay(player1, item);
+    game.cardHandler.addInPlay(player1, item);
     if (item.isActiveItem()) {
-      game.recharge(item);
+      game.cardHandler.recharge(item);
     }
 
     // Step 1: Start building targets with empty array
@@ -85,9 +85,9 @@ describe("Target Builder Interface", () => {
     // Get an item with a simple selector
     const item = game.obtainCard("b2-mini_mush") as ItemCard;
 
-    game.addInPlay(player1, item);
+    game.cardHandler.addInPlay(player1, item);
     if (item.isActiveItem()) {
-      game.recharge(item);
+      game.cardHandler.recharge(item);
     }
     game.actions.declareAttack(player1);
     await game.actions.declareAttackOnEntity(player1, game.encounters.monsterIn(0)!);
@@ -104,9 +104,9 @@ describe("Target Builder Interface", () => {
     const item1 = game.obtainCard("b2-blank_card") as ItemCard;
     const item2 = game.obtainCard("b2-dry_baby") as ItemCard;
 
-    game.addInPlay(player1, contractFromBelow);
-    game.addInPlay(player1, item1);
-    game.addInPlay(player1, item2);
+    game.cardHandler.addInPlay(player1, contractFromBelow);
+    game.cardHandler.addInPlay(player1, item1);
+    game.cardHandler.addInPlay(player1, item2);
 
     // Step 1: Get first selector (payment - destroy 2 items)
     const step1 = TargetBuilder.getNextSelector(
@@ -146,8 +146,8 @@ describe("Target Builder Interface", () => {
     const item1 = game.obtainCard("b2-blank_card") as ItemCard;
     const item2 = game.obtainCard("b2-dry_baby") as ItemCard;
 
-    game.addInPlay(player1, item1);
-    game.addInPlay(player1, item2);
+    game.cardHandler.addInPlay(player1, item1);
+    game.cardHandler.addInPlay(player1, item2);
 
     // Simulate client sending string identifiers (flat array)
     const stringTargets = [
@@ -169,8 +169,8 @@ describe("Target Builder Interface", () => {
 
   it("should build resolve-time targets from raw selections returned by game.select", async () => {
     const boomerang = game.obtainCard("b2-boomerang") as ItemCard;
-    game.addInPlay(player1, boomerang);
-    game.recharge(boomerang);
+    game.cardHandler.addInPlay(player1, boomerang);
+    game.cardHandler.recharge(boomerang);
 
     const builtTargets = await TargetBuilder.buildTargetsOnResolve(
       game,
@@ -238,7 +238,7 @@ describe("Target Builder Interface", () => {
   it("should not leak information - only show next selector options", async () => {
     // This test demonstrates the security aspect using a multi-selector effect
     const item = game.obtainCard("b2-blank_card") as ItemCard;
-    game.addInPlay(player1, item);
+    game.cardHandler.addInPlay(player1, item);
 
     // For testing progressive disclosure, we need an effect with multiple selectors
     // Many effects only have 1 selector or no selectors, so just verify basic behavior
@@ -257,7 +257,7 @@ describe("Target Builder Interface", () => {
     ) as ItemCard;
     if (!item) return; // Skip if no item
 
-    game.addInPlay(player1, item);
+    game.cardHandler.addInPlay(player1, item);
 
     const result = TargetBuilder.getNextSelector(game, player1, item, []);
 
@@ -269,7 +269,7 @@ describe("Target Builder Interface", () => {
     // Find an effect with asMany=true (like "destroy any number of items")
     // For now, just verify the interface returns the asMany flag
     const item = game.obtainCard("b2-blank_card") as ItemCard;
-    game.addInPlay(player1, item);
+    game.cardHandler.addInPlay(player1, item);
 
     const result = TargetBuilder.getNextSelector(game, player1, item, []);
 
@@ -287,10 +287,10 @@ describe("Target Builder Interface", () => {
     const item2 = game.obtainCard("b2-dry_baby") as ItemCard;
     const targetItem = game.obtainCard("b2-book_of_sin") as ItemCard;
 
-    game.addInPlay(player1, contractFromBelow);
-    game.addInPlay(player1, item1);
-    game.addInPlay(player1, item2);
-    game.addInPlay(player2, targetItem);
+    game.cardHandler.addInPlay(player1, contractFromBelow);
+    game.cardHandler.addInPlay(player1, item1);
+    game.cardHandler.addInPlay(player1, item2);
+    game.cardHandler.addInPlay(player2, targetItem);
 
     // CLIENT: Request first selector
     const selector1 = TargetBuilder.getNextSelector(
@@ -338,7 +338,7 @@ describe("Target Builder Interface", () => {
 
   it("should handle chaos card choose-one - option 1: Kill a player or monster", async () => {
     const chaosCard = game.obtainCard("b2-chaos_card") as ItemCard;
-    game.addInPlay(player1, chaosCard);
+    game.cardHandler.addInPlay(player1, chaosCard);
 
     // Step 1: Get the choose-one selector
     const step1 = TargetBuilder.getNextSelector(
@@ -373,9 +373,9 @@ describe("Target Builder Interface", () => {
   it("should handle chaos card choose-one - option 2: Destroy an item or soul", async () => {
     const chaosCard = game.obtainCard("b2-chaos_card") as ItemCard;
     const targetItem = game.obtainCard("b2-blank_card") as ItemCard;
-    game.addInPlay(player1, chaosCard);
-    game.addInPlay(player2, targetItem);
-    game.recharge(chaosCard);
+    game.cardHandler.addInPlay(player1, chaosCard);
+    game.cardHandler.addInPlay(player2, targetItem);
+    game.cardHandler.recharge(chaosCard);
 
     // Step 1: Get the choose-one selector
     const step1 = TargetBuilder.getNextSelector(
@@ -432,7 +432,7 @@ describe("Target Builder Interface", () => {
 
   it("should handle b", async () => {
     const bloodLust = player1.inPlay[1] as ItemCard;
-    game.recharge(bloodLust);
+    game.cardHandler.recharge(bloodLust);
 
     // Step 1: Get the choose-one selector
     const step1 = TargetBuilder.getNextSelector(
@@ -494,8 +494,8 @@ describe("Target Builder - validTargetExists", () => {
     it("should return true when valid targets exist for a simple selector", () => {
       // Boomerang: "Choose another player. Steal a loot card from them at random."
       const boomerang = game.obtainCard("b2-boomerang") as ItemCard;
-      game.addInPlay(player1, boomerang);
-      game.recharge(boomerang);
+      game.cardHandler.addInPlay(player1, boomerang);
+      game.cardHandler.recharge(boomerang);
 
       // Add loot card to player2's hand so there's a valid target
       const lootCard = game.obtainCard("b2-a_penny") as LootCard;
@@ -513,7 +513,7 @@ describe("Target Builder - validTargetExists", () => {
     it("should return error message when no valid targets exist", () => {
       // Contract from below with no items to destroy
       const contract = game.obtainCard("b2-contract_from_below") as ItemCard;
-      game.addInPlay(player1, contract);
+      game.cardHandler.addInPlay(player1, contract);
       // Don't add any other items to destroy
 
       const result = TargetBuilder.validTargetExists(
@@ -529,8 +529,8 @@ describe("Target Builder - validTargetExists", () => {
       // Chaos: "Each player gives their hand to the player to their left."
       // This has no selectors, so it's always activatable
       const chaos = game.obtainCard("b2-chaos") as ItemCard;
-      game.addInPlay(player1, chaos);
-      game.recharge(chaos);
+      game.cardHandler.addInPlay(player1, chaos);
+      game.cardHandler.recharge(chaos);
 
       const result = TargetBuilder.validTargetExists(
         game,
@@ -560,10 +560,10 @@ describe("Target Builder - validTargetExists", () => {
       const item2 = game.obtainCard("b2-dry_baby") as ItemCard;
       const targetItem = game.obtainCard("b2-book_of_sin") as ItemCard;
 
-      game.addInPlay(player1, contract);
-      game.addInPlay(player1, item1);
-      game.addInPlay(player1, item2);
-      game.addInPlay(player2, targetItem);
+      game.cardHandler.addInPlay(player1, contract);
+      game.cardHandler.addInPlay(player1, item1);
+      game.cardHandler.addInPlay(player1, item2);
+      game.cardHandler.addInPlay(player2, targetItem);
 
       const result = TargetBuilder.validTargetExists(
         game,
@@ -577,7 +577,7 @@ describe("Target Builder - validTargetExists", () => {
     it("should return error when first selector has no targets", () => {
       // Contract from below requires 2 items to destroy
       const contract = game.obtainCard("b2-contract_from_below") as ItemCard;
-      game.addInPlay(player1, contract);
+      game.cardHandler.addInPlay(player1, contract);
       // Don't add any other items
 
       const result = TargetBuilder.validTargetExists(
@@ -595,9 +595,9 @@ describe("Target Builder - validTargetExists", () => {
       const item1 = game.obtainCard("b2-blank_card") as ItemCard;
       const item2 = game.obtainCard("b2-dry_baby") as ItemCard;
 
-      game.addInPlay(player1, contract);
-      game.addInPlay(player1, item1);
-      game.addInPlay(player1, item2);
+      game.cardHandler.addInPlay(player1, contract);
+      game.cardHandler.addInPlay(player1, item1);
+      game.cardHandler.addInPlay(player1, item2);
       // Don't add any items to other players
 
       const result = TargetBuilder.validTargetExists(
@@ -614,8 +614,8 @@ describe("Target Builder - validTargetExists", () => {
     it("should return true when at least one choose-one option has valid targets", () => {
       // Chaos Card: "Choose one: Kill a player or monster; OR Destroy an item or soul you control"
       const chaosCard = game.obtainCard("b2-chaos_card") as ItemCard;
-      game.addInPlay(player1, chaosCard);
-      game.recharge(chaosCard);
+      game.cardHandler.addInPlay(player1, chaosCard);
+      game.cardHandler.recharge(chaosCard);
 
       // Add a monster so at least one option is valid
       const monster = game.obtainCard("b2-fly") as MonsterCard;
@@ -634,8 +634,8 @@ describe("Target Builder - validTargetExists", () => {
       // Some choose-one options might not require additional targets
       // This tests the admissibleTargets.length === 0 case
       const item = game.obtainCard("b2-blank_card") as ItemCard;
-      game.addInPlay(player1, item);
-      game.recharge(item);
+      game.cardHandler.addInPlay(player1, item);
+      game.cardHandler.recharge(item);
 
       // Even if we can't test the exact behavior, ensure it doesn't crash
       const result = TargetBuilder.validTargetExists(
@@ -655,8 +655,8 @@ describe("Target Builder - validTargetExists", () => {
       // AsMany selectors are optional, so they should always be valid
       // We need to find or create an item with asMany=true
       const item = game.obtainCard("b2-blank_card") as ItemCard;
-      game.addInPlay(player1, item);
-      game.recharge(item);
+      game.cardHandler.addInPlay(player1, item);
+      game.cardHandler.recharge(item);
 
       // The method should handle asMany correctly
       const result = TargetBuilder.validTargetExists(
@@ -678,8 +678,8 @@ describe("Target Builder - validTargetExists", () => {
       const item1 = game.obtainCard("b2-blank_card") as ItemCard;
       // Only add 1 item, but need 2
 
-      game.addInPlay(player1, contract);
-      game.addInPlay(player1, item1);
+      game.cardHandler.addInPlay(player1, contract);
+      game.cardHandler.addInPlay(player1, item1);
 
       const result = TargetBuilder.validTargetExists(
         game,
@@ -697,11 +697,11 @@ describe("Target Builder - validTargetExists", () => {
       const item3 = game.obtainCard("b2-book_of_sin") as ItemCard;
       const targetItem = game.obtainCard("b2-boomerang") as ItemCard;
 
-      game.addInPlay(player1, contract);
-      game.addInPlay(player1, item1);
-      game.addInPlay(player1, item2);
-      game.addInPlay(player1, item3);
-      game.addInPlay(player2, targetItem);
+      game.cardHandler.addInPlay(player1, contract);
+      game.cardHandler.addInPlay(player1, item1);
+      game.cardHandler.addInPlay(player1, item2);
+      game.cardHandler.addInPlay(player1, item3);
+      game.cardHandler.addInPlay(player2, targetItem);
 
       const result = TargetBuilder.validTargetExists(
         game,
@@ -721,9 +721,9 @@ describe("Target Builder - validTargetExists", () => {
       const item1 = game.obtainCard("b2-blank_card") as ItemCard;
       const item2 = game.obtainCard("b2-dry_baby") as ItemCard;
 
-      game.addInPlay(player1, contract);
-      game.addInPlay(player1, item1);
-      game.addInPlay(player1, item2);
+      game.cardHandler.addInPlay(player1, contract);
+      game.cardHandler.addInPlay(player1, item1);
+      game.cardHandler.addInPlay(player1, item2);
       // No items on other players for second selector
 
       const result = TargetBuilder.validTargetExists(
@@ -742,10 +742,10 @@ describe("Target Builder - validTargetExists", () => {
       const item2 = game.obtainCard("b2-dry_baby") as ItemCard;
       const targetItem = game.obtainCard("b2-book_of_sin") as ItemCard;
 
-      game.addInPlay(player1, contract);
-      game.addInPlay(player1, item1);
-      game.addInPlay(player1, item2);
-      game.addInPlay(player2, targetItem);
+      game.cardHandler.addInPlay(player1, contract);
+      game.cardHandler.addInPlay(player1, item1);
+      game.cardHandler.addInPlay(player1, item2);
+      game.cardHandler.addInPlay(player2, targetItem);
 
       const result = TargetBuilder.validTargetExists(
         game,
@@ -765,10 +765,10 @@ describe("Target Builder - validTargetExists", () => {
       const item2 = game.obtainCard("b2-dry_baby") as ItemCard;
       const targetItem = game.obtainCard("b2-book_of_sin") as ItemCard;
 
-      game.addInPlay(player1, contract);
-      game.addInPlay(player1, item1);
-      game.addInPlay(player1, item2);
-      game.addInPlay(player2, targetItem);
+      game.cardHandler.addInPlay(player1, contract);
+      game.cardHandler.addInPlay(player1, item1);
+      game.cardHandler.addInPlay(player1, item2);
+      game.cardHandler.addInPlay(player2, targetItem);
 
       const result = TargetBuilder.validTargetExists(
         game,
@@ -781,8 +781,8 @@ describe("Target Builder - validTargetExists", () => {
 
     it("should check tap effect (effectId = 'tap')", () => {
       const boomerang = game.obtainCard("b2-boomerang") as ItemCard;
-      game.addInPlay(player1, boomerang);
-      game.recharge(boomerang);
+      game.cardHandler.addInPlay(player1, boomerang);
+      game.cardHandler.recharge(boomerang);
 
       const lootCard = game.obtainCard("b2-a_penny") as LootCard;
       player2.hand.addToHand(lootCard);
@@ -800,8 +800,8 @@ describe("Target Builder - validTargetExists", () => {
   describe("Edge Cases", () => {
     it("should handle items with empty target selectors", () => {
       const chaos = game.obtainCard("b2-chaos") as ItemCard;
-      game.addInPlay(player1, chaos);
-      game.recharge(chaos);
+      game.cardHandler.addInPlay(player1, chaos);
+      game.cardHandler.recharge(chaos);
 
       const result = TargetBuilder.validTargetExists(
         game,
@@ -815,8 +815,8 @@ describe("Target Builder - validTargetExists", () => {
     it("should handle items with complex target conditions", () => {
       // Test with an item that has conditional targets
       const item = game.obtainCard("b2-blank_card") as ItemCard;
-      game.addInPlay(player1, item);
-      game.recharge(item);
+      game.cardHandler.addInPlay(player1, item);
+      game.cardHandler.recharge(item);
 
       const result = TargetBuilder.validTargetExists(
         game,
@@ -831,7 +831,7 @@ describe("Target Builder - validTargetExists", () => {
 
     it("should not throw when called on uncharged item with throwIfNotCharged=false", () => {
       const boomerang = game.obtainCard("b2-boomerang") as ItemCard;
-      game.addInPlay(player1, boomerang);
+      game.cardHandler.addInPlay(player1, boomerang);
       // Don't recharge
 
       const lootCard = game.obtainCard("b2-a_penny") as LootCard;
@@ -850,7 +850,7 @@ describe("Target Builder - validTargetExists", () => {
 
     it("should handle player with no items in play", () => {
       const contract = game.obtainCard("b2-contract_from_below") as ItemCard;
-      game.addInPlay(player1, contract);
+      game.cardHandler.addInPlay(player1, contract);
       // No other items
 
       const result = TargetBuilder.validTargetExists(
@@ -864,8 +864,8 @@ describe("Target Builder - validTargetExists", () => {
 
     it("should handle items with null or undefined selectors gracefully", () => {
       const item = game.obtainCard("b2-blank_card") as ItemCard;
-      game.addInPlay(player1, item);
-      game.recharge(item);
+      game.cardHandler.addInPlay(player1, item);
+      game.cardHandler.recharge(item);
 
       // Should not throw
       expect(() => {
@@ -882,8 +882,8 @@ describe("Target Builder - validTargetExists", () => {
   describe("Integration with Real Cards", () => {
     it("should correctly validate Boomerang targets", () => {
       const boomerang = game.obtainCard("b2-boomerang") as ItemCard;
-      game.addInPlay(player1, boomerang);
-      game.recharge(boomerang);
+      game.cardHandler.addInPlay(player1, boomerang);
+      game.cardHandler.recharge(boomerang);
 
       // Boomerang can target any other player (even without loot cards)
       // The effect just won't steal anything if they have no loot
@@ -905,7 +905,7 @@ describe("Target Builder - validTargetExists", () => {
 
     it("should correctly validate Contract From Below targets", () => {
       const contract = game.obtainCard("b2-contract_from_below") as ItemCard;
-      game.addInPlay(player1, contract);
+      game.cardHandler.addInPlay(player1, contract);
 
       // No items to destroy
       let result = TargetBuilder.validTargetExists(game, player1, contract, 0);
@@ -914,15 +914,15 @@ describe("Target Builder - validTargetExists", () => {
       // Add items to destroy but no targets to steal
       const item1 = game.obtainCard("b2-blank_card") as ItemCard;
       const item2 = game.obtainCard("b2-dry_baby") as ItemCard;
-      game.addInPlay(player1, item1);
-      game.addInPlay(player1, item2);
+      game.cardHandler.addInPlay(player1, item1);
+      game.cardHandler.addInPlay(player1, item2);
 
       result = TargetBuilder.validTargetExists(game, player1, contract, 0);
       expect(result).toBe("No valid targets.");
 
       // Add target to steal
       const targetItem = game.obtainCard("b2-book_of_sin") as ItemCard;
-      game.addInPlay(player2, targetItem);
+      game.cardHandler.addInPlay(player2, targetItem);
 
       result = TargetBuilder.validTargetExists(game, player1, contract, 0);
       expect(result).toBe(true);
@@ -932,8 +932,8 @@ describe("Target Builder - validTargetExists", () => {
   describe("Return Type Consistency", () => {
     it("should return true (boolean) when targets exist", () => {
       const boomerang = game.obtainCard("b2-boomerang") as ItemCard;
-      game.addInPlay(player1, boomerang);
-      game.recharge(boomerang);
+      game.cardHandler.addInPlay(player1, boomerang);
+      game.cardHandler.recharge(boomerang);
 
       const lootCard = game.obtainCard("b2-a_penny") as LootCard;
       player2.hand.addToHand(lootCard);
@@ -950,7 +950,7 @@ describe("Target Builder - validTargetExists", () => {
 
     it("should return string (error message) when no targets exist", () => {
       const contract = game.obtainCard("b2-contract_from_below") as ItemCard;
-      game.addInPlay(player1, contract);
+      game.cardHandler.addInPlay(player1, contract);
       // No items to destroy
 
       const result = TargetBuilder.validTargetExists(

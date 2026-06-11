@@ -30,16 +30,16 @@ describe("Four Souls+2 Loot Cards", () => {
     it("Soul of Envy - the first time a player controls their 3rd soul, the active player chooses a player who controls the fewest souls or tied for fewest. that player gains this soul.", async () => {
         ({ game, player1, player2 } = setupBonusSoulsTestGame("r-soul_of_envy"));
         const soul1 = game.obtainCard("b2-lost_soul")! as LootCard;
-        const soul2 = game.copyCard(soul1) as LootCard;
-        const soul3 = game.copyCard(soul1) as LootCard;
+        const soul2 = game.cardHandler.copyCard(soul1) as LootCard;
+        const soul3 = game.cardHandler.copyCard(soul1) as LootCard;
         game.entityHandler.addLootPlay(player1, 2);
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             expect(Options.length).toBe(1);
                 return { selected: [Options[0]], remaining: [] } as any;
             };
-        game.addCardToHand(player1, soul1);
-        game.addCardToHand(player1, soul2);
-        game.addCardToHand(player1, soul3);
+        game.cardHandler.addCardToHand(player1, soul1);
+        game.cardHandler.addCardToHand(player1, soul2);
+        game.cardHandler.addCardToHand(player1, soul3);
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();
         expect(player1.totalSouls).toBe(1);
@@ -66,7 +66,7 @@ describe("Four Souls+2 Loot Cards", () => {
 it("Soul of Lust - each time a player kills a monster, put a counter on this. - 6 counters", async () => {
         ({ game, player1, player2 } = setupBonusSoulsTestGame("r-soul_of_lust"));
         for (const monster of ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip"]) {
-            game.addTopPosition("monster", game.obtainCard(monster)!);
+            game.cardHandler.addTopPosition("monster", game.obtainCard(monster)!);
         }
         for(let i=0; i<6; i++) {
             game.entityHandler.kill(player1, game.monsters[0]!, player1.inPlay[0]!);

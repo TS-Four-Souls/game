@@ -57,15 +57,15 @@ describe("Game", () => {
   });
 
   it("should add players to the game", async () => {
-    game.addPlayer(player1);
-    game.addPlayer(player2);
+    game.entityHandler.addPlayer(player1);
+    game.entityHandler.addPlayer(player2);
     
     expect(game.players.length).toBe(2);
   });
 
   it("should start the game with a player", async () => {
-    game.addPlayer(player1);
-    game.addPlayer(player2);
+    game.entityHandler.addPlayer(player1);
+    game.entityHandler.addPlayer(player2);
     
     expect(game.players.length).toBe(2);
     expect(() => {
@@ -475,8 +475,8 @@ describe("Multi death things", () => {
       const card = game.obtainCard("b2-gold_bomb") as LootCard;
       const card2 = game.obtainCard("b2-bomb-2") as LootCard;
 
-      game.addCardToHand(player1, card);
-      game.addCardToHand(player1, card2);
+      game.cardHandler.addCardToHand(player1, card);
+      game.cardHandler.addCardToHand(player1, card2);
 
       game.actions.playCard(player1, 1, [player2]); // play bomb
       game.actions.playCard(player1, 0, [player2]); // play gold bomb
@@ -579,29 +579,29 @@ describe("Game - Multiple Players", () => {
   });
 
   it("should add multiple players", async () => {
-    game.addPlayer(player1);
-    game.addPlayer(player2);
-    game.addPlayer(player3);
+    game.entityHandler.addPlayer(player1);
+    game.entityHandler.addPlayer(player2);
+    game.entityHandler.addPlayer(player3);
     
     expect(game.players.length).toBe(3);
   });
 
   it("should throw error when adding duplicate player ID", async () => {
-    game.addPlayer(player1);
+    game.entityHandler.addPlayer(player1);
     const duplicatePlayer = new Player("player1");
     duplicatePlayer.addAttackPoints(2); // Start with 2 attack points for testing
     duplicatePlayer.addHealthPoints(4); // Start with 4 health points for testing
     duplicatePlayer.gainCoins(10); // Start with 10 coins for testing
     
     expect(() => {
-      game.addPlayer(duplicatePlayer);
+      game.entityHandler.addPlayer(duplicatePlayer);
     }).toThrow();
   });
 
   it("should retrieve correct players", async () => {
-    game.addPlayer(player1);
-    game.addPlayer(player2);
-    game.addPlayer(player3);
+    game.entityHandler.addPlayer(player1);
+    game.entityHandler.addPlayer(player2);
+    game.entityHandler.addPlayer(player3);
     
     expect(() => game.entityHandler.getPlayerById("player1")).not.toThrow();
     expect(() => game.entityHandler.getPlayerById("player2")).not.toThrow();
@@ -609,9 +609,9 @@ describe("Game - Multiple Players", () => {
   });
 
   it("should maintain player order", async () => {
-    game.addPlayer(player1);
-    game.addPlayer(player2);
-    game.addPlayer(player3);
+    game.entityHandler.addPlayer(player1);
+    game.entityHandler.addPlayer(player2);
+    game.entityHandler.addPlayer(player3);
     
     expect(game.players[0]).toBe(player1);
     expect(game.players[1]).toBe(player2);
@@ -619,11 +619,11 @@ describe("Game - Multiple Players", () => {
   });
 
   it("should get all players hands", async () => {
-    game.addPlayer(player1);
-    game.addPlayer(player2);
-    game.addPlayer(player3);
+    game.entityHandler.addPlayer(player1);
+    game.entityHandler.addPlayer(player2);
+    game.entityHandler.addPlayer(player3);
     
-    const hands = game.allHands();
+    const hands = game.cardHandler.allHands();
     expect(hands.length).toBe(3);
     expect(hands[0]?.player).toBe(player1);
     expect(hands[1]?.player).toBe(player2);
@@ -647,8 +647,8 @@ describe("Game - Guardrails", () => {
     player2.addAttackPoints(2);
     player2.addHealthPoints(4);
     player2.gainCoins(5);
-    game.addPlayer(player1);
-    game.addPlayer(player2);
+    game.entityHandler.addPlayer(player1);
+    game.entityHandler.addPlayer(player2);
   });
 
   it("should not allow adding players after game start", async () => {
@@ -659,7 +659,7 @@ describe("Game - Guardrails", () => {
     latePlayer.addAttackPoints(1);
     latePlayer.addHealthPoints(1);
     latePlayer.gainCoins(0);
-    expect(() => game.addPlayer(latePlayer)).toThrow("Game already started");
+    expect(() => game.entityHandler.addPlayer(latePlayer)).toThrow("Game already started");
   });
 
   it("should select the first n options", async () => {
@@ -686,8 +686,8 @@ describe("Game - Stack Operations", () => {
     player2.addAttackPoints(3);
     player2.addHealthPoints(5);
     player2.gainCoins(15);
-    game.addPlayer(player1);
-    game.addPlayer(player2);
+    game.entityHandler.addPlayer(player1);
+    game.entityHandler.addPlayer(player2);
   });
 
   it("should have an empty stack initially", async () => {
@@ -850,8 +850,8 @@ describe("Game - Game State", () => {
     player2.addAttackPoints(3);
     player2.addHealthPoints(5);
     player2.gainCoins(15);
-    game.addPlayer(player1);
-    game.addPlayer(player2);
+    game.entityHandler.addPlayer(player1);
+    game.entityHandler.addPlayer(player2);
   });
 
   it("should get decks", async () => {
@@ -936,16 +936,16 @@ describe("Game - Souls & State", () => {
     player2.addAttackPoints(3); // Start with 3 attack points for testing
     player2.addHealthPoints(5); // Start with 5 health points for testing
     player2.gainCoins(15); // Start with 15 coins for testing
-    game.addPlayer(player1);
-    game.addPlayer(player2);
+    game.entityHandler.addPlayer(player1);
+    game.entityHandler.addPlayer(player2);
   });
 
   it("should compute players with most souls", async () => {
     const soul1 = { id: "s1", name: "Soul 1", soul: 1 } as any;
     const soul2 = { id: "s2", name: "Soul 2", soul: 2 } as any;
 
-    game.addSoul(player1, soul1);
-    game.addSoul(player2, soul2);
+    game.cardHandler.addSoul(player1, soul1);
+    game.cardHandler.addSoul(player2, soul2);
 
     const leaders = game.playersWithMostSouls;
     expect(leaders.length).toBe(1);
@@ -954,8 +954,8 @@ describe("Game - Souls & State", () => {
 
   it("should return all leaders on tie", async () => {
     const soul = { id: "s1", name: "Soul", soul: 1 } as any;
-    game.addSoul(player1, soul);
-    game.addSoul(player2, soul);
+    game.cardHandler.addSoul(player1, soul);
+    game.cardHandler.addSoul(player2, soul);
 
     const leaders = game.playersWithMostSouls;
     expect(leaders.length).toBe(2);

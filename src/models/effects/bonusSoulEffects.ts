@@ -63,7 +63,7 @@ function soulOfGluttonyEffect(game: Game, card: Card): OffEffectFunction {
     offEffect = game.emitter.on("on:loot:added:after", (eventData: OnLootAddedAfterData) => {
         const { eventIssuer, card: lootCard } = eventData;
         if (eventIssuer.hand.length < 10) return;
-        game.addSoul(eventIssuer, card);
+        game.cardHandler.addSoul(eventIssuer, card);
         cleanup();
     });
     return offEffect;
@@ -81,7 +81,7 @@ function soulOfGreedEffect(game: Game, card: Card): OffEffectFunction {
     offEffect = game.emitter.on("on:coin:gained:after", (eventData: OnCoinGainedData) => {
         const { eventIssuer, coinGained } = eventData;
         if (eventIssuer.coins < 25) return;
-        game.addSoul(eventIssuer, card);
+        game.cardHandler.addSoul(eventIssuer, card);
         cleanup();
     });
     return offEffect;
@@ -100,7 +100,7 @@ function soulOfGuppyEffect(game: Game, card: Card): OffEffectFunction {
         const { eventIssuer, card: item } = eventData;
         if (eventIssuer.inPlay.filter((c: Card) => c instanceof ItemCard && c.isGuppy()).length < 2)
             return;
-        game.addSoul(eventIssuer, card);
+        game.cardHandler.addSoul(eventIssuer, card);
         cleanup();
     });
     return offEffect;
@@ -125,7 +125,7 @@ function soulOfEnvyEffect(game: Game, card: Card): OffEffectFunction {
         const fewestSouls = Math.min(...game.players.map(p => p.totalSouls));
         const playersWithFewestSouls = game.players.filter(p => p.totalSouls === fewestSouls);
         const selected = (await game.select(eventIssuer, 1, 1, playersWithFewestSouls, "Select a player to gain the Soul of Envy", false)).selected[0];
-        game.addSoul(selected as Player, card);
+        game.cardHandler.addSoul(selected as Player, card);
         cleanup();
     });
     return offEffect;
@@ -142,9 +142,9 @@ function soulOfLustEffect(game: Game, card: Card): OffEffectFunction {
 
     offDeath = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
         if(!(eventData.target instanceof Player)) return;
-        game.addToCounter(eventData.eventIssuer, card, "counters", 1);
+        game.cardHandler.addToCounter(eventData.eventIssuer, card, "counters", 1);
         if(card.tags.counters < 6) return;
-        game.addSoul(game.currentPlayer, card);
+        game.cardHandler.addSoul(game.currentPlayer, card);
         cleanup();
     });
 
@@ -162,9 +162,9 @@ function soulOfPrideEffect(game: Game, card: Card): OffEffectFunction {
 
     offDeath = game.emitter.on("on:enter:play:after", (eventData: OnEnterPlayAfterData) => {
         if(!(eventData.card instanceof TreasureCard)) return;
-        game.addToCounter(eventData.eventIssuer, card, "counters", 1);
+        game.cardHandler.addToCounter(eventData.eventIssuer, card, "counters", 1);
         if(card.tags.counters < 6) return;
-        game.addSoul(eventData.eventIssuer, card);
+        game.cardHandler.addSoul(eventData.eventIssuer, card);
         cleanup();
     });
 
@@ -182,9 +182,9 @@ function soulOfWrathEffect(game: Game, card: Card): OffEffectFunction {
 
     offDeath = game.emitter.on("on:death:before-penalty", (eventData: OnDeathBeforePenaltyData) => {
         if(!(eventData.eventIssuer instanceof Player)) return;
-        game.addToCounter(eventData.eventIssuer, card, "counters", 1);
+        game.cardHandler.addToCounter(eventData.eventIssuer, card, "counters", 1);
         if(card.tags.counters < 6) return;
-        game.addSoul(eventData.eventIssuer, card);
+        game.cardHandler.addSoul(eventData.eventIssuer, card);
         cleanup();
     });
 
@@ -208,7 +208,7 @@ function soulOfSlothEffect(game: Game, card: Card): OffEffectFunction {
         const fewestTreasure = Math.min(...game.players.map(p => p.inPlay.length));
         const playersWithFewestTreasures = game.players.filter(p => p.inPlay.length === fewestTreasure);
         const selected = (await game.select(eventData.eventIssuer, 1, 1, playersWithFewestTreasures, "Select a player to gain the Soul of Sloth", false)).selected[0];
-        game.addSoul(selected as Player, card);
+        game.cardHandler.addSoul(selected as Player, card);
         cleanup();
     });
 

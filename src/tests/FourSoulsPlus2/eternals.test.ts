@@ -7,7 +7,7 @@ import { setupTestGame } from "../testHelpers";
 async function characterAdd1LootPlay(player1: Player, game: Game) {
     // verify character card works.
     const lootPlay = player1.remainingLootPlay;
-    game.recharge(player1.inPlay[0] as ItemCard);
+    game.cardHandler.recharge(player1.inPlay[0] as ItemCard);
     await game.activateItem(player1, player1.inPlay[0]!, [], "tap");
     await game.actions.resolveStack();
     await game.actions.resolveStack();
@@ -207,7 +207,7 @@ describe("Four Souls+2 Eternal Items", () => {
 
         const handSize = player1.hand.cards.length;
         const firstCard = player1.hand.cards[0]!;
-        game.recharge(player1.inPlay[1] as ItemCard);
+        game.cardHandler.recharge(player1.inPlay[1] as ItemCard);
         await game.activateItem(player1, player1.inPlay[1]!, [], "tap");
         await game.actions.resolveStack();
         expect(player1.hand.cards.length).toBe(handSize + 1);

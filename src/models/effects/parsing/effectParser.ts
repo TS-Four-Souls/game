@@ -474,7 +474,7 @@ if (s.startsWith("you may") &&
         const restParsed = effectParser(s.substring("destroy this.".length).trim(), game, selectionOnResolve, youMayEffectHanging);
         return {
             effectFunction: (data:EffectData) => { 
-                const destroyResult = game.destroyCardsOrSouls([data.it]); 
+                const destroyResult = game.cardHandler.destroyCardsOrSouls([data.it]); 
                 if (s.substring("destroy this.".length).trim() === ".")
                     return destroyResult;
                 if(destroyResult)
@@ -1175,7 +1175,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "if you would gain any amount of ¢, this levels up by that much instead":
             return noTargetEffect(passive.gainCoinsLevelUpEffect(game));
         case "each time a player dies, this levels up":
-            return noTargetEffect(passive.onAnyEventEffect("on:death:penalty", [(data:EffectData)=>{game.addToCounter(data.issuer, data.it, "counters", 1); return true;}], game, nr.masked));
+            return noTargetEffect(passive.onAnyEventEffect("on:death:penalty", [(data:EffectData)=>{game.cardHandler.addToCounter(data.issuer, data.it, "counters", 1); return true;}], game, nr.masked));
         case "rewards are doubled till end of turn":
             return noTargetEffect(passive.doubleRewardsTillEndOfTurnEffect(game));
         case "you may look at the top card of the treasure deck at any time on your turn":

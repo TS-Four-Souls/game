@@ -70,26 +70,26 @@ export function otherPlayersAreAttackableEffect(game: Game, evasion: number, onl
         if(!onlyIssuer || game.currentPlayer === data.issuer)
             for(const player of game.players) {
                 if(player !== game.currentPlayer && condition(player)) {
-                    game.makePlayerAttackable(player, evasion);
+                    game.entityHandler.makePlayerAttackable(player, evasion);
                 }
             }
-        game.makePlayerUnattackable(game.currentPlayer);
+        game.entityHandler.makePlayerUnattackable(game.currentPlayer);
 
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
             if(onlyIssuer && eventData.eventIssuer !== data.issuer) return;
             for(const player of game.players) {
                 if(player !== game.currentPlayer && condition(player)) {
-                    game.makePlayerAttackable(player, evasion);
+                    game.entityHandler.makePlayerAttackable(player, evasion);
                 }
             }
-            game.makePlayerUnattackable(game.currentPlayer);
+            game.entityHandler.makePlayerUnattackable(game.currentPlayer);
         });
         if(onlyIssuer)
         {
             offTurnEnd = game.emitter.on("on:turn:end", (eventData) => {
                 if(eventData.eventIssuer !== data.issuer) return;
                 for(const player of game.players)
-                    game.makePlayerUnattackable(player);
+                    game.entityHandler.makePlayerUnattackable(player);
             });
         }
         // Store cleanup function on the card for when it's removed/destroyed
@@ -99,7 +99,7 @@ export function otherPlayersAreAttackableEffect(game: Game, evasion: number, onl
             offTurnEnd?.();
             offTurnEnd = null;
             for(const player of game.players) {
-                game.makePlayerUnattackable(player);
+                game.entityHandler.makePlayerUnattackable(player);
             }
         });
         return true;
@@ -117,8 +117,8 @@ export function giveDeathPenaltyItemToActivePlayerEffect(game: Game): EffectFunc
             }
             if(game.currentPlayer.attackedIdsThisTurn.includes(eventIssuer.id)) {
                 for(const item of itemsLost) {
-                    game.removeInPlay(eventIssuer, item);
-                    game.addInPlay(game.currentPlayer, item);
+                    game.cardHandler.removeInPlay(eventIssuer, item);
+                    game.cardHandler.addInPlay(game.currentPlayer, item);
                 }
                 eventData.itemsLost = []; // Clear the items lost as they are now given to the active player instead of being lost
             }
@@ -216,7 +216,7 @@ export function doubleRewardsEffect(game: Game): EffectFunction {
             
             // Add all effects as a single stack element
             const effect = (effectData: EffectData) => {
-                game.entityRewards(eventData.eventIssuer as Monster);
+                game.entityHandler.entityRewards(eventData.eventIssuer as Monster);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `Double rewards.`);
@@ -328,7 +328,7 @@ export function CurrentPlayerDecidesToChangeRoom(game: Game): EffectFunction{
             return false;
         const selectedRoom = (await data.selectAndRecord(game, game.currentPlayer, 0, 1, [...game.rooms.activeRooms.filter((r) => r.canBeDiscarded)], "A monster died this turn, you can choose to put a room card into discard.", true)).selected[0];
         if(selectedRoom)
-            game.discard(selectedRoom);
+            game.cardHandler.discard(selectedRoom);
         return selectedRoom !== undefined;
     }
 }
@@ -358,7 +358,7 @@ export function deactivateCharacterAtEndOfTurnEffect(game: Game): EffectFunction
         let offTurnStart: (() => void) | null = null;
         offTurnStart = game.emitter.on("on:turn:end", (eventData) => {
             const effect: EffectFunction = async (effectData: EffectData) => {
-                game.deactivateItem(game.currentPlayer.character);
+                game.cardHandler.deactivateItem(game.currentPlayer.character);
                 return true;
             }
             addPassiveEffectToStack(game, effect, data, `Deactivate your character at the end of the turn.`);
@@ -423,9 +423,9 @@ export function mayRerollItemAtStartOfTurnEffect(game: Game): EffectFunction {
         let offTurnStart: (() => void) | null = null;
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
             const effect: EffectFunction = async (effectData: EffectData) => {
-                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, game.inPlayTargetableCards(game.currentPlayer), "You may reroll an item you control.", false)).selected[0] as ItemCard | undefined;
+                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, game.cardHandler.inPlayTargetableCards(game.currentPlayer), "You may reroll an item you control.", false)).selected[0] as ItemCard | undefined;
                 if(selected) {
-                    game.reroll(selected);
+                    game.cardHandler.reroll(selected);
                     return true;
                 }
                 return false;
@@ -491,7 +491,7 @@ export function putThisIntoDiscardAtEndOfTurnEffect(game: Game): EffectFunction 
      return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
         offTurnStart = game.emitter.on("on:turn:end", (eventData) => {
-            game.discard(data.it);
+            game.cardHandler.discard(data.it);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -510,7 +510,7 @@ export function discardHandsAndLootEffect(game: Game, amount: number): EffectFun
             const handSize = player.hand.length;
             let success = true;
             for(let i = 0; i < handSize; i++) {
-                success = game.discardFromHandAtIndex(player, 0, "effect") && success;
+                success = game.cardHandler.discardFromHandAtIndex(player, 0, "effect") && success;
             }
             if(success)
                 game.loot(player, amount);
@@ -524,7 +524,7 @@ export function enterPlayRerollItemsDiscardHandsLootAndFlushMonstersEffect(game:
         flushMonsterSlotsEffect(game, "discard")(data);
         discardHandsAndLootEffect(game, lootAmount)(data);
         for(const item of visibleItemSelector((c, p) => c.eternal === false, false, game)(data.issuer as Player, data.it)) {
-            game.reroll(item);
+            game.cardHandler.reroll(item);
         }
         return true;
     };
@@ -567,7 +567,7 @@ export function discardHandIfNoShopPurchaseAtEndOfTurnEffect(game: Game): Effect
             if(!purchaseMade) {
                 const handSize = game.currentPlayer.hand.length;
                 for(let i = 0; i < handSize; i++) {
-                    game.discardFromHandAtIndex(game.currentPlayer, 0, "effect");
+                    game.cardHandler.discardFromHandAtIndex(game.currentPlayer, 0, "effect");
                 }
             }
             purchaseMade = false; // Reset for next turn
@@ -685,9 +685,9 @@ export function playerMustDestroyItemOnDeathEffect(game: Game): EffectFunction {
             if(eventIssuer instanceof Player === false)
                 return;
             const effect: EffectFunction = async (effectData: EffectData) => {
-                const selected = (await effectData.selectAndRecord(game, eventIssuer as Player, 1, 1, game.inPlayTargetableCards(eventIssuer as Player), "Select an item to destroy.", false)).selected[0] as ItemCard | undefined;
+                const selected = (await effectData.selectAndRecord(game, eventIssuer as Player, 1, 1, game.cardHandler.inPlayTargetableCards(eventIssuer as Player), "Select an item to destroy.", false)).selected[0] as ItemCard | undefined;
                 if(selected) {
-                    game.destroyCardsOrSouls([selected])
+                    game.cardHandler.destroyCardsOrSouls([selected])
                 }
                 return true;
             };
@@ -1012,7 +1012,7 @@ export function socialGoalsEffect(game: Game, numbers: number[]): EffectFunction
                     game.gainTreasure(player, nbTreasure);
                 }
                 data.it.canBeDiscarded = true; 
-                game.discard(data.it);
+                game.cardHandler.discard(data.it);
             }
         }
         

@@ -35,7 +35,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("edens_blessing - gain 6¢ at end of turn if you have 0¢", async () => {
         const edensBlessing = game.shop.obtainCard("b2-edens_blessing") as TreasureCard;
-        game.addInPlay(player1, edensBlessing);
+        game.cardHandler.addInPlay(player1, edensBlessing);
 
         // Test: Player has coins - should not trigger
         player1.gainCoins(5);
@@ -85,7 +85,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("starter_deck - loot 2 at end of turn if you have 8+ loot cards", async () => {
         const starterDeck = game.shop.obtainCard("b2-starter_deck") as TreasureCard;
-        game.addInPlay(player1, starterDeck);
+        game.cardHandler.addInPlay(player1, starterDeck);
         game.gameParameters.maxHandSize.value = 20; // increase max hand size to avoid forced discards
         // Test: Player has fewer than 8 cards - should not trigger
         const initialHandSize = player1.hand.length;
@@ -123,7 +123,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Test: Player drops below 8 cards - should not trigger
         while (player1.hand.length > 6) {
-            game.discardFromHandAtIndex(player1, 0);
+            game.cardHandler.discardFromHandAtIndex(player1, 0);
         }
         expect(player1.hand.length).toBe(6);
 
@@ -137,7 +137,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("the_polaroid - loot 2 at end of turn if you have 0 loot cards", async () => {
         const thePolaroid = game.shop.obtainCard("b2-the_polaroid") as TreasureCard;
-        game.addInPlay(player1, thePolaroid);
+        game.cardHandler.addInPlay(player1, thePolaroid);
 
         // Test: Player has cards in hand - should not trigger
         game.loot(player1, 3);
@@ -153,7 +153,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Test: Empty hand - should trigger and loot 2
         while (player1.hand.length > 0) {
-            game.discardFromHandAtIndex(player1, 0);
+            game.cardHandler.discardFromHandAtIndex(player1, 0);
         }
         expect(player1.hand.length).toBe(0);
 
@@ -175,16 +175,16 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         expect(player1.hand.length).toBe(3); // Should not gain more
 
         // Test: Works again when back to 0 cards
-        game.discardFromHandAtIndex(player1, 0);
-        game.discardFromHandAtIndex(player1, 0);
-        game.discardFromHandAtIndex(player1, 0);
+        game.cardHandler.discardFromHandAtIndex(player1, 0);
+        game.cardHandler.discardFromHandAtIndex(player1, 0);
+        game.cardHandler.discardFromHandAtIndex(player1, 0);
         expect(player1.hand.length).toBe(0);
 
         game.endTurn();// end of turn of p2
         await game.actions.resolveStack(); // Resolve any stack effects
 
         expect(player1.hand.length).toBe(1); // Loot 1 start turn
-        game.discardFromHandAtIndex(player1, 0);
+        game.cardHandler.discardFromHandAtIndex(player1, 0);
         game.endTurn();// end of turn of p1
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
@@ -194,7 +194,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
     it("goat_head - discard any number of cards at end of turn, then loot that many", async () => {
         const goatHead = game.shop.obtainCard("b2-goat_head") as TreasureCard;
-        game.addInPlay(player1, goatHead);
+        game.cardHandler.addInPlay(player1, goatHead);
 
         // Give player some cards to work with
         game.loot(player1, 5);
@@ -223,7 +223,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Test: With 3 cards
         while (player1.hand.length > 3) {
-            game.discardFromHandAtIndex(player1, 0);
+            game.cardHandler.discardFromHandAtIndex(player1, 0);
         }
         expect(player1.hand.length).toBe(3);
 
@@ -244,7 +244,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Test: With 1 card
         while (player1.hand.length > 1) {
-            game.discardFromHandAtIndex(player1, 0);
+            game.cardHandler.discardFromHandAtIndex(player1, 0);
         }
         expect(player1.hand.length).toBe(1);
 
@@ -263,7 +263,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Test: With empty hand, no cards to discard
         while (player1.hand.length > 0) {
-            game.discardFromHandAtIndex(player1, 0);
+            game.cardHandler.discardFromHandAtIndex(player1, 0);
         }
         expect(player1.hand.length).toBe(0);
 
@@ -304,7 +304,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         cardName: string
     ) => {
         const card = game.shop.obtainCard(cardSlug) as TreasureCard;
-        game.addInPlay(player1, card);
+        game.cardHandler.addInPlay(player1, card);
 
         const deck = game.decks[deckName]!;
 
@@ -324,7 +324,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         await game.actions.resolveStack();
 
         if (top4Before[0] instanceof LootCard) {
-            const c = game.getCardFromHand(player2, top4Before[0]!); // simulate using the effect
+            const c = game.cardHandler.getCardFromHand(player2, top4Before[0]!); // simulate using the effect
             game.decks.loot.addTopPosition(c); // put back on top
         }
         // Get the current top 4 after the effect
@@ -411,7 +411,7 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
 
     it("dark_bum - roll 1-2: gain 3¢", async () => {
         const darkBum = game.shop.obtainCard("b2-dark_bum") as TreasureCard;
-        game.addInPlay(player1, darkBum);
+        game.cardHandler.addInPlay(player1, darkBum);
 
         const initialCoins = player1.coins;
 
@@ -437,7 +437,7 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
 
     it("dark_bum - roll 2: gain 3¢", async () => {
         const darkBum = game.shop.obtainCard("b2-dark_bum") as TreasureCard;
-        game.addInPlay(player1, darkBum);
+        game.cardHandler.addInPlay(player1, darkBum);
 
         const initialCoins = player1.coins;
 
@@ -456,7 +456,7 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
 
     it("dark_bum - roll 3-4: loot 1", async () => {
         const darkBum = game.shop.obtainCard("b2-dark_bum") as TreasureCard;
-        game.addInPlay(player1, darkBum);
+        game.cardHandler.addInPlay(player1, darkBum);
 
         const initialHandSize = player1.hand.length;
 
@@ -476,7 +476,7 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
 
     it("dark_bum - roll 4: loot 1", async () => {
         const darkBum = game.shop.obtainCard("b2-dark_bum") as TreasureCard;
-        game.addInPlay(player1, darkBum);
+        game.cardHandler.addInPlay(player1, darkBum);
 
         const initialHandSize = player1.hand.length;
 
@@ -503,7 +503,7 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
 
     it("dark_bum - roll 5-6: take 1 damage", async () => {
         const darkBum = game.shop.obtainCard("b2-dark_bum") as TreasureCard;
-        game.addInPlay(player1, darkBum);
+        game.cardHandler.addInPlay(player1, darkBum);
 
         const initialHP = player1.currentHealthPoints;
 
@@ -523,7 +523,7 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
 
     it("dark_bum - roll 6: take 1 damage", async () => {
         const darkBum = game.shop.obtainCard("b2-dark_bum") as TreasureCard;
-        game.addInPlay(player1, darkBum);
+        game.cardHandler.addInPlay(player1, darkBum);
 
         const initialHP = player1.currentHealthPoints;
 
@@ -544,13 +544,13 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
     // b2-monstros_tooth    "At the start of your turn, choose a player at random. That player destroys an item they control."
     it("monstros_tooth - random player destroys an item", async () => {
         const monstrosTooth = game.shop.obtainCard("b2-monstros_tooth") as TreasureCard;
-        game.addInPlay(player1, monstrosTooth);
+        game.cardHandler.addInPlay(player1, monstrosTooth);
 
         // Give both players some non-eternal items
         const item1 = game.shop.obtainCard("b2-breakfast") as ItemCard;
         const item2 = game.shop.obtainCard("b2-dinner") as ItemCard;
-        game.addInPlay(player1, item1);
-        game.addInPlay(player2, item2);
+        game.cardHandler.addInPlay(player1, item1);
+        game.cardHandler.addInPlay(player2, item2);
 
         const initialP1Items = player1.inPlay.filter(c => c instanceof ItemCard && !c.eternal).length;
         const initialP2Items = player2.inPlay.filter(c => c instanceof ItemCard && !c.eternal).length;
@@ -575,7 +575,7 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
 
     it("restock - discard multiple shop items", async () => {
         const restock = game.shop.obtainCard("b2-restock") as TreasureCard;
-        game.addInPlay(player1, restock);
+        game.cardHandler.addInPlay(player1, restock);
 
         const shopItems = game.shop.itemsInShop.filter(s => s !== undefined);
         expect(shopItems.length).toBeGreaterThanOrEqual(2);

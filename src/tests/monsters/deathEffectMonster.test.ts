@@ -275,7 +275,7 @@ describe("Monsters - On death effects", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         const item1 = game.obtainCard("b2-tech_x") as LootCard;
-        game.addInPlay(player1, item1);
+        game.cardHandler.addInPlay(player1, item1);
         for(const item of player1.inPlay){
             item.charged = false;
         }
@@ -301,7 +301,7 @@ describe("Monsters - On death effects", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         const item1 = game.obtainCard("b2-tech_x") as LootCard;
-        game.addInPlay(player2, item1);
+        game.cardHandler.addInPlay(player2, item1);
         
         game.entityHandler.kill(monster, monster, card);
         game.select = async (p, _min, _max, opts) => {
@@ -324,7 +324,7 @@ describe("Monsters - On death effects", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         const item1 = game.obtainCard("b2-tech_x") as LootCard;
-        game.addInPlay(player2, item1);
+        game.cardHandler.addInPlay(player2, item1);
         
         game.entityHandler.kill(monster, monster, card);
         game.select = async (p, _min, _max, opts) => {
@@ -435,7 +435,7 @@ describe("Monsters - On death effects", () => {
 
     it("active player steal a soul when the_lamb dies.", async () => {
         const soul = game.obtainCard("b2-lost_soul") as LootCard;
-        game.addCardToHand(player2, soul);
+        game.cardHandler.addCardToHand(player2, soul);
         expect(player2.hand.length).toBe(1);
         game.entityHandler.addLootPlay(player2, 1);
         game.actions.playCard(player2, 0);
@@ -461,7 +461,7 @@ describe("Monsters - On death effects", () => {
 
     it("active player make a player destroy a soul they control when wizoob dies.", async () => {
         const soul = game.obtainCard("b2-lost_soul") as LootCard;
-        game.addCardToHand(player2, soul);
+        game.cardHandler.addCardToHand(player2, soul);
         expect(player2.hand.length).toBe(1);
         game.entityHandler.addLootPlay(player2, 1);
         game.actions.playCard(player2, 0);

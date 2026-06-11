@@ -36,7 +36,7 @@ describe("Treasure - with counters effect", () => {
     // "If you would take damage while this has counters on it, remove that many counters and prevent that much damage."
     it("the_dead_cat", async () => {
         const theDeadCat = game.shop.obtainCard("b2-the_dead_cat") as ItemCard;
-        game.addInPlay(player1, theDeadCat);
+        game.cardHandler.addInPlay(player1, theDeadCat);
         game.entityHandler.addHealth(player1, 10); // Ensure player has health to take damage
         const initHP = player1.currentHealthPoints;
         expect(theDeadCat.tags.counters).toBe(9);
@@ -66,7 +66,7 @@ describe("Treasure - with counters effect", () => {
         expect(damageTaken).toBe(1);
 
 
-        game.stealItemAnywhere(player2, theDeadCat);
+        game.cardHandler.stealItemAnywhere(player2, theDeadCat);
         expect(player2.inPlay.includes(theDeadCat)).toBe(true);
         expect(player1.inPlay.includes(theDeadCat)).toBe(false);
         expect(theDeadCat.tags.counters).toBe(0);
@@ -78,7 +78,7 @@ describe("Treasure - with counters effect", () => {
     // "[LV25 Effect] You may attack any number of times on your turn."
     it("bum_bo - leveling system and level effects", async () => {
         const bumBo = game.shop.obtainCard("b2-bum_bo") as TreasureCard;
-        game.addInPlay(player1, bumBo);
+        game.cardHandler.addInPlay(player1, bumBo);
         game.gainCoins(player1, 1, "gift");
         const baseAttack = player1.attackPoints;
         // Initial state - no counters
@@ -92,7 +92,7 @@ describe("Treasure - with counters effect", () => {
 
         // Test: LV1 Effect - +2 to first attack roll each turn
         const monster = game.monsters[0]!;
-        game.discardFromHandAtIndex(player1, 0);
+        game.cardHandler.discardFromHandAtIndex(player1, 0);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, monster);
 
@@ -155,7 +155,7 @@ describe("Treasure - with counters effect", () => {
     // "Each time you take damage, put counters on this equal to the amount of damage taken. Then, if this has 6+ counters, remove 6 counters from this and gain +1 treasure."
     it("cambion_conception - damage counter and treasure gain", async () => {
         const cambionConception = game.shop.obtainCard("b2-cambion_conception") as TreasureCard;
-        game.addInPlay(player1, cambionConception);
+        game.cardHandler.addInPlay(player1, cambionConception);
         game.entityHandler.addHealth(player1, 200); // Give player enough health to take damage
 
         const initNbTreasure = player1.inPlay.length;
@@ -184,7 +184,7 @@ describe("Treasure - with counters effect", () => {
         await game.actions.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(0); // 6 counters removed
         expect(player1.inPlay.length).toBe(initNbTreasure + 1); // Gained 1 treasure
-        game.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // Remove gained treasure for further tests
+        game.cardHandler.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // Remove gained treasure for further tests
 
         // Test: take 8 damage at once
         // Should add 8 counters, then immediately remove 6 and gain treasure
@@ -193,7 +193,7 @@ describe("Treasure - with counters effect", () => {
         await game.actions.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(2); // 8 added, 6 removed, 2 remaining
         expect(player1.inPlay.length).toBe(initNbTreasure + 1); // Gained another treasure
-        game.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // Remove gained treasure for further tests
+        game.cardHandler.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // Remove gained treasure for further tests
 
         // Test: take 4 more damage (2 + 4 = 6)
         // Should trigger treasure gain again
@@ -202,7 +202,7 @@ describe("Treasure - with counters effect", () => {
         await game.actions.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(0); // 6 removed again
         expect(player1.inPlay.length).toBe(initNbTreasure + 1); // Third treasure gained
-        game.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // Remove gained treasure for further tests
+        game.cardHandler.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // Remove gained treasure for further tests
 
         // Test: take exactly 6 damage
         game.entityHandler.dealDamage(player2, player1, cambionConception, 6);
@@ -210,7 +210,7 @@ describe("Treasure - with counters effect", () => {
         await game.actions.resolveStack(); // resolve on damage taken
         expect(cambionConception.tags.counters).toBe(0); // Should remove 6 and be at 0
         expect(player1.inPlay.length).toBe(initNbTreasure + 1); // Fourth treasure gained
-        game.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // Remove gained treasure for further tests
+        game.cardHandler.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // Remove gained treasure for further tests
 
         // Test: take 13 damage (should only trigger once, leaving 7 counters)
         game.entityHandler.dealDamage(player2, player1, cambionConception, 13);
@@ -224,11 +224,11 @@ describe("Treasure - with counters effect", () => {
     // "[Paid Effect] Remove 3 counters from this:\nKill a player or monster."
     it("tech_x - tap to add counter, paid effect to kill", async () => {
         const techX = game.shop.obtainCard("b2-tech_x") as ItemCard;
-        game.addInPlay(player1, techX);
+        game.cardHandler.addInPlay(player1, techX);
 
         // Initial state - no counters
         expect(techX.tags.counters).toBeUndefined();
-        game.recharge(techX); // Ensure item is charged
+        game.cardHandler.recharge(techX); // Ensure item is charged
         expect(techX.charged).toBe(true);
 
         // Test: Tap effect - put a counter on this
@@ -305,7 +305,7 @@ describe("Treasure - with counters effect", () => {
     // "[Paid Effect] Remove a counter from this:\nPrevent the next 1 damage you would take this turn."
     it("the_poop - gain counters on damage, paid effect to prevent damage", async () => {
         const thePoop = game.shop.obtainCard("b2-the_poop") as TreasureCard;
-        game.addInPlay(player1, thePoop);
+        game.cardHandler.addInPlay(player1, thePoop);
         game.entityHandler.addHealth(player1, 20); // Give player enough health
 
         const initialHP = player1.currentHealthPoints;

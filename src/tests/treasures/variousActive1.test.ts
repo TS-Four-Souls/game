@@ -25,12 +25,12 @@ describe("Tap/Paid effects 1", () => {
 
     it("sack_of_pennies - tap to gain 1¢", async () => {
         const sackOfPennies = game.shop.obtainCard("b2-sack_of_pennies") as ItemCard;
-        game.addInPlay(player1, sackOfPennies);
+        game.cardHandler.addInPlay(player1, sackOfPennies);
 
         const initialCoins = player1.coins;
 
         // Recharge and activate the item
-        game.recharge(sackOfPennies);
+        game.cardHandler.recharge(sackOfPennies);
         await game.activateItem(player1, sackOfPennies);
         await game.actions.resolveStack();
 
@@ -40,7 +40,7 @@ describe("Tap/Paid effects 1", () => {
 
     it("sack_head - look at top card and put it on bottom", async () => {
         const sackHead = game.shop.obtainCard("b2-sack_head") as ItemCard;
-        game.addInPlay(player1, sackHead);
+        game.cardHandler.addInPlay(player1, sackHead);
 
         // Mock game.select to choose to put card on bottom
         game.select = async (_issuer, _min, _max, opts, _optional) => {
@@ -52,7 +52,7 @@ describe("Tap/Paid effects 1", () => {
         const deckSize = game.decks["loot"]!.cards.length;
 
         // Recharge and activate the item with deck name as target
-        game.recharge(sackHead);
+        game.cardHandler.recharge(sackHead);
         await game.activateItem(player1, sackHead, [game.decks["loot"]]);
         await game.actions.resolveStack();
 
@@ -63,7 +63,7 @@ describe("Tap/Paid effects 1", () => {
 
     it("sack_head - look at top card and keep it on top", async () => {
         const sackHead = game.shop.obtainCard("b2-sack_head") as ItemCard;
-        game.addInPlay(player1, sackHead);
+        game.cardHandler.addInPlay(player1, sackHead);
 
         // Mock game.select to choose to keep card on top
         game.select = async (_issuer, _min, _max, opts, _optional) => {
@@ -74,7 +74,7 @@ describe("Tap/Paid effects 1", () => {
         const topCard = game.decks["loot"]!.cards[0];
 
         // Recharge and activate the item with deck name as target
-        game.recharge(sackHead);
+        game.cardHandler.recharge(sackHead);
         await game.activateItem(player1, sackHead, [game.decks.loot]);
         await game.actions.resolveStack();
 
@@ -85,11 +85,11 @@ describe("Tap/Paid effects 1", () => {
     it("battery_bum - pay 4¢ to recharge an item", async () => {
         const batteryBum = game.shop.obtainCard("b2-battery_bum") as ItemCard;
         const battery = game.shop.obtainCard("b2-the_battery") as ItemCard;
-        game.addInPlay(player1, batteryBum);
-        game.addInPlay(player1, battery);
+        game.cardHandler.addInPlay(player1, batteryBum);
+        game.cardHandler.addInPlay(player1, battery);
 
         // Recharge then deactivate the battery
-        game.recharge(battery);
+        game.cardHandler.recharge(battery);
         await game.activateItem(player1, battery);
         await game.actions.resolveStack();
         expect(battery.charged).toBe(false);
@@ -109,7 +109,7 @@ describe("Tap/Paid effects 1", () => {
 
     it("bum_friend - loot 1, then put a card on top of loot deck", async () => {
         const bumFriend = game.shop.obtainCard("b2-bum_friend") as ItemCard;
-        game.addInPlay(player1, bumFriend);
+        game.cardHandler.addInPlay(player1, bumFriend);
 
         const initialHandSize = player1.hand.length;
         const initialDeckSize = game.decks["loot"]!.cards.length;
@@ -120,7 +120,7 @@ describe("Tap/Paid effects 1", () => {
         };
 
         // Recharge and activate the item
-        game.recharge(bumFriend);
+        game.cardHandler.recharge(bumFriend);
         await game.activateItem(player1, bumFriend);
         await game.actions.resolveStack();
 
@@ -133,14 +133,14 @@ describe("Tap/Paid effects 1", () => {
 
     it("flush - choose option 1: put monsters on bottom of monster deck", async () => {
         const flush = game.shop.obtainCard("b2-flush") as ItemCard;
-        game.addInPlay(player1, flush);
+        game.cardHandler.addInPlay(player1, flush);
 
         // Get initial monsters
         const initialMonsters = [...game.monsters];
         const monstersCount = initialMonsters.length;
 
         // Recharge and activate the item with choose one result
-        game.recharge(flush);
+        game.cardHandler.recharge(flush);
         const chooseOneTarget = ["Put each monster not being attacked on the bottom of the monster deck."];
         await game.activateItem(player1, flush, chooseOneTarget);
         await game.actions.resolveStack();
@@ -152,13 +152,13 @@ describe("Tap/Paid effects 1", () => {
     // Put each shop item on the bottom of the treasure deck.
     it("flush - choose option 2: put shop items on bottom of treasure deck", async () => {
         const flush = game.shop.obtainCard("b2-flush") as ItemCard;
-        game.addInPlay(player1, flush);
+        game.cardHandler.addInPlay(player1, flush);
 
         // Get initial shop items count
         const initialShopItems = [...game.shop.itemsInShop];
 
         // Recharge and activate the item with choose one result
-        game.recharge(flush);
+        game.cardHandler.recharge(flush);
         const chooseOneTarget = ["Put each shop item on the bottom of the treasure deck."];
         await game.activateItem(player1, flush, chooseOneTarget);
         await game.actions.resolveStack();
@@ -171,7 +171,7 @@ describe("Tap/Paid effects 1", () => {
 
     it("godhead - change dice roll to 1", async () => {
         const godhead = game.shop.obtainCard("b2-godhead") as ItemCard;
-        game.addInPlay(player1, godhead);
+        game.cardHandler.addInPlay(player1, godhead);
 
         // Create a dice roll
         const dice = player1.rollDice(Math.random, false, godhead);
@@ -179,7 +179,7 @@ describe("Tap/Paid effects 1", () => {
         game.addToStack(dice);
 
         // Recharge and activate godhead with the dice as target
-        game.recharge(godhead);
+        game.cardHandler.recharge(godhead);
         await game.activateItem(player1, godhead, [dice, 1]);
         await game.actions.resolveStack();
 
@@ -189,7 +189,7 @@ describe("Tap/Paid effects 1", () => {
 
     it("godhead - change dice roll to 6", async () => {
         const godhead = game.shop.obtainCard("b2-godhead") as ItemCard;
-        game.addInPlay(player1, godhead);
+        game.cardHandler.addInPlay(player1, godhead);
 
         // Create a dice roll
         const dice = player2.rollDice(Math.random, false, godhead);
@@ -197,7 +197,7 @@ describe("Tap/Paid effects 1", () => {
         game.addToStack(dice);
 
         // Recharge and activate godhead with the dice as target
-        game.recharge(godhead);
+        game.cardHandler.recharge(godhead);
         await game.activateItem(player1, godhead, [dice, 6]);
         await game.actions.resolveStack();
 
@@ -207,7 +207,7 @@ describe("Tap/Paid effects 1", () => {
 
     it("golden_razor_blade - pay 5¢ to deal 1 damage to a monster", async () => {
         const goldenRazor = game.shop.obtainCard("b2-golden_razor_blade") as ItemCard;
-        game.addInPlay(player1, goldenRazor);
+        game.cardHandler.addInPlay(player1, goldenRazor);
 
         // Give player coins
         player1.gainCoins(10);
@@ -228,7 +228,7 @@ describe("Tap/Paid effects 1", () => {
 
     it("golden_razor_blade - pay 5¢ to deal 1 damage to a player", async () => {
         const goldenRazor = game.shop.obtainCard("b2-golden_razor_blade") as ItemCard;
-        game.addInPlay(player1, goldenRazor);
+        game.cardHandler.addInPlay(player1, goldenRazor);
 
         // Give player coins
         player1.gainCoins(10);
@@ -248,7 +248,7 @@ describe("Tap/Paid effects 1", () => {
 
     it("jawbone - steal 3¢ from a player", async () => {
         const jawbone = game.shop.obtainCard("b2-jawbone") as ItemCard;
-        game.addInPlay(player1, jawbone);
+        game.cardHandler.addInPlay(player1, jawbone);
 
         // Give player2 some coins
         player2.gainCoins(10);
@@ -261,7 +261,7 @@ describe("Tap/Paid effects 1", () => {
         };
 
         // Recharge and activate the item
-        game.recharge(jawbone);
+        game.cardHandler.recharge(jawbone);
         await game.activateItem(player1, jawbone, [player2]);
         await game.actions.resolveStack();
 
@@ -272,7 +272,7 @@ describe("Tap/Paid effects 1", () => {
 
     it("jawbone - steal from player with less than 3¢", async () => {
         const jawbone = game.shop.obtainCard("b2-jawbone") as ItemCard;
-        game.addInPlay(player1, jawbone);
+        game.cardHandler.addInPlay(player1, jawbone);
 
         // Give player2 only 2 coins
         player2.gainCoins(2);
@@ -285,7 +285,7 @@ describe("Tap/Paid effects 1", () => {
         };
 
         // Recharge and activate the item
-        game.recharge(jawbone);
+        game.cardHandler.recharge(jawbone);
         await game.activateItem(player1, jawbone, [player2]);
         await game.actions.resolveStack();
 
@@ -296,12 +296,12 @@ describe("Tap/Paid effects 1", () => {
 
     it("book_of_sin - roll 1-2 to gain 1¢", async () => {
         const bookOfSin = game.shop.obtainCard("b2-book_of_sin") as ItemCard;
-        game.addInPlay(player1, bookOfSin);
+        game.cardHandler.addInPlay(player1, bookOfSin);
 
         const initialCoins = player1.coins;
 
         // Recharge and activate the item (creates and adds dice to stack)
-        game.recharge(bookOfSin);
+        game.cardHandler.recharge(bookOfSin);
         await game.activateItem(player1, bookOfSin);
         await game.actions.resolveStack(); // Resolve the dice roll
 
@@ -316,12 +316,12 @@ describe("Tap/Paid effects 1", () => {
 
     it("book_of_sin - roll 3-4 to loot 1", async () => {
         const bookOfSin = game.shop.obtainCard("b2-book_of_sin") as ItemCard;
-        game.addInPlay(player1, bookOfSin);
+        game.cardHandler.addInPlay(player1, bookOfSin);
 
         const initialHandSize = player1.hand.length;
 
         // Recharge and activate the item (creates and adds dice to stack)
-        game.recharge(bookOfSin);
+        game.cardHandler.recharge(bookOfSin);
         await game.activateItem(player1, bookOfSin);
         await game.actions.resolveStack(); // Resolve the dice roll
 
@@ -336,12 +336,12 @@ describe("Tap/Paid effects 1", () => {
 
     it("book_of_sin - roll 5-6 to gain +1 HP till end of turn", async () => {
         const bookOfSin = game.shop.obtainCard("b2-book_of_sin") as ItemCard;
-        game.addInPlay(player1, bookOfSin);
+        game.cardHandler.addInPlay(player1, bookOfSin);
 
         const initialHp = player1.currentHealthPoints;
 
         // Recharge and activate the item (creates and adds dice to stack)
-        game.recharge(bookOfSin);
+        game.cardHandler.recharge(bookOfSin);
         await game.activateItem(player1, bookOfSin);
         await game.actions.resolveStack(); // Resolve the dice roll
 
@@ -356,7 +356,7 @@ describe("Tap/Paid effects 1", () => {
 
     it("mr_boom - deal 1 damage to a monster", async () => {
         const mrBoom = game.shop.obtainCard("b2-mr_boom") as ItemCard;
-        game.addInPlay(player1, mrBoom);
+        game.cardHandler.addInPlay(player1, mrBoom);
 
         // Get a monster from the deck
         const monster = game.obtainCard("b2-clotty")! as MonsterCard;
@@ -364,7 +364,7 @@ describe("Tap/Paid effects 1", () => {
         const initialHp = game.monsters[0]!.currentHealthPoints;
 
         // Recharge and activate the item with the monster as target
-        game.recharge(mrBoom);
+        game.cardHandler.recharge(mrBoom);
         await game.activateItem(player1, mrBoom, [game.monsters[0]]);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -375,12 +375,12 @@ describe("Tap/Paid effects 1", () => {
 
     it("mystery_sack - roll 1-2 to loot 1", async () => {
         const mysterySack = game.shop.obtainCard("b2-mystery_sack") as ItemCard;
-        game.addInPlay(player1, mysterySack);
+        game.cardHandler.addInPlay(player1, mysterySack);
 
         const initialHandSize = player1.hand.length;
 
         // Recharge and activate the item (creates and adds dice to stack)
-        game.recharge(mysterySack);
+        game.cardHandler.recharge(mysterySack);
         await game.activateItem(player1, mysterySack);
         await game.actions.resolveStack(); // Resolve the dice roll
 
@@ -395,12 +395,12 @@ describe("Tap/Paid effects 1", () => {
 
     it("mystery_sack - roll 3-4 to gain 4¢", async () => {
         const mysterySack = game.shop.obtainCard("b2-mystery_sack") as ItemCard;
-        game.addInPlay(player1, mysterySack);
+        game.cardHandler.addInPlay(player1, mysterySack);
 
         const initialCoins = player1.coins;
 
         // Recharge and activate the item (creates and adds dice to stack)
-        game.recharge(mysterySack);
+        game.cardHandler.recharge(mysterySack);
         await game.activateItem(player1, mysterySack);
         await game.actions.resolveStack(); // Resolve the dice roll
 
@@ -416,17 +416,17 @@ describe("Tap/Paid effects 1", () => {
     // it("no - cancel another item's tap ability", async () => {
     //     const no = game.shop.obtainCard("b2-no") as ItemCard;
     //     const sackOfPennies = game.shop.obtainCard("b2-sack_of_pennies") as ItemCard;
-    //     game.addInPlay(player1, no);
-    //     game.addInPlay(player2, sackOfPennies);
+    //     game.cardHandler.addInPlay(player1, no);
+    //     game.cardHandler.addInPlay(player2, sackOfPennies);
 
     //     const initialCoins = player2.coins;
 
     //     // Player2 activates sack_of_pennies
-    //     game.recharge(sackOfPennies);
+    //     game.cardHandler.recharge(sackOfPennies);
     //     await game.activateItem(player2, sackOfPennies);
 
     //     // Player1 uses "no" to cancel it
-    //     game.recharge(no);
+    //     game.cardHandler.recharge(no);
     //     const stackElement = game.stack.elements[0];
     //     await game.activateItem(player1, no, [stackElement]);
     //     await game.actions.resolveStack(); // Resolve "no"
@@ -443,8 +443,8 @@ describe("Tap/Paid effects 1", () => {
     it("pay_to_play - pay 10¢ to steal non-eternal item", async () => {
         const payToPlay = game.shop.obtainCard("b2-pay_to_play") as ItemCard;
         const targetItem = game.shop.obtainCard("b2-blank_card") as ItemCard;
-        game.addInPlay(player1, payToPlay);
-        game.addInPlay(player2, targetItem);
+        game.cardHandler.addInPlay(player1, payToPlay);
+        game.cardHandler.addInPlay(player2, targetItem);
 
         // Give player1 enough coins
         player1.gainCoins(15);
@@ -462,7 +462,7 @@ describe("Tap/Paid effects 1", () => {
 
     it("chaos_card - option 1: kill a player", async () => {
         const chaosCard = game.shop.obtainCard("b2-chaos_card") as ItemCard;
-        game.addInPlay(player1, chaosCard);
+        game.cardHandler.addInPlay(player1, chaosCard);
 
         // Give player2 enough HP to survive without dying
         player2.addHealthPoints(10);
@@ -470,7 +470,7 @@ describe("Tap/Paid effects 1", () => {
 
         // Recharge and activate with choose one result to kill player2
         // choose one result should be passed directly as target
-        game.recharge(chaosCard);
+        game.cardHandler.recharge(chaosCard);
         const chooseOneTarget = ["Kill a player or monster.", player2];
         await game.activateItem(player1, chaosCard, chooseOneTarget);
         await game.actions.resolveStack();
@@ -487,13 +487,13 @@ describe("Tap/Paid effects 1", () => {
     it("chaos_card - option 2: destroy an item", async () => {
         const chaosCard = game.shop.obtainCard("b2-chaos_card") as ItemCard;
         const targetItem = game.shop.obtainCard("b2-blank_card") as ItemCard;
-        game.addInPlay(player1, chaosCard);
-        game.addInPlay(player2, targetItem);
+        game.cardHandler.addInPlay(player1, chaosCard);
+        game.cardHandler.addInPlay(player2, targetItem);
 
         // Recharge and activate with choose one result to destroy item
         // Note: "destroy this. if you do, choose one-" requires two target arrays:
         // targets[0] for "destroy this" (empty) and targets[1] for "choose one" (must be array)
-        game.recharge(chaosCard);
+        game.cardHandler.recharge(chaosCard);
         const chooseOneTarget = ["Destroy an item or soul.", targetItem];
         await game.activateItem(player1, chaosCard, chooseOneTarget);
         await game.actions.resolveStack();
@@ -511,7 +511,7 @@ describe("Tap/Paid effects 1", () => {
 
     it("portable_slot_machine - roll 1-2 to loot 1", async () => {
         const portableSlotMachine = game.shop.obtainCard("b2-portable_slot_machine") as ItemCard;
-        game.addInPlay(player1, portableSlotMachine);
+        game.cardHandler.addInPlay(player1, portableSlotMachine);
 
         // Give player1 enough coins
         player1.gainCoins(10);
@@ -534,7 +534,7 @@ describe("Tap/Paid effects 1", () => {
 
     it("portable_slot_machine - roll 3-4 to gain 4¢", async () => {
         const portableSlotMachine = game.shop.obtainCard("b2-portable_slot_machine") as ItemCard;
-        game.addInPlay(player1, portableSlotMachine);
+        game.cardHandler.addInPlay(player1, portableSlotMachine);
 
         // Give player1 enough coins
         player1.gainCoins(10);
@@ -555,7 +555,7 @@ describe("Tap/Paid effects 1", () => {
 
     it("potato_peeler - put top card of each deck into discard", async () => {
         const potatoPeeler = game.shop.obtainCard("b2-potato_peeler") as ItemCard;
-        game.addInPlay(player1, potatoPeeler);
+        game.cardHandler.addInPlay(player1, potatoPeeler);
 
         // Get top cards before activation
         const topLoot = game.decks["loot"]!.cards[0]!;
@@ -567,7 +567,7 @@ describe("Tap/Paid effects 1", () => {
         const monsterDeckSize = game.decks["monster"]!.cards.length;
 
         // Recharge and activate
-        game.recharge(potatoPeeler);
+        game.cardHandler.recharge(potatoPeeler);
         await game.activateItem(player1, potatoPeeler);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -585,13 +585,13 @@ describe("Tap/Paid effects 1", () => {
 
     it("razor_blade - deal 1 damage to a player", async () => {
         const razorBlade = game.shop.obtainCard("b2-razor_blade") as ItemCard;
-        game.addInPlay(player1, razorBlade);
+        game.cardHandler.addInPlay(player1, razorBlade);
 
         player2.addHealthPoints(10);
         const initialHp = player2.currentHealthPoints;
 
         // Recharge and activate with player2 as target
-        game.recharge(razorBlade);
+        game.cardHandler.recharge(razorBlade);
         await game.activateItem(player1, razorBlade, [player2]);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -602,7 +602,7 @@ describe("Tap/Paid effects 1", () => {
 
     it("smelter - discard loot card to gain 3¢", async () => {
         const smelter = game.shop.obtainCard("b2-smelter") as ItemCard;
-        game.addInPlay(player1, smelter);
+        game.cardHandler.addInPlay(player1, smelter);
 
         // Give player1 a loot card
         const lootCard = game.decks["loot"]!.cards[0]!;
@@ -622,12 +622,12 @@ describe("Tap/Paid effects 1", () => {
 
     it("the_d100 - roll 1 to loot 1", async () => {
         const theD100 = game.shop.obtainCard("b2-the_d100") as ItemCard;
-        game.addInPlay(player1, theD100);
+        game.cardHandler.addInPlay(player1, theD100);
 
         const initialHandSize = player1.hand.length;
 
         // Recharge and activate
-        game.recharge(theD100);
+        game.cardHandler.recharge(theD100);
         await game.activateItem(player1, theD100);
         await game.actions.resolveStack(); // Resolve the dice roll
 
@@ -642,12 +642,12 @@ describe("Tap/Paid effects 1", () => {
 
     it("the_d100 - roll 2 to loot 2", async () => {
         const theD100 = game.shop.obtainCard("b2-the_d100") as ItemCard;
-        game.addInPlay(player1, theD100);
+        game.cardHandler.addInPlay(player1, theD100);
 
         const initialHandSize = player1.hand.length;
 
         // Recharge and activate
-        game.recharge(theD100);
+        game.cardHandler.recharge(theD100);
         await game.activateItem(player1, theD100);
         await game.actions.resolveStack(); // Resolve the dice roll
 
@@ -662,12 +662,12 @@ describe("Tap/Paid effects 1", () => {
 
     it("the_d100 - roll 3 to gain 3¢", async () => {
         const theD100 = game.shop.obtainCard("b2-the_d100") as ItemCard;
-        game.addInPlay(player1, theD100);
+        game.cardHandler.addInPlay(player1, theD100);
 
         const initialCoins = player1.coins;
 
         // Recharge and activate
-        game.recharge(theD100);
+        game.cardHandler.recharge(theD100);
         await game.activateItem(player1, theD100);
         await game.actions.resolveStack(); // Resolve the dice roll
 
@@ -682,12 +682,12 @@ describe("Tap/Paid effects 1", () => {
 
     it("the_d100 - roll 4 to gain 4¢", async () => {
         const theD100 = game.shop.obtainCard("b2-the_d100") as ItemCard;
-        game.addInPlay(player1, theD100);
+        game.cardHandler.addInPlay(player1, theD100);
 
         const initialCoins = player1.coins;
 
         // Recharge and activate
-        game.recharge(theD100);
+        game.cardHandler.recharge(theD100);
         await game.activateItem(player1, theD100);
         await game.actions.resolveStack(); // Resolve the dice roll
 
@@ -702,12 +702,12 @@ describe("Tap/Paid effects 1", () => {
 
     it("the_d100 - roll 5 to gain +1 HP till end of turn", async () => {
         const theD100 = game.shop.obtainCard("b2-the_d100") as ItemCard;
-        game.addInPlay(player1, theD100);
+        game.cardHandler.addInPlay(player1, theD100);
 
         const initialHp = player1.currentHealthPoints;
 
         // Recharge and activate
-        game.recharge(theD100);
+        game.cardHandler.recharge(theD100);
         await game.activateItem(player1, theD100);
         await game.actions.resolveStack(); // Resolve the item
 
@@ -722,12 +722,12 @@ describe("Tap/Paid effects 1", () => {
 
     it("the_d100 - roll 6 to gain +1 ATK till end of turn", async () => {
         const theD100 = game.shop.obtainCard("b2-the_d100") as ItemCard;
-        game.addInPlay(player1, theD100);
+        game.cardHandler.addInPlay(player1, theD100);
 
         const initialAtk = player1.attackPoints;
 
         // Recharge and activate
-        game.recharge(theD100);
+        game.cardHandler.recharge(theD100);
         await game.activateItem(player1, theD100);
         await game.actions.resolveStack(); // Resolve the item
 
@@ -743,14 +743,14 @@ describe("Tap/Paid effects 1", () => {
     it("the_battery - recharge another item", async () => {
         const theBattery = game.shop.obtainCard("b2-the_battery") as ItemCard;
         const targetItem = game.shop.obtainCard("b2-blank_card") as ItemCard;
-        game.addInPlay(player1, theBattery);
-        game.addInPlay(player1, targetItem);
+        game.cardHandler.addInPlay(player1, theBattery);
+        game.cardHandler.addInPlay(player1, targetItem);
 
         // Discharge the target item
         targetItem.charged = false;
 
         // Recharge and activate the_battery with target item
-        game.recharge(theBattery);
+        game.cardHandler.recharge(theBattery);
         await game.activateItem(player1, theBattery, [targetItem]);
         await game.actions.resolveStack();
 
@@ -761,14 +761,14 @@ describe("Tap/Paid effects 1", () => {
     it("the_d20 - reroll an item (destroy and replace)", async () => {
         const theD20 = game.shop.obtainCard("b2-the_d20") as ItemCard;
         const targetItem = game.shop.obtainCard("b2-blank_card") as ItemCard;
-        game.addInPlay(player1, theD20);
-        game.addInPlay(player2, targetItem);
+        game.cardHandler.addInPlay(player1, theD20);
+        game.cardHandler.addInPlay(player2, targetItem);
 
         // Get the top card of treasure deck (replacement card)
         const replacementCard = game.decks["treasure"]!.cards[0]!;
 
         // Recharge and activate the_d20 with target item (needs {player, card} format for reroll)
-        game.recharge(theD20);
+        game.cardHandler.recharge(theD20);
         await game.activateItem(player1, theD20, [targetItem]);
         await game.actions.resolveStack();
 
@@ -784,13 +784,13 @@ describe("Tap/Paid effects 1", () => {
     it("the_d20 - reroll an item from the shop (destroy and replace)", async () => {
         const theD20 = game.shop.obtainCard("b2-the_d20") as ItemCard;
         const targetItem = game.shop.itemsInShop[0] as ItemCard;
-        game.addInPlay(player1, theD20);
+        game.cardHandler.addInPlay(player1, theD20);
 
         // Get the top card of treasure deck (replacement card)
         const replacementCard = game.decks["treasure"]!.cards[0]!;
 
         // Recharge and activate the_d20 with target item (needs {player, card} format for reroll)
-        game.recharge(theD20);
+        game.cardHandler.recharge(theD20);
         await game.activateItem(player1, theD20, [targetItem]);
         await game.actions.resolveStack();
 
@@ -801,7 +801,7 @@ describe("Tap/Paid effects 1", () => {
 
     it("spoon_bender - add 1 to a roll", async () => {
         const spoonBender = game.shop.obtainCard("b2-spoon_bender") as ItemCard;
-        game.addInPlay(player1, spoonBender);
+        game.cardHandler.addInPlay(player1, spoonBender);
 
         // Create a dice roll
         const dice = player1.rollDice(Math.random, false, spoonBender);
@@ -809,7 +809,7 @@ describe("Tap/Paid effects 1", () => {
         dice.value = 3;
 
         // Recharge and activate spoon_bender with dice as target
-        game.recharge(spoonBender);
+        game.cardHandler.recharge(spoonBender);
         await game.activateItem(player1, spoonBender, [dice]);
         await game.actions.resolveStack();
 

@@ -59,6 +59,7 @@ import { TargetBuilder } from "./targetBuilder";
 import { TurnHandler } from "./turnHandler";
 import { miniDraft } from "./variants";
 import { EntityHandler } from "./handlers/entityHandler";
+import { CardHandler } from "./handlers/cardHandler";
 // Type representing sources of damage - either a card ability or a dice roll
 export type DamageSource = Card | DiceRoll;
 
@@ -70,32 +71,28 @@ export const {nextGlobalId, cardSets: CARD_SETS} = LoadsCardSets(CARDS);
  * It also handles all player actions such as declaring attacks, dealing damage, resolving deaths, and managing the game history. 
  */
 export class Game extends SelectionHandler {
-  // private _players: Player[] = [];
-  // private _animatedList: AnimatedList = new AnimatedList();
-  // private _monsterDiedThisTurn: boolean = false;
-  // private _entitiesInCombat: Entity[] = [];
-
   private _turnHandler: TurnHandler = new TurnHandler();
   private _random: () => number = () => {throw new Error("Random generator not initialized yet.");};
   private _seed: string = "";
-  private _decks: DecksCollection;
   private _shop!: Shop;
   private _encounters!: Encounters;
   private _rooms!: Rooms;
   private _stack: Stack = new Stack();
-  private _outsideGameCards: Card[] = [];
   private _emitter: GameEventEmitter;
-  private _bonusSouls: BsoulCard[] | undefined = undefined;
   private _stackSubsetCallbacks: {stackIds: number[], callback: () => void}[] = [];
   private _historicHandler: HistoricHandler = new HistoricHandler();
-  private _cardMapping: Map<number, Card> = new Map();
-  private _nextCardGlobalId: number = 0;
   private _isWon: boolean = false;
   private _gameStateSerializer: GameStateSerializer;
   readonly gameParameters = new GameParameters(() => this.dispatch());
   readonly _assertHandler: AssertHandler = new AssertHandler(this);
   readonly _actionHandler = new ActionHandler(this);
   private _entityHandler = new EntityHandler(this);
+  private _cardHandler = new CardHandler(this);
+  // private _decks: DecksCollection;
+  // private _outsideGameCards: Card[] = [];
+  // private _bonusSouls: BsoulCard[] | undefined = undefined;
+  // private _cardMapping: Map<number, Card> = new Map();
+  // private _nextCardGlobalId: number = 0;
   // readonly _gameStartHandler = new GameStartHandler(this);
 
   private _onStateChange: Signal<void> = new Signal();
@@ -107,7 +104,6 @@ export class Game extends SelectionHandler {
   constructor(seed: string = "", gameParameters?: GameParameters) {
     super();
     this.seed = seed; // if seed is empty, it will be set to a random value.
-    this._decks = createEmptyDecksCollection(this.random);
     this._emitter = new GameEventEmitter();
     this._gameStateSerializer = new GameStateSerializer(this);
     if(gameParameters !== undefined)
@@ -125,13 +121,16 @@ export class Game extends SelectionHandler {
    */
   get entitiesInCombat(): ReadonlyArray<Entity> {
     // Return a defensive copy so external code cannot mutate combat state.
-    return this._entityHandler.entitiesInCombat;
+    return this.entityHandler.entitiesInCombat;
   }
   get entityHandler(): EntityHandler {
     return this._entityHandler;
   }
+  get cardHandler(): CardHandler {
+    return this._cardHandler;
+  }
   get players(): Player[] {
-    return this._entityHandler.players;
+    return this.entityHandler.players;
   }
   get emitter(): GameEventEmitter {
     return this._emitter;
@@ -143,7 +142,7 @@ export class Game extends SelectionHandler {
     return this._turnHandler;
   }
   get decks(): DecksCollection {
-    return this._decks;
+    return this.cardHandler.decks;
   }
   get shop(): Shop {
     return this._shop;
@@ -151,14 +150,14 @@ export class Game extends SelectionHandler {
   get encounters(): Encounters {
     return this._encounters;
   }
-  get outsideGameCards(): Card[] {
-    return this._outsideGameCards;
+  get rooms(): Rooms | undefined {
+    return this._rooms;
   }
-  putOutsideGame(card: Card): void {
-    this._outsideGameCards.push(card);
+  get outsideGameCards(): Card[] {
+    return this.cardHandler.outsideGameCards;
   }
   get cardMapping(): ReadonlyMap<number, Card> {
-    return this._cardMapping;
+    return this.cardHandler.cardMapping;
   }
   get stack() {
     return this._stack;
@@ -174,7 +173,7 @@ export class Game extends SelectionHandler {
     return souls;
   }
   get Entities(): Entity[] {
-    return this._entityHandler.Entities;
+    return this.entityHandler.Entities;
   }
 
   get assert(): AssertHandler {
@@ -264,7 +263,7 @@ export class Game extends SelectionHandler {
   }
 
   get animatedList(): AnimatedList {
-    return this._entityHandler.animatedList;
+    return this.entityHandler.animatedList;
   }
 
   get attackableEntities(): Entity[] {
@@ -274,66 +273,26 @@ export class Game extends SelectionHandler {
    * This function returns all visible treasure and trinkets: each players inPlay and the shop items.
    */
   get visibleItems(): ItemCard[] {
-    let result: ItemCard[] = this.inPlayItems.map(({ card }) => card);
-    result.push(
-      ...this.shop.itemsInShop.filter((c): c is ItemCard => c instanceof ItemCard)
-    );
-    return result;
+    return this.cardHandler.visibleItems;
   }
   /**
    * This function returns the cards owned by a player (his hand and in-play, non-eternal cards), and game owned cards (shop and encounters).
    * @param player 
    */
   playerCardsAndGameOwnedCards(player: Player): Card[] {
-    // player's hand
-    const cards: Card[] = [];
-    cards.push(...player.hand._hand);
-    // player's inPlay
-    cards.push(...this.inPlayTargetableCards(player));
-    // player's curses
-    cards.push(...player.curses);
-    // shop
-    cards.push(...this.shop.itemsInShop.filter((c) => c !== undefined));
-    // events and monsters not in combat
-    cards.push(...this.encounters.nonEngagedInCombat);
-    return cards;
+   return this.cardHandler.playerCardsAndGameOwnedCards(player);
   }
   /**
    * Finds the owner of a soul or in-play item card.
    */
   getOwner(item: Card, type: "inplay" | "soul" | "any" = "any"): Player | null {
-    if(type === "inplay" || type === "any") {
-      if(item instanceof ItemCard)
-        for (const player of this.players) {
-          if (player.inPlay.includes(item)) {
-            return player;
-          }
-        }
-    }
-    if(type === "soul" || type === "any") {
-      for (const player of this.players) {
-        if (player.souls.includes(item)) {
-          return player;
-        }
-      }
-    }
-    return null;
+    return this.cardHandler.getOwner(item, type);
   }
   /**
    * Removes a specific element from the stack, wherever it is.
    */
   cancelStackElement(element: StackElement): void {
     this.stack.cancelElement(element);
-  }
-  /**
-   * Transfers a soul card from a target player to another player.
-   */
-  stealSoul(player: Player, target: Player, soul: Card) {
-    if (!target.souls.includes(soul)) {
-      throw new Error("Target player does not have the specified soul.");
-    }
-    this.removeSoul(target, soul);
-    this.addSoul(player, soul);
   }
 
   /**
@@ -348,6 +307,7 @@ export class Game extends SelectionHandler {
     );
     if (nbItemsToLose > 0 && setOfLosableItems.length > 0) {
       const numberOfItemsToLose = Math.min(nbItemsToLose, setOfLosableItems.length);
+
       return (
         await this.select(player, numberOfItemsToLose, numberOfItemsToLose, setOfLosableItems, nbItemsToLose > 1
             ? "Select items to lose."
@@ -355,68 +315,6 @@ export class Game extends SelectionHandler {
       ).selected;
     }
     return [];
-  }
-  
-  /**
-   * Grants coin/loot/treasure rewards when a monster dies to the current player.
-   */
-  entityRewards(entity: Monster | Animated, player: Player | null = null): void {
-    if(player === null)
-      player = this.currentPlayer;
-    const rewards = entity.rewards;
-    if(rewards === undefined)
-      return;
-
-    const adders =  {
-      "coin": (player: Player, amount: number) => this.gainCoins(player, amount, entity.card),
-      "loot": (player: Player, amount: number) => this.loot(player, amount),
-      "treasure": (player: Player, amount: number) => this.gainTreasure(player, amount),
-    }
-    const onDice = {
-      "coin": targetGetCoinRollEffect(this),
-      "loot": targetGetLootRollEffect(this),
-      "treasure": targetGetTreasureRollEffect(this),
-    }
-    for(const rewardType of ["coin", "loot", "treasure"] as const)
-      if(rewards[rewardType] !== undefined)
-      {
-        const allPlayers = rewards[rewardType] instanceof Object && "all" in rewards[rewardType] && rewards[rewardType].all
-        const amount = (rewards[rewardType] instanceof Object && "all" in rewards[rewardType]) ? rewards[rewardType].count : rewards[rewardType] as number | "roll";
-        const receivers = allPlayers ? this.players : [player];
-        for(const receiver of receivers)
-        {
-          if (amount === "roll") {
-            const roll = this.rollDice(receiver, false, entity.card);
-            roll.attachEffect(onDice[rewardType], entity.card, [
-              receiver,
-            ]);
-          } else if (typeof amount === "number") {
-            adders[rewardType](receiver, amount);
-          }
-        }
-      }
-  }
-
-  /**
-   * Applies post-death monster card destination (soul or discard).
-   */
-  obtainMonsterSoulOrDiscard(monster: Monster): void {
-    const card = monster.card;
-    if(card.afterEffect === "handled" || card.afterEffect === "nothing")
-      return; // Card is already handled by its afterEffect, so do nothing here.
-    if (card.rewards?.soul !== undefined) {
-      if (typeof card.rewards?.soul !== "number")
-        throw new Error("Monster soul reward must be a number.");
-      card.soul = card.rewards?.soul;
-      this.addAnimation({
-        id: this.nextAnimationId,
-        type: "obtainMonsterSoul",
-        card: card.jsonAPI,
-        player: this.currentPlayer.id,
-      });
-      this.addSoul(this.currentPlayer, card);
-    } else this.discard(card);
-    this.dispatch();
   }
 
   async resolveDiceRoll(): Promise<void> {
@@ -451,14 +349,7 @@ export class Game extends SelectionHandler {
    * @returns 
    */
   obtainCardFromOutsideGame(slug: string, globalId?: number): Card | undefined {
-    const card = this._outsideGameCards.find((c) =>
-      c.slug === slug && (globalId === undefined || c.globalId === globalId)
-    );
-    if (card) {
-      this._outsideGameCards.splice(this._outsideGameCards.indexOf(card), 1);
-      return card;
-    }
-    return undefined;
+    return this.cardHandler.obtainCardFromOutsideGame(slug, globalId);
   }
   /**
    * Finds and removes a card by slug from all reachable game zones.
@@ -469,157 +360,7 @@ export class Game extends SelectionHandler {
    * Only tests should not provide a global ID.
    */
   obtainCard(slug: string, globalId?: number, type?: DeckType): Card | undefined {
-    // Search in all players' hands and in-play areas
-    for (const player of this.players) {
-      if(type === "loot")
-      {
-        const handCard = player.hand.cards.find((c) =>
-          c.slug === slug && (globalId === undefined || c.globalId === globalId)
-        );
-        if (handCard) {
-          player.hand.removeCard(handCard);
-          return handCard;
-        }
-      }
-
-      const inPlayCard = player.inPlay.find((c) =>
-        c.slug === slug && (globalId === undefined || c.globalId === globalId)
-      );
-      if (inPlayCard) {
-        this.removeInPlay(player, inPlayCard);
-        return inPlayCard;
-      }
-    }
-
-    for (const slot of [this.shop, this.encounters, this._rooms]) {
-        if(slot === undefined)
-          continue;
-        if(type !== undefined && type !== slot._deck._type)
-          continue;
-        const card = slot.obtainCard(slug, globalId);
-        if (card) 
-          {
-            return card;
-          }
-    }
-    // Search in all decks
-    for (const deckKey in this.decks) {
-        if(!isDeckType(deckKey))
-          throw new Error(`Invalid deck type: ${deckKey}`);
-        if(type !== undefined && type !== deckKey)
-          continue;
-        const deck = this.decks[deckKey]!;
-        const card = deck.getCardFromSlug(slug, globalId);
-        if (card) return card;
-    }
-    return undefined;
-  }
-
-  /**
-   * Returns a reference to the copied card.
-   * @param issuer 
-   * @param gainer 
-   * @param toCopy 
-   * @returns 
-   */
-  gainAbilities(issuer: Player, gainer: ItemCard, toCopy: ItemCard): ItemCard {
-    // Implementation for gaining abilities
-    if(gainer.tags.copiedCards === undefined)
-        gainer.tags.copiedCards = [];
-    // console.log("Gaining abilities from ", toCopy.name, " to ", gainer.name);
-    const copiedSelector: TargetsSelector = {
-        description: "Select a card granted by this effect.",
-        selector: (player: Player) => ((gainer.tags.copiedCards as ItemCard[]).filter((c) => c.activeEffectList.length > 0)),
-        min: 1,
-        max: 1,
-    };
-    // Create an active effect selecting one of the copied cards and one of its effects.
-    if(!(gainer.hasTapEffect()))
-    {
-      gainer.canBeActivated = true;
-        gainer.addEffect(new Effect("Use a card effect.",
-            "active",
-            gainer,
-            async (effectData: EffectData) => {
-              const effectIssuer = effectData.issuer;
-                if(effectIssuer instanceof Player === false)
-                    throw new Error("Effect issuer must be a player.");
-                if(effectIssuer.inPlay.includes(gainer) === false)
-                  return false; // the card must be still in play to use its effect.
-                const card = effectData.next;
-                card.owner = effectIssuer;
-                if(!(card instanceof ItemCard)) {
-                    throw new Error("gainAbilitiesUntilEffect target must be an ItemCard.");
-                }
-                if(!(gainer.tags.copiedCards as ItemCard[]).includes(card)) {
-                  return false;
-                    throw new Error("You can only choose cards granted by this effect.");
-                }
-                const effectsWithValidTargets = card.activeEffectList.filter(e => {
-                    if(TargetBuilder.validTargetExists(this, effectIssuer, card, e.index) !== true) return false;
-                    return (e.index === "tap" || TargetBuilder.verifyPaiementCanBeMade(this, effectIssuer, card, e.description) === true);
-                });
-                if(effectsWithValidTargets.length === 0)
-                    return false;
-                const effectDescriptionId = (await effectData.selectAndRecord(this, effectIssuer, 1, 1, effectsWithValidTargets.map(e => e.description), "Select an effect to use.", true)).selected[0]!;
-                const effectId = card.activeEffectList.find(e => e.description === effectDescriptionId)?.index;
-                if(effectId === undefined) {
-                    throw new Error(`Selected effect "${effectDescriptionId}" not found on the card ${card.name}.`);
-                }
-                const targets =  await TargetBuilder.buildTargetsOnResolve(this, effectIssuer, card, effectId);
-                card.recharge();
-                const effectOnStack = await card.tryActivateEffect(targets, effectId);
-                this.addToStack(effectOnStack);
-                return true;
-            }
-        ,[copiedSelector]
-    ));
-    }
-    const copied = this.copyCard(toCopy, issuer) as ItemCard;
-    gainer.tags.copiedCards.push(copied);
-    copied.onAddInPlay(() => issuer);
-    gainer.cleaners.push(() => {
-      // console.log("Cleaning up copied card: ", copied.name);
-      copied.cleanup();
-      gainer.tags.copiedCards = (gainer.tags.copiedCards as ItemCard[]).filter(c => c !== copied);
-    });
-    return copied;
-  }
-
-  /**
-   * Swaps two in-play items between their owners.
-   */
-  swapItems(item1: ItemCard, item2: ItemCard): boolean {
-    const owner1 = this.getOwner(item1);
-    const owner2 = this.getOwner(item2);
-    if (owner1 && owner2 && item1.eternal === false && item2.eternal === false) {
-      this.removeInPlay(owner1, item1);
-      this.removeInPlay(owner2, item2);
-      this.addInPlay(owner1, item2);
-      this.addInPlay(owner2, item1);
-      return true;
-    }
-    return false;
-  }
-
-  makePlayerAttackable(player: Player, evasion: number): void {
-    player.attackable = true;
-    player.evasion = evasion;
-  }
-
-  makePlayerUnattackable(player: Player): void {
-    player.attackable = false;
-    player.evasion = 0;
-  }
-
-  /**
-   * Adds a new player before game start.
-   */
-  addPlayer(newPlayer: Player): void {
-    this.assert.playerIdAvailable(newPlayer.id);
-    this.assert.gameNotStarted();
-    this.players.push(newPlayer);
-    this.dispatch();
+    return this.cardHandler.obtainCard(slug, globalId, type);
   }
 
   get nextAnimationId(): string {
@@ -631,10 +372,7 @@ export class Game extends SelectionHandler {
   }
 
   get deckNames(): DeckType[] {
-    const names = ["loot", "treasure", "monster"] as DeckType[];
-    if(this._rooms !== undefined)
-      names.push("room");
-    return names;
+    return this.cardHandler.deckNames;
   }
   get monsterSlots(): Encounters {
     return this.encounters;
@@ -667,46 +405,6 @@ export class Game extends SelectionHandler {
     this.dispatch();
     return item.stackId;
   }
-
-  /**
-   * Gives a soul card to a player.
-   */
-  addSoul(player: Player, soulCard: Card): void {
-    if (soulCard instanceof BsoulCard && soulCard.granted === false)
-    {
-      this.addAnimation({
-        id: this.nextAnimationId,
-        type: "obtainBonusSoul",
-        card: soulCard.jsonAPI,
-        player: player.id,
-      });
-      soulCard.granted = true;
-    }
-    const eventData = { eventIssuer: player, soul: soulCard };
-    this.emit("on:soul:gained:before", eventData);
-    if(eventData.soul === null)
-      return;
-    player.addSoul(soulCard);
-    this.emit("on:soul:gained", eventData);
-    this.dispatch();
-  }
-
-  handleLootCardEffectResolution(elem: LootCardEffect): void {
-    if(this.decks["loot"].discard.includes(elem.card))
-      return;
-    if(elem.card.afterEffect === "discard")
-    {
-      this.discard(elem.card);
-    }
-    if(elem.card.afterEffect === "addInPlay")
-      {
-        if(!(elem.card.owner instanceof Player))
-          throw new Error("Trinket can only be owned by a player");
-        this.addInPlay(elem.card.owner, elem.card);
-      }
-    if(elem.card.afterEffect === "discardNextTime")
-      elem.card.afterEffect = "discard";
-    }
 
   /**
    * Resolves stack elements until the stack is empty.
@@ -792,13 +490,6 @@ export class Game extends SelectionHandler {
   }
 
   /**
-   * Returns all player hands paired with their owner.
-   */
-  allHands(): { player: Player; hand: Hand }[] {
-    return this.players.map((player) => ({ player, hand: player.hand }));
-  }
-
-  /**
    * Executes the standard loot step at turn start.
    */
   lootStep(): void {
@@ -820,7 +511,7 @@ export class Game extends SelectionHandler {
     const eventData = { eventIssuer: player, itemsToRecharge: itemsToRecharge }
     this.emit("on:turn:start:before:recharge:step", eventData);
       void this.executeWhenStackEmpty(() => {
-        this.rechargeMultiple(player, "rechargeStep", eventData.itemsToRecharge);
+        this.cardHandler.rechargeMultiple(player, "rechargeStep", eventData.itemsToRecharge);
         this.emit("on:turn:start", { eventIssuer: player });
         void this.executeWhenStackEmpty(() => {
           this.lootStep();
@@ -830,67 +521,6 @@ export class Game extends SelectionHandler {
   }
   
   /**
-   * Recharges every in-play item for a player.
-   */
-  rechargeMultiple(player: Player, reason: RechargeReason = "other", items: ItemCard[] | undefined = undefined): void {
-    if(items === undefined)
-      items = player.unchargedItems;
-    for (const card of items) {
-      this.recharge(card, reason);
-    }
-  }
-
-  /**
-   * Recharges a single item.
-   */
-  recharge(item: ItemCard, reason: RechargeReason = "other"): void {
-    const data = { eventIssuer: null, card: item, reason, shouldRecharge: true};
-    this.emit("on:recharge", data);
-    if(data.shouldRecharge)
-      item.recharge();
-  }
-
-  /**
-   * Deactivates a single item.
-   */
-  deactivateItem(item: ItemCard): void {
-    item.deactivate();
-    this.dispatch();
-  }
-
-  async replaceCharacter(player: Player, newCharacter: CharacterCard): Promise<void> {
-     // Remove the current character + starting item (both are eternal, so we cannot use removeInPlay()).
-    const oldCharacter = player.character;
-    const oldStartingItem = player.inPlay[1]!;
-    
-    const copyNewChara = this.copyCard(newCharacter) as CharacterCard;
-    copyNewChara.onAddInPlay(() => player);
-    
-    oldCharacter.cleanup();
-    if(oldStartingItem !== undefined && oldStartingItem.eternal === true)
-    {
-      oldStartingItem.cleanup();
-    }
-    player.inPlay[0] = copyNewChara;
-    
-    const newStartingItemSlug = newCharacter.eternalCard;
-    const newStartingItem =
-      newStartingItemSlug === null
-        ? undefined
-        : this.copyCard(this.decks.eternal.cards.find((card) => card.slug === newStartingItemSlug)!) as ItemCard;
-
-    if(newStartingItem === undefined)
-    {
-      await selectEternalAmongX(this, 3)(new EffectData(newCharacter, () => player, []));
-      player.inPlay[1] = player.inPlay[player.inPlay.length - 1]!;
-      player.inPlay.pop();
-    } else{
-      newStartingItem.onAddInPlay(() => player);
-      player.inPlay[1] = newStartingItem!;
-    }
-  }
-
-  /**
    * Enforces max-hand-size discard rules for a player.
    */
   async verifyHandSize(player: Player): Promise<void> {
@@ -898,7 +528,7 @@ export class Game extends SelectionHandler {
     if (toDiscard > 0){
       const selection = await this.select(player, toDiscard, toDiscard, player.hand.cards, `You must discard ${toDiscard} card(s) to reach your maximum hand size of ${this.gameParameters.maxHandSize.value}.`, true);
       for (const card of selection.selected) {
-        this.discardFromHandAtIndex(player, player.hand._hand.indexOf(card), "overload");
+        this.cardHandler.discardFromHandAtIndex(player, player.hand._hand.indexOf(card), "overload");
       }
     }
   }
@@ -966,19 +596,6 @@ export class Game extends SelectionHandler {
       }
   }
 
-
-  /**
-   * Draws and initializes the three bonus soul cards.
-   */
-  initializeBonusSouls(): void {
-    if(this.decks["bsoul"]._order!.length !== 0 && this.gameParameters.playWithBonusSouls.value) {
-      this._bonusSouls = this.decks["bsoul"]!.drawSeveral(3);
-      for (const soul of this._bonusSouls) {
-        soul.cleanup = bSoulEffectParser(soul, this);
-      }
-    }
-  }
-
   initializeWinningCondition(): void {
     let offSoulGained: (() => void) | null = null;
         offSoulGained = this.emitter.on("on:soul:gained", async ({ eventIssuer }) => {
@@ -990,77 +607,6 @@ export class Game extends SelectionHandler {
           }
       });
     }
-
-  moveOutsideCards(): void {
-    for (const key in this.decks) {
-      const deck = this.decks[key as DeckType]!;
-      for (const card of deck.cards) {
-        if (card.outsideGame) {
-          const obtainedCard = deck.getCardFromSlug(card.slug);
-          if(!obtainedCard)
-            throw new Error(`Card with slug ${card.slug} not found in deck.`);
-          this.putOutsideGame(obtainedCard);
-        }
-      }
-    }
-  }
-  /**
-   * Creates decks and attaches parsed effects to all cards.
-   */
-  setupDecks(): void {
-    if(this._decks["character"]._order!.length !== 0)
-      return;
-    this._decks = LoadDecks(
-      CARDS
-      // .filter((c) => c.slug.includes("fsp2") || (c.type !== "treasure" && c.type !== "monster"))
-      ,
-      this.players.length,
-      this.gameParameters,
-      this.random
-    );
-    this.rebuildCardMapping();
-    this.joinEffectsToCards();
-    this.moveOutsideCards();
-  }
-
-  /**
-   * Note that any character card taken is duplicated with its eternal item if it has one. 
-   * That allows several players to have the same character.
-   * @param slugs set of character card slugs or "random" in the players order.
-   * @returns set of character cards in the same order
-   */
-  getCharactersFromSlugs(slugs: string[]): CharacterCard[] {
-    this.setupDecks();
-    const characters: CharacterCard[] = [];
-    for (const slug of slugs) {
-      if(slug === "random")
-      {
-        characters.push(null as any);
-        continue;
-      }
-      const cardFromSet = this._decks["character"]._set.cards.find(c => c.slug === slug);
-      if(!cardFromSet)
-        throw new Error(`Character card with slug ${slug} not found in character deck.`);
-      const card = this.copyCard(cardFromSet) as CharacterCard;
-      if (card) {
-        this.addBottomPosition("character", card);
-        if(card.eternalCard !== null)
-        {
-          const eternalCardFromSet = this._decks["eternal"]._set.cards.find(c => c.slug === card.eternalCard) as ItemCard;
-          const eternalCard = this.copyCard(eternalCardFromSet) as ItemCard;
-          this.addBottomPosition("eternal", eternalCard);
-        }
-        characters.push(card);
-      }
-    }
-    for (let index = 0; index < characters.length; index++) {
-      if (characters[index] === null) {
-        const randomCard = this._decks["character"].draw();
-        characters[index] = randomCard;
-      }
-    }
-    return characters;
-  }
 
   assignColorsToPlayers(): void {
     const colors = [
@@ -1078,12 +624,12 @@ export class Game extends SelectionHandler {
     this.assert.gameNotStarted();
     if (players && players.length > 0) {
       for (const p of players) 
-        this.addPlayer(new Player(p.issuer));
-      const chara = this.getCharactersFromSlugs(players.map((p) => p.character));
-      this.assignCharactersToPlayers(chara);
+        this.entityHandler.addPlayer(new Player(p.issuer));
+      const chara = this.cardHandler.getCharactersFromSlugs(players.map((p) => p.character));
+      this.cardHandler.assignCharactersToPlayers(chara);
     }
      else {
-      this.assignRandomCharacterToPlayers();
+      this.cardHandler.assignRandomCharacterToPlayers();
     }
     this.assert.minimumPlayerCount();
     this._pendingMultipleSelections.clear();
@@ -1094,7 +640,7 @@ export class Game extends SelectionHandler {
     this._historicHandler.recordInitialGameState(this);
     
     this.initializeWinningCondition();
-    this.initializeBonusSouls();
+    this.cardHandler.initializeBonusSouls();
     this._shop = new Shop(
       this.gameParameters.nbItemsInShop.value,
       this.decks["treasure"]!
@@ -1128,6 +674,7 @@ export class Game extends SelectionHandler {
     this.startTurn();
   }
 
+
   /**
    * Distributes starting resources to each player.
    */
@@ -1140,51 +687,6 @@ export class Game extends SelectionHandler {
     if(this.gameParameters.miniDraft.value)
       await miniDraft(this);
   } 
-
-  /**
-   * Transfers a card between players when legal.
-   */
-  give(from: Player, to: Player, card: Card): boolean {
-    if (from.souls.includes(card)) {
-      this.removeSoul(from, card);
-      this.addSoul(to, card);
-      return true;
-    }
-    
-    if (card instanceof ItemCard) 
-      if (from.inPlay.includes(card) && !card.eternal) {
-        this.removeInPlay(from, card);
-        this.addInPlay(to, card);
-        return true;
-      }
-      // loot card must be looked at the end, as it can be a trinket in play, or a soul.
-    if (card instanceof LootCard) {
-      return this.giveCard(from, to, card);
-    }
-    return false;
-  }
-
-  /**
-   * Transfers a loot card from one hand to another.
-   */
-  giveCard(from: Player, to: Player, card: LootCard): boolean {
-    if (!from.hand.cards.includes(card)) {
-      return false;
-    }
-    this.addAnimation({
-      id: this.nextAnimationId,
-      type: "transferLoot",
-      sender: from.id,
-      recipient: to.id,
-      card: card.jsonAPI,
-    });
-
-    this.removeCardFromHand(from, card);
-    this.addCardToHand(to, card);
-    if(to.hand.cards.some(c => this.decks.loot.cards.includes(c)))
-        throw new Error("Cafsd be given to the player for eachOtherPlayerLootsAndYouLootEffect");
-    return true;
-  }
 
   /**
    * Proposes a coin transfer that target player may accept/decline.
@@ -1216,155 +718,22 @@ export class Game extends SelectionHandler {
   }
 
   /**
-   * Add a card to a player's hand and emit the appropriate event.
-   * This is the centralized method for all hand additions.
-   */
-  addCardToHand(player: Player, card: LootCard): void {
-    card.owner = player;
-    player.hand.addToHand(card);
-
-    this.dispatch();
-    this.emit("on:loot:added:after", { eventIssuer: player, card });
-    this.dispatch();
-  }
-
-  /**
-   * Remove a card from a player's hand and emit the appropriate event.
-   * This is the centralized method for all hand removals.
-   */
-  removeCardFromHand(player: Player, card: LootCard): void {
-    player.hand.removeCard(card);
-    this.dispatch();
-    this.emit("on:loot:removed:after", { eventIssuer: player, card });
-    this.dispatch();
-  }
-
-  /**
-   * Draws random character cards and assigns them to players.
-   */
-  assignRandomCharacterToPlayers(): void {
-    this.setupDecks();
-    const characterDeck = this.decks["character"];
-    if (!characterDeck) {
-      throw new Error("No character deck found");
-    }
-    
-    const characters: CharacterCard[] = characterDeck.drawSeveral(
-      this.players.length
-    );
-    this.assignCharactersToPlayers(characters);
-  }
-
-  /**
-   * Assigns provided character cards (and matching eternals) to players.
-   */
-  assignCharactersToPlayers(characters: CharacterCard[]): void {
-    const characterDeck = this.decks["character"];
-    if (!characterDeck) {
-      throw new Error("No character deck found");
-    }
-    if (characters.length !== this.players.length) {
-      throw new Error("Number of characters does not match number of players");
-    }
-    this.players.forEach((player, index) => {
-      const character = characters[index]!;
-      if (LOG_GAME) {
-        console.log(
-          "Assigning character",
-          character.name,
-          "to player",
-          player.id
-        );
-      }
-      this.addInPlay(player, character);
-      const eternalDeck = this.decks["eternal"];
-      if (!eternalDeck) {
-        throw new Error("No eternal deck found");
-      }
-      if (character.eternalCard) {
-        const cardName = character.eternalCard;
-        const card = eternalDeck.getCard((card: Card) =>
-          isSameSlug(cardName, card)
-        );
-        if (!card) {
-          eternalDeck?.cards.forEach((card) => {
-            console.log("Available eternal card:", card.slug);
-          });
-          throw new Error("No eternal card with slug " + cardName + " found");
-        }
-        if (card.slug !== cardName) {
-          throw new Error(
-            "Eternal card slug mismatch: expected " +
-            cardName +
-            ", got " +
-            card.slug
-          );
-        }
-        this.addInPlay(player, card);
-      }
-    });
-  }
-
-  /**
    * Resets the full game state to a fresh pre-start state.
    */
   reset(newSeed: boolean = true): void {
     this._historicHandler = new HistoricHandler();
     this._turnHandler = new TurnHandler();
     this._entityHandler = new EntityHandler(this);
+    this._cardHandler = new CardHandler(this);
     this.seed = (newSeed ? "" : this.seed); // If newSeed is true, set to a random value in the setter.
-    this._decks = createEmptyDecksCollection(this.random);
     this._shop = undefined!;
     this._encounters = undefined!;
     this._rooms = undefined!;
     this.resetStack();
     this._emitter = new GameEventEmitter();
-    this._bonusSouls = undefined;
-    this._outsideGameCards = [];
-    this._cardMapping = new Map();
-    this._nextCardGlobalId = 0;
     this._pendingMultipleSelections = new Map();
     this._stackSubsetCallbacks = [];
     this._isWon = false;
-  }
-
-  /**
-   * Adds an item to play and emits enter-play trigger.
-   */
-  addInPlay(player: Player, card: ItemCard): void {
-    this.emit("on:enter:play", { eventIssuer: player, card: card });
-    // Ensure the card knows its current owner and its effects are subscribed to that owner.
-    // Previously only certain card types had onAddInPlay called; that left some items with a stale owner
-    // after transfers (steal/give). Always call onAddInPlay so owner is accurate.
-    card.onAddInPlay(() => player);
-    player.addInPlay(card);
-    this.emit("on:enter:play:after", {
-      eventIssuer: player,
-      card: card,
-    });
-    this.dispatch();
-  }
-
-  get rooms(): Rooms | undefined {
-    return this._rooms;
-  }
-
-  /**
-   * Adds a curse card to a player.
-   */
-  addCurse(player: Player, card: MonsterCard): void {
-    player.addCurse(card);
-    card.onPlay(player, []);
-    this.dispatch();
-  }
-
-  /**
-   * Removes a curse card from a player and runs cleanup.
-   */
-    removeCurse(player: Player, card: MonsterCard): void {
-    card.cleanup();
-    player.removeCurse(card);
-    this.dispatch();
   }
 
   /**
@@ -1376,243 +745,11 @@ export class Game extends SelectionHandler {
     targets: any[] = [],
     effectId: number | "tap" = "tap"
   ): Promise<boolean> {
-    const effectOnStack = await player.activateItem(item, targets, effectId);
-    this.addAnimation({
-      id: this.nextAnimationId,
-      type: "activateInPlay",
-      card: item.jsonAPI,
-    })
-    this.addToStack(effectOnStack);
-    if (effectId === "tap") {
-      this.emit("on:item:activated", {
-        eventIssuer: player,
-        item: item,
-      });
-    }
-    return true;
-  }
-
-  // An active effect goes on the stack immediately, a passive effect register a listener.
-  // A loot card is always an active effect, as even trinket goes to the stack before becoming an item.
-  // An event monster card is an active effect as it goes on the stack when drawn.
-  // A monster card effect is passive.
-  private getEffectTypeFromOutcome(outcome: string, card: Card): EffectType {
-    const normalizedOutcome = outcome.trim();
-    const lowerOutcome = normalizedOutcome.toLowerCase();
-    let type: EffectType = "passive";
-    if (
-      normalizedOutcome.startsWith("[Tap Effect]") ||
-      card.type === "loot" ||
-      (card instanceof MonsterCard &&
-        card.encounterType === MonsterType.EVENT &&
-        outcome !==
-        "The active player may attack an additional time this turn.")
-    )
-      type = "active";
-    else if (normalizedOutcome.startsWith("[Paid Effect]") || lowerOutcome.startsWith("[paid effect]")) type = "paid";
-    return type;
-  }
-
-  attachFlipEffectsToCard(card: Card): void {
-    if(card.flipData === undefined)
-      throw new Error("attachFlipEffectsToCard should only be called on cards with flip data.");
-    
-    if(card.flipData.rewards !== undefined)
-    {
-      const originalRewards = card.json.rewards;
-      const flippedRewards = card.flipData.rewards;
-      card.addFlipEffect(() => {
-          card.json.rewards = card.flipped ? flippedRewards : originalRewards;
-      });
-    }
-    if(card.flipData.stats !== undefined && card.json.stats !== undefined) // Entity changes stats.
-      {
-        const originalStats = card.json.stats;
-        const flippedStats = card.flipData.stats;
-        const differenceHP = (flippedStats.healthPoints ?? 0) - (originalStats.healthPoints ?? 0); 
-        const differenceAttack = (flippedStats.attackPoints ?? 0) - (originalStats.attackPoints ?? 0);
-        const differenceEvasion = (flippedStats.evasionPoints ?? 0) - (originalStats.evasionPoints ?? 0);
-        if((flippedStats.evasionPoints === undefined) !== (originalStats.evasionPoints === undefined))
-          throw new Error("Cards adding or removing evasion as a stat not supported.");
-
-        card.addFlipEffect(() => {
-          if(!card.flipped)
-          {
-            this.entityHandler.addHealth(card.owner, -differenceHP, "flip");
-            this.entityHandler.addAttack(card.owner, -differenceAttack, "flip");
-            if(flippedStats.evasionPoints !== undefined && card.owner instanceof Monster)
-              this.entityHandler.addDC(card.owner, -differenceEvasion, "flip"); 
-          }
-            else
-            {
-              this.entityHandler.addHealth(card.owner, differenceHP, "flip");
-              this.entityHandler.addAttack(card.owner, differenceAttack, "flip");
-              if(flippedStats.evasionPoints !== undefined && card.owner instanceof Monster)
-                this.entityHandler.addDC(card.owner, differenceEvasion, "flip");
-            }
-        });
-      }
-      else if(card.flipData.stats !== undefined || card.json.stats !== undefined)// create animated entity.
-      {
-        card.addFlipEffect(() => {
-          if(!card.flipped)
-          {
-            card.json.stats = card.json.stats;
-          }
-          else
-          {
-            card.json.stats = card.flipData!.stats!;
-          }
-        });
-      }
-    const originalEffects = card.json.effectOutcome || [];
-    const newEffects = card.flipData!.effectOutcome;
-    const flipData = card.flipData;
-    card.flipData = undefined; // to avoid confusion, as the json is not updated on flip after initialization.
-    card.swapEffectInterfaces();
-    card.effectOutcomes = newEffects;
-    this.attachEffectsToCard(card);
-    card.effectOutcomes = originalEffects;
-    card.flipData = flipData;
-    card.swapEffectInterfaces();
-    card.addFlipEffect(() => {
-      card.effectOutcomes = card.flipped ? newEffects : originalEffects;
-      card.cleanup();
-      card.swapEffectInterfaces();
-      card.onAddInPlay(() => card.owner);
-    });
-  }
-
-  /**
-   * Parses and attaches all effects from a card's effect outcomes.
-   * @param card - The card to attach effects to
-   * @param attachFlip - Whether to attach flip effects. Set to false only by parsing flipped cards.
-   */
-  attachEffectsToCard(card: Card): void {
-    const flipped = card.flipped;
-    for (let idx in card.effectOutcomes) {
-      let outcome = card.effectOutcomes[idx]!;
-      if(card.subtype === "curse" && !outcome.startsWith("[Curse]") && idx === "0")
-        outcome = "[Curse] " + outcome;
-      const effectType = this.getEffectTypeFromOutcome(outcome, card);
-      // Handle paid effects separately to extract payment and effect functions
-      if (effectType === "paid") {
-        const s2 = outcome
-          .replace("[paid effect] ", "")
-          .replace("[Paid Effect] ", "")
-          .trim();
-        const idx = s2.indexOf(":");
-
-        if (idx === -1) {
-          throw new Error(
-            `Invalid paid effect format (missing ':'): ${outcome}`
-          );
-        }
-
-        const paymentString = s2.substring(0, idx).trim();
-        const effectString = s2.substring(idx + 1).trim();
-
-        const paymentParsed = effectParser(paymentString, this);
-        const effectParsed = effectParser(effectString, this);
-
-        const effect: Effect = new Effect(
-          outcome,
-          effectType,
-          card,
-          effectParsed.effectFunction,
-          [...paymentParsed.targetSelectors, ...effectParsed.targetSelectors],
-          paymentParsed.effectFunction
-        );
-        card.addEffect(effect);
-      } else {
-        // Regular effects (passive/active)
-        const parsed = effectParser(outcome, this, card instanceof MonsterCard);
-        const effect: Effect = new Effect(
-          outcome,
-          effectType,
-          card,
-          parsed.effectFunction,
-          parsed.targetSelectors
-        );
-        card.addEffect(effect);
-      }
-    }
-    
-    if(card.flipData !== undefined)
-      this.attachFlipEffectsToCard(card);
-  }
-
-  private joinEffectsToCards(): void {
-    for (const deckName of [
-      "loot",
-      // "bsoul",
-      "character",
-      "eternal",
-      "treasure",
-      "monster",
-      "room",
-    ]) {
-      if(!isDeckType(deckName))
-        throw new Error(`Invalid deck type: ${deckName}`);
-      if(deckName === "room" && this.decks["room"] === undefined)
-        continue;
-      const deck = this.decks[deckName]!;
-      deck.cards.forEach((card: Card) => {
-        this.attachEffectsToCard(card);
-      });
-    }
-  }
-
-  /**
-   * Creates a copy of a card by reconstructing it from its JSON definition.
-   * The copy is built from scratch with all effects parsed and attached.
-   * @param card - The card to copy
-   * @returns A new card instance with the same properties and effects
-   */
-  copyCard(card: Card, owner: Player | null = null): Card {
-    const json = card.json;
-
-    // Create the appropriate card type using the helper function
-    this.decks[card.type]._set.addCard(json, this.allocateCardGlobalId());
-    const copiedCard = this.decks[card.type]._set.get(this.decks[card.type]._set.length - 1);
-    // Parse and attach effects to the copied card
-    this.attachEffectsToCard(copiedCard);
-    this.registerCard(copiedCard);
-    if(owner) {
-      copiedCard.owner = owner;
-    }
-    return copiedCard;
+    return await this.cardHandler.activateItem(player, item, targets, effectId);
   }
 
   getCardByGlobalId(globalId: number): Card | undefined {
-    return this._cardMapping.get(globalId);
-  }
-
-  private registerCard(card: Card): void {
-    if (this._cardMapping.has(card.globalId)) {
-      throw new Error(`Duplicate global card id detected: ${card.globalId}.`);
-    }
-    this._cardMapping.set(card.globalId, card);
-    this._nextCardGlobalId = Math.max(this._nextCardGlobalId, card.globalId + 1);
-  }
-
-  private rebuildCardMapping(): void {
-    this._cardMapping.clear();
-    this._nextCardGlobalId = 0;
-      Object.values(this.decks).forEach((deck) => deck.cards.forEach((card) => this.registerCard(card)));
-  }
-
-  addToCounter(issuer: Entity, item: Card, counterName: string, value: number): void {
-    if (!item.tags[counterName]) {
-      item.tags[counterName] = 0;
-    }
-    const oldValue = item.tags[counterName];
-    item.tags[counterName] = Math.max(0, item.tags[counterName] + value);
-    this.emit("on:counter:modified", { eventIssuer: issuer, card: item, counterName: counterName, previousValue: oldValue, newValue: item.tags[counterName] });
-  }
-
-  private allocateCardGlobalId(): number {
-    return this._nextCardGlobalId++;
+    return this.cardHandler.getCardByGlobalId(globalId);
   }
 
   /** Grants coins to a player and emits coin gained triggers. */
@@ -1637,262 +774,6 @@ export class Game extends SelectionHandler {
     return `New amount of coins: ${player.coins} coins.\n`;
   }
 
-  /** Draws the first N cards from a typed deck. */
-  getFirstCardsOfDeck<T extends DeckType>(deckName: T, number: number): DeckTypeToCardType[T][] {
-    return this.decks[deckName]!.drawSeveral(number) as DeckTypeToCardType[T][];
-  }
-  /** Inserts a card on top of a typed deck. */
-  addTopPosition<T extends DeckType>(deckName: T, card: Card): void {
-    this.assert.cardMatchesDeck(deckName, card);
-    this.decks[deckName]!.addTopPosition(card as any);
-  }
-  /** Inserts a card at the bottom of a typed deck. */
-  addBottomPosition<T extends DeckType>(deckName: T, card: Card): void {
-    this.assert.cardMatchesDeck(deckName, card);
-    this.decks[deckName]!.addBottomPosition(card as any);
-  }
-
-  /** Schedules an extra turn for a player. */
-  addExtraTurn(player: Player): void {
-    this.turnHandler.InsertPlayerAtNextTurn(player);
-  }
-  /** Replaces a player's hand and returns the previous one. */
-  setHand(player: Player, hand: Hand): Hand {
-    return player.setHand(hand);
-  }
-  /** Draws treasure cards and puts them directly in play for the player. */
-  gainTreasure(player: Player, nb: number = 1): void {
-    this.assert.gameStarted();
-    this.assert.positiveNumber(nb);
-    const eventData = { eventIssuer: player, amount: nb };
-    this.emit("on:item:gained", eventData);
-
-    for (let i = 0; i < eventData.amount; i++) {
-      const treasureDeck = this.decks["treasure"]!;
-      try {
-        const drawnCard: TreasureCard = treasureDeck.draw()!;
-        this.addInPlay(player, drawnCard);
-      } catch (err: any) {
-        // Treat empty-deck as a recoverable condition during randomized tests
-        // Log for diagnostics and stop attempting further treasure draws.
-        if (err && typeof err.message === 'string' && err.message.includes('has only 0 cards')) {
-          // console.warn('gainTreasure: treasure deck empty, skipping remaining treasure draws.');
-          return;
-        }
-        throw err;
-      }
-    }
-  }
-
-  /** Removes curse cards from players and marks them destroyed. */
-  destroyCurse(cards: MonsterCard[]): boolean {
-    this.players.forEach((player) => {
-      player.curses.forEach((card) => {
-        if (cards.includes(card)) {
-          this.removeCurse(player, card);
-          this.discard(card);
-        }
-      })
-    });
-    this.dispatch();
-    return true;
-  }
-
-  /** Destroys cards by removing them from in-play/soul zones and shop and tracks destruction.
-   * Note that loot cards can not be destroyed.
-   */
-  destroyCardsOrSouls(cards: Card[]): boolean {
-    if (cards.length === 0 || cards.some((card) => card === undefined) || cards.some((card) => card.eternal === true) || cards.some((card) => card.type === "loot" && card.soul === 0 && (card as LootCard).trinket === false))
-      return false;
-
-    // console.log("Destroying cards:", cards.map(c => c.name));
-    const eventData = { eventIssuer: null, cards };
-    this.emit("on:item:destroyed", eventData);
-    cards = eventData.cards;
-    if(cards.length === 0)
-      return true;
-    cards.forEach((card) => {
-      if(card instanceof ItemCard)
-        if(this.shop.removeCard(card)) {
-        }
-      });
-      cards.forEach((card) => {
-      const rest = this.obtainCard(card.slug, card.globalId, card.type);
-    });
-    cards.forEach((card) => {
-      this.players.forEach((player) => {
-        this.removeSoul(player, card);
-      });
-    });
-    
-    cards.forEach((card) => {
-      this.discard(card);
-    });
-
-    this.dispatch();
-    return true;
-  }
-
-  /** Builds a full player-scoped game state payload for API/UI clients. */
-  detailedStateJSON(player: Player): DetailedState {
-    this.assert.gameStarted();
-    return this._gameStateSerializer.detailedStateJSON(player);
-  }
-
-  
-  /** Draws loot cards for a player and emits pre/post loot triggers. */
-  loot(player: Player, number: number = 1, reason: "lootStep" | "other" = "other"): void {
-    this.assert.gameStarted();
-    this.assert.positiveNumber(number);
-
-    const n = [number];
-    const lootDeck = this.decks["loot"]!;
-    this.emit("on:loot:would", {
-      eventIssuer: player,
-      numberOfCards: n,
-      reason
-    });
-    const toLoot = n[0]!;
-    this.addAnimation({
-      id: this.nextAnimationId,
-      type: "drawLoot",
-      nb: toLoot,
-      player: player.id,
-    })
-    if (toLoot > 0)
-      for (let i = 0; i < toLoot; i++) {
-        const drawnCard: LootCard = lootDeck.draw()!;
-        this.addCardToHand(player, drawnCard);
-      }
-    this.emit("on:loot:after", {
-      eventIssuer: player,
-      numberOfCards: toLoot,
-    });
-    this.dispatch();
-  }
-
-  /** Emits a game trigger event and schedules stack reordering if needed. */
-  emit(event: TriggerEvent, data: any = {}, dispatch: boolean = true): void {
-    const count = this.emitter.emit(event, data);
-    if (count > 0 && dispatch)
-      this.dispatch();
-    // If count > 1 calls stack reordering. 
-    // Players can reorder their own effects if they have multiple. 
-    // Current player can also reorder game effects if multiple are triggered at the same time.
-    // Game effects are always resolved before player effects, and player effects are resolved in turn order starting from the current player.
-    if(count > 1)
-      this.stack.reorderStack(this.currentPlayer, count);
-  }
-
-  /** Tags simultaneously-added top stack effects into reorderable owner groups. */
-  
-
-  /** Moves one stack element before another within the same reordering group. */
-  insertStackElementBefore(player: Player, elementToMoveStackId: number, targetStackId: number | "start"): void {
-    this.assert.gameStarted();
-    const {event, orderedListenerIds} = this.stack.insertStackElement(player, elementToMoveStackId, targetStackId);
-    if (orderedListenerIds.length > 1) {
-      this.emitter.reorderListenersBySubset(event as TriggerEvent, orderedListenerIds);
-    }
-    this.dispatch();
-  }
-
-  /** Discards one in-play card by index when discard is legal. */
-  discardInPlay(player: Player, index: number): string {
-    this.assert.gameStarted();
-    this.assert.isAlive(player);
-    this.assert.positiveNumber(index);
-
-    const inPlayCards = player.inPlay;
-    if (index < 0 || index > inPlayCards.length - 1) {
-      throw new Error("Invalid card position.");
-    }
-    const discardedCard: Card = inPlayCards[index]!;
-    if (player.removeInPlayByIndex(index)) {
-      this.discard(discardedCard);
-      return `You have discarded the card: ${discardedCard.name} from your in-play area.\n`;
-    } else {
-      return `Cannot discard ${discardedCard.name} from in-play area as it is a ${discardedCard.type} card.\n`;
-    }
-  }
-
-  /** Attempts to steal an item from shop or another player's in-play area. */
-  stealItemAnywhere(player: Player, target: ItemCard): boolean {
-    this.assert.gameStarted();
-
-    if (this.shop.removeCard(target)) {
-      this.addInPlay(player, target);
-      return true;
-    }
-    for (const p of this.players) {
-      if (p !== player) {
-        if (p.inPlay.includes(target)) {
-          if(target.eternal)
-            throw new Error("Cannot steal eternal items.");
-          if(this.removeInPlay(p, target)) {
-            this.addInPlay(player, target);
-            return true;
-          }
-        }
-      }
-    }
-    return false;
-  }
-  /** Steals up to the requested number of coins from target player. */
-  stealCoins(player: Player, target: Player, amount: number): string {
-    this.assert.gameStarted();
-    this.assert.positiveNumber(amount);
-
-    const stolenCoins = this.loseCoins(target, amount, true, "effect");
-    player.gainCoins(stolenCoins);
-
-    return `You have stolen ${stolenCoins} coins from ${target.id}.\n`;
-  }
-  /** Steals one specific loot card from target player's hand. */
-  stealLootCard(player: Player, target: Player, card: LootCard): string {
-    this.assert.gameStarted();
-
-    const position = target.hand.cards.indexOf(card);
-    this.assert.positiveNumber(position);
-
-    if (position < 0 || position > target.hand.cards.length) {
-      throw new Error("Invalid card position.");
-    }
-
-    this.removeCardFromHand(target, card);
-    this.addCardToHand(player, card);
-
-    return `You have stolen the card: ${card.name} from ${target.id}.\n`;
-  }
-
-  /** Destroys an owned item and replaces it by gaining treasure. */
-  reroll(card: Card): void {
-    const owner = this.getOwner(card, "inplay");
-    if (!(card instanceof ItemCard)) {
-      throw new Error("Can only reroll with an item card.");
-    }
-    if (owner && !owner.inPlay.includes(card)) {
-      throw new Error("Owner does not have the specified card in play.");
-    }
-    const success = this.getOwner(card, "soul") ? false : this.destroyCardsOrSouls([card]);
-    if(owner && success)
-      {
-        // owner.removeInPlay(card);
-        this.gainTreasure(owner);
-    }
-  }
-
-  flip(entity: Entity, card: Card): void {
-    this.assert.gameStarted();
-    if (entity instanceof Player && !(this.getOwner(card) === entity)) {
-      return;
-    }
-    if (card.flipData === undefined) {
-      return;
-    }
-    card.flip();
-    this.emit("on:card:flipped", { eventIssuer: entity, card, recto: card.flipped });
-  }
   /** Discards the top monster card from an encounter slot. */
   discardMonster(player: Player, position: number): string {
     this.assert.gameStarted();
@@ -1927,48 +808,55 @@ export class Game extends SelectionHandler {
 
     return `You have drawn a new monster at position ${position}.\n`;
   }
-
-  /** Removes and returns a specific loot card from issuer hand. */
-  getCardFromHand(player: Player, card: LootCard): LootCard {
+  
+  /** Builds a full player-scoped game state payload for API/UI clients. */
+  detailedStateJSON(player: Player): DetailedState {
     this.assert.gameStarted();
-    const lootCard = card;
-    const position = player.hand.cards.indexOf(lootCard);
-    this.assert.positiveNumber(position);
-
-    if (position < 0 || position > player.hand.cards.length) {
-      throw new Error("Invalid card position.");
-    }
-
-    this.removeCardFromHand(player, card);
-    return card;
+    return this._gameStateSerializer.detailedStateJSON(player);
   }
 
-  /** Discards one hand card by index to the loot discard pile. 
-   * @return true if the discard was successful.
-  */
-  discardFromHandAtIndex(player: Player, position: number, reason: "death" | "effect" | "overload" | "other"= "other"): boolean {
-    this.assert.gameStarted();
-    this.assert.positiveNumber(position);
-    const hand = player.hand;
-    const eventData = { eventIssuer: player, indice: [position], reason };
-    position = eventData.indice[0]!;
-    this.emit("on:loot:discard:before", eventData);
-    if (position < 0 || position > hand.cards.length - 1) {
-      return false;
-    }
-    
-    const discardedCard: LootCard = hand.cards[position]!;
-    this.removeCardFromHand(player, discardedCard);
-    const lootDeck = this.decks["loot"]!;
-    this.addAnimation({
-      id: this.nextAnimationId,
-      type: "discardLoot",
-      player: player.id,
-      card: discardedCard.jsonAPI,
-    })
-    lootDeck.addDiscardTop(discardedCard);
+  
+  /** Draws loot cards for a player and emits pre/post loot triggers. */
+  loot(player: Player, number: number = 1, reason: "lootStep" | "other" = "other"): void {
+    return this.cardHandler.loot(player, number, reason);
+  }
 
-    return true;
+  gainTreasure(player: Player, nb: number = 1): void {
+    return this.cardHandler.gainTreasure(player, nb);
+  }
+
+  /** Emits a game trigger event and schedules stack reordering if needed. */
+  emit(event: TriggerEvent, data: any = {}, dispatch: boolean = true): void {
+    const count = this.emitter.emit(event, data);
+    if (count > 0 && dispatch)
+      this.dispatch();
+    // If count > 1 calls stack reordering. 
+    // Players can reorder their own effects if they have multiple. 
+    // Current player can also reorder game effects if multiple are triggered at the same time.
+    // Game effects are always resolved before player effects, and player effects are resolved in turn order starting from the current player.
+    if(count > 1)
+      this.stack.reorderStack(this.currentPlayer, count);
+  }
+
+  /** Moves one stack element before another within the same reordering group. */
+  insertStackElementBefore(player: Player, elementToMoveStackId: number, targetStackId: number | "start"): void {
+    this.assert.gameStarted();
+    const {event, orderedListenerIds} = this.stack.insertStackElement(player, elementToMoveStackId, targetStackId);
+    if (orderedListenerIds.length > 1) {
+      this.emitter.reorderListenersBySubset(event as TriggerEvent, orderedListenerIds);
+    }
+    this.dispatch();
+  }
+
+  /** Steals up to the requested number of coins from target player. */
+  stealCoins(player: Player, target: Player, amount: number): string {
+    this.assert.gameStarted();
+    this.assert.positiveNumber(amount);
+
+    const stolenCoins = this.loseCoins(target, amount, true, "effect");
+    player.gainCoins(stolenCoins);
+
+    return `You have stolen ${stolenCoins} coins from ${target.id}.\n`;
   }
 
   /** Marks a player to skip their next turn. */
@@ -2020,46 +908,8 @@ export class Game extends SelectionHandler {
     return diceRoll;
   }
 
-  /** Lists targetable in-play cards (excluding eternal/character). */
-  inPlayTargetableCards(target: Player): ItemCard[] {
-    return target.inPlay.filter(
-      (card) =>
-        card.type !== "eternal" &&
-        card.type !== "character"
-    );
-  }
-
-  /** Sends a card to its owner deck discard pile. */
-  discard(card: Card): void {
-    if(!card.canBeDiscarded) return;
-    const eventData = { eventIssuer: null, card };
-    this.emit("on:card:discarded:before", eventData);
-    if(eventData.card === null)
-      return;
-    this.obtainCard(card.slug, card.globalId, card.type); // make sure the card is removed from other places.
-    const deck: Deck<Card> = this.decks[card.type];
-    deck.addDiscardTop(card);
-  }
-
-  /** Removes an in-play card from player and runs cleanup triggers. */
-  removeInPlay(player: Player, card: ItemCard): boolean {
-    card.cleanup();
-    return player.removeInPlay(card);
-  }
-
-  /** Removes a soul card from player and runs cleanup triggers. */
-  removeSoul(player: Player, card: Card): boolean {
-    const result = player.removeSoul(card);
-    if(result)
-      {
-        card.cleanup();
-        this.emit("on:soul:removed", { eventIssuer: player, card });
-      }
-    return result;
-  }
-
   get bonusSouls(): BsoulCard[] | undefined {
-    return this._bonusSouls;
+    return this.cardHandler.bonusSouls;
   }
   
   get pendingMultipleSelections(): Map<string, PendingSelection> {

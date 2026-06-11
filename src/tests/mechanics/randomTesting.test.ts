@@ -7,7 +7,7 @@ import { randomSelect, randomSelectMultiple, setupTestGame } from "../testHelper
 import { LootCard } from "@/models/cards";
 
 let fixedSeed: string = "";
-// fixedSeed = "0.4293122752475677";
+fixedSeed = "0.8704499538851226";
 let VERBOSE = fixedSeed !== ""; 
 // VERBOSE = false; 
 let gameId = 0;

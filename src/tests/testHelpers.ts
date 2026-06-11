@@ -203,7 +203,7 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
     mockGameSelections(game);
     
     // Setup game
-    game.setupDecks();
+    game.cardHandler.setupDecks();
     for(const slug of forbiddenCards) {
         const card = game.obtainCard(slug);
         if(card === undefined) {
@@ -288,7 +288,7 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
             for (const player of game.players) {
                 const inPlayTreasure = player.inPlay.find((card): card is TreasureCard => card.type === "treasure" && card.slug === slug);
                 if (inPlayTreasure) {
-                    game.removeInPlay(player, inPlayTreasure);
+                    game.cardHandler.removeInPlay(player, inPlayTreasure);
                     treasureCard = inPlayTreasure;
                     break;
                 }
@@ -298,7 +298,7 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
         if (!treasureCard) {
             const template = (game.decks["treasure"] as any)?._set?.cards?.find((card: TreasureCard) => card.slug === slug) as TreasureCard | undefined;
             if (template) {
-                treasureCard = game.copyCard(template) as TreasureCard;
+                treasureCard = game.cardHandler.copyCard(template) as TreasureCard;
             }
         }
 

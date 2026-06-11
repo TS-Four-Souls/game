@@ -31,12 +31,12 @@ describe("Tap/Paid effects 2", () => {
         const dinner = game.shop.obtainCard("b2-dinner") as ItemCard;
         const brimstone = game.shop.obtainCard("b2-brimstone") as ItemCard;
         
-        game.addInPlay(player1, remoteDetonator);
-        game.addInPlay(player1, breakfast);
-        game.addInPlay(player2, dinner);
-        game.addInPlay(player3, brimstone);
+        game.cardHandler.addInPlay(player1, remoteDetonator);
+        game.cardHandler.addInPlay(player1, breakfast);
+        game.cardHandler.addInPlay(player2, dinner);
+        game.cardHandler.addInPlay(player3, brimstone);
         
-        game.recharge(remoteDetonator);
+        game.cardHandler.recharge(remoteDetonator);
         
         // Mock selectMultiple - all 3 players vote for breakfast
         let voteCount = 0;
@@ -65,12 +65,12 @@ describe("Tap/Paid effects 2", () => {
         const dinner = game.shop.obtainCard("b2-dinner") as ItemCard;
         const brimstone = game.shop.obtainCard("b2-brimstone") as ItemCard;
         
-        game.addInPlay(player1, remoteDetonator);
-        game.addInPlay(player1, breakfast);
-        game.addInPlay(player2, dinner);
-        game.addInPlay(player3, brimstone);
+        game.cardHandler.addInPlay(player1, remoteDetonator);
+        game.cardHandler.addInPlay(player1, breakfast);
+        game.cardHandler.addInPlay(player2, dinner);
+        game.cardHandler.addInPlay(player3, brimstone);
         const nbVisible = game.visibleItems.length;
-        game.recharge(remoteDetonator);
+        game.cardHandler.recharge(remoteDetonator);
         
         // Mock selectMultiple - create a tie (each item gets 1 vote)
         let voteCount = 0;
@@ -101,11 +101,11 @@ describe("Tap/Paid effects 2", () => {
     // b2-guppys_paw: "[Tap Effect] Pay 1 [HP]. If you do, choose a player. Prevent the next instance of up to 2 damage they would take this turn."
     it("guppys_paw - prevents up to 2 damage when HP paid", async () => {
         const guppysPaw = game.shop.obtainCard("b2-guppys_paw") as ItemCard;
-        game.addInPlay(player1, guppysPaw);
+        game.cardHandler.addInPlay(player1, guppysPaw);
         game.entityHandler.addHealth(player2, 10); // Ensure player1 has enough HP to pay
         const initialHP = player2.currentHealthPoints;
         
-        game.recharge(guppysPaw);
+        game.cardHandler.recharge(guppysPaw);
         
         expect(player1.currentHealthPoints).toBe(2);
         await game.activateItem(player1, guppysPaw, [player2]);
@@ -122,7 +122,7 @@ describe("Tap/Paid effects 2", () => {
 
     it("guppys_paw - does not activate if player has insufficient HP", async () => {
         const guppysPaw = game.shop.obtainCard("b2-guppys_paw") as ItemCard;
-        game.addInPlay(player1, guppysPaw);
+        game.cardHandler.addInPlay(player1, guppysPaw);
         
         // Reduce player1's HP to 0
         game.entityHandler.healthLoss(player1, player1, guppysPaw, player1.currentHealthPoints);
@@ -130,7 +130,7 @@ describe("Tap/Paid effects 2", () => {
         game.entityHandler.addHealth(player2, 10); // Ensure player2 has enough HP to test damage
         const initialHP2 = player2.currentHealthPoints;
         
-        game.recharge(guppysPaw);
+        game.cardHandler.recharge(guppysPaw);
         
         // Try to activate - should fail because player1 has 0 HP
         await game.activateItem(player1, guppysPaw, [player2]);
@@ -147,12 +147,12 @@ describe("Tap/Paid effects 2", () => {
 
     it("guppys_paw - prevents only 2 damage from larger attacks", async () => {
         const guppysPaw = game.shop.obtainCard("b2-guppys_paw") as ItemCard;
-        game.addInPlay(player1, guppysPaw);
+        game.cardHandler.addInPlay(player1, guppysPaw);
         game.entityHandler.addHealth(player2, 10); // Ensure player2 has enough HP to test damage
 
         const initialHP = player2.currentHealthPoints;
         
-        game.recharge(guppysPaw);
+        game.cardHandler.recharge(guppysPaw);
         
         await game.activateItem(player1, guppysPaw, [player2]);
         await game.actions.resolveStack();
@@ -166,12 +166,12 @@ describe("Tap/Paid effects 2", () => {
 
     it("guppys_paw - only prevents one instance of damage", async () => {
         const guppysPaw = game.shop.obtainCard("b2-guppys_paw") as ItemCard;
-        game.addInPlay(player1, guppysPaw);
+        game.cardHandler.addInPlay(player1, guppysPaw);
         game.entityHandler.addHealth(player2, 10); // Ensure player2 has enough HP to test damage
 
         const initialHP = player2.currentHealthPoints;
         
-        game.recharge(guppysPaw);
+        game.cardHandler.recharge(guppysPaw);
         
         await game.activateItem(player1, guppysPaw, [player2]);
         await game.actions.resolveStack();
@@ -190,9 +190,9 @@ describe("Tap/Paid effects 2", () => {
     // TODO: Skipped - same issue as above test
     it("guppys_paw - can target self", async () => {
         const guppysPaw = game.shop.obtainCard("b2-guppys_paw") as ItemCard;
-        game.addInPlay(player1, guppysPaw);
+        game.cardHandler.addInPlay(player1, guppysPaw);
         
-        game.recharge(guppysPaw);
+        game.cardHandler.recharge(guppysPaw);
         
         
         expect(player1.currentHealthPoints).toBe(2);
@@ -210,7 +210,7 @@ describe("Tap/Paid effects 2", () => {
     // b2-empty_vessel: "While you have 0¢, you have +1 to your attack rolls."
     it("empty_vessel - grants +1 to attack rolls when at 0 coins", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
-        game.addInPlay(player1, emptyVessel);
+        game.cardHandler.addInPlay(player1, emptyVessel);
         
         // Ensure player1 has 0 coins
         game.loseCoins(player1, player1.coins, true);
@@ -222,7 +222,7 @@ describe("Tap/Paid effects 2", () => {
 
     it("empty_vessel - no bonus when player has coins", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
-        game.addInPlay(player1, emptyVessel);
+        game.cardHandler.addInPlay(player1, emptyVessel);
         
         // Give player1 some coins
         game.gainCoins(player1, 5, "gift");
@@ -234,7 +234,7 @@ describe("Tap/Paid effects 2", () => {
 
     it("empty_vessel - bonus activates when losing coins to 0", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
-        game.addInPlay(player1, emptyVessel);
+        game.cardHandler.addInPlay(player1, emptyVessel);
         
         // Give player1 some coins
         game.gainCoins(player1, 3, "gift");
@@ -251,7 +251,7 @@ describe("Tap/Paid effects 2", () => {
 
     it("empty_vessel - bonus deactivates when gaining coins from 0", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
-        game.addInPlay(player1, emptyVessel);
+        game.cardHandler.addInPlay(player1, emptyVessel);
         
         // Ensure player1 has 0 coins
         game.loseCoins(player1, player1.coins, true);
@@ -268,7 +268,7 @@ describe("Tap/Paid effects 2", () => {
 
     it("empty_vessel - bonus reactivates after spending coins back to 0", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
-        game.addInPlay(player1, emptyVessel);
+        game.cardHandler.addInPlay(player1, emptyVessel);
         
         // Start with 0 coins
         game.loseCoins(player1, player1.coins, true);
@@ -294,10 +294,10 @@ describe("Tap/Paid effects 2", () => {
         
         // Clear player1's hand first (game already started and player looted)
         while (player1.hand.length > 0) {
-            game.discardFromHandAtIndex(player1, 0);
+            game.cardHandler.discardFromHandAtIndex(player1, 0);
         }
         
-        game.addInPlay(player1, emptyVessel);
+        game.cardHandler.addInPlay(player1, emptyVessel);
         await game.actions.resolveStack();
 
         // Player1 now has 0 cards
@@ -307,7 +307,7 @@ describe("Tap/Paid effects 2", () => {
 
     it("empty_vessel - no ATK bonus when player has loot cards in hand", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
-        game.addInPlay(player1, emptyVessel);
+        game.cardHandler.addInPlay(player1, emptyVessel);
         
         // Add cards to hand
         game.loot(player1, 3);
@@ -317,7 +317,7 @@ describe("Tap/Paid effects 2", () => {
 
     it("empty_vessel - ATK bonus activates when hand becomes empty", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
-        game.addInPlay(player1, emptyVessel);
+        game.cardHandler.addInPlay(player1, emptyVessel);
         await game.actions.resolveStack();
 
         // Start with empty hand and bonus
@@ -332,8 +332,8 @@ describe("Tap/Paid effects 2", () => {
         
         // Discard all cards manually - store references before removal
         const cards = [...player1.hand.cards];
-        game.removeCardFromHand(player1, cards[0]! as LootCard);
-        game.removeCardFromHand(player1, cards[1]! as LootCard);
+        game.cardHandler.removeCardFromHand(player1, cards[0]! as LootCard);
+        game.cardHandler.removeCardFromHand(player1, cards[1]! as LootCard);
         await game.actions.resolveStack();
 
         expect(player1.hand.length).toBe(0);
@@ -342,7 +342,7 @@ describe("Tap/Paid effects 2", () => {
 
     it("empty_vessel - ATK bonus responds to discardFromHandAtIndex", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
-        game.addInPlay(player1, emptyVessel);
+        game.cardHandler.addInPlay(player1, emptyVessel);
         
         await game.actions.resolveStack();
         // Add a card
@@ -351,7 +351,7 @@ describe("Tap/Paid effects 2", () => {
         expect(player1.attackPoints).toBe(1); // No bonus
         
         // Discard the card using game method
-        game.discardFromHandAtIndex(player1, 0);
+        game.cardHandler.discardFromHandAtIndex(player1, 0);
         await game.actions.resolveStack();
 
         expect(player1.hand.length).toBe(0);
@@ -360,7 +360,7 @@ describe("Tap/Paid effects 2", () => {
 
     it("empty_vessel - ATK bonus responds to giveCard", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
-        game.addInPlay(player1, emptyVessel);
+        game.cardHandler.addInPlay(player1, emptyVessel);
         await game.actions.resolveStack();
 
         // Give player1 some cards
@@ -371,7 +371,7 @@ describe("Tap/Paid effects 2", () => {
         // Give all cards to player2
         const cards = [...player1.hand.cards];
         for (const card of cards) {
-            game.giveCard(player1, player2, card as LootCard);
+            game.cardHandler.giveCard(player1, player2, card as LootCard);
         }
         await game.actions.resolveStack();
         
@@ -381,7 +381,7 @@ describe("Tap/Paid effects 2", () => {
 
     it("empty_vessel - ATK bonus responds to stealLootCard", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
-        game.addInPlay(player1, emptyVessel);
+        game.cardHandler.addInPlay(player1, emptyVessel);
         await game.actions.resolveStack();
 
         // Give player1 one card
@@ -392,7 +392,7 @@ describe("Tap/Paid effects 2", () => {
         const stolenCard = player1.hand.cards[0] as LootCard;
         
         // Player2 steals the card
-        game.stealLootCard(player2, player1, stolenCard);
+        game.cardHandler.stealLootCard(player2, player1, stolenCard);
         await game.actions.resolveStack();
 
         expect(player1.hand.length).toBe(0);
@@ -401,7 +401,7 @@ describe("Tap/Paid effects 2", () => {
 
     it("empty_vessel - receiving stolen card deactivates ATK bonus", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
-        game.addInPlay(player1, emptyVessel);
+        game.cardHandler.addInPlay(player1, emptyVessel);
         await game.actions.resolveStack();
 
         // Player1 has empty hand with bonus
@@ -414,7 +414,7 @@ describe("Tap/Paid effects 2", () => {
         const cardToSteal = player2.hand.cards[0] as LootCard;
         
         // Player1 steals from player2
-        game.stealLootCard(player1, player2, cardToSteal);
+        game.cardHandler.stealLootCard(player1, player2, cardToSteal);
         
         expect(player1.hand.length).toBe(1);
         await game.actions.resolveStack();
@@ -423,14 +423,14 @@ describe("Tap/Paid effects 2", () => {
 
     it("empty_vessel - ATK bonus responds to playCard", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
-        game.addInPlay(player1, emptyVessel);
+        game.cardHandler.addInPlay(player1, emptyVessel);
         
         // Ensure player has 0 coins first
         game.loseCoins(player1, player1.coins, true);
         
         // Give player1 a card they can play
         const card = game.decks["loot"]!.getCardFromSlug("b2-a_penny")! as LootCard;
-        game.addCardToHand(player1, card);
+        game.cardHandler.addCardToHand(player1, card);
         
         expect(player1.hand.length).toBe(1);
         expect(player1.attackPoints).toBe(1); // No bonus (has card in hand)
@@ -446,48 +446,48 @@ describe("Tap/Paid effects 2", () => {
 
     it("empty_vessel - ATK bonus correctly toggles with rapid hand size changes", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
-        game.addInPlay(player1, emptyVessel);
+        game.cardHandler.addInPlay(player1, emptyVessel);
         await game.actions.resolveStack();
         
         expect(player1.attackPoints).toBe(2); // Start with bonus
         
         // Add card
         const card1 = game.decks["loot"]!.draw() as LootCard;
-        game.addCardToHand(player1, card1);
+        game.cardHandler.addCardToHand(player1, card1);
         await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(1);
         
         // Add another
         const card2 = game.decks["loot"]!.draw() as LootCard;
-        game.addCardToHand(player1, card2);
+        game.cardHandler.addCardToHand(player1, card2);
         await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(1);
         
         // Remove one
-        game.removeCardFromHand(player1, card1);
+        game.cardHandler.removeCardFromHand(player1, card1);
         await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(1);
         
         // Remove the last
-        game.removeCardFromHand(player1, card2);
+        game.cardHandler.removeCardFromHand(player1, card2);
         await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(2);
         
         // Add again
         const card3 = game.decks["loot"]!.draw() as LootCard;
-        game.addCardToHand(player1, card3);
+        game.cardHandler.addCardToHand(player1, card3);
         await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(1);
         
         // Remove again
-        game.removeCardFromHand(player1, card3);
+        game.cardHandler.removeCardFromHand(player1, card3);
         await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(2);
     });
 
     it("empty_vessel - ATK bonus is specific to owner", async () => {
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
-        game.addInPlay(player1, emptyVessel);
+        game.cardHandler.addInPlay(player1, emptyVessel);
         await game.actions.resolveStack();
         
         // Both players have empty hands
@@ -512,14 +512,14 @@ describe("Tap/Paid effects 2", () => {
         
         // Acquire empty_vessel while having cards
         const emptyVessel = game.shop.obtainCard("b2-empty_vessel") as ItemCard;
-        game.addInPlay(player1, emptyVessel);
+        game.cardHandler.addInPlay(player1, emptyVessel);
         
         // Should still not have bonus
         expect(player1.attackPoints).toBe(1);
         
         // Discard all cards
         while (player1.hand.length > 0) {
-            game.discardFromHandAtIndex(player1, 0);
+            game.cardHandler.discardFromHandAtIndex(player1, 0);
         }
         await game.actions.resolveStack();
         
@@ -533,11 +533,11 @@ describe("Tap/Paid effects 2", () => {
         
         // Clear player1's hand
         while (player1.hand.length > 0) {
-            game.discardFromHandAtIndex(player1, 0);
+            game.cardHandler.discardFromHandAtIndex(player1, 0);
         }
         
         // Add empty vessel
-        game.addInPlay(player1, emptyVessel);
+        game.cardHandler.addInPlay(player1, emptyVessel);
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(0);
         expect(player1.attackPoints).toBe(2); // Bonus active
@@ -561,10 +561,10 @@ describe("Tap/Paid effects 2", () => {
     // b2-shadow: "If another player would pay the death penalty, you choose what item they would destroy and you gain any loot cards and ¢ they would lose."
     it("shadow - redirects death penalty coins and loot to shadow owner", async () => {
         const shadow = game.shop.obtainCard("b2-shadow") as ItemCard;
-        game.addInPlay(player1, shadow);
+        game.cardHandler.addInPlay(player1, shadow);
         
         const breakfast = game.shop.obtainCard("b2-breakfast") as ItemCard;
-        game.addInPlay(player2, breakfast);
+        game.cardHandler.addInPlay(player2, breakfast);
         
         // Give player2 some coins and loot cards
         game.gainCoins(player2, 5, "gift");
@@ -598,7 +598,7 @@ describe("Tap/Paid effects 2", () => {
 
     it("shadow - shadow owner does not intercept their own death penalty", async () => {
         const shadow = game.shop.obtainCard("b2-shadow") as ItemCard;
-        game.addInPlay(player1, shadow);
+        game.cardHandler.addInPlay(player1, shadow);
         
         // Give player1 some coins
         game.gainCoins(player1, 5, "gift");
@@ -616,7 +616,7 @@ describe("Tap/Paid effects 2", () => {
 
     it("shadow - handles death penalty when victim has no items", async () => {
         const shadow = game.shop.obtainCard("b2-shadow") as ItemCard;
-        game.addInPlay(player1, shadow);
+        game.cardHandler.addInPlay(player1, shadow);
         expect(player2.hand.length).toBe(0);
         game.loot(player2, 2);
         // Player2 has no non-eternal items (only character)
@@ -643,10 +643,10 @@ describe("Tap/Paid effects 2", () => {
 
     it("shadow - handles death penalty when victim has no loot cards", async () => {
         const shadow = game.shop.obtainCard("b2-shadow") as ItemCard;
-        game.addInPlay(player1, shadow);
+        game.cardHandler.addInPlay(player1, shadow);
         
         const breakfast = game.shop.obtainCard("b2-breakfast") as ItemCard;
-        game.addInPlay(player2, breakfast);
+        game.cardHandler.addInPlay(player2, breakfast);
         
         // Give player2 coins but no loot
         game.gainCoins(player2, 5, "gift");
@@ -669,11 +669,11 @@ describe("Tap/Paid effects 2", () => {
     // TODO: Skipped - same issue as first shadow test
     it("shadow - cannot force destruction of eternal items", async () => {
         const shadow = game.shop.obtainCard("b2-shadow") as ItemCard;
-        game.addInPlay(player1, shadow);
+        game.cardHandler.addInPlay(player1, shadow);
         
         const breakfast = game.shop.obtainCard("b2-breakfast") as ItemCard;
         breakfast.setEternal(true); // Make it eternal
-        game.addInPlay(player2, breakfast);
+        game.cardHandler.addInPlay(player2, breakfast);
         
         // Give player2 coins
         game.gainCoins(player2, 5, "gift");
@@ -856,11 +856,11 @@ describe("Force Attack Monster", () => {
 
         it("forces active player to attack chosen monster", async () => {
             const monsterManual = game.shop.obtainCard("b2-monster_manual") as ItemCard;
-            game.addInPlay(player1, monsterManual);
+            game.cardHandler.addInPlay(player1, monsterManual);
 
             const targetMonster = game.monsters[1]!;
 
-            game.recharge(monsterManual);
+            game.cardHandler.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.actions.resolveStack();
 
@@ -870,11 +870,11 @@ describe("Force Attack Monster", () => {
 
         it("prevents ending turn without attacking the forced monster", async () => {
             const monsterManual = game.shop.obtainCard("b2-monster_manual") as ItemCard;
-            game.addInPlay(player1, monsterManual);
+            game.cardHandler.addInPlay(player1, monsterManual);
 
             const targetMonster = game.monsters[0]!;
 
-            game.recharge(monsterManual);
+            game.cardHandler.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.actions.resolveStack();
 
@@ -886,11 +886,11 @@ describe("Force Attack Monster", () => {
 
         it("allows ending turn after attacking the forced monster", async () => {
             const monsterManual = game.shop.obtainCard("b2-monster_manual") as ItemCard;
-            game.addInPlay(player1, monsterManual);
+            game.cardHandler.addInPlay(player1, monsterManual);
 
             const targetMonster = game.monsters[0]!;
 
-            game.recharge(monsterManual);
+            game.cardHandler.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.actions.resolveStack();
 
@@ -912,7 +912,7 @@ describe("Force Attack Monster", () => {
             dischargeEachItemsAndRemoveCoins(game);
             emptyHands(game);
             const monsterManual = game.shop.obtainCard("b2-monster_manual") as ItemCard;
-            game.addInPlay(player1, monsterManual);
+            game.cardHandler.addInPlay(player1, monsterManual);
 
             const targetMonster = game.monsters[0]!;
 
@@ -927,7 +927,7 @@ describe("Force Attack Monster", () => {
             expect(game.currentPlayer.attackThisTurn).toBeLessThanOrEqual(0);
 
             // Now activate monster manual
-            game.recharge(monsterManual);
+            game.cardHandler.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.actions.resolveStack();
 
@@ -943,11 +943,11 @@ describe("Force Attack Monster", () => {
 
         it("constraint is only valid for one turn", async () => {
             const monsterManual = game.shop.obtainCard("b2-monster_manual") as ItemCard;
-            game.addInPlay(player1, monsterManual);
+            game.cardHandler.addInPlay(player1, monsterManual);
 
             const targetMonster = game.monsters[0]!;
 
-            game.recharge(monsterManual);
+            game.cardHandler.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.actions.resolveStack();
 
@@ -978,11 +978,11 @@ describe("Force Attack Monster", () => {
 
         it("clears constraint if forced monster dies", async () => {
             const monsterManual = game.shop.obtainCard("b2-monster_manual") as ItemCard;
-            game.addInPlay(player1, monsterManual);
+            game.cardHandler.addInPlay(player1, monsterManual);
 
             const targetMonster = game.monsters[0]!;
 
-            game.recharge(monsterManual);
+            game.cardHandler.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.actions.resolveStack();
 
@@ -1003,12 +1003,12 @@ describe("Force Attack Monster", () => {
 
         it("clears constraint if forced monster is discarded", async () => {
             const monsterManual = game.shop.obtainCard("b2-monster_manual") as ItemCard;
-            game.addInPlay(player1, monsterManual);
+            game.cardHandler.addInPlay(player1, monsterManual);
 
             const targetMonster = game.monsters[0]!;
             const monsterPosition = game.monsters.indexOf(targetMonster);
 
-            game.recharge(monsterManual);
+            game.cardHandler.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.actions.resolveStack();
 
@@ -1028,11 +1028,11 @@ describe("Force Attack Monster", () => {
 
         it("clears constraint if player dies", async () => {
             const monsterManual = game.shop.obtainCard("b2-monster_manual") as ItemCard;
-            game.addInPlay(player1, monsterManual);
+            game.cardHandler.addInPlay(player1, monsterManual);
 
             const targetMonster = game.monsters[0]!;
 
-            game.recharge(monsterManual);
+            game.cardHandler.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.actions.resolveStack();
 
@@ -1050,11 +1050,11 @@ describe("Force Attack Monster", () => {
 
         it("does not force non-active player", async () => {
             const monsterManual = game.shop.obtainCard("b2-monster_manual") as ItemCard;
-            game.addInPlay(player1, monsterManual);
+            game.cardHandler.addInPlay(player1, monsterManual);
 
             const targetMonster = game.monsters[0]!;
 
-            game.recharge(monsterManual);
+            game.cardHandler.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.actions.resolveStack();
 
@@ -1065,7 +1065,7 @@ describe("Force Attack Monster", () => {
 
         it("does not prevent attacking other monsters after forced monster is attacked", async () => {
             const monsterManual = game.shop.obtainCard("b2-monster_manual") as ItemCard;
-            game.addInPlay(player1, monsterManual);
+            game.cardHandler.addInPlay(player1, monsterManual);
 
             const targetMonster = game.monsters[0]!;
             const otherMonster = game.monsters[1]!;
@@ -1073,7 +1073,7 @@ describe("Force Attack Monster", () => {
             // Give player multiple attacks
             game.entityHandler.addAttackThisTurn(game.currentPlayer, 2);
 
-            game.recharge(monsterManual);
+            game.cardHandler.recharge(monsterManual);
             await game.activateItem(player1, monsterManual, [targetMonster]);
             await game.actions.resolveStack();
 
@@ -1102,12 +1102,12 @@ describe("Force Attack Monster", () => {
         
     //     it("targeting specific monster works correctly", async () => {
     //         const monsterManual = game.shop.obtainCard("b2-monster_manual") as ItemCard;
-    //         game.addInPlay(player1, monsterManual);
+    //         game.cardHandler.addInPlay(player1, monsterManual);
 
     //         const firstMonster = game.monsters[0]!;
     //         const secondMonster = game.monsters[1]!;
 
-    //         game.recharge(monsterManual);
+    //         game.cardHandler.recharge(monsterManual);
     //         await game.activateItem(player1, monsterManual, [secondMonster]);
     //         await game.actions.resolveStack();
 

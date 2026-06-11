@@ -26,7 +26,7 @@ describe("Four Souls+2 Treasures", () => {
  
     it("fsp2-moms_eye_shadow - If another player declares an attack on a monster, you may choose which monster they attack.", async () => {
         const card1 = game.obtainCard("fsp2-moms_eye_shadow") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [opts[1]], remaining: [] } as any;
         };
@@ -42,7 +42,7 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-mutant_spider - [Tap Effect] The next time a player would roll a dice, they instead roll 4 dice. You choose one of the rolls as the result.", async () => {
         const card1 = game.obtainCard("fsp2-mutant_spider") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         await game.activateItem(player1, card1, [], "tap");
         await game.actions.resolveStack();
         let count = 1;
@@ -56,7 +56,7 @@ describe("Four Souls+2 Treasures", () => {
     });
     it("fsp2-cursed_eye - When you roll an attack roll of 1, end your turn. Cancel everything that hasn't resolved.", async () => {
         const card1 = game.obtainCard("fsp2-cursed_eye") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, game.encounters.monsterIn(1)!);
         game.random = () => 1/6-.00001;
@@ -70,7 +70,7 @@ describe("Four Souls+2 Treasures", () => {
     });
     it("fsp2-cursed_eye - Combat damage you deal on attack rolls of 6 is increased by 3.", async () => {
         const card1 = game.obtainCard("fsp2-cursed_eye") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, game.encounters.monsterIn(1)!);
         game.random = () => 5/6-.00001;
@@ -91,7 +91,7 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-telepathy_for_dummies - At the start of your turn, roll- You may change the result of your next roll this turn to this result.", async () => {
         const card1 = game.obtainCard("fsp2-telepathy_for_dummies") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         await game.endTurn();
         await game.endTurn();
         await game.actions.resolveStack();
@@ -110,7 +110,7 @@ describe("Four Souls+2 Treasures", () => {
     }); 
     it("fsp2-game_breaking_bug - Each time a player rolls a ❶, you may reroll an item they control.", async () => {
         const card1 = game.obtainCard("fsp2-game_breaking_bug") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         game.gainTreasure(player2, 3);
         const slug = player2.inPlay[3]!.slug;
         game.select = (_issuer, _min, _max, opts, _optional) => {
@@ -127,11 +127,11 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-hourglass - Each time a player rolls a ❷, you may deactivate an item.", async () => {
         const card1 = game.obtainCard("fsp2-hourglass") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [player2.inPlay[0]!], remaining: [] } as any;
         }
-        game.recharge(player2.inPlay[0] as ItemCard);
+        game.cardHandler.recharge(player2.inPlay[0] as ItemCard);
         game.random = () => 2/6-0.0001; // roll a 2
         game.rollDice(player2, false, card1);
         await game.actions.resolveStack();
@@ -143,13 +143,13 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-hourglass - (select 0 item to deactivate) Each time a player rolls a ❷, you may deactivate an item.", async () => {
         const card1 = game.obtainCard("fsp2-hourglass") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             if(opts.length === 1) 
                 return { selected: [opts[0]], remaining: [] } as any;
             return { selected: [], remaining: [] } as any;
         }
-        game.recharge(player2.inPlay[0] as ItemCard);
+        game.cardHandler.recharge(player2.inPlay[0] as ItemCard);
         game.random = () => 2/6-0.0001; // roll a 2
         game.rollDice(player2, false, card1);
         await game.actions.resolveStack();
@@ -163,17 +163,17 @@ describe("Four Souls+2 Treasures", () => {
         const card1 = game.obtainCard("fsp2-guppys_eye") as TreasureCard;
         expect(player1.handRevealed).toBe(false);
         expect(player2.handRevealed).toBe(false);
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         expect(player1.handRevealed).toBe(false);
         expect(player2.handRevealed).toBe(true);
-        game.removeInPlay(player1, card1);
+        game.cardHandler.removeInPlay(player1, card1);
         expect(player1.handRevealed).toBe(false);
         expect(player2.handRevealed).toBe(false);
     });
 
     it("fsp2-red_candle - [Tap Effect] Before a dice is rolled, choose a number. Till the end of turn, each time that number is rolled, deal 1 damage to a monster or player.", async () => {
         const card1 = game.obtainCard("fsp2-red_candle") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
 
         game.random = () => 2/6-0.0001; // roll a 2
         await game.activateItem(player1, card1, [2], "tap");
@@ -208,7 +208,7 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-divorce_papers - [Tap Effect] Destroy this. If you do, choose another player. They give you half of their ¢ and loot cards rounded down, then gives you an item.", async () => {
         const card1 = game.obtainCard("fsp2-divorce_papers") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         game.gainCoins(player2, 5, "gift");
         game.loot(player2, 3);
         game.gainTreasure(player2, 3);
@@ -227,7 +227,7 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-euthanasia - Each time you roll the same result twice in a row on an attack roll on the same turn, kill the monster you're attacking.", async () => {
         const card1 = game.obtainCard("fsp2-euthanasia") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         game.actions.declareAttack(player1);
         const monster = game.encounters.monsterIn(1)!;
         await game.actions.declareAttackOnEntity(player1, monster);
@@ -251,7 +251,7 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-head_of_the_keeper - Each time you deal damage, gain 1¢., Each time you kill a monster or player, gain 2¢.", async () => {
         const card1 = game.obtainCard("fsp2-head_of_the_keeper") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, game.encounters.monsterIn(1)!); // Fatty
         game.random = () => 0.99;
@@ -274,7 +274,7 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-1_up - When you would die on your turn, destroy this. If you do, prevent death, heal to full [HP] , and cancel your attack. You may attack an additional time this turn.", async () => {
         const card1 = game.obtainCard("fsp2-1_up") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         const hp = player1.currentHealthPoints;
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, game.encounters.monsterIn(0)!);
@@ -290,7 +290,7 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-black_candle - [Tap Effect] Reveal the top 6 cards of the monster deck. Give any curse cards revealed to the player or players of your choosing. Put the rest on the bottom of the deck in any order.", async () => {
         const card1 = game.obtainCard("fsp2-black_candle") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         const slugs = [ "b2-curse_of_amnesia","b2-red_host","b2-cod_worm","b2-curse_of_pain","b2-conjoined_fatty", "b2-curse_of_loss"];
         for(const slug of slugs) {
             const card = game.obtainCard(slug) as MonsterCard;
@@ -316,13 +316,13 @@ describe("Four Souls+2 Treasures", () => {
         const lootCard = game.obtainCard("b2-a_dime") as LootCard;
         const initlootplay = player1.remainingLootPlay;
         game.loot(player2, 2);
-        game.addCardToHand(player2, lootCard);
+        game.cardHandler.addCardToHand(player2, lootCard);
         game.loot(player2, 2);
         const index = player2.hand.cards.indexOf(lootCard);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [lootCard], remaining: [] } as any;
         }
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         await game.activateItem(player1, card1, [player2], "tap");
         await game.actions.resolveStack();
         expect(player2.hand.cards.map((c) => c.slug)).not.toContain(lootCard.slug);
@@ -337,13 +337,13 @@ describe("Four Souls+2 Treasures", () => {
         player1.remainingLootPlay = 0;
         const initlootplay = player1.remainingLootPlay;
         game.loot(player2, 2);
-        game.addCardToHand(player2, lootCard);
+        game.cardHandler.addCardToHand(player2, lootCard);
         game.loot(player2, 2);
         const index = player2.hand.cards.indexOf(lootCard);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [lootCard], remaining: [] } as any;
         }
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         await game.activateItem(player1, card1, [player2], "tap");
         await game.actions.resolveStack();
         expect(player2.hand.cards.map((c) => c.slug)).not.toContain(lootCard.slug);
@@ -358,13 +358,13 @@ describe("Four Souls+2 Treasures", () => {
         player1.remainingLootPlay = 0;
         const initlootplay = player1.remainingLootPlay;
         game.loot(player2, 2);
-        game.addCardToHand(player2, lootCard);
+        game.cardHandler.addCardToHand(player2, lootCard);
         game.loot(player2, 2);
         const index = player2.hand.cards.indexOf(lootCard);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [lootCard], remaining: [] } as any;
         }
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         await game.activateItem(player1, card1, [player2], "tap");
         await game.actions.resolveStack();
         expect(player2.hand.cards.map((c) => c.slug)).not.toContain(lootCard.slug);
@@ -374,7 +374,7 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-magnet - Each time another player gains ¢, they must give you 1¢.", async () => {
         const card1 = game.obtainCard("fsp2-magnet") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
 
         const initialCoins1 = player1.coins;
         const initialCoins2 = player2.coins;
@@ -387,12 +387,12 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-mama_haunt - [Curse Effect] Your character doesn't recharge during your recharge step.", async () => {
         const card1 = game.obtainCard("fsp2-mama_haunt") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         await game.endTurn();
         await game.endTurn();
         await game.actions.resolveStack();
         expect(player1.character.charged).toBe(false);
-        game.recharge(player1.inPlay[0] as ItemCard);
+        game.cardHandler.recharge(player1.inPlay[0] as ItemCard);
         expect(player1.character.charged).toBe(true);
         await game.endTurn();
         await game.endTurn();
@@ -403,7 +403,7 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-smart_fly - [Tap Effect] Look at the top card of a deck. You may put it into discard or put it back on top.,  Each time you take damage, you may recharge this.", async () => {
         const card1 = game.obtainCard("fsp2-smart_fly") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             expect(opts.length).toBe(1);
             expect(_max).toBe(1);
@@ -419,7 +419,7 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-phd - You may add or subtract 1 from any of your non-attack rolls.", async () => {
         const card1 = game.obtainCard("fsp2-phd") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         game.random = () => 3/6-0.0001;
         // attack roll don't change
         let diceRoll = game.rollDice(player1, true, card1);
@@ -461,15 +461,15 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-forget_me_now - [Tap Effect] Destroy this. If you do, each player destroys a soul they control.", async () => {
         const card1 = game.obtainCard("fsp2-forget_me_now") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
 
         const g1 = game.obtainCard("b2-guppys_head")!;
         const g2 = game.obtainCard("b2-the_dead_cat")!;
-        game.addInPlay(player1, g1 as ItemCard);
-        game.addInPlay(player1, g2 as ItemCard);
+        game.cardHandler.addInPlay(player1, g1 as ItemCard);
+        game.cardHandler.addInPlay(player1, g2 as ItemCard);
         expect(player1.souls.length).toBe(1);
 
-        game.addCardToHand(player2, game.obtainCard("b2-lost_soul")! as LootCard);
+        game.cardHandler.addCardToHand(player2, game.obtainCard("b2-lost_soul")! as LootCard);
         game.entityHandler.addLootPlay(player2, 1);
         game.actions.playCard(player2, player2.hand.length - 1);
         await game.actions.resolveStack();
@@ -483,7 +483,7 @@ describe("Four Souls+2 Treasures", () => {
 
     it("daddy_long_legs", async () => {
         const card1 = game.obtainCard("fsp2-daddy_long_legs") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         await game.endTurn();
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [game.encounters.monsterIn(0)!], remaining: [] } as any;
@@ -511,7 +511,7 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-libra - [Tap Effect] Change the result of a dice roll to a 3.", async () => {
         const card1 = game.obtainCard("fsp2-libra") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         game.random = () => 0.99;
         const diceRoll = game.rollDice(player1, true);
         await game.activateItem(player1, card1, [diceRoll, 3], "tap");
@@ -524,7 +524,7 @@ describe("Four Souls+2 Treasures", () => {
     it("fsp2-the_wiz - Monsters have +1 [DC] on your turn,  Each time you deal combat damage, deal 1 damage to another monster or player.", async () => {
         const card1 = game.obtainCard("fsp2-the_wiz") as TreasureCard;
         const evastion = [game.entityHandler.getDC(game.encounters.monsterIn(0)!), game.entityHandler.getDC(game.encounters.monsterIn(1)!)];
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         expect(game.entityHandler.getDC(game.encounters.monsterIn(0)!)).toBe(evastion[0]!+1);
         expect(game.entityHandler.getDC(game.encounters.monsterIn(1)!)).toBe(evastion[1]!+1);
         game.actions.declareAttack(player1);
@@ -546,7 +546,7 @@ describe("Four Souls+2 Treasures", () => {
     it("fsp2-abaddon - +3 [ATK], Each time you take damage, die!", async () => {
         const card1 = game.obtainCard("fsp2-abaddon") as TreasureCard;
         expect(player1.attackPoints).toBe(1);
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         expect(player1.attackPoints).toBe(4);
         game.entityHandler.dealDamage(player2, player1, card1, 1);
         await game.actions.resolveStack();
@@ -559,7 +559,7 @@ describe("Four Souls+2 Treasures", () => {
     it("fsp2-lard - +2 [HP], Each time you take damage, discard a loot card.", async () => {
         const card1 = game.obtainCard("fsp2-lard") as TreasureCard;
         const hp = player1.currentHealthPoints;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         expect(player1.currentHealthPoints).toBe(hp+2);
         game.loot(player1, 2);
         game.entityHandler.dealDamage(player2, player1, card1, 1);
@@ -573,7 +573,7 @@ describe("Four Souls+2 Treasures", () => {
         const card1 = game.obtainCard("fsp2-polyphemus") as TreasureCard;
         expect(player1.attackPoints).toBe(1);
         const evastion = [game.entityHandler.getDC(game.encounters.monsterIn(0)!), game.entityHandler.getDC(game.encounters.monsterIn(1)!)];
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         expect(player1.attackPoints).toBe(3);
         expect(game.entityHandler.getDC(game.encounters.monsterIn(0)!)).toBe(evastion[0]!+1);
         expect(game.entityHandler.getDC(game.encounters.monsterIn(1)!)).toBe(evastion[1]!+1);
@@ -581,7 +581,7 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-rainbow_baby - [Tap Effect] Choose one- Each player takes 1 damage.", async () => {
         const card1 = game.obtainCard("fsp2-rainbow_baby") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         const healthPoints = game.players.map(p => p.currentHealthPoints);
         await game.activateItem(player1, card1, ["Each player takes 1 damage."], "tap");
         await game.actions.resolveStack();
@@ -592,7 +592,7 @@ describe("Four Souls+2 Treasures", () => {
     
     it("fsp2-rainbow_baby - [Tap Effect] Choose one- Each player gains 2¢.", async () => {
         const card1 = game.obtainCard("fsp2-rainbow_baby") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         const coins = game.players.map(p => p.coins);
         await game.activateItem(player1, card1, ["Each player gains 2¢."], "tap");
         await game.actions.resolveStack();
@@ -602,7 +602,7 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-rainbow_baby - [Tap Effect] Choose one- Each player loots 1.", async () => {
         const card1 = game.obtainCard("fsp2-rainbow_baby") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         const handSizes = game.players.map(p => p.hand.cards.length);
         await game.activateItem(player1, card1, ["Each player loots 1."], "tap");
         await game.actions.resolveStack();
@@ -612,7 +612,7 @@ describe("Four Souls+2 Treasures", () => {
     
     it("fsp2-rubber_cement - Each time you miss an attack roll, roll- 1-3: Deal 1 damage to a monster or player.", async () => {
         const card1 = game.obtainCard("fsp2-rubber_cement") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, game.encounters.monsterIn(0)!);
         game.random = () => 0.01;
@@ -632,7 +632,7 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-head_of_krampus - [Tap Effect] Roll- 1-3: Deal 1 damage to each player", async () => {
         const card1 = game.obtainCard("fsp2-head_of_krampus") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         const HPmobs = game.monsters.map(m => m.currentHealthPoints);
         const HPplayers = game.players.map(p => p.currentHealthPoints);
         game.random = () => 0.01; // roll a 1
@@ -647,7 +647,7 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-head_of_krampus - [Tap Effect] Roll- 4-6: Deal 1 damage to each monster.", async () => {
         const card1 = game.obtainCard("fsp2-head_of_krampus") as TreasureCard;
-            game.addInPlay(player1, card1);
+            game.cardHandler.addInPlay(player1, card1);
             const HPmobs = game.monsters.map(m => m.currentHealthPoints);
             const HPplayers = game.players.map(p => p.currentHealthPoints);
             game.random = () => 0.9; // roll a 6
@@ -662,7 +662,7 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-20_20 - [Tap Effect] Add up to 2 to an attack roll.", async () => {
         const card1 = game.obtainCard("fsp2-20_20") as TreasureCard;
-        game.addInPlay(player1, card1);
+        game.cardHandler.addInPlay(player1, card1);
         game.actions.declareAttack(player1);
         const monster = game.encounters.monsterIn(1)!;
         await game.actions.declareAttackOnEntity(player1, monster);

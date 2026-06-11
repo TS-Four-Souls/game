@@ -196,12 +196,12 @@ export function extraAttackAndDeathTriggerEffect(game: Game, dc: number): Effect
         const issuer = game.currentPlayer;
         const target = (await data.selectAndRecord(game, issuer as Player, 1, 1, game.players.filter(p => p !== issuer && !p.isDead), "Select a player to attack.", true, true)).selected[0];
         if(!target) return false;
-        game.makePlayerAttackable(target, dc);
+        game.entityHandler.makePlayerAttackable(target, dc);
         game.entityHandler.playerMustAttack(issuer, [target], data.it);
         offDeath = game.emitter.on("on:death:penalty", async (eventData: OnDeathPenaltyData) => {
             if(eventData.eventIssuer !== target) return;
             eventData.itemsLost.forEach(item => {
-                game.give(target, issuer, item);
+                game.cardHandler.give(target, issuer, item);
             });
             eventData.itemsLost = [];
         });
@@ -758,7 +758,7 @@ export function giveCurseToEffect(restEffectFunction: EffectFunction, game: Game
             throw new Error("Curse effect can only be applied by MonsterCards.");
             
     // Add the curse to their in play area.
-    game.addCurse(giveTo, data.it);
+    game.cardHandler.addCurse(giveTo, data.it);
     // Apply the rest of the effect.
     restEffectFunction(new EffectData(data.it, () => giveTo, []));
     // Add Listener to remove the curse when the owner dies.
@@ -768,8 +768,8 @@ export function giveCurseToEffect(restEffectFunction: EffectFunction, game: Game
         if (giveTo !== eventIssuer) return;
         if(!(data.it instanceof MonsterCard))
             throw new Error("Curse effect can only be applied by MonsterCards.");
-        game.discard(data.it);
-        game.removeCurse(giveTo, data.it);
+        game.cardHandler.discard(data.it);
+        game.cardHandler.removeCurse(giveTo, data.it);
         offDeath?.();
         offDeath = null;
     });
@@ -792,8 +792,8 @@ export function curseEffect(restEffectFunction: EffectFunction, game: Game): Eff
                 throw new Error("Curse effect can only be applied to Players.");
             if(!(data.it instanceof MonsterCard))
                 throw new Error("Curse effect can only be applied by MonsterCards.");
-            game.discard(data.it);
-            game.removeCurse(data.issuer, data.it);
+            game.cardHandler.discard(data.it);
+            game.cardHandler.removeCurse(data.issuer, data.it);
             offDeath?.();
             offDeath = null;
         });
@@ -1568,7 +1568,7 @@ export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): EffectFunct
         const goldenItems = game.visibleItems.filter(item => item.tags.goldCounters !== undefined && item.tags.goldCounters > 0);
         data.it.swapEffectInterfaces();
         for (const item of goldenItems) {
-            game.gainAbilities(data.issuer, data.it, item);
+            game.cardHandler.gainAbilities(data.issuer, data.it, item);
         }
         let offCounterChange: (() => void) | null = null;
         offCounterChange = game.emitter.on("on:counter:modified", ({ eventIssuer, card, counterName, previousValue, newValue }) => {
@@ -1578,7 +1578,7 @@ export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): EffectFunct
             if(!(card instanceof ItemCard)) return;
             if (card.tags.goldCounters === undefined) return;
             if (card.tags.goldCounters > 0 && previousValue === 0) {
-                game.gainAbilities(data.issuer, data.it, card);
+                game.cardHandler.gainAbilities(data.issuer, data.it, card);
             }
             else if(newValue === 0 && previousValue > 0) {
                 const toRemove = (data.it.tags.copiedCards as ItemCard[]).find(c => c.slug === card.slug);
@@ -1606,7 +1606,7 @@ export function giveCounterToAnotherItemOnEnterPlayEffect(game: Game, counterTyp
                 const itemToGiveCounter = (await data.selectAndRecord(game, data.issuer, 1, 1, data.issuer.inPlay.filter(item => item !== data.it && !item.eternal), "Select an item to give a gold counter to.", true)).selected[0]!;
                 if(!itemToGiveCounter)
                     return false;
-                game.addToCounter(data.issuer, itemToGiveCounter, counterType, 1);
+                game.cardHandler.addToCounter(data.issuer, itemToGiveCounter, counterType, 1);
                 return true;
             }
             addPassiveEffectToStack(game, effect, data, `Give a ${counterType} counter to another item when this enters play.`);
@@ -1657,11 +1657,11 @@ export function redirectSoulGainEffect(game: Game): EffectFunction {
             if (eventIssuer !== game.currentPlayer) return;
             if(data.issuer.card !== soul) return;
             eventData.soul = null; // Prevent the soul from being gained by the original target for now.
-            game.removeSoul(eventIssuer, soul);
+            game.cardHandler.removeSoul(eventIssuer, soul);
             const effect = async (effectData: EffectData) => {
                 const target = (await data.selectAndRecord(game, eventIssuer, 1, 1, game.players.filter(p => p !== eventIssuer), "Select who gain the soul instead.", true)).selected[0]!;
                 if(!(target instanceof Player)) return false;
-                game.addSoul(target, soul);
+                game.cardHandler.addSoul(target, soul);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `Redirect soul gain to this card.`);
@@ -1784,10 +1784,10 @@ export function gainAbilitiesUntilEffect(game: Game, triggerEvent: TriggerEvent,
         if(!target || !(target instanceof ItemCard)) {
             throw new Error("gainAbilitiesUntilEffect target must be a Card.");
         }
-        const copiedRef = game.gainAbilities(issuer, data.it, target);
+        const copiedRef = game.cardHandler.gainAbilities(issuer, data.it, target);
         
         if(recharge)
-            game.recharge(data.it as ItemCard, data.it);
+            game.cardHandler.recharge(data.it as ItemCard, data.it);
 
         offTrigger = game.emitter.on(triggerEvent, (eventData: any) => {
             if (data.issuer !== eventData.eventIssuer) return;
@@ -1821,7 +1821,7 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): Effec
                 if (!(effectData.issuer instanceof Player)) return false;
                 try{
                     const newTargets = await TargetBuilder.buildTargetsOnResolve(game, eventIssuer, card, "tap");
-                    const copy = game.copyCard(card, eventIssuer) as LootCard; 
+                    const copy = game.cardHandler.copyCard(card, eventIssuer) as LootCard; 
                     copy.afterEffect = "nothing";
                     const lootCardEffect = new LootCardEffect(eventIssuer, copy, newTargets);
                     game.addToStack(lootCardEffect);
@@ -1860,7 +1860,7 @@ export function replaceDeathPenaltyEffect(game: Game): EffectFunction {
         // Listen for the next death penalty event on this player
         const issuer = data.issuer;
         if (!(issuer instanceof Player)) return false;
-        let OriginalDeathPenaltyItems = game.deathPenaltyItems.bind(game.entityHandler);
+        let OriginalDeathPenaltyItems = game.deathPenaltyItems.bind(game);
         game.deathPenaltyItems = async (player: Player): Promise<ItemCard[]> => {
             const setOfLosableItems = player.inPlay.filter(
               (c) =>
@@ -1888,8 +1888,8 @@ export function replaceDeathPenaltyEffect(game: Game): EffectFunction {
                 console.warn("replaceDeathPenaltyEffect: lootCardsLost is undefined. This should not happen.");
             for (const loot of lootCardsLost)
             {
-                game.removeCardFromHand(eventIssuer, loot);
-                game.addCardToHand(issuer, loot);
+                game.cardHandler.removeCardFromHand(eventIssuer, loot);
+                game.cardHandler.addCardToHand(issuer, loot);
             }
             eventData.lootCardsLost = [];
         });
@@ -1915,7 +1915,7 @@ export function putCounterInsteadOfDestructionEffect(game: Game): EffectFunction
             const item = data.it as ItemCard;
             if(item.tags.counters === undefined) item.tags.counters = 0;
             if(item.tags.counters >= 1) return; // Max 1 counters, then the item is destroyed as normal.
-            game.addToCounter(data.issuer, item, "counters", 1);
+            game.cardHandler.addToCounter(data.issuer, item, "counters", 1);
             eventData.cards = eventData.cards.filter(c => c !== data.it); // Prevent destruction
         });
 
@@ -2145,7 +2145,7 @@ export function giveThisToAnotherPlayerInsteadOfDiscardEffect(game: Game): Effec
                 const selection = await effectData.selectAndRecord(game, effectData.issuer, 1, 1, otherPlayers, "Select a player to give this card to instead of discarding it.", true, true);
                 if (selection.selected.length > 0) {
                     const chosenPlayer = selection.selected[0]!;
-                    game.addCurse(chosenPlayer, data.it);
+                    game.cardHandler.addCurse(chosenPlayer, data.it);
                 }
                 return true;
             };
@@ -2254,10 +2254,10 @@ export function becomeSoulInsteadOfDestructionEffect(game: Game): EffectFunction
             if (!(data.issuer instanceof Player)) return;
             if (!cards.includes(data.it)) return;
             data.it.soul = 1;
-            game.addSoul(data.issuer, data.it);
+            game.cardHandler.addSoul(data.issuer, data.it);
             if(!(data.it instanceof ItemCard))
                 throw new Error("becomeSoulInsteadOfDestructionEffect can only be applied to ItemCards.");
-            game.removeInPlay(data.issuer, data.it);
+            game.cardHandler.removeInPlay(data.issuer, data.it);
         });
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
@@ -2653,7 +2653,7 @@ export function startWithNCountersEffect(
 ): EffectFunction {
     return (data: EffectData) => {
         if(data.it.tags.counters === undefined)
-            game.addToCounter(data.issuer, data.it, "counters", n);
+            game.cardHandler.addToCounter(data.issuer, data.it, "counters", n);
         return true;
     };
 }
@@ -2681,7 +2681,7 @@ export function preventDamageByRemovingCountersEffect(
             const current = damageArray[0] ?? 0;
             const prevented = Math.min(current, counters);
             damageArray[0] = current - prevented;
-            game.addToCounter(data.issuer, data.it, "counters", -prevented);
+            game.cardHandler.addToCounter(data.issuer, data.it, "counters", -prevented);
             if(counters <= 0) 
                 data.it.cleanup();
         });
@@ -2856,7 +2856,7 @@ export function lootFromDiscardEffect(game: Game): EffectFunction {
                 const card = 
                     game.decks["loot"]!.drawTopDiscard();
                 if(card)
-                    game.addCardToHand(eventIssuer, card);
+                    game.cardHandler.addCardToHand(eventIssuer, card);
                 else break;
                 numberOfCards[0]! -= 1;
             }
@@ -2874,7 +2874,7 @@ export function doubleRewardsTillEndOfTurnEffect(game: Game): EffectFunction {
 
         offEffect = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
             const effect = (effectData: EffectData) => {
-                game.entityRewards(eventData.eventIssuer as Monster);
+                game.entityHandler.entityRewards(eventData.eventIssuer as Monster);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `Double rewards.`);
@@ -2910,7 +2910,7 @@ export function gainCoinsLevelUpEffect(
             const { eventIssuer, coinGained } = eventData;
             if (data.issuer !== eventIssuer) return;
             const current = coinGained[0] ?? 0;
-            game.addToCounter(data.issuer, data.it, "counters", current);
+            game.cardHandler.addToCounter(data.issuer, data.it, "counters", current);
             coinGained[0] = 0;
         });
 

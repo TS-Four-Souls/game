@@ -96,7 +96,7 @@ describe("Loot Card", () => {
         expect(player1.currentHealthPoints).toBe(initialHealth - 2);
         expect(player2.coins).toBe(initialCoins2); // No effect for other players
 
-        game.removeInPlay(player1, loot);
+        game.cardHandler.removeInPlay(player1, loot);
 
         game.entityHandler.dealDamage(player2, player1, loot, 2);
         await game.actions.resolveStack();
@@ -197,7 +197,7 @@ describe("Loot Card", () => {
         expect(game.loseCoins(player1, initialCoins + 3, false)).toBe(initialCoins + 3); // reset coins
         expect(player1.coins).toBe(0);
 
-        game.removeInPlay(player1, loot);
+        game.cardHandler.removeInPlay(player1, loot);
 
         // gain x coins normally after removal.
         game.gainCoins(player1, 4, "gift");
@@ -225,8 +225,8 @@ describe("Loot Card", () => {
 
         // Start of player2's turn - no effect for them
         
-        const topCard = game.getFirstCardsOfDeck("loot", 1)[0]!;
-        game.addTopPosition("loot", topCard); // Put it back
+        const topCard = game.cardHandler.getFirstCardsOfDeck("loot", 1)[0]!;
+        game.cardHandler.addTopPosition("loot", topCard); // Put it back
         game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -247,8 +247,8 @@ describe("Loot Card", () => {
         await game.actions.resolveStack();
 
         // Now test choosing NOT to put on bottom
-        const nextTopCard = game.getFirstCardsOfDeck("loot", 1)[0]!;
-        game.addTopPosition("loot", nextTopCard); // Put it back
+        const nextTopCard = game.cardHandler.getFirstCardsOfDeck("loot", 1)[0]!;
+        game.cardHandler.addTopPosition("loot", nextTopCard); // Put it back
 
         game.endTurn(); // End player2's turn
         await game.actions.resolveStack();
@@ -267,8 +267,8 @@ describe("Loot Card", () => {
         await game.actions.resolveStack();
 
         const lootDeck = game.decks["loot"]!;
-        const topCard = game.getFirstCardsOfDeck("loot", 1)[0]!;
-        game.addTopPosition("loot", topCard);
+        const topCard = game.cardHandler.getFirstCardsOfDeck("loot", 1)[0]!;
+        game.cardHandler.addTopPosition("loot", topCard);
 
         let selectCalled = false;
         game.select = async (_issuer, _min, _max, opts, _optional) => {
@@ -300,7 +300,7 @@ describe("Loot Card", () => {
         await game.actions.resolveStack();
 
         // Remove the trinket
-        game.removeInPlay(player1, cainsEye);
+        game.cardHandler.removeInPlay(player1, cainsEye);
 
         let selectCalled = false;
         game.select = async (_issuer, _min, _max, _opts, _optional) => {
@@ -338,8 +338,8 @@ describe("Loot Card", () => {
         await game.actions.resolveStack();
         // Start of player2's turn - no effect for them
 
-        const topCard = game.getFirstCardsOfDeck("treasure", 1)[0]!;
-        game.addTopPosition("treasure", topCard); // Put it back
+        const topCard = game.cardHandler.getFirstCardsOfDeck("treasure", 1)[0]!;
+        game.cardHandler.addTopPosition("treasure", topCard); // Put it back
         game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -357,8 +357,8 @@ describe("Loot Card", () => {
         game.endTurn(); // End player1's turn
         await game.actions.resolveStack();
         // Now test choosing NOT to put on bottom
-        const nextTopCard = game.getFirstCardsOfDeck("treasure", 1)[0]!;
-        game.addTopPosition("treasure", nextTopCard); // Put it back
+        const nextTopCard = game.cardHandler.getFirstCardsOfDeck("treasure", 1)[0]!;
+        game.cardHandler.addTopPosition("treasure", nextTopCard); // Put it back
         
         game.endTurn(); // End player2's turn
         await game.actions.resolveStack();
@@ -377,8 +377,8 @@ describe("Loot Card", () => {
         await game.actions.resolveStack();
 
         const treasureDeck = game.decks["treasure"]!;
-        const topCard = game.getFirstCardsOfDeck("treasure", 1)[0]!;
-        game.addTopPosition("treasure", topCard);
+        const topCard = game.cardHandler.getFirstCardsOfDeck("treasure", 1)[0]!;
+        game.cardHandler.addTopPosition("treasure", topCard);
 
         let selectCalled = false;
         game.select = async (_issuer, _min, _max, opts, _optional) => {
@@ -410,7 +410,7 @@ describe("Loot Card", () => {
         await game.actions.resolveStack();
 
         // Remove the trinket
-        game.removeInPlay(player1, goldenHorseshoe);
+        game.cardHandler.removeInPlay(player1, goldenHorseshoe);
 
         let selectCalled = false;
         game.select = async (_issuer, _min, _max, _opts, _optional) => {
@@ -450,8 +450,8 @@ describe("Loot Card", () => {
         await game.actions.resolveStack();
         // Start of player2's turn - no effect for them
 
-        const topCard = game.getFirstCardsOfDeck("monster", 1)[0]!;
-        game.addTopPosition("monster", topCard); // Put it back
+        const topCard = game.cardHandler.getFirstCardsOfDeck("monster", 1)[0]!;
+        game.cardHandler.addTopPosition("monster", topCard); // Put it back
         game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -469,8 +469,8 @@ describe("Loot Card", () => {
         game.endTurn(); // End player1's turn
         await game.actions.resolveStack();
         // Now test choosing NOT to put on bottom
-        const nextTopCard = game.getFirstCardsOfDeck("monster", 1)[0]!;
-        game.addTopPosition("monster", nextTopCard); // Put it back
+        const nextTopCard = game.cardHandler.getFirstCardsOfDeck("monster", 1)[0]!;
+        game.cardHandler.addTopPosition("monster", nextTopCard); // Put it back
 
         game.endTurn(); // End player2's turn
         await game.actions.resolveStack();
@@ -489,8 +489,8 @@ describe("Loot Card", () => {
         await game.actions.resolveStack();
 
         const monsterDeck = game.decks["monster"]!;
-        const topCard = game.getFirstCardsOfDeck("monster", 1)[0]!;
-        game.addTopPosition("monster", topCard);
+        const topCard = game.cardHandler.getFirstCardsOfDeck("monster", 1)[0]!;
+        game.cardHandler.addTopPosition("monster", topCard);
 
         let selectCalled = false;
         game.select = async (_issuer, _min, _max, opts, _optional) => {
@@ -523,7 +523,7 @@ describe("Loot Card", () => {
         await game.actions.resolveStack();
 
         // Remove the trinket
-        game.removeInPlay(player1, purpleHeart);
+        game.cardHandler.removeInPlay(player1, purpleHeart);
 
         let selectCalled = false;
         game.select = async (_issuer, _min, _max, _opts, _optional) => {

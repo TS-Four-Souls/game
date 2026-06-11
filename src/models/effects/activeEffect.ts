@@ -85,7 +85,7 @@ export function eachNonActivePlayerDiscardsLootEffect(game: Game): EffectFunctio
         );
         for(const choice of choices) {
             if(choice.selected.length === 0) continue;
-            game.discard(choice.selected[0]!);
+            game.cardHandler.discard(choice.selected[0]!);
         }
         return true;
     };
@@ -106,7 +106,7 @@ export function putMonstersFromDiscardIntoSlotsEffect(game: Game, maxMonsters: n
             if(!card) return false;
             if(game.encounters.coverableSlots.length === 0)
                 return false;
-            game.addTopPosition("monster", card);
+            game.cardHandler.addTopPosition("monster", card);
             await game.encounters.selectValidIndexAndDraw(game, data.issuer, data);
         }
         return true;
@@ -140,7 +140,7 @@ export function rechargeItemsEffect(game: Game, selectionOnResolve: boolean = fa
             if (selectionResult.selected.length > 0) {
                 if(!(selectionResult.selected[0] instanceof ItemCard))
                     throw new Error(`Card to recharge is not an ItemCard: ${selectionResult.selected[0].name}`);
-                game.recharge(selectionResult.selected[0], data.it);
+                game.cardHandler.recharge(selectionResult.selected[0], data.it);
             }
         }
         else {
@@ -148,7 +148,7 @@ export function rechargeItemsEffect(game: Game, selectionOnResolve: boolean = fa
             for (const card of data.targets) {
                 if(!(card instanceof ItemCard))
                     throw new Error(`Card to recharge is not an ItemCard: ${card.name}`);
-                game.recharge(card, data.it);
+                game.cardHandler.recharge(card, data.it);
             }
         }
         return true;
@@ -176,7 +176,7 @@ export function makePlayerGiveLootCardEffect(game: Game, type: "diceRoll" | "pla
         if(targetPlayer === data.issuer) return true;
         if (targetPlayer.hand.length > 0) {
             const cardToGive = (await data.selectAndRecord(game, targetPlayer, 1, 1, targetPlayer.hand.cards, "Select a card to give.", true, false)).selected[0]!;
-            return game.give(targetPlayer, data.issuer, cardToGive);
+            return game.cardHandler.give(targetPlayer, data.issuer, cardToGive);
         }
         return false;
     };
@@ -187,7 +187,7 @@ export function rechargeEachItemsOfTargetEffect(game: Game, target: "next" | "is
         const player = target === "next" ? data.next : target === "issuer" ? data.issuer : game.currentPlayer;
         if(!(player instanceof Player))
             throw new Error("Target of rechargeEachItemsOfTargetEffect must be a Player.");
-        game.rechargeMultiple(player, data.it);
+        game.cardHandler.rechargeMultiple(player, data.it);
         return true;
     };
 }
@@ -199,7 +199,7 @@ export function makeAPlayerWithMostSoulsDestroyASoulEffect(game: Game): EffectFu
             throw new Error("Target of makeAPlayerWithMostSoulsDestroyASoulEffect must be a Player.");
         if (game.playersWithMostSouls.includes(target) && target.totalSouls > 0) {
             const card = (await data.selectAndRecord(game, target, 1, 1, target.souls, "Select a soul to destroy.", true, true)).selected[0]!;
-            return game.destroyCardsOrSouls([card]);
+            return game.cardHandler.destroyCardsOrSouls([card]);
         }
         return false;
     };
@@ -231,13 +231,13 @@ export function lookXPutYTopRestBottomEffect(deckName: string, game: Game, nbCar
         throw new Error(`Invalid deck type: ${deckName}`);
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        let cards = game.getFirstCardsOfDeck(deckName, nbCards);
+        let cards = game.cardHandler.getFirstCardsOfDeck(deckName, nbCards);
         let selectionResult = await data.selectAndRecord(game, data.issuer, nbCardsToDiscard, nbCardsToDiscard, cards, "Select a card to put on top of the deck.", true, false);
         for(const card of selectionResult.selected) {
-            game.addTopPosition(deckName, card);
+            game.cardHandler.addTopPosition(deckName, card);
         }
         selectionResult.remaining.forEach((c) => {
-            game.addBottomPosition(deckName, c);
+            game.cardHandler.addBottomPosition(deckName, c);
         });
         return true;
     };
@@ -256,9 +256,9 @@ export function look1EachDeckEffect(game: Game): EffectFunction {
         const selectResult = await data.selectAndRecord(game, data.issuer, 0, 3, topCards, "Select any number of cards to put on the bottom of their respective decks.", false, false);
         for (const card of topCards) {
             if(!selectResult.selected.includes(card))
-                game.addBottomPosition(card.type, card);
+                game.cardHandler.addBottomPosition(card.type, card);
             else
-                game.addTopPosition(card.type, card);
+                game.cardHandler.addTopPosition(card.type, card);
         }
         return true;
     };
@@ -270,7 +270,7 @@ export function removeCountersEffect(game: Game, amount: number): EffectFunction
         if(!(data.it as ItemCard).tags.counters)
             (data.it as ItemCard).tags.counters = 0;
         if ((data.it as ItemCard).tags.counters as number >= amount) {
-            game.addToCounter(data.issuer, data.it, "counters", -amount);
+            game.cardHandler.addToCounter(data.issuer, data.it, "counters", -amount);
             return true;
         }
         return false;
@@ -284,9 +284,9 @@ export function BecomesSoulEffect(game: Game): EffectFunction {
         if(!(data.it instanceof ItemCard))
             throw new Error(`Card should be an ItemCard to become a soul: ${data.it.name}`);
         data.it.setEternal(false);
-        game.removeInPlay(data.issuer, data.it);
+        game.cardHandler.removeInPlay(data.issuer, data.it);
         data.it.soul = 1;
-        game.addSoul(data.issuer, data.it);
+        game.cardHandler.addSoul(data.issuer, data.it);
         return true;
     };
 }
@@ -349,7 +349,7 @@ export function searchCurseInMonsterDeckEffect(game: Game): EffectFunction {
         const curseCard = game.encounters.obtainCard(selectedCurseCard.slug, selectedCurseCard.globalId);
         if(game.encounters.coverableSlots.length === 0)
             return false;   
-        game.addTopPosition("monster", curseCard!);
+        game.cardHandler.addTopPosition("monster", curseCard!);
         await game.encounters.selectValidIndexAndDraw(game, issuer, data);
         return true;
     };
@@ -363,7 +363,7 @@ export function searchGuppyItemEffect(game: Game): EffectFunction {
         const selectedGuppyItem = (await data.selectAndRecord(game, data.issuer, 1, 1, guppyItems, "Select a Guppy item to add to your in-play.", true, true)).selected[0] as ItemCard;
         if(selectedGuppyItem === undefined) return false;
         game.shop.obtainCard(selectedGuppyItem.slug, selectedGuppyItem.globalId);
-        game.addInPlay(data.issuer, selectedGuppyItem);
+        game.cardHandler.addInPlay(data.issuer, selectedGuppyItem);
         return true;
     };
 }
@@ -394,7 +394,7 @@ export function destroyCurseEffect(game: Game, selectionOnResolve: boolean=false
         }
         if(!(toDestroy instanceof MonsterCard && toDestroy.isCurse))
             throw new Error(`Card to destroy is not a curse: ${toDestroy.name}`);
-        return game.destroyCurse([toDestroy]);
+        return game.cardHandler.destroyCurse([toDestroy]);
     };
 }
 
@@ -408,7 +408,7 @@ export function destroyOneEffect(game: Game, selector: TargetsSelector, type: "s
         }
         if(!selector.selector(data.issuer as Player, data.it).includes(toDestroy))
             return false;
-        const res = game.destroyCardsOrSouls([toDestroy]);
+        const res = game.cardHandler.destroyCardsOrSouls([toDestroy]);
         return res;
     };
 }
@@ -419,7 +419,7 @@ export function destroyXItemsEffect(game: Game, x: number): EffectFunction {
         for (let i = 0; i < x; i++) {
             toDestroy.push(data.next as Card);
         }
-        return game.destroyCardsOrSouls(toDestroy);
+        return game.cardHandler.destroyCardsOrSouls(toDestroy);
     };
 }
 
@@ -447,7 +447,7 @@ export function drawAndGainCoinsAsAPlayerEffect(issuer: Player, target: Player, 
 export function swapWithNonEternalItemEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         const itemToSwap = data.next as ItemCard;
-        game.swapItems(data.it as ItemCard, itemToSwap);
+        game.cardHandler.swapItems(data.it as ItemCard, itemToSwap);
         return true;
     };
 }
@@ -493,11 +493,11 @@ export function becomesCopyOfItemIndefinitelyEffect(game: Game): EffectFunction 
         if (!owner) return false;
         
         // Create a temporary copy to get the JSON from
-        // const templateCopy = game.copyCard(itemToCopy) as ItemCard;
+        // const templateCopy = game.cardHandler.copyCard(itemToCopy) as ItemCard;
         
         // Transform this card to become the copy, with effect attachment
         thisItem.becomesCopyOf(itemToCopy, (card) => {
-            game.attachEffectsToCard(card);
+            game.cardHandler.attachEffectsToCard(card);
         });
         data.it.tags.restoreIndefinite = data.it.tags.restore;
         data.it.tags.restore = undefined;
@@ -522,7 +522,7 @@ export function becomesCopyOfItemUntilEndOfTurnEffect(game: Game): EffectFunctio
         
         // Transform this card to become the copy and get the restore function
         const { restore } = thisItem.becomesCopyOf(itemToCopy, (card) => {
-            game.attachEffectsToCard(card);
+            game.cardHandler.attachEffectsToCard(card);
         });
         let restored = false;
         let unsubscribe = () => {};
@@ -561,12 +561,12 @@ export function becomesCopyOfItemUntilStartOfYourNextTurnAndRechargeEffect(game:
         if (!owner) return false;
         
         // Create a temporary copy to get the JSON from
-        // const templateCopy = game.copyCard(itemToCopy) as ItemCard;
+        // const templateCopy = game.cardHandler.copyCard(itemToCopy) as ItemCard;
         
-        game.recharge(thisItem, data.it);
+        game.cardHandler.recharge(thisItem, data.it);
         // Transform this card to become the copy and get the restore function
         const { restore } = thisItem.becomesCopyOf(itemToCopy, (card) => {
-            game.attachEffectsToCard(card);
+            game.cardHandler.attachEffectsToCard(card);
         });
         let restored = false;
         let unsubscribe = () => {};
@@ -602,7 +602,7 @@ export function replaceCharacterWithOutsideCardEffect(game: Game): EffectFunctio
         const player = data.issuer as Player;
         if(player === undefined)
             throw new Error(`Effect issuer is not a player.`);
-        await game.replaceCharacter(data.issuer, targetCard);
+        await game.cardHandler.replaceCharacter(data.issuer, targetCard);
         return true;
     };
 }
@@ -614,7 +614,7 @@ export function cancelStackElementEffect(game: Game, selectors: TargetsSelector[
             : (await data.selectAndRecord(game, data.issuer as Player, 1, 1, selectors[0]?.selector(data.issuer as Player, data.it)!, selectors[0]?.description, true, true)).selected[0] as StackElement;
             game.cancelStackElement(toRemove);
             if(toRemove instanceof LootCardEffect && !game.decks.loot.discard.includes(toRemove.card)) // must handle the discard.
-                game.discard(toRemove.card);
+                game.cardHandler.discard(toRemove.card);
         return true;
     };
 }
@@ -640,7 +640,7 @@ export function eachOtherPlayerDiscardsLootEffect(game: Game): EffectFunction {
         for (const playerChoice of playersChoices) {
             const player = game.entityHandler.getPlayerById(playerChoice.playerId);
             const index = player.hand.cards.indexOf(playerChoice.selected[0]!);
-            success = success && game.discardFromHandAtIndex(player, index, "effect");
+            success = success && game.cardHandler.discardFromHandAtIndex(player, index, "effect");
         }
         return success;
     }
@@ -665,7 +665,7 @@ export function stealSoulEffect(game: Game): EffectFunction {
         if(game.soulsOwned.length === 0) return false;
         const soulToSteal = (await data.selectAndRecord(game, data.issuer, 1, 1, game.soulsOwned, "Select a soul to steal.", true, true)).selected[0]!;
         const target = game.getOwner(soulToSteal, "soul");
-        game.stealSoul(data.issuer, target!, soulToSteal);
+        game.cardHandler.stealSoul(data.issuer, target!, soulToSteal);
         return true;
     };
 }
@@ -687,7 +687,7 @@ export function lookAtTop3Put1InSlotEffect(game: Game, x: number): EffectFunctio
         const deck = data.next;
         if(!isDeckType(deck._type) || !deck)
             throw new Error(`Target of lookAtTop3Put1InSlotEffect should be a deck type, got ${deck}`);
-        const topCards = game.getFirstCardsOfDeck(deck._type, x);
+        const topCards = game.cardHandler.getFirstCardsOfDeck(deck._type, x);
         if (topCards.length === 0) return false;
         const selectedCard = (await data.selectAndRecord(game, data.issuer, 1, 1, topCards, "Select a card to put in a slot.", true, true)).selected[0]!;
         if(!selectedCard)
@@ -697,11 +697,11 @@ export function lookAtTop3Put1InSlotEffect(game: Game, x: number): EffectFunctio
             : (await data.selectAndRecord(game, data.issuer, 1, 1, game.rooms?.activeRooms!, "Select a slot to place the card in.", true)).selected[0]!;
         if (!slot) return false;
         if(deck._type === "monster") {
-            game.addTopPosition("monster", selectedCard);
+            game.cardHandler.addTopPosition("monster", selectedCard);
             game.encounters.draw(game.encounters.visible.indexOf((slot as Monster).card));
         }
         else {
-            game.addTopPosition("room", selectedCard);
+            game.cardHandler.addTopPosition("room", selectedCard);
             game.rooms?.draw(game.rooms.activeRooms.indexOf(slot as RoomCard));
         }
         return true;
@@ -717,7 +717,7 @@ export function getCardFromLootDiscardEffect(cardTxt: string | "top", game: Game
         if (!card) return false;
         const success = game.decks.loot.getFromDiscard(card);
         if (!success) return false;
-        game.addCardToHand(data.issuer as Player, card);
+        game.cardHandler.addCardToHand(data.issuer as Player, card);
         return true;
     };
 }
@@ -725,7 +725,7 @@ export function getCardFromLootDiscardEffect(cardTxt: string | "top", game: Game
 export function lookAtTopXPut1InYourHandRestInAnotherPlayerHandEffect(game: Game, x: number): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const topCards = game.getFirstCardsOfDeck("loot", x);
+        const topCards = game.cardHandler.getFirstCardsOfDeck("loot", x);
         if (topCards.length === 0) return false;
         const selectedCard = (await data.selectAndRecord(game, data.issuer, 1, 1, topCards, "Select a card to put in your hand.", true, true)).selected[0]!;
         if(!(selectedCard instanceof LootCard))
@@ -734,9 +734,9 @@ export function lookAtTopXPut1InYourHandRestInAnotherPlayerHandEffect(game: Game
         const otherPlayer = (await data.selectAndRecord(game, data.issuer, 1, 1, game.players.filter(p => p !== data.issuer), "Select a player to give the other cards to.", true, true)).selected[0]!;
         if(!(otherPlayer instanceof Player))
             throw new Error("Selected player is not an instance of Player.");
-        game.addCardToHand(data.issuer as Player, selectedCard);
+        game.cardHandler.addCardToHand(data.issuer as Player, selectedCard);
         for (const card of otherCards) {
-            game.addCardToHand(otherPlayer, card);
+            game.cardHandler.addCardToHand(otherPlayer, card);
         }
         return true;
     };
@@ -748,7 +748,7 @@ export function stealNonEternalItemEffect(game: Game): EffectFunction {
         const itemToSteal = data.next;
         if(itemToSteal.eternal)
             return false;
-        return game.stealItemAnywhere(data.issuer, itemToSteal);
+        return game.cardHandler.stealItemAnywhere(data.issuer, itemToSteal);
     };
 }
 
@@ -761,7 +761,7 @@ export function stealNonEternalItemFromTargetEffect(game: Game): EffectFunction 
         const itemToSteal = (await data.selectAndRecord(game, data.issuer, 1, 1, target.inPlay.filter(card => !card.eternal), "Select an item to steal.", true, true)).selected[0]!;
         if(itemToSteal === undefined ||itemToSteal.eternal)
             return false;
-        return game.stealItemAnywhere(data.issuer, itemToSteal);
+        return game.cardHandler.stealItemAnywhere(data.issuer, itemToSteal);
     };
 }
 
@@ -771,7 +771,7 @@ export function stealNonEternalItemFromAnywhereEffect(game: Game): EffectFunctio
         const itemToSteal = data.next;
         if(itemToSteal.eternal)
             return false;
-        return game.stealItemAnywhere(data.issuer, itemToSteal);
+        return game.cardHandler.stealItemAnywhere(data.issuer, itemToSteal);
     };
 }
 
@@ -860,7 +860,7 @@ export function shopItemAuctionEffect(game: Game, minPrice: number): EffectFunct
         if (highestBidder) {
             await game.giveCoins(highestBidder, data.issuer, highestBid, data.it);
             game.shop.removeCard(shopItem);
-            game.addInPlay(highestBidder, shopItem);
+            game.cardHandler.addInPlay(highestBidder, shopItem);
         }
         return true;
     };
@@ -894,7 +894,7 @@ export function discardLootAndLoseCoinsBasedOnSoulsEffect(game: Game): EffectFun
             if(!(card instanceof LootCard))
                 throw new Error("Selected card is not an instance of LootCard.");
             const index = player.hand.cards.indexOf(card);
-            game.discardFromHandAtIndex(player, index, "effect");
+            game.cardHandler.discardFromHandAtIndex(player, index, "effect");
         }
         game.loseCoins(player, nbSouls, true, "effect");
         return true;
@@ -934,8 +934,8 @@ export function flipAndAddAttackEffect(game: Game): EffectFunction {
         if(owner === null)
             return false;
         if(data.it.entity instanceof Animated && !data.it.entity?.isDead)
-            game.entityRewards(data.it.entity, game.currentPlayer)
-        game.flip(owner, data.it);
+            game.entityHandler.entityRewards(data.it.entity, game.currentPlayer)
+        game.cardHandler.flip(owner, data.it);
         game.entityHandler.addAttackThisTurn(game.currentPlayer, 1, data.it);
         return true;
     };
@@ -944,7 +944,7 @@ export function flipAndAddAttackEffect(game: Game): EffectFunction {
 export function lookAtHands(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        await data.selectAndRecord(game, data.issuer, 0, 0, game.allHands(), "You can see each players' hands:", false, false);
+        await data.selectAndRecord(game, data.issuer, 0, 0, game.cardHandler.allHands(), "You can see each players' hands:", false, false);
         return true;
     };
 }
@@ -995,7 +995,7 @@ export function swapNonEternalItemsEffect(game: Game, youMayEffectHanging: boole
         const itemToSwapFromOtherPlayer = (await data.selectAndRecord(game, data.issuer, 1, 1, otherPlayer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false), "Select an item to swap from the other player's in-play.", true, true)).selected[0] as ItemCard;
         if(itemToSwapFromIssuer === undefined) return true;
         if(itemToSwapFromOtherPlayer === undefined) return true;
-        return game.swapItems(itemToSwapFromIssuer, itemToSwapFromOtherPlayer);
+        return game.cardHandler.swapItems(itemToSwapFromIssuer, itemToSwapFromOtherPlayer);
     }
 }
 export function flushOneMonsterSlotEffect(game: Game, min: number): EffectFunction {
@@ -1023,7 +1023,7 @@ export function flipThisItemEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const item = data.it as ItemCard;
-        game.flip(data.issuer, item);
+        game.cardHandler.flip(data.issuer, item);
         return true;
     };
 }
@@ -1032,9 +1032,9 @@ export function addCountersAndGainTreasureEffect(countersThreshold: number, toRe
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const dmg = data.next as number;
-        game.addToCounter(data.issuer, data.it, "counters", dmg);
+        game.cardHandler.addToCounter(data.issuer, data.it, "counters", dmg);
         if (data.it.tags.counters >= countersThreshold) {
-            game.addToCounter(data.issuer, data.it, "counters", -toRemove);
+            game.cardHandler.addToCounter(data.issuer, data.it, "counters", -toRemove);
             game.gainTreasure(data.issuer, treasureToGain);
         }
         return true;
@@ -1047,7 +1047,7 @@ export function becomeSoulIfAboveXCountersEffect(countersThreshold: number, game
             const owner = game.getOwner(data.it);
             if(owner instanceof Player === false)
                 return false;
-            if(!game.removeInPlay(owner, data.it as ItemCard))
+            if(!game.cardHandler.removeInPlay(owner, data.it as ItemCard))
                 {
                     return false;
                 };
@@ -1099,7 +1099,7 @@ export function discardAnyNumberOfLootCardsEffect(game: Game, youMayEffectHangin
         let success = true;
         for (const card of selectionResult.selected) {
             const index = player.hand.cards.indexOf(card);
-            success = success && game.discardFromHandAtIndex(player, index, "effect");
+            success = success && game.cardHandler.discardFromHandAtIndex(player, index, "effect");
         }
         data.addTarget(nbDiscarded);
         return success;
@@ -1136,7 +1136,7 @@ export function discardTopOfDeckEffect(game: Game, youMayEffectHanging: boolean[
             throw new Error(`Invalid deck type: ${deck._type}`);
         youMayEffectHanging[0] = false;
         const topCard = deck.draw();
-        game.discard(topCard);
+        game.cardHandler.discard(topCard);
         return true;
     };
 }
@@ -1170,9 +1170,9 @@ export function LookAndPutBottomEffect(
         const topCard = deck.draw();
         const res = await data.selectAndRecord(game, data.issuer, 0, 1, [topCard], `Look at the top card of the ${deckName} deck. You may put it on the bottom of the deck.`, false, false);
         if (res.selected.length > 0) {
-            game.addBottomPosition(deckName, topCard);
+            game.cardHandler.addBottomPosition(deckName, topCard);
         } else {
-            game.addTopPosition(deckName, topCard);
+            game.cardHandler.addTopPosition(deckName, topCard);
         }
         return true;
     };
@@ -1186,7 +1186,7 @@ export function destroyItemOfRandomPlayerEffect(game: Game): EffectFunction {
         const targetPlayer = players[randomIndex]!;
         if(targetPlayer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false).length === 0) return false;
         const item = (await data.selectAndRecord(game, targetPlayer, 1, 1, targetPlayer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false), "Select an item to destroy.", true, true)).selected[0]!;
-        return game.destroyCardsOrSouls([item]);
+        return game.cardHandler.destroyCardsOrSouls([item]);
     };
 }
 
@@ -1195,7 +1195,7 @@ export function deactivateAllYourItemsAndCharaEffect(game: Game): EffectFunction
         if (data.issuer instanceof Player === false) return false;
         const player = data.issuer;
         for (const card of player.inPlay) {
-            game.deactivateItem(card);
+            game.cardHandler.deactivateItem(card);
         }
         return true;
     };
@@ -1240,7 +1240,7 @@ export function selectEternalAmongX(game: Game, x: number): EffectFunction {
         const options: TreasureCard[] = game.decks["treasure"]!.drawSeveral(x);
         const selection = await data.selectAndRecord(game, data.issuer, 1, 1, options, "Select a starting eternal treasure.", true, true);
         selection.selected[0]?.setEternal(true);
-        game.addInPlay(data.issuer, selection.selected[0]!); 
+        game.cardHandler.addInPlay(data.issuer, selection.selected[0]!); 
         return true;
     };
 }
@@ -1261,7 +1261,7 @@ export function flipCharacterEffect(game: Game): EffectFunction {
         const player = data.issuer;
         const card = player.character;
         if(card.flipData === undefined) return false;
-        game.flip(player, card);
+        game.cardHandler.flip(player, card);
         return true;
     }   
 }
@@ -1283,14 +1283,14 @@ export function destroyItemStealFromShopEffect(game: Game, may: boolean): Effect
         if(!itemToDestroy || !(itemToDestroy instanceof ItemCard))
             throw new Error(`Invalid item to destroy in destroyItemStealFromShopEffect: ${itemToDestroy}`);
         const owner = game.getOwner(itemToDestroy);
-        const res = game.destroyCardsOrSouls([itemToDestroy]);
+        const res = game.cardHandler.destroyCardsOrSouls([itemToDestroy]);
         if(!res) 
             return false;
         if(owner instanceof Player) {
             const itemToSteal = (await data.selectAndRecord(game, owner, may ? 0 : 1, 1, game.shop.itemsInShop.filter((slot) => slot !== undefined) as ItemCard[], "You may steal from the shop.", true, true)).selected[0] as ItemCard;
             if(itemToSteal) {
                 game.shop.obtainCard(itemToSteal.slug, itemToSteal.globalId);
-                game.addInPlay(owner, itemToSteal);
+                game.cardHandler.addInPlay(owner, itemToSteal);
             }
         }
         return true;
@@ -1302,7 +1302,7 @@ export function removeCounterAndLootIfAbove(game: Game, counterThreshold: number
         if(!(data.issuer instanceof Player)) return false;
         const currentCounters = data.it.tags.counters || 0;
         if(currentCounters >= counterThreshold) {
-            game.addToCounter(data.issuer, data.it, "counters", -currentCounters);
+            game.cardHandler.addToCounter(data.issuer, data.it, "counters", -currentCounters);
             game.loot(data.issuer, lootAmount);
             return true;
         }
@@ -1315,17 +1315,17 @@ export function lookAndOrderEffect(deckName: string, numberOfCards: number, game
         throw new Error(`Invalid deck type: ${deckName}`);
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        let cards = game.getFirstCardsOfDeck(deckName, numberOfCards);
+        let cards = game.cardHandler.getFirstCardsOfDeck(deckName, numberOfCards);
         let selectionResult = await data.selectAndRecord(game, data.issuer, numberOfCards, numberOfCards, cards, `Select the order to put back the ${numberOfCards} cards on top of the ${deckName} deck (first selected will be on top).`, false, false);
         for (let i = 0; i < selectionResult.selected.length; i++) {
-            game.addTopPosition(deckName, selectionResult.selected[numberOfCards - 1 - i]!);
+            game.cardHandler.addTopPosition(deckName, selectionResult.selected[numberOfCards - 1 - i]!);
         }
         return true;
     };
 }
 export function putCountersOnItemEffect(amount: number, game: Game): EffectFunction {   
     return (data: EffectData) => {
-        game.addToCounter(data.issuer, data.it, "counters", amount);
+        game.cardHandler.addToCounter(data.issuer, data.it, "counters", amount);
         return true;
     };
 }
@@ -1355,7 +1355,7 @@ export function bombInLootDeckEffect(game: Game, numberOfCards: number): EffectF
         const cards = game.decks.loot.drawSeveral(numberOfCards);
         const bombCards = cards.filter((card) => card.name.includes("Bomb"));
         const otherCards = cards.filter((card) => !card.name.includes("Bomb"));
-        bombCards.forEach((card) => game.addCardToHand(data.issuer as Player, card));
+        bombCards.forEach((card) => game.cardHandler.addCardToHand(data.issuer as Player, card));
         otherCards.forEach((card) => game.decks.loot.addBottomPosition(card));
         return true;
     };
@@ -1367,7 +1367,7 @@ export function pillsInLootDeckEffect(game: Game, numberOfCards: number): Effect
         const cards = game.decks.loot.drawSeveral(numberOfCards);
         const pillsCards = cards.filter((card) => card.name === "Pills!");
         const otherCards = cards.filter((card) => card.name !== "Pills!");
-        pillsCards.forEach((card) => game.addCardToHand(data.issuer as Player, card));
+        pillsCards.forEach((card) => game.cardHandler.addCardToHand(data.issuer as Player, card));
         otherCards.forEach((card) => game.decks.loot.addBottomPosition(card));
         return true;
     };
@@ -1391,7 +1391,7 @@ export function giveThisToAnotherPlayerEffect(game: Game): EffectFunction {
         const selection = await effectData.selectAndRecord(game, effectData.issuer, 1, 1, otherPlayers, "Select a player to give the item to.", true, true);
         if (selection.selected.length > 0) {
             const chosenPlayer = selection.selected[0]!;
-            game.give(effectData.issuer, chosenPlayer, effectData.it);
+            game.cardHandler.give(effectData.issuer, chosenPlayer, effectData.it);
             effectData.issuerProvider = () => chosenPlayer;
         }
         return true;
@@ -1409,7 +1409,7 @@ export function discardLootOrTakeDamageEffect(game: Game, damage: number): Effec
         if(!(card instanceof LootCard))
             return false;
         const idx = player.hand.cards.indexOf(card);
-        game.discardFromHandAtIndex(player, idx);
+        game.cardHandler.discardFromHandAtIndex(player, idx);
         return true;
     };
 }
@@ -1428,7 +1428,7 @@ export function takeDamageAndAddCounterEffect(game: Game, damageAmount: number, 
         game.entityHandler.dealDamage(data.issuer, data.issuer, data.it, damageAmount,
             (data: EffectData) => 
             {
-                game.addToCounter(data.issuer, data.it, "counters", 1);
+                game.cardHandler.addToCounter(data.issuer, data.it, "counters", 1);
                 if(data.it.tags.counters >= counterAmount)
                     becomeSoulIfAboveXCountersEffect(counterAmount, game)(data);
                 return true;
@@ -1471,7 +1471,7 @@ export function putRoomOrMonsterIntoDiscardEffect(game: Game, youMay: boolean): 
         if(!target)
             return false;
         if(target instanceof RoomCard) {
-            game.discard(target);
+            game.cardHandler.discard(target);
             return true;
         }
         else if(target instanceof Monster) {
@@ -1495,7 +1495,7 @@ export function putRoomOrMonsterIntoDiscardEffect(game: Game, youMay: boolean): 
 
 export function destroyAllSoulsEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
-        game.destroyCardsOrSouls(game.soulsOwned);
+        game.cardHandler.destroyCardsOrSouls(game.soulsOwned);
         return true;
     };
 }
@@ -1538,7 +1538,7 @@ export function destroyYourItemOnYourNextTurnEndEffect(game: Game): EffectFuncti
                 const effect: EffectFunction = async (data: EffectData) => {
                     if (data.issuer instanceof Player === false) return false;
                     const item = (await data.selectAndRecord(game, data.issuer as Player, 1, 1, data.issuer.inPlay.filter((card) => card.eternal === false), "Select an item to destroy at the end of your turn.", true, true)).selected[0]!;
-                    const removed = game.destroyCardsOrSouls([item]);
+                    const removed = game.cardHandler.destroyCardsOrSouls([item]);
                     if (offEndTurn) offEndTurn();
                     offEndTurn = null;
                     return removed;
@@ -1566,7 +1566,7 @@ export function removeCountersFromThisEffect(game: Game, amount: number): Effect
         if(!(data.it as ItemCard).tags.counters)
             (data.it as ItemCard).tags.counters = 0;
         if ((data.it as ItemCard).tags.counters as number >= amount) {
-            game.addToCounter(data.issuer, data.it, "counters", -amount);
+            game.cardHandler.addToCounter(data.issuer, data.it, "counters", -amount);
             return true;
         }
         return false;
@@ -1589,7 +1589,7 @@ export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestinati
         if (!deck)
             throw new Error(`Deck not found`);
         const topCard = deck.draw();
-        game.addTopPosition(deck._type, topCard);
+        game.cardHandler.addTopPosition(deck._type, topCard);
         // getFirstCardsOfDeck(deckName, 1)[0];
         const justWatch = canPutWhere === "just_watch";
         const description = canPutWhere === "just_watch"
@@ -1615,7 +1615,7 @@ export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestinati
                 const topCard2 = deck.draw();
                 if (topCard2 !== topCard)
                     throw new Error("Top card mismatch");
-                game.addBottomPosition(deck._type, topCard);
+                game.cardHandler.addBottomPosition(deck._type, topCard);
                 break;
             }
             case "discard":
@@ -1623,7 +1623,7 @@ export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestinati
                     const topCard2 = deck.draw();
                     if (topCard2 !== topCard)
                         throw new Error("Top card mismatch");
-                    game.discard(topCard);
+                    game.cardHandler.discard(topCard);
                     break;
                 }
             }
@@ -1644,7 +1644,7 @@ export function rerollEachItemEffect(game: Game, target: "issuer" | "currentPlay
         for (const player of players) {
             const inplayItems = player.inPlay.filter((card) => card instanceof ItemCard && !card.eternal) as ItemCard[];
             for (const card of inplayItems) {
-                game.reroll(card);
+                game.cardHandler.reroll(card);
             }
         }
         return true;
@@ -1700,7 +1700,7 @@ export function changeNumberInEffectTextEffect(game: Game, val: number, min: num
         }else
             targetCard.cleanup();
         try {
-            const {originalState, restore} = targetCard.becomesCopyOf(targetCard, (card)=>game.attachEffectsToCard(card));
+            const {originalState, restore} = targetCard.becomesCopyOf(targetCard, (card)=>game.cardHandler.attachEffectsToCard(card));
             cleanTarget = () => {
                 originalState.effectOutcomes = oldOutcomes;
                 restore();
@@ -1708,7 +1708,7 @@ export function changeNumberInEffectTextEffect(game: Game, val: number, min: num
                 if(owner !== null)
                     targetCard.onAddInPlay(() => owner);
             };
-            // game.attachEffectsToCard(targetCard);
+            // game.cardHandler.attachEffectsToCard(targetCard);
         } catch (e) {
             game.toast(
                 {
@@ -1777,7 +1777,7 @@ export function eachPlayersVoteToDestroyItemEffect(game: Game): EffectFunction {
             }
         }
         if (itemToDestroy !== null && itemToDestroy !== undefined) {
-            game.destroyCardsOrSouls([itemToDestroy]);
+            game.cardHandler.destroyCardsOrSouls([itemToDestroy]);
         }
         return true;
     };
@@ -1791,7 +1791,7 @@ export function stealRandomLootCardEffect(game: Game): EffectFunction {
         if (targetPlayer.hand.length > 0) {
             const randomIndex = Math.floor(game.random() * targetPlayer.hand.length);
             const cardToSteal = targetPlayer.hand.cards[randomIndex]!;
-            game.stealLootCard(data.issuer, targetPlayer, cardToSteal as LootCard);
+            game.cardHandler.stealLootCard(data.issuer, targetPlayer, cardToSteal as LootCard);
         }
         return true;
     };
@@ -1804,7 +1804,7 @@ export function stealAPlayerRandomLootCardEffect(game: Game): EffectFunction {
         if (targetPlayer.hand.length > 0) {
             const randomIndex = Math.floor(game.random() * targetPlayer.hand.length);
             const cardToSteal = targetPlayer.hand.cards[randomIndex]!;
-            game.stealLootCard(data.issuer, targetPlayer, cardToSteal as LootCard);
+            game.cardHandler.stealLootCard(data.issuer, targetPlayer, cardToSteal as LootCard);
         }
         return true;
     };
@@ -1822,7 +1822,7 @@ export function deactivateItemEffect(game: Game, selectionOnResolve: boolean = f
         if(target === undefined)
             return false;
         target.charged = false;
-        game.deactivateItem(target);
+        game.cardHandler.deactivateItem(target);
         return true;
     };
 }
@@ -1830,7 +1830,7 @@ export function deactivateItemEffect(game: Game, selectionOnResolve: boolean = f
 export function destroyThisEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        return game.destroyCardsOrSouls([data.it]);
+        return game.cardHandler.destroyCardsOrSouls([data.it]);
     };
 }
 
@@ -1841,7 +1841,7 @@ export function giveLootCardToAnotherPlayerEffect(game: Game): EffectFunction {
         if (!card) return false;
         const targetPlayer = (await data.selectAndRecord(game, data.issuer, 1, 1, game.players.filter((p) => p !== data.issuer), "Select a player to give the loot card to.", true, true)).selected[0] as Player;
         if (!targetPlayer) return false;
-        game.giveCard(data.issuer, targetPlayer, card);
+        game.cardHandler.giveCard(data.issuer, targetPlayer, card);
         return true;
     };
 }
@@ -1865,7 +1865,7 @@ export function discardNLootCardsEffect(n: number, game: Game, selectionOnResolv
         let success = true;
         for (const index of indices) {
             if (index >= 0) {
-                success = success && game.discardFromHandAtIndex(subject, index, "effect");
+                success = success && game.cardHandler.discardFromHandAtIndex(subject, index, "effect");
             }
         }
         return success;
@@ -1876,7 +1876,7 @@ export function destroyOneOfYourSoulEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const soulToDestroy = (await data.selectAndRecord(game, data.issuer, 1, 1, data.issuer.souls, "Select a soul to destroy.", true, true)).selected[0]!;
-        return game.destroyCardsOrSouls([soulToDestroy]);
+        return game.cardHandler.destroyCardsOrSouls([soulToDestroy]);
     };
 }
 
@@ -1893,7 +1893,7 @@ export function eachPlayerDestroysASoulEffect(game: Game): EffectFunction {
         }));
         const playersChoices:{ playerId: string; selected: Card[]; remaining: Card[] }[] = await data.selectMultipleAndRecord(game, choices);
         for (const playerChoice of playersChoices) {
-            game.destroyCardsOrSouls(playerChoice.selected);
+            game.cardHandler.destroyCardsOrSouls(playerChoice.selected);
         }
         return true;
     };
@@ -1908,7 +1908,7 @@ export function giveSoulEffect(game: Game): EffectFunction {
         if(data.issuer.souls.length === 0)
             return false;
         const soulToGive = (await data.selectAndRecord(game, data.issuer, 1, 1, data.issuer.souls, "Select a soul to give.", true, true)).selected[0]!;
-        game.give(data.issuer, targetPlayer, soulToGive);
+        game.cardHandler.give(data.issuer, targetPlayer, soulToGive);
         return true;
     };
 }
@@ -1925,8 +1925,8 @@ export function lookAtPlayerHandAndSwapEffect(game: Game): EffectFunction {
         if (selection.selected.length === 0)
             return true;
         const toGive = (await data.selectAndRecord(game, data.issuer, 1, 1, data.issuer.hand.cards, "Select a loot card to give.", true, false)).selected[0] as LootCard;
-        if (game.give(data.issuer, otherPlayer, toGive))
-            game.give(otherPlayer, data.issuer, selection.selected[0] as LootCard);
+        if (game.cardHandler.give(data.issuer, otherPlayer, toGive))
+            game.cardHandler.give(otherPlayer, data.issuer, selection.selected[0] as LootCard);
         return true;
     };
 }
@@ -1943,7 +1943,7 @@ export function lookAtHandAndStealLootEffect(game: Game): EffectFunction {
         const selection = await data.selectAndRecord(game, data.issuer, 0, canSteal ? 1 : 0, otherPlayer.hand.cards, "Select a loot card to steal.", true, false);
         if (selection.selected.length === 0)
             return true;
-        game.give(otherPlayer, data.issuer, selection.selected[0] as LootCard);
+        game.cardHandler.give(otherPlayer, data.issuer, selection.selected[0] as LootCard);
         return true;
     };
 }
@@ -1965,8 +1965,8 @@ export function putTopCardOfEachDeckIntoDiscardEffect(game: Game): EffectFunctio
         for (const deckName of game.deckNames) {
             if(!isDeckType(deckName))
                 throw new Error(`Invalid deck type: ${deckName}`);
-            const topCard = game.getFirstCardsOfDeck(deckName, 1)[0]!;
-            game.discard(topCard);
+            const topCard = game.cardHandler.getFirstCardsOfDeck(deckName, 1)[0]!;
+            game.cardHandler.discard(topCard);
         }
         return true;
     };
@@ -1981,7 +1981,7 @@ export function becomesCopyOfEternalItemLosesEternalEffect(game: Game): EffectFu
         if(!game.getOwner(data.it))
             return false;
         data.it.becomesCopyOf(target, (card) => {
-            game.attachEffectsToCard(card);
+            game.cardHandler.attachEffectsToCard(card);
         });
         if(!data.it || !(data.it instanceof ItemCard))
             throw new Error("Invalid source item for becomesCopyOfEternalItemLosesEternalEffect.");
@@ -1995,7 +1995,7 @@ export function passHandsLeftEffect(game: Game): EffectFunction {
         let tempHand = game.players[0]!.hand;
         for (let i = 0; i < game.players.length; i++) {
             const nextPlayer = game.players[(i + 1) % game.players.length]!;
-            tempHand = game.setHand(nextPlayer, tempHand);
+            tempHand = game.cardHandler.setHand(nextPlayer, tempHand);
         }
         return true;
     };
@@ -2015,7 +2015,7 @@ export function youMayRechargeThisEffect(game: Game): EffectFunction {
         if (data.issuer instanceof Player === false) return false;
         const selectionResult = await data.selectAndRecord(game, data.issuer, 0, 1, [data.it], "If you want to, you can recharge this item.", true, true, false);
         if (selectionResult.selected.length > 0) {
-            game.recharge(data.it as ItemCard, data.it);
+            game.cardHandler.recharge(data.it as ItemCard, data.it);
         }
         return true;
     };
@@ -2026,7 +2026,7 @@ export function youMayRechargeAnItemEffect(game: Game): EffectFunction {
         if (data.issuer instanceof Player === false) return false;
         const selectionResult = await data.selectAndRecord(game, data.issuer, 0, 1, inplayChargeableItemSelector(game)(data.issuer), "If you want to, select an item to recharge.", true, true);
         if (selectionResult.selected.length > 0) {
-            game.recharge(selectionResult.selected[0] as ItemCard, data.it);
+            game.cardHandler.recharge(selectionResult.selected[0] as ItemCard, data.it);
         }
         return true;
     };
@@ -2112,7 +2112,7 @@ export function loot1PutCardOnTopEffect(game: Game): EffectFunction {
         if (data.issuer instanceof Player === false) return false;
         game.loot(data.issuer, 1);
         const cardToPutBack = (await data.selectAndRecord(game, data.issuer, 1, 1, data.issuer.hand.cards, "Select a loot card to put on top of the loot deck.", true, false)).selected[0] as LootCard;
-        const card = game.getCardFromHand(data.issuer, cardToPutBack);
+        const card = game.cardHandler.getCardFromHand(data.issuer, cardToPutBack);
         game.decks["loot"]!.addTopPosition(card);
         return true;
     };
@@ -2148,7 +2148,7 @@ export function rerollItemEffect(game: Game, selectors: TargetsSelector[] = [], 
 
         for (const card of cards) {
             if(card !== undefined && game.visibleItems.includes(card as ItemCard))
-                game.reroll(card);
+                game.cardHandler.reroll(card);
             else
                 return false;
         }
@@ -2181,7 +2181,7 @@ export function rerollItemTheyControlEffect(game: Game, youMayEffectHanging: boo
             return false;
         const card = selectionResult.selected[0]!;
         if(card !== undefined)
-            game.reroll(card);
+            game.cardHandler.reroll(card);
         return true;
     };
 }
@@ -2206,7 +2206,7 @@ export function playerGivesLootCardEffect(game: Game, reveal: boolean = false, a
         const targetPlayer = data.next as Player;
         if (targetPlayer.hand.length > 0) {
             const cardToSteal = (await data.selectAndRecord(game, targetPlayer, 1, 1, targetPlayer.hand.cards, "Select a loot card to steal.", true, reveal)).selected[0] as LootCard;
-            game.stealLootCard(data.issuer, targetPlayer, cardToSteal);
+            game.cardHandler.stealLootCard(data.issuer, targetPlayer, cardToSteal);
             if(addCardToTarget)
                 data.addTarget(cardToSteal);
         }
@@ -2226,13 +2226,13 @@ export function revealTopCardsOfMonsterDeckEffect(
         const curses = monsterCards.filter(c => c.isCurse);
         for (const curse of curses) {
             const target = (await data.selectAndRecord(game, data.issuer, 1, 1, game.players, `Select a player to give ${curse.name} to.`,true , true)).selected[0] as Player;
-            game.addCurse(target, curse);
+            game.cardHandler.addCurse(target, curse);
         }
         const nonCurseCards = monsterCards.filter(c => !c.isCurse);
         if(nonCurseCards.length === 0) return true;
         const target = (await data.selectAndRecord(game, data.issuer, nonCurseCards.length, nonCurseCards.length, nonCurseCards, `Put the rest on the bottom of the deck in any order.`, false , false)).selected as MonsterCard[];
         for (let i = 0; i < target.length; i++) {
-            game.addBottomPosition("monster", target[i]!);
+            game.cardHandler.addBottomPosition("monster", target[i]!);
         }
 
         return true;
@@ -2269,14 +2269,14 @@ export function putTopCardFromDiscardOnTopEffect(game: Game): EffectFunction {
         const card = deck.drawTopDiscard();
         if(card === null)
             return false;
-        game.addTopPosition(deckName, card);
+        game.cardHandler.addTopPosition(deckName, card);
         return true;
     };
 }
 
 export function rechargeThisEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
-        game.recharge(data.it as ItemCard, data.it);
+        game.cardHandler.recharge(data.it as ItemCard, data.it);
         return true;
     };
 }
@@ -2323,7 +2323,7 @@ export function dealDamageToAPlayerEffect(game: Game, dmg: number, canTargetSelf
 export function addInPlayEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         // console.log("adding in play loot card from effect:", data.it.name);
-        // game.addInPlay(data.issuer, data.it);
+        // game.cardHandler.addInPlay(data.issuer, data.it);
         return true;
     };
 }
@@ -2380,7 +2380,7 @@ export function rechargeCharaEffect(game: Game, youMayEffectHanging: boolean[]):
                 (await data.selectAndRecord(game, data.issuer, 0, 1, [data.issuer.character], "You may recharge your character.", true, true, false)).selected.length > 0 
                 
             if (shouldRecharge)
-                game.recharge(data.issuer.character, data.it);
+                game.cardHandler.recharge(data.issuer.character, data.it);
         }
         youMayEffectHanging[0] = false;
         return true;
@@ -2391,7 +2391,7 @@ export function removeCounterAndDamageIfAboveX(game: Game, toRemove: number, dam
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         if(data.it.tags.counters >= toRemove) {
-            game.addToCounter(data.issuer, data.it, "counters", -data.it.tags.counters);
+            game.cardHandler.addToCounter(data.issuer, data.it, "counters", -data.it.tags.counters);
             const damageTarget = (await data.selectAndRecord(game, data.issuer, 1, 1, game.Entities, "Select a player to deal damage to.", true, true)).selected[0] as Player;
             game.entityHandler.dealDamage(data.issuer, damageTarget, data.it, damage);
         }
@@ -2411,7 +2411,7 @@ export function rechargeUpToXOtherItemsEffect(game: Game, x: number): EffectFunc
             itemsToRecharge.push(next as ItemCard);
         }
         for (const item of itemsToRecharge) {
-            game.recharge(item, data.it);
+            game.cardHandler.recharge(item, data.it);
         }
         return true;
     };
@@ -2500,7 +2500,7 @@ export function rollAndDestroyIfLessThanCounters(game: Game): ParsedEffect {
             if(value < (data.it.tags.counters || 0)) {
                 if (data.issuer instanceof Player === false) return false;
                 const itemsToDestroy = [data.it, ...data.issuer.inPlay.filter(c => c !== data.it && c.eternal === false)];
-                return game.destroyCardsOrSouls(itemsToDestroy);
+                return game.cardHandler.destroyCardsOrSouls(itemsToDestroy);
             }
             return true;
         }), data.it, data.targets, data.issuer);
@@ -2530,7 +2530,7 @@ export function removeCountersAndLootOrDamageEffect(game: Game, minCounterToRemo
         }
         const countersToRemove = (await data.selectAndRecord(game, data.issuer, 1, 1, possibilities, `Select how many counters to remove (at least ${minCounterToRemove}).`, true, true)).selected[0] as number;
         if(countersToRemove === undefined) return false;
-        game.addToCounter(data.issuer, data.it, "counters", -countersToRemove);
+        game.cardHandler.addToCounter(data.issuer, data.it, "counters", -countersToRemove);
         if(countersToRemove < counterThreshold) {
             game.loot(data.issuer, lootAmount);
         } else {
@@ -2554,11 +2554,11 @@ export function halfLootAndCoinsAndGiveItemEffect(game: Game): EffectFunction {
         const lootToLose = Math.floor(target.hand.length / 2);
         const loots = (await data.selectAndRecord(game, target, lootToLose, lootToLose, target.hand.cards, `Select ${lootToLose} loot card${lootToLose > 1 ? 's' : ''} to give to ${data.issuer.id}.`, true, false)).selected as LootCard[];
         for(const loot of loots)
-            game.giveCard(target, data.issuer, loot);
+            game.cardHandler.giveCard(target, data.issuer, loot);
         
         const treasure = (await data.selectAndRecord(game, target, 1, 1, target.inPlay.filter(c => c.eternal === false), `Select a treasure to give to ${data.issuer.id}.`, true, true)).selected[0] as TreasureCard;
         if(treasure === undefined) return false;
-        game.give(target, data.issuer, treasure);
+        game.cardHandler.give(target, data.issuer, treasure);
 
         return true;
     };
@@ -2668,7 +2668,7 @@ export function nonActivePlayerHelpFight(game: Game): EffectFunction {
                 
                 // Add all effects as a single stack element
                 const effect = async (effectData: EffectData) => {
-                    game.entityRewards(eventIssuer, helper)
+                    game.entityHandler.entityRewards(eventIssuer, helper)
                     return true;
                 };
                 addPassiveEffectToStack(game, effect, data, `${helper.id} also gains rewards from killing ${target.id}.`);
@@ -2754,7 +2754,7 @@ export function putCountersBasedOnLootCardsInHandEffect(game: Game): EffectFunct
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const countersToAdd = data.issuer.hand.length;
-        game.addToCounter(data.issuer, data.it, "counters", countersToAdd);
+        game.cardHandler.addToCounter(data.issuer, data.it, "counters", countersToAdd);
         return true;
     };
 }
@@ -2793,7 +2793,7 @@ export function putXCardFromYourHandOnTopOfLootDeck(game: Game, x: number): Effe
         if (data.issuer instanceof Player === false) return false;
         const cardsToPutBack = (await data.selectAndRecord(game, data.issuer, x, x, data.issuer.hand.cards, `Select ${x} card${x > 1 ? 's' : ''} to put on top of the loot deck.`, true, false)).selected as Card[];
         for (let i = cardsToPutBack.length - 1; i >= 0; i--) {
-            const card = game.getCardFromHand(data.issuer, cardsToPutBack[i]! as LootCard);
+            const card = game.cardHandler.getCardFromHand(data.issuer, cardsToPutBack[i]! as LootCard);
             game.decks["loot"]!.addTopPosition(card);
         }
         return true;
@@ -2824,7 +2824,7 @@ export function addOrRemoveCounterOnCardEffect(game: Game, amount: number, type:
         if(toAdd === undefined)
             return false;
         if (card.tags[selectedType] > 0 || (type === "any" && toAdd > 0)) {
-            game.addToCounter(data.issuer, card, selectedType, toAdd);
+            game.cardHandler.addToCounter(data.issuer, card, selectedType, toAdd);
         }
         return true;
     };
@@ -2953,7 +2953,7 @@ export function giveItemToAnotherPlayerEffect(game: Game): EffectFunction {
         if(itemToGive === undefined || itemToGive === data.it)
             return false;
         const targetPlayer = data.next as Player;
-        return game.give(data.issuer, targetPlayer, itemToGive);
+        return game.cardHandler.give(data.issuer, targetPlayer, itemToGive);
     };
 }
 
@@ -3018,10 +3018,10 @@ export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, de
             deckName = (await data.selectAndRecord(game, issuer, 1, 1, game.deckNames, "Select a deck to look at the top cards of.", true, true)).selected[0] as DeckType;
         if(!isDeckType(deckName))
             throw new Error("Invalid deck type for lookAndReorderTopCardsEffect");
-        const top5Cards = game.getFirstCardsOfDeck(deckName, numberCards);
+        const top5Cards = game.cardHandler.getFirstCardsOfDeck(deckName, numberCards);
         const selectionResult = await data.selectAndRecord(game, issuer, numberCards, numberCards, top5Cards, "Select the order to put back the cards (first selected will be on top).", false, false);
         for (let i = selectionResult.selected.length - 1; i >= 0; i--) {
-            game.addTopPosition(deckName, selectionResult.selected[i]!);
+            game.cardHandler.addTopPosition(deckName, selectionResult.selected[i]!);
         }
         return true;
     };
@@ -3051,7 +3051,7 @@ export function eachOtherPlayerLootsAndYouLootEffect(game: Game, amount: number)
                     const cardToGive = (await data.selectAndRecord(game, player, 1, 1, player.hand.cards, `Select a card to give to ${data.issuer.id}.`, true, false)).selected[0] as LootCard;
                     if(!cardToGive)
                         throw new Error("No card selected to give.");
-                    game.giveCard(player, data.issuer, cardToGive);
+                    game.cardHandler.giveCard(player, data.issuer, cardToGive);
                 }
             }
         }
@@ -3066,7 +3066,7 @@ export function putThisIntoDiscardEffect(game: Game): EffectFunction {
             throw new Error("Card is not a monster card for putThisIntoDiscardEffect");
         if(data.it instanceof MonsterCard)
             data.it.afterEffect = "nothing"; // card placement is handled by the effect itself.
-        game.discard(data.it);
+        game.cardHandler.discard(data.it);
         return true;
     };
 }
@@ -3086,7 +3086,7 @@ export function enterPlayBecomeSoulEffect(game: Game): EffectFunction {
         if(data.it instanceof LootCard === true)
             data.it.afterEffect = "nothing"; // card placement is handled by the effect itself.
         data.it.soul = 1;
-        game.addSoul(data.issuer, data.it);
+        game.cardHandler.addSoul(data.issuer, data.it);
         return true;
     };
 }
@@ -3116,7 +3116,7 @@ export function putThisOnBottomOfLootDeckEffect(game: Game): EffectFunction {
         if(data.it instanceof LootCard === false)
             throw new Error("Card is not a loot card for putThisOnBottomOfLootDeckEffect");
         data.it.afterEffect = "nothing"; // card placement is handled by the effect itself.
-        game.addBottomPosition("loot", data.it);
+        game.cardHandler.addBottomPosition("loot", data.it);
         
         return true;
     };
@@ -3126,7 +3126,7 @@ export function takeExtraTurnEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         if (game.currentPlayer === data.issuer) {
-            game.addExtraTurn(data.issuer);
+            game.entityHandler.addExtraTurn(data.issuer);
             return true;
         }
         return false;
@@ -3147,7 +3147,7 @@ export function giveThisToPlayerOnLeftEffect(game: Game): EffectFunction {
             // card might not be in loot deck, ignore error
             data.it.afterEffect = "discardNextTime"; // card placement is handled by the effect itself.
         }
-        game.addCardToHand(targetPlayer, data.it);
+        game.cardHandler.addCardToHand(targetPlayer, data.it);
         return true;
     };
 }
@@ -3164,9 +3164,9 @@ export function thisBecomeSoulGainItEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         if(data.it instanceof ItemCard === true)
-            game.removeInPlay(data.issuer, data.it);
+            game.cardHandler.removeInPlay(data.issuer, data.it);
         data.it.soul = 1;
-        game.addSoul(data.issuer, data.it);
+        game.cardHandler.addSoul(data.issuer, data.it);
         return true;
     };
 }

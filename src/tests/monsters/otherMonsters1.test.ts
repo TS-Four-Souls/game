@@ -306,7 +306,7 @@ describe("Monsters - Various 1", () => {
         game.monsterSlots.forceSetMonsterAtSlot(0, card);
 
         const manual = game.obtainCard("b2-monster_manual") as ItemCard;
-        game.addInPlay(player2, manual);
+        game.cardHandler.addInPlay(player2, manual);
         manual.charged = true;
         
         const targetsSel = manual.getEffectTarget("tap");

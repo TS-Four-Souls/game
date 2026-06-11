@@ -544,15 +544,15 @@ describe("Loot Card", () => {
         player1.hand.addToHand(emperor!);
 
         // Snapshot current top 5 monster cards, then restore deck order
-        const initialTop5 = game.getFirstCardsOfDeck("monster", 5);
+        const initialTop5 = game.cardHandler.getFirstCardsOfDeck("monster", 5);
         for (let i = initialTop5.length - 1; i >= 0; i--) {
-            game.addTopPosition("monster", initialTop5[i]!);
+            game.cardHandler.addTopPosition("monster", initialTop5[i]!);
         }
 
         game.actions.playCard(player1, 0);
         await game.actions.resolveStack();
 
-        const newTop5 = game.getFirstCardsOfDeck("monster", 5);
+        const newTop5 = game.cardHandler.getFirstCardsOfDeck("monster", 5);
         const monsterDeck = game.decks["monster"]!;
         const bottomCards = monsterDeck.cards.slice(monsterDeck.cards.length - 4); // Last 4 cards in deck
 
@@ -575,14 +575,14 @@ describe("Loot Card", () => {
         player1.hand.addToHand(hermit!);
 
         // Snapshot current top 5 treasure cards, then restore deck order
-        const initialTop5 = game.getFirstCardsOfDeck("treasure", 5);
+        const initialTop5 = game.cardHandler.getFirstCardsOfDeck("treasure", 5);
         for (let i = initialTop5.length - 1; i >= 0; i--) {
-            game.addTopPosition("treasure", initialTop5[i]!);
+            game.cardHandler.addTopPosition("treasure", initialTop5[i]!);
         }
         game.actions.playCard(player1, 0);
         await game.actions.resolveStack();
 
-        const newTop5 = game.getFirstCardsOfDeck("treasure", 5);
+        const newTop5 = game.cardHandler.getFirstCardsOfDeck("treasure", 5);
         const treasureDeck = game.decks["treasure"]!;
         const bottomCards = treasureDeck.cards.slice( treasureDeck.cards.length - 4); // Last 4 cards in deck
 
@@ -605,15 +605,15 @@ describe("Loot Card", () => {
         player1.hand.addToHand(moon!);
 
         // Snapshot current top 5 loot cards, then restore deck order
-        const initialTop5 = game.getFirstCardsOfDeck("loot", 5);
+        const initialTop5 = game.cardHandler.getFirstCardsOfDeck("loot", 5);
         for (let i = initialTop5.length - 1; i >= 0; i--) {
-            game.addTopPosition("loot", initialTop5[i]!);
+            game.cardHandler.addTopPosition("loot", initialTop5[i]!);
         }
 
         game.actions.playCard(player1, 0);
         await game.actions.resolveStack();
 
-        const newTop5 = game.getFirstCardsOfDeck("loot", 5);
+        const newTop5 = game.cardHandler.getFirstCardsOfDeck("loot", 5);
         const lootDeck = game.decks["loot"]!;
         const bottomCards = lootDeck.cards.slice(lootDeck.cards.length - 4); // Last 4 cards in deck
 
@@ -664,8 +664,8 @@ describe("Loot Card", () => {
         const item1 = card1 as ItemCard;
         const item2 = card2 as ItemCard;
 
-        game.addInPlay(player1, item1);
-        game.addInPlay(player1, item2);
+        game.cardHandler.addInPlay(player1, item1);
+        game.cardHandler.addInPlay(player1, item2);
         item1.charged = false;
         item2.charged = false;
 
@@ -973,9 +973,9 @@ describe("Loot Card", () => {
         player1.hand.addToHand(card!);
 
         // Capture current tops
-        const topLoot = game.getFirstCardsOfDeck("loot", 1)[0]!;
-        const topTreasure = game.getFirstCardsOfDeck("treasure", 1)[0]!;
-        const topMonster = game.getFirstCardsOfDeck("monster", 1)[0]!;
+        const topLoot = game.cardHandler.getFirstCardsOfDeck("loot", 1)[0]!;
+        const topTreasure = game.cardHandler.getFirstCardsOfDeck("treasure", 1)[0]!;
+        const topMonster = game.cardHandler.getFirstCardsOfDeck("monster", 1)[0]!;
 
         // Stub select to choose all three tops
         const originalSelect = game.select;
@@ -986,9 +986,9 @@ describe("Loot Card", () => {
         game.actions.playCard(player1, 0);
         await game.actions.resolveStack();
 
-        const newTopLoot = game.getFirstCardsOfDeck("loot", 1)[0]!;
-        const newTopTreasure = game.getFirstCardsOfDeck("treasure", 1)[0]!;
-        const newTopMonster = game.getFirstCardsOfDeck("monster", 1)[0]!;
+        const newTopLoot = game.cardHandler.getFirstCardsOfDeck("loot", 1)[0]!;
+        const newTopTreasure = game.cardHandler.getFirstCardsOfDeck("treasure", 1)[0]!;
+        const newTopMonster = game.cardHandler.getFirstCardsOfDeck("monster", 1)[0]!;
         expect(newTopLoot).not.toBe(topLoot);
         expect(newTopTreasure).not.toBe(topTreasure);
         expect(newTopMonster).not.toBe(topMonster);
@@ -1483,7 +1483,7 @@ describe("Loot Card", () => {
         const dagaz = game.decks["loot"]!.getCardFromSlug("b2-dagaz");
         const curses = game.decks["monster"]!.cards.filter((c) => c instanceof MonsterCard && c.isCurse);
         expect(curses.length).toBeGreaterThan(0);
-        game.addCurse(player1, curses[0]!);
+        game.cardHandler.addCurse(player1, curses[0]!);
         // console.log("Player1 curses before: ", inplayCurseSelector((player, card) => true, game)(player1));
         // console.log("Player1 in play before: ", player1.inPlay);
         player1.hand.addToHand(dagaz!);
@@ -1502,9 +1502,9 @@ describe("Loot Card", () => {
         const dagaz = game.decks["loot"]!.getCardFromSlug("b2-dagaz");
         const curses = game.decks["monster"]!.cards.filter((c) => c instanceof MonsterCard && c.isCurse);
         expect(curses.length).toBeGreaterThan(2); // This might be false if curses are drawn at the start of the game.
-        game.addCurse(player1, curses[0]!);
-        game.addCurse(player1, curses[1]!);
-        game.addCurse(player1, curses[2]!);
+        game.cardHandler.addCurse(player1, curses[0]!);
+        game.cardHandler.addCurse(player1, curses[1]!);
+        game.cardHandler.addCurse(player1, curses[2]!);
         // console.log("Player1 curses before: ", inplayCurseSelector((player, card) => true, game)(player1));
         // console.log("Player1 in play before: ", player1.inPlay);
         player1.hand.addToHand(dagaz!);
@@ -1528,8 +1528,8 @@ describe("Loot Card", () => {
         const dagaz = game.decks["loot"]!.getCardFromSlug("b2-dagaz");
         const curses = game.decks["monster"]!.cards.filter((c) => c instanceof MonsterCard && c.isCurse);
         expect(curses.length).toBeGreaterThan(2);
-        game.addCurse(player1, curses[0]!);
-        game.addCurse(player1, curses[1]!);
+        game.cardHandler.addCurse(player1, curses[0]!);
+        game.cardHandler.addCurse(player1, curses[1]!);
         player1.hand.addToHand(dagaz!);
 
         const debugTarget = ["Destroy a curse.", curses[2]!];
@@ -1817,9 +1817,9 @@ describe("Loot Cards - 3 players tests", () => {
         player1.hand.addToHand(judgement!);
 
         // Give each player one soul
-        const soul1 = game.decks["loot"]!.cards[0]!; soul1.soul = 1; game.addSoul(player1, soul1);
-        const soul2 = game.decks["loot"]!.cards[1]!; soul2.soul = 1; game.addSoul(player2, soul2);
-        const soul3 = game.decks["loot"]!.cards[2]!; soul3.soul = 1; game.addSoul(player3, soul3);
+        const soul1 = game.decks["loot"]!.cards[0]!; soul1.soul = 1; game.cardHandler.addSoul(player1, soul1);
+        const soul2 = game.decks["loot"]!.cards[1]!; soul2.soul = 1; game.cardHandler.addSoul(player2, soul2);
+        const soul3 = game.decks["loot"]!.cards[2]!; soul3.soul = 1; game.cardHandler.addSoul(player3, soul3);
 
 
         game.actions.playCard(player1, 0, [player2]);
@@ -1838,9 +1838,9 @@ describe("Loot Cards - 3 players tests", () => {
         player1.hand.addToHand(judgement!);
 
         // player1 has 2 souls, others have 1
-        const s1 = game.decks["loot"]!.cards[0]!; s1.soul = 2; game.addSoul(player1, s1);
-        const s2 = game.decks["loot"]!.cards[1]!; s2.soul = 1; game.addSoul(player1, s2);
-        const s3 = game.decks["loot"]!.cards[2]!; s3.soul = 1; game.addSoul(player2, s3);
+        const s1 = game.decks["loot"]!.cards[0]!; s1.soul = 2; game.cardHandler.addSoul(player1, s1);
+        const s2 = game.decks["loot"]!.cards[1]!; s2.soul = 1; game.cardHandler.addSoul(player1, s2);
+        const s3 = game.decks["loot"]!.cards[2]!; s3.soul = 1; game.cardHandler.addSoul(player2, s3);
 
         game.actions.playCard(player1, 0, [player1]);
         await game.actions.resolveStack();
@@ -1857,9 +1857,9 @@ describe("Loot Cards - 3 players tests", () => {
         player1.hand.addToHand(judgement!);
 
         // player1 has 2 souls, others have 1
-        const s1 = game.decks["loot"]!.cards[0]!; s1.soul = 2; game.addSoul(player1, s1);
-        const s2 = game.decks["loot"]!.cards[1]!; s2.soul = 1; game.addSoul(player1, s2);
-        const s3 = game.decks["loot"]!.cards[2]!; s3.soul = 1; game.addSoul(player2, s3);
+        const s1 = game.decks["loot"]!.cards[0]!; s1.soul = 2; game.cardHandler.addSoul(player1, s1);
+        const s2 = game.decks["loot"]!.cards[1]!; s2.soul = 1; game.cardHandler.addSoul(player1, s2);
+        const s3 = game.decks["loot"]!.cards[2]!; s3.soul = 1; game.cardHandler.addSoul(player2, s3);
 
         game.actions.playCard(player1, 0, [player1]);
         s1.soul = 0; // Invalidate target during resolution

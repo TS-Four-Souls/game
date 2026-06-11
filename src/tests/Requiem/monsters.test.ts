@@ -37,7 +37,7 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         const har = game.monsters[2]!;
-        game.addToCounter(har, har.card, "counters", 4);
+        game.cardHandler.addToCounter(har, har.card, "counters", 4);
         game.random = () => 0.99;
         expect(game.stack.size).toBe(3);
         game.resetStack(); // otherwise players would die. It is also tested elsewhere.
@@ -117,7 +117,7 @@ describe("Requiem Monsters ", () => {
         expect(har.currentHealthPoints).toBe(har.healthPoints);
         expect(har.card.tags.counters).toBe(1);
         game.random = () => 0.01;
-        game.addToCounter(har, har.card, "counters", 3);
+        game.cardHandler.addToCounter(har, har.card, "counters", 3);
         expect(game.stack.size).toBe(3);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -427,7 +427,7 @@ describe("Requiem Monsters ", () => {
         expect(mob).toBeInstanceOf(MonsterCard);
         const card = game.decks.monster.draw();
         card.soul = 2;
-        game.addSoul(player1, card);
+        game.cardHandler.addSoul(player1, card);
 
         game.monsterSlots.forceSetMonsterAtSlot(0, mob);
         await game.actions.resolveStack();
@@ -670,7 +670,7 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack();
         const card = game.decks.monster.draw();
         card.soul = 2;
-        game.addSoul(player1, card);
+        game.cardHandler.addSoul(player1, card);
         expect(player1.totalSouls).toBe(0);
         game.entityHandler.kill(player1, player1, mob);
         await game.actions.resolveStack();
@@ -713,7 +713,7 @@ describe("Requiem Monsters ", () => {
         expect(game.stack.isEmpty()).toBe(true);
         const card = game.decks.monster.draw();
         card.soul = 2;
-        game.addSoul(player1, card);
+        game.cardHandler.addSoul(player1, card);
         game.loot(player1, 3);
         game.gainCoins(player1, 3, "gift");
         await game.endTurn();
@@ -966,10 +966,10 @@ describe("Requiem Monsters ", () => {
         game.gainTreasure(player2, 3);
         const soulCard = game.decks.monster.draw();
         soulCard.soul = 1;
-        game.addSoul(player2, soulCard);
+        game.cardHandler.addSoul(player2, soulCard);
         const soulCard2 = game.decks.monster.draw();
         soulCard2.soul = 1;
-        game.addSoul(player2, soulCard2);
+        game.cardHandler.addSoul(player2, soulCard2);
 
         game.random = () => 0.99;
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
@@ -1004,10 +1004,10 @@ describe("Requiem Monsters ", () => {
         game.gainTreasure(player2, 3);
         const soulCard = game.decks.monster.draw();
         soulCard.soul = 1;
-        game.addSoul(player2, soulCard);
+        game.cardHandler.addSoul(player2, soulCard);
         const soulCard2 = game.decks.monster.draw();
         soulCard2.soul = 1;
-        game.addSoul(player2, soulCard2);
+        game.cardHandler.addSoul(player2, soulCard2);
 
         game.random = () => 5/6-0.01;
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
@@ -1042,10 +1042,10 @@ describe("Requiem Monsters ", () => {
         game.gainTreasure(player2, 3);
         const soulCard = game.decks.monster.draw();
         soulCard.soul = 1;
-        game.addSoul(player2, soulCard);
+        game.cardHandler.addSoul(player2, soulCard);
         const soulCard2 = game.decks.monster.draw();
         soulCard2.soul = 1;
-        game.addSoul(player2, soulCard2);
+        game.cardHandler.addSoul(player2, soulCard2);
 
         game.random = () => 0.5;
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
@@ -1080,10 +1080,10 @@ describe("Requiem Monsters ", () => {
         game.gainTreasure(player2, 3);
         const soulCard = game.decks.monster.draw();
         soulCard.soul = 1;
-        game.addSoul(player2, soulCard);
+        game.cardHandler.addSoul(player2, soulCard);
         const soulCard2 = game.decks.monster.draw();
         soulCard2.soul = 1;
-        game.addSoul(player2, soulCard2);
+        game.cardHandler.addSoul(player2, soulCard2);
 
         game.random = () => 0.01;
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
