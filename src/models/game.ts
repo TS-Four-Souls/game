@@ -620,7 +620,7 @@ export class Game extends SelectionHandler {
   /**
    * Starts the game lifecycle and executes initial setup.
    */
-  start(players: { issuer: string; character: string }[] | null = null, shufflePlayerOrder: boolean = true): void{
+  start(players: { issuer: string; character: string; user?: string }[] | null = null, shufflePlayerOrder: boolean = true): void{
     this.assert.gameNotStarted();
     if (players && players.length > 0) {
       for (const p of players) 

@@ -25,12 +25,9 @@
 
 ## New game modes (e.g: Solitaire, Co-op, Team)
 
-- select a soul goal (default to 4)
-- select a max round count (disabled by default)
-- play as multiple player instances
 - team mode
     - the total number of souls of the team counts towards the soul goal
 - select loot card visiblity
-    - only show own cards (default)
+    - only show the cards of me and my instances (default)
     - see cards of other members of the team (useful when in team mode)
     - see everyone's cards

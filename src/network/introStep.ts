@@ -1,5 +1,11 @@
 import { generateRoomId, generateUserId } from "@/utils/random";
-import { DEFAULT_CHARACTER, type Room, type Socket, type User } from "./types";
+import {
+  DEFAULT_CHARACTER,
+  type Instance,
+  type Room,
+  type Socket,
+  type User,
+} from "./types";
 import {
   errorGuardedEndpoint,
   leaveCurrentStep,
@@ -24,7 +30,9 @@ export const enterIntroStep = (socket: Socket) => {
         callback,
         (payload) => {
           if (payload.password !== process.env.FRONT_ADMIN_PASSWORD) {
-            console.log("[🔌 Socket] Admin login attempt with invalid password");
+            console.log(
+              "[🔌 Socket] Admin login attempt with invalid password",
+            );
             return callback({ status: 400, error: "Invalid password" });
           }
           console.log("[🔌 Socket] Admin login attempt with valid password");
@@ -40,13 +48,19 @@ export const enterIntroStep = (socket: Socket) => {
     errorGuardedEndpoint(callback, () => {
       const roomId = generateRoomId();
 
-      const user: User = {
+      const instance: Instance = {
         id: generateUserId(),
-        socket,
+        isCopy: false,
+        isActive: true,
         character: DEFAULT_CHARACTER,
-        isHost: true,
       };
-      sendUserAssigned(socket, user);
+
+      const user: User = {
+        socket,
+        isHost: true,
+        instances: [instance],
+      };
+      sendUserAssigned(socket, instance);
 
       const room: Room = roomManager.createRoom(roomId, user);
 
@@ -70,22 +84,18 @@ export const enterIntroStep = (socket: Socket) => {
           }
 
           if (payload.userId) {
-            const user = room.users.find((user) => user.id === payload.userId);
-            if (!user) {
+            const joinAsUser = room.users.find((user) =>
+              user.instances.some((instance) => instance.id === payload.userId),
+            );
+            if (!joinAsUser) {
               return callback({ status: 400, error: "User not found" });
             }
-            user.socket = socket;
+            joinAsUser.socket = socket;
             leaveCurrentStep(socket);
             if (room.game === undefined) {
-              enterStartStep(socket, room, user);
-            } else if (user.name) {
-              enterGameStep(socket, room, user);
+              enterStartStep(socket, room, joinAsUser);
             } else {
-              return callback({
-                status: 400,
-                error:
-                  "The game already before you could enter your name. It's too late for you to join.",
-              });
+              enterGameStep(socket, room, joinAsUser);
             }
           } else {
             if (room.users.length >= 4) {
@@ -97,13 +107,18 @@ export const enterIntroStep = (socket: Socket) => {
                 error: "Game is already started",
               });
             }
-            const user: User = {
+            const instance: Instance = {
               id: generateUserId(),
-              socket,
+              isCopy: false,
+              isActive: true,
               character: DEFAULT_CHARACTER,
+            };
+            const user: User = {
+              instances: [instance],
+              socket,
               isHost: false,
             };
-            sendUserAssigned(socket, user);
+            sendUserAssigned(socket, instance);
 
             room.users.push(user);
 

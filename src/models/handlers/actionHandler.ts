@@ -479,6 +479,14 @@ export class ActionHandler {
     return true;
   }
 
+  canSwitchTo(player: Player, target: Player): Capability {
+    if (player.user !== target.user)
+      return "You cannot switch to another player.";
+    if (player.slug === target.slug)
+      return "You cannot switch to yourself.";
+    return true;
+  }
+
 
   /** Validates whether current player can declare purchase mode. */
   canDeclarePurchase(player: Player, shouldThrow: boolean = false): Capability {

@@ -12,12 +12,19 @@ export const DEFAULT_CHARACTER: RoomCharacter = {
   eternal: "random",
 };
 
-export type User = {
+export type Instance = {
   id: string;
-  socket: Socket;
   name?: string;
+  isCopy: boolean;
+  isActive: boolean;
   character: RoomCharacter;
+  teamId?: number;
+};
+
+export type User = {
+  socket: Socket;
   isHost: boolean;
+  instances: Instance[]
 };
 
 export type Room = {

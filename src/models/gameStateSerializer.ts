@@ -147,7 +147,8 @@ export class GameStateSerializer {
           buyTreasure: this.game.actions.canPurchase(player),
           useLoot: this.game.actions.canPlayCard(player),
           resolve: this.game.actions.canResolve(),
-          canDonateCoins: this.game.gameParameters.allowCoinDonation.value ? true : "Giving coins is not allowed in this game.",
+          canSwitchTo: this.game.actions.canSwitchTo(player, player),
+          canDonateCoinsTo: "You cannot donate coins to yourself.",
         }
       },
       players: otherPlayers
@@ -169,6 +170,10 @@ export class GameStateSerializer {
           attackRequirements: p.requirementListJSON(this.game),
           pendingSelection: this.game.pendingMultipleSelections.values().some(sel => sel.playerId === p.id),
           targetable: this.game.actions.canDeclareAttackOnEntity(player, p, false),
+          capabilities: {
+            canSwitchTo: this.game.actions.canSwitchTo(player, p),
+            canDonateCoinsTo: this.game.gameParameters.allowCoinDonation.value ? true : "Giving coins is not allowed in this game.",
+          },
         })),
       monsters:
       {

@@ -21,17 +21,12 @@ import { DiceRoll } from "../stackElement";
  * ```
  */
 export class Player extends Entity {
-  /** 
-   * Authentication token for this player.
-   * This is the token the player uses to issue commands to the game.
-   * The player receives this token when they join the game.
-   */
-  readonly secret: string;
-  
+  readonly user: string;
+
   /** @private Current number of coins the player has */
   private _coin: number = 0;
   
-/** @private Whether the player play with their hand revealed */
+  /** @private Whether the player play with their hand revealed */
   private _handRevealed: number = 0;
 
   /** @private The player's hand of loot cards */
@@ -82,19 +77,18 @@ export class Player extends Entity {
    * Creates a new Player instance.
    * 
    * @param id - Unique identifier for the player (username)
-   * @param secret - Authentication token (auto-generated if not provided)
    */
   constructor(
     id: string,
-    secret: string = crypto.randomUUID()
+    user: string = crypto.randomUUID(),
   ) {
     super(id, 0, 0);
     this._hand = new Hand();
-    this.secret = secret;
     this._inPlay = [];
     this._souls = [];
     this._remainingLootPlay = 0;
     this.attackable = false;
+    this.user = user;
   }
 
   get slug(): string {

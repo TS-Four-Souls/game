@@ -7,6 +7,7 @@ import {
   leaveCurrentStep,
   errorGuardedEndpoint,
   registerRoomActivity,
+  getUserByName,
 } from "./utils";
 import {
   executeActivateRequest,
@@ -29,10 +30,14 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
 
   const game: Game = room.game;
 
-  if (user.name === undefined) {
-    throw new Error("User name not found");
+  const activeInstance = user.instances.find((instance) => instance.isActive);
+  if (!activeInstance) {
+    throw new Error("No active instance found");
   }
-  const player = game.entityHandler.getPlayerById(user.name);
+  if (!activeInstance.name) {
+    throw new Error("Active instance has no name");
+  }
+  const player = game.entityHandler.getPlayerById(activeInstance.name);
 
   sendRoomChangedToUser(room, user);
 
@@ -59,23 +64,24 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
         sendRoomChangedToAll(room);
       });
 
-      room.game.onRoomBroadcast.add((broadcast) => {
+      game.onRoomBroadcast.add((broadcast) => {
         room.users.forEach((user) => {
-          if (user.name === undefined) return;
-          if (broadcast.players.includes(user.name)) {
-            user.socket.emit("on:room:broadcast", {
-              type: broadcast.type,
-              title: broadcast.title,
-              message: broadcast.message,
-            });
-          }
+          user.instances.forEach((instance) => {
+            if (!instance.name || !instance.isActive) return;
+            if (broadcast.players.includes(instance.name)) {
+              user.socket.emit("on:room:broadcast", {
+                type: broadcast.type,
+                title: broadcast.title,
+                message: broadcast.message,
+              });
+            }
+          });
         });
       });
 
       sendRoomChangedToAll(room);
 
       for (const user of room.users) {
-        if (!user.name) continue;
         leaveCurrentStep(user.socket);
         enterGameStep(user.socket, room, user);
         user.socket.emit("on:room:broadcast", {
@@ -309,10 +315,44 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
     ),
   );
 
+  socket.on("switchToCopy", (payload, callback) => {
+    errorGuardedEndpoint(callback, () =>
+      payloadGuardedEndpoint(
+        payload,
+        schemas.switchToCopyRequest,
+        callback,
+        (payload) => {
+          const targetUser = getUserByName(room, payload.name);
+          if (!targetUser) {
+            return callback({ status: 400, error: "User not found" });
+          }
+          if (targetUser.user.socket.id !== socket.id) {
+            return callback({
+              status: 400,
+              error: "You cannot switch to another player.",
+            });
+          }
+          if (targetUser.instance.name === activeInstance.name) {
+            return callback({
+              status: 400,
+              error: "You cannot switch to yourself",
+            });
+          }
+
+          activeInstance.isActive = false;
+          targetUser.instance.isActive = true;
+          leaveCurrentStep(user.socket);
+          enterGameStep(targetUser.user.socket, room, targetUser.user);
+
+          return callback({ status: 200 });
+        },
+      ),
+    );
+  });
+
   socket.on("quitGame", (callback) =>
     errorGuardedEndpoint(callback, () => {
       for (const user of room.users) {
-        if (!user.name) continue;
         const socket = user.socket;
         socket.emit("on:room:broadcast", {
           type: "info",
@@ -324,7 +364,6 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
       roomManager.saveGameLogs(room.id, false);
       room.game = undefined;
       for (const user of room.users) {
-        if (!user.name) continue;
         const socket = user.socket;
         leaveCurrentStep(socket);
         enterStartStep(socket, room, user);

@@ -1,5 +1,5 @@
 import type { z, ZodType } from "zod";
-import type { Room, Socket, User } from "./types";
+import type { Instance, Room, Socket, User } from "./types";
 import type { Room as RoomPayload } from "@/shared/api";
 import { roomManager } from "./roomManager";
 import { getAdminMessages } from "@/utils/db";
@@ -38,20 +38,19 @@ export const sendRoomChangedToAll = (room: Room) => {
   }
 };
 
-export const sendRoomChangedToAllExcept = (room: Room, exception: User) => {
-  for (const user of room.users) {
-    if (user.id === exception.id) {
-      continue;
-    }
-    sendRoomChangedToUser(room, user);
-  }
-};
-
 export const sendRoomChangedToUser = (room: Room | null, user: User) => {
-  user.socket.emit(
-    "on:room:changed",
-    room ? generateRoomChangedPayload(room, user) : null,
-  );
+  for (const instance of user.instances) {
+    if (instance.isActive) {
+      user.socket.emit(
+        "on:room:changed",
+        room ? generateRoomChangedPayload(room, instance) : null,
+      );
+    } else if (room?.game && instance.name) {
+      room.game.detailedStateJSON(
+        room.game.entityHandler.getPlayerById(instance.name),
+      );
+    }
+  }
 };
 
 export const sendAdminChanged = (socket: Socket) => {
@@ -63,35 +62,26 @@ export const sendAdminChanged = (socket: Socket) => {
 
 const generateRoomChangedPayload = (
   room: Room,
-  recipient: User,
+  recipient: Instance,
 ): RoomPayload => {
-  const others = room.users.flatMap((user) => {
-    if (user.id === recipient.id) {
-      return [];
-    }
-    if (!user.name) {
-      return [];
-    }
-    return {
-      id: user.id,
-      name: user.name,
-      character: user.character,
-      isHost: user.isHost,
-    };
-  });
-
   return {
     id: room.id,
-    ...(recipient.name
-      ? {
-          me: {
-            name: recipient.name,
-            character: recipient.character,
-            isHost: recipient.isHost,
-          },
-        }
-      : {}),
-    players: others,
+    players: room.users
+      .map((user) =>
+        user.instances.flatMap((instance) => {
+          if (!instance.name) return [];
+          return {
+            isMe: user.instances.some(
+              (instance) => instance.id === recipient.id,
+            ),
+            isHost: user.isHost,
+            isCopy: instance.isCopy,
+            name: instance.name,
+            character: instance.character,
+          };
+        }),
+      )
+      .flat(),
     characters: room.characters,
     gameParameters: room.params.toJson(),
     ...(recipient.name
@@ -104,13 +94,13 @@ const generateRoomChangedPayload = (
   };
 };
 
-export const sendUserAssigned = (socket: Socket, user: User | null) => {
-  socket.emit("on:user:assigned", user?.id ?? null);
+export const sendUserAssigned = (socket: Socket, instance: Instance | null) => {
+  socket.emit("on:user:assigned", instance?.id ?? null);
 };
 
 export const updatePlayerCount = (room: Room) => {
   room.params.setPlayerCount(
-    room.users.filter((user) => user.name !== undefined).length,
+    room.users.flatMap((user) => user.instances).length,
   );
 };
 
@@ -120,4 +110,18 @@ export const leaveCurrentStep = (socket: Socket) => {
 
 export const registerRoomActivity = (room: Room) => {
   room.lastActionTimestamp = new Date();
+};
+
+export const getUserByName = (
+  room: Room,
+  name: string,
+): { user: User; instance: User["instances"][number] } | null => {
+  for (const user of room.users) {
+    for (const instance of user.instances) {
+      if (instance.name === name) {
+        return { user, instance };
+      }
+    }
+  }
+  return null;
 };

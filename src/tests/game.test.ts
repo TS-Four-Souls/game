@@ -103,16 +103,6 @@ describe("Player", () => {
     expect(player.coins).toBe(10);
   });
 
-  it("should have a unique secret token", async () => {
-    const player2 = new Player("testPlayer2");
-    player2.addAttackPoints(3); // Start with 3 attack points for testing
-    player2.addHealthPoints(5); // Start with 5 health points for testing
-    player2.gainCoins(10); // Start with 10 coins for testing
-    expect(player.secret).toBeDefined();
-    expect(player2.secret).toBeDefined();
-    expect(player.secret !== player2.secret).toBe(true);
-  });
-
   it("should start with full health", async () => {
     expect(player.currentHealthPoints).toBe(5);
     expect(player.isDead).toBe(false);

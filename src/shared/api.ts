@@ -590,6 +590,10 @@ const playerSchema = z.object({
   isEngagedInCombat: z.boolean(),
   attackRequirements: z.array(attackRequirementSchema),
   isEngagedInPurchase: z.boolean(),
+  capabilities: z.object({
+    canSwitchTo: capabilitySchema,
+    canDonateCoinsTo: capabilitySchema,
+  }),
   pendingSelection: z.boolean(),
 });
 export type Player = z.infer<typeof playerSchema>;
@@ -606,7 +610,8 @@ const playerMeSchema = playerSchema.extend({
     buyTreasure: capabilitySchema,
     useLoot: capabilitySchema,
     resolve: capabilitySchema,
-    canDonateCoins: capabilitySchema,
+    canSwitchTo: capabilitySchema,
+    canDonateCoinsTo: capabilitySchema,
   }),
   pendingSelection: pendingSelectionSchema.optional(),
 });
@@ -751,14 +756,15 @@ export type RoomCharacter = z.infer<typeof roomCharacterSchema>;
 const roomPlayerSchema = z.object({
   name: z.string(),
   character: roomCharacterSchema,
+  isMe: z.boolean(),
   isHost: z.boolean(),
+  isCopy: z.boolean(),
 });
 
 export type RoomPlayer = z.infer<typeof roomPlayerSchema>;
 
 const roomSchema = z.object({
   id: z.string(),
-  me: roomPlayerSchema.optional(),
   players: z.array(roomPlayerSchema),
   characters: z.array(roomCharacterSchema),
   gameParameters: gameParametersSchema,
@@ -795,10 +801,19 @@ const loadGameRequestSchema = z.string();
 const loadGameParametersRequestSchema = z.string();
 
 const selectCharacterRequestSchema = z.object({
+  name: z.string(),
   character: roomCharacterSchema,
 });
 
 const kickFromRoomRequestSchema = z.object({
+  name: z.string(),
+});
+
+const makeCopyOfPlayerRequestSchema = z.object({
+  name: z.string(),
+});
+
+const switchToCopyRequestSchema = z.object({
   name: z.string(),
 });
 
@@ -917,6 +932,8 @@ export const schemas = {
   loadGameParametersRequest: loadGameParametersRequestSchema,
   selectCharacterRequest: selectCharacterRequestSchema,
   kickFromRoomRequest: kickFromRoomRequestSchema,
+  makeCopyOfPlayerRequest: makeCopyOfPlayerRequestSchema,
+  switchToCopyRequest: switchToCopyRequestSchema,
   adminLoginRequest: adminLoginRequestSchema,
   adminGetLogsRequest: adminGetLogsRequestSchema,
   adminChangeMessageStatusRequest: adminChangeMessageStatusRequestSchema,
@@ -953,6 +970,7 @@ export namespace Requests {
   >;
   export type SelectCharacter = z.infer<typeof selectCharacterRequestSchema>;
   export type KickFromRoom = z.infer<typeof kickFromRoomRequestSchema>;
+  export type SwitchToCopy = z.infer<typeof switchToCopyRequestSchema>;
   export type AdminLogin = z.infer<typeof adminLoginRequestSchema>;
   export type AdminGetLogs = z.infer<typeof adminGetLogsRequestSchema>;
   export type AdminChangeMessageStatus = z.infer<
@@ -961,6 +979,7 @@ export namespace Requests {
   export type AdminReplyToMessage = z.infer<
     typeof adminReplyToMessageRequestSchema
   >;
+  export type MakeCopyOfPlayer = z.infer<typeof makeCopyOfPlayerRequestSchema>;
 }
 
 export namespace Responses {
@@ -997,11 +1016,13 @@ export namespace Responses {
   export type LeaveRoom = BasicResponse;
   export type QuitGame = BasicResponse;
   export type KickFromRoom = BasicResponse;
+  export type MakeCopyOfPlayer = BasicResponse;
   export type SaveGame = SaveGameResponse;
   export type LoadGame = BasicResponse;
   export type LoadGameParameters = BasicResponse;
   export type ResetGameParameters = BasicResponse;
   export type SelectCharacter = BasicResponse;
+  export type SwitchToCopy = BasicResponse;
   export type AdminLogin = BasicResponse;
   export type AdminGetLogs = AdminGetLogsResponse;
   export type AdminChangeMessageStatus = BasicResponse;
@@ -1028,6 +1049,11 @@ export interface ClientToServerEvents {
   kickFromRoom: (
     request: Requests.KickFromRoom,
     callback: (response: Responses.KickFromRoom) => void,
+  ) => void;
+
+  makeCopyOfPlayer: (
+    request: Requests.MakeCopyOfPlayer,
+    callback: (response: Responses.MakeCopyOfPlayer) => void,
   ) => void;
 
   setName: (
@@ -1084,14 +1110,12 @@ export interface ClientToServerEvents {
 
   attackRoll: (callback: (response: Responses.AttackRoll) => void) => void;
 
-  debugLootTop: (
-    callback: (response: Responses.DebugLootTop) => void,
-  ) => void;
+  debugLootTop: (callback: (response: Responses.DebugLootTop) => void) => void;
 
   debugGainTreasureTop: (
     callback: (response: Responses.DebugLootTop) => void,
   ) => void;
-  
+
   debugLoot: (
     request: Requests.DebugLoot,
     callback: (response: Responses.DebugLoot) => void,
@@ -1175,6 +1199,11 @@ export interface ClientToServerEvents {
   selectCharacter: (
     request: Requests.SelectCharacter,
     callback: (response: Responses.SelectCharacter) => void,
+  ) => void;
+
+  switchToCopy: (
+    request: Requests.SwitchToCopy,
+    callback: (response: Responses.SwitchToCopy) => void,
   ) => void;
 
   quitGame: (callback: (response: Responses.QuitGame) => void) => void;

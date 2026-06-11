@@ -9,6 +9,7 @@ import {
   leaveCurrentStep,
   errorGuardedEndpoint,
   registerRoomActivity,
+  getUserByName,
 } from "./utils";
 import { Game } from "@/models/game";
 import { enterGameStep } from "./gameStep";
@@ -17,8 +18,13 @@ import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
 import { enterIntroStep } from "./introStep";
 import { globalEndpoints } from "./global";
 import { roomManager } from "./roomManager";
+import { generateUserId } from "@/utils/random";
 
 export const enterStartStep = (socket: Socket, room: Room, user: User) => {
+  for (const instance of user.instances) {
+    instance.isActive = !instance.isCopy;
+  }
+
   sendRoomChangedToUser(room, user);
 
   globalEndpoints(socket, room);
@@ -34,7 +40,7 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
         });
         roomManager.deleteRoom(room.id);
       } else {
-        room.users = room.users.filter(({ id }) => id !== user.id);
+        room.users = room.users.filter((u) => u.socket.id !== user.socket.id);
         updatePlayerCount(room);
 
         sendRoomChangedToAll(room);
@@ -76,14 +82,25 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
             });
           }
 
-          if (room.users.some((user) => user.name === payload)) {
+          if (
+            room.users.some((user) =>
+              user.instances.some((instance) => instance.name === payload),
+            )
+          ) {
             return callback({
               status: 400,
               error: "That name is already taken",
             });
           }
 
-          user.name = payload;
+          const activeInstance = user.instances.find(
+            (instance) => instance.isActive,
+          );
+          if (!activeInstance) {
+            return callback({ status: 400, error: "No active instance found" });
+          }
+
+          activeInstance.name = payload;
           updatePlayerCount(room);
           sendRoomChangedToAll(room);
         },
@@ -98,7 +115,13 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
         schemas.selectCharacterRequest,
         callback,
         (payload) => {
-          user.character = payload.character;
+          const targetUser = user.instances.find(
+            (user) => user.name === payload.name,
+          );
+          if (!targetUser) {
+            return callback({ status: 400, error: "User not found" });
+          }
+          targetUser.character = payload.character;
           sendRoomChangedToAll(room);
           return callback({ status: 200 });
         },
@@ -114,22 +137,69 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
           schemas.kickFromRoomRequest,
           callback,
           (payload) => {
-            const user = room.users.find((user) => user.name === payload.name);
-            if (!user) {
+            const target = getUserByName(room, payload.name);
+            if (!target) {
               return callback({ status: 400, error: "User not found" });
             }
-            const socket = user.socket;
-            room.users = room.users.filter(({ id }) => id !== user.id);
-            updatePlayerCount(room);
+            if (target.instance.isCopy) {
+              target.user.instances = target.user.instances.filter(
+                (instance) => instance.id !== target.instance.id,
+              );
+            } else {
+              room.users = room.users.filter(
+                (user) => user.socket.id !== target.user.socket.id,
+              );
+            }
 
+            updatePlayerCount(room);
             sendRoomChangedToAll(room);
 
-            sendUserAssigned(socket, null);
-            sendRoomChangedToUser(null, user);
+            if (target.instance.isActive) {
+              const socket = user.socket;
+              sendUserAssigned(socket, null);
+              sendRoomChangedToUser(null, user);
 
-            leaveCurrentStep(socket);
-            enterIntroStep(socket);
+              leaveCurrentStep(socket);
+              enterIntroStep(socket);
+            }
 
+            return callback({ status: 200 });
+          },
+        ),
+      ),
+    );
+
+    socket.on("makeCopyOfPlayer", (request, callback) =>
+      errorGuardedEndpoint(callback, () =>
+        payloadGuardedEndpoint(
+          request,
+          schemas.makeCopyOfPlayerRequest,
+          callback,
+          (payload) => {
+            const original = getUserByName(room, payload.name);
+            if (!original) {
+              return callback({ status: 400, error: "User not found" });
+            }
+            if (room.users.length >= 4) {
+              return callback({ status: 400, error: "Room is full" });
+            }
+            if (original.instance.isCopy) {
+              return callback({ status: 400, error: "User is already a copy" });
+            }
+            const prefixes = ["Tainted", "Holy", "Cursed"];
+
+            const prefix =
+              prefixes[original.user.instances.length - (1 % prefixes.length)];
+
+            original.user.instances.push({
+              id: generateUserId(),
+              name: `${prefix} ${original.instance.name}`,
+              isCopy: true,
+              isActive: false,
+              character: original.instance.character,
+            });
+            updatePlayerCount(room);
+            sendRoomChangedToAll(room);
             return callback({ status: 200 });
           },
         ),
@@ -193,26 +263,31 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
 
             room.game.onRoomBroadcast.add((broadcast) => {
               room.users.forEach((user) => {
-                if (user.name === undefined) return;
-                if (broadcast.players.includes(user.name)) {
-                  user.socket.emit("on:room:broadcast", {
-                    type: broadcast.type,
-                    title: broadcast.title,
-                    message: broadcast.message,
-                  });
-                }
+                user.instances.forEach((instance) => {
+                  if (!instance.name || !instance.isActive) return;
+                  if (broadcast.players.includes(instance.name)) {
+                    user.socket.emit("on:room:broadcast", {
+                      type: broadcast.type,
+                      title: broadcast.title,
+                      message: broadcast.message,
+                    });
+                  }
+                });
               });
             });
 
             sendRoomChangedToAll(room);
 
             for (const user of room.users) {
-              if (!user.name) continue;
+              const activeInstance = user.instances.find(
+                (instance) => instance.isActive,
+              );
+              if (!activeInstance || !activeInstance.name) continue;
               leaveCurrentStep(user.socket);
               enterGameStep(user.socket, room, user);
               user.socket.emit("on:room:broadcast", {
                 type: "info",
-                title: `Game loaded by ${user.name}`,
+                title: `Game loaded by ${activeInstance.name}`,
                 message: "The game has been loaded.",
               });
             }
@@ -235,25 +310,34 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
 
         game.onRoomBroadcast.add((broadcast) => {
           room.users.forEach((user) => {
-            console.log("Room broadcast", broadcast);
-            if (user.name === undefined) return;
-            if (broadcast.players.includes(user.name)) {
-              user.socket.emit("on:room:broadcast", {
-                type: broadcast.type,
-                title: broadcast.title,
-                message: broadcast.message,
-              });
-            }
+            user.instances.forEach((instance) => {
+              if (!instance.name || !instance.isActive) return;
+              if (broadcast.players.includes(instance.name)) {
+                user.socket.emit("on:room:broadcast", {
+                  type: broadcast.type,
+                  title: broadcast.title,
+                  message: broadcast.message,
+                });
+              }
+            });
           });
         });
 
-        const playersWithCharacters = room.users.flatMap((user) => {
-          if (!user.name) return [];
-          return {
-            issuer: user.name,
-            character: user.character.character,
-          };
-        });
+        let playersWithCharacters: {
+          issuer: string;
+          character: string;
+          user: string;
+        }[] = [];
+        for (const user of room.users) {
+          for (const instance of user.instances) {
+            if (!instance.name) continue;
+            playersWithCharacters.push({
+              issuer: instance.name,
+              character: instance.character.character,
+              user: user.socket.id,
+            });
+          }
+        }
 
         game.start(playersWithCharacters);
 
@@ -266,7 +350,7 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
         room.game = game;
 
         for (const user of room.users) {
-          if (!user.name) continue;
+          if (user.instances.every((instance) => !instance.name)) continue;
           const socket = user.socket;
           leaveCurrentStep(socket);
           enterGameStep(socket, room, user);
