@@ -641,6 +641,17 @@ describe("Game - Guardrails", () => {
     game.entityHandler.addPlayer(player2);
   });
 
+  it("should not allow adding players after game start", async () => {
+    game.start(null, false);
+    dischargeEachItemsAndRemoveCoins(game);
+    emptyHands(game);
+    const latePlayer = new Player("playerlate", Team.Team1);
+    latePlayer.addAttackPoints(1);
+    latePlayer.addHealthPoints(1);
+    latePlayer.gainCoins(0);
+    expect(() => game.entityHandler.addPlayer(latePlayer)).toThrow("Game already started");
+  });
+
   it("should select the first n options", async () => {
     const options = [1, 2, 3, 4];
     const result = await game.select(player1, 2, 2, options);
