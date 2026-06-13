@@ -107,6 +107,27 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
     ),
   );
 
+  socket.on("setTeam", (request, callback) =>
+    errorGuardedEndpoint(callback, () =>
+      payloadGuardedEndpoint(
+        request,
+        schemas.setTeamRequest,
+        callback,
+        (payload) => {
+          const targetUser = user.instances.find(
+            (user) => user.name === payload.name,
+          );
+          if (!targetUser) {
+            return callback({ status: 400, error: "User not found" });
+          }
+          targetUser.team = payload.team;
+          sendRoomChangedToAll(room);
+          return callback({ status: 200 });
+        },
+      ),
+    ),
+  );
+
   socket.on("selectCharacter", (payload, callback) =>
     errorGuardedEndpoint(callback, () =>
       payloadGuardedEndpoint(
