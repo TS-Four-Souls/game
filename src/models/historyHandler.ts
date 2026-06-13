@@ -94,7 +94,6 @@ function isGameAction(entry: HistoricEntry): boolean {
     "Start",
     "Reset",
     "Rollback",
-    "SubmitSelection",
     "InsertStackElementBefore",
     "DebugListLoot",
     "DebugListMonsterDeck",
@@ -223,7 +222,7 @@ export class HistoricHandler {
     // If there is only one user request, we use it instead.
     this._history.findLastIndex((entry, index) => {
       if (isGameAction(entry)) {
-        if (lastUserRequestIndex === -1) lastUserRequestIndex = index;
+        if (lastUserRequestIndex === -1 || this._history[lastUserRequestIndex]!.type === "SubmitSelection") lastUserRequestIndex = index;
         else if (secondLastUserRequestIndex === -1)
           secondLastUserRequestIndex = index;
         if (secondLastUserRequestIndex !== -1) return true; // stop searching once we found the second last user request

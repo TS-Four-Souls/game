@@ -480,15 +480,15 @@ export class Game extends SelectionHandler {
     const itemsToRecharge = player.unchargedItems;
     const eventData = { eventIssuer: player, itemsToRecharge: itemsToRecharge }
     this.emit("on:turn:start:before:recharge:step", eventData);
-      void this.executeWhenStackEmpty(() => {
-        this.cardHandler.rechargeMultiple(player, "rechargeStep", eventData.itemsToRecharge);
-        this.emit("on:turn:start", { eventIssuer: player });
-        void this.executeWhenStackEmpty(() => {
-          const eventData = { eventIssuer: this.currentPlayer, numberToLoot: 1 };
-          this.emit("on:loot:step", eventData);
-          this.addToStack(new LootStepOnStack(eventData.eventIssuer, eventData.numberToLoot, this));
-        });
-      });
+    void this.executeWhenStackEmpty(() => {
+    this.cardHandler.rechargeMultiple(player, "rechargeStep", eventData.itemsToRecharge);
+    this.emit("on:turn:start", { eventIssuer: player });
+    void this.executeWhenStackEmpty(() => {
+      const eventData = { eventIssuer: this.currentPlayer, numberToLoot: 1 };
+      this.emit("on:loot:step", eventData);
+      this.addToStack(new LootStepOnStack(eventData.eventIssuer, eventData.numberToLoot, this));
+    });
+    });
   }
   
   /**
@@ -649,8 +649,9 @@ export class Game extends SelectionHandler {
     this.emit("on:game:start", {});
     this.entityHandler.healEveryone();
     
-
-    this.startTurn();
+    this.executeWhenStackEmpty(() => {
+      this.startTurn();
+    });
   }
 
   /** Schedules an extra turn for a player. */
@@ -668,6 +669,7 @@ export class Game extends SelectionHandler {
     }
     if(this.gameParameters.miniDraft.value)
       await miniDraft(this);
+    this.resolveCallbacks();
   } 
 
   /**
