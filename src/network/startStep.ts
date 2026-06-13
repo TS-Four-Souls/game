@@ -114,13 +114,17 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
         schemas.setTeamRequest,
         callback,
         (payload) => {
-          const targetUser = user.instances.find(
-            (user) => user.name === payload.name,
-          );
+          const targetUser = getUserByName(room, payload.name);
           if (!targetUser) {
             return callback({ status: 400, error: "User not found" });
           }
-          targetUser.team = payload.team;
+          if (targetUser.user.socket.id !== user.socket.id) {
+            return callback({
+              status: 400,
+              error: "You cannot set the team of another player",
+            });
+          }
+          targetUser.instance.team = payload.team;
           sendRoomChangedToAll(room);
           return callback({ status: 200 });
         },
