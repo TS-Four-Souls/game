@@ -190,9 +190,14 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
             const prefix =
               prefixes[original.user.instances.length - (1 % prefixes.length)];
 
+            let newName = `${prefix} ${original.instance.name}`;
+            if (newName.length > 16) {
+              newName = newName.slice(0, 15) + "…";
+            }
+
             original.user.instances.push({
               id: generateUserId(),
-              name: `${prefix} ${original.instance.name}`,
+              name: newName,
               isCopy: true,
               isActive: false,
               character: original.instance.character,
