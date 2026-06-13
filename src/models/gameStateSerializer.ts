@@ -124,6 +124,7 @@ export class GameStateSerializer {
       me: {
         name: player.id,
         color: player.color,
+        team: player.team,
         hand: player.hand.cards.map((c) => c.jsonAPI),
         inPlay: player.inPlay.map((c) => mapInPlayItem(c, player)).concat(player.curses.map((c) => mapCurse(c, player))),
         handSize: player.hand.cards.length,
@@ -155,6 +156,7 @@ export class GameStateSerializer {
         .map((p) => ({
           name: p.id,
           color: p.color,
+          team: p.team,
           handSize: p.hand.cards.length,
           hand: p.handRevealed ? p.hand.cards.map((c) => c.jsonAPI) : undefined,
           inPlay: p.inPlay.map((c) => mapOtherInPlayItem(c, p)).concat(p.curses.map((c) => mapCurse(c, p))),

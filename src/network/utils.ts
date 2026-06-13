@@ -74,6 +74,7 @@ const generateRoomChangedPayload = (
           isCopy: instance.isCopy,
           name: instance.name,
           character: instance.character,
+          team: instance.team,
         })),
       )
       .flat(),

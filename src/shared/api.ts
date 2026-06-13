@@ -593,6 +593,7 @@ export type SetGameParameterRequest = z.infer<
 const playerSchema = z.object({
   name: z.string(),
   color: z.string(),
+  team: z.enum(Team),
   handSize: z.number(),
   hand: z.array(cardSchema).optional(),
   inPlay: z.array(inPlayCardSchema),
@@ -775,6 +776,7 @@ const roomPlayerSchema = z.object({
   isMe: z.boolean(),
   isHost: z.boolean(),
   isCopy: z.boolean(),
+  team: z.enum(Team),
 });
 
 export type RoomPlayer = z.infer<typeof roomPlayerSchema>;
