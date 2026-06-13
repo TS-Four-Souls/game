@@ -142,7 +142,7 @@ const isPrivateData = (entry: HistoricEntry): entry is PrivateData => {
   );
 };
 
-const isStackElementJson = (
+export const isStackElementJson = (
   entry: HistoricEntry,
 ): entry is StackElementJson => {
   return ["death", "damage", "effect", "LootCardEffect", "diceRoll", "lootStep"].includes(

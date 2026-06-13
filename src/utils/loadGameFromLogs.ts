@@ -1,6 +1,6 @@
 import { ItemCard, LootCard, MonsterCard } from "@/models/cards";
 import { Game } from "@/models/game";
-import type { HistoricEntry, UserRequest } from "@/models/historyHandler";
+import { type HistoricEntry, type UserRequest, isStackElementJson } from "@/models/historyHandler";
 import { type DetailedState, type IdentifierType, type Issuer } from "@/shared/api";
 import {
   executeActivateRequest,
@@ -19,15 +19,11 @@ function isPrivateEntry(
   return isObject(entry) && entry.private === true && typeof entry.type === "string";
 }
 
-function isUserRequestEntry(entry: unknown): entry is UserRequest {
+function isUserRequestEntry(entry: HistoricEntry): entry is UserRequest {
   return (
     isObject(entry) &&
     typeof entry.type === "string" &&
-    (entry.type !== "death" &&
-      entry.type !== "damage" &&
-      entry.type !== "effect" &&
-      entry.type !== "LootCardEffect" &&
-      entry.type !== "diceRoll")
+    isStackElementJson(entry) === false
   );
 }
 
