@@ -31,8 +31,8 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         }
         const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
         const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        game.encounters.forceSetMonsterAtSlot(0, monsterCard);
+        game.encounters.forceSetMonsterAtSlot(1, monsterCard2);
     });
 
     it("placebo can copy sack_of_pennies tap effect (gain 1¢)", async () => {
@@ -296,8 +296,8 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
         }
         const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
         const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        game.encounters.forceSetMonsterAtSlot(0, monsterCard);
+        game.encounters.forceSetMonsterAtSlot(1, monsterCard2);
     });
 
     it("modeling_clay becomes a copy of sack_of_pennies permanently", async () => {
@@ -339,7 +339,8 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
         await game.actions.resolveStack();
 
         // End turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(game.currentPlayer).toBe(player2);
 
@@ -347,7 +348,8 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
         expect(modelingClay.name).toBe("Sack Of Pennies");
 
         // End player2's turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(game.currentPlayer).toBe(player1);
 
@@ -494,10 +496,12 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
         expect(player2.currentHealthPoints).toBe(player2InitialHP + 1);
 
         // Turn changes - both effects persist
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
 
         // Both players keep their HP bonuses (modeling_clay is permanent)
         // But after turn changes, HP might be recalculated
@@ -564,8 +568,8 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         }
         const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
         const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        game.encounters.forceSetMonsterAtSlot(0, monsterCard);
+        game.encounters.forceSetMonsterAtSlot(1, monsterCard2);
     });
 
     it("diplopia becomes a copy of breakfast temporarily", async () => {
@@ -607,7 +611,8 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         expect(player1.currentHealthPoints).toBe(initialHP + 1);
 
         // End turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         
         // Should revert back to diplopia
@@ -649,7 +654,8 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         expect(diplopia.name).toBe("Breakfast");
 
         // End player1's turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player2);
 
@@ -657,7 +663,8 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         expect(diplopia.name).toBe("Diplopia");
 
         // End player2's turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player1);
 
@@ -681,13 +688,15 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         expect(game.currentPlayer).toBe(player1);
 
         // End turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(diplopia.name).toBe("Diplopia");
         expect(game.currentPlayer).toBe(player2);
 
         // Back to player1's turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player1);
 
@@ -698,7 +707,8 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         expect(diplopia.name).toBe("Dinner");
 
         // End turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         
         expect(diplopia.name).toBe("Diplopia");
@@ -721,7 +731,8 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         expect(player1.attackPoints).toBe(initialAttack + 1);
 
         // End turn - diplopia reverts
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         // Attack bonus should be removed
         expect(player1.attackPoints).toBe(initialAttack);
@@ -745,7 +756,8 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         expect(diplopia.name).toBe("Brimstone");
 
         // End turn - diplopia reverts
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         expect(diplopia.name).toBe("Diplopia");
@@ -783,7 +795,8 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         expect(player2.attackPoints).toBe(player2InitialATK + 1);
 
         // End turn - diplopia reverts
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         
         // Player1 loses the temporary HP bonus
@@ -812,7 +825,8 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         expect(player1.currentHealthPoints).toBe(player1InitialHP + 1);
 
         // End turn - reverts
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.currentHealthPoints).toBe(player1InitialHP);
 
@@ -825,7 +839,8 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         // End turn - reverts again
         // Note: The second reversion may have edge cases with stat restoration
         await game.actions.resolveStack();
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         
         // Verify original items on player2 still work properly
         expect(player2.attackPoints).toBeGreaterThan(player1InitialATK);
@@ -852,7 +867,8 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         expect(player1.currentHealthPoints).toBe(initialHP + 1);
 
         // End turn - reverts
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         // Second transformation: brimstone  
         game.cardHandler.recharge(diplopia);
@@ -864,7 +880,8 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         await game.actions.resolveStack();
 
         // End turn - reverts again
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
 
         // Verify player2's original items still work properly
         expect(player2.currentHealthPoints).toBeGreaterThan(0);
@@ -896,8 +913,8 @@ describe("b2-trinity_shield - prevents other players from priority actions", () 
         }
         const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
         const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        game.encounters.forceSetMonsterAtSlot(0, monsterCard);
+        game.encounters.forceSetMonsterAtSlot(1, monsterCard2);
     });
 
     it("trinity_shield prevents other players from activating items on current player's turn", async () => {
@@ -970,7 +987,8 @@ describe("b2-trinity_shield - prevents other players from priority actions", () 
         expect(canActivateOnP1Turn).not.toBe(true);
 
         // End player1's turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         // On player2's turn, player2 can activate items normally (trinity_shield doesn't affect player2's turn)
@@ -995,9 +1013,11 @@ describe("b2-trinity_shield - prevents other players from priority actions", () 
         expect(game.actions.canActivate(sackOfPennies, player2)).toBe(true);
 
         // End turn and start new turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         // Verify effect doesn't persist across turns
@@ -1049,8 +1069,8 @@ describe("b2-no - Cancel the ↷ or $ ability of an item", () => {
         }
         const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
         const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        game.encounters.forceSetMonsterAtSlot(0, monsterCard);
+        game.encounters.forceSetMonsterAtSlot(1, monsterCard2);
     });
 
     it("no can cancel a tap ability of an item", async () => {

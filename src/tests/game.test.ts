@@ -875,7 +875,7 @@ describe("Game - Game State", () => {
     game.start(null, false);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
-        const slots = game.monsterSlots;
+        const slots = game.encounters;
     expect(slots).toBeDefined();
   });
 

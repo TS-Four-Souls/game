@@ -3,7 +3,6 @@ import {
   Card,
   EffectOnStack,
   ItemCard,
-  LoadsCardSets,
   LootCard,
   MonsterCard,
   TreasureCard
@@ -13,13 +12,12 @@ import { Entity } from "@/models/entities/entity";
 import { Monster } from "@/models/entities/monster";
 import { Player } from "@/models/entities/player";
 import { Stack, type StackElement } from "@/models/stack";
-import { DiceRoll } from "@/models/stackElement";
+import { DiceRoll, LootStepOnStack } from "@/models/stackElement";
 import type { DeckType, DecksCollection } from "@/models/types/cardTypes";
 import { EffectData } from "@/models/types/cardTypes";
 import { type LoseCoinsReason, type TriggerEvent } from '@/models/types/eventTypes';
 import type { Animation, DetailedState, StackElementJson, Team } from "@/shared/api";
 import { shuffle } from "@/utils/auxiliary";
-import { loadCards } from "@/utils/loadCards";
 import { generateAnimationId } from "@/utils/random";
 import { Signal, type ReadableSignal } from "micro-signals";
 import { addPassiveEffectToStack } from "./effects/passiveEffect";
@@ -39,12 +37,7 @@ import { Rooms } from "./slots/rooms";
 import { Shop } from "./slots/shop";
 import { TurnHandler } from "./turnHandler";
 import { miniDraft } from "./variants";
-// Type representing sources of damage - either a card ability or a dice roll
-export type DamageSource = Card | DiceRoll;
 
-const LOG_GAME = false;
-export const CARDS = await loadCards(process.cwd() + "/data/cards");
-export const {nextGlobalId, cardSets: CARD_SETS} = LoadsCardSets(CARDS);
 /*
  * The Game class is the central hub of the game logic, managing the state of the game, players, monsters, decks, shop, encounters, stack, and more. 
  * It also handles all player actions such as declaring attacks, dealing damage, resolving deaths, and managing the game history. 
@@ -151,16 +144,16 @@ export class Game extends SelectionHandler {
     }
     return souls;
   }
-  get Entities(): Entity[] {
-    return this.entityHandler.Entities;
+  get playersAndMonsters(): Entity[] {
+    return this.entityHandler.playersAndMonsters;
   }
 
   get assert(): AssertHandler {
     return this._assertHandler;
   }
 
-  get EntitiesAndAnimated(): Entity[] {
-    return this.entityHandler.EntitiesAndAnimated;
+  get entities(): Entity[] {
+    return this.entityHandler.entities;
   }
 
   get currentPlayer(): Player {
@@ -246,7 +239,7 @@ export class Game extends SelectionHandler {
   }
 
   get attackableEntities(): Entity[] {
-    return [...this.Entities.filter(e => e.attackable === true), ...this.animatedList.all.filter(e => e.attackable)];
+    return [...this.playersAndMonsters.filter(e => e.attackable === true), ...this.animatedList.all.filter(e => e.attackable)];
   }
   /**
    * This function returns all visible treasure and trinkets: each players inPlay and the shop items.
@@ -357,8 +350,7 @@ export class Game extends SelectionHandler {
     return this.encounters;
   }
   get playersWithMostSouls(): Player[] {
-    let maxSouls = Math.max(...this.players.map((player) => player.totalSouls));
-    return this.players.filter((player) => player.totalSouls === maxSouls);
+    return this._entityHandler.playersWithMostSouls
   }
   /**
    * Adds an element to the stack and enriches reordering metadata when needed.
@@ -471,10 +463,9 @@ export class Game extends SelectionHandler {
   /**
    * Executes the standard loot step at turn start.
    */
-  lootStep(): void {
-    const player = this.currentPlayer;
-    this.emit("on:loot:step", { eventIssuer: player });
-    this.loot(player, 1, "lootStep");
+  lootStep(player: Player, numberToLoot: number): void {
+    this.loot(player, numberToLoot, "lootStep");
+    this.emit("on:your:turn", { eventIssuer: player });
   }
 
   /**
@@ -493,8 +484,9 @@ export class Game extends SelectionHandler {
         this.cardHandler.rechargeMultiple(player, "rechargeStep", eventData.itemsToRecharge);
         this.emit("on:turn:start", { eventIssuer: player });
         void this.executeWhenStackEmpty(() => {
-          this.lootStep();
-          this.emit("on:your:turn", { eventIssuer: player });
+          const eventData = { eventIssuer: this.currentPlayer, numberToLoot: 1 };
+          this.emit("on:loot:step", eventData);
+          this.addToStack(new LootStepOnStack(eventData.eventIssuer, eventData.numberToLoot, this));
         });
       });
   }
@@ -536,7 +528,6 @@ export class Game extends SelectionHandler {
       for (const player of this.players) {
         player.resetTurnFlags();
       }
-      this.entityHandler.resetEntitiesInCombat();
       for (const monster of this.monsters) {
         monster.resetEntityFlags();
       }
@@ -596,6 +587,14 @@ export class Game extends SelectionHandler {
       this.players[i]!.color = colors[i % colors.length]!;
     }
   }
+
+  initializeTeams(): void{
+    for(const player of this.players)
+    {
+      const soulOwner = this.players.find(p => p.team === player.team);
+      player.soulsInCommonWith(soulOwner!);
+    }
+  }
   /**
    * Starts the game lifecycle and executes initial setup.
    */
@@ -616,7 +615,7 @@ export class Game extends SelectionHandler {
       shuffle(this.random, this.players);
     }
     this.turnHandler.initialize(this.players);
-    this.entityHandler.initializeTeams();
+    this.initializeTeams();
     this._historicHandler.recordInitialGameState(this);
     
     this.initializeWinningCondition();
@@ -654,7 +653,10 @@ export class Game extends SelectionHandler {
     this.startTurn();
   }
 
-
+  /** Schedules an extra turn for a player. */
+  addExtraTurn(player: Player): void {
+    this.turnHandler.InsertPlayerAtNextTurn(player);
+  }
   /**
    * Distributes starting resources to each player.
    */

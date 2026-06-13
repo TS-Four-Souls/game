@@ -45,9 +45,11 @@ describe("Treasure - Passive effects", () => {
         const initialHandSize = player1.hand.length;
 
         // End turn to trigger start of next player's turn
-        game.endTurn(); // p1 ends
+        await game.endTurn();
+        await game.actions.resolveStack(); // p1 ends
         await game.actions.resolveStack(); // Resolve any stack effects
-        game.endTurn(); // p2 ends, p1's turn starts - loot step happens
+        await game.endTurn();
+        await game.actions.resolveStack(); // p2 ends, p1's turn starts - loot step happens
         await game.actions.resolveStack(); // Resolve any stack effects
 
         // Player should loot 2 cards instead of 1 (1 base + 1 from item)
@@ -60,9 +62,11 @@ describe("Treasure - Passive effects", () => {
 
         const initialHandSize = player1.hand.length;
 
-        game.endTurn(); // p1 ends
+        await game.endTurn();
+        await game.actions.resolveStack(); // p1 ends
         await game.actions.resolveStack(); // Resolve any stack effects
-        game.endTurn(); // p2 ends, p1's turn starts - loot step happens
+        await game.endTurn();
+        await game.actions.resolveStack(); // p2 ends, p1's turn starts - loot step happens
         await game.actions.resolveStack(); // Resolve any stack effects
 
         // Player should loot 2 cards instead of 1
@@ -77,9 +81,11 @@ describe("Treasure - Passive effects", () => {
 
         const initialHandSize = player1.hand.length;
 
-        game.endTurn(); // p1 ends
+        await game.endTurn();
+        await game.actions.resolveStack(); // p1 ends
         await game.actions.resolveStack(); // Resolve any stack effects
-        game.endTurn(); // p2 ends, p1's turn starts - loot step happens
+        await game.endTurn();
+        await game.actions.resolveStack(); // p2 ends, p1's turn starts - loot step happens
         await game.actions.resolveStack(); // Resolve any stack effects
 
         // Player should loot 3 cards total (1 base + 1 + 1 from both items)
@@ -260,7 +266,8 @@ describe("Treasure - Passive effects", () => {
         expect(player1.inPlay.map((c) => c.slug)).not.toContain(babyHaunt.slug);
         expect(player2.inPlay.map((c) => c.slug)).toContain(babyHaunt.slug);
 
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(initEvastion + 1);
     });
@@ -377,9 +384,11 @@ describe("Treasure - Passive effects", () => {
         expect(battery2.charged).toBe(false);
 
         // End turn and start new turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
 
@@ -397,9 +406,11 @@ describe("Treasure - Passive effects", () => {
     
     it("theres_options - allows purchasing twice in one turn", async () => {
         const theresOptions = game.shop.obtainCard("b2-theres_options") as TreasureCard;
-        game.endTurn(); // end p1 turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // end p1 turn
         await game.actions.resolveStack(); // Resolve any stack effects
-        game.endTurn(); // end p2 turn, p1's turn starts
+        await game.endTurn();
+        await game.actions.resolveStack(); // end p2 turn, p1's turn starts
         await game.actions.resolveStack(); // Resolve any stack effects
         game.cardHandler.addInPlay(player1, theresOptions);
         
@@ -426,9 +437,11 @@ describe("Treasure - Passive effects", () => {
 
     it("theres_options - cannot purchase three times", async () => {
         const theresOptions = game.shop.obtainCard("b2-theres_options") as TreasureCard;
-        game.endTurn(); // end p1 turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // end p1 turn
         await game.actions.resolveStack(); // Resolve any stack effects
-        game.endTurn(); // end p2 turn, p1's turn starts
+        await game.endTurn();
+        await game.actions.resolveStack(); // end p2 turn, p1's turn starts
         await game.actions.resolveStack(); // Resolve any stack effects
         game.cardHandler.addInPlay(player1, theresOptions);
         
@@ -473,11 +486,13 @@ describe("Treasure - Passive effects", () => {
         expect(() => game.actions.declarePurchase(player1)).toThrow();
         
         // End turn and start new turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(game.currentPlayer.id).toBe(player2.id);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
 

@@ -41,7 +41,7 @@ describe("Event Monsters - Other Events", () => {
             return { selected: options.slice(0, max).reverse(), remaining: options.slice(max) };
         };
         // Draw the event to trigger its effect
-        game.monsterSlots.discardTop(0);
+        game.encounters.discardTop(0);
         await game.actions.resolveStack(); // resolve the event addition
         
         // Check that player looted 1 card
@@ -68,7 +68,7 @@ describe("Event Monsters - Other Events", () => {
         
         
         // Draw the event to trigger its effect
-        game.monsterSlots.discardTop(0);
+        game.encounters.discardTop(0);
         await game.actions.resolveStack();
         
         // Player should be forced to attack the monster deck 2 additional times
@@ -130,7 +130,7 @@ describe("Event Monsters - Other Events", () => {
         const initialHP2 = player2.currentHealthPoints;
         
         // Draw the event to trigger its effect
-        game.monsterSlots.discardTop(0);
+        game.encounters.discardTop(0);
         await game.actions.resolveStack(); // resolve the event addition
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -150,7 +150,7 @@ describe("Event Monsters - Other Events", () => {
         const initialHP2 = player2.currentHealthPoints;
         
         // Draw the event to trigger its effect
-        game.monsterSlots.discardTop(0);
+        game.encounters.discardTop(0);
         await game.actions.resolveStack(); // resolve the event addition
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // damage resolution
@@ -190,7 +190,7 @@ describe("Event Monsters - Other Events", () => {
         // expect(game.decks["monster"]!.cards.length).toBe(initialDeckSize - 3); // 2 added, put -1 cause event is replaced
 
         // Draw the event to trigger its effect
-        game.monsterSlots.discardTop(0);
+        game.encounters.discardTop(0);
         
         await game.actions.resolveStack(); // resolve the event addition
         
@@ -220,7 +220,7 @@ describe("Event Monsters - Other Events", () => {
         game.decks["monster"]!.addTopPosition(weNeedToGoDeeper);
         
         // Draw the event
-        game.monsterSlots.discardTop(0);
+        game.encounters.discardTop(0);
         await game.actions.resolveStack(); // resolve the event addition
         await game.actions.resolveStack();
         
@@ -237,7 +237,7 @@ describe("Event Monsters - Other Events", () => {
         const initialAttacks = player1.attackThisTurn;
         
         // Draw the event to trigger its effect
-        game.monsterSlots.discardTop(0);
+        game.encounters.discardTop(0);
         await game.actions.resolveStack(); // resolve the event addition
         
         // Check that player got an additional attack
@@ -251,7 +251,7 @@ describe("Event Monsters - Other Events", () => {
         const initialAttacks = player1.attackThisTurn;
         
         // Draw the event to trigger its effect
-        game.monsterSlots.discardTop(0);
+        game.encounters.discardTop(0);
         await game.actions.resolveStack(); // resolve the event addition
         
         // Check that player got an additional attack
@@ -264,7 +264,7 @@ describe("Event Monsters - Other Events", () => {
         game.decks["monster"]!.addTopPosition(devilDeal);
         
         // Draw the event
-        game.monsterSlots.discardTop(0);
+        game.encounters.discardTop(0);
         game.select = async <T>(player: Player, min: number, max: number, options: T[], description?: string) => {
             // Simulate selecting the first option (put into discard)
             return { selected: options.slice(0, max), remaining: options.slice(max) };
@@ -288,7 +288,7 @@ describe("Event Monsters - Other Events", () => {
             return { selected: options.slice(1, max+1), remaining: options.slice(max) };
         };
         // Draw the event
-        game.monsterSlots.discardTop(0);
+        game.encounters.discardTop(0);
         const effect = game.stack._stack[game.stack._stack.length - 1] as EffectOnStack;
         await game.actions.resolveStack(); // resolve the event addition
         await game.actions.resolveStack();
@@ -316,7 +316,7 @@ describe("Event Monsters - Other Events", () => {
             return { selected: options.slice(2, max+2), remaining: options.slice(max) };
         };        
         // Draw the event
-        game.monsterSlots.discardTop(0);
+        game.encounters.discardTop(0);
         const effect = game.stack._stack[game.stack._stack.length - 1] as EffectOnStack;
         await game.actions.resolveStack(); // resolve the event addition
         game.select = async <T>(player: Player, min: number, max: number, options: T[], description?: string) => {

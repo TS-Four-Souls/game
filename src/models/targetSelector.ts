@@ -58,7 +58,7 @@ export function anotherPlayerSelector(filter: (player: Player) => boolean = () =
 
 export function activeEntitySelector(filter: (player: Entity) => boolean = () => true, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
-        return game.Entities.filter((entity) => filter(entity));
+        return game.playersAndMonsters.filter((entity) => filter(entity));
     }
 }
 export type ChooseOneOptions = {

@@ -442,6 +442,7 @@ describe("Requiem Rooms", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve effect
         expect(player2.hand.length).toBe(4);
         expect(player2.hand.cards.some(c => c.slug === card.slug)).toBe(false);
         expect(player2.inPlay[2]!.slug).not.toBe(item.slug);
@@ -458,6 +459,7 @@ describe("Requiem Rooms", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack.isEmpty()).toBe(true);
         expect(player2.hand.length).toBe(4);
         if(player2.hand.cards.some(c => c.slug === card.slug))
@@ -507,8 +509,10 @@ describe("Requiem Rooms", () => {
         expect(player1.inPlay.every(c => c.charged)).toBe(false);
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
         expect(player1.inPlay.every(c => c.charged)).toBe(false);
+        await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack();
         expect(player1.inPlay[0]!.charged).toBe(true);
         for(let i = 1; i < player1.inPlay.length; i++) 
@@ -578,9 +582,13 @@ describe("Requiem Rooms", () => {
         const soul = game.obtainCard("b2-lost_soul")!;
         soul.soul = 1;
         game.cardHandler.addSoul(player1, soul);
+        await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         expect(game.currentPlayer.id).toBe(player2.id);
+        await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         expect(game.currentPlayer.id).toBe(player2.id);
     });
 
@@ -1259,6 +1267,7 @@ describe("Requiem Rooms", () => {
         game.resetStack();
         const initCards = player2.hand.length;
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         if(player2.hand.length !== initCards + 2) {
             console.log("Player 2 hand:", player2.hand.cards.map(c => c.id));
         }
@@ -1271,6 +1280,7 @@ describe("Requiem Rooms", () => {
         game.resetStack();
         const init = player2.coins;
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         expect(player2.coins).toBe(init + 3);
         
         const room2 = game.obtainCard("r-blessing_of_gluttony") as RoomCard;
@@ -1285,8 +1295,11 @@ describe("Requiem Rooms", () => {
         game.rooms?.forceRoomAtSlot(0, room);
         game.resetStack();
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         game.gainCoins(player2, 10, "gift");
         const init = player2.coins;
         game.actions.declarePurchase(player2);
@@ -1299,8 +1312,11 @@ describe("Requiem Rooms", () => {
         game.rooms?.forceRoomAtSlot(0, room);
         game.resetStack();
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, "topDeck", 0);
         await game.actions.resolveStack();

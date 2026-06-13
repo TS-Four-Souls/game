@@ -43,8 +43,8 @@ describe("Target Builder Interface", () => {
     const monsterCard2 = game.decks["monster"]!.cards.find(
       (c) => c.slug === "b2-fatty",
     ) as MonsterCard;
-    if (monsterCard) game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-    if (monsterCard2) game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+    if (monsterCard) game.encounters.forceSetMonsterAtSlot(0, monsterCard);
+    if (monsterCard2) game.encounters.forceSetMonsterAtSlot(1, monsterCard2);
   });
 
   it("should progressively build targets for a tap effect with one selector", async () => {
@@ -619,7 +619,7 @@ describe("Target Builder - validTargetExists", () => {
 
       // Add a monster so at least one option is valid
       const monster = game.obtainCard("b2-fly") as MonsterCard;
-      if (monster) game.monsterSlots.forceSetMonsterAtSlot(0, monster);
+      if (monster) game.encounters.forceSetMonsterAtSlot(0, monster);
 
       const result = TargetBuilder.validTargetExists(
         game,

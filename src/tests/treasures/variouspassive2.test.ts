@@ -219,6 +219,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         await game.actions.resolveStack();
 
         // Player should not be dead
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack.elements.length).toBe(0);
         expect(player1.isDead).toBe(false);
     });

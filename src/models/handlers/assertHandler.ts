@@ -80,7 +80,7 @@ export class AssertHandler {
     return this.game.turnHandler.round;
   }
   entityIsInPlay(entity: Entity) {
-    if (!this.game.EntitiesAndAnimated.includes(entity))
+    if (!this.game.entities.includes(entity))
       throw new Error("Entity is not currently in play.");
   }
 

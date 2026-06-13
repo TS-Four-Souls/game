@@ -788,7 +788,7 @@ export function gainCoinsBasedOnMonsterSlotsAndLootInHandEffect(game: Game): Eff
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const player = data.issuer;
-        const coinsToGain = game.monsterSlots.slots.length + player.hand.length;
+        const coinsToGain = game.encounters.slots.length + player.hand.length;
         game.gainCoins(player, coinsToGain, data.it);
         return true;
     };
@@ -905,13 +905,13 @@ export function flushMonsterSlotsEffect(game: Game, where: "bottom" | "discard" 
     return (data: EffectData) => {
         switch(where) {
             case "bottom":
-                game.monsterSlots.flushToBottom();
+                game.encounters.flushToBottom();
                 break;
             case "discard":
-                game.monsterSlots.flush();
+                game.encounters.flush();
                 break;
             case "discardAndDraw":
-                game.monsterSlots.flushAndDraw();
+                game.encounters.flushAndDraw();
                 break;
         }
         return true;
@@ -1005,7 +1005,7 @@ export function flushOneMonsterSlotEffect(game: Game, min: number): EffectFuncti
         const monsterToFlush = (await data.selectAndRecord(game, data.issuer, min, 1, game.monsters.filter((m) => m !== null && !m.isEngagedInCombat), "Select a monster to flush.", true, true)).selected[0] as Monster;
         if(monsterToFlush === undefined) return false;
         if(game.encounters._slots.findIndex(slot => slot.includes(monsterToFlush.card)) === -1) return false;
-        game.monsterSlots.flushMonster(monsterToFlush, "discard");
+        game.encounters.flushMonster(monsterToFlush, "discard");
         return true;
     };
 }
@@ -1478,7 +1478,7 @@ export function putRoomOrMonsterIntoDiscardEffect(game: Game, youMay: boolean): 
             const index = game.monsters.indexOf(target);
             if(index === -1) throw new Error("Monster not found in game.");
 
-            if(!game.monsterSlots.flushMonster(target, "discard"))
+            if(!game.encounters.flushMonster(target, "discard"))
             {
                 console.log("Failed to flush monster:", target.id);
                 console.log("Current monsters in slots:", game.monsters.map(m => m ? m.card.name : null));
@@ -2392,7 +2392,7 @@ export function removeCounterAndDamageIfAboveX(game: Game, toRemove: number, dam
         if (data.issuer instanceof Player === false) return false;
         if(data.it.tags.counters >= toRemove) {
             game.cardHandler.addToCounter(data.issuer, data.it, "counters", -data.it.tags.counters);
-            const damageTarget = (await data.selectAndRecord(game, data.issuer, 1, 1, game.Entities, "Select a player to deal damage to.", true, true)).selected[0] as Player;
+            const damageTarget = (await data.selectAndRecord(game, data.issuer, 1, 1, game.playersAndMonsters, "Select a player to deal damage to.", true, true)).selected[0] as Player;
             game.entityHandler.dealDamage(data.issuer, damageTarget, data.it, damage);
         }
         return true;
@@ -3102,7 +3102,7 @@ export function playUnlimitedLootCardsThisTurnEffect(game: Game): EffectFunction
 export function dealDamageNotEngagedInCombatOrYourselfEffect(game: Game, amount: number): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const feasibleTargets = game.Entities.filter(e => e.isEngagedInCombat === false || e === data.issuer);
+        const feasibleTargets = game.playersAndMonsters.filter(e => e.isEngagedInCombat === false || e === data.issuer);
         if (feasibleTargets.length === 0) return false;
         const target = (await data.selectAndRecord(game, data.issuer, 1, 1, feasibleTargets, "Select a target to deal damage to.", true, true)).selected[0] as Entity;
         game.entityHandler.dealDamage(data.issuer, target, data.it, amount);
@@ -3126,7 +3126,7 @@ export function takeExtraTurnEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         if (game.currentPlayer === data.issuer) {
-            game.entityHandler.addExtraTurn(data.issuer);
+            game.addExtraTurn(data.issuer);
             return true;
         }
         return false;

@@ -99,7 +99,8 @@ describe("Discard", () => {
         const mobster = game.monsters[0]!;
         game.entityHandler.kill(mobster, player1, ewaz);
         await game.actions.resolveStack();
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         game.cardHandler.addCardToHand(player2, ewaz);
         game.actions.playCard(player2, player2.hand.length - 1);

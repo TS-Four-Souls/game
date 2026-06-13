@@ -565,7 +565,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
             if (!card) {
               throw new Error(`Card not found in the game: ${cardRef.slug}`);
             }
-            const index = game.monsterSlots._slots.map((slot) => slot[slot.length - 1]?.globalId).indexOf(entry.payload.toCover.globalId);
+            const index = game.encounters._slots.map((slot) => slot[slot.length - 1]?.globalId).indexOf(entry.payload.toCover.globalId);
             game.actions.debugPutMonsterCardInSlot(player, card, index);
           }
           break;

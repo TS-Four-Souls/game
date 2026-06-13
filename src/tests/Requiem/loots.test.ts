@@ -71,12 +71,14 @@ describe("Requiem Loots ", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.endTurn();
+        await game.actions.resolveStack();
         game.gainCoins(player1, 7, "gift");
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, "top");
         expect(player1.coins).toBe(2);
         game.loot(player1, 15);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(10);
     });
@@ -353,6 +355,7 @@ describe("Requiem Loots ", () => {
 
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve effect
         expect(player2.hand.length).toBe(1);
         game.entityHandler.kill(player1, game.monsters[1]!, loot);
         await game.actions.resolveStack();

@@ -7,7 +7,7 @@ import * as room from "../roomEffects";
 import {Player} from "../../entities/player";
 import {DiceRoll} from "../../stackElement";
 import {EffectData, type EffectFunction, type TargetsSelector} from "../../types/cardTypes";
-import type {OnCounterModifiedData, OnDamageTakenData, OnDeathBeforePenaltyData} from "../../types/eventTypes";
+import type {OnCounterModifiedData, OnDamageTakenData, OnDeathBeforePenaltyData, OnLootStepData} from "../../types/eventTypes";
 import {Monster} from "../../entities/monster";
 import {NumberRobustString} from "./numberRobustString";
 import {
@@ -560,40 +560,39 @@ export function parseRollEffect(s: string, nr: NumberRobustString, game: Game, i
  * Active player effects are parsed separately, as they are usually owned by monsters, and refers to players differently (third-person singular).
  * Unless other functions returning ParsedEffect, this one includes a text switch, that is why it is kept in this file rather than logicParsers.ts.
  */
-export function parseTheActivePlayerEffect(s: string, game: Game, nr?: NumberRobustString): ParsedEffect {
-    nr = nr ?? new NumberRobustString(s);
+export function parseTheActivePlayerEffect(s: string, game: Game, nr: NumberRobustString): ParsedEffect {
     if(s.startsWith("the active player rolls-"))
     {
         const rest = "roll" + s.substring("the active player rolls".length).replace("they", "the active player");
         const numberRobustString = new NumberRobustString(rest);
         return parseRollEffect(rest, numberRobustString , game, true);
     }
-    const numberRobustString = nr ?? new NumberRobustString(s);
-    switch (numberRobustString.normalizedMasked) {
+    switch (nr.normalizedMasked) {
         case "the active player may attack other players. attacked players have x+ [dc]":
-            return noTargetEffect(room.otherPlayersAreAttackableEffect(game, numberRobustString.nextNumber()));
+            return noTargetEffect(room.otherPlayersAreAttackableEffect(game, nr.nextNumber()));
         case "the active player must attack the monster deck x times this turn":
-            return noTargetEffect(active.forceAttackMonsterDeckEffect(game, numberRobustString.nextNumber(), "total")); 
+            return noTargetEffect(active.forceAttackMonsterDeckEffect(game, nr.nextNumber(), "total")); 
         case "the active player forces a player to discard x loot cards":
-            return noTargetEffect(monster.activePlayerSelectAndCallEffect(game, active.discardNLootCardsEffect(numberRobustString.nextNumber(), game, true)));
+            return noTargetEffect(monster.activePlayerSelectAndCallEffect(game, active.discardNLootCardsEffect(nr.nextNumber(), game, true)));
         case "the active player chooses a player. they lose x¢":
-            return noTargetEffect(monster.activePlayerSelectAndCallEffect(game, active.loseCoinsEffect(game, numberRobustString.nextNumber())));
+            return noTargetEffect(monster.activePlayerSelectAndCallEffect(game, active.loseCoinsEffect(game, nr.nextNumber())));
         case "the active player deals x damage to a player":
-            return noTargetEffect(active.dealDamageToAPlayerEffect(game, numberRobustString.nextNumber(), true, true));
+            return noTargetEffect(active.dealDamageToAPlayerEffect(game, nr.nextNumber(), true, true));
         case "the active player deals x damage divided as they choose to any number of monsters or players":
-            return noTargetEffect(monster.activePlayerSelectTargetEffect(game, active.dealXDamageDividedAsYouChooseEffect(game, numberRobustString.nextNumber()), selectPlayerOrMonster(game, 1, 2)[0]!));
+            return noTargetEffect(monster.activePlayerSelectTargetEffect(game, active.dealXDamageDividedAsYouChooseEffect(game, nr.nextNumber()), selectPlayerOrMonster(game, 1, 2)[0]!));
         case "the active player chooses a player. that player discards x loot cards":
-            return noTargetEffect(monster.activePlayerChoosePlayerDiscardXEffect(game, numberRobustString.nextNumber()));
+            return noTargetEffect(monster.activePlayerChoosePlayerDiscardXEffect(game, nr.nextNumber()));
         case "the active player chooses a living player. this deals x damage to that player":
-            return noTargetEffect(monster.activePlayerChooseLivingPlayerTakeDamageEffect(game, numberRobustString.nextNumber()));
+            return noTargetEffect(monster.activePlayerChooseLivingPlayerTakeDamageEffect(game, nr.nextNumber()));
         case "the active player loots x during their loot step":
-            return noTargetEffect(passive.lootStepEffect([active.lootCardsEffect(game, numberRobustString.nextNumber())], game, true));
+            return noTargetEffect(passive.onAnyEventEffect("on:loot:step", [], game, s, (effect: EffectData, event: OnLootStepData) => {event.numberToLoot += nr.nextNumber(); return true;}));
+                // passive.lootStepEffect([active.lootCardsEffect(game, nr.nextNumber())], game, true));
         case "the active player loots x":
-            return noTargetEffect(active.lootCardsEffect(game, numberRobustString.nextNumber(), "current"));
+            return noTargetEffect(active.lootCardsEffect(game, nr.nextNumber(), "current"));
         case "the active player discards a loot card":
             return noTargetEffect(active.discardNLootCardsEffect(1, game, true, "current"));
         case "the active player discards x loot cards":
-            return noTargetEffect(active.discardNLootCardsEffect(numberRobustString.nextNumber(), game, true, "current"));
+            return noTargetEffect(active.discardNLootCardsEffect(nr.nextNumber(), game, true, "current"));
         case "the active player may gain x¢":
             return noTargetEffect(active.gainCoinsEffect(game, nr.nextNumber(), "current", [true]));
         case "the active player kills up to x other players":
@@ -775,7 +774,8 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
                 targetSelectors: selectPlayerOrMonster(game),
             };
         case "loot x during your loot step":
-            return noTargetEffect(passive.lootStepEffect([active.lootCardsEffect(game, nr.nextNumber())], game));
+            return noTargetEffect(passive.onYourEventEffect("on:loot:step", [], game, s, false, true, (effect: EffectData, event: OnLootStepData) => {event.numberToLoot += nr.nextNumber(); return true;}));
+            // return noTargetEffect(passive.lootStepEffect([active.lootCardsEffect(game, nr.nextNumber())], game));
         case "prevent the next x damage you would take this turn":
             return noTargetEffect(passive.preventNextDamageUpToEffect(nr.nextNumber(), game));
         case "choose a player. prevent the next x damage they would take this turn":

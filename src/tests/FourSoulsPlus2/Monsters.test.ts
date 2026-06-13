@@ -226,7 +226,9 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         await game.actions.resolveStack(); 
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // turn end
         expect(game.actions.canEndTurn(player1, false)).not.toBe(true);
         game.actions.declareAttack(player1);
@@ -242,7 +244,9 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         await game.actions.resolveStack(); 
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // turn end
         expect(player1.hasAttackRequirement).toBe(true);
         expect(game.actions.canEndTurn(player1, false)).not.toBe(true);
@@ -264,7 +268,8 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.cardHandler.rechargeMultiple(player1);
         expect(player1.inPlay.every(i => i.charged || !i.isActiveItem)).toBe(true);
         await game.actions.resolveStack(); // give curse to themselves
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // turn end
         expect(player1.inPlay.every(i => i.charged)).toBe(false);
 
@@ -298,7 +303,8 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         expect(mob.currentHealthPoints).toBe(2);
         expect(game.entityHandler.getAttack(mob)).toBe(1);
         expect(game.entityHandler.getDC(mob)).toBe(4);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // turn end
         expect(mob.currentHealthPoints).toBe(3);
         expect(game.entityHandler.getAttack(mob)).toBe(2);
@@ -421,7 +427,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.encounters.expand(2);
         game.random = () => 1/6-.00001;
         game.actions.attackRoll(player1);
-        for(const e of game.Entities)
+        for(const e of game.playersAndMonsters)
             game.entityHandler.addHealth(e,10);
         const hp = game.monsters.map(m => m.currentHealthPoints);
         await game.actions.resolveStack(); // roll

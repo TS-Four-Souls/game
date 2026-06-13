@@ -34,7 +34,8 @@ describe("Treasure - Permanent Modifiers", () => {
         game.cardHandler.removeInPlay(player1, breakfast);
         expect(player1.currentHealthPoints).toBe(initialHealth + 1);
         
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         
         expect(player1.currentHealthPoints).toBe(initialHealth + 1);
@@ -72,79 +73,97 @@ describe("Treasure - Permanent Modifiers", () => {
 
     it("+1 ATK declaration on your turn", async () => {
         const cb = game.shop.obtainCard("b2-champion_belt")!;
-        game.endTurn(); // to player2
+        await game.endTurn();
+        await game.actions.resolveStack(); // to player2
         await game.actions.resolveStack();
-        game.endTurn(); // back to player1
+        await game.endTurn();
+        await game.actions.resolveStack(); // back to player1
         await game.actions.resolveStack();
         const initialAtkLim = player1.attackThisTurn;
         expect(initialAtkLim).toBe(1); // because it's his turn
         game.cardHandler.addInPlay(player1, cb);
         expect(player1.attackThisTurn).toBe(initialAtkLim + 1);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.attackThisTurn).toBe(0);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.attackThisTurn).toBe(2);
         game.cardHandler.removeInPlay(player1, cb);
         expect(player1.attackThisTurn).toBe(1);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.attackThisTurn).toBe(0);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.attackThisTurn).toBe(1);
     });
 
     it("+1 Loot play on your turn", async () => {
         const cb = game.shop.obtainCard("b2-polydactyly")!;
-        game.endTurn(); // to player2
+        await game.endTurn();
+        await game.actions.resolveStack(); // to player2
         await game.actions.resolveStack();
-        game.endTurn(); // back to player1
+        await game.endTurn();
+        await game.actions.resolveStack(); // back to player1
         await game.actions.resolveStack();
         const initialLootPlay = player1.remainingLootPlay;
         expect(initialLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value); // because it's his turn
         game.cardHandler.addInPlay(player1, cb);
         expect(player1.remainingLootPlay).toBe(initialLootPlay + 1);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(0);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value+1);
         game.cardHandler.removeInPlay(player1, cb);
         expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(0);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value);
     });
 
     it("+1 Loot play on your turn", async () => {
         const cb = game.shop.obtainCard("b2-belly_button")!;
-        game.endTurn(); // to player2
+        await game.endTurn();
+        await game.actions.resolveStack(); // to player2
         await game.actions.resolveStack();
-        game.endTurn(); // back to player1
+        await game.endTurn();
+        await game.actions.resolveStack(); // back to player1
         await game.actions.resolveStack();
         const initialLootPlay = player1.remainingLootPlay;
         expect(initialLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value); // because it's his turn
         game.cardHandler.addInPlay(player1, cb);
         expect(player1.remainingLootPlay).toBe(initialLootPlay + 1);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(0);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value + 1);
         game.cardHandler.removeInPlay(player1, cb);
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(0);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value);
     });
@@ -161,6 +180,7 @@ describe("Treasure - Permanent Modifiers", () => {
             const initialMonsterHealth = monster.currentHealthPoints;
             expect(game.currentPlayer.id).toBe(player1.id);
             // Attack monster
+            await game.actions.resolveStack();
             game.actions.declareAttack(player1);
             await game.actions.declareAttackOnEntity(player1, monster);
             game.actions.attackRoll(player1)
@@ -189,9 +209,10 @@ describe("Treasure - Permanent Modifiers", () => {
             expect(monster.currentHealthPoints).toBe(initialMonsterHealth - baseAttack - baseAttack - 1);
             game.cardHandler.removeInPlay(player1, item);
             game.entityHandler.endCombat();
-            game.endTurn();
+            await game.endTurn();
             await game.actions.resolveStack();
-            game.endTurn();
+            await game.actions.resolveStack();
+            await game.endTurn();
             await game.actions.resolveStack();
         }
     });

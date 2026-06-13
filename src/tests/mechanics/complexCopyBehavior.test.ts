@@ -39,6 +39,7 @@ let game: Game;
         expect(player1.inPlay.map(c => c.slug)).toContain("r-punching_bag");
         expect(player1.healthPoints).toBe(3);
         await game.endTurn();
+        await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.healthPoints).toBe(4);
     });
@@ -71,6 +72,7 @@ let game: Game;
         await game.actions.resolveStack();
         expect(game.entityHandler.getAttack(player1)).toBe(3);
         await game.endTurn();
+        await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(game.entityHandler.getAttack(player1)).toBe(2);
     });
@@ -149,7 +151,9 @@ let game: Game;
         await game.endTurn();
         await game.actions.resolveStack();
         
+        await game.actions.resolveStack();
         await game.endTurn();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
     });
 

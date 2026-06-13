@@ -30,7 +30,7 @@ describe("Monsters - On death effects", () => {
             const bigSpider = game.obtainCard("b2-big_spider") as MonsterCard;
             expect(bigSpider).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, bigSpider);
+            game.encounters.forceSetMonsterAtSlot(0, bigSpider);
             const spiderMonster = game.monsters[0]!;
             
             // Mock selection to choose "Yes" for attacking monster deck
@@ -60,7 +60,7 @@ describe("Monsters - On death effects", () => {
             const bigSpider = game.obtainCard("b2-big_spider") as MonsterCard;
             expect(bigSpider).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, bigSpider);
+            game.encounters.forceSetMonsterAtSlot(0, bigSpider);
             const spiderMonster = game.monsters[0]!;
             
             
@@ -84,7 +84,7 @@ describe("Monsters - On death effects", () => {
             const bigSpider = game.obtainCard("b2-big_spider") as MonsterCard;
             expect(bigSpider).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, bigSpider);
+            game.encounters.forceSetMonsterAtSlot(0, bigSpider);
             const spiderMonster = game.monsters[0]!;
             
             
@@ -113,7 +113,7 @@ describe("Monsters - On death effects", () => {
             const conquestCard = game.obtainCard("b2-conquest") as MonsterCard;
             expect(conquestCard).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, conquestCard);
+            game.encounters.forceSetMonsterAtSlot(0, conquestCard);
             const conquestMonster = game.monsters[0]!;
             
             const initialAttacks = player1.attackThisTurn;
@@ -135,7 +135,7 @@ describe("Monsters - On death effects", () => {
             const card = game.obtainCard("b2-dank_globin") as MonsterCard;
             expect(card).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, card);
+            game.encounters.forceSetMonsterAtSlot(0, card);
             const monster = game.monsters[0]!;
             
             game.loot( player1, 4); // give some loot cards to player1
@@ -152,7 +152,7 @@ describe("Monsters - On death effects", () => {
         const card = game.obtainCard("b2-dank_globin") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         
         game.loot( player2, 4); // give some loot cards to player2
@@ -174,7 +174,7 @@ describe("Monsters - On death effects", () => {
         const card = game.obtainCard("b2-death") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         
         game.select = async (p, _min, _max, opts) => {
@@ -197,7 +197,7 @@ describe("Monsters - On death effects", () => {
         const card = game.obtainCard("b2-famine") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         
         game.entityHandler.kill(monster, monster, card);
@@ -210,12 +210,14 @@ describe("Monsters - On death effects", () => {
         expect(game.turnHandler.numberOfTurnSkiped(player1)).toBe(1);
         expect(game.turnHandler.numberOfTurnSkiped(player2)).toBe(0);
 
-        game.endTurn(); // end player1 turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // end player1 turn
         await game.actions.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(game.currentPlayer.id).toBe(player2.id);
 
-        game.endTurn(); // end player2 turn, player 1 should be skipped
+        await game.endTurn();
+        await game.actions.resolveStack(); // end player2 turn, player 1 should be skipped
         await game.actions.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(game.currentPlayer.id).toBe(player2.id);
@@ -225,7 +227,7 @@ describe("Monsters - On death effects", () => {
         const card = game.obtainCard("b2-greedling") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         game.gainCoins(player2, 10, "gift");
         const coins = player2.coins;
@@ -249,7 +251,7 @@ describe("Monsters - On death effects", () => {
         const card = game.obtainCard("b2-mulliboom") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         game.entityHandler.addHealth(player2, 10);
         const health = player2.currentHealthPoints;
@@ -272,7 +274,7 @@ describe("Monsters - On death effects", () => {
         const card = game.obtainCard("b2-psy_horf") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         const item1 = game.obtainCard("b2-tech_x") as LootCard;
         game.cardHandler.addInPlay(player1, item1);
@@ -298,7 +300,7 @@ describe("Monsters - On death effects", () => {
         const card = game.obtainCard("b2-moms_dead_hand") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         const item1 = game.obtainCard("b2-tech_x") as LootCard;
         game.cardHandler.addInPlay(player2, item1);
@@ -321,7 +323,7 @@ describe("Monsters - On death effects", () => {
         const card = game.obtainCard("b2-moms_dead_hand") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         const item1 = game.obtainCard("b2-tech_x") as LootCard;
         game.cardHandler.addInPlay(player2, item1);
@@ -344,7 +346,7 @@ describe("Monsters - On death effects", () => {
         const card = game.obtainCard("b2-moms_eye") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         game.loot( player2, 4); // give some loot cards to player2
         const handSlugs = player2.hand.cards.map(card => card.slug);
@@ -375,7 +377,7 @@ describe("Monsters - On death effects", () => {
         const card = game.obtainCard("b2-moms_eye") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         game.loot( player2, 4); // give some loot cards to player2
         const handSlugs = player2.hand.cards.map(card => card.slug);
@@ -399,7 +401,7 @@ describe("Monsters - On death effects", () => {
         expect(card).toBeInstanceOf(MonsterCard);
         game.entityHandler.addHealth(player2, 10);
         const health = player2.currentHealthPoints;
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         
         game.entityHandler.kill(monster, monster, card);
@@ -418,7 +420,7 @@ describe("Monsters - On death effects", () => {
         game.entityHandler.addHealth(player2, 10);
         const health = player2.currentHealthPoints;
         const healthmonster = game.encounters.monsterIn(1)!.currentHealthPoints;
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         
         game.entityHandler.kill(monster, monster, card);
@@ -443,7 +445,7 @@ describe("Monsters - On death effects", () => {
 
         const card = game.obtainCard("b2-the_lamb") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         
         game.entityHandler.kill(monster, monster, card);
@@ -469,7 +471,7 @@ describe("Monsters - On death effects", () => {
 
         const card = game.obtainCard("b2-wizoob") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         
         game.entityHandler.kill(monster, monster, card);
@@ -489,7 +491,7 @@ describe("Monsters - On death effects", () => {
     it("active player has a roll dice effect when wrath dies (1 damage).", async () => {
         const card = game.obtainCard("b2-wrath") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         
         game.entityHandler.kill(monster, monster, card);
@@ -510,7 +512,7 @@ describe("Monsters - On death effects", () => {
     it("active player has a roll dice effect when wrath dies (2 damage).", async () => {
         const card = game.obtainCard("b2-wrath") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         
         game.entityHandler.kill(monster, monster, card);
@@ -533,7 +535,7 @@ describe("Monsters - On death effects", () => {
     it("deal 1 damage to killer (p1) when black bony dies.", async () => {
         const card = game.obtainCard("b2-black_bony") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         
         game.entityHandler.kill(player1, monster, card);
@@ -549,7 +551,7 @@ describe("Monsters - On death effects", () => {
     it("deal 1 damage to killer (p2) when black bony dies.", async () => {
         const card = game.obtainCard("b2-black_bony") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         
         game.entityHandler.kill(player2, monster, card);
@@ -566,7 +568,7 @@ describe("Monsters - On death effects", () => {
     it("deal 1 damage to killer (monster2, should not take damage) when black bony dies.", async () => {
         const card = game.obtainCard("b2-black_bony") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         const monster2 = game.monsters[1]!;
         
@@ -584,7 +586,7 @@ describe("Monsters - On death effects", () => {
     it("deal 1 damage to each players when boom_fly dies.", async () => {
         const card = game.obtainCard("b2-boom_fly") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         
         game.entityHandler.kill(monster, monster, card);
@@ -600,7 +602,7 @@ describe("Monsters - On death effects", () => {
     it("deal 1 damage to each players when boom_fly dies.", async () => {
         const card = game.obtainCard("b2-boom_fly") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         
         game.entityHandler.kill(monster, monster, card);
@@ -631,7 +633,7 @@ describe("Monsters - On death effects", () => {
     it("put the bloat in a slot when peep dies.", async () => {
         const card = game.obtainCard("b2-peep") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         
         game.entityHandler.kill(monster, monster, card);
@@ -687,7 +689,7 @@ describe("Monsters - On death effects", () => {
     it("roll when rag_man dies. (4)", async () => {
         const card = game.obtainCard("b2-rag_man") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         
         game.entityHandler.kill(monster, monster, card);
@@ -707,7 +709,7 @@ describe("Monsters - On death effects", () => {
     it("discard killer hand when sloth dies. (p1)", async () => {
         const card = game.obtainCard("b2-sloth") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         game.loot( player1, 4); // give some loot cards to player1
         game.loot( player2, 4); // give some loot cards to player2
         const monster = game.monsters[0]!;
@@ -724,7 +726,7 @@ describe("Monsters - On death effects", () => {
     it("discard killer hand when sloth dies. (p2)", async () => {
         const card = game.obtainCard("b2-sloth") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         game.loot( player1, 4); // give some loot cards to player1
         game.loot( player2, 4); // give some loot cards to player2
         const monster = game.monsters[0]!;
@@ -741,7 +743,7 @@ describe("Monsters - On death effects", () => {
     it("double rewards when dinga dies on attack roll of 6. (p2)", async () => {
         const card = game.obtainCard("b2-dinga") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         
         let currentcoins = player1.coins;

@@ -40,8 +40,8 @@ describe("Effect - gainCoins", () => {
         }
         const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
         const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        game.encounters.forceSetMonsterAtSlot(0, monsterCard);
+        game.encounters.forceSetMonsterAtSlot(1, monsterCard2);
     effectFn(new EffectData(dummyLoot, () => p1, []));
     expect(p1.coins).toBe(5);
     expect(p2.coins).toBe(0);
@@ -108,7 +108,7 @@ describe("Effect - additional unique implementations", () => {
     Object.defineProperty(game, "currentPlayer", { get: () => p1 });
     let added = false, extra = false;
     game.cardHandler.addBottomPosition = () => { added = true; };
-    game.entityHandler.addExtraTurn = () => { extra = true; };
+    game.addExtraTurn = () => { extra = true; };
     const parsed = effect.effectParser("Put this on the bottom of the loot deck. If you do, take an extra turn after this one if it's your turn.", game);
     // Use a real loot card
     const card = game.decks["loot"]!.cards[0]!;

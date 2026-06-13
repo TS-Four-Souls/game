@@ -1,11 +1,9 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { Game } from "../../models/game";
+import { ItemCard, LootCard, type TreasureCard } from "@/models/cards";
+import { setupTestGame } from "@/tests/testHelpers";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../../models/entities/player";
+import { Game } from "../../models/game";
 import { DiceRoll } from "../../models/stackElement";
-import { pl } from "zod/locales";
-import { LootCard, type TreasureCard, type Card } from "@/models/cards";
-import { InplayType, MonsterCard, CharacterCard, ItemCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame } from "@/tests/testHelpers";
 
 describe("Treasure - \"at the end of your turn\" effects", () => {
     let game: Game;
@@ -41,22 +39,25 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         player1.gainCoins(5);
         expect(player1.coins).toBe(5);
 
-        game.endTurn();// end of turn of p1
+        game.endTurn();
         expect(player1.coins).toBe(5); // Should not gain coins
         
         // Test: Player has 0 coins - should trigger and gain 6¢
         player1.loseCoins(5, false);
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
+        await game.actions.resolveStack(); // Resolve any stack effects
         expect(player1.coins).toBe(6);
         // Test: Player has 0 coins - should trigger and gain 6¢
         player1.loseCoins(6, false);
         
-        game.endTurn();// end of turn of p2
+        game.endTurn();
+        await game.actions.resolveStack();// end of turn of p2
         expect(player1.coins).toBe(0); // Should not gain coins
         await game.actions.resolveStack(); // Resolve any stack effects
 
-        game.endTurn();// end of turn of p1
+        game.endTurn();
+        await game.actions.resolveStack();// end of turn of p1
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
 
@@ -64,10 +65,12 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         // Test: Trigger again after having coins
         expect(player1.coins).toBe(6);
-        game.endTurn();// end of turn of p2
+        game.endTurn();
+        await game.actions.resolveStack();// end of turn of p2
         await game.actions.resolveStack(); // Resolve any stack effects
 
-        game.endTurn();// end of turn of p1
+        game.endTurn();
+        await game.actions.resolveStack();// end of turn of p1
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(player1.coins).toBe(6); // Should not gain more
@@ -75,9 +78,11 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         // Test: Works multiple times when at 0¢
         player1.loseCoins(6, false);
         expect(player1.coins).toBe(0);
-        game.endTurn();// end of turn of p2
+        game.endTurn();
+        await game.actions.resolveStack();// end of turn of p2
         await game.actions.resolveStack(); // Resolve any stack effects
-        game.endTurn();// end of turn of p1
+        game.endTurn();
+        await game.actions.resolveStack();// end of turn of p1
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(player1.coins).toBe(6); // Gain 6 again
@@ -91,7 +96,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const initialHandSize = player1.hand.length;
         expect(initialHandSize).toBeLessThan(8);
 
-        game.endTurn(); // end of turn of p1
+        game.endTurn();
+        await game.actions.resolveStack(); // end of turn of p1
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
 
@@ -103,20 +109,24 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         }
         expect(player1.hand.length).toBe(7);
 
-        game.endTurn(); // end of turn of p2, p1 loot 1 start of turn
+        game.endTurn();
+        await game.actions.resolveStack(); // end of turn of p2, p1 loot 1 start of turn
         await game.actions.resolveStack(); // Resolve any stack effects
 
-        game.endTurn(); // end of turn of p1
+        game.endTurn();
+        await game.actions.resolveStack(); // end of turn of p1
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(player1.hand.length).toBe(10); // Should have gained 2 more cards
 
         // Test: Player has more than 8 cards - should still trigger
         expect(player1.hand.length).toBe(10);
-        game.endTurn();// end of turn of p2
+        game.endTurn();
+        await game.actions.resolveStack();// end of turn of p2
         await game.actions.resolveStack(); // Resolve any stack effects
 
-        game.endTurn();// end of turn of p1
+        game.endTurn();
+        await game.actions.resolveStack();// end of turn of p1
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(player1.hand.length).toBe(13); // Should gain 2 more
@@ -127,9 +137,11 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         }
         expect(player1.hand.length).toBe(6);
 
-        game.endTurn(); // end of turn of p2
+        game.endTurn();
+        await game.actions.resolveStack(); // end of turn of p2
         await game.actions.resolveStack(); // Resolve any stack effects
-        game.endTurn(); // end of turn of p1
+        game.endTurn();
+        await game.actions.resolveStack(); // end of turn of p1
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(player1.hand.length).toBe(7);
@@ -144,11 +156,13 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const initialHandSize = player1.hand.length;
         expect(initialHandSize).toBeGreaterThan(0);
 
-        game.endTurn();// end of turn of p1
+        game.endTurn();
+        await game.actions.resolveStack();// end of turn of p1
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(player1.hand.length).toBe(initialHandSize); // loot start of turn
-        game.endTurn();// end of turn of p2
+        game.endTurn();
+        await game.actions.resolveStack();// end of turn of p2
         await game.actions.resolveStack(); // Resolve any stack effects
 
         // Test: Empty hand - should trigger and loot 2
@@ -157,18 +171,21 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         }
         expect(player1.hand.length).toBe(0);
 
-        game.endTurn();// end of turn of p1 
+        game.endTurn();
+        await game.actions.resolveStack();// end of turn of p1 
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
 
         expect(player1.hand.length).toBe(2); // Should have looted 2
 
         // Test: No longer triggers when hand is not empty
-        game.endTurn();// end of turn of p2
+        game.endTurn();
+        await game.actions.resolveStack();// end of turn of p2
         await game.actions.resolveStack(); // Resolve any stack effects
 
         expect(player1.hand.length).toBe(3);
-        game.endTurn();// end of turn of p1
+        game.endTurn();
+        await game.actions.resolveStack();// end of turn of p1
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
 
@@ -180,12 +197,14 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         game.cardHandler.discardFromHandAtIndex(player1, 0);
         expect(player1.hand.length).toBe(0);
 
-        game.endTurn();// end of turn of p2
+        game.endTurn();
+        await game.actions.resolveStack();// end of turn of p2
         await game.actions.resolveStack(); // Resolve any stack effects
 
         expect(player1.hand.length).toBe(1); // Loot 1 start turn
         game.cardHandler.discardFromHandAtIndex(player1, 0);
-        game.endTurn();// end of turn of p1
+        game.endTurn();
+        await game.actions.resolveStack();// end of turn of p1
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
 
@@ -205,7 +224,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const cardsBeforeEffect = [...player1.hand.cards];
         const handSizeBefore = player1.hand.length;
 
-        game.endTurn(); // end of turn of p1 - effect triggers, discards all and loots all back
+        game.endTurn();
+        await game.actions.resolveStack(); // end of turn of p1 - effect triggers, discards all and loots all back
         await game.actions.resolveStack(); // Resolve goat head stack effects
         await game.actions.resolveStack(); // recharge blood lust at end of turn
 
@@ -218,7 +238,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         );
         expect(allSameCards).toBe(false); // Cards should have changed
 
-        game.endTurn(); // end of turn of p2
+        game.endTurn();
+        await game.actions.resolveStack(); // end of turn of p2
         await game.actions.resolveStack(); // Resolve any stack effects
 
         // Test: With 3 cards
@@ -228,7 +249,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         expect(player1.hand.length).toBe(3);
 
         const threeCardsBefore = [...player1.hand.cards];
-        game.endTurn(); // end of turn of p1
+        game.endTurn();
+        await game.actions.resolveStack(); // end of turn of p1
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(player1.hand.length).toBe(3); // Still 3 cards
@@ -239,7 +261,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         );
         expect(threeCardsSame).toBe(false); // Different cards
 
-        game.endTurn(); // end of turn of p2
+        game.endTurn();
+        await game.actions.resolveStack(); // end of turn of p2
         await game.actions.resolveStack(); // Resolve any stack effects
 
         // Test: With 1 card
@@ -249,7 +272,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         expect(player1.hand.length).toBe(1);
 
         const singleCardBefore = player1.hand.cards[0];
-        game.endTurn(); // end of turn of p1
+        game.endTurn();
+        await game.actions.resolveStack(); // end of turn of p1
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
 
@@ -258,7 +282,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const singleCardAfter = player1.hand.cards[0];
         expect(singleCardAfter).not.toBe(singleCardBefore); // Different card
 
-        game.endTurn(); // end of turn of p2
+        game.endTurn();
+        await game.actions.resolveStack(); // end of turn of p2
         await game.actions.resolveStack(); // Resolve any stack effects
 
         // Test: With empty hand, no cards to discard
@@ -267,14 +292,16 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         }
         expect(player1.hand.length).toBe(0);
 
-        game.endTurn(); // end of turn of p1
+        game.endTurn();
+        await game.actions.resolveStack(); // end of turn of p1
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
 
         // Can't discard when hand is empty
         expect(player1.hand.length).toBe(0); // No cards gained from effect
 
-        game.endTurn(); // end of turn of p2
+        game.endTurn();
+        await game.actions.resolveStack(); // end of turn of p2
         await game.actions.resolveStack(); // Resolve any stack effects
 
         // After p2's turn, p1 gets start-of-turn loot
@@ -285,7 +312,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         expect(player1.hand.length).toBe(8); // 1 from before + 7
 
         const sevenCardsBefore = [...player1.hand.cards];
-        game.endTurn(); // end of turn of p1
+        game.endTurn();
+        await game.actions.resolveStack(); // end of turn of p1
         await game.actions.resolveStack(); // Resolve any stack effects
 
         expect(player1.hand.length).toBe(8); // Same count
@@ -319,7 +347,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
             deck.cards[3]
         ];
 
-        game.endTurn(); // end of p1's turn - effect triggers, looks at top 4, puts back
+        game.endTurn();
+        await game.actions.resolveStack(); // end of p1's turn - effect triggers, looks at top 4, puts back
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -348,7 +377,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const allCardsPresent = top4Before.every(card => top4AfterEffect.includes(card));
         expect(allCardsPresent).toBe(true);
 
-        game.endTurn(); // end of p2's turn
+        game.endTurn();
+        await game.actions.resolveStack(); // end of p2's turn
         await game.actions.resolveStack();
 
         // For loot deck, p1 loots at start of turn, so top card changes
@@ -416,10 +446,12 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
         const initialCoins = player1.coins;
 
         // End p1's turn, then p2's turn to get back to start of p1's turn
-        game.endTurn(); // p1 ends
+        game.endTurn();
+        await game.actions.resolveStack(); // p1 ends
         await game.actions.resolveStack();
 
-        game.endTurn(); // p2 ends, p1's turn starts - effect triggers
+        game.endTurn();
+        await game.actions.resolveStack(); // p2 ends, p1's turn starts - effect triggers
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -441,16 +473,18 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
 
         const initialCoins = player1.coins;
 
-        game.endTurn(); // p1 ends
+        game.endTurn();
+        await game.actions.resolveStack(); // p1 ends
         await game.actions.resolveStack(); // Resolve any stack effects
-        game.endTurn(); // p2 ends, p1's turn starts - effect triggers
-        await game.actions.resolveStack(); // Resolve any stack effects
+        game.endTurn();
+        await game.actions.resolveStack(); // p2 ends, p1's turn starts - effect triggers
         await game.actions.resolveStack(); // Resolve any stack effects
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 2;
         await game.actions.resolveStack();
-
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 3);
     });
 
@@ -460,16 +494,18 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
 
         const initialHandSize = player1.hand.length;
 
-        game.endTurn(); // p1 ends
+        game.endTurn();
+        await game.actions.resolveStack(); // p1 ends
         await game.actions.resolveStack(); // Recharge blood lust at the end of p1's turn
-        game.endTurn(); // p2 ends, p1's turn starts - effect triggers
-        await game.actions.resolveStack(); // Roll dark bum's dice
+        game.endTurn();
+        await game.actions.resolveStack(); // p2 ends, p1's turn starts - effect triggers
         await game.actions.resolveStack(); // Roll dark bum's dice
 
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 3;
         await game.actions.resolveStack();
-
+        await game.actions.resolveStack();
+        
         // Player should have looted 1 card from the effect + 1 from start of turn
         expect(player1.hand.length).toBe(initialHandSize + 2);
     });
@@ -480,13 +516,14 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
 
         const initialHandSize = player1.hand.length;
 
-        game.endTurn(); // p1 ends
+        game.endTurn();
+        await game.actions.resolveStack(); // p1 ends
         expect(game.stack._stack.length).toBe(1);
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(game.stack._stack.length).toBe(0); // Ensure stack is clear
 
-        game.endTurn(); // p2 ends, p1's turn starts - effect triggers
-        await game.actions.resolveStack(); // Resolve any stack effects
+        game.endTurn();
+        await game.actions.resolveStack(); // p2 ends, p1's turn starts - effect triggers
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(game.stack._stack.length).toBe(1); // Ensure stack is clear
 
@@ -507,10 +544,11 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
 
         const initialHP = player1.currentHealthPoints;
 
-        game.endTurn(); // p1 end
+        game.endTurn();
+        await game.actions.resolveStack(); // p1 end
         await game.actions.resolveStack();
-        game.endTurn(); // p2 ends, p1's turn starts - effect triggers
-        await game.actions.resolveStack(); // Resolve any stack effects
+        game.endTurn();
+        await game.actions.resolveStack(); // p2 ends, p1's turn starts - effect triggers
         await game.actions.resolveStack(); // Resolve any stack effects
 
         const dice = game.stack.elements[0] as DiceRoll;
@@ -527,15 +565,17 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
 
         const initialHP = player1.currentHealthPoints;
 
-        game.endTurn(); // p1 ends
+        game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // p1 ends
         await game.actions.resolveStack(); // Recharge blood lust at the end of p1's turn
-        game.endTurn(); // p2 ends, p1's turn starts - effect triggers
+        game.endTurn();
+        await game.actions.resolveStack(); // p2 ends, p1's turn starts - effect triggers
         await game.actions.resolveStack(); // Roll dark bum's dice
-        await game.actions.resolveStack(); // Roll dark bum's dice
-
+        
         const dice = game.stack.elements[0] as DiceRoll;
         dice.value = 6;
-        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // Roll dark bum's dice
         await game.actions.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(initialHP - 1);
@@ -555,9 +595,11 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
         const initialP1Items = player1.inPlay.filter(c => c instanceof ItemCard && !c.eternal).length;
         const initialP2Items = player2.inPlay.filter(c => c instanceof ItemCard && !c.eternal).length;
 
-        game.endTurn(); // p1 ends
+        game.endTurn();
+        await game.actions.resolveStack(); // p1 ends
         await game.actions.resolveStack();
-        game.endTurn(); // p2 ends, p1's turn starts - effect triggers
+        game.endTurn();
+        await game.actions.resolveStack(); // p2 ends, p1's turn starts - effect triggers
         await game.actions.resolveStack();
 
         // Resolve the stack in case the effect is there
@@ -581,9 +623,11 @@ describe("Treasure - \"at the start of your turn\" effects", () => {
         expect(shopItems.length).toBeGreaterThanOrEqual(2);
 
         const itemsToDiscard = shopItems.slice(0, 2);
-        game.endTurn(); // p1 ends
+        game.endTurn();
+        await game.actions.resolveStack(); // p1 ends
         await game.actions.resolveStack(); // Resolve any stack effects
-        game.endTurn(); // p2 ends, p1's turn starts - effect triggers
+        game.endTurn();
+        await game.actions.resolveStack(); // p2 ends, p1's turn starts - effect triggers
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
         // Both items should no longer be in the shop

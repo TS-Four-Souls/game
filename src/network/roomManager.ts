@@ -6,7 +6,7 @@ import {
   sendRoomChangedToUser,
   sendUserAssigned,
 } from "./utils";
-import { CARD_SETS } from "@/models/game";
+import { CARD_SETS } from "@/models/handlers/cardHandler";
 import type { AdminRoom, RoomCharacter } from "@/shared/api";
 import { enterIntroStep } from "./introStep";
 import bun from "bun";

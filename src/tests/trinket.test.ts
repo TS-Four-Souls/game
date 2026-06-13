@@ -51,7 +51,8 @@ describe("Loot Card", () => {
         expect(player1.currentHealthPoints).toBe(initialHealth - 2);
         expect(player2.coins).toBe(initialCoins2); // No effect for other players
 
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         player1.heal(10); // Heal back for clarity
 
@@ -127,7 +128,8 @@ describe("Loot Card", () => {
         expect(player1.hand.cards.length).toBe(initialHandSize + 1); // Looted 1
         expect(player2.isDead).toBe(true);
         
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player2.isDead).toBe(false); // Revived at turn end
         game.entityHandler.dealDamage(player1, player2, loot, player2.currentHealthPoints); // Kill player 2 again
@@ -144,7 +146,8 @@ describe("Loot Card", () => {
         expect(player1.hand.cards.length).toBe(initialHandSize + 2); // Looted 1 but discarded on death.
         expect(player1.isDead).toBe(true);
 
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         const handSizeTurn3 = player1.hand.cards.length;
         expect(player1.isDead).toBe(false); // Revived at turn end
@@ -220,14 +223,16 @@ describe("Loot Card", () => {
             remaining: [] 
         });
         
-        game.endTurn(); // End player1's turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // End player1's turn
         await game.actions.resolveStack();
 
         // Start of player2's turn - no effect for them
         
         const topCard = game.cardHandler.getFirstCardsOfDeck("loot", 1)[0]!;
         game.cardHandler.addTopPosition("loot", topCard); // Put it back
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         // Start of player1's turn again - effect triggers
@@ -242,7 +247,8 @@ describe("Loot Card", () => {
             remaining: [_opts[0]!] 
         });
         
-        game.endTurn(); // End player1's turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // End player1's turn
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -250,7 +256,8 @@ describe("Loot Card", () => {
         const nextTopCard = game.cardHandler.getFirstCardsOfDeck("loot", 1)[0]!;
         game.cardHandler.addTopPosition("loot", nextTopCard); // Put it back
 
-        game.endTurn(); // End player2's turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // End player2's turn
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -277,14 +284,16 @@ describe("Loot Card", () => {
         };
 
         // End player1's turn, start player2's turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         // Effect should NOT trigger for player2
         expect(selectCalled).toBe(false);
 
         // End player2's turn, start player1's turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -309,9 +318,11 @@ describe("Loot Card", () => {
         };
 
         // Start new turn cycle
-        game.endTurn(); // player2
+        await game.endTurn();
+        await game.actions.resolveStack(); // player2
         await game.actions.resolveStack();
-        game.endTurn(); // back to player1
+        await game.endTurn();
+        await game.actions.resolveStack(); // back to player1
         await game.actions.resolveStack();
 
         // Effect should NOT trigger anymore
@@ -334,13 +345,15 @@ describe("Loot Card", () => {
             remaining: []
         });
 
-        game.endTurn(); // End player1's turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // End player1's turn
         await game.actions.resolveStack();
         // Start of player2's turn - no effect for them
 
         const topCard = game.cardHandler.getFirstCardsOfDeck("treasure", 1)[0]!;
         game.cardHandler.addTopPosition("treasure", topCard); // Put it back
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         // Start of player1's turn again - effect triggers
@@ -354,13 +367,15 @@ describe("Loot Card", () => {
             remaining: [_opts[0]!]
         });
 
-        game.endTurn(); // End player1's turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // End player1's turn
         await game.actions.resolveStack();
         // Now test choosing NOT to put on bottom
         const nextTopCard = game.cardHandler.getFirstCardsOfDeck("treasure", 1)[0]!;
         game.cardHandler.addTopPosition("treasure", nextTopCard); // Put it back
         
-        game.endTurn(); // End player2's turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // End player2's turn
         await game.actions.resolveStack();
 
         // Start of player1's turn - effect triggers
@@ -387,14 +402,16 @@ describe("Loot Card", () => {
         };
 
         // End player1's turn, start player2's turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         // Effect should NOT trigger for player2
         expect(selectCalled).toBe(false);
 
         // End player2's turn, start player1's turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -419,9 +436,11 @@ describe("Loot Card", () => {
         };
 
         // Start new turn cycle
-        game.endTurn(); // player2
+        await game.endTurn();
+        await game.actions.resolveStack(); // player2
         await game.actions.resolveStack();
-        game.endTurn(); // back to player1
+        await game.endTurn();
+        await game.actions.resolveStack(); // back to player1
         await game.actions.resolveStack();
 
         // Effect should NOT trigger anymore
@@ -446,13 +465,15 @@ describe("Loot Card", () => {
             remaining: []
         });
 
-        game.endTurn(); // End player1's turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // End player1's turn
         await game.actions.resolveStack();
         // Start of player2's turn - no effect for them
 
         const topCard = game.cardHandler.getFirstCardsOfDeck("monster", 1)[0]!;
         game.cardHandler.addTopPosition("monster", topCard); // Put it back
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         // Start of player1's turn again - effect triggers
@@ -466,13 +487,15 @@ describe("Loot Card", () => {
             remaining: [_opts[0]!]
         });
 
-        game.endTurn(); // End player1's turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // End player1's turn
         await game.actions.resolveStack();
         // Now test choosing NOT to put on bottom
         const nextTopCard = game.cardHandler.getFirstCardsOfDeck("monster", 1)[0]!;
         game.cardHandler.addTopPosition("monster", nextTopCard); // Put it back
 
-        game.endTurn(); // End player2's turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // End player2's turn
         await game.actions.resolveStack();
 
         // Start of player1's turn - effect triggers
@@ -499,7 +522,8 @@ describe("Loot Card", () => {
         };
 
         // End player1's turn, start player2's turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -507,7 +531,8 @@ describe("Loot Card", () => {
         expect(selectCalled).toBe(false);
 
         // End player2's turn, start player1's turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -532,10 +557,12 @@ describe("Loot Card", () => {
         };
 
         // Start new turn cycle
-        game.endTurn(); // player2
+        await game.endTurn();
+        await game.actions.resolveStack(); // player2
         await game.actions.resolveStack();
 
-        game.endTurn(); // back to player1
+        await game.endTurn();
+        await game.actions.resolveStack(); // back to player1
         await game.actions.resolveStack();
 
         // Effect should NOT trigger anymore
@@ -587,6 +614,7 @@ describe("Loot Card", () => {
         if (roll) {
             roll.value = 6; // Mock the dice roll to return 6
         }
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 

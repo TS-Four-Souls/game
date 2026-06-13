@@ -31,7 +31,7 @@ describe("Requiem Monsters ", () => {
     it("the_beast", async () => {
         const mob = game.obtainCard("r-dogma") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.entityHandler.kill(player1, ent, mob);
         await game.actions.resolveStack();
@@ -77,7 +77,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-mega_satan") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
 
         game.actions.declareAttack(player1);
         expect(game.actions.canDeclareAttackOnEntity(player1, player2, false)).toBe(true);
@@ -90,7 +90,7 @@ describe("Requiem Monsters ", () => {
     it("dogma and the_harbingers", async () => {
         const mob = game.obtainCard("r-dogma") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.entityHandler.kill(player1, ent, mob);
         await game.actions.resolveStack();
@@ -135,7 +135,7 @@ describe("Requiem Monsters ", () => {
         game.encounters.expand(3);
         expect(game.encounters._slots.length).toBe(5);
         const names = game.encounters.visible.map(card => card.slug);
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, ent);
@@ -150,7 +150,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-ultra_greed") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
         game.entityHandler.kill(player2, ent, mob);
@@ -167,7 +167,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-ultra_greed") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
         game.random = () => 0.01;
@@ -190,7 +190,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-whipper") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.random = () => 0.2;
         game.actions.declareAttack(player1);
@@ -207,7 +207,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-whipper") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.random = () => 0.5;
         game.actions.declareAttack(player1);
@@ -223,7 +223,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-turdlings") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
         game.actions.declareAttack(player1);
@@ -255,7 +255,7 @@ describe("Requiem Monsters ", () => {
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             return { selected: [Options.includes(player2) ? player2 : Options[0]], remaining: Options.slice(max) };
         };
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         await game.actions.resolveStack(); // effect
         await game.actions.resolveStack(); // dice
         await game.actions.resolveStack(); // damage
@@ -287,7 +287,7 @@ describe("Requiem Monsters ", () => {
                 }));
             };
 
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.entityHandler.dealDamage(ent, ent, mob, 1);
         await game.actions.resolveStack();
@@ -304,7 +304,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-the_scourge") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.entityHandler.dealDamage(ent, ent, mob, 1);
         await game.actions.resolveStack();
@@ -321,7 +321,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-sisters_vis") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
         game.actions.declareAttack(player1);
@@ -360,7 +360,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-red_ghost") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
         game.entityHandler.dealDamage(ent, ent, mob, 1);
@@ -378,7 +378,7 @@ describe("Requiem Monsters ", () => {
         expect(mob).toBeInstanceOf(MonsterCard);
         game.loot(player1, 2);
         game.loot(player2, 2);
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, ent);
@@ -400,7 +400,7 @@ describe("Requiem Monsters ", () => {
         expect(mob).toBeInstanceOf(MonsterCard);
         let i = 1;
         game.random = () => i++ % 2/2;
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -412,7 +412,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-mushroom") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.entityHandler.dealDamage(ent, player1, mob, 1);
         await game.actions.resolveStack();
@@ -429,7 +429,7 @@ describe("Requiem Monsters ", () => {
         card.soul = 2;
         game.cardHandler.addSoul(player1, card);
 
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -441,7 +441,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-mothers_shadow") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -454,7 +454,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-lust_for_blood") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
         await game.actions.resolveStack();
@@ -480,7 +480,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-hornfel") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
         game.actions.declareAttack(player1);
@@ -504,7 +504,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-holy_greedling") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
         game.entityHandler.kill(player1, game.monsters[1]!, mob);
@@ -517,7 +517,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-null") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
         game.actions.declareAttack(player1);
@@ -549,7 +549,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-the_rainmaker") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.random = () => 0.01;
         game.rollDice(player2, false, mob);
@@ -573,7 +573,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-mother") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
         expect(game.entityHandler.getDC(ent)).toBe(1);
@@ -597,9 +597,10 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-holy_psy_horf") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(1);
         expect(player2.hand.length).toBe(1);
@@ -615,7 +616,7 @@ describe("Requiem Monsters ", () => {
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             return { selected: [Options[1]], remaining: Options.slice(max) };
         };
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -628,7 +629,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-cursed_mulliboom") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
         game.random = () => 0.01;
@@ -650,7 +651,7 @@ describe("Requiem Monsters ", () => {
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             return { selected: [Options[1]], remaining: Options.slice(max) };
         };
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         const dice = game.rollDice(player1, false, mob);
         expect(dice.value).toBe(1);
@@ -666,7 +667,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-curse_of_the_soulless") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         await game.actions.resolveStack();
         const card = game.decks.monster.draw();
         card.soul = 2;
@@ -695,7 +696,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-dressing_table") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.inPlay.includes(treasures[2]!)).toBe(false);
@@ -707,7 +708,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-curse_of_the_hollow") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -728,7 +729,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-corny") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.entityHandler.kill(player1, ent, mob);
         await game.actions.resolveStack();
@@ -744,7 +745,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-charmed_monstro") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.entityHandler.kill(player1, ent, mob);
         await game.actions.resolveStack();
@@ -759,7 +760,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-charmed_keeper") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.gainCoins(player1, 5, "gift");
         game.entityHandler.dealCombatDamage(ent, player1, mob, 1);
@@ -782,7 +783,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-charmed_globin") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.entityHandler.dealDamage(ent, player1, mob, 1);
         await game.actions.resolveStack();
@@ -810,7 +811,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-charmed_fatty") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.loot(player1, 2);
         game.entityHandler.dealDamage(ent, player1, mob, 1);
@@ -830,7 +831,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-holy_portal") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.entityHandler.kill(player1, game.monsters[1]!, mob);
         await game.actions.resolveStack();
@@ -844,7 +845,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-charmed_dip") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         expect(player2.character.charged).toBe(false);
         game.entityHandler.kill(player1, ent, mob);
@@ -858,7 +859,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-double_treasure") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.inPlay.length).toBe(3);
@@ -869,7 +870,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-charmed_greedling") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.entityHandler.kill(player1, ent, mob);
         await game.actions.resolveStack();
@@ -883,7 +884,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-charmed_fat_bat") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.entityHandler.kill(player1, ent, mob);
         await game.actions.resolveStack();
@@ -897,7 +898,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-charmed_clotty") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.entityHandler.kill(player1, ent, mob);
         await game.actions.resolveStack();
@@ -910,7 +911,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-charmed_bony") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
         game.actions.declareAttack(player1);
@@ -936,7 +937,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-brownie") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
         game.entityHandler.dealDamage(player1, ent, mob, 1);
@@ -959,7 +960,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-betrayal") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         expect(game.stack.size).toBe(1);
         game.loot(player2, 2);
         game.gainCoins(player2, 6, "gift");
@@ -997,7 +998,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-betrayal") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         expect(game.stack.size).toBe(1);
         game.loot(player2, 2);
         game.gainCoins(player2, 6, "gift");
@@ -1035,7 +1036,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-betrayal") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         expect(game.stack.size).toBe(1);
         game.loot(player2, 2);
         game.gainCoins(player2, 6, "gift");
@@ -1073,7 +1074,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-betrayal") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         expect(game.stack.size).toBe(1);
         game.loot(player2, 2);
         game.gainCoins(player2, 6, "gift");
@@ -1111,7 +1112,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-baby_plum") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.entityHandler.dealDamage(player1, ent, mob, 1);
         game.random = () => 0.99;
@@ -1128,7 +1129,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-baby_plum") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.entityHandler.dealDamage(player1, ent, mob, 1);
         game.random = () => 0.5;
@@ -1145,7 +1146,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-baby_plum") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.entityHandler.dealDamage(player1, ent, mob, 1);
         game.random = () => 0.1;
@@ -1193,7 +1194,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-cursed_dople") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.entityHandler.dealDamage(player1, ent, mob, 2);
         await game.actions.resolveStack();
@@ -1208,7 +1209,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-gutted_fatty") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
         game.entityHandler.kill(ent, ent, mob);
@@ -1223,7 +1224,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-holy_brain") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         const ent2 = game.monsters[1]!;
         const dc2 = game.entityHandler.getDC(ent2);
@@ -1240,7 +1241,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-mama_gurdy") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.random = () => 0.99;
 
@@ -1255,7 +1256,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-clog") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, mob);
+        game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
         game.loot(player1, 1);

@@ -120,11 +120,13 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         await game.actions.resolveStack();
         expect(player2.canIActivateThisTurn).toBe(false);
         expect(player2.canIUseLootThisTurn).toBe(false);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.resolveEntireStack();
         expect(player2.canIActivateThisTurn).toBe(true);
         expect(player2.canIUseLootThisTurn).toBe(true);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.resolveEntireStack();
         expect(player2.canIActivateThisTurn).toBe(true);
         expect(player2.canIUseLootThisTurn).toBe(true);
@@ -334,7 +336,8 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         await game.actions.playCard(player1, player1.hand.length - 1, []);
         await game.actions.resolveStack();
         expect(player1.inPlay[0]!.charged).toBe(false);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -351,7 +354,8 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         await game.actions.playCard(player1, player1.hand.length - 1, []);
         await game.actions.resolveStack();
         expect(player1.inPlay[0]!.charged).toBe(false);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -410,12 +414,14 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(coins + 11);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         game.gainCoins(player1, 10, "gift"  );
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(coins + 21);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player1);
         game.gainCoins(player1, 10, "gift");

@@ -269,15 +269,6 @@ export function temporaryStatModifierEffect(
             default:
                 throw new Error(`Invalid targetType ${targetType} for temporaryStatModifierEffect.`);
         }
-        // let next = data.peek();
-        // // Apply the stat modification
-        // if (next && next instanceof DiceRoll)
-        //     next = next.issuer;
-        // const target = targetIsCurrentPlayer 
-        //     ? game.currentPlayer 
-        //     : (data.targets.length > 0 && next instanceof Player) 
-        //         ? next 
-        //         : data.issuer;
         if(!target || !(target instanceof Entity))
             return false;
         const temp: TemporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);

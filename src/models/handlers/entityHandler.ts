@@ -1,6 +1,5 @@
 import {
   Card,
-  Hand,
   ItemCard,
   LootCard
 } from "@/models/cards";
@@ -18,11 +17,20 @@ import { EffectData } from "@/models/types/cardTypes";
 import { AnimatedList } from "../entities/animated";
 import { Game } from "../game";
 import { DeathPenaltyValues } from "../handlers/deathHandler";
-import { Encounters } from "../slots/encounters";
 
-// Type representing sources of damage - either a card ability or a dice roll
+/**
+ *  Type representing sources of damage - either a card ability or a dice roll
+ * */ 
 export type DamageSource = Card | DiceRoll;
 
+/**
+ * EntityHandler is responsible for the entities of a game.
+ * It handles:
+ *  - entities death
+ *  - entities adders (e.g. addAtk, addHealth)
+ *  - combats and health
+ *  - players and animated registration (monsters registration is handled in encounters)
+ */
 export class EntityHandler {
   private _game: Game;
   private _players: Player[] = [];
@@ -34,36 +42,70 @@ export class EntityHandler {
     this._game = game;
   }
 
+////////////////////////////////////// Getters //////////////////////////////////////
   get game() {
     return this._game;
   }
-
   /**
    * Returns the list of entities currently engaged in combat. 
    * CAREFULL IT ALSO INCLUDES ANIMATED ENTITIES.
    */
   get entitiesInCombat(): ReadonlyArray<Entity> {
-    // Return a defensive copy so external code cannot mutate combat state.
-    return [...this._entitiesInCombat];
+    return this._entitiesInCombat;
+  }
+  /**
+   * Historically, entities only contains monsters and players.
+   */
+  get entities(): Entity[] {
+    return this.playersAndMonsters.concat(this.animatedList.all);
   }
 
-  resetEntitiesInCombat(): void {
-    this._entitiesInCombat = [];
-  }
-  /** Adds an entity to the combat list (idempotent). */
-  addEntityInCombat(entity: Entity): void {
-    if (!this._entitiesInCombat.includes(entity)) {
-      this._entitiesInCombat.push(entity);
-    }
+  get animatedList(): AnimatedList {
+    return this._animatedList;
   }
 
-  /** Removes an entity from the combat list if present. */
-  removeEntityInCombat(entity: Entity): void {
-    const idx = this._entitiesInCombat.indexOf(entity);
-    if (idx !== -1) {
-      this._entitiesInCombat.splice(idx, 1);
-    }
+  get attackableEntities(): Entity[] {
+    return this.entities.filter(e => e.attackable === true);
   }
+    
+  get playersWithMostSouls(): Player[] {
+    let maxSouls = Math.max(...this.players.map((player) => player.totalSouls));
+    return this.players.filter((player) => player.totalSouls === maxSouls);
+  }
+  /**
+   * Computes current monster attack after replacement/modifier effects.
+   */
+  getAttack(entity: Entity): number {
+    let baseStat = [entity.attackPoints];
+    if(entity instanceof Monster)
+      this.game.emit(
+        "on:get:monster:attackPoints",
+        {
+          eventIssuer: entity,
+          stat: baseStat,
+        },
+        false
+      );
+    return baseStat[0]!;
+  }
+
+  /**
+   * Computes current monster evasion/DC clamped to [1, 6].
+   */
+  getDC(entity: Entity): number {
+    let baseStat = [entity.evasion];
+    if(entity instanceof Monster)
+      this.game.emit(
+        "on:get:monster:evasion",
+        {
+          eventIssuer: entity,
+          stat: baseStat,
+        },
+        false
+      );
+    return Math.max(1, Math.min(6, baseStat[0]!));
+  }
+
   get players(): Player[] {
     return this._players;
   }
@@ -76,37 +118,14 @@ export class EntityHandler {
   set monsterDiedThisTurn(value: boolean) {
     this._monsterDiedThisTurn = value;
   }
-  get Entities(): Entity[] {
+  get playersAndMonsters(): Entity[] {
     return [
       ...this.players,
       ...this.monsters.filter((m): m is Monster => m !== undefined),
     ];
   }
 
-
-  get EntitiesAndAnimated(): Entity[] {
-    return [
-      ...this.Entities,
-      ...this.animatedList.all
-    ];
-  }
-
-  get animatedList(): AnimatedList {
-    return this._animatedList;
-  }
-  addAnimated(animated: Animated): void {
-    this._animatedList.add(animated);
-  }
-  removeAnimated(animated: Animated): void {
-    this._animatedList.remove(animated);
-    if(animated !== undefined && animated.isEngagedInCombat)
-      this.endCombat();
-  }
-
-  get attackableEntities(): Entity[] {
-    return [...this.Entities.filter(e => e.attackable === true), ...this.animatedList.all.filter(e => e.attackable)];
-  }
-  
+  ////////////////////////////////////// Death Handler //////////////////////////////////////
   /** Shortcut to queue death for an entity from a given source. */
   kill(killer: Entity, entity: Entity, source: DamageSource): void {
     this.game.assert.gameStarted();
@@ -216,7 +235,7 @@ export class EntityHandler {
       {
         const allPlayers = rewards[rewardType] instanceof Object && "all" in rewards[rewardType] && rewards[rewardType].all
         const amount = (rewards[rewardType] instanceof Object && "all" in rewards[rewardType]) ? rewards[rewardType].count : rewards[rewardType] as number | "roll";
-        const receivers = allPlayers ? this.game.players : [player];
+        const receivers = allPlayers ? this.players : [player];
         for(const receiver of receivers)
         {
           if (amount === "roll") {
@@ -258,7 +277,7 @@ export class EntityHandler {
       if (receiver.isEngagedInCombat) {
         this.endCombat();
       }
-      for (const player of this.game.players) {
+      for (const player of this.players) {
         player.clearAttackRequirement(receiver);
       }
       if (receiver instanceof Player) {
@@ -306,74 +325,76 @@ export class EntityHandler {
     this.game.resolveCallbacks();
   }
 
+////////////////////////////////////// Combat and Health Handler //////////////////////////////////////
 
-  /**
-   * Ends combat for all currently engaged entities.
-   */
-  endCombat(): void {
-    // console.log("Ending combat for entities:", this.game.entitiesInCombat.map(e => e instanceof Player ? `Player ${e.id}` : e instanceof Monster ? `Monster ${e.card.name}` : "Animated"));
-    const engagedEntities = this.game.entitiesInCombat;
-    for (const entity of engagedEntities) {
-      if (entity.isEngagedInCombat) {
-        entity.combatEnded();
+  makePlayerAttackable(player: Player, evasion: number): void {
+    player.attackable = true;
+    player.evasion = evasion;
+  }
+
+  makePlayerUnattackable(player: Player): void {
+    player.attackable = false;
+    player.evasion = 0;
+  }
+
+  /** Adds or refreshes a forced-attack requirement for a player. */
+  playerMustAttack(player: Player, target: (Entity[] | "topDeck" | "any"), source: Card): void {
+    // Check if player is dead - constraint doesn't apply
+    if (player.isDead) {
+      player.clearAttackRequirement();
+      return;
+    }
+
+    const mustAttackEntity = player.mustAttackEntity;
+
+    for (const req of mustAttackEntity) {
+      if (req.target === "topDeck") continue;
+      if (req.target === "any") continue;
+      if(req.target.every(m => !(this.game.attackableEntities.includes(m)) || m.attackable === false)) {
+        player.clearAttackRequirement(req.target[0]);
       }
     }
-    this._entitiesInCombat = [];
-    this.game.emit("on:combat:end", { eventIssuer: engagedEntities.filter(e => e instanceof Player)[0] });
+    player.mustAttack(target, source);
     this.game.dispatch();
   }
 
+  forcedAttackSatisfied(player: Player): void {
+    this.game.actions.canDeclareAttack(player, false);
+    // Check if there's a forced attack constraint
+    if (!player.hasAttackRequirement) {
+      return; // No constraint, all good
+    }
 
-  endCombatIfInvalid(player: Player): void
-  {
-    if(player.isEngagedInCombat && player.clearOutdatedAttackRequirements(this.game.attackableEntities) && this.game.entitiesInCombat.length === 1)
-      {
-        this.endCombat();
-      }
+    // Check if player is dead - constraint doesn't apply
+    if (player.isDead) {
+      player.clearAttackRequirement();
+      return;
+    }
+
+    const requirement = player.mustAttackEntity!;
+
+    // Filter monsters that are still in play
+    const validMonsters = requirement.filter(
+      (req) => req.target === "topDeck" || req.target === "any" || req.target.some(target => this.game.attackableEntities.includes(target))
+    );
+
+    if (validMonsters.length === 0) {
+      player.clearAttackRequirement(); // All monsters gone, constraint lifted
+      return;
+    }
+
+    // At least one monster constraint remains - must be satisfied
+    throw new Error(
+      "You must attack the required monster(s)."
+    );
   }
 
-  initializeTeams(): void{
-    for(const player of this.game.players)
-    {
-      const soulOwner = this.game.players.find(p => p.team === player.team);
-      player.soulsInCommonWith(soulOwner!);
+  /** Adds an entity to the combat list (idempotent). */
+  addEntityInCombat(entity: Entity): void {
+    if (!this._entitiesInCombat.includes(entity)) {
+      this._entitiesInCombat.push(entity);
     }
   }
-
-  /**
-   * Computes current monster attack after replacement/modifier effects.
-   */
-  getAttack(entity: Entity): number {
-    let baseStat = [entity.attackPoints];
-    if(entity instanceof Monster)
-      this.game.emit(
-        "on:get:monster:attackPoints",
-        {
-          eventIssuer: entity,
-          stat: baseStat,
-        },
-        false
-      );
-    return baseStat[0]!;
-  }
-
-  /**
-   * Computes current monster evasion/DC clamped to [1, 6].
-   */
-  getDC(entity: Entity): number {
-    let baseStat = [entity.evasion];
-    if(entity instanceof Monster)
-      this.game.emit(
-        "on:get:monster:evasion",
-        {
-          eventIssuer: entity,
-          stat: baseStat,
-        },
-        false
-      );
-    return Math.max(1, Math.min(6, baseStat[0]!));
-  }
-
   /**
    * Routes combat damage through triggers then queues stack damage.
    */
@@ -384,7 +405,7 @@ export class EntityHandler {
     damage: number
   ): void {
     if (damage <= 0 || receiver.isDead) return;
-    if(this.game.EntitiesAndAnimated.includes(receiver) === false || this.game.EntitiesAndAnimated.includes(dealer) === false)
+    if(this.entities.includes(receiver) === false || this.entities.includes(dealer) === false)
     {
       this.endCombat();
       return;
@@ -402,62 +423,6 @@ export class EntityHandler {
     } else if (receiver instanceof Monster) {
       this.game.emit("on:combatdamage:dealt:to-monster", content);
     }
-  }
-
-  // on health loss trigger can be added here. Be careful, in case of pay HP to verify that all the HP are actually lost.
-  /**
-   * Applies raw damage to an entity's health pool.
-   */
-  healthLoss(
-    dealer: Entity,
-    receiver: Entity,
-    source: DamageSource,
-    damage: number
-  ): boolean {
-    return receiver.receiveDamage(damage, dealer, source);
-  }
-
-  /**
-   * Resolves queued damage and emits taken-damage/death triggers.
-   */
-  resolveDamage(
-    dealer: Entity,
-    receiver: Entity,
-    source: DamageSource,
-    damage: number
-  ): void {
-    if(receiver.isDead) return;
-    if(!this.game.EntitiesAndAnimated.includes(receiver))
-      return;
-
-    this.healthLoss(dealer, receiver, source, damage);
-    if(damage > 0){
-        if (receiver.damageTakenThisTurn.length === 1)
-          this.game.emit("on:damage:taken:first-time-each-turn", {
-        eventIssuer: receiver,
-          target: dealer,
-          source: source,
-          damage: damage,
-        });
-        
-        this.game.emit("on:damage:taken", {
-        eventIssuer: receiver,
-        target: dealer,
-        source: source,
-        damage: damage,
-      });
-    }
-
-    if (receiver.currentHealthPoints <= 0) {
-      this.death(receiver, dealer, source);
-    }
-  }
-
-  /**
-   * Heals an entity by a fixed amount.
-   */
-  heal(receiver: Entity, amount: number | "full" = "full"): void {
-    receiver.heal(amount);
   }
   /**
    * Pushes damage on stack and opens the "would take damage" window.
@@ -493,33 +458,98 @@ export class EntityHandler {
     });
   }
 
-  makePlayerAttackable(player: Player, evasion: number): void {
-    player.attackable = true;
-    player.evasion = evasion;
-  }
-
-  makePlayerUnattackable(player: Player): void {
-    player.attackable = false;
-    player.evasion = 0;
+  // on health loss trigger can be added here. Be careful, in case of pay HP to verify that all the HP are actually lost.
+  /**
+   * Applies raw damage to an entity's health pool.
+   */
+  healthLoss(
+    dealer: Entity,
+    receiver: Entity,
+    source: DamageSource,
+    damage: number
+  ): boolean {
+    return receiver.receiveDamage(damage, dealer, source);
   }
 
   /**
-   * Adds a new player before game start.
+   * Resolves queued damage and emits taken-damage/death triggers.
    */
-  addPlayer(newPlayer: Player): void {
-    this.game.assert.playerIdAvailable(newPlayer.id);
-    this.game.assert.gameNotStarted();
-    this.game.players.push(newPlayer);
+  resolveDamage(
+    dealer: Entity,
+    receiver: Entity,
+    source: DamageSource,
+    damage: number
+  ): void {
+    if(receiver.isDead) return;
+    if(!this.entities.includes(receiver))
+      return;
+
+    this.healthLoss(dealer, receiver, source, damage);
+    if(damage > 0){
+        if (receiver.damageTakenThisTurn.length === 1)
+          this.game.emit("on:damage:taken:first-time-each-turn", {
+        eventIssuer: receiver,
+          target: dealer,
+          source: source,
+          damage: damage,
+        });
+        
+        this.game.emit("on:damage:taken", {
+        eventIssuer: receiver,
+        target: dealer,
+        source: source,
+        damage: damage,
+      });
+    }
+
+    if (receiver.currentHealthPoints <= 0) {
+      this.death(receiver, dealer, source);
+    }
+  }
+
+  /**
+  * Heals an entity by a fixed amount.
+  */
+  heal(receiver: Entity, amount: number | "full" = "full"): void {
+    receiver.heal(amount);
+  }
+  healEveryone(): void {
+    this.players.forEach((p) => this.heal(p));
+    this.game.monsters.forEach((m) => this.heal(m));
+  }
+/** Removes an entity from the combat list if present. */
+  removeEntityInCombat(entity: Entity): void {
+    const idx = this._entitiesInCombat.indexOf(entity);
+    if (idx !== -1) {
+      this._entitiesInCombat.splice(idx, 1);
+    }
+  }
+  /**
+   * Ends combat for all currently engaged entities.
+   */
+  endCombat(): void {
+    // console.log("Ending combat for entities:", this.entitiesInCombat.map(e => e instanceof Player ? `Player ${e.id}` : e instanceof Monster ? `Monster ${e.card.name}` : "Animated"));
+    const engagedEntities = this.entitiesInCombat;
+    for (const entity of engagedEntities) {
+      if (entity.isEngagedInCombat) {
+        entity.combatEnded();
+      }
+    }
+    this._entitiesInCombat = [];
+    this.game.emit("on:combat:end", { eventIssuer: engagedEntities.filter(e => e instanceof Player)[0] });
     this.game.dispatch();
   }
 
-  get monsterSlots(): Encounters {
-    return this.game.encounters;
+
+  endCombatIfInvalid(player: Player): void
+  {
+    if(player.isEngagedInCombat && player.clearOutdatedAttackRequirements(this.game.attackableEntities) && this.entitiesInCombat.length === 1)
+      {
+        this.endCombat();
+      }
   }
-  get playersWithMostSouls(): Player[] {
-    let maxSouls = Math.max(...this.game.players.map((player) => player.totalSouls));
-    return this.game.players.filter((player) => player.totalSouls === maxSouls);
-  }
+
+  ////////////////////////////////////// Entity Adders //////////////////////////////////////
 
   /** Adds a temporary/permanent attack modifier to an entity. */
   addAttack(e: Entity, value: number, source: Card | "flip" | "other" = "other"): void {
@@ -536,7 +566,7 @@ export class EntityHandler {
   */
   addAttackThisTurn(e: Entity, value: number = 1, source: Card | "flip" | "other" = "other"): void {
     if (e instanceof Player) {
-      if(e.attackThisTurn + value === 0 && e.isEngagedInCombat && this.EntitiesAndAnimated.every((entity) => entity === e || entity.isEngagedInCombat === false))
+      if(e.attackThisTurn + value === 0 && e.isEngagedInCombat && this.entities.every((entity) => entity === e || entity.isEngagedInCombat === false))
       {
         e.addAttackThisTurn(value + 1);
       }
@@ -597,75 +627,10 @@ export class EntityHandler {
     p.remainingPurchaseThisTurn += value;
   }
 
-  /** Schedules an extra turn for a player. */
-  addExtraTurn(player: Player): void {
-    this.game.turnHandler.InsertPlayerAtNextTurn(player);
-  }
-  /** Replaces a player's hand and returns the previous one. */
-  setHand(player: Player, hand: Hand): Hand {
-    return player.setHand(hand);
-  }
-
-  /** Adds or refreshes a forced-attack requirement for a player. */
-  playerMustAttack(player: Player, target: (Entity[] | "topDeck" | "any"), source: Card): void {
-    // Check if player is dead - constraint doesn't apply
-    if (player.isDead) {
-      player.clearAttackRequirement();
-      return;
-    }
-
-    const mustAttackEntity = player.mustAttackEntity;
-
-    for (const req of mustAttackEntity) {
-      if (req.target === "topDeck") continue;
-      if (req.target === "any") continue;
-      if(req.target.every(m => !(this.game.attackableEntities.includes(m)) || m.attackable === false)) {
-        player.clearAttackRequirement(req.target[0]);
-      }
-    }
-    player.mustAttack(target, source);
-    this.game.dispatch();
-  }
-
-  /** Marks a player to skip their next turn. */
-  playerSkipNextTurn(player: Player): void {
-    this.game.turnHandler.skipNextTurn(player);
-  }
-
-  forcedAttackSatisfied(player: Player): void {
-    this.game.actions.canDeclareAttack(player, false);
-    // Check if there's a forced attack constraint
-    if (!player.hasAttackRequirement) {
-      return; // No constraint, all good
-    }
-
-    // Check if player is dead - constraint doesn't apply
-    if (player.isDead) {
-      player.clearAttackRequirement();
-      return;
-    }
-
-    const requirement = player.mustAttackEntity!;
-
-    // Filter monsters that are still in play
-    const validMonsters = requirement.filter(
-      (req) => req.target === "topDeck" || req.target === "any" || req.target.some(target => this.game.attackableEntities.includes(target))
-    );
-
-    if (validMonsters.length === 0) {
-      player.clearAttackRequirement(); // All monsters gone, constraint lifted
-      return;
-    }
-
-    // At least one monster constraint remains - must be satisfied
-    throw new Error(
-      "You must attack the required monster(s) before ending your turn"
-    );
-  }
 
   /** Applies the current turn player's loot/activation restriction to all other players. */
   applyLootOrActivateRestrictionForCurrentTurn(player: Player, value: number = 1): void {
-    for (const p of this.game.players) {
+    for (const p of this.players) {
       if(p !== player)
       {
         p.addToCanIActivateThisTurn(value);
@@ -675,9 +640,30 @@ export class EntityHandler {
     this.game.dispatch();
   }
 
+////////////////////////////////////// Entity registration //////////////////////////////////////
+
+  addAnimated(animated: Animated): void {
+    this._animatedList.add(animated);
+  }
+  removeAnimated(animated: Animated): void {
+    this._animatedList.remove(animated);
+    if(animated !== undefined && animated.isEngagedInCombat)
+      this.endCombat();
+  }  
+
+  /**
+   * Adds a new player before game start.
+   */
+  addPlayer(newPlayer: Player): void {
+    this.game.assert.playerIdAvailable(newPlayer.id);
+    this.game.assert.gameNotStarted();
+    this.players.push(newPlayer);
+    this.game.dispatch();
+  }
+
   /** Finds a player by id or throws. */
   getPlayerById(id: string): Player {
-    for (const p of this.game.players) {
+    for (const p of this.players) {
       if (p.id === id) {
         return p;
       }
@@ -685,8 +671,4 @@ export class EntityHandler {
     throw new Error("Player not found");
   }
 
-  healEveryone(): void {
-    this.game.players.forEach((p) => this.heal(p));
-    this.game.monsters.forEach((m) => this.heal(m));
-  }
 }

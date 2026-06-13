@@ -624,7 +624,7 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
                 "Card not found in the game: " + payload.card.slug,
               );
             }
-            const index = game.monsterSlots._slots
+            const index = game.encounters._slots
               .map((slot) => slot[slot.length - 1]?.globalId)
               .indexOf(payload.toCover.globalId);
             game.actions.debugPutMonsterCardInSlot(player, card, index);

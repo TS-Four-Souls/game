@@ -250,6 +250,10 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
     game.start(charas, false);
     const players = game.players;
     dischargeEachItemsAndRemoveCoins(game);
+    const el = game.stack.elements.find(el => el.json.type === "lootStep")!
+    if(el)
+        el.onResolve();
+    game.stack.cancelElement(el);
     emptyHands(game);
     
     const originalStack = [...game.stack._stack];
@@ -261,7 +265,7 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
         if (!monsterCard) {
             throw new Error(`Monster card not found: ${slug}`);
         }
-        game.monsterSlots.forceSetMonsterAtSlot(i, monsterCard as MonsterCard);
+        game.encounters.forceSetMonsterAtSlot(i, monsterCard as MonsterCard);
     }
 
     // Add monsters to deck top (reverse order so last becomes top)

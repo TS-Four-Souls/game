@@ -31,6 +31,7 @@ describe("Four Souls+2 Treasures", () => {
             return { selected: [opts[1]], remaining: [] } as any;
         };
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, game.encounters.monsterIn(0)!);
         expect(game.stack.size).toBe(1);
@@ -65,6 +66,7 @@ describe("Four Souls+2 Treasures", () => {
         expect(game.currentPlayer).toBe(player1);
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player2);
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack.size).toBe(0);
 
     });
@@ -93,6 +95,7 @@ describe("Four Souls+2 Treasures", () => {
         const card1 = game.obtainCard("fsp2-telepathy_for_dummies") as TreasureCard;
         game.cardHandler.addInPlay(player1, card1);
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
         await game.actions.resolveStack();
         game.random = () => 5/6-0.0001;
@@ -197,7 +200,8 @@ describe("Four Souls+2 Treasures", () => {
         expect(game.stack.size).toBe(0);
         expect(player2.currentHealthPoints).toBe(hp-1);
 
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
          game.random = () => 2/6-0.0001; // roll a 2
         game.rollDice(player2, true);
@@ -241,7 +245,9 @@ describe("Four Souls+2 Treasures", () => {
         expect(game.encounters.monsterIn(1)!.card.slug).not.toBe("b2-fatty");
         await game.actions.resolveStack();
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack();
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, game.encounters.monsterIn(0)!);
@@ -389,13 +395,17 @@ describe("Four Souls+2 Treasures", () => {
         const card1 = game.obtainCard("fsp2-mama_haunt") as TreasureCard;
         game.cardHandler.addInPlay(player1, card1);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.character.charged).toBe(false);
         game.cardHandler.recharge(player1.inPlay[0] as ItemCard);
         expect(player1.character.charged).toBe(true);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         // character stay charged if not used.
         expect(player1.character.charged).toBe(true);
@@ -489,6 +499,7 @@ describe("Four Souls+2 Treasures", () => {
             return { selected: [game.encounters.monsterIn(0)!], remaining: [] } as any;
         }
         const hp = game.encounters.monsterIn(0)!.currentHealthPoints;
+        await game.actions.resolveStack();
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -496,11 +507,13 @@ describe("Four Souls+2 Treasures", () => {
         expect(game.encounters.monsterIn(0)!.currentHealthPoints).toBe(hp-1);
         await game.actions.resolveStack();
 
+        await game.actions.resolveStack();
         await game.endTurn();
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [player2], remaining: [] } as any;
         }
         const hp2 = player2.currentHealthPoints;
+        await game.actions.resolveStack();
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();

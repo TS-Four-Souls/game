@@ -3,7 +3,7 @@ export class NumberRobustString extends String {
     private readonly _raw: string;
     private readonly _masked: string;
     private readonly _numbers: number[];
-    private _normalizedMasked: string | null = null;
+    private _normalizedMasked: string;
     private _index = 0;
 
     constructor(raw: string) {
@@ -11,6 +11,7 @@ export class NumberRobustString extends String {
         super(masked);
         this._raw = raw;
         this._masked = masked;
+        this._normalizedMasked = normalizeMaskedForMatch(this._masked);
         this._numbers = numbers;
     }
 
@@ -31,9 +32,6 @@ export class NumberRobustString extends String {
 
     /** Normalized masked string for pattern matching. Cached because it is queried a lot. */
     get normalizedMasked(): string {
-        if (this._normalizedMasked === null) {
-            this._normalizedMasked = normalizeMaskedForMatch(this._masked);
-        }
         return this._normalizedMasked;
     }
 

@@ -30,7 +30,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const swarmOfFlies = game.obtainCard("b2-swarm_of_flies") as MonsterCard;
             expect(swarmOfFlies).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, swarmOfFlies);
+            game.encounters.forceSetMonsterAtSlot(0, swarmOfFlies);
             
             const swarmMonster = game.monsters[0]!;
             game.entityHandler.addHealth(player1, 10); // Ensure player has enough HP to take damage
@@ -62,7 +62,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const swarmOfFlies = game.obtainCard("b2-swarm_of_flies") as MonsterCard;
             expect(swarmOfFlies).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, swarmOfFlies);
+            game.encounters.forceSetMonsterAtSlot(0, swarmOfFlies);
             
             const swarmMonster = game.monsters[0]!;
             const initialHP = player1.currentHealthPoints;
@@ -88,7 +88,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const swarmOfFlies = game.obtainCard("b2-swarm_of_flies") as MonsterCard;
             expect(swarmOfFlies).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, swarmOfFlies);
+            game.encounters.forceSetMonsterAtSlot(0, swarmOfFlies);
             
             const swarmMonster = game.monsters[0]!;
             game.entityHandler.addHealth(player1, 10);
@@ -132,7 +132,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const chub = game.obtainCard("b2-chub") as MonsterCard;
             expect(chub).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, chub);
+            game.encounters.forceSetMonsterAtSlot(0, chub);
             
             const chubMonster = game.monsters[0]!;
             game.entityHandler.addHealth(player1, 10);
@@ -165,7 +165,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const chub = game.obtainCard("b2-chub") as MonsterCard;
             expect(chub).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, chub);
+            game.encounters.forceSetMonsterAtSlot(0, chub);
             
             const chubMonster = game.monsters[0]!;
             game.entityHandler.dealDamage(chubMonster, chubMonster, chubMonster.card, 2);
@@ -193,7 +193,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const chub = game.obtainCard("b2-chub") as MonsterCard;
             expect(chub).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, chub);
+            game.encounters.forceSetMonsterAtSlot(0, chub);
             
             const chubMonster = game.monsters[0]!;
             game.entityHandler.dealDamage(chubMonster, chubMonster, chubMonster.card, 3);
@@ -233,7 +233,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const chub = game.obtainCard("b2-chub") as MonsterCard;
             expect(chub).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, chub);
+            game.encounters.forceSetMonsterAtSlot(0, chub);
             
             const chubMonster = game.monsters[0]!;
             const maxHP = chubMonster.healthPoints;
@@ -266,7 +266,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const satan = game.obtainCard("b2-satan") as MonsterCard;
             expect(satan).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, satan);
+            game.encounters.forceSetMonsterAtSlot(0, satan);
             
             const satanMonster = game.monsters[0]!;
             game.entityHandler.addHealth(player1, 10);
@@ -300,7 +300,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const satan = game.obtainCard("b2-satan") as MonsterCard;
             expect(satan).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, satan);
+            game.encounters.forceSetMonsterAtSlot(0, satan);
             
             const satanMonster = game.monsters[0]!;
             game.entityHandler.addHealth(player2, 5);
@@ -346,7 +346,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const satan = game4.obtainCard("b2-satan") as MonsterCard;
             expect(satan).toBeInstanceOf(MonsterCard);
             
-            game4.monsterSlots.forceSetMonsterAtSlot(0, satan);
+            game4.encounters.forceSetMonsterAtSlot(0, satan);
             
             const satanMonster = game4.monsters[0]!;
             game4.entityHandler.addHealth(player1_4, 10);
@@ -390,7 +390,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const satan = game.obtainCard("b2-satan") as MonsterCard;
             expect(satan).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, satan);
+            game.encounters.forceSetMonsterAtSlot(0, satan);
             
             const satanMonster = game.monsters[0]!;
             game.entityHandler.addHealth(player1, 10);
@@ -422,7 +422,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const ringOfFlies = game.obtainCard("b2-ring_of_flies") as MonsterCard;
             expect(ringOfFlies).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, ringOfFlies);
+            game.encounters.forceSetMonsterAtSlot(0, ringOfFlies);
             
             const ringMonster = game.monsters[0]!;
             game.entityHandler.addHealth(player1, 10);
@@ -460,7 +460,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const ringOfFlies = game.obtainCard("b2-ring_of_flies") as MonsterCard;
             expect(ringOfFlies).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, ringOfFlies);
+            game.encounters.forceSetMonsterAtSlot(0, ringOfFlies);
             
             const ringMonster = game.monsters[0]!;
             
@@ -493,7 +493,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const ringOfFlies = game.obtainCard("b2-ring_of_flies") as MonsterCard;
             expect(ringOfFlies).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, ringOfFlies);
+            game.encounters.forceSetMonsterAtSlot(0, ringOfFlies);
             
             const ringMonster = game.monsters[0]!;
             
@@ -542,7 +542,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const ringOfFlies = game.obtainCard("b2-ring_of_flies") as MonsterCard;
             expect(ringOfFlies).toBeInstanceOf(MonsterCard);
             
-            game.monsterSlots.forceSetMonsterAtSlot(0, ringOfFlies);
+            game.encounters.forceSetMonsterAtSlot(0, ringOfFlies);
             
             const ringMonster = game.monsters[0]!;
             
@@ -585,7 +585,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const ringOfFlies = game3.obtainCard("b2-ring_of_flies") as MonsterCard;
             expect(ringOfFlies).toBeInstanceOf(MonsterCard);
             
-            game3.monsterSlots.forceSetMonsterAtSlot(0, ringOfFlies);
+            game3.encounters.forceSetMonsterAtSlot(0, ringOfFlies);
             
             const ringMonster = game3.monsters[0]!;
             

@@ -1,8 +1,8 @@
-import { describe, it, beforeEach, expect } from "bun:test";
 import { Game } from "../../models/game";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../../models/entities/player";
-import { CharacterCard, ItemCard, TreasureCard, LootCard, MonsterCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame, mockGameSelections } from "@/tests/testHelpers";
+import { ItemCard, LootCard, MonsterCard } from "@/models/cards";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame } from "@/tests/testHelpers";
 
 describe("Tap/Paid effects 2", () => {
     let game: Game;
@@ -544,7 +544,7 @@ describe("Tap/Paid effects 2", () => {
         
         // Make it player1's turn if it isn't
         while (game.currentPlayer !== player1) {
-            game.endTurn();
+            await game.endTurn();
         }
         
         // When we loop to make it player1's turn, the loot step has already run
@@ -716,8 +716,8 @@ describe("Force Attack Monster", () => {
         }
         const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
         const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        game.encounters.forceSetMonsterAtSlot(0, monsterCard);
+        game.encounters.forceSetMonsterAtSlot(1, monsterCard2);
         game.entityHandler.addAttackThisTurn(game.currentPlayer, 1); // Ensure player can attack
 
     });
@@ -731,7 +731,7 @@ describe("Force Attack Monster", () => {
         // Try to end turn without attacking
         expect(async() => {
             await game.endTurn();
-        }).toThrow("You must attack the required monster(s) before ending your turn");
+        }).toThrow("You must attack the required monster(s)");
     });
 
     it("should allow ending turn after attacking the forced monster", async () => {
@@ -746,10 +746,10 @@ describe("Force Attack Monster", () => {
 
         // Should be able to end turn now (mustAttackEntity was cleared)
         expect(game.currentPlayer.hasAttackRequirement).toBe(false);
-        game.currentPlayer.combatEnded();
-        monster.combatEnded();
-        expect(() => {
-            game.endTurn();
+        game.entityHandler.endCombat();
+
+        expect(async () => {
+            await game.endTurn();
         }).not.toThrow();
     });
 
@@ -764,8 +764,8 @@ describe("Force Attack Monster", () => {
         await game.actions.resolveStack();
 
         // Should be able to end turn (constraint lifted)
-        expect(() => {
-            game.endTurn();
+        expect(async () => {
+            await game.endTurn();
         }).not.toThrow();
     });
 
@@ -784,8 +784,8 @@ describe("Force Attack Monster", () => {
         expect(game.currentPlayer.isDead).toBe(true);
 
         // Should be able to end turn (player dead, constraint doesn't apply)
-        expect(() => {
-            game.endTurn();
+        expect(async () => {
+            await game.endTurn();
         }).not.toThrow();
     });
 
@@ -801,11 +801,13 @@ describe("Force Attack Monster", () => {
         expect(game.currentPlayer.hasAttackRequirement).toBe(false);
         game.entityHandler.endCombat();
         // End turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         // Go back to player1's turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         // mustAttackEntity should still be null
@@ -822,8 +824,8 @@ describe("Force Attack Monster", () => {
         game.encounters.discardTop(0);
 
         // Constraint should be lifted because monster is gone
-        expect(() => {
-            game.endTurn();
+        expect(async () => {
+            await game.endTurn();
         }).not.toThrow();
     });
 
@@ -850,8 +852,8 @@ describe("Force Attack Monster", () => {
             }
             const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
             const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-            game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-            game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+            game.encounters.forceSetMonsterAtSlot(0, monsterCard);
+            game.encounters.forceSetMonsterAtSlot(1, monsterCard2);
         });
 
         it("forces active player to attack chosen monster", async () => {
@@ -881,7 +883,7 @@ describe("Force Attack Monster", () => {
             // Try to end turn without attacking
             expect(async () => {
                 await game.endTurn();
-            }).toThrow("You must attack the required monster(s) before ending your turn");
+            }).toThrow("You must attack the required monster(s)");
         });
 
         it("allows ending turn after attacking the forced monster", async () => {
@@ -902,8 +904,8 @@ describe("Force Attack Monster", () => {
             game.entityHandler.kill(targetMonster, targetMonster, monsterManual);
             await game.actions.resolveStack();
             // Should be able to end turn now
-            expect(() => {
-                game.endTurn();
+            expect(async () => {
+                await game.endTurn();
             }).not.toThrow();
         });
 
@@ -960,7 +962,8 @@ describe("Force Attack Monster", () => {
             game.entityHandler.kill(targetMonster, targetMonster, monsterManual);
             await game.actions.resolveStack();
             // End turn
-            game.endTurn();
+            await game.endTurn();
+            await game.actions.resolveStack();
             await game.actions.resolveStack();
 
             // On next turn, player2 should not have the constraint
@@ -968,7 +971,8 @@ describe("Force Attack Monster", () => {
             expect(game.currentPlayer.hasAttackRequirement).toBe(false);
 
             // End player2's turn
-            game.endTurn();
+            await game.endTurn();
+            await game.actions.resolveStack();
             await game.actions.resolveStack();
 
             // Back to player1 - constraint should not persist
@@ -996,8 +1000,8 @@ describe("Force Attack Monster", () => {
             expect(game.currentPlayer.hasAttackRequirement).toBe(false);
 
             // Should be able to end turn
-            expect(() => {
-                game.endTurn();
+            expect(async () => {
+                await game.endTurn();
             }).not.toThrow();
         });
 
@@ -1021,8 +1025,8 @@ describe("Force Attack Monster", () => {
             expect(player1.hasAttackRequirement).toBe(false);
 
             // Should be able to end turn
-            expect(() => {
-                game.endTurn();
+            expect(async () => {
+                await game.endTurn();
             }).not.toThrow();
         });
 
@@ -1089,11 +1093,9 @@ describe("Force Attack Monster", () => {
             game.actions.declareAttack(game.currentPlayer);
             await game.actions.declareAttackOnEntity(game.currentPlayer, otherMonster);
 
-            game.currentPlayer.combatEnded();
-            expect(otherMonster.isEngagedInCombat).toBe(true);
-            otherMonster.combatEnded();
-            expect(() => {
-                game.endTurn();
+            game.entityHandler.endCombat();
+            expect(async () => {
+                await game.endTurn();
             }).not.toThrow();
         });
 

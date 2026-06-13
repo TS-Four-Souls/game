@@ -1,5 +1,5 @@
 import type { DeckConfig, DeckConfigCard, GameParametersJson, DeckConfigPatch, SetGameParameterRequest, CharacterCardConfig } from "@/shared/api";
-import { CARD_SETS } from "./game";
+import { CARD_SETS } from "@/models/handlers/cardHandler";
 import type { DeckType, Card, CharacterCard } from "./cards";
 class NumericGameParameter {
     private _value: number;
@@ -294,7 +294,7 @@ export class GameParameters {
     toJson(): GameParametersJson {
         const decks: DeckConfig = {
             useBonusSouls: {text: "Use bonus souls?", value: this.playWithBonusSouls.value},
-            //useRooms: {text: "Use rooms?", value: this.playWithRooms.value},
+            useRooms: {text: "Use rooms?", value: this.playWithRooms.value},
             ...(this._deckMode === "standard" && this._currentNbPlayers < 3 ? {nbPlayerCardRestriction: {text: "Number player card restriction", value: this.nbPlayerCardRestriction.value}} : {}),
             character: {total: this.character.count, cards: this.character.json()},
             monster: {total: this.monster.count, cards: this.monster.json()},

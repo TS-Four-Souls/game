@@ -245,16 +245,20 @@ describe("Tap/Paid effects 1", () => {
         expect(monster.evasion).toBe(initDC);
         game.cardHandler.addInPlay(player1, babyHaunt);
         expect(monster.evasion).toBe(initDC + 1);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(monster.evasion).toBe(initDC);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(monster.evasion).toBe(initDC + 1);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(monster.evasion).toBe(initDC);
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(monster.evasion).toBe(initDC + 1);
         game.cardHandler.removeInPlay(player1, babyHaunt);
@@ -776,7 +780,8 @@ describe("Tap/Paid effects 1", () => {
         expect(player2.hand.length).toBe(handSizeAfterActivation + 2);
 
         // End turn to clear temporary effects
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
 
         // Loot after turn - not doubled
         const handSizeAfterTurn = player2.hand.length;
@@ -1011,7 +1016,8 @@ describe("b2-theres_options treasure deck visibility", () => {
         game.cardHandler.addInPlay(player1, theresOptions);
 
         // End player1's turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         // Now it's player2's turn
@@ -1046,7 +1052,8 @@ describe("b2-theres_options treasure deck visibility", () => {
         expect(state.firstCardTreasureDeck).toBeDefined();
 
         // End turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         expect(game.currentPlayer).toBe(player2);
@@ -1056,13 +1063,15 @@ describe("b2-theres_options treasure deck visibility", () => {
         expect(state.firstCardTreasureDeck).toBeUndefined();
 
         // End player2's turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         expect(game.currentPlayer).toBe(player3);
 
         // End player3's turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player1)
 
@@ -1101,7 +1110,8 @@ describe("b2-theres_options treasure deck visibility", () => {
         expect(state2.firstCardTreasureDeck).toBeUndefined();
 
         // End turn to player2
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player2);
 
@@ -1124,7 +1134,8 @@ describe("b2-theres_options treasure deck visibility", () => {
         expect(player1.canSeeTopOfTreasureDeck).toBe(true);
 
         // End turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player2);
 
@@ -1132,14 +1143,16 @@ describe("b2-theres_options treasure deck visibility", () => {
         expect(player1.canSeeTopOfTreasureDeck).toBe(false);
         
         // End turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player3);
 
         // Player1 cannot see during other's turn
         expect(player1.canSeeTopOfTreasureDeck).toBe(false);
         // Back to player1's turn
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player1);
 
@@ -1149,7 +1162,8 @@ describe("b2-theres_options treasure deck visibility", () => {
 
     it("adding the item mid-game works correctly", async () => {
         // End first turn without the item
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player2);
 

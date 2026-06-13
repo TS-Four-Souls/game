@@ -113,8 +113,12 @@ describe("Requiem Loots ", () => {
             expect(item.charged).toBe(false);
             await game.actions.resolveStack();
             await game.endTurn();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
             expect(item.name).toBe(game.shop.itemsInShop[0]!.name);
             await game.endTurn();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
             await game.actions.resolveStack();
             expect(item.name).not.toBe(game.shop.itemsInShop[0]!.name);
         });
@@ -159,13 +163,16 @@ describe("Requiem Loots ", () => {
             await game.actions.resolveStack();
             await game.endTurn();
             await game.actions.resolveStack();
+            await game.actions.resolveStack();
             await game.endTurn();
+            await game.actions.resolveStack();
             expect(player1.hand.length).toBe(3);
 
             game.cardHandler.discardFromHandAtIndex(player1, 0, "other");
             game.cardHandler.discardFromHandAtIndex(player1, 0, "other");
             await game.actions.resolveStack();
             await game.endTurn();
+            await game.actions.resolveStack();
             await game.actions.resolveStack();
             expect(game.stack.isEmpty()).toBe(true);
             expect(player1.hand.length).toBe(3);
@@ -230,8 +237,10 @@ describe("Requiem Loots ", () => {
             expect(game.stack.isEmpty()).toBe(true);
             game.cardHandler.addToCounter(player1, item, "counters", 1);
             await game.endTurn();
+            await game.actions.resolveStack();
             expect(game.stack.isEmpty()).toBe(true);
             await game.endTurn();
+            await game.actions.resolveStack();
             expect(game.stack.isEmpty()).toBe(false);
             await game.actions.resolveStack();
             expect(player1.inPlay.length).toBe(2);
@@ -372,7 +381,9 @@ describe("Requiem Loots ", () => {
             const handSize = player1.hand.length;
             game.cardHandler.discardFromHandAtIndex(player1, 0, "other");
             await game.endTurn();
+            await game.actions.resolveStack(); // resolve effect
             await game.endTurn();
+            await game.actions.resolveStack(); // resolve effect
             await game.actions.resolveStack();
             expect(player1.hand.length).toBe(handSize);
         });
@@ -454,6 +465,7 @@ describe("Requiem Loots ", () => {
             await game.endTurn();
             await game.actions.resolveStack();
             await game.actions.resolveStack();
+            await game.actions.resolveStack(); // resolve effect
             expect(game.stack.isEmpty()).toBe(true);
             expect(player2.inPlay.length).toBe(2);
         });
@@ -550,6 +562,7 @@ describe("Requiem Loots ", () => {
             await game.activateItem(player1, item, [player2], 0);
             await game.actions.resolveStack();
             await game.actions.resolveStack();
+            await game.actions.resolveStack(); // resolve effect
             expect(player1.inPlay.includes(item)).toBe(false);
             expect(player2.inPlay.includes(item)).toBe(true);
             expect(player1.coins).toBe(10);
@@ -652,8 +665,10 @@ describe("Requiem Loots ", () => {
             game.cardHandler.addSoul(player2, soul2);
             expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(2);
             await game.endTurn();
+            await game.actions.resolveStack(); // resolve effect
             expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(4);
             await game.endTurn();
+            await game.actions.resolveStack(); // resolve effect
 
             expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(2);
             const soul3 = game.decks.treasure.draw();
@@ -795,6 +810,7 @@ describe("Requiem Loots ", () => {
             game.loot(player1, 1);
             await game.endTurn();
 
+            await game.actions.resolveStack(); // resolve effect
             await game.actions.resolveStack();
             expect(player1.hand.length).toBe(0);
             expect(player2.hand.length).toBe(2);
@@ -963,6 +979,7 @@ describe("Requiem Loots ", () => {
         game.cardHandler.addToCounter(player1, item, "counters", 2);
         expect(game.stack.isEmpty()).toBe(true);
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             return {selected: [Options.includes(player2) ? player2 : Options[0]], remaining: Options};
@@ -1037,7 +1054,9 @@ describe("Requiem Loots ", () => {
         const handSize = player1.hand.length;
         game.cardHandler.discardFromHandAtIndex(player1, 0, "other");
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(handSize);
     });
@@ -1052,7 +1071,9 @@ describe("Requiem Loots ", () => {
             return {selected: [Options.includes(player2) ? player2 : Options[0]], remaining: Options};
         }
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // effect
         await game.actions.resolveStack(); // dice
         await game.actions.resolveStack(); // effect
@@ -1068,6 +1089,7 @@ describe("Requiem Loots ", () => {
         game.cardHandler.addToCounter(player1, item, "counters", 10);
         game.random = () => 0.9;
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.endTurn();
         await game.actions.resolveStack();
         expect(game.stack.peek()!).toBeInstanceOf(DiceRoll);
@@ -1076,6 +1098,7 @@ describe("Requiem Loots ", () => {
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.coins).toBe(1);
         await game.endTurn();
+        await game.actions.resolveStack();
         game.random = () => 0.01;
         await game.endTurn();
         await game.actions.resolveStack();
@@ -1211,6 +1234,7 @@ describe("Requiem Loots ", () => {
         game.cardHandler.addInPlay(player1, item);
         
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         game.actions.declareAttack(player2);
         game.actions.declareAttackOnEntity(player2, player1);
         game.random = () => 0.99;
@@ -1269,7 +1293,9 @@ describe("Requiem Loots ", () => {
         s2.soul = 3;
         game.cardHandler.addSoul(player2, s2);
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.hand.length).toBe(3);
@@ -1277,6 +1303,7 @@ describe("Requiem Loots ", () => {
         game.cardHandler.stealItemAnywhere(player2, item);
         game.cardHandler.recharge(item);
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(3);
         expect(player2.hand.length).toBe(2);
@@ -1342,13 +1369,17 @@ describe("Requiem Loots ", () => {
         game.cardHandler.addInPlay(player1, item);
 
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack();
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
 
         expect(item.tags.counters).toBe(1);
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack();
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         expect(item.tags.counters).toBe(2);
 
         for (const cardSlug of ["b2-blank_card", "b2-tech_x", "b2-boomerang"]) {
@@ -1370,7 +1401,9 @@ describe("Requiem Loots ", () => {
         game.cardHandler.addInPlay(player1, item);
         for(let i = 1; i < 7; i++) {
             await game.endTurn();
+            await game.actions.resolveStack(); // resolve effect
             await game.endTurn();
+            await game.actions.resolveStack(); // resolve effect
             await game.actions.resolveStack();
             if(i === 2)
             {
@@ -1478,6 +1511,7 @@ describe("Requiem Loots 3 layers ", () => {
         expect(player1.hand.length).toBe(1);
 
         await game.endTurn();
+        await game.actions.resolveStack(); // resolve effect
         game.actions.declareAttack(player2);
         expect(game.actions.canDeclareAttackOnEntity(player2, player1, false)).not.toBe(true);
         expect(game.actions.canDeclareAttackOnEntity(player2, player3, false)).not.toBe(true);

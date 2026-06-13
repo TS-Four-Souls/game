@@ -89,6 +89,7 @@ export type SelectionItem =
 export type StackElement =
   | LootCardOnStackJson
   | DeathOnStackJson
+  | LootStepJson
   | DamageOnStackJson
   | DiceRollJson
   | EffectOnStackJson;
@@ -242,6 +243,15 @@ const deathOnStackJsonSchema = z.object({
 });
 export type DeathOnStackJson = z.infer<typeof deathOnStackJsonSchema>;
 
+const lootStepJsonSchema = z.object({
+  type: z.literal("lootStep"),
+  player: entityTypeSchema,
+  nbLoots: z.number(),
+  id: z.number(),
+  reordering: stackReorderingInfoSchema.optional(),
+});
+export type LootStepJson = z.infer<typeof lootStepJsonSchema>;
+
 const damageOnStackJsonSchema = z.object({
   type: z.literal("damage"),
   receiver: entityTypeSchema,
@@ -268,6 +278,7 @@ const stackElementSchema: z.ZodType<StackElement> = z.lazy(() =>
   z.union([
     lootCardOnStackJsonSchema,
     deathOnStackJsonSchema,
+    lootStepJsonSchema,
     damageOnStackJsonSchema,
     diceRollJsonSchema,
     effectOnStackJsonSchema,

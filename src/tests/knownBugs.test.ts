@@ -135,10 +135,12 @@ describe("Known bugs that have be corrected", () => {
 
         expect(player1.curses.length).toBe(1);
         expect(player1.curses[0]!.slug).toBe("b2-curse_of_pain");
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // end turn effect d6
         await game.actions.resolveStack(); // on turn start
         await game.actions.resolveStack(); // damage
@@ -150,10 +152,12 @@ describe("Known bugs that have be corrected", () => {
         await game.actions.resolveStack(); // death on stack
         expect(player1.curses.length).toBe(0);
 
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // end turn effect d6
         expect(game.stack.size).toBe(0);
         expect(player1.currentHealthPoints).toBe(2);
@@ -171,14 +175,16 @@ describe("Known bugs that have be corrected", () => {
 
         expect(player1.curses.length).toBe(1);
         expect(player1.curses[0]!.slug).toBe("b2-curse_of_pain");
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // end turn effect d6
         await game.actions.resolveStack(); // on turn start
         await game.actions.resolveStack(); // damage
-        expect(game.currentPlayer).toBe(player1);
+        expect(game.currentPlayer.id).toBe(player1.id);
         expect(game.stack.size).toBe(0);
         expect(player1.currentHealthPoints).toBe(1);
 
@@ -187,10 +193,12 @@ describe("Known bugs that have be corrected", () => {
         await game.actions.resolveStack(); // death on stack
         expect(player1.curses.length).toBe(0);
 
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // end turn effect d6
         expect(game.stack.size).toBe(0);
         expect(player1.currentHealthPoints).toBe(2);
@@ -212,10 +220,12 @@ describe("Known bugs that have be corrected", () => {
         game.cardHandler.addCardToHand(player1, loot);
         game.actions.playCard(player1, player1.hand.length - 1, []);
         await game.actions.resolveStack();
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.resolveEntireStack();
         const initcard = player1.hand.length;
-        game.endTurn();
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(initcard);
         const card = game.decks.loot.cards[0] as LootCard;
@@ -252,7 +262,7 @@ describe("Known bugs that have be corrected", () => {
         expect(card).toBeInstanceOf(MonsterCard);
         game.entityHandler.addHealth(player1, 10); // Prevent death by damage
 
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
 
         game.actions.declareAttack(player1);

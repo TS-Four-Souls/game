@@ -31,7 +31,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         // This test assumes cursed_horf card exists and its effect is implemented
         const cursedHorf = game.obtainCard("b2-cursed_horf") as MonsterCard;
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, cursedHorf);
+        game.encounters.forceSetMonsterAtSlot(0, cursedHorf);
         
         game.entityHandler.addHealth(player1, 10); // Ensure player has enough HP to take damage
         const initialHP = player1.currentHealthPoints;
@@ -62,7 +62,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const cursedHorf = game.obtainCard("b2-cursed_horf") as MonsterCard;
         expect(cursedHorf).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, cursedHorf);
+        game.encounters.forceSetMonsterAtSlot(0, cursedHorf);
         
         const initialHP = player1.currentHealthPoints;
         
@@ -86,7 +86,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const cursedHorf = game.obtainCard("b2-cursed_horf") as MonsterCard;
         expect(cursedHorf).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, cursedHorf);
+        game.encounters.forceSetMonsterAtSlot(0, cursedHorf);
         
         game.entityHandler.addLootPlay(player2, 1); // Give player 2 a loot play
         
@@ -114,7 +114,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const cursedHorf = game.obtainCard("b2-cursed_horf") as MonsterCard;
         expect(cursedHorf).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, cursedHorf);
+        game.encounters.forceSetMonsterAtSlot(0, cursedHorf);
         game.entityHandler.addHealth(player1, 10); // Ensure player has enough HP to take damage
         const initialHP = player1.currentHealthPoints;
         
@@ -153,7 +153,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const cursedFatty = game.obtainCard("b2-cursed_fatty") as MonsterCard;
         expect(cursedFatty).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, cursedFatty);
+        game.encounters.forceSetMonsterAtSlot(0, cursedFatty);
         
         // Give player 1 a loot card in hand
         const lootCard = game.obtainCard("b2-pills") as LootCard;
@@ -181,7 +181,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const cursedFatty = game.obtainCard("b2-cursed_fatty") as MonsterCard;
         expect(cursedFatty).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, cursedFatty);
+        game.encounters.forceSetMonsterAtSlot(0, cursedFatty);
         
         const lootCard = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(lootCard);
@@ -207,7 +207,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const cursedGaper = game.obtainCard("b2-cursed_gaper") as MonsterCard;
         expect(cursedGaper).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, cursedGaper);
+        game.encounters.forceSetMonsterAtSlot(0, cursedGaper);
         
         // Record initial ATK values
         const initialATK = game.monsters.map(m => m?.attackPoints || 0);
@@ -236,7 +236,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const cursedGaper = game.obtainCard("b2-cursed_gaper") as MonsterCard;
         expect(cursedGaper).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, cursedGaper);
+        game.encounters.forceSetMonsterAtSlot(0, cursedGaper);
         
         const initialATK = game.monsters.map(m => m?.attackPoints || 0);
         
@@ -261,7 +261,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const cursedKeeperHead = game.obtainCard("b2-cursed_keeper_head") as MonsterCard;
         expect(cursedKeeperHead).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, cursedKeeperHead);
+        game.encounters.forceSetMonsterAtSlot(0, cursedKeeperHead);
         
         game.gainCoins(player1, 10, "gift"); // Ensure player has enough coins
         const initialCoins = player1.coins;
@@ -285,7 +285,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const cursedKeeperHead = game.obtainCard("b2-cursed_keeper_head") as MonsterCard;
         expect(cursedKeeperHead).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, cursedKeeperHead);
+        game.encounters.forceSetMonsterAtSlot(0, cursedKeeperHead);
         
         game.gainCoins(player1, 10, "gift");
         const initialCoins = player1.coins;
@@ -308,7 +308,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const holyDip = game.obtainCard("b2-holy_dip") as MonsterCard;
         expect(holyDip).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, holyDip);
+        game.encounters.forceSetMonsterAtSlot(0, holyDip);
         
         const initialCoins = player1.coins;
         
@@ -331,7 +331,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const holyDip = game.obtainCard("b2-holy_dip") as MonsterCard;
         expect(holyDip).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, holyDip);
+        game.encounters.forceSetMonsterAtSlot(0, holyDip);
         
         const initialCoins = player1.coins;
         
@@ -353,7 +353,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const holyKeeperHead = game.obtainCard("b2-holy_keeper_head") as MonsterCard;
         expect(holyKeeperHead).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, holyKeeperHead);
+        game.encounters.forceSetMonsterAtSlot(0, holyKeeperHead);
         
         const initialCoins = player1.coins;
         
@@ -376,7 +376,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const holyKeeperHead = game.obtainCard("b2-holy_keeper_head") as MonsterCard;
         expect(holyKeeperHead).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, holyKeeperHead);
+        game.encounters.forceSetMonsterAtSlot(0, holyKeeperHead);
         
         const initialCoins = player1.coins;
         
@@ -398,7 +398,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const holyMomsEye = game.obtainCard("b2-holy_moms_eye") as MonsterCard;
         expect(holyMomsEye).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, holyMomsEye);
+        game.encounters.forceSetMonsterAtSlot(0, holyMomsEye);
         
         // Give player 1 a tapped item
         const item = player1.inPlay[0] as ItemCard;
@@ -425,7 +425,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const holyMomsEye = game.obtainCard("b2-holy_moms_eye") as MonsterCard;
         expect(holyMomsEye).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, holyMomsEye);
+        game.encounters.forceSetMonsterAtSlot(0, holyMomsEye);
         
         const item = player1.inPlay[0] as ItemCard;
         item.charged = false;
@@ -449,7 +449,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const holySquirt = game.obtainCard("b2-holy_squirt") as MonsterCard;
         expect(holySquirt).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, holySquirt);
+        game.encounters.forceSetMonsterAtSlot(0, holySquirt);
         
         const initialHandSize = player1.hand.length;
         
@@ -473,7 +473,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const holySquirt = game.obtainCard("b2-holy_squirt") as MonsterCard;
         expect(holySquirt).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, holySquirt);
+        game.encounters.forceSetMonsterAtSlot(0, holySquirt);
         
         const initialHandSize = player1.hand.length;
         
@@ -495,7 +495,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const holyDinga = game.obtainCard("b2-holy_dinga") as MonsterCard;
         expect(holyDinga).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, holyDinga);
+        game.encounters.forceSetMonsterAtSlot(0, holyDinga);
         
         // Damage player first so they can heal
         game.entityHandler.dealDamage(player1, player1, holyDinga, 1);
@@ -521,7 +521,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const holyDinga = game.obtainCard("b2-holy_dinga") as MonsterCard;
         expect(holyDinga).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, holyDinga);
+        game.encounters.forceSetMonsterAtSlot(0, holyDinga);
         
         game.entityHandler.dealDamage(player1, player1, holyDinga, 1);
         await game.actions.resolveStack();
@@ -545,7 +545,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const cursedPsyHorf = game.obtainCard("b2-cursed_psy_horf") as MonsterCard;
         expect(cursedPsyHorf).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, cursedPsyHorf);
+        game.encounters.forceSetMonsterAtSlot(0, cursedPsyHorf);
         
         game.entityHandler.addHealth(player1, 10); // Ensure player has enough HP to take damage
         const initialHP = player1.currentHealthPoints;
@@ -568,7 +568,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const cursedPsyHorf = game.obtainCard("b2-cursed_psy_horf") as MonsterCard;
         expect(cursedPsyHorf).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, cursedPsyHorf);
+        game.encounters.forceSetMonsterAtSlot(0, cursedPsyHorf);
         
         game.entityHandler.addHealth(player2, 10);
         const initialHP = player2.currentHealthPoints;
@@ -590,7 +590,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const cursedPsyHorf = game.obtainCard("b2-cursed_psy_horf") as MonsterCard;
         expect(cursedPsyHorf).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, cursedPsyHorf);
+        game.encounters.forceSetMonsterAtSlot(0, cursedPsyHorf);
         
         const initialHP = player1.currentHealthPoints;
         
@@ -624,7 +624,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const cursedMomsHand = game.obtainCard("b2-cursed_moms_hand") as MonsterCard;
         expect(cursedMomsHand).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, cursedMomsHand);
+        game.encounters.forceSetMonsterAtSlot(0, cursedMomsHand);
         
         const initialTurnPlayer = game.currentPlayer;
         expect(initialTurnPlayer).toBe(player1);
@@ -648,6 +648,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         await game.actions.resolveStack(); // resolve cursed_moms_hand effect which clears stack and ends turn
         
         await game.actions.resolveStack(); // on turn end effect
+        await game.actions.resolveStack(); // on turn end effect
         
         expect(game.stack.size).toBe(0);
         // Stack should be cleared (the effect itself clears it) and turn should have ended
@@ -658,7 +659,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const cursedMomsHand = game.obtainCard("b2-cursed_moms_hand") as MonsterCard;
         expect(cursedMomsHand).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, cursedMomsHand);
+        game.encounters.forceSetMonsterAtSlot(0, cursedMomsHand);
         
         const initialTurnPlayer = game.currentPlayer;
         
@@ -681,11 +682,11 @@ describe("Monsters - Roll Triggered Effects", () => {
         const daddyLongLegs = game.obtainCard("b2-daddy_long_legs") as MonsterCard;
         expect(daddyLongLegs).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, daddyLongLegs);
+        game.encounters.forceSetMonsterAtSlot(0, daddyLongLegs);
         
         // Add another monster to test that all monsters gain DC
         const monster2Card = game.obtainCard("b2-pooter") as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(1, monster2Card);
+        game.encounters.forceSetMonsterAtSlot(1, monster2Card);
         
         // Get the actual Monster entities from slots
         const daddyMonster = game.monsters[0]!;
@@ -722,7 +723,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         const daddyLongLegs = game.obtainCard("b2-daddy_long_legs") as MonsterCard;
         expect(daddyLongLegs).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, daddyLongLegs);
+        game.encounters.forceSetMonsterAtSlot(0, daddyLongLegs);
         
         const daddyMonster = game.monsters[0]!;
         const initialDC = game.monsters.map(m => m?.evasion || 0);

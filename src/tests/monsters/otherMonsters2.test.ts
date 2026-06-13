@@ -34,7 +34,7 @@ describe("Monsters - Various 2", () => {
         expect(game.stack.isEmpty()).toBe(true);
         if(!game.stack.isEmpty())
             console.log(game.stack._stack[0]?.json);
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         if(!game.stack.isEmpty())
             console.log(game.stack._stack[0]?.json);
@@ -64,7 +64,7 @@ describe("Monsters - Various 2", () => {
         expect(card).toBeInstanceOf(MonsterCard);
         game.entityHandler.addHealth(player1, 10); // Prevent death by damage
 
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
 
         game.actions.declareAttack(player1);
@@ -92,7 +92,7 @@ describe("Monsters - Various 2", () => {
         expect(card).toBeInstanceOf(MonsterCard);
         game.entityHandler.addHealth(player1, 10); // Prevent death by damage
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         game.entityHandler.dealDamage(player1, monster, card, monster.currentHealthPoints - 1); // Reduce to 1 HP
         await game.actions.resolveStack(); // damage
@@ -122,7 +122,7 @@ describe("Monsters - Various 2", () => {
         const card = game.obtainCard("b2-the_bloat") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         game.entityHandler.dealDamage(player1, monster, card, monster.currentHealthPoints - 1); // Reduce to 1 HP
         await game.actions.resolveStack(); // damage
@@ -156,7 +156,7 @@ describe("Monsters - Various 2", () => {
         game.gainCoins(player1, 100, "gift");
         game.gainCoins(player2, 100, "gift");
 
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         game.entityHandler.dealDamage(player1, monster, card, monster.currentHealthPoints - 1); // Reduce to 1 HP
         await game.actions.resolveStack(); // damage
@@ -187,7 +187,7 @@ describe("Monsters - Various 2", () => {
         expect(card).toBeInstanceOf(MonsterCard);
         game.entityHandler.addHealth(player1, 100); // Prevent death by damage
 
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, monster);
@@ -243,7 +243,7 @@ describe("Monsters - Various 2", () => {
         expect(card).toBeInstanceOf(MonsterCard);
         game.entityHandler.addHealth(player1, 100); // Prevent death by damage
 
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, monster);
@@ -298,7 +298,7 @@ describe("Monsters - Various 2", () => {
         const card = game.obtainCard("b2-gurdy_jr") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
     
         game.actions.declareAttack(player1);
@@ -324,7 +324,7 @@ describe("Monsters - Various 2", () => {
         game.gainCoins(player2, 10, "gift");
         const coin1 = player1.coins;
         const coin2 = player2.coins;
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
 
         expect(game.stack._stack.length).toBe(1); 
         await game.actions.resolveStack(); // resolve effect
@@ -341,7 +341,7 @@ describe("Monsters - Various 2", () => {
         game.gainCoins(player2, 10, "gift");
         const coin1 = player1.coins;
         const coin2 = player2.coins;
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
 
         expect(game.stack._stack.length).toBe(1); 
         await game.actions.resolveStack(); // resolve effect
@@ -358,7 +358,7 @@ describe("Monsters - Various 2", () => {
         game.loot(player2, 4);
         const loot1 = player1.hand.length;
         const loot2 = player2.hand.length;
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
 
         game.actions.declareAttack(player1);
@@ -376,7 +376,7 @@ describe("Monsters - Various 2", () => {
         const card = game.obtainCard("b2-cursed_moms_hand") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
 
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
 
         expect(game.currentPlayer).toBe(player1);
@@ -390,6 +390,7 @@ describe("Monsters - Various 2", () => {
         await game.actions.resolveStack(); // resolve dice
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack._stack.length).toBe(0); 
         expect(game.currentPlayer.id).toBe(player2.id);
     });
@@ -398,7 +399,7 @@ describe("Monsters - Various 2", () => {
         const card = game.obtainCard("b2-the_duke_of_flies") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
 
         game.actions.declareAttack(player1);
@@ -436,7 +437,7 @@ describe("Monsters - Various 2", () => {
         const card = game.obtainCard("b2-lust") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
 
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
 
         game.actions.declareAttack(player1);
@@ -461,7 +462,7 @@ describe("Monsters - Various 2", () => {
         const card = game.obtainCard("b2-the_haunt") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
 
-        game.monsterSlots.forceSetMonsterAtSlot(0, card);
+        game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
 
         game.actions.declareAttack(player1);

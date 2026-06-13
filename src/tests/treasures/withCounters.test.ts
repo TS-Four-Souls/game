@@ -28,8 +28,8 @@ describe("Treasure - with counters effect", () => {
         }
         const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
         const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monsterCard);
-        game.monsterSlots.forceSetMonsterAtSlot(1, monsterCard2);
+        game.encounters.forceSetMonsterAtSlot(0, monsterCard);
+        game.encounters.forceSetMonsterAtSlot(1, monsterCard2);
     });
 
     // "This item starts with 9 counters on it."

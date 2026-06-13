@@ -1,4 +1,4 @@
-import type { StackReorderingInfo as ApiStackReorderingInfo, DamageOnStackJson, DeathOnStackJson, DiceRollJson, StackElementJson } from "@/shared/api";
+import type { StackReorderingInfo as ApiStackReorderingInfo, DamageOnStackJson, DeathOnStackJson, DiceRollJson, StackElementJson, LootStepJson } from "@/shared/api";
 import type { Entity } from "./entities/entity";
 import type { Game } from "./game";
 import { EffectData, type Card, type EffectFunction } from "./cards";
@@ -258,3 +258,31 @@ export class DeathOnStack extends StackElement {
     return `${this.from.id} kills ${this.receiver.id} with source ${sourceName}`;
   }
 };
+
+export class LootStepOnStack extends StackElement {
+  
+  player: Player
+  nbLoots: number;
+  game: Game;
+  
+  constructor(player: Player, nbLoots: number, game: Game) {
+    super();
+    this.player = player;
+    this.nbLoots = nbLoots;
+    this.game = game;
+  }
+  override get json(): LootStepJson {
+    return {
+      type: "lootStep",
+      player: this.player.json,
+      nbLoots: this.nbLoots,
+      ...super.baseJson,
+    };
+  }
+  override get debugLogs(): string {
+    return `LootStep: ${this.player.id} loots ${this.nbLoots} card(s)`;
+  }
+  override async onResolve(): Promise<void> {
+    return this.game.lootStep(this.player, this.nbLoots);
+  }
+}

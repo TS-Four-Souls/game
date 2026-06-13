@@ -249,6 +249,7 @@ export type OnTurnEndData = {
 /** Data emitted during the loot step */
 export type OnLootStepData = {
   eventIssuer: Player;
+  numberToLoot: number;
 };
 
 /** Data emitted when a player would loot cards (can be modified) */

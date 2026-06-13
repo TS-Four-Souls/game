@@ -44,7 +44,7 @@ describe("Monster Rewards - Verification", () => {
     ): Promise<void> {
         // Setup: Place the monster in a slot
         const monster = game.obtainCard(monsterSlug) as MonsterCard;
-        game.monsterSlots.forceSetMonsterAtSlot(0, monster);
+        game.encounters.forceSetMonsterAtSlot(0, monster);
         const monsterEntity = game.monsters[0]!;
 
         // Capture initial state
@@ -191,7 +191,7 @@ describe("Monster Rewards - Verification", () => {
     describe("Multiple Rewards Combinations", () => {
         it("should give both treasure and coin for killing Carrion Queen", async () => {
             const monster = game.obtainCard("b2-carrion_queen") as MonsterCard;
-            game.monsterSlots.forceSetMonsterAtSlot(0, monster);
+            game.encounters.forceSetMonsterAtSlot(0, monster);
             const monsterEntity = game.monsters[0]!;
 
             const initialCoins = player1.coins;
@@ -210,7 +210,7 @@ describe("Monster Rewards - Verification", () => {
 
         it("should give both soul and coins for killing Gurdy", async () => {
             const monster = game.obtainCard("b2-gurdy") as MonsterCard;
-            game.monsterSlots.forceSetMonsterAtSlot(0, monster);
+            game.encounters.forceSetMonsterAtSlot(0, monster);
             const monsterEntity = game.monsters[0]!;
 
             const initialCoins = player1.coins;
@@ -231,7 +231,7 @@ describe("Monster Rewards - Verification", () => {
     // describe("No Rewards Monsters", () => {
     //     it("should give no rewards for killing Red Host (no reward in card)", async () => {
     //         const monster = game.obtainCard("b2-red_host") as MonsterCard;
-    //         game.monsterSlots.forceSetMonsterAtSlot(0, monster);
+    //         game.encounters.forceSetMonsterAtSlot(0, monster);
     //         const monsterEntity = game.monsters[0]!;
 
     //         const initialCoins = player1.coins;
@@ -253,7 +253,7 @@ describe("Monster Rewards - Verification", () => {
     describe("Reward Isolation - Verify ONLY expected rewards", () => {
         it("coin reward monster should NOT give loot, treasures, or souls", async () => {
             const monster = game.obtainCard("b2-fly") as MonsterCard;
-            game.monsterSlots.forceSetMonsterAtSlot(0, monster);
+            game.encounters.forceSetMonsterAtSlot(0, monster);
             const monsterEntity = game.monsters[0]!;
 
             const initialHandSize = player1.hand.length;
@@ -271,7 +271,7 @@ describe("Monster Rewards - Verification", () => {
 
         it("loot reward monster should NOT give coins, treasures, or souls", async () => {
             const monster = game.obtainCard("b2-fatty") as MonsterCard;
-            game.monsterSlots.forceSetMonsterAtSlot(0, monster);
+            game.encounters.forceSetMonsterAtSlot(0, monster);
             const monsterEntity = game.monsters[0]!;
 
             const initialCoins = player1.coins;
@@ -289,7 +289,7 @@ describe("Monster Rewards - Verification", () => {
 
         it("treasure reward boss should NOT give coins (when not specified)", async () => {
             const monster = game.obtainCard("b2-delirium") as MonsterCard;
-            game.monsterSlots.forceSetMonsterAtSlot(0, monster);
+            game.encounters.forceSetMonsterAtSlot(0, monster);
             const monsterEntity = game.monsters[0]!;
 
             const initialCoins = player1.coins;

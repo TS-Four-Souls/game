@@ -459,19 +459,24 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(eternal.tags.counters).toBe(1);
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         await game.endTurn();
         await game.actions.resolveStack(); // blood lusst recharge
         await game.actions.resolveStack(); // hypercoagulation trigger
+        await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(eternal.tags.counters).toBe(2);
         expect(player1.healthPoints).toBe(3);
 
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         await game.endTurn();
         await game.actions.resolveStack(); // blood lusst recharge
+        await game.actions.resolveStack(); // hypercoagulation trigger
+        await game.actions.resolveStack(); // hypercoagulation trigger
         await game.actions.resolveStack(); // hypercoagulation trigger
         expect(game.stack.isEmpty()).toBe(true);
         expect(eternal.tags.counters).toBe(3);
@@ -480,6 +485,7 @@ describe("Four Souls+2 Eternal Items", () => {
         const initialHandSize = player1.hand.length;
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); 
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.hand.length).toBe(initialHandSize + 3);
         expect(eternal.tags.counters).toBe(0);
@@ -681,8 +687,10 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.activateItem(player1, eternal, [], "tap");
         await game.actions.resolveStack();
         expect(player1.inPlay.length).toBe(7);
+        await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.inPlay.length).toBe(7);
@@ -694,6 +702,7 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.inPlay.length).toBe(5);
     });
@@ -750,6 +759,7 @@ describe("Four Souls+2 Eternal Items", () => {
         const cardInHand = player1.hand._hand[0]!;
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.hand.length).toBe(1);
         expect(player1.hand._hand[0]!.slug!).not.toBe(cardInHand.slug);
