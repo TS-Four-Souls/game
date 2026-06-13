@@ -1,11 +1,11 @@
-import type { Player } from '../entities/player';
-import type { Monster } from '../entities/monster';
-import type { Entity } from '../entities/entity';
+import type { Card, ItemCard, LootCard } from '../cards';
 import { Animated } from "../entities/animated";
-import type { DeathOnStack, DiceRoll } from '../stackElement';
-import type { ItemCard, Card, LootCard, MonsterCard } from '../cards';
-import type { DamageSource } from '../game';
+import type { Entity } from '../entities/entity';
+import type { Monster } from '../entities/monster';
+import type { Player } from '../entities/player';
 import { DeathPenaltyValues } from '../handlers/deathHandler';
+import type { DamageSource } from '../handlers/entityHandler';
+import type { DeathOnStack, DiceRoll } from '../stackElement';
 // ============================================================================
 // Event Data Types
 // ============================================================================
