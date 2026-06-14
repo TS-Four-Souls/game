@@ -666,7 +666,7 @@ class BsoulCard extends Card {
             ...super.jsonAPI,
             globalId: this._globalId,
             granted: this.granted,
-            ...( this.tags.counters !== undefined ? { counter: this.tags.counters } : {} ),
+            ...( this.counters.value("normal") !== undefined ? { counter: this.counters.value("normal") } : {} ),
         };
     }
     
