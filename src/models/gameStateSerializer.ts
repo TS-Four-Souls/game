@@ -28,7 +28,7 @@ export class GameStateSerializer {
     const otherPlayers = players.slice(1);
 
     const getCardCounter = (card: ItemCard | MonsterCard): number | undefined =>
-      (card.counters.value("normal") > 0 ? card.counters.value("normal") : undefined);
+      (card.counters.isDefined("normal") ? card.counters.value("normal") : undefined);
 
     const getPendingSelectionDetailsForPlayer = (playerId: string) => {
       for (const sel of this.game.pendingMultipleSelections.values()) {
