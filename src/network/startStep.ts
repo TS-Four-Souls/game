@@ -252,7 +252,9 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
 
     socket.on("resetGameParameters", (callback) =>
       errorGuardedEndpoint(callback, () => {
-        room.params.reset();
+        room.params = room.params.reset();
+        updatePlayerCount(room);
+        sendRoomChangedToAll(room);
         return callback({ status: 200 });
       }),
     );
