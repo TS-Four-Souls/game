@@ -144,7 +144,7 @@ export function preventDeathGainTreasureCancelAttackAndHealEffect(game: Game, x:
         offWouldDeath = game.emitter.on("on:death:would-death", (eventData: OnDeathWouldDeathData) => {
             if(eventData.eventIssuer.card !== data.it) return;
             game.entityHandler.preventDeath(eventData.eventIssuer);
-            game.cardHandler.addToCounter(data.issuer, data.it, "counters", 1);
+            game.cardHandler.addToCounter(data.issuer, data.it, "normal", 1);
             game.entityHandler.heal(data.issuer, 9999);
             game.gainTreasure(game.currentPlayer, x);
             game.entityHandler.endCombat();

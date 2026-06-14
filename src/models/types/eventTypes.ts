@@ -1,4 +1,4 @@
-import type { Card, ItemCard, LootCard } from '../cards';
+import type { Card, CounterType, ItemCard, LootCard } from '../cards';
 import { Animated } from "../entities/animated";
 import type { Entity } from '../entities/entity';
 import type { Monster } from '../entities/monster';
@@ -305,7 +305,7 @@ export type OnItemActivatedData = {
 export type OnCounterModifiedData = {
   eventIssuer: Entity;
   card: Card;
-  counterName: string;
+  counterName: CounterType;
   previousValue: number;
   newValue: number;
 };

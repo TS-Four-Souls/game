@@ -1,6 +1,6 @@
 import { type TriggerEvent } from '@/models/types/eventTypes';
 import type { TemporaryEffect } from "@/shared/api";
-import { Card, EffectOnStack, ItemCard, LootCard, LootCardEffect, MonsterCard, TreasureCard } from "../cards";
+import { Card, EffectOnStack, ItemCard, LootCard, LootCardEffect, MonsterCard, TreasureCard, type CounterType } from "../cards";
 import { Entity } from "../entities/entity";
 import { Monster } from "../entities/monster";
 import { Player } from "../entities/player";
@@ -425,7 +425,7 @@ export function lvlXaddListenerEffect(
     game: Game): EffectFunction {
 
     return async (data: EffectData) => {
-        if (data.it.tags.counters !== undefined || data.it.tags.counters >= lvl)
+        if (data.it.counters.value("normal") >= lvl)
         {
             for (const func of functions)
                 await func(data);
@@ -436,7 +436,7 @@ export function lvlXaddListenerEffect(
             let offTurn = game.emitter.on("on:counter:modified", async (eventData: OnCounterModifiedData) => {
                 const { eventIssuer } = eventData;
                 if (data.issuer !== eventIssuer) return;
-                if (data.it.tags.counters === undefined || data.it.tags.counters < lvl) return;
+                if (data.it.counters.value("normal") < lvl) return;
                 
                 for (const func of functions)
                     await func(data);
@@ -1054,7 +1054,7 @@ export function gainCoinsAndLootOnDestroyBasedOnCountersEffect(game: Game): Effe
             if (!eventData.cards.includes(data.it)) return;
             if(!data.issuer || !(data.issuer instanceof Player))
                 return;
-            const counters = data.it.tags.counters || 0;
+            const counters = data.it.counters.value("normal");
             game.gainCoins(data.issuer, counters, data.it);
             game.loot(data.issuer, counters, "other");
 
@@ -1396,7 +1396,7 @@ export function statModifierBasedOnCountersEffect(game: Game,
         const issuer = data.issuer;
         if(!(issuer instanceof Player))
             throw new Error("statModifierBasedOnCountersEffect can only be applied to Players.");
-        const toAdd = Math.floor((data.it.tags.counters ?? 0) / countersPerModifier);
+        const toAdd = Math.floor((data.it.counters.value("normal") ?? 0) / countersPerModifier);
         for (const adder of adders) {
             adder(issuer, toAdd * modifier, data.it);
         }
@@ -1412,7 +1412,7 @@ export function statModifierBasedOnCountersEffect(game: Game,
 
         data.it.cleaners.push(() => {
             for (const adder of adders) {
-                adder(issuer, -Math.floor((data.it.tags.counters ?? 0) / countersPerModifier) * modifier, data.it); // Remove all modifiers from this effect.
+                adder(issuer, -Math.floor((data.it.counters.value("normal") ?? 0) / countersPerModifier) * modifier, data.it); // Remove all modifiers from this effect.
             }
             offCounterModifier?.();
             offCounterModifier = null;
@@ -1556,19 +1556,18 @@ export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): EffectFunct
         // console.log("Activating copyAbilitiesFromGoldCounterItemsEffect", data.issuer.id);
         if(!(data.it instanceof ItemCard)) return false;
         if(!data.issuer || !(data.issuer instanceof Player)) return false;
-        const goldenItems = game.visibleItems.filter(item => item.tags.goldCounters !== undefined && item.tags.goldCounters > 0);
+        const goldenItems = game.visibleItems.filter(item => item.counters.value("golden") > 0);
         data.it.swapEffectInterfaces();
         for (const item of goldenItems) {
             game.cardHandler.gainAbilities(data.issuer, data.it, item);
         }
         let offCounterChange: (() => void) | null = null;
         offCounterChange = game.emitter.on("on:counter:modified", ({ eventIssuer, card, counterName, previousValue, newValue }) => {
-            if (counterName !== "goldCounters") return;
+            if (counterName !== "golden") return;
             if(!(data.it instanceof ItemCard)) return;
             if(!data.issuer || !(data.issuer instanceof Player)) return false;
             if(!(card instanceof ItemCard)) return;
-            if (card.tags.goldCounters === undefined) return;
-            if (card.tags.goldCounters > 0 && previousValue === 0) {
+            if (card.counters.value("golden") > 0 && previousValue === 0) {
                 game.cardHandler.gainAbilities(data.issuer, data.it, card);
             }
             else if(newValue === 0 && previousValue > 0) {
@@ -1587,7 +1586,7 @@ export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): EffectFunct
     };
 }
 
-export function giveCounterToAnotherItemOnEnterPlayEffect(game: Game, counterType: string): EffectFunction {
+export function giveCounterToAnotherItemOnEnterPlayEffect(game: Game, counterType: CounterType): EffectFunction {
     return (data: EffectData) => {
         let offEnterPlay: (() => void) | null = null;
         offEnterPlay = game.emitter.on("on:enter:play", ({ eventIssuer, card }) => {
@@ -1904,9 +1903,9 @@ export function putCounterInsteadOfDestructionEffect(game: Game): EffectFunction
             if(!(data.issuer instanceof Player))
                 throw new Error("putCounterInsteadOfDestructionEffect can only be applied to Players.");
             const item = data.it as ItemCard;
-            if(item.tags.counters === undefined) item.tags.counters = 0;
-            if(item.tags.counters >= 1) return; // Max 1 counters, then the item is destroyed as normal.
-            game.cardHandler.addToCounter(data.issuer, item, "counters", 1);
+            if(item.counters.value("normal") === 0) 
+                game.cardHandler.addToCounter(data.issuer, item, "normal", 1);
+            else if(item.counters.value("normal") >= 1) return; // Max 1 counters, then the item is destroyed as normal.
             eventData.cards = eventData.cards.filter(c => c !== data.it); // Prevent destruction
         });
 
@@ -2000,9 +1999,9 @@ export function ConditionalStatModifierEffect(
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
             // Remove modifier if still active
-            if (currentlyActive) {
+            const index = game.stack.elements.findIndex(element => element.stackId === adderStackId);
+            if (currentlyActive || index !== -1) {
                 currentlyActive = false; 
-                const index = game.stack.elements.findIndex(element => element.stackId === adderStackId);
                 if(index !== -1)
                     {
                         game.stack.removeAt(index);
@@ -2643,8 +2642,8 @@ export function startWithNCountersEffect(
     game: Game
 ): EffectFunction {
     return (data: EffectData) => {
-        if(data.it.tags.counters === undefined)
-            game.cardHandler.addToCounter(data.issuer, data.it, "counters", n);
+        if(!data.it.counters.isDefined("normal"))
+            game.cardHandler.addToCounter(data.issuer, data.it, "normal", n);
         return true;
     };
 }
@@ -2666,13 +2665,13 @@ export function preventDamageByRemovingCountersEffect(
         offEffect = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
             const { eventIssuer, damageArray } = eventData;
             if (data.issuer !== eventIssuer) return;
-            const counters = data.it.tags.counters ?? 0;
+            const counters = data.it.counters.value("normal") ?? 0;
             if(counters < 0) 
                 throw new Error("preventDamageByRemovingCountersEffect: counters cannot be negative.");
             const current = damageArray[0] ?? 0;
             const prevented = Math.min(current, counters);
             damageArray[0] = current - prevented;
-            game.cardHandler.addToCounter(data.issuer, data.it, "counters", -prevented);
+            game.cardHandler.addToCounter(data.issuer, data.it, "normal", -prevented);
             if(counters <= 0) 
                 data.it.cleanup();
         });
@@ -2901,7 +2900,7 @@ export function gainCoinsLevelUpEffect(
             const { eventIssuer, coinGained } = eventData;
             if (data.issuer !== eventIssuer) return;
             const current = coinGained[0] ?? 0;
-            game.cardHandler.addToCounter(data.issuer, data.it, "counters", current);
+            game.cardHandler.addToCounter(data.issuer, data.it, "normal", current);
             coinGained[0] = 0;
         });
 

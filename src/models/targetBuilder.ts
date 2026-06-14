@@ -599,7 +599,7 @@ export class TargetBuilder {
         if (countersToRemove === null)
             countersToRemove = /^\[paid effect\] remove a counter from this.?/.test(s) ? 1 : null;
         if( countersToRemove !== null)
-            if (card.tags.counters === undefined || card.tags.counters < countersToRemove) {
+            if (card.counters.value("normal") === 0 || card.counters.value("normal") < countersToRemove) {
                 return `You don't have enough counters to pay this cost.`;
             }
         let lootsToDiscard = parseNumber(s, /^\[paid effect\] discard (\d+) loot cards?\.?/u);

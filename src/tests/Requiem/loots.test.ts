@@ -96,7 +96,7 @@ describe("Requiem Loots ", () => {
         }
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(treas.tags.goldCounters).toBe(1);
+        expect(treas.counters.value("golden")).toBe(1);
         expect((loot.tags.copiedCards as ItemCard[]).map((c) => c.slug).includes(treas.slug)).toBe(true);
         game.random = () => 0.01;
         const roll = game.rollDice(player1, true, loot);
@@ -262,16 +262,17 @@ describe("Requiem Loots ", () => {
         game.cardHandler.addCardToHand(player1, loot);
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();
+        expect(loot.counters.value("normal")).toBe(0);
         game.cardHandler.destroyCardsOrSouls([player1.inPlay[2]!]);
         expect(player1.inPlay.length).toBe(3);
         expect(player1.inPlay[2]!.slug).toBe(loot.slug);
-        expect(loot.tags.counters).toBe(1);
+        expect(loot.counters.value("normal")).toBe(1);
         expect(player1.currentHealthPoints).toBe(3);
         expect(player1.healthPoints).toBe(3);
-        game.cardHandler.addToCounter(player1, loot, "counters", -1);
+        game.cardHandler.addToCounter(player1, loot, "normal", -1);
         expect(player1.currentHealthPoints).toBe(2);
         expect(player1.healthPoints).toBe(2);
-        game.cardHandler.addToCounter(player1, loot, "counters", 1);
+        game.cardHandler.addToCounter(player1, loot, "normal", 1);
         expect(player1.currentHealthPoints).toBe(3);
         expect(player1.healthPoints).toBe(3);
         game.cardHandler.destroyCardsOrSouls([player1.inPlay[2]!]);

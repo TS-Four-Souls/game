@@ -419,16 +419,16 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.activateItem(player1, eternal, [game.monsters[0]!], 0);
         await game.actions.resolveStack();
         expect(game.monsters[0]!.attackPoints).toBe(1);
-        expect(eternal.tags.counters).toBe(0);
-        game.cardHandler.addToCounter(player1, eternal, "counters", 3);
+        expect(eternal.counters.value("normal")).toBe(0);
+        game.cardHandler.addToCounter(player1, eternal, "normal", 3);
         await game.activateItem(player1, eternal, [game.monsters[1]!], 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(game.monsters[1]!.currentHealthPoints).toBe(game.monsters[1]!.healthPoints - 1);
-        expect(eternal.tags.counters).toBe(1);
+        expect(eternal.counters.value("normal")).toBe(1);
 
-        game.cardHandler.addToCounter(player1, eternal, "counters", 1);
+        game.cardHandler.addToCounter(player1, eternal, "normal", 1);
         await game.activateItem(player1, eternal, [game.monsters[1]!, player2], 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -436,7 +436,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(game.stack.isEmpty()).toBe(true);
         expect(game.monsters[1]!.currentHealthPoints).toBe(game.monsters[1]!.healthPoints - 2);
         expect(player2.currentHealthPoints).toBe(player2.healthPoints - 1);
-        expect(eternal.tags.counters).toBe(0);
+        expect(eternal.counters.value("normal")).toBe(0);
     });
     it("r-the_dauntless", async () => {
         const setup = setupTestGame({
@@ -456,7 +456,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.healthPoints).toBe(1);
         await game.actions.resolveStack();
         expect(player1.healthPoints).toBe(2);
-        expect(eternal.tags.counters).toBe(1);
+        expect(eternal.counters.value("normal")).toBe(1);
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -466,7 +466,7 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.actions.resolveStack(); // hypercoagulation trigger
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
-        expect(eternal.tags.counters).toBe(2);
+        expect(eternal.counters.value("normal")).toBe(2);
         expect(player1.healthPoints).toBe(3);
 
         await game.endTurn();
@@ -479,7 +479,7 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.actions.resolveStack(); // hypercoagulation trigger
         await game.actions.resolveStack(); // hypercoagulation trigger
         expect(game.stack.isEmpty()).toBe(true);
-        expect(eternal.tags.counters).toBe(3);
+        expect(eternal.counters.value("normal")).toBe(3);
         expect(player1.healthPoints).toBe(4);
         
         const initialHandSize = player1.hand.length;
@@ -488,7 +488,7 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.actions.resolveStack(); 
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.hand.length).toBe(initialHandSize + 3);
-        expect(eternal.tags.counters).toBe(0);
+        expect(eternal.counters.value("normal")).toBe(0);
         expect(player1.healthPoints).toBe(1);
     });
 
@@ -511,11 +511,11 @@ describe("Four Souls+2 Eternal Items", () => {
         game.entityHandler.dealDamage(player1, player1, eternal, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(eternal.tags.counters).toBe(1);
+        expect(eternal.counters.value("normal")).toBe(1);
 
-        game.cardHandler.addToCounter(player1, eternal, "counters", 1);
+        game.cardHandler.addToCounter(player1, eternal, "normal", 1);
         await game.activateItem(player1, eternal, [game.monsters[0]!], 0);
-        expect(eternal.tags.counters).toBe(0);
+        expect(eternal.counters.value("normal")).toBe(0);
         expect(game.monsters[0]!.evasion).toBe(2);
         await game.actions.resolveStack();
         expect(game.monsters[0]!.evasion).toBe(1);
@@ -859,10 +859,10 @@ describe("Four Souls+2 Eternal Items", () => {
             await game.activateItem(player1, eternal, [player1.hand._hand[0]], 0);
             await game.actions.resolveStack();
             expect(player1.inPlay.length).toBe(2);
-            expect(eternal.tags.counters).toBe(i + 1);
+            expect(eternal.counters.value("normal")).toBe(i + 1);
         }
         await game.activateItem(player1, eternal, [], 1);
-        expect(eternal.tags.counters).toBe(1);
+        expect(eternal.counters.value("normal")).toBe(1);
         await game.actions.resolveStack();
         expect(player1.inPlay.length).toBe(3);
 
@@ -886,14 +886,14 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(eternal.slug).toBe("r-abyss");
         expect(player1.healthPoints).toBe(2);
         expect(player1.attackPoints).toBe(1);
-        eternal.tags.counters = 1;
+        eternal.counters.addToCounter(1, "normal");
         game.cardHandler.recharge(player1.inPlay[1] as ItemCard);
         game.gainTreasure(player1, 1);
         await game.activateItem(player1, eternal, [player1.inPlay[2]], 0);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.inPlay.length).toBe(2);
-        expect(eternal.tags.counters).toBe(2);
+        expect(eternal.counters.value("normal")).toBe(2);
         expect(player1.attackPoints).toBe(2);
         game.cardHandler.recharge(player1.inPlay[1] as ItemCard);
         game.gainTreasure(player1, 1);

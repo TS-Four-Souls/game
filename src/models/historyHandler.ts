@@ -217,19 +217,17 @@ export class HistoricHandler {
    */
   get rollbackLog(): HistoricEntry[] {
     var lastUserRequestIndex = -1;
-    var secondLastUserRequestIndex = -1;
     // We look for the second last user request in the history.
     // If there is only one user request, we use it instead.
-    this._history.findLastIndex((entry, index) => {
+    for(let index = this._history.length - 1; index >= 0; index--) {
+      const entry = this._history[index]!;
       if (isGameAction(entry)) {
-        if (lastUserRequestIndex === -1 || this._history[lastUserRequestIndex]!.type === "SubmitSelection") lastUserRequestIndex = index;
-        else if (secondLastUserRequestIndex === -1)
-          secondLastUserRequestIndex = index;
-        if (secondLastUserRequestIndex !== -1) return true; // stop searching once we found the second last user request
+        if (lastUserRequestIndex === -1 || this._history[lastUserRequestIndex]!.type === "SubmitSelection") 
+          lastUserRequestIndex = index;
+        else 
+          break;
       }
-    });
-    if (secondLastUserRequestIndex !== -1)
-      return this._history.slice(0, secondLastUserRequestIndex + 1);
+    }
     if (lastUserRequestIndex !== -1)
       return this._history.slice(0, lastUserRequestIndex);
     return this._history;

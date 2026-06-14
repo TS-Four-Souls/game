@@ -39,37 +39,37 @@ describe("Treasure - with counters effect", () => {
         game.cardHandler.addInPlay(player1, theDeadCat);
         game.entityHandler.addHealth(player1, 10); // Ensure player has health to take damage
         const initHP = player1.currentHealthPoints;
-        expect(theDeadCat.tags.counters).toBe(9);
+        expect(theDeadCat.counters.value("normal")).toBe(9);
 
         // Simulate taking 3 damage
         let damageToTake = 3;
-        let countersBefore = theDeadCat.tags.counters;
+        let countersBefore = theDeadCat.counters.value("normal");
         game.entityHandler.dealDamage(player1, player1, theDeadCat, damageToTake);
         await game.actions.resolveStack();
 
-        let countersAfter = theDeadCat.tags.counters;
+        let countersAfter = theDeadCat.counters.value("normal");
         let damageTaken = initHP - player1.currentHealthPoints;
 
-        expect(theDeadCat.tags.counters).toBe(6);
+        expect(theDeadCat.counters.value("normal")).toBe(6);
         expect(damageTaken).toBe(0);
 
         // Simulate taking 3 damage
         damageToTake = 7;
-        countersBefore = theDeadCat.tags.counters;
+        countersBefore = theDeadCat.counters.value("normal");
         game.entityHandler.dealDamage(player1, player1, theDeadCat, damageToTake);
         await game.actions.resolveStack();
 
-        countersAfter = theDeadCat.tags.counters;
+        countersAfter = theDeadCat.counters.value("normal");
         damageTaken = initHP - player1.currentHealthPoints;
 
-        expect(theDeadCat.tags.counters).toBe(0);
+        expect(theDeadCat.counters.value("normal")).toBe(0);
         expect(damageTaken).toBe(1);
 
 
         game.cardHandler.stealItemAnywhere(player2, theDeadCat);
         expect(player2.inPlay.includes(theDeadCat)).toBe(true);
         expect(player1.inPlay.includes(theDeadCat)).toBe(false);
-        expect(theDeadCat.tags.counters).toBe(0);
+        expect(theDeadCat.counters.value("normal")).toBe(0);
     });
 
     // "If you would gain any amount of ¢, this levels up by that much instead."
@@ -82,13 +82,13 @@ describe("Treasure - with counters effect", () => {
         game.gainCoins(player1, 1, "gift");
         const baseAttack = player1.attackPoints;
         // Initial state - no counters
-        expect(bumBo.tags.counters).toBe(1);
+        expect(bumBo.counters.value("normal")).toBe(1);
 
         // Test: gaining coins should add counters instead
         const initialCoins = player1.coins;
         game.gainCoins(player1, 5, "gift");
         expect(player1.coins).toBe(initialCoins); // Coins should not increase
-        expect(bumBo.tags.counters).toBe(6); // Should level up by 5
+        expect(bumBo.counters.value("normal")).toBe(6); // Should level up by 5
 
         // Test: LV1 Effect - +2 to first attack roll each turn
         const monster = game.monsters[0]!;
@@ -129,7 +129,7 @@ describe("Treasure - with counters effect", () => {
         // Test: gaining more coins levels up further
         game.gainCoins(player1, 7, "gift");
         expect(player1.coins).toBe(initialCoins); // Still no coins gained
-        expect(bumBo.tags.counters).toBe(13); // Should be at level 13 now
+        expect(bumBo.counters.value("normal")).toBe(13); // Should be at level 13 now
 
         // Test: LV10 Effect - +1 ATK should be active at level 13
 
@@ -138,7 +138,7 @@ describe("Treasure - with counters effect", () => {
 
         // Test: level up to 25 to test unlimited attacks
         game.gainCoins(player1, 12, "gift"); // 13 + 12 = 25
-        expect(bumBo.tags.counters).toBe(25);
+        expect(bumBo.counters.value("normal")).toBe(25);
 
         // Test: LV25 Effect - unlimited attacks
         const attacksAllowedBefore = player1.attackThisTurn;
@@ -148,7 +148,7 @@ describe("Treasure - with counters effect", () => {
 
         // Verify the leveling mechanic continues to work
         game.gainCoins(player1, 10, "gift"); // Should add 10 more levels
-        expect(bumBo.tags.counters).toBe(35);
+        expect(bumBo.counters.value("normal")).toBe(35);
         expect(player1.coins).toBe(initialCoins); // Still no actual coins
     });
 
@@ -161,20 +161,20 @@ describe("Treasure - with counters effect", () => {
         const initNbTreasure = player1.inPlay.length;
 
         // Initial state - no counters
-        expect(cambionConception.tags.counters).toBeUndefined();
+        expect(cambionConception.counters.value("normal")).toBe(0);
 
         // Test: take 2 damage, should add 2 counters
         game.entityHandler.dealDamage(player2, player1, cambionConception, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
-        expect(cambionConception.tags.counters).toBe(2);
+        expect(cambionConception.counters.value("normal")).toBe(2);
         expect(player1.inPlay.length).toBe(initNbTreasure); // No treasure yet
 
         // Test: take 3 more damage, should add 3 counters (total 5)
         game.entityHandler.dealDamage(player2, player1, cambionConception, 3);
         await game.actions.resolveStack(); // resolve damage
         await game.actions.resolveStack(); // resolve on damage taken
-        expect(cambionConception.tags.counters).toBe(5);
+        expect(cambionConception.counters.value("normal")).toBe(5);
         expect(player1.inPlay.length).toBe(initNbTreasure); // Still no treasure (need 6+)
 
         // Test: take 1 more damage, should reach 6 counters
@@ -182,7 +182,7 @@ describe("Treasure - with counters effect", () => {
         game.entityHandler.dealDamage(player2, player1, cambionConception, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
-        expect(cambionConception.tags.counters).toBe(0); // 6 counters removed
+        expect(cambionConception.counters.value("normal")).toBe(0); // 6 counters removed
         expect(player1.inPlay.length).toBe(initNbTreasure + 1); // Gained 1 treasure
         game.cardHandler.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // Remove gained treasure for further tests
 
@@ -191,7 +191,7 @@ describe("Treasure - with counters effect", () => {
         game.entityHandler.dealDamage(player2, player1, cambionConception, 8);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
-        expect(cambionConception.tags.counters).toBe(2); // 8 added, 6 removed, 2 remaining
+        expect(cambionConception.counters.value("normal")).toBe(2); // 8 added, 6 removed, 2 remaining
         expect(player1.inPlay.length).toBe(initNbTreasure + 1); // Gained another treasure
         game.cardHandler.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // Remove gained treasure for further tests
 
@@ -200,7 +200,7 @@ describe("Treasure - with counters effect", () => {
         game.entityHandler.dealDamage(player2, player1, cambionConception, 4);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
-        expect(cambionConception.tags.counters).toBe(0); // 6 removed again
+        expect(cambionConception.counters.value("normal")).toBe(0); // 6 removed again
         expect(player1.inPlay.length).toBe(initNbTreasure + 1); // Third treasure gained
         game.cardHandler.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // Remove gained treasure for further tests
 
@@ -208,7 +208,7 @@ describe("Treasure - with counters effect", () => {
         game.entityHandler.dealDamage(player2, player1, cambionConception, 6);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
-        expect(cambionConception.tags.counters).toBe(0); // Should remove 6 and be at 0
+        expect(cambionConception.counters.value("normal")).toBe(0); // Should remove 6 and be at 0
         expect(player1.inPlay.length).toBe(initNbTreasure + 1); // Fourth treasure gained
         game.cardHandler.removeInPlay(player1, player1.inPlay[player1.inPlay.length - 1]!); // Remove gained treasure for further tests
 
@@ -216,7 +216,7 @@ describe("Treasure - with counters effect", () => {
         game.entityHandler.dealDamage(player2, player1, cambionConception, 13);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
-        expect(cambionConception.tags.counters).toBe(7); // 13 added, 6 removed, 7 remaining
+        expect(cambionConception.counters.value("normal")).toBe(7); // 13 added, 6 removed, 7 remaining
         expect(player1.inPlay.length).toBe(initNbTreasure + 1); // Fifth treasure gained
     });
 
@@ -227,7 +227,7 @@ describe("Treasure - with counters effect", () => {
         game.cardHandler.addInPlay(player1, techX);
 
         // Initial state - no counters
-        expect(techX.tags.counters).toBeUndefined();
+        expect(techX.counters.value("normal")).toBe(0);
         game.cardHandler.recharge(techX); // Ensure item is charged
         expect(techX.charged).toBe(true);
 
@@ -235,7 +235,7 @@ describe("Treasure - with counters effect", () => {
         await game.activateItem(player1, techX);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(techX.tags.counters).toBe(1);
+        expect(techX.counters.value("normal")).toBe(1);
         expect(techX.charged).toBe(false); // Should now be tapped
 
         // Recharge and tap again
@@ -243,14 +243,14 @@ describe("Treasure - with counters effect", () => {
         await game.activateItem(player1, techX);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(techX.tags.counters).toBe(2);
+        expect(techX.counters.value("normal")).toBe(2);
 
         // Tap a third time
         techX.recharge();
         await game.activateItem(player1, techX);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(techX.tags.counters).toBe(3);
+        expect(techX.counters.value("normal")).toBe(3);
 
         // Test: Paid effect - remove 3 counters to kill a player or monster
         const monster = game.monsters[0]!;
@@ -262,7 +262,7 @@ describe("Treasure - with counters effect", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
-        expect(techX.tags.counters).toBe(0); // 3 counters removed
+        expect(techX.counters.value("normal")).toBe(0); // 3 counters removed
         expect(monster.isDead).toBe(true); // Monster should be dead
 
         // Test: Cannot use paid effect without 3 counters
@@ -270,7 +270,7 @@ describe("Treasure - with counters effect", () => {
         await game.activateItem(player1, techX);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(techX.tags.counters).toBe(1); // Only 1 counter
+        expect(techX.counters.value("normal")).toBe(1); // Only 1 counter
 
         // Try to use paid effect (should fail or not work)
         // This depends on implementation - might throw error or just not execute
@@ -288,7 +288,7 @@ describe("Treasure - with counters effect", () => {
         await game.activateItem(player1, techX);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(techX.tags.counters).toBe(4);
+        expect(techX.counters.value("normal")).toBe(4);
 
         // Kill player2
         game.entityHandler.addHealth(player2, 10);
@@ -297,7 +297,7 @@ describe("Treasure - with counters effect", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
-        expect(techX.tags.counters).toBe(1); // 3 counters removed
+        expect(techX.counters.value("normal")).toBe(1); // 3 counters removed
         expect(player2.isDead).toBe(true); // Player should be dead
     });
 
@@ -311,13 +311,13 @@ describe("Treasure - with counters effect", () => {
         const initialHP = player1.currentHealthPoints;
 
         // Initial state - no counters
-        expect(thePoop.tags.counters).toBeUndefined();
+        expect(thePoop.counters.value("normal")).toBe(0);
 
         // Test: taking 1 damage should add 1 counter
         game.entityHandler.dealDamage(player2, player1, thePoop, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
-        expect(thePoop.tags.counters).toBe(1);
+        expect(thePoop.counters.value("normal")).toBe(1);
         expect(player1.currentHealthPoints).toBe(initialHP - 1);
 
         // Test: taking 3 damage should add 3 more counters
@@ -325,14 +325,14 @@ describe("Treasure - with counters effect", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
 
-        expect(thePoop.tags.counters).toBe(2); // 1 + 3
+        expect(thePoop.counters.value("normal")).toBe(2); // 1 + 3
         expect(player1.currentHealthPoints).toBe(initialHP - 4);
 
         // Test: Paid effect - remove a counter to prevent next 1 damage
         // Use paid effect
         await game.activateItem(player1, thePoop, [], 0); // Activate paid effect
         await game.actions.resolveStack();
-        expect(thePoop.tags.counters).toBe(1); // 1 counter removed
+        expect(thePoop.counters.value("normal")).toBe(1); // 1 counter removed
 
         // Now take 1 damage - should be prevented
         const hpBeforePrevent = player1.currentHealthPoints;
@@ -340,13 +340,13 @@ describe("Treasure - with counters effect", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
         expect(player1.currentHealthPoints).toBe(hpBeforePrevent); // No damage taken (prevented)
-        expect(thePoop.tags.counters).toBe(1); // Counter not added since damage was prevented
+        expect(thePoop.counters.value("normal")).toBe(1); // Counter not added since damage was prevented
 
         // Test: taking damage after prevention expired should add counter normally
         game.entityHandler.dealDamage(player2, player1, thePoop, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
-        expect(thePoop.tags.counters).toBe(2); // 1 + 1
+        expect(thePoop.counters.value("normal")).toBe(2); // 1 + 1
         expect(player1.currentHealthPoints).toBe(hpBeforePrevent - 2);
 
         // Test: Paid effect prevents only 1 damage from larger damage
@@ -354,18 +354,18 @@ describe("Treasure - with counters effect", () => {
         await game.activateItem(player1, thePoop, [], 0); // Use paid effect again
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(thePoop.tags.counters).toBe(0); // 2 counters removed
+        expect(thePoop.counters.value("normal")).toBe(0); // 2 counters removed
 
         const hpBefore = player1.currentHealthPoints;
         game.entityHandler.dealDamage(player2, player1, thePoop, 5);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
         expect(player1.currentHealthPoints).toBe(hpBefore - 3); // 5 damage - 2 prevented = 3 actual damage
-        expect(thePoop.tags.counters).toBe(1);
+        expect(thePoop.counters.value("normal")).toBe(1);
 
         // Test: Cannot use paid effect without counters
         // Remove all counters first
-        thePoop.tags.counters = 0;
+        thePoop.counters.reset("normal");
 
         // Try to use paid effect again (should fail or not work)
         // This depends on implementation
@@ -374,7 +374,7 @@ describe("Treasure - with counters effect", () => {
         game.entityHandler.dealDamage(player2, player1, thePoop, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
-        expect(thePoop.tags.counters).toBe(1); // Counters work again
+        expect(thePoop.counters.value("normal")).toBe(1); // Counters work again
     });
 
 });

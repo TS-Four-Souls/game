@@ -585,7 +585,8 @@ export function parseTheActivePlayerEffect(s: string, game: Game, nr: NumberRobu
         case "the active player chooses a living player. this deals x damage to that player":
             return noTargetEffect(monster.activePlayerChooseLivingPlayerTakeDamageEffect(game, nr.nextNumber()));
         case "the active player loots x during their loot step":
-            return noTargetEffect(passive.onAnyEventEffect("on:loot:step", [], game, s, (effect: EffectData, event: OnLootStepData) => {event.numberToLoot += nr.nextNumber(); return true;}));
+            const nb = nr.nextNumber();
+            return noTargetEffect(passive.onAnyEventEffect("on:loot:step", [], game, s, (effect: EffectData, event: OnLootStepData) => {event.numberToLoot += nb; return true;}));
                 // passive.lootStepEffect([active.lootCardsEffect(game, nr.nextNumber())], game, true));
         case "the active player loots x":
             return noTargetEffect(active.lootCardsEffect(game, nr.nextNumber(), "current"));
@@ -774,7 +775,8 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
                 targetSelectors: selectPlayerOrMonster(game),
             };
         case "loot x during your loot step":
-            return noTargetEffect(passive.onYourEventEffect("on:loot:step", [], game, s, false, true, (effect: EffectData, event: OnLootStepData) => {event.numberToLoot += nr.nextNumber(); return true;}));
+            const nb = nr.nextNumber();
+            return noTargetEffect(passive.onYourEventEffect("on:loot:step", [], game, s, false, true, (effect: EffectData, event: OnLootStepData) => {event.numberToLoot += nb; return true;}));
             // return noTargetEffect(passive.lootStepEffect([active.lootCardsEffect(game, nr.nextNumber())], game));
         case "prevent the next x damage you would take this turn":
             return noTargetEffect(passive.preventNextDamageUpToEffect(nr.nextNumber(), game));
@@ -986,7 +988,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "while this has x counters on it, you have x [atk]":
             const counters = nr.nextNumber();
             const atkBonus2 = nr.nextNumber();
-            return noTargetEffect(passive.ConditionalStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], atkBonus2, (player: Player, card: Card) => card.tags.counters === counters, ["on:counter:modified"], game, false));
+            return noTargetEffect(passive.ConditionalStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], atkBonus2, (player: Player, card: Card) => card.counters.value("normal") === counters, ["on:counter:modified"], game, false));
         case "if you control x+ souls, you have x [atk] instead":
             const nbSouls = nr.nextNumber();
             const atk = nr.nextNumber();
@@ -1059,7 +1061,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "choose a player.\nthey gain x [atk] till end of turn and may attack an additional time this turn":
             return { effectFunction: passive.temporaryStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler), game.entityHandler.addAttackThisTurn.bind(game.entityHandler)], nr.nextNumber(), game, "next"), targetSelectors: selectPlayer(game) };
         case "you have x [hp] while this has a counter on it":
-            return noTargetEffect(passive.ConditionalStatModifierEffect([game.entityHandler.addHealth.bind(game.entityHandler)], nr.nextNumber(), (player, card) => card.tags.counters > 0, ["on:counter:modified"], game, false ));
+            return noTargetEffect(passive.ConditionalStatModifierEffect([game.entityHandler.addHealth.bind(game.entityHandler)], nr.nextNumber(), (player, card) => card.counters.value("normal") > 0, ["on:counter:modified"], game, false ));
         case "choose a player. prevent the next x damage they would take this turn. till end of turn, when that player dies, deal x damage to each player other than that player and you":
             return { effectFunction: passive.preventDamageAndDealOnDeathEffect(game, nr.nextNumber(), nr.nextNumber()), targetSelectors: selectAlivePlayer(game) };
         case "you have x to attack rolls":
@@ -1175,7 +1177,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "if you would gain any amount of ¢, this levels up by that much instead":
             return noTargetEffect(passive.gainCoinsLevelUpEffect(game));
         case "each time a player dies, this levels up":
-            return noTargetEffect(passive.onAnyEventEffect("on:death:penalty", [(data:EffectData)=>{game.cardHandler.addToCounter(data.issuer, data.it, "counters", 1); return true;}], game, nr.masked));
+            return noTargetEffect(passive.onAnyEventEffect("on:death:penalty", [(data:EffectData)=>{game.cardHandler.addToCounter(data.issuer, data.it, "normal", 1); return true;}], game, nr.masked));
         case "rewards are doubled till end of turn":
             return noTargetEffect(passive.doubleRewardsTillEndOfTurnEffect(game));
         case "you may look at the top card of the treasure deck at any time on your turn":
@@ -1187,7 +1189,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "you may play an additional loot card on your turn":
             return noTargetEffect(passive.onYourTurnModifier([game.entityHandler.addLootPlay.bind(game.entityHandler)], 1, game));
         case "put a gold counter on another non-eternal item you control":
-            return noTargetEffect(passive.giveCounterToAnotherItemOnEnterPlayEffect(game, "goldCounters"));
+            return noTargetEffect(passive.giveCounterToAnotherItemOnEnterPlayEffect(game, "golden"));
         case "choose a shop item. this gains the abilities of that item till end of turn":
             return { effectFunction: passive.gainAbilitiesUntilEffect(game, "on:turn:end", selectShopItem(game)[0]!, false), targetSelectors: selectShopItem(game) };
         case "choose a shop item. this gains the abilities of that item till the start of your next turn. recharge this":

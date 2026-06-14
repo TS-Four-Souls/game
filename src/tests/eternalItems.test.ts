@@ -139,14 +139,14 @@ describe("Eternal Items", () => {
         game.cardHandler.recharge(theBone);
         await game.activateItem(player1, theBone);
         await game.actions.resolveStack();
-        expect(theBone.tags.counters).toBe(1);
+        expect(theBone.counters.value("normal")).toBe(1);
         await game.endTurn();
         expect(theBone.charged).toBe(false);
         game.cardHandler.recharge(theBone);
         await game.activateItem(player1, theBone);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(theBone.tags.counters).toBe(2);
+        expect(theBone.counters.value("normal")).toBe(2);
 
     });
 
@@ -166,7 +166,7 @@ describe("Eternal Items", () => {
         game.cardHandler.recharge(theBone);
         await game.activateItem(player1, theBone);
         await game.actions.resolveStack();
-        expect(theBone.tags.counters).toBe(2);
+        expect(theBone.counters.value("normal")).toBe(2);
         
         // Create a dice roll scenario
         const card = game.decks["loot"]!.getCardFromSlug("b2-pills") as LootCard;
@@ -183,7 +183,7 @@ describe("Eternal Items", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve the paid effect
         expect(dice.value).toBe(5); // Should be 4 + 1
-        expect(theBone.tags.counters).toBe(1); // Should have 1 counter left
+        expect(theBone.counters.value("normal")).toBe(1); // Should have 1 counter left
         
         await game.actions.resolveStack(); // resolve the modified dice roll
     });
@@ -203,7 +203,7 @@ describe("Eternal Items", () => {
             await game.activateItem(player1, theBone);
             await game.actions.resolveStack();
         }
-        expect(theBone.tags.counters).toBe(3);
+        expect(theBone.counters.value("normal")).toBe(3);
         
         const initialHP = player2.currentHealthPoints;
         
@@ -213,7 +213,7 @@ describe("Eternal Items", () => {
         await game.actions.resolveStack(); // resolve damage
         
         expect(player2.currentHealthPoints).toBe(initialHP - 1);
-        expect(theBone.tags.counters).toBe(1); // Should have 1 counter left
+        expect(theBone.counters.value("normal")).toBe(1); // Should have 1 counter left
     });
 
     it("The Bone: paid effect 2 (remove 2 counters to deal 1 damage to monster)", async () => {
@@ -231,7 +231,7 @@ describe("Eternal Items", () => {
         game.cardHandler.recharge(theBone);
         await game.activateItem(player1, theBone);
         await game.actions.resolveStack();
-        expect(theBone.tags.counters).toBe(2);
+        expect(theBone.counters.value("normal")).toBe(2);
         
         // Add a monster to the board
         const monster = game.monsters[0]!;
@@ -243,7 +243,7 @@ describe("Eternal Items", () => {
         await game.actions.resolveStack(); // resolve damage
         
         expect(monster.currentHealthPoints).toBe(initialMonsterHP - 1);
-        expect(theBone.tags.counters).toBe(0); // Should have 0 counters left
+        expect(theBone.counters.value("normal")).toBe(0); // Should have 0 counters left
     });
 
     // "[Paid Effect] Remove 5 counters from this: This becomes a soul and loses all abilities."
@@ -261,7 +261,7 @@ describe("Eternal Items", () => {
             await game.activateItem(player1, theBone);
             await game.actions.resolveStack();
         }
-        expect(theBone.tags.counters).toBe(5);
+        expect(theBone.counters.value("normal")).toBe(5);
         expect(theBone.eternal).toBe(true);
         
         const initialSouls = player1.totalSouls;
@@ -270,7 +270,7 @@ describe("Eternal Items", () => {
         await game.activateItem(player1, theBone, [], 2); // Index 2 for third paid effect
         await game.actions.resolveStack(); // resolve soul conversion
         
-        expect(theBone.tags.counters).toBe(0); // Counters should be removed
+        expect(theBone.counters.value("normal")).toBe(0); // Counters should be removed
         expect(player1.totalSouls).toBe(initialSouls + 1); // Should gain a soul
         // The bone should lose its eternal status and abilities
         expect(theBone.eternal).toBe(false);
@@ -292,7 +292,7 @@ describe("Eternal Items", () => {
             await game.activateItem(player1, theBone);
             await game.actions.resolveStack();
         }
-        expect(theBone.tags.counters).toBe(4);
+        expect(theBone.counters.value("normal")).toBe(4);
         
         const initialSouls = player1.souls;
         
@@ -300,7 +300,7 @@ describe("Eternal Items", () => {
         await expect(async () => {
             await game.activateItem(player1, theBone, [], 2)}
         ).toThrow();
-        expect(theBone.tags.counters).toBe(4); // Counters should remain unchanged
+        expect(theBone.counters.value("normal")).toBe(4); // Counters should remain unchanged
         expect(player1.souls).toBe(initialSouls); // Souls should remain unchanged
     });
 

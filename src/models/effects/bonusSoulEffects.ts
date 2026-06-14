@@ -133,7 +133,7 @@ function soulOfEnvyEffect(game: Game, card: Card): OffEffectFunction {
 
 function soulOfLustEffect(game: Game, card: Card): OffEffectFunction {
     let offDeath: (() => void) | null = null;
-    card.tags.counters = 0;
+    card.counters.reset("normal");
 
     const cleanup = () => {
         offDeath?.();
@@ -142,8 +142,8 @@ function soulOfLustEffect(game: Game, card: Card): OffEffectFunction {
 
     offDeath = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
         if(!(eventData.target instanceof Player)) return;
-        game.cardHandler.addToCounter(eventData.eventIssuer, card, "counters", 1);
-        if(card.tags.counters < 6) return;
+        game.cardHandler.addToCounter(eventData.eventIssuer, card, "normal", 1);
+        if(card.counters.value("normal") < 6) return;
         game.cardHandler.addSoul(game.currentPlayer, card);
         cleanup();
     });
@@ -153,7 +153,7 @@ function soulOfLustEffect(game: Game, card: Card): OffEffectFunction {
 
 function soulOfPrideEffect(game: Game, card: Card): OffEffectFunction {
     let offDeath: (() => void) | null = null;
-    card.tags.counters = 0;
+    card.counters.reset("normal");
 
     const cleanup = () => {
         offDeath?.();
@@ -162,8 +162,8 @@ function soulOfPrideEffect(game: Game, card: Card): OffEffectFunction {
 
     offDeath = game.emitter.on("on:enter:play:after", (eventData: OnEnterPlayAfterData) => {
         if(!(eventData.card instanceof TreasureCard)) return;
-        game.cardHandler.addToCounter(eventData.eventIssuer, card, "counters", 1);
-        if(card.tags.counters < 6) return;
+        game.cardHandler.addToCounter(eventData.eventIssuer, card, "normal", 1);
+        if(card.counters.value("normal") < 6) return;
         game.cardHandler.addSoul(eventData.eventIssuer, card);
         cleanup();
     });
@@ -173,7 +173,7 @@ function soulOfPrideEffect(game: Game, card: Card): OffEffectFunction {
 
 function soulOfWrathEffect(game: Game, card: Card): OffEffectFunction {
     let offDeath: (() => void) | null = null;
-    card.tags.counters = 0;
+    card.counters.reset("normal");
 
     const cleanup = () => {
         offDeath?.();
@@ -182,8 +182,8 @@ function soulOfWrathEffect(game: Game, card: Card): OffEffectFunction {
 
     offDeath = game.emitter.on("on:death:before-penalty", (eventData: OnDeathBeforePenaltyData) => {
         if(!(eventData.eventIssuer instanceof Player)) return;
-        game.cardHandler.addToCounter(eventData.eventIssuer, card, "counters", 1);
-        if(card.tags.counters < 6) return;
+        game.cardHandler.addToCounter(eventData.eventIssuer, card, "normal", 1);
+        if(card.counters.value("normal") < 6) return;
         game.cardHandler.addSoul(eventData.eventIssuer, card);
         cleanup();
     });

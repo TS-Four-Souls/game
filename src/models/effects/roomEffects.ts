@@ -989,21 +989,30 @@ export function socialGoalsEffect(game: Game, numbers: number[]): EffectFunction
 
     return (data: EffectData) => {
         data.it.canBeDiscarded = false; // Prevent the card from being discarded until goals are completed
-        data.it.tags.counters = 0;
+        data.it.counters.reset("normal"); // Note that the counter is only there for display purposes.
         let sixCoinGiven: boolean = false;
         let lootPlayed = 0;
         let monstersKilled = 0;
         let itemsPurchased = 0;
         let sixesRolled = 0;
+        const tests = [
+            () => lootPlayed >= goalsLoot, 
+            () => monstersKilled >= goalsMonster, 
+            () => sixCoinGiven, 
+            () => itemsPurchased >= goalsPurchase, 
+            () => sixesRolled >= 3];
+        let goalsCompleted = 0;
 
         function tryResolve() {
-            let goalsCompleted = 0;
-            if(lootPlayed >= goalsLoot) goalsCompleted++;
-            if(monstersKilled >= goalsMonster) goalsCompleted++;
-            if(sixCoinGiven) goalsCompleted++;
-            if(itemsPurchased >= goalsPurchase) goalsCompleted++;
-            if(sixesRolled >= 3) goalsCompleted++;
-            data.it.tags.counters = goalsCompleted;
+            data.it.counters.reset("normal");
+            for(let i = 0; i < tests.length; i++) {
+                if(tests[i]!()) {
+                    goalsCompleted++;
+                    // game.cardHandler.addToCounter(game.currentPlayer, data.it, "normal", 1);
+                    tests[i] = () => false; // Mark this goal as completed to prevent it from being counted multiple times
+                }
+            }
+            game.cardHandler.addToCounter(game.currentPlayer, data.it, "normal", goalsCompleted);
             if(goalsCompleted >= discardObjective)
                 data.it.canBeDiscarded = true; 
             if(goalsCompleted >= goalsObjective)

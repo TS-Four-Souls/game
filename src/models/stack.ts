@@ -171,7 +171,7 @@ export class Stack {
         });
     }
 
-    async reorderStack(currentPlayer: Player, count: number): Promise<void> {
+    reorderStack(currentPlayer: Player, count: number): void {
         const topElements = this.elements.slice(-count);
         if(topElements.some(el => el.json.type !== "effect")) // Only effects can be reordered.
           return;

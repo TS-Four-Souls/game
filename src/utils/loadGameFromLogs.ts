@@ -9,6 +9,9 @@ import {
   executePlayCardRequest,
 } from "@/utils/gameRequestHelpers";
 
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -365,7 +368,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
 
         case "AttackMonster": {
           const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          executeAttackMonsterRequest(game, entry.payload, player);
+          await executeAttackMonsterRequest(game, entry.payload, player);
           break;
         }
 
@@ -394,12 +397,9 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
 
         case "Resolve": {
           // Start resolution and track the promise so we can wait for it after selections are submitted
-          activeResolutionPromise = game.actions.resolveStack();
-          await Promise.resolve(); // Ensure any synchronous effects are processed before potentially awaiting resolution
-          await Promise.resolve(); // Ensure any synchronous effects are processed before potentially awaiting resolution
-          await Promise.resolve(); // Ensure any synchronous effects are processed before potentially awaiting resolution
-          await Promise.resolve(); // Ensure any synchronous effects are processed before potentially awaiting resolution
-          await Promise.resolve(); // Ensure any synchronous effects are processed before potentially awaiting resolution
+            await wait(0);
+            activeResolutionPromise = game.actions.resolveStack();
+            await wait(0);
           if(!game.hasPendingSelections) {
             await activeResolutionPromise;
             activeResolutionPromise = null;

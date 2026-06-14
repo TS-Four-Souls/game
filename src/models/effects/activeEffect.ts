@@ -4,7 +4,7 @@
 
 import { type OnAttackDeclaredData, type OnDeathMonsterData } from "@/models/types/eventTypes";
 import { partialsEndingWithNumber1to6 } from "@/utils/auxiliary";
-import { assertCardMatchesDeck, type Card, CharacterCard, Deck, isDeckType, ItemCard, LootCard, LootCardEffect, MonsterCard, RoomCard, TreasureCard } from "../cards";
+import { assertCardMatchesDeck, type Card, CharacterCard, type CounterType, Deck, isDeckType, ItemCard, LootCard, LootCardEffect, MonsterCard, RoomCard, TreasureCard } from "../cards";
 import { Animated } from "../entities/animated";
 import { Entity } from "../entities/entity";
 import { Monster } from "../entities/monster";
@@ -55,7 +55,7 @@ export function loseCoinsEffect(game: Game, amount: number): EffectFunction {
 }
 
 export function eachPlayerRollsSkipNextTurnEffect(game: Game, minRoll: number, maxRoll: number): EffectFunction {
-    return async (data: EffectData) => {
+    return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         for (const player of game.players) {
             const roll = game.rollDice(player, false, data.it);
@@ -267,10 +267,8 @@ export function look1EachDeckEffect(game: Game): EffectFunction {
 
 export function removeCountersEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
-        if(!(data.it as ItemCard).tags.counters)
-            (data.it as ItemCard).tags.counters = 0;
-        if ((data.it as ItemCard).tags.counters as number >= amount) {
-            game.cardHandler.addToCounter(data.issuer, data.it, "counters", -amount);
+        if ((data.it as ItemCard).counters.value("normal") as number >= amount) {
+            game.cardHandler.addToCounter(data.issuer, data.it, "normal", -amount);
             return true;
         }
         return false;
@@ -424,7 +422,7 @@ export function destroyXItemsEffect(game: Game, x: number): EffectFunction {
 }
 
 export function changeRollDiceResultEffect(game: Game): EffectFunction {
-    return async (data: EffectData) => {
+    return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const choosenDiceRoll: DiceRoll = data.next as DiceRoll;
         // const selectionResult = await data.selectAndRecord(game, data.issuer, 1, [1, 2, 3, 4, 5, 6], false, "Select a value to change the roll to.");
@@ -743,7 +741,7 @@ export function lookAtTopXPut1InYourHandRestInAnotherPlayerHandEffect(game: Game
 }
 
 export function stealNonEternalItemEffect(game: Game): EffectFunction {
-    return async (data: EffectData) => {
+    return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const itemToSteal = data.next;
         if(itemToSteal.eternal)
@@ -766,7 +764,7 @@ export function stealNonEternalItemFromTargetEffect(game: Game): EffectFunction 
 }
 
 export function stealNonEternalItemFromAnywhereEffect(game: Game): EffectFunction {
-    return async (data: EffectData) => {
+    return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const itemToSteal = data.next;
         if(itemToSteal.eternal)
@@ -795,7 +793,7 @@ export function gainCoinsBasedOnMonsterSlotsAndLootInHandEffect(game: Game): Eff
 }
 
 export function lootBasedOnTargetPlayersLootCardsEffect(game: Game): EffectFunction {
-    return async (data: EffectData) => {
+    return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const targetPlayer = data.next as Player;
         if(!(targetPlayer instanceof Player)) 
@@ -950,7 +948,7 @@ export function lookAtHands(game: Game): EffectFunction {
 }
 
 export function dealXDamageDividedAsYouChooseEffect(game: Game, damage: number): EffectFunction {
-    return async (data: EffectData) => {
+    return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const player = data.issuer;
         const firstTarget = data.next as Entity;
@@ -1032,9 +1030,9 @@ export function addCountersAndGainTreasureEffect(countersThreshold: number, toRe
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const dmg = data.next as number;
-        game.cardHandler.addToCounter(data.issuer, data.it, "counters", dmg);
-        if (data.it.tags.counters >= countersThreshold) {
-            game.cardHandler.addToCounter(data.issuer, data.it, "counters", -toRemove);
+        game.cardHandler.addToCounter(data.issuer, data.it, "normal", dmg);
+        if (data.it.counters.value("normal") >= countersThreshold) {
+            game.cardHandler.addToCounter(data.issuer, data.it, "normal", -toRemove);
             game.gainTreasure(data.issuer, treasureToGain);
         }
         return true;
@@ -1043,7 +1041,7 @@ export function addCountersAndGainTreasureEffect(countersThreshold: number, toRe
 
 export function becomeSoulIfAboveXCountersEffect(countersThreshold: number, game: Game): EffectFunction {
     return (data: EffectData) => {
-        if (data.it.tags.counters >= countersThreshold) {
+        if (data.it.counters.value("normal") >= countersThreshold) {
             const owner = game.getOwner(data.it);
             if(owner instanceof Player === false)
                 return false;
@@ -1051,7 +1049,7 @@ export function becomeSoulIfAboveXCountersEffect(countersThreshold: number, game
                 {
                     return false;
                 };
-            enterPlayBecomeSoulEffect(game)(new EffectData(data.it, () => owner, []));
+            void enterPlayBecomeSoulEffect(game)(new EffectData(data.it, () => owner, []));
         }
         return true;
     };
@@ -1267,7 +1265,7 @@ export function flipCharacterEffect(game: Game): EffectFunction {
 }
 
 export function dealDamageToUpToXMonstersOrPlayersEffect(game: Game, maxTargets: number, dmg: number): EffectFunction {
-    return async (data: EffectData) => {
+    return (data: EffectData) => {
         for (let i = 0; i < maxTargets; i++) {
             const target = data.next as Entity;
             if(!target || !(target instanceof Entity)) break;
@@ -1300,9 +1298,9 @@ export function destroyItemStealFromShopEffect(game: Game, may: boolean): Effect
 export function removeCounterAndLootIfAbove(game: Game, counterThreshold: number, lootAmount: number): EffectFunction {
     return (data: EffectData) => {
         if(!(data.issuer instanceof Player)) return false;
-        const currentCounters = data.it.tags.counters || 0;
+        const currentCounters = data.it.counters.value("normal") || 0;
         if(currentCounters >= counterThreshold) {
-            game.cardHandler.addToCounter(data.issuer, data.it, "counters", -currentCounters);
+            game.cardHandler.addToCounter(data.issuer, data.it, "normal", -currentCounters);
             game.loot(data.issuer, lootAmount);
             return true;
         }
@@ -1325,7 +1323,7 @@ export function lookAndOrderEffect(deckName: string, numberOfCards: number, game
 }
 export function putCountersOnItemEffect(amount: number, game: Game): EffectFunction {   
     return (data: EffectData) => {
-        game.cardHandler.addToCounter(data.issuer, data.it, "counters", amount);
+        game.cardHandler.addToCounter(data.issuer, data.it, "normal", amount);
         return true;
     };
 }
@@ -1376,7 +1374,7 @@ export function pillsInLootDeckEffect(game: Game, numberOfCards: number): Effect
 export function gainCoinsBasedOnCountersEffect(game: Game): EffectFunction {
         return (data: EffectData) => {
         if(data.issuer instanceof Player === false) return false;
-        const counters = data.it.tags.counters || 0;
+        const counters = data.it.counters.value("normal") || 0;
         game.gainCoins(data.issuer, counters, data.it);
         return true;
     };
@@ -1428,9 +1426,9 @@ export function takeDamageAndAddCounterEffect(game: Game, damageAmount: number, 
         game.entityHandler.dealDamage(data.issuer, data.issuer, data.it, damageAmount,
             (data: EffectData) => 
             {
-                game.cardHandler.addToCounter(data.issuer, data.it, "counters", 1);
-                if(data.it.tags.counters >= counterAmount)
-                    becomeSoulIfAboveXCountersEffect(counterAmount, game)(data);
+                game.cardHandler.addToCounter(data.issuer, data.it, "normal", 1);
+                if(data.it.counters.value("normal") >= counterAmount)
+                    void becomeSoulIfAboveXCountersEffect(counterAmount, game)(data);
                 return true;
             }
         );
@@ -1533,7 +1531,7 @@ export function destroyYourItemOnYourNextTurnEndEffect(game: Game): EffectFuncti
     return (data: EffectData) => {
         let offEndTurn : null | (() => void) = null;
         
-        offEndTurn = game.emitter.on("on:turn:end", async (eventData: OnTurnEndData) => {
+        offEndTurn = game.emitter.on("on:turn:end", (eventData: OnTurnEndData) => {
             if (eventData.eventIssuer === data.issuer) {
                 const effect: EffectFunction = async (data: EffectData) => {
                     if (data.issuer instanceof Player === false) return false;
@@ -1552,7 +1550,7 @@ export function destroyYourItemOnYourNextTurnEndEffect(game: Game): EffectFuncti
 }
 
 export function chooseAnotherPlayerAndLootXEffect(game: Game, lootAmount: number): EffectFunction {
-    return async (data: EffectData) => {
+    return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const targetPlayer = data.next;
         game.loot(data.issuer, lootAmount);
@@ -1563,10 +1561,8 @@ export function chooseAnotherPlayerAndLootXEffect(game: Game, lootAmount: number
 
 export function removeCountersFromThisEffect(game: Game, amount: number): EffectFunction {
     return (data: EffectData) => {
-        if(!(data.it as ItemCard).tags.counters)
-            (data.it as ItemCard).tags.counters = 0;
-        if ((data.it as ItemCard).tags.counters as number >= amount) {
-            game.cardHandler.addToCounter(data.issuer, data.it, "counters", -amount);
+        if ((data.it as ItemCard).counters.value("normal") as number >= amount) {
+            game.cardHandler.addToCounter(data.issuer, data.it, "normal", -amount);
             return true;
         }
         return false;
@@ -1973,7 +1969,7 @@ export function putTopCardOfEachDeckIntoDiscardEffect(game: Game): EffectFunctio
 }
 
 export function becomesCopyOfEternalItemLosesEternalEffect(game: Game): EffectFunction {
-    return async (data: EffectData) => {
+    return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const target = data.next as ItemCard;
         if(!target || !(target instanceof ItemCard))
@@ -2390,8 +2386,8 @@ export function rechargeCharaEffect(game: Game, youMayEffectHanging: boolean[]):
 export function removeCounterAndDamageIfAboveX(game: Game, toRemove: number, damage: number): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        if(data.it.tags.counters >= toRemove) {
-            game.cardHandler.addToCounter(data.issuer, data.it, "counters", -data.it.tags.counters);
+        if(data.it.counters.value("normal") >= toRemove) {
+            game.cardHandler.addToCounter(data.issuer, data.it, "normal", -data.it.counters.value("normal"));
             const damageTarget = (await data.selectAndRecord(game, data.issuer, 1, 1, game.playersAndMonsters, "Select a player to deal damage to.", true, true)).selected[0] as Player;
             game.entityHandler.dealDamage(data.issuer, damageTarget, data.it, damage);
         }
@@ -2400,7 +2396,7 @@ export function removeCounterAndDamageIfAboveX(game: Game, toRemove: number, dam
 }
 
 export function rechargeUpToXOtherItemsEffect(game: Game, x: number): EffectFunction {
-    return async (data: EffectData) => {
+    return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
 
         const itemsToRecharge = [];
@@ -2497,7 +2493,7 @@ export function rollAndDestroyIfLessThanCounters(game: Game): ParsedEffect {
             if (data.issuer instanceof Player === false) return false;
             const roll = game.rollDice(data.issuer, false, data.it);
             roll.attachEffect([1,2,3,4,5,6].map((value) => (data: EffectData) => {
-            if(value < (data.it.tags.counters || 0)) {
+            if(value < (data.it.counters.value("normal") || 0)) {
                 if (data.issuer instanceof Player === false) return false;
                 const itemsToDestroy = [data.it, ...data.issuer.inPlay.filter(c => c !== data.it && c.eternal === false)];
                 return game.cardHandler.destroyCardsOrSouls(itemsToDestroy);
@@ -2524,13 +2520,12 @@ export function removeCountersAndLootOrDamageEffect(game: Game, minCounterToRemo
     return async (data: EffectData) => {
         if(data.issuer instanceof Player === false) return false;
         var possibilities = [];
-        data.it.tags.counters = data.it.tags.counters || 0;
-        for (var i = minCounterToRemove; i <= data.it.tags.counters; i++) {
+        for (var i = minCounterToRemove; i <= data.it.counters.value("normal"); i++) {
             possibilities.push(i);
         }
         const countersToRemove = (await data.selectAndRecord(game, data.issuer, 1, 1, possibilities, `Select how many counters to remove (at least ${minCounterToRemove}).`, true, true)).selected[0] as number;
         if(countersToRemove === undefined) return false;
-        game.cardHandler.addToCounter(data.issuer, data.it, "counters", -countersToRemove);
+        game.cardHandler.addToCounter(data.issuer, data.it, "normal", -countersToRemove);
         if(countersToRemove < counterThreshold) {
             game.loot(data.issuer, lootAmount);
         } else {
@@ -2549,7 +2544,7 @@ export function halfLootAndCoinsAndGiveItemEffect(game: Game): EffectFunction {
         if(!target || !(target instanceof Player))
             throw new Error("No target player for halfLootAndCoinsAndGiveItemEffect");
         const coinsToLose = Math.floor(target.coins / 2);
-        game.giveCoins(target, data.issuer, coinsToLose, data.it);
+        void game.giveCoins(target, data.issuer, coinsToLose, data.it);
 
         const lootToLose = Math.floor(target.hand.length / 2);
         const loots = (await data.selectAndRecord(game, target, lootToLose, lootToLose, target.hand.cards, `Select ${lootToLose} loot card${lootToLose > 1 ? 's' : ''} to give to ${data.issuer.id}.`, true, false)).selected as LootCard[];
@@ -2645,7 +2640,7 @@ export function killTargetEffect(game: Game, selectors: TargetsSelector[] = [], 
  * if that monster dies this attack, the chosen player also gains the rewards.
  */
 export function nonActivePlayerHelpFight(game: Game): EffectFunction {
-    return async (data: EffectData) => {
+    return (data: EffectData) => {
         let offDeclareAttack: (() => void) | null = null;
         let offEndTurn: (() => void) | null = null;
         let offDeath: (() => void) | null = null;
@@ -2654,7 +2649,7 @@ export function nonActivePlayerHelpFight(game: Game): EffectFunction {
             if(!helper || !(helper instanceof Player))
                 throw new Error("Player invalid for nonActivePlayerHelpFight");
             const newData = new EffectData(data.it, () => helper, []);
-            room.makeAnAttackRollAfterEachAttackRollEffect(game)(newData);
+            void room.makeAnAttackRollAfterEachAttackRollEffect(game)(newData);
                     
             offDeath = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
                 const { eventIssuer, target, source } = eventData;
@@ -2667,7 +2662,7 @@ export function nonActivePlayerHelpFight(game: Game): EffectFunction {
                 if(source instanceof DiceRoll === false || (source as DiceRoll).issuer !== helper) return;
                 
                 // Add all effects as a single stack element
-                const effect = async (effectData: EffectData) => {
+                const effect = (effectData: EffectData) => {
                     game.entityHandler.entityRewards(eventIssuer, helper)
                     return true;
                 };
@@ -2754,7 +2749,7 @@ export function putCountersBasedOnLootCardsInHandEffect(game: Game): EffectFunct
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const countersToAdd = data.issuer.hand.length;
-        game.cardHandler.addToCounter(data.issuer, data.it, "counters", countersToAdd);
+        game.cardHandler.addToCounter(data.issuer, data.it, "normal", countersToAdd);
         return true;
     };
 }
@@ -2762,7 +2757,7 @@ export function putCountersBasedOnLootCardsInHandEffect(game: Game): EffectFunct
 export function conditionalLootBasedOnCountersEffect(game: Game, amountToLoot: number): EffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const counters = data.it.tags.counters || 0;
+        const counters = data.it.counters.value("normal") || 0;
         if(counters > data.issuer.hand.length) {
             game.loot(data.issuer, amountToLoot);
         }
@@ -2809,21 +2804,15 @@ export function addOrRemoveCounterOnCardEffect(game: Game, amount: number, type:
         youMayEffectHanging[0] = false;
         if(!card)
             return false;
-        const countersTypes = [];
-        if(type === "any" || (card.tags.counters !== undefined && card.tags.counters > 0)) {
-            countersTypes.push("counter");
-        }
-        if(type === "any" || (card.tags.goldCounters !== undefined && card.tags.goldCounters > 0)) {
-            countersTypes.push("gold counter");
-        }
-        const selectedCounterType = (await data.selectAndRecord(game, data.issuer, 1, 1, countersTypes, "Select a counter type to add or remove counters from.", true, true)).selected[0];
-        if(selectedCounterType === undefined)
+        const AllCountersTypes: CounterType[] = ["normal", "golden"];
+        const counterTypes = type === "alreadyOnIt" ? card.counters.counterOwned : AllCountersTypes;
+        const selectedType = (await data.selectAndRecord(game, data.issuer, 1, 1, counterTypes, "Select a counter type to add or remove counters from.", true, true)).selected[0];
+        if(selectedType === undefined)
             return false;
-        const selectedType = selectedCounterType === "counter" ? "counters" : "goldCounters";
-        const toAdd = (await data.selectAndRecord(game, data.issuer, 1, 1, [-amount, amount], `Do you want to add ${amount} ${selectedCounterType}${amount > 1 ? 's' : ''} or remove ${amount} ${selectedCounterType}${amount > 1 ? 's' : ''} ?`, true, true)).selected[0] as number;
+        const toAdd = (await data.selectAndRecord(game, data.issuer, 1, 1, [-amount, amount], `Do you want to add ${amount} ${selectedType}${amount > 1 ? 's' : ''} or remove ${amount} ${selectedType}${amount > 1 ? 's' : ''} ?`, true, true)).selected[0] as number;
         if(toAdd === undefined)
             return false;
-        if (card.tags[selectedType] > 0 || (type === "any" && toAdd > 0)) {
+        if (card.counters.value(selectedType) > 0 || (type === "any" && toAdd > 0)) {
             game.cardHandler.addToCounter(data.issuer, card, selectedType, toAdd);
         }
         return true;
@@ -2919,7 +2908,7 @@ export function activePlayerChoosePlayerMustAttackThisAfterEachAttackRollEffect(
         // If the current player dies in the mean time or is not in combat anymore, we can end the effect immediately.
         if(issuer.isEngagedInCombat === false)
             return false;
-        room.makeAnAttackRollAfterEachAttackRollEffect(game)(new EffectData(data.it, () => target, []));
+        void room.makeAnAttackRollAfterEachAttackRollEffect(game)(new EffectData(data.it, () => target, []));
         let offEndTurn: (() => void) | null = null;
         let offDeath: (() => void) | null = null;
 

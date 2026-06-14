@@ -42,6 +42,7 @@ class Card {
     protected _entity: Entity | undefined = undefined;
     protected _identityHash: string | null = null;
     protected _flipData: FlipData | undefined = undefined;
+    protected _counterHandler = new CounterHandler
 
     constructor(id: number,
         globalId: number,
@@ -76,7 +77,9 @@ class Card {
         }
         return this._name + ": " + this._effectOutcomes.join(", ") + toAdd;
     }
-
+    get counters(){
+        return this._counterHandler;
+    }
     get activeEffectList(): {index: "tap" | number, description: string}[] {
         if(this instanceof LootCard && this.trinket && !this.canBeActivated)
             return [];
@@ -1275,6 +1278,73 @@ function randomCardFromSet<T extends Card>(set: CardSet<T>, random: () => number
     throw new Error(`Card id ${randomIndex} is out of bounds for card set of length ${set.length}`);
     }
     return card;
+}
+
+export type CounterType = "normal" | "golden";
+export class Counter
+{
+    private _type: CounterType;
+    private _value: number;
+
+    constructor(type: CounterType, initialValue: number)
+    {
+        this._type = type;
+        this._value = initialValue;
+    }
+
+    get value(){
+        return this._value;
+    }
+    get hasCounter(){
+        return this.value > 0;
+    }
+    
+    get type(){
+        return this._type;
+    }
+
+    addToValue(toAdd: number)
+    {
+        this._value = Math.max(0, this._value + toAdd);
+    }
+
+    resetValue()
+    {
+        this._value = 0;
+    }   
+}
+
+export class CounterHandler{
+    private counters: Map<CounterType, Counter> = new Map();
+    constructor(){}
+    get counterOwned(): CounterType[]{
+        const res: CounterType[] = [];
+        this.counters.forEach((value, key) => {if(value.value > 0) res.push(key)});
+        return res;
+    }
+    getCounter(type: CounterType): Counter{
+        if(this.counters.get(type) === undefined)
+            this.counters.set(type, new Counter(type, 0));
+        return this.counters.get(type)!;
+    }
+    value(type: CounterType): number{
+        return this.getCounter(type).value;
+    }
+    isDefined(type: CounterType): boolean{
+        return this.counters.get(type) !== undefined;
+    }
+    addToCounter(toAdd: number, type: CounterType)
+    {
+        const counter = this.getCounter(type);
+        counter.addToValue(toAdd);
+    }
+    reset(type: CounterType){
+        this.getCounter(type).resetValue();
+    }
+    hasCounter(type: CounterType){
+        return this.getCounter(type).hasCounter;
+    }
+
 }
 
 export { EffectData } from './types/cardTypes';

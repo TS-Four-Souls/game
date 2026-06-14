@@ -111,14 +111,14 @@ describe("Known bugs that have be corrected", () => {
         const bumbo = game.obtainCard("b2-bum_bo") as ItemCard;
         game.cardHandler.addInPlay(player1, bumbo);
         game.gainCoins(player1, 40, "gift");
-        expect(bumbo.tags.counters || 0).toBe(40);
+        expect(bumbo.counters.value("normal") || 0).toBe(40);
         expect(game.entityHandler.getAttack(player1)).toBe(2);
         expect(game.entityHandler.getAttack(player2)).toBe(1);
         expect(player1.coins).toBe(0);
         game.cardHandler.stealItemAnywhere(player2, bumbo);
         expect(player1.inPlay).not.toContain(bumbo);
         expect(player2.inPlay).toContain(bumbo);
-        expect(bumbo.tags.counters || 0).toBe(40);
+        expect(bumbo.counters.value("normal") || 0).toBe(40);
         expect(game.entityHandler.getAttack(player1)).toBe(1);
         expect(game.entityHandler.getAttack(player2)).toBe(2);
     });

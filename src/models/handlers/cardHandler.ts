@@ -14,7 +14,8 @@ import {
   TreasureCard,
   createEmptyDecksCollection,
   isDeckType,
-  isSameSlug
+  isSameSlug,
+  type CounterType
 } from "@/models/cards";
 import {
   selectEternalAmongX
@@ -534,14 +535,10 @@ export class CardHandler {
     return false;
   }
 
-
-  addToCounter(issuer: Entity, item: Card, counterName: string, value: number): void {
-    if (!item.tags[counterName]) {
-      item.tags[counterName] = 0;
-    }
-    const oldValue = item.tags[counterName];
-    item.tags[counterName] = Math.max(0, item.tags[counterName] + value);
-    this.game.emit("on:counter:modified", { eventIssuer: issuer, card: item, counterName: counterName, previousValue: oldValue, newValue: item.tags[counterName] });
+  addToCounter(issuer: Entity, item: Card, type: CounterType, value: number): void {
+    const oldValue = item.counters.value(type);
+    item.counters.addToCounter(value, type);
+    this.game.emit("on:counter:modified", { eventIssuer: issuer, card: item, counterName: type, previousValue: oldValue, newValue: item.counters.value(type) });
   }
 
   /**

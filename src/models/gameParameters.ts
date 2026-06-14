@@ -219,6 +219,7 @@ class BooleanGameParameter {
 
 export class GameParameters {
     readonly miniDraft: BooleanGameParameter;
+    readonly useFSP2Cards: BooleanGameParameter;
     readonly nbSoulsToWin: NumericGameParameter;
     readonly nbItemsInShop: NumericGameParameter;
     readonly timer: NumericGameParameter;
@@ -254,10 +255,12 @@ export class GameParameters {
     private _filter: (card: Card) => boolean = (card: Card) => {
         // In custom mode, don't filter at all
         if (this._deckMode === "custom") return true;
-        // In standard mode with restriction OFF, show all cards
-        if (!this.nbPlayerCardRestriction.value) return true;
-        // In standard mode with restriction ON, only show cards meeting player minimum
-        return card.minimumPlayers <= this._getCurrentNbPlayers();
+        // cards meeting player minimum filter
+        if (this.nbPlayerCardRestriction.value && card.minimumPlayers > this._getCurrentNbPlayers()) return false;
+        // FSP2 filter
+        if(!this.useFSP2Cards.value && card.slug.startsWith("fsp2-"))
+            return false;
+        return true;
     };
 
     constructor(onChange: () => void) {
@@ -265,6 +268,7 @@ export class GameParameters {
         this._currentNbPlayers = 0;
         this.miniDraft = new BooleanGameParameter(false, onChange);
         this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
+        this.useFSP2Cards = new BooleanGameParameter(true, onChange);
         this.nbSoulsToWin = new NumericGameParameter(1, 4, 20, onChange);
         this.character = new CharacterDeckParameter(4, 100, onChange, this._filter);
         this.monster = new DeckParameter("monster", 50, 1000, onChange, this._filter);
@@ -296,6 +300,7 @@ export class GameParameters {
             useBonusSouls: {text: "Use bonus souls?", value: this.playWithBonusSouls.value},
             //useRooms: {text: "Use rooms?", value: this.playWithRooms.value},
             ...(this._deckMode === "standard" && this._currentNbPlayers < 3 ? {nbPlayerCardRestriction: {text: "Number player card restriction", value: this.nbPlayerCardRestriction.value}} : {}),
+            ...(this._deckMode === "standard" ? {useFSP2Cards: {text: "Use four souls+ cards?", value: this.useFSP2Cards.value}} : {}),
             character: {total: this.character.count, cards: this.character.json()},
             monster: {total: this.monster.count, cards: this.monster.json()},
             treasure: {total: this.treasure.count, cards: this.treasure.json()},
@@ -400,6 +405,15 @@ export class GameParameters {
             }
             if (decks.nbPlayerCardRestriction?.value !== undefined) {
                 this.nbPlayerCardRestriction.value = decks.nbPlayerCardRestriction.value;
+                this._deckMode = "standard"; // Switch back to standard mode when player card restriction is toggled, as it's the only flag that affects card counts in standard mode
+                for (const deck of [this.character, this.monster, this.treasure, this.loot, this.bsoul, this.room]) {
+                    deck.filter = this._filter;
+                    deck.resetCardCounts(false);
+                }
+                this._onChange();
+            }
+            if (decks.useFSP2Cards?.value !== undefined) {
+                this.useFSP2Cards.value = decks.useFSP2Cards.value;
                 this._deckMode = "standard"; // Switch back to standard mode when player card restriction is toggled, as it's the only flag that affects card counts in standard mode
                 for (const deck of [this.character, this.monster, this.treasure, this.loot, this.bsoul, this.room]) {
                     deck.filter = this._filter;

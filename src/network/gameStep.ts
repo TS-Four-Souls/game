@@ -50,7 +50,7 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
   socket.on("rollback", (callback) =>
     errorGuardedEndpoint(callback, async () => {
       const logs: HistoricEntry[] = game.getRollbackLog(player);
-      console.log("Rollback logs", logs.at(-1)!.type);
+      // console.log("Rollback logs", logs.at(-1)!.type);
       if (!logs)
         throw new Error(
           "Logs are not valid JSON or not in the expected format.",

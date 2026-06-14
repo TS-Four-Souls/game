@@ -37,7 +37,7 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         const har = game.monsters[2]!;
-        game.cardHandler.addToCounter(har, har.card, "counters", 4);
+        game.cardHandler.addToCounter(har, har.card, "normal", 4);
         game.random = () => 0.99;
         expect(game.stack.size).toBe(3);
         game.resetStack(); // otherwise players would die. It is also tested elsewhere.
@@ -115,9 +115,9 @@ describe("Requiem Monsters ", () => {
         expect(game.monsters[2]!.id).toBe("r-the_harbingers");
         expect(har.isDead).toBe(false);
         expect(har.currentHealthPoints).toBe(har.healthPoints);
-        expect(har.card.tags.counters).toBe(1);
+        expect(har.card.counters.value("normal")).toBe(1);
         game.random = () => 0.01;
-        game.cardHandler.addToCounter(har, har.card, "counters", 3);
+        game.cardHandler.addToCounter(har, har.card, "normal", 3);
         expect(game.stack.size).toBe(3);
         await game.actions.resolveStack();
         await game.actions.resolveStack();

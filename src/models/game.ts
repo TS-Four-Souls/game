@@ -389,10 +389,10 @@ export class Game extends SelectionHandler {
   /**
    * Schedules a callback to run once the stack becomes empty.
    */
-  async executeWhenStackEmpty(
+  executeWhenStackEmpty(
     callback: () => void | Promise<void>
   ): Promise<void> {
-    await this.executeWhenStackSubset([], callback);
+    return this.executeWhenStackSubset([], callback);
   }
 
   /**
@@ -568,7 +568,7 @@ export class Game extends SelectionHandler {
 
   initializeWinningCondition(): void {
     let offSoulGained: (() => void) | null = null;
-        offSoulGained = this.emitter.on("on:soul:gained", async ({ eventIssuer }) => {
+        offSoulGained = this.emitter.on("on:soul:gained", ({ eventIssuer }) => {
           if(eventIssuer.totalSouls >= this.gameParameters.nbSoulsToWin.value)
           {
               this.win(eventIssuer);
@@ -649,7 +649,7 @@ export class Game extends SelectionHandler {
     this.emit("on:game:start", {});
     this.entityHandler.healEveryone();
     
-    this.executeWhenStackEmpty(() => {
+    void this.executeWhenStackEmpty(() => {
       this.startTurn();
     });
   }
@@ -669,7 +669,7 @@ export class Game extends SelectionHandler {
     }
     if(this.gameParameters.miniDraft.value)
       await miniDraft(this);
-    this.resolveCallbacks();
+    await this.resolveCallbacks();
   } 
 
   /**
