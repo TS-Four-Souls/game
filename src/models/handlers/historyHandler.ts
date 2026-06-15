@@ -7,8 +7,8 @@ import {
   type Issuer,
   type Requests,
   type StackElementJson,
-} from "../shared/api";
-import type { Game } from "./game";
+} from "../../shared/api";
+import type { Game } from "../game";
 
 /* This class is responsible for handling historic data.
  * Historic data is divided into two categories:

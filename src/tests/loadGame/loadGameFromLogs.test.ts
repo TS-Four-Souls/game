@@ -3,7 +3,7 @@ import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
 import { Game } from "@/models/game";
 import { Player } from "@/models/entities/player";
 import { shuffle } from "@/utils/auxiliary";
-import type { HistoricEntry } from "@/models/historyHandler";
+import type { HistoricEntry } from "@/models/handlers/historyHandler";
 import { string } from "zod";
 import type { EffectOnStack } from "@/models/cards";
 import type { DetailedState } from "@/shared/api";

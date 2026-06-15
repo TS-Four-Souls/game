@@ -29,13 +29,13 @@ import { ActionHandler } from "./handlers/actionHandler";
 import { AssertHandler } from "./handlers/assertHandler";
 import { CardHandler } from "./handlers/cardHandler";
 import { EntityHandler } from "./handlers/entityHandler";
-import { HistoricHandler, type HistoricEntry } from "./historyHandler";
+import { HistoricHandler, type HistoricEntry } from "./handlers/historyHandler";
 import type { ServerRoomBroadcast } from "./roomBroadcast";
-import { SelectionHandler, type PendingSelection } from "./selection";
+import { SelectionHandler, type PendingSelection } from "./handlers/selectionHandler";
 import { Encounters } from "./slots/encounters";
 import { Rooms } from "./slots/rooms";
 import { Shop } from "./slots/shop";
-import { TurnHandler } from "./turnHandler";
+import { TurnHandler } from "./handlers/turnHandler";
 import { miniDraft } from "./variants";
 
 /*
@@ -60,12 +60,6 @@ export class Game extends SelectionHandler {
   readonly _actionHandler = new ActionHandler(this);
   private _entityHandler = new EntityHandler(this);
   private _cardHandler = new CardHandler(this);
-  // private _decks: DecksCollection;
-  // private _outsideGameCards: Card[] = [];
-  // private _bonusSouls: BsoulCard[] | undefined = undefined;
-  // private _cardMapping: Map<number, Card> = new Map();
-  // private _nextCardGlobalId: number = 0;
-  // readonly _gameStartHandler = new GameStartHandler(this);
 
   private _onStateChange: Signal<void> = new Signal();
   onStateChange: ReadableSignal<void> = this._onStateChange.readOnly();

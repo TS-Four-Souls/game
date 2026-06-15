@@ -1,6 +1,6 @@
 import { ItemCard, LootCard, MonsterCard } from "@/models/cards";
 import { Game } from "@/models/game";
-import { type HistoricEntry, type UserRequest, isStackElementJson } from "@/models/historyHandler";
+import { type HistoricEntry, type UserRequest, isStackElementJson } from "@/models/handlers/historyHandler";
 import { type DetailedState, type IdentifierType, type Issuer } from "@/shared/api";
 import {
   executeActivateRequest,

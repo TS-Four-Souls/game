@@ -1,6 +1,6 @@
 import type { SelectionItem } from "@/shared/api";
-import { Player } from "./entities/player";
-import { TargetBuilder } from "./targetBuilder";
+import { Player } from "../entities/player";
+import { TargetBuilder } from "../targetBuilder";
 
 export interface PendingSelection {
           playerId: string;

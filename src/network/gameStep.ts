@@ -18,7 +18,7 @@ import {
 import type { ItemCard, LootCard, MonsterCard } from "@/models/cards";
 import type { Game } from "@/models/game";
 import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
-import type { HistoricEntry } from "@/models/historyHandler";
+import type { HistoricEntry } from "@/models/handlers/historyHandler";
 import { enterStartStep } from "./startStep";
 import { globalEndpoints } from "./global";
 import { roomManager } from "./roomManager";

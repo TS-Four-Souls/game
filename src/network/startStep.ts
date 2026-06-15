@@ -13,7 +13,7 @@ import {
 } from "./utils";
 import { Game } from "@/models/game";
 import { enterGameStep } from "./gameStep";
-import type { HistoricEntry } from "@/models/historyHandler";
+import type { HistoricEntry } from "@/models/handlers/historyHandler";
 import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
 import { enterIntroStep } from "./introStep";
 import { globalEndpoints } from "./global";

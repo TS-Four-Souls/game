@@ -69,28 +69,10 @@ export interface ChooseOneOptions {
 export const isChooseOneOptions = (x: any): x is ChooseOneOptions => {
     return typeof x === 'object' && x !== null && 'description' in x && 'admissibleTargets' in x;
 };
-// export function IfYouDoTargetSelector(s: string, game: Game): (issuer: Player) => any[] {
-//     const options = s.split(" if you do, ").map((option) => option.trim()).filter((option) => option.length > 0);
-//     return (issuer: Player) => {
-//         const selectors = options.map((option) => targetSelectorParser(option, game)[0]!.selector(issuer));
-//         return selectors;
-//     };
-// }
-// export function chooseOneTargetSelector(s: string, game: Game): (issuer: Player) => any[] {
-//     const options = s.substring("choose one-".length).trim().split("\n").map((option) => option.trim()).filter((option) => option.length > 0);
-//     return (issuer: Player) => {
-//         const selectors: ChooseOneOptions[] = options.map((option) => ({ description: option, admissibleTargets: targetSelectorParser(option, game)[0]!.selector(issuer) }));
-//         return selectors;
-//     };
-// }
+
 export function deckSelector(filter: (name: string) => boolean = () => true, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
         return [game.decks.loot, game.decks.treasure, game.decks.monster, ...(game.rooms !== undefined ? [game.decks.room] : [])].filter((deck) => filter(deck._type));
-        return Object.keys(game.decks).filter((deckName) => filter(deckName)
-            && deckName !== "character"
-            && deckName !== "eternal"
-            && deckName !== "bsoul"
-        );
     }
 }
 
