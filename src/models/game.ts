@@ -555,11 +555,11 @@ export class Game extends SelectionHandler {
     else 
       for(const p of this.players)
       {
-        const isWinner = p.id === player.id;
+        const isWinner = p.team === player.team;
 
         this._onRoomBroadcast.dispatch({
           type: "victory",
-          title: isWinner ? "YOU WON!" : `${player.id} won, BUT MORE IMPORTANTLY, YOU LOST!`,
+          title: isWinner ? "YOU WON!" : `AHAH! YOU LOST!`,
           message: isWinner ? "Congratulations!" : `Next time, cheat!`,
           players: [p.id],
         });
