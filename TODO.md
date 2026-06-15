@@ -9,6 +9,7 @@
 - have some way to see the destoyed cards
 - being able to rename the player name
 - split game parameters into categories
+- deck type selection for ansuz instead of string
 
 ## Expand audience
 
