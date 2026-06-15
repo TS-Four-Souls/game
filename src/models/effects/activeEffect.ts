@@ -3004,7 +3004,7 @@ export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, de
             deckName = deck._type;
         }
         if(deckNameParam === "selectOnResolve")
-            deckName = (await data.selectAndRecord(game, issuer, 1, 1, game.deckNames, "Select a deck to look at the top cards of.", true, true)).selected[0] as DeckType;
+            deckName = (await data.selectAndRecord(game, issuer, 1, 1, deckSelector(undefined, game)(issuer), "Select a deck to look at the top cards of.", true, true)).selected[0]!._type as DeckType;
         if(!isDeckType(deckName))
             throw new Error("Invalid deck type for lookAndReorderTopCardsEffect");
         const top5Cards = game.cardHandler.getFirstCardsOfDeck(deckName, numberCards);
