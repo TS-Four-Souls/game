@@ -397,9 +397,17 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
 
         case "Resolve": {
           // Start resolution and track the promise so we can wait for it after selections are submitted
-            await wait(0);
+            await Promise.resolve();
+            await Promise.resolve();
+            await Promise.resolve();
+            await Promise.resolve();
+            await Promise.resolve();
             activeResolutionPromise = game.actions.resolveStack();
-            await wait(0);
+            await Promise.resolve();
+            await Promise.resolve();
+            await Promise.resolve();
+            await Promise.resolve();
+            await Promise.resolve();
           if(!game.hasPendingSelections) {
             await activeResolutionPromise;
             activeResolutionPromise = null;
