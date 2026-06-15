@@ -21,7 +21,7 @@ class RoomManager {
     }, 60_000);
   }
 
-  private pruneInactiveRooms() {
+  private pruneInactiveRooms(): void {
     console.log(
       "[RoomManager] Pruning inactive rooms. Threshold is",
       Date.now() - INACTIVE_ROOM_TIMEOUT,
@@ -90,7 +90,7 @@ class RoomManager {
     ];
   };
 
-  deleteRoom(roomId: string) {
+  deleteRoom(roomId: string): void {
     try {
       this.saveGameLogs(roomId, false);
     } catch (error) {
@@ -118,7 +118,7 @@ class RoomManager {
     // Save logs to file
     const fileName = `${roomId}_${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
     const folder = bugReport ? "bug-logs" : "room-logs";
-    bun.write(`db/${folder}/${fileName}`, logs);
+    void bun.write(`db/${folder}/${fileName}`, logs);
     return fileName;
   }
 

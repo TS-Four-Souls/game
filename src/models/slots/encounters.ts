@@ -219,7 +219,7 @@ export class Encounters extends Slots<MonsterCard> {
                     const selection = await data.selectAndRecord(this._game, this._game.currentPlayer, 1, 1, this._game.players, `Select a player to receive ${event.name}.`, true, true);
                     const owner = selection.selected[0];
                     if (!owner) return false;
-                    this._game.cardHandler.addCurse(owner, event);
+                    await this._game.cardHandler.addCurse(owner, event);
                 } else {
                     await event.onPlay(data.issuer, data.targets);
                 }
@@ -268,7 +268,7 @@ export class Encounters extends Slots<MonsterCard> {
         } else {
             this._monstersInPlay[index] = undefined!;
             const effect: EffectOnStack = this.createEventEffect(card);
-            this._game.executeWhenStackEmpty(() => {
+            void this._game.executeWhenStackEmpty(() => {
                 this._game.addToStack(effect);
             });
         }

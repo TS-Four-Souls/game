@@ -39,7 +39,7 @@ export async function randomSelect<T>(
     }
 
     if ((min === max && Options.length === max && skippable) || Options.length < min) {
-        return {
+        return await {
         selected: Options,
         remaining: [],
         };
@@ -55,7 +55,7 @@ export async function randomSelect<T>(
 } 
 
 export async function randomSelectMultiple<T>(
-        selections: Array<
+        selections: 
         {
           player: Player;
           min: number;
@@ -64,8 +64,8 @@ export async function randomSelectMultiple<T>(
           description: string;
           skippable?: boolean;
           canUseOnBoardSelection: boolean;
-        }>
-      ): Promise<Array<{ playerId: string; selected: T[]; remaining: T[] }>> {
+        }[]
+      ): Promise<{ playerId: string; selected: T[]; remaining: T[] }[]> {
         return Promise.all(selections.map(async s => {
             const res = await randomSelect(s.player, s.min, s.max, s.options, s.description, s.skippable, s.canUseOnBoardSelection);
             return {playerId: s.player.id, selected: res.selected, remaining: res.remaining};}));
@@ -252,7 +252,7 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
     dischargeEachItemsAndRemoveCoins(game);
     const el = game.stack.elements.find(el => el.json.type === "lootStep")!
     if(el)
-        el.onResolve();
+        void el.onResolve();
     game.stack.cancelElement(el);
     emptyHands(game);
     
@@ -419,9 +419,9 @@ export function setupFourPlayerGame(): GameSetupResult {
  */
 export function mockGameSelections(game: Game): void {
     // Mock single player selection
-    game.select = async (player: Player, min: number, max: number, Options: any[]) => {
+    game.select = async (player: Player, min: number, max: number, Options: any[]): Promise<{ selected: any[]; remaining: any[] }> => {
         if (max === 1 && min === max && Options.length === 1) {
-            return {
+            return await {
                 selected: Options,
                 remaining: []
             };
@@ -432,14 +432,14 @@ export function mockGameSelections(game: Game): void {
     };
 
     // Mock multiple player selection
-    game.selectMultiple = async (selections: Array<{
+    game.selectMultiple = async (selections: {
         player: Player;
         min: number;
         max: number;
         options: any[];
         asMany?: boolean;
-    }>) => {
-        return selections.map(sel => ({
+    }[]): Promise<{ playerId: string; selected: any[]; remaining: any[] }[]> => {
+        return await selections.map(sel => ({
             playerId: sel.player.id,
             selected: sel.options.slice(0, sel.max),
             remaining: sel.options.slice(sel.max)

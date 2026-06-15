@@ -91,7 +91,7 @@ export class Game extends SelectionHandler {
    * Returns the list of entities currently engaged in combat. 
    * CAREFULL IT ALSO INCLUDES ANIMATED ENTITIES.
    */
-  get entitiesInCombat(): ReadonlyArray<Entity> {
+  get entitiesInCombat(): readonly Entity[] {
     // Return a defensive copy so external code cannot mutate combat state.
     return this.entityHandler.entitiesInCombat;
   }
@@ -131,7 +131,7 @@ export class Game extends SelectionHandler {
   get cardMapping(): ReadonlyMap<number, Card> {
     return this.cardHandler.cardMapping;
   }
-  get stack() {
+  get stack(): Stack {
     return this._stack;
   }
   get actions(): ActionHandler {
@@ -182,6 +182,13 @@ export class Game extends SelectionHandler {
       throw new Error("Cheat options are not allowed in this game. You can only rollback other players' actions.");
     return this._historicHandler.rollbackLog;
   }
+  
+    /**
+     * Returns the active RNG seed used to initialize the current game generator.
+     */
+    get seed(): string {
+      return this._seed;
+    }
 
   set seed(seed: string) {
     if (seed === "") {
@@ -196,13 +203,6 @@ export class Game extends SelectionHandler {
    */
   random = (): number => {
     return this._random();
-  }
-
-  /**
-   * Returns the active RNG seed used to initialize the current game generator.
-   */
-  get seed(): string {
-    return this._seed;
   }
 
   /**

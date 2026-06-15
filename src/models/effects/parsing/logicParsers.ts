@@ -106,7 +106,7 @@ export function parseYouMayEffect(s: string, game: Game): ParsedEffect {
     const shouldHandleYouMay = [true];
     const restParsed = effectParser(restOfEffect, game, true, shouldHandleYouMay);
     return {
-        effectFunction: async (data: EffectData) => {
+        effectFunction: async (data: EffectData): Promise<boolean> => {
             if (data.issuer instanceof Player === false) return false;
             let choice = !shouldHandleYouMay[0];
             if (!choice) {

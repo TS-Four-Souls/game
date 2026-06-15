@@ -1,4 +1,4 @@
-import { type EffectOnStackJson, type LootCardOnStackJson } from '@/shared/api';
+import { type BonusSoulCard, type EffectOnStackJson, type IdentifierType, type LootCardOnStackJson } from '@/shared/api';
 import type { FlipData, BonusSoulCardType, CardRewards, CharacterCardType, EternalCardType, GenericCardType, InPlayCardType, LootCardType, MonsterCardType, RoomCardType, TreasureCardType } from '@/types/cardTypes';
 import { print, shuffle } from '@/utils/auxiliary';
 import type { Entity } from './entities/entity';
@@ -77,7 +77,7 @@ class Card {
         }
         return this._name + ": " + this._effectOutcomes.join(", ") + toAdd;
     }
-    get counters(){
+    get counters(): CounterHandler {
         return this._counterHandler;
     }
     get activeEffectList(): {index: "tap" | number, description: string}[] {
@@ -108,11 +108,11 @@ class Card {
     get entity(): Entity | undefined {
         return this._entity;
     }
-    get hasEntity(): boolean {
-        return this._entity !== undefined;
-    }
     set entity(value: Entity | undefined) {
         this._entity = value;
+    }
+    get hasEntity(): boolean {
+        return this._entity !== undefined;
     }
     get canBeActivated(): boolean {
         return this._canBeActivated;
@@ -135,40 +135,40 @@ class Card {
     get slug() : string {
         return this._slug;
     }
-    get type() {
+    get type(): DeckType {
         return this._type;
     }
     set id(value: number) {
         this._id = value;
     }
-    get id() {
+    get id(): number {
         return this._id;
     }
     get globalId(): number {
         return this._globalId;
     }
-    get name() {
+    get name(): string {
         return this._name;
     }
-    get minimumPlayers() {
+    get minimumPlayers(): number {
         return this._minimumPlayers;
     }
-    get effectOutcomes() {
+    get effectOutcomes(): string[] {
         return this._effectOutcomes;
     }
     set effectOutcomes(outcomes: string[]) {
         this._effectOutcomes = outcomes;
     }
-    get keywords() {
+    get keywords(): string[] {
         return this._keywords;
     }
-    get tags() {
+    get tags(): { [key: string]: any } {
         return this._tags;
     }
-    get json() {
+    get json(): GenericCardType {
         return this._json;
     }
-    get jsonAPI() {
+    get jsonAPI(): IdentifierType {
         if(this._flipped)
             return {
             slug: this.flipData!.slug,
@@ -261,7 +261,7 @@ class Card {
         this._owner = issuerProvider();
         this._effectInterface.subscribeAll(issuerProvider);
     }
-    addEffect(effect: Effect) {
+    addEffect(effect: Effect): void {
         this._effectInterface.addEffect(effect);
     }
 
@@ -323,7 +323,7 @@ class Card {
         }
         const prevIdx = this._tags.lastCopiedRestoreOriginalStateIndex;
         // Restore function
-        const restoreOriginalState = () => {
+        const restoreOriginalState = (): void => {
             // console.log(`Restoring original state for ${originalState.name} ${this.globalId} after copying ${otherCard.name} ${otherCard.globalId}. Current cleanup length: ${this._cleanup.length}.`);
             // Restore original properties
             this._json = originalState.json;
@@ -341,7 +341,7 @@ class Card {
          this._cleanup.push(restoreOriginalState);
         this._tags.lastCopiedRestoreOriginalStateIndex = this._cleanup.length - 1; // Store the index of the restore function in tags for potential external access
         // Cleanup anything that happened after the copy.
-        const restore = () => {
+        const restore = (): void => {
             // Call all cleanup functions to restore original state
             for (let i = this._cleanup.length - 1; i >= originalState.cleanup.length; i--) {
                 this._cleanup[i]!();
@@ -661,7 +661,7 @@ class MonsterCard extends Card {
 class BsoulCard extends Card {
     granted: boolean = false;
 
-    override get jsonAPI() {
+    override get jsonAPI(): BonusSoulCard {
         return {
             ...super.jsonAPI,
             globalId: this._globalId,
@@ -897,7 +897,7 @@ class Deck<T extends Card> {
         });
     }
 
-    get nextId(){
+    get nextId(): number {
         return ++this._nextId;
     }
 
@@ -909,7 +909,7 @@ class Deck<T extends Card> {
         shuffle<number>(this._random, this._order)
     }
 
-    remove(card:T)
+    remove(card:T): void
     {
         assertCardMatchesDeck(this._type, card);
         const cardId = card.id;
@@ -1121,14 +1121,14 @@ class Hand {
     get cards(): LootCard[] {
         return this._hand;
     }
-    addToHand(card: LootCard) {
+    addToHand(card: LootCard): void {
         if (card.type !== "loot") {
             print("Error, hand should only contain loot cards.")
             throw new Error("Hand can only contain loot cards.");
         }
         this._hand.push(card);
     }
-    moveCardToPos(from: number, to: number) {
+    moveCardToPos(from: number, to: number): void {
         const card: LootCard = this._hand[from]!;
         this._hand.splice(from, 1);
         this._hand.splice(to, 0, card);
@@ -1292,23 +1292,23 @@ export class Counter
         this._value = initialValue;
     }
 
-    get value(){
+    get value(): number{
         return this._value;
     }
-    get hasCounter(){
+    get hasCounter(): boolean{
         return this.value > 0;
     }
     
-    get type(){
+    get type(): CounterType{
         return this._type;
     }
 
-    addToValue(toAdd: number)
+    addToValue(toAdd: number): void
     {
         this._value = Math.max(0, this._value + toAdd);
     }
 
-    resetValue()
+    resetValue(): void
     {
         this._value = 0;
     }   
@@ -1333,15 +1333,15 @@ export class CounterHandler{
     isDefined(type: CounterType): boolean{
         return this.counters.get(type) !== undefined;
     }
-    addToCounter(toAdd: number, type: CounterType)
+    addToCounter(toAdd: number, type: CounterType): void
     {
         const counter = this.getCounter(type);
         counter.addToValue(toAdd);
     }
-    reset(type: CounterType){
+    reset(type: CounterType): void{
         this.getCounter(type).resetValue();
     }
-    hasCounter(type: CounterType){
+    hasCounter(type: CounterType): boolean{
         return this.getCounter(type).hasCounter;
     }
 

@@ -18,8 +18,8 @@ export class Effect {
     constructor(description: string,
         type: EffectType,
         card: Card,
-        effectFunction: EffectFunction = (data: EffectData) => { return true; },
-        targetsSelector: TargetsSelector[] = [{ description: "", selector: (issuer: Player, card: Card) => [], min: 0, max: 0 }],
+        effectFunction: EffectFunction = (data: EffectData): boolean => { return true; },
+        targetsSelector: TargetsSelector[] = [{ description: "", selector: (issuer: Player, card: Card): Entity[] => [], min: 0, max: 0 }],
         paymentFunction?: EffectFunction
     ) {
         this._description = description;
@@ -178,14 +178,14 @@ class PassiveEffectHandler extends EffectHandler {
             this._effects.push(effect);
         else throw new Error("Cannot put a non-passive effect in a PassiveEffectHandler.");
     }
-    subscribeAll(issuerProvider: () => Entity, it: Card) {
+    subscribeAll(issuerProvider: () => Entity, it: Card): void {
         for (const effect of this._effects) {
             // Passive effects don't have targets, pass empty array
             let targets: any[] = [];
             // if(effect.targetsSelector.length > 0) {
             //     targets = effect.targetsSelector.map(selector => { selector.selector(owner as Player)[0]; });
             // }
-            effect.effectFunction(new EffectData(it, issuerProvider, targets));
+            void effect.effectFunction(new EffectData(it, issuerProvider, targets));
         }
     }
 }
@@ -372,7 +372,7 @@ export class EffectInterface {
                 if (effect.targetStillValid(this._issuer!, targets)) {
                     await effect.effectFunction(new EffectData(this.it, () => this._issuer!, targets));
                 }
-                this.subscribeAll(() => this._issuer!);
+                await this.subscribeAll(() => this._issuer!);
             }
         };
     }

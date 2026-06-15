@@ -2,7 +2,7 @@ import type { SelectionItem } from "@/shared/api";
 import { Player } from "./entities/player";
 import { TargetBuilder } from "./targetBuilder";
 
-export type PendingSelection = {
+export interface PendingSelection {
           playerId: string;
           options: any[];
           min: number;
@@ -113,7 +113,7 @@ export abstract class SelectionHandler {
        * @param skippable is not implemented yet.
        */
       async selectMultiple<T>(
-        selections: Array<
+        selections: 
         {
           player: Player;
           min: number;
@@ -122,8 +122,8 @@ export abstract class SelectionHandler {
           description: string;
           skippable?: boolean;
           canUseOnBoardSelection: boolean;
-        }>
-      ): Promise<Array<{ playerId: string; selected: T[]; remaining: T[] }>> {
+        }[]
+      ): Promise<{ playerId: string; selected: T[]; remaining: T[] }[]> {
         // In multiplayer mode: create promises for all players
         const promises = selections.map((sel) => {
           return new Promise<{

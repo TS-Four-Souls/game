@@ -60,10 +60,10 @@ const characterDeckSchema = z.object({
   cards: z.array(characterCardSchema),
 });
 
-export type SetCardCountRequest = {
+export interface SetCardCountRequest {
   slug: string;
   count: number;
-};
+}
 
 // Forward declare types for circular references
 export type SelectionItem =

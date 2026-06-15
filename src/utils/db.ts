@@ -42,7 +42,7 @@ export const insertReport = (
   description: string,
   email: string | null,
   logs: string | null,
-) => {
+): void => {
   db.run(
     `INSERT INTO
       reports(type, description, email, created_at, logs)
@@ -52,7 +52,7 @@ export const insertReport = (
   );
 };
 
-export const updateReportStatus = (id: number, resolved: boolean) => {
+export const updateReportStatus = (id: number, resolved: boolean): void => {
   db.run(`UPDATE reports SET resolved = ? WHERE id = ?`, [resolved, id]);
 };
 
@@ -80,6 +80,6 @@ const dbObjectToAdminMessage = (message: any): AdminMessage => {
   };
 };
 
-export const updateReportReply = (id: number, reply: string) => {
+export const updateReportReply = (id: number, reply: string): void => {
   db.run(`UPDATE reports SET reply = ? WHERE id = ?`, [reply, id]);
 };

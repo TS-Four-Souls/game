@@ -43,7 +43,7 @@ export function cancelAttackOnTopOfMonsterDeckEffect(game: Game): EffectFunction
                 return; // Not the current player, ignore
             }
             // Create the effect that will execute when the stack resolves
-            const effect = async (effectData: EffectData) => {
+            const effect = async (effectData: EffectData): Promise<boolean> => {
                 const selection = await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "Do you want to cancel the attack?", false, true, false);
                 if (selection.selected.length > 0) {
                     game.entityHandler.endCombat();
@@ -181,12 +181,12 @@ export function cheaperShopItemsEffect(game: Game, discount: number): EffectFunc
 export function lookAtTopNOnAttackEffect(game: Game, n: number): EffectFunction {
     return (data: EffectData) => {
         let offAttack: (() => void) | null = null;
-        offAttack = game.emitter.on("on:attack:declared", async (eventData) => {
+        offAttack = game.emitter.on("on:attack:declared", (eventData) => {
             const { eventIssuer } = eventData;
             if(eventIssuer !== game.currentPlayer) {
                 return; // Not the current player, ignore
             }
-            const effect = async (effectData: EffectData) => { 
+            const effect = async (effectData: EffectData): Promise<boolean> => { 
                 const topN = game.decks.monster.drawSeveral(n);
                 const order = (await data.selectAndRecord(game, game.currentPlayer, n, n, topN, `Look at the top ${n} cards of the monster deck and put them back in any order.`, false, false)).selected as MonsterCard[];
                 for(let i = order.length - 1; i >= 0; i--) {
@@ -215,7 +215,7 @@ export function doubleRewardsEffect(game: Game): EffectFunction {
         offDeath = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
             
             // Add all effects as a single stack element
-            const effect = (effectData: EffectData) => {
+            const effect = (effectData: EffectData): boolean => {
                 game.entityHandler.entityRewards(eventData.eventIssuer as Monster);
                 return true;
             };
@@ -357,7 +357,7 @@ export function deactivateCharacterAtEndOfTurnEffect(game: Game): EffectFunction
      return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
         offTurnStart = game.emitter.on("on:turn:end", (eventData) => {
-            const effect: EffectFunction = async (effectData: EffectData) => {
+            const effect: EffectFunction = (effectData: EffectData) => {
                 game.cardHandler.deactivateItem(game.currentPlayer.character);
                 return true;
             }
@@ -470,7 +470,7 @@ export function damageIfLowLootAtEndOfTurnEffect(game: Game, lootThreshold: numb
      return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
         offTurnStart = game.emitter.on("on:turn:end", (eventData) => {
-            const effect: EffectFunction = async (effectData: EffectData) => {
+            const effect: EffectFunction = (effectData: EffectData) => {
                 if(game.currentPlayer.hand.length > lootThreshold) return false;
                 game.entityHandler.dealDamage(game.currentPlayer, game.currentPlayer, data.it, amount);
                 return false;
@@ -521,8 +521,8 @@ export function discardHandsAndLootEffect(game: Game, amount: number): EffectFun
 
 export function enterPlayRerollItemsDiscardHandsLootAndFlushMonstersEffect(game: Game, lootAmount: number): EffectFunction {
     return (data: EffectData) => {
-        flushMonsterSlotsEffect(game, "discard")(data);
-        discardHandsAndLootEffect(game, lootAmount)(data);
+        void flushMonsterSlotsEffect(game, "discard")(data);
+        void discardHandsAndLootEffect(game, lootAmount)(data);
         for(const item of visibleItemSelector((c, p) => c.eternal === false, false, game)(data.issuer as Player, data.it)) {
             game.cardHandler.reroll(item);
         }
@@ -680,7 +680,7 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): EffectFun
 export function playerMustDestroyItemOnDeathEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offAttackDeclared: (() => void) | null = null;
-        offAttackDeclared = game.emitter.on("on:death:before-penalty", async (eventData) => {
+        offAttackDeclared = game.emitter.on("on:death:before-penalty", (eventData) => {
             const { eventIssuer  } = eventData;
             if(eventIssuer instanceof Player === false)
                 return;
@@ -712,7 +712,7 @@ export function onAttackDeclaredNonActivePlayersRollToJoinEffect(game: Game, min
                 roll.attachEffect(
                     [1,2,3,4,5,6].map(value => 
                         (value >= minRoll && value <= maxRoll && data.issuer.isEngagedInCombat) ?
-                            makeAnAttackRollAfterEachAttackRollEffect(game) : (() => true)
+                            makeAnAttackRollAfterEachAttackRollEffect(game) : ((): boolean => true)
                     )
                     , data.it, [], player);
                 rolls.push(roll);
@@ -846,7 +846,7 @@ export function playersWithFewestSoulsAttackBoostEffect(game: Game, attackBoost:
         let offSoulGained: (() => void) | null = null;
         let playersWithFewestSouls: Player[] = [];
         let shouldAddAttackThisTurn = true;
-        function computeEffect() {
+        function computeEffect(): void {
             let minSouls = Math.min(...game.players.map(p => p.totalSouls));
             playersWithFewestSouls = game.players.filter(p => p.totalSouls === minSouls);
             for(const player of playersWithFewestSouls) 
@@ -856,7 +856,7 @@ export function playersWithFewestSoulsAttackBoostEffect(game: Game, attackBoost:
             if(playersWithFewestSouls.includes(game.currentPlayer) && shouldAddAttackThisTurn)
                 game.currentPlayer.attackThisTurn += 1;
         }
-        function removeEffect() {
+        function removeEffect(): void {
             for(const player of playersWithFewestSouls) 
             {
                 game.entityHandler.addAttack(player, -attackBoost, data.it);
@@ -906,7 +906,7 @@ export function playersWithFewestSoulsShopItemPriceReductionEffect(game: Game, p
          * compute the players with least souls.
          * If the current player is among them, reduce their price modifier.
          */
-        function computeEffect() {
+        function computeEffect(): void {
             let minSouls = Math.min(...game.players.map(p => p.totalSouls));
             playersWithFewestSouls = game.players.filter(p => p.totalSouls === minSouls);
             if(playersWithFewestSouls.includes(game.currentPlayer) && pay0Next)
@@ -921,7 +921,7 @@ export function playersWithFewestSoulsShopItemPriceReductionEffect(game: Game, p
                 pay0Next = false;
              }
         });
-        function removeEffect() {
+        function removeEffect(): void {
             if(playersWithFewestSouls.includes(game.currentPlayer) && pay0Next)
             {
                 game.currentPlayer.priceModifier += game.gameParameters.shopPrice.value - priceReduction;
@@ -954,10 +954,10 @@ export function flushShopOrUnattackedMonstersEffect(game: Game): EffectFunction 
     return async (data: EffectData) => {
         const selected = (await data.selectAndRecord(game, game.currentPlayer, 0, 1, ["treasure", "monster"], "Put each shop item or each monster not being attacked into discard.", false)).selected[0] as string | undefined;
         if(selected === "treasure") {
-            flushShopEffect(game, "discard")(data);
+            void flushShopEffect(game, "discard")(data);
         }
         if(selected === "monster") {
-            flushMonsterSlotsEffect(game, "discard")(data);
+            void flushMonsterSlotsEffect(game, "discard")(data);
         }
         // Implementation for flushing shop items or unattacked monsters
         return true;
@@ -996,20 +996,20 @@ export function socialGoalsEffect(game: Game, numbers: number[]): EffectFunction
         let itemsPurchased = 0;
         let sixesRolled = 0;
         const tests = [
-            () => lootPlayed >= goalsLoot, 
-            () => monstersKilled >= goalsMonster, 
-            () => sixCoinGiven, 
-            () => itemsPurchased >= goalsPurchase, 
-            () => sixesRolled >= 3];
+            (): boolean => lootPlayed >= goalsLoot, 
+            (): boolean => monstersKilled >= goalsMonster, 
+            (): boolean => sixCoinGiven, 
+            (): boolean => itemsPurchased >= goalsPurchase, 
+            (): boolean => sixesRolled >= 3];
         let goalsCompleted = 0;
 
-        function tryResolve() {
+        function tryResolve(): void {
             data.it.counters.reset("normal");
             for(let i = 0; i < tests.length; i++) {
                 if(tests[i]!()) {
                     goalsCompleted++;
                     // game.cardHandler.addToCounter(game.currentPlayer, data.it, "normal", 1);
-                    tests[i] = () => false; // Mark this goal as completed to prevent it from being counted multiple times
+                    tests[i] = (): boolean => false; // Mark this goal as completed to prevent it from being counted multiple times
                 }
             }
             game.cardHandler.addToCounter(game.currentPlayer, data.it, "normal", goalsCompleted);
@@ -1171,15 +1171,15 @@ export function payOtherPlayersToAttackEffect(game: Game, amount: number): Effec
             }
         });
 
-        offAttackDeclared = game.emitter.on("on:attack:declared", async (eventData) => {
+        offAttackDeclared = game.emitter.on("on:attack:declared", (eventData) => {
             const { eventIssuer } = eventData;
             const requiredCoins = getTaxForMostSoulsAttack(game, eventIssuer, amount);
             if (requiredCoins > 0)
             {
-                const effect: EffectFunction = async (effectData: EffectData) => {
+                const effect: EffectFunction = (effectData: EffectData) => {
                     for(const player of game.players) {
                         if(player !== eventIssuer)
-                            game.giveCoins(eventIssuer, player, amount, data.it);
+                            void game.giveCoins(eventIssuer, player, amount, data.it);
                     }
                     return true;
                 };

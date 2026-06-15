@@ -51,7 +51,7 @@ export class CardHandler {
   }
 ////////////////////////////////////// Getters //////////////////////////////////////
 
-  get game() {
+  get game(): Game {
     return this._game;
   }
   get decks(): DecksCollection {
@@ -376,9 +376,9 @@ export class CardHandler {
   /**
    * Adds a curse card to a player.
    */
-  addCurse(player: Player, card: MonsterCard): void {
+  async addCurse(player: Player, card: MonsterCard): Promise<void> {
     player.addCurse(card);
-    card.onPlay(player, []);
+    await card.onPlay(player, []);
     this.game.dispatch();
   }
 
@@ -719,7 +719,7 @@ export class CardHandler {
   private rebuildCardMapping(): void {
     this._cardMapping.clear();
     this._nextCardGlobalId = 0;
-      Object.values(this.decks).forEach((deck) => deck.cards.forEach((card) => this.registerCard(card)));
+      Object.values(this.decks).forEach((deck) => deck.cards.forEach((card: Card): void => this.registerCard(card)));
   }
 
   /**
@@ -928,7 +928,7 @@ export class CardHandler {
   /**
    * Transfers a soul card from a target player to another player.
    */
-  stealSoul(player: Player, target: Player, soul: Card) {
+  stealSoul(player: Player, target: Player, soul: Card): void {
     if (!target.souls.includes(soul)) {
       throw new Error("Target player does not have the specified soul.");
     }

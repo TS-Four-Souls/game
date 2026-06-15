@@ -1,10 +1,10 @@
 import { type TriggerEvent } from '@/models/types/eventTypes';
 import type { TriggerEventDataMap } from './types/eventTypes';
 
-type ListenerEntry = {
+interface ListenerEntry {
   id: number;
   callback: (data: any) => void;
-};
+}
 
 export class GameEventEmitter {
   private listeners: Map<TriggerEvent, ListenerEntry[]> = new Map();

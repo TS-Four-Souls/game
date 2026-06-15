@@ -23,7 +23,7 @@ import { enterStartStep } from "./startStep";
 import { globalEndpoints } from "./global";
 import { roomManager } from "./roomManager";
 
-export const enterGameStep = (socket: Socket, room: Room, user: User) => {
+export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
   if (!room.game) {
     throw new Error("Game not found");
   }
@@ -109,8 +109,8 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
         payload,
         schemas.attackMonsterRequest,
         callback,
-        (payload) => {
-          executeAttackMonsterRequest(game, payload, player);
+        async (payload) => {
+          await executeAttackMonsterRequest(game, payload, player);
           game.addToHistory({
             type: "AttackMonster",
             payload,
@@ -312,7 +312,7 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
     ),
   );
 
-  socket.on("switchToCopy", (payload, callback) => {
+  socket.on("switchToCopy", (payload, callback) =>
     errorGuardedEndpoint(callback, () =>
       payloadGuardedEndpoint(
         payload,
@@ -344,8 +344,8 @@ export const enterGameStep = (socket: Socket, room: Room, user: User) => {
           return callback({ status: 200 });
         },
       ),
-    );
-  });
+    )
+  );
 
   socket.on("quitGame", (callback) =>
     errorGuardedEndpoint(callback, () => {

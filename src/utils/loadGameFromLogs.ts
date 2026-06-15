@@ -79,10 +79,10 @@ function verifyRecordedCharactersAfterStart(
   }
 }
 
-type GameStateComparison = {
+interface GameStateComparison {
   equal: boolean;
   differences: string[];
-};
+}
 
 function normalizeDetailedStateForComparison(state: DetailedState): DetailedState {
   const normalized = structuredClone(state);

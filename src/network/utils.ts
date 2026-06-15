@@ -32,13 +32,13 @@ export const payloadGuardedEndpoint = async <T extends ZodType>(
   await onSuccess(validated.data);
 };
 
-export const sendRoomChangedToAll = (room: Room) => {
+export const sendRoomChangedToAll = (room: Room): void => {
   for (const user of room.users) {
     sendRoomChangedToUser(room, user);
   }
 };
 
-export const sendRoomChangedToUser = (room: Room | null, user: User) => {
+export const sendRoomChangedToUser = (room: Room | null, user: User): void => {
   for (const instance of user.instances) {
     if (instance.isActive) {
       user.socket.emit(
@@ -53,7 +53,7 @@ export const sendRoomChangedToUser = (room: Room | null, user: User) => {
   }
 };
 
-export const sendAdminChanged = (socket: Socket) => {
+export const sendAdminChanged = (socket: Socket): void => {
   socket.emit("on:admin:changed", {
     rooms: roomManager.adminRooms,
     messages: getAdminMessages(),
@@ -86,21 +86,21 @@ const generateRoomChangedPayload = (
   };
 };
 
-export const sendUserAssigned = (socket: Socket, instance: Instance | null) => {
+export const sendUserAssigned = (socket: Socket, instance: Instance | null): void => {
   socket.emit("on:user:assigned", instance?.id ?? null);
 };
 
-export const updatePlayerCount = (room: Room) => {
+export const updatePlayerCount = (room: Room): void => {
   room.params.setPlayerCount(
     room.users.flatMap((user) => user.instances).length,
   );
 };
 
-export const leaveCurrentStep = (socket: Socket) => {
+export const leaveCurrentStep = (socket: Socket): void => {
   socket.removeAllListeners();
 };
 
-export const registerRoomActivity = (room: Room) => {
+export const registerRoomActivity = (room: Room): void => {
   room.lastActionTimestamp = new Date();
 };
 

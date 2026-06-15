@@ -83,14 +83,14 @@ describe("Requiem Loots ", () => {
             const initChara = player1.character;
             const initEt = player1.inPlay[1]!;
             game.cardHandler.recharge(item);
-            await game.activateItem(player1, item, [game.decks.character.cards[4]], "tap");
+            await game.activateItem(player1, item, [game.decks.character.cards.find(c => c.slug === "r-the_deserter")], "tap");
 
             await game.actions.resolveStack();
             expect(player1.character.slug).not.toBe(initChara.slug);
             expect(player1.inPlay[1]).toBeDefined();
             expect(player1.inPlay[1]?.slug).not.toBe(initEt.slug);
             expect(player1.inPlay.length).toBe(2);
-        });
+        }); // Repeat to check for consistency 
     
         it("undefined", async () => {
             let item = game.obtainCard("r-undefined") as ItemCard;

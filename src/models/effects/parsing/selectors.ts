@@ -65,7 +65,7 @@ export const selectCardInPlayOrLootBeingPlayed = (game: Game, min: number = 1, m
 export const selectPlayerOrMonster = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector("Choose a player or monster", activeEntitySelector(() => true, game), min, max)];
 export const selectDeck = (game: Game, min: number = 1, max: number = min, filter?: (name: string) => boolean): TargetsSelector[] =>
-    [createSelector("Select a deck", deckSelector(filter || (() => true), game), min, max)];
+    [createSelector("Select a deck", deckSelector(filter || ((): boolean => true), game), min, max)];
 export const selectTopAnyDiscard = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector("Select the top card of any discard pile", topAnyDiscardSelector(() => true, game), min, max)];
 export const selectRoll = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>

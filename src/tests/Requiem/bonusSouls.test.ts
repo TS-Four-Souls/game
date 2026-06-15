@@ -110,7 +110,11 @@ it("Soul of Sloth - the first time a player controls 4 items, the active player 
             game.gainTreasure(player1, 1);
             expect(player2.totalSouls).toBe((i === 4 ? 1 : 0));
         }
-        await Promise.resolve(); // Wait for any pending promises (like selection) to resolve
+        
+        function wait(ms: number) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        await wait(0);
         expect(player2.souls.map(c => c.slug)).toContain("r-soul_of_sloth");
     });
 });

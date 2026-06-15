@@ -61,7 +61,7 @@ export function activeEntitySelector(filter: (player: Entity) => boolean = () =>
         return game.playersAndMonsters.filter((entity) => filter(entity));
     }
 }
-export type ChooseOneOptions = {
+export interface ChooseOneOptions {
     description: string;
     admissibleTargets: TargetsSelector[];
 }

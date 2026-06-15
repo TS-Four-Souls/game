@@ -16,7 +16,7 @@ export class ActionHandler {
     this._game = game;
   }
 
-  get game() {
+  get game(): Game {
     return this._game;
   }
     /**

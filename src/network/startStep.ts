@@ -20,7 +20,7 @@ import { globalEndpoints } from "./global";
 import { roomManager } from "./roomManager";
 import { generateUserId } from "@/utils/random";
 
-export const enterStartStep = (socket: Socket, room: Room, user: User) => {
+export const enterStartStep = (socket: Socket, room: Room, user: User): void => {
   for (const instance of user.instances) {
     instance.isActive = !instance.isCopy;
   }

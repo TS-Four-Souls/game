@@ -2,6 +2,7 @@ import { Entity } from "@/models/entities/entity";
 import type { EntityType } from "@/shared/api";
 import type { MonsterCard } from "../cards";
 import type { Encounters } from "../slots/encounters";
+import type { CardRewards } from "@/types/cardTypes";
 
 /**
  * Represents a monster entity in the Four Souls game.
@@ -63,7 +64,7 @@ export class Monster extends Entity {
     return this._card.name;
   }
 
-  get rewards() {
+  get rewards(): CardRewards | undefined {
     return this._card.rewards;
   }
 

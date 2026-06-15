@@ -54,7 +54,7 @@ function soulOfGluttonyEffect(game: Game, card: Card): OffEffectFunction {
 
     let offEffect: (() => void) | null = null;
 
-    const cleanup = () => {
+    const cleanup = (): void => {
         offEffect?.();
         offEffect = null;
     };
@@ -72,7 +72,7 @@ function soulOfGluttonyEffect(game: Game, card: Card): OffEffectFunction {
 function soulOfGreedEffect(game: Game, card: Card): OffEffectFunction {
     let offEffect: (() => void) | null = null;
 
-    const cleanup = () => {
+    const cleanup = (): void => {
         offEffect?.();
         offEffect = null;
     };
@@ -90,7 +90,7 @@ function soulOfGreedEffect(game: Game, card: Card): OffEffectFunction {
 function soulOfGuppyEffect(game: Game, card: Card): OffEffectFunction {
     let offEffect: (() => void) | null = null;
 
-    const cleanup = () => {
+    const cleanup = (): void => {
         offEffect?.();
         offEffect = null;
     };
@@ -110,7 +110,7 @@ function soulOfEnvyEffect(game: Game, card: Card): OffEffectFunction {
     let offEffect: (() => void) | null = null;
     let active = true;
 
-    const cleanup = () => {
+    const cleanup = (): void => {
         offEffect?.();
         offEffect = null;
         active = false;
@@ -135,7 +135,7 @@ function soulOfLustEffect(game: Game, card: Card): OffEffectFunction {
     let offDeath: (() => void) | null = null;
     card.counters.reset("normal");
 
-    const cleanup = () => {
+    const cleanup = (): void => {
         offDeath?.();
         offDeath = null;
     };
@@ -155,7 +155,7 @@ function soulOfPrideEffect(game: Game, card: Card): OffEffectFunction {
     let offDeath: (() => void) | null = null;
     card.counters.reset("normal");
 
-    const cleanup = () => {
+    const cleanup = (): void => {
         offDeath?.();
         offDeath = null;
     };
@@ -175,7 +175,7 @@ function soulOfWrathEffect(game: Game, card: Card): OffEffectFunction {
     let offDeath: (() => void) | null = null;
     card.counters.reset("normal");
 
-    const cleanup = () => {
+    const cleanup = (): void => {
         offDeath?.();
         offDeath = null;
     };
@@ -195,7 +195,7 @@ function soulOfSlothEffect(game: Game, card: Card): OffEffectFunction {
     let offDeath: (() => void) | null = null;
     let active = true;
 
-    const cleanup = () => {
+    const cleanup = (): void => {
         offDeath?.();
         offDeath = null;
         active = false;

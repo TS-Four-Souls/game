@@ -10,7 +10,7 @@ export class AssertHandler {
         this._game = game;
     }
 
-    get game() {
+    get game(): Game {
         return this._game;
     }
 
@@ -79,7 +79,7 @@ export class AssertHandler {
     }
     return this.game.turnHandler.round;
   }
-  entityIsInPlay(entity: Entity) {
+  entityIsInPlay(entity: Entity): void {
     if (!this.game.entities.includes(entity))
       throw new Error("Entity is not currently in play.");
   }
@@ -116,7 +116,7 @@ export class AssertHandler {
   cardMatchesDeck<T extends DeckType>(
       deckName: T,
       card: Card
-  ) {
+  ): void {
       assertCardMatchesDeck(deckName, card);
   }
 

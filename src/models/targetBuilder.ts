@@ -71,7 +71,7 @@ export class TargetBuilder {
                 // Deterministic choose-one option, but target still needs user input.
                 selector = {
                     description: chosenOption.description,
-                    selector: () => chosenOption.admissibleTargets,
+                    selector: (): any[] => chosenOption.admissibleTargets,
                     min: selector.min,
                     max: selector.max,
                 };

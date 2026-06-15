@@ -1,5 +1,5 @@
 import type { LootCard, TreasureCard } from "@/models/cards";
-import { MonsterCard } from "@/models/cards";
+import { Deck, MonsterCard } from "@/models/cards";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { Game } from "../../models/game";
 import { Player } from "../../models/entities/player";
@@ -339,7 +339,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const slugs = game.decks.loot.cards.slice(0, 3).map(c => c.slug);
         game.random = () => 6/6-.00001;
         game.select = (_issuer, _min, _max, opts, _optional) => {
-            if(opts[0] === "loot")
+            if(opts[0] instanceof Deck && (opts[0] as any)._type === "loot")
                 return { selected: [opts[0]], remaining: [] } as any;
             if(opts.length !== 1)
                 expect(opts.map(o => (o as LootCard).slug!)).toEqual(slugs);

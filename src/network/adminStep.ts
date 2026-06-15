@@ -14,7 +14,7 @@ import {
 import { sendEmail } from "@/utils/mail";
 import { roomManager } from "./roomManager";
 
-export const enterAdminStep = (socket: Socket) => {
+export const enterAdminStep = (socket: Socket): void => {
   sendAdminChanged(socket);
   globalEndpoints(socket);
 
@@ -86,7 +86,7 @@ export const enterAdminStep = (socket: Socket) => {
             timeZoneName: "longOffset",
             hour12: false,
           }).formatToParts(new Date(message.createdAt));
-          const part = (type: Intl.DateTimeFormatPartTypes) =>
+          const part = (type: Intl.DateTimeFormatPartTypes): string =>
             dateParts.find((p) => p.type === type)?.value ?? "";
           const formattedDate = `${part("weekday")}, ${part("day")} ${part("month")} ${part("year")} ${part("hour")}:${part("minute")}:${part("second")} ${part("timeZoneName").replace("GMT", "").replace(":", "")}`;
 
