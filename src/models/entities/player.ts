@@ -142,7 +142,7 @@ export class Player extends Entity {
         sourceAny = req.source.jsonAPI;
       else 
         for(const entity of req.target as Entity[])
-          list.push({ target: entity.card, source: req.source.jsonAPI });
+          list.push({ target: entity.card.jsonAPI, source: req.source.jsonAPI });
     }
     if(list.length === 0 && sourceAny !== undefined)
     {
