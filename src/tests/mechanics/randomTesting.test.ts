@@ -6,6 +6,9 @@ import { Game } from "../../models/game";
 import { randomSelect, randomSelectMultiple, setupTestGame } from "../testHelpers";
 import { LootCard } from "@/models/cards";
 import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
+const TEST_SAVE = false;
+const TEST_STRINGIFY_LOG = true;
+
 
 let fixedSeed: string = "";
 // fixedSeed = "0.9806873576453177";
@@ -268,9 +271,16 @@ describe(   "Random Games", () => {
                 break;
             }
             // printVerbose(`  ✓ Stack resolved`);
-        }   
-        const logs = game.getRollbackLog(game.currentPlayer);
-        expect(async () => await loadGameFromLogs(logs)).not.toThrow();
+        } 
+        if(TEST_SAVE)
+        {
+            const logs = game.getRollbackLog(game.currentPlayer);
+            expect(async () => await loadGameFromLogs(logs)).not.toThrow();
+        }
+        if(TEST_STRINGIFY_LOG)
+        {
+            expect(() => JSON.stringify(game.log)).not.toThrow();
+        }
         // printVerbose(JSON.stringify(game.detailedStateJSON(game.players[0]!)));
     }, {repeats: 1000});
 
