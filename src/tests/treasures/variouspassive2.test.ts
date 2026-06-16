@@ -1,18 +1,17 @@
-import { describe, it, beforeEach, expect } from "bun:test";
-import { Game } from "../../models/game";
+import { ItemCard, TreasureCard } from "@/models/cards";
+import { setupTestGame } from "@/tests/testHelpers";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../../models/entities/player";
+import { Game } from "../../models/game";
 import { DiceRoll } from "../../models/stackElement";
-import { CharacterCard, ItemCard, TreasureCard, MonsterCard } from "@/models/cards";
-import { Monster } from "@/models/entities/monster";
-import { dischargeEachItemsAndRemoveCoins, setupTestGame } from "@/tests/testHelpers";
 
 describe("Treasure - \"at the end of your turn\" effects", () => {
     let game: Game;
     let player1: Player;
     let player2: Player;
 
-    beforeEach(() => {
-        const setup = setupTestGame({
+    beforeEach(async () => {
+        const setup = await setupTestGame({
             characters: ["b2-samson", "b2-isaac"],
             monsters: ["b2-fly", "b2-fatty"], // fly = 1 coin and fatty = 1 loot.
             monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],

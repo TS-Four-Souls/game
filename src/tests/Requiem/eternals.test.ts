@@ -24,7 +24,7 @@ describe("Four Souls+2 Eternal Items", () => {
     });
     
     it("r-the_deserter", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_deserter", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -71,8 +71,8 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player2.attackThisTurn).toBe(1);
     });
 
-  it("can flip Anima Sola twice without adding monster DC to a player", () => {
-    const setup = setupTestGame({
+  it("can flip Anima Sola twice without adding monster DC to a player", async () => {
+    const setup = await setupTestGame({
                     characters: ["r-the_deserter", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -95,7 +95,7 @@ describe("Four Souls+2 Eternal Items", () => {
   });
 
     it("r-the_enigma", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_enigma", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -143,7 +143,7 @@ describe("Four Souls+2 Eternal Items", () => {
 
     });
     it("r-the_capricious (eternal)", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_capricious", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -170,7 +170,7 @@ describe("Four Souls+2 Eternal Items", () => {
     });
 
     it("r-the_capricious (character)", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_capricious", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -198,7 +198,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(game.shop.itemsInShop[0]!.slug).not.toBe(shopItem.slug);
     });
     it("r-jacob_and_esau (DOES NOT gain treasure)", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-jacob_and_esau", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -241,7 +241,7 @@ describe("Four Souls+2 Eternal Items", () => {
     });
 
     it("r-jacob_and_esau (gain treasure)", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-jacob_and_esau", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -276,7 +276,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player2.hand._hand.length).toBe(1);
     });
     it("r-the_baleful (eternal)", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_baleful", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -314,7 +314,7 @@ describe("Four Souls+2 Eternal Items", () => {
     });
 
     it("r-the_baleful (character)", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_baleful", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -359,7 +359,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.attackPoints).toBe(2);
     });
     it("r-the_broken", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_broken", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -396,7 +396,7 @@ describe("Four Souls+2 Eternal Items", () => {
 
     });
     it("r-the_benighted", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_benighted", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -439,7 +439,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(eternal.counters.value("normal")).toBe(0);
     });
     it("r-the_dauntless", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_dauntless", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -493,7 +493,7 @@ describe("Four Souls+2 Eternal Items", () => {
     });
 
     it("r-the_curdled", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_curdled", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -524,7 +524,7 @@ describe("Four Souls+2 Eternal Items", () => {
     });
 
     it("r-the_fettered (no damage on roll of 1)", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_fettered", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -558,7 +558,7 @@ describe("Four Souls+2 Eternal Items", () => {
 
     });
     it("r-the_harlot", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_harlot", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -590,7 +590,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(game.monsters[0]!.currentHealthPoints).toBe(game.monsters[0]!.healthPoints - initialHp + 1);
     });
     it("r-the_miser", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_miser", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -622,7 +622,7 @@ describe("Four Souls+2 Eternal Items", () => {
 
 
     it("r-the_soiled", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_soiled", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -661,7 +661,7 @@ describe("Four Souls+2 Eternal Items", () => {
     });
     
     it("r-the_zealot", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_zealot", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -708,7 +708,7 @@ describe("Four Souls+2 Eternal Items", () => {
     });
     
     it("r-flash_isaac", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-flash_isaac", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -732,7 +732,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(dice.value).toBe(1);
     });
     it("r-the_deceiver", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_deceiver", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -767,7 +767,7 @@ describe("Four Souls+2 Eternal Items", () => {
 
 
     it("r-bethany", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-bethany", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -802,7 +802,7 @@ describe("Four Souls+2 Eternal Items", () => {
     });
 
     it("r-the_savage", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_savage", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -838,7 +838,7 @@ describe("Four Souls+2 Eternal Items", () => {
     });
 
     it("r-the_hoarder", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_hoarder", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -869,7 +869,7 @@ describe("Four Souls+2 Eternal Items", () => {
     });
     
     it("r-the_empty", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["r-the_empty", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],

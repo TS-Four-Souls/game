@@ -381,7 +381,7 @@ export class TargetBuilder {
      * @param possibleTargets The array of possible targets from the selector
      * @returns The matched target object, or undefined if not found
      */
-    private static resolveIdentifier(identifier: SelectionItem, possibleTargets: any[]): any {
+    static resolveIdentifier(identifier: SelectionItem, possibleTargets: any[]): any {
         if (possibleTargets.length === 0) 
             throw new Error("No possible targets to resolve against.");
         switch(identifier.type) {

@@ -14,7 +14,7 @@ import type { StackElement } from "../stack";
 import { DamageOnStack, DiceRoll, } from "../stackElement";
 import { TargetBuilder } from "../targetBuilder";
 import { deckSelector, inplayUnchargedItemSelector as inplayChargeableItemSelector, visibleItemSelector } from "../targetSelector";
-import { type DeckType, EffectData, type EffectFunction, type TargetsSelector } from "../types/cardTypes";
+import { type DeckType, EffectData, type EffectFunction, type SynchronousEffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type { OnTurnEndData } from "../types/eventTypes";
 import { effectParser, type ParsedEffect } from "./parsing/effectParser";
 import { addPassiveEffectToStack } from "./passiveEffect";
@@ -899,7 +899,7 @@ export function discardLootAndLoseCoinsBasedOnSoulsEffect(game: Game): EffectFun
     };
 }
 
-export function flushMonsterSlotsEffect(game: Game, where: "bottom" | "discard" | "discardAndDraw"): EffectFunction {
+export function flushMonsterSlotsEffect(game: Game, where: "bottom" | "discard" | "discardAndDraw"): SynchronousEffectFunction {
     return (data: EffectData) => {
         switch(where) {
             case "bottom":
@@ -1039,7 +1039,7 @@ export function addCountersAndGainTreasureEffect(countersThreshold: number, toRe
     };
 }
 
-export function becomeSoulIfAboveXCountersEffect(countersThreshold: number, game: Game): EffectFunction {
+export function becomeSoulIfAboveXCountersEffect(countersThreshold: number, game: Game): SynchronousEffectFunction {
     return (data: EffectData) => {
         if (data.it.counters.value("normal") >= countersThreshold) {
             const owner = game.getOwner(data.it);
@@ -1049,7 +1049,7 @@ export function becomeSoulIfAboveXCountersEffect(countersThreshold: number, game
                 {
                     return false;
                 };
-            void enterPlayBecomeSoulEffect(game)(new EffectData(data.it, () => owner, []));
+            enterPlayBecomeSoulEffect(game)(new EffectData(data.it, () => owner, []));
         }
         return true;
     };
@@ -1428,7 +1428,7 @@ export function takeDamageAndAddCounterEffect(game: Game, damageAmount: number, 
             {
                 game.cardHandler.addToCounter(data.issuer, data.it, "normal", 1);
                 if(data.it.counters.value("normal") >= counterAmount)
-                    void becomeSoulIfAboveXCountersEffect(counterAmount, game)(data);
+                    becomeSoulIfAboveXCountersEffect(counterAmount, game)(data);
                 return true;
             }
         );
@@ -2182,7 +2182,7 @@ export function rerollItemTheyControlEffect(game: Game, youMayEffectHanging: boo
     };
 }
 
-export function flushShopEffect(game: Game, where: "bottom" | "discard" = "bottom"): EffectFunction {
+export function flushShopEffect(game: Game, where: "bottom" | "discard" = "bottom"): SynchronousEffectFunction {
     return (data: EffectData) => {
         switch(where) {
             case "bottom":
@@ -2544,7 +2544,7 @@ export function halfLootAndCoinsAndGiveItemEffect(game: Game): EffectFunction {
         if(!target || !(target instanceof Player))
             throw new Error("No target player for halfLootAndCoinsAndGiveItemEffect");
         const coinsToLose = Math.floor(target.coins / 2);
-        void game.giveCoins(target, data.issuer, coinsToLose, data.it);
+        game.forceGiveCoins(target, data.issuer, coinsToLose, data.it);
 
         const lootToLose = Math.floor(target.hand.length / 2);
         const loots = (await data.selectAndRecord(game, target, lootToLose, lootToLose, target.hand.cards, `Select ${lootToLose} loot card${lootToLose > 1 ? 's' : ''} to give to ${data.issuer.id}.`, true, false)).selected as LootCard[];
@@ -2649,7 +2649,7 @@ export function nonActivePlayerHelpFight(game: Game): EffectFunction {
             if(!helper || !(helper instanceof Player))
                 throw new Error("Player invalid for nonActivePlayerHelpFight");
             const newData = new EffectData(data.it, () => helper, []);
-            void room.makeAnAttackRollAfterEachAttackRollEffect(game)(newData);
+            room.makeAnAttackRollAfterEachAttackRollEffect(game)(newData);
                     
             offDeath = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
                 const { eventIssuer, target, source } = eventData;
@@ -2908,7 +2908,7 @@ export function activePlayerChoosePlayerMustAttackThisAfterEachAttackRollEffect(
         // If the current player dies in the mean time or is not in combat anymore, we can end the effect immediately.
         if(issuer.isEngagedInCombat === false)
             return false;
-        void room.makeAnAttackRollAfterEachAttackRollEffect(game)(new EffectData(data.it, () => target, []));
+        room.makeAnAttackRollAfterEachAttackRollEffect(game)(new EffectData(data.it, () => target, []));
         let offEndTurn: (() => void) | null = null;
         let offDeath: (() => void) | null = null;
 
@@ -3068,7 +3068,7 @@ export function killMonsterEffect(game: Game): EffectFunction {
     };
 }
 
-export function enterPlayBecomeSoulEffect(game: Game): EffectFunction {
+export function enterPlayBecomeSoulEffect(game: Game): SynchronousEffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         data.it.cleanup();

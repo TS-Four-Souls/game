@@ -223,7 +223,7 @@ export class GameStateSerializer {
       {
         discard: this.game.decks["treasure"]!.discard.map((c) => c.jsonAPI).toReversed(),
         deckSize: this.game.decks["treasure"]!.cards.length,
-        inPlay: this.game.shop.itemsInShop.map((c) => ({ ...c!.jsonAPI, price: this.game.gameParameters.shopPrice.value + player.priceModifier })),
+        inPlay: this.game.shop.itemsInShop.map((c) => ((c === undefined ? undefined : { ...c!.jsonAPI, price: this.game.gameParameters.shopPrice.value + player.priceModifier }))),
         topDeckPrice: this.game.gameParameters.shopPrice.value,
       },
       turn: this.game.currentPlayer.id,

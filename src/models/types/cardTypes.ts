@@ -132,6 +132,10 @@ export class EffectData {
  * Function signature for effect execution
  */
 export type EffectFunction = (data: EffectData) => boolean | Promise<boolean>;
+/**
+ * Function signature for synchronous effect execution
+ */
+export type SynchronousEffectFunction = (data: EffectData) => boolean;
 
 /**
  * Collection of card sets indexed by card type

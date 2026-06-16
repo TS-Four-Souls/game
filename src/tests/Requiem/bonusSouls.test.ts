@@ -4,8 +4,8 @@ import { Game } from "../../models/game";
 import { Player } from "../../models/entities/player";
 import { setupTestGame } from "../testHelpers";
 
-function setupBonusSoulsTestGame(soulSlug: string) {
-    const setup = setupTestGame({
+async function setupBonusSoulsTestGame(soulSlug: string) {
+    const setup = await setupTestGame({
                     characters: ["fsp2-guppy", "b2-lilith"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip","b2-leech","b2-gurdy"],
@@ -28,7 +28,7 @@ describe("Four Souls+2 Loot Cards", () => {
     });
     
     it("Soul of Envy - the first time a player controls their 3rd soul, the active player chooses a player who controls the fewest souls or tied for fewest. that player gains this soul.", async () => {
-        ({ game, player1, player2 } = setupBonusSoulsTestGame("r-soul_of_envy"));
+        ({ game, player1, player2 } = await setupBonusSoulsTestGame("r-soul_of_envy"));
         const soul1 = game.obtainCard("b2-lost_soul")! as LootCard;
         const soul2 = game.cardHandler.copyCard(soul1) as LootCard;
         const soul3 = game.cardHandler.copyCard(soul1) as LootCard;
@@ -64,7 +64,7 @@ describe("Four Souls+2 Loot Cards", () => {
     });
 
 it("Soul of Lust - each time a player kills a monster, put a counter on this. - 6 counters", async () => {
-        ({ game, player1, player2 } = setupBonusSoulsTestGame("r-soul_of_lust"));
+        ({ game, player1, player2 } = await setupBonusSoulsTestGame("r-soul_of_lust"));
         for (const monster of ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip"]) {
             game.cardHandler.addTopPosition("monster", game.obtainCard(monster)!);
         }
@@ -81,7 +81,7 @@ it("Soul of Lust - each time a player kills a monster, put a counter on this. - 
     });
 
     it("Soul of Pride - each time a player gains a treasure, put a counter on this. - 6 counters", async () => {
-        ({ game, player1, player2 } = setupBonusSoulsTestGame("r-soul_of_pride"));
+        ({ game, player1, player2 } = await setupBonusSoulsTestGame("r-soul_of_pride"));
         for(let i=0; i<6; i++) {
             game.gainTreasure(player1, 1);
             expect(game.currentPlayer.totalSouls).toBe((i === 5 ? 1 : 0));
@@ -90,7 +90,7 @@ it("Soul of Lust - each time a player kills a monster, put a counter on this. - 
     });
 
 it("Soul of Wrath - each time a player dies, put a counter on this. - 6 counters", async () => {
-        ({ game, player1, player2 } = setupBonusSoulsTestGame("r-soul_of_wrath"));
+        ({ game, player1, player2 } = await setupBonusSoulsTestGame("r-soul_of_wrath"));
 
         for(let i=0; i<6; i++) {
             game.entityHandler.kill(player1, game.currentPlayer, player1.inPlay[0]!);
@@ -105,7 +105,7 @@ it("Soul of Wrath - each time a player dies, put a counter on this. - 6 counters
     });
 
 it("Soul of Sloth - the first time a player controls 4 items, the active player chooses a player who controls the fewest items or tied for fewest. that player gains this soul.", async () => {
-        ({ game, player1, player2 } = setupBonusSoulsTestGame("r-soul_of_sloth"));
+        ({ game, player1, player2 } = await setupBonusSoulsTestGame("r-soul_of_sloth"));
         for(let i=0; i<4; i++) {
             game.gainTreasure(player1, 1);
             expect(player2.totalSouls).toBe((i === 4 ? 1 : 0));

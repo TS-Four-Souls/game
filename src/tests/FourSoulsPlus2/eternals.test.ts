@@ -23,7 +23,7 @@ describe("Four Souls+2 Eternal Items", () => {
     });
     
     it("fsp2-gimpy - (gain 2¢) Each time you take damage, choose one- Gain 2¢. Loot 1, then discard a loot card. Gain +2 [ATK] till end of turn.", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["fsp2-whore_of_babylon", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -54,7 +54,7 @@ describe("Four Souls+2 Eternal Items", () => {
     });
 
     it("fsp2-gimpy - (Loot 1, then discard a loot card.) Each time you take damage, choose one- Gain 2¢. Loot 1, then discard a loot card. Gain +2 [ATK] till end of turn.", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["fsp2-whore_of_babylon", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -86,7 +86,7 @@ describe("Four Souls+2 Eternal Items", () => {
     });
 
     it("fsp2-gimpy - (Gain +2 [ATK] till end of turn) Each time you take damage, choose one- Gain 2¢. Loot 1, then discard a loot card. Gain +2 [ATK] till end of turn.", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["fsp2-whore_of_babylon", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -120,7 +120,7 @@ describe("Four Souls+2 Eternal Items", () => {
     });
 
     it("fsp2-dark_arts - Each time another player dies, loot 1.", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["fsp2-dark_judas", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -148,7 +148,7 @@ describe("Four Souls+2 Eternal Items", () => {
 
     it("fsp2-dark_arts - Each time a player rolls a ❻, gain 2¢.", async () => {
 
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["fsp2-dark_judas", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -160,7 +160,7 @@ describe("Four Souls+2 Eternal Items", () => {
         player2 = setup.player2!;
         // const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         // const bumbo = game.decks["character"]!.getCardFromSlug("fsp2-dark_judas")! as CharacterCard;
-        // game.start([bumbo, samson], false);
+        // await game.start([bumbo, samson], false);
         expect(player1.inPlay[0]!.slug).toBe("fsp2-dark_judas");
         expect(player1.inPlay[1]!.slug).toBe("fsp2-dark_arts");
 
@@ -192,7 +192,7 @@ describe("Four Souls+2 Eternal Items", () => {
 
 
     it("fsp2-infestation - [Tap Effect] Loot 2, then discard 1 loot card.", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["fsp2-guppy", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -217,7 +217,7 @@ describe("Four Souls+2 Eternal Items", () => {
     });
 
     it("fsp2-bag_o_trash - [Paid Effect] Pay 3¢: Play an additional loot card this turn.", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["fsp2-bum_bo", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -238,7 +238,7 @@ describe("Four Souls+2 Eternal Items", () => {
     });
 
     it("fsp2-bag_o_trash - [Paid Effect] Pay 4¢: Loot 1.", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["fsp2-bum_bo", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -261,7 +261,7 @@ describe("Four Souls+2 Eternal Items", () => {
     });
 
     it("fsp2-bag_o_trash - [Paid Effect] Pay 6¢: Deal 1 damage to a monster or player.", async () => {
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     characters: ["fsp2-bum_bo", "b2-samson"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],

@@ -9,8 +9,8 @@ describe("Loot Card", () => {
     let player1: Player;
     let player2: Player;
 
-    beforeEach(() => {
-        const setup = setupTestGame({
+    beforeEach(async () => {
+        const setup = await setupTestGame({
                     characters: ["b2-judas", "b2-isaac"],
                     monsters: ["b2-fly", "b2-fatty"],
                     monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],

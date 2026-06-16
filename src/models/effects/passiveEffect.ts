@@ -1373,7 +1373,7 @@ export function stealCoinOnGainEffect(amount: number, game: Game): EffectFunctio
                 }
                 const stealAmount = Math.min(coinGained[0] ?? 0, amount);
                 if(stealAmount <= 0) return false;
-                void game.giveCoins(eventIssuer, data.issuer, stealAmount, data.it);
+                game.forceGiveCoins(eventIssuer, data.issuer, stealAmount, data.it);
                 return true;
             }
             addPassiveEffectToStack(game, effect, data, `Steal ${amount}¢ from another player when they gain coins.`);
@@ -2967,7 +2967,7 @@ export function goFirstInTurnOrderEffect(game: Game): EffectFunction {
 
 export function startingItemEffect(game: Game, x: number): EffectFunction {
     return (data: EffectData) => {
-        let offEffect: (() => void) | null = game.emitter.on("on:game:start:before", async () => {
+        let offEffect: (() => void) | null = game.emitter.on("on:game:start", async () => {
             await active.selectEternalAmongX(game, x)(data);
             offEffect?.();
             offEffect = null;

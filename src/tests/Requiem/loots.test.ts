@@ -10,8 +10,8 @@ describe("Requiem Loots ", () => {
     let player1: Player;
     let player2: Player;
     
-    beforeEach(() => {
-        const setup = setupTestGame({
+    beforeEach(async () => {
+        const setup = await setupTestGame({
                         characters: ["fsp2-guppy", "b2-lilith"],
                         monsters: ["b2-fly", "b2-fatty"],
                         monsterDeck: ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip","b2-leech","b2-gurdy"],
@@ -433,8 +433,8 @@ describe("Requiem Loots (3p games) ", () => {
     let player2: Player;
     let player3: Player;
     
-    beforeEach(() => {
-        const setup = setupTestGame({
+    beforeEach(async () => {
+        const setup = await setupTestGame({
                         characters: ["fsp2-guppy", "b2-lilith", "b2-isaac"],
                         monsters: ["b2-fly", "b2-fatty"],
                         monsterDeck: ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip","b2-leech","b2-gurdy"],

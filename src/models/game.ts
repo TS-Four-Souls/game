@@ -303,59 +303,26 @@ export class Game extends SelectionHandler {
   /**
    * Starts the game lifecycle and executes initial setup.
    */
-  start(players: { issuer: string; character: string; user?: string, team: Team }[] | null = null, shufflePlayerOrder: boolean = true): void{
+  async start(players: { issuer: string; character: string; user?: string, team: Team }[], shufflePlayerOrder: boolean = true): Promise<void>{
     this.assert.gameNotStarted();
-    if (players && players.length > 0) {
-      for (const p of players) 
-        this.entityHandler.addPlayer(new Player(p.issuer, p.team));
-      const chara = this.cardHandler.getCharactersFromSlugs(players.map((p) => p.character));
-      this.cardHandler.assignCharactersToPlayers(chara);
-    }
-     else {
-      this.cardHandler.assignRandomCharacterToPlayers();
-    }
+    for (const p of players) 
+      this.entityHandler.addPlayer(new Player(p.issuer, p.team));
+    const chara = this.cardHandler.getCharactersFromSlugs(players.map((p) => p.character));
+    this.cardHandler.assignCharactersToPlayers(chara);
+
     this.assert.minimumPlayerCount();
     this._pendingMultipleSelections.clear();
     if (shufflePlayerOrder) {
       shuffle(this.random, this.players);
     }
-    this.turnHandler.initialize(this.players);
-    this.initializeTeams();
-    this._historicHandler.recordInitialGameState(this);
+
+    this.startOfGameSetup();
     
-    this.initializeWinningCondition();
-    this.cardHandler.initializeBonusSouls();
-    this._shop = new Shop(
-      this.gameParameters.nbItemsInShop.value,
-      this.decks["treasure"]!
-    );
-    this._encounters = new Encounters(
-      this.gameParameters.nbEncounters.value,
-      this.decks["monster"]!,
-      this
-    );
-    this.gameParameters.playWithRooms.value = this.gameParameters.playWithRooms.value && this.decks["room"] !== undefined && this.decks["room"]._order!.length > 0;
-    // fill empty spot may call game.encounters, so it must be called after this._encounters initialization.
-    this._encounters.fillEmptySpots(true);
-    // call startOfGameSetup here so room laser eye does not deal damage before the first turn starts.
-    void this.startOfGameSetup().catch((error) => {
-      console.error("Failed to complete game start setup", error);
-    });
-    if(this.gameParameters.playWithRooms.value === true)
-    {
-      this._rooms = new Rooms(
-        this.gameParameters.nbRooms.value,
-        this.decks["room"]!,
-        this
-      );
-    }
-    this.emit("on:game:start:before", {});
-    this.assignColorsToPlayers();
     this.emit("on:game:start", {});
-    this.entityHandler.healEveryone();
-    
-    void this.executeWhenStackEmpty(() => {
-      this.startTurn();
+    if(this.gameParameters.miniDraft.value)
+      await miniDraft(this);
+    await this.executeWhenStackEmpty(async () => {
+      await this.startTurn();
     });
   }
 
@@ -392,15 +359,42 @@ export class Game extends SelectionHandler {
   /**
    * Distributes starting resources to each player.
    */
-  async startOfGameSetup(): Promise<void> {
+  startOfGameSetup(): void {
+    this.turnHandler.initialize(this.players);
+    this.initializeTeams();
+    this._historicHandler.recordInitialGameState(this);
+    
+    this.initializeWinningCondition();
+    this.cardHandler.initializeBonusSouls();
+    this._shop = new Shop(
+      this.gameParameters.nbItemsInShop.value,
+      this.decks["treasure"]!
+    );
+    this._encounters = new Encounters(
+      this.gameParameters.nbEncounters.value,
+      this.decks["monster"]!,
+      this
+    );
+    this.gameParameters.playWithRooms.value = this.gameParameters.playWithRooms.value && this.decks["room"] !== undefined && this.decks["room"]._order!.length > 0;
+    // fill empty spot may call game.encounters, so it must be called after this._encounters initialization.
+    this._encounters.fillEmptySpots(true);
+    // initialize resources here so room laser eye does not deal damage before the first turn starts.
     for (const player of this.players) {
       this.gainTreasure(player, this.gameParameters.treasuresOnStart.value);
       this.loot(player, this.gameParameters.lootOnStart.value);
       this.gainCoins(player, this.gameParameters.coinsOnStart.value, "gift");
     }
-    if(this.gameParameters.miniDraft.value)
-      await miniDraft(this);
-    await this.resolveCallbacks();
+    if(this.gameParameters.playWithRooms.value === true)
+    {
+      this._rooms = new Rooms(
+        this.gameParameters.nbRooms.value,
+        this.decks["room"]!,
+        this
+      );
+    }
+    this.emit("on:game:start:before", {});
+    this.assignColorsToPlayers();
+    this.entityHandler.healEveryone();
   } 
 
   win(player: Player | null): void {
@@ -454,7 +448,7 @@ export class Game extends SelectionHandler {
   /**
    * Initializes turn counters and emits turn-start triggers.
    */
-  startTurn(): void {
+  async startTurn(): Promise<void> {
     this.players.forEach((p) => {
       p.initializeTurnCounters(p === this.currentPlayer, this.gameParameters.lootPlayPerTurn.value);
     });
@@ -463,14 +457,14 @@ export class Game extends SelectionHandler {
     const itemsToRecharge = player.unchargedItems;
     const eventData = { eventIssuer: player, itemsToRecharge: itemsToRecharge }
     this.emit("on:turn:start:before:recharge:step", eventData);
-    void this.executeWhenStackEmpty(() => {
-    this.cardHandler.rechargeMultiple(player, "rechargeStep", eventData.itemsToRecharge);
-    this.emit("on:turn:start", { eventIssuer: player });
-    void this.executeWhenStackEmpty(() => {
-      const eventData = { eventIssuer: this.currentPlayer, numberToLoot: 1 };
-      this.emit("on:loot:step", eventData);
-      this.addToStack(new LootStepOnStack(eventData.eventIssuer, eventData.numberToLoot, this));
-    });
+    await this.executeWhenStackEmpty(async () => {
+      this.cardHandler.rechargeMultiple(player, "rechargeStep", eventData.itemsToRecharge);
+      this.emit("on:turn:start", { eventIssuer: player });
+      await this.executeWhenStackEmpty(async () => {
+        const eventData = { eventIssuer: this.currentPlayer, numberToLoot: 1 };
+        this.emit("on:loot:step", eventData);
+        this.addToStack(new LootStepOnStack(eventData.eventIssuer, eventData.numberToLoot, this));
+      });
     });
   }
   
@@ -504,7 +498,7 @@ export class Game extends SelectionHandler {
       if(this.gameParameters.timer.value > 0 && this.turnHandler.round > this.gameParameters.timer.value)
         this.win(null);
       this.dispatch();
-      this.startTurn();
+      await this.startTurn();
     });
   }
 
@@ -793,6 +787,13 @@ export class Game extends SelectionHandler {
       if (response.selected[0] !== 'Accept') {
         return false;
       }
+    }
+   return this.forceGiveCoins(from, to, amount, forcedBy);
+  }
+
+  forceGiveCoins(from: Player, to: Player, amount: number, forcedBy: Card | null = null): boolean {
+    if (from.coins < amount || amount <= 0) {
+      return false;
     }
     this.addAnimation({
       id: this.nextAnimationId,

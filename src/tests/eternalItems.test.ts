@@ -5,9 +5,9 @@ import { Player } from "../models/entities/player";
 import { DiceRoll } from "../models/stackElement";
 import { setupTestGame, type GameSetupResult } from "./testHelpers";
 
-function setupGameWithCharacters(characterSlugs: string[]): GameSetupResult
+async function setupGameWithCharacters(characterSlugs: string[]): Promise<GameSetupResult>
 {
-    return setupTestGame({
+    return await setupTestGame({
         characters: characterSlugs,
         monsters: ["b2-fly", "b2-fatty"],
         monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -25,7 +25,7 @@ describe("Eternal Items", () => {
     });
     // [tap effect] look at the top 5 cards of a deck. put them back in any order.
     it("The D6", async () => {
-        const setup = setupGameWithCharacters(["b2-samson", "b2-isaac"]);
+        const setup = await setupGameWithCharacters(["b2-samson", "b2-isaac"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -61,7 +61,7 @@ describe("Eternal Items", () => {
     }); 
     // [Tap Effect] Put the top card of any discard on top of its deck.
     it("The Curse - active", async () => {
-        const setup = setupGameWithCharacters(["b2-eve", "b2-isaac"]);
+        const setup = await setupGameWithCharacters(["b2-eve", "b2-isaac"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -101,7 +101,7 @@ describe("Eternal Items", () => {
     });
 
     it("The Curse - passive", async () => {
-        const setup = setupGameWithCharacters(["b2-eve", "b2-isaac"]);
+        const setup = await setupGameWithCharacters(["b2-eve", "b2-isaac"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -126,7 +126,7 @@ describe("Eternal Items", () => {
 
     // "[Tap Effect] Put a counter on this.",
     it("The Bone: active effect (put a counter on this)", async () => {
-        const setup = setupGameWithCharacters(["b2-the_forgotten", "b2-isaac"]);
+        const setup = await setupGameWithCharacters(["b2-the_forgotten", "b2-isaac"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -152,7 +152,7 @@ describe("Eternal Items", () => {
 
     // "[Paid Effect] Remove 1 counter from this: Add +1 to a dice roll."
     it("The Bone: paid effect 1 (remove 1 counter to add +1 to dice roll)", async () => {
-        const setup = setupGameWithCharacters(["b2-the_forgotten", "b2-isaac"]);
+        const setup = await setupGameWithCharacters(["b2-the_forgotten", "b2-isaac"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -190,7 +190,7 @@ describe("Eternal Items", () => {
 
     // "[Paid Effect] Remove 2 counters from this: Deal 1 damage to a monster or player."
     it("The Bone: paid effect 2 (remove 2 counters to deal 1 damage to player)", async () => {
-        const setup = setupGameWithCharacters(["b2-the_forgotten", "b2-isaac"]);
+        const setup = await setupGameWithCharacters(["b2-the_forgotten", "b2-isaac"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -217,7 +217,7 @@ describe("Eternal Items", () => {
     });
 
     it("The Bone: paid effect 2 (remove 2 counters to deal 1 damage to monster)", async () => {
-       const setup = setupGameWithCharacters(["b2-the_forgotten", "b2-isaac"]);
+       const setup = await setupGameWithCharacters(["b2-the_forgotten", "b2-isaac"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -248,7 +248,7 @@ describe("Eternal Items", () => {
 
     // "[Paid Effect] Remove 5 counters from this: This becomes a soul and loses all abilities."
     it("The Bone: paid effect 3 (remove 5 counters to become a soul)", async () => {
-        const setup = setupGameWithCharacters(["b2-the_forgotten", "b2-isaac"]);
+        const setup = await setupGameWithCharacters(["b2-the_forgotten", "b2-isaac"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -279,7 +279,7 @@ describe("Eternal Items", () => {
     });
 
     it("The Bone: paid effect 3 cannot be used with less than 5 counters", async () => {
-        const setup = setupGameWithCharacters(["b2-the_forgotten", "b2-isaac"]);
+        const setup = await setupGameWithCharacters(["b2-the_forgotten", "b2-isaac"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -306,7 +306,7 @@ describe("Eternal Items", () => {
 
     // "[Tap Effect] Add or subtract 1 from a roll."
     it("Book of Belial: add ", async () => {
-        const setup = setupGameWithCharacters(["b2-judas", "b2-isaac"]);
+        const setup = await setupGameWithCharacters(["b2-judas", "b2-isaac"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -340,7 +340,7 @@ describe("Eternal Items", () => {
     });
 
     it("Book of Belial: subtract ", async () => {
-        const setup = setupGameWithCharacters(["b2-judas", "b2-isaac"]);
+        const setup = await setupGameWithCharacters(["b2-judas", "b2-isaac"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -374,7 +374,7 @@ describe("Eternal Items", () => {
 
     // "[Tap Effect] Look at the top 5 cards of a deck. Put them back in any order."
     it("Sleight of Hand ", async () => {
-        const setup = setupGameWithCharacters(["b2-cain", "b2-isaac"]);
+        const setup = await setupGameWithCharacters(["b2-cain", "b2-isaac"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -400,7 +400,7 @@ describe("Eternal Items", () => {
 
     // "[Tap Effect] Choose a player or monster. Prevent the next instance of damage they would take this turn.",
     it("Yum Heart", async () => {
-        const setup = setupGameWithCharacters(["b2-isaac", "b2-maggy"]);
+        const setup = await setupGameWithCharacters(["b2-isaac", "b2-maggy"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -437,7 +437,7 @@ describe("Eternal Items", () => {
     });
 //     "Each time you die, after paying penalties, gain +1 treasure."
     it("Lazarus Rags", async () => {
-        const setup = setupGameWithCharacters(["b2-isaac", "b2-lazarus"]);
+        const setup = await setupGameWithCharacters(["b2-isaac", "b2-lazarus"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -481,7 +481,7 @@ describe("Eternal Items", () => {
     });
 
     it("Blood Lust", async () => {
-        const setup = setupGameWithCharacters(["b2-isaac", "b2-samson"]);
+        const setup = await setupGameWithCharacters(["b2-isaac", "b2-samson"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -540,7 +540,7 @@ describe("Eternal Items", () => {
     // "[Tap Effect] Choose one-\nSteal 1\u00A2 from another player.\nLook at the top card of a deck.\nDiscard a loot card, then loot 1."
     // "Each time you take damage, recharge this."
     it("Forever Alone - Option 1: Steal 1\u00A2 from another player", async () => {
-        const setup = setupGameWithCharacters(["b2-isaac", "b2-blue_baby"]);
+        const setup = await setupGameWithCharacters(["b2-isaac", "b2-blue_baby"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -569,7 +569,7 @@ describe("Eternal Items", () => {
     });
 
     it("Forever Alone - Option 2: Look at the top card of a deck", async () => {
-        const setup = setupGameWithCharacters(["b2-isaac", "b2-blue_baby"]);
+        const setup = await setupGameWithCharacters(["b2-isaac", "b2-blue_baby"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -589,7 +589,7 @@ describe("Eternal Items", () => {
     });
 
     it("Forever Alone - Option 3: Discard a loot card, then loot 1", async () => {
-        const setup = setupGameWithCharacters(["b2-isaac", "b2-blue_baby"]);
+        const setup = await setupGameWithCharacters(["b2-isaac", "b2-blue_baby"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -624,7 +624,7 @@ describe("Eternal Items", () => {
     });
 
     it("Forever Alone - Recharges when taking damage", async () => {
-        const setup = setupGameWithCharacters(["b2-isaac", "b2-blue_baby"]);
+        const setup = await setupGameWithCharacters(["b2-isaac", "b2-blue_baby"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -651,7 +651,7 @@ describe("Eternal Items", () => {
     });
 
     it("Forever Alone - Multiple damage instances recharge each time", async () => {
-        const setup = setupGameWithCharacters(["b2-isaac", "b2-blue_baby"]);
+        const setup = await setupGameWithCharacters(["b2-isaac", "b2-blue_baby"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -686,7 +686,7 @@ describe("Eternal Items", () => {
 
     // "[Tap Effect] Choose one-\nLook at a player's hand. You may swap a card from your hand with one of theirs.\nLoot 1, then put a card from your hand on top of the loot deck."
     it("Incubus - Option 1: Look at a player's hand and swap a card", async () => {
-        const setup = setupGameWithCharacters(["b2-isaac", "b2-lilith"]);
+        const setup = await setupGameWithCharacters(["b2-isaac", "b2-lilith"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -722,7 +722,7 @@ describe("Eternal Items", () => {
     });
 
     it("Incubus - Option 2: Loot 1, then put a card from your hand on top of the loot deck", async () => {
-        const setup = setupGameWithCharacters(["b2-isaac", "b2-lilith"]);
+        const setup = await setupGameWithCharacters(["b2-isaac", "b2-lilith"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -752,7 +752,7 @@ describe("Eternal Items", () => {
     });
 
     it("Incubus - Option 2: Does nothing with empty hand", async () => {
-        const setup = setupGameWithCharacters(["b2-isaac", "b2-lilith"]);
+        const setup = await setupGameWithCharacters(["b2-isaac", "b2-lilith"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -777,7 +777,7 @@ describe("Eternal Items", () => {
     });
 
     it("Incubus - Charges at start of turn", async () => {
-        const setup = setupGameWithCharacters(["b2-isaac", "b2-lilith"]);
+        const setup = await setupGameWithCharacters(["b2-isaac", "b2-lilith"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -804,7 +804,7 @@ describe("Eternal Items - 3 players tests", () => {
     });
     
     it("Blood Lust - recharge on end turn", async () => {
-        const setup = setupGameWithCharacters(["b2-isaac", "b2-samson", "b2-judas"]);
+        const setup = await setupGameWithCharacters(["b2-isaac", "b2-samson", "b2-judas"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;

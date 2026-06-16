@@ -11,11 +11,11 @@ describe("Game Selection System", () => {
     let player2: Player;
     let player3: Player;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         game = new Game();
         game.cardHandler.setupDecks();
         const chara = [{issuer: "Player 1", character: "b2-isaac", team: Team.Team1}, {issuer: "Player 2", character: "b2-judas", team: Team.Team2}, {issuer: "Player 3", character: "b2-samson", team: Team.Team3}];
-        game.start(chara, false);
+        await game.start(chara, false);
         player1 = game.players[0]!;
         player2 = game.players[1]!;
         player3 = game.players[2]!;

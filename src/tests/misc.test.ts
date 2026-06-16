@@ -10,9 +10,9 @@ import { type ItemCard, type LootCard, type CharacterCard, TreasureCard } from "
 import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame, type GameSetupResult } from "@/tests/testHelpers";
 
 
-function setupGameWithCharacters(characterSlugs: string[]): GameSetupResult
+async function setupGameWithCharacters(characterSlugs: string[]): Promise<GameSetupResult>
 {
-    return setupTestGame({
+    return await setupTestGame({
         characters: characterSlugs,
         monsters: ["b2-fly", "b2-fatty"],
         monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -30,7 +30,7 @@ describe("Before start effects", () => {
     });
 
     it("Cain plays first", async () => {
-        const setup = setupGameWithCharacters(["b2-isaac", "b2-cain"]);
+        const setup = await setupGameWithCharacters(["b2-isaac", "b2-cain"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -38,7 +38,7 @@ describe("Before start effects", () => {
     });
 
     it("Eden gets a treasure and set it eternal", async () => {
-        const setup = setupGameWithCharacters(["b2-isaac", "b2-eden"]);
+        const setup = await setupGameWithCharacters(["b2-isaac", "b2-eden"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -54,7 +54,7 @@ describe("Before start effects", () => {
     });
 
     it("Character card activation gives a loot play (random characters)", async () => {
-        const setup = setupGameWithCharacters(["b2-samson", "b2-isaac"]);
+        const setup = await setupGameWithCharacters(["b2-samson", "b2-isaac"]);
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -95,8 +95,8 @@ describe("Bonus Soul effects", () => {
     let player1: Player;
     let player2: Player;
 
-    beforeEach(() => {
-        const setup = setupTestGame({
+    beforeEach(async() => {
+        const setup = await setupTestGame({
                             characters: ["b2-judas", "b2-isaac"],
                             monsters: ["b2-fly", "b2-fatty"],
                             monsterDeck: ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip","b2-leech","b2-gurdy"],

@@ -10,8 +10,8 @@ describe("Treasure - Permanent Modifiers", () => {
     let player1: Player;
     let player2: Player;
 
-    beforeEach(() => {
-         const setup = setupTestGame({
+    beforeEach(async () => {
+         const setup = await setupTestGame({
             characters: ["b2-samson", "b2-isaac"],
             monsters: ["b2-fly", "b2-fatty"],
             monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -259,7 +259,7 @@ describe("Treasure - Permanent Modifiers", () => {
     it("b2-brimstone: Each time you deal combat damage to a monster, deal 1 damage to another player", async () => {
         // Setup a fresh game with 3 players (minimum required for brimstone)
 
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
             characters: ["b2-samson", "b2-isaac", "b2-the_forgotten"],
             monsters: ["b2-fly", "b2-fatty"],
             monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],

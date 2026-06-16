@@ -331,7 +331,7 @@ export const enterStartStep = (socket: Socket, room: Room, user: User): void => 
     );
 
     socket.on("start", (callback) =>
-      errorGuardedEndpoint(callback, () => {
+      errorGuardedEndpoint(callback, async () => {
         const params = room.params;
 
         const game = new Game("", params);
@@ -372,7 +372,7 @@ export const enterStartStep = (socket: Socket, room: Room, user: User): void => 
           }
         }
 
-        game.start(playersWithCharacters);
+        await game.start(playersWithCharacters);
 
         game.addToHistory({
           type: "Start",

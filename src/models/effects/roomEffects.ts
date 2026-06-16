@@ -2,7 +2,7 @@
 
 
 import { Game } from "../game";
-import { EffectData, type EffectFunction } from "../types/cardTypes";
+import { EffectData, type EffectFunction, type SynchronousEffectFunction } from "../types/cardTypes";
 import { Player } from "../entities/player";
 import { Card, LootCard, MonsterCard, TreasureCard, ItemCard } from "../cards";
 import type { OnAttackDeclaredTopDeckData, OnDamageTakenData, OnDeathMonsterData } from "../types/eventTypes";
@@ -503,7 +503,7 @@ export function putThisIntoDiscardAtEndOfTurnEffect(game: Game): EffectFunction 
     };
 }
 
-export function discardHandsAndLootEffect(game: Game, amount: number): EffectFunction {
+export function discardHandsAndLootEffect(game: Game, amount: number): SynchronousEffectFunction {
     return (data: EffectData) => {
         for(const player of game.players)
         {
@@ -519,10 +519,10 @@ export function discardHandsAndLootEffect(game: Game, amount: number): EffectFun
     };
 }
 
-export function enterPlayRerollItemsDiscardHandsLootAndFlushMonstersEffect(game: Game, lootAmount: number): EffectFunction {
+export function enterPlayRerollItemsDiscardHandsLootAndFlushMonstersEffect(game: Game, lootAmount: number): SynchronousEffectFunction {
     return (data: EffectData) => {
-        void flushMonsterSlotsEffect(game, "discard")(data);
-        void discardHandsAndLootEffect(game, lootAmount)(data);
+        flushMonsterSlotsEffect(game, "discard")(data);
+        discardHandsAndLootEffect(game, lootAmount)(data);
         for(const item of visibleItemSelector((c, p) => c.eternal === false, false, game)(data.issuer as Player, data.it)) {
             game.cardHandler.reroll(item);
         }
@@ -635,7 +635,7 @@ export function canBeAttackedEffect(game: Game): EffectFunction {
     };
 }
 
-export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): EffectFunction {
+export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): SynchronousEffectFunction {
     return (data: EffectData) => {
         let offAttackRolled: (() => void) | null = null;
         let offCombatEnd: (() => void) | null = null;
@@ -954,10 +954,10 @@ export function flushShopOrUnattackedMonstersEffect(game: Game): EffectFunction 
     return async (data: EffectData) => {
         const selected = (await data.selectAndRecord(game, game.currentPlayer, 0, 1, ["treasure", "monster"], "Put each shop item or each monster not being attacked into discard.", false)).selected[0] as string | undefined;
         if(selected === "treasure") {
-            void flushShopEffect(game, "discard")(data);
+            flushShopEffect(game, "discard")(data);
         }
         if(selected === "monster") {
-            void flushMonsterSlotsEffect(game, "discard")(data);
+            flushMonsterSlotsEffect(game, "discard")(data);
         }
         // Implementation for flushing shop items or unattacked monsters
         return true;
@@ -1179,7 +1179,7 @@ export function payOtherPlayersToAttackEffect(game: Game, amount: number): Effec
                 const effect: EffectFunction = (effectData: EffectData) => {
                     for(const player of game.players) {
                         if(player !== eventIssuer)
-                            void game.giveCoins(eventIssuer, player, amount, data.it);
+                            game.forceGiveCoins(eventIssuer, player, amount, data.it);
                     }
                     return true;
                 };

@@ -294,7 +294,7 @@ export class EntityHandler {
         this.game.emit("on:death:monster", eventData);
         this.monsterDiedThisTurn = true;
         this.entityRewards(receiver, eventData.rewardGainer);
-        void this.game.executeWhenStackSubset(stackIds, async () => {
+        await this.game.executeWhenStackSubset(stackIds, async () => {
           this.game.encounters.kill(receiver); // should only kill once its effects are resolved: should be moved in the resolvewhenstackempty
           this.game.cardHandler.obtainMonsterSoulOrDiscard(receiver);
           await this.game.resolveCallbacks();
