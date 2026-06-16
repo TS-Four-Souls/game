@@ -229,7 +229,7 @@ export class GameStateSerializer {
       turn: this.game.currentPlayer.id,
       round: this.game.gameParameters.timer.value > 0 ? this.game.gameParameters.timer.value + 1 - this.game.turnHandler.round : this.game.turnHandler.round,
       history: this.game.history,
-      firstCardTreasureDeck: player.canSeeTopOfTreasureDeck ? this.game.decks["treasure"]!.cards[0]!.jsonAPI : undefined,
+      firstCardTreasureDeck: player.canSeeTopOfTreasureDeck && this.game.decks["treasure"]!.cards[0] !== undefined ? this.game.decks["treasure"]!.cards[0]!.jsonAPI : undefined,
       stack: this.game.stack.elements.map((el) => el.json).toReversed(),
       animations: player.animations(true)
     };
