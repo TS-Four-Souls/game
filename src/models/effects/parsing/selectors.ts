@@ -54,7 +54,7 @@ export const selectPassiveAbilityOrMonsterAbility = (game: Game, min: number = 1
     [createSelector("Choose a triggered ability of a monster or non-eternal item.", (issuer: Player) => {
         return game.stack.elements.filter(e =>
             e instanceof EffectOnStack
-            && ((e.data.it instanceof ItemCard && e.isReorderable) || e.data.it instanceof MonsterCard))
+            && ((e.data.it instanceof ItemCard && e.type === "passive" && !e.data.it.eternal) || (e.data.it instanceof MonsterCard && e.type !== "event")))
     }, min, max)];
 export const selectCardInPlayOrLootBeingPlayed = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector("Choose a card in play or a loot being played", (issuer: Player) => {
@@ -129,9 +129,9 @@ export const selectLootInYourHand = (game: Game, min: number = 1, max: number = 
     selectionOnResolve ? noTargets :
         [createSelector("Select a loot card in your hand", (issuer: Player) => issuer.hand.cards, min, max)];
 export const selectUsableAbilityStackElement = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
-    [createSelector("Select the ↷ or $ ability of an item", stackElementSelector((element) => element instanceof EffectOnStack && element.data.it instanceof ItemCard && element.isReorderable === false, game), min, max)];
+    [createSelector("Select the ↷ or $ ability of an item", stackElementSelector((element) => element instanceof EffectOnStack && element.data.it instanceof ItemCard && (element.type === "active" || element.type === "paid"), game), min, max)];
 export const selectStackElementOrLoot = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
-    [createSelector("Select the ↷ or $ ability of an item or a loot card on the stack", stackElementSelector((element) => element instanceof LootCardEffect || (element instanceof EffectOnStack && element.data.it instanceof ItemCard && element.isReorderable === false), game), min, max)];
+    [createSelector("Select the ↷ or $ ability of an item or a loot card on the stack", stackElementSelector((element) => element instanceof LootCardEffect || (element instanceof EffectOnStack && element.data.it instanceof ItemCard && (element.type === "active" || element.type === "paid")), game), min, max)];
 export const selectLootOnStack = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector("Select a loot card on the stack", stackElementSelector((element) => element instanceof LootCardEffect, game), min, max)];
 export const selectNumber1to6 = (): TargetsSelector[] =>

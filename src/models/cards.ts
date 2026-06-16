@@ -832,18 +832,21 @@ function prepareEffectString(s: string): string {
     s = s.trim();
     return s;
 }
+export type EffectTypeOnStack = "active" | "paid" | "passive" | "event";
 export class EffectOnStack extends StackElement {
     protected _effectFunction: EffectFunction
     protected _data: EffectData;
     protected _description: string;
+    protected _type: EffectTypeOnStack;
 
-    constructor(effectFunction: EffectFunction, data: EffectData, description: string) {
+    constructor(effectFunction: EffectFunction, data: EffectData, description: string, type: EffectTypeOnStack) {
         super();
         // if(!data)
         //     throw new Error("EffectOnStack constructor: data is undefined or null.");
         this._effectFunction = effectFunction;
         this._data = data;
         this._description = prepareEffectString(description);
+        this._type = type;
     }
     async onResolve(): Promise<boolean> {
         return await this._effectFunction(this._data);
@@ -851,6 +854,9 @@ export class EffectOnStack extends StackElement {
 
     get data(): EffectData {
         return this._data;
+    }
+    get type(): EffectTypeOnStack {
+        return this._type;
     }
     set targets(targets: any[]) {
         this._data.targets = targets;

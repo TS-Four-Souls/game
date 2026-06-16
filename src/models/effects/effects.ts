@@ -324,9 +324,9 @@ export class EffectInterface {
                 throw new Error(`Payment denied for ${this.it.slug}, with targets: "${JSON.stringify(TargetBuilder.convertToSelectionItems(data.targets))}".`);
             }
             // Effect gets second element of targets array
-            return new EffectOnStack(effect.effectFunction, data, effect.description);
+            return new EffectOnStack(effect.effectFunction, data, effect.description, effect.type);
         }
-        return new EffectOnStack(effect.effectFunction, data, effect.description);
+        return new EffectOnStack(effect.effectFunction, data, effect.description, effect.type);
     }
 
     tapEffect(issuer: Entity, targets: any[]): EffectOnStack {
@@ -334,7 +334,7 @@ export class EffectInterface {
         if (!issuer)
             throw new Error("EffectInterface.tapEffect: issuer is undefined or null.");
         const data = new EffectData(this.it, () => issuer as Player, targets);
-        return new EffectOnStack(effect.effectFunction, data, effect.description);
+        return new EffectOnStack(effect.effectFunction, data, effect.description, effect.type);
     }
     // activeEffect(issuer: Entity, targets: any[], effectId: number): void {
     //     this.activeEffects.pay(issuer, this.it, targets, effectId);

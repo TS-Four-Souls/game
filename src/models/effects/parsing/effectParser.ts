@@ -1310,10 +1310,6 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
             return { effectFunction: active.discardAnyNumberOfShopItemsEffect(game, 1, 1, "next"), targetSelectors: selectShopItem(game) };
         case "you may put any number of shop items into discard":
             return noTargetEffect(active.discardAnyNumberOfShopItemsEffect(game, 0, "any", "onResolve"));
-        case "cancel the triggered ability of a monster or non-eternal item":
-                return { effectFunction: active.cancelStackElementEffect(game), targetSelectors: selectPassiveAbilityOrMonsterAbility(game) };
-        case "cancel the ↷ or $ ability of an item":
-            return { effectFunction: active.cancelStackElementEffect(game), targetSelectors: selectUsableAbilityStackElement(game) };
         case "put any number of non-event monster cards in discard on top of the monster deck":
             return noTargetEffect(active.putAnyNumberFromDiscardOnTopEffect("monster", game, (card) => card instanceof MonsterCard && card.encounterType !== MonsterType.EVENT));
         case "steal a soul they control":
@@ -1354,6 +1350,10 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
             return { effectFunction: active.cancelStackElementEffect(game), targetSelectors: selectStackElementOrLoot(game) };
         case "cancel the effect of a loot being played":
             return { effectFunction: active.cancelStackElementEffect(game, selectLootOnStack(game), selectionOnResolve ), targetSelectors: selectLootOnStack(game) };
+        case "cancel the triggered ability of a monster or non-eternal item":
+            return { effectFunction: active.cancelStackElementEffect(game), targetSelectors: selectPassiveAbilityOrMonsterAbility(game) };
+        case "cancel the ↷ or $ ability of an item":
+            return { effectFunction: active.cancelStackElementEffect(game), targetSelectors: selectUsableAbilityStackElement(game) };
         case "each other player discards a loot card":
             return noTargetEffect(active.eachOtherPlayerDiscardsLootEffect(game));
         case "put each monster not being attacked into discard and replace each with the top card of the monster deck":

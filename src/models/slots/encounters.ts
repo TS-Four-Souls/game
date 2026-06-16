@@ -233,7 +233,7 @@ export class Encounters extends Slots<MonsterCard> {
                 return true;
             },
             new EffectData(event, () => this._game.currentPlayer, []),
-            event.effectOutcomes.join('\n')
+            event.effectOutcomes.join('\n'), "event"
         );
     }
 

@@ -50,7 +50,7 @@ export function addPassiveEffectToStack(
     data: EffectData,
     description: string
 ): number {
-    const effectOnStack = new EffectOnStack(effectFunction, data, description);
+    const effectOnStack = new EffectOnStack(effectFunction, data, description, "passive");
     game.addAnimation({
         id: game.nextAnimationId,
         type: "activateInPlay",
