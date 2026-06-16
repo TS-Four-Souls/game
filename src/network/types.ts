@@ -13,22 +13,22 @@ export const DEFAULT_CHARACTER: RoomCharacter = {
   eternal: "random",
 };
 
-export type Instance = {
+export interface Instance {
   id: string;
   name: string;
   isCopy: boolean;
   isActive: boolean;
   character: RoomCharacter;
   team: Team;
-};
+}
 
-export type User = {
+export interface User {
   socket: Socket;
   isHost: boolean;
   instances: Instance[]
-};
+}
 
-export type Room = {
+export interface Room {
   id: string;
   lastActionTimestamp: Date;
   users: User[];
@@ -36,4 +36,4 @@ export type Room = {
   characters: RoomCharacter[];
   game?: Game;
   createdAt: Date;
-};
+}

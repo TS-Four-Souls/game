@@ -10,8 +10,8 @@ describe("Tap/Paid effects 2", () => {
     let player2: Player;
     let player3: Player;
 
-    beforeEach(() => {
-        const setup = setupTestGame({
+    beforeEach(async () => {
+        const setup = await setupTestGame({
             characters: ["b2-samson", "b2-isaac", "b2-lazarus"],
             playerCount: 3,
             monsters: ["b2-fly", "b2-fatty"],
@@ -698,8 +698,8 @@ describe("Force Attack Monster", () => {
     let player1: Player;
     let player2: Player;
 
-    beforeEach(() => {
-        const setup = setupTestGame({
+    beforeEach(async () => {
+        const setup = await setupTestGame({
             characters: ["b2-samson", "b2-isaac"],
             monsters: ["b2-fly", "b2-fatty"],
             monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -834,8 +834,8 @@ describe("Force Attack Monster", () => {
         let player1: Player;
         let player2: Player;
 
-        beforeEach(() => {
-            const setup = setupTestGame({
+        beforeEach(async () => {
+            const setup = await setupTestGame({
             characters: ["b2-samson", "b2-isaac"],
             monsters: ["b2-fly", "b2-fatty"],
             monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -910,7 +910,7 @@ describe("Force Attack Monster", () => {
         });
 
         it("allows attack even when attackThisTurn is 0 (bypasses limit)", async () => {
-            // Player starts with attackThisTurn = 0 after game.start()
+            // Player starts with attackThisTurn = 0 after await game.start()
             dischargeEachItemsAndRemoveCoins(game);
             emptyHands(game);
             const monsterManual = game.shop.obtainCard("b2-monster_manual") as ItemCard;

@@ -39,7 +39,7 @@ export async function randomSelect<T>(
     }
 
     if ((min === max && Options.length === max && skippable) || Options.length < min) {
-        return {
+        return await {
         selected: Options,
         remaining: [],
         };
@@ -55,7 +55,7 @@ export async function randomSelect<T>(
 } 
 
 export async function randomSelectMultiple<T>(
-        selections: Array<
+        selections: 
         {
           player: Player;
           min: number;
@@ -64,8 +64,8 @@ export async function randomSelectMultiple<T>(
           description: string;
           skippable?: boolean;
           canUseOnBoardSelection: boolean;
-        }>
-      ): Promise<Array<{ playerId: string; selected: T[]; remaining: T[] }>> {
+        }[]
+      ): Promise<{ playerId: string; selected: T[]; remaining: T[] }[]> {
         return Promise.all(selections.map(async s => {
             const res = await randomSelect(s.player, s.min, s.max, s.options, s.description, s.skippable, s.canUseOnBoardSelection);
             return {playerId: s.player.id, selected: res.selected, remaining: res.remaining};}));
@@ -178,7 +178,7 @@ export interface GameSetupResult {
  *     characters: ["b2-isaac", "b2-judas", "b2-samson"]
  * });
  */
-export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
+export async function setupTestGame(config: GameSetupConfig = {}): Promise<GameSetupResult> {
     const {
         characters,
         monsters = [],
@@ -247,12 +247,12 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
     game.decks.character.cards.splice(0, playerCount).map(c => c.slug);
     // Start the game
     const charas = charactersFull?.map((slug, index) => ({issuer: `Player ${index + 1}`, character: slug, team: Team[`Team${index + 1}` as keyof typeof Team]}));
-    game.start(charas, false);
+    await game.start(charas, false);
     const players = game.players;
     dischargeEachItemsAndRemoveCoins(game);
     const el = game.stack.elements.find(el => el.json.type === "lootStep")!
     if(el)
-        el.onResolve();
+        void el.onResolve();
     game.stack.cancelElement(el);
     emptyHands(game);
     
@@ -336,7 +336,7 @@ export function setupTestGame(config: GameSetupConfig = {}): GameSetupResult {
  * @example
  * const { game, player1, player2 } = setupStandardTestGame();
  */
-export function setupStandardTestGame(): GameSetupResult {
+export function setupStandardTestGame(): Promise<GameSetupResult> {
     return setupTestGame({
         characters: ["b2-isaac", "b2-judas"],
         monsters: ["b2-fly", "b2-fatty"],
@@ -350,55 +350,12 @@ export function setupStandardTestGame(): GameSetupResult {
  * 
  * @returns Game setup result with player1 and player2
  */
-export function setupSamsonIsaacGame(): GameSetupResult {
+export function setupSamsonIsaacGame(): Promise<GameSetupResult> {
     return setupTestGame({
         characters: ["b2-samson", "b2-isaac"],
         monsters: ["b2-fly", "b2-fatty"],
         monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
         treasureDeck: ["b2-blank_card", "b2-placebo", "b2-tech_x", "b2-crystal_ball", "b2-boomerang"],
-    });
-}
-
-/**
- * Minimal setup for tests that need custom configuration.
- * No monsters or characters assigned - perfect for unique test scenarios.
- * 
- * @param playerCount - Number of players (default: 2)
- * @returns Game setup result with clean slate
- * 
- * @example
- * const { game, player1, player2 } = setupMinimalGame();
- * // Add your own specific cards and setup
- */
-export function setupMinimalGame(playerCount: number = 2): GameSetupResult {
-    return setupTestGame({ playerCount });
-}
-
-/**
- * Setup for 3-player tests with common configuration.
- * 
- * @returns Game setup result with player1, player2, and player3
- */
-export function setupThreePlayerGame(): GameSetupResult {
-    return setupTestGame({
-        playerCount: 3,
-        characters: ["b2-isaac", "b2-judas", "b2-samson"],
-        monsters: ["b2-fly", "b2-fatty"],
-        monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
-    });
-}
-
-/**
- * Setup for 4-player tests with common configuration.
- * 
- * @returns Game setup result with player1, player2, player3, and player4
- */
-export function setupFourPlayerGame(): GameSetupResult {
-    return setupTestGame({
-        playerCount: 4,
-        characters: ["b2-isaac", "b2-judas", "b2-samson", "b2-cain"],
-        monsters: ["b2-fly", "b2-fatty"],
-        monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
     });
 }
 
@@ -419,9 +376,9 @@ export function setupFourPlayerGame(): GameSetupResult {
  */
 export function mockGameSelections(game: Game): void {
     // Mock single player selection
-    game.select = async (player: Player, min: number, max: number, Options: any[]) => {
+    game.select = async (player: Player, min: number, max: number, Options: any[]): Promise<{ selected: any[]; remaining: any[] }> => {
         if (max === 1 && min === max && Options.length === 1) {
-            return {
+            return await {
                 selected: Options,
                 remaining: []
             };
@@ -432,14 +389,14 @@ export function mockGameSelections(game: Game): void {
     };
 
     // Mock multiple player selection
-    game.selectMultiple = async (selections: Array<{
+    game.selectMultiple = async (selections: {
         player: Player;
         min: number;
         max: number;
         options: any[];
         asMany?: boolean;
-    }>) => {
-        return selections.map(sel => ({
+    }[]): Promise<{ playerId: string; selected: any[]; remaining: any[] }[]> => {
+        return await selections.map(sel => ({
             playerId: sel.player.id,
             selected: sel.options.slice(0, sel.max),
             remaining: sel.options.slice(sel.max)

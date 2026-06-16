@@ -21,7 +21,7 @@ import { globalEndpoints } from "./global";
 import { roomManager } from "./roomManager";
 import { enterAdminStep } from "./adminStep";
 
-export const enterIntroStep = (socket: Socket) => {
+export const enterIntroStep = (socket: Socket): void => {
   globalEndpoints(socket);
 
   socket.on("adminLogin", (payload, callback) =>

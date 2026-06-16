@@ -1,18 +1,17 @@
-import { describe, it, beforeEach, expect } from "bun:test";
-import { Game } from "../../models/game";
+import { CharacterCard, ItemCard, MonsterCard, TreasureCard } from "@/models/cards";
+import { setupTestGame } from "@/tests/testHelpers";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../../models/entities/player";
+import { Game } from "../../models/game";
 import { DiceRoll } from "../../models/stackElement";
-import { CharacterCard, ItemCard, TreasureCard, MonsterCard } from "@/models/cards";
-import { Monster } from "@/models/entities/monster";
-import { dischargeEachItemsAndRemoveCoins, setupTestGame } from "@/tests/testHelpers";
 
 describe("Tap/Paid effects 1", () => {
     let game: Game;
     let player1: Player;
     let player2: Player;
 
-    beforeEach(() => {
-        const setup = setupTestGame({
+    beforeEach(async () => {
+        const setup = await setupTestGame({
             characters: ["b2-samson", "b2-isaac"],
             monsters: ["b2-fly", "b2-fatty"],
             monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -982,8 +981,8 @@ describe("b2-theres_options treasure deck visibility", () => {
     let isaac: CharacterCard;
     let the_forgotten: CharacterCard;
 
-    beforeEach(() => {
-        const setup = setupTestGame({
+    beforeEach(async () => {
+        const setup = await setupTestGame({
             characters: ["b2-samson", "b2-isaac", "b2-the_forgotten"],
             monsters: ["b2-fly", "b2-fatty"],
             monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],

@@ -8,9 +8,9 @@ import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame } from "@/t
 // Minimal loot card stub
 const dummyLoot = { slug: "dummy-loot", name: "Dummy", type: "loot" } as any;
 
-function setupDecks() {
+async function setupDecks() {
 
-    const setup = setupTestGame({
+    const setup = await setupTestGame({
             characters: ["b2-samson", "b2-isaac"],
             monsters: ["b2-fly", "b2-fatty"],
             monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -28,8 +28,8 @@ describe("Effect - gainCoins", () => {
   let p2: Player;
   let effectFn: ReturnType<typeof gainCoinsEffect>;
 
-  beforeEach(() => {
-    ({ game, p1, p2 } = setupDecks());
+  beforeEach(async () => {
+    ({ game, p1, p2 } = await setupDecks());
     effectFn = gainCoinsEffect(game, 5);
   });
 
@@ -82,7 +82,7 @@ import type { ItemCard, LootCard } from "@/models/cards";
 
 describe("Effect - additional unique implementations", () => {
   it("changeRollDiceResultEffect sets dice value", async () => {
-    const { game, p1 } = setupDecks();
+    const { game, p1 } = await setupDecks();
     const dice = { value: 3 };
     const fn = active.changeRollDiceResultEffect(game);
     // Use a real loot card
@@ -92,7 +92,7 @@ describe("Effect - additional unique implementations", () => {
   });
 
   it("drawAndGainCoinsAsAPlayerEffect works", async () => {
-    const { game, p1, p2 } = setupDecks();
+    const { game, p1, p2 } = await setupDecks();
     const c = game.decks["loot"]!.draw();
     p2.hand.addToHand(c); // p2 has more cards
     p2.gainCoins(5);
@@ -104,7 +104,7 @@ describe("Effect - additional unique implementations", () => {
   });
 
   it("put on bottom of loot deck and extra turn", async () => {
-    const { game, p1 } = setupDecks();
+    const { game, p1 } = await setupDecks();
     Object.defineProperty(game, "currentPlayer", { get: () => p1 });
     let added = false, extra = false;
     game.cardHandler.addBottomPosition = () => { added = true; };
@@ -127,7 +127,7 @@ describe("Loot deck integration", () => {
   };
 
   it("plays a gain coins card through the stack", async () => {
-    const { game, p1 } = setupDecks();
+    const { game, p1 } = await setupDecks();
     const gainCoinCard = findCardByEffect(game, /^Gain\s+\d+\u00A2/);
     expect(gainCoinCard).toBeTruthy();
 
@@ -150,7 +150,7 @@ describe("Loot deck integration", () => {
   });
 
   it("plays a roll-based loot card through the stack", async () => {
-    const { game, p1 } = setupDecks();
+    const { game, p1 } = await setupDecks();
     const rollCard = findCardByEffect(game, /^Roll-/);
     expect(rollCard).toBeTruthy();
 
@@ -164,7 +164,7 @@ describe("Loot deck integration", () => {
   });
 
   it("plays a deal damage card through the stack", async () => {
-    const { game, p1, p2 } = setupDecks();
+    const { game, p1, p2 } = await setupDecks();
     const damageCard = game.decks["loot"]!.getCardFromSlug("b2-bomb");
     expect(damageCard).toBeTruthy();
 
@@ -188,7 +188,7 @@ describe("Loot deck integration", () => {
   });
 
   it("plays a cancel ability card that affects the stack", async () => {
-    const { game, p1 } = setupDecks();
+    const { game, p1 } = await setupDecks();
     const cancelCard = findCardByEffect(game, /^Cancel the.*ability/);
     expect(cancelCard).toBeTruthy();
 
@@ -231,7 +231,7 @@ describe("Loot deck integration", () => {
   });
 
   it("plays a gain treasure card through the stack", async () => {
-    const { game, p1 } = setupDecks();
+    const { game, p1 } = await setupDecks();
     const treasureCard = game.decks["loot"]!.getCardFromSlug("b2-xvii_the_stars");
     
     if (!treasureCard) {
@@ -249,7 +249,7 @@ describe("Loot deck integration", () => {
   });
 
   it("handles multiple cards in stack with LIFO resolution", async () => {
-    const { game, p1 } = setupDecks();
+    const { game, p1 } = await setupDecks();
     
     // Find two different gain coin cards
     const lootDeck = game.decks["loot"]!;
@@ -290,7 +290,7 @@ describe("Loot deck integration", () => {
   });
 
   it("recharge item effect works correctly", async () => {
-    const { game, p1 } = setupDecks();
+    const { game, p1 } = await setupDecks();
     const rechargeCard = game.decks["loot"]!.getCardFromSlug("b2-lil_battery_4");
     
     if (!rechargeCard) {
@@ -330,7 +330,7 @@ describe("Loot deck integration", () => {
   });
 
   it("steal coins effect works correctly", async () => {
-    const { game, p1, p2 } = setupDecks();
+    const { game, p1, p2 } = await setupDecks();
     const stealCard = findCardByEffect(game, /^Steal\s+\d+\u00A2/);
     
     if (!stealCard) {
@@ -366,7 +366,7 @@ describe("Loot deck integration", () => {
   });
 
   it("take damage effect works correctly", async () => {
-    const { game, p1 } = setupDecks();
+    const { game, p1 } = await setupDecks();
     const takeDamageCard = findCardByEffect(game, /^Take\s+\d+\s+damage/);
     
     if (!takeDamageCard) {
@@ -389,7 +389,7 @@ describe("Loot deck integration", () => {
   });
 
   it("verifies effect parser handles multiple card types", async () => {
-    const { game, p1 } = setupDecks();
+    const { game, p1 } = await setupDecks();
     const lootDeck = game.decks["loot"]!;
     
     // Count different effect types

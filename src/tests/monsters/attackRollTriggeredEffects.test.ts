@@ -11,8 +11,8 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
     let player1: Player;
     let player2: Player;
 
-    beforeEach(() => {
-        const setup = setupTestGame({
+    beforeEach(async () => {
+        const setup = await setupTestGame({
             characters: ["b2-samson", "b2-isaac"],
             monsters: ["b2-fly", "b2-fatty"],
             monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
@@ -330,7 +330,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
 
         it("can kill different players on multiple triggers", async () => {
             // Set up a 4-player game instead
-            const setup4 = setupTestGame({
+            const setup4 = await setupTestGame({
                 characters: ["b2-samson", "b2-isaac", "b2-the_forgotten", "b2-judas"],
                 monsters: ["b2-fly", "b2-fatty"],
                 monsterDeck: ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip","b2-leech","b2-gurdy"],
@@ -570,7 +570,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
 
         it("steals from a different player when multiple players have loot", async () => {
             // Set up a 3-player game
-            const setup3 = setupTestGame({
+            const setup3 = await setupTestGame({
                 characters: ["b2-samson", "b2-isaac", "b2-the_forgotten"],
                 monsters: ["b2-fly", "b2-fatty"],
                 monsterDeck: ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip","b2-leech","b2-gurdy"],

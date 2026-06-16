@@ -43,14 +43,14 @@ export class EntityHandler {
   }
 
 ////////////////////////////////////// Getters //////////////////////////////////////
-  get game() {
+  get game(): Game {
     return this._game;
   }
   /**
    * Returns the list of entities currently engaged in combat. 
    * CAREFULL IT ALSO INCLUDES ANIMATED ENTITIES.
    */
-  get entitiesInCombat(): ReadonlyArray<Entity> {
+  get entitiesInCombat(): readonly Entity[] {
     return this._entitiesInCombat;
   }
   /**
@@ -221,9 +221,9 @@ export class EntityHandler {
       return;
 
     const adders =  {
-      "coin": (player: Player, amount: number) => this.game.gainCoins(player, amount, entity.card),
-      "loot": (player: Player, amount: number) => this.game.loot(player, amount),
-      "treasure": (player: Player, amount: number) => this.game.gainTreasure(player, amount),
+      "coin": (player: Player, amount: number): string => this.game.gainCoins(player, amount, entity.card),
+      "loot": (player: Player, amount: number): void => this.game.loot(player, amount),
+      "treasure": (player: Player, amount: number): void => this.game.gainTreasure(player, amount),
     }
     const onDice = {
       "coin": targetGetCoinRollEffect(this.game),
@@ -294,10 +294,10 @@ export class EntityHandler {
         this.game.emit("on:death:monster", eventData);
         this.monsterDiedThisTurn = true;
         this.entityRewards(receiver, eventData.rewardGainer);
-        void this.game.executeWhenStackSubset(stackIds, async () => {
+        await this.game.executeWhenStackSubset(stackIds, async () => {
           this.game.encounters.kill(receiver); // should only kill once its effects are resolved: should be moved in the resolvewhenstackempty
           this.game.cardHandler.obtainMonsterSoulOrDiscard(receiver);
-          this.game.resolveCallbacks();
+          await this.game.resolveCallbacks();
         }).catch((error) => {
           console.error("Failed to finish monster death resolution", error);
         });
@@ -322,7 +322,7 @@ export class EntityHandler {
     }).catch((error) => {
       console.error("Failed to resolve death follow-up", error);
     });
-    this.game.resolveCallbacks();
+    await this.game.resolveCallbacks();
   }
 
 ////////////////////////////////////// Combat and Health Handler //////////////////////////////////////

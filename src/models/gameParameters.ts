@@ -29,6 +29,11 @@ class NumericGameParameter {
   get value(): number {
     return this._value;
   }
+  
+    set value(value: number) {
+      this._value = NumericGameParameter.clamp(value, this._min, this._max);
+      this.onChange();
+    }
 
   get min(): number {
     return this._min;
@@ -38,12 +43,7 @@ class NumericGameParameter {
     return this._max;
   }
 
-  set value(value: number) {
-    this._value = NumericGameParameter.clamp(value, this._min, this._max);
-    this.onChange();
-  }
-
-  reset(emitChange: boolean = true) {
+  reset(emitChange: boolean = true): void {
     this._value = this._initialValue;
     if (emitChange) {
       this.onChange();
@@ -82,13 +82,13 @@ class DeckParameter {
     return this._currentCount;
   }
 
-  get cardsParam() {
+  get cardsParam():{ card: Card; param: NumericGameParameter }[] {
     return this._cards;
   }
   set filter(F: (card: Card) => boolean) {
     this._filter = F;
   }
-  resetCardCounts(emitChange: boolean = true) {
+  resetCardCounts(emitChange: boolean = true): void {
     this._currentCount = 0;
     for (const card of this._cards) {
       if (this._filter(card.card)) {
@@ -143,14 +143,14 @@ class DeckParameter {
   }
 
   /** Apply a deck configuration: set counts for provided cards and recompute total */
-  applyDeckConfig(cards: DeckConfigCard[]) {
+  applyDeckConfig(cards: DeckConfigCard[]): void {
     for (const c of cards) {
       this.setCardParameter(c.slug, c.count, false);
     }
     this.onChange();
   }
 
-  setCardParameter(slug: string, value: number, callOnChange: boolean = true) {
+  setCardParameter(slug: string, value: number, callOnChange: boolean = true): void {
     const card = this._cards.find((x) => x.card.slug === slug);
     if (card) {
       // set without using setCardParameter to avoid per-card total checks while applying
@@ -176,7 +176,7 @@ class DeckParameter {
     }
   }
 
-  reset(emitChange: boolean = true) {
+  reset(emitChange: boolean = true): void {
     for (const card of this._cards) {
       card.param.reset(emitChange);
     }
@@ -191,7 +191,7 @@ class DeckParameter {
     return this._type;
   }
 
-  json() {
+  json(): DeckConfigCard[] {
     const result: DeckConfigCard[] = [];
     for (const card of this._cards) {
       result.push({
@@ -213,7 +213,7 @@ class CharacterDeckParameter extends DeckParameter {
   ) {
     super("character", minCardInDeck, maxCardInDeck, onChange, F);
   }
-  override json() {
+  override json(): CharacterCardConfig[] {
     const result: CharacterCardConfig[] = [];
     for (const card of this._cards) {
       result.push({
@@ -248,7 +248,7 @@ class BooleanGameParameter {
     return this._value;
   }
 
-  reset(emitChange: boolean = true) {
+  reset(emitChange: boolean = true): void {
     this._value = this._initialValue;
     if (emitChange) {
       this.onChange();
@@ -288,7 +288,7 @@ export class GameParameters {
 
   readonly _onChange: () => void;
   private _currentNbPlayers: number;
-  readonly _getCurrentNbPlayers = () => Math.max(this._currentNbPlayers, 1);
+  readonly _getCurrentNbPlayers = (): number => Math.max(this._currentNbPlayers, 1);
 
   private _deckMode: "standard" | "custom" = "standard";
   private _filter: (card: Card) => boolean = (card: Card) => {
@@ -439,7 +439,7 @@ export class GameParameters {
     };
   }
 
-  loadFromJson(json: SetGameParameterRequest | GameParametersJson) {
+  loadFromJson(json: SetGameParameterRequest | GameParametersJson): void {
     for (const key in json) {
       if (!json.hasOwnProperty(key)) continue;
       if (key === "decksConfig") {
@@ -494,7 +494,7 @@ export class GameParameters {
 
   /** Set a single parameter by key without full serialization/deserialization cycle
    * Avoids the overhead of serializing all parameters when only changing one */
-  setParameterByKey(key: string, value: any) {
+  setParameterByKey(key: string, value: any): void {
     if (key === "decksConfig") {
       // Special handling for complex deck configuration
       const decks = value as DeckConfigPatch;
@@ -578,7 +578,7 @@ export class GameParameters {
     return new GameParameters(this._onChange);
   }
 
-  setPlayerCount(count: number) {
+  setPlayerCount(count: number): void {
     this._currentNbPlayers = count;
     if (this.nbPlayerCardRestriction.value && this._deckMode === "standard") {
       for (const deck of [

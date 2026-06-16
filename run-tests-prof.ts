@@ -21,7 +21,7 @@ for(let i = 0; i < 100; i++){
         let seed = fixedSeed ? "0.9263096862959573" : Math.random().toString();
         // if(!shouldRerun)return;
         if(fixedSeed) shouldRerun = false;
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     playerCount: 2,
                     randomSeed: seed,
                     rooms: true,

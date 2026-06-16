@@ -6,7 +6,7 @@ import {
 import { Entity } from "@/models/entities/entity";
 import { Player } from "@/models/entities/player";
 import { TargetBuilder } from "@/models/targetBuilder";
-import type { DetailedState } from "@/shared/api";
+import type { DetailedState, InPlayCard, InPlayMeCard, PendingSelection } from "@/shared/api";
 import type { Game } from "./game";
 
 export class GameStateSerializer {
@@ -30,7 +30,7 @@ export class GameStateSerializer {
     const getCardCounter = (card: ItemCard | MonsterCard): number | undefined =>
       (card.counters.isDefined("normal") ? card.counters.value("normal") : undefined);
 
-    const getPendingSelectionDetailsForPlayer = (playerId: string) => {
+    const getPendingSelectionDetailsForPlayer = (playerId: string): PendingSelection | undefined => {
       for (const sel of this.game.pendingMultipleSelections.values()) {
         if (sel.playerId === playerId) {
           return {
@@ -46,7 +46,7 @@ export class GameStateSerializer {
       return undefined;
     };
 
-    const mapInPlayItem = (item: ItemCard, owner: Player) => ({
+    const mapInPlayItem = (item: ItemCard, owner: Player): InPlayMeCard => ({
       name: item.name,
       slug: item.slug,
       globalId: item.globalId,
@@ -71,7 +71,7 @@ export class GameStateSerializer {
             } : {})
     });
 
-    const mapOtherInPlayItem = (item: ItemCard, owner: Player) => ({
+    const mapOtherInPlayItem = (item: ItemCard, owner: Player): InPlayCard => ({
       name: item.name,
       slug: item.json.slug,
       globalId: item.globalId,
@@ -95,7 +95,7 @@ export class GameStateSerializer {
             } : {})
     });
 
-    const mapCurse = (curse: MonsterCard, owner: Player) => ({
+    const mapCurse = (curse: MonsterCard, owner: Player): InPlayMeCard => ({
       name: curse.name,
       slug: curse.slug,
       globalId: curse.globalId,
@@ -223,13 +223,13 @@ export class GameStateSerializer {
       {
         discard: this.game.decks["treasure"]!.discard.map((c) => c.jsonAPI).toReversed(),
         deckSize: this.game.decks["treasure"]!.cards.length,
-        inPlay: this.game.shop.itemsInShop.map((c) => ({ ...c!.jsonAPI, price: this.game.gameParameters.shopPrice.value + player.priceModifier })),
+        inPlay: this.game.shop.itemsInShop.map((c) => ((c === undefined ? undefined : { ...c!.jsonAPI, price: this.game.gameParameters.shopPrice.value + player.priceModifier }))),
         topDeckPrice: this.game.gameParameters.shopPrice.value,
       },
       turn: this.game.currentPlayer.id,
       round: this.game.gameParameters.timer.value > 0 ? this.game.gameParameters.timer.value + 1 - this.game.turnHandler.round : this.game.turnHandler.round,
       history: this.game.history,
-      firstCardTreasureDeck: player.canSeeTopOfTreasureDeck ? this.game.decks["treasure"]!.cards[0]!.jsonAPI : undefined,
+      firstCardTreasureDeck: player.canSeeTopOfTreasureDeck && this.game.decks["treasure"]!.cards[0] !== undefined ? this.game.decks["treasure"]!.cards[0]!.jsonAPI : undefined,
       stack: this.game.stack.elements.map((el) => el.json).toReversed(),
       animations: player.animations(true)
     };

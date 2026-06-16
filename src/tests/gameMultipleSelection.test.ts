@@ -10,20 +10,13 @@ describe("Game.selectMultiple", () => {
   let player2: Player;
   let player3: Player;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     game = new Game();
-    // NOTE: Do NOT use mockGameSelections here - we want to test the real implementation
-    
-    player1 = new Player("Alice", Team.Team1);
-    player2 = new Player("Bob", Team.Team2);
-    player3 = new Player("Charlie", Team.Team3);
+    await game.start([{ issuer: "Alice", character: "random", team: Team.Team1 }, { issuer: "Bob", character: "random", team: Team.Team2 }, { issuer: "Charlie", character: "random", team: Team.Team3 }], false);
+    player1 = game.entityHandler.getPlayerById("Alice")!;
+    player2 = game.entityHandler.getPlayerById("Bob")!;
+    player3 = game.entityHandler.getPlayerById("Charlie")!;
 
-    game.entityHandler.addPlayer(player1);
-    game.entityHandler.addPlayer(player2);
-    game.entityHandler.addPlayer(player3);
-    game.cardHandler.setupDecks();
-    game.start(null);
-    
     // Clear any pending selections to ensure clean state
     game["pendingMultipleSelections"].clear();
   });

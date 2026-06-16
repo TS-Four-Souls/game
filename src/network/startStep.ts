@@ -13,14 +13,14 @@ import {
 } from "./utils";
 import { Game } from "@/models/game";
 import { enterGameStep } from "./gameStep";
-import type { HistoricEntry } from "@/models/historyHandler";
+import type { HistoricEntry } from "@/models/handlers/historyHandler";
 import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
 import { enterIntroStep } from "./introStep";
 import { globalEndpoints } from "./global";
 import { roomManager } from "./roomManager";
 import { generateUserId } from "@/utils/random";
 
-export const enterStartStep = (socket: Socket, room: Room, user: User) => {
+export const enterStartStep = (socket: Socket, room: Room, user: User): void => {
   for (const instance of user.instances) {
     instance.isActive = !instance.isCopy;
   }
@@ -331,7 +331,7 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
     );
 
     socket.on("start", (callback) =>
-      errorGuardedEndpoint(callback, () => {
+      errorGuardedEndpoint(callback, async () => {
         const params = room.params;
 
         const game = new Game("", params);
@@ -372,7 +372,7 @@ export const enterStartStep = (socket: Socket, room: Room, user: User) => {
           }
         }
 
-        game.start(playersWithCharacters);
+        await game.start(playersWithCharacters);
 
         game.addToHistory({
           type: "Start",

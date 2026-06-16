@@ -13,135 +13,135 @@ import type { DeathOnStack, DiceRoll } from '../stackElement';
 export type LoseCoinsReason = "paiement" | "purchase" | "effect" | "death" | "gift" | "other";
 export type RechargeReason = Card | "rechargeStep" | "other";
 /** Data emitted when an entity is about to die (can be prevented) */
-export type OnDeathWouldDeathData = {
+export interface OnDeathWouldDeathData {
   eventIssuer: Entity;
   target: Entity;
   source: DamageSource;
   deathOnStack: DeathOnStack;
-};
+}
 
 /** Data emitted before death penalty is applied */
-export type OnDeathBeforePenaltyData = {
+export interface OnDeathBeforePenaltyData {
   eventIssuer: Entity;
   target: Entity;
   source: DamageSource;
   values: DeathPenaltyValues;
-};
+}
 
 /** Data emitted when death penalty is ongoing (choice is made) */
-export type OnDeathPenaltyData = {
+export interface OnDeathPenaltyData {
   eventIssuer: Entity;
   coinsLost: number;
   itemsLost: ItemCard[];
   lootCardsLost: LootCard[];
-};
+}
 
 /** Data emitted after death penalty is applied */
-export type OnDeathAfterPenaltyData = {
+export interface OnDeathAfterPenaltyData {
   eventIssuer: Entity;
   target: Entity;
   source: DamageSource;
-};
+}
 
 /** Data emitted when a monster dies */
-export type OnDeathMonsterData = {
+export interface OnDeathMonsterData {
   eventIssuer: Monster;
   target: Entity;
   source: DamageSource;
   ability?: any;
   rewardGainer: Player;
-};
+}
 
 /** Data emitted when an animated object dies */
-export type OnDeathAnimatedData = {
+export interface OnDeathAnimatedData {
   eventIssuer: Animated;
   target: Entity;
   source: DamageSource;
   ability?: any;
-};
+}
 
 
 /** Data emitted when damage has been taken */
-export type OnDamageTakenData = {
+export interface OnDamageTakenData {
   eventIssuer: Entity;
   target: Entity;
   source: DamageSource;
   damage: number;
-};
+}
 
 /** Data emitted when an entity is about to take damage (can be modified) */
-export type OnDamageWouldTakeData = {
+export interface OnDamageWouldTakeData {
   eventIssuer: Entity;
   target: Entity;
   source: DamageSource;
   damageArray: number[];
-};
+}
 
 /** Data emitted when combat damage is dealt to a monster */
-export type OnCombatDamageDealtToMonsterData = {
+export interface OnCombatDamageDealtToMonsterData {
   eventIssuer: Entity;
   target: Monster;
   source: DamageSource;
   damage: number;
-};
+}
 
 /** Data emitted when combat damage is dealt to a player */
-export type OnCombatDamageDealtToPlayerData = {
+export interface OnCombatDamageDealtToPlayerData {
   eventIssuer: Entity;
   target: Player;
   source: DamageSource;
   damage: number;
-};
+}
 
 /** Data emitted when combat damage is dealt to a player */
-export type OnCombatDamageDealtData = {
+export interface OnCombatDamageDealtData {
   eventIssuer: Entity;
   target: Entity;
   source: DamageSource;
   damage: number;
-};
+}
 
-export type OnCombatEndData = {
+export interface OnCombatEndData {
   eventIssuer: Entity;
-};
+}
 
-export type OnCardFlippedData = {
+export interface OnCardFlippedData {
   eventIssuer: Entity;
   card: Card;
   recto: boolean;
-};
+}
 
 /** Data emitted when a player declares an attack */
-export type OnAttackDeclaredData = {
+export interface OnAttackDeclaredData {
   eventIssuer: Player;
-};
+}
 
 /** Data emitted when validating whether a player can declare an attack */
-export type OnCanDeclareAttackData = {
+export interface OnCanDeclareAttackData {
   eventIssuer: Player;
   canDeclare: boolean[];
   reason: string[];
-};
+}
 
 /** Data emitted when a player declares an attack on a specific monster */
-export type OnAttackDeclaredMonsterData = {
+export interface OnAttackDeclaredMonsterData {
   eventIssuer: Player;
   monster: Monster[];
-};
+}
 
 /** Data emitted when a player declares an attack on a specific animated object */
-export type OnAttackDeclaredAnimatedData = {
+export interface OnAttackDeclaredAnimatedData {
   eventIssuer: Player;
   animated: Animated[];
-};
+}
 /** Data emitted when a player declares an attack on the top deck */
-export type OnAttackDeclaredTopDeckData = {
+export interface OnAttackDeclaredTopDeckData {
   eventIssuer: Player;
   drawInIndex: number;
-};
+}
 
 /** Data emitted when an attack roll is made */
-export type OnAttackRollData = {
+export interface OnAttackRollData {
   eventIssuer: Player;
   target: Entity;
   dice: DiceRoll;
@@ -150,204 +150,204 @@ export type OnAttackRollData = {
   damageReceivedAdd: number[];
   damageReceivedMult: number[];
   evasion: number[];
-};
+}
 
 /** Data emitted when a soul is gained */
-export type OnSoulGainedOrRemovedData = {
+export interface OnSoulGainedOrRemovedData {
   eventIssuer: Player;
   soul: Card | null;
-};
+}
 
 /** Data emitted when a purchase is successful */
-export type OnPurchaseSuccessData = {
+export interface OnPurchaseSuccessData {
   eventIssuer: Player;
   price: number;
   index: number | "top";
-};
+}
 
 /** Data emitted before an item is recharged. Note that eventIssuer is always null. */
-export type OnRechargeData = {
+export interface OnRechargeData {
   eventIssuer: Player | null;
   card: ItemCard;
   reason: RechargeReason;
   shouldRecharge: boolean;
-};
+}
 
 /** Data emitted when a player gains items */
-export type OnCardDiscardBeforeData = {
+export interface OnCardDiscardBeforeData {
   eventIssuer: Player;
   card: Card | null;
-};
+}
 
 /** Data emitted when a player gains items */
-export type OnItemGainedData = {
+export interface OnItemGainedData {
   eventIssuer: Player;
   amount: number;
-};
+}
 
 /** Data emitted when a player would have to discard loot cards (can be modified) */
-export type OnLootWouldDiscardData = {
+export interface OnLootWouldDiscardData {
   eventIssuer: Player;
   indice: number[];
   reason: "death" | "effect" | "overload" | "other";
-};
+}
 
 /** Data emitted when a player gains coins */
-export type OnCoinGainedData = {
+export interface OnCoinGainedData {
   eventIssuer: Player;
   coinGained: number[];
   source: Card | "gift";
-};
+}
 
 /** Data emitted after a player loses coins */
-export type OnCoinLostAfterData = {
+export interface OnCoinLostAfterData {
   eventIssuer: Player;
   coinLost: number;
-};
+}
 
 /** Data emitted lose a player loses coins */
-export type OnCoinsLostBeforeData = {
+export interface OnCoinsLostBeforeData {
   eventIssuer: Player;
   coinToLose: number;
   reason: LoseCoinsReason;
-};
+}
 
 /** Data emitted when a dice is rolled */
-export type OnDiceBeingRolledData = {
+export interface OnDiceBeingRolledData {
   diceRoll: DiceRoll;
   eventIssuer: Player;
-};
+}
 
 /** Data emitted when a dice is resolved */
-export type OnDiceResolvedData = {
+export interface OnDiceResolvedData {
   diceRoll: DiceRoll;
   eventIssuer: Player;
-};
+}
 
 /** Data emitted before a dice would be rolled (can be modified) */
-export type OnDiceWouldRollData = {
+export interface OnDiceWouldRollData {
   eventIssuer: Player;
   diceRoll: DiceRoll;
-};
+}
 
 /** Data emitted at the start of a player's turn */
-export type OnTurnStartData = {
+export interface OnTurnStartData {
   eventIssuer: Player;
-};
+}
 
 /** Data emitted at the start of a player's turn */
-export type OnBeforeRechargeStepData = {
+export interface OnBeforeRechargeStepData {
   eventIssuer: Player;
   itemsToRecharge: ItemCard[];
-};
+}
 
 /** Data emitted at the end of a player's turn */
-export type OnTurnEndData = {
+export interface OnTurnEndData {
   eventIssuer: Player;
-};
+}
 
 /** Data emitted during the loot step */
-export type OnLootStepData = {
+export interface OnLootStepData {
   eventIssuer: Player;
   numberToLoot: number;
-};
+}
 
 /** Data emitted when a player would loot cards (can be modified) */
-export type OnLootWouldData = {
+export interface OnLootWouldData {
   eventIssuer: Player;
   numberOfCards: number[];
   reason: "lootStep" | "other";
-};
+}
 
 /** Data emitted after a player loots cards */
-export type OnLootAfterData = {
+export interface OnLootAfterData {
   eventIssuer: Player;
   numberOfCards: number;
-};
+}
 
 /** Data emitted after a loot card is added to a player's hand */
-export type OnLootAddedAfterData = {
+export interface OnLootAddedAfterData {
   eventIssuer: Player;
   card: LootCard;
-};
+}
 
 /** Data emitted after a card is removed from a player's hand */
-export type OnLootRemovedAfterData = {
+export interface OnLootRemovedAfterData {
   eventIssuer: Player;
   card: Card;
-};
+}
 
 /** Data emitted when getting a monster's attack points (can be modified) */
-export type OnGetMonsterAttackPointsData = {
+export interface OnGetMonsterAttackPointsData {
   eventIssuer: Monster;
   stat: number[];
-};
+}
 
 /** Data emitted when getting a monster's evasion value (can be modified) */
-export type OnGetMonsterEvasionData = {
+export interface OnGetMonsterEvasionData {
   eventIssuer: Monster;
   stat: number[];
-};
+}
 
 /** Data emitted after a card enters play */
-export type OnEnterPlayAfterData = {
+export interface OnEnterPlayAfterData {
   eventIssuer: Player;
   card: Card;
-};
+}
 
 /** Data emitted when an item is activated */
-export type OnItemActivatedData = {
+export interface OnItemActivatedData {
   eventIssuer: Player;
   item: ItemCard;
-};
+}
 
 /** Data emitted when a counter is added to an entity */
-export type OnCounterModifiedData = {
+export interface OnCounterModifiedData {
   eventIssuer: Entity;
   card: Card;
   counterName: CounterType;
   previousValue: number;
   newValue: number;
-};
+}
 
 /** Data emitted when priority passes */
-export type OnPriorityPassesData = {
+export interface OnPriorityPassesData {
   eventIssuer: Player | null;
-};
+}
 
 /** Data emitted when items are destroyed */
-export type OnItemDestroyedData = {
+export interface OnItemDestroyedData {
   eventIssuer: Player | null;
   cards: Card[];
-};
+}
 
 /** Data emitted when a card enters play */
-export type OnEnterPlayData = {
+export interface OnEnterPlayData {
   eventIssuer: Player;
   card: Card;
-};
+}
 
 /** Data emitted on a player's turn */
-export type OnYourTurnData = {
+export interface OnYourTurnData {
   eventIssuer: Player;
-};
+}
 
 /** Data emitted when a loot card is played */
-export type OnLootPlayedData = {
+export interface OnLootPlayedData {
   eventIssuer: Player;
   card: LootCard;
   targets: any[];
   stackId: number;
-};
+}
 /**
  * eventIssuer gives coins to target. 
  */
-export type OnCoinGivenData = {
+export interface OnCoinGivenData {
   eventIssuer: Player;
   target: Player;
   amount: number;
   forced: Card | null;
-};
+}
 
 /** Data emitted before the game starts */
 export type OnGameStartBeforeData = Record<string, never>;
@@ -363,7 +363,7 @@ export type OnGameStartData = Record<string, never>;
  * Type mapping for event data based on trigger event type.
  * Each event type is mapped to its specific data structure that will be passed to event handlers.
  */
-export type TriggerEventDataMap = {
+export interface TriggerEventDataMap {
   "on:death:would-death": OnDeathWouldDeathData;
   "on:death:before-penalty": OnDeathBeforePenaltyData;
   "on:death:penalty": OnDeathPenaltyData;
@@ -423,6 +423,6 @@ export type TriggerEventDataMap = {
   "on:recharge": OnRechargeData;
   "on:item:gained": OnItemGainedData;
   "on:card:discarded:before": OnCardDiscardBeforeData;
-};
+}
 
 export type TriggerEvent = keyof TriggerEventDataMap;

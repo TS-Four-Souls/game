@@ -12,8 +12,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
     let player1: Player;
     let player2: Player;
 
-    beforeEach(() => {
-        const setup = setupSamsonIsaacGame();
+    beforeEach(async () => {
+        const setup = await setupSamsonIsaacGame();
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -28,8 +28,8 @@ describe("Treasure - Passive effects", () => {
     let player1: Player;
     let player2: Player;
 
-    beforeEach(() => {
-        const setup = setupSamsonIsaacGame();
+    beforeEach(async () => {
+        const setup = await setupSamsonIsaacGame();
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;

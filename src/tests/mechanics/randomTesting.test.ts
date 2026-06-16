@@ -25,13 +25,13 @@ describe(   "Random Games", () => {
     let shouldStop = false; 
 
     // TODO REMOVE GOLDEN TRINKET FROM FORBIDDEN CARDS
-    beforeEach(() => {
+    beforeEach(async () => {
         let seed = fixedSeed === "" ?
          Math.random().toString()
           : fixedSeed
         if(!shouldRerun)return;
         if(fixedSeed !== "") shouldRerun = false;
-        const setup = setupTestGame({
+        const setup = await setupTestGame({
                     playerCount: 2,
                     randomSeed: seed,
                     rooms: "random",

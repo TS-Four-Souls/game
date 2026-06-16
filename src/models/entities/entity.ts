@@ -3,11 +3,11 @@ import type { Card } from "../cards";
 import { type DiceRoll } from "../stackElement";
 
 
-type DamageObj = {
+interface DamageObj {
   dealer: Entity | null;
   with: Card | DiceRoll | null;
   damage: number;
-};
+}
 
 export abstract class Entity {
   private _currentHealthPoints: number;
@@ -26,14 +26,14 @@ export abstract class Entity {
   get evasion(): number {
     return Math.max(0, Math.min(this._evasion, 6));
   }
+  
+    set evasion(value: number) {
+      this._evasion = value; // Value can be set to anything, but getter will ensure it is between 0 and 6.
+    }
 
   set baseAttackPoints(value: number) {
     this.addAttackPoints(value - this._baseAttackPoints);
     this._baseAttackPoints = value;
-  }
-
-  set evasion(value: number) {
-    this._evasion = value; // Value can be set to anything, but getter will ensure it is between 0 and 6.
   }
 
   get attackable(): boolean {
@@ -81,7 +81,7 @@ export abstract class Entity {
     return this._engagedInCombat > 0;
   }
 
-  combatEnded(){
+  combatEnded(): void{
     this._engagedInCombat = Math.max(0, this._engagedInCombat - 1);
   }
 

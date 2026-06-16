@@ -1,7 +1,9 @@
 import { ItemCard, LootCard, MonsterCard } from "@/models/cards";
+import { TargetBuilder } from "@/models/targetBuilder";
 import { Game } from "@/models/game";
-import { type HistoricEntry, type UserRequest, isStackElementJson } from "@/models/historyHandler";
+import { type HistoricEntry, type UserRequest, isStackElementJson } from "@/models/handlers/historyHandler";
 import { type DetailedState, type IdentifierType, type Issuer } from "@/shared/api";
+import { Player } from "../models/entities/player";
 import {
   executeActivateRequest,
   executeActivateRoomRequest,
@@ -9,9 +11,6 @@ import {
   executePlayCardRequest,
 } from "@/utils/gameRequestHelpers";
 
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -35,25 +34,6 @@ function remapIssuer(game: Game, issuer: Issuer): Issuer {
   return player.id;
 }
 
-function remapSubmitSelectionRequestId(
-  game: Game,
-  issuer: Issuer,
-  loggedRequestId: string,
-  requestIdMap: Map<string, string>,
-): string {
-  const mapped = requestIdMap.get(loggedRequestId);
-  if (mapped) {
-    return mapped;
-  }
-  const player = game.entityHandler.getPlayerById(issuer);
-  const pendingRequestId = game.detailedStateJSON(player).me.pendingSelection?.requestId;
-  if (!pendingRequestId) {
-    return loggedRequestId;
-  }
-
-  requestIdMap.set(loggedRequestId, pendingRequestId);
-  return pendingRequestId;
-}
 function applySetGameParameter(game: Game, payload: HistoricEntry & { type: "GameParameters" }): void {
   game.gameParameters.loadFromJson(payload.gameParameters as any);
 }
@@ -79,10 +59,10 @@ function verifyRecordedCharactersAfterStart(
   }
 }
 
-type GameStateComparison = {
+interface GameStateComparison {
   equal: boolean;
   differences: string[];
-};
+}
 
 function normalizeDetailedStateForComparison(state: DetailedState): DetailedState {
   const normalized = structuredClone(state);
@@ -95,17 +75,6 @@ function normalizeDetailedStateForComparison(state: DetailedState): DetailedStat
   return normalized;
 }
 
-function formatDiffValue(value: unknown): string {
-  if (value === undefined) {
-    return "undefined";
-  }
-
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
-}
 
 function collectDifferences(
   left: unknown,
@@ -120,6 +89,17 @@ function collectDifferences(
 
   if (Object.is(left, right)) {
     return;
+  }
+  function formatDiffValue(value: unknown): string {
+    if (value === undefined) {
+      return "undefined";
+    }
+
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
   }
 
   const leftIsArray = Array.isArray(left);
@@ -212,25 +192,46 @@ function compareGameState(original: DetailedState, loaded: DetailedState): GameS
   };
 }
 
-function parseLogLine(line: string): unknown | null {
-  const trimmed = line.trim();
-  if (!trimmed) {
-    return null;
-  }
+/**
+ * In loading a game, replace asynchronous selection handling with a direct mapping from logged request IDs to the current pending selection request IDs in the game. T
+ * his allows us to bypass the complexities of trying to perfectly replay the timing of asynchronous events and directly submit selections as they appear in logs.
+ * @param game 
+ * @param logs 
+ */
+function setupLoadingSubmitSelectionHandling(game: Game, logs: HistoricEntry[]): void {
+  const submitSelectionEntries = logs.filter(
+    (entry): entry is Extract<HistoricEntry, { type: "SubmitSelection" }> =>
+      isUserRequestEntry(entry) && entry.type === "SubmitSelection",
+  );
+  let i = 0;
+  game.selectMultiple = async <T>(selections: {
+            player: Player;
+            min: number;
+            max: number;
+            options: T[];
+            description: string;
+            skippable?: boolean;
+            canUseOnBoardSelection: boolean;
+          }[]): Promise<{ playerId: string; selected: T[]; remaining: T[] }[]> => {
+    const results: { playerId: string; selected: T[]; remaining: T[] }[] = [];
+    for (const selection of selections) {
 
-  try {
-    return JSON.parse(trimmed);
-  } catch {
-    // Fallback for file format like: "<isoDate> - <historyId> - {json}"
-    const firstJsonChar = Math.min(
-      ...[trimmed.indexOf("{"), trimmed.indexOf("[")].filter((i) => i >= 0),
-    );
-    if (!Number.isFinite(firstJsonChar) || firstJsonChar < 0) {
-      return null;
+      const entry = submitSelectionEntries[i++];
+      if(entry === undefined)
+        throw new Error("No more SubmitSelection entries in logs to match the game's selectMultiple call. This may indicate a mismatch between the game state and the logs, or an issue with log formatting.");
+      const resolvedOptions = entry.payload.selections.map((id) => {
+            const option = TargetBuilder["resolveIdentifier"](id, selection.options);
+            if (option === undefined) {
+              throw new Error(`Invalid selection identifier: ${id.payload}`);
+            }
+            return option;
+          });
+      results.push({playerId: entry.issuer, selected: resolvedOptions, remaining: [selection.options.filter((option) => !resolvedOptions.includes(option))] as T[]});
     }
-    return JSON.parse(trimmed.slice(firstJsonChar));
-  }
+    return results;
+  };
 }
+
 
 function findInitialSeed(logs: unknown[]): string {
   const entry = logs.find(
@@ -243,73 +244,20 @@ function findInitialSeed(logs: unknown[]): string {
 }
 
 export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 0): Promise<Game> {
-  // console.log(`Loading game from logs with ${logs.length} entries...`);
+  if(verbose >= 1)
+    console.log(`Loading game from logs with ${logs.length} entries...`);
   const game = new Game(findInitialSeed(logs));
   const characterByPlayer = new Map<string, string>();
-  const submitSelectionRequestIdMap = new Map<string, string>();
-  let activeResolutionPromise: Promise<void> | null = null;
-  let activeTurnCallbackPromise: Promise<void> | null = null;
-  let activeGiveCoinsPromise: Promise<boolean> | null = null;
 
-  const waitForPendingSelectionRequestId = async (
-    issuer: Issuer,
-    maxTicks: number = 25,
-  ): Promise<string | undefined> => {
-    for (let i = 0; i < maxTicks; i++) {
-      const player = game.entityHandler.getPlayerById(issuer);
-      const requestId = game.detailedStateJSON(player).me.pendingSelection?.requestId;
-      if (requestId) {
-        return requestId;
-      }
-      await Promise.resolve();
-      await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    }
-    return undefined;
-  };
-
-  const awaitPromiseUntilSettledOrPendingSelection = async <T>(
-    promise: Promise<T> | null,
-    clear: () => void,
-    maxTicks: number = 200,
-  ): Promise<void> => {
-    if (!promise) {
-      return;
-    }
-
-    for (let i = 0; i < maxTicks; i++) {
-      if (game.hasPendingSelections) {
-        return;
-      }
-
-      const outcome = await Promise.race([
-        promise.then(() => "settled" as const),
-        new Promise<"tick">((resolve) => setTimeout(() => resolve("tick"), 0)),
-      ]);
-
-      if (outcome === "settled") {
-        clear();
-        return;
-      }
-    }
-  };
-
-  const settleActivePromisesAfterSubmitSelection = async (): Promise<void> => {
-    await awaitPromiseUntilSettledOrPendingSelection(activeResolutionPromise, () => {
-      activeResolutionPromise = null;
-    });
-    await awaitPromiseUntilSettledOrPendingSelection(activeTurnCallbackPromise, () => {
-      activeTurnCallbackPromise = null;
-    });
-    await awaitPromiseUntilSettledOrPendingSelection(activeGiveCoinsPromise, () => {
-      activeGiveCoinsPromise = null;
-    });
-  };
+  const normalMultipleSelection = game.selectMultiple;
+  setupLoadingSubmitSelectionHandling(game, logs);
 
   for (const [index, entry] of logs.entries()) {
       if (!isUserRequestEntry(entry) && !isPrivateEntry(entry)) {
         // Stack element snapshots are not replayed directly.
         continue;
       }
+
       if(verbose >= 1)
         console.log(`Replaying log entry ${index}: ${JSON.stringify(entry)}\n`);
       switch (entry.type) {
@@ -324,6 +272,8 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         case "DebugListTreasure":
         case "DebugListLoot":
         case "Join": 
+        // SubmitSelection is handled by the custom selectMultiple override, so we skip it here.
+        case "SubmitSelection": 
           // Transport/lifecycle events that don't mutate core game state directly.
           break;
 
@@ -350,7 +300,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         }
 
         case "Start": {
-          game.start(entry.players);
+          await game.start(entry.players);
           verifyRecordedCharactersAfterStart(game, characterByPlayer);
           break;
         }
@@ -397,55 +347,12 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
 
         case "Resolve": {
           // Start resolution and track the promise so we can wait for it after selections are submitted
-            await Promise.resolve();
-            await Promise.resolve();
-            await Promise.resolve();
-            await Promise.resolve();
-            await Promise.resolve();
-            activeResolutionPromise = game.actions.resolveStack();
-            await Promise.resolve();
-            await Promise.resolve();
-            await Promise.resolve();
-            await Promise.resolve();
-            await Promise.resolve();
-          if(!game.hasPendingSelections) {
-            await activeResolutionPromise;
-            activeResolutionPromise = null;
-          }
-          break;
-        }
-
-        case "SubmitSelection": {
-          const issuer = remapIssuer(game, entry.issuer);
-          const requestId = remapSubmitSelectionRequestId(
-            game,
-            issuer,
-            entry.payload.requestId,
-            submitSelectionRequestIdMap,
-          );
-
-          try {
-            const player = game.entityHandler.getPlayerById(issuer);
-            game.submitSelection(player, requestId, entry.payload.selections);
-            await settleActivePromisesAfterSubmitSelection();
-          } catch (error) {
-            if (
-              !(error instanceof Error) ||
-              error.message !== "No pending selection found for this request ID"
-            ) {
-              throw error;
-            }
-
-            const fallbackRequestId = await waitForPendingSelectionRequestId(issuer);
-            if (!fallbackRequestId) {
-              throw error;
-            }
-
-            const player = game.entityHandler.getPlayerById(issuer);
-            submitSelectionRequestIdMap.set(entry.payload.requestId, fallbackRequestId);
-            game.submitSelection(player, fallbackRequestId, entry.payload.selections);
-            await settleActivePromisesAfterSubmitSelection();
-          }
+            await Promise.resolve(); // Ensure any synchronous effects are processed before checking for pending selections
+            await Promise.resolve(); // Ensure any synchronous effects are processed before checking for pending selections
+            await Promise.resolve(); // Ensure any synchronous effects are processed before checking for pending selections
+            await Promise.resolve(); // Ensure any synchronous effects are processed before checking for pending selections
+            await Promise.resolve(); // Ensure any synchronous effects are processed before checking for pending selections
+            await game.actions.resolveStack();
           break;
         }
 
@@ -506,11 +413,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         }
 
         case "EndTurn": {
-          activeTurnCallbackPromise = game.actions.nextTurn(game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer)));
-          if(!game.hasPendingSelections) {
-            await activeTurnCallbackPromise;
-            activeTurnCallbackPromise = null;
-          }
+          await game.actions.nextTurn(game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer)));
           break;
         }
 
@@ -519,11 +422,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
           const to = game.entityHandler.getPlayerById(entry.payload.target);
           // Match live server behavior: request is not awaited, and resolution continues
           // once SubmitSelection arrives in subsequent log entries.
-          activeGiveCoinsPromise = game.giveCoins(from, to, entry.payload.coins);
-          if(!game.hasPendingSelections) {
-            await activeGiveCoinsPromise;
-            activeGiveCoinsPromise = null;
-          }
+          await game.giveCoins(from, to, entry.payload.coins);
           break;
         }
 
@@ -608,6 +507,8 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
           throw new Error(`Unsupported log entry type for replay: ${(entry as any).type}`);
       }
   }
+    game.selectMultiple = normalMultipleSelection;
+
   game.loadHistory(logs);
   for(const player of game.players)
     player.animations(true);

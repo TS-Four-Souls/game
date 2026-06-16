@@ -10,8 +10,8 @@ describe("Discard", () => {
     let player1: Player;
     let player2: Player;
 
-    beforeEach(() => {
-        const setup = setupStandardTestGame();
+    beforeEach(async () => {
+        const setup = await setupStandardTestGame();
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;

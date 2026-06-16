@@ -60,10 +60,10 @@ const characterDeckSchema = z.object({
   cards: z.array(characterCardSchema),
 });
 
-export type SetCardCountRequest = {
+export interface SetCardCountRequest {
   slug: string;
   count: number;
-};
+}
 
 // Forward declare types for circular references
 export type SelectionItem =
@@ -753,7 +753,7 @@ const detailedStateSchema = z.object({
   treasure: z.object({
     discard: z.array(cardSchema),
     deckSize: z.number(),
-    inPlay: z.array(shopItemSchema),
+    inPlay: z.array(z.union([shopItemSchema, z.undefined()])),
     topDeckPrice: z.number(),
   }),
   loot: z.object({

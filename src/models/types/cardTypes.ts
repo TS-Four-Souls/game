@@ -14,12 +14,12 @@ export type EffectType =
 /**
  * Target selector for effects - specifies how to select targets for an effect
  */
-export type TargetsSelector = {
+export interface TargetsSelector {
     description: string;
     selector: (player: Player, card: Card) => any[];
     min: number;
     max: number;
-};
+}
 
 /**
  * Data passed to effect functions during execution
@@ -111,15 +111,15 @@ export class EffectData {
 
     async selectMultipleAndRecord<T>(
         game: Game,
-        selections: Array<{
+        selections: {
             player: Player;
             min: number;
             max: number;
             options: T[];
             description: string;
             canUseOnBoardSelection: boolean;
-        }>
-    ): Promise<Array<{ playerId: string; selected: T[]; remaining: T[] }>> {
+        }[]
+    ): Promise<{ playerId: string; selected: T[]; remaining: T[] }[]> {
         const results = await game.selectMultiple(selections);
         for (const result of results) {
             this.recordSelection(result.selected as any[]);
@@ -132,11 +132,15 @@ export class EffectData {
  * Function signature for effect execution
  */
 export type EffectFunction = (data: EffectData) => boolean | Promise<boolean>;
+/**
+ * Function signature for synchronous effect execution
+ */
+export type SynchronousEffectFunction = (data: EffectData) => boolean;
 
 /**
  * Collection of card sets indexed by card type
  */
-export type CardSetsCollection = {
+export interface CardSetsCollection {
     loot: import('../cards').CardSet<LootCard>;
     treasure: import('../cards').CardSet<TreasureCard>;
     eternal: import('../cards').CardSet<EternalCard>;
@@ -144,12 +148,12 @@ export type CardSetsCollection = {
     monster: import('../cards').CardSet<MonsterCard>;
     bsoul: import('../cards').CardSet<BsoulCard>;
     room: import('../cards').CardSet<RoomCard>;
-};
+}
 
 /**
  * Collection of decks indexed by card type
  */
-export type DecksCollection = {
+export interface DecksCollection {
     loot: import('../cards').Deck<LootCard>;
     treasure: import('../cards').Deck<TreasureCard>;
     eternal: import('../cards').Deck<EternalCard>;
@@ -157,7 +161,7 @@ export type DecksCollection = {
     monster: import('../cards').Deck<MonsterCard>;
     bsoul: import('../cards').Deck<BsoulCard>;
     room: import('../cards').Deck<RoomCard>;
-};
+}
 
 /**
  * Union type of all valid deck names
@@ -167,7 +171,7 @@ export type DeckType = keyof DecksCollection;
 /**
  * Maps deck types to their corresponding card types
  */
-export type DeckTypeToCardType = {
+export interface DeckTypeToCardType {
     loot: LootCard;
     treasure: TreasureCard;
     eternal: EternalCard;
@@ -175,4 +179,4 @@ export type DeckTypeToCardType = {
     monster: MonsterCard;
     bsoul: BsoulCard;
     room: RoomCard;
-};
+}

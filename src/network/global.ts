@@ -6,7 +6,7 @@ import { roomManager } from "./roomManager";
 
 const REPORT_COOLDOWN = 1_000 * 30; // 30 seconds
 
-export const globalEndpoints = (socket: Socket, room?: Room) => {
+export const globalEndpoints = (socket: Socket, room?: Room): void => {
   let lastReportedAt = 0;
 
   socket.on("contact", (payload, callback) =>

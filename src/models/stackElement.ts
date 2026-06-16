@@ -5,10 +5,10 @@ import { EffectData, type Card, type EffectFunction } from "./cards";
 import { Player } from "./entities/player";
 import { TargetBuilder } from "./targetBuilder";
 
-type StackElementJsonBase = {
+interface StackElementJsonBase {
   id: number;
   reordering?: StackReorderingInfo;
-};
+}
 
 export abstract class StackElement {
   private _stackId: number = -1;
@@ -85,7 +85,12 @@ export class DiceRoll extends StackElement {
   get value(): number {
     return this._value;
   }
-
+  set value(v: number) {
+    const prev = this._value;
+    this._value = Math.max(1, Math.min(6, v));
+    if (prev !== this._value)
+      this.readyToResolve = false;
+  }
   get card(): Card | null {
     return this._card;
   }
@@ -125,12 +130,7 @@ export class DiceRoll extends StackElement {
   override get debugLogs(): string {
     return `${this.attackRoll ? "Attack" : "Dice"} Roll: ${this.value} (Issuer: ${this.issuer.id}, Card: ${this._card ? this._card.name : "N/A"}, Targets: ${!this._attackRoll ? TargetBuilder.convertToSelectionItems(this._targets) : "N/A"}, Modifier: ${(this._attackRoll ? this._issuer.attackDiceModifier : 0) + this._issuer.diceModifier})`;
   }
-  set value(v: number) {
-    const prev = this._value;
-    this._value = Math.max(1, Math.min(6, v));
-    if (prev !== this._value)
-      this.readyToResolve = false;
-  }
+  
   roll(): number {
     const old = this._value;
     this.value = Math.floor(this._random() * 6) + 1;
@@ -283,6 +283,7 @@ export class LootStepOnStack extends StackElement {
     return `LootStep: ${this.player.id} loots ${this.nbLoots} card(s)`;
   }
   override async onResolve(): Promise<void> {
-    return this.game.lootStep(this.player, this.nbLoots);
+    this.game.lootStep(this.player, this.nbLoots);
+    return new Promise(resolve => setTimeout(resolve, 0));
   }
 }

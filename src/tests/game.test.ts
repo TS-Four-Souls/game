@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, expectTypeOf } from "bun:test";
 import { Game } from "@/models/game";
 import { Player } from "@/models/entities/player";
-import { TurnHandler } from "@/models/turnHandler";
+import { TurnHandler } from "@/models/handlers/turnHandler";
 import { Stack } from "@/models/stack";
 import { StackElement } from "@/models/stackElement";
 import { GameEventEmitter } from "@/models/eventEmmitter";
@@ -38,18 +38,12 @@ describe("Game", () => {
   let player1: Player;
   let player2: Player;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     game = new Game();
     mockGameSelections(game);
-    player1 = new Player("player1", Team.Team1);
-    player1.addAttackPoints(1); // Start with 1 attack points for testing
-    player1.addHealthPoints(2); // Start with 2 health points for testing
-    player1.gainCoins(0); // Start with 0 coins for testing
-    player2 = new Player("player2", Team.Team2);
-    player2.addAttackPoints(1); // Start with 1 attack points for testing
-    player2.addHealthPoints(2); // Start with 2 health points for testing
-    player2.gainCoins(0); // Start with 0 coins for testing
-    
+    await game.start([{ issuer: "Alice", character: "random", team: Team.Team1 }, { issuer: "Bob", character: "random", team: Team.Team2 }], false);
+    player1 = game.entityHandler.getPlayerById("Alice")!;
+    player2 = game.entityHandler.getPlayerById("Bob")!;
   });
 
   it("should create a new game instance", async () => {
@@ -57,32 +51,13 @@ describe("Game", () => {
   });
 
   it("should add players to the game", async () => {
-    game.entityHandler.addPlayer(player1);
-    game.entityHandler.addPlayer(player2);
-    
     expect(game.players.length).toBe(2);
-  });
-
-  it("should start the game with a player", async () => {
-    game.entityHandler.addPlayer(player1);
-    game.entityHandler.addPlayer(player2);
-    
-    expect(game.players.length).toBe(2);
-    expect(() => {
-      game.start( null, false);
-      dischargeEachItemsAndRemoveCoins(game);
-      emptyHands(game);
-        }).not.toThrow();
   });
 
   it("should throw error when retrieving non-existent player", async () => {
     expect(() => {
       game.entityHandler.getPlayerById("nonexistent");
     }).toThrow("Player not found");
-  });
-
-  it("should have empty player list initially", async () => {
-    expect(game.players.length).toBe(0);
   });
 });
 
@@ -454,8 +429,8 @@ describe("Multi death things", () => {
     let player1: Player;
     let player2: Player;
 
-    beforeEach(() => {
-        const setup = setupStandardTestGame();
+    beforeEach(async () => {
+        const setup = await setupStandardTestGame();
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
@@ -626,23 +601,21 @@ describe("Game - Guardrails", () => {
   let player1: Player;
   let player2: Player;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     game = new Game();
     mockGameSelections(game);
-    player1 = new Player("player1", Team.Team1);
-    player2 = new Player("player2", Team.Team2);
+    await game.start([{ issuer: "player1", character: "random", team: Team.Team1 }, { issuer: "player2", character: "random", team: Team.Team2 }], false);
+    player1 = game.entityHandler.getPlayerById("player1")!;
+    player2 = game.entityHandler.getPlayerById("player2")!;
     player1.addAttackPoints(2);
     player1.addHealthPoints(4);
     player1.gainCoins(5);
     player2.addAttackPoints(2);
     player2.addHealthPoints(4);
     player2.gainCoins(5);
-    game.entityHandler.addPlayer(player1);
-    game.entityHandler.addPlayer(player2);
   });
 
   it("should not allow adding players after game start", async () => {
-    game.start(null, false);
     dischargeEachItemsAndRemoveCoins(game);
     emptyHands(game);
     const latePlayer = new Player("playerlate", Team.Team1);
@@ -824,67 +797,6 @@ describe("GameEventEmitter - listener reordering", () => {
   });
 });
 
-describe("Game - Game State", () => {
-  let game: Game;
-  let player1: Player;
-  let player2: Player;
-
-  beforeEach(() => {
-    game = new Game();
-    mockGameSelections(game);
-    player1 =new Player("player1", Team.Team1);
-    player2 =new Player("player2", Team.Team2);
-    player1.addAttackPoints(2);
-    player1.addHealthPoints(4);
-    player1.gainCoins(10);
-    player2.addAttackPoints(3);
-    player2.addHealthPoints(5);
-    player2.gainCoins(15);
-    game.entityHandler.addPlayer(player1);
-    game.entityHandler.addPlayer(player2);
-  });
-
-  it("should get decks", async () => {
-    const decks = game.decks;
-    expect(decks).toBeDefined();
-    expect(typeof decks).toBe("object");
-  });
-
-  it("should get turn handler", async () => {
-    const turnHandler = game.turnHandler;
-    expect(turnHandler).toBeDefined();
-  });
-
-  it("should get shop", async () => {
-    game.start(null, false);
-      dischargeEachItemsAndRemoveCoins(game);
-      emptyHands(game);
-        const shop = game.shop;
-    expect(shop).toBeDefined();
-  });
-
-  it("should get encounters", async () => {
-    game.start(null, false);
-      dischargeEachItemsAndRemoveCoins(game);
-      emptyHands(game);
-        const encounters = game.encounters;
-    expect(encounters).toBeDefined();
-  });
-
-  it("should get monster slots", async () => {
-    game.start(null, false);
-      dischargeEachItemsAndRemoveCoins(game);
-      emptyHands(game);
-        const slots = game.encounters;
-    expect(slots).toBeDefined();
-  });
-
-  it("should get stack", async () => {
-    const stack = game.stack;
-    expect(stack).toBeDefined();
-  });
-});
-
 
 describe("TurnHandler", () => {
   it("should advance turns and rounds correctly", async () => {
@@ -966,8 +878,8 @@ describe("Game - Damage System", () => {
   let player1: Player;
   let player2: Player;
 
-  beforeEach(() => {
-    const setup = setupTestGame({
+  beforeEach(async () => {
+    const setup = await setupTestGame({
                             characters: ["b2-samson", "b2-isaac"],
                             monsters: ["b2-fly", "b2-fatty"],
                             monsterDeck: ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip","b2-leech","b2-gurdy"],

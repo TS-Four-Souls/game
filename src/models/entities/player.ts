@@ -178,7 +178,7 @@ export class Player extends Entity {
    * @param value - The entity or "topDeck" that must be attacked
    * @param source - The card that gave this requirement
    */
-  mustAttack(value: Entity[] | "topDeck" | "any", source: Card) {
+  mustAttack(value: Entity[] | "topDeck" | "any", source: Card): void {
     this._mustAttackEntity.push({ target: value, source });
     this.attackThisTurn = Math.max(this.attackThisTurn, this._mustAttackEntity.length); // Ensure at least 1 attack this turn
   }
@@ -375,14 +375,14 @@ export class Player extends Entity {
     return this._canIUseLootThisTurn === 0;
   }
 
-  addToCanIUseLootThisTurn(valueToAdd: number) {
+  addToCanIUseLootThisTurn(valueToAdd: number): void {
     this._canIUseLootThisTurn += valueToAdd;
     if(this._canIUseLootThisTurn < 0) {
       this._canIUseLootThisTurn = 0;
     }
   }
 
-  resetCanIUseLootThisTurn() {
+  resetCanIUseLootThisTurn(): void {
     this._canIUseLootThisTurn = 0;
   }
 
@@ -390,14 +390,14 @@ export class Player extends Entity {
     return this._canIActivateThisTurn === 0;
   }
 
-  addToCanIActivateThisTurn(valueToAdd: number) {
+  addToCanIActivateThisTurn(valueToAdd: number): void {
     this._canIActivateThisTurn += valueToAdd;
     if(this._canIActivateThisTurn < 0) {
       this._canIActivateThisTurn = 0;
     }
   }
 
-  resetCanIActivateThisTurn() {
+  resetCanIActivateThisTurn(): void {
     this._canIActivateThisTurn = 0;
   }
 
@@ -405,7 +405,7 @@ export class Player extends Entity {
     return this._engagedInPurchase > 0;
   }
 
-  purchaseEnded(){
+  purchaseEnded(): void {
     this._engagedInPurchase = Math.max(0, this._engagedInPurchase - 1);
 
   }
@@ -434,7 +434,7 @@ export class Player extends Entity {
    * @param value - Modifier to add (+1 to enable, -1 to disable)
    * @throws {Error} If the resulting value is not 0 or 1
    */
-  addCanSeeTopOfTreasureDeck(value: number) {
+  addCanSeeTopOfTreasureDeck(value: number): void {
     const sum = this._canSeeTopOfTreasureDeck + value;
     if(sum < 0) { // can be set to more than 1 with modelling clay.
       throw new Error("canSeeTopOfTreasureDeck can not be set to a value less than 0");
@@ -466,7 +466,7 @@ export class Player extends Entity {
     return this._souls;
   }
 
-  soulsInCommonWith(player: Player){
+  soulsInCommonWith(player: Player): void{
     this._souls = player.souls;
   }
 
@@ -691,7 +691,7 @@ export class Player extends Entity {
    * @param card - The card to add as a soul
    * @throws {Error} If the card has no soul value (soul < 1)
    */
-  addSoul(card: Card){
+  addSoul(card: Card): void {
     if(card.soul < 1)
     {
       throw new Error("Cannot add a card with no soul as a soul card.");

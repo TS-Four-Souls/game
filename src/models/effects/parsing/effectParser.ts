@@ -96,10 +96,10 @@ const INFINITY = 999999;
  * Represents a parsed effect with both its execution function and target selectors.
  * This unified structure eliminates the need to parse effect strings twice.
  */
-export type ParsedEffect = {
+export interface ParsedEffect {
     effectFunction: EffectFunction;
     targetSelectors: TargetsSelector[];
-};
+}
 
 /**
  * Prepares the effect string for parsing by removing markers and unnecessary punctuation (namely, "!"), converting to lowercase, and normalizing numbers.
@@ -473,7 +473,7 @@ if (s.startsWith("you may") &&
     if (s.startsWith("destroy this.") && !s.includes("if you do, ")) {
         const restParsed = effectParser(s.substring("destroy this.".length).trim(), game, selectionOnResolve, youMayEffectHanging);
         return {
-            effectFunction: (data:EffectData) => { 
+            effectFunction: async (data:EffectData): Promise<boolean> => { 
                 const destroyResult = game.cardHandler.destroyCardsOrSouls([data.it]); 
                 if (s.substring("destroy this.".length).trim() === ".")
                     return destroyResult;
@@ -545,7 +545,7 @@ export function parseRollEffect(s: string, nr: NumberRobustString, game: Game, i
     const parsedEffects: ParsedEffect[] = rollResults.map(effectText => effectParser(effectText, game, true));
     const effects: EffectFunction[] = parsedEffects.map(p => p.effectFunction);
     return {
-        effectFunction: (data: EffectData) => {
+        effectFunction: (data: EffectData): boolean => {
             const issuer = issuerIsCurrentPlayer ? game.currentPlayer : data.issuer;
             if (issuer instanceof Player === false) return false;
             const result = game.rollDice(issuer, false, data.it);
@@ -1177,7 +1177,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "if you would gain any amount of ¢, this levels up by that much instead":
             return noTargetEffect(passive.gainCoinsLevelUpEffect(game));
         case "each time a player dies, this levels up":
-            return noTargetEffect(passive.onAnyEventEffect("on:death:penalty", [(data:EffectData)=>{game.cardHandler.addToCounter(data.issuer, data.it, "normal", 1); return true;}], game, nr.masked));
+            return noTargetEffect(passive.onAnyEventEffect("on:death:penalty", [(data:EffectData): boolean => { game.cardHandler.addToCounter(data.issuer, data.it, "normal", 1); return true; }], game, nr.masked));
         case "rewards are doubled till end of turn":
             return noTargetEffect(passive.doubleRewardsTillEndOfTurnEffect(game));
         case "you may look at the top card of the treasure deck at any time on your turn":
@@ -1310,10 +1310,6 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
             return { effectFunction: active.discardAnyNumberOfShopItemsEffect(game, 1, 1, "next"), targetSelectors: selectShopItem(game) };
         case "you may put any number of shop items into discard":
             return noTargetEffect(active.discardAnyNumberOfShopItemsEffect(game, 0, "any", "onResolve"));
-        case "cancel the triggered ability of a monster or non-eternal item":
-                return { effectFunction: active.cancelStackElementEffect(game), targetSelectors: selectPassiveAbilityOrMonsterAbility(game) };
-        case "cancel the ↷ or $ ability of an item":
-            return { effectFunction: active.cancelStackElementEffect(game), targetSelectors: selectUsableAbilityStackElement(game) };
         case "put any number of non-event monster cards in discard on top of the monster deck":
             return noTargetEffect(active.putAnyNumberFromDiscardOnTopEffect("monster", game, (card) => card instanceof MonsterCard && card.encounterType !== MonsterType.EVENT));
         case "steal a soul they control":
@@ -1354,6 +1350,10 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
             return { effectFunction: active.cancelStackElementEffect(game), targetSelectors: selectStackElementOrLoot(game) };
         case "cancel the effect of a loot being played":
             return { effectFunction: active.cancelStackElementEffect(game, selectLootOnStack(game), selectionOnResolve ), targetSelectors: selectLootOnStack(game) };
+        case "cancel the triggered ability of a monster or non-eternal item":
+            return { effectFunction: active.cancelStackElementEffect(game), targetSelectors: selectPassiveAbilityOrMonsterAbility(game) };
+        case "cancel the ↷ or $ ability of an item":
+            return { effectFunction: active.cancelStackElementEffect(game), targetSelectors: selectUsableAbilityStackElement(game) };
         case "each other player discards a loot card":
             return noTargetEffect(active.eachOtherPlayerDiscardsLootEffect(game));
         case "put each monster not being attacked into discard and replace each with the top card of the monster deck":
@@ -1681,7 +1681,7 @@ function parseSplittedEffect(s: string, game: Game, nr: NumberRobustString, sele
         const firstParsed = effectParser(parts[0]!.trim(), game, selectionOnResolve);
         const secondParsed = effectParser(parts[1]!.trim(), game, selectionOnResolve);
         return {
-            effectFunction: async (data:EffectData) => {
+            effectFunction: async (data:EffectData): Promise<boolean> => {
                 if(!await firstParsed.effectFunction(data))
                     await secondParsed.effectFunction(data);
                 return true;
@@ -1694,7 +1694,7 @@ function parseSplittedEffect(s: string, game: Game, nr: NumberRobustString, sele
         const firstParsed = effectParser(parts[0]!.trim(), game, selectionOnResolve);
         const secondParsed = effectParser(parts[1]!.trim(), game, selectionOnResolve);
         return {
-            effectFunction: async (data:EffectData) => {
+            effectFunction: async (data:EffectData): Promise<boolean> => {
                 if(await firstParsed.effectFunction(data))
                     await secondParsed.effectFunction(data);
                 return true;
@@ -1715,7 +1715,7 @@ function parseSplittedEffect(s: string, game: Game, nr: NumberRobustString, sele
         const firstParsed = effectParser(firstTrimmed, game, selectionOnResolve, youMayEffectHanging);
         const secondParsed = effectParser(secondTrimmed, game, true, youMayEffectHanging);
         return {
-            effectFunction: async (data:EffectData) => {
+            effectFunction: async (data:EffectData): Promise<boolean> => {
                 await firstParsed.effectFunction(data); 
                 await secondParsed.effectFunction(data);
                 return true;

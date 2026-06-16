@@ -61,52 +61,52 @@ export const isAttackableMonsterSubtype = (
 /* Parts */
 export type Reward =  number | "roll" | { all: true; count: number | "roll" };
 
-export type CardRewards = {
+export interface CardRewards {
   soul?: Reward;
   coin?: Reward;
   loot?: Reward;
   treasure?: Reward;
-};
+}
 
-type GuppyCard = {
+interface GuppyCard {
   guppy?: true;
-};
+}
 
-type IndomitableCard = {
+interface IndomitableCard {
   indomitable?: true;
-};
+}
 
-type OutsideCard = {
+interface OutsideCard {
   outsideGame?: true;
-};
+}
 
-type TrinketCard = {
+interface TrinketCard {
   trinket?: true;
-};
+}
 
-type CurseCard = {
+interface CurseCard {
   curse?: true;
-};
+}
 
-export type CardMeta = {
+export interface CardMeta {
   type: CardType;
   origin: CardOrigin;
   slug: string;
-};
+}
 
-export type CardStats = {
+export interface CardStats {
   healthPoints?: number;
   attackPoints?: number;
   evasionPoints?: number;
-};
+}
 
-export type FlipData = {
+export interface FlipData {
   name: string;
   slug: string;
   effectOutcome: string[];
   rewards?: CardRewards;
   stats?: CardStats;
-};
+}
 
 /* Card */
 export type Card = CardMeta & OutsideCard & {
