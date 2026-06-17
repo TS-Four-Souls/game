@@ -2781,10 +2781,10 @@ export function lootDoubleThisTurnEffect(game: Game): EffectFunction {
         let offEndTurn: (() => void) | null = null;
         const temp: TemporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
         data.issuer.addTemporaryEffect(temp);
+        const target = data.next;
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:loot:would", (eventData: OnLootWouldData) => {
             const { eventIssuer, numberOfCards } = eventData;
-            const target = data.next;
             if (target !== eventIssuer) return;
             numberOfCards[0]! *= 2;
         });
