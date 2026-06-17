@@ -60,6 +60,7 @@ class Card {
         this._back = this._json.back;
         this._keywords = [];
         this._tags = {};
+        this._eternal = this._json.eternal || false;
         this._effectInterface = new EffectInterface(this);
         this._flippedEffectInterface = new EffectInterface(this);
         this._flipData = this._json.flip;
