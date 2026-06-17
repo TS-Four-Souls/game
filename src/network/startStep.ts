@@ -257,7 +257,7 @@ export const enterStartStep = (
 
     socket.on("resetGameParameters", (callback) =>
       errorGuardedEndpoint(callback, () => {
-        room.params = room.params.reset();
+        room.params.reset();
         updatePlayerCount(room);
         sendRoomChangedToAll(room);
         return callback({ status: 200 });
@@ -317,6 +317,9 @@ export const enterStartStep = (
             if (!isRoomWithGame(room)) {
               return callback({ status: 400, error: "Game not found" });
             }
+
+            roomManager.attachGameRecordListeners(room);
+            roomManager.recordGameStart(room);
 
             sendRoomChangedToAll(room);
 
@@ -396,6 +399,9 @@ export const enterStartStep = (
         if (!isRoomWithGame(room)) {
           return callback({ status: 400, error: "Game not found" });
         }
+
+        roomManager.attachGameRecordListeners(room);
+        roomManager.recordGameStart(room);
 
         for (const user of room.users) {
           const socket = user.socket;

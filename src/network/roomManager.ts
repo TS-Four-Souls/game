@@ -10,6 +10,11 @@ import { CARD_SETS } from "@/models/handlers/cardHandler";
 import type { AdminRoom, RoomCharacter } from "@/shared/api";
 import { enterIntroStep } from "./introStep";
 import bun from "bun";
+import {
+  finalizeGameRecord as dbFinalizeGameRecord,
+  insertGameRecord,
+  recordGameEndReached,
+} from "@/utils/db";
 
 const INACTIVE_ROOM_TIMEOUT = 3 * 60 * 60 * 1_000; // 3 hours
 
@@ -92,6 +97,10 @@ class RoomManager {
   };
 
   deleteRoom(roomId: string): void {
+    const room = this.rooms.get(roomId);
+    if (room) {
+      this.finalizeGameRecord(room);
+    }
     try {
       this.saveGameLogs(roomId, false);
     } catch (error) {
@@ -100,6 +109,50 @@ class RoomManager {
       this.rooms.delete(roomId);
       console.log("[RoomManager] Room", roomId, "deleted");
     }
+  }
+
+  attachGameRecordListeners(room: Room): void {
+    if (!room.game) return;
+    room.game.onEndReached.add(() => {
+      recordGameEndReached(room.id, new Date().toISOString());
+    });
+  }
+
+  recordGameStart(room: Room): void {
+    if (!room.game) return;
+    const params = room.game.gameParameters;
+    const teamCount = new Set(
+      room.users.flatMap((user) => user.instances).map((instance) => instance.team),
+    ).size;
+    insertGameRecord(
+      room.id,
+      new Date().toISOString(),
+      room.users.length,
+      room.game.players.length,
+      teamCount,
+      room.game.turnHandler.numberOfRoundSinceBeginning,
+      {
+        miniDraft: params.miniDraft.value,
+        useFsp2Cards: params.useFSP2Cards.value,
+        nbSoulsToWin: params.nbSoulsToWin.value,
+        timer: params.timer.value,
+        nbPlayerCardRestriction: params.nbPlayerCardRestriction.value,
+        allowCheatOptions: params.allowCheatOptions.value,
+        playWithBonusSouls: params.playWithBonusSouls.value,
+        playWithRooms: params.playWithRooms.value,
+        deckMode: params.deckMode,
+      },
+    );
+  }
+
+  finalizeGameRecord(room: Room): void {
+    if (!room.game) return;
+    dbFinalizeGameRecord(
+      room.id,
+      room.game.reachedEnd,
+      room.game.turnHandler.numberOfRoundSinceBeginning,
+      room.lastActionTimestamp.toISOString(),
+    );
   }
 
   saveGameLogs(roomId: string, bugReport: boolean): string | undefined {

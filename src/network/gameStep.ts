@@ -371,22 +371,16 @@ export const enterGameStep = (
         });
       }
 
+      roomManager.finalizeGameRecord(room);
       roomManager.saveGameLogs(room.id, false);
 
-      const roomWithoutGame: Room = {
-        characters: room.characters,
-        createdAt: room.createdAt,
-        gameCount: room.gameCount,
-        id: room.id,
-        lastActionTimestamp: room.lastActionTimestamp,
-        params: room.params,
-        users: room.users,
-      }
+      // @ts-ignore we are exiting the game, so we don't need to keep the game instance.
+      delete room.game;
 
       for (const user of room.users) {
         const socket = user.socket;
         leaveCurrentStep(socket);
-        enterStartStep(socket, roomWithoutGame, user);
+        enterStartStep(socket, room, user);
       }
       return callback({ status: 200 });
     }),

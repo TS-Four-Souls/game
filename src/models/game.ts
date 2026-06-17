@@ -67,6 +67,9 @@ export class Game extends SelectionHandler {
   private _onRoomBroadcast: Signal<ServerRoomBroadcast> = new Signal();
   onRoomBroadcast: ReadableSignal<ServerRoomBroadcast> = this._onRoomBroadcast.readOnly();
 
+  private _onEndReached: Signal<void> = new Signal();
+  onEndReached: ReadableSignal<void> = this._onEndReached.readOnly();
+
   constructor(seed: string = "", gameParameters?: GameParameters) {
     super();
     this.seed = seed; // if seed is empty, it will be set to a random value.
@@ -98,6 +101,9 @@ export class Game extends SelectionHandler {
   }
   get turnHandler(): TurnHandler {
     return this._turnHandler;
+  }
+  get reachedEnd(): boolean {
+    return this._isWon;
   }
   get actions(): ActionHandler {
     return this._actionHandler;
@@ -401,6 +407,7 @@ export class Game extends SelectionHandler {
     if(this._isWon)
       return;
     this._isWon = true;
+    this._onEndReached.dispatch();
     if(player === null)
     {
       this._onRoomBroadcast.dispatch({
