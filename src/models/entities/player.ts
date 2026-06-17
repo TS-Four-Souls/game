@@ -1,6 +1,7 @@
 import { Entity } from "@/models/entities/entity";
 import type { Animation, Capability, EntityType, IdentifierType, Team } from "@/shared/api";
-import { Card, CharacterCard, EffectOnStack, Hand, ItemCard, LootCard, MonsterCard } from "../cards";
+import { Card, CharacterCard, Hand, ItemCard, LootCard, MonsterCard } from "../cards";
+import { EffectOnStack } from '../stackElement';
 import type { Game } from "../game";
 import { DiceRoll } from "../stackElement";
 

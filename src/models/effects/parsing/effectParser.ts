@@ -513,7 +513,7 @@ function parseVariableDeckNameEffect(s: string, game: Game, nr: NumberRobustStri
     const deckName = parseText(s, /^look at the top \d+ cards of the (\w+) deck\. put \d+ on top and the rest on the bottom\./u);
     if (deckName !== "")
         return noTargetEffect(active.lookXPutYTopRestBottomEffect(deckName, game, nr.nextNumber(), nr.nextNumber()));
-    var deckName1 = parseText(s, /^look at the top \d+ cards of the (\w+) deck\. you may put them back in any order\.?$/u);
+    let deckName1 = parseText(s, /^look at the top \d+ cards of the (\w+) deck\. you may put them back in any order\.?$/u);
     if (deckName1 === "")
         deckName1 = parseText(s, /^look at the top \d+ cards of the (\w+) deck\. put them back in any order\.?$/u);
     if (deckName1 !== "")

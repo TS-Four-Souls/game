@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "@/models/game";
 import { Player } from "@/models/entities/player";
-import { EffectOnStack, EffectData, type TreasureCard } from "@/models/cards";
+import { EffectData, type TreasureCard } from "@/models/cards";
+import { EffectOnStack } from '@/models/stackElement';
 import { setupTestGame } from "@/tests/testHelpers";
 
 describe("Treasure - \"at the end of your turn\" effects", () => {
@@ -82,6 +83,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
                 () => true,
                 new EffectData(monsterIssuer.card, () => monsterIssuer, []),
                 label,
+                "passive"
             );
         };
 
@@ -111,10 +113,10 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
     it("Multiple reordering can happen", async () => {
         const monsterIssuer = game.monsters[0]!;
         game.emitter.on("on:turn:end", () => {
-            game.addToStack(new EffectOnStack(() => true, new EffectData(monsterIssuer.card, () => monsterIssuer, []), "game-C"));
+            game.addToStack(new EffectOnStack(() => true, new EffectData(monsterIssuer.card, () => monsterIssuer, []), "game-C", "passive"));
         });
         game.emitter.on("on:turn:end", () => {
-            game.addToStack(new EffectOnStack(() => true, new EffectData(monsterIssuer.card, () => monsterIssuer, []), "game-D"));
+            game.addToStack(new EffectOnStack(() => true, new EffectData(monsterIssuer.card, () => monsterIssuer, []), "game-D", "passive"));
         });
 
         triggerEndTurnEffects();
@@ -144,11 +146,11 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
         game.emitter.on("on:turn:end", () => {
             emittedOrder.push("game-A");
-            game.addToStack(new EffectOnStack(() => true, new EffectData(monsterIssuer.card, () => monsterIssuer, []), "game-A"));
+            game.addToStack(new EffectOnStack(() => true, new EffectData(monsterIssuer.card, () => monsterIssuer, []), "game-A", "passive"));
         });
         game.emitter.on("on:turn:end", () => {
             emittedOrder.push("game-B");
-            game.addToStack(new EffectOnStack(() => true, new EffectData(monsterIssuer.card, () => monsterIssuer, []), "game-B"));
+            game.addToStack(new EffectOnStack(() => true, new EffectData(monsterIssuer.card, () => monsterIssuer, []), "game-B", "passive"));
         });
 
         triggerEndTurnEffects();
@@ -176,12 +178,12 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
             // Nested emit should not erase outer emission context.
             game.emitter.emit("on:turn:start", { eventIssuer: player1 });
             emittedOrder.push("game-A");
-            game.addToStack(new EffectOnStack(() => true, new EffectData(monsterIssuer.card, () => monsterIssuer, []), "game-A"));
+            game.addToStack(new EffectOnStack(() => true, new EffectData(monsterIssuer.card, () => monsterIssuer, []), "game-A", "passive"));
         });
         game.emitter.on("on:turn:end", () => {
             game.emitter.emit("on:turn:start", { eventIssuer: player1 });
             emittedOrder.push("game-B");
-            game.addToStack(new EffectOnStack(() => true, new EffectData(monsterIssuer.card, () => monsterIssuer, []), "game-B"));
+            game.addToStack(new EffectOnStack(() => true, new EffectData(monsterIssuer.card, () => monsterIssuer, []), "game-B", "passive"));
         });
 
         triggerEndTurnEffects();

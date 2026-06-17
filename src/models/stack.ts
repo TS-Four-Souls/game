@@ -1,4 +1,4 @@
-import { EffectOnStack } from "./cards";
+import { EffectOnStack } from './stackElement';
 import type { Entity } from "./entities/entity";
 import type { Player } from "./entities/player";
 import { StackElement } from "./stackElement";

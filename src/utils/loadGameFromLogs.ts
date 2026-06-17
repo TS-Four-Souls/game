@@ -327,7 +327,9 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
           if (!state) {
             throw new Error("GameState entry is missing gameState payload");
           }
-          const comparison = compareGameState(game.detailedStateJSON(game.players[0]!), state);
+          if(game.players[0] === undefined)
+            throw new Error("GameState entry is missing player data");
+          const comparison = compareGameState(game.detailedStateJSON(game.players[0]), state);
           if (!comparison.equal) {
             const differencesMessage = comparison.differences
               .map((difference, index) => `${index + 1}. ${difference}`)
@@ -444,7 +446,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
 
         case "DebugLoot": {
           const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          const cards = (entry.payload as any).cards;
+          const cards = entry.payload.cards;
           if (cards && cards.length > 0) {
             for (const ref of cards) {
               const card = game.obtainCard(ref.slug, ref.globalId) as LootCard;
@@ -476,7 +478,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
 
         case "DebugGainTreasure": {
           const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          const cards = (entry.payload as any).cards;
+          const cards = entry.payload.cards;
           if (cards && cards.length > 0) {
             for (const ref of cards) {
               const card = game.obtainCard(ref.slug, ref.globalId);
@@ -492,9 +494,9 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
         
         case "DebugRemoveCards":
           const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          const payload = entry.payload as any;
-          if (payload.cards !== undefined || payload.slugs !== undefined) {
-                const refs = (payload.cards ?? payload.slugs)!;
+          const payload = entry.payload;
+          if (payload.cards !== undefined) {
+                const refs = payload.cards;
                 const cardsToRemove = game
                   .playerCardsAndGameOwnedCards(player)
                   .filter((c) => refs.some((ref: IdentifierType) => c.slug === ref.slug && c.globalId === ref.globalId));
@@ -504,7 +506,7 @@ export async function loadGameFromLogs(logs: HistoricEntry[], verbose: number = 
 
         default:
           // Exhaustiveness safeguard for future request types.
-          throw new Error(`Unsupported log entry type for replay: ${(entry as any).type}`);
+          throw new Error(`Unsupported log entry type for replay: ${entry.type}`);
       }
   }
     game.selectMultiple = normalMultipleSelection;

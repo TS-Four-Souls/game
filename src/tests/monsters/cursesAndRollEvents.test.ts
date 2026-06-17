@@ -1,4 +1,4 @@
-import type { EffectOnStack } from "@/models/cards";
+import type { EffectOnStack } from '@/models/stackElement';
 import { ItemCard, MonsterCard, TreasureCard } from "@/models/cards";
 import { dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
 import { beforeEach, describe, expect, it } from "bun:test";

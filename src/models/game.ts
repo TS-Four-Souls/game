@@ -1,12 +1,12 @@
 import {
   BsoulCard,
   Card,
-  EffectOnStack,
   ItemCard,
   LootCard,
   MonsterCard,
   TreasureCard
 } from "@/models/cards";
+import { EffectOnStack } from './stackElement';
 import { CurrentPlayerDecidesToChangeRoom } from "@/models/effects/roomEffects";
 import { Entity } from "@/models/entities/entity";
 import { Monster } from "@/models/entities/monster";
@@ -133,7 +133,7 @@ export class Game extends SelectionHandler {
     return this._stack;
   }
   get soulsOwned(): Card[] {
-    let souls: Card[] = [];
+    const souls: Card[] = [];
     for (const player of this.players) {
       souls.push(...player.souls);
     }
@@ -260,7 +260,7 @@ export class Game extends SelectionHandler {
     this.assert.gameStarted();
     if (attackRoll) this.assert.isAlive(player);
 
-    let diceRoll = player.rollDice(this.random, attackRoll, card);
+    const diceRoll = player.rollDice(this.random, attackRoll, card);
     this.addAnimation({
       id: this.nextAnimationId,
       type: "diceRoll",
@@ -368,11 +368,11 @@ export class Game extends SelectionHandler {
     this.cardHandler.initializeBonusSouls();
     this._shop = new Shop(
       this.gameParameters.nbItemsInShop.value,
-      this.decks["treasure"]!
+      this.decks["treasure"]
     );
     this._encounters = new Encounters(
       this.gameParameters.nbEncounters.value,
-      this.decks["monster"]!,
+      this.decks["monster"],
       this
     );
     this.gameParameters.playWithRooms.value = this.gameParameters.playWithRooms.value && this.decks["room"] !== undefined && this.decks["room"]._order!.length > 0;
@@ -753,7 +753,7 @@ export class Game extends SelectionHandler {
     coins = eventData.coinToLose;
     // console.log(`Player ${player.id} is about to lose ${coins} coins for reason ${reason} with ${player.coins} coins.`);
     if(coins <= 0) return 0;
-    let coinLost = player.loseCoins(coins, asMany);
+    const coinLost = player.loseCoins(coins, asMany);
     this.emit("on:coin:lost:after", { eventIssuer: player, coinLost });
     if(coinLost === 0 && reason === "paiement" && asMany === false && coins > 0)
       return -1; // signal that the player cannot pay the cost.

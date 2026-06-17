@@ -632,7 +632,7 @@ export function statModifierWhileAtHealthEffect(game: Game, s: string): EffectFu
     const healthThreshold = numbers[0]!;
     const statAmount = numbers[1]!;
     const orLess = s.includes("or less");
-    let event: TriggerEvent | null = s.includes("[dc]") 
+    const event: TriggerEvent | null = s.includes("[dc]") 
         ? "on:get:monster:evasion" 
             : s.includes("[atk]") 
             ? "on:get:monster:attackPoints" 
@@ -642,7 +642,7 @@ export function statModifierWhileAtHealthEffect(game: Game, s: string): EffectFu
     
     return (data: EffectData) => {
         let offGetStat: (() => void) | null = null;
-        let statApplied = false;
+        const statApplied = false;
 
         offGetStat = game.emitter.on(event, (eventData: OnGetMonsterAttackPointsData | OnGetMonsterEvasionData) => {
             const { eventIssuer, stat } = eventData;
@@ -1094,7 +1094,7 @@ export function dealDamageToAttackingPlayerEffect(game: Game, damage: number): E
 
 export function bossRushEffect(game: Game, bossCount: number): EffectFunction {
     return async (data: EffectData) => {
-        let bosses = [];
+        const bosses = [];
         if(!(data.it instanceof MonsterCard))
             return false;
         data.it.afterEffect = "handled"; 

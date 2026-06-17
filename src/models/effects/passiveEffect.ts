@@ -1,6 +1,7 @@
 import { type TriggerEvent } from '@/models/types/eventTypes';
 import type { TemporaryEffect } from "@/shared/api";
-import { Card, EffectOnStack, ItemCard, LootCard, LootCardEffect, MonsterCard, TreasureCard, type CounterType } from "../cards";
+import { Card, ItemCard, LootCard, MonsterCard, TreasureCard, type CounterType } from "../cards";
+import { EffectOnStack, LootCardEffect } from '../stackElement';
 import { Entity } from "../entities/entity";
 import { Monster } from "../entities/monster";
 import { Player } from "../entities/player";
@@ -278,7 +279,7 @@ export function temporaryStatModifierEffect(
             adder(target, amount, data.it);
         
         // Register cleanup to reverse at end of turn
-        let offTurn = game.emitter.on("till:turn:end", () => {
+        const offTurn = game.emitter.on("till:turn:end", () => {
             for(const adder of adders)
                 adder(target, -amount, data.it);
             target.removeTemporaryEffect(temp);
@@ -433,7 +434,7 @@ export function lvlXaddListenerEffect(
         else
             {
 
-            let offTurn = game.emitter.on("on:counter:modified", async (eventData: OnCounterModifiedData) => {
+            const offTurn = game.emitter.on("on:counter:modified", async (eventData: OnCounterModifiedData) => {
                 const { eventIssuer } = eventData;
                 if (data.issuer !== eventIssuer) return;
                 if (data.it.counters.value("normal") < lvl) return;
@@ -625,7 +626,7 @@ export function noPriorityPassesOnYourTurnEffect(game: Game): EffectFunction {
             game.entityHandler.applyLootOrActivateRestrictionForCurrentTurn(issuer);
         }
 
-        let offStartTurn = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
+        const offStartTurn = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
             if (eventIssuer !== issuer) return;
             game.entityHandler.applyLootOrActivateRestrictionForCurrentTurn(issuer);
         });
@@ -642,7 +643,7 @@ export function noPriorityPassesOnYourTurnEffect(game: Game): EffectFunction {
 // REPLACEMENT EFFECT: Continuous priority modification - does not use the stack.
 export function noPriorityPassesTillEndOfTurnEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
-        let offEndTurn: (() => void) | null = null;
+        const offEndTurn: (() => void) | null = null;
         const issuer = data.issuer;
         if(!(issuer instanceof Player))
             throw new Error("noPriorityPassesTillEndOfTurnEffect can only be applied to Players.");
@@ -814,7 +815,7 @@ export function firstAttackRollDiceModifier(
         if(active)
             game.entityHandler.addAttackDiceModifier(issuer, amount, data.it);
 
-        let offTurn = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
+        const offTurn = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
             const { eventIssuer } = eventData;
             if (eventIssuer !== issuer) return;
             if(active) return;
@@ -822,7 +823,7 @@ export function firstAttackRollDiceModifier(
             active = true;
         });
 
-        let offTurnEnd = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
+        const offTurnEnd = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
             const { eventIssuer } = eventData;
             if (eventIssuer !== issuer) return;
             if(!active) return
@@ -1850,7 +1851,7 @@ export function replaceDeathPenaltyEffect(game: Game): EffectFunction {
         // Listen for the next death penalty event on this player
         const issuer = data.issuer;
         if (!(issuer instanceof Player)) return false;
-        let OriginalDeathPenaltyItems = game.deathPenaltyItems.bind(game);
+        const OriginalDeathPenaltyItems = game.deathPenaltyItems.bind(game);
         game.deathPenaltyItems = async (player: Player): Promise<ItemCard[]> => {
             const setOfLosableItems = player.inPlay.filter(
               (c) =>
@@ -2504,7 +2505,7 @@ export function onAttackingPlayerRollEffect(
             // Only trigger for attack rolls with specified values
             if (rollValues.includes(dice.value)) {
                 // Create the effect that will execute when the stack resolves
-                let copyData = data;
+                const copyData = data;
                 if(diceIssuerIssueTheEvent && dice.issuer !== undefined)
                     copyData.issuerProvider = (): Entity => dice.issuer;
                 const stackEffect = async (effectData: EffectData): Promise<boolean> => {

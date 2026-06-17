@@ -6,7 +6,8 @@ import { Monster } from "../entities/monster";
 import { Animated } from "../entities/animated";
 import { getAttackRollEffect } from "../effects/activeEffect";
 import { DiceRoll } from "../stackElement";
-import { Card, ItemCard, LootCard, LootCardEffect, MonsterCard, MonsterType, RoomCard, TreasureCard } from "../cards";
+import { Card, ItemCard, LootCard, MonsterCard, MonsterType, RoomCard, TreasureCard } from "../cards";
+import { LootCardEffect } from '../stackElement';
 import { TargetBuilder } from "../targetBuilder";
 
 export class ActionHandler {

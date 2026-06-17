@@ -847,7 +847,7 @@ export function playersWithFewestSoulsAttackBoostEffect(game: Game, attackBoost:
         let playersWithFewestSouls: Player[] = [];
         let shouldAddAttackThisTurn = true;
         function computeEffect(): void {
-            let minSouls = Math.min(...game.players.map(p => p.totalSouls));
+            const minSouls = Math.min(...game.players.map(p => p.totalSouls));
             playersWithFewestSouls = game.players.filter(p => p.totalSouls === minSouls);
             for(const player of playersWithFewestSouls) 
             {
@@ -907,7 +907,7 @@ export function playersWithFewestSoulsShopItemPriceReductionEffect(game: Game, p
          * If the current player is among them, reduce their price modifier.
          */
         function computeEffect(): void {
-            let minSouls = Math.min(...game.players.map(p => p.totalSouls));
+            const minSouls = Math.min(...game.players.map(p => p.totalSouls));
             playersWithFewestSouls = game.players.filter(p => p.totalSouls === minSouls);
             if(playersWithFewestSouls.includes(game.currentPlayer) && pay0Next)
                 game.currentPlayer.priceModifier -= game.gameParameters.shopPrice.value - priceReduction;

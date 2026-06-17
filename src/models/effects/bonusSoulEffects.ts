@@ -1,7 +1,6 @@
-import { de } from "zod/locales";
 import { type Card, BsoulCard, ItemCard, TreasureCard } from "../cards";
-import { Game } from "../game";
 import { Player } from "../entities/player";
+import { Game } from "../game";
 import type {
     OnCoinGainedData,
     OnDeathBeforePenaltyData,
@@ -25,7 +24,8 @@ export type OffEffectFunction = () => void;
  * @returns 
  */
 export function bSoulEffectParser(card: BsoulCard, game: Game): OffEffectFunction {
-    const s = card.effectOutcomes[0]!;
+    const s = card.effectOutcomes[0];
+    if(!s) throw new Error("Bonus Soul card has no effect outcome: " + card.name);
     switch (s) {
         case "The first player to have 10 or more loot cards in their hand gains this soul.":
             return soulOfGluttonyEffect(game, card);

@@ -16,7 +16,8 @@ import {
     visibleItemSelector,
     YourItemSelector
 } from "@/models/targetSelector.ts";
-import {Card, EffectOnStack, ItemCard, LootCardEffect, MonsterCard} from "@/models/cards.ts";
+import {Card, ItemCard, MonsterCard} from "@/models/cards.ts";
+import { EffectOnStack, LootCardEffect } from '@/models/stackElement';
 import {Player} from "@/models/entities/player.ts";
 import {DiceRoll} from "@/models/stackElement.ts";
 

@@ -4,7 +4,8 @@
 
 import { type OnAttackDeclaredData, type OnDeathMonsterData } from "@/models/types/eventTypes";
 import { partialsEndingWithNumber1to6 } from "@/utils/auxiliary";
-import { assertCardMatchesDeck, type Card, CharacterCard, type CounterType, Deck, isDeckType, ItemCard, LootCard, LootCardEffect, MonsterCard, RoomCard, TreasureCard } from "../cards";
+import { assertCardMatchesDeck, type Card, CharacterCard, type CounterType, Deck, isDeckType, ItemCard, LootCard, MonsterCard, RoomCard, TreasureCard } from "../cards";
+import { LootCardEffect } from '../stackElement';
 import { Animated } from "../entities/animated";
 import { Entity } from "../entities/entity";
 import { Monster } from "../entities/monster";
@@ -231,8 +232,8 @@ export function lookXPutYTopRestBottomEffect(deckName: string, game: Game, nbCar
         throw new Error(`Invalid deck type: ${deckName}`);
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        let cards = game.cardHandler.getFirstCardsOfDeck(deckName, nbCards);
-        let selectionResult = await data.selectAndRecord(game, data.issuer, nbCardsToDiscard, nbCardsToDiscard, cards, "Select a card to put on top of the deck.", true, false);
+        const cards = game.cardHandler.getFirstCardsOfDeck(deckName, nbCards);
+        const selectionResult = await data.selectAndRecord(game, data.issuer, nbCardsToDiscard, nbCardsToDiscard, cards, "Select a card to put on top of the deck.", true, false);
         for(const card of selectionResult.selected) {
             game.cardHandler.addTopPosition(deckName, card);
         }
@@ -246,7 +247,7 @@ export function lookXPutYTopRestBottomEffect(deckName: string, game: Game, nbCar
 export function look1EachDeckEffect(game: Game): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        let topCards: Card[] = [];
+        const topCards: Card[] = [];
         for (const deckName of game.deckNames) {
             if(!isDeckType(deckName))
                 throw new Error(`Invalid deck type: ${deckName}`);
@@ -1313,8 +1314,8 @@ export function lookAndOrderEffect(deckName: string, numberOfCards: number, game
         throw new Error(`Invalid deck type: ${deckName}`);
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        let cards = game.cardHandler.getFirstCardsOfDeck(deckName, numberOfCards);
-        let selectionResult = await data.selectAndRecord(game, data.issuer, numberOfCards, numberOfCards, cards, `Select the order to put back the ${numberOfCards} cards on top of the ${deckName} deck (first selected will be on top).`, false, false);
+        const cards = game.cardHandler.getFirstCardsOfDeck(deckName, numberOfCards);
+        const selectionResult = await data.selectAndRecord(game, data.issuer, numberOfCards, numberOfCards, cards, `Select the order to put back the ${numberOfCards} cards on top of the ${deckName} deck (first selected will be on top).`, false, false);
         for (let i = 0; i < selectionResult.selected.length; i++) {
             game.cardHandler.addTopPosition(deckName, selectionResult.selected[numberOfCards - 1 - i]!);
         }
@@ -1758,7 +1759,7 @@ export function eachPlayersVoteToDestroyItemEffect(game: Game): EffectFunction {
         // Count the votes
         const votes: Record<number, number> = {};
         for (const result of voteResults) {
-            const vote = result.selected[0].globalId;
+            const vote = result.selected[0]!.globalId;
             votes[vote] = (votes[vote] || 0) + 1;
         }
 
@@ -2416,7 +2417,7 @@ export function rechargeUpToXOtherItemsEffect(game: Game, x: number): EffectFunc
 export function obtainRollResults(s: string): string[] {
     s = s.split("roll-")[1]!.trim();
     const lines: string[] = s.split("\n");
-    let results: string[] = new Array<string>(6).fill("");
+    const results: string[] = new Array<string>(6).fill("");
     for (let line of lines) {
         line = line.trim();
         if (line.length > 0) {
@@ -2519,8 +2520,8 @@ export function preventDeathEndTurnEffect(game: Game): EffectFunction {
 export function removeCountersAndLootOrDamageEffect(game: Game, minCounterToRemove: number, lootAmount: number, counterThreshold: number, damageAmount: number): EffectFunction {
     return async (data: EffectData) => {
         if(data.issuer instanceof Player === false) return false;
-        var possibilities = [];
-        for (var i = minCounterToRemove; i <= data.it.counters.value("normal"); i++) {
+        const possibilities = [];
+        for (let i = minCounterToRemove; i <= data.it.counters.value("normal"); i++) {
             possibilities.push(i);
         }
         const countersToRemove = (await data.selectAndRecord(game, data.issuer, 1, 1, possibilities, `Select how many counters to remove (at least ${minCounterToRemove}).`, true, true)).selected[0] as number;
@@ -2996,7 +2997,7 @@ export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, de
             issuer = roll.issuer;
         }
         if (issuer instanceof Player === false) return false;
-        var deckName = deckNameParam;
+        let deckName = deckNameParam;
         if(deckName === undefined) {
             const deck = data.next as Deck<Card>;
             if(!deck)

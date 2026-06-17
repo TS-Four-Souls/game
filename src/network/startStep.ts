@@ -355,7 +355,7 @@ export const enterStartStep = (socket: Socket, room: Room, user: User): void => 
           });
         });
 
-        let playersWithCharacters: {
+        const playersWithCharacters: {
           issuer: string;
           character: string;
           user: string;
