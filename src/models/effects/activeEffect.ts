@@ -1240,6 +1240,11 @@ export function selectEternalAmongX(game: Game, x: number): EffectFunction {
         const selection = await data.selectAndRecord(game, data.issuer, 1, 1, options, "Select a starting eternal treasure.", true, true);
         selection.selected[0]?.setEternal(true);
         game.cardHandler.addInPlay(data.issuer, selection.selected[0]!); 
+        for (const card of options) {
+            if (card !== selection.selected[0]) {
+                game.decks.treasure.addBottomPosition(card);
+            }
+        }
         return true;
     };
 }
