@@ -734,10 +734,7 @@ const animationSchema = z.discriminatedUnion("type", [
 ]);
 export type Animation = z.infer<typeof animationSchema>;
 
-const detailedStateSchema = z.object({
-  me: playerMeSchema,
-  players: z.array(playerSchema),
-  monsters: z.object({
+const encounterSchema = z.object({
     discard: z.array(cardSchema),
     deckSize: z.number(),
     capabilities: z.object({
@@ -749,25 +746,38 @@ const detailedStateSchema = z.object({
         covered: z.array(cardSchema),
       }),
     ),
-  }),
-  treasure: z.object({
+  });
+export type Encounter = z.infer<typeof encounterSchema>;
+
+const shopSchema = z.object({
     discard: z.array(cardSchema),
     deckSize: z.number(),
     inPlay: z.array(z.union([shopItemSchema, z.undefined()])),
     topDeckPrice: z.number(),
-  }),
-  loot: z.object({
-    discard: z.array(cardSchema),
-    deckSize: z.number(),
-  }),
-  bonusSouls: z.array(bonusSoulCardSchema).optional(),
-  room: z
-    .object({
+  });
+export type Shop = z.infer<typeof shopSchema>;
+
+const roomSlotSchema = z.object({
       discard: z.array(cardSchema),
       deckSize: z.number(),
       inPlay: z.array(cardSchema),
-    })
-    .optional(),
+    }).optional();
+export type RoomSlot = z.infer<typeof roomSlotSchema>;
+
+const lootDeckSchema =  z.object({
+    discard: z.array(cardSchema),
+    deckSize: z.number(),
+  });
+export type LootDeck = z.infer<typeof lootDeckSchema>;
+
+const detailedStateSchema = z.object({
+  me: playerMeSchema,
+  players: z.array(playerSchema),
+  monsters: encounterSchema,
+  treasure: shopSchema,
+  loot: lootDeckSchema,
+  bonusSouls: z.array(bonusSoulCardSchema).optional(),
+  room: roomSlotSchema,
   turn: z.string(),
   round: z.number(),
   stack: z.array(z.lazy(() => stackElementSchema)),

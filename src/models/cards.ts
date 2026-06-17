@@ -1243,6 +1243,9 @@ export class CounterHandler{
     isDefined(type: CounterType): boolean{
         return this.counters.get(type) !== undefined;
     }
+    getIfDefined(type: CounterType): number | undefined{
+        return this.isDefined("normal") ? this.value("normal") : undefined;
+    }
     addToCounter(toAdd: number, type: CounterType): void
     {
         const counter = this.getCounter(type);
