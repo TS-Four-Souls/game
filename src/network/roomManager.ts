@@ -70,6 +70,7 @@ class RoomManager {
       }),
       characters: RoomManager.generateCharacterAndEternalPairs(),
       createdAt: new Date(),
+      gameCount: 0,
     };
     this.rooms.set(roomId, room);
     return room;

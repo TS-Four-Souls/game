@@ -35,5 +35,10 @@ export interface Room {
   params: GameParameters;
   characters: RoomCharacter[];
   game?: Game;
+  gameCount: number;
   createdAt: Date;
+}
+
+export interface RoomWithGame extends Room {
+  game: Game;
 }

@@ -1,5 +1,5 @@
 import { schemas } from "@/shared/api";
-import type { Room, Socket, User } from "./types";
+import type { Room, RoomWithGame, Socket, User } from "./types";
 import {
   payloadGuardedEndpoint,
   sendRoomChangedToAll,
@@ -16,25 +16,22 @@ import {
   executePlayCardRequest,
 } from "@/utils/gameRequestHelpers";
 import type { ItemCard, LootCard, MonsterCard } from "@/models/cards";
-import type { Game } from "@/models/game";
 import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
 import type { HistoricEntry } from "@/models/handlers/historyHandler";
 import { enterStartStep } from "./startStep";
 import { globalEndpoints } from "./global";
 import { roomManager } from "./roomManager";
 
-export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
-  if (!room.game) {
-    throw new Error("Game not found");
-  }
-
-  const game: Game = room.game;
-
+export const enterGameStep = (
+  socket: Socket,
+  room: RoomWithGame,
+  user: User,
+): void => {
   const activeInstance = user.instances.find((instance) => instance.isActive);
   if (!activeInstance) {
     throw new Error("No active instance found");
   }
-  const player = game.entityHandler.getPlayerById(activeInstance.name);
+  const player = room.game.entityHandler.getPlayerById(activeInstance.name);
 
   sendRoomChangedToUser(room, user);
 
@@ -42,14 +39,14 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
 
   socket.on("saveGame", (callback) =>
     errorGuardedEndpoint(callback, () => {
-      const logs = JSON.stringify(game.log, null, 2);
+      const logs = JSON.stringify(room.game.log, null, 2);
       return callback({ status: 200, logs });
     }),
   );
 
   socket.on("rollback", (callback) =>
     errorGuardedEndpoint(callback, async () => {
-      const logs: HistoricEntry[] = game.getRollbackLog(player);
+      const logs: HistoricEntry[] = room.game.getRollbackLog(player);
       // console.log("Rollback logs", logs.at(-1)!.type);
       if (!logs)
         throw new Error(
@@ -61,7 +58,7 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
         sendRoomChangedToAll(room);
       });
 
-      game.onRoomBroadcast.add((broadcast) => {
+      room.game.onRoomBroadcast.add((broadcast) => {
         room.users.forEach((user) => {
           user.instances.forEach((instance) => {
             if (!instance.isActive) return;
@@ -94,8 +91,8 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
 
   socket.on("declareAttack", (callback) =>
     errorGuardedEndpoint(callback, () => {
-      game.actions.declareAttack(player);
-      game.addToHistory({
+      room.game.actions.declareAttack(player);
+      room.game.addToHistory({
         type: "DeclareAttack",
         issuer: player.id,
       });
@@ -110,8 +107,8 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
         schemas.attackMonsterRequest,
         callback,
         async (payload) => {
-          await executeAttackMonsterRequest(game, payload, player);
-          game.addToHistory({
+          await executeAttackMonsterRequest(room.game, payload, player);
+          room.game.addToHistory({
             type: "AttackMonster",
             payload,
             issuer: player.id,
@@ -124,8 +121,8 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
 
   socket.on("attackRoll", (callback) =>
     errorGuardedEndpoint(callback, () => {
-      game.actions.attackRoll(player);
-      game.addToHistory({
+      room.game.actions.attackRoll(player);
+      room.game.addToHistory({
         type: "AttackRoll",
         issuer: player.id,
       });
@@ -136,8 +133,8 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
   socket.on("resolve", (callback) =>
     errorGuardedEndpoint(callback, async () => {
       registerRoomActivity(room);
-      game.addToHistory({ type: "Resolve", issuer: player.id });
-      await game.actions.resolveStack();
+      room.game.addToHistory({ type: "Resolve", issuer: player.id });
+      await room.game.actions.resolveStack();
       return callback({ status: 200 });
     }),
   );
@@ -149,8 +146,12 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
         schemas.submitSelectionRequest,
         callback,
         (payload) => {
-          game.submitSelection(player, payload.requestId, payload.selections);
-          game.addToHistory({
+          room.game.submitSelection(
+            player,
+            payload.requestId,
+            payload.selections,
+          );
+          room.game.addToHistory({
             type: "SubmitSelection",
             payload,
             issuer: player.id,
@@ -168,12 +169,12 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
         schemas.insertStackElementBeforeRequest,
         callback,
         (payload) => {
-          game.insertStackElementBefore(
+          room.game.insertStackElementBefore(
             player,
             payload.elementToMoveStackId,
             payload.targetStackId,
           );
-          game.addToHistory({
+          room.game.addToHistory({
             type: "InsertStackElementBefore",
             payload,
             issuer: player.id,
@@ -191,8 +192,12 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
         schemas.playCardRequest,
         callback,
         (payload) => {
-          const choices = executePlayCardRequest(game, payload, player);
-          game.addToHistory({ type: "PlayCard", payload, issuer: player.id });
+          const choices = executePlayCardRequest(room.game, payload, player);
+          room.game.addToHistory({
+            type: "PlayCard",
+            payload,
+            issuer: player.id,
+          });
           return callback({ response: choices, status: 200 });
         },
       ),
@@ -206,9 +211,13 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
         schemas.activateRequest,
         callback,
         async (payload) => {
-          const choices = await executeActivateRequest(game, payload, player);
+          const choices = await executeActivateRequest(
+            room.game,
+            payload,
+            player,
+          );
           if (choices.complete) {
-            game.addToHistory({
+            room.game.addToHistory({
               type: "Activate",
               payload,
               issuer: player.id,
@@ -228,12 +237,12 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
         callback,
         async (payload) => {
           const choices = await executeActivateRoomRequest(
-            game,
+            room.game,
             payload,
             player,
           );
           if (choices.complete) {
-            game.addToHistory({
+            room.game.addToHistory({
               type: "ActivateRoom",
               payload,
               issuer: player.id,
@@ -247,8 +256,8 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
 
   socket.on("declarePurchase", (callback) =>
     errorGuardedEndpoint(callback, () => {
-      game.actions.declarePurchase(player);
-      game.addToHistory({
+      room.game.actions.declarePurchase(player);
+      room.game.addToHistory({
         type: "DeclarePurchase",
         issuer: player.id,
       });
@@ -258,8 +267,8 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
 
   socket.on("cancelPurchase", (callback) =>
     errorGuardedEndpoint(callback, () => {
-      game.actions.cancelPurchase(player);
-      game.addToHistory({
+      room.game.actions.cancelPurchase(player);
+      room.game.addToHistory({
         type: "CancelPurchase",
         issuer: player.id,
       });
@@ -274,8 +283,12 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
         schemas.purchaseRequest,
         callback,
         (payload) => {
-          game.actions.purchase(player, payload.index);
-          game.addToHistory({ type: "Purchase", payload, issuer: player.id });
+          room.game.actions.purchase(player, payload.index);
+          room.game.addToHistory({
+            type: "Purchase",
+            payload,
+            issuer: player.id,
+          });
           return callback({ status: 200 });
         },
       ),
@@ -284,8 +297,8 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
 
   socket.on("endTurn", (callback) =>
     errorGuardedEndpoint(callback, async () => {
-      game.addToHistory({ type: "EndTurn", issuer: player.id });
-      await game.actions.nextTurn(player);
+      room.game.addToHistory({ type: "EndTurn", issuer: player.id });
+      await room.game.actions.nextTurn(player);
       return callback({ status: 200 });
     }),
   );
@@ -297,11 +310,11 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
         schemas.giveCoinsRequest,
         callback,
         (payload) => {
-          const target = game.entityHandler.getPlayerById(payload.target);
+          const target = room.game.entityHandler.getPlayerById(payload.target);
           const amount = payload.coins;
-          if (!game.giveCoins(player, target, amount))
+          if (!room.game.giveCoins(player, target, amount))
             throw new Error("amount of coins invalid");
-          game.addToHistory({
+          room.game.addToHistory({
             type: "GiveCoins",
             payload,
             issuer: player.id,
@@ -344,7 +357,7 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
           return callback({ status: 200 });
         },
       ),
-    )
+    ),
   );
 
   socket.on("quitGame", (callback) =>
@@ -359,57 +372,62 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
       }
 
       roomManager.saveGameLogs(room.id, false);
-      room.game = undefined;
+
+      const roomWithoutGame: Room = {
+        characters: room.characters,
+        createdAt: room.createdAt,
+        gameCount: room.gameCount,
+        id: room.id,
+        lastActionTimestamp: room.lastActionTimestamp,
+        params: room.params,
+        users: room.users,
+      }
+
       for (const user of room.users) {
         const socket = user.socket;
         leaveCurrentStep(socket);
-        enterStartStep(socket, room, user);
+        enterStartStep(socket, roomWithoutGame, user);
       }
       return callback({ status: 200 });
     }),
   );
 
-  if (game.gameParameters.allowCheatOptions.value) {
+  if (room.game.gameParameters.allowCheatOptions.value) {
     socket.on("debugLootTop", (callback) =>
-      errorGuardedEndpoint(callback,
-          () => {
-            game.addToHistory({
-              type: "DebugLootTop",
-              issuer: player.id,
-            });
-            const topCard = game.decks.loot.cards[0];
-            if(!topCard) {
-              return callback({
-                status: 400,
-                error: "Loot deck is empty",
-              });
-            }
-            game.actions.debugLoot(player, [topCard], false);
-            return callback({ status: 200 });
-          },
-      ),
+      errorGuardedEndpoint(callback, () => {
+        room.game.addToHistory({
+          type: "DebugLootTop",
+          issuer: player.id,
+        });
+        const topCard = room.game.decks.loot.cards[0];
+        if (!topCard) {
+          return callback({
+            status: 400,
+            error: "Loot deck is empty",
+          });
+        }
+        room.game.actions.debugLoot(player, [topCard], false);
+        return callback({ status: 200 });
+      }),
     );
 
     socket.on("debugGainTreasureTop", (callback) =>
-      errorGuardedEndpoint(callback,
-          () => {
-            game.addToHistory({
-              type: "DebugGainTreasureTop",
-              issuer: player.id,
-            });
-            const topCard = game.decks.treasure.cards[0];
-            if(!topCard) {
-              return callback({
-                status: 400,
-                error: "Treasure deck is empty",
-              });
-            }
-            game.actions.debugGainTreasures(player, [topCard]);
-            return callback({ status: 200 });
-          },
-      ),
+      errorGuardedEndpoint(callback, () => {
+        room.game.addToHistory({
+          type: "DebugGainTreasureTop",
+          issuer: player.id,
+        });
+        const topCard = room.game.decks.treasure.cards[0];
+        if (!topCard) {
+          return callback({
+            status: 400,
+            error: "Treasure deck is empty",
+          });
+        }
+        room.game.actions.debugGainTreasures(player, [topCard]);
+        return callback({ status: 200 });
+      }),
     );
-
 
     socket.on("debugLoot", (payload, callback) =>
       errorGuardedEndpoint(callback, () =>
@@ -418,21 +436,21 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
           schemas.debugLootRequest,
           callback,
           (payload) => {
-            game.addToHistory({
+            room.game.addToHistory({
               type: "DebugLoot",
               payload,
               issuer: player.id,
             });
             const cards = payload.cards;
             if (cards && cards.length > 0) {
-              const lootDeck = game.decks["loot"];
+              const lootDeck = room.game.decks["loot"];
               if (!lootDeck) {
                 return callback({
                   status: 400,
                   error: "Loot deck not available",
                 });
               }
-              game.actions.debugLoot(player, cards as LootCard[]);
+              room.game.actions.debugLoot(player, cards as LootCard[]);
               return callback({ status: 200 });
             }
             return callback({ status: 200 });
@@ -443,12 +461,12 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
 
     socket.on("debugListLoot", (callback) =>
       errorGuardedEndpoint(callback, () => {
-        game.addToHistory({
+        room.game.addToHistory({
           type: "DebugListLoot",
           issuer: player.id,
         });
 
-        const lootDeck = game.decks["loot"];
+        const lootDeck = room.game.decks["loot"];
         if (!lootDeck) {
           return callback({
             status: 400,
@@ -465,11 +483,11 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
 
     socket.on("debugListCardsICanRemove", (callback) =>
       errorGuardedEndpoint(callback, () => {
-        game.addToHistory({
+        room.game.addToHistory({
           type: "DebugListCardsICanRemove",
           issuer: player.id,
         });
-        const cards = game
+        const cards = room.game
           .playerCardsAndGameOwnedCards(player)
           .map((c) => c.jsonAPI);
         return callback({ status: 200, cards });
@@ -483,20 +501,20 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
           schemas.debugRemoveCardsRequest,
           callback,
           (payload) => {
-            game.addToHistory({
+            room.game.addToHistory({
               type: "DebugRemoveCards",
               payload,
               issuer: player.id,
             });
             if (payload.cards !== undefined) {
-              const cardsToRemove = game
+              const cardsToRemove = room.game
                 .playerCardsAndGameOwnedCards(player)
                 .filter((c) =>
                   payload.cards
                     .map((card) => card.globalId)!
                     .includes(c.globalId),
                 );
-              game.actions.debugRemoveCards(player, cardsToRemove);
+              room.game.actions.debugRemoveCards(player, cardsToRemove);
             }
             return callback({
               status: 200,
@@ -508,12 +526,12 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
 
     socket.on("debugListTreasure", (callback) =>
       errorGuardedEndpoint(callback, () => {
-        game.addToHistory({
+        room.game.addToHistory({
           type: "DebugListTreasure",
           issuer: player.id,
         });
 
-        const treasureDeck = game.decks["treasure"];
+        const treasureDeck = room.game.decks["treasure"];
         if (!treasureDeck) {
           return callback({
             status: 400,
@@ -535,21 +553,21 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
           schemas.debugGainTreasureRequest,
           callback,
           (payload) => {
-            game.addToHistory({
+            room.game.addToHistory({
               type: "DebugGainTreasure",
               payload,
               issuer: player.id,
             });
             const cards = payload.cards;
             if (cards && cards.length > 0) {
-              const treasureDeck = game.decks["treasure"];
+              const treasureDeck = room.game.decks["treasure"];
               if (!treasureDeck) {
                 return callback({
                   status: 400,
                   error: "Treasure deck not available",
                 });
               }
-              game.actions.debugGainTreasures(player, cards as ItemCard[]);
+              room.game.actions.debugGainTreasures(player, cards as ItemCard[]);
               return callback({
                 status: 200,
               });
@@ -567,12 +585,12 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
           schemas.debugGainCoinsRequest,
           callback,
           (payload) => {
-            game.addToHistory({
+            room.game.addToHistory({
               type: "DebugGainCoins",
               payload,
               issuer: player.id,
             });
-            game.actions.debugGainCoins(player, payload.coins);
+            room.game.actions.debugGainCoins(player, payload.coins);
             return callback({ status: 200 });
           },
         ),
@@ -581,12 +599,12 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
 
     socket.on("debugListMonsterDeck", (callback) =>
       errorGuardedEndpoint(callback, () => {
-        game.addToHistory({
+        room.game.addToHistory({
           type: "DebugListMonsterDeck",
           issuer: player.id,
         });
 
-        const monsterDeck = game.decks["monster"];
+        const monsterDeck = room.game.decks["monster"];
         if (!monsterDeck) {
           return callback({
             status: 400,
@@ -596,7 +614,7 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
         const cards = monsterDeck.cards
           .toSorted((a, b) => (a.name + a.slug).localeCompare(b.name + b.slug))
           .map((c) => c.jsonAPI);
-        const coverable = game.encounters.nonAttackedSlots.map(
+        const coverable = room.game.encounters.nonAttackedSlots.map(
           (elem) => elem.jsonAPI,
         );
         return callback({ status: 200, cards, coverable });
@@ -610,12 +628,12 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
           schemas.debugPutMonsterCardInSlotRequest,
           callback,
           (payload) => {
-            game.addToHistory({
+            room.game.addToHistory({
               type: "DebugPutMonsterCardInSlot",
               payload,
               issuer: player.id,
             });
-            const card = game.obtainCard(
+            const card = room.game.obtainCard(
               payload.card.slug,
               payload.card.globalId,
             ) as MonsterCard;
@@ -624,10 +642,10 @@ export const enterGameStep = (socket: Socket, room: Room, user: User): void => {
                 "Card not found in the game: " + payload.card.slug,
               );
             }
-            const index = game.encounters._slots
+            const index = room.game.encounters._slots
               .map((slot) => slot[slot.length - 1]?.globalId)
               .indexOf(payload.toCover.globalId);
-            game.actions.debugPutMonsterCardInSlot(player, card, index);
+            room.game.actions.debugPutMonsterCardInSlot(player, card, index);
             return callback({ status: 200 });
           },
         ),

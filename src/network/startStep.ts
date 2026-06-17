@@ -10,6 +10,7 @@ import {
   errorGuardedEndpoint,
   registerRoomActivity,
   getUserByName,
+  isRoomWithGame,
 } from "./utils";
 import { Game } from "@/models/game";
 import { enterGameStep } from "./gameStep";
@@ -20,7 +21,11 @@ import { globalEndpoints } from "./global";
 import { roomManager } from "./roomManager";
 import { generateUserId } from "@/utils/random";
 
-export const enterStartStep = (socket: Socket, room: Room, user: User): void => {
+export const enterStartStep = (
+  socket: Socket,
+  room: Room,
+  user: User,
+): void => {
   for (const instance of user.instances) {
     instance.isActive = !instance.isCopy;
   }
@@ -288,6 +293,7 @@ export const enterStartStep = (socket: Socket, room: Room, user: User): void => 
                 "Logs are not valid JSON or not in the expected format.",
               );
             room.game = await loadGameFromLogs(logs);
+            room.gameCount++;
 
             room.game.onStateChange.add(() => {
               sendRoomChangedToAll(room);
@@ -307,6 +313,10 @@ export const enterStartStep = (socket: Socket, room: Room, user: User): void => 
                 });
               });
             });
+
+            if (!isRoomWithGame(room)) {
+              return callback({ status: 400, error: "Game not found" });
+            }
 
             sendRoomChangedToAll(room);
 
@@ -381,6 +391,11 @@ export const enterStartStep = (socket: Socket, room: Room, user: User): void => 
         });
 
         room.game = game;
+        room.gameCount++;
+
+        if (!isRoomWithGame(room)) {
+          return callback({ status: 400, error: "Game not found" });
+        }
 
         for (const user of room.users) {
           const socket = user.socket;

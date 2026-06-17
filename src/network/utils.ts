@@ -1,8 +1,9 @@
 import type { z, ZodType } from "zod";
-import type { Instance, Room, Socket, User } from "./types";
+import type { Instance, Room, RoomWithGame, Socket, User } from "./types";
 import type { Room as RoomPayload } from "@/shared/api";
 import { roomManager } from "./roomManager";
 import { getAdminMessages } from "@/utils/db";
+import { Game } from "@/models/game";
 
 export const errorGuardedEndpoint = async (
   callback: (response: { status: 400; error: string }) => void,
@@ -86,7 +87,10 @@ const generateRoomChangedPayload = (
   };
 };
 
-export const sendUserAssigned = (socket: Socket, instance: Instance | null): void => {
+export const sendUserAssigned = (
+  socket: Socket,
+  instance: Instance | null,
+): void => {
   socket.emit("on:user:assigned", instance?.id ?? null);
 };
 
@@ -116,4 +120,10 @@ export const getUserByName = (
     }
   }
   return null;
+};
+
+export const isRoomWithGame = (
+  room: Room | RoomWithGame,
+): room is RoomWithGame => {
+  return "game" in room && room.game instanceof Game;
 };
