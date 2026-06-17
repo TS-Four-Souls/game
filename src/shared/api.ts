@@ -875,6 +875,7 @@ const adminRoomSchema = z.object({
   createdAt: z.string(),
   lastAction: z.string(),
   users: z.number(),
+  gameCount: z.number(),
   game: z.union([
     z.object({
       round: z.number(),

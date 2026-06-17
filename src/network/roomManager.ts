@@ -138,6 +138,7 @@ class RoomManager {
         createdAt: room.createdAt.toISOString(),
         lastAction: room.lastActionTimestamp.toISOString(),
         users: room.users.length,
+        gameCount: room.gameCount,
         game: room.game
           ? {
               round: room.game.turnHandler.round,
