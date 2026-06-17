@@ -2,7 +2,7 @@ import type { z, ZodType } from "zod";
 import type { Instance, Room, RoomWithGame, Socket, User } from "./types";
 import type { Room as RoomPayload } from "@/shared/api";
 import { roomManager } from "./roomManager";
-import { getAdminMessages } from "@/utils/db";
+import { getAdminMessages, getHourlyGameStats } from "@/utils/db";
 import { Game } from "@/models/game";
 
 export const errorGuardedEndpoint = async (
@@ -58,6 +58,9 @@ export const sendAdminChanged = (socket: Socket): void => {
   socket.emit("on:admin:changed", {
     rooms: roomManager.adminRooms,
     messages: getAdminMessages(),
+    stats: {
+      hourly: getHourlyGameStats(),
+    },
   });
 };
 

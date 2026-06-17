@@ -735,39 +735,41 @@ const animationSchema = z.discriminatedUnion("type", [
 export type Animation = z.infer<typeof animationSchema>;
 
 const encounterSchema = z.object({
-    discard: z.array(cardSchema),
-    deckSize: z.number(),
-    capabilities: z.object({
-      targetableDeck: z.union([z.literal(true), z.string()]),
+  discard: z.array(cardSchema),
+  deckSize: z.number(),
+  capabilities: z.object({
+    targetableDeck: z.union([z.literal(true), z.string()]),
+  }),
+  inPlay: z.array(
+    z.object({
+      top: attackableCardSchema,
+      covered: z.array(cardSchema),
     }),
-    inPlay: z.array(
-      z.object({
-        top: attackableCardSchema,
-        covered: z.array(cardSchema),
-      }),
-    ),
-  });
+  ),
+});
 export type Encounter = z.infer<typeof encounterSchema>;
 
 const shopSchema = z.object({
-    discard: z.array(cardSchema),
-    deckSize: z.number(),
-    inPlay: z.array(z.union([shopItemSchema, z.undefined()])),
-    topDeckPrice: z.number(),
-  });
+  discard: z.array(cardSchema),
+  deckSize: z.number(),
+  inPlay: z.array(z.union([shopItemSchema, z.undefined()])),
+  topDeckPrice: z.number(),
+});
 export type Shop = z.infer<typeof shopSchema>;
 
-const roomSlotSchema = z.object({
-      discard: z.array(cardSchema),
-      deckSize: z.number(),
-      inPlay: z.array(cardSchema),
-    }).optional();
-export type RoomSlot = z.infer<typeof roomSlotSchema>;
-
-const lootDeckSchema =  z.object({
+const roomSlotSchema = z
+  .object({
     discard: z.array(cardSchema),
     deckSize: z.number(),
-  });
+    inPlay: z.array(cardSchema),
+  })
+  .optional();
+export type RoomSlot = z.infer<typeof roomSlotSchema>;
+
+const lootDeckSchema = z.object({
+  discard: z.array(cardSchema),
+  deckSize: z.number(),
+});
 export type LootDeck = z.infer<typeof lootDeckSchema>;
 
 const detailedStateSchema = z.object({
@@ -898,9 +900,21 @@ const adminMessageSchema = z.object({
 });
 export type AdminMessage = z.infer<typeof adminMessageSchema>;
 
+const adminHourlyStatSchema = z.object({
+  gameCount: z.number(),
+  date: z.string(),
+});
+
+const adminStatsSchema = z.object({
+  hourly: z.array(adminHourlyStatSchema).length(24),
+});
+
+export type AdminStats = z.infer<typeof adminStatsSchema>;
+
 const adminResponseSchema = z.object({
   rooms: z.array(adminRoomSchema),
   messages: z.array(adminMessageSchema),
+  stats: adminStatsSchema,
 });
 export type AdminResponse = z.infer<typeof adminResponseSchema>;
 

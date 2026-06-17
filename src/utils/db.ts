@@ -206,3 +206,33 @@ export const finalizeGameRecord = (
     [reachedEnd, sessionTurnCount, closeAt, row.id],
   );
 };
+
+const hourMs = 60 * 60 * 1000;
+
+export const getHourlyGameStats = (): { gameCount: number; date: string }[] => {
+  const currentHourStartMs = Math.floor(Date.now() / hourMs) * hourMs;
+  const buckets = Array.from({ length: 24 }, (_, i) => {
+    const startMs = currentHourStartMs - (23 - i) * hourMs;
+    return {
+      date: new Date(startMs).toISOString(),
+      startMs,
+      endMs: startMs + hourMs,
+    };
+  });
+
+  const rows = db
+    .prepare(
+      `SELECT started_at FROM games WHERE started_at >= ? AND started_at < ?`,
+    )
+    .all(buckets[0]!.date, new Date(buckets[23]!.endMs).toISOString()) as {
+    started_at: string;
+  }[];
+
+  return buckets.map((bucket) => ({
+    date: bucket.date,
+    gameCount: rows.filter((row) => {
+      const startedMs = new Date(row.started_at).getTime();
+      return startedMs >= bucket.startMs && startedMs < bucket.endMs;
+    }).length,
+  }));
+};
