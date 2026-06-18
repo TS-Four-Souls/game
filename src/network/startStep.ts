@@ -385,8 +385,7 @@ export const enterStartStep = (
           }
         }
 
-        await game.start(playersWithCharacters);
-
+        game.startOfGameSetup(playersWithCharacters);
         game.addToHistory({
           type: "Start",
           players: playersWithCharacters,
@@ -408,6 +407,7 @@ export const enterStartStep = (
           leaveCurrentStep(socket);
           enterGameStep(socket, room, user);
         }
+        await game.atGameStartDecisions();
 
         return callback({ status: 200 });
       }),

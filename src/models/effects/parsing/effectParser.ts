@@ -212,7 +212,7 @@ if (s.startsWith("when you die, ")) {
     if (s.startsWith("when you would die on your turn, "))
     {
         const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, true);
-        return noTargetEffect(passive.WouldDieYourTurnEffect([restParsed.effectFunction], game, s, false, true));
+        return noTargetEffect(passive.WouldDieYourTurnEffect([restParsed.effectFunction], game, s, true));
     }
     if(s.startsWith("each time you miss an attack roll, ")){
         const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, true);
@@ -278,7 +278,7 @@ if (s.startsWith("when you die, ")) {
     if (s.startsWith("when you would die, ") || s.startsWith("each time you would die, ")) {
         const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, true);
         return {
-            effectFunction: passive.WouldDieYourTurnEffect([restParsed.effectFunction], game, s, false, false),
+            effectFunction: passive.WouldDieYourTurnEffect([restParsed.effectFunction], game, s, false),
             targetSelectors: restParsed.targetSelectors
         };
     }
@@ -370,7 +370,7 @@ if (s.startsWith("when you die, ")) {
         {
             const nbCounters = nr.nextNumber();
             const restString = s.substring("when the xnd counter is put on this, ".length).trim();
-            return noTargetEffect(passive.onYourEventEffect("on:counter:modified", [effectParser(restString, game, true).effectFunction], game, s, false, false, (effect: EffectData, event: OnCounterModifiedData) => { return effect.it === event.card && event.newValue === nbCounters && event.previousValue < nbCounters }));
+            return noTargetEffect(passive.onYourEventEffect("on:counter:modified", [effectParser(restString, game, true).effectFunction], game, s, false, (effect: EffectData, event: OnCounterModifiedData) => { return effect.it === event.card && event.newValue === nbCounters && event.previousValue < nbCounters }));
         }
     if(s.startsWith("this takes no combat damage on attack rolls of") || s.startsWith("you take no combat damage on attack rolls of"))
     {
@@ -776,7 +776,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
             };
         case "loot x during your loot step":
             const nb = nr.nextNumber();
-            return noTargetEffect(passive.onYourEventEffect("on:loot:step", [], game, s, false, true, (effect: EffectData, event: OnLootStepData) => {event.numberToLoot += nb; return true;}));
+            return noTargetEffect(passive.onYourEventEffect("on:loot:step", [], game, s, true, (effect: EffectData, event: OnLootStepData) => {event.numberToLoot += nb; return true;}));
             // return noTargetEffect(passive.lootStepEffect([active.lootCardsEffect(game, nr.nextNumber())], game));
         case "prevent the next x damage you would take this turn":
             return noTargetEffect(passive.preventNextDamageUpToEffect(nr.nextNumber(), game));
@@ -1029,7 +1029,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "each time another player purchases a shop item, gain x¢ and loot x":
             return noTargetEffect(passive.onAnotherPlayerEventEffect("on:purchase:success", [active.gainCoinsEffect(game, nr.nextNumber()), active.lootCardsEffect(game, nr.nextNumber())], game, s, (data:EffectData, e:any) => e.index !== "top"));
         case "each time you purchase from the shop or treasure deck, gain x¢":
-            return noTargetEffect(passive.onYourEventEffect("on:purchase:success", [active.gainCoinsEffect(game, nr.nextNumber())], game, s,false, false));
+            return noTargetEffect(passive.onYourEventEffect("on:purchase:success", [active.gainCoinsEffect(game, nr.nextNumber())], game, s, false));
         case "damage you would take is reduced to x":
             return noTargetEffect(passive.reduceDamageToXEffect(game, nr.nextNumber()));
         case "when you would roll a x, you may change the result to a x":

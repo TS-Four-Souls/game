@@ -1868,6 +1868,7 @@ describe("Loot Cards - 3 players tests", () => {
 
         game.actions.playCard(player1, 0, [player1]);
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // Resolve any stack effects
 
         expect(player1.totalSouls).toBe(1);
         expect(player2.totalSouls).toBe(1);

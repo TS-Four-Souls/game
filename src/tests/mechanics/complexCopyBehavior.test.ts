@@ -99,7 +99,7 @@ let game: Game;
 
     it("Does not preserve flip data when a card becomes a copy", () => {
         const source = game.decks["eternal"]!.getCardFromSlug("r-anima_sola")!;
-        const target = game.decks["treasure"]!.getCardFromSlug("b2-battery_bum")!;
+        const target = game.shop.obtainCard("b2-battery_bum")!;
 
         expect(source.flipData).toBeTruthy();
         expect(target.flipData).toBeUndefined();

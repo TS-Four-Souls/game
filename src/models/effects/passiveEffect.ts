@@ -8,7 +8,7 @@ import { Player } from "../entities/player";
 import { Game } from "../game";
 import { DiceRoll } from "../stackElement";
 import { TargetBuilder } from "../targetBuilder";
-import { EffectData, type EffectFunction, type TargetsSelector } from "../types/cardTypes";
+import { EffectData, type EffectFunction, type SyncEffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type {
     OnAttackRollData,
     OnCardFlippedData,
@@ -434,13 +434,16 @@ export function lvlXaddListenerEffect(
         else
             {
 
-            const offTurn = game.emitter.on("on:counter:modified", async (eventData: OnCounterModifiedData) => {
+            const offTurn = game.emitter.on("on:counter:modified", (eventData: OnCounterModifiedData) => {
                 const { eventIssuer } = eventData;
                 if (data.issuer !== eventIssuer) return;
                 if (data.it.counters.value("normal") < lvl) return;
-                
-                for (const func of functions)
-                    await func(data);
+                const effect: EffectFunction = async (effectData: EffectData) => {
+                    for (const func of functions)
+                        await func(data);
+                    return true;
+                };
+                addPassiveEffectToStack(game, effect, data, `Level ${lvl} effect`);
                 offTurn();
             });
 
@@ -1116,13 +1119,12 @@ export function WouldDieYourTurnEffect(
     effectFunctions: EffectFunction[],
     game: Game,
     description: string,
-    replacementEffects: boolean = false,
     duringYourTurnOnly: boolean = false
 ): EffectFunction {
     return (data: EffectData) => {
         let offDeath: (() => void) | null = null;
         
-        offDeath = game.emitter.on("on:death:would-death", async ({ eventIssuer, target, source, deathOnStack}) => {
+        offDeath = game.emitter.on("on:death:would-death", ({ eventIssuer, target, source, deathOnStack}) => {
             if (data.issuer !== eventIssuer) return;
             if (duringYourTurnOnly && game.currentPlayer !== data.issuer) return;
             // Add all effects as a single stack element
@@ -1133,10 +1135,7 @@ export function WouldDieYourTurnEffect(
                 }
                 return true;
             };
-            if(replacementEffects)
-                await effect(data);
-            else
-                addPassiveEffectToStack(game, effect, data, description);
+            addPassiveEffectToStack(game, effect, data, description);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -1159,14 +1158,13 @@ export function onYourEventEffect(
     effectFunctions: EffectFunction[],
     game: Game,
     description: string,
-    replacementEffects: boolean = false,
     duringYourTurnOnly: boolean = false,
     condition: (effectData: EffectData, eventData: any) => boolean = () => true,
 ): EffectFunction {
     return (data: EffectData) => {
         let offEvent: (() => void) | null = null;
         
-        offEvent = game.emitter.on(triggerEvent, async (eventData) => {
+        offEvent = game.emitter.on(triggerEvent, (eventData) => {
             const eventIssuer = eventData.eventIssuer;
             if (data.issuer !== eventIssuer) return;
             if (duringYourTurnOnly && game.currentPlayer !== data.issuer) return;
@@ -1180,10 +1178,7 @@ export function onYourEventEffect(
                 }
                 return true;
             };
-            if(replacementEffects)
-                await effect(data);
-            else
-                addPassiveEffectToStack(game, effect, data, description);
+            addPassiveEffectToStack(game, effect, data, description);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -1199,13 +1194,12 @@ export function onYourKillEffect(
     effectFunctions: EffectFunction[],
     game: Game,
     description: string,
-    replacementEffects: boolean = false,
     condition: (effectData: EffectData, eventData: any) => boolean = () => true,
 ): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
-        offDamage = game.emitter.on("on:death:before-penalty", async (eventData: OnDeathBeforePenaltyData) => {
+        offDamage = game.emitter.on("on:death:before-penalty", (eventData: OnDeathBeforePenaltyData) => {
             if (data.issuer !== eventData.target) return;
             if(!condition(data, eventData)) return;
             // Add all effects as a single stack element
@@ -1215,10 +1209,7 @@ export function onYourKillEffect(
                 }
                 return true;
             };
-            if(replacementEffects)
-                await effect(data);
-            else
-                addPassiveEffectToStack(game, effect, data, description);
+            addPassiveEffectToStack(game, effect, data, description);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -1252,13 +1243,12 @@ export function noDeathPenaltyCoinsAndLootEffect(game: Game): EffectFunction {
 export function onDamageYouDealtEffect(
     effectFunctions: EffectFunction[],
     game: Game,
-    description: string,
-    replacementEffects: boolean = false
+    description: string
 ): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
-        offDamage = game.emitter.on("on:damage:taken", async (eventData: OnDamageTakenData) => {
+        offDamage = game.emitter.on("on:damage:taken", (eventData: OnDamageTakenData) => {
             if (data.issuer !== eventData.target) return;
             
             // Add all effects as a single stack element
@@ -1268,10 +1258,7 @@ export function onDamageYouDealtEffect(
                 }
                 return true;
             };
-            if(replacementEffects)
-                await effect(data);
-            else
-                addPassiveEffectToStack(game, effect, data, description);
+            addPassiveEffectToStack(game, effect, data, description);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -2045,22 +2032,28 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
         };
 
         // Listen for the next damage event on this player
-        offDamage = game.emitter.on("on:damage:would-take", async ({ eventIssuer, damageArray }) => {
+        offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
             const target = data.issuer;
             if (target !== eventIssuer) return;
             const current = damageArray[0] ?? 0;
             if( current <= 0) return;
-            if (!(data.issuer instanceof Player)) return false;
-            damageArray[0] = Math.max(0, current - prevent);
+            if (!(data.issuer instanceof Player)) return;
+            const effect = async (data: EffectData): Promise<boolean> => {
+                damageArray[0] = Math.max(0, current - prevent);
+                if (!(data.issuer instanceof Player)) return false;
 
-            // Deal 1 damage to another player
-            const otherPlayers = game.players.filter(p => p !== data.issuer);
-            if (otherPlayers.length === 0) return;
-            const selection = await data.selectAndRecord(game, data.issuer, 1, 1, otherPlayers, "Select a player to deal damage to.", true, true);
-            if (selection.selected.length > 0) {
-                const chosenPlayer = selection.selected[0]!;
-                game.entityHandler.dealDamage(data.issuer, chosenPlayer, data.it, deal);
+                // Deal 1 damage to another player
+                const otherPlayers = game.players.filter(p => p !== data.issuer);
+                if (otherPlayers.length === 0) return false;
+                const selection = await data.selectAndRecord(game, data.issuer, 1, 1, otherPlayers, "Select a player to deal damage to.", true, true);
+                if (selection.selected.length > 0) {
+                    const chosenPlayer = selection.selected[0]!;
+                    game.entityHandler.dealDamage(data.issuer, chosenPlayer, data.it, deal);
+                    return true;
+                }
+                return false;
             }
+            addPassiveEffectToStack(game, effect, data, `Prevent ${prevent} damage and deal ${deal} damage to another player.`);
             cleanup(); // One-shot: remove listeners after first use
         });
 
@@ -2331,20 +2324,20 @@ export function onMonsterDeathEffect(
 }
 
 export function lootStepEffect(
-    effectFunctions: EffectFunction[],
+    effectFunctions: SyncEffectFunction[],
     game: Game,
     anyPlayer: boolean = false
 ): EffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
 
-        offDamage = game.emitter.on("on:loot:step", async (eventData: OnLootStepData) => {
+        offDamage = game.emitter.on("on:loot:step", (eventData: OnLootStepData) => {
             const { eventIssuer } = eventData;
             if (!anyPlayer && data.issuer !== eventIssuer) return;
             if(anyPlayer)
                 data.issuerProvider = (): Entity => eventIssuer;
             for (const func of effectFunctions)
-                await func(data);
+                func(data);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -2969,10 +2962,13 @@ export function goFirstInTurnOrderEffect(game: Game): EffectFunction {
 export function startingItemEffect(game: Game, x: number): EffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = game.emitter.on("on:game:start", async () => {
-            await active.selectEternalAmongX(game, x)(data);
-            offEffect?.();
-            offEffect = null;
-            await game.resolveCallbacks();
+            // const effect = async (effectData: EffectData): Promise<boolean> => {
+                game.addPromise(active.selectEternalAmongX(game, x)(data));
+                offEffect?.();
+                offEffect = null;
+                return true;
+            // }
+            // addPassiveEffectToStack(game, effect, data, `Starting item effect`);
         });
         return true;
     };

@@ -60,6 +60,7 @@ export class Game extends SelectionHandler {
   readonly _actionHandler = new ActionHandler(this);
   private _entityHandler = new EntityHandler(this);
   private _cardHandler = new CardHandler(this);
+  private _promises: Promise<boolean>[] = [];
 
   private _onStateChange: Signal<void> = new Signal();
   onStateChange: ReadableSignal<void> = this._onStateChange.readOnly();
@@ -98,6 +99,20 @@ export class Game extends SelectionHandler {
   }
   get cardHandler(): CardHandler {
     return this._cardHandler;
+  }
+  private get promises(): Promise<boolean>[] {
+    return this._promises;
+  }
+  async awaitPromises(): Promise<void> {
+    for(const p of this.promises)
+    {
+      await p;
+    }
+    this._promises = [];
+    await this.resolveCallbacks();
+  }
+  addPromise(promise: Promise<boolean>): void {
+    this._promises.push(promise);
   }
   get turnHandler(): TurnHandler {
     return this._turnHandler;
@@ -310,6 +325,16 @@ export class Game extends SelectionHandler {
    * Starts the game lifecycle and executes initial setup.
    */
   async start(players: { issuer: string; character: string; user?: string, team: Team }[], shufflePlayerOrder: boolean = true): Promise<void>{
+
+    if(!this.turnHandler.isInitialized)
+      this.startOfGameSetup(players, shufflePlayerOrder);
+    await this.atGameStartDecisions();
+  }
+
+  /**
+   * Distributes starting resources to each player.
+   */
+  startOfGameSetup(players: { issuer: string; character: string; user?: string, team: Team }[], shufflePlayerOrder: boolean = true): void {
     this.assert.gameNotStarted();
     for (const p of players) 
       this.entityHandler.addPlayer(new Player(p.issuer, p.team));
@@ -321,51 +346,6 @@ export class Game extends SelectionHandler {
     if (shufflePlayerOrder) {
       shuffle(this.random, this.players);
     }
-
-    this.startOfGameSetup();
-    
-    this.emit("on:game:start", {});
-    if(this.gameParameters.miniDraft.value)
-      await miniDraft(this);
-    await this.executeWhenStackEmpty(async () => {
-      await this.startTurn();
-    });
-  }
-
-  initializeTeams(): void{
-    for(const player of this.players)
-    {
-      const soulOwner = this.players.find(p => p.team === player.team);
-      player.soulsInCommonWith(soulOwner!);
-    }
-  }
-
-  initializeWinningCondition(): void {
-    let offSoulGained: (() => void) | null = null;
-        offSoulGained = this.emitter.on("on:soul:gained", ({ eventIssuer }) => {
-          if(eventIssuer.totalSouls >= this.gameParameters.nbSoulsToWin.value)
-          {
-              this.win(eventIssuer);
-              offSoulGained!();
-              offSoulGained = null;
-          }
-      });
-    }
-
-  assignColorsToPlayers(): void {
-    const colors = [
-      "#E6E420", "#AE6DFA", "#17E6C9", "#FF6B2D"];
-    if(this.players.length > colors.length)
-      throw new Error("Too many players for the available colors.");
-    for (let i = 0; i < this.players.length; i++) {
-      this.players[i]!.color = colors[i % colors.length]!;
-    }
-  }
-
-  /**
-   * Distributes starting resources to each player.
-   */
-  startOfGameSetup(): void {
     this.turnHandler.initialize(this.players);
     this.initializeTeams();
     this._historicHandler.recordInitialGameState(this);
@@ -398,10 +378,51 @@ export class Game extends SelectionHandler {
         this
       );
     }
+    // No user interaction on this trigger, use on:game:stat. This is for cain.
     this.emit("on:game:start:before", {});
     this.assignColorsToPlayers();
     this.entityHandler.healEveryone();
   } 
+
+  async atGameStartDecisions(){
+    this.emit("on:game:start", {}); // Eden starting item choice
+    if(this.gameParameters.miniDraft.value)
+      miniDraft(this); // Add resolutions to game.promises.
+    await this.awaitPromises();
+    await this.executeWhenStackEmpty(async () => {
+      await this.startTurn();
+    })
+  }
+
+  initializeTeams(): void{
+    for(const player of this.players)
+    {
+      const soulOwner = this.players.find(p => p.team === player.team);
+      player.soulsInCommonWith(soulOwner!);
+    }
+  }
+
+  initializeWinningCondition(): void {
+    let offSoulGained: (() => void) | null = null;
+        offSoulGained = this.emitter.on("on:soul:gained", ({ eventIssuer }) => {
+          if(eventIssuer.totalSouls >= this.gameParameters.nbSoulsToWin.value)
+          {
+              this.win(eventIssuer);
+              offSoulGained!();
+              offSoulGained = null;
+          }
+      });
+    }
+
+  assignColorsToPlayers(): void {
+    const colors = [
+      "#E6E420", "#AE6DFA", "#17E6C9", "#FF6B2D"];
+    if(this.players.length > colors.length)
+      throw new Error("Too many players for the available colors.");
+    for (let i = 0; i < this.players.length; i++) {
+      this.players[i]!.color = colors[i % colors.length]!;
+    }
+  }
 
   win(player: Player | null): void {
     if(this._isWon)
@@ -444,6 +465,7 @@ export class Game extends SelectionHandler {
     this._encounters = undefined!;
     this._rooms = undefined!;
     this.resetStack();
+    this._promises = [];
     this._emitter = new GameEventEmitter();
     this._pendingMultipleSelections = new Map();
     this._stackSubsetCallbacks = [];
@@ -463,6 +485,7 @@ export class Game extends SelectionHandler {
     const player = this.currentPlayer;
     const itemsToRecharge = player.unchargedItems;
     const eventData = { eventIssuer: player, itemsToRecharge: itemsToRecharge }
+    
     this.emit("on:turn:start:before:recharge:step", eventData);
     await this.executeWhenStackEmpty(async () => {
       this.cardHandler.rechargeMultiple(player, "rechargeStep", eventData.itemsToRecharge);

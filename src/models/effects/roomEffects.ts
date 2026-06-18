@@ -2,7 +2,7 @@
 
 
 import { Game } from "../game";
-import { EffectData, type EffectFunction, type SynchronousEffectFunction } from "../types/cardTypes";
+import { EffectData, type EffectFunction, type SyncEffectFunction } from "../types/cardTypes";
 import { Player } from "../entities/player";
 import { Card, LootCard, MonsterCard, TreasureCard, ItemCard } from "../cards";
 import type { OnAttackDeclaredTopDeckData, OnDamageTakenData, OnDeathMonsterData } from "../types/eventTypes";
@@ -503,7 +503,7 @@ export function putThisIntoDiscardAtEndOfTurnEffect(game: Game): EffectFunction 
     };
 }
 
-export function discardHandsAndLootEffect(game: Game, amount: number): SynchronousEffectFunction {
+export function discardHandsAndLootEffect(game: Game, amount: number): SyncEffectFunction {
     return (data: EffectData) => {
         for(const player of game.players)
         {
@@ -519,7 +519,7 @@ export function discardHandsAndLootEffect(game: Game, amount: number): Synchrono
     };
 }
 
-export function enterPlayRerollItemsDiscardHandsLootAndFlushMonstersEffect(game: Game, lootAmount: number): SynchronousEffectFunction {
+export function enterPlayRerollItemsDiscardHandsLootAndFlushMonstersEffect(game: Game, lootAmount: number): SyncEffectFunction {
     return (data: EffectData) => {
         flushMonsterSlotsEffect(game, "discard")(data);
         discardHandsAndLootEffect(game, lootAmount)(data);
@@ -635,7 +635,7 @@ export function canBeAttackedEffect(game: Game): EffectFunction {
     };
 }
 
-export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): SynchronousEffectFunction {
+export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offAttackRolled: (() => void) | null = null;
         let offCombatEnd: (() => void) | null = null;

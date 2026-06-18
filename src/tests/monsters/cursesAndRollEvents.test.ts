@@ -466,7 +466,7 @@ describe("Event Monsters - Expansion Effects", () => {
         const setup = await setupTestGame({
             characters: ["b2-samson", "b2-isaac"],
             monsters: ["b2-fly", "b2-fatty"],
-            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            monsterDeck: ["b2-red_host", "b2-pooter","b2-cod_worm","b2-spider","b2-conjoined_fatty", "b2-dip","b2-leech","b2-gurdy"],
             treasureDeck: ["b2-blank_card"],
         });
         game = setup.game;
@@ -475,10 +475,6 @@ describe("Event Monsters - Expansion Effects", () => {
         mockGameSelections(game);
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
-            for (const slug of ["b2-red_host", "b2-pooter", "b2-gurdy"]) {
-            const monsterCardTop = game.obtainCard(slug) as MonsterCard;
-            game.decks["monster"]!.addTopPosition(monsterCardTop);
-        }
         const monsterCard = game.obtainCard("b2-fly")! as MonsterCard;
         const monsterCard2 = game.obtainCard("b2-fatty")! as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, monsterCard);

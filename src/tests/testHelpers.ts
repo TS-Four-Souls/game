@@ -252,7 +252,7 @@ export async function setupTestGame(config: GameSetupConfig = {}): Promise<GameS
     dischargeEachItemsAndRemoveCoins(game);
     const el = game.stack.elements.find(el => el.json.type === "lootStep")!
     if(el)
-        void el.onResolve();
+        await el.onResolve();
     game.stack.cancelElement(el);
     emptyHands(game);
     

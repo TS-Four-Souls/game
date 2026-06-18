@@ -8,7 +8,7 @@ import { Game } from "../game";
 import { Monster } from "../entities/monster";
 import { Player } from "../entities/player";
 import { DiceRoll } from "../stackElement";
-import { EffectData, type EffectFunction, type TargetsSelector } from "../types/cardTypes";
+import { EffectData, type EffectFunction, type SyncEffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type {
     OnAttackDeclaredData,
     OnAttackDeclaredMonsterData,
@@ -64,12 +64,12 @@ export function activePlayerMustMakeAdditionalAttackEffect(game: Game): EffectFu
 export function attackRollsAgainstEachOtherPlayerEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offAttackDeclared: (() => void) | null = null;
-        offAttackDeclared = game.emitter.on("on:attack:declared:monster", async (eventData: OnAttackDeclaredMonsterData) => {
+        offAttackDeclared = game.emitter.on("on:attack:declared:monster", (eventData: OnAttackDeclaredMonsterData) => {
             const { eventIssuer, monster } = eventData;
             if (data.issuer !== monster[0]) return;
                 const otherPlayers = game.players.filter(p => p !== eventIssuer);
                 for(const player of otherPlayers) {
-                    await makeAnAttackRollAfterEachAttackRollEffect(game)(new EffectData(data.it, () => player, []));
+                    makeAnAttackRollAfterEachAttackRollEffect(game)(new EffectData(data.it, () => player, []));
                 }
                 return true;
         });
@@ -158,7 +158,7 @@ export function preventDeathGainTreasureCancelAttackAndHealEffect(game: Game, x:
     };
 }
 
-export function eachPlayerRollLowestOrTiedForLowestDiesEffect(game: Game): EffectFunction {
+export function eachPlayerRollLowestOrTiedForLowestDiesEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         const targets = game.players.filter(p => !p.isDead);
         const dices:DiceRoll[] = [];
@@ -185,17 +185,17 @@ export function onFlipOrAttackedRollLowestDieEffect(game: Game): EffectFunction 
         let offFlip: (() => void) | null = null;
         let offAttacked: (() => void) | null = null;
 
-        offAttacked = game.emitter.on("on:attack:declared:monster", async (eventData: OnAttackDeclaredMonsterData) => {
+        offAttacked = game.emitter.on("on:attack:declared:monster", (eventData: OnAttackDeclaredMonsterData) => {
             if (data.issuer !== eventData.monster[0]) return;
-            await eachPlayerRollLowestOrTiedForLowestDiesEffect(game)(data);
+            eachPlayerRollLowestOrTiedForLowestDiesEffect(game)(data);
         });
 
         
-        offFlip = game.emitter.on("on:card:flipped", async (eventData: OnCardFlippedData) => {
+        offFlip = game.emitter.on("on:card:flipped", (eventData: OnCardFlippedData) => {
             const { eventIssuer, card } = eventData;
             if (data.issuer !== eventIssuer) return;
             if(card !== data.it) return;
-            await eachPlayerRollLowestOrTiedForLowestDiesEffect(game)(data);
+            eachPlayerRollLowestOrTiedForLowestDiesEffect(game)(data);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -1141,19 +1141,23 @@ export function playerWithMostSoulsWinsEffect(game: Game): EffectFunction {
     return (data: EffectData) => {
         let offGainSoul: (() => void) | null = null;
 
-        offGainSoul = game.emitter.on("on:soul:gained", async (eventData: OnSoulGainedOrRemovedData) => {
+        offGainSoul = game.emitter.on("on:soul:gained", (eventData: OnSoulGainedOrRemovedData) => {
             const { eventIssuer, soul } = eventData;
             if(soul !== data.it) return;
-            let maxSouls = -1;
-            game.players.forEach(p => {
-                if(p.totalSouls > maxSouls)
-                    maxSouls = p.totalSouls;
-            });
-            const playersWithMostSouls = game.players.filter(p => p.totalSouls === maxSouls);
-            const selectedPlayer = (await data.selectAndRecord(game, eventIssuer as Player, 1, 1, playersWithMostSouls, "Select a player with most souls to win the game.", true, true)).selected[0];
-            game.win(selectedPlayer as Player);
-            offGainSoul?.();
-            offGainSoul = null;
+            const effect = async (effectData: EffectData): Promise<boolean> => {
+                let maxSouls = -1;
+                game.players.forEach(p => {
+                    if(p.totalSouls > maxSouls)
+                        maxSouls = p.totalSouls;
+                });
+                const playersWithMostSouls = game.players.filter(p => p.totalSouls === maxSouls);
+                const selectedPlayer = (await data.selectAndRecord(game, eventIssuer as Player, 1, 1, playersWithMostSouls, "Select a player with most souls to win the game.", true, true)).selected[0];
+                game.win(selectedPlayer as Player);
+                offGainSoul?.();
+                offGainSoul = null;
+                return true;
+            }
+            addPassiveEffectToStack(game, effect, data, `When ${data.it.name} is gained, the player with the most souls wins the game.`);
         });
         data.it.cleaners.push(() => {
             if(game.monsters.some(m => m.card === data.it && m.isDead)) // Don't clean if the monster is dead, as the effect is meant to trigger on soul gain which happens after death.

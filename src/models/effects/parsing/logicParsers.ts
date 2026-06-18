@@ -102,7 +102,7 @@ export function parseWhenActivePlayerRollsEffect(s: string, game: Game, nr?: Num
 export function ParseWhenGainOrPurchaseThis(s: string, game: Game): ParsedEffect {
     const restOfEffect = s.substring("when you gain or purchase this, ".length).trim();
     const restParsed = effectParser(restOfEffect, game, true);
-    return noTargetEffect(passive.onYourEventEffect("on:enter:play:after", [restParsed.effectFunction], game, s, false, false, (effect: EffectData, event: OnEnterPlayData) => event.card === effect.it));
+    return noTargetEffect(passive.onYourEventEffect("on:enter:play:after", [restParsed.effectFunction], game, s, false, (effect: EffectData, event: OnEnterPlayData) => event.card === effect.it));
 }
 
 export function parseYouMayEffect(s: string, game: Game): ParsedEffect {
@@ -218,7 +218,7 @@ export function parseEachTimeYouKillSpecificTypeEffect(s: string, game: Game, ty
     const restOfEffect = s.substring(`each time you kill a ${type}, `.length).trim();
     const restParsed = effectParser(restOfEffect, game, true);
     return {
-        effectFunction: passive.onYourKillEffect([restParsed.effectFunction], game, s, false, (effectData: EffectData, eventData: OnDeathMonsterData) => {
+        effectFunction: passive.onYourKillEffect([restParsed.effectFunction], game, s, (effectData: EffectData, eventData: OnDeathMonsterData) => {
             return eventData.eventIssuer instanceof (type === "monster" ? Monster : Player);
         }),
         targetSelectors: restParsed.targetSelectors

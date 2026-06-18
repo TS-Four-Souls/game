@@ -58,7 +58,7 @@ describe("Four Souls+2 Loot Cards", () => {
         await game.actions.resolveStack();
         expect(player1.totalSouls).toBe(3);
         expect(player1.souls.map(c => c.slug)).not.toContain("r-soul_of_envy");
-        await Promise.resolve(); // Wait for any pending promises (like selection) to resolve
+        await game.actions.resolveStack(); // Resolve any stack effects
         expect(player2.totalSouls).toBe(1);
         expect(player2.souls.map(c => c.slug)).toContain("r-soul_of_envy");
     });
@@ -114,7 +114,7 @@ it("Soul of Sloth - the first time a player controls 4 items, the active player 
         function wait(ms: number) {
             return new Promise(resolve => setTimeout(resolve, ms));
         }
-        await wait(0);
+        await game.actions.resolveStack(); // Resolve any stack effects
         expect(player2.souls.map(c => c.slug)).toContain("r-soul_of_sloth");
     });
 });

@@ -47,12 +47,28 @@ export const enterGameStep = (
   socket.on("rollback", (callback) =>
     errorGuardedEndpoint(callback, async () => {
       const logs: HistoricEntry[] = room.game.getRollbackLog(player);
-      // console.log("Rollback logs", logs.at(-1)!.type);
-      if (!logs)
-        throw new Error(
-          "Logs are not valid JSON or not in the expected format.",
-        );
-      room.game = await loadGameFromLogs(logs);
+
+      if (!logs) {
+        return callback({
+          status: 400,
+          error: "Logs are not valid JSON or not in the expected format.",
+        });
+      }
+
+      console.log(`Rollback requested by ${player.id}`);
+
+      let newGame;
+      try {
+        newGame = await loadGameFromLogs(logs);
+      } catch (error) {
+        console.error("Rollback failed while loading logs:", error);
+        return callback({
+          status: 400,
+          error: error instanceof Error ? error.message : "Failed to load game from logs.",
+        });
+      }
+
+      room.game = newGame;
 
       room.game.onStateChange.add(() => {
         sendRoomChangedToAll(room);
@@ -81,7 +97,7 @@ export const enterGameStep = (
         user.socket.emit("on:room:broadcast", {
           type: "info",
           title: `Game rolled back by ${player.id}`,
-          message: "The game has been rolled back the last action.",
+          message: "The game has been rolled back to the last action.",
         });
       }
 

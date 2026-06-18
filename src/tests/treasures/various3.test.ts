@@ -909,6 +909,7 @@ describe("Tap/Paid effects 1", () => {
         game.entityHandler.dealDamage(player1, player1, hostHat, 3);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // Resolve any stack effects
 
         expect(player1.currentHealthPoints).toBe(player1InitialHp - 2); // Prevented 1 of 3
         expect(player2.currentHealthPoints).toBe(player2InitialHp - 1); // Took 1 damage
@@ -933,6 +934,7 @@ describe("Tap/Paid effects 1", () => {
         game.entityHandler.dealDamage(player1, player1, hostHat, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // Resolve any stack effects
 
         expect(player1.currentHealthPoints).toBe(player1HpAfterActivation - 1);
         expect(player2.currentHealthPoints).toBe(player2HpAfterActivation - 1);

@@ -133,9 +133,13 @@ export class EffectData {
  */
 export type EffectFunction = (data: EffectData) => boolean | Promise<boolean>;
 /**
+ * Function signature for asynchronous effect execution
+ */
+export type AsyncEffectFunction = (data: EffectData) => Promise<boolean>;
+/**
  * Function signature for synchronous effect execution
  */
-export type SynchronousEffectFunction = (data: EffectData) => boolean;
+export type SyncEffectFunction = (data: EffectData) => boolean;
 
 /**
  * Collection of card sets indexed by card type

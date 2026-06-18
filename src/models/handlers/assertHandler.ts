@@ -60,6 +60,13 @@ export class AssertHandler {
   emptyStack(): void {
     if (!this.game.stack.isEmpty()) throw new Error(`Stack is not empty.`);
   }
+  
+    gameStarted(): number {
+      if (!this.game.turnHandler.isInitialized) {
+        throw new Error("Game not started");
+      }
+      return this.game.turnHandler.round;
+    }
 
   gameNotStarted(): void {
     if (this.game.turnHandler.isInitialized) {
@@ -71,13 +78,6 @@ export class AssertHandler {
     if (this.game.stack.size === 0) {
       throw new Error("The stack is empty");
     }
-  }
-
-  gameStarted(): number {
-    if (!this.game.turnHandler.isInitialized) {
-      throw new Error("Game not started");
-    }
-    return this.game.turnHandler.round;
   }
   entityIsInPlay(entity: Entity): void {
     if (!this.game.entities.includes(entity))

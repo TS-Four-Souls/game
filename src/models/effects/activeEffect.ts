@@ -15,7 +15,7 @@ import type { StackElement } from "../stack";
 import { DamageOnStack, DiceRoll, } from "../stackElement";
 import { TargetBuilder } from "../targetBuilder";
 import { deckSelector, inplayUnchargedItemSelector as inplayChargeableItemSelector, visibleItemSelector } from "../targetSelector";
-import { type DeckType, EffectData, type EffectFunction, type SynchronousEffectFunction, type TargetsSelector } from "../types/cardTypes";
+import { type DeckType, EffectData, type EffectFunction, type SyncEffectFunction, type AsyncEffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type { OnTurnEndData } from "../types/eventTypes";
 import { effectParser, type ParsedEffect } from "./parsing/effectParser";
 import { addPassiveEffectToStack } from "./passiveEffect";
@@ -900,7 +900,7 @@ export function discardLootAndLoseCoinsBasedOnSoulsEffect(game: Game): EffectFun
     };
 }
 
-export function flushMonsterSlotsEffect(game: Game, where: "bottom" | "discard" | "discardAndDraw"): SynchronousEffectFunction {
+export function flushMonsterSlotsEffect(game: Game, where: "bottom" | "discard" | "discardAndDraw"): SyncEffectFunction {
     return (data: EffectData) => {
         switch(where) {
             case "bottom":
@@ -1040,7 +1040,7 @@ export function addCountersAndGainTreasureEffect(countersThreshold: number, toRe
     };
 }
 
-export function becomeSoulIfAboveXCountersEffect(countersThreshold: number, game: Game): SynchronousEffectFunction {
+export function becomeSoulIfAboveXCountersEffect(countersThreshold: number, game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         if (data.it.counters.value("normal") >= countersThreshold) {
             const owner = game.getOwner(data.it);
@@ -1233,7 +1233,7 @@ export function discardAnyNumberOfShopItemsEffect(game: Game, min: number, max: 
     };
 }
 
-export function selectEternalAmongX(game: Game, x: number): EffectFunction {
+export function selectEternalAmongX(game: Game, x: number): AsyncEffectFunction {
     return async (data: EffectData) => {
         if (!(data.issuer instanceof Player)) return false;
         const options: TreasureCard[] = game.decks["treasure"]!.drawSeveral(x);
@@ -1245,6 +1245,7 @@ export function selectEternalAmongX(game: Game, x: number): EffectFunction {
                 game.decks.treasure.addBottomPosition(card);
             }
         }
+        await game.resolveCallbacks();
         return true;
     };
 }
@@ -2188,7 +2189,7 @@ export function rerollItemTheyControlEffect(game: Game, youMayEffectHanging: boo
     };
 }
 
-export function flushShopEffect(game: Game, where: "bottom" | "discard" = "bottom"): SynchronousEffectFunction {
+export function flushShopEffect(game: Game, where: "bottom" | "discard" = "bottom"): SyncEffectFunction {
     return (data: EffectData) => {
         switch(where) {
             case "bottom":
@@ -3074,7 +3075,7 @@ export function killMonsterEffect(game: Game): EffectFunction {
     };
 }
 
-export function enterPlayBecomeSoulEffect(game: Game): SynchronousEffectFunction {
+export function enterPlayBecomeSoulEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         data.it.cleanup();
