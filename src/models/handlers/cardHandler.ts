@@ -8,7 +8,6 @@ import {
   LoadDecks,
   LoadsCardSets,
   LootCard,
-  LootCardEffect,
   MonsterCard,
   MonsterType,
   TreasureCard,
@@ -17,6 +16,7 @@ import {
   isSameSlug,
   type CounterType
 } from "@/models/cards";
+import { LootCardEffect } from '../stackElement';
 import {
   selectEternalAmongX
 } from "@/models/effects/activeEffect";
@@ -67,7 +67,7 @@ export class CardHandler {
     return this._cardMapping;
   }
   get soulsOwned(): Card[] {
-    let souls: Card[] = [];
+    const souls: Card[] = [];
     for (const player of this.game.players) {
       souls.push(...player.souls);
     }
@@ -86,7 +86,7 @@ export class CardHandler {
    * this.game function returns all visible treasure and trinkets: each players inPlay and the shop items.
    */
   get visibleItems(): ItemCard[] {
-    let result: ItemCard[] = this.game.inPlayItems.map(({ card }) => card);
+    const result: ItemCard[] = this.game.inPlayItems.map(({ card }) => card);
     result.push(
       ...this.game.shop.itemsInShop.filter((c): c is ItemCard => c instanceof ItemCard)
     );
@@ -1025,7 +1025,7 @@ export class CardHandler {
    */
   attachEffectsToCard(card: Card): void {
     const flipped = card.flipped;
-    for (let idx in card.effectOutcomes) {
+    for (const idx in card.effectOutcomes) {
       let outcome = card.effectOutcomes[idx]!;
       if(card.subtype === "curse" && !outcome.startsWith("[Curse]") && idx === "0")
         outcome = "[Curse] " + outcome;

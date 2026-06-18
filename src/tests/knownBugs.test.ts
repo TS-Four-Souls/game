@@ -112,6 +112,9 @@ describe("Known bugs that have be corrected", () => {
         game.cardHandler.addInPlay(player1, bumbo);
         game.gainCoins(player1, 40, "gift");
         expect(bumbo.counters.value("normal") || 0).toBe(40);
+        await game.actions.resolveStack(); // Resolve any stack effects
+        await game.actions.resolveStack(); // Resolve any stack effects
+        await game.actions.resolveStack(); // Resolve any stack effects
         expect(game.entityHandler.getAttack(player1)).toBe(2);
         expect(game.entityHandler.getAttack(player2)).toBe(1);
         expect(player1.coins).toBe(0);

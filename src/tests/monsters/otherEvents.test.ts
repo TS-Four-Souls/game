@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Game } from "../../models/game";
 import { Player } from "../../models/entities/player";
 import { DiceRoll } from "../../models/stackElement";
-import type { LootCard, Card, EffectOnStack } from "@/models/cards";
+import type { LootCard, Card } from "@/models/cards";
+import type { EffectOnStack } from '@/models/stackElement';
 import { InplayType, MonsterCard, CharacterCard, ItemCard, TreasureCard } from "@/models/cards";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame } from "@/tests/testHelpers";
 

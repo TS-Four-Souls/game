@@ -1,12 +1,11 @@
-import { type BonusSoulCard, type EffectOnStackJson, type IdentifierType, type LootCardOnStackJson } from '@/shared/api';
+import { type BonusSoulCard, type IdentifierType } from '@/shared/api';
 import type { FlipData, BonusSoulCardType, CardRewards, CharacterCardType, EternalCardType, GenericCardType, InPlayCardType, LootCardType, MonsterCardType, RoomCardType, TreasureCardType } from '@/types/cardTypes';
 import { print, shuffle } from '@/utils/auxiliary';
 import type { Entity } from './entities/entity';
 import { Player } from './entities/player';
 import type { GameParameters } from './gameParameters';
-import { StackElement } from './stackElement';
-import { TargetBuilder } from './targetBuilder';
-import { EffectData, type CardSetsCollection, type DecksCollection, type DeckType, type DeckTypeToCardType, type EffectFunction, type TargetsSelector } from './types/cardTypes';
+import { EffectOnStack } from './stackElement';
+import { type CardSetsCollection, type DecksCollection, type DeckType, type DeckTypeToCardType, type TargetsSelector } from './types/cardTypes';
 import { EffectInterface, Effect } from './effects/effects';
 
 class Card {
@@ -60,6 +59,7 @@ class Card {
         this._back = this._json.back;
         this._keywords = [];
         this._tags = {};
+        this._eternal = this._json.eternal || false;
         this._effectInterface = new EffectInterface(this);
         this._flippedEffectInterface = new EffectInterface(this);
         this._flipData = this._json.flip;
@@ -469,49 +469,6 @@ class LootCard extends ItemCard {
     }
 }
 
-// Wrapper class to hold loot card effect resolution on the stack
-export class LootCardEffect extends StackElement {
-    private _card: LootCard;
-    private _targets: any[];
-    private _issuer: Player;
-
-    constructor(issuer: Player, card: LootCard, targets: any[]) {
-        super();
-        this._card = card;
-        this._targets = targets;
-        this._issuer = issuer;
-    }
-
-    get card(): LootCard {
-        return this._card;
-    }
-
-    get issuer(): Player {
-        return this._issuer;
-    }
-
-    async onResolve(): Promise<void> {
-        await this._card.onPlay(this.issuer, this.targets)();
-    }
-
-    override get json(): LootCardOnStackJson {
-        return {
-            type: "LootCardEffect",
-            card: this.card.jsonAPI,
-            targets: TargetBuilder.convertToSelectionItems(this.targets),
-            issuer: this.issuer.json,
-            ...super.baseJson,
-         } ;
-    }
-    override get debugLogs(): string {
-        return `LootCardEffect from ${this.issuer.id} for card ${this.card.name} with targets: ${JSON.stringify(TargetBuilder.convertToSelectionItems(this.targets))}`;
-    }
-
-    get targets(): any[] {
-        return this._targets;
-    }
-}
-
 export class RoomCard extends ItemCard {
     constructor(id: number, globalId: number, json: RoomCardType) {
         super(id, globalId, json);
@@ -825,59 +782,6 @@ function LoadsCardSets(json_array: GenericCardType[]) : {nextGlobalId: number, c
     return {nextGlobalId: globalId, cardSets: sets};
 }
 
-function prepareEffectString(s: string): string {
-    s = s.replace("[Tap Effect]", ""); // remove tap effect marker
-    s = s.replace("[Paid Effect]", ""); // remove paid effect marker
-    s = s.replace("[Curse Effect] ", ""); // remove curse effect marker
-    s = s.trim();
-    return s;
-}
-export type EffectTypeOnStack = "active" | "paid" | "passive" | "event";
-export class EffectOnStack extends StackElement {
-    protected _effectFunction: EffectFunction
-    protected _data: EffectData;
-    protected _description: string;
-    protected _type: EffectTypeOnStack;
-
-    constructor(effectFunction: EffectFunction, data: EffectData, description: string, type: EffectTypeOnStack) {
-        super();
-        // if(!data)
-        //     throw new Error("EffectOnStack constructor: data is undefined or null.");
-        this._effectFunction = effectFunction;
-        this._data = data;
-        this._description = prepareEffectString(description);
-        this._type = type;
-    }
-    async onResolve(): Promise<boolean> {
-        return await this._effectFunction(this._data);
-    }
-
-    get data(): EffectData {
-        return this._data;
-    }
-    get type(): EffectTypeOnStack {
-        return this._type;
-    }
-    set targets(targets: any[]) {
-        this._data.targets = targets;
-        // Reset the consumption index when targets are set externally
-        (this._data as any)._nextIndex = 0;
-    }
-    override get json(): EffectOnStackJson {
-        return { 
-            type: "effect",
-            issuer: this._data.issuer.json, 
-            targets: TargetBuilder.convertToSelectionItems([...this._data.targets, ...this._data.selectedOnResolve]), 
-            card: this.data.it.jsonAPI, 
-            effect: this._description,
-            ...super.baseJson,
-        };
-    }
-
-    override get debugLogs(): string {
-        return `card effect ${this.data.it.name} ${this.data.it.globalId} ISSUER ${this._data.issuer.id} EFFECT "${this._description}" TARGETS: ${JSON.stringify(TargetBuilder.convertToSelectionItems(this._data.targets))}`;
-    }
-}
 class Deck<T extends Card> {
     _type: DeckType;
     _nextId: number;
@@ -1226,7 +1130,7 @@ function LoadDecks(json_array: GenericCardType[], numPlayers: number, parameters
             continue;
         }
         
-        let range = [];
+        const range = [];
         if(type === 'eternal')
             for (let i = 0; i < set.length; i++) {
                 range.push(i);
@@ -1338,6 +1242,9 @@ export class CounterHandler{
     }
     isDefined(type: CounterType): boolean{
         return this.counters.get(type) !== undefined;
+    }
+    getIfDefined(type: CounterType): number | undefined{
+        return this.isDefined("normal") ? this.value("normal") : undefined;
     }
     addToCounter(toAdd: number, type: CounterType): void
     {

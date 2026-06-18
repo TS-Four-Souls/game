@@ -72,6 +72,11 @@ interface GuppyCard {
   guppy?: true;
 }
 
+interface EternalCard {
+  eternal?: true;
+}
+
+
 interface IndomitableCard {
   indomitable?: true;
 }
@@ -109,7 +114,7 @@ export interface FlipData {
 }
 
 /* Card */
-export type Card = CardMeta & OutsideCard & {
+export type Card = CardMeta & OutsideCard & EternalCard & {
   front: string;
   back: string;
   name: string;

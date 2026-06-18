@@ -734,40 +734,52 @@ const animationSchema = z.discriminatedUnion("type", [
 ]);
 export type Animation = z.infer<typeof animationSchema>;
 
+const encounterSchema = z.object({
+  discard: z.array(cardSchema),
+  deckSize: z.number(),
+  capabilities: z.object({
+    targetableDeck: z.union([z.literal(true), z.string()]),
+  }),
+  inPlay: z.array(
+    z.object({
+      top: attackableCardSchema,
+      covered: z.array(cardSchema),
+    }),
+  ),
+});
+export type Encounter = z.infer<typeof encounterSchema>;
+
+const shopSchema = z.object({
+  discard: z.array(cardSchema),
+  deckSize: z.number(),
+  inPlay: z.array(z.union([shopItemSchema, z.undefined()])),
+  topDeckPrice: z.number(),
+});
+export type Shop = z.infer<typeof shopSchema>;
+
+const roomSlotSchema = z
+  .object({
+    discard: z.array(cardSchema),
+    deckSize: z.number(),
+    inPlay: z.array(cardSchema),
+  })
+  .optional();
+export type RoomSlot = z.infer<typeof roomSlotSchema>;
+
+const lootDeckSchema = z.object({
+  discard: z.array(cardSchema),
+  deckSize: z.number(),
+});
+export type LootDeck = z.infer<typeof lootDeckSchema>;
+
 const detailedStateSchema = z.object({
   me: playerMeSchema,
   players: z.array(playerSchema),
-  monsters: z.object({
-    discard: z.array(cardSchema),
-    deckSize: z.number(),
-    capabilities: z.object({
-      targetableDeck: z.union([z.literal(true), z.string()]),
-    }),
-    inPlay: z.array(
-      z.object({
-        top: attackableCardSchema,
-        covered: z.array(cardSchema),
-      }),
-    ),
-  }),
-  treasure: z.object({
-    discard: z.array(cardSchema),
-    deckSize: z.number(),
-    inPlay: z.array(z.union([shopItemSchema, z.undefined()])),
-    topDeckPrice: z.number(),
-  }),
-  loot: z.object({
-    discard: z.array(cardSchema),
-    deckSize: z.number(),
-  }),
+  monsters: encounterSchema,
+  treasure: shopSchema,
+  loot: lootDeckSchema,
   bonusSouls: z.array(bonusSoulCardSchema).optional(),
-  room: z
-    .object({
-      discard: z.array(cardSchema),
-      deckSize: z.number(),
-      inPlay: z.array(cardSchema),
-    })
-    .optional(),
+  room: roomSlotSchema,
   turn: z.string(),
   round: z.number(),
   stack: z.array(z.lazy(() => stackElementSchema)),
@@ -865,6 +877,7 @@ const adminRoomSchema = z.object({
   createdAt: z.string(),
   lastAction: z.string(),
   users: z.number(),
+  gameCount: z.number(),
   game: z.union([
     z.object({
       round: z.number(),
@@ -887,9 +900,21 @@ const adminMessageSchema = z.object({
 });
 export type AdminMessage = z.infer<typeof adminMessageSchema>;
 
+const adminHourlyStatSchema = z.object({
+  gameCount: z.number(),
+  date: z.string(),
+});
+
+const adminStatsSchema = z.object({
+  hourly: z.array(adminHourlyStatSchema).length(24),
+});
+
+export type AdminStats = z.infer<typeof adminStatsSchema>;
+
 const adminResponseSchema = z.object({
   rooms: z.array(adminRoomSchema),
   messages: z.array(adminMessageSchema),
+  stats: adminStatsSchema,
 });
 export type AdminResponse = z.infer<typeof adminResponseSchema>;
 

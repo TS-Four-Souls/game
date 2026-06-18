@@ -29,11 +29,11 @@ class NumericGameParameter {
   get value(): number {
     return this._value;
   }
-  
-    set value(value: number) {
-      this._value = NumericGameParameter.clamp(value, this._min, this._max);
-      this.onChange();
-    }
+
+  set value(value: number) {
+    this._value = NumericGameParameter.clamp(value, this._min, this._max);
+    this.onChange();
+  }
 
   get min(): number {
     return this._min;
@@ -82,7 +82,7 @@ class DeckParameter {
     return this._currentCount;
   }
 
-  get cardsParam():{ card: Card; param: NumericGameParameter }[] {
+  get cardsParam(): { card: Card; param: NumericGameParameter }[] {
     return this._cards;
   }
   set filter(F: (card: Card) => boolean) {
@@ -150,7 +150,11 @@ class DeckParameter {
     this.onChange();
   }
 
-  setCardParameter(slug: string, value: number, callOnChange: boolean = true): void {
+  setCardParameter(
+    slug: string,
+    value: number,
+    callOnChange: boolean = true,
+  ): void {
     const card = this._cards.find((x) => x.card.slug === slug);
     if (card) {
       // set without using setCardParameter to avoid per-card total checks while applying
@@ -288,9 +292,13 @@ export class GameParameters {
 
   readonly _onChange: () => void;
   private _currentNbPlayers: number;
-  readonly _getCurrentNbPlayers = (): number => Math.max(this._currentNbPlayers, 1);
+  readonly _getCurrentNbPlayers = (): number =>
+    Math.max(this._currentNbPlayers, 1);
 
   private _deckMode: "standard" | "custom" = "standard";
+  get deckMode(): "standard" | "custom" {
+    return this._deckMode;
+  }
   private _filter: (card: Card) => boolean = (card: Card) => {
     // In custom mode, don't filter at all
     if (this._deckMode === "custom") return true;
@@ -574,8 +582,35 @@ export class GameParameters {
     }
   }
 
-  reset(): GameParameters {
-    return new GameParameters(this._onChange);
+  reset() {
+    this.miniDraft.reset();
+    this.useFSP2Cards.reset();
+    this.nbSoulsToWin.reset();
+    this.nbItemsInShop.reset();
+    this.timer.reset();
+    this.nbRooms.reset();
+    this.nbEncounters.reset();
+    this.deathPenaltyCoins.reset();
+    this.deathPenaltyItem.reset();
+    this.deathPenaltyLoot.reset();
+    this.treasuresOnStart.reset();
+    this.lootOnStart.reset();
+    this.coinsOnStart.reset();
+    this.shopPrice.reset();
+    this.lootPlayPerTurn.reset();
+    this.maxHandSize.reset();
+    this.allowCoinDonation.reset();
+    this.playWithBonusSouls.reset();
+    this.playWithRooms.reset();
+    this.nbPlayerCardRestriction.reset();
+    this.allowCheatOptions.reset();
+    this.character.reset();
+    this.monster.reset();
+    this.treasure.reset();
+    this.loot.reset();
+    this.bsoul.reset();
+    this.room.reset();
+    this._deckMode = "standard";
   }
 
   setPlayerCount(count: number): void {

@@ -89,6 +89,7 @@ describe("Treasure - with counters effect", () => {
         game.gainCoins(player1, 5, "gift");
         expect(player1.coins).toBe(initialCoins); // Coins should not increase
         expect(bumBo.counters.value("normal")).toBe(6); // Should level up by 5
+        await game.actions.resolveStack(); // Resolve any stack effects
 
         // Test: LV1 Effect - +2 to first attack roll each turn
         const monster = game.monsters[0]!;
@@ -129,16 +130,19 @@ describe("Treasure - with counters effect", () => {
         // Test: gaining more coins levels up further
         game.gainCoins(player1, 7, "gift");
         expect(player1.coins).toBe(initialCoins); // Still no coins gained
+        await game.actions.resolveStack(); // Resolve any stack effects
         expect(bumBo.counters.value("normal")).toBe(13); // Should be at level 13 now
 
         // Test: LV10 Effect - +1 ATK should be active at level 13
 
         const currentAttack = player1.attackPoints;
+        await game.actions.resolveStack(); // Resolve any stack effects
         expect(currentAttack).toBe(baseAttack + 1); // Should have +1 ATK from LV10
 
         // Test: level up to 25 to test unlimited attacks
         game.gainCoins(player1, 12, "gift"); // 13 + 12 = 25
         expect(bumBo.counters.value("normal")).toBe(25);
+        await game.actions.resolveStack(); // Resolve any stack effects
 
         // Test: LV25 Effect - unlimited attacks
         const attacksAllowedBefore = player1.attackThisTurn;

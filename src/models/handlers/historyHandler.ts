@@ -216,7 +216,7 @@ export class HistoricHandler {
    * If no user request is found, returns the entire history.
    */
   get rollbackLog(): HistoricEntry[] {
-    var lastUserRequestIndex = -1;
+    let lastUserRequestIndex = -1;
     // We look for the second last user request in the history.
     // If there is only one user request, we use it instead.
     for(let index = this._history.length - 1; index >= 0; index--) {

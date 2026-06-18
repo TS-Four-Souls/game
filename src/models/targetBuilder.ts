@@ -536,7 +536,7 @@ export class TargetBuilder {
             throw new Error(`Effect issuer is not a player.`);
 
         // The next target is expected to be an array of targets for the copied effect
-        let targets: any[] = [];
+        const targets: any[] = [];
         let options = TargetBuilder.getNextSelectorRaw(game, player, item, targets, effectId, false);
         while(!options.complete)
             {

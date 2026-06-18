@@ -12,7 +12,7 @@ describe("Game.selectMultiple", () => {
 
   beforeEach(async () => {
     game = new Game();
-    await game.start([{ issuer: "Alice", character: "random", team: Team.Team1 }, { issuer: "Bob", character: "random", team: Team.Team2 }, { issuer: "Charlie", character: "random", team: Team.Team3 }], false);
+    await game.start([{ issuer: "Alice", character: "b2-isaac", team: Team.Team1 }, { issuer: "Bob", character: "b2-samson", team: Team.Team2 }, { issuer: "Charlie", character: "b2-eve", team: Team.Team3 }], false);
     player1 = game.entityHandler.getPlayerById("Alice")!;
     player2 = game.entityHandler.getPlayerById("Bob")!;
     player3 = game.entityHandler.getPlayerById("Charlie")!;

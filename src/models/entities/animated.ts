@@ -14,7 +14,7 @@ export class Animated extends Entity {
     super(id, attackPoints, healthPoints);
     super.evasion = evasion;
     this._card = card;
-    this._reward = card.json.rewards!;
+    this._reward = card.json.rewards;
   }
 
   get rewards(): CardRewards | undefined {
@@ -39,8 +39,6 @@ export class Animated extends Entity {
 
 export class AnimatedList {
     private _animated: Animated[] = [];
-
-    constructor() { }
 
     add(animated: Animated): void {
         this._animated.push(animated);

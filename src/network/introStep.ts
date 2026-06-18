@@ -7,6 +7,7 @@ import {
   type User,
 } from "./types";
 import {
+  isRoomWithGame,
   errorGuardedEndpoint,
   leaveCurrentStep,
   payloadGuardedEndpoint,
@@ -123,10 +124,10 @@ export const enterIntroStep = (socket: Socket): void => {
             }
             joinAsUser.socket = socket;
             leaveCurrentStep(socket);
-            if (room.game === undefined) {
-              enterStartStep(socket, room, joinAsUser);
-            } else {
+            if (isRoomWithGame(room)) {
               enterGameStep(socket, room, joinAsUser);
+            } else {
+              enterStartStep(socket, room, joinAsUser);
             }
           } else {
             if (room.users.length >= 4) {

@@ -1,4 +1,5 @@
-import { type EffectFunction, type TargetsSelector, type EffectType, EffectData, Card, EffectOnStack } from "../cards";
+import { type EffectFunction, type TargetsSelector, type EffectType, EffectData, Card } from "../cards";
+import { EffectOnStack } from '../stackElement';
 import type { Entity } from "../entities/entity";
 import type { Player } from "../entities/player";
 import { TargetBuilder } from "../targetBuilder";
@@ -159,8 +160,6 @@ class EffectHandler {
     protected _effects: Effect[] = [];
     protected cleaners: (() => void)[] = [];
 
-    constructor() { }
-
     cleanupAll(): void {
         for (const cleaner of this.cleaners) {
             cleaner();
@@ -171,7 +170,6 @@ class EffectHandler {
 }
 class PassiveEffectHandler extends EffectHandler {
     protected _type: "passive" = "passive";
-    constructor() { super(); }
 
     addEffect(effect: Effect): void {
         if (effect.type === "passive")
@@ -181,7 +179,7 @@ class PassiveEffectHandler extends EffectHandler {
     subscribeAll(issuerProvider: () => Entity, it: Card): void {
         for (const effect of this._effects) {
             // Passive effects don't have targets, pass empty array
-            let targets: any[] = [];
+            const targets: any[] = [];
             // if(effect.targetsSelector.length > 0) {
             //     targets = effect.targetsSelector.map(selector => { selector.selector(owner as Player)[0]; });
             // }
@@ -192,8 +190,6 @@ class PassiveEffectHandler extends EffectHandler {
 class ActiveEffectHandler extends EffectHandler {
     protected _type: "active" = "active";
     protected _activeEffect: Effect | null = null;
-    constructor() { super(); }
-
 
     addEffect(effect: Effect): void {
         switch (effect.type) {
@@ -340,7 +336,7 @@ export class EffectInterface {
     //     this.activeEffects.pay(issuer, this.it, targets, effectId);
     // }
     get activeEffectList(): { index: ("tap" | number); description: string; }[] {
-        let effects: { index: ("tap" | number); description: string; }[] = [];
+        const effects: { index: ("tap" | number); description: string; }[] = [];
         if (this.activeEffects.hasTapEffect())
             effects.push({ index: "tap" as const, description: this.activeEffects.getActiveEffect().description });
         for (const [index, effect] of this.activeEffects.effectNames.entries())

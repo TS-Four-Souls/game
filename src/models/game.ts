@@ -1,12 +1,12 @@
 import {
   BsoulCard,
   Card,
-  EffectOnStack,
   ItemCard,
   LootCard,
   MonsterCard,
   TreasureCard
 } from "@/models/cards";
+import { EffectOnStack } from './stackElement';
 import { CurrentPlayerDecidesToChangeRoom } from "@/models/effects/roomEffects";
 import { Entity } from "@/models/entities/entity";
 import { Monster } from "@/models/entities/monster";
@@ -60,12 +60,16 @@ export class Game extends SelectionHandler {
   readonly _actionHandler = new ActionHandler(this);
   private _entityHandler = new EntityHandler(this);
   private _cardHandler = new CardHandler(this);
+  private _promises: Promise<boolean>[] = [];
 
   private _onStateChange: Signal<void> = new Signal();
   onStateChange: ReadableSignal<void> = this._onStateChange.readOnly();
 
   private _onRoomBroadcast: Signal<ServerRoomBroadcast> = new Signal();
   onRoomBroadcast: ReadableSignal<ServerRoomBroadcast> = this._onRoomBroadcast.readOnly();
+
+  private _onEndReached: Signal<void> = new Signal();
+  onEndReached: ReadableSignal<void> = this._onEndReached.readOnly();
 
   constructor(seed: string = "", gameParameters?: GameParameters) {
     super();
@@ -96,8 +100,25 @@ export class Game extends SelectionHandler {
   get cardHandler(): CardHandler {
     return this._cardHandler;
   }
+  private get promises(): Promise<boolean>[] {
+    return this._promises;
+  }
+  async awaitPromises(): Promise<void> {
+    for(const p of this.promises)
+    {
+      await p;
+    }
+    this._promises = [];
+    await this.resolveCallbacks();
+  }
+  addPromise(promise: Promise<boolean>): void {
+    this._promises.push(promise);
+  }
   get turnHandler(): TurnHandler {
     return this._turnHandler;
+  }
+  get reachedEnd(): boolean {
+    return this._isWon;
   }
   get actions(): ActionHandler {
     return this._actionHandler;
@@ -133,7 +154,7 @@ export class Game extends SelectionHandler {
     return this._stack;
   }
   get soulsOwned(): Card[] {
-    let souls: Card[] = [];
+    const souls: Card[] = [];
     for (const player of this.players) {
       souls.push(...player.souls);
     }
@@ -260,7 +281,7 @@ export class Game extends SelectionHandler {
     this.assert.gameStarted();
     if (attackRoll) this.assert.isAlive(player);
 
-    let diceRoll = player.rollDice(this.random, attackRoll, card);
+    const diceRoll = player.rollDice(this.random, attackRoll, card);
     this.addAnimation({
       id: this.nextAnimationId,
       type: "diceRoll",
@@ -304,6 +325,16 @@ export class Game extends SelectionHandler {
    * Starts the game lifecycle and executes initial setup.
    */
   async start(players: { issuer: string; character: string; user?: string, team: Team }[], shufflePlayerOrder: boolean = true): Promise<void>{
+
+    if(!this.turnHandler.isInitialized)
+      this.startOfGameSetup(players, shufflePlayerOrder);
+    await this.atGameStartDecisions();
+  }
+
+  /**
+   * Distributes starting resources to each player.
+   */
+  startOfGameSetup(players: { issuer: string; character: string; user?: string, team: Team }[], shufflePlayerOrder: boolean = true): void {
     this.assert.gameNotStarted();
     for (const p of players) 
       this.entityHandler.addPlayer(new Player(p.issuer, p.team));
@@ -315,15 +346,52 @@ export class Game extends SelectionHandler {
     if (shufflePlayerOrder) {
       shuffle(this.random, this.players);
     }
-
-    this.startOfGameSetup();
+    this.turnHandler.initialize(this.players);
+    this.initializeTeams();
+    this._historicHandler.recordInitialGameState(this);
     
-    this.emit("on:game:start", {});
+    this.initializeWinningCondition();
+    this.cardHandler.initializeBonusSouls();
+    this._shop = new Shop(
+      this.gameParameters.nbItemsInShop.value,
+      this.decks["treasure"]
+    );
+    this._encounters = new Encounters(
+      this.gameParameters.nbEncounters.value,
+      this.decks["monster"],
+      this
+    );
+    this.gameParameters.playWithRooms.value = this.gameParameters.playWithRooms.value && this.decks["room"] !== undefined && this.decks["room"]._order!.length > 0;
+    // fill empty spot may call game.encounters, so it must be called after this._encounters initialization.
+    this._encounters.fillEmptySpots(true);
+    // initialize resources here so room laser eye does not deal damage before the first turn starts.
+    for (const player of this.players) {
+      this.gainTreasure(player, this.gameParameters.treasuresOnStart.value);
+      this.loot(player, this.gameParameters.lootOnStart.value);
+      this.gainCoins(player, this.gameParameters.coinsOnStart.value, "gift");
+    }
+    if(this.gameParameters.playWithRooms.value === true)
+    {
+      this._rooms = new Rooms(
+        this.gameParameters.nbRooms.value,
+        this.decks["room"]!,
+        this
+      );
+    }
+    // No user interaction on this trigger, use on:game:stat. This is for cain.
+    this.emit("on:game:start:before", {});
+    this.assignColorsToPlayers();
+    this.entityHandler.healEveryone();
+  } 
+
+  async atGameStartDecisions(){
+    this.emit("on:game:start", {}); // Eden starting item choice
     if(this.gameParameters.miniDraft.value)
-      await miniDraft(this);
+      miniDraft(this); // Add resolutions to game.promises.
+    await this.awaitPromises();
     await this.executeWhenStackEmpty(async () => {
       await this.startTurn();
-    });
+    })
   }
 
   initializeTeams(): void{
@@ -356,51 +424,11 @@ export class Game extends SelectionHandler {
     }
   }
 
-  /**
-   * Distributes starting resources to each player.
-   */
-  startOfGameSetup(): void {
-    this.turnHandler.initialize(this.players);
-    this.initializeTeams();
-    this._historicHandler.recordInitialGameState(this);
-    
-    this.initializeWinningCondition();
-    this.cardHandler.initializeBonusSouls();
-    this._shop = new Shop(
-      this.gameParameters.nbItemsInShop.value,
-      this.decks["treasure"]!
-    );
-    this._encounters = new Encounters(
-      this.gameParameters.nbEncounters.value,
-      this.decks["monster"]!,
-      this
-    );
-    this.gameParameters.playWithRooms.value = this.gameParameters.playWithRooms.value && this.decks["room"] !== undefined && this.decks["room"]._order!.length > 0;
-    // fill empty spot may call game.encounters, so it must be called after this._encounters initialization.
-    this._encounters.fillEmptySpots(true);
-    // initialize resources here so room laser eye does not deal damage before the first turn starts.
-    for (const player of this.players) {
-      this.gainTreasure(player, this.gameParameters.treasuresOnStart.value);
-      this.loot(player, this.gameParameters.lootOnStart.value);
-      this.gainCoins(player, this.gameParameters.coinsOnStart.value, "gift");
-    }
-    if(this.gameParameters.playWithRooms.value === true)
-    {
-      this._rooms = new Rooms(
-        this.gameParameters.nbRooms.value,
-        this.decks["room"]!,
-        this
-      );
-    }
-    this.emit("on:game:start:before", {});
-    this.assignColorsToPlayers();
-    this.entityHandler.healEveryone();
-  } 
-
   win(player: Player | null): void {
     if(this._isWon)
       return;
     this._isWon = true;
+    this._onEndReached.dispatch();
     if(player === null)
     {
       this._onRoomBroadcast.dispatch({
@@ -437,6 +465,7 @@ export class Game extends SelectionHandler {
     this._encounters = undefined!;
     this._rooms = undefined!;
     this.resetStack();
+    this._promises = [];
     this._emitter = new GameEventEmitter();
     this._pendingMultipleSelections = new Map();
     this._stackSubsetCallbacks = [];
@@ -456,6 +485,7 @@ export class Game extends SelectionHandler {
     const player = this.currentPlayer;
     const itemsToRecharge = player.unchargedItems;
     const eventData = { eventIssuer: player, itemsToRecharge: itemsToRecharge }
+    
     this.emit("on:turn:start:before:recharge:step", eventData);
     await this.executeWhenStackEmpty(async () => {
       this.cardHandler.rechargeMultiple(player, "rechargeStep", eventData.itemsToRecharge);
@@ -753,7 +783,7 @@ export class Game extends SelectionHandler {
     coins = eventData.coinToLose;
     // console.log(`Player ${player.id} is about to lose ${coins} coins for reason ${reason} with ${player.coins} coins.`);
     if(coins <= 0) return 0;
-    let coinLost = player.loseCoins(coins, asMany);
+    const coinLost = player.loseCoins(coins, asMany);
     this.emit("on:coin:lost:after", { eventIssuer: player, coinLost });
     if(coinLost === 0 && reason === "paiement" && asMany === false && coins > 0)
       return -1; // signal that the player cannot pay the cost.

@@ -69,14 +69,14 @@ export class EntityHandler {
   }
     
   get playersWithMostSouls(): Player[] {
-    let maxSouls = Math.max(...this.players.map((player) => player.totalSouls));
+    const maxSouls = Math.max(...this.players.map((player) => player.totalSouls));
     return this.players.filter((player) => player.totalSouls === maxSouls);
   }
   /**
    * Computes current monster attack after replacement/modifier effects.
    */
   getAttack(entity: Entity): number {
-    let baseStat = [entity.attackPoints];
+    const baseStat = [entity.attackPoints];
     if(entity instanceof Monster)
       this.game.emit(
         "on:get:monster:attackPoints",
@@ -93,7 +93,7 @@ export class EntityHandler {
    * Computes current monster evasion/DC clamped to [1, 6].
    */
   getDC(entity: Entity): number {
-    let baseStat = [entity.evasion];
+    const baseStat = [entity.evasion];
     if(entity instanceof Monster)
       this.game.emit(
         "on:get:monster:evasion",

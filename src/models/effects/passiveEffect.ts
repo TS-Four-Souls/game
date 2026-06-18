@@ -1,13 +1,14 @@
 import { type TriggerEvent } from '@/models/types/eventTypes';
 import type { TemporaryEffect } from "@/shared/api";
-import { Card, EffectOnStack, ItemCard, LootCard, LootCardEffect, MonsterCard, TreasureCard, type CounterType } from "../cards";
+import { Card, ItemCard, LootCard, MonsterCard, TreasureCard, type CounterType } from "../cards";
+import { EffectOnStack, LootCardEffect } from '../stackElement';
 import { Entity } from "../entities/entity";
 import { Monster } from "../entities/monster";
 import { Player } from "../entities/player";
 import { Game } from "../game";
 import { DiceRoll } from "../stackElement";
 import { TargetBuilder } from "../targetBuilder";
-import { EffectData, type EffectFunction, type TargetsSelector } from "../types/cardTypes";
+import { EffectData, type EffectFunction, type SyncEffectFunction, type AsyncEffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type {
     OnAttackRollData,
     OnCardFlippedData,
@@ -61,7 +62,7 @@ export function addPassiveEffectToStack(
 
 // REPLACEMENT EFFECT: Uses "prevent" - does not use the stack.
 // Card text: "Prevent the next instance of up to X damage they would take this turn."
-export function preventNextDamageUpToEffect(amount: number, game: Game): EffectFunction {
+export function preventNextDamageUpToEffect(amount: number, game: Game): SyncEffectFunction {
     return (data:EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
@@ -101,7 +102,7 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): EffectF
     };
 }
 
-export function preventDamageToCurrentPlayerAndDealToRandomPlayerEffect(game: Game, damage: number): EffectFunction {
+export function preventDamageToCurrentPlayerAndDealToRandomPlayerEffect(game: Game, damage: number): SyncEffectFunction {
     return (data:EffectData) => {
         let offDamage: (() => void) | null = null;
 
@@ -136,7 +137,7 @@ export function preventDamageToCurrentPlayerAndDealToRandomPlayerEffect(game: Ga
  * @returns 
  */
 
-export function voteOnWhipOrWhiffEffect(game: Game, damageIfWhipWins: number, lootIfWhiffWins: number): EffectFunction {
+export function voteOnWhipOrWhiffEffect(game: Game, damageIfWhipWins: number, lootIfWhiffWins: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offWouldTakeDamage: (() => void) | null = null;
 
@@ -189,7 +190,7 @@ export function voteOnWhipOrWhiffEffect(game: Game, damageIfWhipWins: number, lo
     };
 }
 
-export function extraAttackAndDeathTriggerEffect(game: Game, dc: number): EffectFunction {
+export function extraAttackAndDeathTriggerEffect(game: Game, dc: number): AsyncEffectFunction {
     return async (data:EffectData) => {
         let offDeath: (() => void) | null = null;
         let offTurnEnd: (() => void) | null = null;
@@ -216,7 +217,7 @@ export function extraAttackAndDeathTriggerEffect(game: Game, dc: number): Effect
     }
 }
 
-export function onlyRechargeableByOwnAbilitiesEffect(game: Game): EffectFunction {
+export function onlyRechargeableByOwnAbilitiesEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offRecharge: (() => void) | null = null;
 
@@ -242,7 +243,7 @@ export function temporaryStatModifierEffect(
     game: Game,
     targetType: "current" | "next" | "issuer" | "selectionOnResolve",
     onResolveTargets?: TargetsSelector
-): EffectFunction {
+): AsyncEffectFunction {
     return async (data:EffectData) => {
         let target = null;
         switch(targetType)
@@ -278,7 +279,7 @@ export function temporaryStatModifierEffect(
             adder(target, amount, data.it);
         
         // Register cleanup to reverse at end of turn
-        let offTurn = game.emitter.on("till:turn:end", () => {
+        const offTurn = game.emitter.on("till:turn:end", () => {
             for(const adder of adders)
                 adder(target, -amount, data.it);
             target.removeTemporaryEffect(temp);
@@ -290,7 +291,7 @@ export function temporaryStatModifierEffect(
 }
 
 
-export function onFirstKillMonsterYourTurnEffect(effectFunctions: EffectFunction[], game: Game): EffectFunction {
+export function onFirstKillMonsterYourTurnEffect(effectFunctions: EffectFunction[], game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offKill: (() => void) | null = null;
         let offTurnStart: (() => void) | null = null;
@@ -324,7 +325,7 @@ export function onFirstKillMonsterYourTurnEffect(effectFunctions: EffectFunction
     }
 }
 
-export function preventDamageNotOnYourTurnEffect(game: Game): EffectFunction {
+export function preventDamageNotOnYourTurnEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
 
@@ -342,7 +343,7 @@ export function preventDamageNotOnYourTurnEffect(game: Game): EffectFunction {
     };
 }
 
-export function cancelLootCardThatTargetsYouEffect(game: Game): EffectFunction {
+export function cancelLootCardThatTargetsYouEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let asBeenUsedThisTurn = false;
         let offLoot: (() => void) | null = null;
@@ -378,7 +379,7 @@ export function cancelLootCardThatTargetsYouEffect(game: Game): EffectFunction {
  * @returns 
  */
 export function interceptFirstGainCoinYourTurnEffect(effectFunctions: EffectFunction[],
-    game: Game, description: string): EffectFunction {
+    game: Game, description: string): SyncEffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
@@ -422,7 +423,7 @@ export function interceptFirstGainCoinYourTurnEffect(effectFunctions: EffectFunc
 export function lvlXaddListenerEffect(
     functions: EffectFunction[],
     lvl: number,
-    game: Game): EffectFunction {
+    game: Game): AsyncEffectFunction {
 
     return async (data: EffectData) => {
         if (data.it.counters.value("normal") >= lvl)
@@ -433,13 +434,16 @@ export function lvlXaddListenerEffect(
         else
             {
 
-            let offTurn = game.emitter.on("on:counter:modified", async (eventData: OnCounterModifiedData) => {
+            const offTurn = game.emitter.on("on:counter:modified", (eventData: OnCounterModifiedData) => {
                 const { eventIssuer } = eventData;
                 if (data.issuer !== eventIssuer) return;
                 if (data.it.counters.value("normal") < lvl) return;
-                
-                for (const func of functions)
-                    await func(data);
+                const effect: EffectFunction = async (effectData: EffectData) => {
+                    for (const func of functions)
+                        await func(data);
+                    return true;
+                };
+                addPassiveEffectToStack(game, effect, data, `Level ${lvl} effect`);
                 offTurn();
             });
 
@@ -456,7 +460,7 @@ export function permanentStatModifierEffect(
     adders: ((player: Player, value: number, source: Card) => void)[],
     amount: number,
     game: Game
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         if (amount < 0)
             throw new Error("permanentStatModifierEffect amount must be non-negative.");
@@ -510,7 +514,7 @@ export function rollAndMayChangeNextRollForThis(game: Game): ParsedEffect {
     };
 }
 
-export function combatDamageModifierOnAttackRollEffect(game: Game, attackRolls: number[], modifier: number | "double", side: "taken" | "dealt"): EffectFunction {
+export function combatDamageModifierOnAttackRollEffect(game: Game, attackRolls: number[], modifier: number | "double", side: "taken" | "dealt"): SyncEffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
 
@@ -559,7 +563,7 @@ export function endTurnOnAttackRollXEffect(game: Game, rollValue: number) {
     };
 }
 
-export function chooseMonsterWhenAnotherPlayerAttacksMonsterEffect(game: Game): EffectFunction {
+export function chooseMonsterWhenAnotherPlayerAttacksMonsterEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offAttack: (() => void) | null = null;
         offAttack = game.emitter.on("on:attack:declared:monster", ({ eventIssuer, monster }) => {
@@ -582,7 +586,7 @@ export function chooseMonsterWhenAnotherPlayerAttacksMonsterEffect(game: Game): 
 }
 
 
-export function rollXChoose1Effect(game: Game, x: number, onlyOnce: boolean, chooserType: "issuer" | "left"): EffectFunction {
+export function rollXChoose1Effect(game: Game, x: number, onlyOnce: boolean, chooserType: "issuer" | "left"): SyncEffectFunction {
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         offRoll = game.emitter.on("on:dice:being-rolled", ({ eventIssuer, diceRoll }) => {
@@ -614,7 +618,7 @@ export function rollXChoose1Effect(game: Game, x: number, onlyOnce: boolean, cho
 }
 
 // REPLACEMENT EFFECT: Continuous priority modification - does not use the stack.
-export function noPriorityPassesOnYourTurnEffect(game: Game): EffectFunction {
+export function noPriorityPassesOnYourTurnEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         const issuer = data.issuer;
         if(!(issuer instanceof Player))
@@ -625,7 +629,7 @@ export function noPriorityPassesOnYourTurnEffect(game: Game): EffectFunction {
             game.entityHandler.applyLootOrActivateRestrictionForCurrentTurn(issuer);
         }
 
-        let offStartTurn = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
+        const offStartTurn = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
             if (eventIssuer !== issuer) return;
             game.entityHandler.applyLootOrActivateRestrictionForCurrentTurn(issuer);
         });
@@ -640,9 +644,9 @@ export function noPriorityPassesOnYourTurnEffect(game: Game): EffectFunction {
 }
 
 // REPLACEMENT EFFECT: Continuous priority modification - does not use the stack.
-export function noPriorityPassesTillEndOfTurnEffect(game: Game): EffectFunction {
+export function noPriorityPassesTillEndOfTurnEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
-        let offEndTurn: (() => void) | null = null;
+        const offEndTurn: (() => void) | null = null;
         const issuer = data.issuer;
         if(!(issuer instanceof Player))
             throw new Error("noPriorityPassesTillEndOfTurnEffect can only be applied to Players.");
@@ -658,7 +662,7 @@ export function noPriorityPassesTillEndOfTurnEffect(game: Game): EffectFunction 
 
 // REPLACEMENT EFFECT: Modifies damage before it's taken - does not use the stack.
 // Replaces damage amount with a specific value.
-export function setNextDamageToXEffect(setTo: number, game: Game): EffectFunction {
+export function setNextDamageToXEffect(setTo: number, game: Game): SyncEffectFunction {
     return (data:EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
@@ -691,7 +695,7 @@ export function onYourTurnModifier(
     adders: ((player: Player, value: number, source: Card) => void)[],
     amount: number,
     game: Game
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         if (amount < 0)
             throw new Error("onYourTurnModifier amount must be non-negative.");
@@ -770,7 +774,7 @@ export async function giveCurseToEffect(restEffectFunction: EffectFunction, game
     });
 }
 
-export function curseEffect(restEffectFunction: EffectFunction, game: Game): EffectFunction {
+export function curseEffect(restEffectFunction: EffectFunction, game: Game): AsyncEffectFunction {
     return async (data: EffectData) => {
         if(!(data.issuer instanceof Player))
             throw new Error("Curse effect can only be applied to Players.");
@@ -803,7 +807,7 @@ export function curseEffect(restEffectFunction: EffectFunction, game: Game): Eff
 export function firstAttackRollDiceModifier(
     amount: number,
     game: Game
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         if (amount < 0)
             throw new Error("firstAttackRollDiceModifier amount must be non-negative.");
@@ -814,7 +818,7 @@ export function firstAttackRollDiceModifier(
         if(active)
             game.entityHandler.addAttackDiceModifier(issuer, amount, data.it);
 
-        let offTurn = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
+        const offTurn = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
             const { eventIssuer } = eventData;
             if (eventIssuer !== issuer) return;
             if(active) return;
@@ -822,7 +826,7 @@ export function firstAttackRollDiceModifier(
             active = true;
         });
 
-        let offTurnEnd = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
+        const offTurnEnd = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
             const { eventIssuer } = eventData;
             if (eventIssuer !== issuer) return;
             if(!active) return
@@ -856,7 +860,7 @@ export function firstAttackRollStatModifierEffect(
     damageReceivedModifier: number=0,
     evasionModifier: number=0,
     game: Game
-): EffectFunction {
+): SyncEffectFunction {
     return (data:EffectData) => {
         let offAttack: (() => void) | null = null;
 
@@ -890,7 +894,7 @@ export function onDamageTakenEffect(
     effectFunctions: EffectFunction[],
     // amount: number,
     game: Game
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         // if (amount < 0)
         //     throw new Error("permanentStatModifierEffect amount must be non-negative.");
@@ -934,7 +938,7 @@ export function beforeDeathPenaltyEffect(
     effectFunctions: EffectFunction[],
     // amount: number,
     game: Game
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         // if (amount < 0)
         //     throw new Error("permanentStatModifierEffect amount must be non-negative.");
@@ -963,7 +967,7 @@ export function beforeDeathPenaltyEffect(
     };
 }
 
-export function gainEternalTillEndOfTurnEffect(game: Game): EffectFunction {
+export function gainEternalTillEndOfTurnEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offTurn: (() => void) | null = null;
 
@@ -998,7 +1002,7 @@ export function afterDeathPenaltyEffect(
     effectFunctions: EffectFunction[],
     // amount: number,
     game: Game
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         // if (amount < 0)
         //     throw new Error("permanentStatModifierEffect amount must be non-negative.");
@@ -1027,7 +1031,7 @@ export function afterDeathPenaltyEffect(
     };
 }
 
-export function gainTreasureOnDestroyEffect(game: Game, amount: number): EffectFunction {
+export function gainTreasureOnDestroyEffect(game: Game, amount: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offDestroy: (() => void) | null = null;
 
@@ -1046,7 +1050,7 @@ export function gainTreasureOnDestroyEffect(game: Game, amount: number): EffectF
     };
 }
 
-export function gainCoinsAndLootOnDestroyBasedOnCountersEffect(game: Game): EffectFunction {
+export function gainCoinsAndLootOnDestroyBasedOnCountersEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offDestroy: (() => void) | null = null;
 
@@ -1068,7 +1072,7 @@ export function gainCoinsAndLootOnDestroyBasedOnCountersEffect(game: Game): Effe
     };
 }
 
-export function preventNonCombatDamageEffect(game: Game): EffectFunction {
+export function preventNonCombatDamageEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
@@ -1085,7 +1089,7 @@ export function preventNonCombatDamageEffect(game: Game): EffectFunction {
     };
 }
 
-export function chooseNumberDamageOnRollThisTurnEffect(game: Game, damageAmount: number): EffectFunction {
+export function chooseNumberDamageOnRollThisTurnEffect(game: Game, damageAmount: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
@@ -1115,13 +1119,12 @@ export function WouldDieYourTurnEffect(
     effectFunctions: EffectFunction[],
     game: Game,
     description: string,
-    replacementEffects: boolean = false,
     duringYourTurnOnly: boolean = false
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         let offDeath: (() => void) | null = null;
         
-        offDeath = game.emitter.on("on:death:would-death", async ({ eventIssuer, target, source, deathOnStack}) => {
+        offDeath = game.emitter.on("on:death:would-death", ({ eventIssuer, target, source, deathOnStack}) => {
             if (data.issuer !== eventIssuer) return;
             if (duringYourTurnOnly && game.currentPlayer !== data.issuer) return;
             // Add all effects as a single stack element
@@ -1132,10 +1135,7 @@ export function WouldDieYourTurnEffect(
                 }
                 return true;
             };
-            if(replacementEffects)
-                await effect(data);
-            else
-                addPassiveEffectToStack(game, effect, data, description);
+            addPassiveEffectToStack(game, effect, data, description);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -1158,14 +1158,13 @@ export function onYourEventEffect(
     effectFunctions: EffectFunction[],
     game: Game,
     description: string,
-    replacementEffects: boolean = false,
     duringYourTurnOnly: boolean = false,
     condition: (effectData: EffectData, eventData: any) => boolean = () => true,
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         let offEvent: (() => void) | null = null;
         
-        offEvent = game.emitter.on(triggerEvent, async (eventData) => {
+        offEvent = game.emitter.on(triggerEvent, (eventData) => {
             const eventIssuer = eventData.eventIssuer;
             if (data.issuer !== eventIssuer) return;
             if (duringYourTurnOnly && game.currentPlayer !== data.issuer) return;
@@ -1179,10 +1178,7 @@ export function onYourEventEffect(
                 }
                 return true;
             };
-            if(replacementEffects)
-                await effect(data);
-            else
-                addPassiveEffectToStack(game, effect, data, description);
+            addPassiveEffectToStack(game, effect, data, description);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -1198,13 +1194,12 @@ export function onYourKillEffect(
     effectFunctions: EffectFunction[],
     game: Game,
     description: string,
-    replacementEffects: boolean = false,
     condition: (effectData: EffectData, eventData: any) => boolean = () => true,
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
-        offDamage = game.emitter.on("on:death:before-penalty", async (eventData: OnDeathBeforePenaltyData) => {
+        offDamage = game.emitter.on("on:death:before-penalty", (eventData: OnDeathBeforePenaltyData) => {
             if (data.issuer !== eventData.target) return;
             if(!condition(data, eventData)) return;
             // Add all effects as a single stack element
@@ -1214,10 +1209,7 @@ export function onYourKillEffect(
                 }
                 return true;
             };
-            if(replacementEffects)
-                await effect(data);
-            else
-                addPassiveEffectToStack(game, effect, data, description);
+            addPassiveEffectToStack(game, effect, data, description);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -1229,7 +1221,7 @@ export function onYourKillEffect(
     };
 }
 
-export function noDeathPenaltyCoinsAndLootEffect(game: Game): EffectFunction {
+export function noDeathPenaltyCoinsAndLootEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offDeath: (() => void) | null = null;
         
@@ -1251,13 +1243,12 @@ export function noDeathPenaltyCoinsAndLootEffect(game: Game): EffectFunction {
 export function onDamageYouDealtEffect(
     effectFunctions: EffectFunction[],
     game: Game,
-    description: string,
-    replacementEffects: boolean = false
-): EffectFunction {
+    description: string
+): SyncEffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
-        offDamage = game.emitter.on("on:damage:taken", async (eventData: OnDamageTakenData) => {
+        offDamage = game.emitter.on("on:damage:taken", (eventData: OnDamageTakenData) => {
             if (data.issuer !== eventData.target) return;
             
             // Add all effects as a single stack element
@@ -1267,10 +1258,7 @@ export function onDamageYouDealtEffect(
                 }
                 return true;
             };
-            if(replacementEffects)
-                await effect(data);
-            else
-                addPassiveEffectToStack(game, effect, data, description);
+            addPassiveEffectToStack(game, effect, data, description);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -1282,7 +1270,7 @@ export function onDamageYouDealtEffect(
     };
 }
 
-export function noLootDiscardOrCoinLossEffect(game: Game): EffectFunction {
+export function noLootDiscardOrCoinLossEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offDeath: (() => void) | null = null;
         let offLoseCoins: (() => void) | null = null;
@@ -1320,7 +1308,7 @@ export function noLootDiscardOrCoinLossEffect(game: Game): EffectFunction {
 }
 
 
-export function addToYourRollValueEffect(game: Game, values: number[], rollType: "attack" | "non-attack" | "any", youMayEffectHanging: boolean[]): EffectFunction {
+export function addToYourRollValueEffect(game: Game, values: number[], rollType: "attack" | "non-attack" | "any", youMayEffectHanging: boolean[]): SyncEffectFunction {
     const youMay = youMayEffectHanging[0];
     youMayEffectHanging[0] = false;
     return (data: EffectData) => {
@@ -1357,7 +1345,7 @@ export function addToYourRollValueEffect(game: Game, values: number[], rollType:
     };
 }
 
-export function stealCoinOnGainEffect(amount: number, game: Game): EffectFunction {
+export function stealCoinOnGainEffect(amount: number, game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offCoinGain: (() => void) | null = null;
         
@@ -1391,7 +1379,7 @@ export function stealCoinOnGainEffect(amount: number, game: Game): EffectFunctio
 export function statModifierBasedOnCountersEffect(game: Game,
     adders: ((entity: Entity, value: number, source: Card) => void)[],
     countersPerModifier: number, 
-    modifier: number): EffectFunction {
+    modifier: number): SyncEffectFunction {
     return (data: EffectData) => {
         const issuer = data.issuer;
         if(!(issuer instanceof Player))
@@ -1421,7 +1409,7 @@ export function statModifierBasedOnCountersEffect(game: Game,
     };
 }
 
-export function noRechargeCharaDuringRechargeStepEffect(game: Game): EffectFunction {
+export function noRechargeCharaDuringRechargeStepEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offBeforeRechargeStep: (() => void) | null = null;
         offBeforeRechargeStep = game.emitter.on("on:turn:start:before:recharge:step", ({ eventIssuer, itemsToRecharge }) => {
@@ -1444,7 +1432,7 @@ export function noRechargeCharaDuringRechargeStepEffect(game: Game): EffectFunct
     };
 }
 
-export function rechargeOneDuringRechargeStepEffect(game: Game): EffectFunction {
+export function rechargeOneDuringRechargeStepEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offBeforeRechargeStep: (() => void) | null = null;
         offBeforeRechargeStep = game.emitter.on("on:turn:start:before:recharge:step", ({ eventIssuer, itemsToRecharge }) => {
@@ -1483,7 +1471,7 @@ export function onAnotherPlayerEventEffect(
     game: Game,
     description: string,
     condition: (effectData: EffectData, eventData: any) => boolean = () => true,
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
@@ -1521,7 +1509,7 @@ export function onAnyEventEffect(
     game: Game,
     description: string,
     condition: (effectData: EffectData, eventData: any) => boolean = () => true,
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
@@ -1551,7 +1539,7 @@ export function onAnyEventEffect(
     };
 }
 
-export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): EffectFunction {
+export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         // console.log("Activating copyAbilitiesFromGoldCounterItemsEffect", data.issuer.id);
         if(!(data.it instanceof ItemCard)) return false;
@@ -1586,7 +1574,7 @@ export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): EffectFunct
     };
 }
 
-export function giveCounterToAnotherItemOnEnterPlayEffect(game: Game, counterType: CounterType): EffectFunction {
+export function giveCounterToAnotherItemOnEnterPlayEffect(game: Game, counterType: CounterType): SyncEffectFunction {
     return (data: EffectData) => {
         let offEnterPlay: (() => void) | null = null;
         offEnterPlay = game.emitter.on("on:enter:play", ({ eventIssuer, card }) => {
@@ -1611,7 +1599,7 @@ export function giveCounterToAnotherItemOnEnterPlayEffect(game: Game, counterTyp
 
 
 // Reduces any damage to a maximum of x.
-export function reduceDamageToXEffect(game: Game, maxDamage: number): EffectFunction {
+export function reduceDamageToXEffect(game: Game, maxDamage: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         // Listen for the next damage event on this player
@@ -1638,7 +1626,7 @@ export function reduceDamageToXEffect(game: Game, maxDamage: number): EffectFunc
     };
 }
 
-export function redirectSoulGainEffect(game: Game): EffectFunction {
+export function redirectSoulGainEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offSoulGain: (() => void) | null = null;
         
@@ -1672,14 +1660,14 @@ export function redirectSoulGainEffect(game: Game): EffectFunction {
 
 // REPLACEMENT EFFECT: Starts with "this enters play" - does not use the stack.
 // Card text: "This enters play deactivated."
-export function enterPlayDeactivatedEffect(game: Game): EffectFunction {
+export function enterPlayDeactivatedEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         data.it.charged = false;
         return true;
     };
 }
 
-export function lootOnNextRollEffect(game: Game, x: number): EffectFunction {
+export function lootOnNextRollEffect(game: Game, x: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         // Listen for the next roll event on this player
@@ -1707,7 +1695,7 @@ export function lootOnNextRollEffect(game: Game, x: number): EffectFunction {
     };
 }
 
-export function soulDiffDCModifierOnYourTurnEffect(game: Game): EffectFunction {
+export function soulDiffDCModifierOnYourTurnEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offTurn: (() => void) | null = null;
         let offEndTurn: (() => void) | null = null;
@@ -1759,7 +1747,7 @@ export function soulDiffDCModifierOnYourTurnEffect(game: Game): EffectFunction {
     };
 }
 
-export function gainAbilitiesUntilEffect(game: Game, triggerEvent: TriggerEvent, targetsSelector: TargetsSelector, recharge: boolean): EffectFunction {
+export function gainAbilitiesUntilEffect(game: Game, triggerEvent: TriggerEvent, targetsSelector: TargetsSelector, recharge: boolean): AsyncEffectFunction {
     return async (data: EffectData) => {
         const issuer = data.issuer;
         if(data.it instanceof ItemCard === false)
@@ -1792,7 +1780,7 @@ export function gainAbilitiesUntilEffect(game: Game, triggerEvent: TriggerEvent,
     };
 }
 
-export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): EffectFunction {
+export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offLoot: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
@@ -1844,13 +1832,13 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): Effec
 
 // REPLACEMENT EFFECT: Uses "instead" - does not use the stack.
 // if another player would pay the death penalty, you choose what item they would destroy and you gain any loot cards and ¢ they would lose.
-export function replaceDeathPenaltyEffect(game: Game): EffectFunction {
+export function replaceDeathPenaltyEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offPenalty: (() => void) | null = null;
         // Listen for the next death penalty event on this player
         const issuer = data.issuer;
         if (!(issuer instanceof Player)) return false;
-        let OriginalDeathPenaltyItems = game.deathPenaltyItems.bind(game);
+        const OriginalDeathPenaltyItems = game.deathPenaltyItems.bind(game);
         game.deathPenaltyItems = async (player: Player): Promise<ItemCard[]> => {
             const setOfLosableItems = player.inPlay.filter(
               (c) =>
@@ -1894,7 +1882,7 @@ export function replaceDeathPenaltyEffect(game: Game): EffectFunction {
     };
 }
 
-export function putCounterInsteadOfDestructionEffect(game: Game): EffectFunction {
+export function putCounterInsteadOfDestructionEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offDestroy: (() => void) | null = null;
         // Listen for the next destroy event on this card
@@ -1928,7 +1916,7 @@ export function ConditionalStatModifierEffect(
     triggerEvents: TriggerEvent[],
     game: Game,
     useStack: boolean = true
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         if (!(data.issuer instanceof Player)) return false;
         let offEvents: (() => void)[] = [];
@@ -2028,7 +2016,7 @@ export function ConditionalStatModifierEffect(
 // REPLACEMENT EFFECT: Uses "prevent" - does not use the stack.
 // Card text: "Prevent the next X damage you would take this turn. When you prevent damage this way, deal Y damage to another player."
 // Note: The prevention is a replacement effect, but the damage dealt afterward is a triggered effect.
-export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: number, game: Game): EffectFunction {
+export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: number, game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
@@ -2044,22 +2032,28 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
         };
 
         // Listen for the next damage event on this player
-        offDamage = game.emitter.on("on:damage:would-take", async ({ eventIssuer, damageArray }) => {
+        offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
             const target = data.issuer;
             if (target !== eventIssuer) return;
             const current = damageArray[0] ?? 0;
             if( current <= 0) return;
-            if (!(data.issuer instanceof Player)) return false;
-            damageArray[0] = Math.max(0, current - prevent);
+            if (!(data.issuer instanceof Player)) return;
+            const effect = async (data: EffectData): Promise<boolean> => {
+                damageArray[0] = Math.max(0, current - prevent);
+                if (!(data.issuer instanceof Player)) return false;
 
-            // Deal 1 damage to another player
-            const otherPlayers = game.players.filter(p => p !== data.issuer);
-            if (otherPlayers.length === 0) return;
-            const selection = await data.selectAndRecord(game, data.issuer, 1, 1, otherPlayers, "Select a player to deal damage to.", true, true);
-            if (selection.selected.length > 0) {
-                const chosenPlayer = selection.selected[0]!;
-                game.entityHandler.dealDamage(data.issuer, chosenPlayer, data.it, deal);
+                // Deal 1 damage to another player
+                const otherPlayers = game.players.filter(p => p !== data.issuer);
+                if (otherPlayers.length === 0) return false;
+                const selection = await data.selectAndRecord(game, data.issuer, 1, 1, otherPlayers, "Select a player to deal damage to.", true, true);
+                if (selection.selected.length > 0) {
+                    const chosenPlayer = selection.selected[0]!;
+                    game.entityHandler.dealDamage(data.issuer, chosenPlayer, data.it, deal);
+                    return true;
+                }
+                return false;
             }
+            addPassiveEffectToStack(game, effect, data, `Prevent ${prevent} damage and deal ${deal} damage to another player.`);
             cleanup(); // One-shot: remove listeners after first use
         });
 
@@ -2070,7 +2064,7 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
     };
 }
 
-export function lootPlusXExceptLootStepEffect(game: Game, x: number): EffectFunction {
+export function lootPlusXExceptLootStepEffect(game: Game, x: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offLoot: (() => void) | null = null;
         // Listen for the next loot event on this player
@@ -2091,7 +2085,7 @@ export function lootPlusXExceptLootStepEffect(game: Game, x: number): EffectFunc
 }
 
 
-export function changeRollXToYEffect(game: Game, x: number, y: number): EffectFunction {
+export function changeRollXToYEffect(game: Game, x: number, y: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         // Listen for the next would roll event on this player
@@ -2120,7 +2114,7 @@ export function changeRollXToYEffect(game: Game, x: number, y: number): EffectFu
     };
 }
 
-export function giveThisToAnotherPlayerInsteadOfDiscardEffect(game: Game): EffectFunction {
+export function giveThisToAnotherPlayerInsteadOfDiscardEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offDiscard: (() => void) | null = null;
         offDiscard = game.emitter.on("on:card:discarded:before", (eventData: OnCardDiscardBeforeData) => {
@@ -2150,7 +2144,7 @@ export function giveThisToAnotherPlayerInsteadOfDiscardEffect(game: Game): Effec
     };
 }
 
-export function changeRollToXIfItIsXEffect(game: Game, values: number[], x: number): EffectFunction {
+export function changeRollToXIfItIsXEffect(game: Game, values: number[], x: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offEndTurn: (() => void) | null = null;
         let offRoll: (() => void) | null = null;
@@ -2186,7 +2180,7 @@ export function changeRollToXIfItIsXEffect(game: Game, values: number[], x: numb
 }
 
 
-export function gainPlusTreasureEffect(game: Game, amount: number): EffectFunction {
+export function gainPlusTreasureEffect(game: Game, amount: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offGainTreasure: (() => void) | null = null;
         offGainTreasure = game.emitter.on("on:item:gained", (eventData: OnItemGainedData) => {
@@ -2205,7 +2199,7 @@ export function gainPlusTreasureEffect(game: Game, amount: number): EffectFuncti
 }
 
 
-export function onFirstDamageEachTurnEffect(functions: EffectFunction[], game: Game): EffectFunction {
+export function onFirstDamageEachTurnEffect(functions: EffectFunction[], game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         offDamage = game.emitter.on("on:damage:taken:first-time-each-turn", (eventData: OnDamageTakenData) => {
@@ -2234,7 +2228,7 @@ export function onFirstDamageEachTurnEffect(functions: EffectFunction[], game: G
 
 // REPLACEMENT EFFECT: Uses "instead" - does not use the stack.
 // Card text: "If this would be destroyed, it becomes a soul instead."
-export function becomeSoulInsteadOfDestructionEffect(game: Game): EffectFunction {
+export function becomeSoulInsteadOfDestructionEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offDestroy: (() => void) | null = null;
         // Listen for the next damage event on this player
@@ -2260,7 +2254,7 @@ export function becomeSoulInsteadOfDestructionEffect(game: Game): EffectFunction
 
 // REPLACEMENT EFFECT: Modifies purchase cost - does not use the stack.
 // Reduces the cost of shop items.
-export function shopItemsCostLessEffect(discount: number, game: Game): EffectFunction {
+export function shopItemsCostLessEffect(discount: number, game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         const issuer = data.issuer;
         if(!(issuer instanceof Player)) 
@@ -2273,7 +2267,7 @@ export function shopItemsCostLessEffect(discount: number, game: Game): EffectFun
     };
 }
 
-export function itemCostLessToActivateEffect(game: Game, discount: number): EffectFunction {
+export function itemCostLessToActivateEffect(game: Game, discount: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offLoseCoin: (() => void) | null = null;
         if(!(data.issuer instanceof Player))
@@ -2296,7 +2290,7 @@ export function itemCostLessToActivateEffect(game: Game, discount: number): Effe
 export function onMonsterDeathEffect(
     effectFunctions: EffectFunction[],
     game: Game,
-    description: string): EffectFunction {
+    description: string): SyncEffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
@@ -2330,20 +2324,20 @@ export function onMonsterDeathEffect(
 }
 
 export function lootStepEffect(
-    effectFunctions: EffectFunction[],
+    effectFunctions: SyncEffectFunction[],
     game: Game,
     anyPlayer: boolean = false
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
 
-        offDamage = game.emitter.on("on:loot:step", async (eventData: OnLootStepData) => {
+        offDamage = game.emitter.on("on:loot:step", (eventData: OnLootStepData) => {
             const { eventIssuer } = eventData;
             if (!anyPlayer && data.issuer !== eventIssuer) return;
             if(anyPlayer)
                 data.issuerProvider = (): Entity => eventIssuer;
             for (const func of effectFunctions)
-                await func(data);
+                func(data);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -2359,7 +2353,7 @@ export function lootStepEffect(
 export function lootOnPlayerDeathEffect(
     amount: number,
     game: Game
-): EffectFunction {
+): SyncEffectFunction {
     return (data:EffectData) => {
         let offDeath: (() => void) | null = null;
 
@@ -2399,7 +2393,7 @@ export function lootOnPlayerDeathEffect(
 export function gainPlusCoinsEffect(
     amount: number,
     game: Game
-): EffectFunction {
+): SyncEffectFunction {
     return (data:EffectData) => {
         let offGainCoin: (() => void) | null = null;
 
@@ -2425,7 +2419,7 @@ export function gainPlusCoinsEffect(
     };
 }
 
-export function lootAfterFlippingEffect(game: Game, amount: number): EffectFunction {
+export function lootAfterFlippingEffect(game: Game, amount: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offFlip: (() => void) | null = null;
 
@@ -2459,7 +2453,7 @@ export function onAttackRollEffect(
     rollValues: number[],
     effect: EffectFunction,
     game: Game
-): EffectFunction {
+): SyncEffectFunction {
     return (data:EffectData) => {
         let offEffect: (() => void) | null = null;
         // Listen for the next damage event on this player
@@ -2492,7 +2486,7 @@ export function onAttackingPlayerRollEffect(
     effect: EffectFunction,
     game: Game,
     diceIssuerIssueTheEvent: boolean = false
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         
@@ -2504,7 +2498,7 @@ export function onAttackingPlayerRollEffect(
             // Only trigger for attack rolls with specified values
             if (rollValues.includes(dice.value)) {
                 // Create the effect that will execute when the stack resolves
-                let copyData = data;
+                const copyData = data;
                 if(diceIssuerIssueTheEvent && dice.issuer !== undefined)
                     copyData.issuerProvider = (): Entity => dice.issuer;
                 const stackEffect = async (effectData: EffectData): Promise<boolean> => {
@@ -2529,7 +2523,7 @@ export function onWouldRollEffect(
     effectFunctions: EffectFunction[],
     values: number[],
     game: Game
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
 
@@ -2563,7 +2557,7 @@ export function onRollEffect(
     effect: EffectFunction,
     game: Game,
     diceIssuerIssueTheEvent: boolean = false
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         // Listen for the next damage event on this player
@@ -2605,7 +2599,7 @@ export function onActivePlayerRollEffect(
     rollValues: number[],
     effect: EffectFunction,
     game: Game
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         
@@ -2640,7 +2634,7 @@ export function onActivePlayerRollEffect(
 export function startWithNCountersEffect(
     n: number,
     game: Game
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         if(!data.it.counters.isDefined("normal"))
             game.cardHandler.addToCounter(data.issuer, data.it, "normal", n);
@@ -2652,7 +2646,7 @@ export function startWithNCountersEffect(
 // Card text: "If you would take damage while this has counters on it, remove that many counters and prevent that much damage."
 export function preventDamageByRemovingCountersEffect(
     game: Game
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
 
@@ -2685,7 +2679,7 @@ export function preventDamageByRemovingCountersEffect(
     };
 }
 
-export function preventDamageAndDealOnDeathEffect(game: Game, damagePrevented: number, damageAmount: number): EffectFunction {
+export function preventDamageAndDealOnDeathEffect(game: Game, damagePrevented: number, damageAmount: number): AsyncEffectFunction {
     return async (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         let offDeath: (() => void) | null = null;
@@ -2724,7 +2718,7 @@ export function preventDamageAndDealOnDeathEffect(game: Game, damagePrevented: n
         return true;
     };
 }
-export function eachOtherPlayerRevealsHandEffect(game: Game): EffectFunction {
+export function eachOtherPlayerRevealsHandEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         for(const player of game.players) {
             if(player !== data.issuer) {
@@ -2747,7 +2741,7 @@ export function eachOtherPlayerRevealsHandEffect(game: Game): EffectFunction {
 export function takeDamagePlusEffect(
     amount: number,
     game: Game
-): EffectFunction {
+): SyncEffectFunction {
     return (data:EffectData) => {
         let offDamage: (() => void) | null = null;
 
@@ -2775,7 +2769,7 @@ export function takeDamagePlusEffect(
 
 // REPLACEMENT EFFECT: Uses "if you would" and "instead" - does not use the stack.
 // Card text: "If you would loot any number of loot cards, loot double that number instead."
-export function lootDoubleThisTurnEffect(game: Game): EffectFunction {
+export function lootDoubleThisTurnEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         let offEndTurn: (() => void) | null = null;
@@ -2803,7 +2797,7 @@ export function lootDoubleThisTurnEffect(game: Game): EffectFunction {
         return true;
     };
 }
-export function killOnDoubleAttackRollEffect(game: Game): EffectFunction {
+export function killOnDoubleAttackRollEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
@@ -2835,7 +2829,7 @@ export function killOnDoubleAttackRollEffect(game: Game): EffectFunction {
 // REPLACEMENT EFFECT: Uses "instead" - does not use the stack.
 // Card text: "The next time a player would loot, they loot from the top of the loot discard instead."
 // Replaces the source deck for looting.
-export function lootFromDiscardEffect(game: Game): EffectFunction {
+export function lootFromDiscardEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         // Listen for the next damage event on this player
@@ -2857,7 +2851,7 @@ export function lootFromDiscardEffect(game: Game): EffectFunction {
     };
 }
 
-export function doubleRewardsTillEndOfTurnEffect(game: Game): EffectFunction {
+export function doubleRewardsTillEndOfTurnEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         let offEndTurn: (() => void) | null = null;
@@ -2886,7 +2880,7 @@ export function doubleRewardsTillEndOfTurnEffect(game: Game): EffectFunction {
 // Card text: "If you would gain any amount of ¢, this levels up by that much instead."
 export function gainCoinsLevelUpEffect(
     game: Game
-): EffectFunction {
+): SyncEffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
 
@@ -2920,7 +2914,7 @@ export function preventDamageOnRollEffect(
     diceValues: number[],
     damagePrevented: number,
     game: Game
-): EffectFunction {
+): SyncEffectFunction {
     return (data:EffectData) => {
         let offEffect: (() => void) | null = null;
 
@@ -2953,7 +2947,7 @@ export function preventDamageOnRollEffect(
 }
 
 // Starts with if: replacement effect.
-export function goFirstInTurnOrderEffect(game: Game): EffectFunction {
+export function goFirstInTurnOrderEffect(game: Game): SyncEffectFunction {
     return (data:EffectData) => {
         let offEffect: (() => void) | null = game.emitter.on("on:game:start:before", () => {
             if (!(data.issuer instanceof Player)) return;
@@ -2965,13 +2959,16 @@ export function goFirstInTurnOrderEffect(game: Game): EffectFunction {
     };
 }
 
-export function startingItemEffect(game: Game, x: number): EffectFunction {
+export function startingItemEffect(game: Game, x: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = game.emitter.on("on:game:start", async () => {
-            await active.selectEternalAmongX(game, x)(data);
-            offEffect?.();
-            offEffect = null;
-            await game.resolveCallbacks();
+            // const effect = async (effectData: EffectData): Promise<boolean> => {
+                game.addPromise(active.selectEternalAmongX(game, x)(data));
+                offEffect?.();
+                offEffect = null;
+                return true;
+            // }
+            // addPassiveEffectToStack(game, effect, data, `Starting item effect`);
         });
         return true;
     };

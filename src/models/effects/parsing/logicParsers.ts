@@ -25,7 +25,8 @@ export function parseEachTimeRollEffect(s: string, game: Game, nr?: NumberRobust
     // Check for "each time the attacking player rolls an attack roll of X"
     const attackingPrefix = "each time the attacking player rolls an attack roll of x";
     if (masked.startsWith(attackingPrefix)) {
-        const rollValue = numberRobustString.numbers[0]!;
+        const rollValue = numberRobustString.numbers[0];
+        if(rollValue === undefined) throw new Error(`Could not parse 'Each time the attacking player rolls an attack roll of X' effect: ${s}`);
         let restOfEffect = (numberRobustString.restAfter(attackingPrefix) ?? "").trim();
         if (restOfEffect.startsWith(",")) restOfEffect = restOfEffect.substring(1).trim();
         restOfEffect = restOfEffect.replace(/^they\b/iu, "").trim();
@@ -50,7 +51,8 @@ export function parseEachTimeRollEffect(s: string, game: Game, nr?: NumberRobust
     // So far only "they must give you a loot card" is using it.
     const theyPrefix = theyPrefixes.find((p) => masked.startsWith(p));
     if (theyPrefix && !s.split(" ").includes("you")) {
-        const rollValue = numberRobustString.numbers[0]!;
+        const rollValue = numberRobustString.numbers[0];
+        if(rollValue === undefined) throw new Error(`Could not parse 'Each time a player rolls a X' effect: ${s}`);
         let restOfEffect = (numberRobustString.restAfter(theyPrefix) ?? "").trim();
         if (restOfEffect.startsWith("may") ||
             restOfEffect.startsWith("must")
@@ -66,7 +68,8 @@ export function parseEachTimeRollEffect(s: string, game: Game, nr?: NumberRobust
 
     const genericPrefix = "each time a player rolls a x";
     if (masked.startsWith(genericPrefix)) {
-        const rollValue = numberRobustString.numbers[0]!;
+        const rollValue = numberRobustString.numbers[0];
+        if(rollValue === undefined) throw new Error(`Could not parse 'Each time a player rolls a X' effect: ${s}`);
         let restOfEffect = (numberRobustString.restAfter(genericPrefix) ?? "").trim();
         if (restOfEffect.startsWith(",")) restOfEffect = restOfEffect.substring(1).trim();
         const restParsed = effectParser(restOfEffect, game, true);
@@ -83,7 +86,8 @@ export function parseWhenActivePlayerRollsEffect(s: string, game: Game, nr?: Num
     const masked = numberRobustString.toString();
     const prefix = "when the active player rolls a x";
     if (masked.startsWith(prefix)) {
-        const rollValue = numberRobustString.numbers[0]!;
+        const rollValue = numberRobustString.numbers[0];
+        if(rollValue === undefined) throw new Error(`Could not parse 'When the active player rolls a X' effect: ${s}`);
         let restOfEffect = (numberRobustString.restAfter(prefix) ?? "").trim();
         if (restOfEffect.startsWith(",")) restOfEffect = restOfEffect.substring(1).trim();
         const restParsed = effectParser(restOfEffect, game, true);
@@ -98,7 +102,7 @@ export function parseWhenActivePlayerRollsEffect(s: string, game: Game, nr?: Num
 export function ParseWhenGainOrPurchaseThis(s: string, game: Game): ParsedEffect {
     const restOfEffect = s.substring("when you gain or purchase this, ".length).trim();
     const restParsed = effectParser(restOfEffect, game, true);
-    return noTargetEffect(passive.onYourEventEffect("on:enter:play:after", [restParsed.effectFunction], game, s, false, false, (effect: EffectData, event: OnEnterPlayData) => event.card === effect.it));
+    return noTargetEffect(passive.onYourEventEffect("on:enter:play:after", [restParsed.effectFunction], game, s, false, (effect: EffectData, event: OnEnterPlayData) => event.card === effect.it));
 }
 
 export function parseYouMayEffect(s: string, game: Game): ParsedEffect {
@@ -214,7 +218,7 @@ export function parseEachTimeYouKillSpecificTypeEffect(s: string, game: Game, ty
     const restOfEffect = s.substring(`each time you kill a ${type}, `.length).trim();
     const restParsed = effectParser(restOfEffect, game, true);
     return {
-        effectFunction: passive.onYourKillEffect([restParsed.effectFunction], game, s, false, (effectData: EffectData, eventData: OnDeathMonsterData) => {
+        effectFunction: passive.onYourKillEffect([restParsed.effectFunction], game, s, (effectData: EffectData, eventData: OnDeathMonsterData) => {
             return eventData.eventIssuer instanceof (type === "monster" ? Monster : Player);
         }),
         targetSelectors: restParsed.targetSelectors
@@ -234,7 +238,8 @@ export function parseEachTimeWouldRollEffect(s: string, game: Game): ParsedEffec
     if (!masked.startsWith(prefix))
         throw new Error(`Could not parse 'Each time a player would roll a X' effect: ${s}`);
 
-    const value = nr.numbers[0]!;
+    const value = nr.numbers[0];
+    if (value === undefined) throw new Error(`Could not parse 'Each time a player would roll a X' effect: ${s}`);
     let restOfEffect = (nr.restAfter(prefix) ?? "").trim();
     if (restOfEffect.startsWith(",")) restOfEffect = restOfEffect.substring(1).trim();
     const restParsed = effectParser(restOfEffect, game, true);
