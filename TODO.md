@@ -3,13 +3,11 @@
 - better support for touchscreens
 - better visiblity for counters and stats on cards
     - maybe an animation when values change
-    - see the counters and live stats on hover preview
 - network stability
 - music, sound effects
 - have some way to see the destoyed cards
 - being able to rename the player name
 - split game parameters into categories
-- deck type selection for ansuz instead of string
 
 ## Expand audience
 

@@ -184,9 +184,9 @@ export const enterStartStep = (
             sendRoomChangedToAll(room);
 
             if (target.instance.isActive) {
-              const socket = user.socket;
+              const socket = target.user.socket;
               sendUserAssigned(socket, null);
-              sendRoomChangedToUser(null, user);
+              sendRoomChangedToUser(null, target.user);
 
               leaveCurrentStep(socket);
               enterIntroStep(socket);
