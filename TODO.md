@@ -19,13 +19,11 @@
 ## New cards and rulesets
 
 - work on the other card sets
-    - release Four Souls+
     - release Requiem
 
 ## New game modes (e.g: Solitaire, Co-op, Team)
 
-- team mode
-    - the total number of souls of the team counts towards the soul goal
+- reorder players
 - select loot card visiblity
     - only show the cards of me and my instances (default)
     - see cards of other members of the team (useful when in team mode)
