@@ -702,11 +702,11 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
         case "force a player to discard x loot cards":
             return { effectFunction: active.discardNLootCardsEffect(nr.nextNumber(), game, true, "next"), targetSelectors: selectPlayer(game) };
         case "discard a loot card":
-            return { effectFunction: active.discardNLootCardsEffect(1, game, selectionOnResolve), targetSelectors: selectLootInYourHand(game, 1, 1, selectionOnResolve) };
+            return noTargetEffect(active.discardNLootCardsEffect(1, game, true));
         case "discard x loot card":
         case "discard x loot cards": {
             const toDiscard = nr.nextNumber();
-            return { effectFunction: active.discardNLootCardsEffect(toDiscard, game, selectionOnResolve), targetSelectors: selectLootInYourHand(game, toDiscard, toDiscard, selectionOnResolve) };
+            return noTargetEffect(active.discardNLootCardsEffect(toDiscard, game, true));
         }
         case "each player loots x":
             return noTargetEffect(active.eachPlayerLootsEffect(game, nr.nextNumber()));

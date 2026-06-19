@@ -643,7 +643,7 @@ describe("Four Souls+2 Eternal Items", () => {
         game.actions.declareAttack(player1);
         game.actions.declareAttackOnEntity(player1, game.monsters[0]!);
         
-        await game.activateItem(player1, eternal, [lootCard, "Gain 3¢."], 0);
+        await game.activateItem(player1, eternal, [ "Gain 3¢."], 0);
         await game.actions.resolveStack();
             
         expect(player1.coins).toBe(initialCoins + 3);
@@ -652,7 +652,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.isEngagedInCombat).toBe(true);
 
         const lootCard2 = player1.hand.cards[0]!;
-        await game.activateItem(player1, eternal, [lootCard2, "cancel your attack on a monster."], 0);
+        await game.activateItem(player1, eternal, [ "cancel your attack on a monster."], 0);
         await game.actions.resolveStack();
             
         expect(player1.coins).toBe(initialCoins + 3);

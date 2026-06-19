@@ -614,7 +614,7 @@ describe("Eternal Items", () => {
         const initialHandSizeT2 = player2.hand.length;
         // The discarded card is chosen on resolve stack, so no need to specify here
         await game.activateItem(player2,
-            foreverAlone, ["Discard a loot card, then loot 1.", lootCard]);
+            foreverAlone, ["Discard a loot card, then loot 1."]);
         await game.actions.resolveStack();
         
         // Should discard 1 card and loot 1 card (net 0 change)
