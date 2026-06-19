@@ -337,7 +337,7 @@ export class Game extends SelectionHandler {
   startOfGameSetup(players: { issuer: string; character: string; user?: string, team: Team }[], shufflePlayerOrder: boolean = true): void {
     this.assert.gameNotStarted();
     for (const p of players) 
-      this.entityHandler.addPlayer(new Player(p.issuer, p.team));
+      this.entityHandler.addPlayer(new Player(p.issuer, p.team, p.user));
     const chara = this.cardHandler.getCharactersFromSlugs(players.map((p) => p.character));
     this.cardHandler.assignCharactersToPlayers(chara);
 
