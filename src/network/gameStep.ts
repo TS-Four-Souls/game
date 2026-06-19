@@ -434,7 +434,7 @@ export const enterGameStep = (
             error: "Treasure deck is empty",
           });
         }
-        room.game.actions.debugGainTreasures(player, [topCard]);
+        room.game.actions.debugGainTreasures(player, [topCard], true);
         return callback({ status: 200 });
       }),
     );
@@ -577,7 +577,7 @@ export const enterGameStep = (
                   error: "Treasure deck not available",
                 });
               }
-              room.game.actions.debugGainTreasures(player, cards as ItemCard[]);
+              room.game.actions.debugGainTreasures(player, cards as ItemCard[], false);
               return callback({
                 status: 200,
               });

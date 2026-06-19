@@ -662,7 +662,7 @@ export class ActionHandler {
     });
   }
 
-  debugGainTreasures(player: Player, treasures: ItemCard[]): void {
+  debugGainTreasures(player: Player, treasures: ItemCard[], fromTop: boolean = false): void {
     if(!this.game.gameParameters.allowCheatOptions.value)
       throw new Error("Cheat options are not allowed in this game.");
     for (const card of treasures) {
@@ -671,10 +671,11 @@ export class ActionHandler {
         throw new Error(`Card ${targetCard.name} is not an ItemCard`);
       this.game.cardHandler.addInPlay(player, targetCard);
     }
+    console.log(fromTop ? "Gained treasures from top of the deck:" : "Gained treasures:", treasures);
     this.game.toast({
       type: "warning",
-      title: `${player.id} used a cheat to gain ${treasures.length} treasure(s).`,
-      message: `They obtained ${treasures.map((t) => t.name).join(", ")}.`,
+      title: `${player.id} used a cheat to ${fromTop ? "gain" : "obtain"} ${treasures.length} treasure${treasures.length > 1 ? "s" : ""}.`,
+      message: `They ${fromTop ? "gained" : "obtained"} ${treasures.map((t) => t.name).join(", ")}${fromTop ? " from the top of the deck." : "."}`,
       players: this.game.players.map((p) => p.id),
     });
   }
@@ -700,8 +701,8 @@ export class ActionHandler {
     }
     this.game.toast({
       type: "warning",
-      title: `${player.id} used a cheat to loot ${lootCards.length} loot card(s).`,
-      message: `They obtained ${broadcastName ? lootCards.map((c) => c.name).join(", ") : `${lootCards.length} loot card${lootCards.length > 1 ? "s" : ""}`}.`,
+      title: `${player.id} used a cheat to ${broadcastName ? "obtain" : "loot"} ${lootCards.length}${broadcastName ? ` loot card${lootCards.length > 1 ? "s" : ""}.` : "."}`,
+      message: broadcastName ? `They obtained ${lootCards.map((c) => c.name).join(", ")}.` : `They looted ${lootCards.length} from the top of the deck.`,
       players: this.game.players.map((p) => p.id),
     });
   }
