@@ -5,6 +5,7 @@ import { Player } from "../models/entities/player";
 import { Game } from "../models/game";
 import { DamageOnStack, DiceRoll } from "../models/stackElement";
 import { setupStandardTestGame } from "./testHelpers";
+import { pl } from "zod/locales";
 
 describe("Known bugs that have be corrected", () => {
     let game: Game;
@@ -16,6 +17,28 @@ describe("Known bugs that have be corrected", () => {
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
+    });
+    
+    // it("", async () => {
+    // });
+
+    it("can not destroy an item in the discard.", async () => {
+        const soul = game.decks.loot.draw();
+        soul.soul = 1;
+        game.cardHandler.addSoul(player1, soul);
+
+        const cc = game.obtainCard("b2-chaos_card") as ItemCard;
+        const d20 = game.obtainCard("b2-the_d20") as ItemCard;
+        game.cardHandler.addInPlay(player1, cc);
+        game.cardHandler.addInPlay(player1, d20);
+        game.activateItem(player1, cc, ["Destroy an item or soul.", soul], "tap");
+        game.activateItem(player1, d20, [cc], "tap");
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(player1.totalSouls).toBe(1);
     });
     it("playing question mark on chaos card should NOT destroy question mark.", async () => {
         const chaosCard = game.obtainCard("b2-chaos_card") as ItemCard;

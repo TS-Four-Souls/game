@@ -460,7 +460,10 @@ export class CardHandler {
   destroyCardsOrSouls(cards: Card[]): boolean {
     if (cards.length === 0 || cards.some((card) => card === undefined) || cards.some((card) => card.eternal === true) || cards.some((card) => card.type === "loot" && card.soul === 0 && (card as LootCard).trinket === false))
       return false;
-
+    // You can not destroy a card that is already destroyed.
+    for(const card of cards)
+      if(this.decks[card.type].discard.includes(card as any))
+        return false;
     // console.log("Destroying cards:", cards.map(c => c.name));
     const eventData = { eventIssuer: null, cards };
     this.game.emit("on:item:destroyed", eventData);
