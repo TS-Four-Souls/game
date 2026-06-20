@@ -213,7 +213,7 @@ export function activePlayerSelectAndCallEffect(game: Game, effectFunction: Effe
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
         
-        const targetSelection = await data.selectAndRecord(game, player, (may ? 0 : 1), 1, game.players.filter(p => anotherPlayer || p !== player), "Select a player.", true, true);
+        const targetSelection = await data.selectAndRecord(game, player, (may ? 0 : 1), 1, game.players.filter(p => !anotherPlayer || p !== player), "Select a player.", true, true);
         const targetPlayer = targetSelection.selected[0] as Player;
         if(!targetPlayer){
             throw new Error("No player selected for activePlayerForcesPlayerToDiscardLootEffect.");
