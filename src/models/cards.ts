@@ -94,7 +94,10 @@ class Card {
                 }
             }
         }
-        throw new Error(`Effect description "${description}" not found for card ${this.name}`);
+        // tmp 
+        return { startIndex:0, endIndex:0 };
+
+        // throw new Error(`Effect description "${description}" not found for card ${this.name}`);
     }
     get counters(): CounterHandler {
         return this._counterHandler;
@@ -244,16 +247,19 @@ class Card {
                 else if(effect.toLowerCase().includes("choose one-"))
                 {
                     const arr: EffectRange = []
-                    for(let i = 0; i < lines.length -1 - (effect.toLowerCase().includes("[paid effect]") ? 1 : 0); i++)
-                        arr.push({startIndex: id, endIndex: id, description: lines[i]?.split("choose one-").at(-1)!});
+                    for(let i = 0; i < lines.length -2 - (effect.toLowerCase().includes("[paid effect]") ? 1 : 0); i++)
+                    {
+                        arr.push({startIndex: id, endIndex: id, description: lines[i+1]!});
+                        id++;
+                    }
                     effectRange.push(arr);
                 }else if( effect.includes("-\n") &&  effect.includes("whiff-\n") === false)
                     throw new Error(`Effect outcome "${effect}" has a newline but is not a roll or choose one effect.`);
                 else
-                    effectRange.push([{startIndex: id++, endIndex: id, description: effect}]);
+                    effectRange.push([{startIndex: ++id, endIndex: id, description: effect}]);
             }else
             {
-                effectRange.push([{startIndex: id++, endIndex: id, description: effect}]);
+                effectRange.push([{startIndex: ++id, endIndex: id, description: effect}]);
             }
         }
         // console.log(`Computed separator IDs for card ${this.name}: ${JSON.stringify(effectRange)}`);
