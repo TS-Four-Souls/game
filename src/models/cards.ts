@@ -94,7 +94,7 @@ class Card {
                 }
             }
         }
-        // tmp 
+        // tmp
         return { startIndex:0, endIndex:0 };
 
         // throw new Error(`Effect description "${description}" not found for card ${this.name}`);
@@ -256,10 +256,14 @@ class Card {
                 }else if( effect.includes("-\n") &&  effect.includes("whiff-\n") === false)
                     throw new Error(`Effect outcome "${effect}" has a newline but is not a roll or choose one effect.`);
                 else
-                    effectRange.push([{startIndex: ++id, endIndex: id, description: effect}]);
+                    {
+                        effectRange.push([{startIndex: id, endIndex: id, description: effect}]);
+                        id++;
+                    }
             }else
             {
-                effectRange.push([{startIndex: ++id, endIndex: id, description: effect}]);
+                effectRange.push([{startIndex: id, endIndex: id, description: effect}]);
+                id++;
             }
         }
         // console.log(`Computed separator IDs for card ${this.name}: ${JSON.stringify(effectRange)}`);
