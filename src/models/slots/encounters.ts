@@ -263,9 +263,9 @@ export class Encounters extends Slots<MonsterCard> {
         }
         if (card.encounterType !== MonsterType.EVENT) {
             const monster = new Monster(card, this);
+            this._monstersInPlay[index] = monster;
             monster.addHealthPoints(this.healthModifier);
             card.onAddInPlay(() => monster);
-            this._monstersInPlay[index] = monster;
         } else {
             this._monstersInPlay[index] = undefined!;
             const effect: EffectOnStack = this.createEventEffect(card);

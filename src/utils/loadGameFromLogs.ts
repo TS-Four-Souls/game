@@ -281,7 +281,6 @@ function isLastIndexUsedForReplay(index: number, logs: HistoricEntry[])
         "SubmitSelection"
       ].includes(logs[i]!.type))
       {
-        console.log("nop because of ", logs[i]!.type)
         return false;
       }
   }
@@ -292,7 +291,7 @@ export async function loadGameFromLogs(
   logs: HistoricEntry[],
   verbose: number = 0,
 ): Promise<Game> {
-  // if (verbose >= 1)
+  if (verbose >= 1)
     console.log(`Loading game from logs with ${logs.length} entries...`);
 
   const game = new Game(findInitialSeed(logs));

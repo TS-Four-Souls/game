@@ -55,8 +55,6 @@ export const enterGameStep = (
         });
       }
 
-      console.log(`Rollback requested by ${player.id}`);
-
       let newGame;
       try {
         newGame = await loadGameFromLogs(logs);
