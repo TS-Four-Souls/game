@@ -218,6 +218,31 @@ export const enterGameStep = (
     ),
   );
 
+  socket.on("activateWithID", (payload, callback) =>
+    errorGuardedEndpoint(callback, () =>
+      payloadGuardedEndpoint(
+        payload,
+        schemas.activateRequest,
+        callback,
+        async (payload) => {
+          const choices = await executeActivateRequest(
+            room.game,
+            payload,
+            player,
+          );
+          if (choices.complete) {
+            room.game.addToHistory({
+              type: "Activate",
+              payload,
+              issuer: player.id,
+            });
+          }
+          return callback({ response: choices, status: 200 });
+        },
+      ),
+    ),
+  );
+
   socket.on("activate", (payload, callback) =>
     errorGuardedEndpoint(callback, () =>
       payloadGuardedEndpoint(

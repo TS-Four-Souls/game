@@ -1,4 +1,4 @@
-import { type ActiveEffectEntry, type BonusSoulCard, type IdentifierType } from '@/shared/api';
+import { type ActiveEffectEntry, type BonusSoulCard, type DescriptiveVisualEffectBox, type IdentifierType, type VisualEffectBox } from '@/shared/api';
 import type { FlipData, BonusSoulCardType, CardRewards, CharacterCardType, EternalCardType, GenericCardType, InPlayCardType, LootCardType, MonsterCardType, RoomCardType, TreasureCardType } from '@/types/cardTypes';
 import { print, shuffle } from '@/utils/auxiliary';
 import type { Entity } from './entities/entity';
@@ -6,9 +6,8 @@ import { Player } from './entities/player';
 import type { GameParameters } from './gameParameters';
 import { EffectOnStack } from './stackElement';
 import { type CardSetsCollection, type DecksCollection, type DeckType, type DeckTypeToCardType, type TargetsSelector } from './types/cardTypes';
-import { EffectInterface, Effect } from './effects/effects';
-export type SeparatorInterval = [number, number?];
-export type EffectRange = SeparatorInterval[];
+import { EffectInterface, Effect } from './effects/effects';    
+export type EffectRange = DescriptiveVisualEffectBox[];
 export type CardEffectsRanges = EffectRange[];
 class Card {
     protected _json: GenericCardType;
@@ -85,6 +84,17 @@ class Card {
         if(idx < 0 || idx >= this._separatorIds.length)
             throw new Error(`Effect index ${idx} is out of bounds for card ${this.name}, ${this._separatorIds}`);
         return this._separatorIds[idx]!;
+    }
+
+    visualEffectBoxFromDescription(description: string): VisualEffectBox {
+        for(const effectRange of this._separatorIds) {
+            for(const effect of effectRange) {
+                if(effect.description.toLowerCase().includes(description.toLowerCase())) {
+                    return { startIndex: effect.startIndex, endIndex: effect.endIndex };
+                }
+            }
+        }
+        throw new Error(`Effect description "${description}" not found for card ${this.name}`);
     }
     get counters(): CounterHandler {
         return this._counterHandler;
@@ -218,31 +228,32 @@ class Card {
         {
             if(effect.includes("\n"))
             {
-                const nbLines = effect.split("\n").length;
+                const lines = effect.split("\n");
+                const nbLines = lines.length;
                 if(effect.toLowerCase().includes("roll-") || effect.toLowerCase().includes("rolls-") || effect.toLowerCase().includes("instead-") || effect.toLowerCase().includes("times!-"))
                     {
                         if(nbLines < 2)
                             throw new Error(`Effect outcome "${effect}" has a newline but is not a roll or choose one effect.`);
                         // new line separate roll- with first effect, but there is no separator. 
                         if(nbLines == 2)
-                            effectRange.push([[id]]);
+                            effectRange.push([{startIndex: id, endIndex: id, description: lines[0]!}]);
                         else
-                            effectRange.push([[id, id+effect.split("\n").length-2]]);
-                        id += effect.split("\n").length;
+                            effectRange.push([{startIndex: id, endIndex: id+lines.length-2, description: effect}]);
+                        id += lines.length;
                     }
                 else if(effect.toLowerCase().includes("choose one-"))
                 {
                     const arr: EffectRange = []
-                    for(let i = 0; i < effect.split("\n").length -1 - (effect.toLowerCase().includes("[paid effect]") ? 1 : 0); i++)
-                        arr.push([id++]);
+                    for(let i = 0; i < lines.length -1 - (effect.toLowerCase().includes("[paid effect]") ? 1 : 0); i++)
+                        arr.push({startIndex: id, endIndex: id, description: lines[i]?.split("choose one-").at(-1)!});
                     effectRange.push(arr);
                 }else if( effect.includes("-\n") &&  effect.includes("whiff-\n") === false)
                     throw new Error(`Effect outcome "${effect}" has a newline but is not a roll or choose one effect.`);
                 else
-                    effectRange.push([[id++]]);
+                    effectRange.push([{startIndex: id++, endIndex: id, description: effect}]);
             }else
             {
-                effectRange.push([[id++]]);
+                effectRange.push([{startIndex: id++, endIndex: id, description: effect}]);
             }
         }
         // console.log(`Computed separator IDs for card ${this.name}: ${JSON.stringify(effectRange)}`);

@@ -1157,7 +1157,7 @@ export class CardHandler {
     if(!(gainer.hasTapEffect()))
     {
       gainer.canBeActivated = true;
-        gainer.addEffect(new Effect("Use a card effect.",
+        gainer.addEffect(new Effect("Choose a card to use its effect.",
             "active",
             gainer,
             async (effectData: EffectData) => {
@@ -1192,7 +1192,7 @@ export class CardHandler {
                 this.game.addToStack(effectOnStack);
                 return true;
             }
-        ,[copiedSelector], [[0]]
+        ,[copiedSelector], [{startIndex: 0, endIndex: 0, description: "Choose a card to use its effect."}]
     ));
     }
     const copied = this.copyCard(toCopy, issuer) as ItemCard;

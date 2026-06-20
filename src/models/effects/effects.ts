@@ -1,4 +1,4 @@
-    import { type EffectFunction, type TargetsSelector, type EffectType, EffectData, Card, type EffectRange, type SeparatorInterval } from "../cards";
+    import { type EffectFunction, type TargetsSelector, type EffectType, EffectData, Card, type EffectRange } from "../cards";
 import { EffectOnStack } from '../stackElement';
 import type { Entity } from "../entities/entity";
 import type { Player } from "../entities/player";
@@ -292,10 +292,11 @@ export class EffectInterface {
         if (effect.type === "passive") {
             this.passiveEffects.addEffect(effect);
         } else {
-            for(const sepId of effect.range) {
-                for(let i = sepId[0]; i <  (sepId[1] === undefined ? sepId[0] + 1 : sepId[1]+1); i++) {
+            
+            for(const boxId of effect.range) {
+                for(let i = boxId.startIndex; i < boxId.endIndex + 1; i++) {
                     if(this._mapSepIdToActiveEffectId.has(i))
-                        throw new Error(`Duplicate separator ID ${sepId} in card ${this.it.slug}. Each effect range separator must be unique.`);
+                        throw new Error(`Duplicate separator ID ${boxId} in card ${this.it.slug}. Each effect range separator must be unique.`);
                     this._mapSepIdToActiveEffectId.set(i, effect.type === "active" ? "tap" : this.activeEffects.nbPaidEffects);
                 }
             }
@@ -312,7 +313,7 @@ export class EffectInterface {
         if(effect.range.length === 1)
             return { effectId };
         for(let i = 0; i < effect.range.length; i++) {
-            if(effect.range[i]![0] <= id && (effect.range[i]![1] === undefined || id <= effect.range[i]![1]!))
+            if(effect.range[i]!.startIndex <= id && id <= effect.range[i]!.endIndex!)
                 return { effectId, choice: effect.targetsSelector[0]!.selector(1 as any, 2 as any)[i] };
         }
         throw new Error(`Separator ID ${effectId} does not fall within any effect range for card ${this.it.slug}.`);
@@ -328,7 +329,6 @@ export class EffectInterface {
 
     async paidEffect(issuer: Entity, targets: any[], effectId: number): Promise<EffectOnStack> {
         const effect = this.activeEffects.getPaidEffect(effectId);
-
         const data = new EffectData(this.it, () => issuer as Player, targets);
         // Execute payment if it exists
         if (effect.hasPayment()) {
@@ -352,11 +352,11 @@ export class EffectInterface {
     get activeEffectList(): ActiveEffectEntry[] {
         const effects: ActiveEffectEntry[] = [];
         if (this.activeEffects.hasTapEffect())
-            for( const sepId of this.activeEffects.getActiveEffect().range)
-                effects.push({ visualEffectBox: { startIndex: sepId[0], endIndex: sepId[1] !== undefined ? sepId[1] : sepId[0] }, index: "tap" as const, description: this.activeEffects.getActiveEffect().description });
+            for( const boxId of this.activeEffects.getActiveEffect().range)
+                effects.push({ visualEffectBox: { startIndex: boxId.startIndex, endIndex: boxId.endIndex }, index: "tap" as const, description: this.activeEffects.getActiveEffect().description });
         for (const [index, effect] of this.activeEffects.effectNames.entries())
-            for( const sepId of this.activeEffects.getPaidEffect(index).range)
-                effects.push({ visualEffectBox: { startIndex: sepId[0], endIndex: sepId[1] !== undefined ? sepId[1] : sepId[0] }, index: index, description: effect });
+            for( const boxId of this.activeEffects.getPaidEffect(index).range)
+                effects.push({ visualEffectBox: { startIndex: boxId.startIndex, endIndex: boxId.endIndex }, index: index, description: effect });
         return effects;
     }
 

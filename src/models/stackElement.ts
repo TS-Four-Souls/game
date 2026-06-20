@@ -374,6 +374,7 @@ export class EffectOnStack extends StackElement {
             targets: TargetBuilder.convertToSelectionItems([...this._data.targets, ...this._data.selectedOnResolve]),
             card: this.data.it.jsonAPI,
             effect: this._description,
+            visualEffectBox: this._data.it.visualEffectBoxFromDescription(this._description),
             ...super.baseJson,
         };
     }
