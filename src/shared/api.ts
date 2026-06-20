@@ -23,6 +23,10 @@ export type Card = z.infer<typeof cardSchema>;
 const shopItemSchema = cardSchema.extend({ price: z.number() });
 
 const activeEffectEntrySchema = z.object({
+  visualEffectBox: z.object({
+    startIndex: z.number(),
+    endIndex: z.number(),
+  }),
   index: z.union([z.literal("tap"), z.number()]),
   description: z.string(),
 });
@@ -268,6 +272,10 @@ const effectOnStackJsonSchema = z.object({
   issuer: entityTypeSchema,
   targets: z.array(selectionItemSchema),
   card: identifierTypeSchema,
+  visualEffectBox: z.object({
+    startIndex: z.number(),
+    endIndex: z.number(),
+  }),
   effect: z.string(),
   id: z.number(),
   reordering: stackReorderingInfoSchema.optional(),
