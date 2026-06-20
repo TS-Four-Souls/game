@@ -1,10 +1,11 @@
-import { type EffectFunction, type TargetsSelector, type EffectType, EffectData, Card } from "../cards";
+    import { type EffectFunction, type TargetsSelector, type EffectType, EffectData, Card, type EffectRange, type SeparatorInterval } from "../cards";
 import { EffectOnStack } from '../stackElement';
 import type { Entity } from "../entities/entity";
 import type { Player } from "../entities/player";
 import { TargetBuilder } from "../targetBuilder";
 import { isChooseOneOptions } from "../targetSelector";
 import { combineEffectFunctions } from "./activeEffect";
+import type { ActiveEffectEntry } from "@/shared/api";
 
 
 export class Effect {
@@ -15,13 +16,15 @@ export class Effect {
     protected _targetsSelector: TargetsSelector[];
     protected _cleanup: () => void = () => { };
     protected _type: EffectType;
+    protected _range: EffectRange;
     // protected _cleanup: () => void = () => {};
     constructor(description: string,
         type: EffectType,
         card: Card,
         effectFunction: EffectFunction = (data: EffectData): boolean => { return true; },
         targetsSelector: TargetsSelector[] = [{ description: "", selector: (issuer: Player, card: Card): Entity[] => [], min: 0, max: 0 }],
-        paymentFunction?: EffectFunction
+        range: EffectRange,
+        paymentFunction?: EffectFunction,
     ) {
         this._description = description;
         this._type = type;
@@ -29,6 +32,7 @@ export class Effect {
         this._targetsSelector = targetsSelector;
         this._paymentFunction = paymentFunction;
         this._card = card;
+        this._range = range;
     }
 
     get card(): Card {
@@ -37,6 +41,10 @@ export class Effect {
     get description(): string {
         return this._description;
     }
+    get range(): EffectRange {
+        return this._range;
+    }
+
     get targetsSelector(): TargetsSelector[] {
         return this._targetsSelector;
     }
@@ -152,7 +160,7 @@ function combineEffects(effect1: Effect, effect2: Effect): Effect {
     }
     const descr = `${effect1.description} ${effect2.description}`;
     const effect = combineEffectFunctions([effect1.effectFunction, effect2.effectFunction]);
-    return new Effect(descr, "active", effect1.card, effect, effect1.targetsSelector.concat(effect2.targetsSelector));
+    return new Effect(descr, "active", effect1.card, effect, effect1.targetsSelector.concat(effect2.targetsSelector), effect1.range.concat(effect2.range));
 
 }
 // Effect handler manages multiple effects of the same type of a card.
@@ -215,6 +223,9 @@ class ActiveEffectHandler extends EffectHandler {
         }
         return this._activeEffect;
     }
+    get nbPaidEffects(): number {
+        return this._effects.length;
+    }
 
     async activate(issuer: Entity, it: Card, targets: any[]): Promise<boolean> {
         if (this._activeEffect === null) {
@@ -240,23 +251,6 @@ class ActiveEffectHandler extends EffectHandler {
         return paidEffects;
     }
 
-    // getEffect(index: number = 0): Effect | undefined {
-    //     return this._effects.length > index ? this._effects[index] : undefined;
-    // }
-    // activeEffect(issuer: Entity, it: Card, effectId: number, targets: any[]): void {
-    //     if (this._type !== "active" && this._effects.length > 0)
-    //         throw new Error("activeEffect can only be called for active effects.");
-    //     // Implement shovel and blank card before uncommenting this
-    // if( effectId < 0 || effectId >= this._effects.length) { 
-    //     throw new Error(`Effect id ${effectId} is out of bounds for active effects of length ${this._effects.length}.`);
-    // }
-    //     const effect = this._effects[effectId];
-    //     if (effect) {
-    //         if (effect.type !== "passive") {
-    //             effect.effectFunction({ it, issuer: issuer as Player, targets: targets });
-    //         }
-    //     }
-    // }
     getTargetSelectors(index: number | "tap"): TargetsSelector[] {
         if (index === "tap")
             return this.getActiveEffect().targetsSelector || [];
@@ -282,7 +276,7 @@ export class EffectInterface {
     private passiveEffects: PassiveEffectHandler;
     protected _issuer: Player | undefined;
     protected it: Card;
-
+    protected _mapSepIdToActiveEffectId: Map<number, number | "tap"> = new Map(); // Maps separator IDs to paid effect indices
     constructor(it: Card) {
         this.activeEffects = new ActiveEffectHandler();
         this.passiveEffects = new PassiveEffectHandler();
@@ -298,8 +292,30 @@ export class EffectInterface {
         if (effect.type === "passive") {
             this.passiveEffects.addEffect(effect);
         } else {
+            for(const sepId of effect.range) {
+                for(let i = sepId[0]; i <  (sepId[1] === undefined ? sepId[0] + 1 : sepId[1]+1); i++) {
+                    if(this._mapSepIdToActiveEffectId.has(i))
+                        throw new Error(`Duplicate separator ID ${sepId} in card ${this.it.slug}. Each effect range separator must be unique.`);
+                    this._mapSepIdToActiveEffectId.set(i, effect.type === "active" ? "tap" : this.activeEffects.nbPaidEffects);
+                }
+            }
             this.activeEffects.addEffect(effect);
         }
+    }
+
+    getEffectIdAndChooseOneChoiceFromSeparatorId(id: number): { effectId: number | "tap"; choice?: string } {
+        const effectId = this._mapSepIdToActiveEffectId.get(id);
+        if (effectId === undefined) {
+            throw new Error(`Separator ID ${id} not found in effect map for card ${this.it.slug}.`);
+        }
+        const effect = effectId === "tap" ? this.activeEffects.getActiveEffect() : this.activeEffects.getPaidEffect(effectId);
+        if(effect.range.length === 1)
+            return { effectId };
+        for(let i = 0; i < effect.range.length; i++) {
+            if(effect.range[i]![0] <= id && (effect.range[i]![1] === undefined || id <= effect.range[i]![1]!))
+                return { effectId, choice: effect.targetsSelector[0]!.selector(1 as any, 2 as any)[i] };
+        }
+        throw new Error(`Separator ID ${effectId} does not fall within any effect range for card ${this.it.slug}.`);
     }
 
     hasTapEffect(): boolean {
@@ -332,15 +348,15 @@ export class EffectInterface {
         const data = new EffectData(this.it, () => issuer as Player, targets);
         return new EffectOnStack(effect.effectFunction, data, effect.description, effect.type);
     }
-    // activeEffect(issuer: Entity, targets: any[], effectId: number): void {
-    //     this.activeEffects.pay(issuer, this.it, targets, effectId);
-    // }
-    get activeEffectList(): { index: ("tap" | number); description: string; }[] {
-        const effects: { index: ("tap" | number); description: string; }[] = [];
+    
+    get activeEffectList(): ActiveEffectEntry[] {
+        const effects: ActiveEffectEntry[] = [];
         if (this.activeEffects.hasTapEffect())
-            effects.push({ index: "tap" as const, description: this.activeEffects.getActiveEffect().description });
+            for( const sepId of this.activeEffects.getActiveEffect().range)
+                effects.push({ visualEffectBox: { startIndex: sepId[0], endIndex: sepId[1] !== undefined ? sepId[1] : sepId[0] }, index: "tap" as const, description: this.activeEffects.getActiveEffect().description });
         for (const [index, effect] of this.activeEffects.effectNames.entries())
-            effects.push({ index: index, description: effect });
+            for( const sepId of this.activeEffects.getPaidEffect(index).range)
+                effects.push({ visualEffectBox: { startIndex: sepId[0], endIndex: sepId[1] !== undefined ? sepId[1] : sepId[0] }, index: index, description: effect });
         return effects;
     }
 

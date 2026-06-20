@@ -1,4 +1,4 @@
-import { type BonusSoulCard, type IdentifierType } from '@/shared/api';
+import { type ActiveEffectEntry, type BonusSoulCard, type IdentifierType } from '@/shared/api';
 import type { FlipData, BonusSoulCardType, CardRewards, CharacterCardType, EternalCardType, GenericCardType, InPlayCardType, LootCardType, MonsterCardType, RoomCardType, TreasureCardType } from '@/types/cardTypes';
 import { print, shuffle } from '@/utils/auxiliary';
 import type { Entity } from './entities/entity';
@@ -7,7 +7,9 @@ import type { GameParameters } from './gameParameters';
 import { EffectOnStack } from './stackElement';
 import { type CardSetsCollection, type DecksCollection, type DeckType, type DeckTypeToCardType, type TargetsSelector } from './types/cardTypes';
 import { EffectInterface, Effect } from './effects/effects';
-
+export type SeparatorInterval = [number, number?];
+export type EffectRange = SeparatorInterval[];
+export type CardEffectsRanges = EffectRange[];
 class Card {
     protected _json: GenericCardType;
     protected _id: number;
@@ -42,6 +44,7 @@ class Card {
     protected _identityHash: string | null = null;
     protected _flipData: FlipData | undefined = undefined;
     protected _counterHandler = new CounterHandler
+    protected _separatorIds: CardEffectsRanges;
 
     constructor(id: number,
         globalId: number,
@@ -66,6 +69,7 @@ class Card {
         this._minimumPlayers = this._json.minimumPlayers || 1;
         this._outsideGame = this._json.outsideGame || false;
         this._effectOutcomes = this._json.effectOutcome || [];
+        this._separatorIds = this.getSeparatorIds();
     }
     toString() : string {
         let toAdd:string = "";
@@ -77,10 +81,15 @@ class Card {
         }
         return this._name + ": " + this._effectOutcomes.join(", ") + toAdd;
     }
+    getEffectRange(idx: number): EffectRange {
+        if(idx < 0 || idx >= this._separatorIds.length)
+            throw new Error(`Effect index ${idx} is out of bounds for card ${this.name}, ${this._separatorIds}`);
+        return this._separatorIds[idx]!;
+    }
     get counters(): CounterHandler {
         return this._counterHandler;
     }
-    get activeEffectList(): {index: "tap" | number, description: string}[] {
+    get activeEffectList(): ActiveEffectEntry[] {
         if(this instanceof LootCard && this.trinket && !this.canBeActivated)
             return [];
         if(this instanceof MonsterCard && this.isCurse)
@@ -201,6 +210,44 @@ class Card {
     get canBeDiscarded(): boolean{
         return this._canBeDiscarded
     }
+    private getSeparatorIds(): CardEffectsRanges
+    {
+        let id = 0;
+        const effectRange:CardEffectsRanges = [];
+        for(const effect of this._effectOutcomes)
+        {
+            if(effect.includes("\n"))
+            {
+                const nbLines = effect.split("\n").length;
+                if(effect.toLowerCase().includes("roll-") || effect.toLowerCase().includes("rolls-") || effect.toLowerCase().includes("instead-") || effect.toLowerCase().includes("times!-"))
+                    {
+                        if(nbLines < 2)
+                            throw new Error(`Effect outcome "${effect}" has a newline but is not a roll or choose one effect.`);
+                        // new line separate roll- with first effect, but there is no separator. 
+                        if(nbLines == 2)
+                            effectRange.push([[id]]);
+                        else
+                            effectRange.push([[id, id+effect.split("\n").length-2]]);
+                        id += effect.split("\n").length;
+                    }
+                else if(effect.toLowerCase().includes("choose one-"))
+                {
+                    const arr: EffectRange = []
+                    for(let i = 0; i < effect.split("\n").length -1 - (effect.toLowerCase().includes("[paid effect]") ? 1 : 0); i++)
+                        arr.push([id++]);
+                    effectRange.push(arr);
+                }else if( effect.includes("-\n") &&  effect.includes("whiff-\n") === false)
+                    throw new Error(`Effect outcome "${effect}" has a newline but is not a roll or choose one effect.`);
+                else
+                    effectRange.push([[id++]]);
+            }else
+            {
+                effectRange.push([[id++]]);
+            }
+        }
+        // console.log(`Computed separator IDs for card ${this.name}: ${JSON.stringify(effectRange)}`);
+        return effectRange;
+    }
     set canBeDiscarded(value: boolean){
         this._canBeDiscarded = value;
     }
@@ -288,6 +335,7 @@ class Card {
             tags: this._tags,
             slug: this._slug,
             name: this._name,
+            separatorIds: this._separatorIds,
             canBeActivated: this._canBeActivated,
             type: this._type,
             subtype: this._subtype,
@@ -304,6 +352,7 @@ class Card {
         // Copy properties from the other card
         const originalFlipData = this._flipData; // Preserve the flip data of the original card
         this._json = otherCard._json;
+        this._separatorIds = otherCard._separatorIds;
         this._json.flip = originalFlipData; // Restore original flip data
         // this._tags = otherCard._tags;
         this._slug = otherCard._slug;
@@ -330,6 +379,7 @@ class Card {
             this._slug = originalState.slug;
             this._name = originalState.name;
             this._type = originalState.type;
+            this._separatorIds = originalState.separatorIds;
             this._canBeActivated = originalState.canBeActivated;
             this._subtype = originalState.subtype;
             this._effectOutcomes = originalState.effectOutcomes;

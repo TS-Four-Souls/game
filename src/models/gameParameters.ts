@@ -363,7 +363,7 @@ export class GameParameters {
         text: "Use bonus souls?",
         value: this.playWithBonusSouls.value,
       },
-      //useRooms: {text: "Use rooms?", value: this.playWithRooms.value},
+      ...(this.room.cardsParam.length > 0 ? {useRooms: {text: "Use rooms?", value: this.playWithRooms.value}} : {}),
       ...(this._deckMode === "standard" && this._currentNbPlayers < 3
         ? {
             nbPlayerCardRestriction: {

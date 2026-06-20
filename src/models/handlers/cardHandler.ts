@@ -1028,9 +1028,9 @@ export class CardHandler {
    */
   attachEffectsToCard(card: Card): void {
     const flipped = card.flipped;
-    for (const idx in card.effectOutcomes) {
+    for (let idx = 0; idx < card.effectOutcomes.length; idx++) {
       let outcome = card.effectOutcomes[idx]!;
-      if(card.subtype === "curse" && !outcome.startsWith("[Curse]") && idx === "0")
+      if(card.subtype === "curse" && !outcome.startsWith("[Curse]") && idx === 0)
         outcome = "[Curse] " + outcome;
       const effectType = this.getEffectTypeFromOutcome(outcome, card);
       // Handle paid effects separately to extract payment and effect functions
@@ -1039,16 +1039,16 @@ export class CardHandler {
           .replace("[paid effect] ", "")
           .replace("[Paid Effect] ", "")
           .trim();
-        const idx = s2.indexOf(":");
+        const idxSplit = s2.indexOf(":");
 
-        if (idx === -1) {
+        if (idxSplit === -1) {
           throw new Error(
             `Invalid paid effect format (missing ':'): ${outcome}`
           );
         }
 
-        const paymentString = s2.substring(0, idx).trim();
-        const effectString = s2.substring(idx + 1).trim();
+        const paymentString = s2.substring(0, idxSplit).trim();
+        const effectString = s2.substring(idxSplit + 1).trim();
 
         const paymentParsed = effectParser(paymentString, this.game);
         const effectParsed = effectParser(effectString, this.game);
@@ -1059,7 +1059,8 @@ export class CardHandler {
           card,
           effectParsed.effectFunction,
           [...paymentParsed.targetSelectors, ...effectParsed.targetSelectors],
-          paymentParsed.effectFunction
+          card.getEffectRange(idx),
+          paymentParsed.effectFunction,
         );
         card.addEffect(effect);
       } else {
@@ -1070,7 +1071,8 @@ export class CardHandler {
           effectType,
           card,
           parsed.effectFunction,
-          parsed.targetSelectors
+          parsed.targetSelectors,
+          card.getEffectRange(idx),
         );
         card.addEffect(effect);
       }
@@ -1190,7 +1192,7 @@ export class CardHandler {
                 this.game.addToStack(effectOnStack);
                 return true;
             }
-        ,[copiedSelector]
+        ,[copiedSelector], [[0]]
     ));
     }
     const copied = this.copyCard(toCopy, issuer) as ItemCard;

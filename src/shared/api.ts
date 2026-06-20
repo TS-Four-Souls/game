@@ -760,7 +760,7 @@ export type Encounter = z.infer<typeof encounterSchema>;
 const shopSchema = z.object({
   discard: z.array(cardSchema),
   deckSize: z.number(),
-  inPlay: z.array(z.union([shopItemSchema, z.undefined()])),
+  inPlay: z.array(shopItemSchema),
   topDeckPrice: z.number(),
 });
 export type Shop = z.infer<typeof shopSchema>;
