@@ -631,7 +631,7 @@ export function parseTheActivePlayerEffect(s: string, game: Game, nr: NumberRobu
         case "the active player recharges each item they control":
             return noTargetEffect(active.rechargeEachItemsOfTargetEffect(game, "current"));
         case "the active player may choose another player. they give you a soul they control":
-            return noTargetEffect(monster.activePlayerSelectAndCallEffect(game, active.giveSoulEffect(game), true));
+            return noTargetEffect(monster.activePlayerSelectAndCallEffect(game, active.giveSoulEffect(game), true, true, true));
         case "the active player chooses a player. that player destroys a soul they control":
             return noTargetEffect(monster.activePlayerSelectAndCallEffect(game, active.destroyOneOfYourSoulEffect(game)));
         default:

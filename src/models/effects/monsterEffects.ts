@@ -209,11 +209,11 @@ export function onFlipOrAttackedRollLowestDieEffect(game: Game): SyncEffectFunct
     };
 }
 
-export function activePlayerSelectAndCallEffect(game: Game, effectFunction: EffectFunction, currentPlayerIsTarget: boolean=false): AsyncEffectFunction {
+export function activePlayerSelectAndCallEffect(game: Game, effectFunction: EffectFunction, currentPlayerIsTarget: boolean=false, anotherPlayer: boolean=false, may: boolean=false): AsyncEffectFunction {
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
         
-        const targetSelection = await data.selectAndRecord(game, player, 1, 1, game.players, "Select a player.", true, true);
+        const targetSelection = await data.selectAndRecord(game, player, (may ? 0 : 1), 1, game.players.filter(p => anotherPlayer || p !== player), "Select a player.", true, true);
         const targetPlayer = targetSelection.selected[0] as Player;
         if(!targetPlayer){
             throw new Error("No player selected for activePlayerForcesPlayerToDiscardLootEffect.");
