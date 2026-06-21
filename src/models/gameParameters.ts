@@ -263,6 +263,7 @@ class BooleanGameParameter {
 export class GameParameters {
   readonly miniDraft: BooleanGameParameter;
   readonly useFSP2Cards: BooleanGameParameter;
+  readonly useRCards: BooleanGameParameter;
   readonly nbSoulsToWin: NumericGameParameter;
   readonly nbItemsInShop: NumericGameParameter;
   readonly timer: NumericGameParameter;
@@ -310,6 +311,8 @@ export class GameParameters {
       return false;
     // FSP2 filter
     if (!this.useFSP2Cards.value && card.slug.startsWith("fsp2-")) return false;
+    // R filter
+    if (!this.useRCards.value && card.slug.startsWith("r-")) return false;
     return true;
   };
 
@@ -319,6 +322,7 @@ export class GameParameters {
     this.miniDraft = new BooleanGameParameter(false, onChange);
     this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
     this.useFSP2Cards = new BooleanGameParameter(true, onChange);
+    this.useRCards = new BooleanGameParameter(false, onChange);
     this.nbSoulsToWin = new NumericGameParameter(1, 4, 20, onChange);
     this.character = new CharacterDeckParameter(4, 100, onChange, this._filter);
     this.monster = new DeckParameter(
@@ -369,6 +373,14 @@ export class GameParameters {
             nbPlayerCardRestriction: {
               text: "Number player card restriction",
               value: this.nbPlayerCardRestriction.value,
+            },
+          }
+        : {}),
+      ...(this._deckMode === "standard" && this.room.cardsParam.length > 0 
+        ? {
+            useRCards: {
+              text: "Use four souls+ cards?",
+              value: this.useRCards.value,
             },
           }
         : {}),
