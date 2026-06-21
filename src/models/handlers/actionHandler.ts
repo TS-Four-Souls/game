@@ -671,7 +671,6 @@ export class ActionHandler {
         throw new Error(`Card ${targetCard.name} is not an ItemCard`);
       this.game.cardHandler.addInPlay(player, targetCard);
     }
-    console.log(fromTop ? "Gained treasures from top of the deck:" : "Gained treasures:", treasures);
     this.game.toast({
       type: "warning",
       title: `${player.id} used a cheat to ${fromTop ? "gain" : "obtain"} ${treasures.length} treasure${treasures.length > 1 ? "s" : ""}.`,

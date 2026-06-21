@@ -2,6 +2,7 @@ import type { Player } from '../entities/player';
 import type { Entity } from '../entities/entity';
 import type { Card, LootCard, TreasureCard, EternalCard, CharacterCard, MonsterCard, BsoulCard, RoomCard } from '../cards';
 import type { Game } from '../game';
+import type { VisualEffectBox } from '@/shared/api';
 
 /**
  * Type of effect execution - how the effect is triggered
@@ -30,17 +31,21 @@ export class EffectData {
     private _targets: any[];
     private _selectedOnResolve: any[] = [];
     private _nextIndex: number = 0;
+    private _VisualEffectBoxes: VisualEffectBox | undefined;
 
-    constructor(it: Card, issuerProvider: () => Entity, targets: any[]) {
+    constructor(it: Card, issuerProvider: () => Entity, targets: any[], visualEffectBox: VisualEffectBox | undefined = undefined) {
         this.it = it;
         this._issuerProvider = issuerProvider;
         this._targets = targets;
+        this._VisualEffectBoxes = visualEffectBox;
     }
 
     get issuer(): Entity {
         return this._issuerProvider();
     }
-
+    get visualEffectBox(): VisualEffectBox | undefined {
+        return this._VisualEffectBoxes;
+    }
     set issuerProvider(issuerProvider: () => Entity) {
         this._issuerProvider = issuerProvider;
     }

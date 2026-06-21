@@ -1,4 +1,4 @@
-import type { StackReorderingInfo as ApiStackReorderingInfo, DamageOnStackJson, DeathOnStackJson, DiceRollJson, StackElementJson, LootStepJson, EffectOnStackJson, LootCardOnStackJson } from "@/shared/api";
+import type { StackReorderingInfo as ApiStackReorderingInfo, DamageOnStackJson, DeathOnStackJson, DiceRollJson, StackElementJson, LootStepJson, EffectOnStackJson, LootCardOnStackJson, VisualEffectBox } from "@/shared/api";
 import type { Entity } from "./entities/entity";
 import type { Game } from "./game";
 import { EffectData, LootCard, type Card, type EffectFunction } from "./cards";
@@ -342,8 +342,9 @@ export class EffectOnStack extends StackElement {
     protected _data: EffectData;
     protected _description: string;
     protected _type: EffectTypeOnStack;
+    protected _visualEffectBox: VisualEffectBox | undefined;
 
-    constructor(effectFunction: EffectFunction, data: EffectData, description: string, type: EffectTypeOnStack) {
+    constructor(effectFunction: EffectFunction, data: EffectData, description: string, type: EffectTypeOnStack, visualEffectBox?: VisualEffectBox) {
         super();
         // if(!data)
         //     throw new Error("EffectOnStack constructor: data is undefined or null.");
@@ -351,6 +352,7 @@ export class EffectOnStack extends StackElement {
         this._data = data;
         this._description = prepareEffectString(description);
         this._type = type;
+        this._visualEffectBox = visualEffectBox;
     }
     async onResolve(): Promise<boolean> {
         return await this._effectFunction(this._data);
@@ -368,13 +370,14 @@ export class EffectOnStack extends StackElement {
         (this._data as any)._nextIndex = 0;
     }
     override get json(): EffectOnStackJson {
+      console.log(this._data.it.name, this._visualEffectBox)
         return {
             type: "effect",
             issuer: this._data.issuer.json,
             targets: TargetBuilder.convertToSelectionItems([...this._data.targets, ...this._data.selectedOnResolve]),
             card: this.data.it.jsonAPI,
             effect: this._description,
-            visualEffectBox: this._data.it.visualEffectBoxFromDescription(this._description),
+            visualEffectBox: this._visualEffectBox,
             ...super.baseJson,
         };
     }

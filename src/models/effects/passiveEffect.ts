@@ -1,5 +1,5 @@
 import { type TriggerEvent } from '@/models/types/eventTypes';
-import type { TemporaryEffect } from "@/shared/api";
+import type { TemporaryEffect, VisualEffectBox } from "@/shared/api";
 import { Card, ItemCard, LootCard, MonsterCard, TreasureCard, type CounterType } from "../cards";
 import { EffectOnStack, LootCardEffect } from '../stackElement';
 import { Entity } from "../entities/entity";
@@ -49,9 +49,10 @@ export function addPassiveEffectToStack(
     game: Game,
     effectFunction: EffectFunction,
     data: EffectData,
-    description: string
+    description: string,
+    visualEffectBox?: VisualEffectBox
 ): number {
-    const effectOnStack = new EffectOnStack(effectFunction, data, description, "passive");
+    const effectOnStack = new EffectOnStack(effectFunction, data, description, "passive", data.visualEffectBox);
     game.addAnimation({
         id: game.nextAnimationId,
         type: "activateInPlay",
@@ -390,7 +391,7 @@ export function interceptFirstGainCoinYourTurnEffect(effectFunctions: EffectFunc
             if(!active) return;
             if(coinGained[0]! <= 0) return;
             active = false;
-            const newData: EffectData = new EffectData(data.it, data.issuerProvider, [[coinGained[0]]]);
+            const newData: EffectData = new EffectData(data.it, data.issuerProvider, [[coinGained[0]]], data.visualEffectBox);
             // Add all effects as a single stack element
             const effect = async (effectData: EffectData): Promise<boolean> => {
                 for (const func of effectFunctions) {
@@ -755,7 +756,7 @@ export async function giveCurseToEffect(restEffectFunction: EffectFunction, game
     // Add the curse to their in play area.
     await game.cardHandler.addCurse(giveTo, data.it);
     // Apply the rest of the effect.
-    await restEffectFunction(new EffectData(data.it, () => giveTo, []));
+    await restEffectFunction(new EffectData(data.it, () => giveTo, [], data.visualEffectBox));
     // Add Listener to remove the curse when the owner dies.
     let offDeath: (() => void) | null = null;
     offDeath = game.emitter.on("on:death:after-penalty", (eventData: OnDeathAfterPenaltyData) => {
@@ -798,7 +799,7 @@ export function curseEffect(restEffectFunction: EffectFunction, game: Game): Asy
             offDeath = null;
         });
 
-        await restEffectFunction(new EffectData(data.it, () => data.issuer, []));
+        await restEffectFunction(new EffectData(data.it, () => data.issuer, [], data.visualEffectBox));
         return true;
     }
 }
@@ -2530,7 +2531,7 @@ export function onWouldRollEffect(
         offDamage = game.emitter.on("on:dice:would-roll", ({eventIssuer, diceRoll}: OnDiceWouldRollData) => {
             // if (data.issuer !== eventIssuer) return;
             if (!values.includes(diceRoll.value)) return;
-            const newData = new EffectData(data.it, data.issuerProvider, [diceRoll]);
+            const newData = new EffectData(data.it, data.issuerProvider, [diceRoll], data.visualEffectBox);
             
             // Create the effect that will execute when the stack resolves
             const effect = async (effectData: EffectData): Promise<boolean> => {
@@ -2569,7 +2570,7 @@ export function onRollEffect(
             // }
             if (rollValues.includes(diceRoll.value))
             {
-                const newData:EffectData =  new EffectData(data.it, data.issuerProvider, [diceRoll]);
+                const newData:EffectData =  new EffectData(data.it, data.issuerProvider, [diceRoll], data.visualEffectBox);
                 
                 // Create the effect that will execute when the stack resolves
                 const stackEffect = async (effectData: EffectData): Promise<boolean> => {
@@ -2694,7 +2695,7 @@ export function preventDamageAndDealOnDeathEffect(game: Game, damagePrevented: n
 
         const target = data.next;
         if(!target || !(target instanceof Player)) return false;
-        const newData = new EffectData(data.it, () => target, []);
+        const newData = new EffectData(data.it, () => target, [], data.visualEffectBox);
         await preventNextDamageUpToEffect(damagePrevented, game)(newData); // Reuse the preventNextDamageUpToEffect to handle the prevention part
         // Listen for death of the player from this damage
         offDeath = game.emitter.on("on:death:before-penalty", (deathEventData: OnDeathBeforePenaltyData) => {

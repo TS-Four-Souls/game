@@ -69,7 +69,7 @@ export function attackRollsAgainstEachOtherPlayerEffect(game: Game): SyncEffectF
             if (data.issuer !== monster[0]) return;
                 const otherPlayers = game.players.filter(p => p !== eventIssuer);
                 for(const player of otherPlayers) {
-                    makeAnAttackRollAfterEachAttackRollEffect(game)(new EffectData(data.it, () => player, []));
+                    makeAnAttackRollAfterEachAttackRollEffect(game)(new EffectData(data.it, () => player, [], data.visualEffectBox));
                 }
                 return true;
         });
@@ -218,7 +218,7 @@ export function activePlayerSelectAndCallEffect(game: Game, effectFunction: Effe
         if(!targetPlayer){
             throw new Error("No player selected for activePlayerForcesPlayerToDiscardLootEffect.");
         }
-        await effectFunction(new EffectData(data.it, () => targetPlayer, (currentPlayerIsTarget ? [player] : [])));
+        await effectFunction(new EffectData(data.it, () => targetPlayer, (currentPlayerIsTarget ? [player] : []), data.visualEffectBox));
         return true;
     };
 }
@@ -226,7 +226,7 @@ export function activePlayerSelectAndCallEffect(game: Game, effectFunction: Effe
 export function activePlayerIsTargetedByEffect(game: Game, effectFunction: EffectFunction): AsyncEffectFunction {
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
-        await effectFunction(new EffectData(data.it, () => data.issuer, [player]));
+        await effectFunction(new EffectData(data.it, () => data.issuer, [player], data.visualEffectBox));
         return true;
     };
 }
@@ -236,7 +236,7 @@ export function activePlayerSelectTargetEffect(game: Game, effectFunction: Effec
         const issuer = game.currentPlayer as Player;
         const target = (await data.selectAndRecord(game, issuer as Player, ts.min, ts.max, ts.selector(issuer as Player, data.it), ts.description, true, record)).selected;
         if(target.length > 0)
-            await effectFunction(new EffectData(data.it, () => issuer, target));
+            await effectFunction(new EffectData(data.it, () => issuer, target, data.visualEffectBox));
         return true;
     };
 }
@@ -668,7 +668,7 @@ export function OnDealsCombatDamageEffect(game: Game, s: string): SyncEffectFunc
             const { eventIssuer, target, source, damage } = eventData;
             if (data.issuer !== target) return;
             if (!(eventIssuer instanceof Player)) return;
-            const newData = new EffectData(data.it, () => eventIssuer as Player, []);
+            const newData = new EffectData(data.it, () => eventIssuer as Player, [], data.visualEffectBox);
             addPassiveEffectToStack(game, effect.effectFunction, newData, `Each time ${data.it.name} deals combat damage to a player, they ${rest}`);
         });
 
@@ -692,7 +692,7 @@ export function OnDealsDamageEffect(game: Game, s: string): SyncEffectFunction {
             if (data.issuer !== target) return;
             if(!(eventIssuer instanceof Player)) return;
             if(!(source instanceof DiceRoll)) return;
-            const newData = new EffectData(data.it, () => target as Player, []);
+            const newData = new EffectData(data.it, () => target as Player, [], data.visualEffectBox);
             addPassiveEffectToStack(game, effect.effectFunction, newData, `Each time ${data.it.name} deals combat damage to a player, they ${rest}`);
         });
 
@@ -751,7 +751,7 @@ export function onAttackingPlayerActivatesItemEffect(game: Game, s: string): Syn
             const { eventIssuer, item } = eventData;
             if (!(eventIssuer instanceof Player)) return;
             if (!(eventIssuer.isEngagedInCombat)) return;
-            const newData = new EffectData(data.it, () => eventIssuer as Player, []);
+            const newData = new EffectData(data.it, () => eventIssuer as Player, [], data.visualEffectBox);
             addPassiveEffectToStack(game, effect.effectFunction, newData, `Each time the attacking player activates an item, they ${rest}`);
         });
         // Store cleanup function on the card for when it's removed/destroyed
@@ -791,7 +791,7 @@ export function onAttackingPlayerRollsEffect(game: Game, s: string): SyncEffectF
             if(attackRoll.attackRoll !== true) return;
             if(data.it.entity?.isEngagedInCombat === false) return;
             if(attackRoll?.value !== roll) return;
-            const newData = new EffectData(data.it, () => eventIssuer as Player, []);
+            const newData = new EffectData(data.it, () => eventIssuer as Player, [], data.visualEffectBox);
             addPassiveEffectToStack(game, effect.effectFunction, newData, `When the attacking player rolls an attack roll of ${roll} ${rest}`);
         });
         // Store cleanup function on the card for when it's removed/destroyed
@@ -882,7 +882,7 @@ export function activePlayerChoosePlayerDiscardXEffect(game: Game, x: number): A
         if(!targetPlayer){
             throw new Error("No player selected for activePlayerChoosePlayerDiscardXEffect.");
         }
-        await active.discardNLootCardsEffect(x, game, true)(new EffectData(data.it, () => targetPlayer, []));
+        await active.discardNLootCardsEffect(x, game, true)(new EffectData(data.it, () => targetPlayer, [], data.visualEffectBox));
         return true;
     };
 }
@@ -897,14 +897,14 @@ export function onAttackDeclaredEffect(game: Game, s: string): SyncEffectFunctio
                 const { eventIssuer, monster } = eventData;
                 if (data.it.entity !== monster[0]) return;
                 if (!(eventIssuer instanceof Player)) return;
-                const newData = new EffectData(data.it, () => eventIssuer as Player, []);
+                const newData = new EffectData(data.it, () => eventIssuer as Player, [], data.visualEffectBox);
                 addPassiveEffectToStack(game, effect.effectFunction, newData, `When an attack is declared on ${data.it.name}, the active player ${rest}`);
             })
         :   game.emitter.on("on:attack:declared:animated", (eventData: OnAttackDeclaredAnimatedData) => {
                 const { eventIssuer, animated } = eventData;
                 if (data.it.entity !== animated[0]) return;
                 if (!(eventIssuer instanceof Player)) return;
-                const newData = new EffectData(data.it, () => eventIssuer as Player, []);
+                const newData = new EffectData(data.it, () => eventIssuer as Player, [], data.visualEffectBox);
                 addPassiveEffectToStack(game, effect.effectFunction, newData, `When an attack is declared on ${data.it.name}, the active player ${rest}`);
             });
 
@@ -1182,7 +1182,7 @@ export function onTakesCombatDamageEffect(game: Game, s: string, rolls: number[]
             if(!(eventIssuer instanceof Monster)) return;
             if(!(source instanceof DiceRoll)) return;
             if(rolls.length > 0 && !rolls.includes((source as DiceRoll).value)) return;
-            const newData = new EffectData(data.it, () => data.issuer, []);
+            const newData = new EffectData(data.it, () => data.issuer, [], data.visualEffectBox);
             addPassiveEffectToStack(game, effect.effectFunction, newData, `Each time ${data.it.name} takes combat damage, it ${rest}`);
         });
 

@@ -464,7 +464,7 @@ export function copyTapAbilityEffect(game: Game): AsyncEffectFunction {
             throw new Error(`Effect issuer is not a player.`);
         try{
             const newTargets = await TargetBuilder.buildTargetsOnResolve(game, player, itemToCopy, "tap");
-            const newData: EffectData = new EffectData(data.it, () => data.issuer, newTargets);
+            const newData: EffectData = new EffectData(data.it, () => data.issuer, newTargets, data.visualEffectBox);
             const res = await activeEffect.effectFunction(newData);
             if(data.it.type === "loot") {
                 data.it.cleanup();
@@ -1050,7 +1050,7 @@ export function becomeSoulIfAboveXCountersEffect(countersThreshold: number, game
                 {
                     return false;
                 };
-            enterPlayBecomeSoulEffect(game)(new EffectData(data.it, () => owner, []));
+            enterPlayBecomeSoulEffect(game)(new EffectData(data.it, () => owner, [], data.visualEffectBox));
         }
         return true;
     };
@@ -2618,7 +2618,7 @@ export function dataNextIsIssuerEffect(game: Game, effects: EffectFunction[]): A
         if(issuer instanceof Player === false) return false;
         let result = true;
         for(const effect of effects) {
-            result = result && await effect(new EffectData(data.it, () => issuer as Player, data.targets));
+            result = result && await effect(new EffectData(data.it, () => issuer as Player, data.targets, data.visualEffectBox));
         }
         return result; 
     };
@@ -2655,7 +2655,7 @@ export function nonActivePlayerHelpFight(game: Game): SyncEffectFunction {
             const helper = data.next as Player;
             if(!helper || !(helper instanceof Player))
                 throw new Error("Player invalid for nonActivePlayerHelpFight");
-            const newData = new EffectData(data.it, () => helper, []);
+            const newData = new EffectData(data.it, () => helper, [], data.visualEffectBox);
             room.makeAnAttackRollAfterEachAttackRollEffect(game)(newData);
                     
             offDeath = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
@@ -2915,7 +2915,7 @@ export function activePlayerChoosePlayerMustAttackThisAfterEachAttackRollEffect(
         // If the current player dies in the mean time or is not in combat anymore, we can end the effect immediately.
         if(issuer.isEngagedInCombat === false)
             return false;
-        room.makeAnAttackRollAfterEachAttackRollEffect(game)(new EffectData(data.it, () => target, []));
+        room.makeAnAttackRollAfterEachAttackRollEffect(game)(new EffectData(data.it, () => target, [], data.visualEffectBox));
         let offEndTurn: (() => void) | null = null;
         let offDeath: (() => void) | null = null;
 

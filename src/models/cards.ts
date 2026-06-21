@@ -247,9 +247,9 @@ class Card {
                 else if(effect.toLowerCase().includes("choose one-"))
                 {
                     const arr: EffectRange = []
-                    for(let i = 0; i < lines.length -2 - (effect.toLowerCase().includes("[paid effect]") ? 1 : 0); i++)
+                    for(let i = 1 + (effect.toLowerCase().includes("[paid effect]") ? 1 : 0); i < lines.length; i++)
                     {
-                        arr.push({startIndex: id, endIndex: id, description: lines[i+1]!});
+                        arr.push({startIndex: id, endIndex: id, description: lines[i]!});
                         id++;
                     }
                     effectRange.push(arr);

@@ -279,10 +279,7 @@ const effectOnStackJsonSchema = z.object({
   issuer: entityTypeSchema,
   targets: z.array(selectionItemSchema),
   card: identifierTypeSchema,
-  visualEffectBox: z.object({
-    startIndex: z.number(),
-    endIndex: z.number(),
-  }),
+  visualEffectBox: VisualEffectBoxSchema.optional(),
   effect: z.string(),
   id: z.number(),
   reordering: stackReorderingInfoSchema.optional(),

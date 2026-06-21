@@ -5,7 +5,7 @@ import type { Player } from "../entities/player";
 import { TargetBuilder } from "../targetBuilder";
 import { isChooseOneOptions } from "../targetSelector";
 import { combineEffectFunctions } from "./activeEffect";
-import type { ActiveEffectEntry } from "@/shared/api";
+import type { ActiveEffectEntry, VisualEffectBox } from "@/shared/api";
 
 
 export class Effect {
@@ -44,7 +44,20 @@ export class Effect {
     get range(): EffectRange {
         return this._range;
     }
-
+    getVisualEffectBoxFromTargets(targets: any[]): VisualEffectBox | undefined {
+        console.log("for effect", this.description, this.range.length);
+        if(this.range.length === 1)
+            return this.range[0];
+        if(targets.length === 0)
+            return undefined;
+        
+        if(typeof targets[0] !== "string") {
+            return undefined;
+        }
+        console.log("Getting visual effect box for effect", this.description,targets[0], "with range", this.range);
+        const box = this.range.find(box => box.description.toLowerCase() === targets[0].toLowerCase());
+        return box;
+    }
     get targetsSelector(): TargetsSelector[] {
         return this._targetsSelector;
     }
@@ -191,7 +204,7 @@ class PassiveEffectHandler extends EffectHandler {
             // if(effect.targetsSelector.length > 0) {
             //     targets = effect.targetsSelector.map(selector => { selector.selector(owner as Player)[0]; });
             // }
-            void effect.effectFunction(new EffectData(it, issuerProvider, targets));
+            void effect.effectFunction(new EffectData(it, issuerProvider, targets, effect.getVisualEffectBoxFromTargets(targets)));
         }
     }
 }
@@ -231,12 +244,12 @@ class ActiveEffectHandler extends EffectHandler {
         if (this._activeEffect === null) {
             throw new Error("No active effect found in ActiveEffectHandler.");
         }
-        return await this._activeEffect.effectFunction(new EffectData(it, () => issuer as Player, targets));
+        return await this._activeEffect.effectFunction(new EffectData(it, () => issuer as Player, targets, this._activeEffect!.getVisualEffectBoxFromTargets(targets)));
     }
 
     async pay(issuer: Entity, it: Card, targets: any[], effectId: number): Promise<boolean> {
         const effect = this.getPaidEffect(effectId);
-        return await effect.effectFunction(new EffectData(it, () => issuer as Player, targets));
+        return await effect.effectFunction(new EffectData(it, () => issuer as Player, targets, effect.getVisualEffectBoxFromTargets(targets)));
     }
 
     hasTapEffect(): boolean {
@@ -292,8 +305,9 @@ export class EffectInterface {
         if (effect.type === "passive") {
             this.passiveEffects.addEffect(effect);
         } else {
-            
+            // console.log(`Adding effect "${effect.description}" of type "${effect.type}" to card ${this.it.slug}.`);
             for(const boxId of effect.range) {
+                // console.log(boxId);
                 for(let i = boxId.startIndex; i < boxId.endIndex + 1; i++) {
                     if(this._mapSepIdToActiveEffectId.has(i))
                         throw new Error(`Duplicate separator ID ${boxId} in card ${this.it.slug}. Each effect range separator must be unique.`);
@@ -335,18 +349,16 @@ export class EffectInterface {
             if (!await effect.executePayment(data)) {
                 throw new Error(`Payment denied for ${this.it.slug}, with targets: "${JSON.stringify(TargetBuilder.convertToSelectionItems(data.targets))}".`);
             }
-            // Effect gets second element of targets array
-            return new EffectOnStack(effect.effectFunction, data, effect.description, effect.type);
         }
-        return new EffectOnStack(effect.effectFunction, data, effect.description, effect.type);
+        return new EffectOnStack(effect.effectFunction, data, effect.description, effect.type, effect.getVisualEffectBoxFromTargets(targets));
     }
 
     tapEffect(issuer: Entity, targets: any[]): EffectOnStack {
         const effect = this.activeEffects.getActiveEffect();
         if (!issuer)
             throw new Error("EffectInterface.tapEffect: issuer is undefined or null.");
-        const data = new EffectData(this.it, () => issuer as Player, targets);
-        return new EffectOnStack(effect.effectFunction, data, effect.description, effect.type);
+        const data = new EffectData(this.it, () => issuer as Player, targets, effect.getVisualEffectBoxFromTargets(targets));
+        return new EffectOnStack(effect.effectFunction, data, effect.description, effect.type, effect.getVisualEffectBoxFromTargets(targets));
     }
     
     get activeEffectList(): ActiveEffectEntry[] {
@@ -382,7 +394,7 @@ export class EffectInterface {
             if (this._issuer) {
                 // Validate targets before calling effect function
                 if (effect.targetStillValid(this._issuer!, targets)) {
-                    await effect.effectFunction(new EffectData(this.it, () => this._issuer!, targets));
+                    await effect.effectFunction(new EffectData(this.it, () => this._issuer!, targets, effect.getVisualEffectBoxFromTargets(targets)));
                 }
                 await this.subscribeAll(() => this._issuer!);
             }
