@@ -1654,6 +1654,12 @@ export function rerollEachItemEffect(game: Game, target: "issuer" | "currentPlay
     };
 }
 
+export function trueEffect(): SyncEffectFunction {
+    return (data: EffectData) => {
+        return true;
+    };
+}
+
 export function playForFreeTargetEffect(game: Game): AsyncEffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;

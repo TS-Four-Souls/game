@@ -4,6 +4,7 @@ import type { Game } from "./game";
 import { EffectData, LootCard, type Card, type EffectFunction } from "./cards";
 import { Player } from "./entities/player";
 import { TargetBuilder } from "./targetBuilder";
+import { trueEffect } from "./effects/activeEffect";
 
 interface StackElementJsonBase {
   id: number;
@@ -57,6 +58,7 @@ export class DiceRoll extends StackElement {
   private _attackRoll;
   private _effect: EffectFunction[] | null = null;
   private _card: Card | null = null;
+  private _visualEffectBox: VisualEffectBox | null = null;
   private _targets: any[] = [];
   private _random: () => number;
   private _readyToResolve: boolean = false;
@@ -120,11 +122,32 @@ export class DiceRoll extends StackElement {
       type: "diceRoll",
       diceRoll: this.value, 
       issuer: this.issuer.json, 
-      card: !this._attackRoll ? this._card!.jsonAPI : undefined, 
+      card: !this._attackRoll ? this._card!.jsonAPI : undefined,
+      visualEffectBox: this.obtainVisualBox(),
       targets: !this._attackRoll ? TargetBuilder.convertToSelectionItems(this._targets) : undefined,
       ...super.baseJson,
       modifier: (this._attackRoll ? this._issuer.attackDiceModifier : 0) + this._issuer.diceModifier,
     }
+  }
+
+  /**
+   * provide the visual effect box associated with this dice roll.
+   */
+  private obtainVisualBox(): VisualEffectBox | undefined {
+    if(!this._effect || this._effect.length !== 6)
+      return undefined;
+    if(!this.card)
+      return undefined;
+    if(!this._visualEffectBox)
+      return undefined;
+    if(this._effect[this.value - 1] == trueEffect())
+      return undefined;
+    const range = this._visualEffectBox.endIndex - this._visualEffectBox.startIndex + 1;
+    if(range === 1)
+      return this._visualEffectBox;
+    const step = 6 / range;
+    const boxIndex = Math.floor(this.value / step);
+    return {startIndex: this._visualEffectBox.startIndex + boxIndex, endIndex: this._visualEffectBox.startIndex + boxIndex};
   }
 
   override get debugLogs(): string {

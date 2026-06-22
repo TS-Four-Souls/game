@@ -1104,7 +1104,7 @@ function parseStandardEffect(s: string, game: Game, nr: NumberRobustString, sele
             return noTargetEffect(active.putCountersOnItemEffect(1, game));
         case "[paid effect]":
         case "":
-            return noTargetEffect(()=>true);
+            return noTargetEffect(active.trueEffect());
         case "each time you roll the same result twice in a row on an attack roll on the same turn, kill the monster you're attacking":
             return noTargetEffect(passive.killOnDoubleAttackRollEffect(game));
         case "the next time a player would loot, they loot from the top of the loot discard instead":

@@ -247,6 +247,7 @@ const diceRollJsonSchema = z.object({
   issuer: entityTypeSchema,
   card: identifierTypeSchema.optional(),
   targets: z.array(selectionItemSchema).optional(),
+  visualEffectBox: VisualEffectBoxSchema.optional(),
   id: z.number(),
   modifier: z.number(),
   reordering: stackReorderingInfoSchema.optional(),
