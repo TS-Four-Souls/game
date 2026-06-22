@@ -30,14 +30,17 @@ export function executePlayCardRequest(
   payload: Requests.PlayCard,
   player: Player,
 ): TargetSelectorResponse {
-  const partialChoices = payload.targetChoices || [];
+  let partialChoice = payload.targetChoices || [];
   const card = TargetBuilder.getCardFromPlayer(game, player, payload.index, "hand");
-
+  // const { effectId, choice } = card.getEffectIdAndChooseOneChoiceFromSeparatorId(payload.effectIndex);
+  // if(choice !== undefined) {
+  //   partialChoice = [...TargetBuilder.convertToSelectionItems(choice), ...partialChoice];
+  // }
   const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(
     game,
     player,
     card,
-    partialChoices,
+    partialChoice,
     payload.effectIndex,
   );
 
@@ -46,16 +49,16 @@ export function executePlayCardRequest(
       game,
       player,
       card,
-      partialChoices,
+      partialChoice,
       payload.effectIndex,
     );
     game.actions.playCard(player, payload.index, targets);
+    game.addToHistory({
+                type: "PlayCard",
+                payload,
+                issuer: player.id,
+              });
   }
-  game.addToHistory({
-              type: "PlayCard",
-              payload,
-              issuer: player.id,
-            });
   return choices;
 }
 

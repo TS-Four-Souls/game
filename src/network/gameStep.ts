@@ -170,11 +170,6 @@ export const enterGameStep = (
         callback,
         (payload) => {
           const choices = helper.executePlayCardRequest(room.game, payload, player);
-          room.game.addToHistory({
-            type: "PlayCard",
-            payload,
-            issuer: player.id,
-          });
           return callback({ response: choices, status: 200 });
         },
       ),
@@ -468,12 +463,7 @@ export const enterGameStep = (
           schemas.debugGainCoinsRequest,
           callback,
           (payload) => {
-            room.game.addToHistory({
-              type: "DebugGainCoins",
-              payload,
-              issuer: player.id,
-            });
-            room.game.actions.debugGainCoins(player, payload.coins);
+            helper.executeDebugGainCoinsRequest(room.game, payload, player);
             return callback({ status: 200 });
           },
         ),
@@ -511,24 +501,7 @@ export const enterGameStep = (
           schemas.debugPutMonsterCardInSlotRequest,
           callback,
           (payload) => {
-            room.game.addToHistory({
-              type: "DebugPutMonsterCardInSlot",
-              payload,
-              issuer: player.id,
-            });
-            const card = room.game.obtainCard(
-              payload.card.slug,
-              payload.card.globalId,
-            ) as MonsterCard;
-            if (!card) {
-              throw new Error(
-                "Card not found in the game: " + payload.card.slug,
-              );
-            }
-            const index = room.game.encounters._slots
-              .map((slot) => slot[slot.length - 1]?.globalId)
-              .indexOf(payload.toCover.globalId);
-            room.game.actions.debugPutMonsterCardInSlot(player, card, index);
+            helper.executeDebugPutMonsterCardInSlotRequest(room.game, payload, player);
             return callback({ status: 200 });
           },
         ),
