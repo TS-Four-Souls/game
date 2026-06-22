@@ -22,6 +22,7 @@ class DummyStackElement extends StackElement {
       card: { name: this.label, slug: this.label, globalId: 0 },
       effect: this.label,
       id: this.stackId,
+      visualEffectBox: { startIndex: 0, endIndex: 0 },
     };
   }
   get debugLogs(): string {

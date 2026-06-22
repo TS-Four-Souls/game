@@ -370,7 +370,6 @@ export class EffectOnStack extends StackElement {
         (this._data as any)._nextIndex = 0;
     }
     override get json(): EffectOnStackJson {
-      console.log(this._data.it.name, this._visualEffectBox)
         return {
             type: "effect",
             issuer: this._data.issuer.json,

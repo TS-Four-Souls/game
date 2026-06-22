@@ -132,6 +132,7 @@ export class Player extends Entity {
   }
 
   requirementListJSON(game: Game): {target: IdentifierType | "topDeck", source: IdentifierType}[] {
+    this.clearOutdatedAttackRequirements(game.attackableEntities);
     if(this.mustAttackEntity.length === 0) return [];
     const list: {target: IdentifierType | "topDeck", source: IdentifierType}[] = [];
     let sourceAny = undefined;
@@ -143,7 +144,11 @@ export class Player extends Entity {
         sourceAny = req.source.jsonAPI;
       else 
         for(const entity of req.target as Entity[])
-          list.push({ target: entity.card.jsonAPI, source: req.source.jsonAPI });
+      {
+        if(entity instanceof Entity === false)
+          continue;
+        list.push({ target: entity.card.jsonAPI, source: req.source.jsonAPI });
+      }
     }
     if(list.length === 0 && sourceAny !== undefined)
     {

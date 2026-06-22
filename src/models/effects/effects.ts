@@ -45,7 +45,7 @@ export class Effect {
         return this._range;
     }
     getVisualEffectBoxFromTargets(targets: any[]): VisualEffectBox | undefined {
-        console.log("for effect", this.description, this.range.length);
+        // console.log("for effect", this.description, this.range.length);
         if(this.range.length === 1)
             return this.range[0];
         if(targets.length === 0)
@@ -54,7 +54,7 @@ export class Effect {
         if(typeof targets[0] !== "string") {
             return undefined;
         }
-        console.log("Getting visual effect box for effect", this.description,targets[0], "with range", this.range);
+        // console.log("Getting visual effect box for effect", this.description,targets[0], "with range", this.range);
         const box = this.range.find(box => box.description.toLowerCase() === targets[0].toLowerCase());
         return box;
     }
