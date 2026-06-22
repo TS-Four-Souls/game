@@ -52,7 +52,7 @@ export class Game extends SelectionHandler {
   private _stack: Stack = new Stack();
   private _emitter: GameEventEmitter;
   private _stackSubsetCallbacks: {stackIds: number[], callback: () => void}[] = [];
-  private _historicHandler: HistoricHandler = new HistoricHandler();
+  private _historicHandler: HistoricHandler = new HistoricHandler(this);
   private _isWon: boolean = false;
   private _gameStateSerializer: GameStateSerializer;
   readonly gameParameters = new GameParameters(() => this.dispatch());
@@ -456,7 +456,7 @@ export class Game extends SelectionHandler {
    * Resets the full game state to a fresh pre-start state.
    */
   reset(newSeed: boolean = true): void {
-    this._historicHandler = new HistoricHandler();
+    this._historicHandler = new HistoricHandler(this);
     this._turnHandler = new TurnHandler();
     this._entityHandler = new EntityHandler(this);
     this._cardHandler = new CardHandler(this);

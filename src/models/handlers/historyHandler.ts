@@ -152,15 +152,20 @@ export const isStackElementJson = (
 export type HistoricEntry = UserRequest | StackElementJson | PrivateData;
 export class HistoricHandler {
   private historyId = generateHistoryId();
-
   private _history: HistoricEntry[] = [];
+  private _game: Game;
+  private _rollbackDetailedState?: DetailedState;
+  private _currentDetailedState?: DetailedState;
+  private _lastUserRequestIndex: number = -1;
+
+  constructor(game: Game) {
+    this._game = game;
+  }
 
   addToHistory(entry: HistoricEntry): void {
     this._history.push(entry);
-    try {
-      // this.appendToFile("history.json", entry);
-    } catch (error) {
-      console.error("Error appending to history file", error);
+    if(this.shouldSaveDetailedState(entry)) {
+      this.saveDetailedState();
     }
   }
 
@@ -178,6 +183,16 @@ export class HistoricHandler {
         playerId: player.id,
       });
     }
+  }
+
+  saveDetailedState(): void {
+    this._rollbackDetailedState = this._currentDetailedState;
+    this._currentDetailedState = this._game.detailedStateJSON(this._game.players[0]!);
+    this._lastUserRequestIndex = this._history.length - 1;
+  }
+
+  shouldSaveDetailedState(entry: HistoricEntry): boolean {
+    return isGameAction(entry) && (entry.type !== "SubmitSelection" || this._lastUserRequestIndex === -1);
   }
 
   get history(): StackElementJson[] {
