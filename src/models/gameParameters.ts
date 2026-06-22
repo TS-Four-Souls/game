@@ -379,7 +379,7 @@ export class GameParameters {
       ...(this._deckMode === "standard" && this.room.cardsParam.length > 0 
         ? {
             useRCards: {
-              text: "Use four souls+ cards?",
+              text: "Use Requiem cards?",
               value: this.useRCards.value,
             },
           }
@@ -495,6 +495,9 @@ export class GameParameters {
         if (decks.useFSP2Cards) {
           this.useFSP2Cards.value = decks.useFSP2Cards.value;
         }
+        if (decks.useRCards) {
+          this.useRCards.value = decks.useRCards.value;
+        }
         if (decks.nbPlayerCardRestriction) {
           this.nbPlayerCardRestriction.value =
             decks.nbPlayerCardRestriction.value;
@@ -578,6 +581,22 @@ export class GameParameters {
         }
         this._onChange();
       }
+      if (decks.useRCards?.value !== undefined) {
+        this.useRCards.value = decks.useRCards.value;
+        this._deckMode = "standard"; // Switch back to standard mode when player card restriction is toggled, as it's the only flag that affects card counts in standard mode
+        for (const deck of [
+          this.character,
+          this.monster,
+          this.treasure,
+          this.loot,
+          this.bsoul,
+          this.room,
+        ]) {
+          deck.filter = this._filter;
+          deck.resetCardCounts(false);
+        }
+        this._onChange();
+      }
       return;
     }
 
@@ -597,6 +616,7 @@ export class GameParameters {
   reset() {
     this.miniDraft.reset();
     this.useFSP2Cards.reset();
+    this.useRCards.reset();
     this.nbSoulsToWin.reset();
     this.nbItemsInShop.reset();
     this.timer.reset();

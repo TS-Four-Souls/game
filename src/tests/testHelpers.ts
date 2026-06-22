@@ -195,6 +195,7 @@ export async function setupTestGame(config: GameSetupConfig = {}): Promise<GameS
     const params = new GameParameters(() => {});
     params.setParameterByKey("decksConfig", {nbPlayerCardRestriction: {text: "", value: false}} as DeckConfigPatch);
     params.setParameterByKey("lootPlayPerTurn", 10);
+    params.setParameterByKey("decksConfig", {useRCards: {text: "", value: true}} as DeckConfigPatch);
     if(rooms !== false)
         params.setParameterByKey("decksConfig", {useRooms: {text: "", value: true}} as DeckConfigPatch);
     else
