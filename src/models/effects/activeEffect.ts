@@ -256,7 +256,7 @@ export function look1EachDeckEffect(game: Game): AsyncEffectFunction {
         }
         const selectResult = await data.selectAndRecord(game, data.issuer, 0, 3, topCards, "Select any number of cards to put on the bottom of their respective decks.", false, false);
         for (const card of topCards) {
-            if(!selectResult.selected.includes(card))
+            if(selectResult.selected.includes(card))
                 game.cardHandler.addBottomPosition(card.type, card);
             else
                 game.cardHandler.addTopPosition(card.type, card);

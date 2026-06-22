@@ -981,9 +981,9 @@ describe("Loot Card", () => {
         player1.hand.addToHand(card!);
 
         // Capture current tops
-        const topLoot = game.cardHandler.getFirstCardsOfDeck("loot", 1)[0]!;
-        const topTreasure = game.cardHandler.getFirstCardsOfDeck("treasure", 1)[0]!;
-        const topMonster = game.cardHandler.getFirstCardsOfDeck("monster", 1)[0]!;
+        const topLoot = game.decks.loot.cards[0];
+        const topTreasure = game.decks.treasure.cards[0];
+        const topMonster = game.decks.monster.cards[0];
 
         // Stub select to choose all three tops
         const originalSelect = game.select;
@@ -994,9 +994,9 @@ describe("Loot Card", () => {
         game.actions.playCard(player1, 0);
         await game.actions.resolveStack();
 
-        const newTopLoot = game.cardHandler.getFirstCardsOfDeck("loot", 1)[0]!;
-        const newTopTreasure = game.cardHandler.getFirstCardsOfDeck("treasure", 1)[0]!;
-        const newTopMonster = game.cardHandler.getFirstCardsOfDeck("monster", 1)[0]!;
+        const newTopLoot = game.decks.loot.cards[0];
+        const newTopTreasure = game.decks.treasure.cards[0];
+        const newTopMonster = game.decks.monster.cards[0];
         expect(newTopLoot).not.toBe(topLoot);
         expect(newTopTreasure).not.toBe(topTreasure);
         expect(newTopMonster).not.toBe(topMonster);
