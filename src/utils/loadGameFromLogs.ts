@@ -8,12 +8,7 @@ import {
 } from "@/models/handlers/historyHandler";
 import { type DetailedState, type IdentifierType, type Issuer } from "@/shared/api";
 import { Player } from "../models/entities/player";
-import {
-  executeActivateRequest,
-  executeActivateRoomRequest,
-  executeAttackMonsterRequest,
-  executePlayCardRequest,
-} from "@/utils/gameRequestHelpers";
+import * as helper from "@/utils/gameRequestHelpers";
 
 function isObject(value: unknown): value is Record<string, any> {
   return typeof value === "object" && value !== null;
@@ -302,285 +297,245 @@ export async function loadGameFromLogs(
 
   try {
     for (const [index, entry] of logs.entries()) {
-      if (!isUserRequestEntry(entry) && !isPrivateEntry(entry)) {
+      try{
+        
+        if (!isUserRequestEntry(entry) && !isPrivateEntry(entry)) {
+          continue;
+        }
+
+        if (verbose >= 1)
+          console.log(`Replaying log entry ${index}\n`);
+
+        switch (entry.type) {
+          case "CreateRoom":
+          case "JoinRoom":
+          case "LeaveRoom":
+          case "Rejoin":
+          case "IsGameOngoing":
+          case "LoadGame":
+          case "DebugListCardsICanRemove":
+          case "DebugListMonsterDeck":
+          case "DebugListTreasure":
+          case "DebugListLoot":
+          case "Join": 
+          // SubmitSelection is handled by the custom selectMultiple override, so we skip it here.
+          break;
+          case "SubmitSelection": 
+            game.addToHistory(entry);
+            break;
+
+          case "character": {
+            characterByPlayer.set(entry.playerId, entry.slug);
+            break;
+          }
+
+          case "randomSeed": {
+            game.seed = entry.seed;
+            break;
+          }
+
+          case "GameParameters": {
+            applySetGameParameter(game, entry as HistoricEntry & { type: "GameParameters" });
+            break;
+          }
+
+          case "SetGameParameter": {
+            const payload = entry.payload;
+            game.gameParameters.setParameterByKey(payload.parameter, payload.value);
+            game.addToHistory(entry);
+            break;
+          }
+
+          case "Start": {
+            if(isLastIndexUsedForReplay(index, logs))
+            {
+              game.selectMultiple = normalMultipleSelection;
+              await game.start(entry.players);
+            }
+            else
+            {
+              await game.start(entry.players);
+              await game.awaitPromises();
+              verifyRecordedCharactersAfterStart(game, characterByPlayer);
+            }
+            game.addToHistory(entry);
+            break;
+          }
+
+          case "Reset": {
+            throw new Error(
+              "Reset are supposed to be handled by creating a new game instance, but a Reset entry was found in logs. This may indicate an issue with log formatting or replay logic.",
+            );
+          }
+          case "GameState": {
+            const state = entry.gameState;
+            if (!state) {
+              throw new Error("GameState entry is missing gameState payload");
+            }
+
+            if (game.players[0] === undefined)
+              throw new Error("GameState entry is missing player data");
+
+            const comparison = compareGameState(game.detailedStateJSON(game.players[0]), state);
+            if (!comparison.equal) {
+              const differencesMessage = comparison.differences
+                .map((difference, index) => `${index + 1}. ${difference}`)
+                .join("\n");
+
+              throw new Error(
+                `Current game state does not match GameState entry from logs. Differences:\n${differencesMessage}`,
+              );
+            }
+
+            break;
+          }
+          case "DeclareAttack": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            helper.executeDeclareAttackRequest(game, player);
+            break;
+          }
+
+          case "AttackMonster": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            await helper.executeAttackMonsterRequest(game, entry.payload, player);
+            break;
+          }
+
+          case "AttackRoll": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            helper.executeAttackRollRequest(game, player);
+            break;
+          }
+
+          case "Resolve": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            await Promise.resolve();
+            await Promise.resolve();
+            await Promise.resolve();
+            await Promise.resolve();
+            await Promise.resolve();
+            await helper.executeResolveRequest(game, player);
+            break;
+          }
+
+          case "InsertStackElementBefore": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            helper.executeInsertStackElementBeforeRequest(game, entry.payload, player);
+            break;
+          }
+
+          case "PlayCard": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            await helper.executePlayCardRequest(game, entry.payload, player);
+            break;
+          }
+
+          case "Activate": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            try {
+              await helper.executeActivateRequest(game, entry.payload, player);
+            } catch (error) {
+              throw new Error(
+                `Failed to replay Activate request from logs: ${error instanceof Error ? error.message : error}`,
+              );
+            }
+            break;
+          }
+
+          case "ActivateRoom": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            try {
+              await helper.executeActivateRoomRequest(game, entry.payload, player);
+            } catch (error) {
+              throw new Error(
+                `Failed to replay ActivateRoom request from logs: ${error instanceof Error ? error.message : error}`,
+              );
+            }
+            break;
+          }
+
+          case "DeclarePurchase": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            helper.executeDeclarePurchaseRequest(game, player);
+            break;
+          }
+
+          case "CancelPurchase": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            helper.executeCancelPurchaseRequest(game, player);
+            break;
+          }
+
+          case "Purchase": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            helper.executePurchaseRequest(game, entry.payload, player);
+            break;
+          }
+
+          case "EndTurn": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            await helper.executeEndTurnRequest(game, player);
+            break;
+          }
+
+          case "GiveCoins": {
+            const from = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            await helper.executeGiveCoinsRequest(game, entry.payload, from);
+            break;
+          }
+
+          case "DebugLootTop": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            helper.executeDebugLootTopRequest(game, player);
+            break;
+          }
+
+          case "DebugGainTreasureTop": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            helper.executeDebugGainTreasureTopRequest(game, player);
+            break;
+          }
+
+          case "DebugLoot": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            helper.executeDebugLootRequest(game, entry.payload, player);
+            break;
+          }
+
+          case "DebugGainCoins": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            helper.executeDebugGainCoinsRequest(game, entry.payload, player);
+            break;
+          }
+
+          case "DebugPutMonsterCardInSlot": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            helper.executeDebugPutMonsterCardInSlotRequest(game, entry.payload, player);
+            break;
+          }
+
+          case "DebugGainTreasure": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            helper.executeDebugGainTreasureRequest(game, entry.payload, player);
+            break;
+          }
+
+          case "DebugRemoveCards": {
+            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+            helper.executeDebugRemoveCardsRequest(game, entry.payload, player);
+            break;
+          }
+
+          default:
+            throw new Error(`Unsupported log entry type for replay: ${(entry as HistoricEntry).type}`);
+        }
+      }catch (error: any) {
+        if(error.message.includes("Current game state does not match GameState entry from log"))
+          throw error;
         continue;
       }
-
-      if (verbose >= 1)
-        console.log(`Replaying log entry ${index}\n`);
-
-      switch (entry.type) {
-        case "CreateRoom":
-        case "JoinRoom":
-        case "LeaveRoom":
-        case "Rejoin":
-        case "IsGameOngoing":
-        case "LoadGame":
-        case "DebugListCardsICanRemove":
-        case "DebugListMonsterDeck":
-        case "DebugListTreasure":
-        case "DebugListLoot":
-        case "Join": 
-        // SubmitSelection is handled by the custom selectMultiple override, so we skip it here.
-        case "SubmitSelection": 
-          break;
-
-        case "character": {
-          characterByPlayer.set(entry.playerId, entry.slug);
-          break;
-        }
-
-        case "randomSeed": {
-          game.seed = entry.seed;
-          break;
-        }
-
-        case "GameParameters": {
-          applySetGameParameter(game, entry as HistoricEntry & { type: "GameParameters" });
-          break;
-        }
-
-        case "SetGameParameter": {
-          const payload = entry.payload;
-          game.gameParameters.setParameterByKey(payload.parameter, payload.value);
-          break;
-        }
-
-        case "Start": {
-          if(isLastIndexUsedForReplay(index, logs))
-          {
-            game.selectMultiple = normalMultipleSelection;
-            void game.start(entry.players);
-          }
-          else
-          {
-            await game.start(entry.players);
-            await game.awaitPromises();
-            verifyRecordedCharactersAfterStart(game, characterByPlayer);
-          }
-          break;
-        }
-
-        case "Reset": {
-          throw new Error(
-            "Reset are supposed to be handled by creating a new game instance, but a Reset entry was found in logs. This may indicate an issue with log formatting or replay logic.",
-          );
-        }
-
-        case "DeclareAttack": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          game.actions.declareAttack(player);
-          break;
-        }
-
-        case "AttackMonster": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          await executeAttackMonsterRequest(game, entry.payload, player);
-          break;
-        }
-
-        case "GameState": {
-          const state = entry.gameState;
-          if (!state) {
-            throw new Error("GameState entry is missing gameState payload");
-          }
-
-          if (game.players[0] === undefined)
-            throw new Error("GameState entry is missing player data");
-
-          const comparison = compareGameState(game.detailedStateJSON(game.players[0]), state);
-          if (!comparison.equal) {
-            const differencesMessage = comparison.differences
-              .map((difference, index) => `${index + 1}. ${difference}`)
-              .join("\n");
-
-            throw new Error(
-              `Current game state does not match GameState entry from logs. Differences:\n${differencesMessage}`,
-            );
-          }
-
-          break;
-        }
-
-        case "AttackRoll": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          game.actions.attackRoll(player);
-          break;
-        }
-
-        case "Resolve": {
-          await Promise.resolve();
-          await Promise.resolve();
-          await Promise.resolve();
-          await Promise.resolve();
-          await Promise.resolve();
-          await game.actions.resolveStack();
-          break;
-        }
-
-        case "InsertStackElementBefore": {
-          game.insertStackElementBefore(
-            game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer)),
-            entry.payload.elementToMoveStackId,
-            entry.payload.targetStackId,
-          );
-          break;
-        }
-
-        case "PlayCard": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          await executePlayCardRequest(game, entry.payload, player);
-          break;
-        }
-
-        case "Activate": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          try {
-            await executeActivateRequest(game, entry.payload, player);
-          } catch (error) {
-            throw new Error(
-              `Failed to replay Activate request from logs: ${error instanceof Error ? error.message : error}`,
-            );
-          }
-          break;
-        }
-
-        case "ActivateRoom": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          try {
-            await executeActivateRoomRequest(game, entry.payload, player);
-          } catch (error) {
-            throw new Error(
-              `Failed to replay ActivateRoom request from logs: ${error instanceof Error ? error.message : error}`,
-            );
-          }
-          break;
-        }
-
-        case "DeclarePurchase": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          game.actions.declarePurchase(player);
-          break;
-        }
-
-        case "CancelPurchase": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          game.actions.cancelPurchase(player);
-          break;
-        }
-
-        case "Purchase": {
-          game.actions.purchase(
-            game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer)),
-            entry.payload.index,
-          );
-          break;
-        }
-
-        case "EndTurn": {
-          await game.actions.nextTurn(
-            game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer)),
-          );
-          break;
-        }
-
-        case "GiveCoins": {
-          const from = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          const to = game.entityHandler.getPlayerById(entry.payload.target);
-          await game.giveCoins(from, to, entry.payload.coins);
-          break;
-        }
-
-        case "DebugLootTop": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          const topCard = game.decks.loot.cards[0];
-          if (topCard) {
-            game.actions.debugLoot(player, [topCard], false);
-          }
-          break;
-        }
-
-        case "DebugGainTreasureTop": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          const topCard = game.decks.treasure.cards[0];
-          if (topCard) {
-            game.actions.debugGainTreasures(player, [topCard]);
-          }
-          break;
-        }
-
-        case "DebugLoot": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          const cards = entry.payload.cards;
-          if (cards && cards.length > 0) {
-            for (const ref of cards) {
-              const card = game.obtainCard(ref.slug, ref.globalId) as LootCard;
-              game.cardHandler.addCardToHand(player, card);
-            }
-          }
-          break;
-        }
-
-        case "DebugGainCoins": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          game.actions.debugGainCoins(player, entry.payload.coins);
-          break;
-        }
-
-        case "DebugPutMonsterCardInSlot": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          const cardRef = entry.payload.card;
-          if (cardRef) {
-            const card = game.obtainCard(cardRef.slug, cardRef.globalId) as MonsterCard;
-            if (!card) {
-              throw new Error(`Card not found in the game: ${cardRef.slug}`);
-            }
-
-            const index = game.encounters._slots
-              .map((slot) => slot[slot.length - 1]?.globalId)
-              .indexOf(entry.payload.toCover.globalId);
-
-            game.actions.debugPutMonsterCardInSlot(player, card, index);
-          }
-          break;
-        }
-
-        case "DebugGainTreasure": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          const cards = entry.payload.cards;
-          if (cards && cards.length > 0) {
-            for (const ref of cards) {
-              const card = game.obtainCard(ref.slug, ref.globalId);
-              if (!(card instanceof ItemCard)) {
-                throw new Error(`Card ${ref.slug} is not an ItemCard`);
-              }
-              game.cardHandler.addInPlay(player, card);
-            }
-          }
-          break;
-        }
-
-        case "DebugRemoveCards": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          const payload = entry.payload;
-          if (payload.cards !== undefined) {
-            const refs = payload.cards;
-            const cardsToRemove = game
-              .playerCardsAndGameOwnedCards(player)
-              .filter((c) =>
-                refs.some((ref: IdentifierType) => c.slug === ref.slug && c.globalId === ref.globalId),
-              );
-            game.actions.debugRemoveCards(player, cardsToRemove);
-          }
-          break;
-        }
-
-        default:
-          throw new Error(`Unsupported log entry type for replay: ${(entry as HistoricEntry).type}`);
-      }
     }
-
-    game.loadHistory(logs);
+    console.log(logs.length, "logs processed");
     for (const player of game.players) {
       player.animations(true);
     }
