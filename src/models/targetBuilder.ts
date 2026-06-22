@@ -199,7 +199,7 @@ export class TargetBuilder {
                 const chosenOption = (possibleTargets as ChooseOneOptions[]).find(
                     opt => opt.description === choice.payload
                 );
-                console.log(`Processing choice "${choice.payload}" for choose-one selector "${selector.description}". possible options:`, (possibleTargets as ChooseOneOptions[]).map(opt => opt.description).join(", "));
+
                 if (!chosenOption) {
                     throw new Error(`Invalid choose-one option: ${choice}`);
                 }

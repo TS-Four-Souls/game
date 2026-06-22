@@ -535,7 +535,6 @@ export async function loadGameFromLogs(
         continue;
       }
     }
-    console.log(logs.length, "logs processed");
     for (const player of game.players) {
       player.animations(true);
     }

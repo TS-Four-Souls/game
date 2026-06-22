@@ -49,6 +49,18 @@ describe("Known bugs that have be corrected", () => {
         await game.actions.resolveStack();
         expect(game.decks.loot.discard.map(c=>c.slug)).toContain(questionMark.slug);
     });
+    it("Roll 6 on pandora's box de not leave it in discard.", async () => {
+        const card = game.obtainCard("b2-pandoras_box") as ItemCard;
+        game.cardHandler.addInPlay(player1, card);
+        game.random = () => 0.99;
+        await game.activateItem(player1, card, [], "tap");
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(player1.totalSouls).toBe(1);
+        expect(game.decks.treasure.discard.length).toBe(0);
+
+    });
     it("discard 1 loots on death", async () => {
         game.loot(player1, 10);
         const handSize = player1.hand.length;
