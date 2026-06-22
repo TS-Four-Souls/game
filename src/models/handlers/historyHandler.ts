@@ -164,9 +164,6 @@ export class HistoricHandler {
 
   addToHistory(entry: HistoricEntry): void {
     this._history.push(entry);
-    if(this.shouldSaveDetailedState(entry)) {
-      this.saveDetailedState();
-    }
   }
 
   recordInitialGameState(game: Game): void {
@@ -193,6 +190,11 @@ export class HistoricHandler {
 
   shouldSaveDetailedState(entry: HistoricEntry): boolean {
     return isGameAction(entry) && (entry.type !== "SubmitSelection" || this._lastUserRequestIndex === -1);
+  }
+
+  get lastEntry(): HistoricEntry | null {
+    if (this._history.length === 0) return null;
+    return this._history[this._history.length - 1]!;
   }
 
   get history(): StackElementJson[] {

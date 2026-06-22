@@ -246,7 +246,8 @@ export class Game extends SelectionHandler {
   getRollbackLog(player: Player): HistoricEntry[] {
     if(!this.gameParameters.allowCheatOptions.value && this._historicHandler.lastUserRequestIssuer === player.id)
       throw new Error("Cheat options are not allowed in this game. You can only rollback other players' actions.");
-    return this._historicHandler.rollbackLog;
+    const logs = this._historicHandler.rollbackLog;
+    return logs;
   }
   /**
    * Finds the owner of a soul or in-play item card.
@@ -265,6 +266,9 @@ export class Game extends SelectionHandler {
       seed = crypto.randomUUID(); // generate a random seed if none is provided
     }
     this._seed = seed;
+    if(this._historicHandler.lastEntry === undefined || 
+        this._historicHandler.lastEntry?.type !== "randomSeed" || 
+        this._historicHandler.lastEntry.seed !== seed)
     this._historicHandler.addToHistory({ private: true, type: "randomSeed", seed: seed });
     this._random = require("seedrandom")(this._seed);
   }

@@ -273,7 +273,6 @@ function isLastIndexUsedForReplay(index: number, logs: HistoricEntry[])
         "DebugListTreasure",
         "DebugListLoot",
         "Join",
-        "SubmitSelection"
       ].includes(logs[i]!.type))
       {
         return false;
@@ -298,7 +297,6 @@ export async function loadGameFromLogs(
   try {
     for (const [index, entry] of logs.entries()) {
       try{
-        
         if (!isUserRequestEntry(entry) && !isPrivateEntry(entry)) {
           continue;
         }
@@ -350,7 +348,7 @@ export async function loadGameFromLogs(
             if(isLastIndexUsedForReplay(index, logs))
             {
               game.selectMultiple = normalMultipleSelection;
-              await game.start(entry.players);
+              void game.start(entry.players);
             }
             else
             {
@@ -538,9 +536,13 @@ export async function loadGameFromLogs(
     for (const player of game.players) {
       player.animations(true);
     }
-    game.seed = "";
+    if(game.log.at(-2)?.type !== "randomSeed")
+      game.seed = "";
     return game;
-  } finally {
+  }catch (error) {
+    throw error;
+  }
+   finally {
     game.selectMultiple = normalMultipleSelection;
   }
 }
