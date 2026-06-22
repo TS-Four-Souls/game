@@ -269,9 +269,7 @@ export class Encounters extends Slots<MonsterCard> {
         } else {
             this._monstersInPlay[index] = undefined!;
             const effect: EffectOnStack = this.createEventEffect(card);
-            void this._game.executeWhenStackEmpty(() => {
-                this._game.addToStack(effect);
-            });
+            this._game.addToStack(effect);
         }
     }
 
