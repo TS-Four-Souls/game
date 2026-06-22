@@ -318,7 +318,7 @@ export class EffectInterface {
         }
     }
 
-    getEffectIdAndChooseOneChoiceFromSeparatorId(id: number): { effectId: number | "tap"; choice?: string } {
+    getEffectIdAndChooseOneChoiceFromSeparatorId(id: number): { effectId: number | "tap"; choice?: string[] } {
         const effectId = this._mapSepIdToActiveEffectId.get(id);
         if (effectId === undefined) {
             throw new Error(`Separator ID ${id} not found in effect map for card ${this.it.slug}.`);
@@ -327,8 +327,8 @@ export class EffectInterface {
         if(effect.range.length === 1)
             return { effectId };
         for(let i = 0; i < effect.range.length; i++) {
-            if(effect.range[i]!.startIndex <= id && id <= effect.range[i]!.endIndex!)
-                return { effectId, choice: effect.targetsSelector[0]!.selector(1 as any, 2 as any)[i] };
+            if(effect.range[i]!.startIndex <= id && id <= effect.range[i]!.endIndex!){
+                return { effectId, choice: [effect.range[i]!.description] };}
         }
         throw new Error(`Separator ID ${effectId} does not fall within any effect range for card ${this.it.slug}.`);
     }

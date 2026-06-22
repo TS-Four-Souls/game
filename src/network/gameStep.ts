@@ -185,10 +185,10 @@ export const enterGameStep = (
     errorGuardedEndpoint(callback, () =>
       payloadGuardedEndpoint(
         payload,
-        schemas.activateRequest,
+        schemas.activateWithIDRequest,
         callback,
         async (payload) => {
-          const choices = await helper.executeActivateRequest(
+          const choices = await helper.executeActivateWithIdRequest(
             room.game,
             payload,
             player,

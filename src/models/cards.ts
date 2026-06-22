@@ -458,6 +458,10 @@ export class ItemCard extends Card {
   getEffectTarget(effectId: number | "tap"): TargetsSelector[] {
     return this._effectInterface.getTargetSelectors(effectId);
   }
+  getEffectIdAndChooseOneChoiceFromSeparatorId(id: number): { effectId: number | "tap"; choice?: string[] }
+  {
+    return this._effectInterface.getEffectIdAndChooseOneChoiceFromSeparatorId(id);
+  }
 
   get cost(): string {
     return this._cost;

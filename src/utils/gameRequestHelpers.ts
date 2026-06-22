@@ -105,40 +105,23 @@ export async function executeActivateWithIdRequest(
   payload: Requests.ActivateWithID,
   player: Player,
 ): Promise<TargetSelectorResponse> {
-  const partialChoices = payload.targetChoices || [];
   const item = TargetBuilder.getCardFromPlayer(game, player, payload.index, "inPlay");
-  
-  const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(
-    game,
-    player,
-    item,
-    partialChoices,
-    payload.effectIndex,
-  );
+  const { effectId, choice } = item.getEffectIdAndChooseOneChoiceFromSeparatorId(payload.effectIndex);
 
-  if (choices.complete) {
-    const targets = TargetBuilder.buildTargets(
-      game,
-      player,
-      item,
-      partialChoices,
-      payload.effectIndex,
-    );
-    await game.actions.activateItemAtIndex(
-      player,
-      payload.index,
-      targets,
-      payload.effectIndex,
-    );
+  let partialChoice = payload.targetChoices === undefined ? [] : payload.targetChoices;
+  if(choice !== undefined) {
+    partialChoice = [...TargetBuilder.convertToSelectionItems(choice), ...partialChoice];
   }
-  if (choices.complete) {
-    game.addToHistory({
-      type: "ActivateRoom",
-      payload,
-      issuer: player.id,
-    });
-  }
-  return choices;
+  console.log("executeActivateWithIdRequest", { effectId, partialChoice });
+  return await executeActivateRequest(
+    game,
+    {
+      index: payload.index,
+      effectIndex: effectId,
+      targetChoices: partialChoice,
+    },
+    player
+  );
 }
 
 export async function executeActivateRoomRequest(

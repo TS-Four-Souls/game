@@ -71,6 +71,13 @@ const characterDeckSchema = z.object({
   cards: z.array(characterCardSchema),
 });
 
+const cardEffectSchema = z.object({
+  card: cardSchema,
+  visualEffectBox: VisualEffectBoxSchema,
+  index: z.union([z.literal("tap"), z.number()]),
+});
+export type CardEffect = z.infer<typeof cardEffectSchema>;
+
 export interface SetCardCountRequest {
   slug: string;
   count: number;
@@ -80,6 +87,7 @@ export interface SetCardCountRequest {
 export type SelectionItem =
   | { type: "card"; payload: Card }
   | { type: "stackElement"; payload: StackElement }
+  | { type: "cardEffect"; payload: CardEffect }
   | { type: "player"; payload: EntityType }
   | { type: "monster"; payload: EntityType }
   | { type: "animated"; payload: EntityType }
@@ -108,6 +116,7 @@ export type StackElement =
 const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
   z.union([
     z.object({ type: z.literal("card"), payload: cardSchema }),
+    z.object({ type: z.literal("cardEffect"), payload: cardEffectSchema }),
     z.object({ type: z.literal("stackElement"), payload: stackElementSchema }),
     z.object({ type: z.literal("player"), payload: entityTypeSchema }),
     z.object({ type: z.literal("monster"), payload: entityTypeSchema }),
@@ -301,6 +310,7 @@ export type StackElementJson = z.infer<typeof stackElementSchema>;
 const selectionItemTypeSchema = z.union([
   z.literal("card"),
   z.literal("stackElement"),
+  z.literal("cardEffect"),
   z.literal("player"),
   z.literal("monster"),
   z.literal("number"),
@@ -580,6 +590,11 @@ export type AttackRequirement = z.infer<typeof attackRequirementSchema>;
 const cardActivationSchema = z.object({
   index: z.number(),
   effectIndex: z.union([z.number(), z.literal("tap")]),
+  targetChoices: z.array(selectionItemSchema).optional(),
+});
+const cardActivationWithIdSchema = z.object({
+  index: z.number(),
+  effectIndex: z.number(),
   targetChoices: z.array(selectionItemSchema).optional(),
 });
 
@@ -1001,6 +1016,7 @@ export const schemas = {
   insertStackElementBeforeRequest: insertStackElementBeforeSchema,
   playCardRequest: cardActivationSchema,
   activateRequest: cardActivationSchema,
+  activateWithIDRequest: cardActivationWithIdSchema,
   activateRoomRequest: cardActivationSchema,
   purchaseRequest: purchaseSchema,
   giveCoinsRequest: giveCoinsSchema,
@@ -1029,6 +1045,7 @@ export namespace Requests {
   >;
   export type PlayCard = z.infer<typeof cardActivationSchema>;
   export type Activate = z.infer<typeof cardActivationSchema>;
+  export type ActivateWithID = z.infer<typeof cardActivationWithIdSchema>;
   export type ActivateRoom = z.infer<typeof cardActivationSchema>;
   export type Purchase = z.infer<typeof purchaseSchema>;
   export type GiveCoins = z.infer<typeof giveCoinsSchema>;
@@ -1179,6 +1196,11 @@ export interface ClientToServerEvents {
 
   activate: (
     request: Requests.Activate,
+    callback: (response: Responses.Activate) => void,
+  ) => void;
+
+  activateWithID: (
+    request: Requests.ActivateWithID,
     callback: (response: Responses.Activate) => void,
   ) => void;
 
