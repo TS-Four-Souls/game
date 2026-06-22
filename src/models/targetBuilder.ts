@@ -344,7 +344,7 @@ export class TargetBuilder {
             if (typeof option === 'number')
                 return {type: "number", payload: option};
             if (typeof option === 'string')
-                return {type: "string", payload: option.toLowerCase()};
+                return {type: "string", payload: option};
             if (typeof option === 'boolean')
                 return {type: "boolean", payload: option};
             if (option === null) {

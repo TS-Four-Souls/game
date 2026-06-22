@@ -328,7 +328,7 @@ export class EffectInterface {
             return { effectId };
         for(let i = 0; i < effect.range.length; i++) {
             if(effect.range[i]!.startIndex <= id && id <= effect.range[i]!.endIndex!){
-                return { effectId, choice: [effect.range[i]!.description] };}
+                return { effectId, choice: [effect.range[i]!.description.toLowerCase()] };}
         }
         throw new Error(`Separator ID ${effectId} does not fall within any effect range for card ${this.it.slug}.`);
     }
