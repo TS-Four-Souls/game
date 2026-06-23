@@ -196,8 +196,11 @@ export async function executeResolveRequest(
   game: Game,
   player: Player,
 ): Promise<void> {
-   game.addToHistory({ type: "Resolve", issuer: player.id });
-   await game.actions.resolveStack();
+  if(player !== game.currentPlayer) {
+    throw new Error("Only the current player can resolve the stack");
+  }
+  game.addToHistory({ type: "Resolve", issuer: player.id });
+  await game.actions.resolveStack();
 }
 
 export function executeSubmitSelectionRequest(
