@@ -765,6 +765,7 @@ describe("Loot Card", () => {
         await game.actions.resolveStack();
         
         game.entityHandler.dealDamage(player2, player1, card!, 1);
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack.size).toBe(2); // Dice and DamageOnStack
 
         const roll:DiceRoll = game.stack.elements[1] as DiceRoll;
@@ -784,6 +785,7 @@ describe("Loot Card", () => {
         await game.actions.resolveStack();
 
         game.entityHandler.dealDamage(player2, player1, card!, 1);
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack.size).toBe(2); // Dice and DamageOnStack
 
         const roll: DiceRoll = game.stack.elements[1] as DiceRoll;

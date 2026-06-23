@@ -213,7 +213,7 @@ export class Encounters extends Slots<MonsterCard> {
     createEventEffect(event: MonsterCard): EffectOnStack {
         return new EffectOnStack(
             async (data: EffectData) => {
-                const stackIds = this._game.stack.elements.map(e => e.stackId);
+                const stackIds = this._game.stack.currentStackIds;
                 if (!(data.issuer instanceof Player))
                     throw new Error("Event encounter effect issuer is not a player");
                 if (event.isCurse) {

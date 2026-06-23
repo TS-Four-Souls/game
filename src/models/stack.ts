@@ -40,6 +40,10 @@ export class Stack {
         }
     }
 
+    get currentStackIds(): number[] {
+        return this.elements.map(e => e.stackId);
+    }
+
     /** Moves one stack element before another within the same reordering group. 
     */
     insertStackElementBefore(elementToMove: StackElement, targetElement: StackElement): void {

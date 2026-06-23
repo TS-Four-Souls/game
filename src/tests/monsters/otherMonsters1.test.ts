@@ -45,6 +45,7 @@ describe("Monsters - Various 1", () => {
         await game.actions.resolveStack(); // resolve dice
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
         
         expect(game.stack._stack.length).toBe(0);
         // No damage should be dealt

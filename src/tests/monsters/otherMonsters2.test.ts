@@ -412,7 +412,8 @@ describe("Monsters - Various 2", () => {
         dice.value = 6; 
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // resolve effect
-        expect(game.stack.peek()).toBeInstanceOf(DiceRoll);
+        await game.actions.resolveStack(); // resolve effect
+        expect(game.stack.peek() instanceof DiceRoll).toBe(true);
         (game.stack.peek() as DiceRoll).value = 1; // Prevent damage
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -425,7 +426,8 @@ describe("Monsters - Various 2", () => {
         dice.value = 6; 
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // resolve effect
-        expect(game.stack.peek()).toBeInstanceOf(DiceRoll);
+        await game.actions.resolveStack(); // resolve effect
+        expect(game.stack.peek() instanceof DiceRoll).toBe(true);
         (game.stack.peek() as DiceRoll).value = 2; // Prevent damage
         await game.actions.resolveStack();
         await game.actions.resolveStack();

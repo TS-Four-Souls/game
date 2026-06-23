@@ -1,7 +1,7 @@
 import { type TriggerEvent } from '@/models/types/eventTypes';
 import type { TemporaryEffect, VisualEffectBox } from "@/shared/api";
 import { Card, ItemCard, LootCard, MonsterCard, TreasureCard, type CounterType } from "../cards";
-import { EffectOnStack, LootCardEffect } from '../stackElement';
+import { DamageOnStack, EffectOnStack, LootCardEffect } from '../stackElement';
 import { Entity } from "../entities/entity";
 import { Monster } from "../entities/monster";
 import { Player } from "../entities/player";
@@ -71,6 +71,22 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): SyncEff
         let target = data.peek();
         if(data.targets.length == 0)
             target = data.issuer;
+
+        // for(let i = game.stack.size - 1; i >= 0; i--)
+        //     if(game.stack.elements[i] instanceof DamageOnStack)
+        //     {
+        //         const damageOnStack = game.stack.elements[i] as DamageOnStack;
+        //         if( damageOnStack.receiver === target)
+        //         {
+        //             const current = damageOnStack.damage[0] ?? 0;
+        //             const prevented = Math.min(current, amount);
+        //             damageOnStack.damage[0] = current - prevented;
+        //             amount -= prevented;
+        //         }
+        //         if(amount <= 0)
+        //             return true;
+        //     }
+
         target.addTemporaryEffect(temp);
 
         const cleanup = (): void => {
@@ -334,7 +350,7 @@ export function preventDamageNotOnYourTurnEffect(game: Game): SyncEffectFunction
             const { eventIssuer, damageArray } = eventData;
             if (data.issuer !== eventIssuer) return;
             if(game.currentPlayer === data.issuer) return;
-            damageArray[0] = 0;
+            eventData.damageArray[0] = 0;
         });
         data.it.cleaners.push(() => {
             offDamage?.();

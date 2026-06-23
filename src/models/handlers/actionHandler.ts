@@ -5,7 +5,7 @@ import type { Entity } from "../entities/entity";
 import { Monster } from "../entities/monster";
 import { Animated } from "../entities/animated";
 import { getAttackRollEffect } from "../effects/activeEffect";
-import { DiceRoll } from "../stackElement";
+import { DamageOnStack, DiceRoll } from "../stackElement";
 import { Card, ItemCard, LootCard, MonsterCard, MonsterType, RoomCard, TreasureCard } from "../cards";
 import { LootCardEffect } from '../stackElement';
 import { TargetBuilder } from "../targetBuilder";
@@ -283,6 +283,8 @@ export class ActionHandler {
     }
     if(this.game.stack.peek() instanceof DiceRoll)
       return this.game.resolveDiceRoll();
+    if(this.game.stack.peek() instanceof DamageOnStack)
+      return this.game.entityHandler.resolveDamageOnStack();
     const elem = this.game.stack.resolve();
     if (!elem) return;
 

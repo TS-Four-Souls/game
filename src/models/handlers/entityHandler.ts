@@ -261,7 +261,7 @@ export class EntityHandler {
     }catch{
       return; // if the receiver is not alive or not in play anymore, do nothing.
     }
-    const stackIds = this.game.stack.elements.map(e => e.stackId);
+    const stackIds = this.game.stack.currentStackIds;
     const values: DeathPenaltyValues = new DeathPenaltyValues(this.game.gameParameters);
 
     this.game.emit("on:death:before-penalty", {
@@ -273,7 +273,7 @@ export class EntityHandler {
     
     receiver.die();
     await this.game.executeWhenStackSubset(stackIds, async () => {
-      const stackIds = this.game.stack.elements.map(e => e.stackId);
+      const stackIds = this.game.stack.currentStackIds;
       if (receiver.isEngagedInCombat) {
         this.endCombat();
       }
@@ -450,12 +450,6 @@ export class EntityHandler {
       damageOnStack.attachEffect(callback, source, callbackTargets);
     }
     this.game.addToStack(damageOnStack);
-    this.game.emit("on:damage:would-take", {
-      eventIssuer: receiver,
-      target: dealer,
-      source: source,
-      damageArray: damageArray,
-    });
   }
 
   // on health loss trigger can be added here. Be careful, in case of pay HP to verify that all the HP are actually lost.
@@ -474,37 +468,57 @@ export class EntityHandler {
   /**
    * Resolves queued damage and emits taken-damage/death triggers.
    */
-  resolveDamage(
-    dealer: Entity,
-    receiver: Entity,
-    source: DamageSource,
-    damage: number
-  ): void {
+  async resolveDamageOnStack(): Promise<void> {
+    const elem = this.game.stack.peek() as DamageOnStack;
+    if (!elem || !(elem instanceof DamageOnStack)) return;
+
+    const dealer: Entity = elem.from;
+    const receiver: Entity = elem.receiver;
+    const source: DamageSource = elem._source;
+    const stackIds = this.game.stack.currentStackIds;
     if(receiver.isDead) return;
     if(!this.entities.includes(receiver))
       return;
-
-    this.healthLoss(dealer, receiver, source, damage);
-    if(damage > 0){
-        if (receiver.damageTakenThisTurn.length === 1)
-          this.game.emit("on:damage:taken:first-time-each-turn", {
-        eventIssuer: receiver,
+    this.game.emit("on:damage:would-take", {
+      eventIssuer: elem.receiver,
+      target: elem.from,
+      source: elem._source,
+      damageArray: elem.damage,
+    });
+    // console.log(`Resolving damage on stack: ${elem.damage[0]} damage from ${dealer instanceof Player ? `Player ${dealer.id}` : dealer instanceof Monster ? `Monster ${dealer.card.name}` : "Animated"} to ${receiver instanceof Player ? `Player ${receiver.id}` : receiver instanceof Monster ? `Monster ${receiver.card.name}` : "Animated"}.`);
+    await this.game.executeWhenStackSubset(stackIds, async () => {
+      // console.log(`Executing damage resolution for ${elem.damage[0]} damage from ${dealer instanceof Player ? `Player ${dealer.id}` : dealer instanceof Monster ? `Monster ${dealer.card.name}` : "Animated"} to ${receiver instanceof Player ? `Player ${receiver.id}` : receiver instanceof Monster ? `Monster ${receiver.card.name}` : "Animated"}.`);
+      const damage = elem.damage[0]!;
+      this.healthLoss(dealer, receiver, source, damage);
+      this.game.stack.resolve();
+      if(damage > 0){
+          await elem.onResolve();
+          // Add to history
+          this.game.addToHistory(elem.json);
+          this.game.dispatch();
+          await this.game.resolveCallbacks();
+          if (receiver.damageTakenThisTurn.length === 1)
+            this.game.emit("on:damage:taken:first-time-each-turn", {
+          eventIssuer: receiver,
+            target: dealer,
+            source: source,
+            damage: damage,
+          });
+          
+          this.game.emit("on:damage:taken", {
+          eventIssuer: receiver,
           target: dealer,
           source: source,
           damage: damage,
         });
-        
-        this.game.emit("on:damage:taken", {
-        eventIssuer: receiver,
-        target: dealer,
-        source: source,
-        damage: damage,
-      });
-    }
+      }
 
-    if (receiver.currentHealthPoints <= 0) {
-      this.death(receiver, dealer, source);
-    }
+      if (receiver.currentHealthPoints <= 0) {
+        this.death(receiver, dealer, source);
+      }
+      await this.game.resolveCallbacks();
+    });
+    await this.game.resolveCallbacks();
   }
 
   /**

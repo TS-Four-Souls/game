@@ -298,7 +298,7 @@ export class Game extends SelectionHandler {
   }
 
   async resolveDiceRoll(): Promise<void> {
-    const stackIds = this.stack.elements.map(e => e.stackId);
+    const stackIds = this.stack.currentStackIds;
     const elem = this.stack.peek() as DiceRoll;
     if (!elem || !(elem instanceof DiceRoll)) return;
 

@@ -159,6 +159,9 @@ export class DiceRoll extends StackElement {
     this.value = Math.floor(this._random() * 6) + 1;
     return this._value;
   }
+  override toString(): string {
+    return JSON.stringify(this.json);
+  }
   /**
    * Modify the random function used for this dice roll (for testing purposes only)
    */
@@ -218,7 +221,6 @@ export class DamageOnStack extends StackElement {
   }
 
   async onResolve(): Promise<void> {
-    this.game.entityHandler.resolveDamage(this.from, this.receiver, this._source, this.damage[0]!);
     if(this._effect) {
       const card = this._source instanceof DiceRoll ? this._source.card! : this._source;
       if(this.from instanceof Player === false)

@@ -447,12 +447,13 @@ describe("Multi death things", () => {
       game.actions.playCard(player1, 1, [player2]); // play bomb
       game.actions.playCard(player1, 0, [player2]); // play gold bomb
 
-      game.actions.resolveStack(); // resolve card
-      game.actions.resolveStack(); // resolve damage
-      game.actions.resolveStack(); // resolve death
+      await game.actions.resolveStack(); // resolve card
+      await game.actions.resolveStack(); // resolve damage
+      await game.actions.resolveStack(); // resolve death
+      await game.actions.resolveStack(); // resolve effect
 
       expect(player2.isDead).toBe(true);
-      game.actions.resolveStack(); // resolve card
+      await game.actions.resolveStack(); // resolve card
       expect(game.stack.size).toBe(0);
     });
 });

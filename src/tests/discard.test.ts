@@ -104,7 +104,7 @@ describe("Discard", () => {
         await game.actions.resolveStack();
         game.cardHandler.addCardToHand(player2, ewaz);
         game.actions.playCard(player2, player2.hand.length - 1);
-        game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.encounters.visible[0]!.slug).not.toBe("b2-moms_hand");
     });
 

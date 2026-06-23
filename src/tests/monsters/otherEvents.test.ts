@@ -79,7 +79,7 @@ describe("Event Monsters - Other Events", () => {
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         game.entityHandler.kill(player1, game.monsters[0]!, ambush);
-        game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.mustAttackEntity.length).toBe(initialAttacks + 1);
         expect(player1.isEngagedInCombat).toBe(false);
@@ -88,7 +88,7 @@ describe("Event Monsters - Other Events", () => {
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         game.entityHandler.kill(player1, game.monsters[0]!, ambush);
-        game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.mustAttackEntity.length).toBe(initialAttacks);
         expect(player1.isEngagedInCombat).toBe(false);
@@ -113,7 +113,7 @@ describe("Event Monsters - Other Events", () => {
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         game.entityHandler.kill(player1, game.monsters[0]!, ambush);
-        game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.mustAttackEntity.length).toBe(0);
         expect(player1.isEngagedInCombat).toBe(false);
@@ -302,10 +302,10 @@ describe("Event Monsters - Other Events", () => {
 
     it("devil_deal - option 3: take 2 damage, search for guppy item", async () => {
         game.entityHandler.addHealth(player1, 5);
-
+        
         const devilDeal = game.obtainCard("b2-devil_deal") as MonsterCard;
         game.decks["monster"]!.addTopPosition(devilDeal);
-        
+        game.obtainCard("b2-the_dead_cat"); // Ensure the dead cat is not in the treasure deck for this test
         // Add a Guppy item to treasure deck
         const guppyItem = game.obtainCard("b2-guppys_head") as TreasureCard;
         game.decks["treasure"]!.addTopPosition(guppyItem);
@@ -324,7 +324,8 @@ describe("Event Monsters - Other Events", () => {
             // Simulate selecting the first option (put into discard)
             return { selected: options.slice(0, max), remaining: options.slice(max) };
         };     
-        await game.actions.resolveStack(); // damage resolution
+        await game.actions.resolveStack(); 
+        expect(game.stack.size).toBe(0);
         expect(player1.currentHealthPoints).toBe(initialHP - 2);
         expect(player1.inPlay.filter(c => c instanceof TreasureCard).length).toBe(initialTreasures + 1);
         expect(player1.inPlay.some(c => c.isGuppy())).toBe(true);
