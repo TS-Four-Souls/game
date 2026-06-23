@@ -235,6 +235,7 @@ const lootCardOnStackJsonSchema = z.object({
   type: z.literal("LootCardEffect"),
   card: identifierTypeSchema,
   targets: z.array(selectionItemSchema),
+  visualEffectBox: VisualEffectBoxSchema.optional(),
   issuer: entityTypeSchema,
   id: z.number(),
   reordering: stackReorderingInfoSchema.optional(),

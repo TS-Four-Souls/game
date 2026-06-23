@@ -46,6 +46,9 @@ export class EffectData {
     get visualEffectBox(): VisualEffectBox | undefined {
         return this._VisualEffectBoxes;
     }
+    set visualEffectBox(visualEffectBox: VisualEffectBox | undefined) {
+        this._VisualEffectBoxes = visualEffectBox;
+    }
     set issuerProvider(issuerProvider: () => Entity) {
         this._issuerProvider = issuerProvider;
     }

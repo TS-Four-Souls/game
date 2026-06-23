@@ -313,6 +313,9 @@ export function chooseOneEffect(s: string, game: Game, selectionOnResolve: boole
             const description = selectionOnResolve ?
                 (await data.selectAndRecord(game, data.issuer, 1, 1, lines.slice(1), "Select an effect to resolve.", true, true)).selected[0] :
                 (data.next as string).toLowerCase();
+            if(!description)
+                throw new Error("No description found for choose one effect.");
+            data.visualEffectBox = data.it.visualEffectBoxFromDescription(description);
             for(let i = 0; i < effects.length; i++) {
                 if (description === lines[i+1]) {
 
