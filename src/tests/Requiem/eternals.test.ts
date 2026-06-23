@@ -48,6 +48,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(eternal.entity!.attackable).toBe(true);
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         game.actions.declareAttack(player2);
         game.actions.declareAttackOnEntity(player2, eternal.entity!);
         game.random = () => 0.99; // Roll only 6
@@ -127,6 +128,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(json.name).toBe("amginE ehT");
         expect(json.slug).toBe("r-amgine_eht");
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         game.entityHandler.kill(player1, player1, eternal);
@@ -383,6 +385,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player2.inPlay[2]!).toBe(willGet);
         game.random = () => 0.99;
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // effect
         await game.actions.resolveStack(); // dice
         expect(eternal.charged).toBe(true);
@@ -460,8 +463,10 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // blood lusst recharge
         await game.actions.resolveStack(); // hypercoagulation trigger
         await game.actions.resolveStack();
@@ -472,8 +477,10 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // blood lusst recharge
         await game.actions.resolveStack(); // hypercoagulation trigger
         await game.actions.resolveStack(); // hypercoagulation trigger
@@ -484,6 +491,7 @@ describe("Four Souls+2 Eternal Items", () => {
         
         const initialHandSize = player1.hand.length;
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); 
         expect(game.stack.isEmpty()).toBe(true);
@@ -520,6 +528,7 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.actions.resolveStack();
         expect(game.monsters[0]!.evasion).toBe(1);
         await game.endTurn();
+        await game.actions.resolveStack();
         expect(game.monsters[0]!.evasion).toBe(2);
     });
 
@@ -674,6 +683,7 @@ describe("Four Souls+2 Eternal Items", () => {
         for(let i = 0; i < 10; i++) 
             game.cardHandler.addTopPosition("treasure", game.cardHandler.copyCard(game.decks.treasure.cards[0]!)!);
         await game.endTurn();
+        await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player2);
 
         expect(player1.inPlay[0]!.slug).toBe("r-the_zealot");
@@ -690,6 +700,7 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -699,6 +710,7 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.actions.resolveStack();
         expect(player1.inPlay.length).toBe(8);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -758,6 +770,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.hand.length).toBe(1);
         const cardInHand = player1.hand._hand[0]!;
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve effect
         expect(game.stack.isEmpty()).toBe(true);

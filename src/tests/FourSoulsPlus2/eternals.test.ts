@@ -115,6 +115,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.attackPoints).toBe(atk + 2);
         game.resolveEntireStack();
         await game.endTurn();
+        await game.actions.resolveStack();
         game.resolveEntireStack();
         expect(player1.attackPoints).toBe(atk); 
     });

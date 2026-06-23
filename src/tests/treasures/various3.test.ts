@@ -247,16 +247,20 @@ describe("Tap/Paid effects 1", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(monster.evasion).toBe(initDC);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(monster.evasion).toBe(initDC + 1);
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(monster.evasion).toBe(initDC);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(monster.evasion).toBe(initDC + 1);
@@ -781,6 +785,7 @@ describe("Tap/Paid effects 1", () => {
         // End turn to clear temporary effects
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Loot after turn - not doubled
         const handSizeAfterTurn = player2.hand.length;
@@ -1020,6 +1025,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Now it's player2's turn
         expect(game.currentPlayer).toBe(player2);
@@ -1056,6 +1062,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(game.currentPlayer).toBe(player2);
 
@@ -1067,11 +1074,13 @@ describe("b2-theres_options treasure deck visibility", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(game.currentPlayer).toBe(player3);
 
         // End player3's turn
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player1)
@@ -1114,6 +1123,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player2);
 
         // Player2's turn - only player2 sees deck
@@ -1138,6 +1148,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player2);
 
         // Player1 cannot see during other's turn
@@ -1147,12 +1158,14 @@ describe("b2-theres_options treasure deck visibility", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player3);
 
         // Player1 cannot see during other's turn
         expect(player1.canSeeTopOfTreasureDeck).toBe(false);
         // Back to player1's turn
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player1);
@@ -1164,6 +1177,7 @@ describe("b2-theres_options treasure deck visibility", () => {
     it("adding the item mid-game works correctly", async () => {
         // End first turn without the item
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player2);

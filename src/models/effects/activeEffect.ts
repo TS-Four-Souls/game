@@ -1968,6 +1968,7 @@ export function endTurnAndResetStackEffect(game: Game): AsyncEffectFunction {
         game.resetCallbacks();
         game.entityHandler.endCombat();
         await game.endTurn();
+        await game.actions.resolveStack();
         return true;
     };
 }

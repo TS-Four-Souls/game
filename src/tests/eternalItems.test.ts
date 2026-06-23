@@ -56,6 +56,7 @@ describe("Eternal Items", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(theD6.charged).toBe(true);
     }); 
@@ -76,10 +77,12 @@ describe("Eternal Items", () => {
         expect(game.decks["loot"]!.discard.length).toBe(1); // eve starts, discard 1.
         
         await game.endTurn();
+        await game.actions.resolveStack();
         expect(theCurse.charged).toBe(false);
         await game.actions.resolveStack();
         expect(game.stack.size).toBe(0);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // isaac D6 recharge.
         await game.actions.resolveStack(); // eve turn start, discard 1.
@@ -112,11 +115,13 @@ describe("Eternal Items", () => {
         expect(player2.inPlay[0]!.slug).toBe("b2-isaac");
         await game.actions.resolveStack();
 
-        await game.endTurn(); // Isaac's turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // Isaac's turn
         await game.actions.resolveStack(); // Resolve any stack effects
         const theCurse = player1.inPlay[1]! as ItemCard;
         const shouldBeDiscarded = game.decks["loot"]!.cards[0];
-        await game.endTurn(); // back to Eve's turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // back to Eve's turn
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack();
         // loot by default.
@@ -141,6 +146,7 @@ describe("Eternal Items", () => {
         await game.actions.resolveStack();
         expect(theBone.counters.value("normal")).toBe(1);
         await game.endTurn();
+        await game.actions.resolveStack();
         expect(theBone.charged).toBe(false);
         game.cardHandler.recharge(theBone);
         await game.activateItem(player1, theBone);
@@ -414,6 +420,7 @@ describe("Eternal Items", () => {
         expect(player2.inPlay[1]!.eternal).toBe(true);
         const yumHeart = player2.inPlay[1]! as ItemCard;
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(yumHeart.charged).toBe(true);
         
@@ -432,6 +439,7 @@ describe("Eternal Items", () => {
 
         await game.actions.resolveStack();
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(yumHeart.charged).toBe(true);
     });
@@ -466,6 +474,7 @@ describe("Eternal Items", () => {
         const firstItemGained = player2.inPlay[2];
 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(firstItemGained!.eternal).toBe(false);
         expect(firstItemGained!).toBe(blankcard);
@@ -504,6 +513,7 @@ describe("Eternal Items", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player2.attackPoints).toBe(1);
         expect(bloodlust.charged).toBe(true);
 
@@ -512,12 +522,6 @@ describe("Eternal Items", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        await game.actions.resolveStack(); // Resolve any stack effects
-        expect(bloodlust.charged).toBe(true);
-        await game.activateItem(player2, bloodlust, [player2]);
-        await game.actions.resolveStack();
-        expect(bloodlust.charged).toBe(false);
-        await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
@@ -526,12 +530,22 @@ describe("Eternal Items", () => {
         expect(bloodlust.charged).toBe(false);
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
         await game.activateItem(player2, bloodlust, [player2]);
         await game.actions.resolveStack();
         expect(bloodlust.charged).toBe(false);
         await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // Resolve any stack effects
+        expect(bloodlust.charged).toBe(true);
+        await game.activateItem(player2, bloodlust, [player2]);
+        await game.actions.resolveStack();
+        expect(bloodlust.charged).toBe(false);
+        await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
@@ -787,7 +801,8 @@ describe("Eternal Items", () => {
         // Start with incubus discharged
         incubus.charged = false;
         
-        await game.endTurn(); // Isaac's turn ends
+        await game.endTurn();
+        await game.actions.resolveStack(); // Isaac's turn ends
         await game.actions.resolveStack();
         expect(incubus.charged).toBe(true);
         
@@ -818,7 +833,8 @@ describe("Eternal Items - 3 players tests", () => {
         expect(player2.inPlay[1]!.eternal).toBe(true);
         const bloodlust = player2.inPlay[1]! as ItemCard;
 
-        await game.endTurn(); // samson turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // samson turn
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(bloodlust.charged).toBe(true);
@@ -826,7 +842,8 @@ describe("Eternal Items - 3 players tests", () => {
         await game.actions.resolveStack();
         expect(bloodlust.charged).toBe(false);
 
-        await game.endTurn(); // eve turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // eve turn
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
         await game.activateItem(player2, bloodlust, [player2]);
@@ -834,11 +851,13 @@ describe("Eternal Items - 3 players tests", () => {
         expect(bloodlust.charged).toBe(false);
 
         await game.actions.resolveStack();
-        await game.endTurn(); // isaac turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // isaac turn
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(false);
         await game.actions.resolveStack();
-        await game.endTurn(); // samson turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // samson turn
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
         await game.activateItem(player2, bloodlust, [player2]);
@@ -846,7 +865,8 @@ describe("Eternal Items - 3 players tests", () => {
         expect(bloodlust.charged).toBe(false);
 
         await game.actions.resolveStack();
-        await game.endTurn(); // eve turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // eve turn
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);;
         expect(player1.attackPoints).toBe(1);
@@ -856,11 +876,13 @@ describe("Eternal Items - 3 players tests", () => {
         expect(bloodlust.charged).toBe(false);
 
         await game.actions.resolveStack(); // Resolve any stack effects
-        await game.endTurn(); // isaac turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // isaac turn
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(false); 
         await game.actions.resolveStack(); // Resolve any stack effects
-        await game.endTurn(); // samson turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // samson turn
         await game.actions.resolveStack();
         expect(bloodlust.charged).toBe(true);
         await game.activateItem(player2, bloodlust, [player2]);
@@ -868,7 +890,8 @@ describe("Eternal Items - 3 players tests", () => {
         expect(bloodlust.charged).toBe(false);
 
         await game.actions.resolveStack(); // Resolve any stack effects
-        await game.endTurn(); // eve turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // eve turn
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(true);
         await game.activateItem(player2, bloodlust, [player2]);
@@ -876,7 +899,8 @@ describe("Eternal Items - 3 players tests", () => {
         expect(bloodlust.charged).toBe(false);
 
         await game.actions.resolveStack(); // Resolve any stack effects
-        await game.endTurn(); // isaac turn
+        await game.endTurn();
+        await game.actions.resolveStack(); // isaac turn
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(bloodlust.charged).toBe(false);

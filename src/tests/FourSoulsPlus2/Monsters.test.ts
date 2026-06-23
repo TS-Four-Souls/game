@@ -226,8 +226,10 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         await game.actions.resolveStack(); 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // turn end
         expect(game.actions.canEndTurn(player1, false)).not.toBe(true);
@@ -244,8 +246,10 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         await game.actions.resolveStack(); 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // turn end
         expect(player1.hasAttackRequirement).toBe(true);
@@ -269,6 +273,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         expect(player1.inPlay.every(i => i.charged || !i.isActiveItem)).toBe(true);
         await game.actions.resolveStack(); // give curse to themselves
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // turn end
         expect(player1.inPlay.every(i => i.charged)).toBe(false);
@@ -304,6 +309,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         expect(game.entityHandler.getAttack(mob)).toBe(1);
         expect(game.entityHandler.getDC(mob)).toBe(4);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // turn end
         expect(mob.currentHealthPoints).toBe(3);

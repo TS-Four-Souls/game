@@ -36,6 +36,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         game.cardHandler.discardFromHandAtIndex(player2, 0);
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, monster);
@@ -92,6 +93,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const monster = game.monsters[0]!;
 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         game.cardHandler.discardFromHandAtIndex(player2, 0);
@@ -151,6 +153,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const monster = game.monsters[0]!;
 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         game.cardHandler.discardFromHandAtIndex(player2, 0);
@@ -214,6 +217,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         game.cardHandler.discardFromHandAtIndex(player2, 0);
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, monster);
@@ -270,6 +274,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const monster = game.monsters[0]!;
 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         game.cardHandler.discardFromHandAtIndex(player2, 0);
@@ -346,6 +351,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         game.cardHandler.discardFromHandAtIndex(player2, 0);
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, monster);
@@ -415,6 +421,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         game.cardHandler.discardFromHandAtIndex(player2, 0);
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, monster);
@@ -479,6 +486,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const monster = game.monsters[0]!;
 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         game.cardHandler.discardFromHandAtIndex(player2, 0);
@@ -546,6 +554,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const monster = game.monsters[0]!;
         
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         game.cardHandler.discardFromHandAtIndex(player2, 0);
@@ -653,6 +662,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         game.cardHandler.discardFromHandAtIndex(player2, 0);
 
         game.entityHandler.addAttackThisTurn(player2, 1); // Ensure player can attack
@@ -717,6 +727,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const theD10 = game.shop.obtainCard("b2-the_d10")! as TreasureCard;
         const card = game.obtainCard("b2-pills") as LootCard;
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         game.cardHandler.addInPlay(player1, theD10);

@@ -196,8 +196,10 @@ describe("Known bugs that have be corrected", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // end turn effect d6
         await game.actions.resolveStack(); // on turn start
@@ -213,8 +215,10 @@ describe("Known bugs that have be corrected", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // end turn effect d6
         expect(game.stack.size).toBe(0);
@@ -236,8 +240,10 @@ describe("Known bugs that have be corrected", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // end turn effect d6
         await game.actions.resolveStack(); // on turn start
@@ -254,8 +260,10 @@ describe("Known bugs that have be corrected", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // end turn effect d6
         expect(game.stack.size).toBe(0);
@@ -280,9 +288,11 @@ describe("Known bugs that have be corrected", () => {
         await game.actions.resolveStack();
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         await game.resolveEntireStack();
         const initcard = player1.hand.length;
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(initcard);

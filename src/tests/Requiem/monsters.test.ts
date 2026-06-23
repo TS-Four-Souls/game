@@ -405,6 +405,7 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.endTurn();
+        await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player1);
     });
 
@@ -473,6 +474,7 @@ describe("Requiem Monsters ", () => {
         expect(player1.inPlay.length).toBe(3);
         expect(player2.inPlay.length).toBe(3);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
     });
 
@@ -586,6 +588,7 @@ describe("Requiem Monsters ", () => {
         }
 
         await game.endTurn();
+        await game.actions.resolveStack();
         expect(game.entityHandler.getDC(ent)).toBe(1);
         game.entityHandler.kill(player1, ent, mob);
         await game.actions.resolveStack();
@@ -602,9 +605,11 @@ describe("Requiem Monsters ", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.hand.length).toBe(1);
         expect(player2.hand.length).toBe(1);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player2.hand.length).toBe(2);
     });
@@ -718,6 +723,7 @@ describe("Requiem Monsters ", () => {
         game.loot(player1, 3);
         game.gainCoins(player1, 3, "gift");
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -953,6 +959,7 @@ describe("Requiem Monsters ", () => {
         expect(game.entityHandler.getDC(ent)).toBe(3);
 
         await game.endTurn();
+        await game.actions.resolveStack();
         expect(game.entityHandler.getDC(ent)).toBe(5);
     });
 

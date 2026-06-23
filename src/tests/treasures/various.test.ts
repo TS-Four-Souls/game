@@ -46,9 +46,11 @@ describe("Treasure - Passive effects", () => {
 
         // End turn to trigger start of next player's turn
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // p1 ends
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // p2 ends, p1's turn starts - loot step happens
         await game.actions.resolveStack(); // Resolve any stack effects
 
@@ -63,9 +65,11 @@ describe("Treasure - Passive effects", () => {
         const initialHandSize = player1.hand.length;
 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // p1 ends
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // p2 ends, p1's turn starts - loot step happens
         await game.actions.resolveStack(); // Resolve any stack effects
 
@@ -82,9 +86,11 @@ describe("Treasure - Passive effects", () => {
         const initialHandSize = player1.hand.length;
 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // p1 ends
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // p2 ends, p1's turn starts - loot step happens
         await game.actions.resolveStack(); // Resolve any stack effects
 
@@ -269,6 +275,7 @@ describe("Treasure - Passive effects", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(initEvastion + 1);
     });
 
@@ -386,8 +393,10 @@ describe("Treasure - Passive effects", () => {
         // End turn and start new turn
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
@@ -407,9 +416,11 @@ describe("Treasure - Passive effects", () => {
     it("theres_options - allows purchasing twice in one turn", async () => {
         const theresOptions = game.shop.obtainCard("b2-theres_options") as TreasureCard;
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // end p1 turn
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // end p2 turn, p1's turn starts
         await game.actions.resolveStack(); // Resolve any stack effects
         game.cardHandler.addInPlay(player1, theresOptions);
@@ -438,9 +449,11 @@ describe("Treasure - Passive effects", () => {
     it("theres_options - cannot purchase three times", async () => {
         const theresOptions = game.shop.obtainCard("b2-theres_options") as TreasureCard;
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // end p1 turn
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // end p2 turn, p1's turn starts
         await game.actions.resolveStack(); // Resolve any stack effects
         game.cardHandler.addInPlay(player1, theresOptions);
@@ -488,10 +501,12 @@ describe("Treasure - Passive effects", () => {
         // End turn and start new turn
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(game.currentPlayer.id).toBe(player2.id);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects

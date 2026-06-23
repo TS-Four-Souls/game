@@ -1,4 +1,4 @@
-import type { StackReorderingInfo as ApiStackReorderingInfo, DamageOnStackJson, DeathOnStackJson, DiceRollJson, StackElementJson, LootStepJson, EffectOnStackJson, LootCardOnStackJson, VisualEffectBox } from "@/shared/api";
+import type { StackReorderingInfo as ApiStackReorderingInfo, DamageOnStackJson, DeathOnStackJson, DiceRollJson, StackElementJson, LootStepJson, EffectOnStackJson, LootCardOnStackJson, VisualEffectBox, EndOfTurnJson } from "@/shared/api";
 import type { Entity } from "./entities/entity";
 import type { Game } from "./game";
 import { EffectData, LootCard, type Card, type EffectFunction } from "./cards";
@@ -310,6 +310,30 @@ export class LootStepOnStack extends StackElement {
   override async onResolve(): Promise<void> {
     this.game.lootStep(this.player, this.nbLoots);
     return new Promise(resolve => setTimeout(resolve, 0));
+  }
+}
+
+export class EndOfTurnOnStack extends StackElement {
+  
+  player: Player
+  game: Game;
+  
+  constructor(player: Player, game: Game) {
+    super();
+    this.player = player;
+    this.game = game;
+  }
+  override get json(): EndOfTurnJson {
+    return {
+      type: "endOfTurn",
+      player: this.player.json,
+      ...super.baseJson,
+    };
+  }
+  override get debugLogs(): string {
+    return `EndOfTurn: ${this.player.id} ends their turn`;
+  }
+  override async onResolve(): Promise<void> {
   }
 }
 

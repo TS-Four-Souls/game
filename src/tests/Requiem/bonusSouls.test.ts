@@ -73,9 +73,11 @@ it("Soul of Lust - each time a player kills a monster, put a counter on this. - 
             await game.actions.resolveStack();
             expect(game.currentPlayer.totalSouls).toBe((i === 5 ? 1 : 0));
             await game.endTurn();
+            await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve effect
         }
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve effect
         expect(game.currentPlayer.souls.map(c => c.slug)).toContain("r-soul_of_lust");
     });
@@ -97,9 +99,11 @@ it("Soul of Wrath - each time a player dies, put a counter on this. - 6 counters
             await game.actions.resolveStack();
             expect(game.currentPlayer.totalSouls).toBe((i === 5 ? 1 : 0));
             await game.endTurn();
+            await game.actions.resolveStack();
             await game.actions.resolveStack(); // resolve effect
         }
         await game.endTurn();
+        await game.actions.resolveStack();
         expect(game.currentPlayer.souls.map(c => c.slug)).toContain("r-soul_of_wrath");
 
     });

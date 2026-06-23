@@ -49,6 +49,7 @@ describe("Requiem Loots ", () => {
         expect(game.entityHandler.getAttack(player1)).toBe(3);
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.entityHandler.getAttack(player1)).toBe(2);
     });
 
@@ -70,7 +71,9 @@ describe("Requiem Loots ", () => {
         expect(game.stack.isEmpty()).toBe(true);
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         game.gainCoins(player1, 7, "gift");
         game.actions.declarePurchase(player1);
@@ -78,6 +81,7 @@ describe("Requiem Loots ", () => {
         expect(player1.coins).toBe(2);
         game.loot(player1, 15);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(10);
@@ -223,7 +227,9 @@ describe("Requiem Loots ", () => {
         expect(player1.hand.length).toBe(4);
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(5);
     });
@@ -338,6 +344,7 @@ describe("Requiem Loots ", () => {
             expect(item.eternal).toBe(true);
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         for(let i = 2; i < player1.inPlay.length; i++)
             expect(player1.inPlay[i]!.eternal).toBe(false);
     });
@@ -355,6 +362,7 @@ describe("Requiem Loots ", () => {
         expect(player1.coins).toBe(3);
 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve effect
         expect(player2.hand.length).toBe(1);

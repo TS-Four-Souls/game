@@ -340,6 +340,7 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
         // End turn
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(game.currentPlayer).toBe(player2);
 
@@ -348,6 +349,7 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
 
         // End player2's turn
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(game.currentPlayer).toBe(player1);
@@ -498,8 +500,10 @@ describe("b2-modeling_clay - becomes permanent copy of non-eternal item", () => 
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         // Both players keep their HP bonuses (modeling_clay is permanent)
@@ -613,6 +617,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         // Should revert back to diplopia
         expect(diplopia.name).toBe("Diplopia");
@@ -656,6 +661,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player2);
 
         // Should revert immediately after player1's turn ends
@@ -663,6 +669,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // End player2's turn
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player1);
@@ -690,11 +697,13 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(diplopia.name).toBe("Diplopia");
         expect(game.currentPlayer).toBe(player2);
 
         // Back to player1's turn
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player1);
@@ -707,6 +716,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // End turn
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -733,6 +743,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         // Attack bonus should be removed
         expect(player1.attackPoints).toBe(initialAttack);
     });
@@ -756,6 +767,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // End turn - diplopia reverts
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -797,6 +809,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         // Player1 loses the temporary HP bonus
         expect(player1.currentHealthPoints).toBe(player1InitialHP);
@@ -827,6 +840,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.currentHealthPoints).toBe(player1InitialHP);
 
         // Second use: copy brimstone
@@ -839,6 +853,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         // Note: The second reversion may have edge cases with stat restoration
         await game.actions.resolveStack();
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         
         // Verify original items on player2 still work properly
@@ -869,6 +884,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         // Second transformation: brimstone  
         game.cardHandler.recharge(diplopia);
         await game.activateItem(player1, diplopia, [brimstone]);
@@ -880,6 +896,7 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
 
         // End turn - reverts again
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         // Verify player2's original items still work properly
@@ -989,6 +1006,7 @@ describe("b2-trinity_shield - prevents other players from priority actions", () 
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // On player2's turn, player2 can activate items normally (trinity_shield doesn't affect player2's turn)
         expect(game.currentPlayer).toBe(player2);
@@ -1014,8 +1032,10 @@ describe("b2-trinity_shield - prevents other players from priority actions", () 
         // End turn and start new turn
         await game.endTurn();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 

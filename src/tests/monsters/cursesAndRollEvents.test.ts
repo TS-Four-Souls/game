@@ -603,6 +603,7 @@ describe("Event Monsters - Curse Effects", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.hand.length).toBe(initialHandSize - 2);
         expect(game.encounters._slots[0]).not.toBe(curseOfAmnesia); // Curse should not be in monster slot
@@ -627,6 +628,7 @@ describe("Event Monsters - Curse Effects", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.hand.length).toBe(initialHandSize - 2);
         // expect(false).toBe(true);
@@ -648,6 +650,7 @@ describe("Event Monsters - Curse Effects", () => {
         
         // End player's turn to trigger curse effect
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -694,8 +697,10 @@ describe("Event Monsters - Curse Effects", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.currentHealthPoints).toBe(initialHP );
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -723,6 +728,7 @@ describe("Event Monsters - Curse Effects", () => {
         
         // Check DC during player2's turn
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         const dcOnOtherTurn = fly.evasion;
         expect(game.currentPlayer.id).toBe(player2.id);

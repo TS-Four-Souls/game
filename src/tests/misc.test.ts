@@ -82,6 +82,7 @@ describe("Before start effects", () => {
 
         game.currentPlayer.clearAttackRequirement(); // If krampus is visible, the test can fail because of it requiring an attack declaration before ending the turn
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.resolveEntireStack();
         // Ensure the loot play resets at the start of the turn
         expect(game.players.filter(p => p.id !== game.currentPlayer.id)[0]!.remainingLootPlay).toBe(0);

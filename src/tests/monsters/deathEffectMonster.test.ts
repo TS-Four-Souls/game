@@ -211,12 +211,14 @@ describe("Monsters - On death effects", () => {
         expect(game.turnHandler.numberOfTurnSkiped(player2)).toBe(0);
 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // end player1 turn
         await game.actions.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(game.currentPlayer.id).toBe(player2.id);
 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // end player2 turn, player 1 should be skipped
         await game.actions.resolveStack();
         expect(game.stack.size).toBe(0);

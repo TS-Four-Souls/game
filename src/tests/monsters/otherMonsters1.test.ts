@@ -130,6 +130,7 @@ describe("Monsters - Various 1", () => {
         await game.actions.nextTurn(player1);
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack._stack.length).toBe(0);
 
         expect(monster.attackPoints).toBe(initAtk);
@@ -389,6 +390,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         const initHPPlayer3 = player3.currentHealthPoints;
 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // to player2
         await game.actions.resolveStack(); // resolve damage
         game.entityHandler.dealDamage(monster, monster, card, 1);
@@ -453,9 +455,11 @@ describe("Monsters - Various 1 - 3 players", () => {
         const initHPPlayer3 = player3.currentHealthPoints;
 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // to player2
         await game.actions.resolveStack(); // resolve damage
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // to player2
         await game.actions.resolveStack(); // resolve damage
         game.entityHandler.dealDamage(monster, monster, card, 1);
@@ -637,6 +641,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         game.encounters.forceSetMonsterAtSlot(0, card);
 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // to player2
         await game.actions.resolveStack(); // resolve damage
 
@@ -679,6 +684,7 @@ describe("Monsters - Various 1 - 3 players", () => {
 
         
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // to player2
         await game.actions.resolveStack(); // resolve damage
         

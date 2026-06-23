@@ -111,6 +111,7 @@ export type StackElement =
   | LootStepJson
   | DamageOnStackJson
   | DiceRollJson
+  | EndOfTurnJson
   | EffectOnStackJson;
 
 const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
@@ -274,6 +275,14 @@ const lootStepJsonSchema = z.object({
 });
 export type LootStepJson = z.infer<typeof lootStepJsonSchema>;
 
+const endOfTurnJsonSchema = z.object({type: z.literal("endOfTurn"),
+  player: entityTypeSchema,
+  id: z.number(),
+  reordering: stackReorderingInfoSchema.optional(),
+});
+export type EndOfTurnJson = z.infer<typeof endOfTurnJsonSchema>;
+
+
 const damageOnStackJsonSchema = z.object({
   type: z.literal("damage"),
   receiver: entityTypeSchema,
@@ -302,6 +311,7 @@ const stackElementSchema: z.ZodType<StackElement> = z.lazy(() =>
     lootCardOnStackJsonSchema,
     deathOnStackJsonSchema,
     lootStepJsonSchema,
+    endOfTurnJsonSchema,
     damageOnStackJsonSchema,
     diceRollJsonSchema,
     effectOnStackJsonSchema,

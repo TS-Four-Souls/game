@@ -6,7 +6,7 @@ import {
   MonsterCard,
   TreasureCard
 } from "@/models/cards";
-import { EffectOnStack } from './stackElement';
+import { EffectOnStack, EndOfTurnOnStack } from './stackElement';
 import { CurrentPlayerDecidesToChangeRoom } from "@/models/effects/roomEffects";
 import { Entity } from "@/models/entities/entity";
 import { Monster } from "@/models/entities/monster";
@@ -516,6 +516,7 @@ export class Game extends SelectionHandler {
   async endTurn(): Promise<void> {
     const player = this.currentPlayer;
     this.actions.canEndTurn(player, true);
+    this.stack.push(new EndOfTurnOnStack(player, this));
     this.emit("on:turn:end", { eventIssuer: player });
     this.handleRoomChange();
     await this.executeWhenStackEmpty(async () => {

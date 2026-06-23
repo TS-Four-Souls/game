@@ -37,6 +37,7 @@ describe("Treasure - Permanent Modifiers", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         expect(player1.currentHealthPoints).toBe(initialHealth + 1);
         game.cardHandler.removeInPlay(player1, dinner);
@@ -74,9 +75,11 @@ describe("Treasure - Permanent Modifiers", () => {
     it("+1 ATK declaration on your turn", async () => {
         const cb = game.shop.obtainCard("b2-champion_belt")!;
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // to player2
         await game.actions.resolveStack();
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // back to player1
         await game.actions.resolveStack();
         const initialAtkLim = player1.attackThisTurn;
@@ -86,8 +89,10 @@ describe("Treasure - Permanent Modifiers", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.attackThisTurn).toBe(0);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.attackThisTurn).toBe(2);
@@ -96,8 +101,10 @@ describe("Treasure - Permanent Modifiers", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.attackThisTurn).toBe(0);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.attackThisTurn).toBe(1);
@@ -106,9 +113,11 @@ describe("Treasure - Permanent Modifiers", () => {
     it("+1 Loot play on your turn", async () => {
         const cb = game.shop.obtainCard("b2-polydactyly")!;
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // to player2
         await game.actions.resolveStack();
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // back to player1
         await game.actions.resolveStack();
         const initialLootPlay = player1.remainingLootPlay;
@@ -118,8 +127,10 @@ describe("Treasure - Permanent Modifiers", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(0);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value+1);
@@ -128,8 +139,10 @@ describe("Treasure - Permanent Modifiers", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(0);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value);
@@ -138,9 +151,11 @@ describe("Treasure - Permanent Modifiers", () => {
     it("+1 Loot play on your turn", async () => {
         const cb = game.shop.obtainCard("b2-belly_button")!;
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // to player2
         await game.actions.resolveStack();
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // back to player1
         await game.actions.resolveStack();
         const initialLootPlay = player1.remainingLootPlay;
@@ -150,8 +165,10 @@ describe("Treasure - Permanent Modifiers", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(0);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value + 1);
@@ -161,8 +178,10 @@ describe("Treasure - Permanent Modifiers", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(0);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(game.gameParameters.lootPlayPerTurn.value);
@@ -212,7 +231,9 @@ describe("Treasure - Permanent Modifiers", () => {
             await game.endTurn();
             await game.actions.resolveStack();
             await game.actions.resolveStack();
+            await game.actions.resolveStack();
             await game.endTurn();
+            await game.actions.resolveStack();
             await game.actions.resolveStack();
         }
     });

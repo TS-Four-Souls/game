@@ -545,6 +545,7 @@ describe("Tap/Paid effects 2", () => {
         // Make it player1's turn if it isn't
         while (game.currentPlayer !== player1) {
             await game.endTurn();
+            await game.actions.resolveStack();
         }
         
         // When we loop to make it player1's turn, the loot step has already run
@@ -731,6 +732,7 @@ describe("Force Attack Monster", () => {
         // Try to end turn without attacking
         expect(async() => {
             await game.endTurn();
+            await game.actions.resolveStack();
         }).toThrow("You must attack the required monster(s)");
     });
 
@@ -750,6 +752,7 @@ describe("Force Attack Monster", () => {
 
         expect(async () => {
             await game.endTurn();
+            await game.actions.resolveStack();
         }).not.toThrow();
     });
 
@@ -766,6 +769,7 @@ describe("Force Attack Monster", () => {
         // Should be able to end turn (constraint lifted)
         expect(async () => {
             await game.endTurn();
+            await game.actions.resolveStack();
         }).not.toThrow();
     });
 
@@ -786,6 +790,7 @@ describe("Force Attack Monster", () => {
         // Should be able to end turn (player dead, constraint doesn't apply)
         expect(async () => {
             await game.endTurn();
+            await game.actions.resolveStack();
         }).not.toThrow();
     });
 
@@ -804,9 +809,11 @@ describe("Force Attack Monster", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Go back to player1's turn
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -826,6 +833,7 @@ describe("Force Attack Monster", () => {
         // Constraint should be lifted because monster is gone
         expect(async () => {
             await game.endTurn();
+            await game.actions.resolveStack();
         }).not.toThrow();
     });
 
@@ -883,6 +891,7 @@ describe("Force Attack Monster", () => {
             // Try to end turn without attacking
             expect(async () => {
                 await game.endTurn();
+                await game.actions.resolveStack();
             }).toThrow("You must attack the required monster(s)");
         });
 
@@ -906,6 +915,7 @@ describe("Force Attack Monster", () => {
             // Should be able to end turn now
             expect(async () => {
                 await game.endTurn();
+                await game.actions.resolveStack();
             }).not.toThrow();
         });
 
@@ -965,6 +975,7 @@ describe("Force Attack Monster", () => {
             await game.endTurn();
             await game.actions.resolveStack();
             await game.actions.resolveStack();
+            await game.actions.resolveStack();
 
             // On next turn, player2 should not have the constraint
             expect(game.currentPlayer).toBe(player2);
@@ -972,6 +983,7 @@ describe("Force Attack Monster", () => {
 
             // End player2's turn
             await game.endTurn();
+            await game.actions.resolveStack();
             await game.actions.resolveStack();
             await game.actions.resolveStack();
 
@@ -1002,6 +1014,7 @@ describe("Force Attack Monster", () => {
             // Should be able to end turn
             expect(async () => {
                 await game.endTurn();
+                await game.actions.resolveStack();
             }).not.toThrow();
         });
 
@@ -1027,6 +1040,7 @@ describe("Force Attack Monster", () => {
             // Should be able to end turn
             expect(async () => {
                 await game.endTurn();
+                await game.actions.resolveStack();
             }).not.toThrow();
         });
 
@@ -1096,6 +1110,7 @@ describe("Force Attack Monster", () => {
             game.entityHandler.endCombat();
             expect(async () => {
                 await game.endTurn();
+                await game.actions.resolveStack();
             }).not.toThrow();
         });
 

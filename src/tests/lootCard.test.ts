@@ -392,6 +392,7 @@ describe("Loot Card", () => {
         expect(player1.isDead).toBe(true);
         expect(game.currentPlayer.id).toBe(player1.id); // should be player2's turn
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // end player1's turn to move to player2's turn
         await game.actions.resolveStack();
         expect(game.currentPlayer.id).toBe(player2.id); // should be player2's turn
@@ -428,6 +429,7 @@ describe("Loot Card", () => {
         await game.actions.resolveStack();
 
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack(); // end player1's turn to move to player2's turn
         await game.actions.resolveStack();
         expect(game.currentPlayer.id).toBe(player2.id); // should be player2's turn
@@ -918,9 +920,11 @@ describe("Loot Card", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -948,9 +952,11 @@ describe("Loot Card", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(initialHp);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(initialHp);
@@ -1584,9 +1590,11 @@ describe("Loot Card", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(initialHp);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         expect(player1.currentHealthPoints).toBe(initialHp);
@@ -1609,9 +1617,11 @@ describe("Loot Card", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player2.currentHealthPoints).toBe(initialHp);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         expect(player2.currentHealthPoints).toBe(initialHp);
@@ -1652,10 +1662,12 @@ describe("Loot Card", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk);
         expect(player1.diceModifier).toBe(initialDiceMod);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk);
@@ -1682,10 +1694,12 @@ describe("Loot Card", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player2.attackPoints).toBe(initialAtk);
         expect(player2.diceModifier).toBe(initialDiceMod);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         expect(player2.attackPoints).toBe(initialAtk);
@@ -1710,10 +1724,12 @@ describe("Loot Card", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk);
         expect(player1.currentHealthPoints).toBe(initialHP);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk);
@@ -1741,10 +1757,12 @@ describe("Loot Card", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player2.attackPoints).toBe(initialAtk);
         expect(player2.currentHealthPoints).toBe(initialHP);
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
 
         expect(player2.attackPoints).toBe(initialAtk);
@@ -1770,10 +1788,12 @@ describe("Loot Card", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player1.attackPoints).toBe(initialAtk);
         expect(player1.attackThisTurn).toBe(0 ); // not his turn
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -1802,10 +1822,12 @@ describe("Loot Card", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         expect(player2.attackPoints).toBe(initialAtk);
         expect(player2.attackThisTurn).toBe(initialAtkThisTurn + 1); // his turn
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
