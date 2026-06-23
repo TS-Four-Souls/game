@@ -535,6 +535,7 @@ export class Game extends SelectionHandler {
       this.dispatch();
       await this.startTurn();
     });
+    this.dispatch();
   }
 
   /**
