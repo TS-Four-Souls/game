@@ -2807,6 +2807,7 @@ export function killOnDoubleAttackRollEffect(game: Game): SyncEffectFunction {
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
             const { eventIssuer, target, dice } = eventData;
+            if(data.issuer !== eventIssuer) return;
             if(prevRollThisTurn === dice.value)
                 game.entityHandler.kill(data.issuer, target, data.it);
             prevRollThisTurn = dice.value;

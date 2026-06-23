@@ -49,6 +49,26 @@ describe("Known bugs that have be corrected", () => {
         await game.actions.resolveStack();
         expect(game.decks.loot.discard.map(c=>c.slug)).toContain(questionMark.slug);
     });
+    it("Euthanasia only work for owner.", async () => {
+        const card = game.obtainCard("fsp2-euthanasia") as ItemCard;
+        game.cardHandler.addInPlay(player2, card);
+        const mob = game.monsters[0]!;
+        game.entityHandler.addHealth(game.monsters[0]!, 10);
+        game.actions.declareAttack(player1);
+        game.actions.declareAttackOnEntity(player1, game.monsters[0]!);
+        game.random = () => 0.99;
+        game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
+        game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(mob.isDead).toBe(false);
+        
+        
+    });
     it("Roll 6 on pandora's box de not leave it in discard.", async () => {
         const card = game.obtainCard("b2-pandoras_box") as ItemCard;
         game.cardHandler.addInPlay(player1, card);
