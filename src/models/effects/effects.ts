@@ -364,19 +364,25 @@ export class EffectInterface {
     get activeEffectList(): ActiveEffectEntry[] {
         const effects: ActiveEffectEntry[] = [];
         if (this.activeEffects.hasTapEffect())
-            // for( const boxId of this.activeEffects.getActiveEffect().range)
-        {
-            const boxId = this.activeEffects.getActiveEffect().range[0]!;
-            effects.push({ visualEffectBox: { startIndex: boxId.startIndex, endIndex: boxId.endIndex }, index: "tap" as const, description: this.activeEffects.getActiveEffect().description });
-        }
+            effects.push({visualEffectBox: {startIndex: 0, endIndex: 0}, index: "tap" as const, description: this.activeEffects.getActiveEffect().description });
         for (const [index, effect] of this.activeEffects.effectNames.entries())
-        {
-            // for( const boxId of this.activeEffects.getPaidEffect(index).range)
-            const boxId = this.activeEffects.getActiveEffect().range[0]!;
-            effects.push({ visualEffectBox: { startIndex: boxId.startIndex, endIndex: boxId.endIndex }, index: index, description: effect });
-
-        }
+            effects.push({ visualEffectBox: { startIndex: 0, endIndex: 0 }, index: index, description: effect });
         return effects;
+        // const effects: ActiveEffectEntry[] = [];
+        // if (this.activeEffects.hasTapEffect())
+        //     // for( const boxId of this.activeEffects.getActiveEffect().range)
+        // {
+        //     const boxId = this.activeEffects.getActiveEffect().range[0]!;
+        //     effects.push({ visualEffectBox: { startIndex: boxId.startIndex, endIndex: boxId.endIndex }, index: "tap" as const, description: this.activeEffects.getActiveEffect().description });
+        // }
+        // for (const [index, effect] of this.activeEffects.effectNames.entries())
+        // {
+        //     // for( const boxId of this.activeEffects.getPaidEffect(index).range)
+        //     const boxId = this.activeEffects.getActiveEffect().range[0]!;
+        //     effects.push({ visualEffectBox: { startIndex: boxId.startIndex, endIndex: boxId.endIndex }, index: index, description: effect });
+
+        // }
+        // return effects;
     }
 
 

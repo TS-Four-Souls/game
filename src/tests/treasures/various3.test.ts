@@ -1012,8 +1012,8 @@ describe("b2-theres_options treasure deck visibility", () => {
         const state = game.detailedStateJSON(player1);
 
         // Should have firstCardTreasureDeck property
-        expect(state.firstCardTreasureDeck).toBeDefined();
-        expect(state.firstCardTreasureDeck).not.toBeUndefined();
+        expect(state.treasure.firstCardTreasureDeck).toBeDefined();
+        expect(state.treasure.firstCardTreasureDeck).not.toBeUndefined();
     });
 
     it("player cannot see top of treasure deck when not their turn", async () => {
@@ -1034,7 +1034,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         const state = game.detailedStateJSON(player1);
 
         // Should NOT have firstCardTreasureDeck property
-        expect(state.firstCardTreasureDeck).toBeUndefined();
+        expect(state.treasure.firstCardTreasureDeck).toBeUndefined();
     });
 
     it("other players cannot see top of treasure deck even when someone has the item", async () => {
@@ -1046,7 +1046,7 @@ describe("b2-theres_options treasure deck visibility", () => {
         const state = game.detailedStateJSON(player2);
 
         // Player2 should NOT see firstCardTreasureDeck
-        expect(state.firstCardTreasureDeck).toBeUndefined();
+        expect(state.treasure.firstCardTreasureDeck).toBeUndefined();
     });
 
     it("visibility updates when turn changes", async () => {
@@ -1056,7 +1056,7 @@ describe("b2-theres_options treasure deck visibility", () => {
 
         // Player1's turn - should see deck
         let state = game.detailedStateJSON(player1);
-        expect(state.firstCardTreasureDeck).toBeDefined();
+        expect(state.treasure.firstCardTreasureDeck).toBeDefined();
 
         // End turn
         await game.endTurn();
@@ -1068,7 +1068,7 @@ describe("b2-theres_options treasure deck visibility", () => {
 
         // Player2's turn - player1 should NOT see deck
         state = game.detailedStateJSON(player1);
-        expect(state.firstCardTreasureDeck).toBeUndefined();
+        expect(state.treasure.firstCardTreasureDeck).toBeUndefined();
 
         // End player2's turn
         await game.endTurn();
@@ -1087,7 +1087,7 @@ describe("b2-theres_options treasure deck visibility", () => {
 
         // Back to player1's turn - should see deck again
         state = game.detailedStateJSON(player1);
-        expect(state.firstCardTreasureDeck).toBeDefined();
+        expect(state.treasure.firstCardTreasureDeck).toBeDefined();
     });
 
     it("removing the item removes visibility", async () => {
@@ -1097,14 +1097,14 @@ describe("b2-theres_options treasure deck visibility", () => {
 
         // Player can see deck
         let state = game.detailedStateJSON(player1);
-        expect(state.firstCardTreasureDeck).toBeDefined();
+        expect(state.treasure.firstCardTreasureDeck).toBeDefined();
 
         // Remove the item
         game.cardHandler.removeInPlay(player1, theresOptions);
 
         // Player can no longer see deck
         state = game.detailedStateJSON(player1);
-        expect(state.firstCardTreasureDeck).toBeUndefined();
+        expect(state.treasure.firstCardTreasureDeck).toBeUndefined();
     });
 
     it("visibility is specific to player who owns the item", async () => {
@@ -1116,8 +1116,8 @@ describe("b2-theres_options treasure deck visibility", () => {
         // Player1's turn - nobody sees deck
         let state1 = game.detailedStateJSON(player1);
         let state2 = game.detailedStateJSON(player2);
-        expect(state1.firstCardTreasureDeck).toBeUndefined();
-        expect(state2.firstCardTreasureDeck).toBeUndefined();
+        expect(state1.treasure.firstCardTreasureDeck).toBeUndefined();
+        expect(state2.treasure.firstCardTreasureDeck).toBeUndefined();
 
         // End turn to player2
         await game.endTurn();
@@ -1129,8 +1129,8 @@ describe("b2-theres_options treasure deck visibility", () => {
         // Player2's turn - only player2 sees deck
         state1 = game.detailedStateJSON(player1);
         state2 = game.detailedStateJSON(player2);
-        expect(state1.firstCardTreasureDeck).toBeUndefined();
-        expect(state2.firstCardTreasureDeck).toBeDefined();
+        expect(state1.treasure.firstCardTreasureDeck).toBeUndefined();
+        expect(state2.treasure.firstCardTreasureDeck).toBeDefined();
     });
 
     it("property canSeeTopOfTreasureDeck is correctly set", async () => {
@@ -1188,7 +1188,7 @@ describe("b2-theres_options treasure deck visibility", () => {
 
         // Player2 should immediately see deck (it's their turn)
         let state = game.detailedStateJSON(player2);
-        expect(state.firstCardTreasureDeck).toBeDefined();
+        expect(state.treasure.firstCardTreasureDeck).toBeDefined();
         expect(player2.canSeeTopOfTreasureDeck).toBe(true);
     });
 
@@ -1204,8 +1204,8 @@ describe("b2-theres_options treasure deck visibility", () => {
         const state = game.detailedStateJSON(player1);
 
         // Verify the firstCardTreasureDeck matches the actual top card
-        expect(state.firstCardTreasureDeck).toBeDefined();
-        expect(state.firstCardTreasureDeck!.slug).toBe(topCard.slug);
+        expect(state.treasure.firstCardTreasureDeck).toBeDefined();
+        expect(state.treasure.firstCardTreasureDeck!.slug).toBe(topCard.slug);
     });
 
 });
