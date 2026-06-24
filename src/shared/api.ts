@@ -795,6 +795,7 @@ const shopSchema = z.object({
   deckSize: z.number(),
   inPlay: z.array(shopItemSchema),
   topDeckPrice: z.number(),
+  firstCardTreasureDeck: cardSchema.optional(),
 });
 export type Shop = z.infer<typeof shopSchema>;
 
@@ -824,7 +825,6 @@ const detailedStateSchema = z.object({
   turn: z.string(),
   round: z.number(),
   stack: z.array(z.lazy(() => stackElementSchema)),
-  firstCardTreasureDeck: cardSchema.optional(),
   history: z.array(stackElementSchema),
   animations: z.array(animationSchema),
 });
