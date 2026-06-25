@@ -209,7 +209,7 @@ export const enterStartStep = (
             if (!original) {
               return callback({ status: 400, error: "User not found" });
             }
-            if (room.users.length >= 4) {
+            if (room.users.flatMap((u) => u.instances).length >= 4) {
               return callback({ status: 400, error: "Room is full" });
             }
             if (original.instance.isCopy) {
