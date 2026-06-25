@@ -2,14 +2,15 @@ import {Game} from "@/models/game.ts";
 import * as active from "@/models/effects/activeEffect.ts";
 import * as passive from "@/models/effects/passiveEffect.ts";
 import {NumberRobustString} from "@/models/effects/parsing/numberRobustString.ts";
-import {EffectData, type EffectFunction} from "@/models/types/cardTypes.ts";
+import {EffectData, type EffectFunction, type SyncEffectFunction} from "@/models/types/cardTypes.ts";
 import type {OnDeathMonsterData, OnEnterPlayData} from "@/models/types/eventTypes.ts";
 import {Monster} from "@/models/entities/monster.ts";
 import {Player} from "@/models/entities/player.ts";
 import {noTargets} from "@/models/effects/parsing/selectors.ts";
-import {effectParser, type ParsedEffect} from "@/models/effects/parsing/effectParser.ts";
+import {effectParser, syncEffectParser, type ParsedEffect, type SyncParsedEffect} from "@/models/effects/parsing/effectParser.ts";
+import { addToStackEffect } from "@/models/effects/activeEffect.ts";
 
-export function eachTimeActivateItemEffect(s: string, game: Game): ParsedEffect {
+export function eachTimeActivateItemEffect(s: string, game: Game): SyncParsedEffect {
     const restOfEffect = s.substring("each time a player activates an item, they".length).trim();
     const restParsed = effectParser(restOfEffect, game, true);
     return {
@@ -18,7 +19,7 @@ export function eachTimeActivateItemEffect(s: string, game: Game): ParsedEffect 
     };
 }
 
-export function parseEachTimeRollEffect(s: string, game: Game, nr?: NumberRobustString): ParsedEffect {
+export function parseEachTimeRollEffect(s: string, game: Game, nr?: NumberRobustString): SyncParsedEffect {
     const numberRobustString = nr ?? new NumberRobustString(s);
     const masked = numberRobustString.toString();
 
@@ -81,7 +82,7 @@ export function parseEachTimeRollEffect(s: string, game: Game, nr?: NumberRobust
     throw new Error(`Could not parse 'Each time a player rolls a X' effect: ${s}`);
 }
 
-export function parseWhenActivePlayerRollsEffect(s: string, game: Game, nr?: NumberRobustString): ParsedEffect {
+export function parseWhenActivePlayerRollsEffect(s: string, game: Game, nr?: NumberRobustString): SyncParsedEffect {
     const numberRobustString = nr ?? new NumberRobustString(s);
     const masked = numberRobustString.toString();
     const prefix = "when the active player rolls a x";
@@ -99,10 +100,10 @@ export function parseWhenActivePlayerRollsEffect(s: string, game: Game, nr?: Num
     throw new Error(`Could not parse 'When the active player rolls a X' effect: ${s}`);
 }
 
-export function ParseWhenGainOrPurchaseThis(s: string, game: Game): ParsedEffect {
+export function ParseWhenGainOrPurchaseThis(s: string, game: Game): SyncParsedEffect {
     const restOfEffect = s.substring("when you gain or purchase this, ".length).trim();
     const restParsed = effectParser(restOfEffect, game, true);
-    return noTargetEffect(passive.onYourEventEffect("on:enter:play:after", [restParsed.effectFunction], game, s, false, (effect: EffectData, event: OnEnterPlayData) => event.card === effect.it));
+    return noTargetSyncEffect(passive.onYourEventEffect("on:enter:play:after", [restParsed.effectFunction], game, s, false, (effect: EffectData, event: OnEnterPlayData) => event.card === effect.it));
 }
 
 export function parseYouMayEffect(s: string, game: Game): ParsedEffect {
@@ -126,7 +127,7 @@ export function parseYouMayEffect(s: string, game: Game): ParsedEffect {
     };
 }
 
-export function parseAtTheEndOfYourTurnEffect(s: string, game: Game): ParsedEffect {
+export function parseAtTheEndOfYourTurnEffect(s: string, game: Game): SyncParsedEffect {
     const restOfEffect = s.substring("at the end of your turn, ".length).trim();
     const restParsed = effectParser(restOfEffect, game, true);
     return {
@@ -135,7 +136,7 @@ export function parseAtTheEndOfYourTurnEffect(s: string, game: Game): ParsedEffe
     };
 }
 
-export function parseAtTheEndOfEachTurnEffect(s: string, game: Game): ParsedEffect {
+export function parseAtTheEndOfEachTurnEffect(s: string, game: Game): SyncParsedEffect {
     const restOfEffect = s.substring("at the end of each turn, ".length).trim();
     const restParsed = effectParser(restOfEffect, game, true);
     return {
@@ -144,7 +145,7 @@ export function parseAtTheEndOfEachTurnEffect(s: string, game: Game): ParsedEffe
     };
 }
 
-export function parseWhenThisDiesEffect(s: string, game: Game): ParsedEffect {
+export function parseWhenThisDiesEffect(s: string, game: Game): SyncParsedEffect {
     const restOfEffect =
         s.startsWith("when this dies, after gaining rewards, ")
             ? s.substring("when this dies, after gaining rewards, ".length).trim()
@@ -157,7 +158,7 @@ export function parseWhenThisDiesEffect(s: string, game: Game): ParsedEffect {
     };
 }
 
-export function parseAtTheStartOfYourTurnEffect(s: string, game: Game): ParsedEffect {
+export function parseAtTheStartOfYourTurnEffect(s: string, game: Game): SyncParsedEffect {
     const restOfEffect = s.substring("at the start of your turn ".length).trim();
     const restParsed = effectParser(restOfEffect, game, true);
     return {
@@ -166,7 +167,7 @@ export function parseAtTheStartOfYourTurnEffect(s: string, game: Game): ParsedEf
     };
 }
 
-export function parseOnDamageTakenEffect(s: string, game: Game): ParsedEffect {
+export function parseOnDamageTakenEffect(s: string, game: Game): SyncParsedEffect {
     const restOfEffect = s.substring(s.indexOf(",") + 1).trim();
     const restParsed = effectParser(restOfEffect, game, true);
     return {
@@ -175,11 +176,13 @@ export function parseOnDamageTakenEffect(s: string, game: Game): ParsedEffect {
     };
 }
 
-export function parseLvXEffect(s: string, game: Game, nr?: NumberRobustString): ParsedEffect {
+export function parseLvXEffect(s: string, game: Game, nr?: NumberRobustString): SyncParsedEffect {
     nr = nr ?? new NumberRobustString(s);
     const lvl = nr.nextNumber();
     const effectString = s.substring(s.indexOf("]") + 1).trim();
-    return noTargetEffect(passive.lvlXaddListenerEffect([effectParser(effectString, game, true).effectFunction], lvl, game));
+    const restParsed = syncEffectParser(effectString, game);
+    if(restParsed === null) throw new Error(`Could not parse 'LvX' effect: ${s}`);
+    return noTargetSyncEffect(passive.lvlXaddListenerEffect([restParsed.effectFunction], lvl, game));
 }
 
 export function parseTheyEffect(s: string, game: Game): ParsedEffect {
@@ -193,10 +196,17 @@ export function parseTheyEffect(s: string, game: Game): ParsedEffect {
 
 export function parseWhenThisEntersPlay(s: string, game: Game): ParsedEffect {
     const restOfEffect = s.substring("when this enters play,".length).trim();
-    return effectParser(restOfEffect, game, true);
+    const restParsed = effectParser(restOfEffect, game, true);
+    return noTargetEffect(restParsed.effectFunction);
 }
 
-export function parseFirstKillMonsterTurnEffect(s: string, game: Game): ParsedEffect {
+export function syncParseWhenThisEntersPlay(s: string, game: Game): SyncParsedEffect {
+    const restOfEffect = s.substring("when this enters play,".length).trim();
+    const restParsed = effectParser(restOfEffect, game, true);
+    return noTargetSyncEffect(addToStackEffect(game, restParsed.effectFunction, s));
+}
+
+export function parseFirstKillMonsterTurnEffect(s: string, game: Game): SyncParsedEffect {
     const restOfEffect = s.substring("the first time you kill a monster on your turn, ".length).trim();
     const restParsed = effectParser(restOfEffect, game, true);
     return {
@@ -205,7 +215,7 @@ export function parseFirstKillMonsterTurnEffect(s: string, game: Game): ParsedEf
     };
 }
 
-export function parseEachTimeDeclareAttackEffect(s: string, game: Game): ParsedEffect {
+export function parseEachTimeDeclareAttackEffect(s: string, game: Game): SyncParsedEffect {
     const restOfEffect = s.substring(s.indexOf(",") + 1).trim();
     const restParsed = effectParser(restOfEffect, game, true);
     return {
@@ -214,7 +224,7 @@ export function parseEachTimeDeclareAttackEffect(s: string, game: Game): ParsedE
     };
 }
 
-export function parseEachTimeYouKillSpecificTypeEffect(s: string, game: Game, type: "monster" | "player"): ParsedEffect {
+export function parseEachTimeYouKillSpecificTypeEffect(s: string, game: Game, type: "monster" | "player"): SyncParsedEffect {
     const restOfEffect = s.substring(`each time you kill a ${type}, `.length).trim();
     const restParsed = effectParser(restOfEffect, game, true);
     return {
@@ -225,13 +235,13 @@ export function parseEachTimeYouKillSpecificTypeEffect(s: string, game: Game, ty
     };
 }
 
-export function parseEachTimeAnotherPlayerDiesEffect(s: string, game: Game): ParsedEffect {
+export function parseEachTimeAnotherPlayerDiesEffect(s: string, game: Game): SyncParsedEffect {
     const restOfEffect = s.substring("each time another player dies, ".length).trim();
     const restParsed = effectParser(restOfEffect, game, true);
-    return noTargetEffect(passive.onAnotherPlayerEventEffect("on:death:before-penalty", [restParsed.effectFunction], game, s));
+    return noTargetSyncEffect(passive.onAnotherPlayerEventEffect("on:death:before-penalty", [restParsed.effectFunction], game, s));
 }
 
-export function parseEachTimeWouldRollEffect(s: string, game: Game): ParsedEffect {
+export function parseEachTimeWouldRollEffect(s: string, game: Game): SyncParsedEffect {
     const nr = new NumberRobustString(s);
     const masked = nr.toString();
     const prefix = "each time a player would roll a x";
@@ -249,9 +259,10 @@ export function parseEachTimeWouldRollEffect(s: string, game: Game): ParsedEffec
     };
 }
 
-export function parseCurseEffect(s: string, game: Game): ParsedEffect {
+export function parseCurseEffect(s: string, game: Game): SyncParsedEffect {
     const restOfEffect = s.trim();
-    const restParsed = effectParser(restOfEffect, game, true);
+    const restParsed = syncEffectParser(restOfEffect, game);
+    if(restParsed === null) throw new Error(`Could not parse 'Curse' effect: ${s}`);
     return {
         effectFunction: passive.curseEffect(restParsed.effectFunction, game),
         targetSelectors: restParsed.targetSelectors
@@ -259,5 +270,9 @@ export function parseCurseEffect(s: string, game: Game): ParsedEffect {
 }
 
 export function noTargetEffect(effectFunction: EffectFunction): ParsedEffect {
+    return {effectFunction, targetSelectors: noTargets};
+}
+
+export function noTargetSyncEffect(effectFunction: SyncEffectFunction): SyncParsedEffect {
     return {effectFunction, targetSelectors: noTargets};
 }

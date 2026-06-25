@@ -20,7 +20,7 @@ import { LootCardEffect } from '../stackElement';
 import {
   selectEternalAmongX
 } from "@/models/effects/activeEffect";
-import { effectParser } from "@/models/effects/parsing/effectParser";
+import { effectParser, syncEffectParser } from "@/models/effects/parsing/effectParser";
 import { Entity } from "@/models/entities/entity";
 import { Monster } from "@/models/entities/monster";
 import { Player } from "@/models/entities/player";
@@ -28,7 +28,7 @@ import type { DeckType, DeckTypeToCardType, DecksCollection, EffectType, Targets
 import { EffectData } from "@/models/types/cardTypes";
 import { type RechargeReason } from '@/models/types/eventTypes';
 import { loadCards } from "@/utils/loadCards";
-import { Effect } from '../effects/effects';
+import { Effect, PassiveEffect } from '../effects/effects';
 import { Game } from "../game";
 
 import { bSoulEffectParser } from "../effects/bonusSoulEffects";
@@ -1063,10 +1063,28 @@ export class CardHandler {
           paymentParsed.effectFunction,
         );
         card.addEffect(effect);
-      } else {
+      } else if(effectType === "active") {
         // Regular effects (passive/active)
         const parsed = effectParser(outcome, this.game, card instanceof MonsterCard);
         const effect: Effect = new Effect(
+          outcome,
+          effectType,
+          card,
+          parsed.effectFunction,
+          parsed.targetSelectors,
+          card.getEffectRange(idx),
+        );
+        card.addEffect(effect);
+      }
+      else
+      {
+        const parsed = syncEffectParser(outcome, this.game);
+        if(parsed === null)
+        {
+          console.log(`Effect parsing failed for card ${card.name} (slug: ${card.slug}) with outcome: ${outcome}`);
+          return;
+        }
+        const effect: Effect = new PassiveEffect(
           outcome,
           effectType,
           card,

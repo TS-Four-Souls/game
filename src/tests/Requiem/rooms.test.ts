@@ -784,6 +784,7 @@ describe("Requiem Rooms", () => {
         const slug2 = player2.hand.cards[0]!.slug;
         const room = game.obtainCard("r-dice_room_6") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
+        await game.actions.resolveStack(); // resolve the event addition
         expect(slugs.every(s => game.monsters.some(c => c.card.slug === s))).toBe(false);
         expect(player1.hand.cards.some(c => c.slug === slug)).toBe(false);
         expect(player2.hand.cards.some(c => c.slug === slug2)).toBe(false);
@@ -801,6 +802,7 @@ describe("Requiem Rooms", () => {
         game.gainTreasure(player2, 2);
         const room = game.obtainCard("r-dice_room_5") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
+        await game.actions.resolveStack(); // resolve the event addition
         expect(slugs.every(s => game.monsters.some(c => c.card.slug === s))).toBe(false);
     });
 
@@ -812,6 +814,7 @@ describe("Requiem Rooms", () => {
         const slugsp2 = player2 .inPlay.slice(2, 4).map(c => c.slug);
         const room = game.obtainCard("r-dice_room_4") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
+        await game.actions.resolveStack(); // resolve the event addition
         expect(slugsp1.every(s => player1.inPlay.some(c => c.slug === s))).toBe(false);
         expect(slugsp2.every(s => player2.inPlay.some(c => c.slug === s))).toBe(false);
     });
@@ -821,6 +824,7 @@ describe("Requiem Rooms", () => {
         const slugs = game.shop.itemsInShop.map(c => c!.slug);
         const room = game.obtainCard("r-dice_room_3") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
+        await game.actions.resolveStack(); // resolve the event addition
         for(const slug of slugs) {
             expect(game.shop.itemsInShop.map(c => c!.slug)).not.toContain(slug);
         }
@@ -834,6 +838,7 @@ describe("Requiem Rooms", () => {
         const slug2 = player2.hand.cards[0]!.slug;
         const room = game.obtainCard("r-dice_room_2") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
+        await game.actions.resolveStack(); // resolve the event addition
         expect(player1.hand.cards.some(c => c.slug === slug)).toBe(false);
         expect(player2.hand.cards.some(c => c.slug === slug2)).toBe(false);
         expect(player1.hand.length).toBe(3);
@@ -848,6 +853,7 @@ describe("Requiem Rooms", () => {
         const slugsp2 = player2 .inPlay.slice(2, 4).map(c => c.slug);
         const room = game.obtainCard("r-dice_room_1") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
+        await game.actions.resolveStack(); // resolve the event addition
         expect(slugsp1.every(s => player1.inPlay.some(c => c.slug === s))).toBe(false);
         expect(slugsp2.every(s => player2.inPlay.some(c => c.slug === s))).toBe(true);
         await game.endTurn();
@@ -880,6 +886,8 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
         expect(player2.currentHealthPoints).toBe(0);
     });
     it("Devil Beggar 3", async () => {

@@ -190,6 +190,7 @@ describe("Known bugs that have be corrected", () => {
 
         game.encounters.draw(0);
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve the event addition
 
         expect(player1.curses.length).toBe(1);
         expect(player1.curses[0]!.slug).toBe("b2-curse_of_pain");
@@ -234,6 +235,7 @@ describe("Known bugs that have be corrected", () => {
 
         game.encounters.draw(0);
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve the event addition
 
         expect(player1.curses.length).toBe(1);
         expect(player1.curses[0]!.slug).toBe("b2-curse_of_pain");

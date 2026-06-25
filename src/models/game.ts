@@ -7,7 +7,7 @@ import {
   TreasureCard
 } from "@/models/cards";
 import { EffectOnStack, EndOfTurnOnStack } from './stackElement';
-import { CurrentPlayerDecidesToChangeRoom } from "@/models/effects/roomEffects";
+import { CurrentPlayerDecidesToChangeRoom } from "@/models/effects/activeEffect";
 import { Entity } from "@/models/entities/entity";
 import { Monster } from "@/models/entities/monster";
 import { Player } from "@/models/entities/player";

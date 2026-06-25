@@ -225,6 +225,8 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         await game.actions.resolveStack(); 
+        await game.actions.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve effect
@@ -245,6 +247,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         await game.actions.resolveStack(); 
+        await game.actions.resolveStack(); // resolve the event addition
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve effect
@@ -269,6 +272,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.decks.monster.addTopPosition(card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
+        await game.actions.resolveStack(); // resolve the event addition
         game.cardHandler.rechargeMultiple(player1);
         expect(player1.inPlay.every(i => i.charged || !i.isActiveItem)).toBe(true);
         await game.actions.resolveStack(); // give curse to themselves

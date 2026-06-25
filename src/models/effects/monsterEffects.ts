@@ -624,7 +624,7 @@ export function damageDealtToActivePlayerAlsoToTheEffect(game: Game, direction: 
     };
 }
 
-export function statModifierWhileAtHealthEffect(game: Game, s: string): EffectFunction
+export function statModifierWhileAtHealthEffect(game: Game, s: string): SyncEffectFunction
 {
     const numbers = s.match(/\d+/g)?.map(numStr => parseInt(numStr, 10)) || [];
     if(numbers.length != 2)

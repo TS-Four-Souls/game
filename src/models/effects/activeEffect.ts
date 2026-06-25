@@ -17,11 +17,13 @@ import { TargetBuilder } from "../targetBuilder";
 import { deckSelector, inplayUnchargedItemSelector as inplayChargeableItemSelector, visibleItemSelector } from "../targetSelector";
 import { type DeckType, EffectData, type EffectFunction, type SyncEffectFunction, type AsyncEffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type { OnTurnEndData } from "../types/eventTypes";
-import { effectParser, type ParsedEffect } from "./parsing/effectParser";
+import { effectParser, type ParsedEffect, type SyncParsedEffect } from "./parsing/effectParser";
 import { addPassiveEffectToStack } from "./passiveEffect";
 import * as room from "./roomEffects";
 
-export function gainCoinsEffect(game: Game, amount: number, issuerType: "issuer" | "current" = "issuer", youMayHandling: boolean[] = [false]): AsyncEffectFunction {
+export function gainCoinsEffect(game: Game, amount: number, issuerType: "issuer" | "current", youMayHandling: [false]): SyncEffectFunction
+export function gainCoinsEffect(game: Game, amount: number, issuerType: "issuer" | "current", youMayHandling: [true]): AsyncEffectFunction
+export function gainCoinsEffect(game: Game, amount: number, issuerType: "issuer" | "current" = "issuer", youMayHandling: boolean[] = [false]): EffectFunction {
     return async (data: EffectData) => {
         if (youMayHandling[0]) {
             const choice = (await data.selectAndRecord(game, data.issuer as Player, 0, 1, [data.it], "Do you want to gain coins?", false, true)).selected;
@@ -34,7 +36,29 @@ export function gainCoinsEffect(game: Game, amount: number, issuerType: "issuer"
         return true;
     };
 }
-
+export function CurrentPlayerDecidesToChangeRoom(game: Game): AsyncEffectFunction{
+    return async (data: EffectData) => {
+        if(game.rooms === undefined)
+            return false;
+        const selectedRoom = (await data.selectAndRecord(game, game.currentPlayer, 0, 1, [...game.rooms.activeRooms.filter((r) => r.canBeDiscarded)], "A monster died this turn, you can choose to put a room card into discard.", true)).selected[0];
+        if(selectedRoom)
+            game.cardHandler.discard(selectedRoom);
+        return selectedRoom !== undefined;
+    }
+}
+export function flushShopOrUnattackedMonstersEffect(game: Game): AsyncEffectFunction {
+    return async (data: EffectData) => {
+        const selected = (await data.selectAndRecord(game, game.currentPlayer, 0, 1, ["treasure", "monster"], "Put each shop item or each monster not being attacked into discard.", false)).selected[0] as string | undefined;
+        if(selected === "treasure") {
+            flushShopEffect(game, "discard")(data);
+        }
+        if(selected === "monster") {
+            flushMonsterSlotsEffect(game, "discard")(data);
+        }
+        // Implementation for flushing shop items or unattacked monsters
+        return true;
+    };
+}
 export function activeKillsUpToXOtherPlayersEffect(game: Game, maxPlayers: number): AsyncEffectFunction {
     return async (data: EffectData) => {
         const issuer = game.currentPlayer;
@@ -340,6 +364,12 @@ export function chooseOneEffect(s: string, game: Game, selectionOnResolve: boole
     };
 }
 
+export function addToStackEffect(game: Game, effect: EffectFunction, s: string): SyncEffectFunction {
+    return (data: EffectData) => {
+        addPassiveEffectToStack(game, effect, data, s, data.visualEffectBox);
+        return true;
+    };
+}
 
 export function searchCurseInMonsterDeckEffect(game: Game): AsyncEffectFunction {
     return async (data: EffectData) => {
@@ -388,7 +418,9 @@ export function shuffleDeckEffect(game: Game, deckName: string): SyncEffectFunct
     };
 }
 
-export function destroyCurseEffect(game: Game, selectionOnResolve: boolean=false): AsyncEffectFunction {
+export function destroyCurseEffect(game: Game, selectionOnResolve: false): SyncEffectFunction
+export function destroyCurseEffect(game: Game, selectionOnResolve: boolean): AsyncEffectFunction
+export function destroyCurseEffect(game: Game, selectionOnResolve: boolean=false): EffectFunction {
     return async (data: EffectData) => {
         let toDestroy = data.next;
         if(selectionOnResolve) {
@@ -1584,7 +1616,9 @@ export type cardDestination =
     | "bottom"
     | "discard";
 
-export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestination, selectionOnResolve:boolean = false, reveal: boolean = false): AsyncEffectFunction {
+export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestination, selectionOnResolve:false, reveal: boolean): SyncEffectFunction
+export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestination, selectionOnResolve:boolean, reveal: boolean): AsyncEffectFunction
+export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestination, selectionOnResolve:boolean = false, reveal: boolean = false): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const deck = selectionOnResolve 
@@ -2385,7 +2419,19 @@ export function combineEffectFunctions(effects: EffectFunction[]): AsyncEffectFu
     };
 }
 
-export function rechargeCharaEffect(game: Game, youMayEffectHanging: boolean[]): AsyncEffectFunction {
+export function combineSyncEffectFunctions(effects: SyncEffectFunction[]): SyncEffectFunction {
+    return (data: EffectData) => {
+        let result = true;
+        for (const effect of effects) {
+            result = result && effect(data);
+        }
+        return result;
+    };
+}
+
+export function rechargeCharaEffect(game: Game, youMayEffectHanging: [false]): SyncEffectFunction
+export function rechargeCharaEffect(game: Game, youMayEffectHanging: boolean[]): SyncEffectFunction
+export function rechargeCharaEffect(game: Game, youMayEffectHanging: boolean[]): EffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         if (data.issuer.character.charged === false) {
@@ -2489,7 +2535,7 @@ export function putOnTopOfMonsterDeckOnRollEffect(game: Game, rolls: number[]): 
 }
 
 
-export function rollAndGainXTimesResultEffect(game: Game, mult: number): ParsedEffect {
+export function rollAndGainXTimesResultEffect(game: Game, mult: number): SyncParsedEffect {
     return {
         effectFunction: (data: EffectData): boolean => {
             if (data.issuer instanceof Player === false) return false;
@@ -2504,7 +2550,7 @@ export function rollAndGainXTimesResultEffect(game: Game, mult: number): ParsedE
     };
 }
 
-export function rollAndDestroyIfLessThanCounters(game: Game): ParsedEffect {
+export function rollAndDestroyIfLessThanCounters(game: Game): SyncParsedEffect {
     return {
         effectFunction: (data: EffectData): boolean => {
             if (data.issuer instanceof Player === false) return false;
@@ -2523,11 +2569,11 @@ export function rollAndDestroyIfLessThanCounters(game: Game): ParsedEffect {
 }
 
 export function preventDeathEndTurnEffect(game: Game): EffectFunction {
-    return (data: EffectData) => {
+    return async (data: EffectData) => {
         if(data.issuer instanceof Player === false) return false;
         game.entityHandler.preventDeath(data.issuer);
         if (game.currentPlayer === data.issuer) {
-            return endTurnAndResetStackEffect(game)(data);
+            return await endTurnAndResetStackEffect(game)(data);
         }
         return true;
     };
@@ -2586,7 +2632,7 @@ export function preventDeathHealFullCancelAttackEffect(game: Game): SyncEffectFu
     };
 }
 
-export function dealRollDamageEffect(s: string, game: Game): ParsedEffect {
+export function dealRollDamageEffect(s: string, game: Game): SyncParsedEffect {
     return {
         effectFunction: (data: EffectData): boolean => {
             if (data.issuer instanceof Player === false) return false;
@@ -2604,7 +2650,7 @@ export function dealRollDamageEffect(s: string, game: Game): ParsedEffect {
 }
 
 
-export function takeDamageGainCoinsEffect(s: string, damage: number, coins: number, game: Game): EffectFunction {
+export function takeDamageGainCoinsEffect(s: string, damage: number, coins: number, game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         const life_before = data.issuer.currentHealthPoints;
 
@@ -2868,7 +2914,9 @@ export function dealDamageToEachMonsterAndPlayerEffect(game: Game, amount: numbe
     };
 }
 
-export function chooseOneOfListEffect(game: Game, selectors: TargetsSelector, selectionOnResolve: boolean): AsyncEffectFunction {
+export function chooseOneOfListEffect(game: Game, selectors: TargetsSelector, selectionOnResolve: false): SyncEffectFunction
+export function chooseOneOfListEffect(game: Game, selectors: TargetsSelector, selectionOnResolve: boolean): AsyncEffectFunction
+export function chooseOneOfListEffect(game: Game, selectors: TargetsSelector, selectionOnResolve: boolean): EffectFunction {
     return async (data: EffectData) => {
         const issuer = data.issuer instanceof Player ? data.issuer : game.currentPlayer;
         const selection = selectionOnResolve ? (await data.selectAndRecord(game, issuer, 1, 1, selectors.selector(issuer, data.it), "Select an option.", true, true)).selected[0] : data.next;
@@ -2887,15 +2935,23 @@ export function takeDamageEffect(game: Game, amount: number, CurrentPlayerIfIssu
     };
 }
 
-export function discardHandEffect(game: Game): EffectFunction {
+export function discardHandEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const handSize = data.issuer.hand.length;
-        return discardNLootCardsEffect(handSize, game, true)(data);
+        let success = true;
+        for (let idx = handSize - 1; idx >= 0; idx--) {
+            if (idx >= 0) {
+                success = success && game.cardHandler.discardFromHandAtIndex(data.issuer, idx, "effect");
+            }
+        }
+        return success;
     };
 }
 
-export function dealDamageToTargetEffect(game: Game, amount: number, selectionOnResolve: boolean = false, selectors: TargetsSelector[] = [], issuerType: "issuer" | "current" = "issuer"): AsyncEffectFunction {
+export function dealDamageToTargetEffect(game: Game, amount: number, selectionOnResolve: false, selectors: TargetsSelector[], issuerType: "issuer" | "current"): SyncEffectFunction
+export function dealDamageToTargetEffect(game: Game, amount: number, selectionOnResolve: boolean, selectors: TargetsSelector[], issuerType: "issuer" | "current"): AsyncEffectFunction
+export function dealDamageToTargetEffect(game: Game, amount: number, selectionOnResolve: boolean = false, selectors: TargetsSelector[] = [], issuerType: "issuer" | "current" = "issuer"): EffectFunction {
     return async (data: EffectData) => {
         let target = data.next;
         const issuer = issuerType === "current" ? game.currentPlayer : data.issuer;
@@ -3001,7 +3057,8 @@ export function putMonsterFromUnderThisIntoSlotEffect(game: Game): AsyncEffectFu
     };
 }
 
-export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, deckNameParam: string | undefined | "selectOnResolve" = undefined, issuerType: "currentPlayer" | "dataIssuer" | "diceOwner" = "dataIssuer"): AsyncEffectFunction {
+export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, deckNameParam: string | undefined, issuerType: "currentPlayer" | "dataIssuer" | "diceOwner"): SyncEffectFunction
+export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, deckNameParam: string | undefined | "selectOnResolve" = undefined, issuerType: "currentPlayer" | "dataIssuer" | "diceOwner" = "dataIssuer"): EffectFunction {
     return async (data: EffectData) => {
         let issuer = data.issuer;
         if(issuerType === "currentPlayer")

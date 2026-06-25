@@ -485,6 +485,7 @@ describe("Monsters - On death effects", () => {
         await game.actions.resolveStack(); // resolve death
         await game.actions.resolveStack(); // resolve death effect - selection
         await game.actions.resolveStack(); // resolve damage from death effect
+        expect(game.stack.isEmpty()).toBe(true);
         expect(player1.souls.map(s => s.id)).not.toContain(soul.id);
         expect(player2.souls.map(s => s.id)).not.toContain(soul.id);
     });

@@ -597,6 +597,7 @@ describe("Event Monsters - Curse Effects", () => {
         game.actions.declareAttack(game.currentPlayer);
         await game.actions.declareAttackOnEntity(game.currentPlayer, "topDeck", 0);
         await game.actions.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
         
         // End player's turn to trigger curse effect
         await game.endTurn();
@@ -621,6 +622,7 @@ describe("Event Monsters - Curse Effects", () => {
         // Draw the curse to trigger its effect
         game.actions.declareAttack(game.currentPlayer);
         await game.actions.declareAttackOnEntity(game.currentPlayer, "topDeck", 0);
+        await game.actions.resolveStack(); // resolve the event addition
         await game.actions.resolveStack(); // resolve the event addition
         
         // End player's turn to trigger curse effect
@@ -647,6 +649,7 @@ describe("Event Monsters - Curse Effects", () => {
         // Draw the curse to trigger its effect
         game.encounters.discardTop(0);
         await game.actions.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
         
         // End player's turn to trigger curse effect
         await game.endTurn();
@@ -671,6 +674,7 @@ describe("Event Monsters - Curse Effects", () => {
         // Draw the curse
         game.encounters.discardTop(0);
         await game.actions.resolveStack(); // resolve the event addition
+        await game.actions.resolveStack(); // resolve the event addition
         
         // Kill the player
         game.entityHandler.kill(player1, player1, curseOfLoss);
@@ -694,6 +698,7 @@ describe("Event Monsters - Curse Effects", () => {
         await game.actions.resolveStack(); // resolve the event addition
         
         // Start next turn to trigger curse effect
+        await game.actions.resolveStack(); // resolve the event addition
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -720,6 +725,7 @@ describe("Event Monsters - Curse Effects", () => {
         
         // Draw the curse
         game.encounters.discardTop(0);
+        await game.actions.resolveStack(); // resolve the event addition
         await game.actions.resolveStack(); // resolve the event addition
         
         // Check DC during player1's turn

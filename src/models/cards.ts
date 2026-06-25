@@ -6,7 +6,7 @@ import { Player } from './entities/player';
 import type { GameParameters } from './gameParameters';
 import { EffectOnStack } from './stackElement';
 import { type CardSetsCollection, type DecksCollection, type DeckType, type DeckTypeToCardType, type TargetsSelector } from './types/cardTypes';
-import { EffectInterface, Effect } from './effects/effects';    
+import { EffectInterface, Effect, PassiveEffect } from './effects/effects';    
 export type EffectRange = DescriptiveVisualEffectBox[];
 export type CardEffectsRanges = EffectRange[];
 class Card {
@@ -329,7 +329,7 @@ class Card {
         this._owner = issuerProvider();
         this._effectInterface.subscribeAll(issuerProvider);
     }
-    addEffect(effect: Effect): void {
+    addEffect(effect: Effect | PassiveEffect): void {
         this._effectInterface.addEffect(effect);
     }
 

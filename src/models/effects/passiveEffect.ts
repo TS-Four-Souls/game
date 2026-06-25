@@ -35,8 +35,9 @@ import type {
     OnTurnStartData
 } from "../types/eventTypes";
 import * as active from "./activeEffect";
-import { type ParsedEffect } from "./parsing/effectParser";
+import { type ParsedEffect, type SyncParsedEffect } from "./parsing/effectParser";
 import {selectPlayerOrMonster} from "@/models/effects/parsing/selectors.ts";
+import { noTargetEffect } from './parsing/logicParsers';
 function getTemporaryEffect(data: EffectData, description: string): TemporaryEffect {
     return{
             card: data.it.jsonAPI,
@@ -258,9 +259,24 @@ export function temporaryStatModifierEffect(
     adders: ((entity: Entity, value: number, source: Card) => void)[],
     amount: number,
     game: Game,
+    targetType: "selectionOnResolve",
+    onResolveTargets?: TargetsSelector
+): AsyncEffectFunction 
+export function temporaryStatModifierEffect(
+    adders: ((entity: Entity, value: number, source: Card) => void)[],
+    amount: number,
+    game: Game,
+    targetType: "current" | "next" | "issuer",
+    onResolveTargets?: TargetsSelector
+): SyncEffectFunction 
+export function temporaryStatModifierEffect(
+    adders: ((entity: Entity, value: number, source: Card) => void)[],
+    amount: number,
+    game: Game,
     targetType: "current" | "next" | "issuer" | "selectionOnResolve",
     onResolveTargets?: TargetsSelector
-): AsyncEffectFunction {
+): EffectFunction 
+{
     return async (data:EffectData) => {
         let target = null;
         switch(targetType)
@@ -438,15 +454,15 @@ export function interceptFirstGainCoinYourTurnEffect(effectFunctions: EffectFunc
 
 // Associated with the coin gained replacement effect. It is therefore also considered as a replacement effect.
 export function lvlXaddListenerEffect(
-    functions: EffectFunction[],
+    functions: SyncEffectFunction[],
     lvl: number,
-    game: Game): AsyncEffectFunction {
+    game: Game): SyncEffectFunction {
 
-    return async (data: EffectData) => {
+    return (data: EffectData) => {
         if (data.it.counters.value("normal") >= lvl)
         {
             for (const func of functions)
-                await func(data);
+                func(data);
         }
         else
             {
@@ -457,7 +473,7 @@ export function lvlXaddListenerEffect(
                 if (data.it.counters.value("normal") < lvl) return;
                 const effect: EffectFunction = async (effectData: EffectData) => {
                     for (const func of functions)
-                        await func(data);
+                        func(data);
                     return true;
                 };
                 addPassiveEffectToStack(game, effect, data, `Level ${lvl} effect`);
@@ -495,7 +511,7 @@ export function permanentStatModifierEffect(
     };
 }
 
-export function rollAndMayChangeNextRollForThis(game: Game): ParsedEffect {
+export function rollAndMayChangeNextRollForThis(game: Game): SyncParsedEffect {
     return {
         effectFunction:(data: EffectData): boolean => {
             if(!(data.issuer instanceof Player))
@@ -791,8 +807,8 @@ export async function giveCurseToEffect(restEffectFunction: EffectFunction, game
     });
 }
 
-export function curseEffect(restEffectFunction: EffectFunction, game: Game): AsyncEffectFunction {
-    return async (data: EffectData) => {
+export function curseEffect(restEffectFunction: SyncEffectFunction, game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
         if(!(data.issuer instanceof Player))
             throw new Error("Curse effect can only be applied to Players.");
 
@@ -815,7 +831,7 @@ export function curseEffect(restEffectFunction: EffectFunction, game: Game): Asy
             offDeath = null;
         });
 
-        await restEffectFunction(new EffectData(data.it, () => data.issuer, [], data.visualEffectBox));
+        restEffectFunction(new EffectData(data.it, () => data.issuer, [], data.visualEffectBox));
         return true;
     }
 }
@@ -1118,7 +1134,7 @@ export function chooseNumberDamageOnRollThisTurnEffect(game: Game, damageAmount:
         offDamage = game.emitter.on("on:dice:resolved", (eventData: OnDiceBeingRolledData) => {
             const { eventIssuer, diceRoll } = eventData;
             if (diceRoll.value !== nb) return;
-            const effect = active.dealDamageToTargetEffect(game, damageAmount, true, selectPlayerOrMonster(game));
+            const effect = active.dealDamageToTargetEffect(game, damageAmount, true, selectPlayerOrMonster(game), "issuer");
             addPassiveEffectToStack(game, effect, data, `Deal ${damageAmount} damage to a target because a ${nb} was rolled.`);
         });
 
@@ -2058,7 +2074,7 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
             const effect = async (data: EffectData): Promise<boolean> => {
                 damageArray[0] = Math.max(0, current - prevent);
                 if (!(data.issuer instanceof Player)) return false;
-
+                
                 // Deal 1 damage to another player
                 const otherPlayers = game.players.filter(p => p !== data.issuer);
                 if (otherPlayers.length === 0) return false;
@@ -2696,8 +2712,8 @@ export function preventDamageByRemovingCountersEffect(
     };
 }
 
-export function preventDamageAndDealOnDeathEffect(game: Game, damagePrevented: number, damageAmount: number): AsyncEffectFunction {
-    return async (data: EffectData) => {
+export function preventDamageAndDealOnDeathEffect(game: Game, damagePrevented: number, damageAmount: number): SyncEffectFunction {
+    return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         let offDeath: (() => void) | null = null;
 
@@ -2712,7 +2728,7 @@ export function preventDamageAndDealOnDeathEffect(game: Game, damagePrevented: n
         const target = data.next;
         if(!target || !(target instanceof Player)) return false;
         const newData = new EffectData(data.it, () => target, [], data.visualEffectBox);
-        await preventNextDamageUpToEffect(damagePrevented, game)(newData); // Reuse the preventNextDamageUpToEffect to handle the prevention part
+        preventNextDamageUpToEffect(damagePrevented, game)(newData); // Reuse the preventNextDamageUpToEffect to handle the prevention part
         // Listen for death of the player from this damage
         offDeath = game.emitter.on("on:death:before-penalty", (deathEventData: OnDeathBeforePenaltyData) => {
             const { eventIssuer } = deathEventData;
