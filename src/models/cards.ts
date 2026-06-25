@@ -484,7 +484,7 @@ export class ItemCard extends Card {
         }
         throw new Error("Cannot activate uncharged item");
       default:
-        return await this._effectInterface.paidEffect(this.owner, targets, effectId);
+        return this._effectInterface.paidEffect(this.owner, targets, effectId);
     }
   }
   targetStillValid(
@@ -534,7 +534,7 @@ class LootCard extends ItemCard {
         this._owner = issuer;
         // Return a resolve function that captures trinket state
         const resolveFunction = this._effectInterface.onPlay(issuer, targets);
-        return () => {
+        return async () => {
             return resolveFunction();
         };
     }

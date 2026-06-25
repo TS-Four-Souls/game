@@ -569,7 +569,7 @@ export class Game extends SelectionHandler {
     targets: any[] = [],
     effectId: number | "tap" = "tap"
   ): Promise<boolean> {
-    return await this.cardHandler.activateItem(player, item, targets, effectId);
+    return this.cardHandler.activateItem(player, item, targets, effectId);
   }
 
   /** Discards the top monster card from an encounter slot. */
@@ -899,7 +899,7 @@ export class Game extends SelectionHandler {
   /**
    * Schedules a callback to run once the stack becomes empty.
    */
-  executeWhenStackEmpty(
+  async executeWhenStackEmpty(
     callback: () => void | Promise<void>
   ): Promise<void> {
     return this.executeWhenStackSubset([], callback);

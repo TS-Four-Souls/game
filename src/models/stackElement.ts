@@ -404,7 +404,7 @@ export class EffectOnStack extends StackElement {
         this._visualEffectBox = visualEffectBox;
     }
     async onResolve(): Promise<boolean> {
-        return await this._effectFunction(this._data);
+        return this._effectFunction(this._data);
     }
 
     get data(): EffectData {

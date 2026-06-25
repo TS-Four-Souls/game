@@ -34,7 +34,7 @@ export const enterStartStep = (
 
   globalEndpoints(socket, room);
 
-  socket.on("leaveRoom", (callback) =>
+  socket.on("leaveRoom", async (callback) =>
     errorGuardedEndpoint(callback, () => {
       if (user.isHost) {
         room.users.forEach((user) => {
@@ -61,8 +61,8 @@ export const enterStartStep = (
     }),
   );
 
-  socket.on("setName", (request, callback) =>
-    errorGuardedEndpoint(callback, () =>
+  socket.on("setName", async (request, callback) =>
+    errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         request,
         schemas.setNameRequest,
@@ -112,8 +112,8 @@ export const enterStartStep = (
     ),
   );
 
-  socket.on("setTeam", (request, callback) =>
-    errorGuardedEndpoint(callback, () =>
+  socket.on("setTeam", async (request, callback) =>
+    errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         request,
         schemas.setTeamRequest,
@@ -137,8 +137,8 @@ export const enterStartStep = (
     ),
   );
 
-  socket.on("selectCharacter", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
+  socket.on("selectCharacter", async (payload, callback) =>
+    errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         payload,
         schemas.selectCharacterRequest,
@@ -159,8 +159,8 @@ export const enterStartStep = (
   );
 
   if (user.isHost) {
-    socket.on("kickFromRoom", (request, callback) =>
-      errorGuardedEndpoint(callback, () =>
+    socket.on("kickFromRoom", async (request, callback) =>
+      errorGuardedEndpoint(callback, async () =>
         payloadGuardedEndpoint(
           request,
           schemas.kickFromRoomRequest,
@@ -198,8 +198,8 @@ export const enterStartStep = (
       ),
     );
 
-    socket.on("makeCopyOfPlayer", (request, callback) =>
-      errorGuardedEndpoint(callback, () =>
+    socket.on("makeCopyOfPlayer", async (request, callback) =>
+      errorGuardedEndpoint(callback, async () =>
         payloadGuardedEndpoint(
           request,
           schemas.makeCopyOfPlayerRequest,
@@ -241,8 +241,8 @@ export const enterStartStep = (
       ),
     );
 
-    socket.on("setGameParameter", (payload, callback) =>
-      errorGuardedEndpoint(callback, () =>
+    socket.on("setGameParameter", async (payload, callback) =>
+      errorGuardedEndpoint(callback, async () =>
         payloadGuardedEndpoint(
           payload,
           schemas.setGameParameterRequest,
@@ -255,7 +255,7 @@ export const enterStartStep = (
       ),
     );
 
-    socket.on("resetGameParameters", (callback) =>
+    socket.on("resetGameParameters", async (callback) =>
       errorGuardedEndpoint(callback, () => {
         room.params.reset();
         updatePlayerCount(room);
@@ -264,8 +264,8 @@ export const enterStartStep = (
       }),
     );
 
-    socket.on("loadGameParameters", (payload, callback) =>
-      errorGuardedEndpoint(callback, () =>
+    socket.on("loadGameParameters", async (payload, callback) =>
+      errorGuardedEndpoint(callback, async () =>
         payloadGuardedEndpoint(
           payload,
           schemas.loadGameParametersRequest,
@@ -279,8 +279,8 @@ export const enterStartStep = (
       ),
     );
 
-    socket.on("loadGame", (payload, callback) =>
-      errorGuardedEndpoint(callback, () =>
+    socket.on("loadGame", async (payload, callback) =>
+      errorGuardedEndpoint(callback, async () =>
         payloadGuardedEndpoint(
           payload,
           schemas.loadGameRequest,
@@ -343,7 +343,7 @@ export const enterStartStep = (
       ),
     );
 
-    socket.on("start", (callback) =>
+    socket.on("start", async (callback) =>
       errorGuardedEndpoint(callback, async () => {
         const params = room.params;
 

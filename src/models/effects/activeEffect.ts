@@ -344,7 +344,7 @@ export function chooseOneEffect(s: string, game: Game, selectionOnResolve: boole
                 if (description === lines[i+1]) {
 
                     // Create new EffectData with chosen options as targets
-                    return await effects[i]!.effectFunction(data);
+                    return effects[i]!.effectFunction(data);
                 }
             }
             throw new Error(`choose one effect description not found: ${description}`);
@@ -2573,7 +2573,7 @@ export function preventDeathEndTurnEffect(game: Game): EffectFunction {
         if(data.issuer instanceof Player === false) return false;
         game.entityHandler.preventDeath(data.issuer);
         if (game.currentPlayer === data.issuer) {
-            return await endTurnAndResetStackEffect(game)(data);
+            return endTurnAndResetStackEffect(game)(data);
         }
         return true;
     };

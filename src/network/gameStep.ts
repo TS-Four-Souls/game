@@ -32,14 +32,14 @@ export const enterGameStep = (
 
   globalEndpoints(socket, room);
 
-  socket.on("saveGame", (callback) =>
+  socket.on("saveGame", async (callback) =>
     errorGuardedEndpoint(callback, () => {
       const logs = JSON.stringify(room.game.log, null, 2);
       return callback({ status: 200, logs });
     }),
   );
 
-  socket.on("rollback", (callback) =>
+  socket.on("rollback", async (callback) =>
     errorGuardedEndpoint(callback, async () => {
       const logs: HistoricEntry[] = room.game.getRollbackLog(player);
 
@@ -98,15 +98,15 @@ export const enterGameStep = (
     }),
   );
 
-  socket.on("declareAttack", (callback) =>
+  socket.on("declareAttack", async (callback) =>
     errorGuardedEndpoint(callback, () => {
       helper.executeDeclareAttackRequest(room.game, player);
       return callback({ status: 200 });
     }),
   );
 
-  socket.on("attackMonster", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
+  socket.on("attackMonster", async (payload, callback) =>
+    errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         payload,
         schemas.attackMonsterRequest,
@@ -119,14 +119,14 @@ export const enterGameStep = (
     ),
   );
 
-  socket.on("attackRoll", (callback) =>
+  socket.on("attackRoll", async (callback) =>
     errorGuardedEndpoint(callback, () => {
       helper.executeAttackRollRequest(room.game, player);
       return callback({ status: 200 });
     }),
   );
 
-  socket.on("resolve", (callback) =>
+  socket.on("resolve", async (callback) =>
     errorGuardedEndpoint(callback, async () => {
       registerRoomActivity(room);
       await helper.executeResolveRequest(room.game, player);
@@ -134,8 +134,8 @@ export const enterGameStep = (
     }),
   );
 
-  socket.on("submitSelection", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
+  socket.on("submitSelection", async (payload, callback) =>
+    errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         payload,
         schemas.submitSelectionRequest,
@@ -148,8 +148,8 @@ export const enterGameStep = (
     ),
   );
 
-  socket.on("insertStackElementBefore", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
+  socket.on("insertStackElementBefore", async (payload, callback) =>
+    errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         payload,
         schemas.insertStackElementBeforeRequest,
@@ -162,8 +162,8 @@ export const enterGameStep = (
     ),
   );
 
-  socket.on("playCard", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
+  socket.on("playCard", async (payload, callback) =>
+    errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         payload,
         schemas.playCardRequest,
@@ -176,8 +176,8 @@ export const enterGameStep = (
     ),
   );
 
-  socket.on("activateWithID", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
+  socket.on("activateWithID", async (payload, callback) =>
+    errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         payload,
         schemas.activateWithIDRequest,
@@ -194,8 +194,8 @@ export const enterGameStep = (
     ),
   );
 
-  socket.on("activate", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
+  socket.on("activate", async (payload, callback) =>
+    errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         payload,
         schemas.activateRequest,
@@ -212,8 +212,8 @@ export const enterGameStep = (
     ),
   );
 
-  socket.on("activateRoom", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
+  socket.on("activateRoom", async (payload, callback) =>
+    errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         payload,
         schemas.activateRoomRequest,
@@ -230,22 +230,22 @@ export const enterGameStep = (
     ),
   );
 
-  socket.on("declarePurchase", (callback) =>
+  socket.on("declarePurchase", async (callback) =>
     errorGuardedEndpoint(callback, () => {
       helper.executeDeclarePurchaseRequest(room.game, player);
       return callback({ status: 200 });
     }),
   );
 
-  socket.on("cancelPurchase", (callback) =>
+  socket.on("cancelPurchase", async (callback) =>
     errorGuardedEndpoint(callback, () => {
       helper.executeCancelPurchaseRequest(room.game, player);
       return callback({ status: 200 });
     }),
   );
 
-  socket.on("purchase", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
+  socket.on("purchase", async (payload, callback) =>
+    errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         payload,
         schemas.purchaseRequest,
@@ -258,14 +258,14 @@ export const enterGameStep = (
     ),
   );
 
-  socket.on("endTurn", (callback) =>
+  socket.on("endTurn", async (callback) =>
     errorGuardedEndpoint(callback, async () => {
       await helper.executeEndTurnRequest(room.game, player);
       return callback({ status: 200 });
     }),
   );
 
-  socket.on("giveCoins", (payload, callback) =>
+  socket.on("giveCoins", async (payload, callback) =>
     errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         payload,
@@ -279,8 +279,8 @@ export const enterGameStep = (
     ),
   );
 
-  socket.on("switchToCopy", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
+  socket.on("switchToCopy", async (payload, callback) =>
+    errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         payload,
         schemas.switchToCopyRequest,
@@ -314,7 +314,7 @@ export const enterGameStep = (
     ),
   );
 
-  socket.on("quitGame", (callback) =>
+  socket.on("quitGame", async (callback) =>
     errorGuardedEndpoint(callback, () => {
       for (const user of room.users) {
         const socket = user.socket;
@@ -341,22 +341,22 @@ export const enterGameStep = (
   );
 
   if (room.game.gameParameters.allowCheatOptions.value) {
-    socket.on("debugLootTop", (callback) =>
+    socket.on("debugLootTop", async (callback) =>
       errorGuardedEndpoint(callback, () => {
         helper.executeDebugLootTopRequest(room.game, player);
         return callback({ status: 200 });
       }),
     );
 
-    socket.on("debugGainTreasureTop", (callback) =>
+    socket.on("debugGainTreasureTop", async (callback) =>
       errorGuardedEndpoint(callback, () => {
         helper.executeDebugGainTreasureTopRequest(room.game, player);
         return callback({ status: 200 });
       }),
     );
 
-    socket.on("debugLoot", (payload, callback) =>
-      errorGuardedEndpoint(callback, () =>
+    socket.on("debugLoot", async (payload, callback) =>
+      errorGuardedEndpoint(callback, async () =>
         payloadGuardedEndpoint(
           payload,
           schemas.debugLootRequest,
@@ -369,7 +369,7 @@ export const enterGameStep = (
       ),
     );
 
-    socket.on("debugListLoot", (callback) =>
+    socket.on("debugListLoot", async (callback) =>
       errorGuardedEndpoint(callback, () => {
         room.game.addToHistory({
           type: "DebugListLoot",
@@ -391,7 +391,7 @@ export const enterGameStep = (
       }),
     );
 
-    socket.on("debugListCardsICanRemove", (callback) =>
+    socket.on("debugListCardsICanRemove", async (callback) =>
       errorGuardedEndpoint(callback, () => {
         room.game.addToHistory({
           type: "DebugListCardsICanRemove",
@@ -404,8 +404,8 @@ export const enterGameStep = (
       }),
     );
 
-    socket.on("debugRemoveCards", (payload, callback) =>
-      errorGuardedEndpoint(callback, () =>
+    socket.on("debugRemoveCards", async (payload, callback) =>
+      errorGuardedEndpoint(callback, async () =>
         payloadGuardedEndpoint(
           payload,
           schemas.debugRemoveCardsRequest,
@@ -420,7 +420,7 @@ export const enterGameStep = (
       ),
     );
 
-    socket.on("debugListTreasure", (callback) =>
+    socket.on("debugListTreasure", async (callback) =>
       errorGuardedEndpoint(callback, () => {
         room.game.addToHistory({
           type: "DebugListTreasure",
@@ -442,8 +442,8 @@ export const enterGameStep = (
       }),
     );
 
-    socket.on("debugGainTreasure", (payload, callback) =>
-      errorGuardedEndpoint(callback, () =>
+    socket.on("debugGainTreasure", async (payload, callback) =>
+      errorGuardedEndpoint(callback, async () =>
         payloadGuardedEndpoint(
           payload,
           schemas.debugGainTreasureRequest,
@@ -456,8 +456,8 @@ export const enterGameStep = (
       ),
     );
 
-    socket.on("debugGainCoins", (payload, callback) =>
-      errorGuardedEndpoint(callback, () =>
+    socket.on("debugGainCoins", async (payload, callback) =>
+      errorGuardedEndpoint(callback, async () =>
         payloadGuardedEndpoint(
           payload,
           schemas.debugGainCoinsRequest,
@@ -470,7 +470,7 @@ export const enterGameStep = (
       ),
     );
 
-    socket.on("debugListMonsterDeck", (callback) =>
+    socket.on("debugListMonsterDeck", async (callback) =>
       errorGuardedEndpoint(callback, () => {
         room.game.addToHistory({
           type: "DebugListMonsterDeck",
@@ -494,8 +494,8 @@ export const enterGameStep = (
       }),
     );
 
-    socket.on("debugPutMonsterCardInSlot", (payload, callback) =>
-      errorGuardedEndpoint(callback, () =>
+    socket.on("debugPutMonsterCardInSlot", async (payload, callback) =>
+      errorGuardedEndpoint(callback, async () =>
         payloadGuardedEndpoint(
           payload,
           schemas.debugPutMonsterCardInSlotRequest,

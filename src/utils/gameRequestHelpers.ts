@@ -115,7 +115,7 @@ export async function executeActivateWithIdRequest(
   if(choice !== undefined) {
     partialChoice = [...TargetBuilder.convertToSelectionItems(choice), ...partialChoice];
   }
-  return await executeActivateRequest(
+  return executeActivateRequest(
     game,
     {
       index: payload.index,

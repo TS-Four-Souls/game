@@ -44,7 +44,7 @@ export class DeclareAttackAction extends Action {
 
 export class ResolveStackAction extends Action {
     constructor(me: Player) {
-        super(ActionType.RESOLVE_STACK, async (game) => await game.actions.resolveStack(), me);
+        super(ActionType.RESOLVE_STACK, async (game) => game.actions.resolveStack(), me);
     }
 
     isFeasible(game: Game): boolean {
@@ -64,7 +64,7 @@ export class DeclarePurchaseAction extends Action {
 
 export class EndTurnAction extends Action {
     constructor(me: Player) {
-        super(ActionType.END_TURN, async (game) => await game.actions.nextTurn(me), me);
+        super(ActionType.END_TURN, async (game) => game.actions.nextTurn(me), me);
     }
 
     isFeasible(game: Game): boolean {

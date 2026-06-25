@@ -726,7 +726,7 @@ export class Player extends Entity {
     if (!item.targetStillValid(this, effectId, targets))
       throw new Error("Targets are not valid for this effect.");
 
-    return await item.tryActivateEffect(targets, effectId);
+    return item.tryActivateEffect(targets, effectId);
   }
   gainCoins(coins: number): void {
     this._coin += coins;

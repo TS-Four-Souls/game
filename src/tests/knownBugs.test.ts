@@ -31,10 +31,8 @@ describe("Known bugs that have be corrected", () => {
         const d20 = game.obtainCard("b2-the_d20") as ItemCard;
         game.cardHandler.addInPlay(player1, cc);
         game.cardHandler.addInPlay(player1, d20);
-        game.activateItem(player1, cc, ["Destroy an item or soul.", soul], "tap");
-        game.activateItem(player1, d20, [cc], "tap");
-        await game.actions.resolveStack();
-        await game.actions.resolveStack();
+        await game.activateItem(player1, cc, ["Destroy an item or soul.", soul], "tap");
+        await game.activateItem(player1, d20, [cc], "tap");
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);

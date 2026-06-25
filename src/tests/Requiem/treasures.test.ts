@@ -135,7 +135,7 @@ describe("Requiem Loots ", () => {
             treas.charged = false;
             game.gainCoins(player1, 6, "gift");
             expect(game.actions.canActivate(treas, player1)).toBe(true);
-            game.activateItem(player1, treas, [], 0);
+            await game.activateItem(player1, treas, [], 0);
             expect(player1.coins).toBe(0);
         });
         

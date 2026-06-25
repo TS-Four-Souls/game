@@ -25,8 +25,8 @@ import { enterAdminStep } from "./adminStep";
 export const enterIntroStep = (socket: Socket): void => {
   globalEndpoints(socket);
 
-  socket.on("adminLogin", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
+  socket.on("adminLogin", async (payload, callback) =>
+    errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         payload,
         schemas.adminLoginRequest,
@@ -47,8 +47,8 @@ export const enterIntroStep = (socket: Socket): void => {
     ),
   );
 
-  socket.on("createRoom", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
+  socket.on("createRoom", async (payload, callback) =>
+    errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         payload,
         schemas.createRoomRequest,
@@ -102,8 +102,8 @@ export const enterIntroStep = (socket: Socket): void => {
     ),
   );
 
-  socket.on("enterRoom", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
+  socket.on("enterRoom", async (payload, callback) =>
+    errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         payload,
         schemas.enterRoomRequest,

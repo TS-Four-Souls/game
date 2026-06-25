@@ -39,7 +39,7 @@ export async function randomSelect<T>(
     }
 
     if ((min === max && Options.length === max && skippable) || Options.length < min) {
-        return await {
+        return {
         selected: Options,
         remaining: [],
         };
@@ -337,7 +337,7 @@ export async function setupTestGame(config: GameSetupConfig = {}): Promise<GameS
  * @example
  * const { game, player1, player2 } = setupStandardTestGame();
  */
-export function setupStandardTestGame(): Promise<GameSetupResult> {
+export async function setupStandardTestGame(): Promise<GameSetupResult> {
     return setupTestGame({
         characters: ["b2-isaac", "b2-judas"],
         monsters: ["b2-fly", "b2-fatty"],
@@ -351,7 +351,7 @@ export function setupStandardTestGame(): Promise<GameSetupResult> {
  * 
  * @returns Game setup result with player1 and player2
  */
-export function setupSamsonIsaacGame(): Promise<GameSetupResult> {
+export async function setupSamsonIsaacGame(): Promise<GameSetupResult> {
     return setupTestGame({
         characters: ["b2-samson", "b2-isaac"],
         monsters: ["b2-fly", "b2-fatty"],
@@ -379,7 +379,7 @@ export function mockGameSelections(game: Game): void {
     // Mock single player selection
     game.select = async (player: Player, min: number, max: number, Options: any[]): Promise<{ selected: any[]; remaining: any[] }> => {
         if (max === 1 && min === max && Options.length === 1) {
-            return await {
+            return {
                 selected: Options,
                 remaining: []
             };
@@ -397,7 +397,7 @@ export function mockGameSelections(game: Game): void {
         options: any[];
         asMany?: boolean;
     }[]): Promise<{ playerId: string; selected: any[]; remaining: any[] }[]> => {
-        return await selections.map(sel => ({
+        return selections.map(sel => ({
             playerId: sel.player.id,
             selected: sel.options.slice(0, sel.max),
             remaining: sel.options.slice(sel.max)

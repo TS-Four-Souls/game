@@ -81,11 +81,11 @@ export class Effect {
         if (!this._paymentFunction) {
             throw new Error("Cannot execute payment: no payment function defined");
         }
-        return await this._paymentFunction(data);
+        return this._paymentFunction(data);
     }
 
     async execute(data: EffectData): Promise<boolean> {
-        return await this._effectFunction(data);
+        return this._effectFunction(data);
     }
 
     // Target validation methods
@@ -265,12 +265,12 @@ class ActiveEffectHandler extends EffectHandler {
         if (this._activeEffect === null) {
             throw new Error("No active effect found in ActiveEffectHandler.");
         }
-        return await this._activeEffect.effectFunction(new EffectData(it, () => issuer as Player, targets, this._activeEffect!.getVisualEffectBoxFromTargets(targets)));
+        return this._activeEffect.effectFunction(new EffectData(it, () => issuer as Player, targets, this._activeEffect!.getVisualEffectBoxFromTargets(targets)));
     }
 
     async pay(issuer: Entity, it: Card, targets: any[], effectId: number): Promise<boolean> {
         const effect = this.getPaidEffect(effectId);
-        return await effect.effectFunction(new EffectData(it, () => issuer as Player, targets, effect.getVisualEffectBoxFromTargets(targets)));
+        return effect.effectFunction(new EffectData(it, () => issuer as Player, targets, effect.getVisualEffectBoxFromTargets(targets)));
     }
 
     hasTapEffect(): boolean {

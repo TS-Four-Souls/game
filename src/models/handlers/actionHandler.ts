@@ -437,7 +437,7 @@ export class ActionHandler {
     if (!item.activeEffectList.map((e) => e.index).includes(effectId))
       throw new Error("Item does not have the specified effect ID.");
 
-    return await this.game.activateItem(player, item, choices, effectId);
+    return this.game.activateItem(player, item, choices, effectId);
   }
 
 

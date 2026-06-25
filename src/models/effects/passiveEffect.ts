@@ -2496,7 +2496,7 @@ export function onAttackRollEffect(
             if (rollValues.includes(dice.value)) {
                 // Create the effect that will execute when the stack resolves
                 const stackEffect = async (effectData: EffectData): Promise<boolean> => {
-                    return await effect(effectData);
+                    return effect(effectData);
                 };
                 
                 // Add to stack instead of executing immediately
@@ -2535,7 +2535,7 @@ export function onAttackingPlayerRollEffect(
                 if(diceIssuerIssueTheEvent && dice.issuer !== undefined)
                     copyData.issuerProvider = (): Entity => dice.issuer;
                 const stackEffect = async (effectData: EffectData): Promise<boolean> => {
-                    return await effect(effectData);
+                    return effect(effectData);
                 };
                 
                 // Add to stack instead of executing immediately
@@ -2606,7 +2606,7 @@ export function onRollEffect(
                 
                 // Create the effect that will execute when the stack resolves
                 const stackEffect = async (effectData: EffectData): Promise<boolean> => {
-                    return await effect(effectData);
+                    return effect(effectData);
                 };
                 
                 if (diceIssuerIssueTheEvent && diceRoll.issuer !== undefined) {
@@ -2646,7 +2646,7 @@ export function onActivePlayerRollEffect(
             if (rollValues.includes(diceRoll.value)) {
                 // Create the effect that will execute when the stack resolves
                 const stackEffect = async (effectData: EffectData): Promise<boolean> => {
-                    return await effect(effectData);
+                    return effect(effectData);
                 };
                 
                 // Add to stack instead of executing immediately

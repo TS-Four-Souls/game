@@ -15,6 +15,8 @@ export default defineConfig(
   },
   rules: {
     '@typescript-eslint/no-floating-promises': 'error',
+    '@typescript-eslint/return-await': 'error',
+    '@typescript-eslint/promise-function-async': 'error',
   },
   },
 );

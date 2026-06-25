@@ -125,7 +125,7 @@ export abstract class SelectionHandler {
         }[]
       ): Promise<{ playerId: string; selected: T[]; remaining: T[] }[]> {
         // In multiplayer mode: create promises for all players
-        const promises = selections.map((sel) => {
+        const promises = selections.map(async (sel) => {
           return new Promise<{
             playerId: string;
             selected: T[];
