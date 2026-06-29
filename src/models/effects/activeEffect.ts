@@ -83,7 +83,7 @@ export function eachPlayerRollsSkipNextTurnEffect(game: Game, minRoll: number, m
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         for (const player of game.players) {
-            const roll = game.rollDice(player, false, data.it);
+            const roll = game.rollDice(player, data.it);
             roll.attachEffect(
                 [1,2,3,4,5,6].map((value) => (data: EffectData): boolean => {
                     if(value < minRoll || value > maxRoll) return false;
@@ -1376,7 +1376,7 @@ export function rerollDiceRollXEffect(game: Game, numberOfDice: number): AsyncEf
             throw new Error("Expected a DiceRoll instance.");
         const values = [];
                 for(let i = 0; i < numberOfDice; i++)
-                    values.push(diceRoll.issuer.rollDice(game.random, diceRoll.attackRoll, diceRoll.card).value);
+                    values.push(diceRoll.issuer.rollDice(game.random, diceRoll.data).value);
         const chooser = (await data.selectAndRecord(game, diceRoll.issuer as Player, 1, 1, game.players.filter((p) => p !== diceRoll.issuer), `Select a player to choose the dice rolls result between ${values[0]} and ${values[1]}.`, true, true)).selected[0] as Player;
         if(!chooser)
             throw new Error("No player selected.");
@@ -2079,7 +2079,10 @@ export function youMayRechargeAnItemEffect(game: Game): AsyncEffectFunction {
     };
 }
 
-export function getAttackRollEffect(damageDealtAdd: number, damageDealtMult: number, damageReceivedAdd: number, damageReceivedMult: number, evasion: number, game: Game): SyncEffectFunction[] {
+export function getAttackRollEffect(dice: DiceRoll, game: Game): SyncEffectFunction[] {
+    if(dice.attackData === null || dice.attackData === undefined)
+        throw new Error("No attack data for dice roll");
+    const { damageDealtAdditional, damageDealtMultiplier, damageReceivedAdditional, damageReceivedMultiplier, evasion } = dice.attackData;
     const effects: SyncEffectFunction[] = [];
     for (let i = 0; i < 6; i++) {
         effects.push((data: EffectData) => {
@@ -2087,10 +2090,10 @@ export function getAttackRollEffect(damageDealtAdd: number, damageDealtMult: num
             const target = data.next as Entity; // Second target is the monster
             if(data.issuer.isDead || target.isDead) return false;
             if (i + 1 >= evasion) {
-                game.entityHandler.dealCombatDamage(data.issuer, target, diceRoll, damageDealtMult * (damageDealtAdd + game.entityHandler.getAttack(data.issuer)));
+                game.entityHandler.dealCombatDamage(data.issuer, target, diceRoll, damageDealtMultiplier * (damageDealtAdditional + game.entityHandler.getAttack(data.issuer)));
             } else {
-                game.entityHandler.dealCombatDamage(target, data.issuer, diceRoll, damageReceivedMult * (damageReceivedAdd + game.entityHandler.getAttack(target)));
-                game.emit("on:attack:roll:failed", { eventIssuer: data.issuer, defender: target, diceRoll, damageReceived: damageReceivedAdd });
+                game.entityHandler.dealCombatDamage(target, data.issuer, diceRoll, damageReceivedMultiplier * (damageReceivedAdditional + game.entityHandler.getAttack(target)));
+                game.emit("on:attack:roll:failed", { eventIssuer: data.issuer, diceRoll });
             }
             return true;
         });
@@ -2121,7 +2124,7 @@ export function rollGainCoinsEffect(game: Game): SyncEffectFunction {
                 return true;
             });
         }
-        const dice = game.rollDice(data.issuer as Player, false, data.it);
+        const dice = game.rollDice(data.issuer as Player, data.it);
         dice.attachEffect(effects, data.it, [], data.issuer);
         return true;
     };
@@ -2519,7 +2522,7 @@ export function putOnTopOfMonsterDeckOnRollEffect(game: Game, rolls: number[]): 
             throw new Error("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards.");
         data.it.afterEffect = "nothing"; // Card placement is handled by the game by default
         
-        const roll = game.rollDice(game.currentPlayer as Player, false, data.it);
+        const roll = game.rollDice(game.currentPlayer as Player, data.it);
         roll.attachEffect([1,2,3,4,5,6].map(n => (data:EffectData): boolean => {
             if(!(data.it instanceof MonsterCard))
                 throw new Error("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards.");
@@ -2548,7 +2551,7 @@ export function rollAndGainXTimesResultEffect(game: Game, mult: number): SyncPar
     return {
         effectFunction: (data: EffectData): boolean => {
             if (data.issuer instanceof Player === false) return false;
-            const roll = game.rollDice(data.issuer, false, data.it);
+            const roll = game.rollDice(data.issuer, data.it);
             roll.attachEffect([1,2,3,4,5,6].map((value) => (data: EffectData): boolean => {
                 if (data.issuer instanceof Player === false) return false;
                 game.gainCoins(data.issuer, value * mult, data.it);
@@ -2563,7 +2566,7 @@ export function rollAndDestroyIfLessThanCounters(game: Game): SyncParsedEffect {
     return {
         effectFunction: (data: EffectData): boolean => {
             if (data.issuer instanceof Player === false) return false;
-            const roll = game.rollDice(data.issuer, false, data.it);
+            const roll = game.rollDice(data.issuer, data.it);
             roll.attachEffect([1,2,3,4,5,6].map((value) => (data: EffectData): boolean => {
             if(value < (data.it.counters.value("normal") || 0)) {
                 if (data.issuer instanceof Player === false) return false;
@@ -2646,7 +2649,7 @@ export function dealRollDamageEffect(s: string, game: Game): SyncParsedEffect {
         effectFunction: (data: EffectData): boolean => {
             if (data.issuer instanceof Player === false) return false;
             const target = data.next as Entity;
-            const roll = game.rollDice(data.issuer, false, data.it);
+            const roll = game.rollDice(data.issuer, data.it);
             roll.attachEffect([...Array(6).keys()].map((i) =>
                 (data: EffectData): boolean => {
                     game.entityHandler.dealDamage(data.issuer, data.next as Entity, data.it, i + 1);

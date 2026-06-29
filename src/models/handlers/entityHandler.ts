@@ -239,7 +239,7 @@ export class EntityHandler {
         for(const receiver of receivers)
         {
           if (amount === "roll") {
-            const roll = this.game.rollDice(receiver, false, entity.card);
+            const roll = this.game.rollDice(receiver, entity.card);
             roll.attachEffect(onDice[rewardType], entity.card, [
               receiver,
             ]);

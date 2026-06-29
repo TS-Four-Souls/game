@@ -171,7 +171,7 @@ describe("Four Souls+2 Eternal Items", () => {
             for(const val of [1, 2, 3, 4, 5, 6])
         {
             game.random = () => (val/ 6) - 0.0001; // ensure we roll a 6.
-            const roll = await game.rollDice(player, false, player1.inPlay[0]!);
+            const roll = await game.rollDice(player, player1.inPlay[0]!);
             await game.actions.resolveStack();
             await game.actions.resolveStack();
             if(roll.value === 6)

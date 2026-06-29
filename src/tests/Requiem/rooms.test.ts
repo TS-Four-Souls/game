@@ -167,12 +167,12 @@ describe("Requiem Rooms", () => {
         expect(room.counters.value("normal")).toBe(3);
 
         game.random = () => 0.99
-        game.rollDice(player1, false, room);
+        game.rollDice(player1, room);
         await game.actions.resolveStack();
-        game.rollDice(player1, false, room);
+        game.rollDice(player1, room);
         await game.actions.resolveStack();
         expect(room.counters.value("normal")).toBe(3);
-        game.rollDice(player1, false, room);
+        game.rollDice(player1, room);
         await game.actions.resolveStack();
         expect(room.counters.value("normal")).toBe(4);
 
@@ -548,7 +548,7 @@ describe("Requiem Rooms", () => {
         const room = game.obtainCard("r-isaacs_blessing") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         game.random = () => 0.99;
-        const dice = game.rollDice(player1, false, room);
+        const dice = game.rollDice(player1, room);
         await game.actions.resolveStack();
         expect(game.stack.size).toBe(2);
         dice._TEST_setRandom( () => 0.1);
@@ -572,6 +572,7 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(2);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -693,26 +694,26 @@ describe("Requiem Rooms", () => {
         const room = game.obtainCard("r-floor_spikes") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         game.random = () => 0.01;
-        game.rollDice(player1, false, room);
+        game.rollDice(player1, room);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.currentHealthPoints).toBe(1);
 
-        game.rollDice(player2, false, room);
+        game.rollDice(player2, room);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(1);
 
         game.random = () => 0.4;
-        game.rollDice(player1, false, room);
+        game.rollDice(player1, room);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.currentHealthPoints).toBe(1);
 
-        game.rollDice(player2, false, room);
+        game.rollDice(player2, room);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();

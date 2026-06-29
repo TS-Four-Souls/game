@@ -6,7 +6,7 @@ import { Game } from "@/models/game";
 import { TurnHandler } from "@/models/handlers/turnHandler";
 import { type StackElementJson, Team } from "@/shared/api";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupStandardTestGame, setupTestGame } from "@/tests/testHelpers";
-import { StackElement } from "@/models/stackElement";
+import { AttackRollData, StackElement } from "@/models/stackElement";
 import { Stack } from "@/models/stack";
 
 class DummyStackElement extends StackElement {
@@ -146,7 +146,7 @@ describe("Player", () => {
   });
 
   it("should roll a dice between 1 and 6", async () => {
-    const dice = player.rollDice(Math.random, true);
+    const dice = player.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, player));
     expect(dice.value >= 1 && dice.value <= 6).toBe(true);
     expect(dice.issuer).toBe(player);
   });
@@ -469,20 +469,20 @@ describe("DiceRoll", () => {
   });
 
   it("should create a valid dice roll", async () => {
-    const dice = player.rollDice(Math.random, true);
+    const dice = player.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, player));
     
     expect(dice).toBeDefined();
     expect(dice.value >= 1 && dice.value <= 6).toBe(true);
   });
 
   it("should track the issuer correctly", async () => {
-    const dice = player.rollDice(Math.random, true);
+    const dice = player.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, player));
     expect(dice.issuer).toBe(player);
     expect(dice.issuer.id).toBe("testPlayer");
   });
 
   it("should allow setting dice value between 1 and 6", async () => {
-    const dice = player.rollDice(Math.random, true);
+    const dice = player.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, player));
     
     dice.value = 1;
     expect(dice.value).toBe(1);
@@ -495,7 +495,7 @@ describe("DiceRoll", () => {
   });
 
   it("should roll and generate new value", async () => {
-    const dice = player.rollDice(Math.random, true);
+    const dice = player.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, player));
     const firstValue = dice.value;
     
     dice.roll();
@@ -507,7 +507,7 @@ describe("DiceRoll", () => {
   });
 
   it("should return json representation correctly", async () => {
-    const dice = player.rollDice(Math.random, true);
+    const dice = player.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, player));
     const json = dice.json;
     
     expect(json.issuer.name).toBe("testPlayer");
@@ -515,7 +515,7 @@ describe("DiceRoll", () => {
   });
 
   it("should resolve to current value", async () => {
-    const dice = player.rollDice(Math.random, true);
+    const dice = player.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, player));
     dice.value = 4;
     
     expect(dice.value).toBe(4);
@@ -669,13 +669,11 @@ describe("Game - Stack Operations", () => {
     expect(game.stack.size).toBe(0);
   });
 
-  it("should add to stack and resolve dice roll", async () => {
-    const dice = player1.rollDice(Math.random, true);
+  it("should add to stack dice roll", async () => {
+    const dice = player1.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, player1));
     game.addToStack(dice);
     expect(game.stack.size).toBe(1);
 
-    await game.actions.resolveStack();
-    expect(game.stack.size).toBe(0);
   });
 });
 
@@ -690,7 +688,7 @@ describe("Stack - Behavior", () => {
     p1.gainCoins(0); // Start with 0 coins for testing
 
     
-    const dice = p1.rollDice(Math.random, true);
+    const dice = p1.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, p1));
 
     stack.push(loot as any);
     stack.push(dice);

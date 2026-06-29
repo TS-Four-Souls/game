@@ -335,23 +335,11 @@ describe("Treasure - Permanent Modifiers", () => {
         const initialP2HP = player2.currentHealthPoints;
         game.actions.declareAttack(game.currentPlayer);
         await game.actions.declareAttackOnEntity(game.currentPlayer, monster);
+        game.random = () => 0.99; // Force a roll of 6 (1 + 5 = 6)
         // Player1 attacks monster and rolls a 6
         game.actions.attackRoll(player1);
         const attackRoll = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll).toBeDefined();
-        if (attackRoll?.value != 6 && attackRoll) {
-            attackRoll.value = 6; // Roll a 6
-            game.emitter.emit("on:attack:roll", {
-                eventIssuer: player1,
-                target: monster,
-                dice: attackRoll,
-                damageDealtAdd: [player1.attackPoints],
-                damageReceivedAdd: [monster.attackPoints],
-                damageDealtMult: [0],
-                damageReceivedMult: [0],
-                evasion: [monster.evasion],
-            });
-        }
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -363,16 +351,16 @@ describe("Treasure - Permanent Modifiers", () => {
         
         // Roll another attack with non-6 value
         const initialP2HP2 = player2.currentHealthPoints;
+        game.random = () => 0.5; // Force a roll of 3 (1 + 2 = 3)
         game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
         const attackRoll2 = game.stack._stack[0] as DiceRoll | undefined;
         expect(attackRoll2).toBeDefined();
-        const additional_damage = attackRoll2?.value === 6 ? 1 : 0;
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        await game.actions.resolveStack();
-        
+        expect(game.stack.size).toBe(0);
         // Player2 should NOT have taken damage this time
-        expect(player2.currentHealthPoints).toBe(initialP2HP2 - additional_damage);
+        expect(player2.currentHealthPoints).toBe(initialP2HP2);
     });
 
 

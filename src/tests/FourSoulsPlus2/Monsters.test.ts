@@ -355,7 +355,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
                 expect(opts.map(o => (o as LootCard).slug!)).toEqual(slugs);
             return { selected: opts.toReversed(), remaining: [] } as any;
         };
-        game.rollDice(player2, false, card1);
+        game.rollDice(player2, card1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.decks.loot.cards.slice(0, 3).map(c => c.slug)).toEqual(slugs.toReversed());
@@ -559,7 +559,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         await game.actions.resolveStack(); // damage
         await game.actions.resolveStack(); // damage monster
         expect(player1.currentHealthPoints).toBe(init - 1);
-        game.rollDice(player1, false, card1);
+        game.rollDice(player1, card1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -580,7 +580,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const health = game.monsters.map(m => m.currentHealthPoints);
 
         game.random = () => 3/6-.00001;
-        game.rollDice(player2, false, card1);
+        game.rollDice(player2, card1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -594,7 +594,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const init = player1.currentHealthPoints;
         const init2 = player2.currentHealthPoints;
         game.random = () => 4/6-.00001;
-        game.rollDice(player2, false, card1);
+        game.rollDice(player2, card1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -609,7 +609,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const init = player1.currentHealthPoints;
         const init2 = player2.currentHealthPoints;
         game.random = () => 4/6-.00001;
-        game.rollDice(player2, false, card1);
+        game.rollDice(player2, card1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();

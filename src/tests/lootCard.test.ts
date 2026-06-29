@@ -319,10 +319,10 @@ describe("Loot Card", () => {
     });
 
     it("b2-dice_shard: reroll a dice roll on stack", async () => {
-        const diceShard = game.decks["loot"]!.getCardFromSlug("b2-dice_shard");
+        const diceShard = game.decks["loot"]!.getCardFromSlug("b2-dice_shard")!;
 
         // Place a dice roll on the stack
-        const roll = player1.rollDice(Math.random, false, diceShard);
+        const roll = player1.rollDice(Math.random, diceShard);
         game.stack.push(roll);
 
         const initialRollValue = roll.value;
@@ -469,11 +469,11 @@ describe("Loot Card", () => {
     });
 
     it("b2-i_the_magician: should change a dice roll to chosen number", async () => {
-        const magician = game.decks["loot"]!.getCardFromSlug("b2-i_the_magician");
+        const magician = game.decks["loot"]!.getCardFromSlug("b2-i_the_magician")!;
         player1.hand.addToHand(magician!);
 
         // Place a dice roll on the stack
-        const roll = player1.rollDice(Math.random, false, magician);
+        const roll = player1.rollDice(Math.random, magician);
         game.stack.push(roll);
         roll.value = 6; // initial value
         // Play magician to change the roll
@@ -484,11 +484,11 @@ describe("Loot Card", () => {
     });
 
     it("b2-i_the_magician: should allow choosing specific roll value", async () => {
-        const magician = game.decks["loot"]!.getCardFromSlug("b2-i_the_magician");
+        const magician = game.decks["loot"]!.getCardFromSlug("b2-i_the_magician")!;
         player1.hand.addToHand(magician!);
 
         // Place a dice roll on the stack
-        const roll = player2.rollDice(Math.random, false, magician);
+        const roll = player2.rollDice(Math.random, magician);
         game.stack.push(roll);
 
         // Force the roll to be different from what we want

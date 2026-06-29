@@ -593,7 +593,7 @@ export function parseRollEffect(s: string, nr: NumberRobustString, game: Game, i
         effectFunction: (data: EffectData): boolean => {
             const issuer = issuerIsCurrentPlayer ? game.currentPlayer : data.issuer;
             if (issuer instanceof Player === false) return false;
-            const result = game.rollDice(issuer, false, data.it);
+            const result = game.rollDice(issuer, data.it);
             result.attachEffect(effects, data.it, data.targets, data.issuer);
             return true;
         },

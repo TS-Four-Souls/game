@@ -638,6 +638,7 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): SyncEffec
         let offCombatEnd: (() => void) | null = null;
         // console.log("Registering makeAnAttackRollAfterEachAttackRollEffect for", data.it.name, " current player:", game.currentPlayer.id, " issuer:", data.issuer.id);
         offAttackRolled = game.emitter.on("on:attack:roll", (eventData) => {
+            const target = eventData.dice.attackTarget;
             if(eventData.eventIssuer !== game.currentPlayer) {
                 return; // Not the current player, ignore
             }
@@ -646,11 +647,11 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): SyncEffec
             if(data.issuer.isDead)
                 return; // Dead, ignore
             const effect: SyncEffectFunction = (effectData: EffectData) => {
-                if(data.issuer.isDead || eventData.target.isEngagedInCombat === false || eventData.target.isDead)
+                if(data.issuer.isDead || target.isEngagedInCombat === false || target.isDead)
                     return false; // Dead, ignore
                 if(effectData.issuer instanceof Player === false)
                     throw new Error("Expected issuer to be a player for makeAnAttackRollAfterEachAttackRollEffect.");
-                    game.actions.attackRoll(effectData.issuer, eventData.target);
+                    game.actions.attackRoll(effectData.issuer, target);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, "You must make an attack roll against this after each attack roll the active player makes this attack.");
@@ -705,7 +706,7 @@ export function onAttackDeclaredNonActivePlayersRollToJoinEffect(game: Game, min
         const rolls:DiceRoll[] = [];
         for(const player of game.players) {
             if(player !== game.currentPlayer && !player.isDead) {
-                const roll = game.rollDice(player, false, data.it);
+                const roll = game.rollDice(player, data.it);
                 roll.attachEffect(
                     [1,2,3,4,5,6].map(value => 
                         (value >= minRoll && value <= maxRoll && data.issuer.isEngagedInCombat) ?

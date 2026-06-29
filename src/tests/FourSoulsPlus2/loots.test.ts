@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { Game } from "../../models/game";
 import { Player } from "../../models/entities/player";
 import { setupTestGame } from "../testHelpers";
+import { AttackRollData } from "@/models/stackElement";
 
 describe("Four Souls+2 Loot Cards", () => {
     let game: Game;
@@ -375,7 +376,7 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         game.cardHandler.addCardToHand(player1, dime);
         game.actions.playCard(player1, player1.hand.length - 1, []);
         const toBeRemoved = game.stack.peek();
-        game.rollDice(player1, true);
+        game.rollDice(player1, new AttackRollData(0, 1, 0, 1, 1, player1));
 
         game.cardHandler.addCardToHand(player1, card1);
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {

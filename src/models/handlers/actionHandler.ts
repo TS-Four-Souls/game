@@ -5,7 +5,7 @@ import type { Entity } from "../entities/entity";
 import { Monster } from "../entities/monster";
 import { Animated } from "../entities/animated";
 import { getAttackRollEffect } from "../effects/activeEffect";
-import { DamageOnStack, DiceRoll } from "../stackElement";
+import { AttackRollData, DamageOnStack, DiceRoll } from "../stackElement";
 import { Card, ItemCard, LootCard, MonsterCard, MonsterType, RoomCard, TreasureCard } from "../cards";
 import { LootCardEffect } from '../stackElement';
 import { TargetBuilder } from "../targetBuilder";
@@ -223,47 +223,8 @@ export class ActionHandler {
     }
     // damageDealt and damageReceived will be increased by the attack
     // of the dealer and receiver respectively in getAttackRollEffect.
-    const damageDealtAdditional = [0];
-    const damageDealtMultiplier = [1];
-    const damageReceivedAdditional = [0];
-    const damageReceivedMultiplier = [1];
-    const evasion = [this.game.entityHandler.getDC(target)];
-    const dice = this.game.rollDice(player, true);
-
-    this.game.emit("on:attack:roll", {
-      eventIssuer: player,
-      target: target,
-      dice,
-      damageDealtAdd: damageDealtAdditional,
-      damageDealtMult: damageDealtMultiplier,
-      damageReceivedAdd: damageReceivedAdditional,
-      damageReceivedMult: damageReceivedMultiplier,
-      evasion,
-    });
-    if (player.attackRollThisTurn === 1)
-      this.game.emit("on:attack:roll:first-time-each-turn", {
-        eventIssuer: player,
-        target: target,
-        dice,
-        damageDealtAdd: damageDealtAdditional,
-        damageDealtMult: damageDealtMultiplier,
-        damageReceivedAdd: damageReceivedAdditional,
-        damageReceivedMult: damageReceivedMultiplier,
-        evasion,
-      });
-
-    dice.attachEffect(
-      getAttackRollEffect(
-        damageDealtAdditional[0]!,
-        damageDealtMultiplier[0]!,
-        damageReceivedAdditional[0]!,
-        damageReceivedMultiplier[0]!,
-        evasion[0]!,
-        this.game
-      ),
-      target.card,
-      [target]
-    );
+    const attackRollData = new AttackRollData(0, 1, 0, 1, this.game.entityHandler.getDC(target), target);
+    const dice = this.game.rollDice(player, attackRollData);
   }
 
   /**

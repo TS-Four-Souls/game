@@ -4,6 +4,7 @@ import { setTimeout } from "timers/promises";
 import { Game } from "../../models/game";
 import { Player } from "../../models/entities/player";
 import { setupTestGame } from "../testHelpers";
+import { AttackRollData } from "@/models/stackElement";
 
 async function characterAdd1LootPlay(player1: Player, game: Game) {
     // verify character card works.
@@ -222,6 +223,7 @@ describe("Four Souls+2 Eternal Items", () => {
         game.actions.declareAttackOnEntity(player1, game.monsters[1]!);
         game.random = () => 0.99; // Roll only 6
         game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(2);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -230,6 +232,7 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.actions.resolveStack();
         game.entityHandler.addAttack(player1, 10);
         game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(2);
         await game.actions.resolveStack(); // effect
         await game.actions.resolveStack(); // dice 1
@@ -266,6 +269,7 @@ describe("Four Souls+2 Eternal Items", () => {
         game.entityHandler.addAttack(player2, 10);
         game.random = () => 0.99; // Roll only 6
         game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(2);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -736,7 +740,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(eternal.slug).toBe("r-classic_roller");
         
         game.random = () => 0.99; // Roll only 6
-        const dice = game.rollDice(player1, true);
+        const dice = game.rollDice(player1, new AttackRollData(0, 1, 0, 1, 1, player1));
         game.cardHandler.recharge(eternal);
         game.random = () => 0.01; // Roll only 1
         await game.activateItem(player1, eternal, [dice], "tap");

@@ -1,7 +1,7 @@
 import type { StackReorderingInfo as ApiStackReorderingInfo, DamageOnStackJson, DeathOnStackJson, DiceRollJson, StackElementJson, LootStepJson, EffectOnStackJson, LootCardOnStackJson, VisualEffectBox, EndOfTurnJson } from "@/shared/api";
 import type { Entity } from "./entities/entity";
 import type { Game } from "./game";
-import { EffectData, LootCard, type Card, type EffectFunction } from "./cards";
+import { EffectData, LootCard, Card, type EffectFunction } from "./cards";
 import { Player } from "./entities/player";
 import { TargetBuilder } from "./targetBuilder";
 import { trueEffect } from "./effects/activeEffect";
@@ -50,7 +50,30 @@ export abstract class StackElement {
 
 export type StackReorderingInfo = ApiStackReorderingInfo;
 
-
+export class AttackRollData {
+  damageDealtAdditional: number;
+  damageDealtMultiplier: number;
+  damageReceivedAdditional: number;
+  damageReceivedMultiplier: number;
+  evasion: number;
+  target: Entity;
+  
+  constructor(
+    damageDealtAdditional: number,
+    damageDealtMultiplier: number,
+    damageReceivedAdditional: number,
+    damageReceivedMultiplier: number,
+    evasion: number,
+    target: Entity
+  ) {
+    this.damageDealtAdditional = damageDealtAdditional;
+    this.damageDealtMultiplier = damageDealtMultiplier;
+    this.damageReceivedAdditional = damageReceivedAdditional;
+    this.damageReceivedMultiplier = damageReceivedMultiplier;
+    this.evasion = evasion;
+    this.target = target;
+  }
+}
 export class DiceRoll extends StackElement {
   private _value: number;
   private _issuer: Player;
@@ -62,18 +85,73 @@ export class DiceRoll extends StackElement {
   private _targets: any[] = [];
   private _random: () => number;
   private _readyToResolve: boolean = false;
+  private _attackRollData: AttackRollData | null = null;
 
-  constructor(random: () => number, issuer: Player, attackRoll: boolean = false, card: Card | null = null) {
+  constructor(random: () => number, issuer: Player, data: Card | AttackRollData) {
     super();
-    if(!attackRoll && !card) {
-      throw new Error("Non-attack dice rolls must be associated with a card.");
-    }
     this._random = random;
     this._issuer = issuer;
-    this._attackRoll = attackRoll;
-    this._card = card;
+    if(data instanceof AttackRollData) {
+      this._attackRoll = true;
+      this._attackRollData = data;
+    } else {
+      this._attackRoll = false;
+      this._card = data as Card;
+    }
     this._value = this.roll();
   }
+  get data(): Card | AttackRollData {
+    return this._attackRoll ? this._attackRollData! : this._card!;
+  }
+  get attackData(): AttackRollData | null {
+    return this._attackRollData;
+  }
+
+  get additionalDamageDealt(): number {
+    if(!this._attackRollData) throw new Error("No attack roll data available.");
+    return this._attackRollData?.damageDealtAdditional ?? 0;
+  }
+  set additionalDamageDealt(value: number) {
+    if(!this._attackRollData) throw new Error("No attack roll data available.");
+    this._attackRollData!.damageDealtAdditional = value;
+  }
+  get damageDealtMultiplier(): number {
+    if(!this._attackRollData) throw new Error("No attack roll data available.");
+    return this._attackRollData!.damageDealtMultiplier;
+  }
+  set damageDealtMultiplier(value: number) {
+    if(!this._attackRollData) throw new Error("No attack roll data available.");
+    this._attackRollData!.damageDealtMultiplier = value;
+  }
+  get additionalDamageReceived(): number {
+    if(!this._attackRollData) throw new Error("No attack roll data available.");
+    return this._attackRollData!.damageReceivedAdditional;
+  }
+  set additionalDamageReceived(value: number) {
+    if(!this._attackRollData) throw new Error("No attack roll data available.");
+    this._attackRollData!.damageReceivedAdditional = value;
+  }
+  get damageReceivedMultiplier(): number {
+    if(!this._attackRollData) throw new Error("No attack roll data available.");
+    return this._attackRollData!.damageReceivedMultiplier;
+  }
+  set damageReceivedMultiplier(value: number) {
+    if(!this._attackRollData) throw new Error("No attack roll data available.");
+    this._attackRollData!.damageReceivedMultiplier = value;
+  }
+  get evasion(): number {
+    if(!this._attackRollData) throw new Error("No attack roll data available.");
+    return this._attackRollData!.evasion;
+  }
+  set evasion(value: number) {
+    if(!this._attackRollData) throw new Error("No attack roll data available.");
+    this._attackRollData!.evasion = value;
+  }
+  get attackTarget(): Entity {
+    if(!this._attackRollData) throw new Error("No attack roll data available.");
+    return this._attackRollData!.target;
+  }
+
   set targets(targets: any[]) {
     this._targets = targets;
   }

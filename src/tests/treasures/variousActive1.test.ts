@@ -174,7 +174,7 @@ describe("Tap/Paid effects 1", () => {
         game.cardHandler.addInPlay(player1, godhead);
 
         // Create a dice roll
-        const dice = player1.rollDice(Math.random, false, godhead);
+        const dice = player1.rollDice(Math.random, godhead);
         dice.value = 3; // Set to some value
         game.addToStack(dice);
 
@@ -192,7 +192,7 @@ describe("Tap/Paid effects 1", () => {
         game.cardHandler.addInPlay(player1, godhead);
 
         // Create a dice roll
-        const dice = player2.rollDice(Math.random, false, godhead);
+        const dice = player2.rollDice(Math.random, godhead);
         dice.value = 2; // Set to some value
         game.addToStack(dice);
 
@@ -804,7 +804,7 @@ describe("Tap/Paid effects 1", () => {
         game.cardHandler.addInPlay(player1, spoonBender);
 
         // Create a dice roll
-        const dice = player1.rollDice(Math.random, false, spoonBender);
+        const dice = player1.rollDice(Math.random, spoonBender);
         game.addToStack(dice);
         dice.value = 3;
 
