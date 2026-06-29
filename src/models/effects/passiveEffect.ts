@@ -614,6 +614,10 @@ export function chooseMonsterWhenAnotherPlayerAttacksMonsterEffect(game: Game): 
             }             
             addPassiveEffectToStack(game, effect, data, `Choose which monster ${eventIssuer.id} attacks.`);
         });
+        data.it.cleaners.push(() => {
+            offAttack?.();
+            offAttack = null;
+        });
         return true;
     };
 }
