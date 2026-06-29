@@ -6,8 +6,8 @@ import {
   MonsterCard,
   TreasureCard
 } from "@/models/cards";
-import { EffectOnStack, EndOfTurnOnStack } from './stackElement';
-import { CurrentPlayerDecidesToChangeRoom } from "@/models/effects/roomEffects";
+import { AttackRollData, EffectOnStack, EndOfTurnOnStack } from './stackElement';
+import { CurrentPlayerDecidesToChangeRoom, getAttackRollEffect } from "@/models/effects/activeEffect";
 import { Entity } from "@/models/entities/entity";
 import { Monster } from "@/models/entities/monster";
 import { Player } from "@/models/entities/player";
@@ -49,7 +49,8 @@ export class Game extends SelectionHandler {
   private _shop!: Shop;
   private _encounters!: Encounters;
   private _rooms!: Rooms;
-  private _stack: Stack = new Stack();
+  private _timerIsUsed = false; // true if the timer option is active.
+  private _stack: Stack = new Stack(this);
   private _emitter: GameEventEmitter;
   private _stackSubsetCallbacks: {stackIds: number[], callback: () => void}[] = [];
   private _historicHandler: HistoricHandler = new HistoricHandler(this);
@@ -137,6 +138,9 @@ export class Game extends SelectionHandler {
   }
   get shop(): Shop {
     return this._shop;
+  }
+  get timerIsUsed(): boolean {
+    return this._timerIsUsed;
   }
   get encounters(): Encounters {
     return this._encounters;
@@ -281,11 +285,11 @@ export class Game extends SelectionHandler {
 
 ////////////////////////////////////// Dice Roll //////////////////////////////////////
 /** Creates a dice roll stack element and emits pre-roll triggers. */
-  rollDice(player: Player, attackRoll: boolean, card: Card | null = null): DiceRoll {
+  rollDice(player: Player, data: Card | AttackRollData): DiceRoll {
     this.assert.gameStarted();
-    if (attackRoll) this.assert.isAlive(player);
+    if (data instanceof AttackRollData) this.assert.isAlive(player);
 
-    const diceRoll = player.rollDice(this.random, attackRoll, card);
+    const diceRoll = player.rollDice(this.random, data);
     this.addAnimation({
       id: this.nextAnimationId,
       type: "diceRoll",
@@ -297,6 +301,30 @@ export class Game extends SelectionHandler {
     return diceRoll;
   }
 
+  setupAttackRoll(dice: DiceRoll): void {
+    if(!dice.attackRoll)
+      return;
+    this.emit("on:attack:roll", {
+      eventIssuer: dice.issuer,
+      target: dice.attackTarget,
+      dice,
+    });
+    if (dice.issuer.attackRollThisTurn === 1)
+      this.emit("on:attack:roll:first-time-each-turn", {
+        eventIssuer: dice.issuer,
+        target: dice.attackTarget,
+        dice,
+      });
+
+    dice.attachEffect(
+      getAttackRollEffect(
+        dice,
+        this
+      ),
+      dice.attackTarget.card,
+      [dice.attackTarget]
+    );
+  }
   async resolveDiceRoll(): Promise<void> {
     const stackIds = this.stack.currentStackIds;
     const elem = this.stack.peek() as DiceRoll;
@@ -312,7 +340,10 @@ export class Game extends SelectionHandler {
           this.dispatch();
           return;
         }
-        this.stack.resolve();
+        const dice = this.stack.resolve();
+        if(!dice || !(dice instanceof DiceRoll))
+          throw new Error("The resolved stack element is not a DiceRoll.");
+        this.setupAttackRoll(dice);
         await elem.onResolve();
         // Add to history
         this.addToHistory(elem.json);
@@ -355,6 +386,8 @@ export class Game extends SelectionHandler {
     this._historicHandler.recordInitialGameState(this);
     
     this.initializeWinningCondition();
+    if(this.gameParameters.timer.value > 0)
+      this._timerIsUsed = true;
     this.cardHandler.initializeBonusSouls();
     this._shop = new Shop(
       this.gameParameters.nbItemsInShop.value,
@@ -530,14 +563,17 @@ export class Game extends SelectionHandler {
         monster.resetEntityFlags();
       }
       this.turnHandler.endTurn();
-      if(this.gameParameters.timer.value > 0 && this.turnHandler.round > this.gameParameters.timer.value)
-        this.win(null);
+      this.verifyTimerLosingCondition();
       this.dispatch();
       await this.startTurn();
     });
     this.dispatch();
   }
 
+  verifyTimerLosingCondition(): void {
+    if(this.timerIsUsed && this.turnHandler.round > this.gameParameters.timer.value)
+        this.win(null);
+  }
   /**
    * Enforces max-hand-size discard rules for a player.
    */
@@ -569,7 +605,7 @@ export class Game extends SelectionHandler {
     targets: any[] = [],
     effectId: number | "tap" = "tap"
   ): Promise<boolean> {
-    return await this.cardHandler.activateItem(player, item, targets, effectId);
+    return this.cardHandler.activateItem(player, item, targets, effectId);
   }
 
   /** Discards the top monster card from an encounter slot. */
@@ -747,23 +783,27 @@ export class Game extends SelectionHandler {
   }
 
 ////////////////////////////////////// Coin handler //////////////////////////////////////
-  /** Grants coins to a player and emits coin gained triggers. */
-  gainCoins(player: Player, coins: number, source: Card | "gift"): string {
+  /** Grants coins to a player and emits coin gained triggers. 
+   * debug source must only be used for testing purposes.
+  */
+  gainCoins(player: Player, coins: number, source: Card | "gift" | "debug"): string {
     this.assert.gameStarted();
     this.assert.positiveNumber(coins);
     if (coins > 0) {
       const amount = [coins];
-      this.emit("on:coin:gained", {
-        eventIssuer: player,
-        coinGained: amount,
-        source: source,
-      });
+      if(source !== "gift")
+        this.emit("on:coin:gained", {
+          eventIssuer: player,
+          coinGained: amount,
+          source: source,
+        });
       player.gainCoins(amount[0]!);
-      this.emit("on:coin:gained:after", {
-        eventIssuer: player,
-        coinGained: amount,
-        source: source,
-      });
+      if(source !== "gift")
+        this.emit("on:coin:gained:after", {
+          eventIssuer: player,
+          coinGained: amount,
+          source: source,
+        });
     }
     this.dispatch();
     return `New amount of coins: ${player.coins} coins.\n`;
@@ -899,7 +939,7 @@ export class Game extends SelectionHandler {
   /**
    * Schedules a callback to run once the stack becomes empty.
    */
-  executeWhenStackEmpty(
+  async executeWhenStackEmpty(
     callback: () => void | Promise<void>
   ): Promise<void> {
     return this.executeWhenStackSubset([], callback);

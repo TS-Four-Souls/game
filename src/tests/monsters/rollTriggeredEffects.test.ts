@@ -263,7 +263,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, cursedKeeperHead);
         
-        game.gainCoins(player1, 10, "gift"); // Ensure player has enough coins
+        game.gainCoins(player1, 10, ("debug")); // Ensure player has enough coins
         const initialCoins = player1.coins;
         
         // Trigger a roll
@@ -287,7 +287,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, cursedKeeperHead);
         
-        game.gainCoins(player1, 10, "gift");
+        game.gainCoins(player1, 10, ("debug"));
         const initialCoins = player1.coins;
         
         const lootCard = game.obtainCard("b2-pills") as LootCard;

@@ -20,7 +20,7 @@ import { LootCardEffect } from '../stackElement';
 import {
   selectEternalAmongX
 } from "@/models/effects/activeEffect";
-import { effectParser } from "@/models/effects/parsing/effectParser";
+import { effectParser, syncEffectParser } from "@/models/effects/parsing/effectParser";
 import { Entity } from "@/models/entities/entity";
 import { Monster } from "@/models/entities/monster";
 import { Player } from "@/models/entities/player";
@@ -28,7 +28,7 @@ import type { DeckType, DeckTypeToCardType, DecksCollection, EffectType, Targets
 import { EffectData } from "@/models/types/cardTypes";
 import { type RechargeReason } from '@/models/types/eventTypes';
 import { loadCards } from "@/utils/loadCards";
-import { Effect } from '../effects/effects';
+import { Effect, PassiveEffect } from '../effects/effects';
 import { Game } from "../game";
 
 import { bSoulEffectParser } from "../effects/bonusSoulEffects";
@@ -639,7 +639,7 @@ export class CardHandler {
       }
       const cardFromSet = this._decks["character"]._set.cards.find(c => c.slug === slug);
       if(!cardFromSet)
-        throw new Error(`Character card with slug ${slug} not found in character deck.`);
+        throw new Error(`Card with slug ${slug} not found in deck.`);
       const card = this.copyCard(cardFromSet) as CharacterCard;
       if (card) {
         this.addBottomPosition("character", card);
@@ -870,7 +870,7 @@ export class CardHandler {
     this.removeCardFromHand(from, card);
     this.addCardToHand(to, card);
     if(to.hand.cards.some(c => this.decks.loot.cards.includes(c)))
-        throw new Error("Cafsd be given to the player for eachOtherPlayerLootsAndYouLootEffect");
+        throw new Error("Card cannot be given to the player in eachOtherPlayerLootsAndYouLootEffect");
     return true;
   }
 
@@ -1063,10 +1063,28 @@ export class CardHandler {
           paymentParsed.effectFunction,
         );
         card.addEffect(effect);
-      } else {
+      } else if(effectType === "active") {
         // Regular effects (passive/active)
         const parsed = effectParser(outcome, this.game, card instanceof MonsterCard);
         const effect: Effect = new Effect(
+          outcome,
+          effectType,
+          card,
+          parsed.effectFunction,
+          parsed.targetSelectors,
+          card.getEffectRange(idx),
+        );
+        card.addEffect(effect);
+      }
+      else
+      {
+        const parsed = syncEffectParser(outcome, this.game);
+        if(parsed === null)
+        {
+          console.log(`Effect parsing failed for card ${card.name} (slug: ${card.slug}) with outcome: ${outcome}`);
+          return;
+        }
+        const effect: Effect = new PassiveEffect(
           outcome,
           effectType,
           card,
@@ -1173,7 +1191,7 @@ export class CardHandler {
                 }
                 if(!(gainer.tags.copiedCards as ItemCard[]).includes(card)) {
                   return false;
-                    throw new Error("You can only choose cards granted by this.game effect.");
+                    throw new Error("You can only choose cards granted by this effect.");
                 }
                 const effectsWithValidTargets = card.activeEffectList.filter(e => {
                     if(TargetBuilder.validTargetExists(this.game, effectIssuer, card, e.index) !== true) return false;

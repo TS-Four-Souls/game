@@ -1,9 +1,9 @@
-import { MonsterCard, type ItemCard, type LootCard } from "@/models/cards";
+import { MonsterCard } from "@/models/cards";
+import type { DiceRoll } from "@/models/stackElement";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../../models/entities/player";
 import { Game } from "../../models/game";
 import { setupTestGame } from "../testHelpers";
-import type { DiceRoll } from "@/models/stackElement";
 
 
 describe("Requiem Monsters ", () => {
@@ -175,6 +175,7 @@ describe("Requiem Monsters ", () => {
         await game.actions.declareAttackOnEntity(player1, ent);
         await game.actions.resolveStack();
         await game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(2);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -332,17 +333,15 @@ describe("Requiem Monsters ", () => {
         game.entityHandler.addHealth(player1, 1, "other");
         game.entityHandler.addHealth(player2, 1, "other");
         game.actions.attackRoll(player1);
-        await game.actions.resolveStack();
-        expect(game.stack.size).toBe(2);
-        expect(game.stack.elements[0]!.json.type).toBe("diceRoll");
-        expect(game.stack.elements[1]!.json.type).toBe("diceRoll");
         expect((game.stack.elements[0] as DiceRoll).issuer).toBe(player1);
-        expect((game.stack.elements[1] as DiceRoll).issuer).toBe(player2);
         expect((game.stack.elements[0] as DiceRoll).attackRoll).toBe(true);
-        expect((game.stack.elements[1] as DiceRoll).attackRoll).toBe(true);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        expect(game.stack.size).toBe(1);
+        expect(game.stack.elements[0]!.json.type).toBe("diceRoll");
+        expect((game.stack.elements[0] as DiceRoll).issuer).toBe(player2);
+        expect((game.stack.elements[0] as DiceRoll).attackRoll).toBe(true);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -554,16 +553,19 @@ describe("Requiem Monsters ", () => {
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.random = () => 0.01;
-        game.rollDice(player2, false, mob);
+        game.rollDice(player2, mob);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player2.hand.length).toBe(1);
 
-        game.rollDice(player1, false, mob);
+        game.rollDice(player1, mob);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(1);
         game.entityHandler.kill(player1, ent, mob);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -658,7 +660,7 @@ describe("Requiem Monsters ", () => {
         };
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        const dice = game.rollDice(player1, false, mob);
+        const dice = game.rollDice(player1, mob);
         expect(dice.value).toBe(1);
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(false);
@@ -673,6 +675,7 @@ describe("Requiem Monsters ", () => {
         expect(mob).toBeInstanceOf(MonsterCard);
         
         game.encounters.forceSetMonsterAtSlot(0, mob);
+        await game.actions.resolveStack(); // resolve the event addition
         await game.actions.resolveStack();
         const card = game.decks.monster.draw();
         card.soul = 2;
@@ -716,6 +719,7 @@ describe("Requiem Monsters ", () => {
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve the event addition
         expect(game.stack.isEmpty()).toBe(true);
         const card = game.decks.monster.draw();
         card.soul = 2;
@@ -1171,6 +1175,7 @@ describe("Requiem Monsters ", () => {
         game.decks.monster.addTopPosition(card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
+        await game.actions.resolveStack(); // resolve the event addition
         await game.actions.resolveStack(); 
         game.entityHandler.kill(player1, game.monsters[0]!, card1);
         game.gainCoins(player1, 5, "gift");
@@ -1191,6 +1196,7 @@ describe("Requiem Monsters ", () => {
         game.actions.declareAttack(player1);
         const atk = [game.entityHandler.getAttack(game.monsters[0]!), game.entityHandler.getAttack(game.monsters[1]!)];
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
+        await game.actions.resolveStack(); // resolve the event addition
         await game.actions.resolveStack(); 
         expect(game.stack.isEmpty()).toBe(true);
         expect(game.entityHandler.getAttack(game.monsters[0]!)).toBe(atk[0]! + 1);
@@ -1236,7 +1242,7 @@ describe("Requiem Monsters ", () => {
         const ent2 = game.monsters[1]!;
         const dc2 = game.entityHandler.getDC(ent2);
         game.random = () => 1/2-0.01;
-        game.rollDice(player1, false, mob);
+        game.rollDice(player1, mob);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);

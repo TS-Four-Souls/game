@@ -6,6 +6,7 @@ import { TargetBuilder } from "../targetBuilder";
 import { isChooseOneOptions } from "../targetSelector";
 import { combineEffectFunctions } from "./activeEffect";
 import type { ActiveEffectEntry, VisualEffectBox } from "@/shared/api";
+import type { SyncEffectFunction } from "../types/cardTypes";
 
 
 export class Effect {
@@ -80,11 +81,11 @@ export class Effect {
         if (!this._paymentFunction) {
             throw new Error("Cannot execute payment: no payment function defined");
         }
-        return await this._paymentFunction(data);
+        return this._paymentFunction(data);
     }
 
     async execute(data: EffectData): Promise<boolean> {
-        return await this._effectFunction(data);
+        return this._effectFunction(data);
     }
 
     // Target validation methods
@@ -167,6 +168,26 @@ export class Effect {
     }
 
 }
+
+export class PassiveEffect extends Effect {
+    override _effectFunction: SyncEffectFunction;
+
+    constructor(description: string,
+        type: EffectType,
+        card: Card,
+        effectFunction: SyncEffectFunction = (data: EffectData): boolean => { return true; },
+        targetsSelector: TargetsSelector[] = [{ description: "", selector: (issuer: Player, card: Card): Entity[] => [], min: 0, max: 0 }],
+        range: EffectRange,
+        paymentFunction?: EffectFunction,
+    ) {
+        super(description, type, card, effectFunction, targetsSelector, range, paymentFunction);
+        this._effectFunction = effectFunction;
+    }
+    override get effectFunction(): SyncEffectFunction {
+        return this._effectFunction;
+    }
+}
+
 function combineEffects(effect1: Effect, effect2: Effect): Effect {
     if (effect1.type !== "active" || effect2.type !== "active") {
         throw new Error("Only active effects can be combined.");
@@ -191,8 +212,8 @@ class EffectHandler {
 }
 class PassiveEffectHandler extends EffectHandler {
     protected _type: "passive" = "passive";
-
-    addEffect(effect: Effect): void {
+    override _effects: PassiveEffect[] = [];
+    addEffect(effect: PassiveEffect): void {
         if (effect.type === "passive")
             this._effects.push(effect);
         else throw new Error("Cannot put a non-passive effect in a PassiveEffectHandler.");
@@ -204,7 +225,7 @@ class PassiveEffectHandler extends EffectHandler {
             // if(effect.targetsSelector.length > 0) {
             //     targets = effect.targetsSelector.map(selector => { selector.selector(owner as Player)[0]; });
             // }
-            void effect.effectFunction(new EffectData(it, issuerProvider, targets, effect.getVisualEffectBoxFromTargets(targets)));
+            effect.effectFunction(new EffectData(it, issuerProvider, targets, effect.getVisualEffectBoxFromTargets(targets)));
         }
     }
 }
@@ -244,12 +265,12 @@ class ActiveEffectHandler extends EffectHandler {
         if (this._activeEffect === null) {
             throw new Error("No active effect found in ActiveEffectHandler.");
         }
-        return await this._activeEffect.effectFunction(new EffectData(it, () => issuer as Player, targets, this._activeEffect!.getVisualEffectBoxFromTargets(targets)));
+        return this._activeEffect.effectFunction(new EffectData(it, () => issuer as Player, targets, this._activeEffect!.getVisualEffectBoxFromTargets(targets)));
     }
 
     async pay(issuer: Entity, it: Card, targets: any[], effectId: number): Promise<boolean> {
         const effect = this.getPaidEffect(effectId);
-        return await effect.effectFunction(new EffectData(it, () => issuer as Player, targets, effect.getVisualEffectBoxFromTargets(targets)));
+        return effect.effectFunction(new EffectData(it, () => issuer as Player, targets, effect.getVisualEffectBoxFromTargets(targets)));
     }
 
     hasTapEffect(): boolean {
@@ -301,8 +322,10 @@ export class EffectInterface {
         this.passiveEffects = new PassiveEffectHandler();
     }
 
-    addEffect(effect: Effect): void {
+    addEffect(effect: Effect | PassiveEffect): void {
         if (effect.type === "passive") {
+            if(effect instanceof PassiveEffect === false)
+                throw new Error(`Effect "${effect.description}" is not a passive effect.`);
             this.passiveEffects.addEffect(effect);
         } else {
             // console.log(`Adding effect "${effect.description}" of type "${effect.type}" to card ${this.it.slug}.`);

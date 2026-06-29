@@ -6,7 +6,7 @@ import { Player } from './entities/player';
 import type { GameParameters } from './gameParameters';
 import { EffectOnStack } from './stackElement';
 import { type CardSetsCollection, type DecksCollection, type DeckType, type DeckTypeToCardType, type TargetsSelector } from './types/cardTypes';
-import { EffectInterface, Effect } from './effects/effects';    
+import { EffectInterface, Effect, PassiveEffect } from './effects/effects';    
 export type EffectRange = DescriptiveVisualEffectBox[];
 export type CardEffectsRanges = EffectRange[];
 class Card {
@@ -329,7 +329,7 @@ class Card {
         this._owner = issuerProvider();
         this._effectInterface.subscribeAll(issuerProvider);
     }
-    addEffect(effect: Effect): void {
+    addEffect(effect: Effect | PassiveEffect): void {
         this._effectInterface.addEffect(effect);
     }
 
@@ -484,7 +484,7 @@ export class ItemCard extends Card {
         }
         throw new Error("Cannot activate uncharged item");
       default:
-        return await this._effectInterface.paidEffect(this.owner, targets, effectId);
+        return this._effectInterface.paidEffect(this.owner, targets, effectId);
     }
   }
   targetStillValid(
@@ -534,7 +534,7 @@ class LootCard extends ItemCard {
         this._owner = issuer;
         // Return a resolve function that captures trinket state
         const resolveFunction = this._effectInterface.onPlay(issuer, targets);
-        return () => {
+        return async () => {
             return resolveFunction();
         };
     }

@@ -26,11 +26,11 @@ describe("Effect - gainCoins", () => {
   let game: Game;
   let p1: Player;
   let p2: Player;
-  let effectFn: ReturnType<typeof gainCoinsEffect>;
+  let effectFn: SyncEffectFunction;
 
   beforeEach(async () => {
     ({ game, p1, p2 } = await setupDecks());
-    effectFn = gainCoinsEffect(game, 5);
+    effectFn = gainCoinsEffect(game, 5, "issuer", [false]);
   });
 
   it("should give coins to issuer when game started", async () => {
@@ -65,12 +65,12 @@ describe("Effect - gainCoins", () => {
     b.gainCoins(0); // Start with 0 coins for testing
     freshGame.entityHandler.addPlayer(a);
     freshGame.entityHandler.addPlayer(b);
-    const fn = gainCoinsEffect(freshGame, 3);
+    const fn = gainCoinsEffect(freshGame, 3, "issuer", [false]);
     expect(() => fn(new EffectData(dummyLoot, () => a, []))).toThrow("Game not started");
   });
 
   it("should reject negative coin amount", async () => {
-    const negEffect = gainCoinsEffect(game, -2 as any);
+    const negEffect = gainCoinsEffect(game, -2 as any, "issuer", [false]);
     expect(() => negEffect(new EffectData(dummyLoot, () => p1, []))).toThrow("Number is negative.");
   });
 });
@@ -79,6 +79,7 @@ describe("Effect - gainCoins", () => {
 import * as effect from "@/models/effects/parsing/effectParser";
 import * as active from "@/models/effects/activeEffect";
 import type { ItemCard, LootCard } from "@/models/cards";
+import type { SyncEffectFunction } from "@/models/types/cardTypes";
 
 describe("Effect - additional unique implementations", () => {
   it("changeRollDiceResultEffect sets dice value", async () => {

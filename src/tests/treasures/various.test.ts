@@ -208,7 +208,7 @@ describe("Treasure - Passive effects", () => {
         game.cardHandler.addInPlay(player1, sacredHeart);
 
         // Roll a dice and set it to 1
-        const dice = game.rollDice(player1, false, sacredHeart);
+        const dice = game.rollDice(player1, sacredHeart);
         dice.value = 1;
         game.emitter.emit("on:dice:would-roll", { eventIssuer: player1, diceRoll: dice });
 
@@ -226,7 +226,7 @@ describe("Treasure - Passive effects", () => {
         game.cardHandler.addInPlay(player1, sacredHeart);
 
         // Roll a dice and set it to 1
-        const dice = player1.rollDice(Math.random, false, sacredHeart);
+        const dice = player1.rollDice(Math.random, sacredHeart);
         dice.value = 1;
 
         game.addToStack(dice);
@@ -241,7 +241,7 @@ describe("Treasure - Passive effects", () => {
         game.cardHandler.addInPlay(player1, sacredHeart);
 
         // Roll a dice and set it to 3
-        const dice = player1.rollDice(Math.random, false, sacredHeart);
+        const dice = player1.rollDice(Math.random, sacredHeart);
         dice.value = 3;
 
         game.addToStack(dice);

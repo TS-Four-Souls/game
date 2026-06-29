@@ -168,7 +168,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const rand = game.random;
         game.random = () => 0.1; // Force dice rolls to be 1
         // Player2 rolls a dice
-        const dice = game.rollDice(player2, false, dadsLostCoin);
+        const dice = game.rollDice(player2, dadsLostCoin);
         dice._TEST_setRandom( () => 0.6); // Force dice rolls to be 4
         
         await game.actions.resolveStack();
@@ -188,7 +188,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         };
         game.random = () => 0.1; // Force dice rolls to be 1
         // Player2 rolls a dice
-        const dice = game.rollDice(player2, false, dadsLostCoin);
+        const dice = game.rollDice(player2, dadsLostCoin);
         dice._TEST_setRandom( () => 0.6); // Force dice rolls to be 4
 
         game.addToStack(dice);

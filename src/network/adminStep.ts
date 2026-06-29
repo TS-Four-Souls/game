@@ -18,8 +18,8 @@ export const enterAdminStep = (socket: Socket): void => {
   sendAdminChanged(socket);
   globalEndpoints(socket);
 
-  socket.on("adminChangeMessageStatus", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
+  socket.on("adminChangeMessageStatus", async (payload, callback) =>
+    errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         payload,
         schemas.adminChangeMessageStatusRequest,
@@ -33,8 +33,8 @@ export const enterAdminStep = (socket: Socket): void => {
     ),
   );
 
-  socket.on("adminGetLogs", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
+  socket.on("adminGetLogs", async (payload, callback) =>
+    errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         payload,
         schemas.adminGetLogsRequest,
@@ -61,8 +61,8 @@ export const enterAdminStep = (socket: Socket): void => {
     ),
   );
 
-  socket.on("adminReplyToMessage", (payload, callback) =>
-    errorGuardedEndpoint(callback, () =>
+  socket.on("adminReplyToMessage", async (payload, callback) =>
+    errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
         payload,
         schemas.adminReplyToMessageRequest,

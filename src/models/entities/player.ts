@@ -1,7 +1,7 @@
 import { Entity } from "@/models/entities/entity";
 import type { Animation, Capability, EntityType, IdentifierType, Team } from "@/shared/api";
 import { Card, CharacterCard, Hand, ItemCard, LootCard, MonsterCard } from "../cards";
-import { EffectOnStack } from '../stackElement';
+import { AttackRollData, EffectOnStack } from '../stackElement';
 import type { Game } from "../game";
 import { DiceRoll } from "../stackElement";
 
@@ -726,16 +726,16 @@ export class Player extends Entity {
     if (!item.targetStillValid(this, effectId, targets))
       throw new Error("Targets are not valid for this effect.");
 
-    return await item.tryActivateEffect(targets, effectId);
+    return item.tryActivateEffect(targets, effectId);
   }
   gainCoins(coins: number): void {
     this._coin += coins;
   }
 
-  rollDice(random: () => number, attackRoll: boolean = false, card: Card | null = null): DiceRoll {
-    if(attackRoll)
+  rollDice(random: () => number, data: Card | AttackRollData): DiceRoll {
+    if(data instanceof AttackRollData)
       this._attackRollThisTurn += 1;
-    return new DiceRoll(random, this, attackRoll, card);
+    return new DiceRoll(random, this, data);
   }
 
   /**

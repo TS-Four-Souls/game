@@ -174,7 +174,7 @@ export function eachPlayerRollLowestOrTiedForLowestDiesEffect(game: Game): SyncE
         }
         addPassiveEffectToStack(game, effect, data, `Each player who rolls the lowest or tied for the lowest dies.`);
         for(const target of targets) {
-            dices.push(game.rollDice(target, false, data.it));
+            dices.push(game.rollDice(target, data.it));
         }
         return true;
     };
@@ -298,7 +298,7 @@ export function OnDamageByActivePlayerRollDealDamageEffect(game: Game, numbers: 
             const groups = [[target], game.players, [data.issuer as Entity]];
             
             const effect = (effectData: EffectData): boolean => {
-                const roll = game.rollDice(target, false, data.it);
+                const roll = game.rollDice(target, data.it);
                 roll.attachEffect(
                     [1,2,3,4,5,6].map(n => (rollData: EffectData): boolean => {
                         for(let i=0; i < ranges.length; i++) {
@@ -357,7 +357,7 @@ export function dealDamageOnAttackDeclarationEffect(game: Game, minRoll: number,
         offAttackDeclared = game.emitter.on("on:attack:declared", (eventData: OnAttackDeclaredData) => {
             const { eventIssuer } = eventData;
             const effect = (effectData: EffectData): boolean => {
-                const roll = game.rollDice(game.currentPlayer, false, data.it);
+                const roll = game.rollDice(game.currentPlayer, data.it);
                 roll.attachEffect([1,2,3,4,5,6].map(n => (rollData: EffectData): boolean => {
                     if(roll.value >= minRoll && roll.value <= maxRoll) {
                         game.entityHandler.dealDamage(data.issuer, eventIssuer, data.it, damage);
@@ -624,7 +624,7 @@ export function damageDealtToActivePlayerAlsoToTheEffect(game: Game, direction: 
     };
 }
 
-export function statModifierWhileAtHealthEffect(game: Game, s: string): EffectFunction
+export function statModifierWhileAtHealthEffect(game: Game, s: string): SyncEffectFunction
 {
     const numbers = s.match(/\d+/g)?.map(numStr => parseInt(numStr, 10)) || [];
     if(numbers.length != 2)
@@ -928,7 +928,7 @@ export function preventDamageOnRollEffect(game: Game, rolls: number[]): SyncEffe
             if(!(eventIssuer instanceof Monster)) return;
             // Add all effects as a single stack element
             const effect = (effectData: EffectData): boolean => {
-                const dice = game.rollDice(game.currentPlayer as Player, false, data.it); // to get the roll value
+                const dice = game.rollDice(game.currentPlayer as Player, data.it); // to get the roll value
                 dice.attachEffect([1,2,3,4,5,6].map(n => (data:EffectData): boolean => {
                     if(rolls.includes(n)) {
                         damageArray[0] = 0; // remove all damage

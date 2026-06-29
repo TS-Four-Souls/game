@@ -187,15 +187,15 @@ describe("Loot Card", () => {
         await game.actions.resolveStack();
 
         // gain x + 1 coins.
-        game.gainCoins(player1, 2, "gift");
+        game.gainCoins(player1, 2, ("debug"));
         expect(player1.coins).toBe(initialCoins + 3);
         
         // no gain when gaining 0 coins.
-        game.gainCoins(player1, 0, "gift");
+        game.gainCoins(player1, 0, ("debug"));
         expect(player1.coins).toBe(initialCoins + 3);
 
         // no effect for other players nor on other players' coin gain.
-        game.gainCoins(player2, 5, "gift");
+        game.gainCoins(player2, 5, ("debug"));
         expect(player2.coins).toBe(initialCoins2 + 5);
         expect(player1.coins).toBe(initialCoins + 3);
 
@@ -206,7 +206,7 @@ describe("Loot Card", () => {
         game.cardHandler.removeInPlay(player1, loot);
 
         // gain x coins normally after removal.
-        game.gainCoins(player1, 4, "gift");
+        game.gainCoins(player1, 4, ("debug"));
         expect(player1.coins).toBe(4);
     });
 

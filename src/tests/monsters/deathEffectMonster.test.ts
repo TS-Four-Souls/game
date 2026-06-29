@@ -231,7 +231,7 @@ describe("Monsters - On death effects", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
-        game.gainCoins(player2, 10, "gift");
+        game.gainCoins(player2, 10, ("debug"));
         const coins = player2.coins;
 
         game.select = async (p, _min, _max, opts) => {
@@ -485,6 +485,7 @@ describe("Monsters - On death effects", () => {
         await game.actions.resolveStack(); // resolve death
         await game.actions.resolveStack(); // resolve death effect - selection
         await game.actions.resolveStack(); // resolve damage from death effect
+        expect(game.stack.isEmpty()).toBe(true);
         expect(player1.souls.map(s => s.id)).not.toContain(soul.id);
         expect(player2.souls.map(s => s.id)).not.toContain(soul.id);
     });

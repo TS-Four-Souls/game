@@ -4,7 +4,7 @@ import { MonsterCard } from "@/models/cards";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../../models/entities/player";
 import { setupTestGame } from "../testHelpers";
-import { DamageOnStack, DiceRoll } from "../../models/stackElement";
+import { DamageOnStack, AttackRollData, DiceRoll } from "../../models/stackElement";
 
 describe("Four Souls+2 Treasures", () => {
     let game: Game;
@@ -52,7 +52,7 @@ describe("Four Souls+2 Treasures", () => {
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [opts[2]], remaining: [] } as any;
         };
-        const dice = game.rollDice(player2, true, card1);
+        const dice = game.rollDice(player2, new AttackRollData(0, 1, 0, 1, 1, player2));
         await game.actions.resolveStack();
         expect(dice.value).toBe(3);
     });
@@ -63,8 +63,10 @@ describe("Four Souls+2 Treasures", () => {
         await game.actions.declareAttackOnEntity(player1, game.encounters.monsterIn(1)!);
         game.random = () => 1/6-.00001;
         game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(2);
         expect(game.currentPlayer).toBe(player1);
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player2);
         await game.actions.resolveStack(); // resolve effect
@@ -108,7 +110,7 @@ describe("Four Souls+2 Treasures", () => {
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [opts[1]], remaining: [] } as any;
         }
-        const dice = game.rollDice(player1, true);
+        const dice = game.rollDice(player1, new AttackRollData(0, 1, 0, 1, 1, player1));
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(dice.value).toBe(5);
@@ -123,7 +125,7 @@ describe("Four Souls+2 Treasures", () => {
             return { selected: [player2.inPlay[3]!], remaining: [] } as any;
         }
         game.random = () => 1/6-0.0001; // roll a 1
-        game.rollDice(player2, false, card1);
+        game.rollDice(player2, card1);
         await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
         await game.actions.resolveStack();
@@ -139,7 +141,7 @@ describe("Four Souls+2 Treasures", () => {
         }
         game.cardHandler.recharge(player2.inPlay[0] as ItemCard);
         game.random = () => 2/6-0.0001; // roll a 2
-        game.rollDice(player2, false, card1);
+        game.rollDice(player2, card1);
         await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
         await game.actions.resolveStack();
@@ -157,7 +159,7 @@ describe("Four Souls+2 Treasures", () => {
         }
         game.cardHandler.recharge(player2.inPlay[0] as ItemCard);
         game.random = () => 2/6-0.0001; // roll a 2
-        game.rollDice(player2, false, card1);
+        game.rollDice(player2, card1);
         await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
         await game.actions.resolveStack();
@@ -184,31 +186,32 @@ describe("Four Souls+2 Treasures", () => {
         game.random = () => 2/6-0.0001; // roll a 2
         await game.activateItem(player1, card1, [2], "tap");
         await game.actions.resolveStack();
-        game.rollDice(player2, true);
-        await game.actions.resolveStack();
-        if(game.stack.size > 0) {
-            expect(game.stack.size).toBe(1);
-        }
+        game.entityHandler.addHealth(game.monsters[0]!, 10);
+        game.rollDice(player2, new AttackRollData(0, 1, 0, 1, 1, game.monsters[0]!));
         const hp = player2.currentHealthPoints;
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [player2], remaining: [] } as any;
         }
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(hp-1);
+        await game.actions.resolveStack();
 
         game.random = () => 1/6-0.0001; // roll a 1
-        game.rollDice(player2, true);
+        game.rollDice(player1, new AttackRollData(0, 1, 0, 1, 1, game.monsters[0]!));
+        game.entityHandler.addHealth(game.monsters[0]!, 10);
         await game.actions.resolveStack();
-        expect(game.stack.size).toBe(0);
+        expect(game.stack.size).toBe(1);
+        await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(hp-1);
 
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        await game.actions.resolveStack();
          game.random = () => 2/6-0.0001; // roll a 2
-        game.rollDice(player2, true);
+        game.rollDice(player2, new AttackRollData(0, 1, 0, 1, 1, game.monsters[0]!));
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(player2.currentHealthPoints).toBe(hp);
@@ -217,7 +220,7 @@ describe("Four Souls+2 Treasures", () => {
     it("fsp2-divorce_papers - [Tap Effect] Destroy this. If you do, choose another player. They give you half of their ¢ and loot cards rounded down, then gives you an item.", async () => {
         const card1 = game.obtainCard("fsp2-divorce_papers") as TreasureCard;
         game.cardHandler.addInPlay(player1, card1);
-        game.gainCoins(player2, 5, "gift");
+        game.gainCoins(player2, 5, ("debug"));
         game.loot(player2, 3);
         game.gainTreasure(player2, 3);
         await game.activateItem(player1, card1, [player2], "tap");
@@ -243,9 +246,13 @@ describe("Four Souls+2 Treasures", () => {
         game.actions.attackRoll(player1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
         game.actions.attackRoll(player1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
         expect(game.encounters.monsterIn(1)!.card.slug).not.toBe("b2-fatty");
         await game.actions.resolveStack();
         await game.endTurn();
@@ -391,7 +398,7 @@ describe("Four Souls+2 Treasures", () => {
         const initialCoins1 = player1.coins;
         const initialCoins2 = player2.coins;
 
-        game.gainCoins(player2, 3, "gift");
+        game.gainCoins(player2, 3, ("debug"));
         await game.actions.resolveStack();
         expect(player2.coins).toBe(initialCoins2 + 2); // player2 gains 3 but gives 1 to player1 for each coin gained
         expect(player1.coins).toBe(initialCoins1 + 1); // player1 gains 1 coin
@@ -442,7 +449,8 @@ describe("Four Souls+2 Treasures", () => {
         game.cardHandler.addInPlay(player1, card1);
         game.random = () => 3/6-0.0001;
         // attack roll don't change
-        let diceRoll = game.rollDice(player1, true, card1);
+        let diceRoll = game.rollDice(player1, new AttackRollData(0, 1, 0, 1, 1, player1));
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(diceRoll.value).toBe(3);
@@ -451,7 +459,7 @@ describe("Four Souls+2 Treasures", () => {
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [], remaining: [] } as any;
         }
-        diceRoll = game.rollDice(player1, false, card1);
+        diceRoll = game.rollDice(player1, card1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -460,7 +468,7 @@ describe("Four Souls+2 Treasures", () => {
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [-1], remaining: [] } as any;
         }
-        diceRoll = game.rollDice(player1, false, card1);
+        diceRoll = game.rollDice(player1, card1);
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(false);
         await game.actions.resolveStack();
@@ -470,7 +478,7 @@ describe("Four Souls+2 Treasures", () => {
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [1], remaining: [] } as any;
         }
-        diceRoll = game.rollDice(player1, false, card1);
+        diceRoll = game.rollDice(player1, card1);
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(false);
         await game.actions.resolveStack();
@@ -540,7 +548,7 @@ describe("Four Souls+2 Treasures", () => {
         const card1 = game.obtainCard("fsp2-libra") as TreasureCard;
         game.cardHandler.addInPlay(player1, card1);
         game.random = () => 0.99;
-        const diceRoll = game.rollDice(player1, true);
+        const diceRoll = game.rollDice(player1, new AttackRollData(0, 1, 0, 1, 1, player1));
         await game.activateItem(player1, card1, [diceRoll, 3], "tap");
         await game.actions.resolveStack();
         expect(game.stack.peek()).toBeInstanceOf(DiceRoll);

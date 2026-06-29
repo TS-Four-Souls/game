@@ -48,7 +48,7 @@ describe("Monsters - Various 2", () => {
             expect(dice).toBeInstanceOf(DiceRoll);
             dice.value = 1;
 
-            game.gainCoins(player1, 10, "gift"); // Give some coins to lose
+            game.gainCoins(player1, 10, ("debug")); // Give some coins to lose
             const init = player1.coins;
             await game.actions.resolveStack(); // dice
             await game.actions.resolveStack(); // damage
@@ -153,8 +153,8 @@ describe("Monsters - Various 2", () => {
         const card = game.obtainCard("b2-greed") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
         game.entityHandler.addHealth(player1, 10); // Prevent death by damage
-        game.gainCoins(player1, 100, "gift");
-        game.gainCoins(player2, 100, "gift");
+        game.gainCoins(player1, 100, ("debug"));
+        game.gainCoins(player2, 100, ("debug"));
 
         game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
@@ -320,8 +320,8 @@ describe("Monsters - Various 2", () => {
         const card = game.obtainCard("b2-greed_event") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
 
-        game.gainCoins(player1, 5, "gift");
-        game.gainCoins(player2, 10, "gift");
+        game.gainCoins(player1, 5, ("debug"));
+        game.gainCoins(player2, 10, ("debug"));
         const coin1 = player1.coins;
         const coin2 = player2.coins;
         game.encounters.forceSetMonsterAtSlot(0, card);
@@ -337,8 +337,8 @@ describe("Monsters - Various 2", () => {
         const card = game.obtainCard("b2-greed_event") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
 
-        game.gainCoins(player1, 10, "gift");
-        game.gainCoins(player2, 10, "gift");
+        game.gainCoins(player1, 10, ("debug"));
+        game.gainCoins(player2, 10, ("debug"));
         const coin1 = player1.coins;
         const coin2 = player2.coins;
         game.encounters.forceSetMonsterAtSlot(0, card);

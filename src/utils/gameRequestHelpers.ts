@@ -115,7 +115,7 @@ export async function executeActivateWithIdRequest(
   if(choice !== undefined) {
     partialChoice = [...TargetBuilder.convertToSelectionItems(choice), ...partialChoice];
   }
-  return await executeActivateRequest(
+  return executeActivateRequest(
     game,
     {
       index: payload.index,
@@ -408,7 +408,7 @@ export function executeDebugPutMonsterCardInSlotRequest(
   ) as MonsterCard;
   if (!card) {
     throw new Error(
-      "Card not found in the game: " + payload.card.slug,
+      "Card not found in the game.",
     );
   }
   const index = game.encounters._slots

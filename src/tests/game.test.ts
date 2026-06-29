@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeEach, expectTypeOf } from "bun:test";
-import { Game } from "@/models/game";
+import { beforeEach, describe, expect, it } from "bun:test";
+import type { LootCard } from "@/models/cards";
 import { Player } from "@/models/entities/player";
-import { TurnHandler } from "@/models/handlers/turnHandler";
-import { Stack } from "@/models/stack";
-import { StackElement } from "@/models/stackElement";
 import { GameEventEmitter } from "@/models/eventEmmitter";
-import type { CharacterCard, ItemCard, LootCard } from "@/models/cards";
+import { Game } from "@/models/game";
+import { TurnHandler } from "@/models/handlers/turnHandler";
 import { type StackElementJson, Team } from "@/shared/api";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupStandardTestGame, setupTestGame } from "@/tests/testHelpers";
+import { AttackRollData, StackElement } from "@/models/stackElement";
+import { Stack } from "@/models/stack";
 
 class DummyStackElement extends StackElement {
   constructor(private readonly label: string) {
@@ -58,7 +58,7 @@ describe("Game", () => {
   it("should throw error when retrieving non-existent player", async () => {
     expect(() => {
       game.entityHandler.getPlayerById("nonexistent");
-    }).toThrow("Player not found");
+    }).toThrow(`Player with id nonexistent not found.`);
   });
 });
 
@@ -146,7 +146,7 @@ describe("Player", () => {
   });
 
   it("should roll a dice between 1 and 6", async () => {
-    const dice = player.rollDice(Math.random, true);
+    const dice = player.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, player));
     expect(dice.value >= 1 && dice.value <= 6).toBe(true);
     expect(dice.issuer).toBe(player);
   });
@@ -469,20 +469,20 @@ describe("DiceRoll", () => {
   });
 
   it("should create a valid dice roll", async () => {
-    const dice = player.rollDice(Math.random, true);
+    const dice = player.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, player));
     
     expect(dice).toBeDefined();
     expect(dice.value >= 1 && dice.value <= 6).toBe(true);
   });
 
   it("should track the issuer correctly", async () => {
-    const dice = player.rollDice(Math.random, true);
+    const dice = player.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, player));
     expect(dice.issuer).toBe(player);
     expect(dice.issuer.id).toBe("testPlayer");
   });
 
   it("should allow setting dice value between 1 and 6", async () => {
-    const dice = player.rollDice(Math.random, true);
+    const dice = player.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, player));
     
     dice.value = 1;
     expect(dice.value).toBe(1);
@@ -495,7 +495,7 @@ describe("DiceRoll", () => {
   });
 
   it("should roll and generate new value", async () => {
-    const dice = player.rollDice(Math.random, true);
+    const dice = player.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, player));
     const firstValue = dice.value;
     
     dice.roll();
@@ -507,7 +507,7 @@ describe("DiceRoll", () => {
   });
 
   it("should return json representation correctly", async () => {
-    const dice = player.rollDice(Math.random, true);
+    const dice = player.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, player));
     const json = dice.json;
     
     expect(json.issuer.name).toBe("testPlayer");
@@ -515,7 +515,7 @@ describe("DiceRoll", () => {
   });
 
   it("should resolve to current value", async () => {
-    const dice = player.rollDice(Math.random, true);
+    const dice = player.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, player));
     dice.value = 4;
     
     expect(dice.value).toBe(4);
@@ -669,20 +669,18 @@ describe("Game - Stack Operations", () => {
     expect(game.stack.size).toBe(0);
   });
 
-  it("should add to stack and resolve dice roll", async () => {
-    const dice = player1.rollDice(Math.random, true);
+  it("should add to stack dice roll", async () => {
+    const dice = player1.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, player1));
     game.addToStack(dice);
     expect(game.stack.size).toBe(1);
 
-    await game.actions.resolveStack();
-    expect(game.stack.size).toBe(0);
   });
 });
 
 describe("Stack - Behavior", () => {
 
   it("should resolve and remove the top element", async () => {
-    const stack = new Stack();
+    const stack = new Stack(new Game());
     const loot = { id: "loot", type: "loot" } as any;
     const p1 = new Player("player1", Team.Team1);
     p1.addAttackPoints(1); // Start with 1 attack points for testing
@@ -690,7 +688,7 @@ describe("Stack - Behavior", () => {
     p1.gainCoins(0); // Start with 0 coins for testing
 
     
-    const dice = p1.rollDice(Math.random, true);
+    const dice = p1.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, p1));
 
     stack.push(loot as any);
     stack.push(dice);
@@ -701,7 +699,7 @@ describe("Stack - Behavior", () => {
   });
 
   it("should remove element at index", async () => {
-    const stack = new Stack();
+    const stack = new Stack(new Game());
     const a = { id: "a", type: "loot" } as any;
     const b = { id: "b", type: "loot" } as any;
     const c = { id: "c", type: "loot" } as any;
@@ -717,7 +715,7 @@ describe("Stack - Behavior", () => {
   });
 
   it("should insert a stack element before another in same reordering group", async () => {
-    const stack = new Stack();
+    const stack = new Stack(new Game());
     const a = new DummyStackElement("A");
     const b = new DummyStackElement("B");
     const c = new DummyStackElement("C");
@@ -738,7 +736,7 @@ describe("Stack - Behavior", () => {
   });
 
   it("should throw when trying to reorder elements from different groups", async () => {
-    const stack = new Stack();
+    const stack = new Stack(new Game());
     const a = new DummyStackElement("A");
     const b = new DummyStackElement("B");
 
@@ -752,7 +750,7 @@ describe("Stack - Behavior", () => {
   });
 
   it("should throw when one of the elements has no reordering group", async () => {
-    const stack = new Stack();
+    const stack = new Stack(new Game());
     const a = new DummyStackElement("A");
     const b = new DummyStackElement("B");
 

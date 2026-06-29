@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../../models/entities/player";
 import { Game } from "../../models/game";
 import { setupTestGame } from "../testHelpers";
+import { AttackRollData } from "@/models/stackElement";
 
 
 describe("Requiem Loots ", () => {
@@ -75,7 +76,7 @@ describe("Requiem Loots ", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        game.gainCoins(player1, 7, "gift");
+        game.gainCoins(player1, 7, ("debug"));
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, "top");
         expect(player1.coins).toBe(2);
@@ -103,7 +104,7 @@ describe("Requiem Loots ", () => {
         expect(treas.counters.value("golden")).toBe(1);
         expect((loot.tags.copiedCards as ItemCard[]).map((c) => c.slug).includes(treas.slug)).toBe(true);
         game.random = () => 0.01;
-        const roll = game.rollDice(player1, true, loot);
+        const roll = game.rollDice(player1, new AttackRollData(0, 1, 0, 1, 1, player1));
         expect(game.actions.canActivate(loot, player1)).toBe(true);
         await game.activateItem(player1, loot, [loot.tags.copiedCards[0], roll]);
         await game.actions.resolveStack();

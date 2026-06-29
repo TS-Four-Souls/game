@@ -21,6 +21,32 @@ describe("Known bugs that have be corrected", () => {
     
     // it("", async () => {
     // });
+    
+    it("reset stack discard event cards", async () => {
+        const eventCard = game.obtainCard("b2-curse_of_pain") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, eventCard);
+        expect(game.stack.size).toBe(1);
+        const loot = game.obtainCard("b2-o_the_fool")! as LootCard;
+        game.cardHandler.addCardToHand(player1, loot);
+        game.actions.playCard(player1, player1.hand.length - 1, []);
+        await game.actions.resolveStack();
+        expect(game.encounters.cardsOnTop[0]?.slug).not.toBe("b2-curse_of_pain");
+        expect(game.decks.monster.discard.length).toBe(1);
+    });
+    
+    it("taking damages when dead should not softlock", async () => {
+        const mob = game.monsters[0]!;
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, mob);
+        game.random = () => 0.01;
+        game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
+        game.entityHandler.kill(player1, player1, player1.inPlay[0]!);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.isDead).toBe(true);
+        expect(game.stack.isEmpty()).toBe(true);
+    });
 
     it("can not destroy an item in the discard.", async () => {
         const soul = game.decks.loot.draw();
@@ -31,10 +57,8 @@ describe("Known bugs that have be corrected", () => {
         const d20 = game.obtainCard("b2-the_d20") as ItemCard;
         game.cardHandler.addInPlay(player1, cc);
         game.cardHandler.addInPlay(player1, d20);
-        game.activateItem(player1, cc, ["Destroy an item or soul.", soul], "tap");
-        game.activateItem(player1, d20, [cc], "tap");
-        await game.actions.resolveStack();
-        await game.actions.resolveStack();
+        await game.activateItem(player1, cc, ["Destroy an item or soul.", soul], "tap");
+        await game.activateItem(player1, d20, [cc], "tap");
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -165,7 +189,7 @@ describe("Known bugs that have be corrected", () => {
     it("stealing bumbo keep counters but not effects", async () => {
         const bumbo = game.obtainCard("b2-bum_bo") as ItemCard;
         game.cardHandler.addInPlay(player1, bumbo);
-        game.gainCoins(player1, 40, "gift");
+        game.gainCoins(player1, 40, ("debug"));
         expect(bumbo.counters.value("normal") || 0).toBe(40);
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
@@ -190,6 +214,7 @@ describe("Known bugs that have be corrected", () => {
 
         game.encounters.draw(0);
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve the event addition
 
         expect(player1.curses.length).toBe(1);
         expect(player1.curses[0]!.slug).toBe("b2-curse_of_pain");
@@ -234,6 +259,7 @@ describe("Known bugs that have be corrected", () => {
 
         game.encounters.draw(0);
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve the event addition
 
         expect(player1.curses.length).toBe(1);
         expect(player1.curses[0]!.slug).toBe("b2-curse_of_pain");
@@ -344,7 +370,7 @@ describe("Known bugs that have be corrected", () => {
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 1;
 
-        game.gainCoins(player1, 10, "gift"); // Give some coins to lose
+        game.gainCoins(player1, 10, ("debug")); // Give some coins to lose
         const init = player1.coins;
         await game.actions.resolveStack(); // dice
         await game.actions.resolveStack(); // damage

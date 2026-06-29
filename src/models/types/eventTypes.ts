@@ -143,13 +143,7 @@ export interface OnAttackDeclaredTopDeckData {
 /** Data emitted when an attack roll is made */
 export interface OnAttackRollData {
   eventIssuer: Player;
-  target: Entity;
   dice: DiceRoll;
-  damageDealtAdd: number[];
-  damageDealtMult: number[];
-  damageReceivedAdd: number[];
-  damageReceivedMult: number[];
-  evasion: number[];
 }
 
 /** Data emitted when a soul is gained */

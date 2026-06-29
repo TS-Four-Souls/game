@@ -35,8 +35,9 @@ import type {
     OnTurnStartData
 } from "../types/eventTypes";
 import * as active from "./activeEffect";
-import { type ParsedEffect } from "./parsing/effectParser";
+import { type ParsedEffect, type SyncParsedEffect } from "./parsing/effectParser";
 import {selectPlayerOrMonster} from "@/models/effects/parsing/selectors.ts";
+import { noTargetEffect } from './parsing/logicParsers';
 function getTemporaryEffect(data: EffectData, description: string): TemporaryEffect {
     return{
             card: data.it.jsonAPI,
@@ -258,9 +259,24 @@ export function temporaryStatModifierEffect(
     adders: ((entity: Entity, value: number, source: Card) => void)[],
     amount: number,
     game: Game,
+    targetType: "selectionOnResolve",
+    onResolveTargets?: TargetsSelector
+): AsyncEffectFunction 
+export function temporaryStatModifierEffect(
+    adders: ((entity: Entity, value: number, source: Card) => void)[],
+    amount: number,
+    game: Game,
+    targetType: "current" | "next" | "issuer",
+    onResolveTargets?: TargetsSelector
+): SyncEffectFunction 
+export function temporaryStatModifierEffect(
+    adders: ((entity: Entity, value: number, source: Card) => void)[],
+    amount: number,
+    game: Game,
     targetType: "current" | "next" | "issuer" | "selectionOnResolve",
     onResolveTargets?: TargetsSelector
-): AsyncEffectFunction {
+): EffectFunction 
+{
     return async (data:EffectData) => {
         let target = null;
         switch(targetType)
@@ -438,15 +454,15 @@ export function interceptFirstGainCoinYourTurnEffect(effectFunctions: EffectFunc
 
 // Associated with the coin gained replacement effect. It is therefore also considered as a replacement effect.
 export function lvlXaddListenerEffect(
-    functions: EffectFunction[],
+    functions: SyncEffectFunction[],
     lvl: number,
-    game: Game): AsyncEffectFunction {
+    game: Game): SyncEffectFunction {
 
-    return async (data: EffectData) => {
+    return (data: EffectData) => {
         if (data.it.counters.value("normal") >= lvl)
         {
             for (const func of functions)
-                await func(data);
+                func(data);
         }
         else
             {
@@ -457,7 +473,7 @@ export function lvlXaddListenerEffect(
                 if (data.it.counters.value("normal") < lvl) return;
                 const effect: EffectFunction = async (effectData: EffectData) => {
                     for (const func of functions)
-                        await func(data);
+                        func(data);
                     return true;
                 };
                 addPassiveEffectToStack(game, effect, data, `Level ${lvl} effect`);
@@ -495,7 +511,7 @@ export function permanentStatModifierEffect(
     };
 }
 
-export function rollAndMayChangeNextRollForThis(game: Game): ParsedEffect {
+export function rollAndMayChangeNextRollForThis(game: Game): SyncParsedEffect {
     return {
         effectFunction:(data: EffectData): boolean => {
             if(!(data.issuer instanceof Player))
@@ -503,7 +519,7 @@ export function rollAndMayChangeNextRollForThis(game: Game): ParsedEffect {
             let offEndTurn: (() => void) | null = null;
             let offRoll: (() => void) | null = null;
 
-            const savedRoll = game.rollDice(data.issuer, false, data.it);
+            const savedRoll = game.rollDice(data.issuer, data.it);
             offRoll = game.emitter.on("on:dice:being-rolled", ({ diceRoll }) => {
                 const effect:EffectFunction = async (effectData: EffectData): Promise<boolean> => {
                     if(!(data.issuer instanceof Player))
@@ -536,21 +552,21 @@ export function combatDamageModifierOnAttackRollEffect(game: Game, attackRolls: 
         let offDamage: (() => void) | null = null;
 
         offDamage = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
-            const { eventIssuer, dice, damageDealtAdd, damageDealtMult, damageReceivedAdd, damageReceivedMult } = eventData;
+            const { eventIssuer, dice} = eventData;
             if (eventIssuer !== data.issuer) return;
             if (!attackRolls.includes(dice.value)) return;
             if(side === "taken"){
                 if (modifier === "double") {
-                    damageReceivedMult[0]! *= 2;
+                    dice.damageReceivedMultiplier! *= 2;
                 } else {
-                    damageReceivedAdd[0]! += modifier;
+                    dice.additionalDamageReceived += modifier;
                 }
             }
             if(side === "dealt"){
                 if (modifier === "double") {
-                    damageDealtMult[0]! *= 2;
+                    dice.damageDealtMultiplier! *= 2;
                 } else {
-                    damageDealtAdd[0]! += modifier;
+                    dice.additionalDamageDealt += modifier;
                 }
             }
         });
@@ -610,7 +626,7 @@ export function rollXChoose1Effect(game: Game, x: number, onlyOnce: boolean, cho
             const effect:EffectFunction = async (effectData: EffectData) => {
                 const values = [diceRoll.value];
                 for(let i = 0; i < x - 1; i++)
-                    values.push(eventIssuer.rollDice(game.random, diceRoll.attackRoll, diceRoll.card).value);
+                    values.push(eventIssuer.rollDice(game.random, diceRoll.data).value);
                 const chooser = chooserType === "issuer" ? data.issuer : game.turnHandler.getPlayerTo(eventIssuer, "left");
                 if(!(chooser instanceof Player))
                     throw new Error("rollXChoose1Effect issuer should be a player.");
@@ -791,8 +807,8 @@ export async function giveCurseToEffect(restEffectFunction: EffectFunction, game
     });
 }
 
-export function curseEffect(restEffectFunction: EffectFunction, game: Game): AsyncEffectFunction {
-    return async (data: EffectData) => {
+export function curseEffect(restEffectFunction: SyncEffectFunction, game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
         if(!(data.issuer instanceof Player))
             throw new Error("Curse effect can only be applied to Players.");
 
@@ -815,7 +831,7 @@ export function curseEffect(restEffectFunction: EffectFunction, game: Game): Asy
             offDeath = null;
         });
 
-        await restEffectFunction(new EffectData(data.it, () => data.issuer, [], data.visualEffectBox));
+        restEffectFunction(new EffectData(data.it, () => data.issuer, [], data.visualEffectBox));
         return true;
     }
 }
@@ -887,11 +903,11 @@ export function firstAttackRollStatModifierEffect(
         };
         // Register cleanup to reverse at end of turn
         offAttack = game.emitter.on("on:attack:roll:first-time-each-turn", (eventData: OnAttackRollData) => {
-            const { eventIssuer, target, dice, damageDealtAdd, damageReceivedAdd, evasion } = eventData;
+            const { eventIssuer, dice} = eventData;
             if (data.issuer !== eventIssuer) return;
-            damageDealtAdd[0]! += damageDealtModifier;
-            damageReceivedAdd[0]! += damageReceivedModifier;
-            evasion[0]! += evasionModifier;
+            dice.additionalDamageDealt += damageDealtModifier;
+            dice.additionalDamageReceived += damageReceivedModifier;
+            dice.evasion += evasionModifier;
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -1118,7 +1134,7 @@ export function chooseNumberDamageOnRollThisTurnEffect(game: Game, damageAmount:
         offDamage = game.emitter.on("on:dice:resolved", (eventData: OnDiceBeingRolledData) => {
             const { eventIssuer, diceRoll } = eventData;
             if (diceRoll.value !== nb) return;
-            const effect = active.dealDamageToTargetEffect(game, damageAmount, true, selectPlayerOrMonster(game));
+            const effect = active.dealDamageToTargetEffect(game, damageAmount, true, selectPlayerOrMonster(game), "issuer");
             addPassiveEffectToStack(game, effect, data, `Deal ${damageAmount} damage to a target because a ${nb} was rolled.`);
         });
 
@@ -2058,7 +2074,7 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
             const effect = async (data: EffectData): Promise<boolean> => {
                 damageArray[0] = Math.max(0, current - prevent);
                 if (!(data.issuer instanceof Player)) return false;
-
+                
                 // Deal 1 damage to another player
                 const otherPlayers = game.players.filter(p => p !== data.issuer);
                 if (otherPlayers.length === 0) return false;
@@ -2475,12 +2491,12 @@ export function onAttackRollEffect(
         let offEffect: (() => void) | null = null;
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
-            const { eventIssuer, target, dice, evasion } = eventData;
+            const { eventIssuer, dice } = eventData;
             if (data.issuer !== eventIssuer) return;
             if (rollValues.includes(dice.value)) {
                 // Create the effect that will execute when the stack resolves
                 const stackEffect = async (effectData: EffectData): Promise<boolean> => {
-                    return await effect(effectData);
+                    return effect(effectData);
                 };
                 
                 // Add to stack instead of executing immediately
@@ -2519,7 +2535,7 @@ export function onAttackingPlayerRollEffect(
                 if(diceIssuerIssueTheEvent && dice.issuer !== undefined)
                     copyData.issuerProvider = (): Entity => dice.issuer;
                 const stackEffect = async (effectData: EffectData): Promise<boolean> => {
-                    return await effect(effectData);
+                    return effect(effectData);
                 };
                 
                 // Add to stack instead of executing immediately
@@ -2590,7 +2606,7 @@ export function onRollEffect(
                 
                 // Create the effect that will execute when the stack resolves
                 const stackEffect = async (effectData: EffectData): Promise<boolean> => {
-                    return await effect(effectData);
+                    return effect(effectData);
                 };
                 
                 if (diceIssuerIssueTheEvent && diceRoll.issuer !== undefined) {
@@ -2630,7 +2646,7 @@ export function onActivePlayerRollEffect(
             if (rollValues.includes(diceRoll.value)) {
                 // Create the effect that will execute when the stack resolves
                 const stackEffect = async (effectData: EffectData): Promise<boolean> => {
-                    return await effect(effectData);
+                    return effect(effectData);
                 };
                 
                 // Add to stack instead of executing immediately
@@ -2696,8 +2712,8 @@ export function preventDamageByRemovingCountersEffect(
     };
 }
 
-export function preventDamageAndDealOnDeathEffect(game: Game, damagePrevented: number, damageAmount: number): AsyncEffectFunction {
-    return async (data: EffectData) => {
+export function preventDamageAndDealOnDeathEffect(game: Game, damagePrevented: number, damageAmount: number): SyncEffectFunction {
+    return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         let offDeath: (() => void) | null = null;
 
@@ -2712,7 +2728,7 @@ export function preventDamageAndDealOnDeathEffect(game: Game, damagePrevented: n
         const target = data.next;
         if(!target || !(target instanceof Player)) return false;
         const newData = new EffectData(data.it, () => target, [], data.visualEffectBox);
-        await preventNextDamageUpToEffect(damagePrevented, game)(newData); // Reuse the preventNextDamageUpToEffect to handle the prevention part
+        preventNextDamageUpToEffect(damagePrevented, game)(newData); // Reuse the preventNextDamageUpToEffect to handle the prevention part
         // Listen for death of the player from this damage
         offDeath = game.emitter.on("on:death:before-penalty", (deathEventData: OnDeathBeforePenaltyData) => {
             const { eventIssuer } = deathEventData;
@@ -2822,7 +2838,8 @@ export function killOnDoubleAttackRollEffect(game: Game): SyncEffectFunction {
         let prevRollThisTurn: number | null = null;
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
-            const { eventIssuer, target, dice } = eventData;
+            const { eventIssuer, dice } = eventData;
+            const target = dice.attackTarget;
             if(data.issuer !== eventIssuer) return;
             if(prevRollThisTurn === dice.value)
                 game.entityHandler.kill(data.issuer, target, data.it);
@@ -2945,7 +2962,7 @@ export function preventDamageOnRollEffect(
             if (data.issuer !== eventIssuer) return;
             if (!(data.issuer instanceof Player)) return;
             if(damageArray[0]! <= 0) return;
-            const roll:DiceRoll = game.rollDice(data.issuer, false, data.it);
+            const roll:DiceRoll = game.rollDice(data.issuer, data.it);
             const effects: EffectFunction[] = new Array<EffectFunction>(6).fill((data:EffectData): boolean => { return true; });
             for (const val of diceValues) {
                 effects[val - 1] = (data:EffectData): boolean => { 

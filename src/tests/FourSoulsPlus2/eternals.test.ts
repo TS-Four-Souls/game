@@ -171,7 +171,7 @@ describe("Four Souls+2 Eternal Items", () => {
             for(const val of [1, 2, 3, 4, 5, 6])
         {
             game.random = () => (val/ 6) - 0.0001; // ensure we roll a 6.
-            const roll = await game.rollDice(player, false, player1.inPlay[0]!);
+            const roll = await game.rollDice(player, player1.inPlay[0]!);
             await game.actions.resolveStack();
             await game.actions.resolveStack();
             if(roll.value === 6)
@@ -231,7 +231,7 @@ describe("Four Souls+2 Eternal Items", () => {
         const initialLootPlay = player1.remainingLootPlay;
         expect(player1.inPlay[0]!.slug).toBe("fsp2-bum_bo");
         expect(player1.inPlay[1]!.slug).toBe("fsp2-bag_o_trash");
-        game.gainCoins(player1, 3, "gift");
+        game.gainCoins(player1, 3, ("debug"));
         await game.activateItem(player1, player1.inPlay[1]!, [], 0);
         expect(player1.coins).toBe(0);
         await game.actions.resolveStack();
@@ -252,7 +252,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.inPlay[0]!.slug).toBe("fsp2-bum_bo");
         expect(player1.inPlay[1]!.slug).toBe("fsp2-bag_o_trash");
 
-        game.gainCoins(player1, 4, "gift");
+        game.gainCoins(player1, 4, ("debug"));
         expect(player1.coins).toBe(4);
         const handSize = player1.hand.cards.length;
         await game.activateItem(player1, player1.inPlay[1]!, [], 1);
@@ -275,7 +275,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.inPlay[0]!.slug).toBe("fsp2-bum_bo");
         expect(player1.inPlay[1]!.slug).toBe("fsp2-bag_o_trash");
 
-        game.gainCoins(player1, 6, "gift");
+        game.gainCoins(player1, 6, ("debug"));
         expect(player1.coins).toBe(6);
         // deal damage to a player.
         const healthP2 = player2.currentHealthPoints;
@@ -286,7 +286,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.coins).toBe(0);
 
         // deal damage to a monster.
-        game.gainCoins(player1, 6, "gift");
+        game.gainCoins(player1, 6, ("debug"));
         const healthM = game.monsters[0]!.currentHealthPoints;
         await game.activateItem(player1, player1.inPlay[1]!, [game.monsters[0]!], 2);
         await game.actions.resolveStack();
