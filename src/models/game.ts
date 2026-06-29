@@ -50,7 +50,7 @@ export class Game extends SelectionHandler {
   private _encounters!: Encounters;
   private _rooms!: Rooms;
   private _timerIsUsed = false; // true if the timer option is active.
-  private _stack: Stack = new Stack();
+  private _stack: Stack = new Stack(this);
   private _emitter: GameEventEmitter;
   private _stackSubsetCallbacks: {stackIds: number[], callback: () => void}[] = [];
   private _historicHandler: HistoricHandler = new HistoricHandler(this);
@@ -753,12 +753,6 @@ export class Game extends SelectionHandler {
   resetStack(): void {
     this.stack.clear();
     this.resetCallbacks();
-    for(let idx = 0; idx < this.encounters.cardsOnTop.length; idx++) {
-      const card = this.encounters.cardsOnTop[idx];
-      if(card?.isEvent) {
-        this.encounters.discardTop(idx);
-      }
-    }
   }
 
 ////////////////////////////////////// Coin handler //////////////////////////////////////

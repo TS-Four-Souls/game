@@ -3,6 +3,8 @@ import type { Entity } from "./entities/entity";
 import type { Player } from "./entities/player";
 import { StackElement } from "./stackElement";
 import type { TriggerEvent } from "./types/eventTypes";
+import { MonsterCard } from './cards';
+import type { Game } from './game';
 
 export function isStackElement(obj: any): obj is StackElement {
     return obj instanceof StackElement;
@@ -10,31 +12,47 @@ export function isStackElement(obj: any): obj is StackElement {
 export class Stack {
     _stack: StackElement[] = [];
     _nextId: number = 0;
+    _game: Game;
     
-    constructor() {}
-
+    constructor(game: Game) {
+        this._game = game;
+    }
+    get game(): Game {
+        return this._game;
+    }
     push(item: StackElement) : void {
         item.stackId = this._nextId++;
         this._stack.push(item);
     }
 
     cancel() : void {
-        this._stack.pop();
+        this.removeAt(this._stack.length - 1);
     }
 
     clear() : void {
-        this._stack = [];
+        for(let i = this._stack.length - 1; i >= 0; i--) {
+            this.removeAt(i);
+        }
         this._nextId = 0;
     }
 
     removeAt(index: number) : void {
+        const element = this._stack[index];
+        if(element !== undefined && "json" in element && element.json.type === 'effect')
+        {
+            const effect = element as EffectOnStack;
+            if(effect.data.it instanceof MonsterCard && effect.data.it.isEvent)
+            {
+                this.game.encounters.discardTop(this.game.encounters.cardsOnTop.indexOf(effect.data.it));
+            }
+        }
         this._stack.splice(index, 1);
     }
     cancelElement(element: StackElement) : void {
         for (let i = this._stack.length - 1; i >= 0; i--) {
             const el = this._stack[i];
             if (el === element) {
-                this._stack.splice(i, 1);
+                this.removeAt(i);
                 return;
             }
         }

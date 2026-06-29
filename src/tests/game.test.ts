@@ -682,7 +682,7 @@ describe("Game - Stack Operations", () => {
 describe("Stack - Behavior", () => {
 
   it("should resolve and remove the top element", async () => {
-    const stack = new Stack();
+    const stack = new Stack(new Game());
     const loot = { id: "loot", type: "loot" } as any;
     const p1 = new Player("player1", Team.Team1);
     p1.addAttackPoints(1); // Start with 1 attack points for testing
@@ -701,7 +701,7 @@ describe("Stack - Behavior", () => {
   });
 
   it("should remove element at index", async () => {
-    const stack = new Stack();
+    const stack = new Stack(new Game());
     const a = { id: "a", type: "loot" } as any;
     const b = { id: "b", type: "loot" } as any;
     const c = { id: "c", type: "loot" } as any;
@@ -717,7 +717,7 @@ describe("Stack - Behavior", () => {
   });
 
   it("should insert a stack element before another in same reordering group", async () => {
-    const stack = new Stack();
+    const stack = new Stack(new Game());
     const a = new DummyStackElement("A");
     const b = new DummyStackElement("B");
     const c = new DummyStackElement("C");
@@ -738,7 +738,7 @@ describe("Stack - Behavior", () => {
   });
 
   it("should throw when trying to reorder elements from different groups", async () => {
-    const stack = new Stack();
+    const stack = new Stack(new Game());
     const a = new DummyStackElement("A");
     const b = new DummyStackElement("B");
 
@@ -752,7 +752,7 @@ describe("Stack - Behavior", () => {
   });
 
   it("should throw when one of the elements has no reordering group", async () => {
-    const stack = new Stack();
+    const stack = new Stack(new Game());
     const a = new DummyStackElement("A");
     const b = new DummyStackElement("B");
 
