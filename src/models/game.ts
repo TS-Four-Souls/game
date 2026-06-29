@@ -753,6 +753,12 @@ export class Game extends SelectionHandler {
   resetStack(): void {
     this.stack.clear();
     this.resetCallbacks();
+    for(let idx = 0; idx < this.encounters.cardsOnTop.length; idx++) {
+      const card = this.encounters.cardsOnTop[idx];
+      if(card?.isEvent) {
+        this.encounters.discardTop(idx);
+      }
+    }
   }
 
 ////////////////////////////////////// Coin handler //////////////////////////////////////

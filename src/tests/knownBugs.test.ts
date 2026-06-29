@@ -22,6 +22,18 @@ describe("Known bugs that have be corrected", () => {
     // it("", async () => {
     // });
     
+    it("reset stack discard event cards", async () => {
+        const eventCard = game.obtainCard("b2-curse_of_pain") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, eventCard);
+        expect(game.stack.size).toBe(1);
+        const loot = game.obtainCard("b2-o_the_fool")! as LootCard;
+        game.cardHandler.addCardToHand(player1, loot);
+        game.actions.playCard(player1, player1.hand.length - 1, []);
+        await game.actions.resolveStack();
+        expect(game.encounters.cardsOnTop[0]?.slug).not.toBe("b2-curse_of_pain");
+        expect(game.decks.monster.discard.length).toBe(1);
+    });
+    
     it("taking damages when dead should not softlock", async () => {
         const mob = game.monsters[0]!;
         game.actions.declareAttack(player1);
