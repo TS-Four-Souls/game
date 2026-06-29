@@ -261,6 +261,11 @@ export class EntityHandler {
     }catch{
       return; // if the receiver is not alive or not in play anymore, do nothing.
     }
+    if(this.game.timerIsUsed && receiver === this.game.currentPlayer)
+    {
+      this.game.gameParameters.timer.value -= 1; // reset timer if the current player dies.
+      this.game.verifyTimerLosingCondition();
+    }
     const stackIds = this.game.stack.currentStackIds;
     const values: DeathPenaltyValues = new DeathPenaltyValues(this.game.gameParameters);
 
@@ -476,7 +481,12 @@ export class EntityHandler {
     const receiver: Entity = elem.receiver;
     const source: DamageSource = elem._source;
     const stackIds = this.game.stack.currentStackIds;
-    if(receiver.isDead) return;
+    if(receiver.isDead) 
+      {
+        this.game.stack.resolve();
+        this.game.dispatch();
+        return;
+      }
     if(!this.entities.includes(receiver))
       return;
     this.game.emit("on:damage:would-take", {
@@ -682,7 +692,7 @@ export class EntityHandler {
         return p;
       }
     }
-    throw new Error("Player not found");
+    throw new Error(`Player with id ${id} not found.`);
   }
 
 }

@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeEach, expectTypeOf } from "bun:test";
-import { Game } from "@/models/game";
+import { beforeEach, describe, expect, it } from "bun:test";
+import type { LootCard } from "@/models/cards";
 import { Player } from "@/models/entities/player";
-import { TurnHandler } from "@/models/handlers/turnHandler";
-import { Stack } from "@/models/stack";
-import { StackElement } from "@/models/stackElement";
 import { GameEventEmitter } from "@/models/eventEmmitter";
-import type { CharacterCard, ItemCard, LootCard } from "@/models/cards";
+import { Game } from "@/models/game";
+import { TurnHandler } from "@/models/handlers/turnHandler";
 import { type StackElementJson, Team } from "@/shared/api";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupStandardTestGame, setupTestGame } from "@/tests/testHelpers";
+import { StackElement } from "@/models/stackElement";
+import { Stack } from "@/models/stack";
 
 class DummyStackElement extends StackElement {
   constructor(private readonly label: string) {
@@ -58,7 +58,7 @@ describe("Game", () => {
   it("should throw error when retrieving non-existent player", async () => {
     expect(() => {
       game.entityHandler.getPlayerById("nonexistent");
-    }).toThrow("Player not found");
+    }).toThrow(`Player with id nonexistent not found.`);
   });
 });
 

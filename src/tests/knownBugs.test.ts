@@ -21,6 +21,20 @@ describe("Known bugs that have be corrected", () => {
     
     // it("", async () => {
     // });
+    
+    it("taking damages when dead should not softlock", async () => {
+        const mob = game.monsters[0]!;
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, mob);
+        game.random = () => 0.01;
+        game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
+        game.entityHandler.kill(player1, player1, player1.inPlay[0]!);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.isDead).toBe(true);
+        expect(game.stack.isEmpty()).toBe(true);
+    });
 
     it("can not destroy an item in the discard.", async () => {
         const soul = game.decks.loot.draw();

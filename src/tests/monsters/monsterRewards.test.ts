@@ -1,11 +1,10 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { Game } from "../../models/game";
-import { Player } from "../../models/entities/player";
-import { DiceRoll } from "../../models/stackElement";
 import type { MonsterCard } from "@/models/cards";
 import { TreasureCard } from "@/models/cards";
-import { setupTestGame, dischargeEachItemsAndRemoveCoins, emptyHands } from "@/tests/testHelpers";
-import type { Monster } from "@/models/entities/monster";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame } from "@/tests/testHelpers";
+import { beforeEach, describe, expect, it } from "bun:test";
+import { Player } from "../../models/entities/player";
+import { Game } from "../../models/game";
+import { DiceRoll } from "../../models/stackElement";
 
 describe("Monster Rewards - Verification", () => {
     let game: Game;

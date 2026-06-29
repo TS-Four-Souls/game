@@ -49,6 +49,7 @@ export class Game extends SelectionHandler {
   private _shop!: Shop;
   private _encounters!: Encounters;
   private _rooms!: Rooms;
+  private _timerIsUsed = false; // true if the timer option is active.
   private _stack: Stack = new Stack();
   private _emitter: GameEventEmitter;
   private _stackSubsetCallbacks: {stackIds: number[], callback: () => void}[] = [];
@@ -137,6 +138,9 @@ export class Game extends SelectionHandler {
   }
   get shop(): Shop {
     return this._shop;
+  }
+  get timerIsUsed(): boolean {
+    return this._timerIsUsed;
   }
   get encounters(): Encounters {
     return this._encounters;
@@ -355,6 +359,8 @@ export class Game extends SelectionHandler {
     this._historicHandler.recordInitialGameState(this);
     
     this.initializeWinningCondition();
+    if(this.gameParameters.timer.value > 0)
+      this._timerIsUsed = true;
     this.cardHandler.initializeBonusSouls();
     this._shop = new Shop(
       this.gameParameters.nbItemsInShop.value,
@@ -530,14 +536,17 @@ export class Game extends SelectionHandler {
         monster.resetEntityFlags();
       }
       this.turnHandler.endTurn();
-      if(this.gameParameters.timer.value > 0 && this.turnHandler.round > this.gameParameters.timer.value)
-        this.win(null);
+      this.verifyTimerLosingCondition();
       this.dispatch();
       await this.startTurn();
     });
     this.dispatch();
   }
 
+  verifyTimerLosingCondition(): void {
+    if(this.timerIsUsed && this.turnHandler.round > this.gameParameters.timer.value)
+        this.win(null);
+  }
   /**
    * Enforces max-hand-size discard rules for a player.
    */
