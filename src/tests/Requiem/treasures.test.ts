@@ -133,7 +133,7 @@ describe("Requiem Loots ", () => {
             const treas = game.obtainCard("r-car_battery") as LootCard;
             game.cardHandler.addInPlay(player1, treas);
             treas.charged = false;
-            game.gainCoins(player1, 6, "gift");
+            game.gainCoins(player1, 6, ("debug"));
             expect(game.actions.canActivate(treas, player1)).toBe(true);
             await game.activateItem(player1, treas, [], 0);
             expect(player1.coins).toBe(0);
@@ -144,11 +144,11 @@ describe("Requiem Loots ", () => {
             expect(item).toBeDefined();
             game.cardHandler.addInPlay(player1, item);
             game.actions.declarePurchase(player1);
-            game.gainCoins(player1, 8, "gift");
+            game.gainCoins(player1, 8, ("debug"));
             expect(game.actions.canPurchase(player1, 0, false)).not.toBe(true);
-            game.gainCoins(player1, 1, "gift");
+            game.gainCoins(player1, 1, ("debug"));
             expect(game.actions.canPurchase(player1, 0, false)).toBe(true);        
-            game.gainCoins(player1, 1, "gift");
+            game.gainCoins(player1, 1, ("debug"));
             expect(player1.coins).toBe(10);
             game.actions.purchase(player1, "top");
             await game.actions.resolveStack();
@@ -598,7 +598,7 @@ describe("Requiem Loots ", () => {
             await game.actions.resolveStack();
             expect(game.shop.itemsInShop.length).toBe(4);
             game.actions.declarePurchase(player1);
-            game.gainCoins(player1, 10, "gift");
+            game.gainCoins(player1, 10, ("debug"));
             game.obtainCard(game.shop.itemsInShop[0]!.slug)
             game.actions.purchase(player1, 0);
             await game.actions.resolveStack();
@@ -746,9 +746,9 @@ describe("Requiem Loots ", () => {
             expect(item).toBeDefined();
             game.cardHandler.addInPlay(player1, item);
             game.actions.declarePurchase(player1);
-            game.gainCoins(player1, 5, "gift");
+            game.gainCoins(player1, 5, ("debug"));
             expect(game.actions.canPurchase(player1, 0, false)).not.toBe(true);
-            game.gainCoins(player1, 1, "gift");
+            game.gainCoins(player1, 1, ("debug"));
             expect(game.actions.canPurchase(player1, 0, false)).toBe(true);
 
             const buy = game.shop.itemsInShop[0]!;
@@ -1033,7 +1033,7 @@ describe("Requiem Loots ", () => {
         expect(item.charged).toBe(false);
         expect(player1.inPlay.slice(3).length).toBe(3);
         expect(player1.inPlay.slice(3).every(card => card.charged)).toBe(true);
-        game.gainCoins(player1, 10, "gift");
+        game.gainCoins(player1, 10, ("debug"));
         await game.activateItem(player1, item, [], 0);
         await game.actions.resolveStack();
         expect(item.charged).toBe(true);
@@ -1118,7 +1118,7 @@ describe("Requiem Loots ", () => {
         let item = game.obtainCard("r-blood_puppy") as ItemCard;
         expect(item).toBeDefined();
         game.cardHandler.addInPlay(player1, item);
-        game.gainCoins(player1, 1, "gift");
+        game.gainCoins(player1, 1, ("debug"));
         game.cardHandler.addToCounter(player1, item, "normal", 10);
         game.random = () => 0.9;
         await game.actions.resolveStack(); // Resolve any stack effects
@@ -1381,7 +1381,7 @@ describe("Requiem Loots ", () => {
         expect(item).toBeDefined();
         game.cardHandler.addInPlay(player1, item);
 
-        game.gainCoins(player1, 5, "gift");
+        game.gainCoins(player1, 5, ("debug"));
         await game.activateItem(player1, item, [player1], 0);
         await game.actions.resolveStack();
         expect(player1.coins).toBe(1);
@@ -1392,7 +1392,7 @@ describe("Requiem Loots ", () => {
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.currentHealthPoints).toBe(1);
 
-        game.gainCoins(player1, 5, "gift");
+        game.gainCoins(player1, 5, ("debug"));
         const mob = game.monsters[0]!;
         await game.activateItem(player1, item, [mob], 0);
         await game.actions.resolveStack();
@@ -1574,8 +1574,8 @@ describe("Requiem Loots 3 layers ", () => {
         game.cardHandler.addInPlay(player1, item);
         const treas = game.shop.cardsOnTop[0]!;
         expect(treas).toBeDefined();
-        game.gainCoins(player3, 9, "gift");
-        game.gainCoins(player2, 9, "gift");
+        game.gainCoins(player3, 9, ("debug"));
+        game.gainCoins(player2, 9, ("debug"));
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             return {selected: [Options[Options.length - 1]], remaining: Options};
         }

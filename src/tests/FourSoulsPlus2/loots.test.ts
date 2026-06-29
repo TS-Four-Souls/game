@@ -410,18 +410,18 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         game.random = () => 3/6 - 0.001; // roll 3
         await game.actions.playCard(player1, player1.hand.length - 1, []);
         await game.actions.resolveStack();
-        game.gainCoins(player1, 1000, "gift");
+        game.gainCoins(player1, 1000, ("debug"));
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(coins + 1);
-        game.gainCoins(player1, 10, "gift");
+        game.gainCoins(player1, 10, ("debug"));
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(coins + 11);
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        game.gainCoins(player1, 10, "gift"  );
+        game.gainCoins(player1, 10, ("debug")  );
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(coins + 21);
@@ -430,7 +430,7 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player1);
-        game.gainCoins(player1, 10, "gift");
+        game.gainCoins(player1, 10, ("debug"));
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(coins + 22);
@@ -444,7 +444,7 @@ it("fsp2-poker_chip - 4-6: Gain double the number of ¢ you would've gained.", a
         game.random = () => 4/6 - 0.001; // roll 4
         await game.actions.playCard(player1, player1.hand.length - 1, []);
         await game.actions.resolveStack();
-        game.gainCoins(player1, 12, "gift");
+        game.gainCoins(player1, 12, ("debug"));
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(2 * (coins + 12));

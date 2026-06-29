@@ -643,7 +643,7 @@ describe("Event Monsters - Curse Effects", () => {
         game.decks["monster"]!.addTopPosition(curseOfGreed);
         
         // Give player some coins
-        game.gainCoins(player1, 10, "gift");
+        game.gainCoins(player1, 10, ("debug"));
         const initialCoins = player1.coins;
         
         // Draw the curse to trigger its effect

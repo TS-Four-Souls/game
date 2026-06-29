@@ -225,7 +225,7 @@ describe("Tap/Paid effects 2", () => {
         game.cardHandler.addInPlay(player1, emptyVessel);
         
         // Give player1 some coins
-        game.gainCoins(player1, 5, "gift");
+        game.gainCoins(player1, 5, ("debug"));
         expect(player1.coins).toBe(5);
         
         // Should have no attack dice modifier
@@ -237,7 +237,7 @@ describe("Tap/Paid effects 2", () => {
         game.cardHandler.addInPlay(player1, emptyVessel);
         
         // Give player1 some coins
-        game.gainCoins(player1, 3, "gift");
+        game.gainCoins(player1, 3, ("debug"));
         expect(player1.coins).toBe(3);
         expect(player1.attackDiceModifier).toBe(0);
         
@@ -259,7 +259,7 @@ describe("Tap/Paid effects 2", () => {
         expect(player1.attackDiceModifier).toBe(1);
         
         // Gain coins
-        game.gainCoins(player1, 1, "gift");
+        game.gainCoins(player1, 1, ("debug"));
         expect(player1.coins).toBe(1);
         
         // Bonus should be deactivated
@@ -276,7 +276,7 @@ describe("Tap/Paid effects 2", () => {
         expect(player1.attackDiceModifier).toBe(1);
         
         // Gain coins
-        game.gainCoins(player1, 5, "gift");
+        game.gainCoins(player1, 5, ("debug"));
         expect(player1.coins).toBe(5);
         expect(player1.attackDiceModifier).toBe(0);
         
@@ -568,7 +568,7 @@ describe("Tap/Paid effects 2", () => {
         game.cardHandler.addInPlay(player2, breakfast);
         
         // Give player2 some coins and loot cards
-        game.gainCoins(player2, 5, "gift");
+        game.gainCoins(player2, 5, ("debug"));
         const lootCard1 = game.decks["loot"]!.draw() as LootCard;
         const lootCard2 = game.decks["loot"]!.draw() as LootCard;
         player2.hand.addToHand(lootCard1);
@@ -602,7 +602,7 @@ describe("Tap/Paid effects 2", () => {
         game.cardHandler.addInPlay(player1, shadow);
         
         // Give player1 some coins
-        game.gainCoins(player1, 5, "gift");
+        game.gainCoins(player1, 5, ("debug"));
         
         const player1CoinsBeforeDeath = player1.coins;
         
@@ -622,7 +622,7 @@ describe("Tap/Paid effects 2", () => {
         game.loot(player2, 2);
         // Player2 has no non-eternal items (only character)
         // Give player2 coins and loot
-        game.gainCoins(player2, 5, "gift");
+        game.gainCoins(player2, 5, ("debug"));
         const lootCard = game.decks["loot"]!.draw() as LootCard;
         player2.hand.addToHand(lootCard);
         expect(player2.hand.length).toBe(3);
@@ -650,7 +650,7 @@ describe("Tap/Paid effects 2", () => {
         game.cardHandler.addInPlay(player2, breakfast);
         
         // Give player2 coins but no loot
-        game.gainCoins(player2, 5, "gift");
+        game.gainCoins(player2, 5, ("debug"));
         expect(player2.hand.length).toBe(0);
         
         const player1CoinsBeforeDeath = player1.coins;
@@ -677,7 +677,7 @@ describe("Tap/Paid effects 2", () => {
         game.cardHandler.addInPlay(player2, breakfast);
         
         // Give player2 coins
-        game.gainCoins(player2, 5, "gift");
+        game.gainCoins(player2, 5, ("debug"));
         
         const player1CoinsBeforeDeath = player1.coins;
 

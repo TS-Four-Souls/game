@@ -177,7 +177,7 @@ describe("Known bugs that have be corrected", () => {
     it("stealing bumbo keep counters but not effects", async () => {
         const bumbo = game.obtainCard("b2-bum_bo") as ItemCard;
         game.cardHandler.addInPlay(player1, bumbo);
-        game.gainCoins(player1, 40, "gift");
+        game.gainCoins(player1, 40, ("debug"));
         expect(bumbo.counters.value("normal") || 0).toBe(40);
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
@@ -358,7 +358,7 @@ describe("Known bugs that have be corrected", () => {
         expect(dice).toBeInstanceOf(DiceRoll);
         dice.value = 1;
 
-        game.gainCoins(player1, 10, "gift"); // Give some coins to lose
+        game.gainCoins(player1, 10, ("debug")); // Give some coins to lose
         const init = player1.coins;
         await game.actions.resolveStack(); // dice
         await game.actions.resolveStack(); // damage

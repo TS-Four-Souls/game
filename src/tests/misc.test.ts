@@ -112,18 +112,18 @@ describe("Bonus Soul effects", () => {
 
     it("Greed", async () => {
         const initSoul = player1.totalSouls;
-        game.gainCoins(player1, 24, "gift");
+        game.gainCoins(player1, 24, ("debug"));
         expect(player1.coins).toBe(24);
         expect(player1.totalSouls).toBe(initSoul);
-        game.gainCoins(player1, 1, "gift");
+        game.gainCoins(player1, 1, ("debug"));
         expect(player1.totalSouls).toBe(initSoul + 1);
 
         // only one player gets the soul bonus
         const player2souls = player2.totalSouls;
-        game.gainCoins(player2, 24, "gift");
+        game.gainCoins(player2, 24, ("debug"));
         expect(player2.coins).toBe(24);
         expect(player2.totalSouls).toBe(player2souls);
-        game.gainCoins(player2, 1, "gift");
+        game.gainCoins(player2, 1, ("debug"));
         expect(player2.totalSouls).toBe(player2souls);
     });
 

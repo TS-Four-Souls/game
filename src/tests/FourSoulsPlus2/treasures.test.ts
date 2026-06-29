@@ -217,7 +217,7 @@ describe("Four Souls+2 Treasures", () => {
     it("fsp2-divorce_papers - [Tap Effect] Destroy this. If you do, choose another player. They give you half of their ¢ and loot cards rounded down, then gives you an item.", async () => {
         const card1 = game.obtainCard("fsp2-divorce_papers") as TreasureCard;
         game.cardHandler.addInPlay(player1, card1);
-        game.gainCoins(player2, 5, "gift");
+        game.gainCoins(player2, 5, ("debug"));
         game.loot(player2, 3);
         game.gainTreasure(player2, 3);
         await game.activateItem(player1, card1, [player2], "tap");
@@ -391,7 +391,7 @@ describe("Four Souls+2 Treasures", () => {
         const initialCoins1 = player1.coins;
         const initialCoins2 = player2.coins;
 
-        game.gainCoins(player2, 3, "gift");
+        game.gainCoins(player2, 3, ("debug"));
         await game.actions.resolveStack();
         expect(player2.coins).toBe(initialCoins2 + 2); // player2 gains 3 but gives 1 to player1 for each coin gained
         expect(player1.coins).toBe(initialCoins1 + 1); // player1 gains 1 coin

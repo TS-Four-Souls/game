@@ -295,8 +295,8 @@ describe("Four Souls+2 Eternal Items", () => {
 
         game.loot(player1, 3);
         game.loot(player2, 3);
-        game.gainCoins(player1, 5, "gift");
-        game.gainCoins(player2, 5, "gift");
+        game.gainCoins(player1, 5, ("debug"));
+        game.gainCoins(player2, 5, ("debug"));
         game.gainTreasure(player1, 1);
         game.gainTreasure(player2, 1);
 
@@ -613,11 +613,11 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.inPlay[0]!.slug).toBe("r-the_miser");
         const eternal = player1.inPlay[1]!;
         expect(eternal.slug).toBe("r-keepers_bargain");
-        game.gainCoins(player1, 6, "gift");
+        game.gainCoins(player1, 6, ("debug"));
         game.actions.declarePurchase(player1);
         expect(game.actions.canPurchase(player1, 0, false)).not.toBe(true);
         expect(game.actions.canPurchase(player1, "top", false)).not.toBe(true);
-        game.gainCoins(player1, 1, "gift");
+        game.gainCoins(player1, 1, ("debug"));
         expect(game.actions.canPurchase(player1, 0, false)).toBe(true);
         expect(game.actions.canPurchase(player1, "top", false)).not.toBe(true);
 

@@ -869,7 +869,7 @@ describe("Loot Card", () => {
         player1.hand.addToHand(pills!);
 
         game.actions.playCard(player1, 0);
-        game.gainCoins(player1, 10, "gift"); // Ensure player has enough coins to lose
+        game.gainCoins(player1, 10, ("debug")); // Ensure player has enough coins to lose
         const initialCoins = player1.coins;
 
         await game.actions.resolveStack();
@@ -886,7 +886,7 @@ describe("Loot Card", () => {
         player1.hand.addToHand(pills!);
 
         game.actions.playCard(player1, 0);
-        game.gainCoins(player1, 3, "gift");
+        game.gainCoins(player1, 3, ("debug"));
         const initialCoins = player1.coins;
         const initialInPlay = player1.inPlay.length;
 
@@ -1104,7 +1104,7 @@ describe("Loot Card", () => {
     it("b2-x_wheel_of_fortune: roll 4 should lose 4 coins", async () => {
         const card = game.decks["loot"]!.getCardFromSlug("b2-x_wheel_of_fortune");
         player1.hand.addToHand(card!);
-        game.gainCoins(player1, 6, "gift");
+        game.gainCoins(player1, 6, ("debug"));
 
         game.actions.playCard(player1, 0);
         const beforeCoins = player1.coins;

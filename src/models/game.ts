@@ -756,23 +756,27 @@ export class Game extends SelectionHandler {
   }
 
 ////////////////////////////////////// Coin handler //////////////////////////////////////
-  /** Grants coins to a player and emits coin gained triggers. */
-  gainCoins(player: Player, coins: number, source: Card | "gift"): string {
+  /** Grants coins to a player and emits coin gained triggers. 
+   * debug source must only be used for testing purposes.
+  */
+  gainCoins(player: Player, coins: number, source: Card | "gift" | "debug"): string {
     this.assert.gameStarted();
     this.assert.positiveNumber(coins);
     if (coins > 0) {
       const amount = [coins];
-      this.emit("on:coin:gained", {
-        eventIssuer: player,
-        coinGained: amount,
-        source: source,
-      });
+      if(source !== "gift")
+        this.emit("on:coin:gained", {
+          eventIssuer: player,
+          coinGained: amount,
+          source: source,
+        });
       player.gainCoins(amount[0]!);
-      this.emit("on:coin:gained:after", {
-        eventIssuer: player,
-        coinGained: amount,
-        source: source,
-      });
+      if(source !== "gift")
+        this.emit("on:coin:gained:after", {
+          eventIssuer: player,
+          coinGained: amount,
+          source: source,
+        });
     }
     this.dispatch();
     return `New amount of coins: ${player.coins} coins.\n`;

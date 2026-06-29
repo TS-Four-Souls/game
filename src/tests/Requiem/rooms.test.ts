@@ -37,7 +37,7 @@ describe("Requiem Rooms", () => {
         game.cardHandler.addSoul(player1, soul);
 
         game.loseCoins(player1, player1.coins, true);
-        game.gainCoins(player1, 1, "gift");
+        game.gainCoins(player1, 1, ("debug"));
 
         expect(game.actions.canDeclareAttack(player1)).not.toBe(true);
         expect(() => game.actions.declareAttack(player1)).toThrow();
@@ -54,7 +54,7 @@ describe("Requiem Rooms", () => {
 
         game.loseCoins(player1, player1.coins, true);
         game.loseCoins(player2, player2.coins, true);
-        game.gainCoins(player1, 2, "gift");
+        game.gainCoins(player1, 2, ("debug"));
 
         expect(game.actions.canDeclareAttack(player1)).toBe(true);
         game.actions.declareAttack(player1);
@@ -139,7 +139,7 @@ describe("Requiem Rooms", () => {
         game.rooms?.forceRoomAtSlot(0, room);
         expect(room.counters.value("normal")).toBe(0);
         // Test purchase goal
-        game.gainCoins(player1, 60, "gift");
+        game.gainCoins(player1, 60, ("debug"));
         game.entityHandler.addPurchaseThisTurn(player1, 3);
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, "top");
@@ -161,7 +161,7 @@ describe("Requiem Rooms", () => {
         expect(room.counters.value("normal")).toBe(2);
 
         // test coin given goal
-        game.gainCoins(player1, 10, "gift");
+        game.gainCoins(player1, 10, ("debug"));
         game.giveCoins(player1, player2, 6);
         await Promise.resolve();
         expect(room.counters.value("normal")).toBe(3);
@@ -186,7 +186,7 @@ describe("Requiem Rooms", () => {
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             return { selected: ["monster"], remaining: Options } as any;
         };
-        game.gainCoins(player1, 3, "gift");
+        game.gainCoins(player1, 3, ("debug"));
         const slugs = game.monsters.map(i => i!.card.slug);
         await game.actions.activateRoom(player1, room, ["treasure"], 0);
         await game.actions.resolveStack();
@@ -197,7 +197,7 @@ describe("Requiem Rooms", () => {
     it("restock_machine flush shop", async () => {
         const room = game.obtainCard("r-restock_machine") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
-        game.gainCoins(player1, 3, "gift");
+        game.gainCoins(player1, 3, ("debug"));
         const slugs = game.shop.itemsInShop.map(i => i!.slug);
         await game.actions.activateRoom(player1, room, ["treasure"], 0);
         await game.actions.resolveStack();
@@ -216,7 +216,7 @@ describe("Requiem Rooms", () => {
         soul2.soul = 1;
         soul.soul = 2;
         game.cardHandler.addSoul(player1, soul2);
-        game.gainCoins(player1, 10, "gift");
+        game.gainCoins(player1, 10, ("debug"));
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
         expect(player1.inPlay.length).toBe(3);
@@ -225,7 +225,7 @@ describe("Requiem Rooms", () => {
         expect(player1.coins).toBe(0);
         game.cardHandler.addSoul(player2, soul);
         game.entityHandler.addPurchaseThisTurn(player1, 1);
-        game.gainCoins(player1, 10, "gift");
+        game.gainCoins(player1, 10, ("debug"));
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
         expect(player1.inPlay.length).toBe(3);
@@ -242,7 +242,7 @@ describe("Requiem Rooms", () => {
         const soul = game.obtainCard("b2-lost_soul")!;
         soul.soul = 2;
         game.cardHandler.addSoul(player2, soul);
-        game.gainCoins(player1, 10, "gift");
+        game.gainCoins(player1, 10, ("debug"));
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
         expect(player1.coins).toBe(10);
@@ -258,7 +258,7 @@ describe("Requiem Rooms", () => {
         const soul = game.obtainCard("b2-lost_soul")!;
         soul.soul = 2;
         game.cardHandler.addSoul(player1, soul);
-        game.gainCoins(player1, 10, "gift");
+        game.gainCoins(player1, 10, ("debug"));
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
         expect(player1.coins).toBe(0);
@@ -271,14 +271,14 @@ describe("Requiem Rooms", () => {
         for(let i = 0; i < 10; i++) 
             game.cardHandler.addTopPosition("treasure", game.cardHandler.copyCard(game.decks.treasure.cards[0]!)!);
         game.shop.removeTop(0);
-        game.gainCoins(player1, 3, "gift");
+        game.gainCoins(player1, 3, ("debug"));
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
         expect(player1.coins).toBe(3);
         expect(player1.inPlay.length).toBe(3);
 
         game.entityHandler.addPurchaseThisTurn(player1, 1);
-        game.gainCoins(player1, 7, "gift");
+        game.gainCoins(player1, 7, ("debug"));
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
         expect(player1.coins).toBe(0);
@@ -616,7 +616,7 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(0);
-        game.gainCoins(player2, 10, "gift");
+        game.gainCoins(player2, 10, ("debug"));
         await game.actions.resolveStack();
         game.actions.declarePurchase(player2);
         game.actions.purchase(player2, 0);
@@ -626,7 +626,7 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player2.hand.length).toBe(3);
-        game.gainCoins(player1, 10, "gift");
+        game.gainCoins(player1, 10, ("debug"));
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, "top");
         game.cardHandler.removeInPlay(player1, player1.inPlay[2]!);
@@ -641,7 +641,7 @@ describe("Requiem Rooms", () => {
         game.resetStack();
         const room = game.obtainCard("r-fortune_teller") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
-        game.gainCoins(player1, 3, "gift");
+        game.gainCoins(player1, 3, ("debug"));
         game.random = () => 0.99;
         await game.actions.activateRoom(player1, room, [], 0);
         await game.actions.resolveStack();
@@ -654,7 +654,7 @@ describe("Requiem Rooms", () => {
         game.resetStack();
         const room = game.obtainCard("r-fortune_teller") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
-        game.gainCoins(player1, 3, "gift");
+        game.gainCoins(player1, 3, ("debug"));
         game.random = () => 0.8;
         await game.actions.activateRoom(player1, room, [], 0);
         await game.actions.resolveStack();
@@ -666,7 +666,7 @@ describe("Requiem Rooms", () => {
         game.resetStack();
         const room = game.obtainCard("r-fortune_teller") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
-        game.gainCoins(player1, 3, "gift");
+        game.gainCoins(player1, 3, ("debug"));
         game.random = () => 0.55;
         await game.actions.activateRoom(player1, room, [], 0);
         await game.actions.resolveStack();
@@ -679,7 +679,7 @@ describe("Requiem Rooms", () => {
         game.resetStack();
         const room = game.obtainCard("r-fortune_teller") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
-        game.gainCoins(player1, 3, "gift");
+        game.gainCoins(player1, 3, ("debug"));
         game.random = () => 0.45;
         await game.actions.activateRoom(player1, room, [], 0);
         await game.actions.resolveStack();
@@ -761,10 +761,10 @@ describe("Requiem Rooms", () => {
         game.resetStack();
         const room = game.obtainCard("r-equality") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
-        game.gainCoins(player1, 10, "gift");
+        game.gainCoins(player1, 10, ("debug"));
         expect(player1.coins).toBe(10);
         expect(player2.coins).toBe(10);
-        game.gainCoins(player2, 10, "gift");
+        game.gainCoins(player2, 10, ("debug"));
         expect(player1.coins).toBe(20);
         expect(player2.coins).toBe(20);
         game.gainCoins(player1, 10, room);
@@ -1060,7 +1060,7 @@ describe("Requiem Rooms", () => {
         const room = game.obtainCard("r-bum_bo_is_loose") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         game.resetStack();
-        game.gainCoins(player1, 10, "gift");
+        game.gainCoins(player1, 10, ("debug"));
         await game.endTurn();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(8);
@@ -1186,7 +1186,7 @@ describe("Requiem Rooms", () => {
         const room = game.obtainCard("r-beggar") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         game.resetStack();
-        game.gainCoins(player1, 30, "gift");
+        game.gainCoins(player1, 30, ("debug"));
         for(const card of [... player1.hand.cards]) {
             game.cardHandler.removeCardFromHand(player1, card);
         }
@@ -1209,7 +1209,7 @@ describe("Requiem Rooms", () => {
         const room = game.obtainCard("r-beggar") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         game.resetStack();
-        game.gainCoins(player1, 30, "gift");
+        game.gainCoins(player1, 30, ("debug"));
         for(const card of [... player1.hand.cards]) {
             game.cardHandler.removeCardFromHand(player1, card);
         }
@@ -1334,7 +1334,7 @@ describe("Requiem Rooms", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve effect
-        game.gainCoins(player2, 10, "gift");
+        game.gainCoins(player2, 10, ("debug"));
         const init = player2.coins;
         game.actions.declarePurchase(player2);
         game.actions.purchase(player2, 0);
@@ -1368,7 +1368,7 @@ describe("Requiem Rooms", () => {
         game.cardHandler.addCardToHand(player1, loot);
         game.actions.playCard(player1, player1.hand.cards.findIndex(c => c === loot));
         await game.actions.resolveStack();
-        game.gainCoins(player1, 100, "gift");
+        game.gainCoins(player1, 100, ("debug"));
         expect(player1.totalSouls).toBe(0);
         const room2 = game.obtainCard("r-blessing_of_gluttony") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room2);

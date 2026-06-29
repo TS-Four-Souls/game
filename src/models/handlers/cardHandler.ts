@@ -639,7 +639,7 @@ export class CardHandler {
       }
       const cardFromSet = this._decks["character"]._set.cards.find(c => c.slug === slug);
       if(!cardFromSet)
-        throw new Error(`Character card with slug ${slug} not found in character deck.`);
+        throw new Error(`Card with slug ${slug} not found in deck.`);
       const card = this.copyCard(cardFromSet) as CharacterCard;
       if (card) {
         this.addBottomPosition("character", card);
@@ -870,7 +870,7 @@ export class CardHandler {
     this.removeCardFromHand(from, card);
     this.addCardToHand(to, card);
     if(to.hand.cards.some(c => this.decks.loot.cards.includes(c)))
-        throw new Error("Cafsd be given to the player for eachOtherPlayerLootsAndYouLootEffect");
+        throw new Error("Card cannot be given to the player in eachOtherPlayerLootsAndYouLootEffect");
     return true;
   }
 
@@ -1191,7 +1191,7 @@ export class CardHandler {
                 }
                 if(!(gainer.tags.copiedCards as ItemCard[]).includes(card)) {
                   return false;
-                    throw new Error("You can only choose cards granted by this.game effect.");
+                    throw new Error("You can only choose cards granted by this effect.");
                 }
                 const effectsWithValidTargets = card.activeEffectList.filter(e => {
                     if(TargetBuilder.validTargetExists(this.game, effectIssuer, card, e.index) !== true) return false;

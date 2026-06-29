@@ -408,7 +408,7 @@ export function executeDebugPutMonsterCardInSlotRequest(
   ) as MonsterCard;
   if (!card) {
     throw new Error(
-      "Card not found in the game: " + payload.card.slug,
+      "Card not found in the game.",
     );
   }
   const index = game.encounters._slots

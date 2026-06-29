@@ -95,7 +95,7 @@ describe("Tap/Paid effects 1", () => {
         expect(battery.charged).toBe(false);
 
         // Give player enough coins
-        game.gainCoins(player1, 10, "gift");
+        game.gainCoins(player1, 10, ("debug"));
         const initialCoins = player1.coins;
 
         // Activate battery_bum (paid effect with effectId 0)

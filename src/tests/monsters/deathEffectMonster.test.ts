@@ -231,7 +231,7 @@ describe("Monsters - On death effects", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
-        game.gainCoins(player2, 10, "gift");
+        game.gainCoins(player2, 10, ("debug"));
         const coins = player2.coins;
 
         game.select = async (p, _min, _max, opts) => {

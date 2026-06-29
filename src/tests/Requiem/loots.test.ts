@@ -75,7 +75,7 @@ describe("Requiem Loots ", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        game.gainCoins(player1, 7, "gift");
+        game.gainCoins(player1, 7, ("debug"));
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, "top");
         expect(player1.coins).toBe(2);
