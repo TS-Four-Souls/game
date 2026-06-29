@@ -1632,10 +1632,10 @@ export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestinati
         game.cardHandler.addTopPosition(deck._type, topCard);
         // getFirstCardsOfDeck(deckName, 1)[0];
         const justWatch = canPutWhere === "just_watch";
-        const description = canPutWhere === "just_watch"
-            ? `Look at the top card of the ${deck._type} deck.`
+        const description = 
+            canPutWhere === "just_watch" ? `Look at the top card of the ${deck._type} deck.`
             : canPutWhere === "bottom" ? `Look at the top card of the ${deck._type} deck. You may put it on the bottom of the deck.` 
-            : `Look at the top card of the ${deck._type} deck. You may put it on the bottom of the deck or discard it.`;
+                : `Look at the top card of the ${deck._type} deck. You may discard it.`;
         const selectionResult = reveal
          ? (await data.selectMultipleAndRecord(game, game.players.map(player => ({
                 player,
@@ -2271,6 +2271,15 @@ export function revealTopCardsOfMonsterDeckEffect(
         const monsterCards = game.decks.monster.drawSeveral(n);
         data.recordSelection(monsterCards);
         const curses = monsterCards.filter(c => c.isCurse);
+        const revealPromises = data.selectMultipleAndRecord(game, game.players.filter(p => p !== data.issuer).map(p => ({
+            player: p,
+            min: 0,
+            max: 0,
+            options: monsterCards,
+            description: `Top ${n} cards of the monster deck revealed.`,
+            canUseOnBoardSelection: false,
+        })));
+
         for (const curse of curses) {
             const target = (await data.selectAndRecord(game, data.issuer, 1, 1, game.players, `Select a player to give ${curse.name} to.`,true , true)).selected[0] as Player;
             await game.cardHandler.addCurse(target, curse);
@@ -2281,7 +2290,7 @@ export function revealTopCardsOfMonsterDeckEffect(
         for (let i = 0; i < target.length; i++) {
             game.cardHandler.addBottomPosition("monster", target[i]!);
         }
-
+        await revealPromises;
         return true;
     };
 }
@@ -2305,7 +2314,7 @@ export function putTopCardFromDiscardOnTopEffect(game: Game): SyncEffectFunction
             throw new Error("Invalid card type for putTopCardFromDiscardOnTopEffect");
         const deckName = cardToDraw.type;
         if(!isDeckType(deckName)) 
-            throw new Error("Invalid deck type for putTopCardFromDiscardOnTopEffect");
+            throw new Error("Invalid deck type: " + deckName);
         const deck = game.decks[deckName];
         if (!deck) {
             throw new Error(`Deck ${deckName} does not exist.`);
@@ -3080,7 +3089,7 @@ export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, de
         if(deckNameParam === "selectOnResolve")
             deckName = (await data.selectAndRecord(game, issuer, 1, 1, deckSelector(undefined, game)(issuer), "Select a deck to look at the top cards of.", true, true)).selected[0]!._type as DeckType;
         if(!isDeckType(deckName))
-            throw new Error("Invalid deck type for lookAndReorderTopCardsEffect");
+            throw new Error("Invalid deck type " + deckName);
         const top5Cards = game.cardHandler.getFirstCardsOfDeck(deckName, numberCards);
         const selectionResult = await data.selectAndRecord(game, issuer, numberCards, numberCards, top5Cards, "Select the order to put back the cards (first selected will be on top).", false, false);
         for (let i = selectionResult.selected.length - 1; i >= 0; i--) {
