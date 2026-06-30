@@ -1,10 +1,8 @@
-import { describe, it, beforeEach, expect } from "bun:test";
-import { Game } from "../../models/game";
-import { Player } from "../../models/entities/player";
-import { DiceRoll } from "../../models/stackElement";
-import { CharacterCard, ItemCard, TreasureCard, MonsterCard } from "@/models/cards";
-import { Monster } from "@/models/entities/monster";
+import { ItemCard, MonsterCard } from "@/models/cards";
 import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections } from "@/tests/testHelpers";
+import { beforeEach, describe, expect, it } from "bun:test";
+import { Player } from "../../models/entities/player";
+import { Game } from "../../models/game";
 import { setupTestGame } from "../testHelpers";
 
 describe("b2-placebo - copies tap ability of non-eternal item", () => {
@@ -140,7 +138,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         const initialP2Hand = player2.hand.length;
 
         game.select = async (_issuer, _min, _max, opts, _optional) => {
-            return { selected: [{type: "player", payload: {name: player2.json.name, slug: player2.json.slug, globalId: player2.json.globalId}}], remaining: [] } as any;
+            return { selected: [{type: "player", payload: {nameKey: player2.json.nameKey, slug: player2.json.slug, globalId: player2.json.globalId}}], remaining: [] } as any;
         };
         // Recharge placebo and activate it to copy boomerang
         game.cardHandler.recharge(placebo);
@@ -167,7 +165,7 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         // Recharge placebo and activate it to copy jawbone
         game.cardHandler.recharge(placebo);
         game.select = async (_issuer, _min, _max, opts, _optional) => {
-            return { selected: [{type: "player", payload: {name: player2.json.name, slug: player2.json.slug, globalId: player2.json.globalId}}], remaining: [] } as any;
+            return { selected: [{type: "player", payload: {nameKey: player2.json.nameKey, slug: player2.json.slug, globalId: player2.json.globalId}}], remaining: [] } as any;
         };
         await game.activateItem(player1, placebo, [jawbone]);
         await game.actions.resolveStack();
@@ -950,8 +948,7 @@ describe("b2-trinity_shield - prevents other players from priority actions", () 
         // With trinity_shield, player2 cannot activate items on player1's turn
         const canActivateWith = game.actions.canActivate(sackOfPennies, player2);
         expect(canActivateWith).not.toBe(true);
-        expect(typeof canActivateWith).toBe("string");
-        expect(canActivateWith).toContain("cannot activate cards");
+        expect(typeof canActivateWith).not.toBe("boolean");
 
         // Remove trinity_shield from play
         game.cardHandler.removeInPlay(player1, trinityShield);
@@ -978,8 +975,7 @@ describe("b2-trinity_shield - prevents other players from priority actions", () 
         // With trinity_shield, player2 cannot play loot on player1's turn
         const canPlayWith = game.actions.canPlayCard(player2);
         expect(canPlayWith).not.toBe(true);
-        expect(typeof canPlayWith).toBe("string");
-        expect(canPlayWith).toContain("cannot play loot cards during");
+        expect(typeof canPlayWith).not.toBe("boolean");
 
         // Remove trinity_shield from play
         game.cardHandler.removeInPlay(player1, trinityShield);

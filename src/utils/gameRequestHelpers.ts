@@ -1,8 +1,10 @@
-import type { Game } from "@/models/game";
-import { TargetBuilder } from "@/models/targetBuilder";
-import { Player } from "@/models/entities/player"
-import type { Requests, TargetSelectorResponse } from "@/shared/api";
 import type { ItemCard, LootCard, MonsterCard } from "@/models/cards";
+import { Player } from "@/models/entities/player";
+import type { Game } from "@/models/game";
+import { GameError } from "@/models/GameError";
+import { TargetBuilder } from "@/models/targetBuilder";
+import type { Requests, TargetSelectorResponse } from "@/shared/api";
+import { toSerializedTranslation } from "./translation";
 
 export async function executeAttackMonsterRequest(
   game: Game,
@@ -13,7 +15,9 @@ export async function executeAttackMonsterRequest(
     payload.index === "top" ? "topDeck" : game.encounters.monsterIn(payload.index);
 
   if (!monster) {
-    throw new Error(`No monster at index ${payload.index}`);
+    throw new GameError(`No monster at index ${payload.index}`,
+      toSerializedTranslation("error.noMonsterAtIndex", { value: payload.index })
+    );
   }
 
   const drawInIndex = payload.index === "top" ? payload.replaceIndex : -1;
@@ -134,7 +138,9 @@ export async function executeActivateRoomRequest(
   const partialChoices = payload.targetChoices || [];
   const room = game.rooms?.roomIn(payload.index);
   if(!room) {
-    throw new Error(`No room at index ${payload.index}`);
+    throw new GameError(`No room at index ${payload.index}`,
+      toSerializedTranslation("error.noRoomAtIndex", { value: payload.index })
+    );
   }
   const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(
     game,
@@ -197,7 +203,9 @@ export async function executeResolveRequest(
   player: Player,
 ): Promise<void> {
   if(player !== game.currentPlayer) {
-    throw new Error("Only the current player can resolve the stack");
+    throw new GameError("Only the current player can resolve the stack",
+      toSerializedTranslation("error.onlyCurrentPlayerCanResolveStack")
+    );
   }
   game.addToHistory({ type: "Resolve", issuer: player.id });
   await game.actions.resolveStack();
@@ -300,7 +308,9 @@ export function executeDebugLootTopRequest(
   });
   const topCard = game.decks.loot.cards[0];
   if (!topCard) {
-    throw new Error("Loot deck is empty");
+    throw new GameError("Loot deck is empty",
+      toSerializedTranslation("error.lootDeckIsEmpty")
+    );
   }
   game.actions.debugLoot(player, [topCard], false);
 }
@@ -315,7 +325,9 @@ export function executeDebugGainTreasureTopRequest(
   });
   const topCard = game.decks.treasure.cards[0];
   if (!topCard) {
-    throw new Error("Treasure deck is empty");
+    throw new GameError("Treasure deck is empty",
+      toSerializedTranslation("error.treasureDeckIsEmpty")
+    );
   }
   game.actions.debugGainTreasures(player, [topCard], true);
 }
@@ -333,7 +345,9 @@ export function executeDebugLootRequest(
   if (cards && cards.length > 0) {
     const lootDeck = game.decks["loot"];
     if (!lootDeck) {
-      throw new Error("Loot deck not available");
+      throw new GameError("Loot deck not available",
+        toSerializedTranslation("error.lootDeckNotAvailable")
+      );
     }
     game.actions.debugLoot(player, cards as LootCard[]);
   }
@@ -374,7 +388,9 @@ export function executeDebugGainTreasureRequest(
   if (cards && cards.length > 0) {
     const treasureDeck = game.decks["treasure"];
     if (!treasureDeck) {
-      throw new Error("Treasure deck not available");
+      throw new GameError("Treasure deck not available",
+        toSerializedTranslation("error.treasureDeckNotAvailable")
+      );
     }
     game.actions.debugGainTreasures(player, cards as ItemCard[], false);
   }
@@ -407,8 +423,9 @@ export function executeDebugPutMonsterCardInSlotRequest(
     payload.card.globalId,
   ) as MonsterCard;
   if (!card) {
-    throw new Error(
+    throw new GameError(
       "Card not found in the game.",
+      toSerializedTranslation("error.cardNotFoundInCardSet")
     );
   }
   const index = game.encounters._slots

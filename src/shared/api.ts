@@ -1,7 +1,17 @@
 import { z } from "zod";
 
+const basicSerializedTranslationSchema = z.object({
+  key: z.string(),
+});
+export type BasicSerializedTranslation = z.infer<typeof basicSerializedTranslationSchema>;
+
+const serializedTranslationSchema = basicSerializedTranslationSchema.extend({
+  interpolates: z.record(z.string(), z.union([z.string(), basicSerializedTranslationSchema, z.array(basicSerializedTranslationSchema)])).optional(),
+});
+export type SerializedTranslation = z.infer<typeof serializedTranslationSchema>;
+
 export const identifierTypeSchema = z.object({
-  name: z.string(),
+  nameKey: serializedTranslationSchema, /// translated.
   slug: z.string(),
   globalId: z.number(),
 });
@@ -101,6 +111,7 @@ export type SelectionItem =
     }
   | { type: "character"; payload: RoomCharacter }
   | { type: "array"; payload: SelectionItem[] }
+  | { type: "serializedTranslation"; payload: SerializedTranslation }
   | { type: "object"; payload: { [key: string]: SelectionItem } }
   | { type: "null"; payload: null }
   | { type: "unknown"; payload: null };
@@ -124,7 +135,7 @@ const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
     z.object({ type: z.literal("deck"), payload: deckNameSchema }),
     z.object({ type: z.literal("number"), payload: z.number() }),
     z.object({ type: z.literal("boolean"), payload: z.boolean() }),
-    z.object({ type: z.literal("string"), payload: z.string() }),
+    z.object({ type: z.literal("string"), payload: z.string() }), // translated
     z.object({
       type: z.literal("couplePlayerHand"),
       payload: z.object({
@@ -138,7 +149,7 @@ const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
     }),
     z.object({
       type: z.literal("object"),
-      payload: z.record(z.string(), selectionItemSchema),
+      payload: z.record(z.string(), selectionItemSchema), /// weird check where used
     }),
     z.object({ type: z.literal("null"), payload: z.null() }),
     z.object({ type: z.literal("unknown"), payload: z.null() }),
@@ -147,7 +158,7 @@ const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
 
 const pendingSelectionSchema = z.object({
   requestId: z.string(),
-  description: z.string(),
+  description: serializedTranslationSchema,
   options: z.array(selectionItemSchema),
   min: z.number(),
   max: z.number(),
@@ -160,10 +171,11 @@ const temporaryEffectSchema = z.object({
   issuer: z.string(),
   targets: z.array(selectionItemSchema),
   description: z.string(),
+  visualEffectBox: VisualEffectBoxSchema.optional(),
 });
 export type TemporaryEffect = z.infer<typeof temporaryEffectSchema>;
 
-const capabilitySchema = z.union([z.literal(true), z.string()]);
+const capabilitySchema = z.union([z.literal(true), serializedTranslationSchema]); /// todo
 export type Capability = z.infer<typeof capabilitySchema>;
 
 const attackableCardSchema = cardSchema.extend({
@@ -208,7 +220,7 @@ export type BonusSoulCard = z.infer<typeof bonusSoulCardSchema>;
  */
 const targetSelectorResponseSchema = z.object({
   /** Description of what to select */
-  description: z.string(),
+  description: serializedTranslationSchema,
   /** Minimal number of targets to select */
   min: z.number(),
   /** Maximal number of targets to select */
@@ -300,7 +312,7 @@ const effectOnStackJsonSchema = z.object({
   targets: z.array(selectionItemSchema),
   card: identifierTypeSchema,
   visualEffectBox: VisualEffectBoxSchema.optional(),
-  effect: z.string(),
+  effect: z.string(), /// done with visual box
   id: z.number(),
   reordering: stackReorderingInfoSchema.optional(),
 });
@@ -384,15 +396,18 @@ const attackMonsterSchema = z.union([
   }),
 ]);
 
+
 const booleanGameParameterSchema = z.object({
   text: z.string(),
   value: z.boolean(),
+  translationKey: serializedTranslationSchema
 });
 
 const numberGameParameterSchema = z.object({
   text: z.string(),
   value: z.number(),
   replaceZeroWith: z.string().optional(),
+  translationKey: serializedTranslationSchema
 });
 const decksConfigSchema = z.object({
   useBonusSouls: booleanGameParameterSchema,
@@ -507,7 +522,7 @@ const basicResponseSchema = z.union([
   }),
   z.object({
     status: z.literal(400),
-    error: z.string(),
+    error: z.union([z.string(), serializedTranslationSchema]),
   }),
 ]);
 export type BasicResponse = z.infer<typeof basicResponseSchema>;
@@ -519,7 +534,7 @@ const debugListLootResponseSchema = z.union([
   }),
   z.object({
     status: z.literal(400),
-    error: z.string(),
+    error: z.union([z.string(), serializedTranslationSchema])
   }),
 ]);
 export type DebugListLootResponse = z.infer<typeof debugListLootResponseSchema>;
@@ -532,7 +547,7 @@ const DebugListMonsterDeckResponseSchema = z.union([
   }),
   z.object({
     status: z.literal(400),
-    error: z.string(),
+    error: z.union([z.string(), serializedTranslationSchema])
   }),
 ]);
 export type DebugListMonsterDeckResponse = z.infer<
@@ -546,7 +561,7 @@ const debugListCardsICanRemoveResponseSchema = z.union([
   }),
   z.object({
     status: z.literal(400),
-    error: z.string(),
+    error: z.union([z.string(), serializedTranslationSchema])
   }),
 ]);
 export type DebugListCardsICanRemoveResponse = z.infer<
@@ -560,7 +575,7 @@ const debugListTreasureResponseSchema = z.union([
   }),
   z.object({
     status: z.literal(400),
-    error: z.string(),
+    error: z.union([z.string(), serializedTranslationSchema])
   }),
 ]);
 export type DebugListTreasureResponse = z.infer<
@@ -574,7 +589,7 @@ const nextTargetSelectorResponseSchema = z.union([
   }),
   z.object({
     status: z.literal(400),
-    error: z.string(),
+    error: z.union([z.string(), serializedTranslationSchema])
   }),
 ]);
 export type NextTargetSelectorResponse = z.infer<
@@ -779,7 +794,7 @@ const encounterSchema = z.object({
   discard: z.array(cardSchema),
   deckSize: z.number(),
   capabilities: z.object({
-    targetableDeck: z.union([z.literal(true), z.string()]),
+    targetableDeck: capabilitySchema,
   }),
   inPlay: z.array(
     z.object({
@@ -858,8 +873,8 @@ export type Room = z.infer<typeof roomSchema>;
 
 const roomBroadcastSchema = z.object({
   type: z.enum(["info", "error", "success", "warning", "victory"]),
-  title: z.string(),
-  message: z.string(),
+  title: serializedTranslationSchema,
+  message: serializedTranslationSchema,
 });
 export type RoomBroadcast = z.infer<typeof roomBroadcastSchema>;
 
@@ -870,7 +885,7 @@ const saveGameResponseSchema = z.union([
   }),
   z.object({
     status: z.literal(400),
-    error: z.string(),
+    error: z.union([z.string(), serializedTranslationSchema])
   }),
 ]);
 export type SaveGameResponse = z.infer<typeof saveGameResponseSchema>;
@@ -971,11 +986,11 @@ const adminGetLogsResponseSchema = z.union([
   }),
   z.object({
     status: z.literal(400),
-    error: z.string(),
+    error: z.union([z.string(), serializedTranslationSchema])
   }),
   z.object({
     status: z.literal(500),
-    error: z.string(),
+    error: z.union([z.string(), serializedTranslationSchema])
   }),
 ]);
 export type AdminGetLogsResponse = z.infer<typeof adminGetLogsResponseSchema>;
@@ -1002,11 +1017,11 @@ const adminReplyToMessageResponseSchema = z.union([
   }),
   z.object({
     status: z.literal(400),
-    error: z.string(),
+    error: z.union([z.string(), serializedTranslationSchema])
   }),
   z.object({
     status: z.literal(500),
-    error: z.string(),
+    error: z.union([z.string(), serializedTranslationSchema])
   }),
 ]);
 export type AdminReplyToMessageResponse = z.infer<
@@ -1353,3 +1368,5 @@ export interface ClientToServerEvents {
     callback: (response: Responses.AdminReplyToMessage) => void,
   ) => void;
 }
+
+

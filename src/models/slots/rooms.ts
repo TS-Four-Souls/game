@@ -1,7 +1,8 @@
+import { Game } from "@/models/game";
+import { GameError } from "@/models/GameError";
 import { type Deck, RoomCard } from "../cards";
-import type { Game } from "../game";
 import { Slots } from "./slots";
-
+import { toSerializedTranslation } from "@/utils/translation";
 
 /**
  * Manages the rooms slots in the Four Souls game.
@@ -26,7 +27,8 @@ export class Rooms extends Slots<RoomCard> {
     override draw(position: number): void {
         const card = this._deck.draw();
         if (card === undefined)
-            throw new Error(`Cannot draw card from deck for slot ${position}.`);
+            throw new GameError(`Cannot draw card from deck for slot ${position}.`,
+                toSerializedTranslation("error2.behaviorError", {error: `Cannot draw card from deck for slot ${position}.`}));
         this._slots[position]!.push(card);
         card.onAddInPlay(() => this._game.currentPlayer);
     }

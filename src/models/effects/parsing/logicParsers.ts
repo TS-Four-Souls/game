@@ -9,6 +9,8 @@ import {Player} from "@/models/entities/player.ts";
 import {noTargets} from "@/models/effects/parsing/selectors.ts";
 import {effectParser, syncEffectParser, type ParsedEffect, type SyncParsedEffect} from "@/models/effects/parsing/effectParser.ts";
 import { addToStackEffect } from "@/models/effects/activeEffect.ts";
+import { toSerializedTranslation } from "@/utils/translation";
+import { GameError } from "@/models/GameError";
 
 export function eachTimeActivateItemEffect(s: string, game: Game): SyncParsedEffect {
     const restOfEffect = s.substring("each time a player activates an item, they".length).trim();
@@ -27,7 +29,9 @@ export function parseEachTimeRollEffect(s: string, game: Game, nr?: NumberRobust
     const attackingPrefix = "each time the attacking player rolls an attack roll of x";
     if (masked.startsWith(attackingPrefix)) {
         const rollValue = numberRobustString.numbers[0];
-        if(rollValue === undefined) throw new Error(`Could not parse 'Each time the attacking player rolls an attack roll of X' effect: ${s}`);
+        if(rollValue === undefined) throw new GameError(`Could not parse 'Each time the attacking player rolls an attack roll of X' effect: ${s}`,
+            toSerializedTranslation("error2.parsingError", {error: `Could not parse 'Each time the attacking player rolls an attack roll of X' effect: ${s}`})
+        );
         let restOfEffect = (numberRobustString.restAfter(attackingPrefix) ?? "").trim();
         if (restOfEffect.startsWith(",")) restOfEffect = restOfEffect.substring(1).trim();
         restOfEffect = restOfEffect.replace(/^they\b/iu, "").trim();
@@ -53,7 +57,9 @@ export function parseEachTimeRollEffect(s: string, game: Game, nr?: NumberRobust
     const theyPrefix = theyPrefixes.find((p) => masked.startsWith(p));
     if (theyPrefix && !s.split(" ").includes("you")) {
         const rollValue = numberRobustString.numbers[0];
-        if(rollValue === undefined) throw new Error(`Could not parse 'Each time a player rolls a X' effect: ${s}`);
+        if(rollValue === undefined) throw new GameError(`Could not parse 'Each time a player rolls a X' effect: ${s}`,
+            toSerializedTranslation("error2.parsingError", {error: `Could not parse 'Each time a player rolls a X' effect: ${s}`})
+        );
         let restOfEffect = (numberRobustString.restAfter(theyPrefix) ?? "").trim();
         if (restOfEffect.startsWith("may") ||
             restOfEffect.startsWith("must")
@@ -70,7 +76,9 @@ export function parseEachTimeRollEffect(s: string, game: Game, nr?: NumberRobust
     const genericPrefix = "each time a player rolls a x";
     if (masked.startsWith(genericPrefix)) {
         const rollValue = numberRobustString.numbers[0];
-        if(rollValue === undefined) throw new Error(`Could not parse 'Each time a player rolls a X' effect: ${s}`);
+        if(rollValue === undefined) throw new GameError(`Could not parse 'Each time a player rolls a X' effect: ${s}`,
+            toSerializedTranslation("error2.parsingError", {error: `Could not parse 'Each time a player rolls a X' effect: ${s}`})
+        );
         let restOfEffect = (numberRobustString.restAfter(genericPrefix) ?? "").trim();
         if (restOfEffect.startsWith(",")) restOfEffect = restOfEffect.substring(1).trim();
         const restParsed = effectParser(restOfEffect, game, true);
@@ -79,7 +87,9 @@ export function parseEachTimeRollEffect(s: string, game: Game, nr?: NumberRobust
             targetSelectors: restParsed.targetSelectors
         };
     }
-    throw new Error(`Could not parse 'Each time a player rolls a X' effect: ${s}`);
+    throw new GameError(`Could not parse 'Each time a player rolls a X' effect: ${s}`,
+        toSerializedTranslation("error2.parsingError", {error: `Could not parse 'Each time a player rolls a X' effect: ${s}`})
+    );
 }
 
 export function parseWhenActivePlayerRollsEffect(s: string, game: Game, nr?: NumberRobustString): SyncParsedEffect {
@@ -88,7 +98,9 @@ export function parseWhenActivePlayerRollsEffect(s: string, game: Game, nr?: Num
     const prefix = "when the active player rolls a x";
     if (masked.startsWith(prefix)) {
         const rollValue = numberRobustString.numbers[0];
-        if(rollValue === undefined) throw new Error(`Could not parse 'When the active player rolls a X' effect: ${s}`);
+        if(rollValue === undefined) throw new GameError(`Could not parse 'When the active player rolls a X' effect: ${s}`,
+            toSerializedTranslation("error2.parsingError", {error: `Could not parse 'When the active player rolls a X' effect: ${s}`})
+        );
         let restOfEffect = (numberRobustString.restAfter(prefix) ?? "").trim();
         if (restOfEffect.startsWith(",")) restOfEffect = restOfEffect.substring(1).trim();
         const restParsed = effectParser(restOfEffect, game, true);
@@ -97,7 +109,9 @@ export function parseWhenActivePlayerRollsEffect(s: string, game: Game, nr?: Num
             targetSelectors: restParsed.targetSelectors
         };
     }
-    throw new Error(`Could not parse 'When the active player rolls a X' effect: ${s}`);
+    throw new GameError(`Could not parse 'When the active player rolls a X' effect: ${s}`,
+        toSerializedTranslation("error2.parsingError", {error: `Could not parse 'When the active player rolls a X' effect: ${s}`})
+    );
 }
 
 export function ParseWhenGainOrPurchaseThis(s: string, game: Game): SyncParsedEffect {
@@ -115,7 +129,7 @@ export function parseYouMayEffect(s: string, game: Game): ParsedEffect {
             if (data.issuer instanceof Player === false) return false;
             let choice = !shouldHandleYouMay[0];
             if (!choice) {
-                const selection = await data.selectAndRecord(game, data.issuer, 0, 1, [data.it], "Use " + data.it.name + "'s effect?", false, true, false);
+                const selection = await data.selectAndRecord(game, data.issuer, 0, 1, [data.it], toSerializedTranslation("pending.useItemEffect", { card: data.it.nameKey }), false, true, false);
                 choice = selection.selected.length > 0;
             }
             if (choice) {
@@ -181,7 +195,7 @@ export function parseLvXEffect(s: string, game: Game, nr?: NumberRobustString): 
     const lvl = nr.nextNumber();
     const effectString = s.substring(s.indexOf("]") + 1).trim();
     const restParsed = syncEffectParser(effectString, game);
-    if(restParsed === null) throw new Error(`Could not parse 'LvX' effect: ${s}`);
+    if(restParsed === null) throw new GameError(`Could not parse 'LvX' effect: ${s}`, toSerializedTranslation("error2.parsingError", {error: `Could not parse 'LvX' effect: ${s}`}));
     return noTargetSyncEffect(passive.lvlXaddListenerEffect([restParsed.effectFunction], lvl, game));
 }
 
@@ -246,10 +260,10 @@ export function parseEachTimeWouldRollEffect(s: string, game: Game): SyncParsedE
     const masked = nr.toString();
     const prefix = "each time a player would roll a x";
     if (!masked.startsWith(prefix))
-        throw new Error(`Could not parse 'Each time a player would roll a X' effect: ${s}`);
+        throw new GameError(`Could not parse 'Each time a player would roll a X' effect: ${s}`, toSerializedTranslation("error2.parsingError", {error: `Could not parse 'Each time a player would roll a X' effect: ${s}`}));
 
     const value = nr.numbers[0];
-    if (value === undefined) throw new Error(`Could not parse 'Each time a player would roll a X' effect: ${s}`);
+    if (value === undefined) throw new GameError(`Could not parse 'Each time a player would roll a X' effect: ${s}`, toSerializedTranslation("error2.parsingError", {error: `Could not parse 'Each time a player would roll a X' effect: ${s}`}));
     let restOfEffect = (nr.restAfter(prefix) ?? "").trim();
     if (restOfEffect.startsWith(",")) restOfEffect = restOfEffect.substring(1).trim();
     const restParsed = effectParser(restOfEffect, game, true);
@@ -262,7 +276,7 @@ export function parseEachTimeWouldRollEffect(s: string, game: Game): SyncParsedE
 export function parseCurseEffect(s: string, game: Game): SyncParsedEffect {
     const restOfEffect = s.trim();
     const restParsed = syncEffectParser(restOfEffect, game);
-    if(restParsed === null) throw new Error(`Could not parse 'Curse' effect: ${s}`);
+    if(restParsed === null) throw new GameError(`Could not parse 'Curse' effect: ${s}`, toSerializedTranslation("error2.parsingError", {error: `Could not parse 'Curse' effect: ${s}`}));
     return {
         effectFunction: passive.curseEffect(restParsed.effectFunction, game),
         targetSelectors: restParsed.targetSelectors

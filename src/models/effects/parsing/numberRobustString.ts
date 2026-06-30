@@ -1,4 +1,5 @@
-
+import { GameError } from "@/models/GameError";
+import { toSerializedTranslation } from "@/utils/translation";
 export class NumberRobustString extends String {
     private readonly _raw: string;
     private readonly _masked: string;
@@ -38,7 +39,7 @@ export class NumberRobustString extends String {
     /** Stateful iterator-style accessor (kept for convenience). */
     nextNumber(): number {
         if (this._index >= this._numbers.length)
-            throw new Error("No more numbers available in the string");
+            throw new GameError("No more numbers available in the string", toSerializedTranslation("error.noMoreNumbersAvailableInString"));
         return this._numbers[this._index++]!;
     }
 

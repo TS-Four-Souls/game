@@ -1,6 +1,8 @@
+import { type SerializedTranslation } from "@/shared/api";
+
 export interface ServerRoomBroadcast {
   type: "info" | "error" | "success" | "warning" | "victory";
-  title: string;
-  message: string;
+  title: SerializedTranslation;
+  message: SerializedTranslation;
   players: string[];
 }

@@ -37,6 +37,8 @@ import { Rooms } from "./slots/rooms";
 import { Shop } from "./slots/shop";
 import { TurnHandler } from "./handlers/turnHandler";
 import { miniDraft } from "./variants";
+import { toSerializedTranslation } from "@/utils/translation";
+import { GameError } from "@/models/GameError";
 
 /*
  * The Game class is the central hub of the game logic, managing the state of the game, players, monsters, decks, shop, encounters, stack, and more. 
@@ -44,7 +46,9 @@ import { miniDraft } from "./variants";
  */
 export class Game extends SelectionHandler {
   private _turnHandler: TurnHandler = new TurnHandler();
-  private _random: () => number = () => {throw new Error("Random generator not initialized yet.");};
+  private _random: () => number = () => {throw new GameError("Random generator not initialized yet.", 
+    toSerializedTranslation("error2.behaviorError", {error: "Random generator not initialized yet."}))
+  };
   private _seed: string = "";
   private _shop!: Shop;
   private _encounters!: Encounters;
@@ -249,7 +253,8 @@ export class Game extends SelectionHandler {
   }
   getRollbackLog(player: Player): HistoricEntry[] {
     if(!this.gameParameters.allowCheatOptions.value && this._historicHandler.lastUserRequestIssuer === player.id)
-      throw new Error("Cheat options are not allowed in this game. You can only rollback other players' actions.");
+      throw new GameError("Cheat options are not allowed in this game. You can only rollback other players' actions.",
+        toSerializedTranslation("error.cheatOptionsNotAllowed"));
     const logs = this._historicHandler.rollbackLog;
     return logs;
   }
@@ -342,7 +347,8 @@ export class Game extends SelectionHandler {
         }
         const dice = this.stack.resolve();
         if(!dice || !(dice instanceof DiceRoll))
-          throw new Error("The resolved stack element is not a DiceRoll.");
+          throw new GameError("The resolved stack element is not a DiceRoll.",
+            toSerializedTranslation("error2.behaviorError", {error: "The resolved stack element is not a DiceRoll."}));
         this.setupAttackRoll(dice);
         await elem.onResolve();
         // Add to history
@@ -455,7 +461,8 @@ export class Game extends SelectionHandler {
     const colors = [
       "#E6E420", "#AE6DFA", "#17E6C9", "#FF6B2D"];
     if(this.players.length > colors.length)
-      throw new Error("Too many players for the available colors.");
+      throw new GameError("Too many players.",
+        toSerializedTranslation("error.tooManyPlayer"));
     for (let i = 0; i < this.players.length; i++) {
       this.players[i]!.color = colors[i % colors.length]!;
     }
@@ -470,8 +477,8 @@ export class Game extends SelectionHandler {
     {
       this._onRoomBroadcast.dispatch({
         type: "victory",
-        title: `TIME'S UP! EVERYBODY LOSES!`,
-        message: `You can keep playing, but you won't see the MAGNIFICIENT VICTORY POPUP!`,
+        title: toSerializedTranslation("toast.timeUpTitle"),
+        message: toSerializedTranslation("toast.timeUpmessage"),
         players: this.players.map(p => p.id),
       });
     }
@@ -482,8 +489,8 @@ export class Game extends SelectionHandler {
 
         this._onRoomBroadcast.dispatch({
           type: "victory",
-          title: isWinner ? "YOU WON!" : `AHAH! YOU LOST!`,
-          message: isWinner ? "Congratulations!" : `Next time, cheat!`,
+          title: isWinner ? toSerializedTranslation("toast.winningTitle") : toSerializedTranslation("toast.losingTitle"),
+          message: isWinner ? toSerializedTranslation("toast.winningMessage") : toSerializedTranslation("toast.losingMessage"),
           players: [p.id],
         });
       }
@@ -580,7 +587,7 @@ export class Game extends SelectionHandler {
   async verifyHandSize(player: Player): Promise<void> {
     const toDiscard = player.hand.cards.length - this.gameParameters.maxHandSize.value;
     if (toDiscard > 0){
-      const selection = await this.select(player, toDiscard, toDiscard, player.hand.cards, `You must discard ${toDiscard} card(s) to reach your maximum hand size of ${this.gameParameters.maxHandSize.value}.`, true);
+      const selection = await this.select(player, toDiscard, toDiscard, player.hand.cards, toSerializedTranslation("pending.maxHand", { value: toDiscard, count: this.gameParameters.maxHandSize.value }), true);
       for (const card of selection.selected) {
         this.cardHandler.discardFromHandAtIndex(player, player.hand._hand.indexOf(card), "overload");
       }
@@ -614,7 +621,9 @@ export class Game extends SelectionHandler {
     this.assert.positiveNumber(position);
 
     if (position < 0 || position > this.encounters._slots.length - 1) {
-      throw new Error("Invalid monster position.");
+      throw new GameError("Invalid monster position.",
+        toSerializedTranslation("error.invalidMonsterPosition")
+      );
     }
 
     player.clearAttackRequirement(this.monsters[position]!);
@@ -631,11 +640,15 @@ export class Game extends SelectionHandler {
     this.assert.noPendingSelection();
 
     if (!player.isEngagedInCombat) {
-      throw new Error("You must be engaged in combat to draw a monster.");
+      throw new GameError("You must be engaged in combat to draw a monster.",
+        toSerializedTranslation("error.mustBeInCombatToDrawMonster")
+      );
     }
 
     if (position < 0 || position > this.encounters._slots.length) {
-      throw new Error("Invalid monster position.");
+      throw new GameError("Invalid monster position.",
+        toSerializedTranslation("error.invalidMonsterPosition")
+      );
     }
 
     this.encounters.draw(position);
@@ -732,7 +745,8 @@ export class Game extends SelectionHandler {
    */
   addToStack(item: StackElement): number {
     if (item instanceof EffectOnStack && !item.data.issuer) {
-      throw new Error("EffectOnStack must have an issuer.");
+      throw new GameError("EffectOnStack must have an issuer.",
+        toSerializedTranslation("error2.behaviorError", {error: "EffectOnStack must have an issuer."}));
     }
 //  EffectOnStack can be reordered on the stack by their owner.
     if (item instanceof EffectOnStack) {
@@ -854,13 +868,18 @@ export class Game extends SelectionHandler {
    */
   async giveCoins(from: Player, to: Player, amount: number, forcedBy: Card | null = null): Promise<boolean> {
     if(this.gameParameters.allowCoinDonation.value === false)
-      throw new Error("Giving coins is not allowed in this game.");
+      throw new GameError("Giving coins is not allowed in this game.",
+        toSerializedTranslation("error.givingCoinsNotAllowed")
+      );
     if (from.coins < amount || amount <= 0) {
       return false;
     }
     if(forcedBy === null) {
-      const response = await this.select(to, 1, 1, ['Accept', 'Decline'], `${from.id} wants to give you ${amount} coins.`);
-      if (response.selected[0] !== 'Accept') {
+      const response = await this.select(to, 1, 1, [
+        toSerializedTranslation("common.accept"), toSerializedTranslation("common.decline")], 
+        toSerializedTranslation("pending.fromIdWantsToGiveYouCoins", { player: from.id, value: amount }), true);
+      if (response.selected[0]?.key !== "common.accept") {
+        console.log("declined");
         return false;
       }
     }
@@ -928,8 +947,8 @@ export class Game extends SelectionHandler {
 
       return (
         await this.select(player, numberOfItemsToLose, numberOfItemsToLose, setOfLosableItems, nbItemsToLose > 1
-            ? "Select items to lose."
-            : "Select an item to lose.", true)
+            ? toSerializedTranslation("pending.loseItems")
+            : toSerializedTranslation("pending.loseItem"), true)
       ).selected;
     }
     return [];

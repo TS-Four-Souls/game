@@ -1,6 +1,7 @@
 import { type TriggerEvent } from '@/models/types/eventTypes';
 import type { TriggerEventDataMap } from './types/eventTypes';
-
+import { GameError } from "@/models/GameError";
+import { toSerializedTranslation } from '@/utils/translation';
 interface ListenerEntry {
   id: number;
   callback: (data: any) => void;
@@ -82,14 +83,17 @@ export class GameEventEmitter {
     }
 
     if (subsetPositions.length !== orderedSubsetListenerIds.length) {
-      throw new Error("Cannot reorder listeners: some listener IDs are not subscribed to this event.");
+      throw new GameError("Cannot reorder listeners: some listener IDs are not subscribed to this event.",
+        toSerializedTranslation("error2.behaviorError", {error: "Cannot reorder listeners: some listener IDs are not subscribed to this event."})
+      );
     }
 
     const entryById = new Map<number, ListenerEntry>(subsetEntries.map((entry) => [entry.id, entry]));
     const reorderedSubset = orderedSubsetListenerIds.map((id) => {
       const entry = entryById.get(id);
       if (!entry) {
-        throw new Error("Cannot reorder listeners: listener subset mismatch.");
+        throw new GameError("Cannot reorder listeners: listener subset mismatch.",
+          toSerializedTranslation("error2.behaviorError", {error: "Cannot reorder listeners: listener subset mismatch."}));
       }
       return entry;
     });

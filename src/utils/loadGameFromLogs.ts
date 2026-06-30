@@ -1,14 +1,16 @@
 import { ItemCard, LootCard, MonsterCard } from "@/models/cards";
 import { TargetBuilder } from "@/models/targetBuilder";
 import { Game } from "@/models/game";
+import { GameError } from "@/models/GameError";
 import {
   type HistoricEntry,
   type UserRequest,
   isStackElementJson,
 } from "@/models/handlers/historyHandler";
-import { type DetailedState, type IdentifierType, type Issuer } from "@/shared/api";
+import { type DetailedState, type IdentifierType, type Issuer, type SerializedTranslation } from "@/shared/api";
 import { Player } from "../models/entities/player";
 import * as helper from "@/utils/gameRequestHelpers";
+import { toSerializedTranslation } from "./translation";
 
 function isObject(value: unknown): value is Record<string, any> {
   return typeof value === "object" && value !== null;
@@ -54,8 +56,9 @@ function verifyRecordedCharactersAfterStart(
     if (!expectedSlug) continue;
 
     if (player.character.slug !== expectedSlug) {
-      throw new Error(
+      throw new GameError(
         `Character mismatch after replay start for player ${player.id}: expected ${expectedSlug}, got ${player.character.slug}`,
+        toSerializedTranslation("error.characterMismatchAfterReplayStart", { player: player.id, slug: expectedSlug, slug2: player.character.slug }),
       );
     }
   }
@@ -211,7 +214,7 @@ function setupLoadingSubmitSelectionHandling(game: Game, logs: HistoricEntry[]):
     min: number;
     max: number;
     options: T[];
-    description: string;
+    description: SerializedTranslation;
     skippable?: boolean;
     canUseOnBoardSelection: boolean;
   }[]): Promise<{ playerId: string; selected: T[]; remaining: T[] }[]> => {
@@ -220,15 +223,18 @@ function setupLoadingSubmitSelectionHandling(game: Game, logs: HistoricEntry[]):
     for (const selection of selections) {
       const entry = submitSelectionEntries[i++];
       if (entry === undefined) {
-        throw new Error(
+        throw new GameError(
           "No more SubmitSelection entries in logs to match the game's selectMultiple call. This may indicate a mismatch between the game state and the logs, or an issue with log formatting.",
+          toSerializedTranslation("error2.behaviorError", { error: "No more SubmitSelection entries in logs to match the game's selectMultiple call." }),
         );
       }
 
       const resolvedOptions = entry.payload.selections.map((id) => {
         const option = TargetBuilder["resolveIdentifier"](id, selection.options);
         if (option === undefined) {
-          throw new Error(`Invalid selection identifier: ${id.payload}`);
+          throw new GameError(`Invalid selection identifier: ${id.payload}`,
+            toSerializedTranslation("error.invalidSelectionIdentifier")
+          );
         }
         return option as T;
       });
@@ -251,7 +257,9 @@ function findInitialSeed(logs: unknown[]): string {
   );
 
   if (!entry || !entry.seed || entry.seed === "") {
-    throw new Error("No valid randomSeed entry found in logs for game initialization.");
+    throw new GameError("No valid randomSeed entry found in logs for game initialization.",
+      toSerializedTranslation("error2.behaviorError", { error: "No valid randomSeed entry found in logs for game initialization." })
+    );
   }
 
   return entry.seed;
@@ -361,18 +369,19 @@ export async function loadGameFromLogs(
           }
 
           case "Reset": {
-            throw new Error(
+            throw new GameError(
               "Reset are supposed to be handled by creating a new game instance, but a Reset entry was found in logs. This may indicate an issue with log formatting or replay logic.",
+              toSerializedTranslation("error2.behaviorError", { error: "Reset are supposed to be handled by creating a new game instance, but a Reset entry was found in logs." }),
             );
           }
           case "GameState": {
             const state = entry.gameState;
             if (!state) {
-              throw new Error("GameState entry is missing gameState payload");
+              throw new GameError("GameState entry is missing gameState payload", toSerializedTranslation("error2.behaviorError", { error: "GameState entry is missing gameState payload" }));
             }
 
             if (game.players[0] === undefined)
-              throw new Error("GameState entry is missing player data");
+              throw new GameError("GameState entry is missing player data", toSerializedTranslation("error2.behaviorError", { error: "GameState entry is missing player data" }));
 
             const comparison = compareGameState(game.detailedStateJSON(game.players[0]), state);
             if (!comparison.equal) {
@@ -380,8 +389,9 @@ export async function loadGameFromLogs(
                 .map((difference, index) => `${index + 1}. ${difference}`)
                 .join("\n");
 
-              throw new Error(
+              throw new GameError(
                 `Current game state does not match GameState entry from logs. Differences:\n${differencesMessage}`,
+                toSerializedTranslation("error2.behaviorError", { error: `Current game state does not match GameState entry from logs. Differences:\n${differencesMessage}` })
               );
             }
 
@@ -433,8 +443,9 @@ export async function loadGameFromLogs(
             try {
               await helper.executeActivateRequest(game, entry.payload, player);
             } catch (error) {
-              throw new Error(
+              throw new GameError(
                 `Failed to replay Activate request from logs: ${error instanceof Error ? error.message : error}`,
+                toSerializedTranslation("error2.behaviorError", { error: `Failed to replay Activate request from logs: ${error instanceof Error ? error.message : error}` })
               );
             }
             break;
@@ -445,8 +456,9 @@ export async function loadGameFromLogs(
             try {
               await helper.executeActivateRoomRequest(game, entry.payload, player);
             } catch (error) {
-              throw new Error(
+              throw new GameError(
                 `Failed to replay ActivateRoom request from logs: ${error instanceof Error ? error.message : error}`,
+                toSerializedTranslation("error2.behaviorError", { error: `Failed to replay ActivateRoom request from logs: ${error instanceof Error ? error.message : error}` })
               );
             }
             break;
@@ -525,7 +537,8 @@ export async function loadGameFromLogs(
           }
 
           default:
-            throw new Error(`Unsupported log entry type for replay: ${(entry as HistoricEntry).type}`);
+            throw new GameError(`Unsupported log entry type for replay: ${(entry as HistoricEntry).type}`,
+              toSerializedTranslation("error2.behaviorError", { error: `Unsupported log entry type for replay: ${(entry as HistoricEntry).type}` }));
         }
       }catch (error: any) {
         if(error.message.includes("Current game state does not match GameState entry from log"))

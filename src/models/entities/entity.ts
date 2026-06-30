@@ -1,7 +1,8 @@
 import type { EntityType, TemporaryEffect } from "@/shared/api";
 import type { Card } from "../cards";
 import { type DiceRoll } from "../stackElement";
-
+import { GameError } from "@/models/GameError";
+import { toSerializedTranslation } from "@/utils/translation";
 
 interface DamageObj {
   dealer: Entity | null;
@@ -127,7 +128,7 @@ export abstract class Entity {
   addAttackPoints(amount: number): void {
     // Attack points cannot be negative.
     if (this._attackPoints + amount < 0) {
-      throw new Error("Attack points cannot be negative.");
+      throw new GameError("Attack points cannot be negative.", toSerializedTranslation("error.attackPointsCannotBeNegative"));
     }
     this._attackPoints += amount;
   }

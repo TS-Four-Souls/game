@@ -1,6 +1,7 @@
 import * as active from "../activeEffect";
 import {Card, LootCard, MonsterCard, MonsterType} from "../../cards";
 import {Game} from "../../game";
+import { GameError } from "@/models/GameError";
 import * as monster from "../monsterEffects";
 import * as passive from "../passiveEffect";
 import * as room from "../roomEffects";
@@ -79,6 +80,7 @@ import {
     noTargetSyncEffect,
     syncParseWhenThisEntersPlay
 } from "@/models/effects/parsing/logicParsers.ts";
+import { toSerializedTranslation } from "@/utils/translation";
 
 /**
  * Guide to develop your own effects.
@@ -200,7 +202,7 @@ export function effectParser(s: string, game: Game, selectionOnResolve = false, 
     }
 
     console.log(`Could not parse effect: "${s}"`);
-    throw new Error(`Could not parse effect: "${s}"`);
+    throw new GameError(`Could not parse effect: "${s}"`, toSerializedTranslation("error2.parsingError", {error: `Could not parse effect: "${s}"`}));
 }
 
 /**
@@ -501,7 +503,7 @@ if (s.startsWith("you may") &&
             const discardedLoot = data.targets[0];
             data.targets = []; // clear targets to avoid confusion for the restEffect, which shouldn't care about the discarded loot
             if(!(discardedLoot instanceof LootCard))
-                throw new Error("Expected a loot card to be discarded.");
+                throw new GameError("Expected a loot card to be discarded.", toSerializedTranslation("error.expectedLootCardToBeDiscarded"));
             for(let i = 0; i < (discardedLoot.slug.includes(word) ? 3 : 1); i++){
                 await restEffect.effectFunction(data);
             }
@@ -693,7 +695,7 @@ export function parseTheActivePlayerEffect(s: string, game: Game, nr: NumberRobu
         case "the active player chooses a player. that player destroys a soul they control":
             return noTargetEffect(monster.activePlayerSelectAndCallEffect(game, active.destroyOneOfYourSoulEffect(game)));
         default:
-            throw new Error(`Could not parse 'The active player ...' effect: ${s}`);
+            throw new GameError(`Could not parse 'The active player ...' effect: ${s}`, toSerializedTranslation("error2.parsingError", {error: `Could not parse 'The active player ...' effect: ${s}`}));
     }
 }
 
@@ -1349,7 +1351,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
         case "look at the top x cards of the monster or room deck and put them back in any order":
             return { effectFunction: active.lookAndReorderTopCardsEffect(game, nr.nextNumber(), undefined, "dataIssuer"), targetSelectors: selectDeck(game, 1, 1, (name) => ["room", "monster"].includes(name)) };
         case "before a dice is rolled, choose a number. till the end of turn, each time that number is rolled, deal x damage to a monster or player":
-            return { effectFunction: passive.chooseNumberDamageOnRollThisTurnEffect(game, nr.nextNumber()), targetSelectors: selectNumber1to6() };
+            return { effectFunction: passive.chosenumberDamageOnRollThisTurnEffect(game, nr.nextNumber()), targetSelectors: selectNumber1to6() };
         case "you may attack an additional time this turn":
             return noTargetSyncEffect(active.giveAdditionalAttackThisTurnEffect(game, 1));
         case "put counters on this equal to the amount of damage taken. then, if this has x+ counters, remove x counters from this and gain x treasure":

@@ -1,6 +1,7 @@
 import { type Card, BsoulCard, ItemCard, TreasureCard } from "../cards";
 import { Player } from "../entities/player";
-import { Game } from "../game";
+import { Game } from '../game';
+import { GameError } from "@/models/GameError";
 import type {
     OnCoinGainedData,
     OnDeathBeforePenaltyData,
@@ -12,6 +13,7 @@ import type {
 import { addPassiveEffectToStack } from "./passiveEffect";
 export type OffEffectFunction = () => void;
 import { EffectData } from "../types/cardTypes";
+import { toSerializedTranslation } from "@/utils/translation";
 /**
  * Bsouls are particular for several reasons.
  * First, they are not owned by players.
@@ -26,7 +28,7 @@ import { EffectData } from "../types/cardTypes";
  */
 export function bSoulEffectParser(card: BsoulCard, game: Game): OffEffectFunction {
     const s = card.effectOutcomes[0];
-    if(!s) throw new Error("Bonus Soul card has no effect outcome: " + card.name);
+    if(!s) throw new GameError("Bonus Soul card has no effect outcome: " + card.name, toSerializedTranslation("error2.parsingError", {error: "Bonus Soul card has no effect outcome"}));
     switch (s) {
         case "The first player to have 10 or more loot cards in their hand gains this soul.":
             return soulOfGluttonyEffect(game, card);
@@ -46,7 +48,7 @@ export function bSoulEffectParser(card: BsoulCard, game: Game): OffEffectFunctio
             return soulOfSlothEffect(game, card);
 
         default:
-            throw new Error("Unknown Bonus Soul effect: " + s);
+            throw new GameError("Unknown Bonus Soul effect: " + s, toSerializedTranslation("error2.parsingError", {error: "Unknown Bonus Soul effect"}));
     }
 }
 
@@ -126,7 +128,7 @@ function soulOfEnvyEffect(game: Game, card: Card): OffEffectFunction {
         const effect = async (data: EffectData) => {
             const fewestSouls = Math.min(...game.players.map(p => p.totalSouls));
             const playersWithFewestSouls = game.players.filter(p => p.totalSouls === fewestSouls);
-            const selected = (await game.select(eventIssuer, 1, 1, playersWithFewestSouls, "Select a player to gain the Soul of Envy", false)).selected[0];
+            const selected = (await game.select(eventIssuer, 1, 1, playersWithFewestSouls, toSerializedTranslation("pending.playerToGainSoulOfEnvy"), false)).selected[0];
             game.cardHandler.addSoul(selected as Player, card);
             return true;
         }
@@ -213,7 +215,7 @@ function soulOfSlothEffect(game: Game, card: Card): OffEffectFunction {
         const effect = async (data: EffectData) => {
             const fewestTreasure = Math.min(...game.players.map(p => p.inPlay.length));
             const playersWithFewestTreasures = game.players.filter(p => p.inPlay.length === fewestTreasure);
-            const selected = (await game.select(eventData.eventIssuer, 1, 1, playersWithFewestTreasures, "Select a player to gain the Soul of Sloth", false)).selected[0];
+            const selected = (await game.select(eventData.eventIssuer, 1, 1, playersWithFewestTreasures, toSerializedTranslation("pending.playerToGainSoulOfSloth"), false)).selected[0];
             game.cardHandler.addSoul(selected as Player, card);
             return true;
         };

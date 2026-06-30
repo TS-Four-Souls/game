@@ -1,6 +1,8 @@
-import type { SelectionItem } from "@/shared/api";
+import type { SelectionItem, SerializedTranslation } from "@/shared/api";
 import { Player } from "../entities/player";
 import { TargetBuilder } from "../targetBuilder";
+import { GameError } from "@/models/GameError";
+import { toSerializedTranslation } from "@/utils/translation";
 
 export interface PendingSelection {
           playerId: string;
@@ -8,7 +10,7 @@ export interface PendingSelection {
           min: number;
           max: number;
           requestId: string;
-          description: string;
+          description: SerializedTranslation;
           canUseOnBoardSelection: boolean;
           resolve: (selection: any[]) => void;
         }
@@ -36,12 +38,14 @@ export abstract class SelectionHandler {
           min: number,
           max: number,
           Options: T[],
-          description: string = "UNDEFINED SHOULD NOT HAPPEN",
+          description: SerializedTranslation,
+
           skippable: boolean = true,
           canUseOnBoardSelection: boolean = true,
       ): Promise<{ selected: T[]; remaining: T[] }> {
         if (min < 0 || min > max) {
-          throw new Error(`Invalid selection bounds: min (${min}) must be between 0 and max (${max}).`);
+          throw new GameError(`Invalid selection bounds: min (${min}) must be between 0 and max (${max}).`,
+            toSerializedTranslation("error.invalidSelectionBounds", { min: min, max: max })); 
         }
     
         if ((min === max && Options.length === max && skippable) || Options.length < min) {
@@ -81,20 +85,24 @@ export abstract class SelectionHandler {
         if (pending && pending.playerId === player.id) {
           // Validate selection count
           if (selectedIdentifiers.length !== pending.max && pending.min === pending.max) {
-            throw new Error(`Must select exactly ${pending.max} option(s)`);
+            throw new GameError(`Must select exactly ${pending.max} option(s)`,
+              toSerializedTranslation("error.mustSelectExactlyN", { count: pending.max }));
           }
           else if (selectedIdentifiers.length > pending.max) {
-            throw new Error(`Must select at most ${pending.max} option(s)`);
+            throw new GameError(`Must select at most ${pending.max} option(s)`,
+              toSerializedTranslation("error.mustSelectAtMostN", { count: pending.max }));
           }
           else if (selectedIdentifiers.length < pending.min) {
-            throw new Error(`Must select at least ${pending.min} option(s)`);
+            throw new GameError(`Must select at least ${pending.min} option(s)`,
+              toSerializedTranslation("error.mustSelectAtLeastN", { count: pending.min }));
           }
     
           // Resolve identifiers back to actual options
           const selected = selectedIdentifiers.map((id) => {
             const option = TargetBuilder["resolveIdentifier"](id, pending.options);
             if (option === undefined) {
-              throw new Error(`Invalid selection identifier: ${id.payload}`);
+              throw new GameError(`Invalid selection identifier: ${id.payload}`,
+                toSerializedTranslation("error.invalidSelectionIdentifier"));
             }
             return option;
           });
@@ -105,7 +113,9 @@ export abstract class SelectionHandler {
           return;
         }
         // No matching pending selection found
-        throw new Error("No pending selection found for this request ID");
+        throw new GameError("No pending selection found for this request ID",
+          toSerializedTranslation("error2.behaviorError", { error: "No pending selection found for this request ID" })
+        );
       }
     
       /**
@@ -119,7 +129,7 @@ export abstract class SelectionHandler {
           min: number;
           max: number;
           options: T[];
-          description: string;
+          description: SerializedTranslation;
           skippable?: boolean;
           canUseOnBoardSelection: boolean;
         }[]

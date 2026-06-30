@@ -1,12 +1,15 @@
-import { type ActiveEffectEntry, type BonusSoulCard, type DescriptiveVisualEffectBox, type IdentifierType, type VisualEffectBox } from '@/shared/api';
-import type { FlipData, BonusSoulCardType, CardRewards, CharacterCardType, EternalCardType, GenericCardType, InPlayCardType, LootCardType, MonsterCardType, RoomCardType, TreasureCardType } from '@/types/cardTypes';
+import { type ActiveEffectEntry, type BasicSerializedTranslation, type BonusSoulCard, type DescriptiveVisualEffectBox, type IdentifierType, type VisualEffectBox } from '@/shared/api';
+import type { BonusSoulCardType, CardRewards, CharacterCardType, EternalCardType, FlipData, GenericCardType, InPlayCardType, LootCardType, MonsterCardType, RoomCardType, TreasureCardType } from '@/types/cardTypes';
 import { print, shuffle } from '@/utils/auxiliary';
+import { toSerializedTranslation, translationKeyFromCardSlug } from '@/utils/translation';
+import { Effect, EffectInterface, PassiveEffect } from './effects/effects';
 import type { Entity } from './entities/entity';
 import { Player } from './entities/player';
+import { GameError } from "@/models/GameError";
 import type { GameParameters } from './gameParameters';
 import { EffectOnStack } from './stackElement';
 import { type CardSetsCollection, type DecksCollection, type DeckType, type DeckTypeToCardType, type TargetsSelector } from './types/cardTypes';
-import { EffectInterface, Effect, PassiveEffect } from './effects/effects';    
+
 export type EffectRange = DescriptiveVisualEffectBox[];
 export type CardEffectsRanges = EffectRange[];
 class Card {
@@ -80,9 +83,14 @@ class Card {
         }
         return this._name + ": " + this._effectOutcomes.join(", ") + toAdd;
     }
+    get nameKey(): BasicSerializedTranslation {
+        if(this._flipped)
+            return translationKeyFromCardSlug(this.flipData!.slug)
+        return translationKeyFromCardSlug(this._slug);
+    }
     getEffectRange(idx: number): EffectRange {
         if(idx < 0 || idx >= this._separatorIds.length)
-            throw new Error(`Effect index ${idx} is out of bounds for card ${this.name}, ${this._separatorIds}`);
+            throw new GameError(`Effect index ${idx} is out of bounds for card ${this.name}.`, toSerializedTranslation("error2.effectIndexOutOfBounds", {card: this.name, index: idx}));
         return this._separatorIds[idx]!;
     }
 
@@ -97,7 +105,7 @@ class Card {
         // tmp
         return { startIndex:0, endIndex:0 };
 
-        // throw new Error(`Effect description "${description}" not found for card ${this.name}`);
+        // throw new GameError(`Effect description "${description}" not found for card ${this.name}`);
     }
     get counters(): CounterHandler {
         return this._counterHandler;
@@ -194,12 +202,12 @@ class Card {
         if(this._flipped)
             return {
             slug: this.flipData!.slug,
-            name: this.flipData!.name,
+            nameKey: this.nameKey,
             globalId: this._globalId,
         };
         return {
             slug: this._slug,
-            name: this._name,
+            nameKey: this.nameKey,
             globalId: this._globalId,
         };
     }
@@ -214,7 +222,7 @@ class Card {
     }
     get owner(): Entity {
         if(!this._owner)
-            throw new Error(`Card ${this.name} does not have an owner.`);
+            throw new GameError(`Card ${this.name} does not have an owner.`, toSerializedTranslation("error2.noOwnerForCard", {card: this.name}));
         return this._owner;
     }
     set owner(value: Entity | undefined) {
@@ -236,7 +244,10 @@ class Card {
                 if(effect.toLowerCase().includes("roll-") || effect.toLowerCase().includes("rolls-") || effect.toLowerCase().includes("instead-") || effect.toLowerCase().includes("times!-"))
                     {
                         if(nbLines < 2)
-                            throw new Error(`Effect outcome "${effect}" has a newline but is not a roll or choose one effect.`);
+                        {
+                            const err = `Effect outcome "${effect}" has a newline but is not a roll or choose one effect.`;
+                            throw new GameError(err, toSerializedTranslation("error2.parsingError", {error: err}));
+                        }
                         // new line separate roll- with first effect, but there is no separator. 
                         if(nbLines == 2)
                             effectRange.push([{startIndex: id, endIndex: id, description: lines[0]!}]);
@@ -254,7 +265,10 @@ class Card {
                     }
                     effectRange.push(arr);
                 }else if( effect.includes("-\n") &&  effect.includes("whiff-\n") === false)
-                    throw new Error(`Effect outcome "${effect}" has a newline but is not a roll or choose one effect.`);
+                    {
+                        const err = `Effect outcome "${effect}" has a newline but is not a roll or choose one effect.`;
+                        throw new GameError(err, toSerializedTranslation("error2.parsingError", {error: err}));
+                    }
                 else
                     {
                         effectRange.push([{startIndex: id, endIndex: id, description: effect}]);
@@ -482,7 +496,7 @@ export class ItemCard extends Card {
           this._charged = false;
           return this._effectInterface.tapEffect(this.owner, targets);
         }
-        throw new Error("Cannot activate uncharged item");
+        throw new GameError("Cannot activate uncharged item", toSerializedTranslation("error.cannotActivateUnchargedItem"));
       default:
         return this._effectInterface.paidEffect(this.owner, targets, effectId);
     }
@@ -772,13 +786,13 @@ class CardSet<T extends Card> {
     }
     get(id: number) : T {
         if(this._set === undefined) {
-            throw new Error(`Card set of type ${this._type} is undefined.`);
+            throw new GameError(`Card set of type ${this._type} is undefined.`, toSerializedTranslation("error.cardSetTypeUndefined", {type: this._type}));
         }
         if (id < 0 || id >= this._set.length) {
-            throw new Error(`Card id ${id} is out of bounds for card set of length ${this._set.length}`);
+            throw new GameError(`Card id ${id} is out of bounds for card set of length ${this._set.length}`, toSerializedTranslation("error.cardIdOutOfBoundsForCardSet", {id: id, value: this._set.length}));
         }
         if(typeof this._set[id] === "undefined" || this._set[id] === null) {
-            throw new Error(`Card id ${id} is undefined or null in card set of type ${this._type}.`);
+            throw new GameError(`Card id ${id} is undefined or null in card set of type ${this._type}.`, toSerializedTranslation("error.cardIdUndefinedInCardSet", {id: id, type: this._type}));
         }
         return this._set[id];
     }
@@ -786,7 +800,7 @@ class CardSet<T extends Card> {
     id(card: T) : number {
         const index = this._set.indexOf(card);
         if (index === -1) {
-            throw new Error(`Card not found in card set.`);
+            throw new GameError(`Card not found in card set.`, toSerializedTranslation("error.cardNotFoundInCardSet"));
         }
         return index;
     }
@@ -824,7 +838,9 @@ function LoadsCardSets(json_array: GenericCardType[]) : {nextGlobalId: number, c
     for(let index:number = 0; index < json_array.length; index++) {
         const card_json = json_array[index];
         if (typeof card_json === "undefined" || card_json === null) {
-            throw new Error(`Card id ${card_json} is undefined or null in card set.`);
+            throw new GameError(`Card id ${card_json} is undefined or null in card set.`,
+                toSerializedTranslation("error.cardIdUndefinedInCardSet", {id: card_json, type: "unknown"})
+            );
         }
         const type: string = String(card_json.type);
         
@@ -851,7 +867,9 @@ function LoadsCardSets(json_array: GenericCardType[]) : {nextGlobalId: number, c
                 sets.room.addCard(card_json, globalId++);
                 break;
             default:
-                throw new Error(`Unknown card type: ${type}. Only loot, treasure, eternal, character, monster, bsoul, and room are allowed.`);
+                throw new GameError(`Unknown card type: ${type}. Only loot, treasure, eternal, room, character, monster, bsoul, and room are allowed.`,
+                    toSerializedTranslation("error2.behaviorError", {error: `Unknown card type: ${type}. Only loot, treasure, eternal, room, character, monster, bsoul, and room are allowed.`})
+                );
         }
     }
     return {nextGlobalId: globalId, cardSets: sets};
@@ -901,7 +919,9 @@ class Deck<T extends Card> {
         const setCardId = this._set.id(card);
         if(cardId !== setCardId)
         {
-            throw new Error("Card to remove does not belong to this deck's card set.");
+            throw new GameError("Card to remove does not belong to this deck's card set.",
+                toSerializedTranslation("error.cardToRemoveNotInDeckCardSet")
+            );
         }
         const index = this._order.indexOf(cardId);
         if(index >= 0)
@@ -915,7 +935,9 @@ class Deck<T extends Card> {
                 this._discard.splice(discardIndex, 1);
             }
             else{
-                throw new Error("Card to remove not found in deck or discard pile.");
+                throw new GameError("Card to remove not found in deck or discard pile.",
+                    toSerializedTranslation("error.cardToRemoveNotFoundInDeckOrDiscard")
+                );
             }
         }
     }
@@ -943,18 +965,26 @@ class Deck<T extends Card> {
         }
         const posFromEnd: number = this._order.length - 1 - positionFromTop;
         if (posFromEnd >= this._order.length) {
-            throw new Error(`Cannot draw card at position ${positionFromTop} from top, deck of type ${this._type} has only ${this._order.length} cards.`);
+            throw new GameError(`Cannot draw card at position ${positionFromTop} from top, deck of type ${this._type} has only ${this._order.length} cards.`,
+                toSerializedTranslation("error.cannotDrawCardAtPositionFromTop", {value: positionFromTop, type: this._type, count: this._order.length})
+            );
         }
         if(posFromEnd < 0 || this._order.length === 0)
         {
-            throw new Error(`Cannot draw card at position ${positionFromTop} from top even after resetting discard, deck of type ${this._type} has only ${this._order.length} cards.`);
+            throw new GameError(`Cannot draw card at position ${positionFromTop} from top even after resetting discard, deck of type ${this._type} has only ${this._order.length} cards.`,
+                toSerializedTranslation("error.cannotDrawCardAtPositionFromTopAfterReset", {value: positionFromTop, type: this._type, count: this._order.length})
+            );
         }
         const id: number = this._order[posFromEnd]!;
         if(id === undefined || id === null) {
-            throw new Error(`Card id at position ${positionFromTop} from top is undefined or null in deck of type ${this._type}.`);
+            throw new GameError(`Card id at position ${positionFromTop} from top is undefined or null in deck of type ${this._type}.`,
+                toSerializedTranslation("error.cardIdAtPositionUndefined", {value: positionFromTop, type: this._type})
+            );
         }
         if(this._set === undefined) {
-            throw new Error(`Card set of type ${this._type} is undefined.`);
+            throw new GameError(`Card set of type ${this._type} is undefined.`,
+                toSerializedTranslation("error.cardSetTypeUndefined", {type: this._type})
+            );
         }
         // console.log(`Drawing card id ${id} from deck of type ${this._type} at position from top ${positionFromTop}.`);
         const result = this._set.get(id);
@@ -995,7 +1025,9 @@ class Deck<T extends Card> {
         const setCardId = this._set.id(card);
         if(cardId !== setCardId)
         {
-            throw new Error("Card to get from discard does not belong to this deck's card set.");
+            throw new GameError("Card to get from discard does not belong to this deck's card set.",
+                toSerializedTranslation("error2.behaviorError", {error: "Card to get from discard does not belong to this deck's card set."})
+            );
         }
         const index = this._discard.indexOf(cardId);
         if(index >= 0)
@@ -1012,7 +1044,9 @@ class Deck<T extends Card> {
         }
         const id = this._discard.pop()!;
         if (typeof id === "undefined" || id === null) {
-            throw new Error(`Card id drawn from discard pile is undefined or null in deck of type ${this._type}.`);
+            throw new GameError(`Card id drawn from discard pile is undefined or null in deck of type ${this._type}.`,
+                toSerializedTranslation("error.drawnDiscardCardIdUndefined", {type: this._type})
+            );
         }
         return this._set.get(id);
     }
@@ -1043,7 +1077,7 @@ class Deck<T extends Card> {
             card.slug === slug && (globalId === undefined || card.globalId === globalId)
         );
         // if( res === undefined ) {
-        //     throw new Error(
+        //     throw new GameError(
         //         globalId === undefined
         //             ? `No card with slug ${slug} found in deck of type ${this._type}.`
         //             : `No card with slug ${slug} and global id ${globalId} found in deck of type ${this._type}.`
@@ -1109,7 +1143,9 @@ class Hand {
     addToHand(card: LootCard): void {
         if (card.type !== "loot") {
             print("Error, hand should only contain loot cards.")
-            throw new Error("Hand can only contain loot cards.");
+            throw new GameError("Hand can only contain loot cards.",
+                toSerializedTranslation("error2.behaviorError", {error: "Hand can only contain loot cards."})
+            );
         }
         this._hand.push(card);
     }
@@ -1146,7 +1182,9 @@ export function assertCardMatchesDeck<T extends DeckType>(
     card: Card
 ): asserts card is DeckTypeToCardType[T] {
     if (card === undefined || card.type !== deckName) {
-        throw new Error(`Card type ${card?.type} doesn't match deck ${deckName}`);
+        throw new GameError(`Card type ${card?.type} doesn't match deck ${deckName}`,
+            toSerializedTranslation("error.cardTypeDoesNotMatchDeck", {cardType: card?.type || "undefined", deckType: deckName})
+        );
     }
 }
 
@@ -1227,7 +1265,9 @@ function LoadDecks(json_array: GenericCardType[], numPlayers: number, parameters
             for (const cardParam of paramCards) {
                 const copyGroup = slugToCopies.get(cardParam.slug);
                 if (copyGroup === undefined) {
-                    throw new Error(`Card with slug ${cardParam.slug} not found in card set of type ${type}.`);
+                    throw new GameError(`Card with slug ${cardParam.slug} not found in card set of type ${type}.`,
+                        toSerializedTranslation("error.cardSlugNotFoundInCardSet", {slug: cardParam.slug, type: type})
+                    );
                 }
                 let next_set_id = 0;
                 let createCopy = false;
@@ -1260,7 +1300,9 @@ function randomCardFromSet<T extends Card>(set: CardSet<T>, random: () => number
     const randomIndex = Math.floor(random() * set.length);
     const card = set.get(randomIndex);
     if (card === undefined) {
-    throw new Error(`Card id ${randomIndex} is out of bounds for card set of length ${set.length}`);
+    throw new GameError(`Card id ${randomIndex} is out of bounds for card set of length ${set.length}`,
+        toSerializedTranslation("error.cardIdOutOfBoundsForCardSet", {id: randomIndex, value: set.length})
+    );
     }
     return card;
 }

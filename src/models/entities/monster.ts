@@ -3,6 +3,7 @@ import type { EntityType } from "@/shared/api";
 import type { MonsterCard } from "../cards";
 import type { Encounters } from "../slots/encounters";
 import type { CardRewards } from "@/types/cardTypes";
+import { translationKeyFromCardSlug } from "@/utils/translation";
 
 /**
  * Represents a monster entity in the Four Souls game.
@@ -84,7 +85,7 @@ export class Monster extends Entity {
   get json(): EntityType {
     return {
       type: "monster",
-      name: this.name,
+      nameKey: this._card.nameKey,
       color: this.color,
       slug: this.card.slug,
       globalId: this.card.globalId,

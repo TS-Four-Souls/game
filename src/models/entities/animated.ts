@@ -2,6 +2,7 @@ import type { EntityType } from "@/shared/api";
 import type { CardRewards } from "@/types/cardTypes";
 import type { Card } from "../cards";
 import { Entity } from "./entity";
+import { translationKeyFromCardSlug } from "@/utils/translation";
 
 /**
  * Animated entities are entities are entities that are neither players nor monsters.
@@ -23,7 +24,7 @@ export class Animated extends Entity {
 
   override get json(): EntityType {
     return {
-      name: this.id,
+      nameKey: this._card.nameKey,
       slug: this._card.slug,
       globalId: this._card.globalId,
       color: this.color,

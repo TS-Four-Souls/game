@@ -161,9 +161,12 @@ describe("Requiem Rooms", () => {
         expect(room.counters.value("normal")).toBe(2);
 
         // test coin given goal
-        game.gainCoins(player1, 10, ("debug"));
-        game.giveCoins(player1, player2, 6);
+        game.gainCoins(player1, 10, "debug");
+        await game.giveCoins(player1, player2, 6);
+        expect(player2.coins).toBe(6);
         await Promise.resolve();
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(game.hasPendingSelections).toBe(false);
         expect(room.counters.value("normal")).toBe(3);
 
         game.random = () => 0.99
@@ -184,11 +187,11 @@ describe("Requiem Rooms", () => {
         const room = game.obtainCard("r-restock_machine") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
-            return { selected: ["monster"], remaining: Options } as any;
+            return { selected: [game.decks.monster], remaining: Options } as any;
         };
-        game.gainCoins(player1, 3, ("debug"));
+        game.gainCoins(player1, 3, "debug");
         const slugs = game.monsters.map(i => i!.card.slug);
-        await game.actions.activateRoom(player1, room, ["treasure"], 0);
+        await game.actions.activateRoom(player1, room, [], 0);
         await game.actions.resolveStack();
         expect(game.monsters.every(i => i === null || !slugs.includes(i!.card.slug))).toBe(true);
         expect(slugs.every(s => game.decks.monster.discard.map(c => c.slug).includes(s!))).toBe(true);
@@ -199,7 +202,7 @@ describe("Requiem Rooms", () => {
         game.rooms?.forceRoomAtSlot(0, room);
         game.gainCoins(player1, 3, ("debug"));
         const slugs = game.shop.itemsInShop.map(i => i!.slug);
-        await game.actions.activateRoom(player1, room, ["treasure"], 0);
+        await game.actions.activateRoom(player1, room, [], 0);
         await game.actions.resolveStack();
         expect(game.shop.itemsInShop.every(i => i === null || !slugs.includes(i!.slug))).toBe(true);
         expect(slugs.every(s => game.decks.treasure.discard.map(c => c.slug).includes(s!))).toBe(true);

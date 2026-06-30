@@ -176,7 +176,7 @@ describe("Monster Rewards - Verification", () => {
     describe("Boss Soul Rewards", () => {
         it("should give 1 soul for killing Death (boss)", async () => {
             // Death allows player to kill someone. This makes sure active player kills someone else.
-            game.select = async (player: Player, min: number, max: number, Options: any[], description: string = "UNDEFINED SHOULD NOT HAPPEN") => {
+            game.select = async (player: Player, min: number, max: number, Options: any[], description = {key:""}) => {
                 return { selected: Options.slice( 1, 2), remaining: Options.slice(1) };
             }
             await testMonsterReward("b2-death", { souls: 1, treasures: 1 });

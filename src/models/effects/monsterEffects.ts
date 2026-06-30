@@ -5,6 +5,7 @@ import { type TriggerEvent } from '@/models/types/eventTypes';
 import { Card, MonsterCard } from "../cards";
 import { Entity } from "../entities/entity";
 import { Game } from "../game";
+import { GameError } from "@/models/GameError";
 import { Monster } from "../entities/monster";
 import { Player } from "../entities/player";
 import { DiceRoll } from "../stackElement";
@@ -32,6 +33,7 @@ import { effectParser } from "./parsing/effectParser";
 import { addPassiveEffectToStack } from "./passiveEffect";
 import { makeAnAttackRollAfterEachAttackRollEffect } from './roomEffects';
 import { Animated } from '../entities/animated';
+import { toSerializedTranslation } from '@/utils/translation';
 
 export function thisHealsEffect(game: Game, amount: number): SyncEffectFunction {
     return (data: EffectData) => {
@@ -39,7 +41,9 @@ export function thisHealsEffect(game: Game, amount: number): SyncEffectFunction 
         if(!(data.issuer instanceof Monster))
             target = game.monsters.find((m) => m.json.globalId === data.it.globalId)!;
         if(!target)
-            throw new Error("thisHealsEffect effect could not find the monster to heal.");
+            throw new GameError("thisHealsEffect effect could not find the monster to heal.",
+                toSerializedTranslation("error2.behaviorError", { error: "thisHealsEffect effect could not find the monster to heal." })
+            );
         game.entityHandler.heal(target, amount);
         return true;
     };
@@ -163,7 +167,8 @@ export function eachPlayerRollLowestOrTiedForLowestDiesEffect(game: Game): SyncE
         const targets = game.players.filter(p => !p.isDead);
         const dices:DiceRoll[] = [];
         if(data.issuer instanceof Monster === false)
-            throw new Error("eachPlayerRollLowestOrTiedForLowestDiesEffect can only be applied when the issuer is a monster.");
+            throw new GameError("eachPlayerRollLowestOrTiedForLowestDiesEffect can only be applied when the issuer is a monster.",
+        toSerializedTranslation("error2.behaviorError", { error: "eachPlayerRollLowestOrTiedForLowestDiesEffect can only be applied when the issuer is a monster." }));
         const effect:EffectFunction = (effectData: EffectData) => {
             const lowestValue = Math.min(...dices.map(d => d.value));
             const playersToDie = dices.filter((dice) => dice.value === lowestValue).map(d => d.issuer);
@@ -213,7 +218,7 @@ export function activePlayerSelectAndCallEffect(game: Game, effectFunction: Effe
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
         
-        const targetSelection = await data.selectAndRecord(game, player, (may ? 0 : 1), 1, game.players.filter(p => !anotherPlayer || p !== player), "Select a player.", true, true);
+        const targetSelection = await data.selectAndRecord(game, player, (may ? 0 : 1), 1, game.players.filter(p => !anotherPlayer || p !== player), toSerializedTranslation("selector.player"), true, true);
         const targetPlayer = targetSelection.selected[0] as Player;
         if(!targetPlayer){
             return false;
@@ -273,7 +278,8 @@ export function targetTakeDamageEffect(game: Game, damage: number): SyncEffectFu
     return (data: EffectData) => {
         const target = data.next;
         if(!(target instanceof Entity))
-            throw new Error("targetTakeDamageEffect can only be applied to entity targets.");
+            throw new GameError("targetTakeDamageEffect can only be applied to entity targets.",
+                toSerializedTranslation("error2.behaviorError", { error: "targetTakeDamageEffect can only be applied to entity targets." }));
         game.entityHandler.dealDamage(data.issuer as Entity, data.targets[0] as Entity, data.it, damage);
         return true;
     };
@@ -283,7 +289,9 @@ export function targetTakeDamageEffect(game: Game, damage: number): SyncEffectFu
  */
 export function OnDamageByActivePlayerRollDealDamageEffect(game: Game, numbers: number[]): SyncEffectFunction {
     if(numbers.length < 9)
-        throw new Error("OnDamageByActivePlayerRollDealDamageEffect requires an array of 9 numbers as parameter, representing the roll thresholds for each outcome.");
+        throw new GameError("OnDamageByActivePlayerRollDealDamageEffect requires an array of 9 numbers as parameter, representing the roll thresholds for each outcome.",
+            toSerializedTranslation("error2.behaviorError", { error: "OnDamageByActivePlayerRollDealDamageEffect requires an array of 9 numbers as parameter, representing the roll thresholds for each outcome." })
+        );
     const ranges = [[numbers[0], numbers[1]], [numbers[3], numbers[4]], [numbers[6], numbers[7]]];
     const dmgs = [numbers[2], numbers[5], numbers[8]];
     return (data: EffectData) => {
@@ -380,10 +388,14 @@ export function putInMonsterDeckNFromTopEffect(game: Game, n: number): SyncEffec
     return (data: EffectData) => {
         const monsterDeck = game.decks.monster;
         if (!(data.it instanceof MonsterCard)) {
-            throw new Error("putInMonsterDeckNFromTopEffect can only be applied to monster cards.");
+            throw new GameError("putInMonsterDeckNFromTopEffect can only be applied to monster cards.",
+                toSerializedTranslation("error2.behaviorError", { error: "putInMonsterDeckNFromTopEffect can only be applied to monster cards." })
+            );
         }
         if (!Number.isFinite(n) || n < 1) {
-            throw new Error(`Invalid n for putInMonsterDeckNFromTopEffect: ${n}`);
+            throw new GameError(`Invalid n for putInMonsterDeckNFromTopEffect: ${n}`,
+                toSerializedTranslation("error2.behaviorError", { error: `Invalid n for putInMonsterDeckNFromTopEffect: ${n}` })
+            );
         }
         data.it.afterEffect = "handled"; // Card placement is handled by this effect
         game.encounters.removeFromSlot(data.it);
@@ -479,7 +491,8 @@ export function noCombatDamageOnAttackRollEffect(game: Game, rollValues: number[
             if(!rollValues.includes(roll.value)) return;
             const player = target instanceof Player ? target : eventIssuer;
             if(player instanceof Player === false)
-                throw new Error("noCombatDamageOnAttackRollEffect can only be applied when the target or event issuer is a player.");
+                throw new GameError("noCombatDamageOnAttackRollEffect can only be applied when the target or event issuer is a player.",
+                    toSerializedTranslation("error2.behaviorError", { error: "noCombatDamageOnAttackRollEffect can only be applied when the target or event issuer is a player." }));
             const minDiceValue  = player.diceModifier + player.attackDiceModifier + 1;
             const maxValidValue = Math.max(...[1,2,3,4,5,6].filter(v => !rollValues.includes(v)));
             if(rollValues.includes(6) && minDiceValue > maxValidValue) 
@@ -576,7 +589,9 @@ export function damageAlsoPlayerToTheEffect(game: Game, direction: "left" | "rig
             if (data.issuer !== eventIssuer) return;
             if(eventIssuer !== data.issuer) return;
             if(damage === undefined)
-                throw new Error("damageAlsoPlayerToTheEffect: damage is undefined.");
+                throw new GameError("damageAlsoPlayerToTheEffect: damage is undefined.",
+                    toSerializedTranslation("error2.behaviorError", { error: "damageAlsoPlayerToTheEffect: damage is undefined." })
+            );
             // Add all effects as a single stack element
             const effect = (effectData: EffectData): boolean => {
                 const player = game.getPlayerToThe(direction);
@@ -604,7 +619,8 @@ export function damageDealtToActivePlayerAlsoToTheEffect(game: Game, direction: 
             if (data.issuer !== target) return;
             if(game.currentPlayer !== eventIssuer) return;
             if(damage === undefined)
-                throw new Error("damageAlsoPlayerToTheEffect: damage is undefined.");
+                throw new GameError("damageAlsoPlayerToTheEffect: damage is undefined.",
+                    toSerializedTranslation("error2.behaviorError", { error: "damageAlsoPlayerToTheEffect: damage is undefined." }));
             // Add all effects as a single stack element
             const effect = (effectData: EffectData): boolean => {
                 const player = game.getPlayerToThe(direction);
@@ -628,7 +644,8 @@ export function statModifierWhileAtHealthEffect(game: Game, s: string): SyncEffe
 {
     const numbers = s.match(/\d+/g)?.map(numStr => parseInt(numStr, 10)) || [];
     if(numbers.length != 2)
-        throw new Error("statModifierWhileAtHealthEffect could not parse numbers from string: " + s);
+        throw new GameError("statModifierWhileAtHealthEffect could not parse numbers from string: " + s,
+            toSerializedTranslation("error2.behaviorError", { error: "statModifierWhileAtHealthEffect could not parse numbers from string: " + s }));
     const healthThreshold = numbers[0]!;
     const statAmount = numbers[1]!;
     const orLess = s.includes("or less");
@@ -638,8 +655,9 @@ export function statModifierWhileAtHealthEffect(game: Game, s: string): SyncEffe
             ? "on:get:monster:attackPoints" 
         : null;
     if(!event || (s.includes("[dc]") && s.includes("[atk]")))
-        throw new Error("statModifierWhileAtHealthEffect could not determine stat to modify from string: " + s);
-    
+        throw new GameError("statModifierWhileAtHealthEffect could not determine stat to modify from string: " + s,
+            toSerializedTranslation("error2.behaviorError", { error: "statModifierWhileAtHealthEffect could not determine stat to modify from string: " + s }));
+
     return (data: EffectData) => {
         let offGetStat: (() => void) | null = null;
         const statApplied = false;
@@ -709,9 +727,11 @@ export function combatDamageIsEffect(game: Game, s: string): SyncEffectFunction 
     const numbers =  s.match(/\d+/g)?.map(numStr => parseInt(numStr, 10)) || [];
     const effectOnDamage = s.includes("doubled") ? "double" : numbers.shift();
     if(numbers.length === 0)
-        throw new Error("combatDamageIsEffect could not parse number from string: " + s);
+        throw new GameError("combatDamageIsEffect could not parse number from string: " + s,
+            toSerializedTranslation("error2.behaviorError", { error: "combatDamageIsEffect could not parse number from string: " + s }));
     if(numbers.length > 1)
-        throw new Error("combatDamageIsEffect found too many numbers in string: " + s + " it is unexpected so far.");
+        throw new GameError("combatDamageIsEffect found too many numbers in string: " + s + " it is unexpected so far.",
+            toSerializedTranslation("error2.behaviorError", { error: "combatDamageIsEffect found too many numbers in string: " + s + " it is unexpected so far." }));
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
@@ -771,7 +791,7 @@ export function playerWithMostCoinsLosesAllEffect(game: Game): AsyncEffectFuncti
                 maxCoins = p.coins;
         });
         const playersToLoseCoins = game.players.filter(p => p.coins === maxCoins);
-        const selection = (await data.selectAndRecord(game, game.currentPlayer as Player, 1, 1, playersToLoseCoins, "Select a player who will lose all their coins.", true, true)).selected[0]!;
+        const selection = (await data.selectAndRecord(game, game.currentPlayer as Player, 1, 1, playersToLoseCoins, toSerializedTranslation("pending.playerWhoWillLoseAllTheirCoins"), true, true)).selected[0]!;
         game.loseCoins(selection as Player, selection.coins, true, "effect");
         return true;
     };
@@ -877,10 +897,12 @@ export function activePlayerChoosePlayerDiscardXEffect(game: Game, x: number): A
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
         
-        const targetSelection = await data.selectAndRecord(game, player, 1, 1, game.players, `Select a player who discards ${x} loot cards.`, true, true);
+        const targetSelection = await data.selectAndRecord(game, player, 1, 1, game.players, toSerializedTranslation("pending.playerWhoDiscardsLootCards", { value: x }), true, true);
         const targetPlayer = targetSelection.selected[0] as Player;
         if(!targetPlayer){
-            throw new Error("No player selected for activePlayerChoosePlayerDiscardXEffect.");
+            throw new GameError("No player selected for activePlayerChoosePlayerDiscardXEffect.",
+                toSerializedTranslation("error2.behaviorError", { error: "No player selected for activePlayerChoosePlayerDiscardXEffect." })
+            );
         }
         await active.discardNLootCardsEffect(x, game, true)(new EffectData(data.it, () => targetPlayer, [], data.visualEffectBox));
         return true;
@@ -964,7 +986,9 @@ export function preventDeathFirstTimeEachTurnHealAndStatModifierEffect(game: Gam
             hasPreventedDeathThisTurn = true;
             const effect = (effectData: EffectData): boolean => {
                 if(data.issuer instanceof Monster === false)
-                    throw new Error("preventDeathFirstTimeEachTurnHealAndStatModifierEffect can only be applied to monsters.");
+                    throw new GameError("preventDeathFirstTimeEachTurnHealAndStatModifierEffect can only be applied to monsters.",
+                        toSerializedTranslation("error2.behaviorError", { error: "preventDeathFirstTimeEachTurnHealAndStatModifierEffect can only be applied to monsters." })
+                    );
                 game.entityHandler.preventDeath(eventIssuer as Entity);
                 game.entityHandler.heal(data.issuer, heal - data.issuer.currentHealthPoints); // heal the specified amount from death prevention.
                 game.entityHandler.addDC(data.issuer, dc, data.it); // add the specified + DC
@@ -1002,7 +1026,9 @@ export function forceAttackThisEachTurnEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
         if(!data.issuer || !(data.issuer instanceof Monster)) 
-            throw new Error("forceAttackThisEachTurnEffect can only be applied to monsters.");
+            throw new GameError("forceAttackThisEachTurnEffect can only be applied to monsters.",
+                toSerializedTranslation("error2.behaviorError", { error: "forceAttackThisEachTurnEffect can only be applied to monsters." })
+            );
         game.entityHandler.playerMustAttack(game.currentPlayer, [data.issuer], data.it);
         
         offTurnStart = game.emitter.on("on:turn:start", (eventData: OnTurnEndData) => {
@@ -1028,7 +1054,9 @@ export function attackRequirementEachTurnEffect(game: Game, whom: "any" | "topDe
     return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
         if(data.issuer instanceof Player === false)
-            throw new Error("attackRequirementEachTurnEffect can only be applied to players.");
+            throw new GameError("attackRequirementEachTurnEffect can only be applied to players.",
+                toSerializedTranslation("error2.behaviorError", { error: "attackRequirementEachTurnEffect can only be applied to players." })
+            );
         if(game.currentPlayer === data.issuer) {
             const additionalTimes = type === "additional" ? times : times - game.currentPlayer.attackedIdsThisTurn.filter((id) => id === "topDeck" || whom === "any").length;
             for (let i = 0; i < additionalTimes; i++) {
@@ -1064,10 +1092,12 @@ export function activePlayerChooseLivingPlayerTakeDamageEffect(game: Game, damag
         const livingPlayers = game.players.filter(p => p.currentHealthPoints > 0);
         if(livingPlayers.length === 0)
             return false;
-        const targetSelection = await data.selectAndRecord(game, player, 1, 1, livingPlayers, "Select a living player to take damage.", true, true);
+        const targetSelection = await data.selectAndRecord(game, player, 1, 1, livingPlayers, toSerializedTranslation("pending.livingPlayerToTakeDamage"), true, true);
         const targetPlayer = targetSelection.selected[0] as Player;
         if(!targetPlayer){
-            throw new Error("No player selected for activePlayerChooseLivingPlayerTakeDamageEffect.");
+            throw new GameError("No player selected for activePlayerChooseLivingPlayerTakeDamageEffect.",
+                toSerializedTranslation("error2.behaviorError", { error: "No player selected for activePlayerChooseLivingPlayerTakeDamageEffect." })
+            );
         }
         game.entityHandler.dealDamage(data.issuer as Entity, targetPlayer as Entity, data.it, damage);
         return true;
@@ -1118,14 +1148,16 @@ export function bossRushEffect(game: Game, bossCount: number): AsyncEffectFuncti
             return false;
         const indices = new Map<string, number>();
         options.forEach(c => indices.set(c.name, game.encounters.slots.findIndex(s => s.includes(c))));
-        const selection = await data.selectAndRecord(game, game.currentPlayer, 1, bossCount, options, "Select slots to place the bosses in.", true, true);
+        const selection = await data.selectAndRecord(game, game.currentPlayer, 1, bossCount, options, toSerializedTranslation("pending.slotsToPlaceBossesIn"), true, true);
         const selectedMonsters = selection.selected;
         const selectedIndices = selectedMonsters.map(c => indices.get(c.name)!);
         
         for(let i=0; i < bosses.length; i++)
         {
             if(selectedIndices[i%selectedIndices.length]! < 0)
-                throw new Error("Selected monster for boss rush effect not found in encounter slots.");
+                throw new GameError("Selected monster for boss rush effect not found in encounter slots.",
+                    toSerializedTranslation("error2.behaviorError", { error: "Selected monster for boss rush effect not found in encounter slots." })
+                );
             const slotIndex = selectedIndices[i%selectedIndices.length]!;
             game.encounters.draw(slotIndex);
         }
@@ -1151,7 +1183,7 @@ export function playerWithMostSoulsWinsEffect(game: Game): SyncEffectFunction {
                         maxSouls = p.totalSouls;
                 });
                 const playersWithMostSouls = game.players.filter(p => p.totalSouls === maxSouls);
-                const selectedPlayer = (await data.selectAndRecord(game, eventIssuer as Player, 1, 1, playersWithMostSouls, "Select a player with most souls to win the game.", true, true)).selected[0];
+                const selectedPlayer = (await data.selectAndRecord(game, eventIssuer as Player, 1, 1, playersWithMostSouls, toSerializedTranslation("pending.playerWithMostSoulsToWinGame"), true, true)).selected[0];
                 game.win(selectedPlayer as Player);
                 offGainSoul?.();
                 offGainSoul = null;

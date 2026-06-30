@@ -2,6 +2,7 @@
 
 
 import { Game } from "../game";
+import { GameError } from "@/models/GameError";
 import { EffectData, type AsyncEffectFunction, type EffectFunction, type SyncEffectFunction } from "../types/cardTypes";
 import { Player } from "../entities/player";
 import { Card, LootCard, MonsterCard, TreasureCard, ItemCard } from "../cards";
@@ -13,6 +14,7 @@ import { Monster } from "../entities/monster";
 import { Entity } from "../entities/entity";
 import { Animated } from "../entities/animated";
 import type { DiceRoll } from "../stackElement";
+import { toSerializedTranslation } from "@/utils/translation";
 
 export function preventGainSoulsEffect(game: Game, issuerType: "all" | "issuer"): SyncEffectFunction {
     return (data: EffectData) => {
@@ -44,7 +46,7 @@ export function cancelAttackOnTopOfMonsterDeckEffect(game: Game): SyncEffectFunc
             }
             // Create the effect that will execute when the stack resolves
             const effect = async (effectData: EffectData): Promise<boolean> => {
-                const selection = await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "Do you want to cancel the attack?", false, true, false);
+                const selection = await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], toSerializedTranslation("pending.doYouWantToCancelAttack"), false, true, false);
                 if (selection.selected.length > 0) {
                     game.entityHandler.endCombat();
                 }
@@ -188,7 +190,7 @@ export function lookAtTopNOnAttackEffect(game: Game, n: number): SyncEffectFunct
             }
             const effect = async (effectData: EffectData): Promise<boolean> => { 
                 const topN = game.decks.monster.drawSeveral(n);
-                const order = (await data.selectAndRecord(game, game.currentPlayer, n, n, topN, `Look at the top ${n} cards of the monster deck and put them back in any order.`, false, false)).selected as MonsterCard[];
+                const order = (await data.selectAndRecord(game, game.currentPlayer, n, n, topN, toSerializedTranslation("pending.lookAtTopCardsOfMonsterDeck", { value: n }), false, false)).selected as MonsterCard[];
                 for(let i = order.length - 1; i >= 0; i--) {
                     game.decks.monster.addTopPosition(order[i]!);
                 }
@@ -406,7 +408,7 @@ export function targetNextKillsAnotherPlayerEffect(game: Game): SyncEffectFuncti
                 return false;
             if(game.players.filter(p => p !== killer && p.isDead == false).length === 0)
                 return false; // No valid targets to kill
-            const selected = (await data.selectAndRecord(game, killer, 1, 1, game.players.filter(p => p !== killer && p.isDead == false), "Select a player to kill.")).selected[0]! as Player;
+            const selected = (await data.selectAndRecord(game, killer, 1, 1, game.players.filter(p => p !== killer && p.isDead == false), toSerializedTranslation("pending.playerToKill"), true, true)).selected[0]! as Player;
             game.entityHandler.kill(killer, selected, data.it);
             return true;
         };
@@ -420,7 +422,7 @@ export function mayRerollItemAtStartOfTurnEffect(game: Game): SyncEffectFunction
         let offTurnStart: (() => void) | null = null;
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
             const effect: AsyncEffectFunction = async (effectData: EffectData) => {
-                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, game.cardHandler.inPlayTargetableCards(game.currentPlayer), "You may reroll an item you control.", false)).selected[0] as ItemCard | undefined;
+                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, game.cardHandler.inPlayTargetableCards(game.currentPlayer), toSerializedTranslation("pending.mayRerollItem"), false)).selected[0] as ItemCard | undefined;
                 if(selected) {
                     game.cardHandler.reroll(selected);
                     return true;
@@ -444,7 +446,7 @@ export function mayGainTreasureAtStartOfTurnEffect(game: Game, x: number): SyncE
         let offTurnStart: (() => void) | null = null;
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
             const effect: AsyncEffectFunction = async (effectData: EffectData) => {
-                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], `You may gain ${x} treasure.`, false, true, false)).selected[0] as ItemCard | undefined;
+                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it],  toSerializedTranslation("pending.mayGainTreasure", { value: x }), false, true, false)).selected[0] as ItemCard | undefined;
                 if(selected !== undefined) {
                     game.gainTreasure(game.currentPlayer, x);
                     return true;
@@ -614,11 +616,15 @@ export function canBeAttackedEffect(game: Game): SyncEffectFunction {
             console.log(card.effectOutcomes);
             console.log(card.flipData?.effectOutcome);
             console.log(card.flipped);
-            throw new Error("Expected card stats to be defined for canBeAttackedEffect.");
+            throw new GameError("Expected card stats to be defined for canBeAttackedEffect.",
+                toSerializedTranslation("error2.behaviorError", { error: "Expected card stats to be defined for canBeAttackedEffect." })
+            );
         }
         const { healthPoints, attackPoints, evasionPoints } = card.json.stats;
         if(healthPoints === undefined || attackPoints === undefined || evasionPoints === undefined)
-            throw new Error("Expected all card stats to be defined for canBeAttackedEffect.");
+            throw new GameError("Expected all card stats to be defined for canBeAttackedEffect.",
+                toSerializedTranslation("error2.behaviorError", { error: "Expected all card stats to be defined for canBeAttackedEffect." })
+            );
         card.entity = new Animated(card, card.slug, attackPoints, healthPoints, evasionPoints);
         card.entity.attackable = true;
         game.entityHandler.addAnimated(card.entity as Animated);
@@ -643,14 +649,18 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): SyncEffec
                 return; // Not the current player, ignore
             }
             if(data.issuer === game.currentPlayer)
-                throw new Error("Expected issuer to not be the active player for makeAnAttackRollAfterEachAttackRollEffect.");
+                throw new GameError("Expected issuer to not be the active player for makeAnAttackRollAfterEachAttackRollEffect.",
+                    toSerializedTranslation("error2.behaviorError", { error: "Expected issuer to not be the active player for makeAnAttackRollAfterEachAttackRollEffect." })
+                );
             if(data.issuer.isDead)
                 return; // Dead, ignore
             const effect: SyncEffectFunction = (effectData: EffectData) => {
                 if(data.issuer.isDead || target.isEngagedInCombat === false || target.isDead)
                     return false; // Dead, ignore
                 if(effectData.issuer instanceof Player === false)
-                    throw new Error("Expected issuer to be a player for makeAnAttackRollAfterEachAttackRollEffect.");
+                    throw new GameError("Expected issuer to be a player for makeAnAttackRollAfterEachAttackRollEffect.",
+                        toSerializedTranslation("error2.behaviorError", { error: "Expected issuer to be a player for makeAnAttackRollAfterEachAttackRollEffect." })
+                    );
                     game.actions.attackRoll(effectData.issuer, target);
                 return true;
             };
@@ -683,7 +693,7 @@ export function playerMustDestroyItemOnDeathEffect(game: Game): SyncEffectFuncti
             if(eventIssuer instanceof Player === false)
                 return;
             const effect: AsyncEffectFunction = async (effectData: EffectData) => {
-                const selected = (await effectData.selectAndRecord(game, eventIssuer as Player, 1, 1, game.cardHandler.inPlayTargetableCards(eventIssuer as Player), "Select an item to destroy.", false)).selected[0] as ItemCard | undefined;
+                const selected = (await effectData.selectAndRecord(game, eventIssuer as Player, 1, 1, game.cardHandler.inPlayTargetableCards(eventIssuer as Player), toSerializedTranslation("pending.destroyItem"), false)).selected[0] as ItemCard | undefined;
                 if(selected) {
                     game.cardHandler.destroyCardsOrSouls([selected])
                 }
@@ -735,7 +745,7 @@ export function rerollOnXOrYEffect(game: Game, values: number[]): SyncEffectFunc
             const { eventIssuer, diceRoll } = eventData;
             if(values.includes(diceRoll.value)) {
                 const effect: AsyncEffectFunction = async (effectData: EffectData) => {
-                    const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "You rolled a " + values[0] + " or a " + values[1] + ". Do you want to reroll?", false, true, false)).selected[0] as Card | undefined;
+                    const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], toSerializedTranslation("pending.doYouWantToReroll"), false, true, false)).selected[0] as Card | undefined;
                     if(selected) {
                         diceRoll.roll();
                         return true;
@@ -764,7 +774,9 @@ export function allPlayersPermanentStatModifierEffect(
 ): SyncEffectFunction {
     return (data: EffectData) => {
         if (amount < 0)
-            throw new Error("allPlayersPermanentStatModifierEffect amount must be non-negative.");
+            throw new GameError("allPlayersPermanentStatModifierEffect amount must be non-negative.",
+                toSerializedTranslation("error2.behaviorError", { error: "allPlayersPermanentStatModifierEffect amount must be non-negative." })
+            );
         // Apply the stat modification
         for(const player of game.players) 
             for (const adder of adders)
@@ -785,7 +797,7 @@ export function payHpForTreasureBoostEffect(game: Game, hpAfterPay: number, trea
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
             const effect: AsyncEffectFunction = async (effectData: EffectData) => {
                 const difference = Math.max(0, game.currentPlayer.currentHealthPoints - hpAfterPay);
-                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], "You can pay " + difference + " HP to gain a treasure each time a monster dies this turn. Do you want to?", false, true, false)).selected[0] as Card | undefined;
+                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], toSerializedTranslation("pending.hpToGainTreasure", { value: difference }), false, true, false)).selected[0] as Card | undefined;
                 if(selected !== undefined) {
                     game.entityHandler.dealDamage(game.currentPlayer, game.currentPlayer, data.it, difference, (data: EffectData) => {
                         let offMonsterDeath: (() => void) | null = null;
@@ -961,7 +973,9 @@ export function playersWithFewestSoulsShopItemPriceReductionEffect(game: Game, p
  */
 export function socialGoalsEffect(game: Game, numbers: number[]): SyncEffectFunction {
     if(numbers.length < 13) {
-        throw new Error("Expected 13 numbers for socialGoalsEffect, got " + numbers.length);
+        throw new GameError("Expected 13 numbers for socialGoalsEffect, got " + numbers.length,
+            toSerializedTranslation("error2.parsingError", { error: "Expected 13 numbers for socialGoalsEffect, got " + numbers.length })
+        );
     }
     const discardObjective = numbers[0]!;
     const goalsLoot = numbers[2]!;
@@ -1151,7 +1165,7 @@ export function payOtherPlayersToAttackEffect(game: Game, amount: number): SyncE
             }
             if (eventIssuer.coins < requiredCoins) {
                 eventData.canDeclare[0] = false;
-                eventData.reason[0] = `You must pay ${requiredCoins}¢ to attack, but you only have ${eventIssuer.coins}¢.`;
+                eventData.reason[0] = toSerializedTranslation("capability.paidAttack", { value: requiredCoins, coins: eventIssuer.coins });
                 eventIssuer.clearAttackRequirement();
             }
         });

@@ -77,7 +77,7 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         const initialP2Hand = player2.hand.length;
         
             game.select = async (player: Player, min: number, max: number, Options: any[]) => {
-            return { selected: [{type: "player", payload: {name: player2.json.name, slug: player2.json.slug, globalId: player2.json.globalId}}], remaining: [] } as any;
+            return { selected: [{type: "player", payload: {name: player2.json.nameKey, slug: player2.json.slug, globalId: player2.json.globalId}}], remaining: [] } as any;
         };
         await game.actions.resolveStack();
         await game.actions.resolveStack();

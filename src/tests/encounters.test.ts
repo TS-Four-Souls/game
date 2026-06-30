@@ -1,8 +1,10 @@
 import { MonsterCard, MonsterType } from "@/models/cards";
+import { GameError } from "@/models/GameError";
 import { beforeEach, describe, expect, it } from "bun:test";
-import { Game } from "../models/game";
 import { Player } from "../models/entities/player";
+import { Game } from "../models/game";
 import { setupStandardTestGame } from "./testHelpers";
+import { toSerializedTranslation } from "@/utils/translation";
 
 describe("Encounters", () => {
     let game: Game;
@@ -11,7 +13,7 @@ describe("Encounters", () => {
 
     function getAndAddTopMonsterCard(game: Game, slug: string): void {
         const monsterCard = game.obtainCard(slug) as MonsterCard;
-        if (!monsterCard) throw new Error(`Monster card with slug ${slug} not found.`);
+        if (!monsterCard) throw new GameError(`Monster card with slug ${slug} not found.`, toSerializedTranslation("error2.parsingError", {error: `Monster card with slug ${slug} not found.`}));
         game.encounters._deck.addTopPosition(monsterCard);
     };
 

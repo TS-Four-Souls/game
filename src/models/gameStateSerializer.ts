@@ -1,14 +1,13 @@
 import {
-  Card,
   ItemCard,
-  MonsterCard,
+  MonsterCard
 } from "@/models/cards";
-import { Entity } from "@/models/entities/entity";
 import { Player } from "@/models/entities/player";
+import { Game } from "@/models/game";
 import { TargetBuilder } from "@/models/targetBuilder";
 // import type { DetailedState, IdentifierType, InPlayCard, InPlayMeCard, PendingSelection } from "@/shared/api";
 import * as api from "@/shared/api";
-import type { Game } from "./game";
+import { toSerializedTranslation } from "@/utils/translation";
 
 export class GameStateSerializer {
   private game: Game;
@@ -81,7 +80,7 @@ export class GameStateSerializer {
         useLoot: this.game.actions.canPlayCard(player),
         resolve: this.game.actions.canResolve(),
         canSwitchTo: this.game.actions.canSwitchTo(player, player),
-        canDonateCoinsTo: "You cannot donate coins to yourself.",
+        canDonateCoinsTo: toSerializedTranslation("capability.cannotGiveCoinToSelf"),
       }
     };
   }
@@ -148,7 +147,7 @@ export class GameStateSerializer {
           targetable: this.game.actions.canDeclareAttackOnEntity(me, p, false),
           capabilities: {
             canSwitchTo: this.game.actions.canSwitchTo(me, p),
-            canDonateCoinsTo: this.game.gameParameters.allowCoinDonation.value ? true : "Giving coins is not allowed in this game.",
+            canDonateCoinsTo: this.game.gameParameters.allowCoinDonation.value ? true : toSerializedTranslation("capability.forbidenBartering"),
           },
         }));
   }
@@ -162,7 +161,7 @@ export class GameStateSerializer {
    */
   public serializeOtherInPlay(me: Player, item: ItemCard, owner: Player): api.InPlayCard {
     return {
-      name: item.name,
+      nameKey: item.nameKey,
       slug: item.slug,
       globalId: item.globalId,
       charged: item.charged || !item.activeEffectList.some(e => e.index === "tap"),
@@ -195,7 +194,7 @@ export class GameStateSerializer {
    */
   public serializeCurse(me: Player, curse: MonsterCard, owner: Player): api.InPlayMeCard {
     return {
-      name: curse.name,
+      nameKey: curse.nameKey,
       slug: curse.slug,
       globalId: curse.globalId,
       charged: true,
@@ -272,7 +271,7 @@ export class GameStateSerializer {
 
           top: {
             slug: m.card?.slug,
-            name: m.card?.name,
+            nameKey: m.card?.nameKey,
             globalId: m.card?.globalId,
             ...(m.monster ? {
               stats: {

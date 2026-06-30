@@ -3,11 +3,13 @@
 //  - Bonus Soul effects
 
 
-import { describe, it, expect, beforeEach } from "bun:test";
-import { Game } from "../models/game";
+import { TreasureCard, type CharacterCard, type LootCard } from "@/models/cards";
+import { GameError } from "@/models/GameError";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame, type GameSetupResult } from "@/tests/testHelpers";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../models/entities/player";
-import { type ItemCard, type LootCard, type CharacterCard, TreasureCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame, type GameSetupResult } from "@/tests/testHelpers";
+import { Game } from "../models/game";
+import { toSerializedTranslation } from "@/utils/translation";
 
 
 async function setupGameWithCharacters(characterSlugs: string[]): Promise<GameSetupResult>
@@ -64,7 +66,8 @@ describe("Before start effects", () => {
         game.resolveEntireStack();
         expect(game.stack.size).toBe(0);
         if(!character1 || !character2)
-            throw new Error("Characters not found");
+            throw new GameError("Characters not found", 
+            toSerializedTranslation("error2.behaviorError", {error: "Characters not found"}));
         const initialLootPlays1 = player1.remainingLootPlay;
         const initialLootPlays2 = player2.remainingLootPlay;
         character1.recharge();
@@ -147,7 +150,7 @@ describe("Bonus Soul effects", () => {
         const guppyItem1 = game.shop.obtainCard("b2-guppys_head");
         const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
         if(!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
+            throw new GameError("Guppy items not found in treasure deck", toSerializedTranslation("error2.behaviorError", {error: "Guppy items not found in treasure deck"}));
         game.cardHandler.addInPlay(player1, guppyItem1);
         expect(player1.totalSouls).toBe(initSoul);
         game.cardHandler.addInPlay(player1, guppyItem2);

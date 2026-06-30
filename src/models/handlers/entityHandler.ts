@@ -1,3 +1,4 @@
+
 import {
   Card,
   ItemCard,
@@ -12,10 +13,12 @@ import { Animated } from "@/models/entities/animated";
 import { Entity } from "@/models/entities/entity";
 import { Monster } from "@/models/entities/monster";
 import { Player } from "@/models/entities/player";
+import { Game } from "@/models/game";
+import { GameError } from "@/models/GameError";
 import { DamageOnStack, DeathOnStack, DiceRoll } from "@/models/stackElement";
 import { EffectData } from "@/models/types/cardTypes";
+import { toSerializedTranslation } from "@/utils/translation";
 import { AnimatedList } from "../entities/animated";
-import { Game } from "../game";
 import { DeathPenaltyValues } from "../handlers/deathHandler";
 
 /**
@@ -154,8 +157,8 @@ export class EntityHandler {
     if (values.nbLootCardsToLose > 0 && player.hand.cards.length > 0) {
       lootCardsToLose = (
         await this.game.select(player, values.nbLootCardsToLose, values.nbLootCardsToLose, player.hand.cards, values.nbLootCardsToLose > 1
-            ? "Select loot cards to lose."
-            : "Select a loot card to lose.", true)
+            ? toSerializedTranslation("pending.chooseLootCardsToLose")
+            : toSerializedTranslation("pending.chooseLootCardToLose"), true)
       ).selected;
     }
     // discharge every items. 
@@ -176,7 +179,8 @@ export class EntityHandler {
     if (itemsToLose && itemsToLose.length > 0) {
       for (const item of itemsToLose) {
         if(!(item instanceof ItemCard))
-          throw new Error("Selected card is not an ItemCard.");
+          throw new GameError("Selected card is not an ItemCard.",
+            toSerializedTranslation("error.chosenCardNotItemCard"));
         this.game.cardHandler.destroyCardsOrSouls([item]);
       }
     }
@@ -389,8 +393,9 @@ export class EntityHandler {
     }
 
     // At least one monster constraint remains - must be satisfied
-    throw new Error(
-      "You must attack the required monster(s)."
+    throw new GameError(
+      "You must attack the required monster(s).",
+      toSerializedTranslation("error.mustAttackRequiredMonsters")
     );
   }
 
@@ -579,9 +584,11 @@ export class EntityHandler {
   addAttack(e: Entity, value: number, source: Card | "flip" | "other" = "other"): void {
     // console.log(`Adding ${value} attack points to entity ${e.id}. Current attack points: ${e.attackPoints}. source is ${source instanceof Card ? source.jsonAPI.name : source}, id ${source instanceof Card ? source.jsonAPI.globalId : "N/A"}.`);
     if(source instanceof Card && source.name === "Diplopia")
-      throw new Error("Diplopia should not call addAttack, as it does not directly modify attack points.");
+      throw new GameError("Diplopia should not call addAttack, as it does not directly modify attack points.",
+        toSerializedTranslation("error2.behaviorError", {error: "Diplopia should not call addAttack, as it does not directly modify attack points."}));
     if(e.attackPoints + value < 0)
-      throw new Error(`Cannot reduce attack points of entity ${e.id} below 0.`);
+      throw new GameError(`Cannot reduce attack points of entity ${e.id} below 0.`,
+        toSerializedTranslation("error.cannotReduceAttackPointsBelow0", {card: e.card.nameKey}));
     e.addAttackPoints(value);
   }
 
@@ -618,14 +625,16 @@ export class EntityHandler {
   /** Adds an evasion/DC modifier to a monster entity. */
   addDC(e: Entity, value: number, source: Card | "flip" | "other" = "other"): void {
     if (!(e instanceof Monster))
-      throw new Error("DC modifier can only be added to monsters.");
+      throw new GameError("Evasion modifier can only be added to monsters.",
+        toSerializedTranslation("error.dcModifierOnlyForMonsters"));
     e.addEvasion(value);
   }
 
   /** Grants extra loot plays this.game turn. */
   addLootPlay(e: Entity, value: number, source: Card | "flip" | "other" = "other"): void {
     if(!(e instanceof Player))
-      throw new Error("Loot play modifier can only be added to players.");
+      throw new GameError("Loot play modifier can only be added to players.",
+        toSerializedTranslation("error.lootPlayModifierOnlyForPlayers"));
     e.addLootPlay(value);
   }
 
@@ -642,7 +651,8 @@ export class EntityHandler {
   /** Applies generic dice modifier to a player. */
   addDiceModifier(e: Entity, value: number, source: Card | "flip" | "other" = "other"): void {
     if (!(e instanceof Player))
-      throw new Error("Dice modifier can only be added to players.");
+      throw new GameError("Dice modifier can only be added to players.",
+        toSerializedTranslation("error.diceModifierOnlyForPlayers"));
     e.addDiceModifier(value);
   }
 
@@ -692,7 +702,8 @@ export class EntityHandler {
         return p;
       }
     }
-    throw new Error(`Player with id ${id} not found.`);
+    throw new GameError(`Player with id ${id} not found.`,
+      toSerializedTranslation("error.playerNotFound", {player: id}));
   }
 
 }

@@ -2,8 +2,10 @@ import { Entity } from "@/models/entities/entity";
 import type { Animation, Capability, EntityType, IdentifierType, Team } from "@/shared/api";
 import { Card, CharacterCard, Hand, ItemCard, LootCard, MonsterCard } from "../cards";
 import { AttackRollData, EffectOnStack } from '../stackElement';
-import type { Game } from "../game";
+import { Game } from "../game";
+import { GameError } from "@/models/GameError";
 import { DiceRoll } from "../stackElement";
+import { toSerializedTranslation } from "@/utils/translation";
 
 /**
  * Represents a player in the Four Souls game.
@@ -208,8 +210,8 @@ export class Player extends Entity {
    */
   canAttackThisEntity(elem: (Entity | "topDeck")): Capability {
     if(elem === this)
-      return "You cannot attack yourself.";
-    if(elem !== "topDeck" && !elem.attackable) return "This target is unattackable";
+      return toSerializedTranslation("capability.cannotAttackSelf");
+    if(elem !== "topDeck" && !elem.attackable) return toSerializedTranslation("capability.unattackable");
     if (this._mustAttackEntity.length > 0)
     {
       const requirements = this._mustAttackEntity.some(
@@ -217,8 +219,8 @@ export class Player extends Entity {
           || (Array.isArray(req.target) && elem instanceof Entity && req.target.includes(elem))) 
           || this._mustAttackEntity.every(req => req.target === "any"); // Must be in the list
       if(requirements !== true){
-        return "You have attack requirements."
-        + ` You must attack ${this._mustAttackEntity.map(req => req.target instanceof Array ? req.target[0]!.card.name : req.target).join(", ")}.`;
+        return toSerializedTranslation("capability.attackRequirements");
+        // + You must attack ${this._mustAttackEntity.map(req => req.target instanceof Array ? req.target[0]!.card.name : req.target).join(", ")}.`;
       }
       return true;
     }
@@ -230,9 +232,9 @@ export class Player extends Entity {
     if (freeAttack === false)
     {
       if(this.mayAttackForFree.length > 0)
-        return "You can only attack for free " 
-        + this.mayAttackForFree.map(e => e instanceof Entity ? e.id : e).join(", ") + ".";
-      return "No attacks remaining for this player this turn.";
+        return toSerializedTranslation("capability.freeAttackOnlyFor", { cardArray: this.mayAttackForFree.map(e => e instanceof Entity ? e.card.nameKey : {key: "common.theTopDeck"}).join(", ") });
+      
+      return toSerializedTranslation("capability.noAttacksRemainingForPlayer");
     }
     return true;
   }
@@ -347,7 +349,7 @@ export class Player extends Entity {
     const targetKind = targetRequirement === "topDeck" ? "topDeck" : targetRequirement.id;
     if(this.attackThisTurn <= 0 && !this.hasAttackRequirement)
       if(!this.attackForFree(targetRequirement))
-        throw new Error("No attacks remaining for this player this turn.");
+        throw new GameError("No attacks remaining for this player this turn.", toSerializedTranslation("capability.noAttacksRemainingForPlayer"));
     if (targetRequirement !== undefined) {
       this.clearAttackRequirement(targetRequirement);
     }
@@ -443,7 +445,7 @@ export class Player extends Entity {
   addCanSeeTopOfTreasureDeck(value: number): void {
     const sum = this._canSeeTopOfTreasureDeck + value;
     if(sum < 0) { // can be set to more than 1 with modelling clay.
-      throw new Error("canSeeTopOfTreasureDeck can not be set to a value less than 0");
+      throw new GameError("canSeeTopOfTreasureDeck can not be set to a value less than 0", toSerializedTranslation("error2.behaviorError", {error: "canSeeTopOfTreasureDeck can not be set to a value less than 0"}));
     }
     this._canSeeTopOfTreasureDeck = sum;
   }
@@ -516,7 +518,7 @@ export class Player extends Entity {
         return card;
       }
     }
-    throw new Error("No character card in play for this player.");
+    throw new GameError("No character card in play for this player.", toSerializedTranslation("error.noCharacterCardInPlayForPlayer"));
   }
 
   override get card(): CharacterCard{
@@ -596,11 +598,11 @@ export class Player extends Entity {
    */
   playLootCard(index: number): LootCard | null {
     if (index < 0 || index >= this._hand.cards.length) {
-      throw new Error("Index out of bounds");
+      throw new GameError("Index out of bounds", toSerializedTranslation("error.indexOutOfBounds"));
     }
     const card = this._hand.cards[index]!;
     if (card.type !== "loot") {
-      throw new Error("Card at index is not a loot card");
+      throw new GameError("Card at index is not a loot card", toSerializedTranslation("error.cardAtIndexNotLootCard"));
     }
     this._hand.cards.splice(index, 1);
     this._remainingLootPlay -= 1;
@@ -700,7 +702,7 @@ export class Player extends Entity {
   addSoul(card: Card): void {
     if(card.soul < 1)
     {
-      throw new Error("Cannot add a card with no soul as a soul card.");
+      throw new GameError("Cannot add a card with no soul as a soul card.", toSerializedTranslation("error2.behaviorError", {error: "Cannot add a card with no soul as a soul card."}));
     }
     this._souls.push(card);
   }
@@ -721,10 +723,10 @@ export class Player extends Entity {
   async activateItem(item: ItemCard, targets: any[] = [], effectId: number | "tap" = "tap"): Promise<EffectOnStack> {
     const index = this._inPlay.indexOf(item);
     if (index === -1) {
-      throw new Error("Item not in play.");
+      throw new GameError("Item is not in play.", toSerializedTranslation("error.itemNotInPlay"));
     }
     if (!item.targetStillValid(this, effectId, targets))
-      throw new Error("Targets are not valid for this effect.");
+      throw new GameError("Targets are not valid for this effect.", toSerializedTranslation("error.targetsNotValidForEffect"));
 
     return item.tryActivateEffect(targets, effectId);
   }
@@ -768,7 +770,7 @@ export class Player extends Entity {
     return {
         type: "player",
         color: this.color,
-        name: this.id,
+        nameKey: toSerializedTranslation("common.content",{content: this.id}),
         slug: this.inPlay.length > 0 ? this.inPlay[0]!.slug : "",
         globalId: this.globalId,
       }

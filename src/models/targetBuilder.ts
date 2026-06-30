@@ -1,12 +1,13 @@
 import { shuffle } from "@/utils/auxiliary";
-import type { DeckName, SelectionItem, TargetSelectorResponse } from "../shared/api";
+import type { DeckName, SelectionItem, TargetSelectorResponse, SerializedTranslation, Capability } from "../shared/api";
 import { Card, ItemCard, LootCard, type TargetsSelector } from "./cards";
 import { Entity } from "./entities/entity";
-import type { Game } from "./game";
+import { type Game } from "./game";
+import { GameError } from "@/models/GameError";
 import type { Player } from "./entities/player";
 import { isStackElement } from "./stack";
 import { isChooseOneOptions, type ChooseOneOptions } from "./targetSelector";
-
+import { toSerializedTranslation } from "@/utils/translation";
 /**
  * Target Builder - Standalone utility for progressive target selection
  * 
@@ -36,7 +37,7 @@ export class TargetBuilder {
 
     private static completeResponse(): TargetSelectorResponse {
         return {
-            description: "",
+            description: toSerializedTranslation("common.empty"),
             min: 0,
             max: 0,
             options: [],
@@ -70,7 +71,7 @@ export class TargetBuilder {
 
                 // Deterministic choose-one option, but target still needs user input.
                 selector = {
-                    description: chosenOption.description,
+                    description: toSerializedTranslation("common.content", { content: chosenOption.description }),
                     selector: (): any[] => chosenOption.admissibleTargets,
                     min: selector.min,
                     max: selector.max,
@@ -101,28 +102,9 @@ export class TargetBuilder {
             }
 
             const isChooseOne = possibleTargets.length > 0 && isChooseOneOptions(possibleTargets[0]);
-            if (isChooseOne) {
-                throw new Error("SHOULD NEVER BE THERE: Cannot auto-advance through deterministic choose-one selectors during build - user choice is required to determine the path.");
-                const chosenOption = (possibleTargets as ChooseOneOptions[])[0]!;
-                result.push(chosenOption.description);
-
-                if (chosenOption.admissibleTargets.length === 1) {
-                    result.push(chosenOption.admissibleTargets[0]);
-                    selectorIndex++;
-                    selector = rootSelectors[selectorIndex];
-                    continue;
-                }
-
-                if (chosenOption.admissibleTargets.length === 0) {
-                    selectorIndex++;
-                    selector = rootSelectors[selectorIndex];
-                    continue;
-                }
-
-                // Option is deterministic but target is not; stop here.
-                break;
-            }
-
+            if (isChooseOne)
+                throw new GameError("SHOULD NEVER BE THERE: Cannot auto-advance through deterministic choose-one selectors during build - user choice is required to determine the path.", toSerializedTranslation("error2.behaviorError", { error: "SHOULD NEVER BE THERE: Cannot auto-advance through deterministic choose-one selectors during build - user choice is required to determine the path."}));
+ 
             result.push(...possibleTargets);
             selectorIndex++;
             selector = rootSelectors[selectorIndex];
@@ -153,7 +135,7 @@ export class TargetBuilder {
         throwIfNotCharged: boolean = true,
         bypassAsserPendingSelection: boolean = false
     ): {
-                description: string,
+                description: SerializedTranslation,
                 min: number,
                 max: number,
                 options: any[],
@@ -163,9 +145,9 @@ export class TargetBuilder {
         if(!bypassAsserPendingSelection)
             game.assert.noPendingSelection();
         if(!item)
-            throw new Error(`Item not found.`);
+            throw new GameError(`Item not found.`, toSerializedTranslation("error.itemNotFound"));
         if(throwIfNotCharged && effectId === "tap" && !item.charged)
-            throw new Error(`Item ${item.name} is not charged.`);
+            throw new GameError(`Item ${item.name} is not charged.`, toSerializedTranslation("capability.notCharged"));
         // console.log("TargetBuilder.getNextSelector for item:", item.name, "effectId:", effectId, "partialChoices:", partialChoices, item.activeEffectList);
 
         const rootSelectors = [... item.getEffectTarget(effectId)];
@@ -201,7 +183,7 @@ export class TargetBuilder {
                 );
 
                 if (!chosenOption) {
-                    throw new Error(`Invalid choose-one option: ${choice}`);
+                    throw new GameError(`Invalid choose-one option: ${choice}`, toSerializedTranslation("error.invalidChooseOneOption"));
                 }
                 rootSelectors.splice(selectorIndex + 1, 0, ...chosenOption.admissibleTargets);
                 selectorIndex++;
@@ -213,7 +195,7 @@ export class TargetBuilder {
                 // Regular selector - validate choice by matching against possibleTargets
                 const resolved = TargetBuilder.resolveIdentifier(choice, possibleTargets);
                 if (resolved === undefined) {
-                    throw new Error(`Invalid target choice: ${choice} for item ${item.name}, selector: ${selector.description}`);
+                    throw new GameError(`Invalid target choice: ${choice} for item ${item.name}, selector: ${selector.description}`, toSerializedTranslation("error.invalidTargetChoice", {card: item.nameKey}));
                 }
 
                 choicesProcessed++;
@@ -321,7 +303,7 @@ export class TargetBuilder {
         const set = type === "inPlay" ? player.inPlay : player.hand.cards;
         const card = set[itemId];
         if(!card || !(card instanceof ItemCard))
-            throw new Error(`Item not found in player's ${type}.`);
+            throw new GameError(`Item not found in player's ${type}.`, toSerializedTranslation("error.itemNotFoundInPlayerInventory", { type: type }));
         return card;
     }
 
@@ -329,12 +311,12 @@ export class TargetBuilder {
          return options.map(option => {
 
             if (typeof option === 'object' && option !== null && 'slug' in option && option instanceof Card) {
-                return { payload: {name: option.name, slug: option.slug, globalId: option.globalId}, type: "card" };
+                return { payload: {nameKey: option.nameKey, slug: option.slug, globalId: option.globalId}, type: "card" };
             }
 
             if (typeof option === 'object' && option !== null && 'id' in option && option instanceof Entity) {
                 const entity = option;
-                return {type: entity.json.type, payload: {name: entity.json.name, slug: entity.json.slug, globalId: entity.json.globalId, color: entity.color, type: entity.json.type}};
+                return {type: entity.json.type, payload: {nameKey: entity.json.nameKey, slug: entity.json.slug, globalId: entity.json.globalId, color: entity.color, type: entity.json.type}};
             }
 
             if (isStackElement(option)) {
@@ -355,10 +337,12 @@ export class TargetBuilder {
                 // Deck object
                 return { type: "deck", payload: option._type as DeckName };
             }
+            if(typeof option === 'object' && option.key !== null)
+                return {type: "serializedTranslation", payload: option};
             
             // { player: Player; hand: Hand }
             if( typeof option === 'object' && 'player' in option && 'hand' in option)
-                return {type: "couplePlayerHand", payload: {player: {name: (option.player as Player).id, slug: (option.player as Player).slug, globalId: (option.player as Player).globalId}, hand: option.hand.cards.map((c: Card) => {return {name: c.name, slug: c.slug, globalId: c.globalId}})}};
+                return {type: "couplePlayerHand", payload: {player: {nameKey: (option.player as Player).character.nameKey, slug: (option.player as Player).slug, globalId: (option.player as Player).globalId}, hand: option.hand.cards.map((c: Card) => {return {nameKey: c.nameKey, slug: c.slug, globalId: c.globalId}})}};
             if (Array.isArray(option) || typeof option === 'object') {
                 try {
                     return {type: "array", payload: TargetBuilder.convertToSelectionItems(option)};
@@ -367,7 +351,7 @@ export class TargetBuilder {
                 }
             }
             return {type: "unknown", payload: null};
-            // throw new Error("Not implemented yet");
+            // throw new GameError("Not implemented yet", toSerializedTranslation("error2.behaviorError", { error: "Not implemented yet"}));
         });
     }
 
@@ -383,7 +367,7 @@ export class TargetBuilder {
      */
     static resolveIdentifier(identifier: SelectionItem, possibleTargets: any[]): any {
         if (possibleTargets.length === 0) 
-            throw new Error("No possible targets to resolve against.");
+            throw new GameError("No possible targets available.", toSerializedTranslation("error.noPossibleTargets"));
         switch(identifier.type) {
             case "card":
                 return possibleTargets.find(t =>
@@ -393,13 +377,14 @@ export class TargetBuilder {
             case "player":
             case "monster":
                 return possibleTargets.find(t =>
-                    t && t.json.name === identifier.payload.name &&
+                    t && t.json.nameKey.key === identifier.payload.nameKey.key &&
                     t.json.globalId === identifier.payload.globalId
                 );
             case "deck":
                 return possibleTargets.find(t => t && t._type === identifier.payload);
             case "number":
             case "string":
+            case "serializedTranslation":
             case "boolean":
                 return possibleTargets.find(t => t === identifier.payload);
             case "null":
@@ -447,11 +432,11 @@ export class TargetBuilder {
     ): any[] {
         const validTargets = TargetBuilder.validTargetExists(game, player, item, effectId);
         if(validTargets !== true)
-            throw new Error(`Cannot build targets: ${validTargets}`);
+            throw new GameError(`Cannot build targets: ${validTargets}`, toSerializedTranslation("error.noPossibleTargets"));
 
         game.assert.noPendingSelection();
         if(!item)
-            throw new Error(`Item not found.`);
+            throw new GameError(`Item not found.`, toSerializedTranslation("error.itemNotFound"));
         const rootSelectors = [...item.getEffectTarget(effectId)];
         const result: any[] = [];
 
@@ -486,7 +471,7 @@ export class TargetBuilder {
                 );
 
                 if (!chosenOption) {
-                    throw new Error(`Invalid choose-one option: ${choice}`);
+                    throw new GameError(`Invalid choose-one option: ${choice}`, toSerializedTranslation("error.invalidChooseOneOption"));
                 }
                 result.push(chosenOption.description);
                 rootSelectors.splice(selectorIndex+1, 0, ...chosenOption.admissibleTargets);
@@ -502,7 +487,7 @@ export class TargetBuilder {
                     if (resolved !== undefined) {
                         result.push(resolved);
                     }else{
-                        throw new Error(`Invalid target choice: ${targetId} for item ${item.name}, selector: ${selector.description}`);
+                        throw new GameError(`Invalid target choice: ${targetId} for item ${item.name}, selector: ${selector.description}`, toSerializedTranslation("error.invalidTargetChoice", { card: item.nameKey }));
                     }
                     choiceIndex++;
                 }
@@ -512,7 +497,7 @@ export class TargetBuilder {
             selector = rootSelectors[selectorIndex];
         }
         if (!item.targetStillValid(player, effectId, result)) {
-            throw new Error(`One or more targets are no longer valid. ${TargetBuilder.convertToSelectionItems(result).map(o => JSON.stringify(o)).join(", ")}`);
+            throw new GameError(`One or more targets are no longer valid. ${TargetBuilder.convertToSelectionItems(result).map(o => JSON.stringify(o)).join(", ")}`, toSerializedTranslation("error.invalidTargets"));
         }
         return result;
     }
@@ -524,16 +509,16 @@ export class TargetBuilder {
         effectId: number | "tap"
     ): Promise<any[]> {
         if(!item)
-            throw new Error(`Item not found or has no active effect.`);
+            throw new GameError(`Item not found or has no active effect.`, toSerializedTranslation("error.itemNotFoundOrNoActiveEffect"));
         if(effectId === "tap"){
             const activeEffect = item.getActiveEffect();
             if (!activeEffect)
-                throw new Error(`Item ${item.name} has no active effect to copy.`);
+                throw new GameError(`Item ${item.name} has no active effect to copy.`, toSerializedTranslation("error.noActiveEffectToCopy", { card: item.nameKey }));
         }else if (!item.activeEffectList.map(e => e.index).includes(effectId as number)) {
-            throw new Error(`Paid effect with index ${effectId} not found on item ${item.name}, available: ${item.activeEffectList.map(e => e.index).join(", ")}.`);
+            throw new GameError(`Paid effect with index ${effectId} not found on item ${item.name}, available: ${item.activeEffectList.map(e => e.index).join(", ")}.`, toSerializedTranslation("error2.behaviorError", { error: `Paid effect with index ${effectId} not found on item ${item.name}, available: ${item.activeEffectList.map(e => e.index).join(", ")}.`}));
         }
         if(player === undefined)
-            throw new Error(`Effect issuer is not a player.`);
+            throw new GameError(`Effect issuer is not a player.`, toSerializedTranslation("error.effectIssuerNotPlayer"));
 
         // The next target is expected to be an array of targets for the copied effect
         const targets: any[] = [];
@@ -556,7 +541,7 @@ export class TargetBuilder {
                 options.options = feasibleChoices;
                 if(options.options.length === 0)
                 {
-                    throw new Error(`No valid targets available for the copied card.`);
+                    throw new GameError(`No valid targets available for the copied card.`, toSerializedTranslation("error.noValidTargetsForCopiedCard"));
                 }
             }
             const selection = await game.select(
@@ -564,14 +549,14 @@ export class TargetBuilder {
                 options.min,
                 options.max,
                 options.options,
-                "Select targets for the copied card."
+                toSerializedTranslation("pending.copyCardTargets")
             );
             const normalizedSelection = selection.selected.map((choice) =>choice);
             targets.push(...normalizedSelection);
             options = TargetBuilder.getNextSelectorRaw(game, player, item, TargetBuilder.convertToSelectionItems(targets), effectId, false);
             if(!options.complete && options.options.length === 0)
             {
-                throw new Error(`No valid targets available for the copied card ${item.name}.`);
+                throw new GameError(`No valid targets available for the copied card ${item.name}.`, toSerializedTranslation("error.noValidTargetsForCopiedCardWithName", { card: item.nameKey }));
             }
         }
         return TargetBuilder.buildTargets(game, player, item, TargetBuilder.convertToSelectionItems(targets), effectId);
@@ -581,18 +566,18 @@ export class TargetBuilder {
     * It specifically handle non-decision based cost (money, health, counters).
     * It returns true if the payment can be made, or a string error message if it cannot.
     */
-    static verifyPaiementCanBeMade(game: Game, player: Player, card: ItemCard, s: string): string | true {
+    static verifyPaiementCanBeMade(game: Game, player: Player, card: ItemCard, s: string): Capability {
         s = s.trim().toLowerCase();
         const coins = parseNumber(s, /^\[paid effect\] pay\s+(\d+)\u00A2:?/u);
         if (coins !== null) {
             if (!game.canLoseCoins(player, coins, false, "paiement")) {
-                return `You don't have enough coins to pay this cost.`;
+                return toSerializedTranslation("capability.notEnoughCoin");
             }
         }
         const health = parseNumber(s, /^\[paid effect\] pay\s+(\d+)\s+[hp]:?/u);
         if (health !== null) {
             if (player.currentHealthPoints < health) {
-                return `You don't have enough health to pay this cost.`;
+                return toSerializedTranslation("capability.notEnoughHealth");
             }
         }
         let countersToRemove = parseNumber(s, /^\[paid effect\] remove (\d+) counters? from this\.?/u);
@@ -600,20 +585,20 @@ export class TargetBuilder {
             countersToRemove = /^\[paid effect\] remove a counter from this.?/.test(s) ? 1 : null;
         if( countersToRemove !== null)
             if (card.counters.value("normal") === 0 || card.counters.value("normal") < countersToRemove) {
-                return `You don't have enough counters to pay this cost.`;
+                return toSerializedTranslation("capability.notEnoughCounter");
             }
         let lootsToDiscard = parseNumber(s, /^\[paid effect\] discard (\d+) loot cards?\.?/u);
         if(lootsToDiscard === null)
             lootsToDiscard = /^\[paid effect\] discard a loot card\.?/.test(s) ? 1 : null;
         if (lootsToDiscard !== null) {
             if (player.hand.length < lootsToDiscard) {
-                return `You don't have enough loot cards to pay this cost.`;
+                return toSerializedTranslation("capability.notEnoughLoot");
             }
         }
         if(s.startsWith("[paid effect] destroy this") && card.eternal)
-            return "you can not destroy an eternal item.";
+            return toSerializedTranslation("capability.cannotDestroyEternal");
         if(s.startsWith("[paid effect] give another non-eternal item you control") && player.inPlay.filter(i => i !== card && !i.eternal).length === 0)
-            return "you have no item to give.";
+            return toSerializedTranslation("capability.noItemToGive");
         
         return true;
     }
@@ -623,9 +608,9 @@ export class TargetBuilder {
         player: Player,
         item: ItemCard,
         effectId: number | "tap" = "tap"
-    ): string | true {
+    ): Capability {
         if(!item)
-            return "Item not found.";
+            return toSerializedTranslation("error.itemNotFound");
         // console.log(`Checking valid targets for item: ${item.name}, effectId: ${effectId} descr ${item.activeEffectList[effectId as number]?.description}`);
         if(effectId !== "tap")
             {
@@ -644,16 +629,16 @@ export class TargetBuilder {
             if(selection.length > options.max || selection.length < options.min)
             {
                 if(backtrackingIndices.length === 0)
-                    return "No valid targets.";
+                    return toSerializedTranslation("capability.noValidTargets");
                 const lastIndex = backtrackingIndices.pop()!;
                 const prevChooseOneOption = targets[lastIndex];
                 targets = targets.slice(0, lastIndex);
                 options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
                 const prevChooseOneIdx = options.options.findIndex((opt: any) => opt.description === prevChooseOneOption.description);
                     if(prevChooseOneIdx === -1)
-                        throw new Error(`Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`);
+                        throw new GameError(`Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`, toSerializedTranslation("error2.behaviorError", { error: `Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`}));
                     if(options.options.length <= prevChooseOneIdx + 1)
-                        return "No valid targets. (No option to backtrack to)";
+                        return toSerializedTranslation("capability.noValidTargets");
                     targets.push(options.options[prevChooseOneIdx+1]);
                 options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
                 continue;
@@ -720,7 +705,7 @@ export class TargetBuilder {
                     options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
                     const prevChooseOneIdx = options.options.findIndex((opt: any) => opt.description === prevChooseOneOption.description);
                     if(prevChooseOneIdx === -1)
-                        throw new Error(`Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`);
+                        throw new GameError(`Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`, toSerializedTranslation("error2.behaviorError", { error: `Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`}));
                     if(options.options.length <= prevChooseOneIdx + 1)
                         return "No valid targets. (No option to backtrack to)";
                     targets.push(options.options[prevChooseOneIdx+1]);

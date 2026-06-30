@@ -42,7 +42,7 @@ describe("Requiem Monsters ", () => {
         expect(game.stack.size).toBe(3);
         game.resetStack(); // otherwise players would die. It is also tested elsewhere.
         const json = har.card.jsonAPI;
-        expect(json.name).toBe("The Beast!");
+        expect(json.nameKey.key).toBe("cardNames.r-the_beast");
         expect(json.slug).toBe("r-the_beast");
         expect(har.healthPoints).toBe(6);
         expect(har.evasion).toBe(4);

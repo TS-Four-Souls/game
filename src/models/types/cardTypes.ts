@@ -2,7 +2,7 @@ import type { Player } from '../entities/player';
 import type { Entity } from '../entities/entity';
 import type { Card, LootCard, TreasureCard, EternalCard, CharacterCard, MonsterCard, BsoulCard, RoomCard } from '../cards';
 import type { Game } from '../game';
-import type { VisualEffectBox } from '@/shared/api';
+import type { VisualEffectBox, SerializedTranslation } from '@/shared/api';
 
 /**
  * Type of effect execution - how the effect is triggered
@@ -16,7 +16,7 @@ export type EffectType =
  * Target selector for effects - specifies how to select targets for an effect
  */
 export interface TargetsSelector {
-    description: string;
+    description: SerializedTranslation;
     selector: (player: Player, card: Card) => any[];
     min: number;
     max: number;
@@ -105,7 +105,7 @@ export class EffectData {
         min: number,
         max: number,
         options: T[],
-        description: string = "UNDEFINED SHOULD NOT HAPPEN",
+        description: SerializedTranslation,
         skippable: boolean = true,
         record: boolean = true,
         canUseOnBoardSelection: boolean = true
@@ -124,7 +124,7 @@ export class EffectData {
             min: number;
             max: number;
             options: T[];
-            description: string;
+            description: SerializedTranslation;
             canUseOnBoardSelection: boolean;
         }[]
     ): Promise<{ playerId: string; selected: T[]; remaining: T[] }[]> {

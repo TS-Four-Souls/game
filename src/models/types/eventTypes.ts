@@ -1,3 +1,4 @@
+import type { SerializedTranslation } from '@/shared/api';
 import type { Card, CounterType, ItemCard, LootCard } from '../cards';
 import { Animated } from "../entities/animated";
 import type { Entity } from '../entities/entity';
@@ -120,7 +121,7 @@ export interface OnAttackDeclaredData {
 export interface OnCanDeclareAttackData {
   eventIssuer: Player;
   canDeclare: boolean[];
-  reason: string[];
+  reason: SerializedTranslation[];
 }
 
 /** Data emitted when a player declares an attack on a specific monster */

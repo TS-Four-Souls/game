@@ -1,8 +1,9 @@
+import { Game } from "@/models/game";
+import { GameError } from "@/models/GameError";
 import { type Deck, type TreasureCard } from "../cards";
 import { Player } from "../entities/player";
-import type { Game } from "../game";
 import { Slots } from "./slots";
-
+import { toSerializedTranslation } from "@/utils/translation";
 /**
  * Manages the shop where players can purchase treasure cards.
  *
@@ -66,7 +67,8 @@ export class Shop extends Slots<TreasureCard> {
             return this.purchaseTopDeck(player, price, game);
         if (game.loseCoins(player, price, false, "purchase") === price) {
             if (this.itemsInShop[index] === undefined)
-                throw new Error(`Cannot purchase from shop slot ${index}, it is empty. The deck has ${this._deck.cards.length} cards left.`);
+                throw new GameError(`Cannot purchase from shop slot ${index}, it is empty. The deck has ${this._deck.cards.length} cards left.`
+                , toSerializedTranslation("error2.behaviorError", {error: `Cannot purchase from shop slot ${index}, it is empty. The deck has ${this._deck.cards.length} cards left.`}));
             game.cardHandler.addInPlay(player, this.itemsInShop[index]);
             this._slots[index]?.pop();
             this.fillEmptySpots();

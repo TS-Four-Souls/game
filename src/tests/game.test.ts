@@ -17,9 +17,9 @@ class DummyStackElement extends StackElement {
   get json(): StackElementJson {
     return {
       type: "effect",
-      issuer: { type: "player", color:"#000000", name: "dummy", slug: "dummy", globalId: 0 },
+      issuer: { type: "player", color:"#000000", nameKey:{key: "dummy"}, slug: "dummy", globalId: 0 },
       targets: [],
-      card: { name: this.label, slug: this.label, globalId: 0 },
+      card: { nameKey: {key: this.label}, slug: this.label, globalId: 0 },
       effect: this.label,
       id: this.stackId,
       visualEffectBox: { startIndex: 0, endIndex: 0 },
@@ -509,8 +509,7 @@ describe("DiceRoll", () => {
   it("should return json representation correctly", async () => {
     const dice = player.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, player));
     const json = dice.json;
-    
-    expect(json.issuer.name).toBe("testPlayer");
+    expect(json.issuer.nameKey.interpolates!["content"]).toBe("testPlayer");
     expect(json.diceRoll >= 1 && json.diceRoll <= 6).toBe(true);
   });
 
@@ -629,7 +628,7 @@ describe("Game - Guardrails", () => {
 
   it("should select the first n options", async () => {
     const options = [1, 2, 3, 4];
-    const result = await game.select(player1, 2, 2, options);
+    const result = await game.select(player1, 2, 2, options, {key:""});
     expect(result.selected).toEqual([1, 2]);
     expect(result.remaining).toEqual([3, 4]);
   });

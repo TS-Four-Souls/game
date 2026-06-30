@@ -126,7 +126,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.attackPoints).toBe(2);
         const json = player1.character.jsonAPI;
         expect(player1.character.flipped).toBe(true);
-        expect(json.name).toBe("amginE ehT");
+        expect(json.nameKey.key).toBe("cardNames.r-amgine_eht");
         expect(json.slug).toBe("r-amgine_eht");
         await game.endTurn();
         await game.actions.resolveStack();
@@ -141,7 +141,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.attackPoints).toBe(1);
         const json2 = player1.character.jsonAPI;
         expect(player1.character.flipped).toBe(false);
-        expect(json2.name).toBe("The Enigma");
+        expect(json2.nameKey.key).toBe("cardNames.r-the_enigma");
         expect(json2.slug).toBe("r-the_enigma");
 
     });
