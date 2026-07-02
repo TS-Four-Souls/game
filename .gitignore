@@ -41,6 +41,7 @@ bruno/bruno.json
 todo
 collection.bru
 src/models/test.ts
+db/
 .gitignore
-
+.vscode
 *.sqlite
