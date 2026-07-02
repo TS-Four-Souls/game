@@ -16,6 +16,12 @@ const engine = new Engine({
 
 io.bind(engine);
 
+// Global unhandled rejection handler for debugging
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+  console.error("Stack trace:", new Error().stack);
+});
+
 // Secure server with API key
 io.use((socket, next) => {
   const apiKey = socket.handshake.auth.apiKey;

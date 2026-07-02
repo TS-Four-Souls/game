@@ -595,7 +595,7 @@ describe("Requiem Loots ", () => {
             let item = game.obtainCard("r-keepers_box") as ItemCard;
             expect(item).toBeDefined();
             game.cardHandler.addInPlay(player2, item);
-            await game.actions.resolveStack();
+            await game.actions.resolveStack(); // resolve the event addition
             expect(game.shop.itemsInShop.length).toBe(4);
             game.actions.declarePurchase(player1);
             game.gainCoins(player1, 10, ("debug"));
