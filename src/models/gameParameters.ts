@@ -175,8 +175,12 @@ class DeckParameter {
       } else card.param.value = value;
       this._currentCount += card.param.value - previousCount;
     } else {
-      throw new GameError(`Card with slug ${slug} not found in deck ${this._type}`,
-        toSerializedTranslation("error.cardWithSlugNotFound", {slug: slug, deck: this._type})
+      throw new GameError(
+        `Card with slug ${slug} not found in deck ${this._type}`,
+        toSerializedTranslation("error.cardWithSlugNotFound", {
+          slug: slug,
+          deck: this._type,
+        }),
       );
     }
     if (callOnChange) {
@@ -370,24 +374,40 @@ export class GameParameters {
       useBonusSouls: {
         text: "Use bonus souls?",
         value: this.playWithBonusSouls.value,
-        translationKey: toSerializedTranslation("gameParams.useBonusSouls")
+        translationKey: toSerializedTranslation(
+          "startStep.gameParams.useBonusSouls",
+        ),
       },
-      ...(this.room.cardsParam.length > 0 ? {useRooms: {text: "Use rooms?", value: this.playWithRooms.value, translationKey: toSerializedTranslation("gameParams.useRooms")}} : {}),
+      ...(this.room.cardsParam.length > 0
+        ? {
+            useRooms: {
+              text: "Use rooms?",
+              value: this.playWithRooms.value,
+              translationKey: toSerializedTranslation(
+                "startStep.gameParams.useRooms",
+              ),
+            },
+          }
+        : {}),
       ...(this._deckMode === "standard" && this._currentNbPlayers < 3
         ? {
             nbPlayerCardRestriction: {
               text: "Number player card restriction",
               value: this.nbPlayerCardRestriction.value,
-              translationKey: toSerializedTranslation("gameParams.nbPlayerCardRestriction"),
+              translationKey: toSerializedTranslation(
+                "startStep.gameParams.nbPlayerCardRestriction",
+              ),
             },
           }
         : {}),
-      ...(this._deckMode === "standard" && this.room.cardsParam.length > 0 
+      ...(this._deckMode === "standard" && this.room.cardsParam.length > 0
         ? {
             useRCards: {
               text: "Use Requiem cards?",
               value: this.useRCards.value,
-              translationKey: toSerializedTranslation("gameParams.useRCards")
+              translationKey: toSerializedTranslation(
+                "startStep.gameParams.useRCards",
+              ),
             },
           }
         : {}),
@@ -396,7 +416,9 @@ export class GameParameters {
             useFSP2Cards: {
               text: "Use four souls+ cards?",
               value: this.useFSP2Cards.value,
-              translationKey: toSerializedTranslation("gameParams.useFSP2Cards")
+              translationKey: toSerializedTranslation(
+                "startStep.gameParams.useFSP2Cards",
+              ),
             },
           }
         : {}),
@@ -412,67 +434,117 @@ export class GameParameters {
         : {}),
     };
     return {
-      miniDraft: { text: "Mini-draft", value: this.miniDraft.value, translationKey: toSerializedTranslation("gameParams.miniDraft") }, //: At the start of the game, lay out (number of players + 1) treasure cards. Each player choose one of them and gain them, in turn order. Put the last card on the bottom of the treasure deck. Repeat this process with the order reversed.
+      miniDraft: {
+        text: "Mini-draft",
+        value: this.miniDraft.value,
+        translationKey: toSerializedTranslation(
+          "startStep.gameParams.miniDraft",
+        ),
+      }, //: At the start of the game, lay out (number of players + 1) treasure cards. Each player choose one of them and gain them, in turn order. Put the last card on the bottom of the treasure deck. Repeat this process with the order reversed.
       nbSoulsToWin: {
         text: "Number of souls to win",
         value: this.nbSoulsToWin.value,
-        translationKey: toSerializedTranslation("gameParams.nbSoulsToWin"),
+        translationKey: toSerializedTranslation(
+          "startStep.gameParams.nbSoulsToWin",
+        ),
       },
       allowCheatOptions: {
         text: "Allow cheat options",
         value: this.allowCheatOptions.value,
-        translationKey: toSerializedTranslation("gameParams.allowCheatOptions"),
+        translationKey: toSerializedTranslation(
+          "startStep.gameParams.allowCheatOptions",
+        ),
       },
       nbItemsInShop: {
         text: "Number of items in the shop",
         value: this.nbItemsInShop.value,
-        translationKey: toSerializedTranslation("gameParams.nbItemsInShop"),
+        translationKey: toSerializedTranslation(
+          "startStep.gameParams.nbItemsInShop",
+        ),
       },
       timer: {
         text: "Number of rounds before losing",
         value: this.timer.value,
         replaceZeroWith: "∞",
-        translationKey: toSerializedTranslation("gameParams.timer"),
+        translationKey: toSerializedTranslation("startStep.gameParams.timer"),
       },
       nbEncounters: {
         text: "Number of encounters",
         value: this.nbEncounters.value,
-        translationKey: toSerializedTranslation("gameParams.nbEncounters"),
+        translationKey: toSerializedTranslation(
+          "startStep.gameParams.nbEncounters",
+        ),
       },
       // nbRooms: {text: "Number of rooms", value: this.nbRooms.value},
       deathPenaltyCoins: {
         text: "Death penalty coins",
         value: this.deathPenaltyCoins.value,
-        translationKey: toSerializedTranslation("gameParams.deathPenaltyCoins"),
+        translationKey: toSerializedTranslation(
+          "startStep.gameParams.deathPenaltyCoins",
+        ),
       },
       deathPenaltyItem: {
         text: "Death penalty item",
         value: this.deathPenaltyItem.value,
-        translationKey: toSerializedTranslation("gameParams.deathPenaltyItem"),
+        translationKey: toSerializedTranslation(
+          "startStep.gameParams.deathPenaltyItem",
+        ),
       },
       deathPenaltyLoot: {
         text: "Death penalty loot",
         value: this.deathPenaltyLoot.value,
-        translationKey: toSerializedTranslation("gameParams.deathPenaltyLoot"),
+        translationKey: toSerializedTranslation(
+          "startStep.gameParams.deathPenaltyLoot",
+        ),
       },
       treasuresOnStart: {
         text: "Treasures on start",
         value: this.treasuresOnStart.value,
-        translationKey: toSerializedTranslation("gameParams.treasuresOnStart"),
+        translationKey: toSerializedTranslation(
+          "startStep.gameParams.treasuresOnStart",
+        ),
       },
-      lootOnStart: { text: "Loot on start", value: this.lootOnStart.value, translationKey: toSerializedTranslation("gameParams.lootOnStart") },
-      coinsOnStart: { text: "Coins on start", value: this.coinsOnStart.value, translationKey: toSerializedTranslation("gameParams.coinsOnStart") },
-      shopPrice: { text: "Shop price", value: this.shopPrice.value, translationKey: toSerializedTranslation("gameParams.shopPrice") },
-      maxHandSize: { text: "Max hand size", value: this.maxHandSize.value, translationKey: toSerializedTranslation("gameParams.maxHandSize") },
+      lootOnStart: {
+        text: "Loot on start",
+        value: this.lootOnStart.value,
+        translationKey: toSerializedTranslation(
+          "startStep.gameParams.lootOnStart",
+        ),
+      },
+      coinsOnStart: {
+        text: "Coins on start",
+        value: this.coinsOnStart.value,
+        translationKey: toSerializedTranslation(
+          "startStep.gameParams.coinsOnStart",
+        ),
+      },
+      shopPrice: {
+        text: "Shop price",
+        value: this.shopPrice.value,
+        translationKey: toSerializedTranslation(
+          "startStep.gameParams.shopPrice",
+        ),
+      },
+      maxHandSize: {
+        text: "Max hand size",
+        value: this.maxHandSize.value,
+        translationKey: toSerializedTranslation(
+          "startStep.gameParams.maxHandSize",
+        ),
+      },
       allowCoinDonation: {
         text: "Allow coin donation",
         value: this.allowCoinDonation.value,
-        translationKey: toSerializedTranslation("gameParams.allowCoinDonation"),
+        translationKey: toSerializedTranslation(
+          "startStep.gameParams.allowCoinDonation",
+        ),
       },
       lootPlayPerTurn: {
         text: "Loot play per turn",
         value: this.lootPlayPerTurn.value,
-        translationKey: toSerializedTranslation("gameParams.lootPlayPerTurn"),
+        translationKey: toSerializedTranslation(
+          "startStep.gameParams.lootPlayPerTurn",
+        ),
       },
       decksConfig: decks,
     };

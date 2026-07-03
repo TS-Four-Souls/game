@@ -1,10 +1,10 @@
 {
   "input": {
     "format": "nested",
-    "path": "/Users/sylvain/Documents/foursouls/four-souls-game/src/shared/translation.json"
+    "path": "./src/shared/translation_en.json"
   },
   "output": {
-    "path": "/Users/sylvain/Documents/foursouls/four-souls-game/data/translation/en/translation.d.ts"
+    "path": "./src/shared/translation.d.ts"
   },
   "rules": [
     {
