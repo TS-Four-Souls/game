@@ -555,7 +555,7 @@ export function combatDamageModifierOnAttackRollEffect(game: Game, attackRolls: 
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
 
-        offDamage = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
+        offDamage = game.emitter.on("on:attack:before-roll", (eventData: OnAttackRollData) => {
             const { eventIssuer, dice} = eventData;
             if (eventIssuer !== data.issuer) return;
             if (!attackRolls.includes(dice.value)) return;
@@ -867,7 +867,7 @@ export function firstAttackRollDiceModifier(
             active = true;
         });
 
-        const offTurnEnd = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
+        const offTurnEnd = game.emitter.on("on:attack:before-roll", (eventData: OnAttackRollData) => {
             const { eventIssuer } = eventData;
             if (eventIssuer !== issuer) return;
             if(!active) return
@@ -2656,7 +2656,7 @@ export function onActivePlayerRollEffect(
                 const stackEffect = async (effectData: EffectData): Promise<boolean> => {
                     return effect(effectData);
                 };
-                
+                console.log(`onActivePlayerRollEffect: Active player rolled ${diceRoll.value}, triggering effect.`);
                 // Add to stack instead of executing immediately
                 addPassiveEffectToStack(game, stackEffect, data, "On active player roll effect");
             }

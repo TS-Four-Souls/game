@@ -8,7 +8,7 @@ import { Game } from "../game";
 import { GameError } from "@/models/GameError";
 import { Monster } from "../entities/monster";
 import { Player } from "../entities/player";
-import { DiceRoll } from "../stackElement";
+import { DamageOnStack, DiceRoll } from "../stackElement";
 import { EffectData, type EffectFunction, type SyncEffectFunction, type AsyncEffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type {
     OnAttackDeclaredData,
@@ -869,8 +869,20 @@ export function cancelAttackAfterSecondAttackRollEffect(game: Game): SyncEffectF
             if(diceRoll.attackRoll !== true) return;
             atkCount++;
             if(atkCount === 2) {
-                const effect = (effectData: EffectData): boolean => {
-                    game.entityHandler.endCombat();
+                const effect = async (effectData: EffectData): Promise<boolean> => {
+                    const elems = [];
+                    for(let i = game.stack.elements.length - 1; i >= 0; i--) {
+                        const stackElement = game.stack.elements[i];
+                        if(stackElement instanceof DamageOnStack && stackElement._source === diceRoll
+                            || stackElement === undefined
+                        ) {
+                            continue;
+                        }
+                        elems.push(stackElement.stackId);
+                    }
+                    await game.executeWhenStackSubset(elems, () => {
+                        game.entityHandler.endCombat();
+                    });
                     return true;
                 };
                 addPassiveEffectToStack(game, effect, data, "When the attacking player makes their second attack roll this turn, after combat damage, cancel the attack.");

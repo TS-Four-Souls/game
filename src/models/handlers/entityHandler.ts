@@ -486,7 +486,9 @@ export class EntityHandler {
     const receiver: Entity = elem.receiver;
     const source: DamageSource = elem._source;
     const stackIds = this.game.stack.currentStackIds;
-    if(receiver.isDead) 
+    if(receiver.isDead
+      || (elem._source instanceof DiceRoll && (elem.receiver.isEngagedInCombat === false && elem.from.isEngagedInCombat === false))
+    ) 
       {
         this.game.stack.resolve();
         this.game.dispatch();

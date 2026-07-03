@@ -643,7 +643,7 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): SyncEffec
         let offAttackRolled: (() => void) | null = null;
         let offCombatEnd: (() => void) | null = null;
         // console.log("Registering makeAnAttackRollAfterEachAttackRollEffect for", data.it.name, " current player:", game.currentPlayer.id, " issuer:", data.issuer.id);
-        offAttackRolled = game.emitter.on("on:attack:roll", (eventData) => {
+        offAttackRolled = game.emitter.on("on:attack:before-roll", (eventData) => {
             const target = eventData.dice.attackTarget;
             if(eventData.eventIssuer !== game.currentPlayer) {
                 return; // Not the current player, ignore

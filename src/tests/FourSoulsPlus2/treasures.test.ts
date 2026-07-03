@@ -186,6 +186,8 @@ describe("Four Souls+2 Treasures", () => {
         game.random = () => 2/6-0.0001; // roll a 2
         await game.activateItem(player1, card1, [2], "tap");
         await game.actions.resolveStack();
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, game.encounters.monsterIn(0)!);
         game.entityHandler.addHealth(game.monsters[0]!, 10);
         game.rollDice(player2, new AttackRollData(0, 1, 0, 1, 1, game.monsters[0]!));
         const hp = player2.currentHealthPoints;
@@ -206,10 +208,13 @@ describe("Four Souls+2 Treasures", () => {
         await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(hp-1);
 
+        game.entityHandler.endCombat();
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-         game.random = () => 2/6-0.0001; // roll a 2
+        game.random = () => 2/6-0.0001; // roll a 2
+        game.actions.declareAttack(player2);
+        await game.actions.declareAttackOnEntity(player2, game.encounters.monsterIn(0)!);
         game.rollDice(player2, new AttackRollData(0, 1, 0, 1, 1, game.monsters[0]!));
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -251,9 +256,9 @@ describe("Four Souls+2 Treasures", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(game.encounters.monsterIn(1)!.card.slug).not.toBe("b2-fatty");
+        expect(player1.isDead).toBe(false);
         await game.actions.resolveStack();
         await game.endTurn();
         await game.actions.resolveStack();
@@ -449,6 +454,8 @@ describe("Four Souls+2 Treasures", () => {
         game.cardHandler.addInPlay(player1, card1);
         game.random = () => 3/6-0.0001;
         // attack roll don't change
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, game.encounters.monsterIn(0)!);
         let diceRoll = game.rollDice(player1, new AttackRollData(0, 1, 0, 1, 1, player1));
         await game.actions.resolveStack();
         await game.actions.resolveStack();

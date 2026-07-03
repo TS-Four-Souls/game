@@ -377,6 +377,7 @@ export interface TriggerEventDataMap {
   "on:attack:declared:animated": OnAttackDeclaredAnimatedData;
   "on:attack:declared:topdeck": OnAttackDeclaredTopDeckData;
   "on:attack:roll": OnAttackRollData;
+  "on:attack:before-roll": OnAttackRollData;
   "on:attack:roll:first-time-each-turn": OnAttackRollData;
   "on:attack:roll:failed": OnAttackRollData;
   "on:coin:gained": OnCoinGainedData;

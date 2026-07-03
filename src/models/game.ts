@@ -306,21 +306,20 @@ export class Game extends SelectionHandler {
     return diceRoll;
   }
 
-  setupAttackRoll(dice: DiceRoll): void {
+  async resolveAttackRoll(dice: DiceRoll): Promise<void> {
     if(!dice.attackRoll)
       return;
-    this.emit("on:attack:roll", {
-      eventIssuer: dice.issuer,
-      target: dice.attackTarget,
-      dice,
-    });
     if (dice.issuer.attackRollThisTurn === 1)
       this.emit("on:attack:roll:first-time-each-turn", {
         eventIssuer: dice.issuer,
         target: dice.attackTarget,
         dice,
       });
-
+    this.emit("on:attack:before-roll", {
+      eventIssuer: dice.issuer,
+      target: dice.attackTarget,
+      dice,
+    });
     dice.attachEffect(
       getAttackRollEffect(
         dice,
@@ -329,8 +328,15 @@ export class Game extends SelectionHandler {
       dice.attackTarget.card,
       [dice.attackTarget]
     );
+    await dice.onResolve();
+    this.emit("on:attack:roll", {
+      eventIssuer: dice.issuer,
+      target: dice.attackTarget,
+      dice,
+    });
   }
   async resolveDiceRoll(): Promise<void> {
+    const turnId = this.turnHandler.turnId;
     const stackIds = this.stack.currentStackIds;
     const elem = this.stack.peek() as DiceRoll;
     if (!elem || !(elem instanceof DiceRoll)) return;
@@ -349,8 +355,10 @@ export class Game extends SelectionHandler {
         if(!dice || !(dice instanceof DiceRoll))
           throw new GameError("The resolved stack element is not a DiceRoll.",
             toSerializedTranslation("error2.behaviorError", {error: "The resolved stack element is not a DiceRoll."}));
-        this.setupAttackRoll(dice);
-        await elem.onResolve();
+        if(dice.attackRoll)
+          await this.resolveAttackRoll(dice);
+        else
+          await elem.onResolve();
         // Add to history
         this.addToHistory(elem.json);
         this.dispatch();

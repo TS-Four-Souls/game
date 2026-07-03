@@ -122,7 +122,7 @@ describe("Treasure - with counters effect", () => {
         }
         await game.actions.resolveStack(); // Roll resolution
         expect(game.stack.peek()).toBeInstanceOf(DamageOnStack);
-        expect((game.stack.peek() as DamageOnStack).receiver).toBeInstanceOf(Player);
+        expect((game.stack.peek() as DamageOnStack).receiver instanceof Player).toBe(true);
 
         await game.actions.resolveStack(); // Damage resolution
 
