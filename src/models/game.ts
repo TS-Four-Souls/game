@@ -355,6 +355,8 @@ export class Game extends SelectionHandler {
         this.addToHistory(elem.json);
         this.dispatch();
         await this.resolveCallbacks();
+        if(this.turnHandler.turnId !== turnId) // some dice roll may end the turn.
+          return;
         this.emit("on:dice:resolved", { eventIssuer: elem.issuer, diceRoll: elem });
         await this.resolveCallbacks();
     });

@@ -6,7 +6,7 @@ import { toSerializedTranslation } from "@/utils/translation";
 export class TurnHandler {
     private _isInitialized: boolean = false;
     private _roundIndex: number = 0;
-    private _numberOfRoundSinceBeginning: number = 0;
+    private _turnId: number = 0;
     private _remainingTurnsInRound: Player[] = [];
     private _baseOrder: Player[] = [];
     private _skipTurnNextRoundList: Player[] = [];
@@ -20,11 +20,14 @@ export class TurnHandler {
     }
 
     get numberOfRoundSinceBeginning(): number {
-        return this._numberOfRoundSinceBeginning;
+        return this._turnId;
     }
-
+    get turnId(): number {
+        return this._turnId;
+    }
+    
     endTurn() : void {
-        this._numberOfRoundSinceBeginning++;
+        this._turnId++;
         const finishedPlayer = this._remainingTurnsInRound.shift();
         if (this._remainingTurnsInRound.length === 0) {
             this._roundIndex += 1;
@@ -96,7 +99,7 @@ export class TurnHandler {
     reset() : void {
         this._isInitialized = false;
         this._roundIndex = 0;
-        this._numberOfRoundSinceBeginning = 0;
+        this._turnId = 0;
         this._remainingTurnsInRound = [];
         this._baseOrder = [];
         this._skipTurnNextRoundList = [];
