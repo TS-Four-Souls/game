@@ -335,8 +335,8 @@ export const enterStartStep = (
               enterGameStep(user.socket, room, user);
               user.socket.emit("on:room:broadcast", {
                 type: "info",
-                title: toSerializedTranslation("toast.gameLoadedTitle", { player: activeInstance.name }),
-                message: toSerializedTranslation("toast.gameLoadedMessage"),
+                title: toSerializedTranslation("toast.gameLoaded.title", { player: activeInstance.name }),
+                message: toSerializedTranslation("toast.gameLoaded.message"),
               });
             }
             

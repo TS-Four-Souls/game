@@ -487,8 +487,8 @@ export class Game extends SelectionHandler {
     {
       this._onRoomBroadcast.dispatch({
         type: "victory",
-        title: toSerializedTranslation("toast.timeUpTitle"),
-        message: toSerializedTranslation("toast.timeUpmessage"),
+        title: toSerializedTranslation("toast.timeUp.title"),
+        message: toSerializedTranslation("toast.timeUp.message"),
         players: this.players.map(p => p.id),
       });
     }
@@ -499,8 +499,8 @@ export class Game extends SelectionHandler {
 
         this._onRoomBroadcast.dispatch({
           type: "victory",
-          title: isWinner ? toSerializedTranslation("toast.winningTitle") : toSerializedTranslation("toast.losingTitle"),
-          message: isWinner ? toSerializedTranslation("toast.winningMessage") : toSerializedTranslation("toast.losingMessage"),
+          title: isWinner ? toSerializedTranslation("toast.winning.title") : toSerializedTranslation("toast.losing.title"),
+          message: isWinner ? toSerializedTranslation("toast.winning.message") : toSerializedTranslation("toast.losing.message"),
           players: [p.id],
         });
       }

@@ -1765,8 +1765,8 @@ export function changeNumberInEffectTextEffect(game: Game, val: number, min: num
             game.toast(
                 {
                 type: "warning",
-                title: toSerializedTranslation("toast.foundNotImplemented"),
-                message: toSerializedTranslation("toast.insultDevs"),
+                title: toSerializedTranslation("toast.notImplemented.title"),
+                message: toSerializedTranslation("toast.notImplemented.message"),
                 players: [data.issuer.id],
                 });
             game.gainCoins(data.issuer as Player, 15, data.it);

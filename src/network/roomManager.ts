@@ -52,8 +52,8 @@ class RoomManager {
 
             user.socket.emit("on:room:broadcast", {
               type: "error",
-              title: toSerializedTranslation("toast.roomPurgedTitle"),
-              message: toSerializedTranslation("toast.roomPurgedMessage"),
+              title: toSerializedTranslation("toast.roomPurged.title"),
+              message: toSerializedTranslation("toast.roomPurged.message"),
             });
           });
         } catch (error) {
@@ -122,7 +122,9 @@ class RoomManager {
     if (!room.game) return;
     const params = room.game.gameParameters;
     const teamCount = new Set(
-      room.users.flatMap((user) => user.instances).map((instance) => instance.team),
+      room.users
+        .flatMap((user) => user.instances)
+        .map((instance) => instance.team),
     ).size;
     insertGameRecord(
       room.id,

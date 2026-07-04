@@ -1628,22 +1628,38 @@
     "behaviorError": "Behavior error: {{error}}."
   },
   "toast": {
-    "timeUpTitle": "TIME'S UP! EVERYBODY LOSES!",
-    "timeUpmessage": "You can keep playing, but you won't see the MAGNIFICENT VICTORY POPUP!",
-    "foundNotImplemented": "Congrats! You found something not implemented yet!",
-    "insultDevs": "You can thank these lazy developers for ruining your game experience! Here's 15 coins to ease the pain.",
-    "winningTitle": "YOU WON!",
-    "winningMessage": "Congratulations!",
-    "losingTitle": "AHAH! YOU LOST!",
-    "losingMessage": "Next time, cheat!",
-    "rollbackTitle": "Game rolled back by {{player}}.",
-    "rollbackMessage": "The game has been rolled back to the last action.",
-    "exitTitle": "Game exited by {{player}}.",
-    "exitMessage": "The game has been closed.",
-    "roomPurgedTitle": "Room purged.",
-    "roomPurgedMessage": "The room has been purged because it has been inactive for too long.",
-    "gameLoadedTitle": "Game loaded by {{player}}.",
-    "gameLoadedMessage": "The game has been loaded."
+    "timeUp": {
+      "title": "TIME'S UP! EVERYBODY LOSES!",
+      "message": "You can keep playing, but you won't see the MAGNIFICENT VICTORY POPUP!"
+    },
+    "winning": {
+      "title": "YOU WON!",
+      "message": "Congratulations!"
+    },
+    "losing": {
+      "title": "AHAH! YOU LOST!",
+      "message": "Next time, cheat!"
+    },
+    "gameLoaded": {
+      "title": "Game loaded by {{player}}.",
+      "message": "The game has been loaded."
+    },
+    "roomPurged": {
+      "title": "Room purged.",
+      "message": "The room has been purged because it has been inactive for too long."
+    },
+    "exit": {
+      "title": "Game exited by {{player}}.",
+      "message": "The game has been closed."
+    },
+    "rollback": {
+      "title": "Game rolled back by {{player}}.",
+      "message": "The game has been rolled back to the last action."
+    },
+    "notImplemented": {
+      "title": "Congrats! You found something not implemented yet!",
+      "message": "You can thank these lazy developers for ruining your game experience! Here's 15 coins to ease the pain."
+    }
   },
   "capability": {
     "cannotAttackSelf": "You cannot attack yourself",

@@ -90,8 +90,8 @@ export const enterGameStep = (
         enterGameStep(user.socket, room, user);
         user.socket.emit("on:room:broadcast", {
           type: "info",
-          title: toSerializedTranslation("toast.rollbackTitle", { player: player.id }),
-          message: toSerializedTranslation("toast.rollbackMessage"),
+          title: toSerializedTranslation("toast.rollback.title", { player: player.id }),
+          message: toSerializedTranslation("toast.rollback.message"),
         });
       }
 
@@ -321,8 +321,8 @@ export const enterGameStep = (
         const socket = user.socket;
         socket.emit("on:room:broadcast", {
           type: "info",
-          title: toSerializedTranslation("toast.exitTitle", { player: player.id }),
-          message: toSerializedTranslation("toast.exitMessage"),
+          title: toSerializedTranslation("toast.exit.title", { player: player.id }),
+          message: toSerializedTranslation("toast.exit.message"),
         });
       }
 
