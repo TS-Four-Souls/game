@@ -222,7 +222,7 @@ class PassiveEffectHandler extends EffectHandler {
         if (effect.type === "passive")
             this._effects.push(effect);
         else throw new GameError("Cannot put a non-passive effect in a PassiveEffectHandler.",
-            toSerializedTranslation("error2.behaviorError", { error: "Cannot put a non-passive effect in a PassiveEffectHandler." })
+            toSerializedTranslation("error.behaviorError", { error: "Cannot put a non-passive effect in a PassiveEffectHandler." })
         );
     }
     subscribeAll(issuerProvider: () => Entity, it: Card): void {
@@ -255,7 +255,7 @@ class ActiveEffectHandler extends EffectHandler {
                 break;
             default:
                 throw new GameError("Cannot put a passive effect in an ActiveEffectHandler.",
-                    toSerializedTranslation("error2.behaviorError", { error: "Cannot put a passive effect in an ActiveEffectHandler." })
+                    toSerializedTranslation("error.behaviorError", { error: "Cannot put a passive effect in an ActiveEffectHandler." })
                 );
         }   
     }
@@ -263,7 +263,7 @@ class ActiveEffectHandler extends EffectHandler {
     getActiveEffect(): Effect {
         if (this._activeEffect === null) {
             throw new GameError("No active effect found in ActiveEffectHandler.",
-                    toSerializedTranslation("error2.behaviorError", { error: "No active effect found in ActiveEffectHandler." })
+                    toSerializedTranslation("error.behaviorError", { error: "No active effect found in ActiveEffectHandler." })
 
             );
         }
@@ -276,7 +276,7 @@ class ActiveEffectHandler extends EffectHandler {
     async activate(issuer: Entity, it: Card, targets: any[]): Promise<boolean> {
         if (this._activeEffect === null) {
             throw new GameError("No active effect found in ActiveEffectHandler.",
-                toSerializedTranslation("error2.behaviorError", { error: "No active effect found in ActiveEffectHandler." })
+                toSerializedTranslation("error.behaviorError", { error: "No active effect found in ActiveEffectHandler." })
             );
         }
         return this._activeEffect.effectFunction(new EffectData(it, () => issuer as Player, targets, this._activeEffect!.getVisualEffectBoxFromTargets(targets)));
@@ -295,7 +295,7 @@ class ActiveEffectHandler extends EffectHandler {
         const paidEffects = this._effects[index];
         if (!paidEffects) {
             throw new GameError(`Paid effect at index ${index} not found.`,
-                toSerializedTranslation("error2.behaviorError", { error: `Paid effect at index ${index} not found.` })
+                toSerializedTranslation("error.behaviorError", { error: `Paid effect at index ${index} not found.` })
             );
         }
         return paidEffects;
@@ -317,7 +317,7 @@ class ActiveEffectHandler extends EffectHandler {
         const idx = this._effects.findIndex((effect) => effect.description === description);
         if (idx === -1) {
             throw new GameError(`Effect with description "${description}" not found in effect list ${this._effects.map(e => e.description).join(", ")}.`,
-                toSerializedTranslation("error2.behaviorError", { error: `Effect with description "${description}" not found in effect list ${this._effects.map(e => e.description).join(", ")}.` })
+                toSerializedTranslation("error.behaviorError", { error: `Effect with description "${description}" not found in effect list ${this._effects.map(e => e.description).join(", ")}.` })
             );
         }
         return idx;
@@ -344,7 +344,7 @@ export class EffectInterface {
         if (effect.type === "passive") {
             if(effect instanceof PassiveEffect === false)
                 throw new GameError(`Effect "${effect.description}" is not a passive effect.`,
-                    toSerializedTranslation("error2.behaviorError", { error: `Effect "${effect.description}" is not a passive effect.` })
+                    toSerializedTranslation("error.behaviorError", { error: `Effect "${effect.description}" is not a passive effect.` })
                 );
             this.passiveEffects.addEffect(effect);
         } else {
@@ -354,7 +354,7 @@ export class EffectInterface {
                 for(let i = boxId.startIndex; i < boxId.endIndex + 1; i++) {
                     if(this._mapSepIdToActiveEffectId.has(i))
                         throw new GameError(`Duplicate separator ID ${boxId} in card ${this.it.slug}. Each effect range separator must be unique.`,
-                            toSerializedTranslation("error2.behaviorError", { error: `Duplicate separator ID ${boxId} in card ${this.it.slug}. Each effect range separator must be unique.` })
+                            toSerializedTranslation("error.behaviorError", { error: `Duplicate separator ID ${boxId} in card ${this.it.slug}. Each effect range separator must be unique.` })
                         );
                     this._mapSepIdToActiveEffectId.set(i, effect.type === "active" ? "tap" : this.activeEffects.nbPaidEffects);
                 }
@@ -367,7 +367,7 @@ export class EffectInterface {
         const effectId = this._mapSepIdToActiveEffectId.get(id);
         if (effectId === undefined) {
             throw new GameError(`Separator ID ${id} not found in effect map for card ${this.it.slug}.`,
-                toSerializedTranslation("error2.behaviorError", { error: `Separator ID ${id} not found in effect map for card ${this.it.slug}.` })
+                toSerializedTranslation("error.behaviorError", { error: `Separator ID ${id} not found in effect map for card ${this.it.slug}.` })
             );
         }
         const effect = effectId === "tap" ? this.activeEffects.getActiveEffect() : this.activeEffects.getPaidEffect(effectId);
@@ -378,7 +378,7 @@ export class EffectInterface {
                 return { effectId, choice: [effect.range[i]!.description.toLowerCase()] };}
         }
         throw new GameError(`Separator ID ${effectId} does not fall within any effect range for card ${this.it.slug}.`,
-            toSerializedTranslation("error2.behaviorError", { error: `Separator ID ${effectId} does not fall within any effect range for card ${this.it.slug}.` })
+            toSerializedTranslation("error.behaviorError", { error: `Separator ID ${effectId} does not fall within any effect range for card ${this.it.slug}.` })
         );
     }
 
@@ -408,7 +408,7 @@ export class EffectInterface {
         const effect = this.activeEffects.getActiveEffect();
         if (!issuer)
             throw new GameError("EffectInterface.tapEffect: issuer is undefined or null.",
-                toSerializedTranslation("error2.behaviorError", { error: "EffectInterface.tapEffect: issuer is undefined or null." })
+                toSerializedTranslation("error.behaviorError", { error: "EffectInterface.tapEffect: issuer is undefined or null." })
             );
         const data = new EffectData(this.it, () => issuer as Player, targets, effect.getVisualEffectBoxFromTargets(targets));
         return new EffectOnStack(effect.effectFunction, data, effect.description, effect.type, effect.getVisualEffectBoxFromTargets(targets));

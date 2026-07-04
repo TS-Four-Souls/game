@@ -28,7 +28,7 @@ export class Rooms extends Slots<RoomCard> {
         const card = this._deck.draw();
         if (card === undefined)
             throw new GameError(`Cannot draw card from deck for slot ${position}.`,
-                toSerializedTranslation("error2.behaviorError", {error: `Cannot draw card from deck for slot ${position}.`}));
+                toSerializedTranslation("error.behaviorError", {error: `Cannot draw card from deck for slot ${position}.`}));
         this._slots[position]!.push(card);
         card.onAddInPlay(() => this._game.currentPlayer);
     }

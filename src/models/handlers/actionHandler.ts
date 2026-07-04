@@ -647,10 +647,8 @@ export class ActionHandler {
     if(cards.length === 1)
       this.game.toast({
         type: "warning",
-        title: (cards.length === 1) 
-          ? toSerializedTranslation("toast.cheatDiscardOneTitle", { player: player.id}) 
-          : toSerializedTranslation("toast.cheatDiscardManyTitle", { player: player.id, value: cards.length}),
-        message: toSerializedTranslation("toast.cheatDiscardMessage", { cardArray: cards.map((c) => c.nameKey) }),
+        title:  toSerializedTranslation("gameStep.cheats.discardCard.popup.successToast.title", { player: player.id, count: cards.length }),
+        message: toSerializedTranslation("gameStep.cheats.discardCard.popup.successToast.message", { cardNames: cards.map((c) => c.nameKey) }),
         players: this.game.players.map((p) => p.id),
       });
   }
@@ -667,11 +665,11 @@ export class ActionHandler {
     this.game.toast({
       type: "warning",
       title: fromTop 
-        ? toSerializedTranslation("toast.cheatTopTreasure", { player: player.id, value: treasures.length })
-        : toSerializedTranslation("toast.cheatAnyTreasure", { player: player.id, value: treasures.length }),
+        ? toSerializedTranslation("gameStep.cheats.getTreasureTopDeck.successToast.title", { player: player.id, count: treasures.length })
+        : toSerializedTranslation("gameStep.cheats.selectTreasureToLoot.popup.successToast.title", { player: player.id, count: treasures.length }),
       message: fromTop 
-        ? toSerializedTranslation("toast.cheatTopTreasureMessage", { cardArray: treasures.map((t) => t.nameKey) })
-        : toSerializedTranslation("toast.cheatAnyTreasureMessage", { cardArray: treasures.map((t) => t.nameKey) }),
+        ? toSerializedTranslation("gameStep.cheats.getTreasureTopDeck.successToast.message", { cardName: treasures.map((t) => t.nameKey) })
+        : toSerializedTranslation("gameStep.cheats.selectTreasureToLoot.popup.successToast.message", { cardNames: treasures.map((t) => t.nameKey) }),
       players: this.game.players.map((p) => p.id),
     });
   }
@@ -682,8 +680,8 @@ export class ActionHandler {
     this.game.gainCoins(player, coins, "gift");
     this.game.toast({
       type: "warning",
-      title: toSerializedTranslation("toast.cheatCoinsTitle", { player: player.id, coins: coins }),
-      message: toSerializedTranslation("toast.cheatCoinsMessage", { coins: coins }),
+      title: toSerializedTranslation("gameStep.cheats.gainGoin.popup.successToast.title", { player: player.id, count: coins }),
+      message: toSerializedTranslation("gameStep.cheats.gainGoin.popup.successToast.message", { count: coins }),
       players: this.game.players.map((p) => p.id),
     });
   }
@@ -698,11 +696,11 @@ export class ActionHandler {
     this.game.toast({
       type: "warning",
       title: broadcastName 
-        ? toSerializedTranslation("toast.cheatLootCardAny", { player: player.id, value: lootCards.length }) 
-        : toSerializedTranslation("toast.cheatLootCardTop", { player: player.id, value: lootCards.length }),
+        ? toSerializedTranslation("gameStep.cheats.selectCardToLoot.popup.successToast.title", { player: player.id, count: lootCards.length })
+        : toSerializedTranslation("gameStep.cheats.getLootTopDeck.successToast.title", { player: player.id }),
       message: broadcastName 
-        ? toSerializedTranslation("toast.cheatLootMessageWithName", { cardArray: lootCards.map((c) => c.nameKey) })
-        : toSerializedTranslation("toast.cheatLootMessageWithoutName", { value: lootCards.length }),
+        ? toSerializedTranslation("gameStep.cheats.selectCardToLoot.popup.successToast.message", { cardNames: lootCards.map((c) => c.nameKey)  })
+        : toSerializedTranslation("gameStep.cheats.getLootTopDeck.successToast.message"),
       players: this.game.players.map((p) => p.id),
     });
   }
@@ -715,8 +713,8 @@ export class ActionHandler {
     this.game.dispatch();
     this.game.toast({
       type: "warning",
-      title: toSerializedTranslation("toast.cheatMonsterCard", { player: player.id }),
-      message: toSerializedTranslation("toast.cheatMonsterMessage", { card: card.nameKey, value: index + 1 }),
+      title: toSerializedTranslation("gameStep.cheats.putMonsterCardInSlot.popup.successToast.title", { player: player.id }),
+      message: toSerializedTranslation("gameStep.cheats.putMonsterCardInSlot.popup.successToast.message", { card: card.nameKey, value: index + 1 }),
       players: this.game.players.map((p) => p.id),
     });
   }

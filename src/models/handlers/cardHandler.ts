@@ -335,7 +335,7 @@ export class CardHandler {
 
   private registerCard(card: Card): void {
     if (this._cardMapping.has(card.globalId)) {
-      throw new GameError(`Duplicate global card id detected: ${card.globalId}.`, toSerializedTranslation("error2.behaviorError", {error: `Duplicate global card id detected: ${card.globalId}.`}));
+      throw new GameError(`Duplicate global card id detected: ${card.globalId}.`, toSerializedTranslation("error.behaviorError", {error: `Duplicate global card id detected: ${card.globalId}.`}));
     }
     this._cardMapping.set(card.globalId, card);
     this._nextCardGlobalId = Math.max(this._nextCardGlobalId, card.globalId + 1);
@@ -670,7 +670,7 @@ export class CardHandler {
     this.setupDecks();
     const characterDeck = this.decks["character"];
     if (!characterDeck) {
-      throw new GameError("No character deck found", toSerializedTranslation("error2.behaviorError", {error: "No character deck found"}));
+      throw new GameError("No character deck found", toSerializedTranslation("error.behaviorError", {error: "No character deck found"}));
     }
     
     const characters: CharacterCard[] = characterDeck.drawSeveral(
@@ -685,7 +685,7 @@ export class CardHandler {
   assignCharactersToPlayers(characters: CharacterCard[]): void {
     const characterDeck = this.decks["character"];
     if (!characterDeck) {
-      throw new GameError("No character deck found", toSerializedTranslation("error2.behaviorError", {error: "No character deck found"}));
+      throw new GameError("No character deck found", toSerializedTranslation("error.behaviorError", {error: "No character deck found"}));
     }
     if (characters.length !== this.game.players.length) {
       throw new GameError("Number of characters does not match number of players", toSerializedTranslation("error.numberOfCharaNEQnbPlayers"));
@@ -695,7 +695,7 @@ export class CardHandler {
       this.addInPlay(player, character);
       const eternalDeck = this.decks["eternal"];
       if (!eternalDeck) {
-        throw new GameError("No eternal deck found", toSerializedTranslation("error2.behaviorError", {error: "No eternal deck found"}));
+        throw new GameError("No eternal deck found", toSerializedTranslation("error.behaviorError", {error: "No eternal deck found"}));
       }
       if (character.eternalCard) {
         const cardName = character.eternalCard;
@@ -873,7 +873,7 @@ export class CardHandler {
     this.removeCardFromHand(from, card);
     this.addCardToHand(to, card);
     if(to.hand.cards.some(c => this.decks.loot.cards.includes(c)))
-        throw new GameError("Card cannot be given to the player in eachOtherPlayerLootsAndYouLootEffect", toSerializedTranslation("error2.behaviorError", {error: "Card cannot be given to the player in eachOtherPlayerLootsAndYouLootEffect"}));
+        throw new GameError("Card cannot be given to the player in eachOtherPlayerLootsAndYouLootEffect", toSerializedTranslation("error.behaviorError", {error: "Card cannot be given to the player in eachOtherPlayerLootsAndYouLootEffect"}));
     return true;
   }
 
@@ -956,7 +956,7 @@ export class CardHandler {
 
   attachFlipEffectsToCard(card: Card): void {
     if(card.flipData === undefined)
-      throw new GameError("attachFlipEffectsToCard should only be called on cards with flip data.", toSerializedTranslation("error2.behaviorError", {error: "attachFlipEffectsToCard should only be called on cards with flip data."}));
+      throw new GameError("attachFlipEffectsToCard should only be called on cards with flip data.", toSerializedTranslation("error.behaviorError", {error: "attachFlipEffectsToCard should only be called on cards with flip data."}));
     
     if(card.flipData.rewards !== undefined)
     {
@@ -974,7 +974,7 @@ export class CardHandler {
         const differenceAttack = (flippedStats.attackPoints ?? 0) - (originalStats.attackPoints ?? 0);
         const differenceEvasion = (flippedStats.evasionPoints ?? 0) - (originalStats.evasionPoints ?? 0);
         if((flippedStats.evasionPoints === undefined) !== (originalStats.evasionPoints === undefined))
-          throw new GameError("Cards adding or removing evasion as a stat not supported.", toSerializedTranslation("error2.behaviorError", {error: "Cards adding or removing evasion as a stat not supported."}));
+          throw new GameError("Cards adding or removing evasion as a stat not supported.", toSerializedTranslation("error.behaviorError", {error: "Cards adding or removing evasion as a stat not supported."}));
 
         card.addFlipEffect(() => {
           if(!card.flipped)
@@ -1047,7 +1047,7 @@ export class CardHandler {
         if (idxSplit === -1) {
           throw new GameError(
             `Invalid paid effect format (missing ':'): ${outcome}`,
-            toSerializedTranslation("error2.parsingError", {error: `Invalid paid effect format (missing ':'): ${outcome}`})
+            toSerializedTranslation("error.parsingError", {error: `Invalid paid effect format (missing ':'): ${outcome}`})
           );
         }
 
@@ -1191,7 +1191,7 @@ export class CardHandler {
                 const card = effectData.next;
                 card.owner = effectIssuer;
                 if(!(card instanceof ItemCard)) {
-                    throw new GameError("gainAbilitiesUntilEffect target must be an ItemCard.", toSerializedTranslation("error2.behaviorError", {error: "gainAbilitiesUntilEffect target must be an ItemCard."}));
+                    throw new GameError("gainAbilitiesUntilEffect target must be an ItemCard.", toSerializedTranslation("error.behaviorError", {error: "gainAbilitiesUntilEffect target must be an ItemCard."}));
                 }
                 if(!(gainer.tags.copiedCards as ItemCard[]).includes(card)) {
                   return false;
@@ -1206,7 +1206,7 @@ export class CardHandler {
                 const effectDescriptionId = (await effectData.selectAndRecord(this.game, effectIssuer, 1, 1, effectsWithValidTargets.map(e => e.description), toSerializedTranslation("pending.effect"), true)).selected[0]!;
                 const effectId = card.activeEffectList.find(e => e.description === effectDescriptionId)?.index;
                 if(effectId === undefined) {
-                    throw new GameError(`Selected effect "${effectDescriptionId}" not found on the card ${card.name}.`, toSerializedTranslation("error2.behaviorError", {error: `Selected effect "${effectDescriptionId}" not found on the card ${card.name}.`}));
+                    throw new GameError(`Selected effect "${effectDescriptionId}" not found on the card ${card.name}.`, toSerializedTranslation("error.behaviorError", {error: `Selected effect "${effectDescriptionId}" not found on the card ${card.name}.`}));
                 }
                 const targets =  await TargetBuilder.buildTargetsOnResolve(this.game, effectIssuer, card, effectId);
                 card.recharge();

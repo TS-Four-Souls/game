@@ -445,7 +445,7 @@ export class Player extends Entity {
   addCanSeeTopOfTreasureDeck(value: number): void {
     const sum = this._canSeeTopOfTreasureDeck + value;
     if(sum < 0) { // can be set to more than 1 with modelling clay.
-      throw new GameError("canSeeTopOfTreasureDeck can not be set to a value less than 0", toSerializedTranslation("error2.behaviorError", {error: "canSeeTopOfTreasureDeck can not be set to a value less than 0"}));
+      throw new GameError("canSeeTopOfTreasureDeck can not be set to a value less than 0", toSerializedTranslation("error.behaviorError", {error: "canSeeTopOfTreasureDeck can not be set to a value less than 0"}));
     }
     this._canSeeTopOfTreasureDeck = sum;
   }
@@ -702,7 +702,7 @@ export class Player extends Entity {
   addSoul(card: Card): void {
     if(card.soul < 1)
     {
-      throw new GameError("Cannot add a card with no soul as a soul card.", toSerializedTranslation("error2.behaviorError", {error: "Cannot add a card with no soul as a soul card."}));
+      throw new GameError("Cannot add a card with no soul as a soul card.", toSerializedTranslation("error.behaviorError", {error: "Cannot add a card with no soul as a soul card."}));
     }
     this._souls.push(card);
   }

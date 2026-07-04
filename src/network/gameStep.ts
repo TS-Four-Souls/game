@@ -25,7 +25,7 @@ export const enterGameStep = (
 ): void => {
   const activeInstance = user.instances.find((instance) => instance.isActive);
   if (!activeInstance) {
-    throw new GameError("No active instance found", toSerializedTranslation("error2.behaviorError", {error: "No active instance found"}));
+    throw new GameError("No active instance found", toSerializedTranslation("error.behaviorError", {error: "No active instance found"}));
   }
   const player = room.game.entityHandler.getPlayerById(activeInstance.name);
 

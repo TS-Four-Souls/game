@@ -28,7 +28,7 @@ import { toSerializedTranslation } from "@/utils/translation";
  */
 export function bSoulEffectParser(card: BsoulCard, game: Game): OffEffectFunction {
     const s = card.effectOutcomes[0];
-    if(!s) throw new GameError("Bonus Soul card has no effect outcome: " + card.name, toSerializedTranslation("error2.parsingError", {error: "Bonus Soul card has no effect outcome"}));
+    if(!s) throw new GameError("Bonus Soul card has no effect outcome: " + card.name, toSerializedTranslation("error.parsingError", {error: "Bonus Soul card has no effect outcome"}));
     switch (s) {
         case "The first player to have 10 or more loot cards in their hand gains this soul.":
             return soulOfGluttonyEffect(game, card);
@@ -48,7 +48,7 @@ export function bSoulEffectParser(card: BsoulCard, game: Game): OffEffectFunctio
             return soulOfSlothEffect(game, card);
 
         default:
-            throw new GameError("Unknown Bonus Soul effect: " + s, toSerializedTranslation("error2.parsingError", {error: "Unknown Bonus Soul effect"}));
+            throw new GameError("Unknown Bonus Soul effect: " + s, toSerializedTranslation("error.parsingError", {error: "Unknown Bonus Soul effect"}));
     }
 }
 

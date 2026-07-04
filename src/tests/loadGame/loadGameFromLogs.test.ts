@@ -9,7 +9,7 @@ function parseLog(path: string): HistoricEntry[] {
   const fs = require('fs');
     const txt = fs.readFileSync(path, "utf8");
     if(txt === "")
-      throw new GameError("Failed to read logs from file.", toSerializedTranslation("error2.parsingError", {error: "Failed to read logs from file."}));
+      throw new GameError("Failed to read logs from file.", toSerializedTranslation("error.parsingError", {error: "Failed to read logs from file."}));
     const log = JSON.parse(txt) as HistoricEntry[];
     return log;
 }
@@ -18,7 +18,7 @@ function parseState(path: string): DetailedState {
   const fs = require('fs');
     const txt = fs.readFileSync(path, "utf8");
     if(txt === "")
-      throw new GameError("Failed to read logs from file.", toSerializedTranslation("error2.parsingError", {error: "Failed to read logs from file."}));
+      throw new GameError("Failed to read logs from file.", toSerializedTranslation("error.parsingError", {error: "Failed to read logs from file."}));
   const state = JSON.parse(txt) as DetailedState;
   return state;
 }

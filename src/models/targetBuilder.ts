@@ -103,7 +103,7 @@ export class TargetBuilder {
 
             const isChooseOne = possibleTargets.length > 0 && isChooseOneOptions(possibleTargets[0]);
             if (isChooseOne)
-                throw new GameError("SHOULD NEVER BE THERE: Cannot auto-advance through deterministic choose-one selectors during build - user choice is required to determine the path.", toSerializedTranslation("error2.behaviorError", { error: "SHOULD NEVER BE THERE: Cannot auto-advance through deterministic choose-one selectors during build - user choice is required to determine the path."}));
+                throw new GameError("SHOULD NEVER BE THERE: Cannot auto-advance through deterministic choose-one selectors during build - user choice is required to determine the path.", toSerializedTranslation("error.behaviorError", { error: "SHOULD NEVER BE THERE: Cannot auto-advance through deterministic choose-one selectors during build - user choice is required to determine the path."}));
  
             result.push(...possibleTargets);
             selectorIndex++;
@@ -351,7 +351,7 @@ export class TargetBuilder {
                 }
             }
             return {type: "unknown", payload: null};
-            // throw new GameError("Not implemented yet", toSerializedTranslation("error2.behaviorError", { error: "Not implemented yet"}));
+            // throw new GameError("Not implemented yet", toSerializedTranslation("error.behaviorError", { error: "Not implemented yet"}));
         });
     }
 
@@ -515,7 +515,7 @@ export class TargetBuilder {
             if (!activeEffect)
                 throw new GameError(`Item ${item.name} has no active effect to copy.`, toSerializedTranslation("error.noActiveEffectToCopy", { card: item.nameKey }));
         }else if (!item.activeEffectList.map(e => e.index).includes(effectId as number)) {
-            throw new GameError(`Paid effect with index ${effectId} not found on item ${item.name}, available: ${item.activeEffectList.map(e => e.index).join(", ")}.`, toSerializedTranslation("error2.behaviorError", { error: `Paid effect with index ${effectId} not found on item ${item.name}, available: ${item.activeEffectList.map(e => e.index).join(", ")}.`}));
+            throw new GameError(`Paid effect with index ${effectId} not found on item ${item.name}, available: ${item.activeEffectList.map(e => e.index).join(", ")}.`, toSerializedTranslation("error.behaviorError", { error: `Paid effect with index ${effectId} not found on item ${item.name}, available: ${item.activeEffectList.map(e => e.index).join(", ")}.`}));
         }
         if(player === undefined)
             throw new GameError(`Effect issuer is not a player.`, toSerializedTranslation("error.effectIssuerNotPlayer"));
@@ -636,7 +636,7 @@ export class TargetBuilder {
                 options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
                 const prevChooseOneIdx = options.options.findIndex((opt: any) => opt.description === prevChooseOneOption.description);
                     if(prevChooseOneIdx === -1)
-                        throw new GameError(`Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`, toSerializedTranslation("error2.behaviorError", { error: `Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`}));
+                        throw new GameError(`Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`, toSerializedTranslation("error.behaviorError", { error: `Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`}));
                     if(options.options.length <= prevChooseOneIdx + 1)
                         return toSerializedTranslation("capability.noValidTargets");
                     targets.push(options.options[prevChooseOneIdx+1]);
@@ -705,7 +705,7 @@ export class TargetBuilder {
                     options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
                     const prevChooseOneIdx = options.options.findIndex((opt: any) => opt.description === prevChooseOneOption.description);
                     if(prevChooseOneIdx === -1)
-                        throw new GameError(`Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`, toSerializedTranslation("error2.behaviorError", { error: `Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`}));
+                        throw new GameError(`Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`, toSerializedTranslation("error.behaviorError", { error: `Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`}));
                     if(options.options.length <= prevChooseOneIdx + 1)
                         return "No valid targets. (No option to backtrack to)";
                     targets.push(options.options[prevChooseOneIdx+1]);

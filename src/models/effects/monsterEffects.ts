@@ -42,7 +42,7 @@ export function thisHealsEffect(game: Game, amount: number): SyncEffectFunction 
             target = game.monsters.find((m) => m.json.globalId === data.it.globalId)!;
         if(!target)
             throw new GameError("thisHealsEffect effect could not find the monster to heal.",
-                toSerializedTranslation("error2.behaviorError", { error: "thisHealsEffect effect could not find the monster to heal." })
+                toSerializedTranslation("error.behaviorError", { error: "thisHealsEffect effect could not find the monster to heal." })
             );
         game.entityHandler.heal(target, amount);
         return true;
@@ -168,7 +168,7 @@ export function eachPlayerRollLowestOrTiedForLowestDiesEffect(game: Game): SyncE
         const dices:DiceRoll[] = [];
         if(data.issuer instanceof Monster === false)
             throw new GameError("eachPlayerRollLowestOrTiedForLowestDiesEffect can only be applied when the issuer is a monster.",
-        toSerializedTranslation("error2.behaviorError", { error: "eachPlayerRollLowestOrTiedForLowestDiesEffect can only be applied when the issuer is a monster." }));
+        toSerializedTranslation("error.behaviorError", { error: "eachPlayerRollLowestOrTiedForLowestDiesEffect can only be applied when the issuer is a monster." }));
         const effect:EffectFunction = (effectData: EffectData) => {
             const lowestValue = Math.min(...dices.map(d => d.value));
             const playersToDie = dices.filter((dice) => dice.value === lowestValue).map(d => d.issuer);
@@ -279,7 +279,7 @@ export function targetTakeDamageEffect(game: Game, damage: number): SyncEffectFu
         const target = data.next;
         if(!(target instanceof Entity))
             throw new GameError("targetTakeDamageEffect can only be applied to entity targets.",
-                toSerializedTranslation("error2.behaviorError", { error: "targetTakeDamageEffect can only be applied to entity targets." }));
+                toSerializedTranslation("error.behaviorError", { error: "targetTakeDamageEffect can only be applied to entity targets." }));
         game.entityHandler.dealDamage(data.issuer as Entity, data.targets[0] as Entity, data.it, damage);
         return true;
     };
@@ -290,7 +290,7 @@ export function targetTakeDamageEffect(game: Game, damage: number): SyncEffectFu
 export function OnDamageByActivePlayerRollDealDamageEffect(game: Game, numbers: number[]): SyncEffectFunction {
     if(numbers.length < 9)
         throw new GameError("OnDamageByActivePlayerRollDealDamageEffect requires an array of 9 numbers as parameter, representing the roll thresholds for each outcome.",
-            toSerializedTranslation("error2.behaviorError", { error: "OnDamageByActivePlayerRollDealDamageEffect requires an array of 9 numbers as parameter, representing the roll thresholds for each outcome." })
+            toSerializedTranslation("error.behaviorError", { error: "OnDamageByActivePlayerRollDealDamageEffect requires an array of 9 numbers as parameter, representing the roll thresholds for each outcome." })
         );
     const ranges = [[numbers[0], numbers[1]], [numbers[3], numbers[4]], [numbers[6], numbers[7]]];
     const dmgs = [numbers[2], numbers[5], numbers[8]];
@@ -389,12 +389,12 @@ export function putInMonsterDeckNFromTopEffect(game: Game, n: number): SyncEffec
         const monsterDeck = game.decks.monster;
         if (!(data.it instanceof MonsterCard)) {
             throw new GameError("putInMonsterDeckNFromTopEffect can only be applied to monster cards.",
-                toSerializedTranslation("error2.behaviorError", { error: "putInMonsterDeckNFromTopEffect can only be applied to monster cards." })
+                toSerializedTranslation("error.behaviorError", { error: "putInMonsterDeckNFromTopEffect can only be applied to monster cards." })
             );
         }
         if (!Number.isFinite(n) || n < 1) {
             throw new GameError(`Invalid n for putInMonsterDeckNFromTopEffect: ${n}`,
-                toSerializedTranslation("error2.behaviorError", { error: `Invalid n for putInMonsterDeckNFromTopEffect: ${n}` })
+                toSerializedTranslation("error.behaviorError", { error: `Invalid n for putInMonsterDeckNFromTopEffect: ${n}` })
             );
         }
         data.it.afterEffect = "handled"; // Card placement is handled by this effect
@@ -492,7 +492,7 @@ export function noCombatDamageOnAttackRollEffect(game: Game, rollValues: number[
             const player = target instanceof Player ? target : eventIssuer;
             if(player instanceof Player === false)
                 throw new GameError("noCombatDamageOnAttackRollEffect can only be applied when the target or event issuer is a player.",
-                    toSerializedTranslation("error2.behaviorError", { error: "noCombatDamageOnAttackRollEffect can only be applied when the target or event issuer is a player." }));
+                    toSerializedTranslation("error.behaviorError", { error: "noCombatDamageOnAttackRollEffect can only be applied when the target or event issuer is a player." }));
             const minDiceValue  = player.diceModifier + player.attackDiceModifier + 1;
             const maxValidValue = Math.max(...[1,2,3,4,5,6].filter(v => !rollValues.includes(v)));
             if(rollValues.includes(6) && minDiceValue > maxValidValue) 
@@ -590,7 +590,7 @@ export function damageAlsoPlayerToTheEffect(game: Game, direction: "left" | "rig
             if(eventIssuer !== data.issuer) return;
             if(damage === undefined)
                 throw new GameError("damageAlsoPlayerToTheEffect: damage is undefined.",
-                    toSerializedTranslation("error2.behaviorError", { error: "damageAlsoPlayerToTheEffect: damage is undefined." })
+                    toSerializedTranslation("error.behaviorError", { error: "damageAlsoPlayerToTheEffect: damage is undefined." })
             );
             // Add all effects as a single stack element
             const effect = (effectData: EffectData): boolean => {
@@ -620,7 +620,7 @@ export function damageDealtToActivePlayerAlsoToTheEffect(game: Game, direction: 
             if(game.currentPlayer !== eventIssuer) return;
             if(damage === undefined)
                 throw new GameError("damageAlsoPlayerToTheEffect: damage is undefined.",
-                    toSerializedTranslation("error2.behaviorError", { error: "damageAlsoPlayerToTheEffect: damage is undefined." }));
+                    toSerializedTranslation("error.behaviorError", { error: "damageAlsoPlayerToTheEffect: damage is undefined." }));
             // Add all effects as a single stack element
             const effect = (effectData: EffectData): boolean => {
                 const player = game.getPlayerToThe(direction);
@@ -645,7 +645,7 @@ export function statModifierWhileAtHealthEffect(game: Game, s: string): SyncEffe
     const numbers = s.match(/\d+/g)?.map(numStr => parseInt(numStr, 10)) || [];
     if(numbers.length != 2)
         throw new GameError("statModifierWhileAtHealthEffect could not parse numbers from string: " + s,
-            toSerializedTranslation("error2.behaviorError", { error: "statModifierWhileAtHealthEffect could not parse numbers from string: " + s }));
+            toSerializedTranslation("error.behaviorError", { error: "statModifierWhileAtHealthEffect could not parse numbers from string: " + s }));
     const healthThreshold = numbers[0]!;
     const statAmount = numbers[1]!;
     const orLess = s.includes("or less");
@@ -656,7 +656,7 @@ export function statModifierWhileAtHealthEffect(game: Game, s: string): SyncEffe
         : null;
     if(!event || (s.includes("[dc]") && s.includes("[atk]")))
         throw new GameError("statModifierWhileAtHealthEffect could not determine stat to modify from string: " + s,
-            toSerializedTranslation("error2.behaviorError", { error: "statModifierWhileAtHealthEffect could not determine stat to modify from string: " + s }));
+            toSerializedTranslation("error.behaviorError", { error: "statModifierWhileAtHealthEffect could not determine stat to modify from string: " + s }));
 
     return (data: EffectData) => {
         let offGetStat: (() => void) | null = null;
@@ -728,10 +728,10 @@ export function combatDamageIsEffect(game: Game, s: string): SyncEffectFunction 
     const effectOnDamage = s.includes("doubled") ? "double" : numbers.shift();
     if(numbers.length === 0)
         throw new GameError("combatDamageIsEffect could not parse number from string: " + s,
-            toSerializedTranslation("error2.behaviorError", { error: "combatDamageIsEffect could not parse number from string: " + s }));
+            toSerializedTranslation("error.behaviorError", { error: "combatDamageIsEffect could not parse number from string: " + s }));
     if(numbers.length > 1)
         throw new GameError("combatDamageIsEffect found too many numbers in string: " + s + " it is unexpected so far.",
-            toSerializedTranslation("error2.behaviorError", { error: "combatDamageIsEffect found too many numbers in string: " + s + " it is unexpected so far." }));
+            toSerializedTranslation("error.behaviorError", { error: "combatDamageIsEffect found too many numbers in string: " + s + " it is unexpected so far." }));
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
@@ -913,7 +913,7 @@ export function activePlayerChoosePlayerDiscardXEffect(game: Game, x: number): A
         const targetPlayer = targetSelection.selected[0] as Player;
         if(!targetPlayer){
             throw new GameError("No player selected for activePlayerChoosePlayerDiscardXEffect.",
-                toSerializedTranslation("error2.behaviorError", { error: "No player selected for activePlayerChoosePlayerDiscardXEffect." })
+                toSerializedTranslation("error.behaviorError", { error: "No player selected for activePlayerChoosePlayerDiscardXEffect." })
             );
         }
         await active.discardNLootCardsEffect(x, game, true)(new EffectData(data.it, () => targetPlayer, [], data.visualEffectBox));
@@ -999,7 +999,7 @@ export function preventDeathFirstTimeEachTurnHealAndStatModifierEffect(game: Gam
             const effect = (effectData: EffectData): boolean => {
                 if(data.issuer instanceof Monster === false)
                     throw new GameError("preventDeathFirstTimeEachTurnHealAndStatModifierEffect can only be applied to monsters.",
-                        toSerializedTranslation("error2.behaviorError", { error: "preventDeathFirstTimeEachTurnHealAndStatModifierEffect can only be applied to monsters." })
+                        toSerializedTranslation("error.behaviorError", { error: "preventDeathFirstTimeEachTurnHealAndStatModifierEffect can only be applied to monsters." })
                     );
                 game.entityHandler.preventDeath(eventIssuer as Entity);
                 game.entityHandler.heal(data.issuer, heal - data.issuer.currentHealthPoints); // heal the specified amount from death prevention.
@@ -1039,7 +1039,7 @@ export function forceAttackThisEachTurnEffect(game: Game): SyncEffectFunction {
         let offTurnStart: (() => void) | null = null;
         if(!data.issuer || !(data.issuer instanceof Monster)) 
             throw new GameError("forceAttackThisEachTurnEffect can only be applied to monsters.",
-                toSerializedTranslation("error2.behaviorError", { error: "forceAttackThisEachTurnEffect can only be applied to monsters." })
+                toSerializedTranslation("error.behaviorError", { error: "forceAttackThisEachTurnEffect can only be applied to monsters." })
             );
         game.entityHandler.playerMustAttack(game.currentPlayer, [data.issuer], data.it);
         
@@ -1067,7 +1067,7 @@ export function attackRequirementEachTurnEffect(game: Game, whom: "any" | "topDe
         let offTurnStart: (() => void) | null = null;
         if(data.issuer instanceof Player === false)
             throw new GameError("attackRequirementEachTurnEffect can only be applied to players.",
-                toSerializedTranslation("error2.behaviorError", { error: "attackRequirementEachTurnEffect can only be applied to players." })
+                toSerializedTranslation("error.behaviorError", { error: "attackRequirementEachTurnEffect can only be applied to players." })
             );
         if(game.currentPlayer === data.issuer) {
             const additionalTimes = type === "additional" ? times : times - game.currentPlayer.attackedIdsThisTurn.filter((id) => id === "topDeck" || whom === "any").length;
@@ -1108,7 +1108,7 @@ export function activePlayerChooseLivingPlayerTakeDamageEffect(game: Game, damag
         const targetPlayer = targetSelection.selected[0] as Player;
         if(!targetPlayer){
             throw new GameError("No player selected for activePlayerChooseLivingPlayerTakeDamageEffect.",
-                toSerializedTranslation("error2.behaviorError", { error: "No player selected for activePlayerChooseLivingPlayerTakeDamageEffect." })
+                toSerializedTranslation("error.behaviorError", { error: "No player selected for activePlayerChooseLivingPlayerTakeDamageEffect." })
             );
         }
         game.entityHandler.dealDamage(data.issuer as Entity, targetPlayer as Entity, data.it, damage);
@@ -1168,7 +1168,7 @@ export function bossRushEffect(game: Game, bossCount: number): AsyncEffectFuncti
         {
             if(selectedIndices[i%selectedIndices.length]! < 0)
                 throw new GameError("Selected monster for boss rush effect not found in encounter slots.",
-                    toSerializedTranslation("error2.behaviorError", { error: "Selected monster for boss rush effect not found in encounter slots." })
+                    toSerializedTranslation("error.behaviorError", { error: "Selected monster for boss rush effect not found in encounter slots." })
                 );
             const slotIndex = selectedIndices[i%selectedIndices.length]!;
             game.encounters.draw(slotIndex);

@@ -225,7 +225,7 @@ function setupLoadingSubmitSelectionHandling(game: Game, logs: HistoricEntry[]):
       if (entry === undefined) {
         throw new GameError(
           "No more SubmitSelection entries in logs to match the game's selectMultiple call. This may indicate a mismatch between the game state and the logs, or an issue with log formatting.",
-          toSerializedTranslation("error2.behaviorError", { error: "No more SubmitSelection entries in logs to match the game's selectMultiple call." }),
+          toSerializedTranslation("error.behaviorError", { error: "No more SubmitSelection entries in logs to match the game's selectMultiple call." }),
         );
       }
 
@@ -258,7 +258,7 @@ function findInitialSeed(logs: unknown[]): string {
 
   if (!entry || !entry.seed || entry.seed === "") {
     throw new GameError("No valid randomSeed entry found in logs for game initialization.",
-      toSerializedTranslation("error2.behaviorError", { error: "No valid randomSeed entry found in logs for game initialization." })
+      toSerializedTranslation("error.behaviorError", { error: "No valid randomSeed entry found in logs for game initialization." })
     );
   }
 
@@ -371,17 +371,17 @@ export async function loadGameFromLogs(
           case "Reset": {
             throw new GameError(
               "Reset are supposed to be handled by creating a new game instance, but a Reset entry was found in logs. This may indicate an issue with log formatting or replay logic.",
-              toSerializedTranslation("error2.behaviorError", { error: "Reset are supposed to be handled by creating a new game instance, but a Reset entry was found in logs." }),
+              toSerializedTranslation("error.behaviorError", { error: "Reset are supposed to be handled by creating a new game instance, but a Reset entry was found in logs." }),
             );
           }
           case "GameState": {
             const state = entry.gameState;
             if (!state) {
-              throw new GameError("GameState entry is missing gameState payload", toSerializedTranslation("error2.behaviorError", { error: "GameState entry is missing gameState payload" }));
+              throw new GameError("GameState entry is missing gameState payload", toSerializedTranslation("error.behaviorError", { error: "GameState entry is missing gameState payload" }));
             }
 
             if (game.players[0] === undefined)
-              throw new GameError("GameState entry is missing player data", toSerializedTranslation("error2.behaviorError", { error: "GameState entry is missing player data" }));
+              throw new GameError("GameState entry is missing player data", toSerializedTranslation("error.behaviorError", { error: "GameState entry is missing player data" }));
 
             const comparison = compareGameState(game.detailedStateJSON(game.players[0]), state);
             if (!comparison.equal) {
@@ -391,7 +391,7 @@ export async function loadGameFromLogs(
 
               throw new GameError(
                 `Current game state does not match GameState entry from logs. Differences:\n${differencesMessage}`,
-                toSerializedTranslation("error2.behaviorError", { error: `Current game state does not match GameState entry from logs. Differences:\n${differencesMessage}` })
+                toSerializedTranslation("error.behaviorError", { error: `Current game state does not match GameState entry from logs. Differences:\n${differencesMessage}` })
               );
             }
 
@@ -445,7 +445,7 @@ export async function loadGameFromLogs(
             } catch (error) {
               throw new GameError(
                 `Failed to replay Activate request from logs: ${error instanceof Error ? error.message : error}`,
-                toSerializedTranslation("error2.behaviorError", { error: `Failed to replay Activate request from logs: ${error instanceof Error ? error.message : error}` })
+                toSerializedTranslation("error.behaviorError", { error: `Failed to replay Activate request from logs: ${error instanceof Error ? error.message : error}` })
               );
             }
             break;
@@ -458,7 +458,7 @@ export async function loadGameFromLogs(
             } catch (error) {
               throw new GameError(
                 `Failed to replay ActivateRoom request from logs: ${error instanceof Error ? error.message : error}`,
-                toSerializedTranslation("error2.behaviorError", { error: `Failed to replay ActivateRoom request from logs: ${error instanceof Error ? error.message : error}` })
+                toSerializedTranslation("error.behaviorError", { error: `Failed to replay ActivateRoom request from logs: ${error instanceof Error ? error.message : error}` })
               );
             }
             break;
@@ -538,7 +538,7 @@ export async function loadGameFromLogs(
 
           default:
             throw new GameError(`Unsupported log entry type for replay: ${(entry as HistoricEntry).type}`,
-              toSerializedTranslation("error2.behaviorError", { error: `Unsupported log entry type for replay: ${(entry as HistoricEntry).type}` }));
+              toSerializedTranslation("error.behaviorError", { error: `Unsupported log entry type for replay: ${(entry as HistoricEntry).type}` }));
         }
       }catch (error: any) {
         if(error.message.includes("Current game state does not match GameState entry from log"))

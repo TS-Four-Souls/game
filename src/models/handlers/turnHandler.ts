@@ -66,7 +66,7 @@ export class TurnHandler {
     getPlayerTo(player: Player, direction: "left" | "right"): Player {
         const idx = this._baseOrder.findIndex(p => p.id === player.id);
         if (idx === -1) {
-            throw new GameError("Player not found in base order", toSerializedTranslation("error2.behaviorError", {error: "Player not found in base order"}));
+            throw new GameError("Player not found in base order", toSerializedTranslation("error.behaviorError", {error: "Player not found in base order"}));
         }
         let targetIdx: number;
         if (direction === "left") {
@@ -88,7 +88,7 @@ export class TurnHandler {
     setFirstPlayer(player: Player) : void {
         const idx = this._baseOrder.findIndex(p => p.id === player.id);
         if (idx === -1) {
-            throw new GameError("Player not found in base order", toSerializedTranslation("error2.behaviorError", {error: "Player not found in base order"}));
+            throw new GameError("Player not found in base order", toSerializedTranslation("error.behaviorError", {error: "Player not found in base order"}));
         }
         this._baseOrder = this._baseOrder.slice(idx).concat(this._baseOrder.slice(0, idx));
         this._remainingTurnsInRound = [...this._baseOrder];

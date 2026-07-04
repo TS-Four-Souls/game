@@ -146,9 +146,9 @@ export function cancelAttackAndPutMonsterOnBottomEffect(game: Game): SyncEffectF
         if(data.issuer instanceof Player === false) return false;
         const monster = data.next as Monster;
         if(!(monster instanceof Monster))
-            throw new GameError(`Target of cancelAttackAndPutMonsterOnBottomEffect should be a Monster`, toSerializedTranslation("error2.behaviorError", { error: `Target of cancelAttackAndPutMonsterOnBottomEffect should be a Monster`}));
+            throw new GameError(`Target of cancelAttackAndPutMonsterOnBottomEffect should be a Monster`, toSerializedTranslation("error.behaviorError", { error: `Target of cancelAttackAndPutMonsterOnBottomEffect should be a Monster`}));
         if(!monster.isEngagedInCombat)
-            throw new GameError(`Target of cancelAttackAndPutMonsterOnBottomEffect should be a monster engaged in combat`, toSerializedTranslation("error2.behaviorError", { error: `Target of cancelAttackAndPutMonsterOnBottomEffect should be a monster engaged in combat`}));
+            throw new GameError(`Target of cancelAttackAndPutMonsterOnBottomEffect should be a monster engaged in combat`, toSerializedTranslation("error.behaviorError", { error: `Target of cancelAttackAndPutMonsterOnBottomEffect should be a monster engaged in combat`}));
         game.entityHandler.endCombat();
         game.encounters.flushMonster(monster, "bottom");
         return true;
@@ -159,7 +159,7 @@ export function rechargeItemsEffect(game: Game, selectionOnResolve: boolean = fa
     const allowZero = youMayEffectHanging[0];
     youMayEffectHanging[0] = false;
     if(selectionOnResolve && selector === null)
-        throw new GameError("Selector must be provided for rechargeItemsEffect when selectionOnResolve is true.", toSerializedTranslation("error2.behaviorError", { error: "Selector must be provided for rechargeItemsEffect when selectionOnResolve is true."}));
+        throw new GameError("Selector must be provided for rechargeItemsEffect when selectionOnResolve is true.", toSerializedTranslation("error.behaviorError", { error: "Selector must be provided for rechargeItemsEffect when selectionOnResolve is true."}));
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         if (selectionOnResolve) {
@@ -167,7 +167,7 @@ export function rechargeItemsEffect(game: Game, selectionOnResolve: boolean = fa
             const selectionResult = await data.selectAndRecord(game, data.issuer, allowZero ? 0 : 1, 1, options, qq("pending.itemToRecharge"), true, true);
             if (selectionResult.selected.length > 0) {
                 if(!(selectionResult.selected[0] instanceof ItemCard))
-                    throw new GameError(`Card to recharge is not an ItemCard: ${selectionResult.selected[0].name}`, toSerializedTranslation("error2.behaviorError", { error: `Card to recharge is not an ItemCard: ${selectionResult.selected[0].name}`}));
+                    throw new GameError(`Card to recharge is not an ItemCard: ${selectionResult.selected[0].name}`, toSerializedTranslation("error.behaviorError", { error: `Card to recharge is not an ItemCard: ${selectionResult.selected[0].name}`}));
                 game.cardHandler.recharge(selectionResult.selected[0], data.it);
             }
         }
@@ -175,7 +175,7 @@ export function rechargeItemsEffect(game: Game, selectionOnResolve: boolean = fa
             // data.targets is the array of items to recharge
             for (const card of data.targets) {
                 if(!(card instanceof ItemCard))
-                    throw new GameError(`Card to recharge is not an ItemCard: ${card.name}`, toSerializedTranslation("error2.behaviorError", { error: `Card to recharge is not an ItemCard: ${card.name}`}));
+                    throw new GameError(`Card to recharge is not an ItemCard: ${card.name}`, toSerializedTranslation("error.behaviorError", { error: `Card to recharge is not an ItemCard: ${card.name}`}));
                 game.cardHandler.recharge(card, data.it);
             }
         }
@@ -191,7 +191,7 @@ export function makePlayerGiveLootCardEffect(game: Game, type: "diceRoll" | "pla
         {   const dice = data.next as DiceRoll;
             if (dice instanceof DiceRoll === false)
             {
-                throw new GameError("Target of makePlayerGiveLootCardEffect is not a dice roll.", toSerializedTranslation("error2.behaviorError", { error: "Target of makePlayerGiveLootCardEffect is not a dice roll."}));
+                throw new GameError("Target of makePlayerGiveLootCardEffect is not a dice roll.", toSerializedTranslation("error.behaviorError", { error: "Target of makePlayerGiveLootCardEffect is not a dice roll."}));
             }
             targetPlayer = dice.issuer;
         }
@@ -200,7 +200,7 @@ export function makePlayerGiveLootCardEffect(game: Game, type: "diceRoll" | "pla
             targetPlayer = data.next as Player;
         }
         if(!(targetPlayer instanceof Player))
-            throw new GameError("Target of makePlayerGiveLootCardEffect must be a Player.", toSerializedTranslation("error2.behaviorError", { error: "Target of makePlayerGiveLootCardEffect must be a Player."}));
+            throw new GameError("Target of makePlayerGiveLootCardEffect must be a Player.", toSerializedTranslation("error.behaviorError", { error: "Target of makePlayerGiveLootCardEffect must be a Player."}));
         if(targetPlayer === data.issuer) return true;
         if (targetPlayer.hand.length > 0) {
             const cardToGive = (await data.selectAndRecord(game, targetPlayer, 1, 1, targetPlayer.hand.cards, qq("pending.cardToGive"), true, false)).selected[0]!;
@@ -214,7 +214,7 @@ export function rechargeEachItemsOfTargetEffect(game: Game, target: "next" | "is
     return (data: EffectData) => {
         const player = target === "next" ? data.next : target === "issuer" ? data.issuer : game.currentPlayer;
         if(!(player instanceof Player))
-            throw new GameError("Target of rechargeEachItemsOfTargetEffect must be a Player.", toSerializedTranslation("error2.behaviorError", { error: "Target of rechargeEachItemsOfTargetEffect must be a Player."}));
+            throw new GameError("Target of rechargeEachItemsOfTargetEffect must be a Player.", toSerializedTranslation("error.behaviorError", { error: "Target of rechargeEachItemsOfTargetEffect must be a Player."}));
         game.cardHandler.rechargeMultiple(player, data.it);
         return true;
     };
@@ -224,7 +224,7 @@ export function makeAPlayerWithMostSoulsDestroyASoulEffect(game: Game): AsyncEff
     return async (data: EffectData) => {
         const target = data.next;
         if(!(target instanceof Player))
-            throw new GameError("Target of makeAPlayerWithMostSoulsDestroyASoulEffect must be a Player.", toSerializedTranslation("error2.behaviorError", { error: "Target of makeAPlayerWithMostSoulsDestroyASoulEffect must be a Player."}));
+            throw new GameError("Target of makeAPlayerWithMostSoulsDestroyASoulEffect must be a Player.", toSerializedTranslation("error.behaviorError", { error: "Target of makeAPlayerWithMostSoulsDestroyASoulEffect must be a Player."}));
         if (game.playersWithMostSouls.includes(target) && target.totalSouls > 0) {
             const card = (await data.selectAndRecord(game, target, 1, 1, target.souls, qq("pending.soulToDestroy"), true, true)).selected[0]!;
             return game.cardHandler.destroyCardsOrSouls([card]);
@@ -246,7 +246,7 @@ export function forceAttackMonsterEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         const targetMonster = data.next;
         if(!(targetMonster instanceof Monster))
-            throw new GameError("Target of forceAttackMonsterEffect must be a Monster.", toSerializedTranslation("error2.behaviorError", { error: "Target of forceAttackMonsterEffect must be a Monster."}));
+            throw new GameError("Target of forceAttackMonsterEffect must be a Monster.", toSerializedTranslation("error.behaviorError", { error: "Target of forceAttackMonsterEffect must be a Monster."}));
         if(data.issuer instanceof Player === false) 
             throw new GameError("Effect issuer is not a player.", toSerializedTranslation("error.effectIssuerMustBePlayer"));
         game.entityHandler.playerMustAttack(data.issuer, [targetMonster], data.it);
@@ -308,7 +308,7 @@ export function BecomesSoulEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         if(!(data.it instanceof ItemCard))
-            throw new GameError(`Card should be an ItemCard to become a soul: ${data.it.name}`, toSerializedTranslation("error2.behaviorError", { error: `Card should be an ItemCard to become a soul: ${data.it.name}`}));
+            throw new GameError(`Card should be an ItemCard to become a soul: ${data.it.name}`, toSerializedTranslation("error.behaviorError", { error: `Card should be an ItemCard to become a soul: ${data.it.name}`}));
         data.it.setEternal(false);
         game.cardHandler.removeInPlay(data.issuer, data.it);
         data.it.soul = 1;
@@ -328,7 +328,7 @@ export function addToDiceRollEffect(game: Game, toAdd: number): SyncEffectFuncti
 export function chooseOneEffect(s: string, game: Game, selectionOnResolve: boolean=false): ParsedEffect {
     const lines = s.split("\n");
     if (lines.length < 3) {
-        throw new GameError(`invalid 'choose one' effect format. s=${s}$ lines=${lines}$`, toSerializedTranslation("error2.behaviorError", { error: `invalid 'choose one' effect format. s=${s}$ lines=${lines}$`}));
+        throw new GameError(`invalid 'choose one' effect format. s=${s}$ lines=${lines}$`, toSerializedTranslation("error.behaviorError", { error: `invalid 'choose one' effect format. s=${s}$ lines=${lines}$`}));
     }
     const effects: ParsedEffect[] = lines.slice(1).map(line => effectParser(line, game));
     
@@ -341,7 +341,7 @@ export function chooseOneEffect(s: string, game: Game, selectionOnResolve: boole
                 (await data.selectAndRecord(game, data.issuer, 1, 1, lines.slice(1), qq("pending.effectToResolve"), true, true)).selected[0] :
                 (data.next as string).toLowerCase();
             if(!description)
-                throw new GameError("No description found for choose one effect.", toSerializedTranslation("error2.behaviorError", { error: "No description found for choose one effect."}));
+                throw new GameError("No description found for choose one effect.", toSerializedTranslation("error.behaviorError", { error: "No description found for choose one effect."}));
             data.visualEffectBox = data.it.visualEffectBoxFromDescription(description);
             for(let i = 0; i < effects.length; i++) {
                 if (description === lines[i+1]) {
@@ -350,7 +350,7 @@ export function chooseOneEffect(s: string, game: Game, selectionOnResolve: boole
                     return effects[i]!.effectFunction(data);
                 }
             }
-            throw new GameError(`choose one effect description not found: ${description}`, toSerializedTranslation("error2.behaviorError", { error: `choose one effect description not found: ${description}`}));
+            throw new GameError(`choose one effect description not found: ${description}`, toSerializedTranslation("error.behaviorError", { error: `choose one effect description not found: ${description}`}));
         },
         targetSelectors: [{ 
             description: toSerializedTranslation("selector.one"),
@@ -496,7 +496,7 @@ export function copyTapAbilityEffect(game: Game): AsyncEffectFunction {
             return false;
         const activeEffect = itemToCopy.getActiveEffect();
         if (!activeEffect)
-            throw new GameError(`Item ${itemToCopy.name} has no active effect to copy.`, toSerializedTranslation("error2.behaviorError", { error: `Item ${itemToCopy.name} has no active effect to copy.`}));
+            throw new GameError(`Item ${itemToCopy.name} has no active effect to copy.`, toSerializedTranslation("error.behaviorError", { error: `Item ${itemToCopy.name} has no active effect to copy.`}));
         const player = data.issuer as Player;
         if(player === undefined)
             throw new GameError("Effect issuer is not a player.", toSerializedTranslation("error.effectIssuerMustBePlayer"));
@@ -634,7 +634,7 @@ export function replaceCharacterWithOutsideCardEffect(game: Game): AsyncEffectFu
         if(data.issuer instanceof Player === false)
             return false;
             if(!(targetCard instanceof CharacterCard))
-                throw new GameError(`Target of replaceCharacterWithOutsideCardEffect must be a Character card.`, toSerializedTranslation("error2.behaviorError", { error: `Target of replaceCharacterWithOutsideCardEffect must be a Character card.`}));
+                throw new GameError(`Target of replaceCharacterWithOutsideCardEffect must be a Character card.`, toSerializedTranslation("error.behaviorError", { error: `Target of replaceCharacterWithOutsideCardEffect must be a Character card.`}));
 
         const player = data.issuer as Player;
         if(player === undefined)
@@ -688,7 +688,7 @@ export function modifyCoinGainedEffect(game: Game, modifier: (original:number) =
         if (data.issuer instanceof Player === false) return false;
         const originalAmount = data.next;
         if (!originalAmount || !(originalAmount instanceof Array) || originalAmount.length !== 1 || typeof originalAmount[0] !== "number") {
-            throw new GameError(`Invalid original amount for ModifyCoinGainedEffect: ${originalAmount}`, toSerializedTranslation("error2.behaviorError", { error: `Invalid original amount for ModifyCoinGainedEffect: ${originalAmount}`}));
+            throw new GameError(`Invalid original amount for ModifyCoinGainedEffect: ${originalAmount}`, toSerializedTranslation("error.behaviorError", { error: `Invalid original amount for ModifyCoinGainedEffect: ${originalAmount}`}));
         }
         originalAmount[0] = modifier(originalAmount[0]);
         game.gainCoins(data.issuer, originalAmount[0], data.it);
@@ -723,7 +723,7 @@ export function lookAtTop3Put1InSlotEffect(game: Game, x: number): AsyncEffectFu
         if (data.issuer instanceof Player === false) return false;
         const deck = data.next;
         if(!isDeckType(deck._type) || !deck)
-            throw new GameError(`Target of lookAtTop3Put1InSlotEffect should be a deck type, got ${deck}`, toSerializedTranslation("error2.behaviorError", { error: `Target of lookAtTop3Put1InSlotEffect should be a deck type, got ${deck}`}));
+            throw new GameError(`Target of lookAtTop3Put1InSlotEffect should be a deck type, got ${deck}`, toSerializedTranslation("error.behaviorError", { error: `Target of lookAtTop3Put1InSlotEffect should be a deck type, got ${deck}`}));
         const topCards = game.cardHandler.getFirstCardsOfDeck(deck._type, x);
         if (topCards.length === 0) return false;
         const selectedCard = (await data.selectAndRecord(game, data.issuer, 1, 1, topCards, qq("pending.cardToPutInSlot"), true, true)).selected[0]!;
@@ -766,11 +766,11 @@ export function lookAtTopXPut1InYourHandRestInAnotherPlayerHandEffect(game: Game
         if (topCards.length === 0) return false;
         const selectedCard = (await data.selectAndRecord(game, data.issuer, 1, 1, topCards, qq("pending.cardToPutInHand"), true, true)).selected[0]!;
         if(!(selectedCard instanceof LootCard))
-            throw new GameError("Selected card is not an instance of LootCard.", toSerializedTranslation("error2.behaviorError", { error: "Selected card is not an instance of LootCard."}));
+            throw new GameError("Selected card is not an instance of LootCard.", toSerializedTranslation("error.behaviorError", { error: "Selected card is not an instance of LootCard."}));
         const otherCards = topCards.filter(c => c !== selectedCard);
         const otherPlayer = (await data.selectAndRecord(game, data.issuer, 1, 1, game.players.filter(p => p !== data.issuer), qq("pending.playerToGiveLootCardTo"), true, true)).selected[0]!;
         if(!(otherPlayer instanceof Player))
-            throw new GameError("Selected player is not an instance of Player.", toSerializedTranslation("error2.behaviorError", { error: "Selected player is not an instance of Player."}));
+            throw new GameError("Selected player is not an instance of Player.", toSerializedTranslation("error.behaviorError", { error: "Selected player is not an instance of Player."}));
         game.cardHandler.addCardToHand(data.issuer as Player, selectedCard);
         for (const card of otherCards) {
             game.cardHandler.addCardToHand(otherPlayer, card);
@@ -794,7 +794,7 @@ export function stealNonEternalItemFromTargetEffect(game: Game): AsyncEffectFunc
         if (data.issuer instanceof Player === false) return false;
         const target = data.next as Player;
         if(!(target instanceof Player))
-            throw new GameError("Target of stealNonEternalItemFromTargetEffect must be a Player.", toSerializedTranslation("error2.behaviorError", { error: "Target of stealNonEternalItemFromTargetEffect must be a Player."}));
+            throw new GameError("Target of stealNonEternalItemFromTargetEffect must be a Player.", toSerializedTranslation("error.behaviorError", { error: "Target of stealNonEternalItemFromTargetEffect must be a Player."}));
         const itemToSteal = (await data.selectAndRecord(game, data.issuer, 1, 1, target.inPlay.filter(card => !card.eternal), qq("pending.itemToSteal"), true, true)).selected[0]!;
         if(itemToSteal === undefined ||itemToSteal.eternal)
             return false;
@@ -836,7 +836,7 @@ export function lootBasedOnTargetPlayersLootCardsEffect(game: Game): SyncEffectF
         if (data.issuer instanceof Player === false) return false;
         const targetPlayer = data.next as Player;
         if(!(targetPlayer instanceof Player)) 
-            throw new GameError("Target of lootBasedOnTargetPlayersLootCardsEffect must be a Player.", toSerializedTranslation("error2.behaviorError", { error: "Target of lootBasedOnTargetPlayersLootCardsEffect must be a Player."}));
+            throw new GameError("Target of lootBasedOnTargetPlayersLootCardsEffect must be a Player.", toSerializedTranslation("error.behaviorError", { error: "Target of lootBasedOnTargetPlayersLootCardsEffect must be a Player."}));
         const lootCardsToDraw = targetPlayer.hand.cards.filter(card => card instanceof LootCard).length;
         const lootedCards = game.loot(data.issuer, lootCardsToDraw);
         return true;
@@ -852,7 +852,7 @@ export function addUpToXToRollEffect(game: Game, rollType: "attack" | "non-attac
         }
         const addValue = data.next as number;
         if(typeof addValue !== "number") {
-            throw new GameError(`Invalid value for AddUpTo2ToRollEffect: ${addValue}`, toSerializedTranslation("error2.behaviorError", { error: `Invalid value for AddUpTo2ToRollEffect: ${addValue}`}));
+            throw new GameError(`Invalid value for AddUpTo2ToRollEffect: ${addValue}`, toSerializedTranslation("error.behaviorError", { error: `Invalid value for AddUpTo2ToRollEffect: ${addValue}`}));
         }
         chosenDiceRoll.add(addValue);
         return true;
@@ -932,7 +932,7 @@ export function discardLootAndLoseCoinsBasedOnSoulsEffect(game: Game): AsyncEffe
             : qq("pending.oneLootToDiscard")), true, true)).selected;
         for (const card of selectedLootCards) {
             if(!(card instanceof LootCard))
-                throw new GameError("Selected card is not an instance of LootCard.", toSerializedTranslation("error2.behaviorError", { error: "Selected card is not an instance of LootCard."}));
+                throw new GameError("Selected card is not an instance of LootCard.", toSerializedTranslation("error.behaviorError", { error: "Selected card is not an instance of LootCard."}));
             const index = player.hand.cards.indexOf(card);
             game.cardHandler.discardFromHandAtIndex(player, index, "effect");
         }
@@ -1028,7 +1028,7 @@ export function swapNonEternalItemsEffect(game: Game, youMayEffectHanging: boole
         if(otherPlayer instanceof DiceRoll)
             otherPlayer = otherPlayer.issuer;
         if(!(otherPlayer instanceof Player))
-            throw new GameError("Invalid target player for swapNonEternalItemsEffect", toSerializedTranslation("error2.behaviorError", { error: "Invalid target player for swapNonEternalItemsEffect"}));
+            throw new GameError("Invalid target player for swapNonEternalItemsEffect", toSerializedTranslation("error.behaviorError", { error: "Invalid target player for swapNonEternalItemsEffect"}));
         if(otherPlayer === data.issuer) return true;
         const itemToSwapFromIssuer = (await data.selectAndRecord(game, data.issuer, allowZero ? 0 : 1, 1, data.issuer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false), qq("pending.itemToSwapFromYourInPlay"), true, true)).selected[0] as ItemCard;
         if(itemToSwapFromIssuer === undefined) return true;
@@ -1187,7 +1187,7 @@ export function lookAtPlayerHandAndTopOfDeckEffect(game: Game): AsyncEffectFunct
         const targetPlayer = data.next as Player;
         const deck = data.next;
         if(!(targetPlayer instanceof Player) || !!isDeckType(deck))
-            throw new GameError("Invalid target for lookAtPlayerHandAndTopOfDeckEffect.", toSerializedTranslation("error2.behaviorError", { error: "Invalid target for lookAtPlayerHandAndTopOfDeckEffect."}));
+            throw new GameError("Invalid target for lookAtPlayerHandAndTopOfDeckEffect.", toSerializedTranslation("error.behaviorError", { error: "Invalid target for lookAtPlayerHandAndTopOfDeckEffect."}));
         await data.selectAndRecord(game, data.issuer, 0, 0, targetPlayer.hand.cards, qq("pending.lookAtPlayerHand", {name: targetPlayer.id}), false, false);
         await data.selectAndRecord(game, data.issuer, 0, 0, [deck.cards[0]], qq("pending.lookAtTopCardOfDeck", {deck: deck._type}), false, false);
         return true;
@@ -1205,7 +1205,7 @@ export function LookAndPutBottomEffect(
         if (data.issuer instanceof Player === false) return false;
         const deck = game.decks[deckName];
         if (!deck) {
-            throw new GameError(`Deck ${deckName} does not exist.`, toSerializedTranslation("error2.behaviorError", { error: `Deck ${deckName} does not exist.`}));
+            throw new GameError(`Deck ${deckName} does not exist.`, toSerializedTranslation("error.behaviorError", { error: `Deck ${deckName} does not exist.`}));
         }
         const topCard = deck.draw();
         const res = await data.selectAndRecord(game, data.issuer, 0, 1, [topCard], qq("pending.lookAtTopCardOfNamedDeck", {deck: deckName}), false, false);
@@ -1254,16 +1254,16 @@ export function discardAnyNumberOfShopItemsEffect(game: Game, min: number, max: 
                 break;
             case "next":
                 if(min !== max)
-                    throw new GameError("Not handled case where min and max are different for 'next' selection in discardAnyNumberOfShopItemsEffect.", toSerializedTranslation("error2.behaviorError", { error: "Not handled case where min and max are different for 'next' selection in discardAnyNumberOfShopItemsEffect."}));
+                    throw new GameError("Not handled case where min and max are different for 'next' selection in discardAnyNumberOfShopItemsEffect.", toSerializedTranslation("error.behaviorError", { error: "Not handled case where min and max are different for 'next' selection in discardAnyNumberOfShopItemsEffect."}));
                 for(let i = 0; i < min; i++) {
                     const item = data.next as ItemCard;
                     if(!item)
-                        throw new GameError("Not enough items selected for 'next' selection in discardAnyNumberOfShopItemsEffect.", toSerializedTranslation("error2.behaviorError", { error: "Not enough items selected for 'next' selection in discardAnyNumberOfShopItemsEffect."}));
+                        throw new GameError("Not enough items selected for 'next' selection in discardAnyNumberOfShopItemsEffect.", toSerializedTranslation("error.behaviorError", { error: "Not enough items selected for 'next' selection in discardAnyNumberOfShopItemsEffect."}));
                     selectionResult.push(item);
                 }
                 break;
             default:
-                throw new GameError(`Invalid selection timing: ${selection}`, toSerializedTranslation("error2.behaviorError", { error: `Invalid selection timing: ${selection}`}));
+                throw new GameError(`Invalid selection timing: ${selection}`, toSerializedTranslation("error.behaviorError", { error: `Invalid selection timing: ${selection}`}));
         }
         for (const card of selectionResult) {
             const index = shop.itemsInShop.indexOf(card);
@@ -1295,7 +1295,7 @@ export function setMonsterAttackToXEffect(game: Game, x: number): SyncEffectFunc
     return (data: EffectData) => {
         const target = data.next as Monster;
         if(!target || !(target instanceof Monster))
-            throw new GameError(`Invalid target for setMonsterAttackToXEffect: ${target}`, toSerializedTranslation("error2.behaviorError", { error: `Invalid target for setMonsterAttackToXEffect: ${target}`}));
+            throw new GameError(`Invalid target for setMonsterAttackToXEffect: ${target}`, toSerializedTranslation("error.behaviorError", { error: `Invalid target for setMonsterAttackToXEffect: ${target}`}));
         target.baseAttackPoints = x;
         return true;
     };
@@ -1327,7 +1327,7 @@ export function destroyItemStealFromShopEffect(game: Game, may: boolean): AsyncE
     return async (data: EffectData) => {
         const itemToDestroy = data.next as ItemCard;
         if(!itemToDestroy || !(itemToDestroy instanceof ItemCard))
-            throw new GameError(`Invalid item to destroy in destroyItemStealFromShopEffect: ${itemToDestroy}`, toSerializedTranslation("error2.behaviorError", { error: `Invalid item to destroy in destroyItemStealFromShopEffect: ${itemToDestroy}`}));
+            throw new GameError(`Invalid item to destroy in destroyItemStealFromShopEffect: ${itemToDestroy}`, toSerializedTranslation("error.behaviorError", { error: `Invalid item to destroy in destroyItemStealFromShopEffect: ${itemToDestroy}`}));
         const owner = game.getOwner(itemToDestroy);
         const res = game.cardHandler.destroyCardsOrSouls([itemToDestroy]);
         if(!res) 
@@ -1389,7 +1389,7 @@ export function rerollDiceRollXEffect(game: Game, numberOfDice: number): AsyncEf
         const result = await data.selectAndRecord(game, chooser, 1, 1, values, qq("pending.changeDiceRoll"), true, true);
         const newValue = result.selected[0] as number;
         if(newValue < 1 || newValue > 6)
-            throw new GameError(`Invalid dice value selected: ${newValue}`, toSerializedTranslation("error2.behaviorError", { error: `Invalid dice value selected: ${newValue}`}));
+            throw new GameError(`Invalid dice value selected: ${newValue}`, toSerializedTranslation("error.behaviorError", { error: `Invalid dice value selected: ${newValue}`}));
         diceRoll.value = newValue;
         return true;
     };
@@ -1534,7 +1534,7 @@ export function putRoomOrMonsterIntoDiscardEffect(game: Game, youMay: boolean): 
             return true;
         }
         else {
-            throw new GameError("Invalid target for putRoomOrMonsterIntoDiscardEffect.", toSerializedTranslation("error2.behaviorError", { error: "Invalid target for putRoomOrMonsterIntoDiscardEffect."}));
+            throw new GameError("Invalid target for putRoomOrMonsterIntoDiscardEffect.", toSerializedTranslation("error.behaviorError", { error: "Invalid target for putRoomOrMonsterIntoDiscardEffect."}));
         }
     };
 }
@@ -1660,7 +1660,7 @@ export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestinati
             {
                 const topCard2 = deck.draw();
                 if (topCard2 !== topCard)
-                    throw new GameError("Top card mismatch", toSerializedTranslation("error2.behaviorError", { error: "Top card mismatch"}));
+                    throw new GameError("Top card mismatch", toSerializedTranslation("error.behaviorError", { error: "Top card mismatch"}));
                 game.cardHandler.addBottomPosition(deck._type, topCard);
                 break;
             }
@@ -1668,7 +1668,7 @@ export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestinati
                 {
                     const topCard2 = deck.draw();
                     if (topCard2 !== topCard)
-                        throw new GameError("Top card mismatch", toSerializedTranslation("error2.behaviorError", { error: "Top card mismatch"}));
+                        throw new GameError("Top card mismatch", toSerializedTranslation("error.behaviorError", { error: "Top card mismatch"}));
                     game.cardHandler.discard(topCard);
                     break;
                 }
@@ -1905,7 +1905,7 @@ export function discardNLootCardsEffect(n: number, game: Game, selectionOnResolv
         if (subject instanceof Player === false) return false;
         let toDiscard: LootCard[] = [];
         if(issuerType === "next" && !selectionOnResolve)
-            throw new GameError("Invalid parameters for discardNLootCardsEffect.", toSerializedTranslation("error2.behaviorError", { error: "Invalid parameters for discardNLootCardsEffect."}));
+            throw new GameError("Invalid parameters for discardNLootCardsEffect.", toSerializedTranslation("error.behaviorError", { error: "Invalid parameters for discardNLootCardsEffect."}));
         if (selectionOnResolve || !toDiscard) 
             toDiscard = (await data.selectAndRecord(game, subject, n, n, subject.hand.cards, 
                 n > 1 ?
@@ -2033,14 +2033,14 @@ export function becomesCopyOfEternalItemLosesEternalEffect(game: Game): SyncEffe
         if (data.issuer instanceof Player === false) return false;
         const target = data.next as ItemCard;
         if(!target || !(target instanceof ItemCard))
-            throw new GameError("Invalid target for becomesCopyOfEternalItemLosesEternalEffect.", toSerializedTranslation("error2.behaviorError", { error: "Invalid target for becomesCopyOfEternalItemLosesEternalEffect."}));
+            throw new GameError("Invalid target for becomesCopyOfEternalItemLosesEternalEffect.", toSerializedTranslation("error.behaviorError", { error: "Invalid target for becomesCopyOfEternalItemLosesEternalEffect."}));
         if(!game.getOwner(data.it))
             return false;
         data.it.becomesCopyOf(target, (card) => {
             game.cardHandler.attachEffectsToCard(card);
         });
         if(!data.it || !(data.it instanceof ItemCard))
-            throw new GameError("Invalid source item for becomesCopyOfEternalItemLosesEternalEffect.", toSerializedTranslation("error2.behaviorError", { error: "Invalid source item for becomesCopyOfEternalItemLosesEternalEffect."}));
+            throw new GameError("Invalid source item for becomesCopyOfEternalItemLosesEternalEffect.", toSerializedTranslation("error.behaviorError", { error: "Invalid source item for becomesCopyOfEternalItemLosesEternalEffect."}));
         data.it.setEternal(false);
         return true;
     };
@@ -2090,7 +2090,7 @@ export function youMayRechargeAnItemEffect(game: Game): AsyncEffectFunction {
 
 export function getAttackRollEffect(dice: DiceRoll, game: Game): SyncEffectFunction[] {
     if(dice.attackData === null || dice.attackData === undefined)
-        throw new GameError("No attack data for attack roll", toSerializedTranslation("error2.behaviorError", { error: "No attack data for attack roll"}));
+        throw new GameError("No attack data for attack roll", toSerializedTranslation("error.behaviorError", { error: "No attack data for attack roll"}));
     const { damageDealtAdditional, damageDealtMultiplier, damageReceivedAdditional, damageReceivedMultiplier, evasion } = dice.attackData;
     const effects: SyncEffectFunction[] = [];
     for (let i = 0; i < 6; i++) {
@@ -2115,7 +2115,7 @@ export function targetGetCoinRollEffect(game: Game): SyncEffectFunction[] {
     for (let i = 0; i < 6; i++) {
         effects.push((data: EffectData) => {
             const target = data.next as Player;
-            if(!target) throw new GameError("No target for targetGetCoinRollEffect", toSerializedTranslation("error2.behaviorError", { error: "No target for targetGetCoinRollEffect"}));
+            if(!target) throw new GameError("No target for targetGetCoinRollEffect", toSerializedTranslation("error.behaviorError", { error: "No target for targetGetCoinRollEffect"}));
             game.gainCoins(target, i + 1, data.it);
             return true;
         });
@@ -2128,7 +2128,7 @@ export function rollGainCoinsEffect(game: Game): SyncEffectFunction {
         const effects: SyncEffectFunction[] = [];
         for (let i = 0; i < 6; i++) {
             effects.push((data: EffectData) => {
-                if(data.issuer instanceof Player === false) throw new GameError("Issuer must be a player for rollGainCoinsEffect", toSerializedTranslation("error2.behaviorError", { error: "Issuer must be a player for rollGainCoinsEffect"}));
+                if(data.issuer instanceof Player === false) throw new GameError("Issuer must be a player for rollGainCoinsEffect", toSerializedTranslation("error.behaviorError", { error: "Issuer must be a player for rollGainCoinsEffect"}));
                 game.gainCoins(data.issuer, i + 1, data.it);
                 return true;
             });
@@ -2144,7 +2144,7 @@ export function targetGetLootRollEffect(game: Game): SyncEffectFunction[] {
     for (let i = 0; i < 6; i++) {
         effects.push((data: EffectData) => {
             const target = data.next as Player;
-            if(!target) throw new GameError("No target for targetGetCoinRollEffect", toSerializedTranslation("error2.behaviorError", { error: "No target for targetGetCoinRollEffect"}));
+            if(!target) throw new GameError("No target for targetGetCoinRollEffect", toSerializedTranslation("error.behaviorError", { error: "No target for targetGetCoinRollEffect"}));
             game.loot(target, i + 1);
             return true;
         });
@@ -2157,7 +2157,7 @@ export function targetGetTreasureRollEffect(game: Game): SyncEffectFunction[] {
     for (let i = 0; i < 6; i++) {
         effects.push((data: EffectData) => {
             const target = data.next as Player;
-            if(!target) throw new GameError("No target for targetGetCoinRollEffect", toSerializedTranslation("error2.behaviorError", { error: "No target for targetGetCoinRollEffect"}));
+            if(!target) throw new GameError("No target for targetGetCoinRollEffect", toSerializedTranslation("error.behaviorError", { error: "No target for targetGetCoinRollEffect"}));
             game.gainTreasure(target, i + 1);
             return true;
         });
@@ -2200,7 +2200,7 @@ export function rerollItemEffect(game: Game, selectors: TargetsSelector[] = [], 
         if(selectionOnResolve === true)
         {
             if(data.issuer instanceof Player === false) 
-                throw new GameError("Issuer must be a player for selection on resolve reroll effect", toSerializedTranslation("error2.behaviorError", { error: "Issuer must be a player for selection on resolve reroll effect"}));
+                throw new GameError("Issuer must be a player for selection on resolve reroll effect", toSerializedTranslation("error.behaviorError", { error: "Issuer must be a player for selection on resolve reroll effect"}));
             const options = selectors[0]!.selector(data.issuer, data.it);
             cards = (await data.selectAndRecord(game, data.issuer, anyNumber ? 0 : 1, anyNumber ? options.length : 1, options, 
                 anyNumber ?
@@ -2234,9 +2234,9 @@ export function rerollItemTheyControlEffect(game: Game, youMayEffectHanging: boo
         if(targetPlayer instanceof DiceRoll)
             targetPlayer = targetPlayer.issuer;
         if(!(targetPlayer instanceof Player))
-            throw new GameError("Invalid target player for rerollItemTheyControlEffect", toSerializedTranslation("error2.behaviorError", { error: "Invalid target player for rerollItemTheyControlEffect"}));
+            throw new GameError("Invalid target player for rerollItemTheyControlEffect", toSerializedTranslation("error.behaviorError", { error: "Invalid target player for rerollItemTheyControlEffect"}));
         if(!(data.issuer instanceof Player))
-            throw new GameError("Issuer must be a player for rerollItemTheyControlEffect", toSerializedTranslation("error2.behaviorError", { error: "Issuer must be a player for rerollItemTheyControlEffect"}));
+            throw new GameError("Issuer must be a player for rerollItemTheyControlEffect", toSerializedTranslation("error.behaviorError", { error: "Issuer must be a player for rerollItemTheyControlEffect"}));
         const selectionResult = await data.selectAndRecord(game, data.issuer, (youMayEffectHanging[0] ? 0 : 1), 1, targetPlayer.inPlay.filter(c => c.eternal === false), 
             youMayEffectHanging[0] ?
             qq("pending.canItemToReroll") :
@@ -2286,7 +2286,7 @@ export function revealTopCardsOfMonsterDeckEffect(
 ): AsyncEffectFunction {
     return async (data: EffectData) => {
         if(!(data.issuer instanceof Player))
-            throw new GameError("revealTopCardsOfMonsterDeckEffect can only be applied to Players.", toSerializedTranslation("error2.behaviorError", { error: "revealTopCardsOfMonsterDeckEffect can only be applied to Players."}));
+            throw new GameError("revealTopCardsOfMonsterDeckEffect can only be applied to Players.", toSerializedTranslation("error.behaviorError", { error: "revealTopCardsOfMonsterDeckEffect can only be applied to Players."}));
         const monsterCards = game.decks.monster.drawSeveral(n);
         data.recordSelection(monsterCards);
         const curses = monsterCards.filter(c => c.isCurse);
@@ -2328,15 +2328,15 @@ export function putTopCardFromDiscardOnTopEffect(game: Game): SyncEffectFunction
     return (data: EffectData) => {
         const cardToDraw = data.next as Card;
         if(!cardToDraw)
-            throw new GameError("No card to draw for putTopCardFromDiscardOnTopEffect", toSerializedTranslation("error2.behaviorError", { error: "No card to draw for putTopCardFromDiscardOnTopEffect"}));
+            throw new GameError("No card to draw for putTopCardFromDiscardOnTopEffect", toSerializedTranslation("error.behaviorError", { error: "No card to draw for putTopCardFromDiscardOnTopEffect"}));
         if(!cardToDraw.type)
-            throw new GameError("Invalid card type for putTopCardFromDiscardOnTopEffect", toSerializedTranslation("error2.behaviorError", { error: "Invalid card type for putTopCardFromDiscardOnTopEffect"}));
+            throw new GameError("Invalid card type for putTopCardFromDiscardOnTopEffect", toSerializedTranslation("error.behaviorError", { error: "Invalid card type for putTopCardFromDiscardOnTopEffect"}));
         const deckName = cardToDraw.type;
         if(!isDeckType(deckName)) 
             throw new GameError(`Invalid deck type: ${deckName}`, toSerializedTranslation("error.invalidDeckType", { deckType: deckName }));
         const deck = game.decks[deckName];
         if (!deck) {
-            throw new GameError(`Deck ${deckName} does not exist.`, toSerializedTranslation("error2.behaviorError", { error: `Deck ${deckName} does not exist.`}));
+            throw new GameError(`Deck ${deckName} does not exist.`, toSerializedTranslation("error.behaviorError", { error: `Deck ${deckName} does not exist.`}));
         }
         if (deck.discard.length === 0) {
             return false;
@@ -2405,7 +2405,7 @@ export function addInPlayEffect(game: Game): SyncEffectFunction {
 
 export function throwEffect(game: Game, s: string): AsyncEffectFunction {
     return (data: EffectData) => {
-        throw new GameError(`Function not parsed correctly: ${s}`, toSerializedTranslation("error2.parsingError", { error: `Function not parsed correctly: ${s}`}));
+        throw new GameError(`Function not parsed correctly: ${s}`, toSerializedTranslation("error.parsingError", { error: `Function not parsed correctly: ${s}`}));
     };
 }
 
@@ -2414,7 +2414,7 @@ export function putAnyNumberFromDiscardOnTopEffect(deckName: DeckType, game: Gam
         if (data.issuer instanceof Player === false) return false;
         const deck: Deck<Card> = game.decks[deckName];
         if (!deck) {
-            throw new GameError(`Deck ${deckName} does not exist.`, toSerializedTranslation("error2.behaviorError", { error: `Deck ${deckName} does not exist.`}));
+            throw new GameError(`Deck ${deckName} does not exist.`, toSerializedTranslation("error.behaviorError", { error: `Deck ${deckName} does not exist.`}));
         }
         const maxToPutBack = deck.discard.length;
         const selectionResult = await data.selectAndRecord(game, data.issuer, 0, maxToPutBack, deck.discard.filter(condition), qq("pending.cardsToPutBackOnTopOfDeck"), false, false);
@@ -2535,13 +2535,13 @@ export function obtainRollResults(s: string): string[] {
 export function putOnTopOfMonsterDeckOnRollEffect(game: Game, rolls: number[]): SyncEffectFunction {
     return (data: EffectData) => {
         if(!(data.it instanceof MonsterCard))
-            throw new GameError("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards.", toSerializedTranslation("error2.behaviorError", { error: "putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards."}));
+            throw new GameError("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards.", toSerializedTranslation("error.behaviorError", { error: "putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards."}));
         data.it.afterEffect = "nothing"; // Card placement is handled by the game by default
         
         const roll = game.rollDice(game.currentPlayer as Player, data.it);
         roll.attachEffect([1,2,3,4,5,6].map(n => (data:EffectData): boolean => {
             if(!(data.it instanceof MonsterCard))
-                throw new GameError("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards.", toSerializedTranslation("error2.behaviorError", { error: "putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards."}));
+                throw new GameError("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards.", toSerializedTranslation("error.behaviorError", { error: "putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards."}));
             game.encounters.removeFromSlot(data.it);
             if(rolls.includes(n)) {
                 // data.it.afterEffect = "handled"; // Card placement is handled by this effect
@@ -2553,7 +2553,7 @@ export function putOnTopOfMonsterDeckOnRollEffect(game: Game, rolls: number[]): 
             }else
             {
                 if(!data.it.entity || !(data.it.entity instanceof Monster))
-                    throw new GameError("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards that are in play.", toSerializedTranslation("error2.behaviorError", { error: "putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards that are in play."}));
+                    throw new GameError("putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards that are in play.", toSerializedTranslation("error.behaviorError", { error: "putOnTopOfMonsterDeckOnRollEffect can only be applied to monster cards that are in play."}));
                 data.it.afterEffect = "discard";
             }
             return false;
@@ -2634,7 +2634,7 @@ export function halfLootAndCoinsAndGiveItemEffect(game: Game): AsyncEffectFuncti
         if(data.issuer instanceof Player === false) return false;
         const target = data.next as Player;
         if(!target || !(target instanceof Player))
-            throw new GameError("No target player for halfLootAndCoinsAndGiveItemEffect", toSerializedTranslation("error2.behaviorError", { error: "No target player for halfLootAndCoinsAndGiveItemEffect"}));
+            throw new GameError("No target player for halfLootAndCoinsAndGiveItemEffect", toSerializedTranslation("error.behaviorError", { error: "No target player for halfLootAndCoinsAndGiveItemEffect"}));
         const coinsToLose = Math.floor(target.coins / 2);
         game.forceGiveCoins(target, data.issuer, coinsToLose, data.it);
 
@@ -2717,7 +2717,7 @@ export function killTargetEffect(game: Game, selectors: TargetsSelector[] = [], 
         const issuer = issuerIsCurrentPlayer ? game.currentPlayer : data.issuer;
         if(selectionOnResolve){
             if(issuer instanceof Player === false) 
-                throw new GameError("Issuer should be a player to select target for killTargetEffect.", toSerializedTranslation("error2.behaviorError", { error: "Issuer should be a player to select target for killTargetEffect."}));
+                throw new GameError("Issuer should be a player to select target for killTargetEffect.", toSerializedTranslation("error.behaviorError", { error: "Issuer should be a player to select target for killTargetEffect."}));
             const target = await data.selectAndRecord(game, issuer as Player, 1, 1, selectors[0]!.selector(issuer, data.it), qq("pending.targetToKill"), true, true);
             if(target.selected.length === 0) return false;
             game.entityHandler.kill(issuer, target.selected[0] as Entity, data.it);
@@ -2742,7 +2742,7 @@ export function nonActivePlayerHelpFight(game: Game): SyncEffectFunction {
         offDeclareAttack = game.emitter.on("on:attack:declared", (eventData: OnAttackDeclaredData) => {
             const helper = data.next as Player;
             if(!helper || !(helper instanceof Player))
-                throw new GameError("Player invalid for nonActivePlayerHelpFight", toSerializedTranslation("error2.behaviorError", { error: "Player invalid for nonActivePlayerHelpFight"}));
+                throw new GameError("Player invalid for nonActivePlayerHelpFight", toSerializedTranslation("error.behaviorError", { error: "Player invalid for nonActivePlayerHelpFight"}));
             const newData = new EffectData(data.it, () => helper, [], data.visualEffectBox);
             room.makeAnAttackRollAfterEachAttackRollEffect(game)(newData);
                     
@@ -2798,14 +2798,14 @@ export function deathTargetEffect(game: Game, selectionOnResolve: boolean = fals
         const target = data.next as Entity;
         if(selectionOnResolve){
             if(data.issuer instanceof Player === false) 
-                throw new GameError("Issuer should be a player to select target for deathTargetEffect.", toSerializedTranslation("error2.behaviorError", { error: "Issuer should be a player to select target for deathTargetEffect."}));
+                throw new GameError("Issuer should be a player to select target for deathTargetEffect.", toSerializedTranslation("error.behaviorError", { error: "Issuer should be a player to select target for deathTargetEffect."}));
             const target = await data.selectAndRecord(game, data.issuer as Player, 1, 1, game.players, qq("pending.targetToKill"), true, true);
             if(target.selected.length === 0) return false;
             game.entityHandler.death(target.selected[0] as Entity, data.issuer, data.it);
             return true;
         }
         if(!target) 
-            throw new GameError("No target for deathTargetEffect", toSerializedTranslation("error2.behaviorError", { error: "No target for deathTargetEffect"}));
+            throw new GameError("No target for deathTargetEffect", toSerializedTranslation("error.behaviorError", { error: "No target for deathTargetEffect"}));
         game.entityHandler.death(data.next, data.issuer, data.it);
         return true;
     };
@@ -2996,14 +2996,14 @@ export function dealDamageToTargetEffect(game: Game, amount: number, selectionOn
             target = target.issuer;
         if(selectionOnResolve){
             if(issuer instanceof Player === false) 
-                throw new GameError("Issuer should be a player to select target for dealDamageToTargetEffect.", toSerializedTranslation("error2.behaviorError", { error: "Issuer should be a player to select target for dealDamageToTargetEffect."}));
+                throw new GameError("Issuer should be a player to select target for dealDamageToTargetEffect.", toSerializedTranslation("error.behaviorError", { error: "Issuer should be a player to select target for dealDamageToTargetEffect."}));
             if(selectors[0]!.selector(issuer, data.it).length === 0)
                 return false;
             const selectionResult = (await data.selectAndRecord(game, issuer, 1, 1, selectors[0]!.selector(issuer, data.it), qq("pending.anotherMobToDealDamageTo", { value: amount }), true, true));
             target = selectionResult.selected[0];
         }
         if(!(target instanceof Entity))
-            throw new GameError(`Invalid target for dealDamageToTargetEffect (${target}), all: ${data.targets}, source: ${data.it.slug}, issuer: ${issuer.id}, resolve on: ${selectionOnResolve}, selectors: ${selectors.length}`, toSerializedTranslation("error2.behaviorError", { error: `Invalid target for dealDamageToTargetEffect (${target}), all: ${data.targets}, source: ${data.it.slug}, issuer: ${issuer.id}, resolve on: ${selectionOnResolve}, selectors: ${selectors.length}`}));
+            throw new GameError(`Invalid target for dealDamageToTargetEffect (${target}), all: ${data.targets}, source: ${data.it.slug}, issuer: ${issuer.id}, resolve on: ${selectionOnResolve}, selectors: ${selectors.length}`, toSerializedTranslation("error.behaviorError", { error: `Invalid target for dealDamageToTargetEffect (${target}), all: ${data.targets}, source: ${data.it.slug}, issuer: ${issuer.id}, resolve on: ${selectionOnResolve}, selectors: ${selectors.length}`}));
         game.entityHandler.dealDamage(data.issuer, target, data.it, amount);
         return true;
     };
@@ -3064,7 +3064,7 @@ export function putMonsterUnderThisEffect(game: Game): SyncEffectFunction {
         if(monster === undefined || !(monster instanceof Monster) || monster.isEngagedInCombat)
         {
             console.log(monster === undefined , !(monster instanceof Monster) , monster.isEngagedInCombat , !game.monsters.includes(monster) , monster.isDead)
-            throw new GameError("Invalid target for putMonsterUnderThisEffect", toSerializedTranslation("error2.behaviorError", { error: "Invalid target for putMonsterUnderThisEffect"}));
+            throw new GameError("Invalid target for putMonsterUnderThisEffect", toSerializedTranslation("error.behaviorError", { error: "Invalid target for putMonsterUnderThisEffect"}));
         }
         if(!game.monsters.includes(monster) || monster.isDead)
             return false;
@@ -3080,7 +3080,7 @@ export function putMonsterFromUnderThisIntoSlotEffect(game: Game): AsyncEffectFu
         if(!monsterCard)
             return false;
         if(data.issuer instanceof Player === false)
-            throw new GameError("Issuer should be a player for putMonsterFromUnderThisIntoSlotEffect", toSerializedTranslation("error2.behaviorError", { error: "Issuer should be a player for putMonsterFromUnderThisIntoSlotEffect"}));
+            throw new GameError("Issuer should be a player for putMonsterFromUnderThisIntoSlotEffect", toSerializedTranslation("error.behaviorError", { error: "Issuer should be a player for putMonsterFromUnderThisIntoSlotEffect"}));
         if(game.encounters.coverableSlots.length === 0)
             return false;
         game.decks.monster.addTopPosition(monsterCard);
@@ -3088,7 +3088,7 @@ export function putMonsterFromUnderThisIntoSlotEffect(game: Game): AsyncEffectFu
         data.it.tags.underThis = data.it.tags.underThis.filter((c: Card) => c !== monsterCard);
         const req = [game.monsters.find(m => m.card === monsterCard)!]
         if(req.length !== 1)
-            throw new GameError("Invalid number of monsters found for putMonsterFromUnderThisIntoSlotEffect", toSerializedTranslation("error2.behaviorError", { error: "Invalid number of monsters found for putMonsterFromUnderThisIntoSlotEffect"}));
+            throw new GameError("Invalid number of monsters found for putMonsterFromUnderThisIntoSlotEffect", toSerializedTranslation("error.behaviorError", { error: "Invalid number of monsters found for putMonsterFromUnderThisIntoSlotEffect"}));
         game.entityHandler.playerMustAttack(game.currentPlayer, req, data.it);
         return true;
     };
@@ -3103,7 +3103,7 @@ export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, de
         if(issuerType === "diceOwner") {
             const roll = data.next as DiceRoll;
             if(!roll || !(roll instanceof DiceRoll) || !roll.issuer)
-                throw new GameError("Invalid dice roll for lookAndReorderTopCardsEffect", toSerializedTranslation("error2.behaviorError", { error: "Invalid dice roll for lookAndReorderTopCardsEffect"}));
+                throw new GameError("Invalid dice roll for lookAndReorderTopCardsEffect", toSerializedTranslation("error.behaviorError", { error: "Invalid dice roll for lookAndReorderTopCardsEffect"}));
             issuer = roll.issuer;
         }
         if (issuer instanceof Player === false) return false;
@@ -3111,7 +3111,7 @@ export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, de
         if(deckName === undefined) {
             const deck = data.next as Deck<Card>;
             if(!deck)
-                throw new GameError("No deck provided for lookAndReorderTopCardsEffect", toSerializedTranslation("error2.behaviorError", { error: "No deck provided for lookAndReorderTopCardsEffect"}));
+                throw new GameError("No deck provided for lookAndReorderTopCardsEffect", toSerializedTranslation("error.behaviorError", { error: "No deck provided for lookAndReorderTopCardsEffect"}));
             deckName = deck._type;
         }
         if(deckNameParam === "selectOnResolve")
@@ -3163,7 +3163,7 @@ export function eachOtherPlayerLootsAndYouLootEffect(game: Game, amount: number)
 export function putThisIntoDiscardEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         if(data.it instanceof MonsterCard === false && data.it instanceof RoomCard === false)
-            throw new GameError("Card is not a monster card for putThisIntoDiscardEffect", toSerializedTranslation("error2.behaviorError", { error: "Card is not a monster card for putThisIntoDiscardEffect"}));
+            throw new GameError("Card is not a monster card for putThisIntoDiscardEffect", toSerializedTranslation("error.behaviorError", { error: "Card is not a monster card for putThisIntoDiscardEffect"}));
         if(data.it instanceof MonsterCard)
             data.it.afterEffect = "nothing"; // card placement is handled by the effect itself.
         game.cardHandler.discard(data.it);
@@ -3214,7 +3214,7 @@ export function dealDamageNotEngagedInCombatOrYourselfEffect(game: Game, amount:
 export function putThisOnBottomOfLootDeckEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         if(data.it instanceof LootCard === false)
-            throw new GameError("Card is not a loot card for putThisOnBottomOfLootDeckEffect", toSerializedTranslation("error2.behaviorError", { error: "Card is not a loot card for putThisOnBottomOfLootDeckEffect"}));
+            throw new GameError("Card is not a loot card for putThisOnBottomOfLootDeckEffect", toSerializedTranslation("error.behaviorError", { error: "Card is not a loot card for putThisOnBottomOfLootDeckEffect"}));
         data.it.afterEffect = "nothing"; // card placement is handled by the effect itself.
         game.cardHandler.addBottomPosition("loot", data.it);
         
@@ -3238,9 +3238,9 @@ export function giveThisToPlayerOnLeftEffect(game: Game): SyncEffectFunction {
         if (data.issuer instanceof Player === false) return false;
         const targetPlayer = game.turnHandler.getPlayerTo(data.issuer, "left")!;
         if(data.it instanceof LootCard === false)
-            throw new GameError("Card is not a loot card for giveThisToPlayerOnLeftEffect", toSerializedTranslation("error2.behaviorError", { error: "Card is not a loot card for giveThisToPlayerOnLeftEffect"}));
+            throw new GameError("Card is not a loot card for giveThisToPlayerOnLeftEffect", toSerializedTranslation("error.behaviorError", { error: "Card is not a loot card for giveThisToPlayerOnLeftEffect"}));
         if(!targetPlayer || !(targetPlayer instanceof Player))
-            throw new GameError("Target player is not valid for giveThisToPlayerOnLeftEffect", toSerializedTranslation("error2.behaviorError", { error: "Target player is not valid for giveThisToPlayerOnLeftEffect"}));
+            throw new GameError("Target player is not valid for giveThisToPlayerOnLeftEffect", toSerializedTranslation("error.behaviorError", { error: "Target player is not valid for giveThisToPlayerOnLeftEffect"}));
         try{
             game.decks.loot.remove(data.it);
         } catch (e) {

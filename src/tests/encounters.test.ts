@@ -13,7 +13,7 @@ describe("Encounters", () => {
 
     function getAndAddTopMonsterCard(game: Game, slug: string): void {
         const monsterCard = game.obtainCard(slug) as MonsterCard;
-        if (!monsterCard) throw new GameError(`Monster card with slug ${slug} not found.`, toSerializedTranslation("error2.parsingError", {error: `Monster card with slug ${slug} not found.`}));
+        if (!monsterCard) throw new GameError(`Monster card with slug ${slug} not found.`, toSerializedTranslation("error.parsingError", {error: `Monster card with slug ${slug} not found.`}));
         game.encounters._deck.addTopPosition(monsterCard);
     };
 

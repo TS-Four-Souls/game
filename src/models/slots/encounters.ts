@@ -82,13 +82,13 @@ export class Encounters extends Slots<MonsterCard> {
                             break;
                         if (i === this._deck.length - 1) {
                             throw new GameError(`No valid monster card found in deck. The deck has ${this._deck.length} cards left.`,
-                                toSerializedTranslation("error2.behaviorError", { error: `No valid monster card found in deck. The deck has ${this._deck.length} cards left.` })
+                                toSerializedTranslation("error.behaviorError", { error: `No valid monster card found in deck. The deck has ${this._deck.length} cards left.` })
                             );
                         }
                     }
                     if (!(card instanceof MonsterCard)) {
                         throw new GameError("Non monster card in encounters deck",
-                            toSerializedTranslation("error2.behaviorError", { error: "Non monster card in encounters deck" })
+                            toSerializedTranslation("error.behaviorError", { error: "Non monster card in encounters deck" })
                         );
                     }
                 }
@@ -138,11 +138,11 @@ export class Encounters extends Slots<MonsterCard> {
     override draw(position: number): void {
         if (position < 0 || position >= this._slots.length)
             throw new GameError("Invalid slot position to draw to. Position: " + position + ", Slots length: " + this._slots.length,
-                toSerializedTranslation("error2.behaviorError", { error: "Invalid slot position to draw to. Position: " + position + ", Slots length: " + this._slots.length }));
+                toSerializedTranslation("error.behaviorError", { error: "Invalid slot position to draw to. Position: " + position + ", Slots length: " + this._slots.length }));
         const card = this._deck.draw();
         if (card === undefined)
             throw new GameError(`Cannot draw card from deck for slot ${position}. The deck has ${this._deck.cards.length} cards left.`,
-                toSerializedTranslation("error2.behaviorError", { error: `Cannot draw card from deck for slot ${position}. The deck has ${this._deck.cards.length} cards left.` }));
+                toSerializedTranslation("error.behaviorError", { error: `Cannot draw card from deck for slot ${position}. The deck has ${this._deck.cards.length} cards left.` }));
         this._slots[position]!.push(card);
         this.createMonsterAtSlot(position);
     }
@@ -343,7 +343,7 @@ export class Encounters extends Slots<MonsterCard> {
         const selection = (await data.selectAndRecord(game, player, 1, 1, this.coverableSlots, toSerializedTranslation("pending.whereToPutTheBloat"), true, true)).selected[0];
         if(selection === undefined)
             throw new GameError("No selection made for searchForBloatEffect.",
-                toSerializedTranslation("error2.behaviorError", { error: "No selection made for searchForBloatEffect." }));
+                toSerializedTranslation("error.behaviorError", { error: "No selection made for searchForBloatEffect." }));
         const index:number = this.visible.indexOf(selection as MonsterCard);
         this.draw(index);
         return index;

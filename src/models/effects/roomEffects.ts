@@ -617,13 +617,13 @@ export function canBeAttackedEffect(game: Game): SyncEffectFunction {
             console.log(card.flipData?.effectOutcome);
             console.log(card.flipped);
             throw new GameError("Expected card stats to be defined for canBeAttackedEffect.",
-                toSerializedTranslation("error2.behaviorError", { error: "Expected card stats to be defined for canBeAttackedEffect." })
+                toSerializedTranslation("error.behaviorError", { error: "Expected card stats to be defined for canBeAttackedEffect." })
             );
         }
         const { healthPoints, attackPoints, evasionPoints } = card.json.stats;
         if(healthPoints === undefined || attackPoints === undefined || evasionPoints === undefined)
             throw new GameError("Expected all card stats to be defined for canBeAttackedEffect.",
-                toSerializedTranslation("error2.behaviorError", { error: "Expected all card stats to be defined for canBeAttackedEffect." })
+                toSerializedTranslation("error.behaviorError", { error: "Expected all card stats to be defined for canBeAttackedEffect." })
             );
         card.entity = new Animated(card, card.slug, attackPoints, healthPoints, evasionPoints);
         card.entity.attackable = true;
@@ -650,7 +650,7 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): SyncEffec
             }
             if(data.issuer === game.currentPlayer)
                 throw new GameError("Expected issuer to not be the active player for makeAnAttackRollAfterEachAttackRollEffect.",
-                    toSerializedTranslation("error2.behaviorError", { error: "Expected issuer to not be the active player for makeAnAttackRollAfterEachAttackRollEffect." })
+                    toSerializedTranslation("error.behaviorError", { error: "Expected issuer to not be the active player for makeAnAttackRollAfterEachAttackRollEffect." })
                 );
             if(data.issuer.isDead)
                 return; // Dead, ignore
@@ -659,7 +659,7 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): SyncEffec
                     return false; // Dead, ignore
                 if(effectData.issuer instanceof Player === false)
                     throw new GameError("Expected issuer to be a player for makeAnAttackRollAfterEachAttackRollEffect.",
-                        toSerializedTranslation("error2.behaviorError", { error: "Expected issuer to be a player for makeAnAttackRollAfterEachAttackRollEffect." })
+                        toSerializedTranslation("error.behaviorError", { error: "Expected issuer to be a player for makeAnAttackRollAfterEachAttackRollEffect." })
                     );
                     game.actions.attackRoll(effectData.issuer, target);
                 return true;
@@ -775,7 +775,7 @@ export function allPlayersPermanentStatModifierEffect(
     return (data: EffectData) => {
         if (amount < 0)
             throw new GameError("allPlayersPermanentStatModifierEffect amount must be non-negative.",
-                toSerializedTranslation("error2.behaviorError", { error: "allPlayersPermanentStatModifierEffect amount must be non-negative." })
+                toSerializedTranslation("error.behaviorError", { error: "allPlayersPermanentStatModifierEffect amount must be non-negative." })
             );
         // Apply the stat modification
         for(const player of game.players) 
@@ -974,7 +974,7 @@ export function playersWithFewestSoulsShopItemPriceReductionEffect(game: Game, p
 export function socialGoalsEffect(game: Game, numbers: number[]): SyncEffectFunction {
     if(numbers.length < 13) {
         throw new GameError("Expected 13 numbers for socialGoalsEffect, got " + numbers.length,
-            toSerializedTranslation("error2.parsingError", { error: "Expected 13 numbers for socialGoalsEffect, got " + numbers.length })
+            toSerializedTranslation("error.parsingError", { error: "Expected 13 numbers for socialGoalsEffect, got " + numbers.length })
         );
     }
     const discardObjective = numbers[0]!;

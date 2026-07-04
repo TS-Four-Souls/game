@@ -67,7 +67,7 @@ describe("Before start effects", () => {
         expect(game.stack.size).toBe(0);
         if(!character1 || !character2)
             throw new GameError("Characters not found", 
-            toSerializedTranslation("error2.behaviorError", {error: "Characters not found"}));
+            toSerializedTranslation("error.behaviorError", {error: "Characters not found"}));
         const initialLootPlays1 = player1.remainingLootPlay;
         const initialLootPlays2 = player2.remainingLootPlay;
         character1.recharge();
@@ -150,7 +150,7 @@ describe("Bonus Soul effects", () => {
         const guppyItem1 = game.shop.obtainCard("b2-guppys_head");
         const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
         if(!guppyItem1 || !guppyItem2)
-            throw new GameError("Guppy items not found in treasure deck", toSerializedTranslation("error2.behaviorError", {error: "Guppy items not found in treasure deck"}));
+            throw new GameError("Guppy items not found in treasure deck", toSerializedTranslation("error.behaviorError", {error: "Guppy items not found in treasure deck"}));
         game.cardHandler.addInPlay(player1, guppyItem1);
         expect(player1.totalSouls).toBe(initSoul);
         game.cardHandler.addInPlay(player1, guppyItem2);

@@ -84,7 +84,7 @@ export class GameEventEmitter {
 
     if (subsetPositions.length !== orderedSubsetListenerIds.length) {
       throw new GameError("Cannot reorder listeners: some listener IDs are not subscribed to this event.",
-        toSerializedTranslation("error2.behaviorError", {error: "Cannot reorder listeners: some listener IDs are not subscribed to this event."})
+        toSerializedTranslation("error.behaviorError", {error: "Cannot reorder listeners: some listener IDs are not subscribed to this event."})
       );
     }
 
@@ -93,7 +93,7 @@ export class GameEventEmitter {
       const entry = entryById.get(id);
       if (!entry) {
         throw new GameError("Cannot reorder listeners: listener subset mismatch.",
-          toSerializedTranslation("error2.behaviorError", {error: "Cannot reorder listeners: listener subset mismatch."}));
+          toSerializedTranslation("error.behaviorError", {error: "Cannot reorder listeners: listener subset mismatch."}));
       }
       return entry;
     });

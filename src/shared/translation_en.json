@@ -1,4 +1,40 @@
 {
+  "introStep": {
+    "loadingMessage": "Loading...",
+    "titleScreen": {
+      "createRoomButton": "Create Room",
+      "joinRoomButton": "Join Room",
+      "aboutButton": "About"
+    },
+    "createRoomForm": {
+      "title": "Welcome!",
+      "name": {
+        "placeholder": "Enter your name..."
+      },
+      "errorToast": {
+        "title": "Failed to create room"
+      }
+    },
+    "joinRoomForm": {
+      "title": "Join a room",
+      "code": {
+        "placeholder": "Enter room code..."
+      },
+      "name": {
+        "placeholder": "Enter your name..."
+      },
+      "errorToast": {
+        "genericErrorTitle": "Failed to join room",
+        "codeErrorTitle": "Invalid room code",
+        "lengthErrorMessage": "The room ID must be 6 characters long",
+        "charactersErrorMessage": "The room ID must only contain uppercase letters and numbers"
+      }
+    },
+    "footer": {
+      "privacyPolicyLink": "Privacy Policy",
+      "disclaimer": "This is an unofficial, fan-made website and is not affiliated with\nor endorsed by Maestro Media and Edmund McMillen."
+    }
+  },
   "startStep": {
     "roomInfo": {
       "title": "Room",
@@ -25,7 +61,24 @@
       "teams": {
         "hoverSelfSelected": "You have selected team {{team}}",
         "hoverPlayerSelected": "{{player}} is on the team {{team}}",
-        "joinTeamButton": "Click to join this team"
+        "joinTeamButton": {
+          "label": "Click to join this team",
+          "errorToast": {
+            "title": "Failed to select team"
+          }
+        }
+      },
+      "selectCharacterButton": {
+        "tooltip": {
+          "title": "Select your character card",
+          "message": "Click to select a character"
+        },
+        "popup": {
+          "title": "Select your character card"
+        },
+        "errorToast": {
+          "title": "Failed to select character"
+        }
       },
       "addCopyButton": {
         "label": "Add copy",
@@ -35,10 +88,123 @@
         },
         "popup": {
           "title": "Select the player to add a copy of"
+        },
+        "errorToast": {
+          "title": "Failed to add copy"
+        }
+      },
+      "leaveButton": {
+        "label": "Leave",
+        "errorToast": {
+          "title": "Failed to leave room"
+        }
+      },
+      "kickButton": {
+        "label": "Kick",
+        "errorToast": {
+          "title": "Failed to kick player"
         }
       }
     },
+    "startButton": {
+      "label": "Start",
+      "errorToast": {
+        "title": "Failed to start game"
+      },
+      "nonHostTooltip": {
+        "title": "Cannot start the game",
+        "message": "Only the host can start the game"
+      }
+    },
+    "loadButton": {
+      "label": "Load game",
+      "errorToast": {
+        "title": "Failed to load game",
+        "readErrorMessage": "Could not read selected file"
+      },
+      "nonHostTooltip": {
+        "title": "Cannot load game settings",
+        "message": "Only the host can load game settings"
+      }
+    },
     "gameParams": {
+      "title": "Game parameters",
+      "saveButton": {
+        "label": "Save",
+        "successToast": {
+          "title": "Save parameters",
+          "message": "Parameters saved as {{filename}}"
+        }
+      },
+      "resetButton": {
+        "label": "Reset",
+        "errorToast": {
+          "title": "Failed to reset game settings"
+        },
+        "nonHostTooltip": {
+          "title": "Cannot reset game settings",
+          "message": "Only the host can reset game settings"
+        }
+      },
+      "loadButton": {
+        "label": "Load",
+        "successToast": {
+          "title": "Load parameters",
+          "message": "Game parameters loaded"
+        },
+        "errorToast": {
+          "title": "Faile to load parameters",
+          "readErrorMessage": "Could not read selected file"
+        },
+        "nonHostTooltip": {
+          "title": "Cannot load game settings",
+          "message": "Only the host can load game settings"
+        }
+      },
+      "decks": {
+        "characters": "Characters",
+        "treasures": "Treasures",
+        "loots": "Loots",
+        "monsters": "Monsters",
+        "bonusSouls": "Bonus Souls",
+        "rooms": "Rooms"
+      },
+      "inputs": {
+        "boolean": {
+          "enableButton": "On",
+          "disableButton": "Off",
+          "nonHostTooltip": {
+            "title": "Cannot toggle game parameter",
+            "message": "Only the host can toggle game parameter"
+          }
+        },
+        "numeric": {
+          "decreaseButton": "−",
+          "increaseButton": "+",
+          "nonHostTooltip": {
+            "title": "Cannot change game parameter",
+            "message": "Only the host can change game parameter"
+          }
+        },
+        "cardCount": {
+          "nonHostTooltip": {
+            "title": "Cannot change card count",
+            "message": "Only the host can change card count"
+          },
+          "errorToast": {
+            "title": "Failed to change card count"
+          },
+          "emptyResults": "No options available"
+        },
+        "errorToast": {
+          "title": "Failed to change game parameter"
+        }
+      },
+      "helpButton": {
+        "label": "?",
+        "nbPlayerCardRestriction": "Some cards are only available when there are 3 players or more.\nTurn it off if you want to play with these cards despite the minimum player requirement not being met.",
+        "useFSP2Cards": "Play with cards from the Four Souls+ expansion."
+      },
       "useBonusSouls": "Use bonus souls?",
       "useRooms": "Use rooms?",
       "nbPlayerCardRestriction": "Number of player card restrictions",
@@ -823,13 +989,304 @@
     "boardSelection": {
       "selectedCount": "{{count}} selected",
       "selectionMinMax": "(min {{minCount}}, max {{maxCount}})",
-      "useMenuSelectionButton": "Use menu selection"
-    }
+      "useMenuSelectionButton": "Use menu selection",
+      "submitButton": "Submit",
+      "cancelButton": "Cancel",
+      "blockedTooltip": {
+        "title": "Cannot select this card",
+        "message": "You cannot select this card"
+      }
+    },
+    "cheats": {
+      "getLootTopDeck": {
+        "label": "[CHEAT] Loot a card",
+        "successToast": {
+          "title": "{{player}} used a cheat to loot a card.",
+          "message": "They looted a card the top of the loot deck."
+        },
+        "errorToast": {
+          "title": "Failed to loot"
+        }
+      },
+      "selectCardToLoot": {
+        "label": "[CHEAT] Select loot to gain",
+        "popup": {
+          "title": "Select a loot card to gain",
+          "successToast": {
+            "title": "{{player}} used a cheat to gain {{count}} loot cards.",
+            "message": "They looted {{cardNames}}."
+          },
+          "errorToast": {
+            "title": "Failed to gain loot cards"
+          }
+        },
+        "errorToast": {
+          "title": "Failed to list loot cards"
+        }
+      },
+      "getTreasureTopDeck": {
+        "label": "[CHEAT] Gain treasure",
+        "successToast": {
+          "title": "{{player}} used a cheat to gain {{count}} treasures.",
+          "message": "They gained {{cardName}} from the top of the deck."
+        },
+        "errorToast": {
+          "title": "Failed to gain a treasure"
+        }
+      },
+      "selectTreasureToLoot": {
+        "label": "[CHEAT] Select treasure to gain",
+        "popup": {
+          "title": "Select a treasure card to gain",
+          "successToast": {
+            "title": "{{player}} used a cheat to gain {{count}} treasures.",
+            "message": "They gained {{cardNames}}."
+          },
+          "errorToast": {
+            "title": "Failed to gain treasure cards"
+          }
+        },
+        "errorToast": {
+          "title": "Failed to list treasure cards"
+        }
+      },
+      "putMonsterCardInSlot": {
+        "label": "[CHEAT] Put monster card in slot",
+        "popup": {
+          "title": "Select a monster card to put in a slot",
+          "successToast": {
+            "title": "{{player}} used a cheat to summon a monster card.",
+            "message": "They put {{card}} in the monster slot {{value}}."
+          },
+          "errorToast": {
+            "title": "Failed to put monster card in slot"
+          }
+        },
+        "errorToast": {
+          "title": "Failed to list monster deck"
+        }
+      },
+      "gainGoin": {
+        "label": "[CHEAT] Gain coins",
+        "popup": {
+          "title": "Select amount of coins to gain",
+          "successToast": {
+            "title": "{{player}} used a cheat to gain {{count}} coin(s).",
+            "message": "They gained {{count}} coin."
+          },
+          "errorToast": {
+            "title": "Failed to gain coins"
+          }
+        }
+      },
+      "discardCard": {
+        "label": "[CHEAT] Discard card",
+        "popup": {
+          "title": "Select cards to remove",
+          "successToast": {
+            "title": "{{player}} used a cheat to discard {{count}} cards.",
+            "message": "They discarded {{cardNames}}."
+          },
+          "errorToast": "Failed to remove cards"
+        },
+        "errorToast": {
+          "title": "Failed to list removable cards"
+        }
+      }
+    },
+    "mainMenu": {
+      "title": "Main menu",
+      "saveButtom": {
+        "label": "Save game",
+        "successToast": {
+          "title": "Game saved",
+          "message": "Saved as {{filename}}"
+        },
+        "errorToast": {
+          "title": "Failed to save game"
+        }
+      },
+      "quitButton": {
+        "label": "Quit game",
+        "popup": {
+          "title": "Are you sure you want to quit the game?"
+        },
+        "errorToast": {
+          "title": "Failed to quit game"
+        }
+      }
+    },
+    "pendingSelection": {
+      "errorToast": {
+        "title": "Failed to submit selection"
+      },
+      "waitingForOtherPlayerToast": {
+        "title": "{{player}} is busy",
+        "message": "Please wait for them to finish their selection"
+      }
+    },
+    "bonusSouls": {
+      "tooltip": {
+        "title": "Bonus Soul",
+        "message": "Meet the conditions to receive this bonus soul."
+      }
+    },
+    "stack": {
+      "reordering": {
+        "moveHere": "Move here",
+        "errorToast": {
+          "title": "Failed to move stack element"
+        }
+      },
+      "resolveButton": {
+        "label": "Resolve",
+        "errorToast": {
+          "title": "Failed to resolve stack"
+        },
+        "blockedTooltip": {
+          "title": "Cannot resolve stack"
+        }
+      }
+    },
+    "rollback": {
+      "tooltip": {
+        "title": "Rollback",
+        "message": "Undo the last action",
+        "cheatDisabledMessage": "Undo the last action (no cheat)"
+      },
+      "errorToast": {
+        "title": "Failed to rollback"
+      }
+    },
+    "giveCoins": {
+      "tooltip": {
+        "title": "Donate coins",
+        "message": "You can donate coins to this player."
+      },
+      "blockedTooltip": {
+        "title": "Cannot donate coins"
+      },
+      "popup": {
+        "title": "How many coins do you want to give?"
+      },
+      "errorToast": {
+        "title": "Failed to give coins",
+        "noCoinsMessage": "You have no coins to give"
+      }
+    },
+    "purchase": {
+      "declarePurchaseButton": {
+        "label": "Declare purchase",
+        "errorToast": {
+          "title": "Failed to declare purchase"
+        },
+        "blockedTooltip": {
+          "title": "Cannot declare purchase"
+        }
+      },
+      "abandonPurchaseButton": {
+        "label": "Abandon purchase",
+        "errorToast": {
+          "title": "Failed to cancel purchase"
+        },
+        "blockedTooltip": {
+          "title": "Cannot abandon purchase",
+          "ableToPurchaseMessage": "You are able to make a purchase."
+        }
+      },
+      "shop": {
+        "price": "Price: {{value}}¢",
+        "blockedTooltip": {
+          "title": "Cannot buy this card"
+        }
+      },
+      "errorToast": {
+        "title": "Failed to purchase"
+      }
+    },
+    "activate": {
+      "popup": {
+        "title": "Select an effect to activate"
+      },
+      "blockedTooltip": {
+        "title": "Cannot activate"
+      },
+      "errorToast": {
+        "title": "Failed to activate card"
+      }
+    },
+    "play": {
+      "blockedTooltip": {
+        "title": "Cannot play this card"
+      },
+      "errorToast": {
+        "title": "Failed to play card"
+      }
+    },
+    "declareAttackButton": {
+      "label": "Declare attack",
+      "errorToast": {
+        "title": "Failed to declare attack"
+      },
+      "blockedTooltip": {
+        "title": "Cannot declare attack"
+      }
+    },
+    "attack": {
+      "popup": {
+        "title": "Select a monster to cover"
+      },
+      "blockedTooltip": {
+        "title": "Cannot attack this card",
+        "message": "This is not a monster card."
+      },
+      "requiredTooltip": {
+        "title": "Attack required",
+        "message": "You must attack this monster because of {{card}}."
+      },
+      "errorToast": {
+        "title": "Failed to attack this card"
+      }
+    },
+    "rollDiceButton": {
+      "label": "Roll dice",
+      "errorToast": {
+        "title": "Failed to roll dice"
+      },
+      "blockedTooltip": {
+        "title": "Cannot roll dice"
+      }
+    },
+    "endTurnButton": {
+      "label": "End turn",
+      "errorToast": {
+        "title": "Failed to end turn"
+      },
+      "blockedTooltip": {
+        "title": "Cannot end turn"
+      },
+      "excessLootTooltip": {
+        "title": "Excess loot cards",
+        "message": "You have {{value}} cards over the max hand size."
+      }
+    },
+    "switchToCopy": {
+      "errorToast": {
+        "title": "Failed to switch to copy"
+      }
+    },
+    "hoverPlayerHand": "{{player}} has {{value}} cards in their hand.",
+    "noOptionsAvailable": "No options available",
+    "pileDetails": "Pile details"
   },
   "common": {
+    "closeButton": "Close",
     "submitButton": "Submit",
     "cancelButton": "Cancel",
-    "closeButton": "Close",
+    "joinButton": "Join",
+    "leaveButton": "Leave",
+    "acceptButton": "Accept",
+    "declineButton": "Decline",
     "teams": {
       "heart": "Heart",
       "coin": "Coin",
@@ -846,26 +1303,7 @@
     "currentTeam": "Team {{team}}",
     "empty": "",
     "content": "{{content}}",
-    "theTopDeck": "the top deck",
-    "monster": "monster",
-    "treasure": "treasure",
-    "loot": "loot",
-    "eternal": "eternal",
-    "nonEternal": "non-eternal",
-    "tap": "tap",
-    "passive": "passive",
-    "active": "active",
-    "item": "item",
-    "soul": "soul",
-    "player": "player",
-    "card": "card",
-    "deck": "deck",
-    "discard": "discard",
-    "bonussoul": "bonus soul",
-    "eternalItem": "eternal item",
-    "character": "character",
-    "accept": "Accept",
-    "decline": "Decline"
+    "theTopDeck": "the top deck"
   },
   "pending": {
     "maxHand": "You must discard {{value}} card(s) to reach your maximum hand size of {{count}}.",
@@ -1183,9 +1621,7 @@
     "cardAtIndexNotLootCard": "The card at this index is not a loot card.",
     "indexOutOfBounds": "Index out of bounds.",
     "cannotAddCardWithNoSoulAsSoulCard": "Cannot add a card without a soul as a soul card.",
-    "itemNotInPlay": "Item is not in play."
-  },
-  "error2": {
+    "itemNotInPlay": "Item is not in play.",
     "noOwnerForCard": "Card {{card}} does not have an owner.",
     "effectIndexOutOfBounds": "Effect index {{index}} is out of bounds for card {{card}}.",
     "parsingError": "Parsing error: {{error}}.",
@@ -1196,21 +1632,6 @@
     "timeUpmessage": "You can keep playing, but you won't see the MAGNIFICENT VICTORY POPUP!",
     "foundNotImplemented": "Congrats! You found something not implemented yet!",
     "insultDevs": "You can thank these lazy developers for ruining your game experience! Here's 15 coins to ease the pain.",
-    "cheatDiscardOneTitle": "{{player}} used a cheat to discard a card.",
-    "cheatDiscardManyTitle": "{{player}} used a cheat to discard {{value}} cards.",
-    "cheatDiscardMessage": "They discarded {{cardArray}}.",
-    "cheatTopTreasure": "{{player}} used a cheat to gain {{value}} treasures.",
-    "cheatAnyTreasure": "{{player}} used a cheat to obtain {{value}} treasures.",
-    "cheatTopTreasureMessage": "They gained {{cardArray}} from the top of the deck.",
-    "cheatAnyTreasureMessage": "They obtained {{cardArray}}.",
-    "cheatCoinsTitle": "{{player}} used a cheat to gain {{coins}} coin(s).",
-    "cheatCoinsMessage": "They obtained {{coins}} coin.",
-    "cheatLootCardTop": "{{player}} used a cheat to loot {{value}}.",
-    "cheatLootCardAny": "{{player}} used a cheat to obtain {{value}} loot cards.",
-    "cheatLootMessageWithoutName": "They looted {{value}} from the top of the deck.",
-    "cheatLootMessageWithName": "They obtained {{cardArray}}.",
-    "cheatMonsterCard": "{{player}} used a cheat to summon a monster card.",
-    "cheatMonsterMessage": "They put {{card}} in the monster slot {{value}}.",
     "winningTitle": "YOU WON!",
     "winningMessage": "Congratulations!",
     "losingTitle": "AHAH! YOU LOST!",
@@ -1261,209 +1682,35 @@
     "noRemainingPurchase": "You have no remaining purchases this turn",
     "paidAttack": "You must pay {{value}}¢ to attack, but you only have {{coins}}¢"
   },
-  "front": {
-    "confirmQuitGame": "Are you sure you want to quit the game?",
-    "failQuitGame": "Failed to quit game",
-    "saveTitle": "Game saved",
-    "saveMessage": "Saved as {{filename}}",
-    "failSaveGame": "Failed to save game",
-    "failLoot": "Failed to loot",
-    "failGainTreasure": "Failed to gain a treasure",
-    "failGainLootCards": "Failed to gain loot cards",
-    "failListLoot": "Failed to list loot",
-    "FailPutMonster": "Failed to put monster card in slot",
-    "failGainTreasureCards": "Failed to gain treasure cards",
-    "failSelectMonsterToAttack": "Failed to select monster to attack",
-    "replySent": "Reply sent",
-    "yourReplyHasBeenSent": "Your reply has been sent to the user.",
-    "invalidRoomId": "Invalid room ID",
-    "roomIdLength": "The room ID must be 6 characters long",
-    "roomIdCharacters": "The room ID must only contain uppercase letters and numbers",
-    "failListTreasure": "Failed to list treasure",
-    "failRemoveCards": "Failed to remove cards",
-    "failListRemovableCards": "Failed to list removable cards",
-    "failGainCoins": "Failed to gain coins",
-    "failListMonsterDeck": "Failed to list monster deck",
-    "failSubmit": "Failed to submit selection",
-    "cannotPlay": "Cannot play this card",
-    "noOptionsAvailable": "No options available",
-    "failActivateCard": "Failed to activate card",
-    "failPlayCard": "Failed to play card",
-    "failResolveStack": "Failed to resolve stack",
-    "failMoveStackElement": "Failed to move stack element",
-    "failPurchase": "Failed to purchase",
-    "failRollback": "Failed to rollback",
-    "cannotDeclareAttack": "Cannot declare attack",
-    "cannotRollDice": "Cannot roll dice",
-    "excessLoot": "Excess loot cards",
-    "excessLootContent": "You have {{value}} cards over the max hand size.",
-    "failDeclareAttack": "Failed to declare attack",
-    "failRollDice": "Failed to roll dice",
-    "cannotBuy": "Cannot buy this card",
-    "cannotSelectCard": "Cannot select this card",
-    "cannotSelectThisCard": "You cannot select this card",
-    "cannotDeclarePurchase": "Cannot declare purchase",
-    "abandonPurchase": "Abandon purchase",
-    "attackRequired": "Attack required",
-    "attackRequiredContent": "You must attack this monster because of {{card}}.",
-    "notAMonsterCard": "This is not a monster card.",
-    "cannotAttackThisCard": "Cannot attack this card",
-    "cannotAbandonPurchase": "Cannot abandon purchase while able to buy treasure.",
-    "cannotDonate": "Cannot donate coins",
-    "donateCoins": "Donate coins",
-    "canDonate": "You can donate coins to this player.",
-    "cannotResolveStack": "Cannot resolve stack",
-    "cannotEndTurn": "Cannot end turn",
-    "failDeclarePurchase": "Failed to declare purchase",
-    "failCancelPurchase": "Failed to cancel purchase",
-    "failEndTurn": "Failed to end turn",
-    "failSwitchToCopy": "Failed to switch to copy",
-    "cannotGiveCoins": "Cannot give coins",
-    "youHaveNoCoinsToGive": "You have no coins to give",
-    "failGiveCoins": "Failed to give coins",
-    "failReplyToMessage": "Failed to reply to message",
-    "failLoginAsAdmin": "Failed to login as admin",
-    "failChangeMessageStatus": "Failed to change message status",
-    "failGetLogs": "Failed to get logs",
-    "failChangeGameParameter": "Failed to change game parameter",
-    "failStartGame": "Failed to start game",
-    "failLoadGame": "Failed to load game",
-    "couldNotReadSelectedFile": "Could not read selected file",
-    "loadParameters": "Load parameters",
-    "gameParametersLoaded": "Game parameters loaded",
-    "saveParameters": "Save parameters",
-    "parametersSaved": "Parameters saved as {{filename}}",
-    "failResetGameSettings": "Failed to reset game settings",
-    "failKickPlayer": "Failed to kick player",
-    "failAddCopy": "Failed to add copy",
-    "failLeaveRoom": "Failed to leave room",
-    "failSelectTeam": "Failed to select team",
-    "failSelectCharacter": "Failed to select character",
-    "failJoinRoom": "Failed to join room",
-    "failCreateRoom": "Failed to create room",
-    "failChangeCardCount": "Failed to change card count",
-    "loading": "Loading...",
-    "monsterCards": "Monster Cards",
-    "treasureCards": "Treasure Cards",
-    "characterCards": "Character Cards",
-    "lootCards": "Loot Cards",
-    "bsoulCards": "Bonus Souls",
-    "roomCards": "Room Cards",
-    "monsterCard": "Monster Card",
-    "treasureCard": "Treasure Card",
-    "characterCard": "Character Card",
-    "lootCard": "Loot Card",
-    "bsoulCard": "Bonus Soul",
-    "roomCard": "Room Card",
-    "playerIsBusy": "{{player}} is busy",
-    "pleaseWaitForThemToFinishTheirSelection": "Please wait for them to finish their selection",
-    "selectMonsterToCover": "Select a monster to cover",
-    "selectCardToLoot": "Select a loot card to loot",
-    "selectTreasureToGain": "Select a treasure card to gain",
-    "selectCardsToRemove": "Select cards to remove",
-    "selectAmountOfCoinsToGain": "Select amount of coins to gain",
-    "selectMonsterCardToPutInSlot": "Select a monster card to put in a slot",
-    "selectCardToCover": "Select a card to cover",
-    "pileDetails": "Pile details",
-    "selectAmountOfCoinsToGive": "How many coins do you want to give?",
-    "selectEffectToActivate": "Select an effect to activate",
-    "selectChara": "Select your character card",
-    "clickToSelectCharacter": "Click to select a character",
-    "contactUs": "Contact us",
-    "playerHandSize": "{{player}} has {{value}} cards in their hand.",
-    "rollback": "Rollback",
-    "rollbackDef": "Undo the last action",
-    "rollbackDefNoCheat": "Undo the last action (no cheat)",
-    "cannotActivateTitle": "Cannot activate",
-    "cannotChangeCardCount": "Cannot change card count",
-    "onlyHostCanChangeCardCount": "Only the host can change card count",
-    "bonusSoulCondition": "Meet the conditions to receive this bonus soul.",
-    "price": "Price: {{value}}¢",
-    "cannotStartGame": "Cannot start the game",
-    "onlyHostCanStartGame": "Only the host can start the game",
-    "cannotResetGameSettings": "Cannot reset game settings",
-    "onlyHostCanResetGameSettings": "Only the host can reset game settings",
-    "cannotLoadGameSettings": "Cannot load game settings",
-    "onlyHostCanLoadGameSettings": "Only the host can load game settings",
-    "cardRestrDef": "Some cards are only available when there are 3 players or more.\nTurn it off if you want to play with these cards despite the minimum player requirement not being met.",
-    "fsp2CardsDef": "Play with cards from the Four Souls+ expansion.",
-    "cannotToggleGameParameter": "Cannot toggle game parameter",
-    "onlyHostCanToggleGameParameter": "Only the host can toggle game parameter",
-    "cannotChangeGameParameter": "Cannot change game parameter",
-    "onlyHostCanChangeGameParameter": "Only the host can change game parameter",
-    "createRoom": "Create Room",
-    "joinRoom": "Join Room",
-    "leaveRoom": "Leave Room",
-    "kickPlayer": "Kick Player",
-    "addCopy": "Add Copy",
-    "selectTeam": "Select Team",
-    "About": "About",
-    "yourReply": "What is your reply?",
-    "password": "Password",
-    "pasteState": "Paste a detailed state JSON here...",
-    "enterRoomCode": "Enter room code...",
-    "enterYourName": "Enter your name...",
-    "unofficial1": "This is an unofficial, fan-made website and is not affiliated with or endorsed by Maestro Media and Edmund McMillen.",
-    "join": "Join",
-    "leave": "Leave",
-    "letsGo": "Let's go!",
-    "startGame": "Start Game",
-    "resetGameSettings": "Reset Game Settings",
-    "close": "Close",
-    "cheatLoot": "[CHEAT] Loot a card",
-    "cheatSelectLoot": "[CHEAT] Select loot to gain",
-    "cheatGainTreasure": "[CHEAT] Gain treasure",
-    "cheatSelectTreasure": "[CHEAT] Select treasure to gain",
-    "cheatPutMonster": "[CHEAT] Put monster card in slot",
-    "cheatGainCoins": "[CHEAT] Gain coins",
-    "cheatDiscardCard": "[CHEAT] Discard card",
-    "saveGame": "Save game",
-    "quitGame": "Quit game",
-    "cancel": "Cancel",
-    "moveHere": "Move here",
-    "resolve": "Resolve",
-    "endTurn": "End turn",
-    "declarePurchase": "Declare purchase",
-    "declareAttack": "Declare attack",
-    "rollDice": "Roll dice",
-    "login": "Login",
-    "return": "Return",
-    "logout": "Logout",
-    "start": "Start",
-    "loadGame": "Load game",
-    "save": "Save",
-    "reset": "Reset",
-    "load": "Load",
-    "help": "?",
-    "chara": "Characters",
-    "treasures": "Treasures",
-    "loots": "Loots",
-    "monsters": "Monsters",
-    "bonusSouls": "Bonus Souls",
-    "rooms": "Rooms",
-    "minus": "−",
-    "plus": "+"
-  },
   "contactButton": {
-    "tooltipTitle": "Contact",
-    "tooltipMessage": "A suggestion, a bug to report?"
-  },
-  "contactPopup": {
-    "title": "Contact Us",
-    "subjectContact": "Contact",
-    "subjectSuggestion": "Suggestion",
-    "subjectBug": "Bug",
-    "subjectBugDescription": "In your report, please include these 3 things:\n- Some context, what were you doing when the bug happened?\n- What was the expected behavior?\n- What was the actual behavior?",
-    "messagePlaceholder": "What do you want to tell us?",
-    "emailDisclaimer": "Optional: we may contact you if we need more information or to follow up on your report. Your email address will not be used for any other purpose.",
-    "emailPlaceholder": "Your email (optional)",
-    "subjectBugGameDataNote": "Note: your game logs will automatically be included in the report.",
-    "successToastTitle": "Report submitted",
-    "successToastMessage": "Thank you for your report!",
-    "errorToastTitle": "Failed to report bug"
-  },
-  "footer": {
-    "privacyPolicyLink": "Privacy Policy",
-    "disclaimer": "This is an unofficial, fan-made website and is not affiliated with\nor endorsed by Maestro Media and Edmund McMillen."
+    "tooltip": {
+      "title": "Contact",
+      "message": "A suggestion, a bug to report?"
+    },
+    "popup": {
+      "title": "Contact Us",
+      "subjects": {
+        "contact": "Contact",
+        "suggestion": "Suggestion",
+        "bug": "Bug"
+      },
+      "subjectBugDescription": "In your report, please include these 3 things:\n- Some context, what were you doing when the bug happened?\n- What was the expected behavior?\n- What was the actual behavior?",
+      "message": {
+        "placeholder": "What do you want to tell us?",
+        "counter": "{{length}} / {{maxLength}}"
+      },
+      "email": {
+        "disclaimer": "Optional: we may contact you if we need more information or to follow up on your report. Your email address will not be used for any other purpose.",
+        "placeholder": "Your email (optional)"
+      },
+      "subjectBugGameDataNote": "Note: your game logs will automatically be included in the report.",
+      "errorToast": {
+        "title": "Failed to report bug"
+      },
+      "successToast": {
+        "title": "Report submitted",
+        "message": "Thank you for your report!"
+      }
+    }
   }
 }

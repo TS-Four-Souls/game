@@ -47,7 +47,7 @@ import { GameError } from "@/models/GameError";
 export class Game extends SelectionHandler {
   private _turnHandler: TurnHandler = new TurnHandler();
   private _random: () => number = () => {throw new GameError("Random generator not initialized yet.", 
-    toSerializedTranslation("error2.behaviorError", {error: "Random generator not initialized yet."}))
+    toSerializedTranslation("error.behaviorError", {error: "Random generator not initialized yet."}))
   };
   private _seed: string = "";
   private _shop!: Shop;
@@ -354,7 +354,7 @@ export class Game extends SelectionHandler {
         const dice = this.stack.resolve();
         if(!dice || !(dice instanceof DiceRoll))
           throw new GameError("The resolved stack element is not a DiceRoll.",
-            toSerializedTranslation("error2.behaviorError", {error: "The resolved stack element is not a DiceRoll."}));
+            toSerializedTranslation("error.behaviorError", {error: "The resolved stack element is not a DiceRoll."}));
         if(dice.attackRoll)
           await this.resolveAttackRoll(dice);
         else
@@ -756,7 +756,7 @@ export class Game extends SelectionHandler {
   addToStack(item: StackElement): number {
     if (item instanceof EffectOnStack && !item.data.issuer) {
       throw new GameError("EffectOnStack must have an issuer.",
-        toSerializedTranslation("error2.behaviorError", {error: "EffectOnStack must have an issuer."}));
+        toSerializedTranslation("error.behaviorError", {error: "EffectOnStack must have an issuer."}));
     }
 //  EffectOnStack can be reordered on the stack by their owner.
     if (item instanceof EffectOnStack) {
@@ -886,7 +886,7 @@ export class Game extends SelectionHandler {
     }
     if(forcedBy === null) {
       const response = await this.select(to, 1, 1, [
-        toSerializedTranslation("common.accept"), toSerializedTranslation("common.decline")], 
+        toSerializedTranslation("common.acceptButton"), toSerializedTranslation("common.declineButton")], 
         toSerializedTranslation("pending.fromIdWantsToGiveYouCoins", { player: from.id, value: amount }), true);
       if (response.selected[0]?.key !== "common.accept") {
         console.log("declined");

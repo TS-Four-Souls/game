@@ -114,7 +114,7 @@ export abstract class SelectionHandler {
         }
         // No matching pending selection found
         throw new GameError("No pending selection found for this request ID",
-          toSerializedTranslation("error2.behaviorError", { error: "No pending selection found for this request ID" })
+          toSerializedTranslation("error.behaviorError", { error: "No pending selection found for this request ID" })
         );
       }
     

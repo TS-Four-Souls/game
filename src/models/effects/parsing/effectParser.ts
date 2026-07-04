@@ -202,7 +202,7 @@ export function effectParser(s: string, game: Game, selectionOnResolve = false, 
     }
 
     console.log(`Could not parse effect: "${s}"`);
-    throw new GameError(`Could not parse effect: "${s}"`, toSerializedTranslation("error2.parsingError", {error: `Could not parse effect: "${s}"`}));
+    throw new GameError(`Could not parse effect: "${s}"`, toSerializedTranslation("error.parsingError", {error: `Could not parse effect: "${s}"`}));
 }
 
 /**
@@ -695,7 +695,7 @@ export function parseTheActivePlayerEffect(s: string, game: Game, nr: NumberRobu
         case "the active player chooses a player. that player destroys a soul they control":
             return noTargetEffect(monster.activePlayerSelectAndCallEffect(game, active.destroyOneOfYourSoulEffect(game)));
         default:
-            throw new GameError(`Could not parse 'The active player ...' effect: ${s}`, toSerializedTranslation("error2.parsingError", {error: `Could not parse 'The active player ...' effect: ${s}`}));
+            throw new GameError(`Could not parse 'The active player ...' effect: ${s}`, toSerializedTranslation("error.parsingError", {error: `Could not parse 'The active player ...' effect: ${s}`}));
     }
 }
 

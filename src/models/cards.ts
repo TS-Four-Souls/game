@@ -90,7 +90,7 @@ class Card {
     }
     getEffectRange(idx: number): EffectRange {
         if(idx < 0 || idx >= this._separatorIds.length)
-            throw new GameError(`Effect index ${idx} is out of bounds for card ${this.name}.`, toSerializedTranslation("error2.effectIndexOutOfBounds", {card: this.name, index: idx}));
+            throw new GameError(`Effect index ${idx} is out of bounds for card ${this.name}.`, toSerializedTranslation("error.effectIndexOutOfBounds", {card: this.name, index: idx}));
         return this._separatorIds[idx]!;
     }
 
@@ -222,7 +222,7 @@ class Card {
     }
     get owner(): Entity {
         if(!this._owner)
-            throw new GameError(`Card ${this.name} does not have an owner.`, toSerializedTranslation("error2.noOwnerForCard", {card: this.name}));
+            throw new GameError(`Card ${this.name} does not have an owner.`, toSerializedTranslation("error.noOwnerForCard", {card: this.name}));
         return this._owner;
     }
     set owner(value: Entity | undefined) {
@@ -246,7 +246,7 @@ class Card {
                         if(nbLines < 2)
                         {
                             const err = `Effect outcome "${effect}" has a newline but is not a roll or choose one effect.`;
-                            throw new GameError(err, toSerializedTranslation("error2.parsingError", {error: err}));
+                            throw new GameError(err, toSerializedTranslation("error.parsingError", {error: err}));
                         }
                         // new line separate roll- with first effect, but there is no separator. 
                         if(nbLines == 2)
@@ -267,7 +267,7 @@ class Card {
                 }else if( effect.includes("-\n") &&  effect.includes("whiff-\n") === false)
                     {
                         const err = `Effect outcome "${effect}" has a newline but is not a roll or choose one effect.`;
-                        throw new GameError(err, toSerializedTranslation("error2.parsingError", {error: err}));
+                        throw new GameError(err, toSerializedTranslation("error.parsingError", {error: err}));
                     }
                 else
                     {
@@ -868,7 +868,7 @@ function LoadsCardSets(json_array: GenericCardType[]) : {nextGlobalId: number, c
                 break;
             default:
                 throw new GameError(`Unknown card type: ${type}. Only loot, treasure, eternal, room, character, monster, bsoul, and room are allowed.`,
-                    toSerializedTranslation("error2.behaviorError", {error: `Unknown card type: ${type}. Only loot, treasure, eternal, room, character, monster, bsoul, and room are allowed.`})
+                    toSerializedTranslation("error.behaviorError", {error: `Unknown card type: ${type}. Only loot, treasure, eternal, room, character, monster, bsoul, and room are allowed.`})
                 );
         }
     }
@@ -1026,7 +1026,7 @@ class Deck<T extends Card> {
         if(cardId !== setCardId)
         {
             throw new GameError("Card to get from discard does not belong to this deck's card set.",
-                toSerializedTranslation("error2.behaviorError", {error: "Card to get from discard does not belong to this deck's card set."})
+                toSerializedTranslation("error.behaviorError", {error: "Card to get from discard does not belong to this deck's card set."})
             );
         }
         const index = this._discard.indexOf(cardId);
@@ -1144,7 +1144,7 @@ class Hand {
         if (card.type !== "loot") {
             print("Error, hand should only contain loot cards.")
             throw new GameError("Hand can only contain loot cards.",
-                toSerializedTranslation("error2.behaviorError", {error: "Hand can only contain loot cards."})
+                toSerializedTranslation("error.behaviorError", {error: "Hand can only contain loot cards."})
             );
         }
         this._hand.push(card);

@@ -23,7 +23,7 @@ export function translationKeyFromCardSlug(
   if (!Object.keys(en["cardNames"]).includes(slug))
     throw new GameError(
       `Key "${slug}" is not a valid translation key`,
-      toSerializedTranslation("error2.parsingError", {
+      toSerializedTranslation("error.parsingError", {
         error: `Key "${slug}" is not a valid translation key`,
       }),
     );

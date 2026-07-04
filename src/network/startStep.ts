@@ -293,7 +293,7 @@ export const enterStartStep = (
             if (!logs)
               throw new GameError(
                 "Logs are not valid JSON or not in the expected format.",
-                toSerializedTranslation("error2.parsingError", {error: "Logs are not valid JSON or not in the expected format."})
+                toSerializedTranslation("error.parsingError", {error: "Logs are not valid JSON or not in the expected format."})
               );
             room.game = await loadGameFromLogs(logs);
             room.gameCount++;

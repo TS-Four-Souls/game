@@ -587,7 +587,7 @@ export class EntityHandler {
     // console.log(`Adding ${value} attack points to entity ${e.id}. Current attack points: ${e.attackPoints}. source is ${source instanceof Card ? source.jsonAPI.name : source}, id ${source instanceof Card ? source.jsonAPI.globalId : "N/A"}.`);
     if(source instanceof Card && source.name === "Diplopia")
       throw new GameError("Diplopia should not call addAttack, as it does not directly modify attack points.",
-        toSerializedTranslation("error2.behaviorError", {error: "Diplopia should not call addAttack, as it does not directly modify attack points."}));
+        toSerializedTranslation("error.behaviorError", {error: "Diplopia should not call addAttack, as it does not directly modify attack points."}));
     if(e.attackPoints + value < 0)
       throw new GameError(`Cannot reduce attack points of entity ${e.id} below 0.`,
         toSerializedTranslation("error.cannotReduceAttackPointsBelow0", {card: e.card.nameKey}));

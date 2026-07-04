@@ -110,47 +110,47 @@ export class DiceRoll extends StackElement {
   }
 
   get additionalDamageDealt(): number {
-    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error2.behaviorError", { error: "No attack roll data available." }));
+    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
     return this._attackRollData?.damageDealtAdditional ?? 0;
   }
   set additionalDamageDealt(value: number) {
-    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error2.behaviorError", { error: "No attack roll data available." }));
+    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
     this._attackRollData!.damageDealtAdditional = value;
   }
   get damageDealtMultiplier(): number {
-    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error2.behaviorError", { error: "No attack roll data available." }));
+    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
     return this._attackRollData!.damageDealtMultiplier;
   }
   set damageDealtMultiplier(value: number) {
-    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error2.behaviorError", { error: "No attack roll data available." }));
+    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
     this._attackRollData!.damageDealtMultiplier = value;
   }
   get additionalDamageReceived(): number {
-    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error2.behaviorError", { error: "No attack roll data available." }));
+    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
     return this._attackRollData!.damageReceivedAdditional;
   }
   set additionalDamageReceived(value: number) {
-    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error2.behaviorError", { error: "No attack roll data available." }));
+    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
     this._attackRollData!.damageReceivedAdditional = value;
   }
   get damageReceivedMultiplier(): number {
-    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error2.behaviorError", { error: "No attack roll data available." }));
+    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
     return this._attackRollData!.damageReceivedMultiplier;
   }
   set damageReceivedMultiplier(value: number) {
-    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error2.behaviorError", { error: "No attack roll data available." }));
+    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
     this._attackRollData!.damageReceivedMultiplier = value;
   }
   get evasion(): number {
-    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error2.behaviorError", { error: "No attack roll data available." }));
+    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
     return this._attackRollData!.evasion;
   }
   set evasion(value: number) {
-    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error2.behaviorError", { error: "No attack roll data available." }));
+    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
     this._attackRollData!.evasion = value;
   }
   get attackTarget(): Entity {
-    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error2.behaviorError", { error: "No attack roll data available." }));
+    if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
     return this._attackRollData!.target;
   }
 
@@ -250,7 +250,7 @@ export class DiceRoll extends StackElement {
   }
   attachEffect(effect: EffectFunction[], card: Card, targets: any[]=[], effectIssuer: Entity | null = null): void {
     if(effect.length != 6)
-      throw new GameError("Effect must have 6 outcomes, one for each dice face.", toSerializedTranslation("error2.behaviorError", { error: "Effect must have 6 outcomes, one for each dice face." }));
+      throw new GameError("Effect must have 6 outcomes, one for each dice face.", toSerializedTranslation("error.behaviorError", { error: "Effect must have 6 outcomes, one for each dice face." }));
     this._effect = effect;
     this._card = card;
     this._targets = targets;
@@ -304,7 +304,7 @@ export class DamageOnStack extends StackElement {
     if(this._effect) {
       const card = this._source instanceof DiceRoll ? this._source.card! : this._source;
       if(this.from instanceof Player === false)
-        throw new GameError("Damage effect issuer is not a player", toSerializedTranslation("error2.behaviorError", { error: "Damage effect issuer is not a player" }));
+        throw new GameError("Damage effect issuer is not a player", toSerializedTranslation("error.behaviorError", { error: "Damage effect issuer is not a player" }));
       await this._effect(new EffectData(card, () => this.from, [this, this._targets]));
     }
   }
