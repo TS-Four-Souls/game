@@ -888,7 +888,7 @@ export class Game extends SelectionHandler {
       const response = await this.select(to, 1, 1, [
         toSerializedTranslation("common.acceptButton"), toSerializedTranslation("common.declineButton")], 
         toSerializedTranslation("pending.fromIdWantsToGiveYouCoins", { player: from.id, value: amount }), true);
-      if (response.selected[0]?.key !== "common.accept") {
+      if (response.selected[0]?.key !== "common.acceptButton") {
         console.log("declined");
         return false;
       }
