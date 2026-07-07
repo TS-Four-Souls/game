@@ -532,7 +532,7 @@ export function rollAndMayChangeNextRollForThis(game: Game): SyncParsedEffect {
                     if( savedRoll === diceRoll) return false;
                     if(savedRoll.value !== diceRoll.value)
                     {
-                        const newValue = (await data.selectAndRecord(game, data.issuer, 1, 1, [diceRoll.value, savedRoll.value], toSerializedTranslation("pending.valueOfDiceRoll"), true, true)).selected[0]!;
+                        const newValue = (await data.selectAndRecord(game, data.issuer, 1, 1, [diceRoll.value, savedRoll.value], toSerializedTranslation("pending.resultOfDiceRoll"), true, true)).selected[0]!;
                         diceRoll.value = newValue;
                     }
                     return true;
@@ -2136,7 +2136,7 @@ export function changeRollXToYEffect(game: Game, x: number, y: number): SyncEffe
                 // Create the effect that will execute when the stack resolves
                 const effect = async (effectData: EffectData): Promise<boolean> => {
                     if (!(effectData.issuer instanceof Player)) return false;
-                    const value = (await effectData.selectAndRecord(game, effectData.issuer, 0, 1, [y], toSerializedTranslation("pending.resultToChangeRollTo"), true, true)).selected[0]!;
+                    const value = (await effectData.selectAndRecord(game, effectData.issuer, 0, 1, [y], toSerializedTranslation("pending.resultOfDiceRoll"), true, true)).selected[0]!;
                     if(!value) return false; // Player chose not to change the roll
                     diceRoll.value = value;
                     return true;
@@ -2656,7 +2656,6 @@ export function onActivePlayerRollEffect(
                 const stackEffect = async (effectData: EffectData): Promise<boolean> => {
                     return effect(effectData);
                 };
-                console.log(`onActivePlayerRollEffect: Active player rolled ${diceRoll.value}, triggering effect.`);
                 // Add to stack instead of executing immediately
                 addPassiveEffectToStack(game, stackEffect, data, "On active player roll effect");
             }
