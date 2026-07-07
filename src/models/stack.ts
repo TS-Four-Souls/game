@@ -39,14 +39,8 @@ export class Stack {
 
     removeAt(index: number) : void {
         const element = this._stack[index];
-        if(element !== undefined && "json" in element && element.json.type === 'effect')
-        {
-            const effect = element as EffectOnStack;
-            if(effect.data.it instanceof MonsterCard && effect.data.it.isEvent)
-            {
-                this.game.encounters.discardTop(this.game.encounters.cardsOnTop.indexOf(effect.data.it));
-            }
-        }
+        if(element !== undefined)
+            element?.onCancel(this._game);
         this._stack.splice(index, 1);
     }
     cancelElement(element: StackElement) : void {

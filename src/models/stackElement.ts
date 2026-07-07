@@ -2,7 +2,7 @@ import type { StackReorderingInfo as ApiStackReorderingInfo, DamageOnStackJson, 
 import type { Entity } from "./entities/entity";
 import { type Game } from "./game";
 import { GameError } from "@/models/GameError";
-import { EffectData, LootCard, Card, type EffectFunction } from "./cards";
+import { EffectData, LootCard, Card, type EffectFunction, MonsterCard } from "./cards";
 import { Player } from "./entities/player";
 import { TargetBuilder } from "./targetBuilder";
 import { trueEffect } from "./effects/activeEffect";
@@ -48,6 +48,9 @@ export abstract class StackElement {
   abstract get debugLogs(): string;
 
   abstract onResolve(): Promise<void | boolean>;
+  onCancel(game: Game): void{
+    return;
+  }
 }
 
 export type StackReorderingInfo = ApiStackReorderingInfo;
@@ -440,7 +443,9 @@ export class LootCardEffect extends StackElement {
     async onResolve(): Promise<void> {
         await this._card.onPlay(this.issuer, this.targets)();
     }
-
+    override onCancel(game: Game): void {
+      game.decks.loot.addDiscardTop(this._card);
+    }
     override get json(): LootCardOnStackJson {
         return {
             type: "LootCardEffect",
@@ -508,6 +513,12 @@ export class EffectOnStack extends StackElement {
             visualEffectBox: this._visualEffectBox,
             ...super.baseJson,
         };
+    }
+
+    override onCancel(game: Game): void {
+      const card = this._data.it;
+      if(card instanceof MonsterCard && (card.isEvent || card.isCurse))
+        game.cardHandler.discard(card);
     }
 
     override get debugLogs(): string {

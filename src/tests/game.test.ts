@@ -699,9 +699,9 @@ describe("Stack - Behavior", () => {
 
   it("should remove element at index", async () => {
     const stack = new Stack(new Game());
-    const a = { id: "a", type: "loot" } as any;
-    const b = { id: "b", type: "loot" } as any;
-    const c = { id: "c", type: "loot" } as any;
+    const a = { id: "a", type: "loot", onCancel(game: Game){} } as any;
+    const b = { id: "b", type: "loot", onCancel(game: Game){} } as any;
+    const c = { id: "c", type: "loot", onCancel(game: Game){} } as any;
 
     stack.push(a as any);
     stack.push(b as any);

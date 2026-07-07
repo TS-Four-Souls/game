@@ -22,6 +22,53 @@ describe("Known bugs that have be corrected", () => {
     // it("", async () => {
     // });
     
+    it("canceled dice from loot put loot into discard", async () => {
+        const card = game.obtainCard("b2-x_wheel_of_fortune") as LootCard;
+        game.cardHandler.addCardToHand(player1, card);
+        await game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
+        
+        expect(game.stack.size).toBe(1);
+        game.cancelAt(0);
+        expect(game.stack.size).toBe(0);
+        expect(game.decks.loot.discard.length).toBe(1);
+        expect(game.decks.loot.discard.includes(card)).toBe(true);
+    });
+    
+    it("canceled loot goes into discard", async () => {
+        const card = game.obtainCard("b2-a_dime") as LootCard;
+        game.cardHandler.addCardToHand(player1, card);
+        await game.actions.playCard(player1, 0);
+
+        expect(game.stack.size).toBe(1);
+        game.cancelAt(0);
+        expect(game.stack.size).toBe(0);
+        expect(game.decks.loot.discard.length).toBe(1);
+        expect(game.decks.loot.discard.includes(card)).toBe(true);
+    });
+    
+    it("canceled curse goes into discard", async () => {
+        const card = game.obtainCard("b2-curse_of_amnesia") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card);
+
+        expect(game.stack.size).toBe(1);
+        game.cancelAt(0);
+        expect(game.stack.size).toBe(0);
+        expect(game.decks.monster.discard.length).toBe(1);
+        expect(game.decks.monster.discard.includes(card)).toBe(true);
+    });
+    
+    it("canceled event goes into discard", async () => {
+        const card = game.obtainCard("b2-ambush") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card);
+
+        expect(game.stack.size).toBe(1);
+        game.cancelAt(0);
+        expect(game.stack.size).toBe(0);
+        expect(game.decks.monster.discard.length).toBe(1);
+        expect(game.decks.monster.discard.includes(card)).toBe(true);
+    });
+    
     it("reset stack discard event cards", async () => {
         const eventCard = game.obtainCard("b2-curse_of_pain") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, eventCard);
