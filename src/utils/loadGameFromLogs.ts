@@ -221,6 +221,16 @@ function setupLoadingSubmitSelectionHandling(game: Game, logs: HistoricEntry[]):
     const results: { playerId: string; selected: T[]; remaining: T[] }[] = [];
 
     for (const selection of selections) {
+      for(let j = i+1; j < submitSelectionEntries.length; j++)
+      {
+        const entry = submitSelectionEntries[j];
+        if(entry !== undefined && selections.map(s=>s.player.id).includes(entry.issuer))
+        {
+          submitSelectionEntries.splice(j, 1);
+          submitSelectionEntries.splice(i, 0, entry);
+          break
+        }
+      }
       const entry = submitSelectionEntries[i++];
       if (entry === undefined) {
         throw new GameError(
