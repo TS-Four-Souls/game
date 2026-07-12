@@ -329,9 +329,13 @@ export class Encounters extends Slots<MonsterCard> {
      * @param data - EffectData containing the selection context
      * @returns The index of the slot the card was drawn into 
      */
-    async selectValidIndexAndDraw(game: Game, player: Player, data: EffectData): Promise<number>
+    async selectValidIndexAndDraw(game: Game, player: Player, data: EffectData, youMay: boolean = false): Promise<number>
     {
-        const selection = (await data.selectAndRecord(game, player, 1, 1, this.coverableSlots, "Where do you want to put The Bloat?", true, true)).selected[0];
+        const selected = (await data.selectAndRecord(game, player, youMay ? 0 : 1, 1, this.coverableSlots, "Where do you want to put The Bloat?", true, true)).selected;
+
+        if(selected.length === 0)
+            return -1;
+        const selection = selected[0];
         if(selection === undefined)
             throw new Error("No selection made for searchForBloatEffect.");
         const index:number = this.visible.indexOf(selection as MonsterCard);

@@ -446,7 +446,7 @@ export class ActionHandler {
   canSwitchTo(player: Player, target: Player): Capability {
     if (player.user !== target.user)
       return "You cannot switch to another player.";
-    if (player.slug === target.slug)
+    if (player.id === target.id)
       return "You cannot switch to yourself.";
     return true;
   }

@@ -196,7 +196,7 @@ export async function executeResolveRequest(
   game: Game,
   player: Player,
 ): Promise<void> {
-  if(player !== game.currentPlayer) {
+  if(player.user !== game.currentPlayer.user) {
     throw new Error("Only the current player can resolve the stack");
   }
   game.addToHistory({ type: "Resolve", issuer: player.id });

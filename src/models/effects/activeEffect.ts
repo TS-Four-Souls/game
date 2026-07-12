@@ -1096,7 +1096,7 @@ export function putTopMonsterInValidSlotEffect(game: Game, youMay: boolean): Asy
         if (data.issuer instanceof Player === false) return false;
         if(game.encounters.coverableSlots.length === 0)
             return false;
-        await game.encounters.selectValidIndexAndDraw(game, data.issuer, data);
+        await game.encounters.selectValidIndexAndDraw(game, data.issuer, data, youMay);
         return true;
     };
 }
@@ -2255,7 +2255,7 @@ export function playerGivesLootCardEffect(game: Game, reveal: boolean = false, a
         if (data.issuer instanceof Player === false) return false;
         const targetPlayer = data.next as Player;
         if (targetPlayer.hand.length > 0) {
-            const cardToSteal = (await data.selectAndRecord(game, targetPlayer, 1, 1, targetPlayer.hand.cards, "Select a loot card to steal.", true, reveal)).selected[0] as LootCard;
+            const cardToSteal = (await data.selectAndRecord(game, targetPlayer, 1, 1, targetPlayer.hand.cards, "Select a loot card to give.", true, reveal)).selected[0] as LootCard;
             game.cardHandler.stealLootCard(data.issuer, targetPlayer, cardToSteal);
             if(addCardToTarget)
                 data.addTarget(cardToSteal);
