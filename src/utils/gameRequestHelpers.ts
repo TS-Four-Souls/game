@@ -202,7 +202,7 @@ export async function executeResolveRequest(
   game: Game,
   player: Player,
 ): Promise<void> {
-  if(player !== game.currentPlayer) {
+  if(player.user !== game.currentPlayer.user)  {
     throw new GameError("Only the current player can resolve the stack",
       toSerializedTranslation("error.onlyCurrentPlayerCanResolveStack")
     );

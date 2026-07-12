@@ -459,7 +459,7 @@ export class ActionHandler {
   canSwitchTo(player: Player, target: Player): Capability {
     if (player.user !== target.user)
       return toSerializedTranslation("capability.cannotSwitchToOtherPlayer");
-    if (player.slug === target.slug)
+    if (player.id === target.id)
       return toSerializedTranslation("capability.cannotSwitchToSelf");
     return true;
   }

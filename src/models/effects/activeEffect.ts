@@ -1102,7 +1102,7 @@ export function putTopMonsterInValidSlotEffect(game: Game, youMay: boolean): Asy
         if (data.issuer instanceof Player === false) return false;
         if(game.encounters.coverableSlots.length === 0)
             return false;
-        await game.encounters.selectValidIndexAndDraw(game, data.issuer, data);
+        await game.encounters.selectValidIndexAndDraw(game, data.issuer, data, youMay);
         return true;
     };
 }

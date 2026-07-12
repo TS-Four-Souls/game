@@ -870,10 +870,10 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
             return noTargetEffect(active.flushOneMonsterSlotEffect(game, 1));
         case "you may put a monster not being attacked into discard and replace it with the top card of the monster deck":
             return noTargetEffect(active.flushOneMonsterSlotEffect(game, 0));
-        case "put the top card of the monster deck in a monster slot not being attacked":
-            return noTargetEffect(active.putTopMonsterInValidSlotEffect(game, false));
         case "you may put the top card of the monster deck in a monster slot not being attacked":
             return noTargetEffect(active.putTopMonsterInValidSlotEffect(game, true));
+        case "put the top card of the monster deck in a monster slot not being attacked":
+            return noTargetEffect(active.putTopMonsterInValidSlotEffect(game, false));
         case "put the top card of the loot discard into your hand":
             return noTargetEffect(active.getCardFromLootDiscardEffect("top", game, false));
         case "cancel the ↷ or $ ability of an item or loot being played":
@@ -1259,7 +1259,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             return { effectFunction: active.addUpToXToRollEffect(game, "non-attack"), targetSelectors: selectRollAndNumber(game, [...Array(nr.nextNumber()+1).keys()], 1, 1, "non-attack") };
         case "you may add or subtract x from any of your non-attack rolls":
             const val = nr.nextNumber();
-            return noTargetSyncEffect(passive.addToYourRollValueEffect(game, [-val, val], "non-attack", youMayEffectHanging));
+            return noTargetSyncEffect(passive.addToYourRollValueEffect(game, [-val, val], "non-attack", [true]));
         case "add x to a roll":
             return { effectFunction: active.addXToRollEffect(nr.nextNumber()), targetSelectors: selectRoll(game) };
         case "when you control x or x souls, you have x [atk]":
