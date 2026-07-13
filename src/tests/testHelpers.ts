@@ -132,6 +132,12 @@ export interface GameSetupConfig {
      * Array of card slugs that should be removed from the game entirely.
      */
     forbiddenCards?: string[];
+
+
+    /**
+     * Game Parameters and values
+     */
+    parameters?: Map<string, any>;
 }
 
 /**
@@ -188,6 +194,7 @@ export async function setupTestGame(config: GameSetupConfig = {}): Promise<GameS
         rooms = false,
         randomSeed = "",
         forbiddenCards = [],
+        parameters = [],
     } = config;
 
     // Create game instance
@@ -199,6 +206,11 @@ export async function setupTestGame(config: GameSetupConfig = {}): Promise<GameS
         params.setParameterByKey("decksConfig", {useRooms: {text: "", value: true}} as DeckConfigPatch);
     else
         params.setParameterByKey("decksConfig", {useRooms: {text: "", value: false}} as DeckConfigPatch);
+    for(const [param, val] of parameters.entries())
+    {
+        params.setParameterByKey(String(param), val);
+    }
+
     const game = new Game(randomSeed, params);
     mockGameSelections(game);
     

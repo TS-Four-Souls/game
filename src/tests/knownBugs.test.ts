@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../models/entities/player";
 import { Game } from "../models/game";
 import { DamageOnStack, DiceRoll } from "../models/stackElement";
-import { setupStandardTestGame } from "./testHelpers";
+import { setupStandardTestGame, setupTestGame } from "./testHelpers";
 import { pl } from "zod/locales";
 
 describe("Known bugs that have be corrected", () => {
@@ -444,5 +444,30 @@ describe("Known bugs that have be corrected", () => {
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.coins).toBe(init);
 
+    });
+});
+
+
+describe("Known bugs that have be corrected", () => {
+    let game: Game;
+    let player1: Player;
+    let player2: Player;
+
+    beforeEach(async () => {
+    });
+    
+    it("mini draft correctness", async () => {
+        const setup = await setupTestGame({
+            characters: ["b2-samson", "b2-isaac"],
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card", "b2-placebo", "b2-tech_x"],
+            parameters: new Map<string, any> ([["miniDraft", true]])
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+
+        expect(player1.inPlay.length).toBe(3);
     });
 });
