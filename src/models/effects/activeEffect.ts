@@ -2271,7 +2271,7 @@ export function playerGivesLootCardEffect(game: Game, reveal: boolean = false, a
         if (data.issuer instanceof Player === false) return false;
         const targetPlayer = data.next as Player;
         if (targetPlayer.hand.length > 0) {
-            const cardToSteal = (await data.selectAndRecord(game, targetPlayer, 1, 1, targetPlayer.hand.cards, qq("pending.lootCardToSteal"), true, reveal)).selected[0] as LootCard;
+            const cardToSteal = (await data.selectAndRecord(game, targetPlayer, 1, 1, targetPlayer.hand.cards, qq("pending.lootCardToGive"), true, reveal)).selected[0] as LootCard;
             game.cardHandler.stealLootCard(data.issuer, targetPlayer, cardToSteal);
             if(addCardToTarget)
                 data.addTarget(cardToSteal);
