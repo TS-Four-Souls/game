@@ -120,16 +120,16 @@ describe("Four Souls+2 Treasures", () => {
         const card1 = game.obtainCard("fsp2-game_breaking_bug") as TreasureCard;
         game.cardHandler.addInPlay(player1, card1);
         game.gainTreasure(player2, 3);
-        const slug = player2.inPlay[3]!.slug;
+        const slug = player2.inPlay[2]!.slug;
         game.select = (_issuer, _min, _max, opts, _optional) => {
-            return { selected: [player2.inPlay[3]!], remaining: [] } as any;
+            return { selected: [player2.inPlay[2]!], remaining: [] } as any;
         }
         game.random = () => 1/6-0.0001; // roll a 1
         game.rollDice(player2, card1);
         await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
         await game.actions.resolveStack();
-        expect(player2.inPlay[3]!.slug).not.toBe(slug);
+        expect(player2.inPlay[2]!.slug).not.toBe(slug);
         
     });
 
@@ -137,15 +137,15 @@ describe("Four Souls+2 Treasures", () => {
         const card1 = game.obtainCard("fsp2-hourglass") as TreasureCard;
         game.cardHandler.addInPlay(player1, card1);
         game.select = (_issuer, _min, _max, opts, _optional) => {
-            return { selected: [player2.inPlay[0]!], remaining: [] } as any;
+            return { selected: [player2.character!], remaining: [] } as any;
         }
-        game.cardHandler.recharge(player2.inPlay[0] as ItemCard);
+        game.cardHandler.recharge(player2.character as ItemCard);
         game.random = () => 2/6-0.0001; // roll a 2
         game.rollDice(player2, card1);
         await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
         await game.actions.resolveStack();
-        expect(player2.inPlay[0]!.charged).toBe(false);
+        expect(player2.character!.charged).toBe(false);
         
     });
 
@@ -157,13 +157,13 @@ describe("Four Souls+2 Treasures", () => {
                 return { selected: [opts[0]], remaining: [] } as any;
             return { selected: [], remaining: [] } as any;
         }
-        game.cardHandler.recharge(player2.inPlay[0] as ItemCard);
+        game.cardHandler.recharge(player2.character as ItemCard);
         game.random = () => 2/6-0.0001; // roll a 2
         game.rollDice(player2, card1);
         await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
         await game.actions.resolveStack();
-        expect(player2.inPlay[0]!.charged).toBe(true);
+        expect(player2.character!.charged).toBe(true);
         
     });
 
@@ -233,11 +233,11 @@ describe("Four Souls+2 Treasures", () => {
         await game.actions.resolveStack();
         expect(player1.coins).toBe(2);
         expect(player1.hand.cards.length).toBe(1);
-        expect(player1.inPlay.length).toBe(3);
+        expect(player1.inPlay.length).toBe(2);
 
         expect(player2.coins).toBe(3);
         expect(player2.hand.cards.length).toBe(2);
-        expect(player2.inPlay.length).toBe(4);
+        expect(player2.inPlay.length).toBe(3);
         
     });
 
@@ -290,7 +290,7 @@ describe("Four Souls+2 Treasures", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 2);
-        game.entityHandler.kill(player1, game.encounters.monsterIn(1)!, player1.inPlay[0]!); // kill Fatty
+        game.entityHandler.kill(player1, game.encounters.monsterIn(1)!, player1.character!); // kill Fatty
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 4);
@@ -420,7 +420,7 @@ describe("Four Souls+2 Treasures", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.character.charged).toBe(false);
-        game.cardHandler.recharge(player1.inPlay[0] as ItemCard);
+        game.cardHandler.recharge(player1.character as ItemCard);
         expect(player1.character.charged).toBe(true);
         await game.endTurn();
         await game.actions.resolveStack();

@@ -30,14 +30,14 @@ describe("Eternal Items", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
         
-        expect(player1.inPlay[0]!.slug).toBe("b2-samson");
-        expect(player1.inPlay[0]!.eternal).toBe(true);
-        expect(player2.inPlay[0]!.slug).toBe("b2-isaac");
-        expect(player2.inPlay[1]!.slug).toBe("b2-the_d6");
-        expect(player2.inPlay[1]!.eternal).toBe(true);
+        expect(player1.character!.slug).toBe("b2-samson");
+        expect(player1.character!.eternal).toBe(true);
+        expect(player2.character!.slug).toBe("b2-isaac");
+        expect(player2.inPlay[0]!.slug).toBe("b2-the_d6");
+        expect(player2.inPlay[0]!.eternal).toBe(true);
         const card = game.decks["loot"]!.getCardFromSlug("b2-pills") as LootCard;
 
-        const theD6 = player2.inPlay[1]! as ItemCard;
+        const theD6 = player2.inPlay[0]! as ItemCard;
 
         player1.hand.addToHand(card);
         game.actions.playCard(player1, 0, []); // play pills
@@ -66,13 +66,13 @@ describe("Eternal Items", () => {
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
-        expect(player1.inPlay[0]!.slug).toBe("b2-eve");
+        expect(player1.character!.slug).toBe("b2-eve");
+        expect(player1.character!.eternal).toBe(true);
+        expect(player1.inPlay[0]!.slug).toBe("b2-the_curse");
         expect(player1.inPlay[0]!.eternal).toBe(true);
-        expect(player1.inPlay[1]!.slug).toBe("b2-the_curse");
-        expect(player1.inPlay[1]!.eternal).toBe(true);
-        expect(player2.inPlay[0]!.slug).toBe("b2-isaac");
+        expect(player2.character!.slug).toBe("b2-isaac");
         expect(game.stack.size).toBe(1);
-        const theCurse = player1.inPlay[1]! as ItemCard;
+        const theCurse = player1.inPlay[0]! as ItemCard;
         await game.actions.resolveStack();
         expect(game.decks["loot"]!.discard.length).toBe(1); // eve starts, discard 1.
         
@@ -108,17 +108,17 @@ describe("Eternal Items", () => {
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
-        expect(player1.inPlay[0]!.slug).toBe("b2-eve");
+        expect(player1.character!.slug).toBe("b2-eve");
+        expect(player1.character!.eternal).toBe(true);
+        expect(player1.inPlay[0]!.slug).toBe("b2-the_curse");
         expect(player1.inPlay[0]!.eternal).toBe(true);
-        expect(player1.inPlay[1]!.slug).toBe("b2-the_curse");
-        expect(player1.inPlay[1]!.eternal).toBe(true);
-        expect(player2.inPlay[0]!.slug).toBe("b2-isaac");
+        expect(player2.character!.slug).toBe("b2-isaac");
         await game.actions.resolveStack();
 
         await game.endTurn();
         await game.actions.resolveStack(); // Isaac's turn
         await game.actions.resolveStack(); // Resolve any stack effects
-        const theCurse = player1.inPlay[1]! as ItemCard;
+        const theCurse = player1.inPlay[0]! as ItemCard;
         const shouldBeDiscarded = game.decks["loot"]!.cards[0];
         await game.endTurn();
         await game.actions.resolveStack(); // back to Eve's turn
@@ -135,12 +135,12 @@ describe("Eternal Items", () => {
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
-        expect(player1.inPlay[0]!.slug).toBe("b2-the_forgotten");
+        expect(player1.character!.slug).toBe("b2-the_forgotten");
+        expect(player1.character!.eternal).toBe(true);
+        expect(player1.inPlay[0]!.slug).toBe("b2-the_bone");
         expect(player1.inPlay[0]!.eternal).toBe(true);
-        expect(player1.inPlay[1]!.slug).toBe("b2-the_bone");
-        expect(player1.inPlay[1]!.eternal).toBe(true);
-        expect(player2.inPlay[0]!.slug).toBe("b2-isaac");
-        const theBone = player1.inPlay[1]! as ItemCard;
+        expect(player2.character!.slug).toBe("b2-isaac");
+        const theBone = player1.inPlay[0]! as ItemCard;
         game.cardHandler.recharge(theBone);
         await game.activateItem(player1, theBone);
         await game.actions.resolveStack();
@@ -163,7 +163,7 @@ describe("Eternal Items", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
         
-        const theBone = player1.inPlay[1]! as ItemCard;
+        const theBone = player1.inPlay[0]! as ItemCard;
         
         // Add 2 counters to the bone
         game.cardHandler.recharge(theBone);
@@ -201,7 +201,7 @@ describe("Eternal Items", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
         
-        const theBone = player1.inPlay[1]! as ItemCard;
+        const theBone = player1.inPlay[0]! as ItemCard;
         
         // Add 3 counters to the bone
         for (let i = 0; i < 3; i++) {
@@ -228,7 +228,7 @@ describe("Eternal Items", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
         
-        const theBone = player1.inPlay[1]! as ItemCard;
+        const theBone = player1.inPlay[0]! as ItemCard;
         
         // Add 2 counters to the bone
         game.cardHandler.recharge(theBone);
@@ -259,7 +259,7 @@ describe("Eternal Items", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
         
-        const theBone = player1.inPlay[1]! as ItemCard;
+        const theBone = player1.inPlay[0]! as ItemCard;
         
         // Add 5 counters to the bone
         for (let i = 0; i < 5; i++) {
@@ -290,7 +290,7 @@ describe("Eternal Items", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
 
-        const theBone = player1.inPlay[1]! as ItemCard;
+        const theBone = player1.inPlay[0]! as ItemCard;
         
         // Add only 4 counters to the bone
         for (let i = 0; i < 4; i++) {
@@ -317,12 +317,12 @@ describe("Eternal Items", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
         
-        expect(player1.inPlay[0]!.slug).toBe("b2-judas");
+        expect(player1.character!.slug).toBe("b2-judas");
+        expect(player1.character!.eternal).toBe(true);
+        expect(player1.inPlay[0]!.slug).toBe("b2-book_of_belial");
         expect(player1.inPlay[0]!.eternal).toBe(true);
-        expect(player1.inPlay[1]!.slug).toBe("b2-book_of_belial");
-        expect(player1.inPlay[1]!.eternal).toBe(true);
-        expect(player2.inPlay[0]!.slug).toBe("b2-isaac");
-        const bookOfBelial = player1.inPlay[1]! as ItemCard;
+        expect(player2.character!.slug).toBe("b2-isaac");
+        const bookOfBelial = player1.inPlay[0]! as ItemCard;
         const card = game.decks["loot"]!.getCardFromSlug("b2-pills") as LootCard;
         game.cardHandler.recharge(bookOfBelial);
         expect(bookOfBelial.charged).toBe(true);
@@ -350,12 +350,12 @@ describe("Eternal Items", () => {
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
-        expect(player1.inPlay[0]!.slug).toBe("b2-judas");
+        expect(player1.character!.slug).toBe("b2-judas");
+        expect(player1.character!.eternal).toBe(true);
+        expect(player1.inPlay[0]!.slug).toBe("b2-book_of_belial");
         expect(player1.inPlay[0]!.eternal).toBe(true);
-        expect(player1.inPlay[1]!.slug).toBe("b2-book_of_belial");
-        expect(player1.inPlay[1]!.eternal).toBe(true);
-        expect(player2.inPlay[0]!.slug).toBe("b2-isaac");
-        const bookOfBelial = player1.inPlay[1]! as ItemCard;
+        expect(player2.character!.slug).toBe("b2-isaac");
+        const bookOfBelial = player1.inPlay[0]! as ItemCard;
         const card = game.decks["loot"]!.getCardFromSlug("b2-pills") as LootCard;
         game.cardHandler.recharge(bookOfBelial);
         expect(bookOfBelial.charged).toBe(true);
@@ -385,13 +385,13 @@ describe("Eternal Items", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
         
-        expect(player1.inPlay[0]!.slug).toBe("b2-cain");
+        expect(player1.character!.slug).toBe("b2-cain");
+        expect(player1.character!.eternal).toBe(true);
+        expect(player1.inPlay[0]!.slug).toBe("b2-sleight_of_hand");
         expect(player1.inPlay[0]!.eternal).toBe(true);
-        expect(player1.inPlay[1]!.slug).toBe("b2-sleight_of_hand");
-        expect(player1.inPlay[1]!.eternal).toBe(true);
-        expect(player2.inPlay[0]!.slug).toBe("b2-isaac");
+        expect(player2.character!.slug).toBe("b2-isaac");
 
-        const sleightOfHand = player1.inPlay[1]! as ItemCard;
+        const sleightOfHand = player1.inPlay[0]! as ItemCard;
         game.cardHandler.recharge(sleightOfHand);
         expect(sleightOfHand.charged).toBe(true);
 
@@ -413,12 +413,12 @@ describe("Eternal Items", () => {
         
         const dummyLoot = game.decks["loot"]!.draw() as LootCard;
         
-        expect(player1.inPlay[0]!.slug).toBe("b2-isaac");
-        expect(player2.inPlay[0]!.slug).toBe("b2-maggy");
+        expect(player1.character!.slug).toBe("b2-isaac");
+        expect(player2.character!.slug).toBe("b2-maggy");
+        expect(player2.character!.eternal).toBe(true);
+        expect(player2.inPlay[0]!.slug).toBe("b2-yum_heart");
         expect(player2.inPlay[0]!.eternal).toBe(true);
-        expect(player2.inPlay[1]!.slug).toBe("b2-yum_heart");
-        expect(player2.inPlay[1]!.eternal).toBe(true);
-        const yumHeart = player2.inPlay[1]! as ItemCard;
+        const yumHeart = player2.inPlay[0]! as ItemCard;
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
@@ -452,16 +452,16 @@ describe("Eternal Items", () => {
         
         const dummyLoot = game.decks["loot"]!.draw() as LootCard;
 
-        expect(player1.inPlay[0]!.slug).toBe("b2-isaac");
-        expect(player2.inPlay[0]!.slug).toBe("b2-lazarus");
+        expect(player1.character!.slug).toBe("b2-isaac");
+        expect(player2.character!.slug).toBe("b2-lazarus");
+        expect(player2.character!.eternal).toBe(true);
+        expect(player2.inPlay[0]!.slug).toBe("b2-lazarus_rags");
         expect(player2.inPlay[0]!.eternal).toBe(true);
-        expect(player2.inPlay[1]!.slug).toBe("b2-lazarus_rags");
-        expect(player2.inPlay[1]!.eternal).toBe(true);
 
         // Kill Isaac, verify no treasure gained
         game.entityHandler.kill(player1, player1, dummyLoot);
         await game.actions.resolveStack(); // resolve death
-        expect(player1.inPlay.length).toBe(2);
+        expect(player1.inPlay.length).toBe(1);
 
         const blankcard = game.obtainCard("b2-blank_card") as TreasureCard; 
         game.decks["treasure"]!.addTopPosition(blankcard); // ensure blank card is on top of treasure deck, to avoid random death prevention items.
@@ -470,8 +470,8 @@ describe("Eternal Items", () => {
         await game.actions.resolveStack(); // resolve death
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // resolve any additional async effects
-        expect(player2.inPlay.length).toBe(3);
-        const firstItemGained = player2.inPlay[2];
+        expect(player2.inPlay.length).toBe(2);
+        const firstItemGained = player2.inPlay[1];
 
         await game.endTurn();
         await game.actions.resolveStack();
@@ -484,8 +484,8 @@ describe("Eternal Items", () => {
         await game.actions.resolveStack(); // resolve death
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // resolve any additional async effects
-        expect(player2.inPlay.length).toBe(3);
-        expect(player2.inPlay[2]).not.toBe(firstItemGained);
+        expect(player2.inPlay.length).toBe(2);
+        expect(player2.inPlay[1]).not.toBe(firstItemGained);
 
     });
 
@@ -495,12 +495,12 @@ describe("Eternal Items", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
 
-        expect(player1.inPlay[0]!.slug).toBe("b2-isaac");
-        expect(player2.inPlay[0]!.slug).toBe("b2-samson");
+        expect(player1.character!.slug).toBe("b2-isaac");
+        expect(player2.character!.slug).toBe("b2-samson");
+        expect(player2.character!.eternal).toBe(true);
+        expect(player2.inPlay[0]!.slug).toBe("b2-blood_lust");
         expect(player2.inPlay[0]!.eternal).toBe(true);
-        expect(player2.inPlay[1]!.slug).toBe("b2-blood_lust");
-        expect(player2.inPlay[1]!.eternal).toBe(true);
-        const bloodlust = player2.inPlay[1]! as ItemCard;
+        const bloodlust = player2.inPlay[0]! as ItemCard;
 
         game.cardHandler.recharge(bloodlust);
         expect(bloodlust.charged).toBe(true);
@@ -559,12 +559,12 @@ describe("Eternal Items", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
         
-        expect(player2.inPlay[0]!.slug).toBe("b2-blue_baby");
+        expect(player2.character!.slug).toBe("b2-blue_baby");
+        expect(player2.character!.eternal).toBe(true);
+        expect(player2.inPlay[0]!.slug).toBe("b2-forever_alone");
         expect(player2.inPlay[0]!.eternal).toBe(true);
-        expect(player2.inPlay[1]!.slug).toBe("b2-forever_alone");
-        expect(player2.inPlay[1]!.eternal).toBe(true);
         
-        const foreverAlone = player2.inPlay[1]! as ItemCard;
+        const foreverAlone = player2.inPlay[0]! as ItemCard;
         game.cardHandler.recharge(foreverAlone);
         expect(foreverAlone.charged).toBe(true);
         
@@ -588,7 +588,7 @@ describe("Eternal Items", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
         
-        const foreverAlone = player2.inPlay[1]! as ItemCard;
+        const foreverAlone = player2.inPlay[0]! as ItemCard;
         game.cardHandler.recharge(foreverAlone);
         
         const topLootCard = game.cardHandler.getFirstCardsOfDeck("loot", 1)[0]!;
@@ -607,7 +607,7 @@ describe("Eternal Items", () => {
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
-        const foreverAlone = player2.inPlay[1]! as ItemCard;
+        const foreverAlone = player2.inPlay[0]! as ItemCard;
         game.cardHandler.recharge(foreverAlone);
 
         // Give player2 a loot card to discard
@@ -643,7 +643,7 @@ describe("Eternal Items", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
         
-        const foreverAlone = player2.inPlay[1]! as ItemCard;
+        const foreverAlone = player2.inPlay[0]! as ItemCard;
         const dummyLoot = game.decks["loot"]!.draw() as LootCard;
         
         game.cardHandler.recharge(foreverAlone);
@@ -670,7 +670,7 @@ describe("Eternal Items", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
         
-        const foreverAlone = player2.inPlay[1]! as ItemCard;
+        const foreverAlone = player2.inPlay[0]! as ItemCard;
         const dummyLoot = game.decks["loot"]!.draw() as LootCard;
         
         // Discharge the item
@@ -705,12 +705,12 @@ describe("Eternal Items", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
         
-        expect(player2.inPlay[0]!.slug).toBe("b2-lilith");
+        expect(player2.character!.slug).toBe("b2-lilith");
+        expect(player2.character!.eternal).toBe(true);
+        expect(player2.inPlay[0]!.slug).toBe("b2-incubus");
         expect(player2.inPlay[0]!.eternal).toBe(true);
-        expect(player2.inPlay[1]!.slug).toBe("b2-incubus");
-        expect(player2.inPlay[1]!.eternal).toBe(true);
         
-        const incubus = player2.inPlay[1]! as ItemCard;
+        const incubus = player2.inPlay[0]! as ItemCard;
         game.cardHandler.recharge(incubus);
         expect(incubus.charged).toBe(true);
         
@@ -741,7 +741,7 @@ describe("Eternal Items", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
         
-        const incubus = player2.inPlay[1]! as ItemCard;
+        const incubus = player2.inPlay[0]! as ItemCard;
         game.cardHandler.recharge(incubus);
 
         const dummyCard = game.decks["loot"]!.draw() as LootCard;
@@ -771,7 +771,7 @@ describe("Eternal Items", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
         
-        const incubus = player2.inPlay[1]! as ItemCard;
+        const incubus = player2.inPlay[0]! as ItemCard;
         game.cardHandler.recharge(incubus);
         
         // Empty player2's hand
@@ -796,7 +796,7 @@ describe("Eternal Items", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
         
-        const incubus = player2.inPlay[1]! as ItemCard;
+        const incubus = player2.inPlay[0]! as ItemCard;
         
         // Start with incubus discharged
         incubus.charged = false;
@@ -826,12 +826,12 @@ describe("Eternal Items - 3 players tests", () => {
         player3 = setup.player3!;
         
         
-        expect(player1.inPlay[0]!.slug).toBe("b2-isaac");
-        expect(player2.inPlay[0]!.slug).toBe("b2-samson");
+        expect(player1.character!.slug).toBe("b2-isaac");
+        expect(player2.character!.slug).toBe("b2-samson");
+        expect(player2.character!.eternal).toBe(true);
+        expect(player2.inPlay[0]!.slug).toBe("b2-blood_lust");
         expect(player2.inPlay[0]!.eternal).toBe(true);
-        expect(player2.inPlay[1]!.slug).toBe("b2-blood_lust");
-        expect(player2.inPlay[1]!.eternal).toBe(true);
-        const bloodlust = player2.inPlay[1]! as ItemCard;
+        const bloodlust = player2.inPlay[0]! as ItemCard;
 
         await game.endTurn();
         await game.actions.resolveStack(); // samson turn

@@ -32,7 +32,7 @@ it("fsp2-gold_key - The active player may attack the monster deck any number of 
         for(let i = 0; i < 5; i++){
             game.actions.declareAttack(player1);
             await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-            game.entityHandler.kill(player1, game.encounters.monsterIn(0)!, player1.inPlay[0] as ItemCard);
+            game.entityHandler.kill(player1, game.encounters.monsterIn(0)!, player1.character as ItemCard);
             await game.actions.resolveStack();
         }
         game.actions.declareAttack(player1);
@@ -94,22 +94,22 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         game.gainTreasure(player1, 3);
         await game.actions.playCard(player1, player1.hand.length - 1, []);
         await game.actions.resolveStack();
+        player1.inPlay[0]!.charged = false;
         player1.inPlay[1]!.charged = false;
         player1.inPlay[2]!.charged = false;
-        player1.inPlay[3]!.charged = false;
             game.select = async (player: Player, min: number, max: number, Options: any[]) => {
-            if(Options.includes(player1.inPlay[2]!))
-                return { selected: [player1.inPlay[2]!],
+            if(Options.includes(player1.inPlay[1]!))
+                return { selected: [player1.inPlay[1]!],
                     remaining: []
                 };
             return { selected: Options.slice(0, max), remaining: Options.slice(max) };
         };
-        game.entityHandler.kill(player2, player2, player1.inPlay[1]!);
+        game.entityHandler.kill(player2, player2, player1.inPlay[0]!);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(player1.inPlay[1]!.charged).toBe(false);
-        expect(player1.inPlay[2]!.charged).toBe(true);
-        expect(player1.inPlay[3]!.charged).toBe(false);
+        expect(player1.inPlay[0]!.charged).toBe(false);
+        expect(player1.inPlay[1]!.charged).toBe(true);
+        expect(player1.inPlay[2]!.charged).toBe(false);
     });
 
 
@@ -138,13 +138,13 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
     it("fsp2-perthro - Reroll an item.", async () => {
         const card1 = game.obtainCard("fsp2-perthro") as LootCard;
         game.gainTreasure(player1);
-        const treasure = player1.inPlay[2]!;
+        const treasure = player1.inPlay[1]!;
         const expectedRerolledItem = game.decks["treasure"]!.cards[0]!;
         game.cardHandler.addCardToHand(player1, card1);
         await game.actions.playCard(player1, player1.hand.length - 1, [treasure]);
         await game.actions.resolveStack();
-        expect(player1.inPlay[2]).not.toBe(treasure);
-        expect(player1.inPlay[2]?.slug).toBe(expectedRerolledItem.slug);
+        expect(player1.inPlay[1]).not.toBe(treasure);
+        expect(player1.inPlay[1]?.slug).toBe(expectedRerolledItem.slug);
     });
 
     it("fsp2-pills_3 - 1-2: Deal 1 damage to a player.", async () => {
@@ -219,8 +219,8 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         const card1 = game.obtainCard("fsp2-black_rune") as LootCard;
         game.random = () => 3/6 - 0.001; // roll 3
         game.gainTreasure(player1, 2);
-        const treasure = player1.inPlay[2]!;
-        const treasure2 = player1.inPlay[3]!;
+        const treasure = player1.inPlay[1]!;
+        const treasure2 = player1.inPlay[2]!;
         game.cardHandler.addCardToHand(player1, card1);
         await game.actions.playCard(player1, player1.hand.length - 1, []);
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
@@ -232,8 +232,8 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         };
         await game.actions.resolveStack(); // card
         await game.actions.resolveStack(); // roll
-        expect(player1.inPlay[3]).not.toBe(treasure2);
-        expect(player1.inPlay[2]).toBe(treasure);
+        expect(player1.inPlay[2]).not.toBe(treasure2);
+        expect(player1.inPlay[1]).toBe(treasure);
     });
 
     it("fsp2-black_rune - 5-6: Discard your hand, then loot 3.", async () => {
@@ -357,22 +357,22 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         game.random = () => 3/6 - 0.001; // roll 3
         await game.actions.playCard(player1, player1.hand.length - 1, []);
         await game.actions.resolveStack();
-        expect(player1.inPlay[0]!.charged).toBe(false);
+        expect(player1.character!.charged).toBe(false);
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
-        expect(player1.inPlay[0]!.charged).toBe(false);
+        expect(player1.character!.charged).toBe(false);
     });
 
     it("fsp2-pills - 1-2: Cancel the effect of a loot being played.", async () => {
         const card1 = game.obtainCard("fsp2-pills") as LootCard;
         const dime = game.obtainCard("b2-a_dime") as LootCard;
         
-        game.cardHandler.recharge(player1.inPlay[0] as ItemCard);
-        await game.activateItem(player1, player1.inPlay[0]!, [], "tap");
+        game.cardHandler.recharge(player1.character as ItemCard);
+        await game.activateItem(player1, player1.character!, [], "tap");
         game.cardHandler.addCardToHand(player1, dime);
         game.actions.playCard(player1, player1.hand.length - 1, []);
         const toBeRemoved = game.stack.peek();

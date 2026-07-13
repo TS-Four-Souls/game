@@ -48,11 +48,11 @@ describe("Before start effects", () => {
         await new Promise(resolve => setTimeout(resolve, 10));
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
-            expect(player2.inPlay[0]!.slug).toBe("b2-eden");
-        expect(player2.inPlay.length).toBe(2);
+            expect(player2.character!.slug).toBe("b2-eden");
+        expect(player2.inPlay.length).toBe(1);
+        expect(player2.character!.eternal).toBe(true);
         expect(player2.inPlay[0]!.eternal).toBe(true);
-        expect(player2.inPlay[1]!.eternal).toBe(true);
-        expect(player2.inPlay[1]! instanceof TreasureCard).toBe(true);
+        expect(player2.inPlay[0]! instanceof TreasureCard).toBe(true);
     });
 
     it("Character card activation gives a loot play (random characters)", async () => {
@@ -61,8 +61,8 @@ describe("Before start effects", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
         expect(game.players.length).toBe(2);
-        const character1 = player1.inPlay[0] as CharacterCard;
-        const character2 = player2.inPlay[0] as CharacterCard;
+        const character1 = player1.character as CharacterCard;
+        const character2 = player2.character as CharacterCard;
         game.resolveEntireStack();
         expect(game.stack.size).toBe(0);
         if(!character1 || !character2)

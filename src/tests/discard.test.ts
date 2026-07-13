@@ -63,7 +63,7 @@ describe("Discard", () => {
         await game.resolveEntireStack();
         expect(game.stack.size).toBe(0);
         expect(game.decks['loot']!.discard.length).toBe(0);
-        game.entityHandler.kill(player1, player1, player1.inPlay[0]!);
+        game.entityHandler.kill(player1, player1, player1.character!);
         await game.resolveEntireStack();
         expect(game.decks['loot']!.discard.length).toBe(1);
         expect(game.decks['monster']!.discard.length).toBe(0);
@@ -80,7 +80,7 @@ describe("Discard", () => {
         expect(game.decks['monster']!.discard.length).toBe(0);
         expect(game.decks['treasure']!.discard.length).toBe(0);
         expect(player1.curses.map(c => c.slug)).toContain("b2-curse_of_loss");
-        game.entityHandler.kill(player1, player1, player1.inPlay[0]!);
+        game.entityHandler.kill(player1, player1, player1.character!);
         await game.resolveEntireStack();
         expect(player1.curses.map(c => c.slug)).not.toContain("b2-curse_of_loss");
 

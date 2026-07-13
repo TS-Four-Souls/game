@@ -7,8 +7,8 @@ import { setupTestGame } from "../testHelpers";
 async function characterAdd1LootPlay(player1: Player, game: Game) {
     // verify character card works.
     const lootPlay = player1.remainingLootPlay;
-    game.cardHandler.recharge(player1.inPlay[0] as ItemCard);
-    await game.activateItem(player1, player1.inPlay[0]!, [], "tap");
+    game.cardHandler.recharge(player1.character as ItemCard);
+    await game.activateItem(player1, player1.character!, [], "tap");
     await game.actions.resolveStack();
     await game.actions.resolveStack();
     expect(player1.remainingLootPlay).toBe(lootPlay + 1);
@@ -33,8 +33,8 @@ describe("Four Souls+2 Eternal Items", () => {
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
-        expect(player1.inPlay[0]!.slug).toBe("fsp2-whore_of_babylon");
-        expect(player1.inPlay[1]!.slug).toBe("fsp2-gimpy");
+        expect(player1.character!.slug).toBe("fsp2-whore_of_babylon");
+        expect(player1.inPlay[0]!.slug).toBe("fsp2-gimpy");
         const coins = player1.coins;
 
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
@@ -45,7 +45,7 @@ describe("Four Souls+2 Eternal Items", () => {
             };
         return { selected: Options.slice(0, max), remaining: Options.slice(max) };
     };
-        game.entityHandler.dealDamage(player1, player1, player1.inPlay[0]!, 1);
+        game.entityHandler.dealDamage(player1, player1, player1.character!, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -64,8 +64,8 @@ describe("Four Souls+2 Eternal Items", () => {
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
-        expect(player1.inPlay[0]!.slug).toBe("fsp2-whore_of_babylon");
-        expect(player1.inPlay[1]!.slug).toBe("fsp2-gimpy");
+        expect(player1.character!.slug).toBe("fsp2-whore_of_babylon");
+        expect(player1.inPlay[0]!.slug).toBe("fsp2-gimpy");
         const handSize = player1.hand.cards.length;
         const firstCard = player1.hand.cards[0];
 
@@ -77,7 +77,7 @@ describe("Four Souls+2 Eternal Items", () => {
             };
         return { selected: Options.slice(0, max), remaining: Options.slice(max) };
     };
-        game.entityHandler.dealDamage(player1, player1, player1.inPlay[0]!, 1);
+        game.entityHandler.dealDamage(player1, player1, player1.character!, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -96,8 +96,8 @@ describe("Four Souls+2 Eternal Items", () => {
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
-        expect(player1.inPlay[0]!.slug).toBe("fsp2-whore_of_babylon");
-        expect(player1.inPlay[1]!.slug).toBe("fsp2-gimpy");
+        expect(player1.character!.slug).toBe("fsp2-whore_of_babylon");
+        expect(player1.inPlay[0]!.slug).toBe("fsp2-gimpy");
         const atk = player1.attackPoints;
 
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
@@ -108,7 +108,7 @@ describe("Four Souls+2 Eternal Items", () => {
             };
         return { selected: Options.slice(0, max), remaining: Options.slice(max) };
     };
-        game.entityHandler.dealDamage(player1, player1, player1.inPlay[0]!, 1);
+        game.entityHandler.dealDamage(player1, player1, player1.character!, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -131,16 +131,16 @@ describe("Four Souls+2 Eternal Items", () => {
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
-        expect(player1.inPlay[0]!.slug).toBe("fsp2-dark_judas");
-        expect(player1.inPlay[1]!.slug).toBe("fsp2-dark_arts");
+        expect(player1.character!.slug).toBe("fsp2-dark_judas");
+        expect(player1.inPlay[0]!.slug).toBe("fsp2-dark_arts");
 
         const handSize = player1.hand.cards.length;
-        game.entityHandler.kill(player2, player2, player1.inPlay[0]!);
+        game.entityHandler.kill(player2, player2, player1.character!);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.hand.cards.length).toBe(handSize + 1);
 
-        game.entityHandler.kill(player1, player1, player1.inPlay[0]!);
+        game.entityHandler.kill(player1, player1, player1.character!);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -162,8 +162,8 @@ describe("Four Souls+2 Eternal Items", () => {
         // const samson = game.decks["character"]!.getCardFromSlug("b2-samson")! as CharacterCard;
         // const bumbo = game.decks["character"]!.getCardFromSlug("fsp2-dark_judas")! as CharacterCard;
         // await game.start([bumbo, samson], false);
-        expect(player1.inPlay[0]!.slug).toBe("fsp2-dark_judas");
-        expect(player1.inPlay[1]!.slug).toBe("fsp2-dark_arts");
+        expect(player1.character!.slug).toBe("fsp2-dark_judas");
+        expect(player1.inPlay[0]!.slug).toBe("fsp2-dark_arts");
 
         let coins = player1.coins;
         expect(coins).toBe(0); // start with 3 coins.
@@ -171,7 +171,7 @@ describe("Four Souls+2 Eternal Items", () => {
             for(const val of [1, 2, 3, 4, 5, 6])
         {
             game.random = () => (val/ 6) - 0.0001; // ensure we roll a 6.
-            const roll = await game.rollDice(player, player1.inPlay[0]!);
+            const roll = await game.rollDice(player, player1.character!);
             await game.actions.resolveStack();
             await game.actions.resolveStack();
             if(roll.value === 6)
@@ -203,13 +203,13 @@ describe("Four Souls+2 Eternal Items", () => {
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
-        expect(player1.inPlay[0]!.slug).toBe("fsp2-guppy");
-        expect(player1.inPlay[1]!.slug).toBe("fsp2-infestation");
+        expect(player1.character!.slug).toBe("fsp2-guppy");
+        expect(player1.inPlay[0]!.slug).toBe("fsp2-infestation");
 
         const handSize = player1.hand.cards.length;
         const firstCard = player1.hand.cards[0]!;
-        game.cardHandler.recharge(player1.inPlay[1] as ItemCard);
-        await game.activateItem(player1, player1.inPlay[1]!, [], "tap");
+        game.cardHandler.recharge(player1.inPlay[0] as ItemCard);
+        await game.activateItem(player1, player1.inPlay[0]!, [], "tap");
         await game.actions.resolveStack();
         expect(player1.hand.cards.length).toBe(handSize + 1);
         expect(player1.hand.cards).not.toContain(firstCard);
@@ -229,10 +229,10 @@ describe("Four Souls+2 Eternal Items", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
         const initialLootPlay = player1.remainingLootPlay;
-        expect(player1.inPlay[0]!.slug).toBe("fsp2-bum_bo");
-        expect(player1.inPlay[1]!.slug).toBe("fsp2-bag_o_trash");
+        expect(player1.character!.slug).toBe("fsp2-bum_bo");
+        expect(player1.inPlay[0]!.slug).toBe("fsp2-bag_o_trash");
         game.gainCoins(player1, 3, ("debug"));
-        await game.activateItem(player1, player1.inPlay[1]!, [], 0);
+        await game.activateItem(player1, player1.inPlay[0]!, [], 0);
         expect(player1.coins).toBe(0);
         await game.actions.resolveStack();
         expect(player1.remainingLootPlay).toBe(initialLootPlay + 1);
@@ -249,13 +249,13 @@ describe("Four Souls+2 Eternal Items", () => {
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
-        expect(player1.inPlay[0]!.slug).toBe("fsp2-bum_bo");
-        expect(player1.inPlay[1]!.slug).toBe("fsp2-bag_o_trash");
+        expect(player1.character!.slug).toBe("fsp2-bum_bo");
+        expect(player1.inPlay[0]!.slug).toBe("fsp2-bag_o_trash");
 
         game.gainCoins(player1, 4, ("debug"));
         expect(player1.coins).toBe(4);
         const handSize = player1.hand.cards.length;
-        await game.activateItem(player1, player1.inPlay[1]!, [], 1);
+        await game.activateItem(player1, player1.inPlay[0]!, [], 1);
         expect(player1.coins).toBe(0);
         await game.actions.resolveStack();
         expect(player1.hand.cards.length).toBe(handSize + 1);
@@ -272,14 +272,14 @@ describe("Four Souls+2 Eternal Items", () => {
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
-        expect(player1.inPlay[0]!.slug).toBe("fsp2-bum_bo");
-        expect(player1.inPlay[1]!.slug).toBe("fsp2-bag_o_trash");
+        expect(player1.character!.slug).toBe("fsp2-bum_bo");
+        expect(player1.inPlay[0]!.slug).toBe("fsp2-bag_o_trash");
 
         game.gainCoins(player1, 6, ("debug"));
         expect(player1.coins).toBe(6);
         // deal damage to a player.
         const healthP2 = player2.currentHealthPoints;
-        await game.activateItem(player1, player1.inPlay[1]!, [player2], 2);
+        await game.activateItem(player1, player1.inPlay[0]!, [player2], 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(healthP2 - 1);
@@ -288,7 +288,7 @@ describe("Four Souls+2 Eternal Items", () => {
         // deal damage to a monster.
         game.gainCoins(player1, 6, ("debug"));
         const healthM = game.monsters[0]!.currentHealthPoints;
-        await game.activateItem(player1, player1.inPlay[1]!, [game.monsters[0]!], 2);
+        await game.activateItem(player1, player1.inPlay[0]!, [game.monsters[0]!], 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.monsters[0]!.currentHealthPoints).toBe(healthM - 1);

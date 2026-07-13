@@ -304,7 +304,7 @@ describe("Monsters - Various 2", () => {
         game.actions.declareAttack(player1);
         game.entityHandler.addHealth(player1, 10); // Prevent death by damage
         const init = player1.currentHealthPoints;
-        const chara = player1.inPlay[0]! as ItemCard;
+        const chara = player1.character! as ItemCard;
 
         game.cardHandler.recharge(chara);
         await game.activateItem(player1, chara, []); // Activate first item

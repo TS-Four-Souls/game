@@ -209,7 +209,6 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         const baby = game.shop.obtainCard("b2-charged_baby")! as TreasureCard;
         const recharged = (await game.select(player1, 0, 1, inplayUnchargedItemSelector(game)(player1), {key:""})).selected[0] as Card;
         game.cardHandler.addInPlay(player1, baby);
-        recharged.charged = false;
         const card = game.obtainCard("b2-pills") as LootCard;
         player1.hand.addToHand(card);
         const monster = game.monsters[0]!;
@@ -221,6 +220,7 @@ describe("Treasure - \"Each time a player rolls a\" effect", () => {
         game.cardHandler.discardFromHandAtIndex(player2, 0);
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, monster);
+        recharged.charged = false;
 
         game.entityHandler.addHealth(monster, 10);
         game.entityHandler.addHealth(player2, 10);

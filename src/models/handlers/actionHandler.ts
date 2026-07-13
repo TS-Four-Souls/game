@@ -225,7 +225,7 @@ export class ActionHandler {
               this.playCard(player, itemIndex, targets);
               return;
             case "character":
-              await this.activateItemAtIndex(player, 0, targets, effectId);
+              await this.activateItemAtIndex(player, "character", targets, effectId);
               return;
             case "inPlay":
               await this.activateItemAtIndex(player, itemIndex, targets, effectId);
@@ -425,12 +425,12 @@ export class ActionHandler {
    */
   async activateItemAtIndex(
     player: Player,
-    index: number,
+    index: number | "character",
     choices: any[] = [],
     effectId: number | "tap" = "tap"
   ): Promise<boolean> {
     this.game.assert.noPendingSelection();
-    const item = player.inPlay[index];
+    const item = index === "character" ? player.character : player.inPlay[index];
     if (!item || !(item instanceof ItemCard)) {
       throw new GameError("Player does not own the specified item.", toSerializedTranslation("error.playerDoesNotOwnItem"));
     }
@@ -445,7 +445,7 @@ export class ActionHandler {
   canActivate(card: Card, owner: Player): Capability {
     // Ensure the owner actually has the item in-play (prevents bots/actions from trying to activate
     // items they no longer own because the game state changed between action selection and execution).
-    if (card instanceof ItemCard && !owner.inPlay.includes(card)) {
+    if (card instanceof ItemCard && !owner.inPlay.includes(card) && owner.character !== card) {
       return toSerializedTranslation("capability.YouDoNotOwnThisItem");
     }
     if(card.type === "loot" && !card.canBeActivated)

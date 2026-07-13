@@ -682,6 +682,7 @@ const playerSchema = z.object({
   team: z.enum(Team),
   handSize: z.number(),
   hand: z.array(cardSchema).optional(),
+  character: inPlayCardSchema,
   inPlay: z.array(inPlayCardSchema),
   souls: z.number(),
   soulCards: z.array(cardSchema),
@@ -703,6 +704,7 @@ export type Player = z.infer<typeof playerSchema>;
 
 const playerMeSchema = playerSchema.extend({
   hand: z.array(cardSchema),
+  character: inPlayMeCardSchema,
   inPlay: z.array(inPlayMeCardSchema),
   numberOfCardsOverMaxHandSize: z.number(),
   capabilities: z.object({

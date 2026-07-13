@@ -537,7 +537,7 @@ export class Game extends SelectionHandler {
     });
     this.entityHandler.monsterDiedThisTurn = false;
     const player = this.currentPlayer;
-    const itemsToRecharge = player.unchargedItems;
+    const itemsToRecharge = [player.character, ...player.unchargedItems];
     const eventData = { eventIssuer: player, itemsToRecharge: itemsToRecharge }
     
     this.emit("on:turn:start:before:recharge:step", eventData);

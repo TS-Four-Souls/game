@@ -431,7 +431,7 @@ describe("Target Builder Interface", () => {
   });
 
   it("should handle b", async () => {
-    const bloodLust = player1.inPlay[1] as ItemCard;
+    const bloodLust = player1.inPlay[0] as ItemCard;
     game.cardHandler.recharge(bloodLust);
 
     // Step 1: Get the choose-one selector

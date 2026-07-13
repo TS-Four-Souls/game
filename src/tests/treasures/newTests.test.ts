@@ -264,7 +264,6 @@ describe("b2-placebo - copies tap ability of non-eternal item", () => {
         await game.activateItem(player1, placebo, [razorBlade]);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 1);
     });
 });

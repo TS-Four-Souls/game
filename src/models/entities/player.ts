@@ -78,6 +78,8 @@ export class Player extends Entity {
   private _animations: Animation[] = [];
 
   private _team: Team;
+
+  private _character: CharacterCard | undefined = undefined;
   /**
    * Creates a new Player instance.
    * 
@@ -103,12 +105,11 @@ export class Player extends Entity {
   }
 
   get slug(): string {
-    return this.inPlay.find(c => c instanceof CharacterCard) ? this.inPlay.find(c => c instanceof CharacterCard)!.slug : "";
+    return this.character.slug;
   }
 
   get globalId(): number {
-    const character = this.inPlay.find((c) => c instanceof CharacterCard) as CharacterCard | undefined;
-    return character?.globalId ?? -1;
+    return this.character.globalId;
   }
   /**
    * Gets the list of entities or deck positions this player must attack, with source cards.
@@ -513,12 +514,13 @@ export class Player extends Entity {
    * @throws {Error} If no character card is in play
    */
   get character(): CharacterCard {
-    for (const card of this._inPlay) {
-      if (card instanceof CharacterCard) {
-        return card;
-      }
-    }
-    throw new GameError("No character card in play for this player.", toSerializedTranslation("error.noCharacterCardInPlayForPlayer"));
+    if(this._character === undefined)
+      throw new GameError("No character card in play for this player.", toSerializedTranslation("error.noCharacterCardInPlayForPlayer"));
+    return this._character;
+  }
+
+  set character(card: CharacterCard){
+    this._character = card;
   }
 
   override get card(): CharacterCard{
@@ -564,7 +566,14 @@ export class Player extends Entity {
    * @param card - The card to add to play
    */
   addInPlay(card: ItemCard): void {
-    this._inPlay.push(card);
+    if(card instanceof CharacterCard)
+    {
+      // if(this.character !== undefined)
+      //   throw new GameError("Character already defined", toSerializedTranslation("error.behaviorError", {error: "Character already defined"}))
+      this.character = card;
+    }
+    else
+      this._inPlay.push(card);
   }
   
   /**
@@ -722,7 +731,7 @@ export class Player extends Entity {
   }
   async activateItem(item: ItemCard, targets: any[] = [], effectId: number | "tap" = "tap"): Promise<EffectOnStack> {
     const index = this._inPlay.indexOf(item);
-    if (index === -1) {
+    if (index === -1 && this.character !== item) {
       throw new GameError("Item is not in play.", toSerializedTranslation("error.itemNotInPlay"));
     }
     if (!item.targetStillValid(this, effectId, targets))
@@ -771,7 +780,7 @@ export class Player extends Entity {
         type: "player",
         color: this.color,
         nameKey: toSerializedTranslation("common.content",{content: this.id}),
-        slug: this.inPlay.length > 0 ? this.inPlay[0]!.slug : "",
+        slug: this.character.slug,
         globalId: this.globalId,
       }
     }

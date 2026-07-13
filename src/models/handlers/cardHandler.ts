@@ -140,7 +140,7 @@ export class CardHandler {
     if(type === "inplay" || type === "any") {
       if(item instanceof ItemCard)
         for (const player of this.game.players) {
-          if (player.inPlay.includes(item)) {
+          if (player.inPlay.includes(item) || player.character === item) {
             return player;
           }
         }
@@ -1128,7 +1128,7 @@ export class CardHandler {
   async replaceCharacter(player: Player, newCharacter: CharacterCard): Promise<void> {
      // Remove the current character + starting item (both are eternal, so we cannot use removeInPlay()).
     const oldCharacter = player.character;
-    const oldStartingItem = player.inPlay[1]!;
+    const oldStartingItem = player.inPlay[0]!;
     
     const copyNewChara = this.copyCard(newCharacter) as CharacterCard;
     copyNewChara.onAddInPlay(() => player);
@@ -1138,7 +1138,7 @@ export class CardHandler {
     {
       oldStartingItem.cleanup();
     }
-    player.inPlay[0] = copyNewChara;
+    player.character = copyNewChara;
     
     const newStartingItemSlug = newCharacter.eternalCard;
     const newStartingItem =
@@ -1149,11 +1149,11 @@ export class CardHandler {
     if(newStartingItem === undefined)
     {
       await selectEternalAmongX(this.game, 3)(new EffectData(newCharacter, () => player, []));
-      player.inPlay[1] = player.inPlay[player.inPlay.length - 1]!;
+      player.inPlay[0] = player.inPlay[player.inPlay.length - 1]!;
       player.inPlay.pop();
     } else{
       newStartingItem.onAddInPlay(() => player);
-      player.inPlay[1] = newStartingItem!;
+      player.inPlay[0] = newStartingItem!;
     }
   }
 

@@ -157,6 +157,7 @@ describe("Player - In-Play Cards", () => {
 
   beforeEach(() => {
     player = new Player("testPlayer", Team.Team1);
+    player.character = {} as any;
     player.addAttackPoints(3); // Start with 3 attack points for testing
     player.addHealthPoints(5); // Start with 5 health points for testing
     player.gainCoins(10); // Start with 10 coins for testing
@@ -164,13 +165,6 @@ describe("Player - In-Play Cards", () => {
 
   it("should have empty in-play cards initially", async () => {
     expect(player.inPlay.length).toBe(0);
-  });
-
-  it("should be able to add in-play cards", async () => {
-    const mockCard = { id: "card1", name: "Test Card", type: "item" } as any;
-    player.addInPlay(mockCard);
-    expect(player.inPlay.length).toBe(1);
-    expect(player.inPlay[0]).toBe(mockCard);
   });
 
   it("should be able to add multiple in-play cards", async () => {
@@ -466,6 +460,7 @@ describe("DiceRoll", () => {
     player.addAttackPoints(3);
     player.addHealthPoints(5);
     player.gainCoins(10);
+    player.character = {} as any;
   });
 
   it("should create a valid dice roll", async () => {

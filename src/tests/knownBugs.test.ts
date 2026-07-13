@@ -106,7 +106,7 @@ describe("Known bugs that have be corrected", () => {
         game.random = () => 0.01;
         game.actions.attackRoll(player1);
         await game.actions.resolveStack();
-        game.entityHandler.kill(player1, player1, player1.inPlay[0]!);
+        game.entityHandler.kill(player1, player1, player1.character!);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.isDead).toBe(true);
@@ -230,8 +230,8 @@ describe("Known bugs that have be corrected", () => {
         expect(player1.inPlay).not.toContain(targetItem);
         expect(player2.inPlay).toContain(targetItem);
 
-        expect(player1.inPlay.length).toBe(2);
-        expect(player2.inPlay.length).toBe(4);
+        expect(player1.inPlay.length).toBe(1);
+        expect(player2.inPlay.length).toBe(3);
         expect(player2.inPlay.map((c) => c.slug)).toContain("b2-brimstone");
     });
 
@@ -365,7 +365,7 @@ describe("Known bugs that have be corrected", () => {
         game.actions.declareAttack(player1);
         game.drawMonster(player1, 0);
         const monster = game.monsters[0]!;
-        game.entityHandler.kill(player1, monster, player1.inPlay[0]!);
+        game.entityHandler.kill(player1, monster, player1.character!);
         await game.resolveEntireStack();
         expect(game.monsters[0]).not.toBe(monster);
         expect(game.encounters.visible[0]?.slug).not.toBe(monster.card.slug);
@@ -406,7 +406,7 @@ describe("Known bugs that have be corrected", () => {
 
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, game.monsters[0]!);
-        game.entityHandler.kill(player1, game.monsters[0]!, player1.inPlay[0]!);
+        game.entityHandler.kill(player1, game.monsters[0]!, player1.character!);
         await game.actions.resolveStack(); // when this dies 
         expect(game.stack.size).toBe(1);
         await game.actions.resolveStack(); // gold chest top deck

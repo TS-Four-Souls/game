@@ -13,9 +13,9 @@ describe("Start of Game", () => {
         game = new Game();
         const orderedCharacters = [{issuer: "Player 1", character: "b2-judas", team: Team.Team1}, {issuer: "Player 2", character: "b2-judas", team: Team.Team2}, {issuer: "Player 3", character: "b2-judas", team: Team.Team3}];
         expect(async () => await game.start(orderedCharacters)).not.toThrow();
-        expect(game.players[0]!.inPlay[1]!.globalId).not.toBe(game.players[1]!.inPlay[1]!.globalId);
-        expect(game.players[2]!.inPlay[1]!.globalId).not.toBe(game.players[1]!.inPlay[1]!.globalId);
-        expect(game.players[2]!.inPlay[1]!.globalId).not.toBe(game.players[0]!.inPlay[1]!.globalId);
+        expect(game.players[0]!.inPlay[0]!.globalId).not.toBe(game.players[1]!.inPlay[0]!.globalId);
+        expect(game.players[2]!.inPlay[0]!.globalId).not.toBe(game.players[1]!.inPlay[0]!.globalId);
+        expect(game.players[2]!.inPlay[0]!.globalId).not.toBe(game.players[0]!.inPlay[0]!.globalId);
         expect(game.players[0]!.character.globalId).not.toBe(game.players[1]!.character.globalId);
         expect(game.players[2]!.character.globalId).not.toBe(game.players[1]!.character.globalId);
         expect(game.players[2]!.character.globalId).not.toBe(game.players[0]!.character.globalId);

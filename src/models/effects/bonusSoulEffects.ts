@@ -209,7 +209,7 @@ function soulOfSlothEffect(game: Game, card: Card): OffEffectFunction {
     };
 
     offDeath = game.emitter.on("on:enter:play:after", (eventData: OnEnterPlayAfterData) => {
-        if(eventData.eventIssuer.inPlay.length - 2 < 4) return; // -2 to exclude character card and eternal.
+        if(eventData.eventIssuer.inPlay.length < 4) return; // -2 to exclude character card and eternal.
         if(!active) return;
         active = false; 
         const effect = async (data: EffectData) => {
