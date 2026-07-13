@@ -22,6 +22,24 @@ describe("Known bugs that have be corrected", () => {
     // it("", async () => {
     // });
     
+    it("modeling clay jawbone get 25 coins", async () => {
+        const item1 = game.obtainCard("b2-jawbone") as ItemCard;
+        const clay = game.obtainCard("b2-modeling_clay") as ItemCard;
+        game.cardHandler.addInPlay(player1, item1);
+        game.cardHandler.addInPlay(player1, clay);
+        await game.activateItem(player1, clay, [item1], "tap");
+        await game.actions.resolveStack();
+        game.cardHandler.recharge(clay);
+        game.gainCoins(player1, 22, "debug");
+        game.gainCoins(player2, 5, "debug");
+        await game.activateItem(player1, clay, [player2], "tap");
+        await game.actions.resolveStack();
+        expect(player1.coins).toBe(25);
+        expect(player2.coins).toBe(2);
+        await(Promise.all);
+        expect(player1.totalSouls).toBe(1);
+    });
+    
     it("reset stack discard event cards", async () => {
         const eventCard = game.obtainCard("b2-curse_of_pain") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, eventCard);
