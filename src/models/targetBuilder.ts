@@ -300,8 +300,10 @@ export class TargetBuilder {
     player: Player,
     itemId: number,
     type : "inPlay" | "room" | "character" | "hand"): ItemCard {
-        const set = type === "inPlay" ? player.inPlay : player.hand.cards;
-        const card = set[itemId];
+        if(type === "room" && game.rooms === undefined)
+            throw new GameError(`Item not found in player's ${type}.`, toSerializedTranslation("error.itemNotFoundInPlayerInventory", { type: type }));
+        const set = type === "inPlay" ? player.inPlay : type === "room" ? game.rooms!.activeRooms : player.hand.cards;
+        const card = type === "character" ? player.character : set[itemId];
         if(!card || !(card instanceof ItemCard))
             throw new GameError(`Item not found in player's ${type}.`, toSerializedTranslation("error.itemNotFoundInPlayerInventory", { type: type }));
         return card;
