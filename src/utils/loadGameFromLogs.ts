@@ -442,12 +442,6 @@ export async function loadGameFromLogs(
             break;
           }
 
-          case "PlayCard": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            await helper.executePlayCardRequest(game, entry.payload, player);
-            break;
-          }
-
           case "Activate": {
             const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
             try {
@@ -456,19 +450,6 @@ export async function loadGameFromLogs(
               throw new GameError(
                 `Failed to replay Activate request from logs: ${error instanceof Error ? error.message : error}`,
                 toSerializedTranslation("error.behaviorError", { error: `Failed to replay Activate request from logs: ${error instanceof Error ? error.message : error}` })
-              );
-            }
-            break;
-          }
-
-          case "ActivateRoom": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            try {
-              await helper.executeActivateRoomRequest(game, entry.payload, player);
-            } catch (error) {
-              throw new GameError(
-                `Failed to replay ActivateRoom request from logs: ${error instanceof Error ? error.message : error}`,
-                toSerializedTranslation("error.behaviorError", { error: `Failed to replay ActivateRoom request from logs: ${error instanceof Error ? error.message : error}` })
               );
             }
             break;

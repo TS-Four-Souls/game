@@ -29,55 +29,23 @@ export async function executeAttackMonsterRequest(
   });
 }
 
-export function executePlayCardRequest(
-  game: Game,
-  payload: Requests.PlayCard,
-  player: Player,
-): TargetSelectorResponse {
-  let partialChoice = payload.targetChoices || [];
-  const card = TargetBuilder.getCardFromPlayer(game, player, payload.index, "hand");
-  // const { effectId, choice } = card.getEffectIdAndChooseOneChoiceFromSeparatorId(payload.effectIndex);
-  // if(choice !== undefined) {
-  //   partialChoice = [...TargetBuilder.convertToSelectionItems(choice), ...partialChoice];
-  // }
-  const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(
-    game,
-    player,
-    card,
-    partialChoice,
-    payload.effectIndex,
-  );
-
-  if (choices.complete) {
-    const targets = TargetBuilder.buildTargets(
-      game,
-      player,
-      card,
-      partialChoice,
-      payload.effectIndex,
-    );
-    game.actions.playCard(player, payload.index, targets);
-    game.addToHistory({
-                type: "PlayCard",
-                payload,
-                issuer: player.id,
-              });
-  }
-  return choices;
-}
-
 export async function executeActivateRequest(
   game: Game,
   payload: Requests.Activate,
   player: Player,
 ): Promise<TargetSelectorResponse> {
-  const partialChoices = payload.targetChoices || [];
-  const item = TargetBuilder.getCardFromPlayer(game, player, payload.index, "inPlay");
+  console.log(payload.type)
+  const card = TargetBuilder.getCard(game, player, payload.index, payload.type);
+  // const { effectId, choice } = card.getEffectIdAndChooseOneChoiceFromSeparatorId(payload.effectIndex);
 
+  let partialChoices = payload.targetChoices === undefined ? [] : payload.targetChoices;
+  // if(choice !== undefined) {
+  //   partialChoices = [...TargetBuilder.convertToSelectionItems(choice), ...partialChoices];
+  // }
   const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(
     game,
     player,
-    item,
+    card,
     partialChoices,
     payload.effectIndex,
   );
@@ -86,11 +54,12 @@ export async function executeActivateRequest(
     const targets = TargetBuilder.buildTargets(
       game,
       player,
-      item,
+      card,
       partialChoices,
       payload.effectIndex,
     );
-    await game.actions.activateItemAtIndex(
+    await game.actions.useCard(
+      payload.type,
       player,
       payload.index,
       targets,
@@ -112,67 +81,15 @@ export async function executeActivateWithIdRequest(
   payload: Requests.ActivateWithID,
   player: Player,
 ): Promise<TargetSelectorResponse> {
-  const item = TargetBuilder.getCardFromPlayer(game, player, payload.index, "inPlay");
-  const { effectId, choice } = item.getEffectIdAndChooseOneChoiceFromSeparatorId(payload.effectIndex);
+  const card = TargetBuilder.getCard(game, player, payload.index, payload.type);
+  const { effectId, choice } = card.getEffectIdAndChooseOneChoiceFromSeparatorId(payload.effectIndex);
 
-  let partialChoice = payload.targetChoices === undefined ? [] : payload.targetChoices;
+  let partialChoices = payload.targetChoices === undefined ? [] : payload.targetChoices;
   if(choice !== undefined) {
-    partialChoice = [...TargetBuilder.convertToSelectionItems(choice), ...partialChoice];
+    partialChoices = [...TargetBuilder.convertToSelectionItems(choice), ...partialChoices];
   }
-  return executeActivateRequest(
-    game,
-    {
-      index: payload.index,
-      effectIndex: effectId,
-      targetChoices: partialChoice,
-    },
-    player
-  );
-}
-
-export async function executeActivateRoomRequest(
-  game: Game,
-  payload: Requests.ActivateRoom,
-  player: Player,
-): Promise<TargetSelectorResponse> {
-  const partialChoices = payload.targetChoices || [];
-  const room = game.rooms?.roomIn(payload.index);
-  if(!room) {
-    throw new GameError(`No room at index ${payload.index}`,
-      toSerializedTranslation("error.noRoomAtIndex", { value: payload.index })
-    );
-  }
-  const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(
-    game,
-    player,
-    room,
-    partialChoices,
-    payload.effectIndex,
-  );
-
-  if (choices.complete) {
-    const targets = TargetBuilder.buildTargets(
-      game,
-      player,
-      room,
-      partialChoices,
-      payload.effectIndex,
-    );
-    await game.actions.activateRoom(
-      player,
-      room,
-      targets,
-      payload.effectIndex,
-    );
-  }
-  if (choices.complete) {
-    game.addToHistory({
-      type: "ActivateRoom",
-      payload,
-      issuer: player.id,
-    });
-  }
-  return choices;
+  
+  return executeActivateRequest(game, payload, player);
 }
 
 

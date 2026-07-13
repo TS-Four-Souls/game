@@ -212,6 +212,32 @@ export class ActionHandler {
     return true;
   }
 
+  async useCard(
+          type: "hand" | "inPlay" | "character" | "room",
+          player: Player,
+          itemIndex: number,
+          targets: any[],
+          effectId: number | "tap" = "tap"
+      )
+      {
+        switch(type) {
+            case "hand":
+              this.playCard(player, itemIndex, targets);
+              return;
+            case "character":
+              await this.activateItemAtIndex(player, 0, targets, effectId);
+              return;
+            case "inPlay":
+              await this.activateItemAtIndex(player, itemIndex, targets, effectId);
+              return;
+            case "room":
+              if(this._game.rooms === undefined || this._game.rooms.activeRooms[itemIndex] === undefined)
+                return
+              await this.activateRoom(player, this._game.rooms.activeRooms[itemIndex], targets, effectId )
+
+        }
+      }
+
   /**
    * Creates and configures an attack dice roll for the current combat.
    */

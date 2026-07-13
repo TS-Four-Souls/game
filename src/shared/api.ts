@@ -3,10 +3,21 @@ import { z } from "zod";
 const basicSerializedTranslationSchema = z.object({
   key: z.string(),
 });
-export type BasicSerializedTranslation = z.infer<typeof basicSerializedTranslationSchema>;
+export type BasicSerializedTranslation = z.infer<
+  typeof basicSerializedTranslationSchema
+>;
 
 const serializedTranslationSchema = basicSerializedTranslationSchema.extend({
-  interpolates: z.record(z.string(), z.union([z.string(), basicSerializedTranslationSchema, z.array(basicSerializedTranslationSchema)])).optional(),
+  interpolates: z
+    .record(
+      z.string(),
+      z.union([
+        z.string(),
+        basicSerializedTranslationSchema,
+        z.array(basicSerializedTranslationSchema),
+      ]),
+    )
+    .optional(),
 });
 export type SerializedTranslation = z.infer<typeof serializedTranslationSchema>;
 
@@ -32,15 +43,17 @@ export type Card = z.infer<typeof cardSchema>;
 
 const shopItemSchema = cardSchema.extend({ price: z.number() });
 const VisualEffectBoxSchema = z.object({
-    startIndex: z.number(),
-    endIndex: z.number(),
-  });
+  startIndex: z.number(),
+  endIndex: z.number(),
+});
 export type VisualEffectBox = z.infer<typeof VisualEffectBoxSchema>;
 
 const DescriptiveVisualEffectBoxSchema = VisualEffectBoxSchema.extend({
   description: z.string(),
 });
-export type DescriptiveVisualEffectBox = z.infer<typeof DescriptiveVisualEffectBoxSchema>;
+export type DescriptiveVisualEffectBox = z.infer<
+  typeof DescriptiveVisualEffectBoxSchema
+>;
 
 const activeEffectEntrySchema = z.object({
   visualEffectBox: VisualEffectBoxSchema,
@@ -175,7 +188,10 @@ const temporaryEffectSchema = z.object({
 });
 export type TemporaryEffect = z.infer<typeof temporaryEffectSchema>;
 
-const capabilitySchema = z.union([z.literal(true), serializedTranslationSchema]); /// todo
+const capabilitySchema = z.union([
+  z.literal(true),
+  serializedTranslationSchema,
+]);
 export type Capability = z.infer<typeof capabilitySchema>;
 
 const attackableCardSchema = cardSchema.extend({
@@ -287,13 +303,13 @@ const lootStepJsonSchema = z.object({
 });
 export type LootStepJson = z.infer<typeof lootStepJsonSchema>;
 
-const endOfTurnJsonSchema = z.object({type: z.literal("endOfTurn"),
+const endOfTurnJsonSchema = z.object({
+  type: z.literal("endOfTurn"),
   player: entityTypeSchema,
   id: z.number(),
   reordering: stackReorderingInfoSchema.optional(),
 });
 export type EndOfTurnJson = z.infer<typeof endOfTurnJsonSchema>;
-
 
 const damageOnStackJsonSchema = z.object({
   type: z.literal("damage"),
@@ -396,18 +412,17 @@ const attackMonsterSchema = z.union([
   }),
 ]);
 
-
 const booleanGameParameterSchema = z.object({
   text: z.string(),
   value: z.boolean(),
-  translationKey: serializedTranslationSchema
+  translationKey: serializedTranslationSchema,
 });
 
 const numberGameParameterSchema = z.object({
   text: z.string(),
   value: z.number(),
   replaceZeroWith: z.string().optional(),
-  translationKey: serializedTranslationSchema
+  translationKey: serializedTranslationSchema,
 });
 const decksConfigSchema = z.object({
   useBonusSouls: booleanGameParameterSchema,
@@ -534,7 +549,7 @@ const debugListLootResponseSchema = z.union([
   }),
   z.object({
     status: z.literal(400),
-    error: z.union([z.string(), serializedTranslationSchema])
+    error: z.union([z.string(), serializedTranslationSchema]),
   }),
 ]);
 export type DebugListLootResponse = z.infer<typeof debugListLootResponseSchema>;
@@ -547,7 +562,7 @@ const DebugListMonsterDeckResponseSchema = z.union([
   }),
   z.object({
     status: z.literal(400),
-    error: z.union([z.string(), serializedTranslationSchema])
+    error: z.union([z.string(), serializedTranslationSchema]),
   }),
 ]);
 export type DebugListMonsterDeckResponse = z.infer<
@@ -561,7 +576,7 @@ const debugListCardsICanRemoveResponseSchema = z.union([
   }),
   z.object({
     status: z.literal(400),
-    error: z.union([z.string(), serializedTranslationSchema])
+    error: z.union([z.string(), serializedTranslationSchema]),
   }),
 ]);
 export type DebugListCardsICanRemoveResponse = z.infer<
@@ -575,7 +590,7 @@ const debugListTreasureResponseSchema = z.union([
   }),
   z.object({
     status: z.literal(400),
-    error: z.union([z.string(), serializedTranslationSchema])
+    error: z.union([z.string(), serializedTranslationSchema]),
   }),
 ]);
 export type DebugListTreasureResponse = z.infer<
@@ -589,7 +604,7 @@ const nextTargetSelectorResponseSchema = z.union([
   }),
   z.object({
     status: z.literal(400),
-    error: z.union([z.string(), serializedTranslationSchema])
+    error: z.union([z.string(), serializedTranslationSchema]),
   }),
 ]);
 export type NextTargetSelectorResponse = z.infer<
@@ -617,11 +632,13 @@ const attackRequirementSchema = z.object({
 
 export type AttackRequirement = z.infer<typeof attackRequirementSchema>;
 const cardActivationSchema = z.object({
+  type: z.union([z.literal("hand"), z.literal("inPlay"), z.literal("character"), z.literal("room")]),
   index: z.number(),
   effectIndex: z.union([z.number(), z.literal("tap")]),
   targetChoices: z.array(selectionItemSchema).optional(),
 });
 const cardActivationWithIdSchema = z.object({
+  type: z.union([z.literal("hand"), z.literal("inPlay"), z.literal("character"), z.literal("room")]),
   index: z.number(),
   effectIndex: z.number(),
   targetChoices: z.array(selectionItemSchema).optional(),
@@ -885,7 +902,7 @@ const saveGameResponseSchema = z.union([
   }),
   z.object({
     status: z.literal(400),
-    error: z.union([z.string(), serializedTranslationSchema])
+    error: z.union([z.string(), serializedTranslationSchema]),
   }),
 ]);
 export type SaveGameResponse = z.infer<typeof saveGameResponseSchema>;
@@ -986,11 +1003,11 @@ const adminGetLogsResponseSchema = z.union([
   }),
   z.object({
     status: z.literal(400),
-    error: z.union([z.string(), serializedTranslationSchema])
+    error: z.union([z.string(), serializedTranslationSchema]),
   }),
   z.object({
     status: z.literal(500),
-    error: z.union([z.string(), serializedTranslationSchema])
+    error: z.union([z.string(), serializedTranslationSchema]),
   }),
 ]);
 export type AdminGetLogsResponse = z.infer<typeof adminGetLogsResponseSchema>;
@@ -1017,11 +1034,11 @@ const adminReplyToMessageResponseSchema = z.union([
   }),
   z.object({
     status: z.literal(400),
-    error: z.union([z.string(), serializedTranslationSchema])
+    error: z.union([z.string(), serializedTranslationSchema]),
   }),
   z.object({
     status: z.literal(500),
-    error: z.union([z.string(), serializedTranslationSchema])
+    error: z.union([z.string(), serializedTranslationSchema]),
   }),
 ]);
 export type AdminReplyToMessageResponse = z.infer<
@@ -1043,10 +1060,8 @@ export const schemas = {
   contactRequest: contactRequestSchema,
   submitSelectionRequest: submitSelectionSchema,
   insertStackElementBeforeRequest: insertStackElementBeforeSchema,
-  playCardRequest: cardActivationSchema,
   activateRequest: cardActivationSchema,
   activateWithIDRequest: cardActivationWithIdSchema,
-  activateRoomRequest: cardActivationSchema,
   purchaseRequest: purchaseSchema,
   giveCoinsRequest: giveCoinsSchema,
   enterRoomRequest: enterRoomRequestSchema,
@@ -1072,10 +1087,8 @@ export namespace Requests {
   export type InsertStackElementBefore = z.infer<
     typeof insertStackElementBeforeSchema
   >;
-  export type PlayCard = z.infer<typeof cardActivationSchema>;
   export type Activate = z.infer<typeof cardActivationSchema>;
   export type ActivateWithID = z.infer<typeof cardActivationWithIdSchema>;
-  export type ActivateRoom = z.infer<typeof cardActivationSchema>;
   export type Purchase = z.infer<typeof purchaseSchema>;
   export type GiveCoins = z.infer<typeof giveCoinsSchema>;
   export type AttackMonster = z.infer<typeof attackMonsterSchema>;
@@ -1118,7 +1131,6 @@ export namespace Responses {
   export type Resolve = BasicResponse;
   export type SubmitSelection = BasicResponse;
   export type InsertStackElementBefore = BasicResponse;
-  export type PlayCard = NextTargetSelectorResponse;
   export type EndTurn = BasicResponse;
   export type Activate = NextTargetSelectorResponse;
   export type Purchase = BasicResponse;
@@ -1216,11 +1228,6 @@ export interface ClientToServerEvents {
     callback: (response: Responses.InsertStackElementBefore) => void,
   ) => void;
 
-  playCard: (
-    request: Requests.PlayCard,
-    callback: (response: Responses.PlayCard) => void,
-  ) => void;
-
   endTurn: (callback: (response: Responses.EndTurn) => void) => void;
 
   activate: (
@@ -1230,11 +1237,6 @@ export interface ClientToServerEvents {
 
   activateWithID: (
     request: Requests.ActivateWithID,
-    callback: (response: Responses.Activate) => void,
-  ) => void;
-
-  activateRoom: (
-    request: Requests.ActivateRoom,
     callback: (response: Responses.Activate) => void,
   ) => void;
 
@@ -1368,5 +1370,3 @@ export interface ClientToServerEvents {
     callback: (response: Responses.AdminReplyToMessage) => void,
   ) => void;
 }
-
-

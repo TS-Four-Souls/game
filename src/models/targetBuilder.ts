@@ -296,10 +296,10 @@ export class TargetBuilder {
      * @param type "inPlay" to get from inPlay, "hand" to get from hand (default: "inPlay")
      * @returns The ItemCard found
      */
-    static getCardFromPlayer(game: Game,
+    static getCard(game: Game,
     player: Player,
     itemId: number,
-    type : "inPlay" | "hand" = "inPlay"): ItemCard {
+    type : "inPlay" | "room" | "character" | "hand"): ItemCard {
         const set = type === "inPlay" ? player.inPlay : player.hand.cards;
         const card = set[itemId];
         if(!card || !(card instanceof ItemCard))

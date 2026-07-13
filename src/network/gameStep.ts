@@ -163,20 +163,6 @@ export const enterGameStep = (
     ),
   );
 
-  socket.on("playCard", async (payload, callback) =>
-    errorGuardedEndpoint(callback, async () =>
-      payloadGuardedEndpoint(
-        payload,
-        schemas.playCardRequest,
-        callback,
-        (payload) => {
-          const choices = helper.executePlayCardRequest(room.game, payload, player);
-          return callback({ response: choices, status: 200 });
-        },
-      ),
-    ),
-  );
-
   socket.on("activateWithID", async (payload, callback) =>
     errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
@@ -203,24 +189,6 @@ export const enterGameStep = (
         callback,
         async (payload) => {
           const choices = await helper.executeActivateRequest(
-            room.game,
-            payload,
-            player,
-          );
-          return callback({ response: choices, status: 200 });
-        },
-      ),
-    ),
-  );
-
-  socket.on("activateRoom", async (payload, callback) =>
-    errorGuardedEndpoint(callback, async () =>
-      payloadGuardedEndpoint(
-        payload,
-        schemas.activateRoomRequest,
-        callback,
-        async (payload) => {
-          const choices = await helper.executeActivateRoomRequest(
             room.game,
             payload,
             player,
