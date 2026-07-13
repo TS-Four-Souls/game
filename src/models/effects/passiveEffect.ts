@@ -1391,11 +1391,12 @@ export function stealCoinOnGainEffect(amount: number, game: Game): SyncEffectFun
         let offCoinGain: (() => void) | null = null;
         
         offCoinGain = game.emitter.on("on:coin:gained:after", ({ eventIssuer, coinGained, source }) => {
+            if(source === "gift") return;
             if (data.issuer === eventIssuer) return;
             if(!(data.issuer instanceof Player)) {
                 throw new GameError("stealCoinOnGainEffect can only be applied to Players.", toSerializedTranslation("error.behaviorError", {error: "stealCoinOnGainEffect can only be applied to Players."}));
             }
-            if(source !== "gift" && source.slug === data.it.slug && source.slug) return; // Avoid infinite loops.
+            if(source.slug === data.it.slug && source.slug) return; // Avoid infinite loops.
             const effect = (effectData: EffectData): boolean => {
                 if(!(data.issuer instanceof Player)) {
                     throw new GameError("stealCoinOnGainEffect can only be applied to Players.", toSerializedTranslation("error.behaviorError", {error: "stealCoinOnGainEffect can only be applied to Players."}));

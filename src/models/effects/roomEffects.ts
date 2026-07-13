@@ -534,7 +534,8 @@ export function eachPlayerGainsCoinsEffect(game: Game): SyncEffectFunction {
         let offGainCoins: (() => void) | null = null;
         offGainCoins = game.emitter.on("on:coin:gained:after", (eventData) => {
             const { eventIssuer, coinGained, source } = eventData;
-            if(source === data.it || (source !== "gift" && source.slug === "fsp2-magnet" && source.slug != data.it.slug))
+            if(source === "gift") return;
+            if(source === data.it || (source.slug === "fsp2-magnet" && source.slug != data.it.slug))
                 return; // Prevent infinite loop if the coin gain is caused by this effect
             for(const player of game.players) {
                 if(player !== eventIssuer) {

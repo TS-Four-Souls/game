@@ -822,12 +822,11 @@ export class Game extends SelectionHandler {
           source: source,
         });
       player.gainCoins(amount[0]!);
-      if(source !== "gift")
-        this.emit("on:coin:gained:after", {
-          eventIssuer: player,
-          coinGained: amount,
-          source: source,
-        });
+      this.emit("on:coin:gained:after", {
+        eventIssuer: player,
+        coinGained: amount,
+        source: source,
+      });
     }
     this.dispatch();
     return `New amount of coins: ${player.coins} coins.\n`;
@@ -863,12 +862,12 @@ export class Game extends SelectionHandler {
 
 
   /** Steals up to the requested number of coins from target player. */
-  stealCoins(player: Player, target: Player, amount: number): string {
+  stealCoins(player: Player, target: Player, amount: number, source: Card): string {
     this.assert.gameStarted();
     this.assert.positiveNumber(amount);
 
     const stolenCoins = this.loseCoins(target, amount, true, "effect");
-    player.gainCoins(stolenCoins);
+    this.gainCoins(player, stolenCoins, source);
 
     return `You have stolen ${stolenCoins} coins from ${target.id}.\n`;
   }

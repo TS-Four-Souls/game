@@ -711,7 +711,7 @@ export function stealCoinsEffect(game: Game, amount: number): SyncEffectFunction
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const target = data.next as Player;
-        game.stealCoins(data.issuer, target!, amount);
+        game.stealCoins(data.issuer, target!, amount, data.it);
         return true;
     };
 }
