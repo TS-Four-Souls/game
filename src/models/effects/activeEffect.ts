@@ -244,9 +244,7 @@ export function forceAttackMonsterEffect(game: Game): SyncEffectFunction {
         const targetMonster = data.next;
         if(!(targetMonster instanceof Monster))
             throw new Error("Target of forceAttackMonsterEffect must be a Monster.");
-        if(data.issuer instanceof Player === false) 
-            throw new Error("Effect issuer is not a player in forceAttackMonsterEffect.");
-        game.entityHandler.playerMustAttack(data.issuer, [targetMonster], data.it);
+        game.entityHandler.playerMustAttack(game.currentPlayer, [targetMonster], data.it);
         return true;
     };
 }
