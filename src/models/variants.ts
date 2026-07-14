@@ -9,7 +9,7 @@ import { toSerializedTranslation } from "@/utils/translation";
  * @param game 
  */
 export function miniDraft(game: Game): void {
-    game.addPromise(new Promise(async () => {
+    game.addPromise((async (): Promise<boolean> => {
         for( const players of [game.players, game.players.toReversed()]) {
             const drawn: TreasureCard[] = game.decks.treasure.drawSeveral(game.players.length + 1);
             for(const player of players) {
@@ -19,5 +19,5 @@ export function miniDraft(game: Game): void {
             }
         } 
         return true;
-    }));
+    })());
 }

@@ -217,6 +217,9 @@ class Card {
     get eternal(): boolean {
         return this._eternal;
     }
+    setEternal(eternal: boolean): void {
+        this._eternal = eternal;
+    }
     get cleaners(): (() => void)[] {
         return this._cleanup;
     }
@@ -507,9 +510,6 @@ export class ItemCard extends Card {
     targets: any[]
   ): boolean {
     return this._effectInterface.targetStillValid(player, effectId, targets);
-  }
-  setEternal(eternal: boolean): void {
-    this._eternal = eternal;
   }
 }
 // "discardNextTime" turns into "discard" after the first time the card is played.

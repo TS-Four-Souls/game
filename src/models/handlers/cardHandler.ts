@@ -922,6 +922,7 @@ export class CardHandler {
       });
       soulCard.granted = true;
     }
+    soulCard.setEternal(false);
     const eventData = { eventIssuer: player, soul: soulCard };
     this.game.emit("on:soul:gained:before", eventData);
     if(eventData.soul === null)

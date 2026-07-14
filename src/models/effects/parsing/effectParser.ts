@@ -1173,7 +1173,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
         case "each time you roll an attack roll of x, deal x damage to each other player": {
             const rollValue = nr.nextNumber();
             const damage = nr.nextNumber();
-            return noTargetSyncEffect(passive.onAttackRollEffect([rollValue], active.dealDamageToEachOtherPlayerEffect(game, damage), game));
+            return noTargetSyncEffect(passive.onAttackRollEffect([rollValue], active.dealDamageToEachOtherPlayerEffect(game, damage), game, "on:attack:roll"));
         }
         case "each time another player gains ¢, they must give you x¢":
             return noTargetSyncEffect(passive.stealCoinOnGainEffect(nr.nextNumber(), game));

@@ -555,7 +555,7 @@ export function combatDamageModifierOnAttackRollEffect(game: Game, attackRolls: 
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
 
-        offDamage = game.emitter.on("on:attack:before-roll", (eventData: OnAttackRollData) => {
+        offDamage = game.emitter.on("on:attack:roll:modifier", (eventData: OnAttackRollData) => {
             const { eventIssuer, dice} = eventData;
             if (eventIssuer !== data.issuer) return;
             if (!attackRolls.includes(dice.value)) return;
@@ -867,7 +867,7 @@ export function firstAttackRollDiceModifier(
             active = true;
         });
 
-        const offTurnEnd = game.emitter.on("on:attack:before-roll", (eventData: OnAttackRollData) => {
+        const offTurnEnd = game.emitter.on("on:attack:roll:modifier", (eventData: OnAttackRollData) => {
             const { eventIssuer } = eventData;
             if (eventIssuer !== issuer) return;
             if(!active) return
@@ -1138,9 +1138,11 @@ export function chosenumberDamageOnRollThisTurnEffect(game: Game, damageAmount: 
         if ([1,2,3,4,5,6].includes(nb) === false) {
             throw new GameError("chosenumberDamageOnRollThisTurnEffect: nb must be a number between 1 and 6.", toSerializedTranslation("error.behaviorError", {error: "chosenumberDamageOnRollThisTurnEffect: nb must be a number between 1 and 6."}));
         }
-
+        const previouslyRolledDices = game.stack.elements.filter(e => e instanceof DiceRoll);
         offDamage = game.emitter.on("on:dice:resolved", (eventData: OnDiceBeingRolledData) => {
             const { eventIssuer, diceRoll } = eventData;
+            if(previouslyRolledDices.includes(diceRoll))
+                return;
             if (diceRoll.value !== nb) return;
             const effect = active.dealDamageToTargetEffect(game, damageAmount, true, selectPlayerOrMonster(game), "issuer");
             addPassiveEffectToStack(game, effect, data, `Deal ${damageAmount} damage to a target because a ${nb} was rolled.`);
@@ -1454,16 +1456,13 @@ export function statModifierBasedOnCountersEffect(game: Game,
 export function noRechargeCharaDuringRechargeStepEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offBeforeRechargeStep: (() => void) | null = null;
-        offBeforeRechargeStep = game.emitter.on("on:turn:start:before:recharge:step", ({ eventIssuer, itemsToRecharge }) => {
+        offBeforeRechargeStep = game.emitter.on("on:turn:start:before:recharge:step", (eventData) => {
             const issuer = data.issuer;
-            if (issuer !== eventIssuer) return;
+            if (issuer !== eventData.eventIssuer) return;
             if(!(issuer instanceof Player)) {
                 throw new GameError("noRechargeCharaDuringRechargeStepEffect can only be applied to Players.", toSerializedTranslation("error.behaviorError", {error: "noRechargeCharaDuringRechargeStepEffect can only be applied to Players."}));
             }
-            const index = itemsToRecharge.findIndex(item => item === issuer.character);
-            if (index >= 0) {
-                itemsToRecharge.splice(index, 1); // Remove character from recharge list
-            }
+            eventData.charactersToRecharge = [];
         });
 
         data.it.cleaners.push(() => {
@@ -1713,8 +1712,11 @@ export function lootOnNextRollEffect(game: Game, x: number): SyncEffectFunction 
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         // Listen for the next roll event on this player
+        const previouslyRolledDices = game.stack.elements.filter(e => e instanceof DiceRoll);
         offRoll = game.emitter.on("on:dice:resolved", (eventData: OnDiceBeingRolledData) => {
             const { diceRoll } = eventData;
+            if(previouslyRolledDices.includes(diceRoll))
+                return;
             const guess = data.next;
             if(guess < 1 || guess > 6) {
                 throw new GameError("lootOnNextRollEffect target must be a number between 1 and 6.", toSerializedTranslation("error.behaviorError", {error: "lootOnNextRollEffect target must be a number between 1 and 6."}));
@@ -2494,12 +2496,13 @@ export function lootAfterFlippingEffect(game: Game, amount: number): SyncEffectF
 export function onAttackRollEffect(
     rollValues: number[],
     effect: EffectFunction,
-    game: Game
+    game: Game,
+    event: "on:attack:roll:modifier" | "on:attack:roll"
 ): SyncEffectFunction {
     return (data:EffectData) => {
         let offEffect: (() => void) | null = null;
         // Listen for the next damage event on this player
-        offEffect = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
+        offEffect = game.emitter.on(event, (eventData: OnAttackRollData) => {
             const { eventIssuer, dice } = eventData;
             if (data.issuer !== eventIssuer) return;
             if (rollValues.includes(dice.value)) {
@@ -3005,13 +3008,10 @@ export function goFirstInTurnOrderEffect(game: Game): SyncEffectFunction {
 export function startingItemEffect(game: Game, x: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = game.emitter.on("on:game:start", async () => {
-            // const effect = async (effectData: EffectData): Promise<boolean> => {
-                game.addPromise(active.selectEternalAmongX(game, x)(data));
-                offEffect?.();
-                offEffect = null;
-                return true;
-            // }
-            // addPassiveEffectToStack(game, effect, data, `Starting item effect`);
+            game.addPromise(active.selectEternalAmongX(game, x)(data));
+            offEffect?.();
+            offEffect = null;
+            return true;
         });
         return true;
     };

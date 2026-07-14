@@ -745,6 +745,7 @@ describe("Loot Card", () => {
 
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Stack should be empty and turn should have ended
         expect(game.turnHandler.current).not.toBe(initialPlayer);
@@ -1884,14 +1885,16 @@ describe("Loot Cards - 3 players tests", () => {
         player1.hand.addToHand(judgement!);
 
         // player1 has 2 souls, others have 1
-        const s1 = game.decks["loot"]!.cards[0]!; s1.soul = 2; game.cardHandler.addSoul(player1, s1);
-        const s2 = game.decks["loot"]!.cards[1]!; s2.soul = 1; game.cardHandler.addSoul(player1, s2);
-        const s3 = game.decks["loot"]!.cards[2]!; s3.soul = 1; game.cardHandler.addSoul(player2, s3);
+        const s1 = game.decks["loot"]!.draw()!; s1.soul = 2; game.cardHandler.addSoul(player1, s1);
+        const s2 = game.decks["loot"]!.draw()!; s2.soul = 1; game.cardHandler.addSoul(player1, s2);
+        const s3 = game.decks["loot"]!.draw()!; s3.soul = 1; game.cardHandler.addSoul(player2, s3);
 
         game.actions.playCard(player1, 0, [player1]);
+        expect(game.stack.size).toBe(1);
         await game.actions.resolveStack();
-        await game.actions.resolveStack(); // Resolve any stack effects
-
+        expect(game.stack.size).toBe(0);
+        if(player1.totalSouls > 1)
+            expect(game.stack.isEmpty()).toBe(true);
         expect(player1.totalSouls).toBe(1);
         expect(player2.totalSouls).toBe(1);
         expect(player3.totalSouls).toBe(0);

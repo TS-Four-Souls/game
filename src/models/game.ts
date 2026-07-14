@@ -109,7 +109,7 @@ export class Game extends SelectionHandler {
     return this._promises;
   }
   async awaitPromises(): Promise<void> {
-    for(const p of this.promises)
+    for (const p of this.promises)
     {
       await p;
     }
@@ -315,7 +315,7 @@ export class Game extends SelectionHandler {
         target: dice.attackTarget,
         dice,
       });
-    this.emit("on:attack:before-roll", {
+    this.emit("on:attack:roll:modifier", {
       eventIssuer: dice.issuer,
       target: dice.attackTarget,
       dice,
@@ -351,12 +351,9 @@ export class Game extends SelectionHandler {
           this.dispatch();
           return;
         }
-        const dice = this.stack.resolve();
-        if(!dice || !(dice instanceof DiceRoll))
-          throw new GameError("The resolved stack element is not a DiceRoll.",
-            toSerializedTranslation("error.behaviorError", {error: "The resolved stack element is not a DiceRoll."}));
-        if(dice.attackRoll)
-          await this.resolveAttackRoll(dice);
+        this.stack.resolve();
+        if(elem.attackRoll)
+          await this.resolveAttackRoll(elem);
         else
           await elem.onResolve();
         // Add to history
@@ -437,14 +434,14 @@ export class Game extends SelectionHandler {
     this.entityHandler.healEveryone();
   } 
 
-  async atGameStartDecisions(){
+  async atGameStartDecisions(): Promise<void> {
     this.emit("on:game:start", {}); // Eden starting item choice
     if(this.gameParameters.miniDraft.value)
       miniDraft(this); // Add resolutions to game.promises.
     await this.awaitPromises();
     await this.executeWhenStackEmpty(async () => {
       await this.startTurn();
-    })
+    });
   }
 
   initializeTeams(): void{
@@ -537,11 +534,13 @@ export class Game extends SelectionHandler {
     });
     this.entityHandler.monsterDiedThisTurn = false;
     const player = this.currentPlayer;
-    const itemsToRecharge = [player.character, ...player.unchargedItems];
-    const eventData = { eventIssuer: player, itemsToRecharge: itemsToRecharge }
+    const itemsToRecharge = [...player.unchargedItems];
+    const charactersToRecharge = [player.character];
+    const eventData = { eventIssuer: player, itemsToRecharge: itemsToRecharge, charactersToRecharge: charactersToRecharge};
     
     this.emit("on:turn:start:before:recharge:step", eventData);
     await this.executeWhenStackEmpty(async () => {
+      this.cardHandler.rechargeMultiple(player, "rechargeStep", eventData.charactersToRecharge);
       this.cardHandler.rechargeMultiple(player, "rechargeStep", eventData.itemsToRecharge);
       this.emit("on:turn:start", { eventIssuer: player });
       await this.executeWhenStackEmpty(async () => {

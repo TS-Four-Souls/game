@@ -247,9 +247,7 @@ export function forceAttackMonsterEffect(game: Game): SyncEffectFunction {
         const targetMonster = data.next;
         if(!(targetMonster instanceof Monster))
             throw new GameError("Target of forceAttackMonsterEffect must be a Monster.", toSerializedTranslation("error.behaviorError", { error: "Target of forceAttackMonsterEffect must be a Monster."}));
-        if(data.issuer instanceof Player === false) 
-            throw new GameError("Effect issuer is not a player.", toSerializedTranslation("error.effectIssuerMustBePlayer"));
-        game.entityHandler.playerMustAttack(data.issuer, [targetMonster], data.it);
+        game.entityHandler.playerMustAttack(game.currentPlayer, [targetMonster], data.it);
         return true;
     };
 }
@@ -2011,7 +2009,6 @@ export function endTurnAndResetStackEffect(game: Game): AsyncEffectFunction {
         game.resetCallbacks();
         game.entityHandler.endCombat();
         await game.endTurn();
-        await game.actions.resolveStack();
         return true;
     };
 }

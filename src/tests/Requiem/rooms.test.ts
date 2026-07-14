@@ -516,6 +516,7 @@ describe("Requiem Rooms", () => {
             game.cardHandler.addInPlay(player1, card);
         }
         game.cardHandler.rechargeMultiple(player1);
+        player1.character.deactivate();
         for(const card of player1.inPlay) 
             card.deactivate();
         expect(player1.inPlay.every(c => c.charged)).toBe(false);
@@ -528,6 +529,7 @@ describe("Requiem Rooms", () => {
         expect(player1.inPlay.every(c => c.charged)).toBe(false);
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack();
+        expect(player1.character.charged).toBe(true);
         expect(player1.inPlay[0]!.charged).toBe(true);
         for(let i = 1; i < player1.inPlay.length; i++) 
             expect(player1.inPlay[i]!.charged).toBe(false);

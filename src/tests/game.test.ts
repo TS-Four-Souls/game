@@ -837,8 +837,8 @@ describe("Game - Souls & State", () => {
   });
 
   it("should compute players with most souls", async () => {
-    const soul1 = { id: "s1", name: "Soul 1", soul: 1 } as any;
-    const soul2 = { id: "s2", name: "Soul 2", soul: 2 } as any;
+    const soul1 = { id: "s1", name: "Soul 1", soul: 1, setEternal: ()=>{} } as any;
+    const soul2 = { id: "s2", name: "Soul 2", soul: 2, setEternal: ()=>{} } as any;
 
     game.cardHandler.addSoul(player1, soul1);
     game.cardHandler.addSoul(player2, soul2);
@@ -849,7 +849,7 @@ describe("Game - Souls & State", () => {
   });
 
   it("should return all leaders on tie", async () => {
-    const soul = { id: "s1", name: "Soul", soul: 1 } as any;
+    const soul = { id: "s1", name: "Soul", soul: 1, setEternal: ()=>{} } as any;
     game.cardHandler.addSoul(player1, soul);
     game.cardHandler.addSoul(player2, soul);
 

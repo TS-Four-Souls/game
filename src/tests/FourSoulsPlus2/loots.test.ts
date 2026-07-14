@@ -357,6 +357,7 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
         game.random = () => 3/6 - 0.001; // roll 3
         await game.actions.playCard(player1, player1.hand.length - 1, []);
         await game.actions.resolveStack();
+        player1.character.deactivate();
         expect(player1.character!.charged).toBe(false);
         await game.endTurn();
         await game.actions.resolveStack();

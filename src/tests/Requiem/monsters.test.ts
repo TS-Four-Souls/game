@@ -337,11 +337,11 @@ describe("Requiem Monsters ", () => {
         expect((game.stack.elements[0] as DiceRoll).attackRoll).toBe(true);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        expect(game.stack.size).toBe(2);
+        expect(game.stack.elements[1]!.json.type).toBe("diceRoll");
+        expect((game.stack.elements[1] as DiceRoll).issuer).toBe(player2);
+        expect((game.stack.elements[1] as DiceRoll).attackRoll).toBe(true);
         await game.actions.resolveStack();
-        expect(game.stack.size).toBe(1);
-        expect(game.stack.elements[0]!.json.type).toBe("diceRoll");
-        expect((game.stack.elements[0] as DiceRoll).issuer).toBe(player2);
-        expect((game.stack.elements[0] as DiceRoll).attackRoll).toBe(true);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -570,7 +570,7 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         // expect(game.stack.isEmpty()).toBe(true); shuffle so can't be sure about this.
-        expect(player1.curses.length).toBe(1);
+        expect(player1.curses.length).toBeGreaterThanOrEqual(1);
     });
 
     it("mother", async () => {

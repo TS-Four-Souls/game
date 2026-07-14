@@ -67,6 +67,8 @@ describe("Four Souls+2 Treasures", () => {
         expect(game.stack.size).toBe(2);
         expect(game.currentPlayer).toBe(player1);
         await game.actions.resolveStack();
+        expect(game.stack.size).toBe(1);
+        expect(game.currentPlayer).toBe(player1);
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player2);
         await game.actions.resolveStack(); // resolve effect
@@ -411,6 +413,7 @@ describe("Four Souls+2 Treasures", () => {
 
     it("fsp2-mama_haunt - [Curse Effect] Your character doesn't recharge during your recharge step.", async () => {
         const card1 = game.obtainCard("fsp2-mama_haunt") as TreasureCard;
+        player1.character.deactivate();
         game.cardHandler.addInPlay(player1, card1);
         await game.endTurn();
         await game.actions.resolveStack();
