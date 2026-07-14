@@ -337,11 +337,11 @@ describe("Requiem Monsters ", () => {
         expect((game.stack.elements[0] as DiceRoll).attackRoll).toBe(true);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        expect(game.stack.size).toBe(2);
+        expect(game.stack.elements[1]!.json.type).toBe("diceRoll");
+        expect((game.stack.elements[1] as DiceRoll).issuer).toBe(player2);
+        expect((game.stack.elements[1] as DiceRoll).attackRoll).toBe(true);
         await game.actions.resolveStack();
-        expect(game.stack.size).toBe(1);
-        expect(game.stack.elements[0]!.json.type).toBe("diceRoll");
-        expect((game.stack.elements[0] as DiceRoll).issuer).toBe(player2);
-        expect((game.stack.elements[0] as DiceRoll).attackRoll).toBe(true);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);

@@ -301,10 +301,10 @@ export class Game extends SelectionHandler {
     return diceRoll;
   }
 
-  setupAttackRoll(dice: DiceRoll): void {
+  async setupAttackRoll(dice: DiceRoll): Promise<void> {
     if(!dice.attackRoll)
       return;
-    this.emit("on:attack:roll", {
+    this.emit("on:attack:roll:modifier", {
       eventIssuer: dice.issuer,
       target: dice.attackTarget,
       dice,
@@ -324,6 +324,12 @@ export class Game extends SelectionHandler {
       dice.attackTarget.card,
       [dice.attackTarget]
     );
+    await dice.onResolve();
+    this.emit("on:attack:roll", {
+      eventIssuer: dice.issuer,
+      target: dice.attackTarget,
+      dice,
+    });
   }
   async resolveDiceRoll(): Promise<void> {
     const stackIds = this.stack.currentStackIds;
@@ -340,11 +346,11 @@ export class Game extends SelectionHandler {
           this.dispatch();
           return;
         }
-        const dice = this.stack.resolve();
-        if(!dice || !(dice instanceof DiceRoll))
-          throw new Error("The resolved stack element is not a DiceRoll.");
-        this.setupAttackRoll(dice);
-        await elem.onResolve();
+        this.stack.resolve();
+        if(elem.attackRoll)
+          await this.setupAttackRoll(elem);
+        else
+          await elem.onResolve();
         // Add to history
         this.addToHistory(elem.json);
         this.dispatch();

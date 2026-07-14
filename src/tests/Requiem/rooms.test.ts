@@ -573,8 +573,8 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         game.actions.attackRoll(player1);
         await game.actions.resolveStack();
-        expect(game.stack.size).toBe(2);
         await game.actions.resolveStack();
+        expect(game.stack.size).toBe(2);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();

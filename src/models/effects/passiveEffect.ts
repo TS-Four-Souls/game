@@ -551,7 +551,7 @@ export function combatDamageModifierOnAttackRollEffect(game: Game, attackRolls: 
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
 
-        offDamage = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
+        offDamage = game.emitter.on("on:attack:roll:modifier", (eventData: OnAttackRollData) => {
             const { eventIssuer, dice} = eventData;
             if (eventIssuer !== data.issuer) return;
             if (!attackRolls.includes(dice.value)) return;
@@ -863,7 +863,7 @@ export function firstAttackRollDiceModifier(
             active = true;
         });
 
-        const offTurnEnd = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
+        const offTurnEnd = game.emitter.on("on:attack:roll:modifier", (eventData: OnAttackRollData) => {
             const { eventIssuer } = eventData;
             if (eventIssuer !== issuer) return;
             if(!active) return
@@ -2490,12 +2490,13 @@ export function lootAfterFlippingEffect(game: Game, amount: number): SyncEffectF
 export function onAttackRollEffect(
     rollValues: number[],
     effect: EffectFunction,
-    game: Game
+    game: Game,
+    event: "on:attack:roll:modifier" | "on:attack:roll"
 ): SyncEffectFunction {
     return (data:EffectData) => {
         let offEffect: (() => void) | null = null;
         // Listen for the next damage event on this player
-        offEffect = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
+        offEffect = game.emitter.on(event, (eventData: OnAttackRollData) => {
             const { eventIssuer, dice } = eventData;
             if (data.issuer !== eventIssuer) return;
             if (rollValues.includes(dice.value)) {

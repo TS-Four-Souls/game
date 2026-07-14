@@ -745,6 +745,7 @@ describe("Loot Card", () => {
 
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
 
         // Stack should be empty and turn should have ended
         expect(game.turnHandler.current).not.toBe(initialPlayer);

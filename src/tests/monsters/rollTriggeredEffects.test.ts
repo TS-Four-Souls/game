@@ -649,6 +649,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         await game.actions.resolveStack(); // on turn end effect
         await game.actions.resolveStack(); // on turn end effect
+        await game.actions.resolveStack(); // on turn end effect
         
         expect(game.stack.size).toBe(0);
         // Stack should be cleared (the effect itself clears it) and turn should have ended

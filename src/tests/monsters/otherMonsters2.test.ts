@@ -391,6 +391,7 @@ describe("Monsters - Various 2", () => {
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // resolve effect
+        await game.actions.resolveStack(); // resolve effect
         expect(game.stack._stack.length).toBe(0); 
         expect(game.currentPlayer.id).toBe(player2.id);
     });

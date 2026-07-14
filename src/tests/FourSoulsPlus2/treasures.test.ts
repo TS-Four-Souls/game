@@ -67,6 +67,8 @@ describe("Four Souls+2 Treasures", () => {
         expect(game.stack.size).toBe(2);
         expect(game.currentPlayer).toBe(player1);
         await game.actions.resolveStack();
+        expect(game.stack.size).toBe(1);
+        expect(game.currentPlayer).toBe(player1);
         await game.actions.resolveStack();
         expect(game.currentPlayer).toBe(player2);
         await game.actions.resolveStack(); // resolve effect

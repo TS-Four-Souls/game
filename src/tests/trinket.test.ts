@@ -646,8 +646,10 @@ describe("Loot Card", () => {
         await game.actions.resolveStack();
 
         // After resolving, player should still be alive
-        expect(game.stack.size).toBe(0);
+        expect(game.stack.size).toBe(1);
         expect(player1.currentHealthPoints).toBeGreaterThan(0);
+        await game.actions.resolveStack();
+        expect(game.stack.size).toBe(0);
     });
 
     it("Broken Ankh: should not prevent death when rolling less than 6", async () => {
