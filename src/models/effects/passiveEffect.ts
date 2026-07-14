@@ -1134,9 +1134,11 @@ export function chooseNumberDamageOnRollThisTurnEffect(game: Game, damageAmount:
         if ([1,2,3,4,5,6].includes(nb) === false) {
             throw new Error("chooseNumberDamageOnRollThisTurnEffect: nb must be a number between 1 and 6.");
         }
-
+        const previouslyRolledDices = game.stack.elements.filter(e => e instanceof DiceRoll);
         offDamage = game.emitter.on("on:dice:resolved", (eventData: OnDiceBeingRolledData) => {
             const { eventIssuer, diceRoll } = eventData;
+            if(previouslyRolledDices.includes(diceRoll))
+                return;
             if (diceRoll.value !== nb) return;
             const effect = active.dealDamageToTargetEffect(game, damageAmount, true, selectPlayerOrMonster(game), "issuer");
             addPassiveEffectToStack(game, effect, data, `Deal ${damageAmount} damage to a target because a ${nb} was rolled.`);
@@ -1709,8 +1711,11 @@ export function lootOnNextRollEffect(game: Game, x: number): SyncEffectFunction 
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         // Listen for the next roll event on this player
+        const previouslyRolledDices = game.stack.elements.filter(e => e instanceof DiceRoll);
         offRoll = game.emitter.on("on:dice:resolved", (eventData: OnDiceBeingRolledData) => {
             const { diceRoll } = eventData;
+            if(previouslyRolledDices.includes(diceRoll))
+                return;
             const guess = data.next;
             if(guess < 1 || guess > 6) {
                 throw new Error("lootOnNextRollEffect target must be a number between 1 and 6.");
