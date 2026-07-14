@@ -105,7 +105,7 @@ export class Game extends SelectionHandler {
     return this._promises;
   }
   async awaitPromises(): Promise<void> {
-    for(const p of this.promises)
+    for (const p of this.promises)
     {
       await p;
     }
@@ -427,14 +427,14 @@ export class Game extends SelectionHandler {
     this.entityHandler.healEveryone();
   } 
 
-  async atGameStartDecisions(){
+  async atGameStartDecisions(): Promise<void> {
     this.emit("on:game:start", {}); // Eden starting item choice
     if(this.gameParameters.miniDraft.value)
       miniDraft(this); // Add resolutions to game.promises.
     await this.awaitPromises();
     await this.executeWhenStackEmpty(async () => {
       await this.startTurn();
-    })
+    });
   }
 
   initializeTeams(): void{

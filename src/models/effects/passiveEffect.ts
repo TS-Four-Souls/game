@@ -3003,13 +3003,10 @@ export function goFirstInTurnOrderEffect(game: Game): SyncEffectFunction {
 export function startingItemEffect(game: Game, x: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = game.emitter.on("on:game:start", async () => {
-            // const effect = async (effectData: EffectData): Promise<boolean> => {
-                game.addPromise(active.selectEternalAmongX(game, x)(data));
-                offEffect?.();
-                offEffect = null;
-                return true;
-            // }
-            // addPassiveEffectToStack(game, effect, data, `Starting item effect`);
+            game.addPromise(active.selectEternalAmongX(game, x)(data));
+            offEffect?.();
+            offEffect = null;
+            return true;
         });
         return true;
     };
