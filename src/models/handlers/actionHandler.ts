@@ -355,7 +355,9 @@ export class ActionHandler {
       if (index < 0 || index > player.hand.cards.length) {
         return "Invalid card position.";
       }
-      const playedCard: LootCard = player.hand.playCard(index);
+      const card = player.hand.cards[index]!;
+      this.game.cardHandler.removeCardFromHand(player, card);
+      const playedCard: LootCard = card;
   
       if (targets.length === 0) {
         if (playedCard.getTargetSelectors().length === 1)
