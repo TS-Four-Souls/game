@@ -1107,7 +1107,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
                     false,
                 ));
         }
-        case "when you have x loot cards in your hand, you have x [atk]": {
+        case "while you have x loot cards in your hand, you have x [atk]": {
             const lootCount = nr.nextNumber();
             const atk = nr.nextNumber();
             return noTargetSyncEffect(passive.ConditionalStatModifierEffect(
@@ -1116,6 +1116,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
                     (player: Player) => player.hand.length === lootCount,
                     ["on:loot:added:after", "on:loot:removed:after"],
                     game,
+                    false
                 ));
         }
         case "you gain x [atk] till the end of turn":
