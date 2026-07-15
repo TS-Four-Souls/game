@@ -208,7 +208,7 @@ class DeckParameter {
     for (const card of this._cards) {
       result.push({
         slug: card.card.slug,
-        name: card.card.name,
+        nameKey: card.card.nameKey,
         count: card.param.value,
       });
     }
@@ -230,7 +230,7 @@ class CharacterDeckParameter extends DeckParameter {
     for (const card of this._cards) {
       result.push({
         slug: card.card.slug,
-        name: card.card.name,
+        nameKey: card.card.nameKey,
         count: card.param.value,
         eternal: (card.card as CharacterCard).eternalCard ?? "random",
       });

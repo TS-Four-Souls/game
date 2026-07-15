@@ -22,7 +22,7 @@ const serializedTranslationSchema = basicSerializedTranslationSchema.extend({
 export type SerializedTranslation = z.infer<typeof serializedTranslationSchema>;
 
 export const identifierTypeSchema = z.object({
-  nameKey: serializedTranslationSchema, /// translated.
+  nameKey: serializedTranslationSchema,
   slug: z.string(),
   globalId: z.number(),
 });
@@ -70,7 +70,7 @@ const deckNameSchema = z.union([
 export type DeckName = z.infer<typeof deckNameSchema>;
 
 const deckConfigCardSchema = z.object({
-  name: z.string(),
+  nameKey: basicSerializedTranslationSchema,
   slug: z.string(),
   count: z.number(),
 });
@@ -148,7 +148,7 @@ const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
     z.object({ type: z.literal("deck"), payload: deckNameSchema }),
     z.object({ type: z.literal("number"), payload: z.number() }),
     z.object({ type: z.literal("boolean"), payload: z.boolean() }),
-    z.object({ type: z.literal("string"), payload: z.string() }), // translated
+    z.object({ type: z.literal("string"), payload: z.string() }),
     z.object({
       type: z.literal("couplePlayerHand"),
       payload: z.object({
@@ -162,7 +162,7 @@ const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
     }),
     z.object({
       type: z.literal("object"),
-      payload: z.record(z.string(), selectionItemSchema), /// weird check where used
+      payload: z.record(z.string(), selectionItemSchema),
     }),
     z.object({ type: z.literal("null"), payload: z.null() }),
     z.object({ type: z.literal("unknown"), payload: z.null() }),
