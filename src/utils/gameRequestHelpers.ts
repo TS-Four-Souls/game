@@ -34,7 +34,6 @@ export async function executeActivateRequest(
   payload: Requests.Activate,
   player: Player,
 ): Promise<TargetSelectorResponse> {
-  console.log(payload.type)
   const card = TargetBuilder.getCard(game, player, payload.index, payload.type);
   // const { effectId, choice } = card.getEffectIdAndChooseOneChoiceFromSeparatorId(payload.effectIndex);
 
