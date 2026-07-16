@@ -1,0 +1,34 @@
+{
+  "input": {
+    "format": "nested",
+    "path": "./src/shared/translation_en.json"
+  },
+  "output": {
+    "path": "./src/shared/translation.d.ts"
+  },
+  "rules": [
+    {
+      "//": "Add interpolation values for matched placeholders",
+      "condition": {
+        "placeholderPattern": {
+          "prefix": "{{",
+          "suffix": "}}"
+        }
+      },
+      "transformer": {
+        "addMatchedPlaceholder": {
+          "type": [
+            "string",
+            "number",
+            "SerializedTranslation",
+            "SerializedTranslation[]"
+          ]
+        }
+      }
+    }
+  ],
+  "extra": {
+    "prettierIgnore": true,
+    "eslintDisablePrettier": false
+  }
+}

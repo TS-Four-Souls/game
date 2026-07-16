@@ -22,7 +22,7 @@ describe("Four Souls+2 Attack Requirements", () => {
     });
 
     it("If must attack top deck and 2 must attack any, player must attack top deck first then any.", async () => {
-        const source = player1.inPlay[0]!;
+        const source = player1.character!;
         game.entityHandler.playerMustAttack(player1, "any", source);
         game.entityHandler.playerMustAttack(player1, "any", source);
         game.entityHandler.playerMustAttack(player1, "topDeck", source);
@@ -40,7 +40,7 @@ describe("Four Souls+2 Attack Requirements", () => {
     });
 
     it("If must attack top deck and must attack any, player can only attack top deck.", async () => {
-        const source = player1.inPlay[0]!;
+        const source = player1.character!;
         game.entityHandler.playerMustAttack(player1, "any", source);
         game.entityHandler.playerMustAttack(player1, "topDeck", source);
         expect(game.actions.canEndTurn(player1, false)).not.toBe(true);
@@ -53,7 +53,7 @@ describe("Four Souls+2 Attack Requirements", () => {
     });
 
     it("If must attack 2 different monsters, they can be attacked in any order 1", async () => {
-        const source = player1.inPlay[0]!;
+        const source = player1.character!;
         const mob1 = game.monsters[0]!;
         const mob2 = game.monsters[1]!;
         game.entityHandler.playerMustAttack(player1, [mob1], source);
@@ -74,7 +74,7 @@ describe("Four Souls+2 Attack Requirements", () => {
     });
 
     it("removes monsters from a forced choice set when they leave play", async () => {
-        const source = player1.inPlay[0]!;
+        const source = player1.character!;
         const mob1 = game.monsters[0]!;
         const mob2 = game.monsters[1]!;
         game.entityHandler.playerMustAttack(player1, [mob1, mob2], source);
@@ -85,7 +85,7 @@ describe("Four Souls+2 Attack Requirements", () => {
     });
 
     it("must attack set", async () => {
-        const source = player1.inPlay[0]!;
+        const source = player1.character!;
         const mob1 = game.monsters[0]!;
         const mob2 = game.monsters[1]!;
         game.entityHandler.playerMustAttack(player1, [mob1, mob2], source);

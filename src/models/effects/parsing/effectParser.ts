@@ -1,6 +1,7 @@
 import * as active from "../activeEffect";
 import {Card, LootCard, MonsterCard, MonsterType} from "../../cards";
 import {Game} from "../../game";
+import { GameError } from "@/models/GameError";
 import * as monster from "../monsterEffects";
 import * as passive from "../passiveEffect";
 import * as room from "../roomEffects";
@@ -25,6 +26,7 @@ import {
     selectCharacterCardFromOutside,
     selectCurse,
     selectDeck,
+    selectDiceWillRoll,
     selectEternalItemYouControl,
     selectItem,
     selectItemYouControl,
@@ -79,6 +81,7 @@ import {
     noTargetSyncEffect,
     syncParseWhenThisEntersPlay
 } from "@/models/effects/parsing/logicParsers.ts";
+import { toSerializedTranslation } from "@/utils/translation";
 
 /**
  * Guide to develop your own effects.
@@ -200,7 +203,7 @@ export function effectParser(s: string, game: Game, selectionOnResolve = false, 
     }
 
     console.log(`Could not parse effect: "${s}"`);
-    throw new Error(`Could not parse effect: "${s}"`);
+    throw new GameError(`Could not parse effect: "${s}"`, toSerializedTranslation("error.parsingError", {error: `Could not parse effect: "${s}"`}));
 }
 
 /**
@@ -501,7 +504,7 @@ if (s.startsWith("you may") &&
             const discardedLoot = data.targets[0];
             data.targets = []; // clear targets to avoid confusion for the restEffect, which shouldn't care about the discarded loot
             if(!(discardedLoot instanceof LootCard))
-                throw new Error("Expected a loot card to be discarded.");
+                throw new GameError("Expected a loot card to be discarded.", toSerializedTranslation("error.expectedLootCardToBeDiscarded"));
             for(let i = 0; i < (discardedLoot.slug.includes(word) ? 3 : 1); i++){
                 await restEffect.effectFunction(data);
             }
@@ -693,7 +696,7 @@ export function parseTheActivePlayerEffect(s: string, game: Game, nr: NumberRobu
         case "the active player chooses a player. that player destroys a soul they control":
             return noTargetEffect(monster.activePlayerSelectAndCallEffect(game, active.destroyOneOfYourSoulEffect(game)));
         default:
-            throw new Error(`Could not parse 'The active player ...' effect: ${s}`);
+            throw new GameError(`Could not parse 'The active player ...' effect: ${s}`, toSerializedTranslation("error.parsingError", {error: `Could not parse 'The active player ...' effect: ${s}`}));
     }
 }
 
@@ -1105,7 +1108,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
                     false,
                 ));
         }
-        case "when you have x loot cards in your hand, you have x [atk]": {
+        case "while you have x loot cards in your hand, you have x [atk]": {
             const lootCount = nr.nextNumber();
             const atk = nr.nextNumber();
             return noTargetSyncEffect(passive.ConditionalStatModifierEffect(
@@ -1114,6 +1117,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
                     (player: Player) => player.hand.length === lootCount,
                     ["on:loot:added:after", "on:loot:removed:after"],
                     game,
+                    false
                 ));
         }
         case "you gain x [atk] till the end of turn":
@@ -1319,7 +1323,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
         case "when you start the game, look at the top x cards of the treasure deck and choose one. it becomes your starting item and gains eternal. put the rest on the bottom of the treasure deck":
             return noTargetSyncEffect(passive.startingItemEffect(game, nr.nextNumber()));
         case "before a dice is rolled, choose a number. if the next roll is that number, loot x":
-            return { effectFunction: passive.lootOnNextRollEffect(game, nr.nextNumber()), targetSelectors: selectNumber1to6() };
+            return { effectFunction: passive.lootOnNextRollEffect(game, nr.nextNumber()), targetSelectors: [...selectDiceWillRoll(game),...selectNumber1to6()] };
         case "when you roll an attack roll of x, end your turn. cancel everything that hasn't resolved":
             return noTargetSyncEffect(passive.endTurnOnAttackRollXEffect(game, nr.nextNumber()));
         case "the next time a player would roll a dice, they instead roll x dice. you choose one of the rolls as the result":
@@ -1349,7 +1353,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
         case "look at the top x cards of the monster or room deck and put them back in any order":
             return { effectFunction: active.lookAndReorderTopCardsEffect(game, nr.nextNumber(), undefined, "dataIssuer"), targetSelectors: selectDeck(game, 1, 1, (name) => ["room", "monster"].includes(name)) };
         case "before a dice is rolled, choose a number. till the end of turn, each time that number is rolled, deal x damage to a monster or player":
-            return { effectFunction: passive.chooseNumberDamageOnRollThisTurnEffect(game, nr.nextNumber()), targetSelectors: selectNumber1to6() };
+            return { effectFunction: passive.chosenumberDamageOnRollThisTurnEffect(game, nr.nextNumber()), targetSelectors: [...selectDiceWillRoll(game),... selectNumber1to6()] };
         case "you may attack an additional time this turn":
             return noTargetSyncEffect(active.giveAdditionalAttackThisTurnEffect(game, 1));
         case "put counters on this equal to the amount of damage taken. then, if this has x+ counters, remove x counters from this and gain x treasure":

@@ -1,10 +1,11 @@
-import { EffectOnStack } from './stackElement';
+import { toSerializedTranslation } from "@/utils/translation";
+import { GameError } from "@/models/GameError";
+import { MonsterCard } from './cards';
 import type { Entity } from "./entities/entity";
 import type { Player } from "./entities/player";
-import { StackElement } from "./stackElement";
-import type { TriggerEvent } from "./types/eventTypes";
-import { MonsterCard } from './cards';
 import type { Game } from './game';
+import { EffectOnStack, StackElement } from './stackElement';
+import type { TriggerEvent } from "./types/eventTypes";
 
 export function isStackElement(obj: any): obj is StackElement {
     return obj instanceof StackElement;
@@ -38,14 +39,8 @@ export class Stack {
 
     removeAt(index: number) : void {
         const element = this._stack[index];
-        if(element !== undefined && "json" in element && element.json.type === 'effect')
-        {
-            const effect = element as EffectOnStack;
-            if(effect.data.it instanceof MonsterCard && effect.data.it.isEvent)
-            {
-                this.game.encounters.discardTop(this.game.encounters.cardsOnTop.indexOf(effect.data.it));
-            }
-        }
+        if(element !== undefined)
+            element?.onCancel(this._game);
         this._stack.splice(index, 1);
     }
     cancelElement(element: StackElement) : void {
@@ -73,16 +68,22 @@ export class Stack {
         const toIndex = this._stack.indexOf(targetElement);
 
         if (fromIndex === -1 || toIndex === -1) {
-            throw new Error("Both elements must be in the stack.");
+            throw new GameError("Both elements must be in the stack.",
+                toSerializedTranslation("error.bothElementsMustBeInStack")
+            );
         }
 
         const sourceGroup = elementToMove.reordering?.groupId;
         const targetGroup = targetElement.reordering?.groupId;
         if (!sourceGroup || !targetGroup) {
-            throw new Error("Both elements must belong to a reordering group.");
+            throw new GameError("Both elements must belong to a reordering group.",
+                toSerializedTranslation("error.bothElementsMustBelongToReorderingGroup")
+            );
         }
         if (sourceGroup !== targetGroup) {
-            throw new Error("Cannot reorder elements from different groups.");
+            throw new GameError("Cannot reorder elements from different groups.",
+                toSerializedTranslation("error.bothElementsMustBelongToReorderingGroup")
+            );
         }
 
         // Swap-based insertion to keep operation explicit and predictable.
@@ -115,18 +116,26 @@ export class Stack {
             : this.elements.find((el) => el.stackId === targetStackId);
     
         if (!elementToMove || !targetElement) {
-          throw new Error("Stack elements to reorder were not found.");
+          throw new GameError("Stack elements to reorder were not found.",
+            toSerializedTranslation("error.stackElementsToReorderWereNotFound")
+          );
         }
         const moveInfo = elementToMove.reordering;
         const targetInfo = targetElement.reordering;
         if (!moveInfo || !targetInfo) {
-          throw new Error("Both stack elements must be reorderable.");
+          throw new GameError("Both stack elements must be reorderable.",
+            toSerializedTranslation("error.bothStackElementsMustBeReorderable")
+          );
         }
         if (moveInfo.groupId !== targetInfo.groupId) {
-          throw new Error("Cannot reorder stack elements from different groups.");
+          throw new GameError("Cannot reorder stack elements from different groups.",
+            toSerializedTranslation("error.cannotReorderStackElementsFromDifferentGroups")
+          );
         }
         if (!moveInfo.ownerId || moveInfo.ownerId !== player.id) {
-          throw new Error("You are not allowed to reorder this trigger group.");
+          throw new GameError("You are not allowed to reorder this trigger group.",
+            toSerializedTranslation("error.youAreNotAllowedToReorderThisTriggerGroup")
+          );
         }
     
         // If the target is the start of the group, we first put the element to move second, and then swap with the first.
@@ -201,7 +210,7 @@ export class Stack {
         const groups: {[issuer: string]: StackElement[]} = {};
         topElements.forEach((el) => {
           const effect = el as EffectOnStack;
-          const issuerId = effect.json.issuer.type === "player" ? effect.json.issuer.name: "game";
+          const issuerId = effect.json.issuer.type === "player" ? effect.json.issuer.nameKey.interpolates!["content"] as string: "game";
           if (!groups[issuerId]) {
             groups[issuerId] = [];
           }

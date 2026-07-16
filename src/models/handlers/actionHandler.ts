@@ -1,4 +1,5 @@
 import { Game } from "../game";
+import { GameError } from "@/models/GameError";
 import { Player } from "../entities/player";
 import type { Capability } from "@/shared/api";
 import type { Entity } from "../entities/entity";
@@ -9,7 +10,8 @@ import { AttackRollData, DamageOnStack, DiceRoll } from "../stackElement";
 import { Card, ItemCard, LootCard, MonsterCard, MonsterType, RoomCard, TreasureCard } from "../cards";
 import { LootCardEffect } from '../stackElement';
 import { TargetBuilder } from "../targetBuilder";
-
+import { toSerializedTranslation } from "@/utils/translation";
+import { type SerializedTranslation } from "@/shared/api";
 export class ActionHandler {
   private _game: Game;
 
@@ -34,10 +36,10 @@ export class ActionHandler {
         this.game.assert.noPendingSelection();
   
         if (player.isEngagedInCombat) {
-          throw new Error("You are already engaged in combat.");
+          throw new GameError("You are already engaged in combat.", toSerializedTranslation("capability.youAlreadyInCombat"));
         }
         if (player.attackThisTurn <= 0 && !player.hasAttackRequirement && !player.hasFreeAttackRemaining)
-          throw new Error("You have no remaining attacks this turn.");
+          throw new GameError("You have no remaining attacks this turn.", toSerializedTranslation("capability.noAttacksRemainingForPlayer"));
         // if(player.hasAttackRequirement)
         //   console.log("Player has attack requirement.");
         // if(player.hasFreeAttackRemaining)
@@ -47,18 +49,18 @@ export class ActionHandler {
         const canDeclareAttackData = {
           eventIssuer: player,
           canDeclare: [true],
-          reason: [""],
+          reason: Array<SerializedTranslation>(0),
         };
         this.game.emit("on:can:declare:attack", canDeclareAttackData, false);
         if (!canDeclareAttackData.canDeclare[0]) {
-          throw new Error(canDeclareAttackData.reason[0]);
+          throw new GameError("", canDeclareAttackData.reason[0]!);
         }
       } catch (e) {
         if (shouldThrow) throw e;
-        if (e instanceof Error) {
-          return e.message;
+        if (e instanceof GameError && e.translation !== undefined) {
+          return e.translation;
         }
-        return "Unknown reason";
+        return toSerializedTranslation("capability.unknownReason");
       }
       return true;
     }
@@ -86,33 +88,36 @@ export class ActionHandler {
         this.game.entityHandler.endCombatIfInvalid(player);
         this.game.assert.emptyStack();
         if (entity !== "topDeck" && !entity.attackable) {
-          throw new Error("This entity cannot be attacked.");
+          throw new GameError("This entity cannot be attacked.", toSerializedTranslation("capability.entityNotAttackable"));
         }
         this.game.assert.currentTurnIsPlayerTurn(player);
         this.game.assert.noOngoingAttack();
         this.game.assert.isAlive(player);
         this.game.assert.emptyStack();
         if (!player.isEngagedInCombat) {
-          throw new Error("You have not declared an attack.");
+          throw new GameError("You have not declared an attack.", toSerializedTranslation("capability.attackNotDeclared"));
         }
         const isCombatOngoing = this.game.entitiesInCombat.length >= 2;
         if (isCombatOngoing) {
-          throw new Error("Another entity is already engaged in combat.");
+          throw new GameError("Another entity is already engaged in combat.", toSerializedTranslation("capability.anotherEntityInCombat"));
         }
         if(entity !== "topDeck" && this.game.attackableEntities.includes(entity) === false)
         {
-          throw new Error("This entity cannot be attacked.");
+          throw new GameError("This entity cannot be attacked.", toSerializedTranslation("capability.entityNotAttackable"));
         }
         const playerCanAttackData = player.canAttackThisEntity(entity);
         if (playerCanAttackData !== true) {
-          throw new Error(playerCanAttackData);
+          throw new GameError("Entity cannot be attacked.", playerCanAttackData);
         }
       } catch (e) {
         if (shouldThrow) throw e;
-        if (e instanceof Error) {
-          return e.message;
+        if (e instanceof GameError && e.translation !== undefined) {
+          return e.translation;
+        }else
+        {
+          console.error("Error in canDeclareAttackOnEntity:", e);
         }
-        return "Unknown reason"
+        return toSerializedTranslation("capability.unknownReason");
       }
       return true;
     }
@@ -135,12 +140,14 @@ export class ActionHandler {
         await this.game.executeWhenStackEmpty(() => {
           target = attacked[0]!; // in case the monster is modified by the event.
           if (drawInIndex !== -1 && target !== "topDeck")
-            throw new Error(
-              "drawInIndex can only be specified when drawing from topDeck"
+            throw new GameError(
+              "drawInIndex can only be specified when drawing from topDeck",
+              toSerializedTranslation("error.drawInIndexOnlyForTopDeck")
             );
           if (drawInIndex === -1 && target === "topDeck")
-            throw new Error(
-              "drawInIndex must be specified when drawing from topDeck"
+            throw new GameError(
+              "drawInIndex must be specified when drawing from topDeck",
+              toSerializedTranslation("error.drawInIndexRequiredForTopDeck")
             );
           if(this.game.actions.canDeclareAttackOnEntity(player, target, false) !== true)
             return; // if the target is no longer valid, do nothing.
@@ -167,7 +174,9 @@ export class ActionHandler {
           target.engageInCombat();
           this.game.entityHandler.addEntityInCombat(target);
           if (target.isEngagedInCombat === false)
-            throw new Error("Monster should be engaged in combat now.");
+            throw new GameError("Monster should be engaged in combat now.",
+              toSerializedTranslation("error.monsterShouldBeEngagedInCombat")
+            );
           
           if(attackTopDeck)
             this.game.emit("on:attack:declared:topdeck", { eventIssuer: player, drawInIndex });
@@ -191,17 +200,43 @@ export class ActionHandler {
         (e) => e !== player
       );
       if (!entity) {
-        throw new Error("No entity is currently engaged in combat.");
+        throw new GameError("No entity is currently engaged in combat.", toSerializedTranslation("capability.noEntityEngagedInCombat"));
       }
     } catch (e) {
       if (shouldThrow) throw e;
-      if (e instanceof Error) {
-        return e.message;
+      if (e instanceof GameError && e.translation !== undefined) {
+        return e.translation;
       }
-      return "Unknown reason";
+      return toSerializedTranslation("capability.unknownReason");
     }
     return true;
   }
+
+  async useCard(
+          type: "hand" | "inPlay" | "character" | "room",
+          player: Player,
+          itemIndex: number,
+          targets: any[],
+          effectId: number | "tap" = "tap"
+      )
+      {
+        switch(type) {
+            case "hand":
+              this.playCard(player, itemIndex, targets);
+              return;
+            case "character":
+              await this.activateItemAtIndex(player, "character", targets, effectId);
+              return;
+            case "inPlay":
+              await this.activateItemAtIndex(player, itemIndex, targets, effectId);
+              return;
+            case "room":
+              if(this._game.rooms === undefined || this._game.rooms.activeRooms[itemIndex] === undefined)
+                return
+              await this.activateRoom(player, this._game.rooms.activeRooms[itemIndex], targets, effectId )
+
+        }
+      }
 
   /**
    * Creates and configures an attack dice roll for the current combat.
@@ -215,11 +250,15 @@ export class ActionHandler {
         (m) => m !== player
       );
     if (!target) {
-      throw new Error("No monster is currently engaged in combat.");
+      throw new GameError("No monster is currently engaged in combat.",
+        toSerializedTranslation("error.noMonsterEngagedInCombat")
+      );
     }
     if(!target.isEngagedInCombat)
     {
-      throw new Error(`${player.id}The selected target (${target.id}) is not engaged in combat.`);
+      throw new GameError(`${player.id}The selected target (${target.id}) is not engaged in combat.`,
+        toSerializedTranslation("error.chosenTargetNotEngagedInCombat", { targetId: target.id })
+      );
     }
     // damageDealt and damageReceived will be increased by the attack
     // of the dealer and receiver respectively in getAttackRollEffect.
@@ -266,7 +305,7 @@ export class ActionHandler {
     if(!this.game.rooms || !(room instanceof RoomCard) || (player !== this.game.currentPlayer))
       return false;
     if (!room.targetStillValid(player, effectId, targets))
-      throw new Error("Targets are not valid for this effect.");
+      throw new GameError("Targets are not valid for this effect.", toSerializedTranslation("error.targetsNotValidForEffect"));
 
     const effectOnStack = await room.tryActivateEffect(targets, effectId);
     this.game.addToStack(effectOnStack);
@@ -298,10 +337,10 @@ export class ActionHandler {
       }
       catch (e) {
         if (shouldThrow) throw e;
-        if (e instanceof Error) {
-          return e.message;
+        if (e instanceof GameError && e.translation !== undefined) {
+          return e.translation;
         }
-        return "Unknown reason";
+        return toSerializedTranslation("capability.unknownReason");
       }
       return true;
     }
@@ -314,17 +353,17 @@ export class ActionHandler {
         this.game.assert.gameStarted();
         this.game.assert.noPendingSelection();
         if (!player.canIUseLootThisTurn) {
-          throw new Error(`You cannot play loot cards during ${this.game.currentPlayer.id}'s turn.`);
+          throw new GameError(`You cannot play loot cards during ${this.game.currentPlayer.id}'s turn.`, toSerializedTranslation("error.cannotPlayLootCardsDuringOtherPlayerTurn", { player: this.game.currentPlayer.id }));
         }
         if (player.remainingLootPlay <= 0) {
-          throw new Error("You have no remaining loot play this turn.");
+          throw new GameError("You have no remaining loot play this turn.", toSerializedTranslation("error.noRemainingLootPlayThisTurn")  );
         }
       } catch (e) {
         if (shouldThrow) throw e;
-        if (e instanceof Error) {
-          return e.message;
+        if (e instanceof GameError && e.translation !== undefined) {
+          return e.translation;
         }
-        return "Unknown reason";
+        return toSerializedTranslation("capability.unknownReason");
       }
       return true;
     }
@@ -339,10 +378,10 @@ export class ActionHandler {
         this.game.assert.noPendingSelection();
       } catch (e) {
         if (shouldThrow) throw e;
-        if (e instanceof Error) {
-          return e.message;
+        if (e instanceof GameError && e.translation !== undefined) {
+          return e.translation;
         }
-        return "Unknown reason";
+        return toSerializedTranslation("capability.unknownReason");
       }
       return true;
     }
@@ -388,17 +427,17 @@ export class ActionHandler {
    */
   async activateItemAtIndex(
     player: Player,
-    index: number,
+    index: number | "character",
     choices: any[] = [],
     effectId: number | "tap" = "tap"
   ): Promise<boolean> {
     this.game.assert.noPendingSelection();
-    const item = player.inPlay[index];
+    const item = index === "character" ? player.character : player.inPlay[index];
     if (!item || !(item instanceof ItemCard)) {
-      throw new Error("Player does not own the specified item.");
+      throw new GameError("Player does not own the specified item.", toSerializedTranslation("error.playerDoesNotOwnItem"));
     }
     if (!item.activeEffectList.map((e) => e.index).includes(effectId))
-      throw new Error("Item does not have the specified effect ID.");
+      throw new GameError("Item does not have the specified effect ID.", toSerializedTranslation("error.itemDoesNotHaveEffectId"));
 
     return this.game.activateItem(player, item, choices, effectId);
   }
@@ -408,19 +447,19 @@ export class ActionHandler {
   canActivate(card: Card, owner: Player): Capability {
     // Ensure the owner actually has the item in-play (prevents bots/actions from trying to activate
     // items they no longer own because the game state changed between action selection and execution).
-    if (card instanceof ItemCard && !owner.inPlay.includes(card)) {
-      return `You do not own the specified item.`;
+    if (card instanceof ItemCard && !owner.inPlay.includes(card) && owner.character !== card) {
+      return toSerializedTranslation("capability.YouDoNotOwnThisItem");
     }
     if(card.type === "loot" && !card.canBeActivated)
-      return "You cannot activate this card.";
+      return toSerializedTranslation("capability.cannotActivate");
     if (card instanceof ItemCard && card.activeEffectList.length === 0) {
-      return "This card has no active effects, there is nothing to activate.";
+      return toSerializedTranslation("capability.noActiveEffect");
     }
     if(card instanceof MonsterCard && card.encounterType === MonsterType.EVENT) {
-      return "You can not activate monster cards.";
+      return toSerializedTranslation("capability.cannotActivateMonsterCard");
     }
     if (!owner.canIActivateThisTurn) {
-      return `You cannot activate cards this turn.`;
+      return toSerializedTranslation("capability.cannotActivateThisTurn");
     }
     // Either card is not charged and has a tap effect, or card does not have a tap effect,
     if (((card.charged === false && card.hasTapEffect()) || !card.hasTapEffect()) && (
@@ -431,8 +470,8 @@ export class ActionHandler {
               TargetBuilder.validTargetExists(this.game, owner, card, e.index) === true)
     )) {
       if(card.activeEffectList.length === 1 && card.activeEffectList[0]!.index === "tap" && !card.charged)
-        return "This card is not charged.";
-      return "This card has no effects usable now.";
+        return toSerializedTranslation("capability.notCharged");
+      return toSerializedTranslation("capability.noEffectsUsable");
     }
     if(card instanceof ItemCard)
       {
@@ -440,16 +479,16 @@ export class ActionHandler {
           return TargetBuilder.validTargetExists(this.game, owner, card, card.activeEffectList[0]!.index);
         }
         else if(!card.activeEffectList.some(e => TargetBuilder.validTargetExists(this.game, owner, card, e.index) === true && (card.charged || e.index !== "tap")))
-          return "No valid target for this card's effects, it cannot be activated.";
+          return toSerializedTranslation("capability.noValidTargets");
       }
     return true;
   }
 
   canSwitchTo(player: Player, target: Player): Capability {
     if (player.user !== target.user)
-      return "You cannot switch to another player.";
+      return toSerializedTranslation("capability.cannotSwitchToOtherPlayer");
     if (player.id === target.id)
-      return "You cannot switch to yourself.";
+      return toSerializedTranslation("capability.cannotSwitchToSelf");
     return true;
   }
 
@@ -465,16 +504,16 @@ export class ActionHandler {
       this.game.assert.emptyStack();
       this.game.assert.noPendingSelection();
       if (player.remainingPurchaseThisTurn <= 0) {
-        throw new Error(
-          `Purchase failed. You have no remaining purchases this turn.\n`
+        throw new GameError(
+          "You have no remaining purchase this turn.", toSerializedTranslation("capability.noRemainingPurchase")
         );
       } 
     } catch (error) {
       if (shouldThrow) throw error;
-      if (error instanceof Error) {
-        return error.message;
+      if (error instanceof GameError && error.translation !== undefined) {
+        return error.translation;
       }
-      return "Unknown reason";
+      return toSerializedTranslation("capability.unknownReason");
     }
     return true;
   }
@@ -499,7 +538,7 @@ export class ActionHandler {
         this.game.dispatch();
       }
     else 
-      throw new Error("You have to purchase an item.");
+      throw new GameError("You have to purchase an item.", toSerializedTranslation("error.mustPurchaseAnItem"));
   }
 
   // We should implement declaring a purchase
@@ -517,16 +556,17 @@ export class ActionHandler {
       this.game.assert.emptyStack();
       const price = this.game.gameParameters.shopPrice.value + (index !== "top" ? player.priceModifier : 0);
       if (player.coins < price!) {
-        throw new Error(
-          `Purchase failed. You need ${price! - player.coins} more coins.\n`
+        throw new GameError(
+          `Purchase failed. You need ${price! - player.coins} more coins.\n`,
+          toSerializedTranslation("error.purchaseFailedNeedMoreCoins", { value: price! - player.coins })
         );
       }
     } catch (error) {
       if (shouldThrow) throw error;
-      if (error instanceof Error) {
-        return error.message;
+      if (error instanceof GameError && error.translation !== undefined) {
+        return error.translation;
       }
-      return "Unknown reason";
+      return toSerializedTranslation("capability.unknownReason");
     }
     return true;
   }
@@ -535,11 +575,13 @@ export class ActionHandler {
   purchase(player: Player, index: number | "top"): string {
     this.canPurchase(player, index, true);
     if (index !== "top" && (index < 0 || index >= this.game.shop.itemsInShop.length))
-      throw new Error("Invalid shop index.");
+      throw new GameError("Invalid shop index.",
+        toSerializedTranslation("error.invalidShopIndex"));
     const price = Math.max(0, this.game.gameParameters.shopPrice.value + (index !== "top" ? player.priceModifier : 0));
       if (player.coins < price!) {
-        throw new Error(
-          `Purchase failed. You need ${price! - player.coins} more coins.\n`
+        throw new GameError(
+          `Purchase failed. You need ${price! - player.coins} more coins.\n`,
+          toSerializedTranslation("error.purchaseFailedNeedMoreCoins", { value: price! - player.coins })
         );
       }
     if (this.game.shop.purchase(player, index, price, this.game)) {
@@ -559,8 +601,9 @@ export class ActionHandler {
       this.game.dispatch();
       return `Purchase successful. You have now ${player.coins} coins.\n`;
     } else {
-      throw new Error(
-        `Purchase failed. You need ${price - player.coins} more coins.\n`
+      throw new GameError(
+        `Purchase failed. You need ${price - player.coins} more coins.\n`,
+        toSerializedTranslation("error.purchaseFailedNeedMoreCoins", { value: price - player.coins })
       );
     }
   }
@@ -572,11 +615,13 @@ export class ActionHandler {
    */
   debugRemoveCards(player: Player, cards: Card[]): void {
     if(!this.game.gameParameters.allowCheatOptions.value)
-      throw new Error("Cheat options are not allowed in this game.");
+      throw new GameError("Cheat options are not allowed in this game.", toSerializedTranslation("error.cheatOptionsNotAllowed"));
     // verify that the cards are actually owned by the player or in the shop/encounters.
     for (const card of cards) {
       if (!this.game.playerCardsAndGameOwnedCards(player).some(c => c === card)) {
-        throw new Error(`Card ${card.name} is not owned by player ${player.id}`);
+        throw new GameError(`Card ${card.name} is not owned by player ${player.id}`,
+          toSerializedTranslation("error.cardNotOwnedByPlayer", { card: card.nameKey, player: player.id })
+        );
       }
     }
     for (const card of cards) {
@@ -585,7 +630,9 @@ export class ActionHandler {
         case "loot":
           const loot = card as LootCard;
           if(!loot)
-            throw new Error(`Card ${card.name} is not a LootCard.`);
+            throw new GameError(`Card ${card.name} is not a LootCard.`,
+              toSerializedTranslation("error.cardNotLootCard", { card: card.nameKey })
+            );
           this.game.cardHandler.removeCardFromHand(player, loot);
           if(loot.trinket)
             this.game.cardHandler.removeInPlay(player, loot);
@@ -594,7 +641,9 @@ export class ActionHandler {
         case "treasure":
           const treasure = card as TreasureCard;
           if(!treasure)
-            throw new Error(`Card ${card.name} is not a TreasureCard.`);
+            throw new GameError(`Card ${card.name} is not a TreasureCard.`,
+              toSerializedTranslation("error.cardNotTreasureCard", { card: card.nameKey })
+            );
           if(this.game.shop.itemsInShop.includes(treasure))
             this.game.shop.removeCard(treasure);
           else
@@ -604,7 +653,9 @@ export class ActionHandler {
         case "monster":
           const monster = card as MonsterCard;
           if(!monster)            
-            throw new Error(`Card ${card.name} is not a MonsterCard.`);
+            throw new GameError(`Card ${card.name} is not a MonsterCard.`,
+              toSerializedTranslation("error.cardNotMonsterCard", { card: card.nameKey })
+            );
           if(monster.isCurse)
             this.game.cardHandler.removeCurse(player, monster);
           else
@@ -615,72 +666,83 @@ export class ActionHandler {
           }
           break;
         default:
-          throw new Error(`Card ${card.name} is of type ${card.type} which cannot be removed with debugRemoveCards.`);
+          throw new GameError(`Card ${card.name} is of type ${card.type} which cannot be removed with debugRemoveCards.`,
+            toSerializedTranslation("error.cardTypeCannotBeRemovedWithDebug", { card: card.nameKey, cardType: card.type })
+          );
       }
     }
     this.game.dispatch();
-    this.game.toast({
-      type: "warning",
-      title: `${player.id} used a cheat to discard ${cards.length} card(s).`,
-      message: `They discarded ${cards.map((c) => c.name).join(", ")}.`,
-      players: this.game.players.map((p) => p.id),
-    });
+    if(cards.length === 1)
+      this.game.toast({
+        type: "warning",
+        title:  toSerializedTranslation("gameStep.cheats.discardCard.popup.successToast.title", { player: player.id, count: cards.length }),
+        message: toSerializedTranslation("gameStep.cheats.discardCard.popup.successToast.message", { cardNames: cards.map((c) => c.nameKey) }),
+        players: this.game.players.map((p) => p.id),
+      });
   }
 
   debugGainTreasures(player: Player, treasures: ItemCard[], fromTop: boolean = false): void {
     if(!this.game.gameParameters.allowCheatOptions.value)
-      throw new Error("Cheat options are not allowed in this game.");
+      throw new GameError("Cheat options are not allowed in this game.", toSerializedTranslation("error.cheatOptionsNotAllowed"));
     for (const card of treasures) {
       const targetCard = this.game.obtainCard(card.slug, card.globalId, "treasure")!;
       if (targetCard instanceof ItemCard === false)
-        throw new Error(`Card ${targetCard.name} is not an ItemCard`);
+        throw new GameError(`Card ${targetCard.name} is not an ItemCard`, toSerializedTranslation("error.targetCardNotItemCard", { card: targetCard.nameKey }));
       this.game.cardHandler.addInPlay(player, targetCard);
     }
     this.game.toast({
       type: "warning",
-      title: `${player.id} used a cheat to ${fromTop ? "gain" : "obtain"} ${treasures.length} treasure${treasures.length > 1 ? "s" : ""}.`,
-      message: `They ${fromTop ? "gained" : "obtained"} ${treasures.map((t) => t.name).join(", ")}${fromTop ? " from the top of the deck." : "."}`,
+      title: fromTop 
+        ? toSerializedTranslation("gameStep.cheats.getTreasureTopDeck.successToast.title", { player: player.id, count: treasures.length })
+        : toSerializedTranslation("gameStep.cheats.selectTreasureToLoot.popup.successToast.title", { player: player.id, count: treasures.length }),
+      message: fromTop 
+        ? toSerializedTranslation("gameStep.cheats.getTreasureTopDeck.successToast.message", { cardName: treasures.map((t) => t.nameKey) })
+        : toSerializedTranslation("gameStep.cheats.selectTreasureToLoot.popup.successToast.message", { cardNames: treasures.map((t) => t.nameKey) }),
       players: this.game.players.map((p) => p.id),
     });
   }
 
   debugGainCoins(player: Player, coins: number): void {
     if(!this.game.gameParameters.allowCheatOptions.value)
-      throw new Error("Cheat options are not allowed in this game.");
+      throw new GameError("Cheat options are not allowed in this game.", toSerializedTranslation("error.cheatOptionsNotAllowed"));
     this.game.gainCoins(player, coins, "gift");
     this.game.toast({
       type: "warning",
-      title: `${player.id} used a cheat to gain ${coins} coin(s).`,
-      message: `They obtained ${coins} coin(s).`,
+      title: toSerializedTranslation("gameStep.cheats.gainGoin.popup.successToast.title", { player: player.id, count: coins }),
+      message: toSerializedTranslation("gameStep.cheats.gainGoin.popup.successToast.message", { count: coins }),
       players: this.game.players.map((p) => p.id),
     });
   }
 
   debugLoot(player: Player, lootCards: LootCard[], broadcastName: boolean = true): void {
     if(!this.game.gameParameters.allowCheatOptions.value)
-      throw new Error("Cheat options are not allowed in this game.");
+      throw new GameError("Cheat options are not allowed in this game.", toSerializedTranslation("error.cheatOptionsNotAllowed"));
     for (const card of lootCards) {
       const targetCard = this.game.obtainCard(card.slug, card.globalId, "loot")! as LootCard;
       this.game.cardHandler.addCardToHand(player, targetCard);
     }
     this.game.toast({
       type: "warning",
-      title: `${player.id} used a cheat to ${broadcastName ? "obtain" : "loot"} ${lootCards.length}${broadcastName ? ` loot card${lootCards.length > 1 ? "s" : ""}.` : "."}`,
-      message: broadcastName ? `They obtained ${lootCards.map((c) => c.name).join(", ")}.` : `They looted ${lootCards.length} from the top of the deck.`,
+      title: broadcastName 
+        ? toSerializedTranslation("gameStep.cheats.selectCardToLoot.popup.successToast.title", { player: player.id, count: lootCards.length })
+        : toSerializedTranslation("gameStep.cheats.getLootTopDeck.successToast.title", { player: player.id }),
+      message: broadcastName 
+        ? toSerializedTranslation("gameStep.cheats.selectCardToLoot.popup.successToast.message", { cardNames: lootCards.map((c) => c.nameKey)  })
+        : toSerializedTranslation("gameStep.cheats.getLootTopDeck.successToast.message"),
       players: this.game.players.map((p) => p.id),
     });
   }
   debugPutMonsterCardInSlot(player: Player, card: MonsterCard, index: number): void {
     if (!card) {
-      throw new Error("Card not found in the game.");
+      throw new GameError("Card not found in the game.", toSerializedTranslation("error.cardNotFoundInGame"));
     }
     this.game.cardHandler.addTopPosition("monster", card);
     this.game.encounters.draw(index);
     this.game.dispatch();
     this.game.toast({
       type: "warning",
-      title: `${player.id} used a cheat to summon a monster card.`,
-      message: `They put ${card.name} in the monster slot ${index + 1}.`,
+      title: toSerializedTranslation("gameStep.cheats.putMonsterCardInSlot.popup.successToast.title", { player: player.id }),
+      message: toSerializedTranslation("gameStep.cheats.putMonsterCardInSlot.popup.successToast.message", { card: card.nameKey, value: index + 1 }),
       players: this.game.players.map((p) => p.id),
     });
   }

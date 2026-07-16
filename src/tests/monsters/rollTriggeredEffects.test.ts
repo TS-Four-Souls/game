@@ -427,7 +427,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, holyMomsEye);
         
-        const item = player1.inPlay[0] as ItemCard;
+        const item = player1.character as ItemCard;
         item.charged = false;
         
         const lootCard = game.obtainCard("b2-pills") as LootCard;

@@ -17,9 +17,9 @@ class DummyStackElement extends StackElement {
   get json(): StackElementJson {
     return {
       type: "effect",
-      issuer: { type: "player", color:"#000000", name: "dummy", slug: "dummy", globalId: 0 },
+      issuer: { type: "player", color:"#000000", nameKey:{key: "dummy"}, slug: "dummy", globalId: 0 },
       targets: [],
-      card: { name: this.label, slug: this.label, globalId: 0 },
+      card: { nameKey: {key: this.label}, slug: this.label, globalId: 0 },
       effect: this.label,
       id: this.stackId,
       visualEffectBox: { startIndex: 0, endIndex: 0 },
@@ -157,6 +157,7 @@ describe("Player - In-Play Cards", () => {
 
   beforeEach(() => {
     player = new Player("testPlayer", Team.Team1);
+    player.character = {} as any;
     player.addAttackPoints(3); // Start with 3 attack points for testing
     player.addHealthPoints(5); // Start with 5 health points for testing
     player.gainCoins(10); // Start with 10 coins for testing
@@ -164,13 +165,6 @@ describe("Player - In-Play Cards", () => {
 
   it("should have empty in-play cards initially", async () => {
     expect(player.inPlay.length).toBe(0);
-  });
-
-  it("should be able to add in-play cards", async () => {
-    const mockCard = { id: "card1", name: "Test Card", type: "item" } as any;
-    player.addInPlay(mockCard);
-    expect(player.inPlay.length).toBe(1);
-    expect(player.inPlay[0]).toBe(mockCard);
   });
 
   it("should be able to add multiple in-play cards", async () => {
@@ -466,6 +460,7 @@ describe("DiceRoll", () => {
     player.addAttackPoints(3);
     player.addHealthPoints(5);
     player.gainCoins(10);
+    player.character = {} as any;
   });
 
   it("should create a valid dice roll", async () => {
@@ -509,8 +504,7 @@ describe("DiceRoll", () => {
   it("should return json representation correctly", async () => {
     const dice = player.rollDice(Math.random, new AttackRollData(0, 1, 0, 1, 1, player));
     const json = dice.json;
-    
-    expect(json.issuer.name).toBe("testPlayer");
+    expect(json.issuer.nameKey.interpolates!["content"]).toBe("testPlayer");
     expect(json.diceRoll >= 1 && json.diceRoll <= 6).toBe(true);
   });
 
@@ -629,7 +623,7 @@ describe("Game - Guardrails", () => {
 
   it("should select the first n options", async () => {
     const options = [1, 2, 3, 4];
-    const result = await game.select(player1, 2, 2, options);
+    const result = await game.select(player1, 2, 2, options, {key:""});
     expect(result.selected).toEqual([1, 2]);
     expect(result.remaining).toEqual([3, 4]);
   });
@@ -700,9 +694,9 @@ describe("Stack - Behavior", () => {
 
   it("should remove element at index", async () => {
     const stack = new Stack(new Game());
-    const a = { id: "a", type: "loot" } as any;
-    const b = { id: "b", type: "loot" } as any;
-    const c = { id: "c", type: "loot" } as any;
+    const a = { id: "a", type: "loot", onCancel(game: Game){} } as any;
+    const b = { id: "b", type: "loot", onCancel(game: Game){} } as any;
+    const c = { id: "c", type: "loot", onCancel(game: Game){} } as any;
 
     stack.push(a as any);
     stack.push(b as any);
@@ -843,8 +837,8 @@ describe("Game - Souls & State", () => {
   });
 
   it("should compute players with most souls", async () => {
-    const soul1 = { id: "s1", name: "Soul 1", soul: 1 } as any;
-    const soul2 = { id: "s2", name: "Soul 2", soul: 2 } as any;
+    const soul1 = { id: "s1", name: "Soul 1", soul: 1, setEternal: ()=>{} } as any;
+    const soul2 = { id: "s2", name: "Soul 2", soul: 2, setEternal: ()=>{} } as any;
 
     game.cardHandler.addSoul(player1, soul1);
     game.cardHandler.addSoul(player2, soul2);
@@ -855,7 +849,7 @@ describe("Game - Souls & State", () => {
   });
 
   it("should return all leaders on tie", async () => {
-    const soul = { id: "s1", name: "Soul", soul: 1 } as any;
+    const soul = { id: "s1", name: "Soul", soul: 1, setEternal: ()=>{} } as any;
     game.cardHandler.addSoul(player1, soul);
     game.cardHandler.addSoul(player2, soul);
 

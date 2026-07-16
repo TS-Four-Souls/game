@@ -1,8 +1,10 @@
-import type { Game } from "@/models/game";
-import { TargetBuilder } from "@/models/targetBuilder";
-import { Player } from "@/models/entities/player"
-import type { Requests, TargetSelectorResponse } from "@/shared/api";
 import type { ItemCard, LootCard, MonsterCard } from "@/models/cards";
+import { Player } from "@/models/entities/player";
+import type { Game } from "@/models/game";
+import { GameError } from "@/models/GameError";
+import { TargetBuilder } from "@/models/targetBuilder";
+import type { Requests, TargetSelectorResponse } from "@/shared/api";
+import { toSerializedTranslation } from "./translation";
 
 export async function executeAttackMonsterRequest(
   game: Game,
@@ -13,7 +15,9 @@ export async function executeAttackMonsterRequest(
     payload.index === "top" ? "topDeck" : game.encounters.monsterIn(payload.index);
 
   if (!monster) {
-    throw new Error(`No monster at index ${payload.index}`);
+    throw new GameError(`No monster at index ${payload.index}`,
+      toSerializedTranslation("error.noMonsterAtIndex", { value: payload.index })
+    );
   }
 
   const drawInIndex = payload.index === "top" ? payload.replaceIndex : -1;
@@ -25,55 +29,22 @@ export async function executeAttackMonsterRequest(
   });
 }
 
-export function executePlayCardRequest(
-  game: Game,
-  payload: Requests.PlayCard,
-  player: Player,
-): TargetSelectorResponse {
-  let partialChoice = payload.targetChoices || [];
-  const card = TargetBuilder.getCardFromPlayer(game, player, payload.index, "hand");
-  // const { effectId, choice } = card.getEffectIdAndChooseOneChoiceFromSeparatorId(payload.effectIndex);
-  // if(choice !== undefined) {
-  //   partialChoice = [...TargetBuilder.convertToSelectionItems(choice), ...partialChoice];
-  // }
-  const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(
-    game,
-    player,
-    card,
-    partialChoice,
-    payload.effectIndex,
-  );
-
-  if (choices.complete) {
-    const targets = TargetBuilder.buildTargets(
-      game,
-      player,
-      card,
-      partialChoice,
-      payload.effectIndex,
-    );
-    game.actions.playCard(player, payload.index, targets);
-    game.addToHistory({
-                type: "PlayCard",
-                payload,
-                issuer: player.id,
-              });
-  }
-  return choices;
-}
-
 export async function executeActivateRequest(
   game: Game,
   payload: Requests.Activate,
   player: Player,
 ): Promise<TargetSelectorResponse> {
-  const partialChoices = payload.targetChoices || [];
-  const item = TargetBuilder.getCardFromPlayer(game, player, payload.index, "inPlay");
+  const card = TargetBuilder.getCard(game, player, payload.index, payload.type);
+  // const { effectId, choice } = card.getEffectIdAndChooseOneChoiceFromSeparatorId(payload.effectIndex);
 
+  let partialChoices = payload.targetChoices === undefined ? [] : payload.targetChoices;
+  // if(choice !== undefined) {
+  //   partialChoices = [...TargetBuilder.convertToSelectionItems(choice), ...partialChoices];
+  // }
   const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(
     game,
     player,
-    item,
+    card,
     partialChoices,
     payload.effectIndex,
   );
@@ -82,11 +53,12 @@ export async function executeActivateRequest(
     const targets = TargetBuilder.buildTargets(
       game,
       player,
-      item,
+      card,
       partialChoices,
       payload.effectIndex,
     );
-    await game.actions.activateItemAtIndex(
+    await game.actions.useCard(
+      payload.type,
       player,
       payload.index,
       targets,
@@ -108,65 +80,15 @@ export async function executeActivateWithIdRequest(
   payload: Requests.ActivateWithID,
   player: Player,
 ): Promise<TargetSelectorResponse> {
-  const item = TargetBuilder.getCardFromPlayer(game, player, payload.index, "inPlay");
-  const { effectId, choice } = item.getEffectIdAndChooseOneChoiceFromSeparatorId(payload.effectIndex);
+  const card = TargetBuilder.getCard(game, player, payload.index, payload.type);
+  const { effectId, choice } = card.getEffectIdAndChooseOneChoiceFromSeparatorId(payload.effectIndex);
 
-  let partialChoice = payload.targetChoices === undefined ? [] : payload.targetChoices;
+  let partialChoices = payload.targetChoices === undefined ? [] : payload.targetChoices;
   if(choice !== undefined) {
-    partialChoice = [...TargetBuilder.convertToSelectionItems(choice), ...partialChoice];
+    partialChoices = [...TargetBuilder.convertToSelectionItems(choice), ...partialChoices];
   }
-  return executeActivateRequest(
-    game,
-    {
-      index: payload.index,
-      effectIndex: effectId,
-      targetChoices: partialChoice,
-    },
-    player
-  );
-}
-
-export async function executeActivateRoomRequest(
-  game: Game,
-  payload: Requests.ActivateRoom,
-  player: Player,
-): Promise<TargetSelectorResponse> {
-  const partialChoices = payload.targetChoices || [];
-  const room = game.rooms?.roomIn(payload.index);
-  if(!room) {
-    throw new Error(`No room at index ${payload.index}`);
-  }
-  const choices: TargetSelectorResponse = TargetBuilder.getNextSelector(
-    game,
-    player,
-    room,
-    partialChoices,
-    payload.effectIndex,
-  );
-
-  if (choices.complete) {
-    const targets = TargetBuilder.buildTargets(
-      game,
-      player,
-      room,
-      partialChoices,
-      payload.effectIndex,
-    );
-    await game.actions.activateRoom(
-      player,
-      room,
-      targets,
-      payload.effectIndex,
-    );
-  }
-  if (choices.complete) {
-    game.addToHistory({
-      type: "ActivateRoom",
-      payload,
-      issuer: player.id,
-    });
-  }
-  return choices;
+  
+  return executeActivateRequest(game, payload, player);
 }
 
 
@@ -196,8 +118,10 @@ export async function executeResolveRequest(
   game: Game,
   player: Player,
 ): Promise<void> {
-  if(player.user !== game.currentPlayer.user) {
-    throw new Error("Only the current player can resolve the stack");
+  if(player.user !== game.currentPlayer.user)  {
+    throw new GameError("Only the current player can resolve the stack",
+      toSerializedTranslation("error.onlyCurrentPlayerCanResolveStack")
+    );
   }
   game.addToHistory({ type: "Resolve", issuer: player.id });
   await game.actions.resolveStack();
@@ -300,7 +224,9 @@ export function executeDebugLootTopRequest(
   });
   const topCard = game.decks.loot.cards[0];
   if (!topCard) {
-    throw new Error("Loot deck is empty");
+    throw new GameError("Loot deck is empty",
+      toSerializedTranslation("error.lootDeckIsEmpty")
+    );
   }
   game.actions.debugLoot(player, [topCard], false);
 }
@@ -315,7 +241,9 @@ export function executeDebugGainTreasureTopRequest(
   });
   const topCard = game.decks.treasure.cards[0];
   if (!topCard) {
-    throw new Error("Treasure deck is empty");
+    throw new GameError("Treasure deck is empty",
+      toSerializedTranslation("error.treasureDeckIsEmpty")
+    );
   }
   game.actions.debugGainTreasures(player, [topCard], true);
 }
@@ -333,7 +261,9 @@ export function executeDebugLootRequest(
   if (cards && cards.length > 0) {
     const lootDeck = game.decks["loot"];
     if (!lootDeck) {
-      throw new Error("Loot deck not available");
+      throw new GameError("Loot deck not available",
+        toSerializedTranslation("error.lootDeckNotAvailable")
+      );
     }
     game.actions.debugLoot(player, cards as LootCard[]);
   }
@@ -374,7 +304,9 @@ export function executeDebugGainTreasureRequest(
   if (cards && cards.length > 0) {
     const treasureDeck = game.decks["treasure"];
     if (!treasureDeck) {
-      throw new Error("Treasure deck not available");
+      throw new GameError("Treasure deck not available",
+        toSerializedTranslation("error.treasureDeckNotAvailable")
+      );
     }
     game.actions.debugGainTreasures(player, cards as ItemCard[], false);
   }
@@ -407,8 +339,9 @@ export function executeDebugPutMonsterCardInSlotRequest(
     payload.card.globalId,
   ) as MonsterCard;
   if (!card) {
-    throw new Error(
+    throw new GameError(
       "Card not found in the game.",
+      toSerializedTranslation("error.cardNotFoundInCardSet")
     );
   }
   const index = game.encounters._slots

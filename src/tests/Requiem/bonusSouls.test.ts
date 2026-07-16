@@ -69,7 +69,7 @@ it("Soul of Lust - each time a player kills a monster, put a counter on this. - 
             game.cardHandler.addTopPosition("monster", game.obtainCard(monster)!);
         }
         for(let i=0; i<6; i++) {
-            game.entityHandler.kill(player1, game.monsters[0]!, player1.inPlay[0]!);
+            game.entityHandler.kill(player1, game.monsters[0]!, player1.character!);
             await game.actions.resolveStack();
             expect(game.currentPlayer.totalSouls).toBe((i === 5 ? 1 : 0));
             await game.endTurn();
@@ -95,7 +95,7 @@ it("Soul of Wrath - each time a player dies, put a counter on this. - 6 counters
         ({ game, player1, player2 } = await setupBonusSoulsTestGame("r-soul_of_wrath"));
 
         for(let i=0; i<6; i++) {
-            game.entityHandler.kill(player1, game.currentPlayer, player1.inPlay[0]!);
+            game.entityHandler.kill(player1, game.currentPlayer, player1.character!);
             await game.actions.resolveStack();
             expect(game.currentPlayer.totalSouls).toBe((i === 5 ? 1 : 0));
             await game.endTurn();
@@ -110,15 +110,15 @@ it("Soul of Wrath - each time a player dies, put a counter on this. - 6 counters
 
 it("Soul of Sloth - the first time a player controls 4 items, the active player chooses a player who controls the fewest items or tied for fewest. that player gains this soul.", async () => {
         ({ game, player1, player2 } = await setupBonusSoulsTestGame("r-soul_of_sloth"));
-        for(let i=0; i<4; i++) {
-            game.gainTreasure(player1, 1);
-            expect(player2.totalSouls).toBe((i === 4 ? 1 : 0));
-        }
-        
         function wait(ms: number) {
             return new Promise(resolve => setTimeout(resolve, ms));
         }
-        await game.actions.resolveStack(); // Resolve any stack effects
+        for(let i=0; i<3; i++) {
+            game.gainTreasure(player1, 1);
+            await game.actions.resolveStack(); // Resolve any stack effects
+            expect(player2.totalSouls).toBe((i === 2 ? 1 : 0));
+        }
+        
         expect(player2.souls.map(c => c.slug)).toContain("r-soul_of_sloth");
     });
 });

@@ -1,8 +1,10 @@
+import { Game } from "@/models/game";
+import { GameError } from "@/models/GameError";
+import { toSerializedTranslation } from "@/utils/translation";
 import { type Deck, EffectData, MonsterCard, MonsterType } from "../cards";
-import { EffectOnStack } from '../stackElement';
 import { Monster } from "../entities/monster";
 import { Player } from "../entities/player";
-import type { Game } from "../game";
+import { EffectOnStack } from '../stackElement';
 import { Slots } from "./slots";
 /**
  * Manages the monster encounter slots in the Four Souls game.
@@ -79,11 +81,15 @@ export class Encounters extends Slots<MonsterCard> {
                         else
                             break;
                         if (i === this._deck.length - 1) {
-                            throw new Error(`No valid monster card found in deck. The deck has ${this._deck.length} cards left.`);
+                            throw new GameError(`No valid monster card found in deck. The deck has ${this._deck.length} cards left.`,
+                                toSerializedTranslation("error.behaviorError", { error: `No valid monster card found in deck. The deck has ${this._deck.length} cards left.` })
+                            );
                         }
                     }
                     if (!(card instanceof MonsterCard)) {
-                        throw new Error("Non monster card in encounters deck");
+                        throw new GameError("Non monster card in encounters deck",
+                            toSerializedTranslation("error.behaviorError", { error: "Non monster card in encounters deck" })
+                        );
                     }
                 }
                 this._slots[i]!.push(card!);
@@ -131,10 +137,12 @@ export class Encounters extends Slots<MonsterCard> {
      */
     override draw(position: number): void {
         if (position < 0 || position >= this._slots.length)
-            throw new Error("Invalid slot position to draw to. Position: " + position + ", Slots length: " + this._slots.length);
+            throw new GameError("Invalid slot position to draw to. Position: " + position + ", Slots length: " + this._slots.length,
+                toSerializedTranslation("error.behaviorError", { error: "Invalid slot position to draw to. Position: " + position + ", Slots length: " + this._slots.length }));
         const card = this._deck.draw();
         if (card === undefined)
-            throw new Error(`Cannot draw card from deck for slot ${position}. The deck has ${this._deck.cards.length} cards left.`);
+            throw new GameError(`Cannot draw card from deck for slot ${position}. The deck has ${this._deck.cards.length} cards left.`,
+                toSerializedTranslation("error.behaviorError", { error: `Cannot draw card from deck for slot ${position}. The deck has ${this._deck.cards.length} cards left.` }));
         this._slots[position]!.push(card);
         this.createMonsterAtSlot(position);
     }
@@ -215,9 +223,10 @@ export class Encounters extends Slots<MonsterCard> {
             async (data: EffectData) => {
                 const stackIds = this._game.stack.currentStackIds;
                 if (!(data.issuer instanceof Player))
-                    throw new Error("Event encounter effect issuer is not a player");
+                    throw new GameError("Event encounter effect issuer is not a player",
+                        toSerializedTranslation("error.eventEncounterIssuerNotPlayer"));
                 if (event.isCurse) {
-                    const selection = await data.selectAndRecord(this._game, this._game.currentPlayer, 1, 1, this._game.players, `Select a player to receive ${event.name}.`, true, true);
+                    const selection = await data.selectAndRecord(this._game, this._game.currentPlayer, 1, 1, this._game.players, toSerializedTranslation("pending.playerToReceiveEvent", { card: event.nameKey }), true, true);
                     const owner = selection.selected[0];
                     if (!owner) return false;
                     await this._game.cardHandler.addCurse(owner, event);
@@ -331,13 +340,14 @@ export class Encounters extends Slots<MonsterCard> {
      */
     async selectValidIndexAndDraw(game: Game, player: Player, data: EffectData, youMay: boolean = false): Promise<number>
     {
-        const selected = (await data.selectAndRecord(game, player, youMay ? 0 : 1, 1, this.coverableSlots, "Where do you want to put The Bloat?", true, true)).selected;
+        const selected = (await data.selectAndRecord(game, player, youMay ? 0 : 1, 1, this.coverableSlots, toSerializedTranslation("pending.whereToPutTheBloat"), true, true)).selected;
 
         if(selected.length === 0)
             return -1;
         const selection = selected[0];
         if(selection === undefined)
-            throw new Error("No selection made for searchForBloatEffect.");
+            throw new GameError("No selection made for searchForBloatEffect.",
+                toSerializedTranslation("error.behaviorError", { error: "No selection made for searchForBloatEffect." }));
         const index:number = this.visible.indexOf(selection as MonsterCard);
         this.draw(index);
         return index;

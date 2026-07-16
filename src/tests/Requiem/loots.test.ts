@@ -59,7 +59,7 @@ describe("Requiem Loots ", () => {
         game.cardHandler.addCardToHand(player1, loot);
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();
-        player1.inPlay[2]?.setEternal(true);
+        player1.inPlay[1]?.setEternal(true);
         game.gainCoins(player1, 5, loot);
         game.loot(player1, 2);
         game.entityHandler.kill(player1, player1, loot);
@@ -92,7 +92,7 @@ describe("Requiem Loots ", () => {
         let loot = game.obtainCard("r-golden_trinket") as LootCard;
         game.cardHandler.addCardToHand(player1, loot);
         game.gainTreasure(player1, 1);
-        const treas = player1.inPlay[2]!;
+        const treas = player1.inPlay[1]!;
         game.actions.playCard(player1, 0, []);
         game.select = async (player: Player, min: number, max: number, Options: any[]) => { //monster 0
             if(Options.includes(treas))
@@ -270,9 +270,9 @@ describe("Requiem Loots ", () => {
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();
         expect(loot.counters.value("normal")).toBe(0);
-        game.cardHandler.destroyCardsOrSouls([player1.inPlay[2]!]);
-        expect(player1.inPlay.length).toBe(3);
-        expect(player1.inPlay[2]!.slug).toBe(loot.slug);
+        game.cardHandler.destroyCardsOrSouls([player1.inPlay[1]!]);
+        expect(player1.inPlay.length).toBe(2);
+        expect(player1.inPlay[1]!.slug).toBe(loot.slug);
         expect(loot.counters.value("normal")).toBe(1);
         expect(player1.currentHealthPoints).toBe(3);
         expect(player1.healthPoints).toBe(3);
@@ -282,8 +282,8 @@ describe("Requiem Loots ", () => {
         game.cardHandler.addToCounter(player1, loot, "normal", 1);
         expect(player1.currentHealthPoints).toBe(3);
         expect(player1.healthPoints).toBe(3);
-        game.cardHandler.destroyCardsOrSouls([player1.inPlay[2]!]);
-        expect(player1.inPlay.length).toBe(2);
+        game.cardHandler.destroyCardsOrSouls([player1.inPlay[1]!]);
+        expect(player1.inPlay.length).toBe(1);
         expect(player1.currentHealthPoints).toBe(2);
         expect(player1.healthPoints).toBe(2);
     });
@@ -315,7 +315,7 @@ describe("Requiem Loots ", () => {
         const room = game.rooms?.activeRooms[0]!;
 
         game.cardHandler.recharge(player1.character);
-        await game.activateItem(player1, player1.inPlay[0]! as ItemCard);
+        await game.activateItem(player1, player1.character! as ItemCard);
         let mob = game.monsters[0]!;
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -328,7 +328,7 @@ describe("Requiem Loots ", () => {
             return {selected: [Options[Options.length - 1]], remaining: []};
         };
         game.cardHandler.recharge(player1.character);
-        await game.activateItem(player1, player1.inPlay[0]! as ItemCard);
+        await game.activateItem(player1, player1.character! as ItemCard);
         mob = game.monsters[0]!;
         await game.actions.resolveStack();
         expect(mob.card.slug).toBe(game.monsters[0]!.card.slug);
@@ -378,11 +378,11 @@ describe("Requiem Loots ", () => {
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();
         game.gainTreasure(player1, 1);
-        game.cardHandler.destroyCardsOrSouls([player1.inPlay[3]!]);
-        expect(player1.inPlay.length).toBe(3);
         game.cardHandler.destroyCardsOrSouls([player1.inPlay[2]!]);
-        expect(player1.inPlay.length).toBe(3);
-        expect(player1.inPlay[2]!.slug).not.toBe(loot.slug);
+        expect(player1.inPlay.length).toBe(2);
+        game.cardHandler.destroyCardsOrSouls([player1.inPlay[1]!]);
+        expect(player1.inPlay.length).toBe(2);
+        expect(player1.inPlay[1]!.slug).not.toBe(loot.slug);
     });
 
     it("callus", async () => {

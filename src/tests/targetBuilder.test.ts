@@ -190,7 +190,7 @@ describe("Target Builder Interface", () => {
     const cardIdentifiers = TargetBuilder["convertToSelectionItems"]([card]);
     expect(cardIdentifiers[0]).toEqual({
       type: "card",
-      payload: { name: card.name, slug: card.slug, globalId: card.globalId },
+      payload: { nameKey: card.nameKey, slug: card.slug, globalId: card.globalId },
     });
 
     // Test number conversion - should return string numbers
@@ -215,7 +215,7 @@ describe("Target Builder Interface", () => {
 
     // Resolve card - identifier includes slug + global id
     const resolvedCard = TargetBuilder["resolveIdentifier"](
-      { type: "card", payload: { name: card.name, slug: card.slug, globalId: card.globalId } },
+      { type: "card", payload: { nameKey: card.nameKey, slug: card.slug, globalId: card.globalId } },
       [card],
     );
     expect(resolvedCard?.slug).toBe(card.slug);
@@ -431,7 +431,7 @@ describe("Target Builder Interface", () => {
   });
 
   it("should handle b", async () => {
-    const bloodLust = player1.inPlay[1] as ItemCard;
+    const bloodLust = player1.inPlay[0] as ItemCard;
     game.cardHandler.recharge(bloodLust);
 
     // Step 1: Get the choose-one selector
@@ -522,7 +522,7 @@ describe("Target Builder - validTargetExists", () => {
         contract,
         0,
       );
-      expect(result).toBe("No valid targets.");
+      expect(result !== true && result.key === "capability.noValidTargets").toBe(true);
     });
 
     it("should return true when effect has no selectors (always activatable)", () => {
@@ -548,7 +548,7 @@ describe("Target Builder - validTargetExists", () => {
         null as any,
         "tap",
       );
-      expect(result).toBe("Item not found.");
+      expect(result !== true && result.key === "error.itemNotFound").toBe(true);
     });
   });
 
@@ -586,7 +586,7 @@ describe("Target Builder - validTargetExists", () => {
         contract,
         0,
       );
-      expect(result).toBe("No valid targets.");
+      expect(result !== true && result.key === "capability.noValidTargets").toBe(true);
     });
 
     it("should return error when second selector has no targets", () => {
@@ -606,7 +606,7 @@ describe("Target Builder - validTargetExists", () => {
         contract,
         0,
       );
-      expect(result).toBe("No valid targets.");
+      expect(result !== true && result.key === "capability.noValidTargets").toBe(true);
     });
   });
 
@@ -687,7 +687,7 @@ describe("Target Builder - validTargetExists", () => {
         contract,
         0,
       );
-      expect(result).toBe("No valid targets.");
+      expect(result !== true && result.key === "capability.noValidTargets").toBe(true);
     });
 
     it("should return true when available targets >= required count", () => {
@@ -733,7 +733,7 @@ describe("Target Builder - validTargetExists", () => {
         0,
       );
       // Should backtrack and eventually determine no valid path exists
-      expect(result).toBe("No valid targets.");
+      expect(result !== true && result.key === "capability.noValidTargets").toBe(true);
     });
 
     it("should find valid path through backtracking", () => {
@@ -859,7 +859,7 @@ describe("Target Builder - validTargetExists", () => {
         contract,
         0,
       );
-      expect(result).toBe("No valid targets.");
+      expect(result !== true && result.key === "capability.noValidTargets").toBe(true);
     });
 
     it("should handle items with null or undefined selectors gracefully", () => {
@@ -909,7 +909,7 @@ describe("Target Builder - validTargetExists", () => {
 
       // No items to destroy
       let result = TargetBuilder.validTargetExists(game, player1, contract, 0);
-      expect(result).toBe("No valid targets.");
+      expect(result !== true && result.key === "capability.noValidTargets").toBe(true);
 
       // Add items to destroy but no targets to steal
       const item1 = game.obtainCard("b2-blank_card") as ItemCard;
@@ -918,7 +918,7 @@ describe("Target Builder - validTargetExists", () => {
       game.cardHandler.addInPlay(player1, item2);
 
       result = TargetBuilder.validTargetExists(game, player1, contract, 0);
-      expect(result).toBe("No valid targets.");
+      expect(result !== true && result.key === "capability.noValidTargets").toBe(true);
 
       // Add target to steal
       const targetItem = game.obtainCard("b2-book_of_sin") as ItemCard;
@@ -959,8 +959,7 @@ describe("Target Builder - validTargetExists", () => {
         contract,
         0,
       );
-      expect(typeof result).toBe("string");
-      expect(result).toBe("No valid targets.");
+      expect(result !== true && result.key === "capability.noValidTargets").toBe(true);
     });
 
     it("should return 'Item not found.' for null item", () => {
@@ -970,8 +969,7 @@ describe("Target Builder - validTargetExists", () => {
         null as any,
         "tap",
       );
-      expect(result).toBe("Item not found.");
-      expect(typeof result).toBe("string");
+      expect(result !== true && result.key === "error.itemNotFound").toBe(true);
     });
   });
 });

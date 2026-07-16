@@ -1,21 +1,22 @@
-import { schemas } from "@/shared/api";
-import type { Room, RoomWithGame, Socket, User } from "./types";
-import {
-  payloadGuardedEndpoint,
-  sendRoomChangedToAll,
-  sendRoomChangedToUser,
-  leaveCurrentStep,
-  errorGuardedEndpoint,
-  registerRoomActivity,
-  getUserByName,
-} from "./utils";
-import * as helper from "@/utils/gameRequestHelpers";
-import type { ItemCard, LootCard, MonsterCard } from "@/models/cards";
-import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
+import { GameError } from "@/models/GameError";
 import type { HistoricEntry } from "@/models/handlers/historyHandler";
-import { enterStartStep } from "./startStep";
+import { schemas } from "@/shared/api";
+import * as helper from "@/utils/gameRequestHelpers";
+import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
+import { toSerializedTranslation } from "@/utils/translation";
 import { globalEndpoints } from "./global";
 import { roomManager } from "./roomManager";
+import { enterStartStep } from "./startStep";
+import type { RoomWithGame, Socket, User } from "./types";
+import {
+  errorGuardedEndpoint,
+  getUserByName,
+  leaveCurrentStep,
+  payloadGuardedEndpoint,
+  registerRoomActivity,
+  sendRoomChangedToAll,
+  sendRoomChangedToUser,
+} from "./utils";
 
 export const enterGameStep = (
   socket: Socket,
@@ -24,7 +25,7 @@ export const enterGameStep = (
 ): void => {
   const activeInstance = user.instances.find((instance) => instance.isActive);
   if (!activeInstance) {
-    throw new Error("No active instance found");
+    throw new GameError("No active instance found", toSerializedTranslation("error.behaviorError", {error: "No active instance found"}));
   }
   const player = room.game.entityHandler.getPlayerById(activeInstance.name);
 
@@ -89,8 +90,8 @@ export const enterGameStep = (
         enterGameStep(user.socket, room, user);
         user.socket.emit("on:room:broadcast", {
           type: "info",
-          title: `Game rolled back by ${player.id}`,
-          message: "The game has been rolled back to the last action.",
+          title: toSerializedTranslation("toast.rollback.title", { player: player.id }),
+          message: toSerializedTranslation("toast.rollback.message"),
         });
       }
 
@@ -162,20 +163,6 @@ export const enterGameStep = (
     ),
   );
 
-  socket.on("playCard", async (payload, callback) =>
-    errorGuardedEndpoint(callback, async () =>
-      payloadGuardedEndpoint(
-        payload,
-        schemas.playCardRequest,
-        callback,
-        (payload) => {
-          const choices = helper.executePlayCardRequest(room.game, payload, player);
-          return callback({ response: choices, status: 200 });
-        },
-      ),
-    ),
-  );
-
   socket.on("activateWithID", async (payload, callback) =>
     errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
@@ -202,24 +189,6 @@ export const enterGameStep = (
         callback,
         async (payload) => {
           const choices = await helper.executeActivateRequest(
-            room.game,
-            payload,
-            player,
-          );
-          return callback({ response: choices, status: 200 });
-        },
-      ),
-    ),
-  );
-
-  socket.on("activateRoom", async (payload, callback) =>
-    errorGuardedEndpoint(callback, async () =>
-      payloadGuardedEndpoint(
-        payload,
-        schemas.activateRoomRequest,
-        callback,
-        async (payload) => {
-          const choices = await helper.executeActivateRoomRequest(
             room.game,
             payload,
             player,
@@ -320,8 +289,8 @@ export const enterGameStep = (
         const socket = user.socket;
         socket.emit("on:room:broadcast", {
           type: "info",
-          title: `Game exited by ${player.id}`,
-          message: "The game has been exited.",
+          title: toSerializedTranslation("toast.exit.title", { player: player.id }),
+          message: toSerializedTranslation("toast.exit.message"),
         });
       }
 

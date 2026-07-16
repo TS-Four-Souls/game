@@ -1,4 +1,5 @@
-import type { Card, CounterType, ItemCard, LootCard } from '../cards';
+import type { SerializedTranslation } from '@/shared/api';
+import type { Card, CharacterCard, CounterType, ItemCard, LootCard } from '../cards';
 import { Animated } from "../entities/animated";
 import type { Entity } from '../entities/entity';
 import type { Monster } from '../entities/monster';
@@ -120,7 +121,7 @@ export interface OnAttackDeclaredData {
 export interface OnCanDeclareAttackData {
   eventIssuer: Player;
   canDeclare: boolean[];
-  reason: string[];
+  reason: SerializedTranslation[];
 }
 
 /** Data emitted when a player declares an attack on a specific monster */
@@ -233,6 +234,7 @@ export interface OnTurnStartData {
 export interface OnBeforeRechargeStepData {
   eventIssuer: Player;
   itemsToRecharge: ItemCard[];
+  charactersToRecharge: CharacterCard[];
 }
 
 /** Data emitted at the end of a player's turn */

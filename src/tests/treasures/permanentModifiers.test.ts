@@ -244,12 +244,7 @@ describe("Treasure - Permanent Modifiers", () => {
         game.entityHandler.addHealth(player1, 10); // Ensure player has enough health
         game.cardHandler.addInPlay(player1, bellyButton);
         
-        // Character starts uncharged (based on test failures)
         const character = player1.character;
-        expect(character.charged).toBe(false);
-        
-        // Recharge the character manually first
-        game.cardHandler.recharge(character);
         expect(character.charged).toBe(true);
         
         // Tap the character to make it uncharged

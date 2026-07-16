@@ -1,25 +1,27 @@
-import { type Room, type Socket, type User } from "./types";
+import { Game } from "@/models/game";
+import { GameError } from "@/models/GameError";
+import type { HistoricEntry } from "@/models/handlers/historyHandler";
 import { schemas, Team } from "@/shared/api";
+import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
+import { generateUserId } from "@/utils/random";
+import { toSerializedTranslation } from "@/utils/translation";
+import { enterGameStep } from "./gameStep";
+import { globalEndpoints } from "./global";
+import { enterIntroStep } from "./introStep";
+import { roomManager } from "./roomManager";
+import { type Room, type Socket, type User } from "./types";
 import {
+  errorGuardedEndpoint,
+  getUserByName,
+  isRoomWithGame,
+  leaveCurrentStep,
   payloadGuardedEndpoint,
+  registerRoomActivity,
   sendRoomChangedToAll,
   sendRoomChangedToUser,
   sendUserAssigned,
   updatePlayerCount,
-  leaveCurrentStep,
-  errorGuardedEndpoint,
-  registerRoomActivity,
-  getUserByName,
-  isRoomWithGame,
 } from "./utils";
-import { Game } from "@/models/game";
-import { enterGameStep } from "./gameStep";
-import type { HistoricEntry } from "@/models/handlers/historyHandler";
-import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
-import { enterIntroStep } from "./introStep";
-import { globalEndpoints } from "./global";
-import { roomManager } from "./roomManager";
-import { generateUserId } from "@/utils/random";
 
 export const enterStartStep = (
   socket: Socket,
@@ -289,8 +291,9 @@ export const enterStartStep = (
             // Ensure requester is an authorized player in the current room game.
             const logs: HistoricEntry[] = JSON.parse(payload);
             if (!logs)
-              throw new Error(
+              throw new GameError(
                 "Logs are not valid JSON or not in the expected format.",
+                toSerializedTranslation("error.parsingError", {error: "Logs are not valid JSON or not in the expected format."})
               );
             room.game = await loadGameFromLogs(logs);
             room.gameCount++;
@@ -332,11 +335,11 @@ export const enterStartStep = (
               enterGameStep(user.socket, room, user);
               user.socket.emit("on:room:broadcast", {
                 type: "info",
-                title: `Game loaded by ${activeInstance.name}`,
-                message: "The game has been loaded.",
+                title: toSerializedTranslation("toast.gameLoaded.title", { player: activeInstance.name }),
+                message: toSerializedTranslation("toast.gameLoaded.message"),
               });
             }
-
+            
             return callback({ status: 200 });
           },
         ),

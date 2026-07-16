@@ -1,10 +1,9 @@
-import { bundlerModuleNameResolver } from "typescript";
-import type { BsoulCard, CharacterCard, MonsterCard, RoomCard, TreasureCard } from "../models/cards";
-import { Game } from "../models/game";
-import { Player } from "../models/entities/player";
-import { shuffle } from "@/utils/auxiliary";
 import { GameParameters } from "@/models/gameParameters";
-import { Team, type DeckConfigPatch } from "@/shared/api";
+import { Team, type DeckConfigPatch, type SerializedTranslation } from "@/shared/api";
+import { shuffle } from "@/utils/auxiliary";
+import type { BsoulCard, MonsterCard, RoomCard, TreasureCard } from "../models/cards";
+import { Player } from "../models/entities/player";
+import { Game } from "../models/game";
 
 
 export function emptyHands(game: Game): void {
@@ -30,7 +29,7 @@ export async function randomSelect<T>(
         min: number,
         max: number,
         Options: T[],
-        description: string = "UNDEFINED SHOULD NOT HAPPEN",
+        description: SerializedTranslation,
         skippable: boolean = true,
         canUseOnBoardSelection: boolean = true,
     ): Promise<{ selected: T[]; remaining: T[] }> {
@@ -61,7 +60,7 @@ export async function randomSelectMultiple<T>(
           min: number;
           max: number;
           options: T[];
-          description: string;
+          description: SerializedTranslation;
           skippable?: boolean;
           canUseOnBoardSelection: boolean;
         }[]
@@ -133,6 +132,12 @@ export interface GameSetupConfig {
      * Array of card slugs that should be removed from the game entirely.
      */
     forbiddenCards?: string[];
+
+
+    /**
+     * Game Parameters and values
+     */
+    parameters?: Map<string, any>;
 }
 
 /**
@@ -189,6 +194,7 @@ export async function setupTestGame(config: GameSetupConfig = {}): Promise<GameS
         rooms = false,
         randomSeed = "",
         forbiddenCards = [],
+        parameters = [],
     } = config;
 
     // Create game instance
@@ -200,6 +206,11 @@ export async function setupTestGame(config: GameSetupConfig = {}): Promise<GameS
         params.setParameterByKey("decksConfig", {useRooms: {text: "", value: true}} as DeckConfigPatch);
     else
         params.setParameterByKey("decksConfig", {useRooms: {text: "", value: false}} as DeckConfigPatch);
+    for(const [param, val] of parameters.entries())
+    {
+        params.setParameterByKey(String(param), val);
+    }
+
     const game = new Game(randomSeed, params);
     mockGameSelections(game);
     

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../models/entities/player";
 import { Game } from "../models/game";
 import { DamageOnStack, DiceRoll } from "../models/stackElement";
-import { setupStandardTestGame } from "./testHelpers";
+import { setupStandardTestGame, setupTestGame } from "./testHelpers";
 import { pl } from "zod/locales";
 
 describe("Known bugs that have be corrected", () => {
@@ -27,7 +27,8 @@ describe("Known bugs that have be corrected", () => {
         game.cardHandler.addInPlay(player1, item);
 
         const dice = game.rollDice(player1, item);
-        await game.activateItem(player1, item, [dice.value], "tap");
+        const diceWillRoll = game.stack.elements.at(-1);
+        await game.activateItem(player1, item, [diceWillRoll, dice.value], "tap");
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -53,6 +54,53 @@ describe("Known bugs that have be corrected", () => {
         expect(player1.totalSouls).toBe(1);
     });
     
+    it("canceled dice from loot put loot into discard", async () => {
+        const card = game.obtainCard("b2-x_wheel_of_fortune") as LootCard;
+        game.cardHandler.addCardToHand(player1, card);
+        await game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
+        
+        expect(game.stack.size).toBe(1);
+        game.cancelAt(0);
+        expect(game.stack.size).toBe(0);
+        expect(game.decks.loot.discard.length).toBe(1);
+        expect(game.decks.loot.discard.includes(card)).toBe(true);
+    });
+    
+    it("canceled loot goes into discard", async () => {
+        const card = game.obtainCard("b2-a_dime") as LootCard;
+        game.cardHandler.addCardToHand(player1, card);
+        await game.actions.playCard(player1, 0);
+
+        expect(game.stack.size).toBe(1);
+        game.cancelAt(0);
+        expect(game.stack.size).toBe(0);
+        expect(game.decks.loot.discard.length).toBe(1);
+        expect(game.decks.loot.discard.includes(card)).toBe(true);
+    });
+    
+    it("canceled curse goes into discard", async () => {
+        const card = game.obtainCard("b2-curse_of_amnesia") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card);
+
+        expect(game.stack.size).toBe(1);
+        game.cancelAt(0);
+        expect(game.stack.size).toBe(0);
+        expect(game.decks.monster.discard.length).toBe(1);
+        expect(game.decks.monster.discard.includes(card)).toBe(true);
+    });
+    
+    it("canceled event goes into discard", async () => {
+        const card = game.obtainCard("b2-ambush") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card);
+
+        expect(game.stack.size).toBe(1);
+        game.cancelAt(0);
+        expect(game.stack.size).toBe(0);
+        expect(game.decks.monster.discard.length).toBe(1);
+        expect(game.decks.monster.discard.includes(card)).toBe(true);
+    });
+    
     it("reset stack discard event cards", async () => {
         const eventCard = game.obtainCard("b2-curse_of_pain") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, eventCard);
@@ -72,7 +120,7 @@ describe("Known bugs that have be corrected", () => {
         game.random = () => 0.01;
         game.actions.attackRoll(player1);
         await game.actions.resolveStack();
-        game.entityHandler.kill(player1, player1, player1.inPlay[0]!);
+        game.entityHandler.kill(player1, player1, player1.character!);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.isDead).toBe(true);
@@ -196,8 +244,8 @@ describe("Known bugs that have be corrected", () => {
         expect(player1.inPlay).not.toContain(targetItem);
         expect(player2.inPlay).toContain(targetItem);
 
-        expect(player1.inPlay.length).toBe(2);
-        expect(player2.inPlay.length).toBe(4);
+        expect(player1.inPlay.length).toBe(1);
+        expect(player2.inPlay.length).toBe(3);
         expect(player2.inPlay.map((c) => c.slug)).toContain("b2-brimstone");
     });
 
@@ -331,7 +379,7 @@ describe("Known bugs that have be corrected", () => {
         game.actions.declareAttack(player1);
         game.drawMonster(player1, 0);
         const monster = game.monsters[0]!;
-        game.entityHandler.kill(player1, monster, player1.inPlay[0]!);
+        game.entityHandler.kill(player1, monster, player1.character!);
         await game.resolveEntireStack();
         expect(game.monsters[0]).not.toBe(monster);
         expect(game.encounters.visible[0]?.slug).not.toBe(monster.card.slug);
@@ -372,7 +420,7 @@ describe("Known bugs that have be corrected", () => {
 
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, game.monsters[0]!);
-        game.entityHandler.kill(player1, game.monsters[0]!, player1.inPlay[0]!);
+        game.entityHandler.kill(player1, game.monsters[0]!, player1.character!);
         await game.actions.resolveStack(); // when this dies 
         expect(game.stack.size).toBe(1);
         await game.actions.resolveStack(); // gold chest top deck
@@ -410,5 +458,30 @@ describe("Known bugs that have be corrected", () => {
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.coins).toBe(init);
 
+    });
+});
+
+
+describe("Known bugs that have be corrected", () => {
+    let game: Game;
+    let player1: Player;
+    let player2: Player;
+
+    beforeEach(async () => {
+    });
+    
+    it("mini draft correctness", async () => {
+        const setup = await setupTestGame({
+            characters: ["b2-samson", "b2-isaac"],
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card", "b2-placebo", "b2-tech_x"],
+            parameters: new Map<string, any> ([["miniDraft", true]])
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+
+        expect(player1.inPlay.length).toBe(3);
     });
 });

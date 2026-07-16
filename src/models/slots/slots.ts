@@ -1,3 +1,5 @@
+import { toSerializedTranslation } from "@/utils/translation";
+import { GameError } from "@/models/GameError";
 import { type Card, type Deck } from "../cards";
 
 /**
@@ -134,7 +136,7 @@ export abstract class Slots<T extends Card> {
         const card = this._deck.draw();
         card.owner = undefined;
         if(card === undefined)
-            throw new Error(`Cannot draw card from deck for slot ${position}.`);
+            throw new GameError(`Cannot draw card from deck for slot ${position}.`, toSerializedTranslation("error.behaviorError", {error: `Cannot draw card from deck for slot ${position}.`}));
         this._slots[position]!.push(card);
     }
 

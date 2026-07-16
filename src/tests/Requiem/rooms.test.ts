@@ -83,7 +83,7 @@ describe("Requiem Rooms", () => {
         game.cardHandler.addCardToHand(player1, game.cardHandler.copyCard(loot) as LootCard);
         game.entityHandler.addLootPlay(player1, 10);
         game.cardHandler.recharge(player1.character);
-        await game.activateItem(player1, player1.inPlay[0]!, [], "tap");
+        await game.activateItem(player1, player1.character!, [], "tap");
         await game.actions.resolveStack();
         expect(game.actions.canActivate(player1.character, player1)).not.toBe(true);
         expect(game.actions.canPlayCard(player1)).toBe(true);
@@ -161,9 +161,12 @@ describe("Requiem Rooms", () => {
         expect(room.counters.value("normal")).toBe(2);
 
         // test coin given goal
-        game.gainCoins(player1, 10, ("debug"));
-        game.giveCoins(player1, player2, 6);
+        game.gainCoins(player1, 10, "debug");
+        await game.giveCoins(player1, player2, 6);
+        expect(player2.coins).toBe(6);
         await Promise.resolve();
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(game.hasPendingSelections).toBe(false);
         expect(room.counters.value("normal")).toBe(3);
 
         game.random = () => 0.99
@@ -176,19 +179,19 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         expect(room.counters.value("normal")).toBe(4);
 
-        expect(player1.inPlay.length).toBe(7);
-        expect(player2.inPlay.length).toBe(4);
+        expect(player1.inPlay.length).toBe(6);
+        expect(player2.inPlay.length).toBe(3);
     });
 
     it("restock_machine flush monster", async () => {
         const room = game.obtainCard("r-restock_machine") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
-            return { selected: ["monster"], remaining: Options } as any;
+            return { selected: [game.decks.monster], remaining: Options } as any;
         };
-        game.gainCoins(player1, 3, ("debug"));
+        game.gainCoins(player1, 3, "debug");
         const slugs = game.monsters.map(i => i!.card.slug);
-        await game.actions.activateRoom(player1, room, ["treasure"], 0);
+        await game.actions.activateRoom(player1, room, [], 0);
         await game.actions.resolveStack();
         expect(game.monsters.every(i => i === null || !slugs.includes(i!.card.slug))).toBe(true);
         expect(slugs.every(s => game.decks.monster.discard.map(c => c.slug).includes(s!))).toBe(true);
@@ -199,7 +202,7 @@ describe("Requiem Rooms", () => {
         game.rooms?.forceRoomAtSlot(0, room);
         game.gainCoins(player1, 3, ("debug"));
         const slugs = game.shop.itemsInShop.map(i => i!.slug);
-        await game.actions.activateRoom(player1, room, ["treasure"], 0);
+        await game.actions.activateRoom(player1, room, [], 0);
         await game.actions.resolveStack();
         expect(game.shop.itemsInShop.every(i => i === null || !slugs.includes(i!.slug))).toBe(true);
         expect(slugs.every(s => game.decks.treasure.discard.map(c => c.slug).includes(s!))).toBe(true);
@@ -219,8 +222,8 @@ describe("Requiem Rooms", () => {
         game.gainCoins(player1, 10, ("debug"));
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
-        expect(player1.inPlay.length).toBe(3);
-        game.cardHandler.removeInPlay(player1, player1.inPlay[2]!);
+        expect(player1.inPlay.length).toBe(2);
+        game.cardHandler.removeInPlay(player1, player1.inPlay[1]!);
         game.resetStack();
         expect(player1.coins).toBe(0);
         game.cardHandler.addSoul(player2, soul);
@@ -228,7 +231,7 @@ describe("Requiem Rooms", () => {
         game.gainCoins(player1, 10, ("debug"));
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
-        expect(player1.inPlay.length).toBe(3);
+        expect(player1.inPlay.length).toBe(2);
         expect(player1.coins).toBe(10);
 
     });
@@ -246,7 +249,7 @@ describe("Requiem Rooms", () => {
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
         expect(player1.coins).toBe(10);
-        expect(player1.inPlay.length).toBe(3);
+        expect(player1.inPlay.length).toBe(2);
     });
 
     it("pity_for_the_poor become powerful", async () => {
@@ -262,7 +265,7 @@ describe("Requiem Rooms", () => {
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
         expect(player1.coins).toBe(0);
-        expect(player1.inPlay.length).toBe(3);
+        expect(player1.inPlay.length).toBe(2);
     });
 
     it("pity_for_the_poor ", async () => {
@@ -275,14 +278,14 @@ describe("Requiem Rooms", () => {
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
         expect(player1.coins).toBe(3);
-        expect(player1.inPlay.length).toBe(3);
+        expect(player1.inPlay.length).toBe(2);
 
         game.entityHandler.addPurchaseThisTurn(player1, 1);
         game.gainCoins(player1, 7, ("debug"));
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);
         expect(player1.coins).toBe(0);
-        expect(player1.inPlay.length).toBe(4);
+        expect(player1.inPlay.length).toBe(3);
 
     });
 
@@ -369,7 +372,7 @@ describe("Requiem Rooms", () => {
         game.entityHandler.kill(player2, game.monsters[0]!, room);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(player2.inPlay.length).toBe(2);
+        expect(player2.inPlay.length).toBe(1);
     });
     it("the_mirror", async () => {
         const room = game.obtainCard("r-the_mirror") as RoomCard;
@@ -383,7 +386,7 @@ describe("Requiem Rooms", () => {
         game.entityHandler.kill(player2, game.monsters[0]!, room);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(player2.inPlay.length).toBe(3);
+        expect(player2.inPlay.length).toBe(2);
     });
     it("spider_webs", async () => {
         const room = game.obtainCard("r-spider_webs") as RoomCard;
@@ -402,7 +405,7 @@ describe("Requiem Rooms", () => {
         game.entityHandler.kill(player1, player1, room);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(player1.inPlay.length).toBe(3);
+        expect(player1.inPlay.length).toBe(2);
     });
     it("red_vise", async () => {
         const room = game.obtainCard("r-red_vise") as RoomCard;
@@ -420,7 +423,7 @@ describe("Requiem Rooms", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(game.currentPlayer.inPlay.length).toEqual(3);
+        expect(game.currentPlayer.inPlay.length).toEqual(2);
     });
     it("samsons_blessing", async () => {
         const room = game.obtainCard("r-samsons_blessing") as RoomCard;
@@ -451,7 +454,7 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack(); // resolve effect
         expect(player2.hand.length).toBe(4);
         expect(player2.hand.cards.some(c => c.slug === card.slug)).toBe(false);
-        expect(player2.inPlay[2]!.slug).not.toBe(item.slug);
+        expect(player2.inPlay[1]!.slug).not.toBe(item.slug);
         expect(game.monsters[0]!.card.slug).not.toBe(monst1);
         expect(game.monsters[1]!.card.slug).toBe(monst2);
     });
@@ -485,7 +488,7 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(player2.inPlay[2]!.slug).not.toBe(card.slug);
+        expect(player2.inPlay[1]!.slug).not.toBe(card.slug);
     });
     
     it("i_am_error 1", async () => {
@@ -513,6 +516,7 @@ describe("Requiem Rooms", () => {
             game.cardHandler.addInPlay(player1, card);
         }
         game.cardHandler.rechargeMultiple(player1);
+        player1.character.deactivate();
         for(const card of player1.inPlay) 
             card.deactivate();
         expect(player1.inPlay.every(c => c.charged)).toBe(false);
@@ -525,6 +529,7 @@ describe("Requiem Rooms", () => {
         expect(player1.inPlay.every(c => c.charged)).toBe(false);
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack();
+        expect(player1.character.charged).toBe(true);
         expect(player1.inPlay[0]!.charged).toBe(true);
         for(let i = 1; i < player1.inPlay.length; i++) 
             expect(player1.inPlay[i]!.charged).toBe(false);
@@ -573,8 +578,8 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         game.actions.attackRoll(player1);
         await game.actions.resolveStack();
-        await game.actions.resolveStack();
         expect(game.stack.size).toBe(2);
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -582,8 +587,8 @@ describe("Requiem Rooms", () => {
         expect(game.animatedList.all[0]?.currentHealthPoints).toBe(7);
         game.entityHandler.kill(player1, game.animatedList.all[0]!, room);
         await game.actions.resolveStack();
-        expect(player1.inPlay.length).toBe(3);
-        expect(player2.inPlay.length).toBe(3);
+        expect(player1.inPlay.length).toBe(2);
+        expect(player2.inPlay.length).toBe(2);
     });
 
 
@@ -621,7 +626,7 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         game.actions.declarePurchase(player2);
         game.actions.purchase(player2, 0);
-        game.cardHandler.removeInPlay(player2, player2.inPlay[2]!);
+        game.cardHandler.removeInPlay(player2, player2.inPlay[1]!);
         game.resetStack();
         await game.endTurn();
         await game.actions.resolveStack();
@@ -630,7 +635,7 @@ describe("Requiem Rooms", () => {
         game.gainCoins(player1, 10, ("debug"));
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, "top");
-        game.cardHandler.removeInPlay(player1, player1.inPlay[2]!);
+        game.cardHandler.removeInPlay(player1, player1.inPlay[1]!);
         game.resetStack();
         await game.endTurn();
         await game.actions.resolveStack();
@@ -730,7 +735,7 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(1);
-        expect(player1.inPlay.length).toBe(3);
+        expect(player1.inPlay.length).toBe(2);
 
     });
 
@@ -869,11 +874,11 @@ describe("Requiem Rooms", () => {
         const room = game.obtainCard("r-edens_blessing") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         game.gainTreasure(player2);
-        const card = player2.inPlay[2]!;
+        const card = player2.inPlay[1]!;
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(player2.inPlay[2]!.slug).not.toBe(card.slug);
+        expect(player2.inPlay[1]!.slug).not.toBe(card.slug);
     });
 
     it("Conjoined Twin", async () => {
@@ -949,7 +954,7 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(player1.inPlay.length).toBe(5);
+        expect(player1.inPlay.length).toBe(4);
     });
 
     it("Challenge Room", async () => {
@@ -1197,7 +1202,7 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(0);
         await game.actions.resolveStack();
-        expect(player1.inPlay.length).toBe(3);
+        expect(player1.inPlay.length).toBe(2);
         expect(player1.hand.length).toBe(0);
         expect(player1.coins).toBe(27);
         expect(player1.hand.length).toBe(0);
@@ -1224,7 +1229,7 @@ describe("Requiem Rooms", () => {
         let init = player1.coins;
         expect(player1.coins).toBe(27);
         expect(player1.hand.length).toBe(0);
-        expect(player1.inPlay.length).toBe(2);
+        expect(player1.inPlay.length).toBe(1);
         
         await game.actions.activateRoom(game.currentPlayer, room, [], 0);
         game.random = () => 2/6 - 0.0001;
@@ -1235,7 +1240,7 @@ describe("Requiem Rooms", () => {
         init = player1.coins;
         expect(player1.coins).toBe(24);
         expect(player1.hand.length).toBe(0);
-        expect(player1.inPlay.length).toBe(2);
+        expect(player1.inPlay.length).toBe(1);
 
         await game.actions.activateRoom(game.currentPlayer, room, [], 0);
         game.random = () => 3/6 - 0.0001;
@@ -1246,7 +1251,7 @@ describe("Requiem Rooms", () => {
         init = player1.coins;
         expect(player1.coins).toBe(23);
         expect(player1.hand.length).toBe(0);
-        expect(player1.inPlay.length).toBe(2);
+        expect(player1.inPlay.length).toBe(1);
         
         await game.actions.activateRoom(game.currentPlayer, room, [], 0);
         game.random = () => 4/6 - 0.0001;
@@ -1257,7 +1262,7 @@ describe("Requiem Rooms", () => {
         init = player1.coins;
         expect(player1.coins).toBe(22);
         expect(player1.hand.length).toBe(0);
-        expect(player1.inPlay.length).toBe(2);
+        expect(player1.inPlay.length).toBe(1);
         
         await game.actions.activateRoom(game.currentPlayer, room, [], 0);
         game.random = () => 5/6 - 0.0001;
@@ -1268,14 +1273,14 @@ describe("Requiem Rooms", () => {
         init = player1.coins;
         expect(player1.coins).toBe(19);
         expect(player1.hand.length).toBe(2);
-        expect(player1.inPlay.length).toBe(2);
+        expect(player1.inPlay.length).toBe(1);
         
         await game.actions.activateRoom(game.currentPlayer, room, [], 0);
         game.random = () => 6/6 - 0.01;
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(2);
         await game.actions.resolveStack();
-        expect(player1.inPlay.length).toBe(3);
+        expect(player1.inPlay.length).toBe(2);
         if(player1.hand.length !== 2 ){
             console.log(game.monsters.map(m => m.card.slug));
             console.log(game.shop.itemsInShop.map(c => c?.slug));

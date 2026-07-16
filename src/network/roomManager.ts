@@ -15,6 +15,7 @@ import {
   insertGameRecord,
   recordGameEndReached,
 } from "@/utils/db";
+import { toSerializedTranslation } from "@/utils/translation";
 
 const INACTIVE_ROOM_TIMEOUT = 3 * 60 * 60 * 1_000; // 3 hours
 
@@ -51,9 +52,8 @@ class RoomManager {
 
             user.socket.emit("on:room:broadcast", {
               type: "error",
-              title: "Room purged",
-              message:
-                "The room has been purged because it has been inactive for too long.",
+              title: toSerializedTranslation("toast.roomPurged.title"),
+              message: toSerializedTranslation("toast.roomPurged.message"),
             });
           });
         } catch (error) {
@@ -122,7 +122,9 @@ class RoomManager {
     if (!room.game) return;
     const params = room.game.gameParameters;
     const teamCount = new Set(
-      room.users.flatMap((user) => user.instances).map((instance) => instance.team),
+      room.users
+        .flatMap((user) => user.instances)
+        .map((instance) => instance.team),
     ).size;
     insertGameRecord(
       room.id,

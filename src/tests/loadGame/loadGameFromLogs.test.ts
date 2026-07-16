@@ -1,18 +1,15 @@
-import { describe, it, expect } from "bun:test";
-import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
-import { Game } from "@/models/game";
-import { Player } from "@/models/entities/player";
-import { shuffle } from "@/utils/auxiliary";
+import { GameError } from "@/models/GameError";
 import type { HistoricEntry } from "@/models/handlers/historyHandler";
-import { string } from "zod";
-import type { EffectOnStack } from '@/models/stackElement';
 import type { DetailedState } from "@/shared/api";
+import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
+import { toSerializedTranslation } from "@/utils/translation";
+import { describe, expect } from "bun:test";
 
 function parseLog(path: string): HistoricEntry[] {
   const fs = require('fs');
     const txt = fs.readFileSync(path, "utf8");
     if(txt === "")
-      throw new Error("Failed to read logs from file.");
+      throw new GameError("Failed to read logs from file.", toSerializedTranslation("error.parsingError", {error: "Failed to read logs from file."}));
     const log = JSON.parse(txt) as HistoricEntry[];
     return log;
 }
@@ -21,7 +18,7 @@ function parseState(path: string): DetailedState {
   const fs = require('fs');
     const txt = fs.readFileSync(path, "utf8");
     if(txt === "")
-      throw new Error("Failed to read logs from file.");
+      throw new GameError("Failed to read logs from file.", toSerializedTranslation("error.parsingError", {error: "Failed to read logs from file."}));
   const state = JSON.parse(txt) as DetailedState;
   return state;
 }
@@ -66,7 +63,7 @@ describe("loadGameFromLogs", () => {
   //       try {
   //         await loadGameFromLogs(log);
   //       } catch (error) {
-  //         throw new Error(`Failed to load game from log ${file}: ${error}`);
+  //         throw new GameError(`Failed to load game from log ${file}: ${error}`);
   //       }
   //     }
   //   }

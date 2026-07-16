@@ -42,10 +42,8 @@ export type UserRequest =
       payload: Requests.InsertStackElementBefore;
       issuer: Issuer;
     }
-  | { type: "PlayCard"; payload: Requests.PlayCard; issuer: Issuer }
   | { type: "EndTurn"; issuer: Issuer }
   | { type: "Activate"; payload: Requests.Activate; issuer: Issuer }
-  | { type: "ActivateRoom"; payload: Requests.ActivateRoom; issuer: Issuer }
   | { type: "Purchase"; payload: Requests.Purchase; issuer: Issuer }
   | { type: "GiveCoins"; payload: Requests.GiveCoins; issuer: Issuer }
   | { type: "AttackMonster"; payload: Requests.AttackMonster; issuer: Issuer }
@@ -144,7 +142,7 @@ const isPrivateData = (entry: HistoricEntry): entry is PrivateData => {
 export const isStackElementJson = (
   entry: HistoricEntry,
 ): entry is StackElementJson => {
-  return ["death", "damage", "effect", "LootCardEffect", "diceRoll", "lootStep", "endOfTurn"].includes(
+  return ["death", "damage", "effect", "LootCardEffect", "diceRoll", "lootStep", "endOfTurn", "diceWillRoll"].includes(
     entry.type,
   );
 };

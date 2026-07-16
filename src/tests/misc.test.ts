@@ -3,11 +3,13 @@
 //  - Bonus Soul effects
 
 
-import { describe, it, expect, beforeEach } from "bun:test";
-import { Game } from "../models/game";
+import { TreasureCard, type CharacterCard, type LootCard } from "@/models/cards";
+import { GameError } from "@/models/GameError";
+import { dischargeEachItemsAndRemoveCoins, emptyHands, setupTestGame, type GameSetupResult } from "@/tests/testHelpers";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../models/entities/player";
-import { type ItemCard, type LootCard, type CharacterCard, TreasureCard } from "@/models/cards";
-import { dischargeEachItemsAndRemoveCoins, emptyHands, mockGameSelections, setupTestGame, type GameSetupResult } from "@/tests/testHelpers";
+import { Game } from "../models/game";
+import { toSerializedTranslation } from "@/utils/translation";
 
 
 async function setupGameWithCharacters(characterSlugs: string[]): Promise<GameSetupResult>
@@ -46,11 +48,11 @@ describe("Before start effects", () => {
         await new Promise(resolve => setTimeout(resolve, 10));
       dischargeEachItemsAndRemoveCoins(game);
       emptyHands(game);
-            expect(player2.inPlay[0]!.slug).toBe("b2-eden");
-        expect(player2.inPlay.length).toBe(2);
+            expect(player2.character!.slug).toBe("b2-eden");
+        expect(player2.inPlay.length).toBe(1);
+        expect(player2.character!.eternal).toBe(true);
         expect(player2.inPlay[0]!.eternal).toBe(true);
-        expect(player2.inPlay[1]!.eternal).toBe(true);
-        expect(player2.inPlay[1]! instanceof TreasureCard).toBe(true);
+        expect(player2.inPlay[0]! instanceof TreasureCard).toBe(true);
     });
 
     it("Character card activation gives a loot play (random characters)", async () => {
@@ -59,12 +61,13 @@ describe("Before start effects", () => {
         player1 = setup.player1;
         player2 = setup.player2!;
         expect(game.players.length).toBe(2);
-        const character1 = player1.inPlay[0] as CharacterCard;
-        const character2 = player2.inPlay[0] as CharacterCard;
+        const character1 = player1.character as CharacterCard;
+        const character2 = player2.character as CharacterCard;
         game.resolveEntireStack();
         expect(game.stack.size).toBe(0);
         if(!character1 || !character2)
-            throw new Error("Characters not found");
+            throw new GameError("Characters not found", 
+            toSerializedTranslation("error.behaviorError", {error: "Characters not found"}));
         const initialLootPlays1 = player1.remainingLootPlay;
         const initialLootPlays2 = player2.remainingLootPlay;
         character1.recharge();
@@ -147,7 +150,7 @@ describe("Bonus Soul effects", () => {
         const guppyItem1 = game.shop.obtainCard("b2-guppys_head");
         const guppyItem2 = game.shop.obtainCard("b2-guppys_collar");
         if(!guppyItem1 || !guppyItem2)
-            throw new Error("Guppy items not found in treasure deck");
+            throw new GameError("Guppy items not found in treasure deck", toSerializedTranslation("error.behaviorError", {error: "Guppy items not found in treasure deck"}));
         game.cardHandler.addInPlay(player1, guppyItem1);
         expect(player1.totalSouls).toBe(initSoul);
         game.cardHandler.addInPlay(player1, guppyItem2);

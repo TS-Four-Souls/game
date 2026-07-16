@@ -42,7 +42,7 @@ describe("Requiem Monsters ", () => {
         expect(game.stack.size).toBe(3);
         game.resetStack(); // otherwise players would die. It is also tested elsewhere.
         const json = har.card.jsonAPI;
-        expect(json.name).toBe("The Beast!");
+        expect(json.nameKey.key).toBe("cardNames.r-the_beast");
         expect(json.slug).toBe("r-the_beast");
         expect(har.healthPoints).toBe(6);
         expect(har.evasion).toBe(4);
@@ -352,7 +352,7 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
-        expect(player2.inPlay.length).toBe(3);
+        expect(player2.inPlay.length).toBe(2);
     });
 
     it("red_ghost", async () => {
@@ -398,7 +398,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-overflow") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         let i = 1;
-        game.random = () => i++ % 2/2;
+        game.random = () => (i++/2) % 2/2;
         game.encounters.forceSetMonsterAtSlot(0, mob);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -470,8 +470,8 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.hasAttackRequirement).toBe(false);
-        expect(player1.inPlay.length).toBe(3);
-        expect(player2.inPlay.length).toBe(3);
+        expect(player1.inPlay.length).toBe(2);
+        expect(player2.inPlay.length).toBe(2);
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -654,7 +654,7 @@ describe("Requiem Monsters ", () => {
         expect(mob).toBeInstanceOf(MonsterCard);
         
         let i = 1;
-        game.random = () => i++ % 6 / 6 - 0.01;
+        game.random = () => (i++/2) % 6 / 6 - 0.01;
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             return { selected: [Options[1]], remaining: Options.slice(max) };
         };
@@ -707,9 +707,9 @@ describe("Requiem Monsters ", () => {
         game.encounters.forceSetMonsterAtSlot(0, mob);
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
+        expect(player1.inPlay.includes(treasures[1]!)).toBe(false);
         expect(player1.inPlay.includes(treasures[2]!)).toBe(false);
-        expect(player1.inPlay.includes(treasures[3]!)).toBe(false);
-        expect(player1.inPlay.includes(treasures[4]!)).toBe(true);
+        expect(player1.inPlay.includes(treasures[3]!)).toBe(true);
     });
 
     it("curse_of_the_hollow", async () => {
@@ -857,12 +857,12 @@ describe("Requiem Monsters ", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        expect(player2.character.charged).toBe(false);
+        expect(player2.inPlay[0]!.charged).toBe(false);
         game.entityHandler.kill(player1, ent, mob);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
-        expect(player2.character.charged).toBe(true);
+        expect(player2.inPlay[0]!.charged).toBe(true);
     });
 
     it("double_treasure", async () => {
@@ -872,8 +872,8 @@ describe("Requiem Monsters ", () => {
         game.encounters.forceSetMonsterAtSlot(0, mob);
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
-        expect(player1.inPlay.length).toBe(3);
-        expect(player2.inPlay.length).toBe(3);
+        expect(player1.inPlay.length).toBe(2);
+        expect(player2.inPlay.length).toBe(2);
     });
 
     it("charmed_greedling", async () => {
@@ -900,8 +900,8 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
-        expect(player1.inPlay.length).toBe(3);
-        expect(player2.inPlay.length).toBe(3);
+        expect(player1.inPlay.length).toBe(2);
+        expect(player2.inPlay.length).toBe(2);
     });
 
     it("charmed_clotty", async () => {
@@ -998,10 +998,10 @@ describe("Requiem Monsters ", () => {
         expect(player2.coins).toBe(6);
         expect(player1.coins).toBe(0);
         expect(player2.hand.length).toBe(2);
-        expect(player2.inPlay.length).toBe(5);
+        expect(player2.inPlay.length).toBe(4);
         expect(player2.totalSouls).toBe(1);
         expect(player1.hand.length).toBe(0);
-        expect(player1.inPlay.length).toBe(2);
+        expect(player1.inPlay.length).toBe(1);
         expect(player1.totalSouls).toBe(1);
     });
 
@@ -1036,10 +1036,10 @@ describe("Requiem Monsters ", () => {
         expect(player2.coins).toBe(6);
         expect(player1.coins).toBe(0);
         expect(player2.hand.length).toBe(2);
-        expect(player2.inPlay.length).toBe(4);
+        expect(player2.inPlay.length).toBe(3);
         expect(player2.totalSouls).toBe(2);
         expect(player1.hand.length).toBe(0);
-        expect(player1.inPlay.length).toBe(3);
+        expect(player1.inPlay.length).toBe(2);
         expect(player1.totalSouls).toBe(0);
     });
 
@@ -1074,10 +1074,10 @@ describe("Requiem Monsters ", () => {
         expect(player2.coins).toBe(6);
         expect(player1.coins).toBe(0);
         expect(player2.hand.length).toBe(1);
-        expect(player2.inPlay.length).toBe(5);
+        expect(player2.inPlay.length).toBe(4);
         expect(player2.totalSouls).toBe(2);
         expect(player1.hand.length).toBe(1);
-        expect(player1.inPlay.length).toBe(2);
+        expect(player1.inPlay.length).toBe(1);
         expect(player1.totalSouls).toBe(0);
     });
 
@@ -1112,10 +1112,10 @@ describe("Requiem Monsters ", () => {
         expect(player2.coins).toBe(1);
         expect(player1.coins).toBe(5);
         expect(player2.hand.length).toBe(2);
-        expect(player2.inPlay.length).toBe(5);
+        expect(player2.inPlay.length).toBe(4);
         expect(player2.totalSouls).toBe(2);
         expect(player1.hand.length).toBe(0);
-        expect(player1.inPlay.length).toBe(2);
+        expect(player1.inPlay.length).toBe(1);
         expect(player1.totalSouls).toBe(0);
     });
 
