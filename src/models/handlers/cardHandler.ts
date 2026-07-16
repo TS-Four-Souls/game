@@ -442,6 +442,15 @@ export class CardHandler {
     }
   }
 
+  shouldUseDiceWillRoll(): boolean{
+    for(const player of this.game.players){
+      for(const item of player.inPlay)
+        if(item.requiresDiceWillRoll)
+          return true;
+    }
+    return false;
+  }
+
   /** Removes curse cards from players and marks them destroyed. */
   destroyCurse(cards: MonsterCard[]): boolean {
     this.game.players.forEach((player) => {

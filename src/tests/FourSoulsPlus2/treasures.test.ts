@@ -47,7 +47,7 @@ describe("Four Souls+2 Treasures", () => {
         game.cardHandler.addInPlay(player1, card1);
         await game.activateItem(player1, card1, [], "tap");
         await game.actions.resolveStack();
-        let count = 1;
+        let count = 0;
         game.random = () => count++/6-0.0001;
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [opts[2]], remaining: [] } as any;
@@ -186,12 +186,14 @@ describe("Four Souls+2 Treasures", () => {
         game.cardHandler.addInPlay(player1, card1);
 
         game.random = () => 2/6-0.0001; // roll a 2
-        await game.activateItem(player1, card1, [2], "tap");
-        await game.actions.resolveStack();
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, game.encounters.monsterIn(0)!);
         game.entityHandler.addHealth(game.monsters[0]!, 10);
         game.rollDice(player2, new AttackRollData(0, 1, 0, 1, 1, game.monsters[0]!));
+        const diceWillRoll = game.stack.elements.at(-1);
+        await game.activateItem(player1, card1, [diceWillRoll, 2], "tap");
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         const hp = player2.currentHealthPoints;
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [player2], remaining: [] } as any;
@@ -208,6 +210,7 @@ describe("Four Souls+2 Treasures", () => {
         await game.actions.resolveStack();
         expect(game.stack.size).toBe(1);
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(hp-1);
 
         game.entityHandler.endCombat();
@@ -218,6 +221,7 @@ describe("Four Souls+2 Treasures", () => {
         game.actions.declareAttack(player2);
         await game.actions.declareAttackOnEntity(player2, game.encounters.monsterIn(0)!);
         game.rollDice(player2, new AttackRollData(0, 1, 0, 1, 1, game.monsters[0]!));
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.size).toBe(0);

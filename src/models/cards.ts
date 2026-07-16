@@ -466,6 +466,9 @@ export class ItemCard extends Card {
   get inPlayType(): InplayType {
     return this._inplayType;
   }
+  get requiresDiceWillRoll(): boolean{
+    return this._effectInterface.requiresDiceWillRoll;
+  }
   isActiveItem(): boolean {
     return (
       this._inplayType === InplayType.CHARGED ||

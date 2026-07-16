@@ -26,6 +26,7 @@ import {
     selectCharacterCardFromOutside,
     selectCurse,
     selectDeck,
+    selectDiceWillRoll,
     selectEternalItemYouControl,
     selectItem,
     selectItemYouControl,
@@ -1322,7 +1323,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
         case "when you start the game, look at the top x cards of the treasure deck and choose one. it becomes your starting item and gains eternal. put the rest on the bottom of the treasure deck":
             return noTargetSyncEffect(passive.startingItemEffect(game, nr.nextNumber()));
         case "before a dice is rolled, choose a number. if the next roll is that number, loot x":
-            return { effectFunction: passive.lootOnNextRollEffect(game, nr.nextNumber()), targetSelectors: selectNumber1to6() };
+            return { effectFunction: passive.lootOnNextRollEffect(game, nr.nextNumber()), targetSelectors: [...selectDiceWillRoll(game),...selectNumber1to6()] };
         case "when you roll an attack roll of x, end your turn. cancel everything that hasn't resolved":
             return noTargetSyncEffect(passive.endTurnOnAttackRollXEffect(game, nr.nextNumber()));
         case "the next time a player would roll a dice, they instead roll x dice. you choose one of the rolls as the result":
@@ -1352,7 +1353,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
         case "look at the top x cards of the monster or room deck and put them back in any order":
             return { effectFunction: active.lookAndReorderTopCardsEffect(game, nr.nextNumber(), undefined, "dataIssuer"), targetSelectors: selectDeck(game, 1, 1, (name) => ["room", "monster"].includes(name)) };
         case "before a dice is rolled, choose a number. till the end of turn, each time that number is rolled, deal x damage to a monster or player":
-            return { effectFunction: passive.chosenumberDamageOnRollThisTurnEffect(game, nr.nextNumber()), targetSelectors: selectNumber1to6() };
+            return { effectFunction: passive.chosenumberDamageOnRollThisTurnEffect(game, nr.nextNumber()), targetSelectors: [...selectDiceWillRoll(game),... selectNumber1to6()] };
         case "you may attack an additional time this turn":
             return noTargetSyncEffect(active.giveAdditionalAttackThisTurnEffect(game, 1));
         case "put counters on this equal to the amount of damage taken. then, if this has x+ counters, remove x counters from this and gain x treasure":

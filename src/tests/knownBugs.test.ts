@@ -27,7 +27,8 @@ describe("Known bugs that have be corrected", () => {
         game.cardHandler.addInPlay(player1, item);
 
         const dice = game.rollDice(player1, item);
-        await game.activateItem(player1, item, [dice.value], "tap");
+        const diceWillRoll = game.stack.elements.at(-1);
+        await game.activateItem(player1, item, [diceWillRoll, dice.value], "tap");
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();

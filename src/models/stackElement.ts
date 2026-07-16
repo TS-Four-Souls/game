@@ -1,4 +1,4 @@
-import type { StackReorderingInfo as ApiStackReorderingInfo, DamageOnStackJson, DeathOnStackJson, DiceRollJson, StackElementJson, LootStepJson, EffectOnStackJson, LootCardOnStackJson, VisualEffectBox, EndOfTurnJson } from "@/shared/api";
+import type { StackReorderingInfo as ApiStackReorderingInfo, DamageOnStackJson, DeathOnStackJson, DiceRollJson, DiceWillRollJson, StackElementJson, LootStepJson, EffectOnStackJson, LootCardOnStackJson, VisualEffectBox, EndOfTurnJson } from "@/shared/api";
 import type { Entity } from "./entities/entity";
 import { type Game } from "./game";
 import { GameError } from "@/models/GameError";
@@ -79,6 +79,60 @@ export class AttackRollData {
     this.target = target;
   }
 }
+
+export class DiceWillRoll extends StackElement {
+  private _onResolve: () => void;
+  private _roll: DiceRoll;
+
+  constructor(roll: DiceRoll, onResolve: () => void){
+    super();
+    this._onResolve = onResolve;
+    this._roll = roll;
+  }
+
+  get diceRoll(){
+    return this._roll;
+  }
+
+  get issuer(){
+    return this.diceRoll.issuer;
+  }
+
+  get attackRoll(){
+    return this.diceRoll.attackRoll;
+  }
+
+  get card(){
+    return this.diceRoll.attackRoll ? this.diceRoll.attackData?.target.card! : this.diceRoll.card!;
+  }
+
+  get visualEffectBox(){
+    return this.diceRoll.completeVisualEffectBox;
+  }
+
+  override get json(): DiceWillRollJson {
+    return { 
+      ...super.baseJson,
+      type: "diceWillRoll",
+      issuer: this.issuer.json, 
+      card: this.card.jsonAPI,
+      attackRoll: this.attackRoll,
+      visualEffectBox: this.visualEffectBox || undefined,
+    }
+  }
+
+  override onCancel(game: Game): void {
+    return this.diceRoll.onCancel(game);
+  }
+
+  override get debugLogs(): string {
+    return `${this.attackRoll ? "Attack" : "Dice"} Roll (Issuer: ${this.issuer.id}, Card: ${this.card ? this.card.name : "N/A"}`;
+  }
+
+  override async onResolve(): Promise<void | boolean> {
+    return this._onResolve();
+  }
+}
 export class DiceRoll extends StackElement {
   private _value: number;
   private _issuer: Player;
@@ -110,6 +164,12 @@ export class DiceRoll extends StackElement {
   }
   get attackData(): AttackRollData | null {
     return this._attackRollData;
+  }
+  /**
+   * This function returns the box for the roll, including effects for each results.
+   */
+  get completeVisualEffectBox(){
+    return this._visualEffectBox;
   }
 
   get additionalDamageDealt(): number {

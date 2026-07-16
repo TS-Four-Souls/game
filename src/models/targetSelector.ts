@@ -2,7 +2,7 @@ import { type Card, ItemCard, MonsterCard } from "./cards";
 import type { Entity } from "./entities/entity";
 import { Game } from "./game";
 import { Player } from "./entities/player";
-import { DiceRoll } from "./stackElement";
+import { DiceRoll, DiceWillRoll } from "./stackElement";
 import type { StackElement } from "./stack";
 import { type TargetsSelector } from "./types/cardTypes";
 
@@ -88,6 +88,12 @@ export function topAnyDiscardSelector(filter: (card: Card) => boolean = () => tr
             }
         }
         return cards;
+    }
+}
+
+export function diceWillRollSelector(filter: (element: StackElement) => boolean = () => true, game: Game): (issuer: Player) => any[] {
+    return (issuer: Player) => {
+        return game.stack.elements.filter((element) => element instanceof DiceWillRoll && filter(element));
     }
 }
 

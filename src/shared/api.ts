@@ -134,6 +134,7 @@ export type StackElement =
   | DeathOnStackJson
   | LootStepJson
   | DamageOnStackJson
+  | DiceWillRollJson
   | DiceRollJson
   | EndOfTurnJson
   | EffectOnStackJson;
@@ -279,11 +280,22 @@ const diceRollJsonSchema = z.object({
   card: identifierTypeSchema.optional(),
   targets: z.array(selectionItemSchema).optional(),
   visualEffectBox: VisualEffectBoxSchema.optional(),
-  id: z.number(),
   modifier: z.number(),
+  id: z.number(),
   reordering: stackReorderingInfoSchema.optional(),
 });
 export type DiceRollJson = z.infer<typeof diceRollJsonSchema>;
+
+const diceWillRollJsonSchema = z.object({
+  type: z.literal("diceWillRoll"),
+  issuer: entityTypeSchema,
+  card: identifierTypeSchema.optional(),
+  visualEffectBox: VisualEffectBoxSchema.optional(),
+  attackRoll: z.boolean(),
+  id: z.number(),
+  reordering: stackReorderingInfoSchema.optional(),
+});
+export type DiceWillRollJson = z.infer<typeof diceWillRollJsonSchema>;
 
 const deathOnStackJsonSchema = z.object({
   type: z.literal("death"),
@@ -342,6 +354,7 @@ const stackElementSchema: z.ZodType<StackElement> = z.lazy(() =>
     lootStepJsonSchema,
     endOfTurnJsonSchema,
     damageOnStackJsonSchema,
+    diceWillRollJsonSchema,
     diceRollJsonSchema,
     effectOnStackJsonSchema,
   ]),

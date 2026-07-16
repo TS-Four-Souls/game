@@ -230,6 +230,7 @@
     }
   },
   "selector": {
+    "diceWillRoll": "Choose a dice that is about to roll.",
     "one": "Choose one.",
     "player": "Choose a player.",
     "anotherPlayer": "Choose another player.",

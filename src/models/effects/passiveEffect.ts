@@ -1,7 +1,7 @@
 import { type TriggerEvent } from '@/models/types/eventTypes';
 import type { SerializedTranslation, TemporaryEffect, VisualEffectBox } from "@/shared/api";
 import { Card, ItemCard, LootCard, MonsterCard, TreasureCard, type CounterType } from "../cards";
-import { DamageOnStack, EffectOnStack, LootCardEffect } from '../stackElement';
+import { DamageOnStack, DiceWillRoll, EffectOnStack, LootCardEffect } from '../stackElement';
 import { Entity } from "../entities/entity";
 import { Monster } from "../entities/monster";
 import { Player } from "../entities/player";
@@ -1134,6 +1134,8 @@ export function chosenumberDamageOnRollThisTurnEffect(game: Game, damageAmount: 
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
+        const nextRoll = data.next as DiceWillRoll;
+        
         const nb = data.next as number;
         if ([1,2,3,4,5,6].includes(nb) === false) {
             throw new GameError("chosenumberDamageOnRollThisTurnEffect: nb must be a number between 1 and 6.", toSerializedTranslation("error.behaviorError", {error: "chosenumberDamageOnRollThisTurnEffect: nb must be a number between 1 and 6."}));
@@ -1711,16 +1713,21 @@ export function enterPlayDeactivatedEffect(game: Game): SyncEffectFunction {
 export function lootOnNextRollEffect(game: Game, x: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
+
+        const willRoll = data.next as DiceWillRoll;
+        if(willRoll === undefined || !(willRoll instanceof DiceWillRoll))
+            return false;
+        const guess = data.next;
+        if(guess < 1 || guess > 6) {
+            throw new GameError("lootOnNextRollEffect target must be a number between 1 and 6.", toSerializedTranslation("error.behaviorError", {error: "lootOnNextRollEffect target must be a number between 1 and 6."}));
+        }
         // Listen for the next roll event on this player
         const previouslyRolledDices = game.stack.elements.filter(e => e instanceof DiceRoll);
         offRoll = game.emitter.on("on:dice:resolved", (eventData: OnDiceBeingRolledData) => {
             const { diceRoll } = eventData;
-            if(previouslyRolledDices.includes(diceRoll))
+            if(willRoll.diceRoll !== diceRoll)
                 return;
-            const guess = data.next;
-            if(guess < 1 || guess > 6) {
-                throw new GameError("lootOnNextRollEffect target must be a number between 1 and 6.", toSerializedTranslation("error.behaviorError", {error: "lootOnNextRollEffect target must be a number between 1 and 6."}));
-            }
+            
             if(diceRoll.value === guess) {
                 // Create the effect that will execute when the stack resolves
                 const effect = (effectData: EffectData): boolean => {

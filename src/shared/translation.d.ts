@@ -117,6 +117,7 @@ declare module "translations" {
 		"startStep.gameParams.maxHandSize": undefined;
 		"startStep.gameParams.allowCoinDonation": undefined;
 		"startStep.gameParams.lootPlayPerTurn": undefined;
+		"selector.diceWillRoll": undefined;
 		"selector.one": undefined;
 		"selector.player": undefined;
 		"selector.anotherPlayer": undefined;

@@ -806,16 +806,15 @@ describe("Tap/Paid effects 1", () => {
         // game.select = (issuer, n, opts, optional) => {
         //     return { selected: [4], remaining: [] };
         // };
+        const dice = game.rollDice(player1, crystalBall);
+        const diceWillRoll = game.stack.elements.at(-1);
 
         game.cardHandler.recharge(crystalBall);
-        await game.activateItem(player1, crystalBall, [4]);
+        await game.activateItem(player1, crystalBall, [diceWillRoll, 4]);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-
-        // Roll a 4 - should loot 3
-        const dice = player1.rollDice(Math.random, crystalBall);
         dice.value = 4;
-        game.addToStack(dice);
+
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 

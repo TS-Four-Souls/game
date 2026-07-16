@@ -398,7 +398,7 @@ describe("Requiem Monsters ", () => {
         const mob = game.obtainCard("r-overflow") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
         let i = 1;
-        game.random = () => i++ % 2/2;
+        game.random = () => (i++/2) % 2/2;
         game.encounters.forceSetMonsterAtSlot(0, mob);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -654,7 +654,7 @@ describe("Requiem Monsters ", () => {
         expect(mob).toBeInstanceOf(MonsterCard);
         
         let i = 1;
-        game.random = () => i++ % 6 / 6 - 0.01;
+        game.random = () => (i++/2) % 6 / 6 - 0.01;
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
             return { selected: [Options[1]], remaining: Options.slice(max) };
         };

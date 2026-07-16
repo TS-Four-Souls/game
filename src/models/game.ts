@@ -6,7 +6,7 @@ import {
   MonsterCard,
   TreasureCard
 } from "@/models/cards";
-import { AttackRollData, EffectOnStack, EndOfTurnOnStack } from './stackElement';
+import { AttackRollData, DiceWillRoll, EffectOnStack, EndOfTurnOnStack } from './stackElement';
 import { CurrentPlayerDecidesToChangeRoom, getAttackRollEffect } from "@/models/effects/activeEffect";
 import { Entity } from "@/models/entities/entity";
 import { Monster } from "@/models/entities/monster";
@@ -295,14 +295,22 @@ export class Game extends SelectionHandler {
     if (data instanceof AttackRollData) this.assert.isAlive(player);
 
     const diceRoll = player.rollDice(this.random, data);
-    this.addAnimation({
-      id: this.nextAnimationId,
-      type: "diceRoll",
-      player: player.id,
-      diceRoll: diceRoll.value,
-    })
-    this.addToStack(diceRoll);
-    this.emit("on:dice:being-rolled", { eventIssuer: player, diceRoll });
+    const rollOnStack = () => {
+      diceRoll.roll(); // Roll again so that rollback roll after DiceWillRoll changes value
+      this.addAnimation({
+        id: this.nextAnimationId,
+        type: "diceRoll",
+        player: player.id,
+        diceRoll: diceRoll.value,
+      })
+      this.addToStack(diceRoll);
+      this.emit("on:dice:being-rolled", { eventIssuer: player, diceRoll });
+    }
+    if(this.cardHandler.shouldUseDiceWillRoll()){
+      const willRoll = new DiceWillRoll(diceRoll, rollOnStack);
+      this.addToStack(willRoll);
+    }else
+      rollOnStack();
     return diceRoll;
   }
 

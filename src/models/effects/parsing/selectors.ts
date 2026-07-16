@@ -14,10 +14,11 @@ import {
     stackElementSelector,
     topAnyDiscardSelector,
     visibleItemSelector,
-    YourItemSelector
+    YourItemSelector,
+    diceWillRollSelector
 } from "@/models/targetSelector.ts";
 import {Card, ItemCard, MonsterCard} from "@/models/cards.ts";
-import { EffectOnStack, LootCardEffect } from '@/models/stackElement';
+import { DiceWillRoll, EffectOnStack, LootCardEffect } from '@/models/stackElement';
 import {Player} from "@/models/entities/player.ts";
 import {DiceRoll} from "@/models/stackElement.ts";
 import type { SerializedTranslation } from "@/shared/api";
@@ -144,6 +145,9 @@ export const selectStackElementOrLoot = (game: Game, min: number = 1, max: numbe
     [createSelector(toSerializedTranslation("selector.itemOrLootAbility"), stackElementSelector((element) => element instanceof LootCardEffect || (element instanceof EffectOnStack && element.data.it instanceof ItemCard && (element.type === "active" || element.type === "paid")), game), min, max)];
 export const selectLootOnStack = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.lootCardOnStack"), stackElementSelector((element) => element instanceof LootCardEffect, game), min, max)];
+export function selectDiceWillRoll(game: Game, min: number = 1, max: number = min): TargetsSelector[]{
+    return [createSelector(toSerializedTranslation("selector.diceWillRoll"), diceWillRollSelector(() => true, game), min, max)];
+}
 export const selectNumber1to6 = (): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.number"), () => [1, 2, 3, 4, 5, 6], 1, 1)];
 

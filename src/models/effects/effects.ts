@@ -239,8 +239,11 @@ class PassiveEffectHandler extends EffectHandler {
 class ActiveEffectHandler extends EffectHandler {
     protected _type: "active" = "active";
     protected _activeEffect: Effect | null = null;
+    private _requiresDiceWillRoll: boolean = false;
 
     addEffect(effect: Effect): void {
+        if(this._requiresDiceWillRoll === false)
+            this._requiresDiceWillRoll = (effect.targetsSelector.findIndex(t => t.description.key === "selector.diceWillRoll") !== -1);
         switch (effect.type) {
             case "active":
                 if (this._activeEffect !== null) {
@@ -268,6 +271,9 @@ class ActiveEffectHandler extends EffectHandler {
             );
         }
         return this._activeEffect;
+    }
+    get requiresDiceWillRoll(){
+        return this._requiresDiceWillRoll;
     }
     get nbPaidEffects(): number {
         return this._effects.length;
@@ -362,7 +368,9 @@ export class EffectInterface {
             this.activeEffects.addEffect(effect);
         }
     }
-
+    get requiresDiceWillRoll(): boolean{
+        return this.activeEffects.requiresDiceWillRoll;
+    }
     getEffectIdAndChooseOneChoiceFromSeparatorId(id: number): { effectId: number | "tap"; choice?: string[] } {
         const effectId = this._mapSepIdToActiveEffectId.get(id);
         if (effectId === undefined) {
