@@ -202,7 +202,7 @@ function setupLoadingSubmitSelectionHandling(game: Game, logs: HistoricEntry[]):
   const submitSelectionEntries = logs.filter(
     (entry): entry is Extract<UserRequest, { type: "SubmitSelection" }> =>
       isUserRequestEntry(entry) && entry.type === "SubmitSelection",
-  );
+  ).sort((a, b) => {return Number(a.payload.requestId.split("_").at(-1)) - Number(b.payload.requestId.split("_").at(-1));});
 
   let i = 0;
 

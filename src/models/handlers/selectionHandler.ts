@@ -14,6 +14,10 @@ export interface PendingSelection {
         }
 
 export abstract class SelectionHandler {
+    private _nextId = 0;
+    private get nextId(){
+      return this._nextId++;
+    }
     abstract dispatch(): void; // Placeholder for the actual event dispatcher type
 
       // Pending selection tracking for multiplayer (handles both single and multiple selections)
@@ -132,7 +136,7 @@ export abstract class SelectionHandler {
             remaining: T[];
           }>((resolve) => {
             // Non-seeded random used here for requestId generation since it doesn't affect game logic and just needs to be unique enough to avoid collisions.
-            const requestId = `${sel.player.id}_${Date.now()}_${Math.random()}`;
+            const requestId = `${sel.player.id}_${Date.now()}_${Math.random()}_${this.nextId}`;
             this._pendingMultipleSelections.set(requestId, {
               playerId: sel.player.id,
               options: sel.options,
