@@ -149,6 +149,7 @@ const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
     z.object({ type: z.literal("number"), payload: z.number() }),
     z.object({ type: z.literal("boolean"), payload: z.boolean() }),
     z.object({ type: z.literal("string"), payload: z.string() }),
+    z.object({ type: z.literal("serializedTranslation"), payload: serializedTranslationSchema }),
     z.object({
       type: z.literal("couplePlayerHand"),
       payload: z.object({
@@ -328,7 +329,7 @@ const effectOnStackJsonSchema = z.object({
   targets: z.array(selectionItemSchema),
   card: identifierTypeSchema,
   visualEffectBox: VisualEffectBoxSchema.optional(),
-  effect: z.string(), /// done with visual box
+  effect: z.string(),
   id: z.number(),
   reordering: stackReorderingInfoSchema.optional(),
 });

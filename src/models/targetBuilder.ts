@@ -386,9 +386,10 @@ export class TargetBuilder {
                 return possibleTargets.find(t => t && t._type === identifier.payload);
             case "number":
             case "string":
-            case "serializedTranslation":
             case "boolean":
                 return possibleTargets.find(t => t === identifier.payload);
+            case "serializedTranslation":
+                return possibleTargets.find(t => t.key === identifier.payload.key);
             case "null":
                 return possibleTargets.find(t => t === null);
             case "couplePlayerHand":
