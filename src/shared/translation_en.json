@@ -230,7 +230,6 @@
     }
   },
   "selector": {
-    "diceWillRoll": "Choose a dice that is about to roll.",
     "one": "Choose one.",
     "player": "Choose a player.",
     "anotherPlayer": "Choose another player.",
@@ -238,7 +237,8 @@
     "monsterNotBeingAttacked": "Choose a monster not being attacked.",
     "monster": "Choose a monster.",
     "triggeredAbility": "Choose a triggered ability of a monster or non-eternal item.",
-    "cardInPlayOrLoot": "Choose a card in play or a loot being played.",
+    "cardInPlayOrLoot": "Choose an item in play or a loot being played.",
+    "diceWillRoll": "Choose a dice that is about to roll.",
     "playerOrMonster": "Choose a player or a monster.",
     "deck": "Choose a deck.",
     "cardGranted": "Choose a card granted by this effect.",
@@ -1145,6 +1145,18 @@
         "blockedTooltip": {
           "title": "Cannot resolve stack"
         }
+      },
+      "stackElement": {
+        "aKilledB": "{{entity1}} killed {{entity2}}",
+        "cardRoll": "{{card}} - {{player}} rolled a {{result}}",
+        "diceWillRoll": "{{player}} is about to roll a dice",
+        "endOfTurn": "{{player}}'s turn is about to end",
+        "lootStep": "{{player}} is about to loot {{value}} card(s)",
+        "lootCardEffect": "{{player}} used {{card}}",
+        "effect": "{{player}} - {{card}}",
+        "damage": "{{entity1}} dealt {{value}} damage to {{entity2}}",
+        "attackRoll": "Attack Roll",
+        "nothingOnStack": "NOTHING ON THE STACK..."
       }
     },
     "rollback": {
