@@ -20,7 +20,7 @@ export function toSerializedTranslation<T extends TranslationKeys>(
 export function translationKeyFromCardSlug(
   slug: string,
 ): BasicSerializedTranslation {
-  if (!Object.keys(en["cardNames"]).includes(slug))
+  if (!Object.hasOwn(en.cardNames, slug))
     throw new GameError(
       `Key "${slug}" is not a valid translation key`,
       toSerializedTranslation("error.parsingError", {
