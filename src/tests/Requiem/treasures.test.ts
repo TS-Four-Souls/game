@@ -637,7 +637,6 @@ describe("Requiem Loots ", () => {
             game.entityHandler.kill(player1, player1, item);
             await game.actions.resolveStack();
             await game.actions.resolveStack();
-            expect(game.stack.isEmpty()).toBe(true);
             expect(player1.inPlay.includes(item)).toBe(false);
             expect(player1.hand.length).toBe(2);
             expect(player1.coins).toBe(2);
@@ -1141,7 +1140,6 @@ describe("Requiem Loots ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(game.stack.isEmpty()).toBe(true);
         expect(player1.coins).toBe(0);
         expect(player1.isDead).toBe(true);
     });

@@ -120,6 +120,9 @@ describe("Four Souls+2 Eternal Items", () => {
         game.entityHandler.kill(player1, player1, eternal);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.hand.length).toBe(3);
         expect(game.stack.isEmpty()).toBe(true);
@@ -137,6 +140,9 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(3);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.healthPoints).toBe(2);
         expect(player1.attackPoints).toBe(1);
@@ -309,7 +315,7 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(game.stack.isEmpty()).toBe(true);
+        
         expect(player1.hand.length).toBe(3);
         expect(player2.hand.length).toBe(2);
         

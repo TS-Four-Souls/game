@@ -164,6 +164,8 @@ export class EntityHandler {
     // discharge every items. 
     for (const item of player.inPlay)
       if (item.hasTapEffect()) item.charged = false;
+    player.character.charged = false;
+
     const deathPenaltyData = {
       eventIssuer: player,
       coinsLost: lostCoins,
@@ -326,8 +328,8 @@ export class EntityHandler {
         source: source,
       });
       this.game.dispatch();
-      // if(receiver instanceof Player && this.game.currentPlayer === receiver)
-      //   this.game.executeWhenStackEmpty(() => {this.game.endTurn();});
+      if(receiver instanceof Player && this.game.currentPlayer === receiver)
+        await this.game.executeWhenStackEmpty(async () => {await this.game.endTurn();});
     }).catch((error) => {
       console.error("Failed to resolve death follow-up", error);
     });

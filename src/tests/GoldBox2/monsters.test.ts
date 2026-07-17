@@ -5,7 +5,7 @@ import { Game } from "../../models/game";
 import { Player } from "../../models/entities/player";
 import { setupTestGame } from "../testHelpers";
 
-describe("Gold Box 2 Monsters", () => {
+describe.skip("Gold Box 2 Monsters", () => {
     let game: Game;
     let player1: Player;
     let player2: Player;

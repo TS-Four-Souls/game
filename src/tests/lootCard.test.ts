@@ -391,7 +391,6 @@ describe("Loot Card", () => {
         expect(player1.currentHealthPoints).toBe(0); // player should be dead
         expect(player1.isDead).toBe(true);
         expect(game.currentPlayer.id).toBe(player1.id); // should be player2's turn
-        await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // end player1's turn to move to player2's turn
         await game.actions.resolveStack();

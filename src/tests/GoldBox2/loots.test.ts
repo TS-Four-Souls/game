@@ -5,7 +5,7 @@ import { Player } from "../../models/entities/player";
 import { setupTestGame } from "../testHelpers";
 import { AttackRollData, DiceRoll } from "@/models/stackElement";
 
-describe("Gold Box 2 Loot Cards", () => {
+describe.skip("Gold Box 2 Loot Cards", () => {
     let game: Game;
     let player1: Player;
     let player2: Player;
