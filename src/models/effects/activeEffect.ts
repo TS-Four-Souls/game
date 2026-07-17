@@ -2400,10 +2400,11 @@ export function rechargeThisEffect(game: Game): SyncEffectFunction {
 }
 export function forceAttackMonsterDeckEffect(game: Game, times: number, type: "total" | "additional"): SyncEffectFunction {
     return (data: EffectData) => {
-        if(data.issuer instanceof Player === false) return false;
-        const additionalTimes = type === "additional" ? times : times - data.issuer.attackedIdsThisTurn.filter((id) => id === "topDeck").length;
+        // if(data.issuer instanceof Player === false) return false;
+        const player = game.currentPlayer
+        const additionalTimes = type === "additional" ? times : times - player.attackedIdsThisTurn.filter((id) => id === "topDeck").length;
         for (let i = 0; i < additionalTimes; i++) {
-            game.entityHandler.playerMustAttack(data.issuer as Player, "topDeck", data.it);
+            game.entityHandler.playerMustAttack(player as Player, "topDeck", data.it);
         }
         return true;
     };

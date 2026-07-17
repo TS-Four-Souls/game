@@ -450,33 +450,11 @@ return (data: EffectData) => {
     };
 }
 
-export function doubleRewardsOnDeathRollEffect(game: Game, rollValues: number[]): SyncEffectFunction {
-
-    return (data: EffectData) => {
-        let offDeath: (() => void) | null = null;
-        
-        offDeath = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
-            const { eventIssuer, target, source } = eventData;
-            if (data.issuer !== eventIssuer) return;
-            if(source instanceof Card) return;
-            const roll = source as DiceRoll;
-            if(!rollValues.includes(roll.value)) return;
-            
-            // Add all effects as a single stack element
-            const effect = (effectData: EffectData): boolean => {
-                game.entityHandler.entityRewards(data.issuer as Monster);
-                return true;
-            };
-            addPassiveEffectToStack(game, effect, data, `When ${data.it.name} dies, if the killing roll was ${rollValues.join(" or ")}, it grants double rewards.`);
-        });
-
-        // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleaners.push(() => {
-            offDeath?.();
-            offDeath = null;
-        });
+export function doubleRewardsOnDeathRollEffect(game: Game): SyncEffectFunction {
+    return (data: EffectData): boolean => {
+        game.entityHandler.entityRewards(data.issuer as Monster);
         return true;
-    };
+    }
 }
 
 export function noCombatDamageOnAttackRollEffect(game: Game, rollValues: number[]): SyncEffectFunction {

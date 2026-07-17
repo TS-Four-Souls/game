@@ -1,6 +1,6 @@
 import type { LootCard, TreasureCard } from "@/models/cards";
 import { Deck, MonsterCard } from "@/models/cards";
-import { beforeEach, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, expectTypeOf, it } from "bun:test";
 import { Game } from "../../models/game";
 import { Player } from "../../models/entities/player";
 import { setupTestGame } from "../testHelpers";
@@ -25,6 +25,7 @@ describe("Gold Box 2 Monsters", () => {
 
     it("g2-gaper", async () => {
         const card1 = game.obtainCard("g2-gaper") as MonsterCard;
+        game.cardHandler.attachEffectsToCard(card1);
         game.decks.monster.addTopPosition(card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
@@ -35,8 +36,129 @@ describe("Gold Box 2 Monsters", () => {
         expect(game.stack.size).toBe(1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(player1.hasAttackRequirement).toBe(true);
+    });
+
+    it("g2-imp", async () => {
+        const card1 = game.obtainCard("g2-imp") as MonsterCard;
+        game.decks.monster.addTopPosition(card1);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
+        const mob = game.monsters[0]!;
+        game.random = () => 3/6-0.01;
+        game.actions.attackRoll(player1, mob);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(game.entityHandler.getDC(mob)).toBe(6);
+    });
+
+    it("g2-gurglings", async () => {
+        const card1 = game.obtainCard("g2-gurglings") as MonsterCard;
+        game.decks.monster.addTopPosition(card1);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
+        const mob = game.monsters[0]!;
+        let init = game.entityHandler.getDC(mob);
+        game.entityHandler.dealCombatDamage(player1, mob, card1, mob.currentHealthPoints-2);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(mob.currentHealthPoints).toBe(2);
+        expect(game.entityHandler.getDC(mob)).toBe(init-1);
+        game.entityHandler.dealCombatDamage(player1, mob, card1, 1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(mob.currentHealthPoints).toBe(1);
+        expect(game.entityHandler.getDC(mob)).toBe(init-1);
+        game.entityHandler.heal(mob, 2);
+        expect(game.entityHandler.getDC(mob)).toBe(init);
+    });
+
+    it("g2-i_am_error 5", async () => {
+        const card1 = game.obtainCard("g2-i_am_error") as MonsterCard;
+        game.decks.monster.addTopPosition(card1);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
+        game.random = () => 5/6-0.01;
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.inPlay.length).toBe(2);
+    });
+
+    it("g2-i_am_error 3", async () => {
+        const card1 = game.obtainCard("g2-i_am_error") as MonsterCard;
+        game.decks.monster.addTopPosition(card1);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
+        game.random = () => 3/6-0.01;
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.hand.length).toBe(3);
+    });
+
+    it("g2-i_am_error 1", async () => {
+        const card1 = game.obtainCard("g2-i_am_error") as MonsterCard;
+        game.decks.monster.addTopPosition(card1);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
+        game.random = () => 1/6-0.01;
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.hasAttackRequirement).toBe(true);
+    });
+
+    it("g2-steven", async () => {
+        const card1 = game.obtainCard("g2-steven") as MonsterCard;
+        game.decks.monster.addTopPosition(card1);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
+        game.entityHandler.addHealth(player1, 10);
+        game.random = () => 2/6-0.01;
+        game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(player1.currentHealthPoints).toBe(10);
+        game.random = () => 6/6-0.01;
+        game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(game.currentPlayer === player2).toBe(true);
+    });
+
+    it("g2-trap_door roll 6", async () => {
+        const card1 = game.obtainCard("g2-trap_door") as MonsterCard;
+        game.decks.monster.addTopPosition(card1);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
+        game.random = () => 0.99;
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.currentHealthPoints).toBe(1);
+    });
+
+    it("g2-trap_door roll 1", async () => {
+        const card1 = game.obtainCard("g2-trap_door") as MonsterCard;
+        game.decks.monster.addTopPosition(card1);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
+        game.random = () => 0.01;
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.attackThisTurn).toBe(1);
     });
 
     it("g2-curse_of_fatigue", async () => {

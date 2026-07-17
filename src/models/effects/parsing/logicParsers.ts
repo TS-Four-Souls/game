@@ -11,6 +11,7 @@ import {effectParser, syncEffectParser, type ParsedEffect, type SyncParsedEffect
 import { addToStackEffect } from "@/models/effects/activeEffect.ts";
 import { toSerializedTranslation } from "@/utils/translation";
 import { GameError } from "@/models/GameError";
+import { DiceRoll } from "@/models/stackElement";
 
 export function eachTimeActivateItemEffect(s: string, game: Game): SyncParsedEffect {
     const restOfEffect = s.substring("each time a player activates an item, they".length).trim();
@@ -234,6 +235,26 @@ export function parseEachTimeDeclareAttackEffect(s: string, game: Game): SyncPar
     const restParsed = effectParser(restOfEffect, game, true);
     return {
         effectFunction: passive.onYourEventEffect("on:attack:declared", [restParsed.effectFunction], game, s),
+        targetSelectors: restParsed.targetSelectors
+    };
+}
+
+export function parseWhenThisDiesOnAttackRoll(s: string, game: Game, value: number): SyncParsedEffect {
+    const rollValues = [value];
+    const restOfEffect = s.substring(s.indexOf(",") + 1).trim();
+    const restParsed = effectParser(restOfEffect, game, true);
+    return {
+        effectFunction: passive.onYourEventEffect("on:death:monster", [restParsed.effectFunction], game, s, false, 
+            (effectData: EffectData, eventData: OnDeathMonsterData) =>
+            {
+                const { eventIssuer, target, source } = eventData;
+                if (effectData.issuer !== eventIssuer) return false;
+                if(source instanceof DiceRoll === false) return false;
+                const roll = source as DiceRoll;
+                if(!rollValues.includes(roll.value)) return false;
+                return true;
+            }
+        ),
         targetSelectors: restParsed.targetSelectors
     };
 }
