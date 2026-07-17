@@ -19,19 +19,41 @@ import { toSerializedTranslation } from "@/utils/translation";
  * ```
  */
 export class Shop extends Slots<TreasureCard> {
+    _shopPrice: number;
+    _topTreasurePrice: number;
     /**
      * Creates a new Shop instance.
      *
      * @param nbItemsInShop - Number of slots in the shop
      * @param deck - The treasure deck to draw cards from
      */
-    constructor(nbItemsInShop: number, deck: Deck<TreasureCard>) {
+    constructor(nbItemsInShop: number, shopPrice: number, deck: Deck<TreasureCard>) {
         super(nbItemsInShop, deck);
+        this._shopPrice = shopPrice;
+        this._topTreasurePrice = shopPrice;
         this.fillEmptySpots();
     }
 
     get itemsInShop(): (TreasureCard | undefined)[] {
         return this.cardsOnTop;
+    }
+
+    get topTreasurePrice(): number{
+        return this._topTreasurePrice;
+    }
+    get shopPrice(): number{
+        return this._shopPrice
+    }
+
+    set shopPrice(x: number){
+        this._shopPrice = x;
+    }
+
+    priceAt(idx: number | "top", player: Player)
+    {
+        if(idx === "top")
+            return this._topTreasurePrice
+        return this.shopPrice + player.priceModifier;
     }
 
     /**

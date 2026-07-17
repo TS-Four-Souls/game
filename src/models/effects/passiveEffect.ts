@@ -11,7 +11,7 @@ import { DiceRoll } from "../stackElement";
 import { TargetBuilder } from "../targetBuilder";
 import { EffectData, type EffectFunction, type SyncEffectFunction, type AsyncEffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type {
-    OnAttackRollData,
+    OnRollData,
     OnCardFlippedData,
     OnCoinGainedData,
     OnCoinsLostBeforeData,
@@ -33,7 +33,9 @@ import type {
     OnLootWouldDiscardData,
     OnRechargeData,
     OnTurnEndData,
-    OnTurnStartData
+    OnTurnStartData,
+    OnDeathWouldDeathData,
+    OnAttackDeclaredMonsterData
 } from "../types/eventTypes";
 import * as active from "./activeEffect";
 import { type ParsedEffect, type SyncParsedEffect } from "./parsing/effectParser";
@@ -555,7 +557,7 @@ export function combatDamageModifierOnAttackRollEffect(game: Game, attackRolls: 
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
 
-        offDamage = game.emitter.on("on:attack:roll:modifier", (eventData: OnAttackRollData) => {
+        offDamage = game.emitter.on("on:attack:roll:modifier", (eventData: OnRollData) => {
             const { eventIssuer, dice} = eventData;
             if (eventIssuer !== data.issuer) return;
             if (!attackRolls.includes(dice.value)) return;
@@ -586,7 +588,7 @@ export function endTurnOnAttackRollXEffect(game: Game, rollValue: number) {
     return (data: EffectData): boolean => {
         let offDamage: (() => void) | null = null;
 
-        offDamage = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
+        offDamage = game.emitter.on("on:attack:roll", (eventData: OnRollData) => {
             const { eventIssuer, dice } = eventData;
             if (eventIssuer !== data.issuer) return;
             if (dice.value !== rollValue) return;
@@ -596,6 +598,39 @@ export function endTurnOnAttackRollXEffect(game: Game, rollValue: number) {
         data.it.cleaners.push(() => {
             offDamage?.();
         });
+        return true;
+    };
+}
+
+export function cancelNextDeathOfAPlayer(game: Game, description: string): SyncEffectFunction{
+    return (data: EffectData) => {
+        const target = data.next;
+        let offDeath: (() => void) | null = null;
+        let offEndTurn: (() => void) | null = null;
+        
+
+        const clean: ()=> void =()=>
+        {
+            offDeath?.();
+            offDeath = null;
+            offEndTurn?.();
+            offEndTurn = null;
+        }
+        offDeath = game.emitter.on("on:death:would-death", (eventData) => {
+            const eventIssuer = eventData.eventIssuer;
+            if(eventIssuer !== target)
+                return false;
+            // Add all effects as a single stack element
+            const effect = async (effectData: EffectData): Promise<boolean> => {
+                game.entityHandler.preventDeath(target);
+                if(game.currentPlayer === target)
+                    await active.endTurnAndResetStackEffect(game)(data);
+                clean();
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, description);
+        });
+        offEndTurn = game.emitter.on("till:turn:end", ()=>{clean();});
         return true;
     };
 }
@@ -653,6 +688,30 @@ export function rollXChoose1Effect(game: Game, x: number, onlyOnce: boolean, cho
         data.it.cleaners.push(() => {
             offRoll?.();
             offRoll = null;
+        });
+        return true;
+    };
+}
+
+export function nextShopItemThisTurnCosts(game: Game, cost: number): SyncEffectFunction {
+    return (data: EffectData) => {
+        const initShopPrice = game.shop.shopPrice;
+        game.shop.shopPrice = cost;
+        let offPurchase: (() => void) | null = null;
+        let offEndTurn: (() => void) | null = null;
+
+        const clean:()=>void = ()=>{
+            game.shop.shopPrice = initShopPrice;
+            offPurchase?.();
+            offEndTurn?.();
+            offPurchase = null;
+            offEndTurn = null;
+        }
+        offPurchase = game.emitter.on("on:purchase:success", ({ eventIssuer }) => {
+            clean();
+        });
+        offEndTurn = game.emitter.on("on:turn:end", ({ eventIssuer }) => {
+            clean();
         });
         return true;
     };
@@ -845,36 +904,40 @@ export function curseEffect(restEffectFunction: SyncEffectFunction, game: Game):
 }
 
 // REPLACEMENT EFFECT: Continuous stat modification on your turn - does not use the stack.
-export function firstAttackRollDiceModifier(
+export function firstRollDiceModifier(
     amount: number,
-    game: Game
+    game: Game,
+    type: "attack" | "any"
 ): SyncEffectFunction {
+    const modifier = type === "any" ? game.entityHandler.addDiceModifier : game.entityHandler.addAttackDiceModifier;
+    const event = type === "any" ? "on:roll:modifier" : "on:attack:roll:modifier";
+    const rollThisTurn = type === "any" ? "rollThisTurn" : "attackRollThisTurn";
     return (data: EffectData) => {
         if (amount < 0)
-            throw new GameError("firstAttackRollDiceModifier amount must be non-negative.", toSerializedTranslation("error.behaviorError", {error: "firstAttackRollDiceModifier amount must be non-negative."}));
+            throw new GameError("firstRollDiceModifier amount must be non-negative.", toSerializedTranslation("error.behaviorError", {error: "firstRollDiceModifier amount must be non-negative."}));
         const issuer = data.issuer;
         if(!(issuer instanceof Player))
-            throw new GameError("firstAttackRollDiceModifier can only be applied to Players.", toSerializedTranslation("error.behaviorError", {error: "firstAttackRollDiceModifier can only be applied to Players."}));
-        let active = issuer.attackRollThisTurn ===  0;
+            throw new GameError("firstRollDiceModifier can only be applied to Players.", toSerializedTranslation("error.behaviorError", {error: "firstRollDiceModifier can only be applied to Players."}));
+        let active = issuer[rollThisTurn] ===  0;
         if(active)
-            game.entityHandler.addAttackDiceModifier(issuer, amount, data.it);
+            modifier(issuer, amount, data.it);
 
         const offTurn = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
             const { eventIssuer } = eventData;
             if (eventIssuer !== issuer) return;
             if(active) return;
-            game.entityHandler.addAttackDiceModifier(issuer, amount, data.it);
+            modifier(issuer, amount, data.it);
             active = true;
         });
 
-        const offTurnEnd = game.emitter.on("on:attack:roll:modifier", (eventData: OnAttackRollData) => {
+        const offTurnEnd = game.emitter.on(event, (eventData: OnRollData) => {
             const { eventIssuer } = eventData;
             if (eventIssuer !== issuer) return;
             if(!active) return
-            if(issuer.attackRollThisTurn > 1)
+            if(issuer[rollThisTurn] > 1)
             {
                 active = false;
-                game.entityHandler.addAttackDiceModifier(issuer, -amount, data.it);
+                modifier(issuer, -amount, data.it);
             }
         });
 
@@ -884,7 +947,7 @@ export function firstAttackRollDiceModifier(
             if(active)
             {
                 active = false;
-                game.entityHandler.addAttackDiceModifier(data.issuer, -amount, data.it);
+                modifier(data.issuer, -amount, data.it);
             }
             offTurn();
             offTurnEnd();
@@ -910,7 +973,7 @@ export function firstAttackRollStatModifierEffect(
             offAttack = null;
         };
         // Register cleanup to reverse at end of turn
-        offAttack = game.emitter.on("on:attack:roll:first-time-each-turn", (eventData: OnAttackRollData) => {
+        offAttack = game.emitter.on("on:attack:roll:first-time-each-turn", (eventData: OnRollData) => {
             const { eventIssuer, dice} = eventData;
             if (data.issuer !== eventIssuer) return;
             dice.additionalDamageDealt += damageDealtModifier;
@@ -1475,7 +1538,20 @@ export function noRechargeCharaDuringRechargeStepEffect(game: Game): SyncEffectF
     };
 }
 
-export function rechargeOneDuringRechargeStepEffect(game: Game): SyncEffectFunction {
+export function maxHandSizeEffect(game: Game, newMaxHandSize:number): SyncEffectFunction{
+    return (data: EffectData) => {
+        const issuer = data.issuer;
+        if(issuer instanceof Player === false)
+            return false;
+        issuer.maxHandSize = newMaxHandSize;
+        data.it.cleaners.push(()=>{
+            issuer.maxHandSize = game.gameParameters.maxHandSize.value;
+        })
+        return true;
+    }
+}
+
+export function rechargeOneDuringRechargeStepEffect(game: Game, nb: number, target: "mostsouls" | "issuer"): SyncEffectFunction {
     return (data: EffectData) => {
         let offBeforeRechargeStep: (() => void) | null = null;
         offBeforeRechargeStep = game.emitter.on("on:turn:start:before:recharge:step", ({ eventIssuer, itemsToRecharge }) => {
@@ -1483,11 +1559,12 @@ export function rechargeOneDuringRechargeStepEffect(game: Game): SyncEffectFunct
             if (!(issuer instanceof Player)) {
                 throw new GameError("rechargeOneDuringRechargeStepEffect can only be applied to Players.", toSerializedTranslation("error.behaviorError", {error: "rechargeOneDuringRechargeStepEffect can only be applied to Players."}));
             }
+            if(target === "issuer" && issuer !== data.issuer) return;
             if (itemsToRecharge.length === 0) return;
 
             const currentOptions = [...itemsToRecharge];
             const effect = async (effectData: EffectData): Promise<boolean> => {
-                const selected = (await data.selectAndRecord(game, issuer, 1, 1, currentOptions, toSerializedTranslation("pending.itemToRecharge"), true, true)).selected[0]!;
+                const selected = (await data.selectAndRecord(game, issuer, 0, nb, currentOptions, toSerializedTranslation("pending.itemToRecharge"), true, true)).selected[0]!;
                 if (selected) {
                     itemsToRecharge.splice(0, itemsToRecharge.length, selected);
                 }
@@ -2318,6 +2395,26 @@ export function shopItemsCostLessEffect(discount: number, game: Game): SyncEffec
     };
 }
 
+
+export function monstersYouAttackModifiers(game: Game, modifier: number): SyncEffectFunction{
+    return (data: EffectData) => {
+        let offDeclareAttack: (() => void) | null = null;
+        let offEndTurn: (() => void) | null = null;
+        offDeclareAttack = game.emitter.on("on:attack:declared:monster", (eventData: OnAttackDeclaredMonsterData) => {
+            const newData = new EffectData(data.it, data.issuerProvider, [eventData.monster[0]]);
+            temporaryStatModifierEffect([game.entityHandler.addDC.bind(game)], modifier, game, "next")(newData);
+        });
+        offEndTurn =  game.emitter.on("on:turn:end", () => {
+            offDeclareAttack?.();
+            offDeclareAttack = null;
+            offEndTurn?.();
+            offEndTurn = null;
+
+        });
+        return true;
+    };
+}
+
 export function itemCostLessToActivateEffect(game: Game, discount: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offLoseCoin: (() => void) | null = null;
@@ -2509,7 +2606,7 @@ export function onAttackRollEffect(
     return (data:EffectData) => {
         let offEffect: (() => void) | null = null;
         // Listen for the next damage event on this player
-        offEffect = game.emitter.on(event, (eventData: OnAttackRollData) => {
+        offEffect = game.emitter.on(event, (eventData: OnRollData) => {
             const { eventIssuer, dice } = eventData;
             if (data.issuer !== eventIssuer) return;
             if (rollValues.includes(dice.value)) {
@@ -2855,7 +2952,7 @@ export function killOnDoubleAttackRollEffect(game: Game): SyncEffectFunction {
 
         let prevRollThisTurn: number | null = null;
         // Listen for the next damage event on this player
-        offEffect = game.emitter.on("on:attack:roll", (eventData: OnAttackRollData) => {
+        offEffect = game.emitter.on("on:attack:roll", (eventData: OnRollData) => {
             const { eventIssuer, dice } = eventData;
             const target = dice.attackTarget;
             if(data.issuer !== eventIssuer) return;

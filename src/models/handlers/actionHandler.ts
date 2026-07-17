@@ -554,7 +554,7 @@ export class ActionHandler {
       this.game.assert.currentPlayerIsEngagedInPurchase();
       this.game.assert.noPendingSelection();
       this.game.assert.emptyStack();
-      const price = this.game.gameParameters.shopPrice.value + (index !== "top" ? player.priceModifier : 0);
+      const price = this.game.shop.priceAt(index, player);
       if (player.coins < price!) {
         throw new GameError(
           `Purchase failed. You need ${price! - player.coins} more coins.\n`,
@@ -577,7 +577,7 @@ export class ActionHandler {
     if (index !== "top" && (index < 0 || index >= this.game.shop.itemsInShop.length))
       throw new GameError("Invalid shop index.",
         toSerializedTranslation("error.invalidShopIndex"));
-    const price = Math.max(0, this.game.gameParameters.shopPrice.value + (index !== "top" ? player.priceModifier : 0));
+    const price = Math.max(0, this.game.shop.priceAt(index, player));
       if (player.coins < price!) {
         throw new GameError(
           `Purchase failed. You need ${price! - player.coins} more coins.\n`,

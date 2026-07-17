@@ -647,7 +647,7 @@ export function statModifierWhileAtHealthEffect(game: Game, s: string): SyncEffe
         throw new GameError("statModifierWhileAtHealthEffect could not parse numbers from string: " + s,
             toSerializedTranslation("error.behaviorError", { error: "statModifierWhileAtHealthEffect could not parse numbers from string: " + s }));
     const healthThreshold = numbers[0]!;
-    const statAmount = numbers[1]!;
+    const statAmount = s.includes("-") ? -numbers[1]! : numbers[1]!;
     const orLess = s.includes("or less");
     const event: TriggerEvent | null = s.includes("[dc]") 
         ? "on:get:monster:evasion" 
@@ -1214,7 +1214,31 @@ export function playerWithMostSoulsWinsEffect(game: Game): SyncEffectFunction {
     };
 }
 
-export function onTakesCombatDamageEffect(game: Game, s: string, rolls: number[] = []): SyncEffectFunction {
+export function onYouTakeCombatDamageEffect(game: Game, s: string, rolls: number[] = []): SyncEffectFunction {
+    const rest = s.substring(s.indexOf(",")+1).trim();
+    const effect = effectParser(rest, game, false);
+    return (data: EffectData) => {
+        let offDamage: (() => void) | null = null;
+        
+        offDamage = game.emitter.on("on:damage:taken", (eventData: OnDamageTakenData) => {
+            const { eventIssuer, target, source, damage } = eventData;
+            if (data.issuer !== eventIssuer) return;
+            if(!(source instanceof DiceRoll)) return;
+            if(rolls.length > 0 && !rolls.includes(source.value)) return;
+            const newData = new EffectData(data.it, () => data.issuer, [target], data.visualEffectBox);
+            addPassiveEffectToStack(game, effect.effectFunction, newData, `Each time ${data.it.name} takes combat damage, it ${rest}`);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offDamage?.();
+            offDamage = null;
+        });
+        return true;
+    };
+}
+
+export function onThisTakesCombatDamageEffect(game: Game, s: string, rolls: number[] = []): SyncEffectFunction {
     const rest = s.substring(s.indexOf(",")+1).trim();
     const effect = effectParser(rest, game, false);
     return (data: EffectData) => {

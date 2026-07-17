@@ -373,7 +373,6 @@ export class Encounters extends Slots<MonsterCard> {
      * Finds the slot containing the monster and discards it.
      *
      * @param monster - The Monster entity to flush
-     * @throws {Error} If the monster is not found in any slot
      */
     flushMonster(monster: Monster, place: "discard" | "bottom"): boolean {
         const idx = this._slots.findIndex(slot => slot.includes(monster.card));

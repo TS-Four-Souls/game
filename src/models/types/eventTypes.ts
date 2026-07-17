@@ -141,8 +141,8 @@ export interface OnAttackDeclaredTopDeckData {
   drawInIndex: number;
 }
 
-/** Data emitted when an attack roll is made */
-export interface OnAttackRollData {
+/** Data emitted when a roll is made */
+export interface OnRollData {
   eventIssuer: Player;
   dice: DiceRoll;
 }
@@ -377,10 +377,11 @@ export interface TriggerEventDataMap {
   "on:attack:declared:monster": OnAttackDeclaredMonsterData;
   "on:attack:declared:animated": OnAttackDeclaredAnimatedData;
   "on:attack:declared:topdeck": OnAttackDeclaredTopDeckData;
-  "on:attack:roll": OnAttackRollData;
-  "on:attack:roll:modifier": OnAttackRollData;
-  "on:attack:roll:first-time-each-turn": OnAttackRollData;
-  "on:attack:roll:failed": OnAttackRollData;
+  "on:attack:roll": OnRollData;
+  "on:attack:roll:modifier": OnRollData;
+  "on:roll:modifier": OnRollData;
+  "on:attack:roll:first-time-each-turn": OnRollData;
+  "on:attack:roll:failed": OnRollData;
   "on:coin:gained": OnCoinGainedData;
   "on:coin:gained:after": OnCoinGainedData;
   "on:loot:discard:before": OnLootWouldDiscardData;

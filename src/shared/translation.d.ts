@@ -124,6 +124,7 @@ declare module "translations" {
 		"selector.monsterBeingAttacked": undefined;
 		"selector.monsterNotBeingAttacked": undefined;
 		"selector.monster": undefined;
+		"selector.monsterNotBeingAttackedOrShopItem": undefined;
 		"selector.triggeredAbility": undefined;
 		"selector.cardInPlayOrLoot": undefined;
 		"selector.playerOrMonster": undefined;
@@ -1067,6 +1068,7 @@ declare module "translations" {
 		"pending.monsterToPutOnTopOfMonsterDeck": undefined;
 		"pending.anotherPlayerToDealDamageTo": undefined;
 		"pending.canRechargeChara": undefined;
+		"pending.upToXCharacters": { value: string | number | SerializedTranslation | SerializedTranslation[] };
 		"pending.howManyCountersToRemove": { value: string | number | SerializedTranslation | SerializedTranslation[] };
 		"pending.monsterToDealDamageTo": undefined;
 		"pending.lootToGive": { player: string | number | SerializedTranslation | SerializedTranslation[] };

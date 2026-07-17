@@ -360,6 +360,8 @@ export class Game extends SelectionHandler {
           return;
         }
         this.stack.resolve();
+        this.emit("on:roll:modifier", { eventIssuer: elem.issuer, diceRoll: elem });
+        
         if(elem.attackRoll)
           await this.resolveAttackRoll(elem);
         else
@@ -412,6 +414,7 @@ export class Game extends SelectionHandler {
     this.cardHandler.initializeBonusSouls();
     this._shop = new Shop(
       this.gameParameters.nbItemsInShop.value,
+      this.gameParameters.shopPrice.value,
       this.decks["treasure"]
     );
     this._encounters = new Encounters(
@@ -602,9 +605,9 @@ export class Game extends SelectionHandler {
    * Enforces max-hand-size discard rules for a player.
    */
   async verifyHandSize(player: Player): Promise<void> {
-    const toDiscard = player.hand.cards.length - this.gameParameters.maxHandSize.value;
+    const toDiscard = player.hand.cards.length - player.maxHandSize;
     if (toDiscard > 0){
-      const selection = await this.select(player, toDiscard, toDiscard, player.hand.cards, toSerializedTranslation("pending.maxHand", { value: toDiscard, count: this.gameParameters.maxHandSize.value }), true);
+      const selection = await this.select(player, toDiscard, toDiscard, player.hand.cards, toSerializedTranslation("pending.maxHand", { value: toDiscard, count: player.maxHandSize }), true);
       for (const card of selection.selected) {
         this.cardHandler.discardFromHandAtIndex(player, player.hand._hand.indexOf(card), "overload");
       }
