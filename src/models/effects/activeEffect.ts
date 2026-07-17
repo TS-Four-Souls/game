@@ -22,6 +22,7 @@ import { effectParser, type ParsedEffect, type SyncParsedEffect } from "./parsin
 import { addPassiveEffectToStack } from "./passiveEffect";
 import * as room from "./roomEffects";
 import { toSerializedTranslation } from "@/utils/translation";
+import { insertReport } from "@/utils/db";
 
 const qq = toSerializedTranslation;
 export function gainCoinsEffect(game: Game, amount: number, issuerType: "issuer" | "current", youMayHandling: [false]): SyncEffectFunction
@@ -1048,6 +1049,23 @@ export function flushOneMonsterSlotEffect(game: Game, min: number): AsyncEffectF
     };
 }
 
+export function discardMonsterOrShopItem(game: Game): AsyncEffectFunction {
+    return async (data: EffectData) => {
+        const card = data.next;
+        if(card instanceof TreasureCard){
+            const success = game.shop.removeCard(card)
+            if(success)
+                game.decks.treasure.addDiscardTop(card);
+            return success;
+        }else if(card instanceof MonsterCard && card.entity instanceof Monster && !card.entity.isEngagedInCombat){
+            return game.encounters.flushMonster(card.entity, "discard");
+
+        }else{
+            return false
+        }
+    };
+}
+
 export function giveAdditionalAttackThisTurnEffect(game: Game, amount: number): SyncEffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
@@ -2025,6 +2043,23 @@ export function putTopCardOfEachDeckIntoDiscardEffect(game: Game): SyncEffectFun
     };
 }
 
+export function doubleCardsInHandEffect(game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
+        if(data.issuer instanceof Player === false) return false;
+        game.loot(data.issuer, data.issuer.hand.length, "other");
+        return true;
+    };
+}
+
+export function doubleTargetCoins(game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
+        const target = data.next;
+        if(target instanceof Player === false) return false;
+        game.gainCoins(target, target.coins, data.it);
+        return true;
+    };
+}
+
 export function becomesCopyOfEternalItemLosesEternalEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
@@ -2118,6 +2153,17 @@ export function targetGetCoinRollEffect(game: Game): SyncEffectFunction[] {
         });
     }
     return effects;
+}
+
+export function cancelAttackAndAttackAgain(game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
+        const p = data.next;
+        if(p === undefined || p instanceof Player === false || !p.isEngagedInCombat)
+            return false;
+        game.entityHandler.endCombat();
+        game.entityHandler.addAttackThisTurn(p, 1, data.it);
+        return true;
+    };
 }
 
 export function rollGainCoinsEffect(game: Game): SyncEffectFunction {
@@ -2890,6 +2936,17 @@ export function putXCardFromYourHandOnTopOfLootDeck(game: Game, x: number): Asyn
     };
 }
 
+export function rechargeUpToXChara(game: Game, x: number): AsyncEffectFunction {
+    return async (data: EffectData) => {
+        if(data.issuer instanceof Player === false)
+            return false;
+        const charas = game.players.map(p=>p.character);
+        const toRecharge = (await game.select(data.issuer, 0, x, charas, qq("pending.upToXCharacters", {value: x}), false, true)).selected;
+        game.cardHandler.rechargeMultiple(data.issuer, data.it, toRecharge);
+        return true;
+    };
+}
+
 export function addOrRemoveCounterOnCardEffect(game: Game, amount: number, type: "any" | "alreadyOnIt", target: "next" | "selectionOnResolve", youMayEffectHanging: boolean[], targetSelector: TargetsSelector[]=[]): AsyncEffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
@@ -2979,6 +3036,7 @@ export function discardHandEffect(game: Game): SyncEffectFunction {
                 success = success && game.cardHandler.discardFromHandAtIndex(data.issuer, idx, "effect");
             }
         }
+        data.addTarget(handSize);
         return success;
     };
 }

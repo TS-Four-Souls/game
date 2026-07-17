@@ -70,7 +70,7 @@ export class GameStateSerializer {
       
       hand: player.hand.cards.map((c) => c.jsonAPI),
       inPlay: player.inPlay.map((c) => this.serializedMyInPlayItems(c, player)).concat(player.curses.map((c) => this.serializeCurse(player, c, player))),
-      numberOfCardsOverMaxHandSize: Math.max(0, player.hand.cards.length - this.game.gameParameters.maxHandSize.value),
+      numberOfCardsOverMaxHandSize: Math.max(0, player.hand.cards.length - player.maxHandSize),
       pendingSelection: this.serializedPendingSelection(player.id),
       capabilities: {
         endTurn: this.game.actions.canEndTurn(player),
@@ -229,8 +229,8 @@ export class GameStateSerializer {
     return {
       discard: this.game.decks["treasure"]!.discard.map((c) => c.jsonAPI).toReversed(),
       deckSize: this.game.decks["treasure"]!.cards.length,
-      inPlay: this.game.shop.itemsInShop.flatMap((c) => c ? [{ ...c.jsonAPI, price: this.game.gameParameters.shopPrice.value + player.priceModifier }] : []),
-      topDeckPrice: this.game.gameParameters.shopPrice.value,
+      inPlay: this.game.shop.itemsInShop.flatMap((c) => c ? [{ ...c.jsonAPI, price: this.game.shop.shopPrice + player.priceModifier }] : []),
+      topDeckPrice: this.game.shop.topTreasurePrice,
       firstCardTreasureDeck: player.canSeeTopOfTreasureDeck && this.game.decks["treasure"]!.cards[0] !== undefined ? this.game.decks["treasure"]!.cards[0]!.jsonAPI : undefined,
     };
   }

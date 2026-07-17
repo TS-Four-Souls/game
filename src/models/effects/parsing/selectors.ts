@@ -53,10 +53,14 @@ export const selectAliveNonActivePlayer = (game: Game, min: number = 1, max: num
     [createSelector(toSerializedTranslation("selector.player"), playerSelector((player) => !player.isDead && player !== game.currentPlayer, game), min, max)];
 export const selectAnotherPlayer = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.anotherPlayer"), anotherPlayerSelector(() => true, game), min, max)];
+export const selectPlayerInCombat = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
+    [createSelector(toSerializedTranslation("selector.player"), (issuer: Player) => game.players.filter(p => p.isEngagedInCombat), min, max)];
 export const selectMonsterBeingAttacked = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.monsterBeingAttacked"), (issuer: Player) => game.monsters.filter(m => m.isEngagedInCombat), min, max)];
 export const selectMonsterNotBeingAttacked = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.monsterNotBeingAttacked"), (issuer: Player) => game.monsters.filter(m => !m.isEngagedInCombat), min, max)];
+export const selectMonsterNotAttackedOrShopItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
+    [createSelector(toSerializedTranslation("selector.monsterNotBeingAttackedOrShopItem"), (issuer: Player) => (game.monsters.filter(m => !m.isEngagedInCombat).map(e=>e.card) as Card[]).concat(game.shop.cardsOnTop.filter(c=>c!=undefined)), min, max)];
 export const selectMonster = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.monster"), (issuer: Player) => game.monsters, min, max)];
 export const selectAttackableMonster = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>

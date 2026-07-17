@@ -921,7 +921,7 @@ export function playersWithFewestSoulsShopItemPriceReductionEffect(game: Game, p
             const minSouls = Math.min(...game.players.map(p => p.totalSouls));
             playersWithFewestSouls = game.players.filter(p => p.totalSouls === minSouls);
             if(playersWithFewestSouls.includes(game.currentPlayer) && pay0Next)
-                game.currentPlayer.priceModifier -= game.gameParameters.shopPrice.value - priceReduction;
+                game.currentPlayer.priceModifier -= game.shop.shopPrice - priceReduction;
         }
         /** When a shop item is purchase, if the current player has his cost reduced, remove the reduction.
          */
@@ -935,7 +935,7 @@ export function playersWithFewestSoulsShopItemPriceReductionEffect(game: Game, p
         function removeEffect(): void {
             if(playersWithFewestSouls.includes(game.currentPlayer) && pay0Next)
             {
-                game.currentPlayer.priceModifier += game.gameParameters.shopPrice.value - priceReduction;
+                game.currentPlayer.priceModifier += game.shop.shopPrice - priceReduction;
             }
         }
         

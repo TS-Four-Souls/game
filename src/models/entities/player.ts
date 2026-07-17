@@ -50,6 +50,13 @@ export class Player extends Entity {
   /** @private Number of times the player has rolled for attack this turn */
   private _attackRollThisTurn: number = 0;
   
+  /** @private Max hand size */
+  private _maxHandSize: number = 0;
+  
+  
+  /** @private Number of times the player has rolled this turn */
+  private _rollThisTurn: number = 0;
+  
   /** @private Number of purchases remaining this turn */
   private _remainingPurchaseThisTurn: number = 0;
   
@@ -110,6 +117,14 @@ export class Player extends Entity {
 
   get globalId(): number {
     return this.character.globalId;
+  }
+
+  get maxHandSize(): number {
+    return this._maxHandSize;
+  }
+
+  set maxHandSize(x: number) {
+    this._maxHandSize = x;
   }
   /**
    * Gets the list of entities or deck positions this player must attack, with source cards.
@@ -326,6 +341,14 @@ export class Player extends Entity {
    */
   get attackRollThisTurn(): number {
     return this._attackRollThisTurn;
+  }  
+
+  /**
+   * Gets the number of attack rolls made this turn.
+   * @returns Number of attack rolls this turn
+   */
+  get rollThisTurn(): number {
+    return this._rollThisTurn;
   }  
    
   /**
@@ -695,6 +718,7 @@ export class Player extends Entity {
   resetTurnFlags() : void {
     this._attackThisTurn = 0;
     this._attackRollThisTurn = 0;
+    this._rollThisTurn = 0;
     this._remainingPurchaseThisTurn = 0;
     this.resetCanIActivateThisTurn();
     this.resetCanIUseLootThisTurn();
@@ -744,6 +768,7 @@ export class Player extends Entity {
   }
 
   rollDice(random: () => number, data: Card | AttackRollData): DiceRoll {
+    this._rollThisTurn += 1;
     if(data instanceof AttackRollData)
       this._attackRollThisTurn += 1;
     return new DiceRoll(random, this, data);

@@ -693,6 +693,7 @@ export class EntityHandler {
   addPlayer(newPlayer: Player): void {
     this.game.assert.playerIdAvailable(newPlayer.id);
     this.game.assert.gameNotStarted();
+    newPlayer.maxHandSize = this.game.gameParameters.maxHandSize.value;
     this.players.push(newPlayer);
     this.game.dispatch();
   }
