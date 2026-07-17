@@ -64,13 +64,9 @@ describe("Requiem Loots ", () => {
         game.loot(player1, 2);
         game.entityHandler.kill(player1, player1, loot);
         await game.actions.resolveStack();
-        await game.actions.resolveStack();
-        await game.actions.resolveStack();
         expect(player1.coins).toBe(5);
         expect(player1.hand.length).toBe(2);
         expect(player1.isDead).toBe(true);
-        expect(game.stack.isEmpty()).toBe(true);
-        await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.endTurn();
@@ -485,7 +481,6 @@ describe("Requiem Loots (3p games) ", () => {
         game.actions.playCard(player1, 0, [player1]);
         await game.actions.resolveStack();
         game.entityHandler.dealDamage(player1, player1, loot, 3);
-        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();

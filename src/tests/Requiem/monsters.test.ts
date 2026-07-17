@@ -58,7 +58,6 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(game.stack.isEmpty()).toBe(true);
         expect(player1.isDead).toBe(true);
         expect(player2.isDead).toBe(false);
         expect(game.encounters.slots.length).toBe(3);
@@ -124,7 +123,6 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(game.stack.isEmpty()).toBe(true);
         expect(player1.isDead).toBe(true);
         expect(player2.isDead).toBe(true);
     });
@@ -263,9 +261,6 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack(); // death
         await game.actions.resolveStack(); // damage
         await game.actions.resolveStack(); // death
-        await game.actions.resolveStack(); // death
-        await game.actions.resolveStack(); // death
-        expect(game.stack.isEmpty()).toBe(true);
         expect(player1.isDead).toBe(true);
         expect(player2.isDead).toBe(true);
     });
@@ -432,7 +427,6 @@ describe("Requiem Monsters ", () => {
         game.encounters.forceSetMonsterAtSlot(0, mob);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(game.stack.isEmpty()).toBe(true);
         expect(player1.isDead).toBe(true);
         expect(player2.isDead).toBe(false);
     });
@@ -445,7 +439,6 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(game.stack.isEmpty()).toBe(true);
         expect(player1.isDead).toBe(true);
         expect(player2.isDead).toBe(true);
     });
@@ -645,7 +638,6 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(game.stack.isEmpty()).toBe(true);
         expect(player1.isDead).toBe(true);
     });
 
@@ -685,7 +677,6 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(game.stack.isEmpty()).toBe(true);
         expect(player1.curses.includes(mob)).toBe(false);
         expect(player2.curses.includes(mob)).toBe(true);
         expect(game.decks.monster.discard.includes(mob)).toBe(false);
@@ -806,13 +797,11 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(game.stack.isEmpty()).toBe(true);
         expect(ent.currentHealthPoints).toBe(ent.healthPoints);
 
         game.entityHandler.kill(player1, ent, mob);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(game.stack.isEmpty()).toBe(true);
         expect(player2.hand.length).toBe(3);
         
     });

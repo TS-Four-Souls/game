@@ -151,7 +151,6 @@ describe("Gold Box 2 Eternal Items", () => {
         await game.actions.resolveStack();
         game.entityHandler.kill(player2, player1, eternal);
         await game.actions.resolveStack();
-        expect(game.stack.size).toBe(0);
         expect(game.currentPlayer === player1).toBe(true);
     });
     

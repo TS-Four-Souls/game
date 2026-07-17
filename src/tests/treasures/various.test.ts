@@ -272,7 +272,6 @@ describe("Treasure - Passive effects", () => {
         expect(player1.inPlay.map((c) => c.slug)).not.toContain(babyHaunt.slug);
         expect(player2.inPlay.map((c) => c.slug)).toContain(babyHaunt.slug);
 
-        await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();

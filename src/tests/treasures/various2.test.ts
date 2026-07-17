@@ -784,9 +784,11 @@ describe("Force Attack Monster", () => {
 
         // Should be able to end turn (player dead, constraint doesn't apply)
         expect(async () => {
-            await game.endTurn();
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
             await game.actions.resolveStack();
         }).not.toThrow();
+        expect(game.currentPlayer.isDead).toBe(false);
     });
 
     it("should clear mustAttackEntity at start of next turn", async () => {

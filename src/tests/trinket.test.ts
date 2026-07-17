@@ -148,7 +148,6 @@ describe("Loot Card", () => {
         expect(player1.hand.cards.length).toBe(initialHandSize + 2); // Looted 1 but discarded on death.
         expect(player1.isDead).toBe(true);
 
-        await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();

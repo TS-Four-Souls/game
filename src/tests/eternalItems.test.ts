@@ -473,7 +473,6 @@ describe("Eternal Items", () => {
         expect(player2.inPlay.length).toBe(2);
         const firstItemGained = player2.inPlay[1];
 
-        await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(firstItemGained!.eternal).toBe(false);

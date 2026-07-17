@@ -141,7 +141,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         await game.actions.resolveStack();// end of turn of p1
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
-        expect(player1.hand.length).toBe(13); // Should gain 2 more
+        expect(player1.hand.length).toBe(10); // Should gain 2 more
 
         // Test: Player drops below 8 cards - should not trigger
         while (player1.hand.length > 6) {

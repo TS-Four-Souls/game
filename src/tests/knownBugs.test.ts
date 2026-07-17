@@ -316,7 +316,6 @@ describe("Known bugs that have be corrected", () => {
         await game.actions.resolveStack(); // death on stack
         expect(player1.curses.length).toBe(0);
 
-        await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();

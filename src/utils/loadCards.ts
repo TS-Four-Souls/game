@@ -1,6 +1,14 @@
 import fs from "fs/promises";
 import path from "path";
 import { type GenericCardType } from "../types/cardTypes.ts";
+const FORBIDDEN_PREFIXES = ["r-", "g2-"]
+
+function prefixIsAccepted(slug:string){
+  for(const prefix of FORBIDDEN_PREFIXES)
+    if(slug.startsWith(prefix))
+      return false;
+  return true;
+}
 
 export async function loadCards(dirPath: string | undefined): Promise<GenericCardType[]> {
   const dir = dirPath
@@ -22,6 +30,7 @@ export async function loadCards(dirPath: string | undefined): Promise<GenericCar
   for (const entry of entries.toSorted()) {
     // only consider .json files
     if (!entry.toLowerCase().endsWith(".json")) continue;
+    if(!prefixIsAccepted(entry)) continue;
     const filePath = path.join(dir, entry);
     try {
       const stat = await fs.stat(filePath);
