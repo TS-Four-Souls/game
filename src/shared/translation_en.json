@@ -1149,7 +1149,7 @@
       },
       "stackElement": {
         "aKilledB": "{{entity1}} killed {{entity2}}",
-        "cardRoll": "{{card}} - {{player}} rolled a {{result}}",
+        "cardRoll": "{{player}} rolled a {{result}}",
         "diceWillRoll": "{{player}} is about to roll a dice",
         "endOfTurn": "{{player}}'s turn is about to end",
         "lootStep": "{{player}} is about to loot {{value}} card(s)",
@@ -1158,6 +1158,14 @@
         "damage": "{{entity1}} dealt {{value}} damage to {{entity2}}",
         "attackRoll": "Attack Roll",
         "nothingOnStack": "NOTHING ON THE STACK..."
+      }
+    },
+    "roundCounter": {
+      "tooltip": {
+        "title": "Round {{count}}"
+      },
+      "countdownTooltip": {
+        "title": "{{count}} round remaining"
       }
     },
     "rollback": {
