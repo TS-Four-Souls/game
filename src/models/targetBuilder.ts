@@ -339,12 +339,13 @@ export class TargetBuilder {
                 // Deck object
                 return { type: "deck", payload: option._type as DeckName };
             }
-            if(typeof option === 'object' && option.key !== null)
-                return {type: "serializedTranslation", payload: option};
             
             // { player: Player; hand: Hand }
             if( typeof option === 'object' && 'player' in option && 'hand' in option)
                 return {type: "couplePlayerHand", payload: {player: {nameKey: (option.player as Player).character.nameKey, slug: (option.player as Player).slug, globalId: (option.player as Player).globalId}, hand: option.hand.cards.map((c: Card) => {return {nameKey: c.nameKey, slug: c.slug, globalId: c.globalId}})}};
+            
+            if(typeof option === 'object' && option.key !== null)
+                return {type: "serializedTranslation", payload: option};
             if (Array.isArray(option) || typeof option === 'object') {
                 try {
                     return {type: "array", payload: TargetBuilder.convertToSelectionItems(option)};
