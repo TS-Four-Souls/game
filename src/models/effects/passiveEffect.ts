@@ -1647,7 +1647,8 @@ export function onAnyEventEffect(
                 }
                 return true;
             };
-            addPassiveEffectToStack(game, effect, data, description);
+            if(effectFunctions.length > 0)
+                addPassiveEffectToStack(game, effect, data, description);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -2790,6 +2791,28 @@ export function startWithNCountersEffect(
     };
 }
 
+
+export function attackingPlayerDealDamageOnRollOf(
+    game: Game,
+    n: number,
+    s: string
+): SyncEffectFunction {
+    return onAnyEventEffect("on:damage:taken", [], game, s,
+            (data: EffectData, event: OnDamageTakenData) =>
+            {
+                if(event.target !== data.issuer) return false;
+                const source = event.source;
+                if(source instanceof DiceRoll === false) return false;
+                if(event.eventIssuer.isEngagedInCombat === false || event.target.isEngagedInCombat === false) return false;
+                if(source.value !== n) return false
+                const effect: SyncEffectFunction = active.dealDamageToTargetEffect(game, game.entityHandler.getAttack(event.eventIssuer),false, [], "current");
+                const newData: EffectData = new EffectData(data.it, ()=>event.eventIssuer, [data.issuer], data.visualEffectBox);
+                addPassiveEffectToStack(game, effect, newData, s, data.visualEffectBox);
+                return true;
+            }
+         );
+}
+
 // REPLACEMENT EFFECT: Uses "prevent" - does not use the stack.
 // Card text: "If you would take damage while this has counters on it, remove that many counters and prevent that much damage."
 export function preventDamageByRemovingCountersEffect(
@@ -2880,6 +2903,37 @@ export function eachOtherPlayerRevealsHandEffect(game: Game): SyncEffectFunction
                 }
             }
         });
+        return true;
+    };
+}
+
+
+export function nextRollModifier(game: Game, type: "any" | "attack", amount: number, issuerType: "any" | "active"): SyncEffectFunction
+{
+    const event = type === "any" ? "on:roll:modifier" : "on:attack:roll:modifier";
+    return (data: EffectData) => {
+        let offTurn: (() => void) | null = null;
+        let offRoll: (() => void) | null = null;
+        offTurn = game.emitter.on("on:turn:end", (eventData: OnTurnStartData) => {
+            clean();
+        });
+        
+        offRoll = game.emitter.on(event, (eventData: OnRollData) => {
+            if(type === "attack" && !eventData.dice.attackRoll) return;
+            if(issuerType === "active" && eventData.eventIssuer !== game.currentPlayer) return;
+            if(amount < 0)
+                eventData.dice.subtract(-amount);
+            else
+                eventData.dice.add(amount);
+            clean();
+        });
+
+        // Store cleanup function
+        const clean = () => {
+            offTurn();
+            offRoll();
+        }
+        
         return true;
     };
 }

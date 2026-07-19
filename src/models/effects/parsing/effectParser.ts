@@ -1201,6 +1201,14 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             const preventAmount = nr.nextNumber();
             return noTargetSyncEffect(passive.preventDamageOnRollEffect([rollValue], preventAmount, game));
         }
+        case "the attacking player has -x to their next attack roll this turn":
+            return noTargetSyncEffect(passive.nextRollModifier(game, "attack", -nr.nextNumber(), "active"));
+        case "the attacking player has x to their next attack roll this turn":
+            return noTargetSyncEffect(passive.nextRollModifier(game, "attack", nr.nextNumber(), "active"));
+        case "the next attack roll this turn has -x":
+            return noTargetSyncEffect(passive.nextRollModifier(game, "attack", -nr.nextNumber(), "any"));
+        case "the attacking player also deals combat damage to this on attack rolls of x":
+            return noTargetSyncEffect(passive.attackingPlayerDealDamageOnRollOf(game, nr.nextNumber(), s));
         case "each player rolls-\nx-x: they skip their next turn":
             return noTargetSyncEffect(active.eachPlayerRollsSkipNextTurnEffect(game, nr.nextNumber(), nr.nextNumber()));
         case "each time you roll an attack roll of x, deal x damage to each other player": {
