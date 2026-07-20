@@ -7,7 +7,7 @@ import {
   type SerializedTranslation,
 } from "@/shared/api";
 import { GameError } from "@/models/GameError";
-import en from "@/shared/translation_en.json";
+import en from "../../data/translations/en.json";
 
 export function toSerializedTranslation<T extends TranslationKeys>(
   ...args: TranslationFunctionArgs<T>
