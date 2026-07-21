@@ -35,7 +35,8 @@ import type {
     OnTurnEndData,
     OnTurnStartData,
     OnDeathWouldDeathData,
-    OnAttackDeclaredMonsterData
+    OnAttackDeclaredMonsterData,
+    OnDiceResolvedData
 } from "../types/eventTypes";
 import * as active from "./activeEffect";
 import { type ParsedEffect, type SyncParsedEffect } from "./parsing/effectParser";
@@ -1298,6 +1299,45 @@ export function onYourEventEffect(
     };
 }
 
+export function aPlayerRollSameResTwiceInRow(effectFunctions: EffectFunction[],
+    game: Game,
+    description: string): SyncEffectFunction {
+        return (data: EffectData) => {
+        let prevRoll: Map<Player, number> = new Map(game.players.map(p=>[p, -1]));
+        let offTurnStart: (() => void) | null = null;
+        let offRoll: (() => void) | null = null;
+        
+        offTurnStart = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
+            prevRoll = new Map(game.players.map(p=>[p, -1]));
+        });
+
+        offRoll = game.emitter.on("on:dice:resolved", (eventData: OnDiceResolvedData) => {
+            const roll = eventData.diceRoll;
+            const issuer = eventData.eventIssuer;
+            if(prevRoll.get(issuer) === roll.value)
+            {
+                const effect = async (effectData: EffectData): Promise<boolean> => {
+                    for (const func of effectFunctions) {
+                        await func(effectData);
+                    }
+                    return true;
+                };
+                addPassiveEffectToStack(game, effect, data, description);
+            }
+            prevRoll.set(issuer, roll.value);
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offTurnStart?.();
+            offTurnStart = null;
+            offRoll?.();
+            offRoll = null;
+        });
+        return true;
+    };
+}
+
 export function onYourKillEffect(
     effectFunctions: EffectFunction[],
     game: Game,
@@ -1629,6 +1669,7 @@ export function onAnyEventEffect(
     game: Game,
     description: string,
     condition: (effectData: EffectData, eventData: any) => boolean = () => true,
+    issuerIsEventIssuer: boolean = true
 ): SyncEffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
@@ -1636,7 +1677,7 @@ export function onAnyEventEffect(
         offDamage = game.emitter.on(triggerEvent, (eventData) => {
             const eventIssuer = eventData.eventIssuer;
             if(!condition(data, eventData)) return;
-            if (eventIssuer && eventIssuer instanceof Entity) {
+            if (issuerIsEventIssuer && eventIssuer && eventIssuer instanceof Entity) {
                 data.issuerProvider = (): Entity => eventIssuer;
             }
             

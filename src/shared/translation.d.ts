@@ -11,6 +11,7 @@ declare module "translations" {
 		"introStep.titleScreen.createRoomButton": undefined;
 		"introStep.titleScreen.joinRoomButton": undefined;
 		"introStep.titleScreen.aboutButton": undefined;
+		"introStep.titleScreen.betaIndicator": undefined;
 		"introStep.createRoomForm.title": undefined;
 		"introStep.createRoomForm.name.placeholder": undefined;
 		"introStep.createRoomForm.errorToast.title": undefined;
@@ -117,7 +118,6 @@ declare module "translations" {
 		"startStep.gameParams.maxHandSize": undefined;
 		"startStep.gameParams.allowCoinDonation": undefined;
 		"startStep.gameParams.lootPlayPerTurn": undefined;
-		"selector.diceWillRoll": undefined;
 		"selector.one": undefined;
 		"selector.player": undefined;
 		"selector.anotherPlayer": undefined;
@@ -127,11 +127,13 @@ declare module "translations" {
 		"selector.monsterNotBeingAttackedOrShopItem": undefined;
 		"selector.triggeredAbility": undefined;
 		"selector.cardInPlayOrLoot": undefined;
+		"selector.diceWillRoll": undefined;
 		"selector.playerOrMonster": undefined;
 		"selector.deck": undefined;
 		"selector.cardGranted": undefined;
 		"selector.topAnyDiscard": undefined;
 		"selector.rechargeableItem": undefined;
+		"selector.rechargeableItems": undefined;
 		"selector.curse": undefined;
 		"selector.tapItem": undefined;
 		"selector.characterCard": undefined;
@@ -876,6 +878,8 @@ declare module "translations" {
 		"gameStep.boardSelection.cancelButton": undefined;
 		"gameStep.boardSelection.blockedTooltip.title": undefined;
 		"gameStep.boardSelection.blockedTooltip.message": undefined;
+		"gameStep.roundCounter.tooltip.title": { count: string | number | SerializedTranslation | SerializedTranslation[] };
+		"gameStep.roundCounter.countdownTooltip.title": { count: string | number | SerializedTranslation | SerializedTranslation[] };
 		"gameStep.cheats.getLootTopDeck.label": undefined;
 		"gameStep.cheats.getLootTopDeck.successToast.title": { player: string | number | SerializedTranslation | SerializedTranslation[] };
 		"gameStep.cheats.getLootTopDeck.successToast.message": undefined;
@@ -931,6 +935,16 @@ declare module "translations" {
 		"gameStep.stack.resolveButton.label": undefined;
 		"gameStep.stack.resolveButton.errorToast.title": undefined;
 		"gameStep.stack.resolveButton.blockedTooltip.title": undefined;
+		"gameStep.stack.stackElement.aKilledB": { entity1: string | number | SerializedTranslation | SerializedTranslation[];  entity2: string | number | SerializedTranslation | SerializedTranslation[] };
+		"gameStep.stack.stackElement.cardRoll": { card: string | number | SerializedTranslation | SerializedTranslation[];  player: string | number | SerializedTranslation | SerializedTranslation[];  result: string | number | SerializedTranslation | SerializedTranslation[] };
+		"gameStep.stack.stackElement.diceWillRoll": { player: string | number | SerializedTranslation | SerializedTranslation[] };
+		"gameStep.stack.stackElement.endOfTurn": { player: string | number | SerializedTranslation | SerializedTranslation[] };
+		"gameStep.stack.stackElement.lootStep": { player: string | number | SerializedTranslation | SerializedTranslation[];  value: string | number | SerializedTranslation | SerializedTranslation[] };
+		"gameStep.stack.stackElement.lootCardEffect": { player: string | number | SerializedTranslation | SerializedTranslation[];  card: string | number | SerializedTranslation | SerializedTranslation[] };
+		"gameStep.stack.stackElement.effect": { player: string | number | SerializedTranslation | SerializedTranslation[];  card: string | number | SerializedTranslation | SerializedTranslation[] };
+		"gameStep.stack.stackElement.damage": { entity1: string | number | SerializedTranslation | SerializedTranslation[];  value: string | number | SerializedTranslation | SerializedTranslation[];  entity2: string | number | SerializedTranslation | SerializedTranslation[] };
+		"gameStep.stack.stackElement.attackRoll": undefined;
+		"gameStep.stack.stackElement.nothingOnStack": undefined;
 		"gameStep.rollback.tooltip.title": undefined;
 		"gameStep.rollback.tooltip.message": undefined;
 		"gameStep.rollback.tooltip.cheatDisabledMessage": undefined;
@@ -1021,6 +1035,7 @@ declare module "translations" {
 		"pending.cardToDestroy": undefined;
 		"pending.soulToSteal": undefined;
 		"pending.cardToPutInSlot": undefined;
+		"pending.cardsToPutInSlot": undefined;
 		"pending.slotToPlaceCardIn": undefined;
 		"pending.cardToGet": undefined;
 		"pending.cardToPutInHand": undefined;
@@ -1311,6 +1326,8 @@ declare module "translations" {
 		"capability.noEffectsUsable": undefined;
 		"capability.noRemainingPurchase": undefined;
 		"capability.paidAttack": { value: string | number | SerializedTranslation | SerializedTranslation[];  coins: string | number | SerializedTranslation | SerializedTranslation[] };
+		"languageSelectionButton.tooltip.title": undefined;
+		"languageSelectionButton.tooltip.message": undefined;
 		"contactButton.tooltip.title": undefined;
 		"contactButton.tooltip.message": undefined;
 		"contactButton.popup.title": undefined;

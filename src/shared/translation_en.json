@@ -4,7 +4,8 @@
     "titleScreen": {
       "createRoomButton": "Create Room",
       "joinRoomButton": "Join Room",
-      "aboutButton": "About"
+      "aboutButton": "About",
+      "betaIndicator": "Living on the edge!"
     },
     "createRoomForm": {
       "title": "Welcome!",
@@ -245,6 +246,7 @@
     "cardGranted": "Choose a card granted by this effect.",
     "topAnyDiscard": "Choose the top card of any discard pile.",
     "rechargeableItem": "Choose a rechargeable item.",
+    "rechargeableItems": "Choose rechargeable items.",
     "curse": "Choose a curse.",
     "tapItem": "Choose a tap item.",
     "characterCard": "Choose a character card from outside the game.",
@@ -997,6 +999,14 @@
         "message": "You cannot select this card"
       }
     },
+    "roundCounter": {
+      "tooltip": {
+        "title": "Round {{count}}"
+      },
+      "countdownTooltip": {
+        "title": "{{count}} round remaining"
+      }
+    },
     "cheats": {
       "getLootTopDeck": {
         "label": "[CHEAT] Loot a card",
@@ -1157,7 +1167,7 @@
         "effect": "{{player}} - {{card}}",
         "damage": "{{entity1}} dealt {{value}} damage to {{entity2}}",
         "attackRoll": "Attack Roll",
-        "nothingOnStack": "NOTHING ON THE STACK..."
+        "nothingOnStack": "NOTHING ON\nTHE STACK..."
       }
     },
     "rollback": {
@@ -1344,6 +1354,7 @@
     "cardToDestroy": "Choose a card to destroy.",
     "soulToSteal": "Choose a soul to steal.",
     "cardToPutInSlot": "Choose a card to put in a slot.",
+    "cardsToPutInSlot": "Choose cards to put in slots.",
     "slotToPlaceCardIn": "Choose a slot to place the card in.",
     "cardToGet": "Choose a card to obtain.",
     "cardToPutInHand": "Choose a card to put in your hand.",
@@ -1656,6 +1667,12 @@
     "noEffectsUsable": "This card has no effects that are usable now",
     "noRemainingPurchase": "You have no remaining purchases this turn",
     "paidAttack": "You must pay {{value}}¢ to attack, but you only have {{coins}}¢"
+  },
+  "languageSelectionButton": {
+    "tooltip": {
+      "title": "Language",
+      "message": "Change the display language"
+    }
   },
   "contactButton": {
     "tooltip": {

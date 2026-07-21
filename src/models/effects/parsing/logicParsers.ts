@@ -3,7 +3,7 @@ import * as active from "@/models/effects/activeEffect.ts";
 import * as passive from "@/models/effects/passiveEffect.ts";
 import {NumberRobustString} from "@/models/effects/parsing/numberRobustString.ts";
 import {EffectData, type EffectFunction, type SyncEffectFunction} from "@/models/types/cardTypes.ts";
-import type {OnDeathMonsterData, OnEnterPlayData} from "@/models/types/eventTypes.ts";
+import type {OnDeathMonsterData, OnEnterPlayData, OnRollData} from "@/models/types/eventTypes.ts";
 import {Monster} from "@/models/entities/monster.ts";
 import {Player} from "@/models/entities/player.ts";
 import {noTargets} from "@/models/effects/parsing/selectors.ts";
@@ -310,4 +310,35 @@ export function noTargetEffect(effectFunction: EffectFunction): ParsedEffect {
 
 export function noTargetSyncEffect(effectFunction: SyncEffectFunction): SyncParsedEffect {
     return {effectFunction, targetSelectors: noTargets};
+}
+
+export function tillEndTurnOnAttackRoll(game: Game, s: string, values: number[]): SyncEffectFunction {
+    const restOfEffect = s.substring(s.indexOf(",", s.indexOf(",") + 1) + 1).trim();
+    const restParsed = effectParser(restOfEffect, game, true).effectFunction;
+    return (data: EffectData) => {
+        let offEndTurn: (() => void) | null = null;
+        let offRoll: (() => void) | null = null;
+        // Listen for the next would roll event on this player
+        offRoll = game.emitter.on("on:attack:roll", ({eventIssuer, dice}: OnRollData) => {
+            if (values.includes(dice.value)) {                
+                // Add to stack instead of executing immediately
+                passive.addPassiveEffectToStack(game, restParsed, data, s);
+            }
+        });
+        offEndTurn = game.emitter.on("till:turn:end", () => {
+            offRoll?.();
+            offRoll = null;
+            offEndTurn?.();
+            offEndTurn = null;
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offRoll?.();
+            offRoll = null;
+            offEndTurn?.();
+            offEndTurn = null;
+        });
+        return true;
+    };
 }
