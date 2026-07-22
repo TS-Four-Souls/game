@@ -930,9 +930,18 @@ export function firstRollDiceModifier(
             active = true;
         });
 
-        const offTurnEnd = game.emitter.on(event, (eventData: OnRollData) => {
+        const offEvent = game.emitter.on(event, (eventData: OnRollData) => {
             const { eventIssuer } = eventData;
             if (eventIssuer !== issuer) return;
+            if(!active) return
+            if(issuer[rollThisTurn] > 1)
+            {
+                active = false;
+                modifier(issuer, -amount, data.it);
+            }
+        });
+
+        const offDiceBeingRolled = game.emitter.on("on:dice:being-rolled", () => {
             if(!active) return
             if(issuer[rollThisTurn] > 1)
             {
@@ -950,7 +959,8 @@ export function firstRollDiceModifier(
                 modifier(data.issuer, -amount, data.it);
             }
             offTurn();
-            offTurnEnd();
+            offEvent();
+            offDiceBeingRolled();
         });
 
         return true;
