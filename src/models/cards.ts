@@ -1,4 +1,4 @@
-import { type ActiveEffectEntry, type BasicSerializedTranslation, type BonusSoulCard, type DescriptiveVisualEffectBox, type IdentifierType, type VisualEffectBox } from '@/shared/api';
+import { type ActiveEffectEntry, type BasicSerializedTranslation, type BonusSoulCard, type DescriptiveVisualEffectBox, type IdentifierType, type VisualEffectBox, type DeckName } from '@/shared/api';
 import type { BonusSoulCardType, CardRewards, CharacterCardType, EternalCardType, FlipData, GenericCardType, InPlayCardType, LootCardType, MonsterCardType, RoomCardType, TreasureCardType } from '@/types/cardTypes';
 import { print, shuffle } from '@/utils/auxiliary';
 import { toSerializedTranslation, translationKeyFromCardSlug } from '@/utils/translation';
@@ -1186,7 +1186,7 @@ export function assertCardMatchesDeck<T extends DeckType>(
 ): asserts card is DeckTypeToCardType[T] {
     if (card === undefined || card.type !== deckName) {
         throw new GameError(`Card type ${card?.type} doesn't match deck ${deckName}`,
-            toSerializedTranslation("error.cardTypeDoesNotMatchDeck", {cardType: card?.type || "undefined", deckType: deckName})
+            toSerializedTranslation("error.cardTypeDoesNotMatchDeck", {cardType: card?.type || "undefined", deckType: toSerializedTranslation(`startStep.gameParams.decks.${deckName as DeckName}s`)})
         );
     }
 }

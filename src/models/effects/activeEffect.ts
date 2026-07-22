@@ -2,27 +2,26 @@
 // as opposed to a passive effect which is triggered by a game event.
 
 
+import { GameError } from "@/models/GameError";
 import { type OnAttackDeclaredData, type OnDeathMonsterData } from "@/models/types/eventTypes";
 import { partialsEndingWithNumber1to6 } from "@/utils/auxiliary";
+import { toSerializedTranslation } from "@/utils/translation";
 import { assertCardMatchesDeck, type Card, CharacterCard, type CounterType, Deck, isDeckType, ItemCard, LootCard, MonsterCard, RoomCard, TreasureCard } from "../cards";
-import { LootCardEffect } from '../stackElement';
 import { Animated } from "../entities/animated";
 import { Entity } from "../entities/entity";
 import { Monster } from "../entities/monster";
 import { Player } from "../entities/player";
 import { Game } from "../game";
-import { GameError } from "@/models/GameError";
 import type { StackElement } from "../stack";
-import { DamageOnStack, DiceRoll, } from "../stackElement";
+import { DamageOnStack, DiceRoll, LootCardEffect } from '../stackElement';
 import { TargetBuilder } from "../targetBuilder";
 import { deckSelector, inplayUnchargedItemSelector as inplayChargeableItemSelector, visibleItemSelector } from "../targetSelector";
-import { type DeckType, EffectData, type EffectFunction, type SyncEffectFunction, type AsyncEffectFunction, type TargetsSelector } from "../types/cardTypes";
+import { type AsyncEffectFunction, type DeckType, EffectData, type EffectFunction, type SyncEffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type { OnTurnEndData } from "../types/eventTypes";
 import { effectParser, type ParsedEffect, type SyncParsedEffect } from "./parsing/effectParser";
 import { addPassiveEffectToStack } from "./passiveEffect";
 import * as room from "./roomEffects";
-import { toSerializedTranslation } from "@/utils/translation";
-import { insertReport } from "@/utils/db";
+import { type DeckName } from "@/shared/api";
 
 const qq = toSerializedTranslation;
 export function gainCoinsEffect(game: Game, amount: number, issuerType: "issuer" | "current", youMayHandling: [false]): SyncEffectFunction
@@ -1224,7 +1223,7 @@ export function LookAndPutBottomEffect(
             throw new GameError(`Deck ${deckName} does not exist.`, toSerializedTranslation("error.behaviorError", { error: `Deck ${deckName} does not exist.`}));
         }
         const topCard = deck.draw();
-        const res = await data.selectAndRecord(game, data.issuer, 0, 1, [topCard], qq("pending.lookAtTopCardOfNamedDeck", {deck: deckName}), false, false);
+        const res = await data.selectAndRecord(game, data.issuer, 0, 1, [topCard], qq("pending.lookAtTopCardOfNamedDeck", {deck: toSerializedTranslation(`startStep.gameParams.decks.${deckName as DeckName}s`)}), false, false);
         if (res.selected.length > 0) {
             game.cardHandler.addBottomPosition(deckName, topCard);
         } else {
@@ -1378,7 +1377,7 @@ export function lookAndOrderEffect(deckName: string, numberOfCards: number, game
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const cards = game.cardHandler.getFirstCardsOfDeck(deckName, numberOfCards);
-        const selectionResult = await data.selectAndRecord(game, data.issuer, numberOfCards, numberOfCards, cards, qq("pending.orderCards", { numberOfCards, deckName }), false, false);
+        const selectionResult = await data.selectAndRecord(game, data.issuer, numberOfCards, numberOfCards, cards, qq("pending.orderCards", { numberOfCards, deckName: toSerializedTranslation(`startStep.gameParams.decks.${deckName as DeckName}s`) }), false, false);
         for (let i = 0; i < selectionResult.selected.length; i++) {
             game.cardHandler.addTopPosition(deckName, selectionResult.selected[numberOfCards - 1 - i]!);
         }
@@ -1655,9 +1654,9 @@ export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestinati
         // getFirstCardsOfDeck(deckName, 1)[0];
         const justWatch = canPutWhere === "just_watch";
         const description = 
-            canPutWhere === "just_watch" ? qq("pending.lookAtTopCardOfDeck", {deck: deck._type}) 
-            : canPutWhere === "bottom" ? qq("pending.lookAtTopCardOfDeckAndPutOnBottom", {deck: deck._type}) 
-                : qq("pending.lookAtTopCardOfDeckAndDiscard", {deck: deck._type});
+            canPutWhere === "just_watch" ? qq("pending.lookAtTopCardOfDeck", {deck: toSerializedTranslation(`startStep.gameParams.decks.${deck._type as DeckName}s`)}) 
+            : canPutWhere === "bottom" ? qq("pending.lookAtTopCardOfDeckAndPutOnBottom", {deck: toSerializedTranslation(`startStep.gameParams.decks.${deck._type as DeckName}s`)}) 
+                : qq("pending.lookAtTopCardOfDeckAndDiscard", {deck: toSerializedTranslation(`startStep.gameParams.decks.${deck._type as DeckName}s`)});
         const selectionResult = reveal
          ? (await data.selectMultipleAndRecord(game, game.players.map(player => ({
                 player,

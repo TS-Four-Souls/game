@@ -66,6 +66,7 @@ const deckNameSchema = z.union([
   z.literal("loot"),
   z.literal("treasure"),
   z.literal("monster"),
+  z.literal("room"),
 ]);
 export type DeckName = z.infer<typeof deckNameSchema>;
 

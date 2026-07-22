@@ -7,6 +7,7 @@ import type {
   DeckConfigPatch,
   GameParametersJson,
   SetGameParameterRequest,
+  DeckName
 } from "@/shared/api";
 import { toSerializedTranslation } from "@/utils/translation";
 import type { Card, CharacterCard, DeckType } from "./cards";
@@ -179,7 +180,7 @@ class DeckParameter {
         `Card with slug ${slug} not found in deck ${this._type}`,
         toSerializedTranslation("error.cardWithSlugNotFound", {
           slug: slug,
-          deck: this._type,
+          deck: toSerializedTranslation(`startStep.gameParams.decks.${this._type as DeckName}s`),
         }),
       );
     }
