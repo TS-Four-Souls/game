@@ -268,7 +268,7 @@ export class DiceRoll extends StackElement {
       issuer: this.issuer.json, 
       card: !this._attackRoll ? this._card!.jsonAPI : undefined,
       visualEffectBox: this.obtainVisualBox(),
-      targets: !this._attackRoll ? TargetBuilder.convertToSelectionItems(this._targets) : undefined,
+      targets: !this._attackRoll ? TargetBuilder.convertToSelectionItems(this._targets.filter(s => typeof s !== "string")) : undefined,
       ...super.baseJson,
       modifier: (this._attackRoll ? this._issuer.attackDiceModifier : 0) + this._issuer.diceModifier,
     }
@@ -513,7 +513,7 @@ export class LootCardEffect extends StackElement {
         return {
             type: "LootCardEffect",
             card: this.card.jsonAPI,
-            targets: TargetBuilder.convertToSelectionItems(this.targets),
+            targets: TargetBuilder.convertToSelectionItems(this.targets.filter(s => typeof s !== "string")),
             issuer: this.issuer.json,
             ...super.baseJson,
         };
@@ -570,7 +570,7 @@ export class EffectOnStack extends StackElement {
         return {
             type: "effect",
             issuer: this._data.issuer.json,
-            targets: TargetBuilder.convertToSelectionItems([...this._data.targets, ...this._data.selectedOnResolve]),
+            targets: TargetBuilder.convertToSelectionItems([...this._data.targets.filter(s => typeof s !== "string"), ...this._data.selectedOnResolve.filter(s => typeof s !== "string")]),
             card: this.data.it.jsonAPI,
             effect: this._description,
             visualEffectBox: this._visualEffectBox,
