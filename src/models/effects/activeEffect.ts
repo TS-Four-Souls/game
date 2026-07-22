@@ -1714,9 +1714,12 @@ export function rerollEachItemEffect(game: Game, target: "issuer" | "currentPlay
 }
 
 export function trueEffect(): SyncEffectFunction {
-    return (data: EffectData) => {
+    const trueEffect = (data: EffectData) => {
         return true;
     };
+    // We bind the name trueEffect to the function so it can be used to check which effect is empty in dice rolls.
+    trueEffect.bind({}).name;
+    return trueEffect;
 }
 
 export function playForFreeTargetEffect(game: Game): AsyncEffectFunction {

@@ -156,6 +156,7 @@ export class DiceRoll extends StackElement {
     } else {
       this._attackRoll = false;
       this._card = data as Card;
+      this._visualEffectBox = data.visualEffectBoxFromDescription("roll-");
     }
     this._value = this.roll();
   }
@@ -283,13 +284,15 @@ export class DiceRoll extends StackElement {
       return undefined;
     if(!this._visualEffectBox)
       return undefined;
-    if(this._effect[this.value - 1] == trueEffect())
+    if(this._effect[this.value - 1]!.name === "trueEffect")
       return undefined;
     const range = this._visualEffectBox.endIndex - this._visualEffectBox.startIndex + 1;
     if(range === 1)
       return this._visualEffectBox;
-    const step = 6 / range;
-    const boxIndex = Math.floor(this.value / step);
+    const step = this._effect.reduce((acc, cur, idx, arr) => acc + (arr[idx]!.name !== "trueEffect" ? 1 : 0), 0) / range;
+    console.log(step);
+    const boxIndex = Math.floor((this.value - 1) / step);
+    console.log("step", step, "range", range, boxIndex, this.value);
     return {startIndex: this._visualEffectBox.startIndex + boxIndex, endIndex: this._visualEffectBox.startIndex + boxIndex};
   }
 
