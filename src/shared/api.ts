@@ -289,7 +289,7 @@ export type DiceRollJson = z.infer<typeof diceRollJsonSchema>;
 const diceWillRollJsonSchema = z.object({
   type: z.literal("diceWillRoll"),
   issuer: entityTypeSchema,
-  card: identifierTypeSchema.optional(),
+  card: identifierTypeSchema,
   visualEffectBox: VisualEffectBoxSchema.optional(),
   attackRoll: z.boolean(),
   id: z.number(),
