@@ -453,6 +453,15 @@ export class Game extends SelectionHandler {
     await this.executeWhenStackEmpty(async () => {
       await this.startTurn();
     });
+    // this.DEBUG_startOfGameSetup();
+  }
+
+  DEBUG_startOfGameSetup() {
+    if(false)
+      return;
+    
+    const card = this.obtainCard("b2-xiv_temperance") as LootCard;
+    this.cardHandler.addCardToHand(this.currentPlayer, card);
   }
 
   initializeTeams(): void{
