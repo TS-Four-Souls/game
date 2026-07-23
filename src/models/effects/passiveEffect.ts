@@ -137,7 +137,7 @@ export function preventDamageToCurrentPlayerAndDealToRandomPlayerEffect(game: Ga
             const effect: EffectFunction = (effectData: EffectData) => {
                 eventData.damageArray[0] = 0;
                 const target = game.players[Math.floor(game.random() * game.players.length)]!;
-                game.entityHandler.dealDamage(data.issuer, target, data.it, damage);
+                game.entityHandler.dealDamage(data.issuer, target, data.cardAndBox, damage);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, "When this would deal combat damage to the active player, prevent it, then this deals damage to a player chosen at random.");
@@ -195,7 +195,7 @@ export function voteOnWhipOrWhiffEffect(game: Game, damageIfWhipWins: number, lo
                     eventData.damageArray[0] = 0; // prevent the damage this would take
                     for(const player of game.players) {
                         if(player !== game.currentPlayer && !player.isDead) {
-                            game.entityHandler.dealDamage(data.issuer, player, data.it, damageIfWhipWins);
+                            game.entityHandler.dealDamage(data.issuer, player, data.cardAndBox, damageIfWhipWins);
                         }
                     }
                 } else {
@@ -2176,7 +2176,7 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
                 const selection = await data.selectAndRecord(game, data.issuer, 1, 1, otherPlayers, toSerializedTranslation("pending.playerToDealDamageTo"), true, true);
                 if (selection.selected.length > 0) {
                     const chosenPlayer = selection.selected[0]!;
-                    game.entityHandler.dealDamage(data.issuer, chosenPlayer, data.it, deal);
+                    game.entityHandler.dealDamage(data.issuer, chosenPlayer, data.cardAndBox, deal);
                     return true;
                 }
                 return false;
@@ -2851,7 +2851,7 @@ export function preventDamageAndDealOnDeathEffect(game: Game, damagePrevented: n
 
             for(const player of game.players) {
                 if(player !== data.issuer && !player.isDead && player !== eventIssuer) {
-                    game.entityHandler.dealDamage(data.issuer, player, data.it, damageAmount);
+                    game.entityHandler.dealDamage(data.issuer, player, data.cardAndBox, damageAmount);
                 }
             }
 
@@ -2957,7 +2957,7 @@ export function killOnDoubleAttackRollEffect(game: Game): SyncEffectFunction {
             const target = dice.attackTarget;
             if(data.issuer !== eventIssuer) return;
             if(prevRollThisTurn === dice.value)
-                game.entityHandler.kill(data.issuer, target, data.it);
+                game.entityHandler.kill(data.issuer, target, data.cardAndBox);
             prevRollThisTurn = dice.value;
         });
 

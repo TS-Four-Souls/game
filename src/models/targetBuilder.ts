@@ -331,7 +331,7 @@ export class TargetBuilder {
                 return {type: "number", payload: option};
             if (typeof option === 'string')
             {
-                console.warn("WARNING, string option: ", option);
+                // console.warn("WARNING, string option: ", option);
                 return {type: "string", payload: option};
             }
             if (typeof option === 'boolean')

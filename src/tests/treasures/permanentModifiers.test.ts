@@ -253,7 +253,7 @@ describe("Treasure - Permanent Modifiers", () => {
         
         // Deal damage to player1
         const initialHP = player1.currentHealthPoints;
-        game.entityHandler.dealDamage(player2, player1, dummyCard, 1);
+        game.entityHandler.dealDamage(player2, player1, {card: dummyCard, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
 
@@ -266,7 +266,7 @@ describe("Treasure - Permanent Modifiers", () => {
         expect(character.charged).toBe(false);
         
         // Take damage again - should recharge again
-        game.entityHandler.dealDamage(player2, player1, dummyCard, 2);
+        game.entityHandler.dealDamage(player2, player1, {card: dummyCard, visualEffectBox: undefined}, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
         expect(character.charged).toBe(true);

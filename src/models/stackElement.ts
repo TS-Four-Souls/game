@@ -7,6 +7,7 @@ import { Player } from "./entities/player";
 import { TargetBuilder } from "./targetBuilder";
 import { trueEffect } from "./effects/activeEffect";
 import { toSerializedTranslation } from "@/utils/translation";
+import type { DamageSource } from "./handlers/entityHandler";
 
 interface StackElementJsonBase {
   id: number;
@@ -339,7 +340,7 @@ export class DamageOnStack extends StackElement {
   from: Entity;
   receiver: Entity;
   damage: number[];
-  _source: Card | DiceRoll;
+  _source: DamageSource;
   _targets: any[] = [];
   _effect: EffectFunction | null = null;
   game: Game;
@@ -348,7 +349,7 @@ export class DamageOnStack extends StackElement {
     from: Entity,
     receiver: Entity,
     damage: number[],
-    source: Card | DiceRoll,
+    source: DamageSource,
     game: Game
   ) {
     super();
@@ -358,7 +359,7 @@ export class DamageOnStack extends StackElement {
     this._source = source;
     this.game = game;
   }
-  attachEffect(effect: EffectFunction, source: Card | DiceRoll, targets: any[] = []): void {
+  attachEffect(effect: EffectFunction, source: DamageSource, targets: any[] = []): void {
     this._effect = effect;
     this._source = source;
     this._targets = targets;
@@ -366,25 +367,27 @@ export class DamageOnStack extends StackElement {
 
   async onResolve(): Promise<void> {
     if(this._effect) {
-      const card = this._source instanceof DiceRoll ? this._source.card! : this._source;
+      const card = this._source.card!;
       if(this.from instanceof Player === false)
         throw new GameError("Damage effect issuer is not a player", toSerializedTranslation("error.behaviorError", { error: "Damage effect issuer is not a player" }));
       await this._effect(new EffectData(card, () => this.from, [this, this._targets]));
     }
   }
   override get json(): DamageOnStackJson {
-    const sourceName = this._source instanceof DiceRoll ? this._source.json : this._source.jsonAPI;
+    const sourceName = this._source instanceof DiceRoll ? this._source.json : this._source.card.jsonAPI;
+    const box = this._source instanceof DiceRoll ? undefined : this._source.visualEffectBox;
     return {
       type: "damage",
       from: this.from.json, 
       receiver: this.receiver.json, 
       damage: this.damage[0]!, 
       source: sourceName,
+      visualEffectBox: box,
       ...super.baseJson,
     };
   }
   override get debugLogs(): string {
-    return `${this.from.id} deals ${this.damage[0]} damage to ${this.receiver.id} (${this.receiver.currentHealthPoints})HP with source ${this._source instanceof DiceRoll ? "Dice Roll" : this._source.name} (Targets: ${TargetBuilder.convertToSelectionItems(this._targets)})`;
+    return `${this.from.id} deals ${this.damage[0]} damage to ${this.receiver.id} (${this.receiver.currentHealthPoints})HP with source ${this._source instanceof DiceRoll ? "Dice Roll" : this._source.card.name} (Targets: ${TargetBuilder.convertToSelectionItems(this._targets)})`;
   }
 };
 
@@ -392,13 +395,13 @@ export class DeathOnStack extends StackElement {
 
   receiver: Entity;
   from: Entity;
-  source: Card | DiceRoll; 
+  source: DamageSource; 
   game: Game;
 
   constructor(
     receiver: Entity,
     from: Entity,
-    source: Card | DiceRoll,
+    source: DamageSource,
     game: Game
   ) {
     super();
@@ -412,18 +415,20 @@ export class DeathOnStack extends StackElement {
   }
 
   override get json(): DeathOnStackJson {
-    const sourceName = this.source instanceof DiceRoll ? this.source.json : this.source.jsonAPI;
+    const sourceName = this.source instanceof DiceRoll ? this.source.json : this.source.card.jsonAPI;
+    const box = this.source instanceof DiceRoll ? undefined : this.source.visualEffectBox;
     this.receiver.json;
     return {
       type: "death",
       receiver: this.receiver.json,
       from: this.from.json,
       source: sourceName,
+      visualEffectBox: box,
       ...super.baseJson,
     };
   }
   override get debugLogs(): string {
-    const sourceName = this.source instanceof DiceRoll ? "Dice Roll" : this.source.name;
+    const sourceName = this.source instanceof DiceRoll ? "Dice Roll" : this.source.card.name;
     return `${this.from.id} kills ${this.receiver.id} with source ${sourceName}`;
   }
 };

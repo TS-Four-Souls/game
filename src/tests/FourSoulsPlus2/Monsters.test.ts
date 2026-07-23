@@ -84,7 +84,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         const mob = game.monsters[0]!;
-        game.entityHandler.dealDamage(player1, mob, card1, 1);
+        game.entityHandler.dealDamage(player1, mob, {card: card1, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack(); // damage
         game.random = () => 5/6-.00001;
         const hp = mob.currentHealthPoints;
@@ -101,7 +101,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         const mob = game.monsters[0]!;
-        game.entityHandler.dealDamage(player1, mob, card1, 1);
+        game.entityHandler.dealDamage(player1, mob, {card: card1, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack(); // damage
         game.random = () => 1/6-.00001;
         await game.actions.resolveStack(); // effect
@@ -117,7 +117,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         const mob = game.monsters[0]!;
-        game.entityHandler.dealDamage(player1, mob, card1, 1);
+        game.entityHandler.dealDamage(player1, mob, {card: card1, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack(); // damage
         game.random = () => 3/6-.00001;
         await game.actions.resolveStack(); // effect
@@ -135,7 +135,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         const mob = game.monsters[0]!;
-        game.entityHandler.dealDamage(player1, mob, card1, mob.currentHealthPoints - 1);
+        game.entityHandler.dealDamage(player1, mob, {card: card1, visualEffectBox: undefined}, mob.currentHealthPoints - 1);
         await game.actions.resolveStack(); // damage
         game.random = () => 1/6-.00001;
         await game.actions.resolveStack(); // roll
@@ -152,7 +152,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         const mob = game.monsters[0]!;
-        game.entityHandler.dealDamage(player1, mob, card1, mob.currentHealthPoints - 1);
+        game.entityHandler.dealDamage(player1, mob, {card: card1, visualEffectBox: undefined}, mob.currentHealthPoints - 1);
         await game.actions.resolveStack(); // damage
         game.random = () => 5/6-.00001;
         await game.actions.resolveStack(); // roll
@@ -175,7 +175,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
             winner = player.id;
         };
 
-        game.entityHandler.kill(player1, game.monsters[0]!, card1);
+        game.entityHandler.kill(player1, game.monsters[0]!, {card: card1, visualEffectBox: undefined});
         await game.actions.resolveStack(); // death
         await game.actions.resolveStack(); // effect
         expect(winner).toBe(player1.id);
@@ -194,7 +194,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
             winner = player.id;
         };
 
-        game.entityHandler.kill(player1, game.monsters[0]!, card1);
+        game.entityHandler.kill(player1, game.monsters[0]!, {card: card1, visualEffectBox: undefined});
         await game.actions.resolveStack(); // death
         await game.actions.resolveStack(); // effect
         expect(winner).toBe(player1.id);
@@ -213,7 +213,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
             winner = player.id;
         };
 
-        game.entityHandler.kill(player1, game.monsters[0]!, card1);
+        game.entityHandler.kill(player1, game.monsters[0]!, {card: card1, visualEffectBox: undefined});
         await game.actions.resolveStack(); // death
         await game.actions.resolveStack(); // effect
         expect(winner).toBe(player2.id);
@@ -305,7 +305,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         expect(mob.currentHealthPoints).toBe(3);
         expect(game.entityHandler.getAttack(mob)).toBe(2);
         expect(game.entityHandler.getDC(mob)).toBe(3);
-        game.entityHandler.dealDamage(player1, mob, mob.card, 3);
+        game.entityHandler.dealDamage(player1, mob, {card: mob.card, visualEffectBox: undefined}, 3);
         await game.actions.resolveStack(); // damage
         await game.actions.resolveStack(); // death
         await game.actions.resolveStack(); // effect
@@ -328,14 +328,14 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         expect(mob.currentHealthPoints).toBe(3);
         expect(game.entityHandler.getAttack(mob)).toBe(2);
         expect(game.entityHandler.getDC(mob)).toBe(3);
-        game.entityHandler.dealDamage(player1, mob, mob.card, 3);
+        game.entityHandler.dealDamage(player1, mob, {card: mob.card, visualEffectBox: undefined}, 3);
         await game.actions.resolveStack(); // damage
         await game.actions.resolveStack(); // death
         await game.actions.resolveStack(); // effect
         expect(mob.currentHealthPoints).toBe(2);
         expect(game.entityHandler.getAttack(mob)).toBe(1);
         expect(game.entityHandler.getDC(mob)).toBe(4);
-        game.entityHandler.dealDamage(player1, mob, mob.card, 3);
+        game.entityHandler.dealDamage(player1, mob, {card: mob.card, visualEffectBox: undefined}, 3);
         await game.actions.resolveStack(); // damage
         await game.actions.resolveStack(); // death
         await game.actions.resolveStack(); // effect
@@ -364,7 +364,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
     it("fsp2-isaac - Each time this takes damage, the active player chooses a living player. This deals 1 damage to that player.", async () => {
         const card1 = game.obtainCard("fsp2-isaac") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        game.entityHandler.dealDamage(player1, game.monsters[0]!, card1, 1);
+        game.entityHandler.dealDamage(player1, game.monsters[0]!, {card: card1, visualEffectBox: undefined}, 1);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: [opts[1]], remaining: [] } as any;
         };
@@ -372,11 +372,11 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         await game.actions.resolveStack(); // effect
         await game.actions.resolveStack(); // damage player2
         expect(player2.currentHealthPoints).toBe(player2.healthPoints - 1);
-        game.entityHandler.kill(player2, player2, card1);
+        game.entityHandler.kill(player2, player2, {card: card1, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // death
         await game.actions.resolveStack(); // effect
-        game.entityHandler.dealDamage(player1, game.monsters[0]!, card1, 1);
+        game.entityHandler.dealDamage(player1, game.monsters[0]!, {card: card1, visualEffectBox: undefined}, 1);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             expect(opts.length).toBe(1);
             return { selected: [opts[0]], remaining: [] } as any;
@@ -423,7 +423,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.random = () => 1/6-.00001;
         await game.actions.resolveStack(); // effect    
         await game.actions.resolveStack(); // roll    
-        game.entityHandler.dealDamage(player1, player1, card1, 3);
+        game.entityHandler.dealDamage(player1, player1, {card: card1, visualEffectBox: undefined}, 3);
         await game.actions.resolveStack(); // damage    
         expect(player1.attackThisTurn).toBe(1);   
         expect(player1.currentHealthPoints).toBe(player1.healthPoints - 1); 
@@ -454,7 +454,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.decks.monster.addTopPosition(card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-        game.entityHandler.dealDamage(player1, game.encounters.monsterIn(0)!, card1, 10);
+        game.entityHandler.dealDamage(player1, game.encounters.monsterIn(0)!, {card: card1, visualEffectBox: undefined}, 10);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: opts.toReversed(), remaining: [] } as any;
         };
@@ -472,7 +472,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.decks.monster.addTopPosition(card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-        game.entityHandler.dealDamage(player1, game.encounters.monsterIn(0)!, card1, 10);
+        game.entityHandler.dealDamage(player1, game.encounters.monsterIn(0)!, {card: card1, visualEffectBox: undefined}, 10);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: opts.toReversed(), remaining: [] } as any;
         };
@@ -489,7 +489,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.decks.monster.addTopPosition(card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-        game.entityHandler.dealDamage(player1, game.encounters.monsterIn(0)!, card1, 10);
+        game.entityHandler.dealDamage(player1, game.encounters.monsterIn(0)!, {card: card1, visualEffectBox: undefined}, 10);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: opts.toReversed(), remaining: [] } as any;
         };
@@ -507,7 +507,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.decks.monster.addTopPosition(card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-        game.entityHandler.dealDamage(player1, game.encounters.monsterIn(0)!, card1, 10);
+        game.entityHandler.dealDamage(player1, game.encounters.monsterIn(0)!, {card: card1, visualEffectBox: undefined}, 10);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: opts.toReversed(), remaining: [] } as any;
         };
@@ -524,7 +524,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.decks.monster.addTopPosition(card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-        game.entityHandler.dealDamage(player1, game.encounters.monsterIn(0)!, card1, 10);
+        game.entityHandler.dealDamage(player1, game.encounters.monsterIn(0)!, {card: card1, visualEffectBox: undefined}, 10);
         game.select = (_issuer, _min, _max, opts, _optional) => {
             return { selected: opts.toReversed(), remaining: [] } as any;
         };
@@ -540,7 +540,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.decks.monster.addTopPosition(card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-        game.entityHandler.dealDamage(player1, game.encounters.monsterIn(0)!, card1, 1);
+        game.entityHandler.dealDamage(player1, game.encounters.monsterIn(0)!, {card: card1, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack(); // damage monster
         await game.actions.resolveStack(); // effect
         await game.actions.resolveStack(); // damage p2
@@ -573,9 +573,9 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         const init2 = player2.currentHealthPoints;
         game.entityHandler.addHealth(game.monsters[0]!, 10);
         game.entityHandler.addHealth(game.monsters[1]!, 10);
-        game.entityHandler.dealDamage(player1, game.monsters[0]!, card1, 3);
+        game.entityHandler.dealDamage(player1, game.monsters[0]!, {card: card1, visualEffectBox: undefined}, 3);
         await game.actions.resolveStack();
-        game.entityHandler.dealDamage(player1, game.monsters[1]!, card1, 3);
+        game.entityHandler.dealDamage(player1, game.monsters[1]!, {card: card1, visualEffectBox: undefined}, 3);
         await game.actions.resolveStack();
         const health = game.monsters.map(m => m.currentHealthPoints);
 

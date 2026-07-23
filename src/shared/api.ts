@@ -311,6 +311,7 @@ const deathOnStackJsonSchema = z.object({
   receiver: entityTypeSchema,
   from: entityTypeSchema,
   source: z.union([z.lazy(() => diceRollJsonSchema), identifierTypeSchema]),
+  visualEffectBox: VisualEffectBoxSchema.optional(),
   id: z.number(),
   reordering: stackReorderingInfoSchema.optional(),
 });
@@ -339,6 +340,7 @@ const damageOnStackJsonSchema = z.object({
   from: entityTypeSchema,
   damage: z.number(),
   source: z.union([z.lazy(() => diceRollJsonSchema), identifierTypeSchema]),
+  visualEffectBox: VisualEffectBoxSchema.optional(),
   id: z.number(),
   reordering: stackReorderingInfoSchema.optional(),
 });

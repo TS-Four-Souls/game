@@ -98,7 +98,7 @@ it("g2-holy_card", async () => {
     expect(player1.inPlay[0]!.charged).toBe(false);
     await game.actions.playCard(player1, player1.hand.length - 1, [player1]);
     await game.actions.resolveStack();
-    game.entityHandler.kill(player1, player1, card1);
+    game.entityHandler.kill(player1, player1, {card: card1, visualEffectBox: undefined});
     await game.actions.resolveStack();
     expect(game.stack.size).toBe(1);
     expect(player1.isDead).toBe(false);

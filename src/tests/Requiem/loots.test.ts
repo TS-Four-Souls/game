@@ -62,7 +62,7 @@ describe("Requiem Loots ", () => {
         player1.inPlay[1]?.setEternal(true);
         game.gainCoins(player1, 5, loot);
         game.loot(player1, 2);
-        game.entityHandler.kill(player1, player1, loot);
+        game.entityHandler.kill(player1, player1, {card: loot, visualEffectBox: undefined});
         await game.actions.resolveStack();
         expect(player1.coins).toBe(5);
         expect(player1.hand.length).toBe(2);
@@ -159,7 +159,7 @@ describe("Requiem Loots ", () => {
         player1.receiveDamage(1);
         expect(player1.currentHealthPoints).toBe(1);
         await game.actions.resolveStack();
-        game.entityHandler.kill(player1, game.monsters[0]!, loot);
+        game.entityHandler.kill(player1, game.monsters[0]!, {card: loot, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -352,7 +352,7 @@ describe("Requiem Loots ", () => {
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();
         expect(player1.coins).toBe(1);
-        game.entityHandler.kill(player1, game.monsters[0]!, loot);
+        game.entityHandler.kill(player1, game.monsters[0]!, {card: loot, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -363,7 +363,7 @@ describe("Requiem Loots ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve effect
         expect(player2.hand.length).toBe(1);
-        game.entityHandler.kill(player1, game.monsters[1]!, loot);
+        game.entityHandler.kill(player1, game.monsters[1]!, {card: loot, visualEffectBox: undefined});
         await game.actions.resolveStack();
         expect(player2.hand.length).toBe(2);
     });
@@ -386,7 +386,7 @@ describe("Requiem Loots ", () => {
         game.cardHandler.addCardToHand(player1, loot);
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();
-        game.entityHandler.dealDamage(player1, player1, loot, 1);
+        game.entityHandler.dealDamage(player1, player1, {card: loot, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -460,11 +460,11 @@ describe("Requiem Loots (3p games) ", () => {
         game.cardHandler.addCardToHand(player1, loot);
         game.actions.playCard(player1, 0, [player2]);
         await game.actions.resolveStack();
-        game.entityHandler.dealDamage(player1, player2, loot, 1);
+        game.entityHandler.dealDamage(player1, player2, {card: loot, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(2);
-        game.entityHandler.dealDamage(player1, player2, loot, 2);
+        game.entityHandler.dealDamage(player1, player2, {card: loot, visualEffectBox: undefined}, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -480,7 +480,7 @@ describe("Requiem Loots (3p games) ", () => {
         game.cardHandler.addCardToHand(player1, loot);
         game.actions.playCard(player1, 0, [player1]);
         await game.actions.resolveStack();
-        game.entityHandler.dealDamage(player1, player1, loot, 3);
+        game.entityHandler.dealDamage(player1, player1, {card: loot, visualEffectBox: undefined}, 3);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();

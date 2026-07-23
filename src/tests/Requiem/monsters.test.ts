@@ -33,7 +33,7 @@ describe("Requiem Monsters ", () => {
         expect(mob).toBeInstanceOf(MonsterCard);
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        game.entityHandler.kill(player1, ent, mob);
+        game.entityHandler.kill(player1, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         const har = game.monsters[2]!;
@@ -61,7 +61,7 @@ describe("Requiem Monsters ", () => {
         expect(player1.isDead).toBe(true);
         expect(player2.isDead).toBe(false);
         expect(game.encounters.slots.length).toBe(3);
-        game.entityHandler.kill(player2, har, mob);
+        game.entityHandler.kill(player2, har, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(6);
         expect(player1.totalSouls).toBe(2);
@@ -91,7 +91,7 @@ describe("Requiem Monsters ", () => {
         expect(mob).toBeInstanceOf(MonsterCard);
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        game.entityHandler.kill(player1, ent, mob);
+        game.entityHandler.kill(player1, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -102,11 +102,11 @@ describe("Requiem Monsters ", () => {
         expect(har.evasion).toBe(4);
         expect(har.attackPoints).toBe(1);
         expect(player1.hasAttackRequirement).toBe(true);
-        game.entityHandler.dealDamage(player1, har, mob, 2);
+        game.entityHandler.dealDamage(player1, har, {card: mob, visualEffectBox: undefined}, 2);
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(har.currentHealthPoints).toBe(har.healthPoints-2);
-        game.entityHandler.kill(player1, har, mob);
+        game.entityHandler.kill(player1, har, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -151,7 +151,7 @@ describe("Requiem Monsters ", () => {
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
-        game.entityHandler.kill(player2, ent, mob);
+        game.entityHandler.kill(player2, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -285,7 +285,7 @@ describe("Requiem Monsters ", () => {
 
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        game.entityHandler.dealDamage(ent, ent, mob, 1);
+        game.entityHandler.dealDamage(ent, ent, {card: mob, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -302,7 +302,7 @@ describe("Requiem Monsters ", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        game.entityHandler.dealDamage(ent, ent, mob, 1);
+        game.entityHandler.dealDamage(ent, ent, {card: mob, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -343,7 +343,7 @@ describe("Requiem Monsters ", () => {
         expect(player1.currentHealthPoints).toBe(1);
         expect(player2.currentHealthPoints).toBe(1);
 
-        game.entityHandler.kill(player1, ent, mob);
+        game.entityHandler.kill(player1, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -357,7 +357,7 @@ describe("Requiem Monsters ", () => {
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
-        game.entityHandler.dealDamage(ent, ent, mob, 1);
+        game.entityHandler.dealDamage(ent, ent, {card: mob, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -381,7 +381,7 @@ describe("Requiem Monsters ", () => {
         expect(player1.hand.length).toBe(2);
         expect(player2.hand.length).toBe(1);
 
-        game.entityHandler.kill(player1, ent, mob);
+        game.entityHandler.kill(player1, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -409,7 +409,7 @@ describe("Requiem Monsters ", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        game.entityHandler.dealDamage(ent, player1, mob, 1);
+        game.entityHandler.dealDamage(ent, player1, {card: mob, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -457,7 +457,7 @@ describe("Requiem Monsters ", () => {
         expect(game.actions.canDeclareAttackOnEntity(player1, player2, false)).toBe(true);
         expect(game.actions.canDeclareAttackOnEntity(player1, game.monsters[1]!, false)).not.toBe(true);
         game.actions.declareAttackOnEntity(player1, player2);
-        game.entityHandler.kill(player1, player2, mob);
+        game.entityHandler.kill(player1, player2, {card: mob, visualEffectBox: undefined});
         game.gainTreasure(player2, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -501,7 +501,7 @@ describe("Requiem Monsters ", () => {
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
-        game.entityHandler.kill(player1, game.monsters[1]!, mob);
+        game.entityHandler.kill(player1, game.monsters[1]!, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(3);
@@ -555,7 +555,7 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(1);
-        game.entityHandler.kill(player1, ent, mob);
+        game.entityHandler.kill(player1, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -575,7 +575,7 @@ describe("Requiem Monsters ", () => {
 
         expect(game.entityHandler.getDC(ent)).toBe(1);
         for(let i=0; i<7; i++) {
-            game.entityHandler.dealDamage(player1, ent, mob, 1);
+            game.entityHandler.dealDamage(player1, ent, {card: mob, visualEffectBox: undefined}, 1);
             await game.actions.resolveStack();
             await game.actions.resolveStack();
             expect(game.stack.isEmpty()).toBe(true);
@@ -585,7 +585,7 @@ describe("Requiem Monsters ", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         expect(game.entityHandler.getDC(ent)).toBe(1);
-        game.entityHandler.kill(player1, ent, mob);
+        game.entityHandler.kill(player1, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.encounters._slots.length).toBe(4);
@@ -633,7 +633,7 @@ describe("Requiem Monsters ", () => {
         const ent = game.monsters[0]!;
 
         game.random = () => 0.01;
-        game.entityHandler.kill(player1, game.monsters[1]!, mob);
+        game.entityHandler.kill(player1, game.monsters[1]!, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -673,7 +673,7 @@ describe("Requiem Monsters ", () => {
         card.soul = 2;
         game.cardHandler.addSoul(player1, card);
         expect(player1.totalSouls).toBe(0);
-        game.entityHandler.kill(player1, player1, mob);
+        game.entityHandler.kill(player1, player1, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -732,7 +732,7 @@ describe("Requiem Monsters ", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        game.entityHandler.kill(player1, ent, mob);
+        game.entityHandler.kill(player1, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -748,7 +748,7 @@ describe("Requiem Monsters ", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        game.entityHandler.kill(player1, ent, mob);
+        game.entityHandler.kill(player1, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -764,14 +764,14 @@ describe("Requiem Monsters ", () => {
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.gainCoins(player1, 5, "gift");
-        game.entityHandler.dealCombatDamage(ent, player1, mob, 1);
+        game.entityHandler.dealCombatDamage(ent, player1, {card: mob, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.coins).toBe(3);
 
         game.random = () => 0.99;
-        game.entityHandler.kill(player1, ent, mob);
+        game.entityHandler.kill(player1, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -786,7 +786,7 @@ describe("Requiem Monsters ", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        game.entityHandler.dealDamage(ent, player1, mob, 1);
+        game.entityHandler.dealDamage(ent, player1, {card: mob, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         
@@ -799,7 +799,7 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack();
         expect(ent.currentHealthPoints).toBe(ent.healthPoints);
 
-        game.entityHandler.kill(player1, ent, mob);
+        game.entityHandler.kill(player1, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player2.hand.length).toBe(3);
@@ -813,13 +813,13 @@ describe("Requiem Monsters ", () => {
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.loot(player1, 2);
-        game.entityHandler.dealDamage(ent, player1, mob, 1);
+        game.entityHandler.dealDamage(ent, player1, {card: mob, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.hand.length).toBe(1);
 
-        game.entityHandler.kill(player1, ent, mob);
+        game.entityHandler.kill(player1, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -832,7 +832,7 @@ describe("Requiem Monsters ", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        game.entityHandler.kill(player1, game.monsters[1]!, mob);
+        game.entityHandler.kill(player1, game.monsters[1]!, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -847,7 +847,7 @@ describe("Requiem Monsters ", () => {
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         expect(player2.inPlay[0]!.charged).toBe(false);
-        game.entityHandler.kill(player1, ent, mob);
+        game.entityHandler.kill(player1, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -871,7 +871,7 @@ describe("Requiem Monsters ", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        game.entityHandler.kill(player1, ent, mob);
+        game.entityHandler.kill(player1, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -885,7 +885,7 @@ describe("Requiem Monsters ", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        game.entityHandler.kill(player1, ent, mob);
+        game.entityHandler.kill(player1, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -899,7 +899,7 @@ describe("Requiem Monsters ", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        game.entityHandler.kill(player1, ent, mob);
+        game.entityHandler.kill(player1, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -924,7 +924,7 @@ describe("Requiem Monsters ", () => {
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.currentHealthPoints).toBe(1);
 
-        game.entityHandler.kill(player1, ent, mob);
+        game.entityHandler.kill(player1, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -939,13 +939,13 @@ describe("Requiem Monsters ", () => {
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
-        game.entityHandler.dealDamage(player1, ent, mob, 1);
+        game.entityHandler.dealDamage(player1, ent, {card: mob, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(game.entityHandler.getDC(ent)).toBe(4);
 
-        game.entityHandler.dealDamage(player1, ent, mob, 1);
+        game.entityHandler.dealDamage(player1, ent, {card: mob, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -1114,7 +1114,7 @@ describe("Requiem Monsters ", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        game.entityHandler.dealDamage(player1, ent, mob, 1);
+        game.entityHandler.dealDamage(player1, ent, {card: mob, visualEffectBox: undefined}, 1);
         game.random = () => 0.99;
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -1131,7 +1131,7 @@ describe("Requiem Monsters ", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        game.entityHandler.dealDamage(player1, ent, mob, 1);
+        game.entityHandler.dealDamage(player1, ent, {card: mob, visualEffectBox: undefined}, 1);
         game.random = () => 0.5;
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -1148,7 +1148,7 @@ describe("Requiem Monsters ", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        game.entityHandler.dealDamage(player1, ent, mob, 1);
+        game.entityHandler.dealDamage(player1, ent, {card: mob, visualEffectBox: undefined}, 1);
         game.random = () => 0.1;
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -1166,7 +1166,7 @@ describe("Requiem Monsters ", () => {
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
         await game.actions.resolveStack(); // resolve the event addition
         await game.actions.resolveStack(); 
-        game.entityHandler.kill(player1, game.monsters[0]!, card1);
+        game.entityHandler.kill(player1, game.monsters[0]!, {card: card1, visualEffectBox: undefined});
         game.gainCoins(player1, 5, "gift");
         game.loot(player1, 3);
         expect(player1.hand.length).toBe(3);
@@ -1198,7 +1198,7 @@ describe("Requiem Monsters ", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        game.entityHandler.dealDamage(player1, ent, mob, 2);
+        game.entityHandler.dealDamage(player1, ent, {card: mob, visualEffectBox: undefined}, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -1214,7 +1214,7 @@ describe("Requiem Monsters ", () => {
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
 
-        game.entityHandler.kill(ent, ent, mob);
+        game.entityHandler.kill(ent, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -1247,7 +1247,7 @@ describe("Requiem Monsters ", () => {
         const ent = game.monsters[0]!;
         game.random = () => 0.99;
 
-        game.entityHandler.kill(ent, ent, mob);
+        game.entityHandler.kill(ent, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -1266,7 +1266,7 @@ describe("Requiem Monsters ", () => {
         game.loot(player2, 1);
         const card2 = player2.hand.cards[0]!;
 
-        game.entityHandler.kill(ent, ent, mob);
+        game.entityHandler.kill(ent, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);

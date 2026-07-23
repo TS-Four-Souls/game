@@ -516,7 +516,7 @@ describe("Event Monsters - Expansion Effects", () => {
         const initialMonsterSlots = game.encounters._slots.length;
         
         // Kill the monster
-        game.entityHandler.kill(player1, monster, mom);
+        game.entityHandler.kill(player1, monster, {card: mom, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -532,7 +532,7 @@ describe("Event Monsters - Expansion Effects", () => {
         const initialMonsterSlots = game.encounters.slots.length;
         
         // Kill the monster
-        game.entityHandler.kill(player1, monster, mulligan);
+        game.entityHandler.kill(player1, monster, {card: mulligan, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -548,7 +548,7 @@ describe("Event Monsters - Expansion Effects", () => {
         const initialShopSlots = game.shop.itemsInShop.length;
         
         // Kill the monster
-        game.entityHandler.kill(player1, monster, hanger);
+        game.entityHandler.kill(player1, monster, {card: hanger, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -677,7 +677,7 @@ describe("Event Monsters - Curse Effects", () => {
         await game.actions.resolveStack(); // resolve the event addition
         
         // Kill the player
-        game.entityHandler.kill(player1, player1, curseOfLoss);
+        game.entityHandler.kill(player1, player1, {card: curseOfLoss, visualEffectBox: undefined});
         await game.actions.resolveStack(); // death resolution
         const effect = game.stack._stack[0] as EffectOnStack ;
         effect.targets = [soulCard]; // Choose soul to destroy

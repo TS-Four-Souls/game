@@ -329,7 +329,7 @@ export function takeDamageOnLootEffect(game: Game, amount: number): SyncEffectFu
         let offLoot: (() => void) | null = null;
         offLoot = game.emitter.on("on:loot:added:after", (eventData) => {
             const effect: SyncEffectFunction = (effectData: EffectData) => {
-                game.entityHandler.dealDamage(eventData.eventIssuer, eventData.eventIssuer, data.it, amount);
+                game.entityHandler.dealDamage(eventData.eventIssuer, eventData.eventIssuer, data.cardAndBox, amount);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `Take ${amount} damage each time you loot.`); // Add the damage as a separate stack element to avoid issues with the loot event data being modified by other effects in the stack
@@ -409,7 +409,7 @@ export function targetNextKillsAnotherPlayerEffect(game: Game): SyncEffectFuncti
             if(game.players.filter(p => p !== killer && p.isDead == false).length === 0)
                 return false; // No valid targets to kill
             const selected = (await data.selectAndRecord(game, killer, 1, 1, game.players.filter(p => p !== killer && p.isDead == false), toSerializedTranslation("pending.playerToKill"), true, true)).selected[0]! as Player;
-            game.entityHandler.kill(killer, selected, data.it);
+            game.entityHandler.kill(killer, selected, data.cardAndBox);
             return true;
         };
         addPassiveEffectToStack(game, effect, data, "Select a player to kill.");
@@ -471,7 +471,7 @@ export function damageIfLowLootAtEndOfTurnEffect(game: Game, lootThreshold: numb
         offTurnStart = game.emitter.on("on:turn:end", (eventData) => {
             const effect: SyncEffectFunction = (effectData: EffectData) => {
                 if(game.currentPlayer.hand.length > lootThreshold) return false;
-                game.entityHandler.dealDamage(game.currentPlayer, game.currentPlayer, data.it, amount);
+                game.entityHandler.dealDamage(game.currentPlayer, game.currentPlayer, data.cardAndBox, amount);
                 return false;
             };
             addPassiveEffectToStack(game, effect, data, "You may gain a treasure.");
@@ -800,7 +800,7 @@ export function payHpForTreasureBoostEffect(game: Game, hpAfterPay: number, trea
                 const difference = Math.max(0, game.currentPlayer.currentHealthPoints - hpAfterPay);
                 const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], toSerializedTranslation("pending.hpToGainTreasure", { value: difference }), false, true, false)).selected[0] as Card | undefined;
                 if(selected !== undefined) {
-                    game.entityHandler.dealDamage(game.currentPlayer, game.currentPlayer, data.it, difference, (data: EffectData) => {
+                    game.entityHandler.dealDamage(game.currentPlayer, game.currentPlayer, data.cardAndBox, difference, (data: EffectData) => {
                         let offMonsterDeath: (() => void) | null = null;
                         offMonsterDeath = game.emitter.on("on:death:monster", (eventData) => {
                              const { eventIssuer } = eventData;
@@ -837,7 +837,7 @@ export function WhenDealDamageMonsterDealDamageToPlayerToTheEffect(game: Game, a
             const { eventIssuer, target, damage } = eventData;
             if(eventIssuer instanceof Monster && damage > 0 && target instanceof Player ) {
                 const effect: SyncEffectFunction = (effectData: EffectData) => {
-                    game.entityHandler.dealDamage(target, game.turnHandler.getPlayerTo(target, direction), data.it, amount);
+                    game.entityHandler.dealDamage(target, game.turnHandler.getPlayerTo(target, direction), data.cardAndBox, amount);
                     return true;
                 };
                 addPassiveEffectToStack(game, effect, data, `When a monster takes damage, the player to their ${direction} also takes ${amount} damage.`);

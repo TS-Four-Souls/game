@@ -899,7 +899,7 @@ describe("Game - Damage System", () => {
     const initialHealth = player2.currentHealthPoints;
     const mockCard = { name: "Test Card" } as any;
     
-    game.entityHandler.dealDamage(player1, player2, mockCard, 1);
+    game.entityHandler.dealDamage(player1, player2, {card: mockCard, visualEffectBox: undefined}, 1);
     await game.actions.resolveStack();
     expect(player2.currentHealthPoints).toBe(initialHealth - 1);
   });
@@ -908,7 +908,7 @@ describe("Game - Damage System", () => {
     const initialHealth = player2.currentHealthPoints;
     const mockCard = { name: "Test Card" } as any;
     
-    game.entityHandler.dealDamage(player1, player2, mockCard, 0);
+    game.entityHandler.dealDamage(player1, player2, {card: mockCard, visualEffectBox: undefined}, 0);
     await game.actions.resolveStack();
     await game.actions.resolveStack();
     
@@ -918,7 +918,7 @@ describe("Game - Damage System", () => {
   it("should handle damage that kills entity", async () => {
     const mockCard = { name: "Test Card" } as any;
     
-    game.entityHandler.dealDamage(player1, player2, mockCard, 100);
+    game.entityHandler.dealDamage(player1, player2, {card: mockCard, visualEffectBox: undefined}, 100);
     await game.actions.resolveStack();
     await game.actions.resolveStack();
 

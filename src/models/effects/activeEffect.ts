@@ -2,26 +2,27 @@
 // as opposed to a passive effect which is triggered by a game event.
 
 
-import { GameError } from "@/models/GameError";
 import { type OnAttackDeclaredData, type OnDeathMonsterData } from "@/models/types/eventTypes";
 import { partialsEndingWithNumber1to6 } from "@/utils/auxiliary";
-import { toSerializedTranslation } from "@/utils/translation";
 import { assertCardMatchesDeck, type Card, CharacterCard, type CounterType, Deck, isDeckType, ItemCard, LootCard, MonsterCard, RoomCard, TreasureCard } from "../cards";
+import { LootCardEffect } from '../stackElement';
 import { Animated } from "../entities/animated";
 import { Entity } from "../entities/entity";
 import { Monster } from "../entities/monster";
 import { Player } from "../entities/player";
 import { Game } from "../game";
+import { GameError } from "@/models/GameError";
 import type { StackElement } from "../stack";
-import { DamageOnStack, DiceRoll, LootCardEffect } from '../stackElement';
+import { DamageOnStack, DiceRoll, } from "../stackElement";
 import { TargetBuilder } from "../targetBuilder";
 import { deckSelector, inplayUnchargedItemSelector as inplayChargeableItemSelector, visibleItemSelector } from "../targetSelector";
-import { type AsyncEffectFunction, type DeckType, EffectData, type EffectFunction, type SyncEffectFunction, type TargetsSelector } from "../types/cardTypes";
+import { type DeckType, EffectData, type EffectFunction, type SyncEffectFunction, type AsyncEffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type { OnTurnEndData } from "../types/eventTypes";
 import { effectParser, type ParsedEffect, type SyncParsedEffect } from "./parsing/effectParser";
 import { addPassiveEffectToStack } from "./passiveEffect";
 import * as room from "./roomEffects";
-import { type DeckName } from "@/shared/api";
+import { toSerializedTranslation } from "@/utils/translation";
+import { insertReport } from "@/utils/db";
 
 const qq = toSerializedTranslation;
 export function gainCoinsEffect(game: Game, amount: number, issuerType: "issuer" | "current", youMayHandling: [false]): SyncEffectFunction
@@ -68,7 +69,7 @@ export function activeKillsUpToXOtherPlayersEffect(game: Game, maxPlayers: numbe
         const options = game.players.filter(p => p !== issuer && p.isDead === false);
         const playersToKill = (await data.selectAndRecord(game, issuer, 0, Math.min(maxPlayers, options.length), options, qq("pending.anyPlayers"), false, true)).selected as Player[];
         for (const player of playersToKill) {
-            await game.entityHandler.kill(issuer, player, data.it);
+            await game.entityHandler.kill(issuer, player, data.cardAndBox);
         }
         return true;
     };
@@ -580,9 +581,7 @@ export function becomesCopyOfItemUntilEndOfTurnEffect(game: Game): SyncEffectFun
         
         // Subscribe to end of turn event to restore the original card. As the cleaner is registered after the copy, restore() will remove it.
         unsubscribe = game.emitter.on("till:turn:end", (eventData: OnTurnEndData) => {
-            if (eventData.eventIssuer === owner) {
                 restoreOnce();
-            }
         });
          data.it.cleaners.push(() => {
             unsubscribe();
@@ -921,7 +920,7 @@ export function dealDamageToRandomPlayerEffect(game: Game, damage: number, type:
         const validPlayers = type === "non-active" ? game.players.filter(player => player !== game.currentPlayer) : game.players;
         if (validPlayers.length === 0) return false;
         const targetPlayer = validPlayers[Math.floor(game.random() * validPlayers.length)]!;
-        game.entityHandler.dealDamage(data.issuer, targetPlayer, data.it, damage);
+        game.entityHandler.dealDamage(data.issuer, targetPlayer, data.cardAndBox, damage);
         return true;
     };
 }
@@ -1004,11 +1003,11 @@ export function dealXDamageDividedAsYouChooseEffect(game: Game, damage: number):
         if(!firstTarget)
             return false;
         if(!secondTarget)
-            game.entityHandler.dealDamage(player, firstTarget, data.it, damage);
+            game.entityHandler.dealDamage(player, firstTarget, data.cardAndBox, damage);
         else
         {
-            game.entityHandler.dealDamage(player, firstTarget, data.it, Math.ceil(damage/2));
-            game.entityHandler.dealDamage(player, secondTarget, data.it, Math.floor(damage/2));
+            game.entityHandler.dealDamage(player, firstTarget, data.cardAndBox, Math.ceil(damage/2));
+            game.entityHandler.dealDamage(player, secondTarget, data.cardAndBox, Math.floor(damage/2));
         }
         return true;
     };
@@ -1231,7 +1230,7 @@ export function LookAndPutBottomEffect(
             throw new GameError(`Deck ${deckName} does not exist.`, toSerializedTranslation("error.behaviorError", { error: `Deck ${deckName} does not exist.`}));
         }
         const topCard = deck.draw();
-        const res = await data.selectAndRecord(game, data.issuer, 0, 1, [topCard], qq("pending.lookAtTopCardOfNamedDeck", {deck: toSerializedTranslation(`startStep.gameParams.decks.${deckName as DeckName}s`)}), false, false);
+        const res = await data.selectAndRecord(game, data.issuer, 0, 1, [topCard], qq("pending.lookAtTopCardOfNamedDeck", {deck: deckName}), false, false);
         if (res.selected.length > 0) {
             game.cardHandler.addBottomPosition(deckName, topCard);
         } else {
@@ -1260,6 +1259,7 @@ export function deactivateAllYourItemsAndCharaEffect(game: Game): SyncEffectFunc
         for (const card of player.inPlay) {
             game.cardHandler.deactivateItem(card);
         }
+        game.cardHandler.deactivateItem(player.character);
         return true;
     };
 }
@@ -1340,7 +1340,7 @@ export function dealDamageToUpToXMonstersOrPlayersEffect(game: Game, maxTargets:
         for (let i = 0; i < maxTargets; i++) {
             const target = data.next as Entity;
             if(!target || !(target instanceof Entity)) break;
-            game.entityHandler.dealDamage(data.issuer as Entity, target, data.it, dmg);
+            game.entityHandler.dealDamage(data.issuer as Entity, target, data.cardAndBox, dmg);
         }
         return true;
     }
@@ -1385,7 +1385,7 @@ export function lookAndOrderEffect(deckName: string, numberOfCards: number, game
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const cards = game.cardHandler.getFirstCardsOfDeck(deckName, numberOfCards);
-        const selectionResult = await data.selectAndRecord(game, data.issuer, numberOfCards, numberOfCards, cards, qq("pending.orderCards", { numberOfCards, deckName: toSerializedTranslation(`startStep.gameParams.decks.${deckName as DeckName}s`) }), false, false);
+        const selectionResult = await data.selectAndRecord(game, data.issuer, numberOfCards, numberOfCards, cards, qq("pending.orderCards", { numberOfCards, deckName }), false, false);
         for (let i = 0; i < selectionResult.selected.length; i++) {
             game.cardHandler.addTopPosition(deckName, selectionResult.selected[numberOfCards - 1 - i]!);
         }
@@ -1471,7 +1471,7 @@ export function discardLootOrTakeDamageEffect(game: Game, damage: number): Async
         if(data.issuer instanceof Player === false) return false;
         const player = data.issuer;
         if(player.hand.length === 0) {
-            game.entityHandler.dealDamage(player, player, data.it, damage);
+            game.entityHandler.dealDamage(player, player, data.cardAndBox, damage);
             return true;
         }
         const card = (await data.selectAndRecord(game, player, 1, 1, player.hand.cards, qq("pending.cardToDiscard"), true, true)).selected[0];
@@ -1494,7 +1494,7 @@ export function cancelAttackOnMonsterEffect(game: Game): SyncEffectFunction {
 export function takeDamageAndAddCounterEffect(game: Game, damageAmount: number, counterAmount: number): SyncEffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        game.entityHandler.dealDamage(data.issuer, data.issuer, data.it, damageAmount,
+        game.entityHandler.dealDamage(data.issuer, data.issuer, data.cardAndBox, damageAmount,
             (data: EffectData) => 
             {
                 game.cardHandler.addToCounter(data.issuer, data.it, "normal", 1);
@@ -1519,7 +1519,7 @@ export function healMonsterThenDamageAnotherEffect(game: Game): AsyncEffectFunct
         const target = (await data.selectAndRecord(game, data.issuer, 1, 1, game.monsters.filter((m) => m !== monsterToHeal && m !== null), qq("pending.anotherMobToDealDamageTo", { value: healAmount }), true, true)).selected[0] as Monster;
         if(target === undefined) 
             return false;
-        game.entityHandler.dealDamage(data.issuer, target, data.it, healAmount);
+        game.entityHandler.dealDamage(data.issuer, target, data.cardAndBox, healAmount);
         if(game.currentPlayer !== data.issuer) {
             game.entityHandler.endCombat();
             game.entityHandler.addAttackThisTurn(game.currentPlayer, 1, data.it);
@@ -1662,9 +1662,9 @@ export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestinati
         // getFirstCardsOfDeck(deckName, 1)[0];
         const justWatch = canPutWhere === "just_watch";
         const description = 
-            canPutWhere === "just_watch" ? qq("pending.lookAtTopCardOfDeck", {deck: toSerializedTranslation(`startStep.gameParams.decks.${deck._type as DeckName}s`)}) 
-            : canPutWhere === "bottom" ? qq("pending.lookAtTopCardOfDeckAndPutOnBottom", {deck: toSerializedTranslation(`startStep.gameParams.decks.${deck._type as DeckName}s`)}) 
-                : qq("pending.lookAtTopCardOfDeckAndDiscard", {deck: toSerializedTranslation(`startStep.gameParams.decks.${deck._type as DeckName}s`)});
+            canPutWhere === "just_watch" ? qq("pending.lookAtTopCardOfDeck", {deck: deck._type}) 
+            : canPutWhere === "bottom" ? qq("pending.lookAtTopCardOfDeckAndPutOnBottom", {deck: deck._type}) 
+                : qq("pending.lookAtTopCardOfDeckAndDiscard", {deck: deck._type});
         const selectionResult = reveal
          ? (await data.selectMultipleAndRecord(game, game.players.map(player => ({
                 player,
@@ -1721,12 +1721,9 @@ export function rerollEachItemEffect(game: Game, target: "issuer" | "currentPlay
 }
 
 export function trueEffect(): SyncEffectFunction {
-    const trueEffect = (data: EffectData) => {
+    return (data: EffectData) => {
         return true;
     };
-    // We bind the name trueEffect to the function so it can be used to check which effect is empty in dice rolls.
-    trueEffect.bind({}).name;
-    return trueEffect;
 }
 
 export function playForFreeTargetEffect(game: Game): AsyncEffectFunction {
@@ -2431,7 +2428,7 @@ export function dealDamageToEachOtherPlayerEffect(game: Game, dmg: number): Sync
     return (data: EffectData) => {
         for (const player of game.players) {
             if (player !== data.issuer) {
-                game.entityHandler.dealDamage(data.issuer, player, data.it, dmg);
+                game.entityHandler.dealDamage(data.issuer, player, data.cardAndBox, dmg);
             }
         }
         return true;
@@ -2443,7 +2440,7 @@ export function dealDamageToAPlayerEffect(game: Game, dmg: number, canTargetSelf
         const issuer = issuerIsCurrentPlayer ? game.currentPlayer : data.issuer;
         if (issuer instanceof Player === false) return false;
         const target = (await data.selectAndRecord(game, issuer, 1, 1, game.players.filter((p) => (canTargetSelf ? true : p !== issuer)), qq("pending.anotherPlayerToDealDamageTo"), true, true)).selected[0] as Player;
-        game.entityHandler.dealDamage(issuer, target, data.it, dmg);
+        game.entityHandler.dealDamage(issuer, target, data.cardAndBox, dmg);
         return true;
     };
 }
@@ -2533,7 +2530,7 @@ export function removeCounterAndDamageIfAboveX(game: Game, toRemove: number, dam
         if(data.it.counters.value("normal") >= toRemove) {
             game.cardHandler.addToCounter(data.issuer, data.it, "normal", -data.it.counters.value("normal"));
             const damageTarget = (await data.selectAndRecord(game, data.issuer, 1, 1, game.playersAndMonsters, qq("pending.playerToDealDamageTo"), true, true)).selected[0] as Player;
-            game.entityHandler.dealDamage(data.issuer, damageTarget, data.it, damage);
+            game.entityHandler.dealDamage(data.issuer, damageTarget, data.cardAndBox, damage);
         }
         return true;
     }
@@ -2676,7 +2673,7 @@ export function removeCountersAndLootOrDamageEffect(game: Game, minCounterToRemo
         } else {
             const target = (await data.selectAndRecord(game, data.issuer, 1, 1, game.monsters, qq("pending.monsterToDealDamageTo"), true, true)).selected[0];
             if(!target) return false;
-            game.entityHandler.dealDamage(data.issuer, target, data.it, damageAmount);
+            game.entityHandler.dealDamage(data.issuer, target, data.cardAndBox, damageAmount);
         }
         return true;
     };
@@ -2725,7 +2722,7 @@ export function dealRollDamageEffect(s: string, game: Game): SyncParsedEffect {
             const roll = game.rollDice(data.issuer, data.it);
             roll.attachEffect([...Array(6).keys()].map((i) =>
                 (data: EffectData): boolean => {
-                    game.entityHandler.dealDamage(data.issuer, data.next as Entity, data.it, i + 1);
+                    game.entityHandler.dealDamage(data.issuer, data.next as Entity, data.cardAndBox, i + 1);
                     return true;
                 }), data.it, [target]);
             return true;
@@ -2748,7 +2745,7 @@ export function takeDamageGainCoinsEffect(s: string, damage: number, coins: numb
             }
             return false;
         }
-        game.entityHandler.dealDamage(data.issuer, data.issuer, data.it, damage, callback);
+        game.entityHandler.dealDamage(data.issuer, data.issuer, data.cardAndBox, damage, callback);
         return true;
     };
 }
@@ -2773,10 +2770,10 @@ export function killTargetEffect(game: Game, selectors: TargetsSelector[] = [], 
                 throw new GameError("Issuer should be a player to select target for killTargetEffect.", toSerializedTranslation("error.behaviorError", { error: "Issuer should be a player to select target for killTargetEffect."}));
             const target = await data.selectAndRecord(game, issuer as Player, 1, 1, selectors[0]!.selector(issuer, data.it), qq("pending.targetToKill"), true, true);
             if(target.selected.length === 0) return false;
-            game.entityHandler.kill(issuer, target.selected[0] as Entity, data.it);
+            game.entityHandler.kill(issuer, target.selected[0] as Entity, data.cardAndBox);
             return true;
         }
-        game.entityHandler.kill(issuer, data.next as Entity, data.it);
+        game.entityHandler.kill(issuer, data.next as Entity, data.cardAndBox);
         return true;
     };
 }
@@ -2854,19 +2851,19 @@ export function deathTargetEffect(game: Game, selectionOnResolve: boolean = fals
                 throw new GameError("Issuer should be a player to select target for deathTargetEffect.", toSerializedTranslation("error.behaviorError", { error: "Issuer should be a player to select target for deathTargetEffect."}));
             const target = await data.selectAndRecord(game, data.issuer as Player, 1, 1, game.players, qq("pending.targetToKill"), true, true);
             if(target.selected.length === 0) return false;
-            game.entityHandler.death(target.selected[0] as Entity, data.issuer, data.it);
+            game.entityHandler.death(target.selected[0] as Entity, data.issuer,data.cardAndBox);
             return true;
         }
         if(!target) 
             throw new GameError("No target for deathTargetEffect", toSerializedTranslation("error.behaviorError", { error: "No target for deathTargetEffect"}));
-        game.entityHandler.death(data.next, data.issuer, data.it);
+        game.entityHandler.death(data.next, data.issuer,data.cardAndBox);
         return true;
     };
 }
 
 export function dieEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
-        game.entityHandler.death(data.issuer, data.issuer, data.it);
+        game.entityHandler.death(data.issuer, data.issuer,data.cardAndBox);
         return true;
     };
 }
@@ -2882,7 +2879,7 @@ export function gainTreasuresEffect(game: Game, amount: number, issuerType: "iss
 
 export function payHealthEffect(game: Game, amount: number): SyncEffectFunction {
     return (data: EffectData) => {
-        return game.entityHandler.healthLoss(data.issuer, data.issuer, data.it, amount);
+        return game.entityHandler.healthLoss(data.issuer, data.issuer,data.cardAndBox, amount);
     };
 }
 
@@ -2987,7 +2984,7 @@ export function dealDamageToEachPlayerEffect(game: Game, amount: number, include
     return (data: EffectData) => {
         for (const player of game.players) {
             if (!includeActivePlayer && player === game.currentPlayer) continue;
-            game.entityHandler.dealDamage(data.issuer, player, data.it, amount);
+            game.entityHandler.dealDamage(data.issuer, player, data.cardAndBox, amount);
         }
         return true;
     };
@@ -2996,7 +2993,7 @@ export function dealDamageToEachPlayerEffect(game: Game, amount: number, include
 export function dealDamageToEachMonsterEffect(game: Game, amount: number): SyncEffectFunction {
     return (data: EffectData) => {
         for (const monster of [...game.monsters]) {
-            game.entityHandler.dealDamage(data.issuer, monster, data.it, amount);
+            game.entityHandler.dealDamage(data.issuer, monster, data.cardAndBox, amount);
         }
         return true;
     };
@@ -3005,11 +3002,11 @@ export function dealDamageToEachMonsterEffect(game: Game, amount: number): SyncE
 export function dealDamageToEachMonsterAndPlayerEffect(game: Game, amount: number, includeActivePlayer: boolean = true): SyncEffectFunction {
     return (data: EffectData) => {
         for (const monster of [...game.monsters]) {
-            game.entityHandler.dealDamage(data.issuer, monster, data.it, amount);
+            game.entityHandler.dealDamage(data.issuer, monster, data.cardAndBox, amount);
         }
         for (const player of game.players) {
             if (!includeActivePlayer && player === game.currentPlayer) continue;
-            game.entityHandler.dealDamage(data.issuer, player, data.it, amount);
+            game.entityHandler.dealDamage(data.issuer, player, data.cardAndBox, amount);
         }
         return true;
     };
@@ -3031,7 +3028,7 @@ export function chooseOneOfListEffect(game: Game, selectors: TargetsSelector, se
 export function takeDamageEffect(game: Game, amount: number, CurrentPlayerIfIssuerIsMonster: boolean = false): SyncEffectFunction {
     return (data: EffectData) => {
         const issuer = CurrentPlayerIfIssuerIsMonster && data.issuer instanceof Monster ? game.currentPlayer : data.issuer;
-        game.entityHandler.dealDamage(issuer, issuer, data.it, amount);
+        game.entityHandler.dealDamage(issuer, issuer, data.cardAndBox, amount);
         return true;
     };
 }
@@ -3069,7 +3066,7 @@ export function dealDamageToTargetEffect(game: Game, amount: number, selectionOn
         }
         if(!(target instanceof Entity))
             throw new GameError(`Invalid target for dealDamageToTargetEffect (${target}), all: ${data.targets}, source: ${data.it.slug}, issuer: ${issuer.id}, resolve on: ${selectionOnResolve}, selectors: ${selectors.length}`, toSerializedTranslation("error.behaviorError", { error: `Invalid target for dealDamageToTargetEffect (${target}), all: ${data.targets}, source: ${data.it.slug}, issuer: ${issuer.id}, resolve on: ${selectionOnResolve}, selectors: ${selectors.length}`}));
-        game.entityHandler.dealDamage(data.issuer, target, data.it, amount);
+        game.entityHandler.dealDamage(data.issuer, target, data.cardAndBox, amount);
         return true;
     };
 }
@@ -3239,7 +3236,7 @@ export function putThisIntoDiscardEffect(game: Game): SyncEffectFunction {
 export function killMonsterEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         const targetMonster = data.next as Monster;
-        game.entityHandler.kill(data.issuer, targetMonster, data.it);
+        game.entityHandler.kill(data.issuer, targetMonster, data.cardAndBox);
         return true;
     };
 }
@@ -3270,7 +3267,7 @@ export function dealDamageNotEngagedInCombatOrYourselfEffect(game: Game, amount:
         const feasibleTargets = game.playersAndMonsters.filter(e => e.isEngagedInCombat === false || e === data.issuer);
         if (feasibleTargets.length === 0) return false;
         const target = (await data.selectAndRecord(game, data.issuer, 1, 1, feasibleTargets, qq("pending.targetToDealDamageTo", { value: amount }), true, true)).selected[0] as Entity;
-        game.entityHandler.dealDamage(data.issuer, target, data.it, amount);
+        game.entityHandler.dealDamage(data.issuer, target, data.cardAndBox, amount);
         return true;
     }
 }

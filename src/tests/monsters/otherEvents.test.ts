@@ -78,7 +78,7 @@ describe("Event Monsters - Other Events", () => {
 
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-        game.entityHandler.kill(player1, game.monsters[0]!, ambush);
+        game.entityHandler.kill(player1, game.monsters[0]!, {card: ambush, visualEffectBox: undefined});
         await game.actions.resolveStack();
         
         expect(player1.mustAttackEntity.length).toBe(initialAttacks + 1);
@@ -87,7 +87,7 @@ describe("Event Monsters - Other Events", () => {
 
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-        game.entityHandler.kill(player1, game.monsters[0]!, ambush);
+        game.entityHandler.kill(player1, game.monsters[0]!, {card: ambush, visualEffectBox: undefined});
         await game.actions.resolveStack();
 
         expect(player1.mustAttackEntity.length).toBe(initialAttacks);
@@ -112,7 +112,7 @@ describe("Event Monsters - Other Events", () => {
 
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-        game.entityHandler.kill(player1, game.monsters[0]!, ambush);
+        game.entityHandler.kill(player1, game.monsters[0]!, {card: ambush, visualEffectBox: undefined});
         await game.actions.resolveStack();
         
         expect(player1.mustAttackEntity.length).toBe(0);

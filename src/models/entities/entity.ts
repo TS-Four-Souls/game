@@ -3,10 +3,11 @@ import type { Card } from "../cards";
 import { type DiceRoll } from "../stackElement";
 import { GameError } from "@/models/GameError";
 import { toSerializedTranslation } from "@/utils/translation";
+import type { DamageSource } from "../handlers/entityHandler";
 
 interface DamageObj {
   dealer: Entity | null;
-  with: Card | DiceRoll | null;
+  with: DamageSource | null;
   damage: number;
 }
 
@@ -56,7 +57,7 @@ export abstract class Entity {
     this._baseAttackPoints = _attackPoints;
   }
 
-  receiveDamage(damage: number, dealer: Entity | null = null, abilityCard: Card | DiceRoll | null = null): boolean {
+  receiveDamage(damage: number, dealer: Entity | null = null, abilityCard: DamageSource | null = null): boolean {
     if(damage <= 0) return true;
     this._damageTakenThisTurn.push({dealer: dealer!, with: abilityCard!, damage: damage});
     this._currentHealthPoints -= damage;

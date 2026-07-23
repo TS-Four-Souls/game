@@ -41,7 +41,7 @@ describe("Encounters", () => {
     it("Killing monsters replaces them correctly", async () => {
         verifyMonsters(game);
         getAndAddTopMonsterCard(game, "b2-mom");
-        game.entityHandler.kill(player1, game.encounters.monsterIn(0)!, game.encounters.monsterIn(0)!.card);
+        game.entityHandler.kill(player1, game.encounters.monsterIn(0)!, {card: game.encounters.monsterIn(0)!.card, visualEffectBox: undefined});
         await game.actions.resolveStack();
         verifyMonsters(game);
         expect(game.encounters.monsterIn(0)?.id).toBe("b2-mom");

@@ -69,7 +69,7 @@ it("Soul of Lust - each time a player kills a monster, put a counter on this. - 
             game.cardHandler.addTopPosition("monster", game.obtainCard(monster)!);
         }
         for(let i=0; i<6; i++) {
-            game.entityHandler.kill(player1, game.monsters[0]!, player1.character!);
+            game.entityHandler.kill(player1, game.monsters[0]!, {card: player1.character!, visualEffectBox: undefined});
             await game.actions.resolveStack();
             expect(game.currentPlayer.totalSouls).toBe((i === 5 ? 1 : 0));
             await game.endTurn();
@@ -95,7 +95,7 @@ it("Soul of Wrath - each time a player dies, put a counter on this. - 6 counters
         ({ game, player1, player2 } = await setupBonusSoulsTestGame("r-soul_of_wrath"));
 
         for(let i=0; i<6; i++) {
-            game.entityHandler.kill(player1, game.currentPlayer, player1.character!);
+            game.entityHandler.kill(player1, game.currentPlayer, {card: player1.character!, visualEffectBox: undefined});
             await game.actions.resolveStack();
             expect(game.currentPlayer.totalSouls).toBe((i === 5 ? 1 : 0));
             await game.actions.resolveStack();

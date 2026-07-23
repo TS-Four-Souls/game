@@ -20,11 +20,13 @@ import { EffectData } from "@/models/types/cardTypes";
 import { toSerializedTranslation } from "@/utils/translation";
 import { AnimatedList } from "../entities/animated";
 import { DeathPenaltyValues } from "../handlers/deathHandler";
+import type { VisualEffectBox } from "@/shared/api";
 
 /**
  *  Type representing sources of damage - either a card ability or a dice roll
  * */ 
-export type DamageSource = Card | DiceRoll;
+export type CardAndBox = {card: Card, visualEffectBox: VisualEffectBox | undefined}
+export type DamageSource = CardAndBox | DiceRoll;
 
 /**
  * EntityHandler is responsible for the entities of a game.

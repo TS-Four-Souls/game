@@ -498,7 +498,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         game.encounters.forceSetMonsterAtSlot(0, holyDinga);
         
         // Damage player first so they can heal
-        game.entityHandler.dealDamage(player1, player1, holyDinga, 1);
+        game.entityHandler.dealDamage(player1, player1, {card: holyDinga, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         const initialHP = player1.currentHealthPoints;
         
@@ -523,7 +523,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, holyDinga);
         
-        game.entityHandler.dealDamage(player1, player1, holyDinga, 1);
+        game.entityHandler.dealDamage(player1, player1, {card: holyDinga, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         const initialHP = player1.currentHealthPoints;
         

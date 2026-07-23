@@ -296,7 +296,7 @@ describe("Four Souls+2 Treasures", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 2);
-        game.entityHandler.kill(player1, game.encounters.monsterIn(1)!, player1.character!); // kill Fatty
+        game.entityHandler.kill(player1, game.encounters.monsterIn(1)!, {card: player1.character!, visualEffectBox: undefined}); // kill Fatty
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 4);
@@ -308,7 +308,7 @@ describe("Four Souls+2 Treasures", () => {
         const hp = player1.currentHealthPoints;
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, game.encounters.monsterIn(0)!);
-        game.entityHandler.dealDamage(player2, player1, card1, hp);
+        game.entityHandler.dealDamage(player2, player1, {card: card1, visualEffectBox: undefined}, hp);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.currentHealthPoints).toBe(hp);
@@ -597,7 +597,7 @@ describe("Four Souls+2 Treasures", () => {
         expect(player1.attackPoints).toBe(1);
         game.cardHandler.addInPlay(player1, card1);
         expect(player1.attackPoints).toBe(4);
-        game.entityHandler.dealDamage(player2, player1, card1, 1);
+        game.entityHandler.dealDamage(player2, player1, {card: card1, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -611,7 +611,7 @@ describe("Four Souls+2 Treasures", () => {
         game.cardHandler.addInPlay(player1, card1);
         expect(player1.currentHealthPoints).toBe(hp+2);
         game.loot(player1, 2);
-        game.entityHandler.dealDamage(player2, player1, card1, 1);
+        game.entityHandler.dealDamage(player2, player1, {card: card1, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.currentHealthPoints).toBe(hp+1);

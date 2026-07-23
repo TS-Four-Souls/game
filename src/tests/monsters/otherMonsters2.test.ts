@@ -94,7 +94,7 @@ describe("Monsters - Various 2", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
-        game.entityHandler.dealDamage(player1, monster, card, monster.currentHealthPoints - 1); // Reduce to 1 HP
+        game.entityHandler.dealDamage(player1, monster, {card: card, visualEffectBox: undefined}, monster.currentHealthPoints - 1); // Reduce to 1 HP
         await game.actions.resolveStack(); // damage
 
         game.actions.declareAttack(player1);
@@ -113,7 +113,7 @@ describe("Monsters - Various 2", () => {
 
             expect(game.stack.isEmpty()).toBe(true);
             expect(monster.currentHealthPoints).toBe(init + 1);
-            game.entityHandler.dealDamage(player1, monster, card, monster.currentHealthPoints - 1); // Reduce to 1 HP
+            game.entityHandler.dealDamage(player1, monster, {card: card, visualEffectBox: undefined}, monster.currentHealthPoints - 1); // Reduce to 1 HP
             await game.actions.resolveStack(); // damage
         }
     });
@@ -124,7 +124,7 @@ describe("Monsters - Various 2", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
-        game.entityHandler.dealDamage(player1, monster, card, monster.currentHealthPoints - 1); // Reduce to 1 HP
+        game.entityHandler.dealDamage(player1, monster, {card: card, visualEffectBox: undefined}, monster.currentHealthPoints - 1); // Reduce to 1 HP
         await game.actions.resolveStack(); // damage
 
         game.actions.declareAttack(player1);
@@ -158,7 +158,7 @@ describe("Monsters - Various 2", () => {
 
         game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
-        game.entityHandler.dealDamage(player1, monster, card, monster.currentHealthPoints - 1); // Reduce to 1 HP
+        game.entityHandler.dealDamage(player1, monster, {card: card, visualEffectBox: undefined}, monster.currentHealthPoints - 1); // Reduce to 1 HP
         await game.actions.resolveStack(); // damage
 
         game.actions.declareAttack(player1);
