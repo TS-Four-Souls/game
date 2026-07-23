@@ -101,7 +101,7 @@ describe("Four Souls+2 Eternal Items", () => {
         const atk = player1.attackPoints;
 
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
-        if(Options[2] === "gain +2 [atk] till end of turn.")
+        if(Options[2].description === "gain +2 [atk] till end of turn.")
             return {
                 selected: [Options[2]],
                 remaining: []
