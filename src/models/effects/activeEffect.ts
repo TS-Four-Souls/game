@@ -1253,6 +1253,7 @@ export function deactivateAllYourItemsAndCharaEffect(game: Game): SyncEffectFunc
         for (const card of player.inPlay) {
             game.cardHandler.deactivateItem(card);
         }
+        game.cardHandler.deactivateItem(player.character);
         return true;
     };
 }
