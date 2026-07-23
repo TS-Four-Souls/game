@@ -5,6 +5,7 @@ import { Player } from "./entities/player";
 import { DiceRoll, DiceWillRoll } from "./stackElement";
 import type { StackElement } from "./stack";
 import { type TargetsSelector } from "./types/cardTypes";
+import { type VisualEffectBox } from "@/shared/api";
 
 export function inplayUnchargedItemSelector(game: Game): (issuer: Player) => ItemCard[] {
     return (inplayItemSelector((player: Player, card: ItemCard) => card.isActiveItem(), game));
@@ -63,11 +64,13 @@ export function activeEntitySelector(filter: (player: Entity) => boolean = () =>
 }
 export interface ChooseOneOptions {
     description: string;
+    card: Card;
+    visualEffectBox: VisualEffectBox;
     admissibleTargets: TargetsSelector[];
 }
 
 export const isChooseOneOptions = (x: any): x is ChooseOneOptions => {
-    return typeof x === 'object' && x !== null && 'description' in x && 'admissibleTargets' in x;
+    return typeof x === 'object' && x !== null && 'description' in x && 'admissibleTargets' in x && 'visualEffectBox' in x && "card" in x;
 };
 
 export function deckSelector(filter: (name: string) => boolean = () => true, game: Game): (issuer: Player) => any[] {

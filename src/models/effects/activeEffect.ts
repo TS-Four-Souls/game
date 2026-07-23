@@ -335,8 +335,14 @@ export function chooseOneEffect(s: string, game: Game, selectionOnResolve: boole
         effectFunction: async (data: EffectData): Promise<boolean> => {
             if(!(data.issuer instanceof Player))
                 throw new GameError("Effect issuer is not a player.", toSerializedTranslation("error.effectIssuerMustBePlayer"));
+            const choices = effects.map((effect, i) => ({
+                    description: lines[i + 1]!,
+                    visualEffectBox: data.it.visualEffectBoxFromDescription(lines[i + 1]!),
+                    card: data.it,
+                    admissibleTargets: effect.targetSelectors,
+                }))
             const description = selectionOnResolve ?
-                (await data.selectAndRecord(game, data.issuer, 1, 1, lines.slice(1), qq("pending.effectToResolve"), true, true)).selected[0] :
+                (await data.selectAndRecord(game, data.issuer, 1, 1, choices, qq("pending.effectToResolve"), true, true)).selected[0]!.description :
                 (data.next as string).toLowerCase();
             if(!description)
                 throw new GameError("No description found for choose one effect.", toSerializedTranslation("error.behaviorError", { error: "No description found for choose one effect."}));
@@ -352,11 +358,13 @@ export function chooseOneEffect(s: string, game: Game, selectionOnResolve: boole
         },
         targetSelectors: [{ 
             description: toSerializedTranslation("selector.one"),
-            selector: (issuer: Player): any[] => {
+            selector: (issuer: Player, card: Card): any[] => {
                 // Construct ChooseOneOptions array from parsed effects
                 return effects.map((effect, i) => ({
                     description: lines[i + 1]!,
-                    admissibleTargets: effect.targetSelectors
+                    visualEffectBox: card.visualEffectBoxFromDescription(lines[i + 1]!),
+                    card: card,
+                    admissibleTargets: effect.targetSelectors,
                 }));
             }, 
             min: 1, 

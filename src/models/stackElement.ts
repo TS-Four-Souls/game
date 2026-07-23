@@ -509,12 +509,18 @@ export class LootCardEffect extends StackElement {
     override onCancel(game: Game): void {
       game.decks.loot.addDiscardTop(this._card);
     }
+    get visualEffectBox(): VisualEffectBox | undefined{
+      if(typeof this.targets[0] === "string")
+        return this.card.visualEffectBoxFromDescription(this.targets[0]);
+      return this.card.getEffectRange(0)[0];
+    }
     override get json(): LootCardOnStackJson {
         return {
             type: "LootCardEffect",
             card: this.card.jsonAPI,
             targets: TargetBuilder.convertToSelectionItems(this.targets.filter(s => typeof s !== "string")),
             issuer: this.issuer.json,
+            visualEffectBox: this.visualEffectBox,
             ...super.baseJson,
         };
     }
