@@ -5,7 +5,7 @@ import type { Player } from "../entities/player";
 import { TargetBuilder } from "../targetBuilder";
 import { isChooseOneOptions } from "../targetSelector";
 import { combineEffectFunctions } from "./activeEffect";
-import type { ActiveEffectEntry, VisualEffectBox } from "@/shared/api";
+import type { ActiveEffectEntry, SerializedChooseOne, VisualEffectBox } from "@/shared/api";
 import type { SyncEffectFunction } from "../types/cardTypes";
 import { toSerializedTranslation } from "@/utils/translation";
 import { GameError } from "@/models/GameError";
@@ -371,7 +371,7 @@ export class EffectInterface {
     get requiresDiceWillRoll(): boolean{
         return this.activeEffects.requiresDiceWillRoll;
     }
-    getEffectIdAndChooseOneChoiceFromSeparatorId(id: number): { effectId: number | "tap"; choice?: string[] } {
+    getEffectIdAndChooseOneChoiceFromSeparatorId(id: number): { effectId: number | "tap"; choice?: SerializedChooseOne[] } {
         const effectId = this._mapSepIdToActiveEffectId.get(id);
         if (effectId === undefined) {
             throw new GameError(`Separator ID ${id} not found in effect map for card ${this.it.slug}.`,
@@ -383,7 +383,7 @@ export class EffectInterface {
             return { effectId };
         for(let i = 0; i < effect.range.length; i++) {
             if(effect.range[i]!.startIndex <= id && id <= effect.range[i]!.endIndex!){
-                return { effectId, choice: [effect.range[i]!.description.toLowerCase()] };}
+                return { effectId, choice: [{description: effect.range[i]!.description.toLowerCase(), visualEffectBox: effect.range[i]!, card: this.it}] };}
         }
         throw new GameError(`Separator ID ${effectId} does not fall within any effect range for card ${this.it.slug}.`,
             toSerializedTranslation("error.behaviorError", { error: `Separator ID ${effectId} does not fall within any effect range for card ${this.it.slug}.` })

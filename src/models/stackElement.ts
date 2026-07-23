@@ -290,9 +290,7 @@ export class DiceRoll extends StackElement {
     if(range === 1)
       return this._visualEffectBox;
     const step = this._effect.reduce((acc, cur, idx, arr) => acc + (arr[idx]!.name !== "trueEffect" ? 1 : 0), 0) / range;
-    console.log(step);
     const boxIndex = Math.floor((this.value - 1) / step);
-    console.log("step", step, "range", range, boxIndex, this.value);
     return {startIndex: this._visualEffectBox.startIndex + boxIndex, endIndex: this._visualEffectBox.startIndex + boxIndex};
   }
 
