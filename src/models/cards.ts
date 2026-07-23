@@ -1,4 +1,4 @@
-import { type ActiveEffectEntry, type BasicSerializedTranslation, type BonusSoulCard, type DescriptiveVisualEffectBox, type IdentifierType, type VisualEffectBox, type DeckName } from '@/shared/api';
+import { type ActiveEffectEntry, type BasicSerializedTranslation, type BonusSoulCard, type DescriptiveVisualEffectBox, type IdentifierType, type VisualEffectBox, type DeckName, type SerializedChooseOne } from '@/shared/api';
 import type { BonusSoulCardType, CardRewards, CharacterCardType, EternalCardType, FlipData, GenericCardType, InPlayCardType, LootCardType, MonsterCardType, RoomCardType, TreasureCardType } from '@/types/cardTypes';
 import { print, shuffle } from '@/utils/auxiliary';
 import { toSerializedTranslation, translationKeyFromCardSlug } from '@/utils/translation';
@@ -478,7 +478,7 @@ export class ItemCard extends Card {
   getEffectTarget(effectId: number | "tap"): TargetsSelector[] {
     return this._effectInterface.getTargetSelectors(effectId);
   }
-  getEffectIdAndChooseOneChoiceFromSeparatorId(id: number): { effectId: number | "tap"; choice?: string[] }
+  getEffectIdAndChooseOneChoiceFromSeparatorId(id: number): { effectId: number | "tap"; choice?: SerializedChooseOne[] }
   {
     return this._effectInterface.getEffectIdAndChooseOneChoiceFromSeparatorId(id);
   }

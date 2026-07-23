@@ -383,9 +383,10 @@ export class TargetBuilder {
                     (identifier.payload.globalId === undefined || t.globalId === identifier.payload.globalId)
                 );
             case "player":
+            case "animated":
             case "monster":
                 return possibleTargets.find(t =>
-                    t && t.json.nameKey.key === identifier.payload.nameKey.key &&
+                    t && t instanceof Entity && t.json &&
                     t.json.globalId === identifier.payload.globalId
                 );
             case "deck":
