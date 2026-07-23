@@ -573,9 +573,7 @@ export function becomesCopyOfItemUntilEndOfTurnEffect(game: Game): SyncEffectFun
         
         // Subscribe to end of turn event to restore the original card. As the cleaner is registered after the copy, restore() will remove it.
         unsubscribe = game.emitter.on("till:turn:end", (eventData: OnTurnEndData) => {
-            if (eventData.eventIssuer === owner) {
                 restoreOnce();
-            }
         });
          data.it.cleaners.push(() => {
             unsubscribe();

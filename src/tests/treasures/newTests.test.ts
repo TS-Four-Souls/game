@@ -624,6 +624,39 @@ describe("b2-diplopia - becomes temporary copy of passive item till end of turn"
         expect(player1.currentHealthPoints).toBe(initialHP);
     });
 
+    it("diplopia reverts back at end of other player turn", async () => {
+        const diplopia = game.obtainCard("b2-diplopia") as ItemCard;
+        const breakfast = game.obtainCard("b2-breakfast") as ItemCard;
+        game.cardHandler.addInPlay(player1, diplopia);
+        game.cardHandler.addInPlay(player1, breakfast);
+        await game.endTurn();
+        await game.resolveEntireStack()
+
+        const initialHP = player1.currentHealthPoints;
+
+        // Transform into breakfast
+        game.cardHandler.recharge(diplopia);
+        await game.activateItem(player1, diplopia, [breakfast]);
+        await game.actions.resolveStack();
+
+        // Should be breakfast
+        expect(diplopia.name).toBe("Breakfast");
+        expect(player1.currentHealthPoints).toBe(initialHP + 1);
+
+        // End turn
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        
+        // Should revert back to diplopia
+        expect(diplopia.name).toBe("Diplopia");
+        expect(diplopia.slug).toBe("b2-diplopia");
+
+        // HP returns to base (without breakfast bonus) after reversion
+        expect(player1.currentHealthPoints).toBe(initialHP);
+    });
+
     it("diplopia can copy passive items from other players", async () => {
         const diplopia = game.obtainCard("b2-diplopia") as ItemCard;
         const breakfast = game.obtainCard("b2-breakfast") as ItemCard;
