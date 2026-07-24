@@ -248,7 +248,7 @@ export class Game extends SelectionHandler {
   get bonusSouls(): BsoulCard[] | undefined {
     return this.cardHandler.bonusSouls;
   }
-  get pendingMultipleSelections(): Map<string, PendingSelection> {
+  get pendingMultipleSelections(): Map<number, PendingSelection> {
     return this._pendingMultipleSelections;
   }
   getRollbackLog(player: Player): HistoricEntry[] {

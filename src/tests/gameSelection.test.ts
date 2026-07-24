@@ -170,7 +170,7 @@ describe("Game Selection System", () => {
         expect(() => {
             game.submitSelection(
                 player1,
-                "wrong-request-id",
+                -12,
                 TargetBuilder.convertToSelectionItems(["any-identifier"]) // This should fail before identifier validation
             );
         }).toThrow("No pending selection found for this request ID");
@@ -410,7 +410,7 @@ describe("Game Selection System", () => {
         expect(() => {
             game.submitSelection(
                 player1,
-                "any-request-id",
+                -12,
                 [{type:"string", payload: "any-identifier"}]
             );
         }).toThrow("No pending selection found for this request ID");

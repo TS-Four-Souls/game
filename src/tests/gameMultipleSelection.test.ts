@@ -174,7 +174,7 @@ describe("Game.selectMultiple", () => {
     ]);
 
     expect(() => {
-      game.submitSelection(player1, "invalid-request-id", []);
+      game.submitSelection(player1, -12, []);
     }).toThrow("No pending selection found for this request ID");
     
     // Complete properly

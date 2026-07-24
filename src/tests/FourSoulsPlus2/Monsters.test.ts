@@ -275,13 +275,14 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         await game.actions.resolveStack(); // resolve the event addition
         game.cardHandler.rechargeMultiple(player1);
         expect(player1.inPlay.every(i => i.charged || !i.isActiveItem)).toBe(true);
+        expect(player1.character.charged).toBe(true);
         await game.actions.resolveStack(); // give curse to themselves
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // turn end
         expect(player1.inPlay.every(i => i.charged)).toBe(false);
-
+        expect(player1.character.charged).toBe(false);
     });
 
     it("fsp2-bony - Each time the attacking player rolls an attack roll of 1, this gains +2 [ATK] till end of turn.", async () => {
