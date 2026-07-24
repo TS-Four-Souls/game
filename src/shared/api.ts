@@ -172,7 +172,7 @@ const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
 );
 
 const pendingSelectionSchema = z.object({
-  requestId: z.string(),
+  requestId: z.number(),
   description: serializedTranslationSchema,
   options: z.array(selectionItemSchema),
   min: z.number(),
@@ -626,7 +626,7 @@ export type NextTargetSelectorResponse = z.infer<
 >;
 
 const submitSelectionSchema = z.object({
-  requestId: z.string(),
+  requestId: z.number(),
   selections: z.array(selectionItemSchema),
 });
 

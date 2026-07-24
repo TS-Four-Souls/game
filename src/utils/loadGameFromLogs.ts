@@ -73,7 +73,7 @@ function normalizeDetailedStateForComparison(state: DetailedState): DetailedStat
   const normalized = structuredClone(state);
 
   if (normalized.me.pendingSelection) {
-    normalized.me.pendingSelection.requestId = "";
+    normalized.me.pendingSelection.requestId = 0;
   }
 
   normalized.animations = [];
@@ -205,8 +205,8 @@ function setupLoadingSubmitSelectionHandling(game: Game, logs: HistoricEntry[]):
   const submitSelectionEntries = logs.filter(
     (entry): entry is Extract<UserRequest, { type: "SubmitSelection" }> =>
       isUserRequestEntry(entry) && entry.type === "SubmitSelection",
-  ).sort((a, b) => {return Number(a.payload.requestId.split("_").at(-1)) - Number(b.payload.requestId.split("_").at(-1));});
-
+  ).sort((a, b) => a.payload.requestId - b.payload.requestId);
+  game.setSelectionHandlerNextId(submitSelectionEntries.length);
   let i = 0;
 
   game.selectMultiple = async <T>(selections: {
@@ -230,6 +230,7 @@ function setupLoadingSubmitSelectionHandling(game: Game, logs: HistoricEntry[]):
           submitSelectionEntries.splice(i, 0, entry);
           break
         }
+        console.log("Weird That it happens.");
       }
       const entry = submitSelectionEntries[i++];
       if (entry === undefined) {
