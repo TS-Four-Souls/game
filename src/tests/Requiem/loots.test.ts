@@ -310,8 +310,8 @@ describe("Requiem Loots ", () => {
         await game.actions.resolveStack();
         const room = game.rooms?.activeRooms[0]!;
 
-        game.cardHandler.recharge(player1.character);
-        await game.activateItem(player1, player1.character! as ItemCard);
+        game.cardHandler.recharge(player1.inPlay[0]!);
+        await game.activateItem(player1, player1.inPlay[0]!as ItemCard);
         let mob = game.monsters[0]!;
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -323,8 +323,8 @@ describe("Requiem Loots ", () => {
             await new Promise(resolve => setTimeout(resolve, 0));
             return {selected: [Options[Options.length - 1]], remaining: []};
         };
-        game.cardHandler.recharge(player1.character);
-        await game.activateItem(player1, player1.character! as ItemCard);
+        game.cardHandler.recharge(player1.inPlay[0]!);
+        await game.activateItem(player1, player1.inPlay[0]! as ItemCard);
         mob = game.monsters[0]!;
         await game.actions.resolveStack();
         expect(mob.card.slug).toBe(game.monsters[0]!.card.slug);

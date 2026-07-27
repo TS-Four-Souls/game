@@ -1091,7 +1091,7 @@ export function playersCanOnlyActivateOnceATurn(game: Game): SyncEffectFunction 
         offStartTurn = game.emitter.on("on:turn:start", (eventData) => {
             playersWhoActivatedThisTurn = [];
         });
-        offActivate = game.emitter.on("on:item:activated", (eventData) => {
+        offActivate = game.emitter.on("on:card:activated", (eventData) => {
             const { eventIssuer } = eventData;
             eventIssuer.addToCanIActivateThisTurn(1);
             playersWhoActivatedThisTurn.push(eventIssuer);

@@ -410,7 +410,13 @@ export class CardHandler {
     })
     this.game.addToStack(effectOnStack);
     if (effectId === "tap") {
-      this.game.emit("on:item:activated", {
+      if (item !== player.character) {
+        this.game.emit("on:item:activated", {
+          eventIssuer: player,
+          item: item,
+        });
+      }
+      this.game.emit("on:card:activated", {
         eventIssuer: player,
         item: item,
       });

@@ -1223,7 +1223,7 @@ export function chosenumberDamageOnRollThisTurnEffect(game: Game, damageAmount: 
             addPassiveEffectToStack(game, effect, data, `Deal ${damageAmount} damage to a target because a ${nb} was rolled.`);
         });
 
-        offTurn = game.emitter.on("on:turn:end", ({ eventIssuer }) => {
+        offTurn = game.emitter.on("till:turn:end", ({ eventIssuer }) => {
             offDamage?.();
             offDamage = null;
             offTurn?.();
@@ -1800,6 +1800,7 @@ export function enterPlayDeactivatedEffect(game: Game): SyncEffectFunction {
 export function lootOnNextRollEffect(game: Game, x: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
+        let offTurn: (() => void) | null = null;
 
         const willRoll = data.next as DiceWillRoll;
         if(willRoll === undefined || !(willRoll instanceof DiceWillRoll))
@@ -1828,6 +1829,14 @@ export function lootOnNextRollEffect(game: Game, x: number): SyncEffectFunction 
             }
             offRoll?.();
             offRoll = null;
+            offTurn?.();
+            offTurn = null;
+        });
+        offTurn = game.emitter.on("till:turn:end", ({ eventIssuer }) => {
+            offRoll?.();
+            offRoll = null;
+            offTurn?.();
+            offTurn = null;
         });
         return true;
     };

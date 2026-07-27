@@ -404,6 +404,7 @@ export interface TriggerEventDataMap {
   "on:get:monster:evasion": OnGetMonsterEvasionData;
   "on:enter:play:after": OnEnterPlayAfterData;
   "on:item:activated": OnItemActivatedData;
+  "on:card:activated": OnItemActivatedData;
   "on:can:declare:attack": OnCanDeclareAttackData;
   "on:priority:passes": OnPriorityPassesData;
   "on:item:destroyed": OnItemDestroyedData;
