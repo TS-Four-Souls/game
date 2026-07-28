@@ -22,6 +22,27 @@ describe("Known bugs that have be corrected", () => {
     // it("", async () => {
     // });
     
+    it("Poop and dry baby should cancel 2 damages", async () => {
+        const c1 = game.obtainCard("b2-the_poop") as ItemCard;
+        const c2 = game.obtainCard("b2-dry_baby") as ItemCard;
+        game.cardHandler.addInPlay(player1, c1);
+        game.entityHandler.dealDamage(player1, player1, c1, 1);
+        await game.resolveEntireStack();
+        game.cardHandler.addInPlay(player1, c2);
+        await game.activateItem(player1, c1, [], 0);
+        await game.resolveEntireStack();
+        game.entityHandler.addHealth(player1, 1, "other");
+        game.entityHandler.heal(player1);
+        game.entityHandler.dealDamage(player1, player1, c1, 2);
+        await game.actions.resolveStack();
+        game.insertStackElementBefore(player1, game.stack.elements[1]!.stackId, "start");
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(player1.currentHealthPoints).toBe(3);
+    });
+    
     it("CrystalBall should not trigger on previously rolled dice", async () => {
         const item = game.obtainCard("b2-crystal_ball") as ItemCard;
         game.cardHandler.addInPlay(player1, item);
@@ -450,6 +471,7 @@ describe("Known bugs that have be corrected", () => {
 
         game.gainCoins(player1, 10, ("debug")); // Give some coins to lose
         const init = player1.coins;
+        await game.actions.resolveStack(); // dice
         await game.actions.resolveStack(); // dice
         await game.actions.resolveStack(); // damage
         expect(game.stack.size).toBe(0);

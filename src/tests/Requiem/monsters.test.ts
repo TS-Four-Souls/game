@@ -520,21 +520,25 @@ describe("Requiem Monsters ", () => {
         game.actions.attackRoll(player1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
         expect(game.stack.isEmpty()).toBe(true);
         expect(ent.currentHealthPoints).toBe(ent.healthPoints-1);
         game.actions.attackRoll(player1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
         expect(game.stack.isEmpty()).toBe(true);
         expect(ent.currentHealthPoints).toBe(ent.healthPoints-1);
         game.actions.attackRoll(player1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
         expect(game.stack.isEmpty()).toBe(true);
         expect(ent.currentHealthPoints).toBe(ent.healthPoints-2);
         game.actions.attackRoll(player1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
         expect(game.stack.isEmpty()).toBe(true);
         expect(ent.currentHealthPoints).toBe(ent.healthPoints-2);
     });

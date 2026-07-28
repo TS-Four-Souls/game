@@ -623,6 +623,8 @@ describe("Monsters - Various 1 - 3 players", () => {
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // resolve damage
         await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
 
         expect(game.stack._stack.length).toBe(0);
         // Damage should be dealt to both monster and player2

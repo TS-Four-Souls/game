@@ -364,6 +364,8 @@ describe("Treasure - with counters effect", () => {
         game.entityHandler.dealDamage(player2, player1, thePoop, 5);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
+        await game.actions.resolveStack(); // resolve on damage taken
+        await game.actions.resolveStack(); // resolve on damage taken
         expect(player1.currentHealthPoints).toBe(hpBefore - 3); // 5 damage - 2 prevented = 3 actual damage
         expect(thePoop.counters.value("normal")).toBe(1);
 

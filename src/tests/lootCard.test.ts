@@ -1333,6 +1333,7 @@ describe("Loot Card", () => {
         // player2 should have prevention shield now - deal 3 damage
         game.entityHandler.dealDamage(player1, player2, dummyCard, 3);
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // would damage 
         expect(player2.currentHealthPoints).toBe(initialHP - 2); // 3 - 1 prevented = 2 damage taken
     });
 
@@ -1349,11 +1350,13 @@ describe("Loot Card", () => {
         await game.actions.resolveStack();
         // First damage: 1 prevented, take 2 damage
         game.entityHandler.dealDamage(player1, player2, dummyCard, 3);
+        await game.actions.resolveStack(); // would damage 
         await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 2);
 
         // Second damage: not prevented, take full damage
         game.entityHandler.dealDamage(player1, player2, dummyCard, 5);
+        await game.actions.resolveStack(); // would damage 
         await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 7);
     });
@@ -1387,12 +1390,15 @@ describe("Loot Card", () => {
 
         // player1 takes damage - should NOT be prevented (shield is on player2)
         const initialP1HP = player1.currentHealthPoints;
-        game.entityHandler.dealDamage(player2, player1, dummyCard, 2);
+        game.entityHandler.dealDamage(player2, player1, dummyCard, 1);
         await game.actions.resolveStack();
-        expect(player1.currentHealthPoints).toBe(initialP1HP - 2); // Full damage taken
+        await game.actions.resolveStack(); // would damage 
+        expect(player1.currentHealthPoints).toBe(initialP1HP - 1); // Full damage taken
 
         game.entityHandler.dealDamage(player2, player2, dummyCard, 2);
+        await game.actions.resolveStack(); // would damage 
         await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
         expect(player2.currentHealthPoints).toBe(initialP1HP - 1); // Full damage taken
     });
 
@@ -1411,6 +1417,7 @@ describe("Loot Card", () => {
         // player2 should have prevention shield now - deal 5 damage
         game.entityHandler.dealDamage(player1, player2, dummyCard, 5);
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // would damage 
         expect(player2.currentHealthPoints).toBe(initialHP - 3); // 5 - 2 prevented = 3 damage taken
     });
 
@@ -1429,6 +1436,7 @@ describe("Loot Card", () => {
 
         // player2 should have prevention shield now - deal 3 damage
         game.entityHandler.dealDamage(player1, monster, dummyCard, 3);
+        await game.actions.resolveStack(); // would damage 
         await game.actions.resolveStack();
         expect(monster.currentHealthPoints).toBe(initialHP - 1); // 3 - 2 prevented = 1 damage taken
     });
@@ -1444,6 +1452,7 @@ describe("Loot Card", () => {
         await game.actions.resolveStack();
         // First damage: 2 prevented, take 3 damage
         game.entityHandler.dealDamage(player1, player2, dummyCard, 5);
+        await game.actions.resolveStack(); // would damage 
         await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialHP - 3);
 
@@ -1486,9 +1495,11 @@ describe("Loot Card", () => {
         const initialP1HP = player1.currentHealthPoints;
         game.entityHandler.dealDamage(player2, player1, dummyCard, 3);
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // would damage 
         expect(player1.currentHealthPoints).toBe(initialP1HP - 3); // Full damage taken
 
         game.entityHandler.dealDamage(player2, player2, dummyCard, 3);
+        await game.actions.resolveStack(); // would damage 
         await game.actions.resolveStack();
         expect(player2.currentHealthPoints).toBe(initialP1HP - 1); //Shilded damage taken
     });
@@ -1571,6 +1582,7 @@ describe("Loot Card", () => {
         // player2 should have prevention shield now - deal 2 damage
         game.entityHandler.dealDamage(player1, player2, dummyCard, 2);
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // would damage 
         expect(player2.currentHealthPoints).toBe(initialHP - 1); // 2 - 1 prevented = 1 damage taken
     });
 

@@ -113,10 +113,16 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): SyncEff
             // const target = data.targets.length > 0 ? data.peek() : data.issuer;
             if (target !== eventIssuer) return;
             const current = damageArray[0] ?? 0;
-            if( current <= 0) return;
-            const prevented = Math.min(current, amount);
-            damageArray[0] = current - prevented;
-            cleanup(); // One-shot: remove listeners after first use
+            if( current <= 0) return false;
+            const effect: EffectFunction = () => {
+                const current = damageArray[0] ?? 0;
+                if( current <= 0) return false;
+                const prevented = Math.min(current, amount);
+                damageArray[0] = current - prevented;
+                cleanup(); // One-shot: remove listeners after first use
+                return true;
+            }
+            addPassiveEffectToStack(game, effect, data, "", data.visualEffectBox);
         });
 
         // Expire at end of turn if unused
@@ -372,7 +378,12 @@ export function preventDamageNotOnYourTurnEffect(game: Game): SyncEffectFunction
             const { eventIssuer, damageArray } = eventData;
             if (data.issuer !== eventIssuer) return;
             if(game.currentPlayer === data.issuer) return;
-            eventData.damageArray[0] = 0;
+            const effect:EffectFunction = () => 
+                {
+                    eventData.damageArray[0] = 0;
+                    return true;
+                }
+            addPassiveEffectToStack(game, effect, data, "", data.visualEffectBox);
         });
         data.it.cleaners.push(() => {
             offDamage?.();
@@ -781,7 +792,12 @@ export function setNextDamageToXEffect(setTo: number, game: Game): SyncEffectFun
         offDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
             const { eventIssuer, damageArray } = eventData;
             if (target !== eventIssuer) return;
-            damageArray[0] = setTo;
+            const effect:EffectFunction = () => 
+                {
+                    damageArray[0] = setTo;
+                    return true;
+                }
+            addPassiveEffectToStack(game, effect, data, "", data.visualEffectBox);
             cleanup(); // One-shot: remove listeners after first use
         });
         // Expire at end of turn if unused
@@ -1193,7 +1209,12 @@ export function preventNonCombatDamageEffect(game: Game): SyncEffectFunction {
         offDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
             if (data.issuer !== eventData.eventIssuer) return;
             if (eventData.source !instanceof DiceRoll ) return;
-            eventData.damageArray[0] = 0;
+            const effect:EffectFunction = () => 
+                {
+                    eventData.damageArray[0] = 0;
+                    return true;
+                }
+            addPassiveEffectToStack(game, effect, data, "", data.visualEffectBox);
         });
         data.it.cleaners.push(() => {
             offDamage?.();
@@ -1744,7 +1765,7 @@ export function reduceDamageToXEffect(game: Game, maxDamage: number): SyncEffect
             };
             
             // Add to stack instead of executing immediately
-            addPassiveEffectToStack(game, effect, data, `Reduce damage to ${maxDamage}`);
+            addPassiveEffectToStack(game, effect, data, `Reduce damage to ${maxDamage}`, data.visualEffectBox);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -2921,8 +2942,13 @@ export function takeDamagePlusEffect(
         offDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
             const { eventIssuer, damageArray } = eventData;
             if (data.issuer !== eventIssuer) return;
-            const current = damageArray[0] ?? 0;
-            damageArray[0] = current + amount;
+            const effect:EffectFunction = () => 
+                {
+                    const current = damageArray[0] ?? 0;
+                    damageArray[0] = current + amount;
+                    return true;
+                }
+            addPassiveEffectToStack(game, effect, data, "", data.visualEffectBox);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed

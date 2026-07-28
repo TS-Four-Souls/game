@@ -217,6 +217,7 @@ describe("Tap/Paid effects 1", () => {
         // Deal 2 damage to player1
         game.entityHandler.dealDamage(player2, player1, daddyHaunt, 2);
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
 
         // Player should take 3 damage (2 + 1 from curse)
         expect(player1.currentHealthPoints).toBe(initialHp - 3);
@@ -232,6 +233,7 @@ describe("Tap/Paid effects 1", () => {
         // Deal 1 damage to player1
         game.entityHandler.dealDamage(player2, player1, daddyHaunt, 1);
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
 
         // Player should take 2 damage (1 + 1 from curse)
         expect(player1.currentHealthPoints).toBe(initialHp - 2);
@@ -729,6 +731,7 @@ describe("Tap/Paid effects 1", () => {
         game.entityHandler.dealDamage(player1, monster, momsBra, 5);
         await game.actions.resolveStack();
 
+        await game.actions.resolveStack(); // resolve on damage taken
         expect(monster.currentHealthPoints).toBe(initialHp - 1);
     });
 
@@ -748,6 +751,7 @@ describe("Tap/Paid effects 1", () => {
         game.entityHandler.dealDamage(player1, player2, momsBra, 5);
         await game.actions.resolveStack();
 
+        await game.actions.resolveStack(); // resolve on damage taken
         expect(player2.currentHealthPoints).toBe(initialHp - 1);
     });
 

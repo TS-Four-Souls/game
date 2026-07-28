@@ -455,6 +455,8 @@ describe("Monsters - Various 2", () => {
         await game.actions.resolveStack(); // resolve damage
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
+        await game.actions.resolveStack(); // resolve damage
 
         expect(game.stack._stack.length).toBe(0);
         expect(player1.currentHealthPoints).toBe(init - 1);

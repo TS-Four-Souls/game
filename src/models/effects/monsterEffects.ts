@@ -1318,10 +1318,14 @@ export function noCombatDamageEveryOtherAttackRollEffect(game: Game): SyncEffect
             if (data.issuer !== eventIssuer) return;
             if(!(source instanceof DiceRoll)) return;
             if((source as DiceRoll).attackRoll !== true) return;
-            if(prevent) {
-                eventData.damageArray[0] = 0; // prevent all damage
+            const effect:EffectFunction = () => {
+                if(prevent) {
+                    eventData.damageArray[0] = 0; // prevent all damage
+                }
+                prevent = !prevent; // toggle prevent on each attack roll
+                return true;
             }
-            prevent = !prevent; // toggle prevent on each attack roll
+            addPassiveEffectToStack(game, effect, data, "", data.visualEffectBox);
         });
 
         offEndTurn = game.emitter.on("on:turn:end", (eventData: OnTurnEndData) => {

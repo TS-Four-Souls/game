@@ -513,7 +513,7 @@ describe("Monsters - Roll Triggered Effects", () => {
         
         await game.actions.resolveStack(); // resolve the dice roll
         await game.actions.resolveStack(); // resolve holy_dinga effect
-        
+        expect(game.stack.isEmpty()).toBe(true);
         expect(player1.currentHealthPoints).toBe(initialHP + 1);
     });
 
