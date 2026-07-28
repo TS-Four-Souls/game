@@ -315,227 +315,221 @@ export async function loadGameFromLogs(
 
   try {
     for (const [index, entry] of logs.entries()) {
-      try{
-        if (!isUserRequestEntry(entry) && !isPrivateEntry(entry)) {
-          continue;
+      if (!isUserRequestEntry(entry) && !isPrivateEntry(entry)) {
+        continue;
+      }
+
+      if (verbose >= 1)
+        console.log(`Replaying log entry ${index}\n`);
+
+      switch (entry.type) {
+        case "CreateRoom":
+        case "JoinRoom":
+        case "LeaveRoom":
+        case "Rejoin":
+        case "IsGameOngoing":
+        case "LoadGame":
+        case "DebugListCardsICanRemove":
+        case "DebugListMonsterDeck":
+        case "DebugListTreasure":
+        case "DebugListLoot":
+        case "Join": 
+        // SubmitSelection is handled by the custom selectMultiple override, so we skip it here.
+        break;
+        case "SubmitSelection": 
+          game.addToHistory(entry);
+          break;
+
+        case "character": {
+          characterByPlayer.set(entry.playerId, entry.slug);
+          break;
         }
 
-        if (verbose >= 1)
-          console.log(`Replaying log entry ${index}\n`);
-
-        switch (entry.type) {
-          case "CreateRoom":
-          case "JoinRoom":
-          case "LeaveRoom":
-          case "Rejoin":
-          case "IsGameOngoing":
-          case "LoadGame":
-          case "DebugListCardsICanRemove":
-          case "DebugListMonsterDeck":
-          case "DebugListTreasure":
-          case "DebugListLoot":
-          case "Join": 
-          // SubmitSelection is handled by the custom selectMultiple override, so we skip it here.
+        case "randomSeed": {
+          game.seed = entry.seed;
           break;
-          case "SubmitSelection": 
-            game.addToHistory(entry);
-            break;
+        }
 
-          case "character": {
-            characterByPlayer.set(entry.playerId, entry.slug);
-            break;
+        case "GameParameters": {
+          applySetGameParameter(game, entry as HistoricEntry & { type: "GameParameters" });
+          break;
+        }
+
+        case "SetGameParameter": {
+          const payload = entry.payload;
+          game.gameParameters.setParameterByKey(payload.parameter, payload.value);
+          game.addToHistory(entry);
+          break;
+        }
+
+        case "Start": {
+          if(isLastIndexUsedForReplay(index, logs))
+          {
+            game.selectMultiple = normalMultipleSelection;
+            void game.start(entry.players);
+          }
+          else
+          {
+            await game.start(entry.players);
+            await game.awaitPromises();
+            verifyRecordedCharactersAfterStart(game, characterByPlayer);
+          }
+          game.addToHistory(entry);
+          break;
+        }
+
+        case "Reset": {
+          throw new GameError(
+            "Reset are supposed to be handled by creating a new game instance, but a Reset entry was found in logs. This may indicate an issue with log formatting or replay logic.",
+            toSerializedTranslation("error.behaviorError", { error: "Reset are supposed to be handled by creating a new game instance, but a Reset entry was found in logs." }),
+          );
+        }
+        case "GameState": {
+          const state = entry.gameState;
+          if (!state) {
+            throw new GameError("GameState entry is missing gameState payload", toSerializedTranslation("error.behaviorError", { error: "GameState entry is missing gameState payload" }));
           }
 
-          case "randomSeed": {
-            game.seed = entry.seed;
-            break;
-          }
+          if (game.players[0] === undefined)
+            throw new GameError("GameState entry is missing player data", toSerializedTranslation("error.behaviorError", { error: "GameState entry is missing player data" }));
 
-          case "GameParameters": {
-            applySetGameParameter(game, entry as HistoricEntry & { type: "GameParameters" });
-            break;
-          }
+          const comparison = compareGameState(game.detailedStateJSON(game.players[0]), state);
+          if (!comparison.equal) {
+            const differencesMessage = comparison.differences
+              .map((difference, index) => `${index + 1}. ${difference}`)
+              .join("\n");
 
-          case "SetGameParameter": {
-            const payload = entry.payload;
-            game.gameParameters.setParameterByKey(payload.parameter, payload.value);
-            game.addToHistory(entry);
-            break;
-          }
-
-          case "Start": {
-            if(isLastIndexUsedForReplay(index, logs))
-            {
-              game.selectMultiple = normalMultipleSelection;
-              void game.start(entry.players);
-            }
-            else
-            {
-              await game.start(entry.players);
-              await game.awaitPromises();
-              verifyRecordedCharactersAfterStart(game, characterByPlayer);
-            }
-            game.addToHistory(entry);
-            break;
-          }
-
-          case "Reset": {
             throw new GameError(
-              "Reset are supposed to be handled by creating a new game instance, but a Reset entry was found in logs. This may indicate an issue with log formatting or replay logic.",
-              toSerializedTranslation("error.behaviorError", { error: "Reset are supposed to be handled by creating a new game instance, but a Reset entry was found in logs." }),
+              `Current game state does not match GameState entry from logs. Differences:\n${differencesMessage}`,
+              toSerializedTranslation("error.behaviorError", { error: `Current game state does not match GameState entry from logs. Differences:\n${differencesMessage}` })
             );
           }
-          case "GameState": {
-            const state = entry.gameState;
-            if (!state) {
-              throw new GameError("GameState entry is missing gameState payload", toSerializedTranslation("error.behaviorError", { error: "GameState entry is missing gameState payload" }));
-            }
 
-            if (game.players[0] === undefined)
-              throw new GameError("GameState entry is missing player data", toSerializedTranslation("error.behaviorError", { error: "GameState entry is missing player data" }));
-
-            const comparison = compareGameState(game.detailedStateJSON(game.players[0]), state);
-            if (!comparison.equal) {
-              const differencesMessage = comparison.differences
-                .map((difference, index) => `${index + 1}. ${difference}`)
-                .join("\n");
-
-              throw new GameError(
-                `Current game state does not match GameState entry from logs. Differences:\n${differencesMessage}`,
-                toSerializedTranslation("error.behaviorError", { error: `Current game state does not match GameState entry from logs. Differences:\n${differencesMessage}` })
-              );
-            }
-
-            break;
-          }
-          case "DeclareAttack": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            helper.executeDeclareAttackRequest(game, player);
-            break;
-          }
-
-          case "AttackMonster": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            await helper.executeAttackMonsterRequest(game, entry.payload, player);
-            break;
-          }
-
-          case "AttackRoll": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            helper.executeAttackRollRequest(game, player);
-            break;
-          }
-
-          case "Resolve": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            await Promise.resolve();
-            await Promise.resolve();
-            await Promise.resolve();
-            await Promise.resolve();
-            await Promise.resolve();
-            await helper.executeResolveRequest(game, player);
-            break;
-          }
-
-          case "InsertStackElementBefore": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            helper.executeInsertStackElementBeforeRequest(game, entry.payload, player);
-            break;
-          }
-
-          case "Activate": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            try {
-              await helper.executeActivateRequest(game, entry.payload, player);
-            } catch (error) {
-              throw new GameError(
-                `Failed to replay Activate request from logs: ${error instanceof Error ? error.message : error}`,
-                toSerializedTranslation("error.behaviorError", { error: `Failed to replay Activate request from logs: ${error instanceof Error ? error.message : error}` })
-              );
-            }
-            break;
-          }
-
-          case "DeclarePurchase": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            helper.executeDeclarePurchaseRequest(game, player);
-            break;
-          }
-
-          case "CancelPurchase": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            helper.executeCancelPurchaseRequest(game, player);
-            break;
-          }
-
-          case "Purchase": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            helper.executePurchaseRequest(game, entry.payload, player);
-            break;
-          }
-
-          case "EndTurn": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            await helper.executeEndTurnRequest(game, player);
-            break;
-          }
-
-          case "GiveCoins": {
-            const from = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            await helper.executeGiveCoinsRequest(game, entry.payload, from);
-            break;
-          }
-
-          case "DebugLootTop": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            helper.executeDebugLootTopRequest(game, player);
-            break;
-          }
-
-          case "DebugGainTreasureTop": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            helper.executeDebugGainTreasureTopRequest(game, player);
-            break;
-          }
-
-          case "DebugLoot": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            helper.executeDebugLootRequest(game, entry.payload, player);
-            break;
-          }
-
-          case "DebugGainCoins": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            helper.executeDebugGainCoinsRequest(game, entry.payload, player);
-            break;
-          }
-
-          case "DebugPutMonsterCardInSlot": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            helper.executeDebugPutMonsterCardInSlotRequest(game, entry.payload, player);
-            break;
-          }
-
-          case "DebugGainTreasure": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            helper.executeDebugGainTreasureRequest(game, entry.payload, player);
-            break;
-          }
-
-          case "DebugRemoveCards": {
-            const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-            helper.executeDebugRemoveCardsRequest(game, entry.payload, player);
-            break;
-          }
-
-          default:
-            throw new GameError(`Unsupported log entry type for replay: ${(entry as HistoricEntry).type}`,
-              toSerializedTranslation("error.behaviorError", { error: `Unsupported log entry type for replay: ${(entry as HistoricEntry).type}` }));
+          break;
         }
-      }catch (error: any) {
-        if(error.message.includes("Current game state does not match GameState entry from log"))
-          throw error;
-        continue;
+        case "DeclareAttack": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          helper.executeDeclareAttackRequest(game, player);
+          break;
+        }
+
+        case "AttackMonster": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          await helper.executeAttackMonsterRequest(game, entry.payload, player);
+          break;
+        }
+
+        case "AttackRoll": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          helper.executeAttackRollRequest(game, player);
+          break;
+        }
+
+        case "Resolve": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          await Promise.resolve();
+          await Promise.resolve();
+          await Promise.resolve();
+          await Promise.resolve();
+          await Promise.resolve();
+          await helper.executeResolveRequest(game, player);
+          break;
+        }
+
+        case "InsertStackElementBefore": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          helper.executeInsertStackElementBeforeRequest(game, entry.payload, player);
+          break;
+        }
+
+        case "Activate": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          try {
+            await helper.executeActivateRequest(game, entry.payload, player);
+          } catch (error) {
+            throw new GameError(
+              `Failed to replay Activate request from logs: ${error instanceof Error ? error.message : error}`,
+              toSerializedTranslation("error.behaviorError", { error: `Failed to replay Activate request from logs: ${error instanceof Error ? error.message : error}` })
+            );
+          }
+          break;
+        }
+
+        case "DeclarePurchase": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          helper.executeDeclarePurchaseRequest(game, player);
+          break;
+        }
+
+        case "CancelPurchase": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          helper.executeCancelPurchaseRequest(game, player);
+          break;
+        }
+
+        case "Purchase": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          helper.executePurchaseRequest(game, entry.payload, player);
+          break;
+        }
+
+        case "EndTurn": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          await helper.executeEndTurnRequest(game, player);
+          break;
+        }
+
+        case "GiveCoins": {
+          const from = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          await helper.executeGiveCoinsRequest(game, entry.payload, from);
+          break;
+        }
+
+        case "DebugLootTop": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          helper.executeDebugLootTopRequest(game, player);
+          break;
+        }
+
+        case "DebugGainTreasureTop": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          helper.executeDebugGainTreasureTopRequest(game, player);
+          break;
+        }
+
+        case "DebugLoot": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          helper.executeDebugLootRequest(game, entry.payload, player);
+          break;
+        }
+
+        case "DebugGainCoins": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          helper.executeDebugGainCoinsRequest(game, entry.payload, player);
+          break;
+        }
+
+        case "DebugPutMonsterCardInSlot": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          helper.executeDebugPutMonsterCardInSlotRequest(game, entry.payload, player);
+          break;
+        }
+
+        case "DebugGainTreasure": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          helper.executeDebugGainTreasureRequest(game, entry.payload, player);
+          break;
+        }
+
+        case "DebugRemoveCards": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          helper.executeDebugRemoveCardsRequest(game, entry.payload, player);
+          break;
+        }
+
+        default:
+          throw new GameError(`Unsupported log entry type for replay: ${(entry as HistoricEntry).type}`,
+            toSerializedTranslation("error.behaviorError", { error: `Unsupported log entry type for replay: ${(entry as HistoricEntry).type}` }));
       }
     }
     for (const player of game.players) {
