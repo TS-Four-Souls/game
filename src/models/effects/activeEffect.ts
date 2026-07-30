@@ -2615,7 +2615,8 @@ export function loseAllCoinTarget(game:Game): SyncEffectFunction {
     }
 }
 
-export function rechargeUpToXItems(game: Game, x: number, type: "youControl" | "any"): AsyncEffectFunction {
+export function rechargeUpToXItems(game: Game, x: number, type: "youControl" | "any", youMayEffectHanging: boolean[]): AsyncEffectFunction {
+    youMayEffectHanging[0]! = false;
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const possible = type === "youControl" ? data.issuer.inPlay : game.players.flatMap(p => p.inPlay);
