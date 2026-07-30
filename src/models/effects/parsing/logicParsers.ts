@@ -3,7 +3,7 @@ import * as active from "@/models/effects/activeEffect.ts";
 import * as passive from "@/models/effects/passiveEffect.ts";
 import {NumberRobustString} from "@/models/effects/parsing/numberRobustString.ts";
 import {EffectData, type EffectFunction, type SyncEffectFunction} from "@/models/types/cardTypes.ts";
-import type {OnDeathMonsterData, OnEnterPlayData} from "@/models/types/eventTypes.ts";
+import type {OnDeathMonsterData, OnEnterPlayData, OnRollData} from "@/models/types/eventTypes.ts";
 import {Monster} from "@/models/entities/monster.ts";
 import {Player} from "@/models/entities/player.ts";
 import {noTargets} from "@/models/effects/parsing/selectors.ts";
@@ -11,6 +11,7 @@ import {effectParser, syncEffectParser, type ParsedEffect, type SyncParsedEffect
 import { addToStackEffect } from "@/models/effects/activeEffect.ts";
 import { toSerializedTranslation } from "@/utils/translation";
 import { GameError } from "@/models/GameError";
+import { DiceRoll } from "@/models/stackElement";
 
 export function eachTimeActivateItemEffect(s: string, game: Game): SyncParsedEffect {
     const restOfEffect = s.substring("each time a player activates an item, they".length).trim();
@@ -238,6 +239,26 @@ export function parseEachTimeDeclareAttackEffect(s: string, game: Game): SyncPar
     };
 }
 
+export function parseWhenThisDiesOnAttackRoll(s: string, game: Game, value: number): SyncParsedEffect {
+    const rollValues = [value];
+    const restOfEffect = s.substring(s.indexOf(",") + 1).trim();
+    const restParsed = effectParser(restOfEffect, game, true);
+    return {
+        effectFunction: passive.onYourEventEffect("on:death:monster", [restParsed.effectFunction], game, s, false, 
+            (effectData: EffectData, eventData: OnDeathMonsterData) =>
+            {
+                const { eventIssuer, target, source } = eventData;
+                if (effectData.issuer !== eventIssuer) return false;
+                if(source instanceof DiceRoll === false) return false;
+                const roll = source as DiceRoll;
+                if(!rollValues.includes(roll.value)) return false;
+                return true;
+            }
+        ),
+        targetSelectors: restParsed.targetSelectors
+    };
+}
+
 export function parseEachTimeYouKillSpecificTypeEffect(s: string, game: Game, type: "monster" | "player"): SyncParsedEffect {
     const restOfEffect = s.substring(`each time you kill a ${type}, `.length).trim();
     const restParsed = effectParser(restOfEffect, game, true);
@@ -289,4 +310,35 @@ export function noTargetEffect(effectFunction: EffectFunction): ParsedEffect {
 
 export function noTargetSyncEffect(effectFunction: SyncEffectFunction): SyncParsedEffect {
     return {effectFunction, targetSelectors: noTargets};
+}
+
+export function tillEndTurnOnAttackRoll(game: Game, s: string, values: number[]): SyncEffectFunction {
+    const restOfEffect = s.substring(s.indexOf(",", s.indexOf(",") + 1) + 1).trim();
+    const restParsed = effectParser(restOfEffect, game, true).effectFunction;
+    return (data: EffectData) => {
+        let offEndTurn: (() => void) | null = null;
+        let offRoll: (() => void) | null = null;
+        // Listen for the next would roll event on this player
+        offRoll = game.emitter.on("on:attack:roll", ({eventIssuer, dice}: OnRollData) => {
+            if (values.includes(dice.value)) {                
+                // Add to stack instead of executing immediately
+                passive.addPassiveEffectToStack(game, restParsed, data, s);
+            }
+        });
+        offEndTurn = game.emitter.on("till:turn:end", () => {
+            offRoll?.();
+            offRoll = null;
+            offEndTurn?.();
+            offEndTurn = null;
+        });
+
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offRoll?.();
+            offRoll = null;
+            offEndTurn?.();
+            offEndTurn = null;
+        });
+        return true;
+    };
 }

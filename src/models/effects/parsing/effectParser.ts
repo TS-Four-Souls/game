@@ -57,7 +57,9 @@ import {
     selectTopAnyDiscard,
     selectUsableAbilityStackElement,
     selectXCardsFromDiscard,
-    selectPlayerInCombat
+    selectPlayerInCombat,
+    selectMomMonster,
+    selectStackElementOrLootTargetingYourItemOrDice
 } from "@/models/effects/parsing/selectors.ts";
 import {
     eachTimeActivateItemEffect,
@@ -68,6 +70,7 @@ import {
     parseCurseEffect,
     parseEachTimeAnotherPlayerDiesEffect,
     parseEachTimeDeclareAttackEffect,
+    parseWhenThisDiesOnAttackRoll,
     parseEachTimeRollEffect,
     parseEachTimeWouldRollEffect,
     parseEachTimeYouKillSpecificTypeEffect,
@@ -81,7 +84,8 @@ import {
     parseYouMayEffect,
     parseLvXEffect,
     noTargetSyncEffect,
-    syncParseWhenThisEntersPlay
+    syncParseWhenThisEntersPlay,
+    tillEndTurnOnAttackRoll
 } from "@/models/effects/parsing/logicParsers.ts";
 import { toSerializedTranslation } from "@/utils/translation";
 
@@ -300,6 +304,14 @@ if (s.startsWith("when you die, ")) {
             targetSelectors: restParsed.targetSelectors
         };
     }
+    if(s.startsWith("each time a player rolls the same result twice in a row on the same turn, ")){
+        const news = s.substring(s.indexOf(",") + 1).trim();
+        const restParsed = effectParser(news, game, true);
+        return {
+            effectFunction: passive.aPlayerRollSameResTwiceInRow([restParsed.effectFunction], game, s),
+            targetSelectors: restParsed.targetSelectors
+        };
+    }
     if (s.startsWith("each time you die, before paying penalties, ")) {
         const restParsed = effectParser(s.substring(s.indexOf(",", s.indexOf(",")+1) + 1).trim(), game, true);
         return {
@@ -334,6 +346,8 @@ if (s.startsWith("when you die, ")) {
     }
     if (s.startsWith("each time you declare an attack, "))
         return parseEachTimeDeclareAttackEffect(s, game);
+    if(nr.startsWith("when this dies on an attack roll of x, "))
+        return parseWhenThisDiesOnAttackRoll(s, game, nr.nextNumber());
     if (s.startsWith("when this enters play"))
         return syncParseWhenThisEntersPlay(s, game);
     if(s.startsWith("each time a monster dies, "))
@@ -350,6 +364,19 @@ if (s.startsWith("when you die, ")) {
             effectFunction: passive.interceptFirstGainCoinYourTurnEffect([restParsed.effectFunction], game, s),
             targetSelectors: restParsed.targetSelectors
         };
+    }
+    if (nr.startsWith("each time you deal combat damage to a monster on an attack roll of x, "))
+    {
+        const val = nr.nextNumber();
+        return noTargetSyncEffect(passive.onAnyEventEffect("on:damage:taken", [effectParser(s.substring(s.indexOf(",") + 1).trim(), game, true).effectFunction], game, s, 
+            (data: EffectData, event: OnDamageTakenData) => {
+                if(event.eventIssuer instanceof Monster === false) return false;
+                if(event.target !== data.issuer) return false;
+                if(event.source instanceof DiceRoll === false) return false;
+                if(event.source.value !== val) return false;
+                return true;
+            }, false
+        ))
     }
     if (s.startsWith("each time a monster or player dies, "))
         return noTargetSyncEffect(passive.onAnyEventEffect("on:death:before-penalty", [effectParser(s.substring(s.indexOf(",") + 1).trim(), game, true).effectFunction], game, s, 
@@ -374,9 +401,9 @@ if (s.startsWith("when you die, ")) {
         return parseWhenThisDiesEffect(s, game);
     if (s.startsWith("when the active player rolls a"))
         return parseWhenActivePlayerRollsEffect(s, game, nr);
-    if (s.startsWith("each time a player rolls a"))
+    if (s.startsWith("each time a player rolls a "))
         return parseEachTimeRollEffect(s, game, nr);
-    if(s.startsWith("each time the attacking player rolls an attack roll of"))
+    if(s.startsWith("each time the attacking player rolls an attack roll of "))
         return parseEachTimeRollEffect(s, game, nr);
     if (s.startsWith("each time you take damage, "))
         return parseOnDamageTakenEffect(s, game);
@@ -429,6 +456,8 @@ if (s.startsWith("when you die, ")) {
     }
     if(nr.masked.startsWith("each time you take combat damage from a monster or player on an attack roll of x, "))
         return noTargetSyncEffect(monster.onYouTakeCombatDamageEffect(game, s, [nr.nextNumber()]));
+    if(nr.masked.startsWith("till end of turn, each time a player rolls an attack roll of x or x, "))
+        return noTargetSyncEffect(tillEndTurnOnAttackRoll(game, s, [nr.nextNumber(), nr.nextNumber()]));
     if(nr.masked.startsWith("each time this takes combat damage on an attack roll of x, "))
         return noTargetSyncEffect(monster.onThisTakesCombatDamageEffect(game, s, [nr.nextNumber()]));
     if(s.startsWith("while this is at"))
@@ -517,7 +546,7 @@ if (s.startsWith("you may") &&
         }
         return noTargetEffect(effect);
     }
-    if (s.startsWith("kill ")) {
+    if (s.startsWith("kill ") && !s.includes("kill a monster named") && !s.includes("kill all ")) {
         const selector = decideEntitySelector(s, game);
         return { effectFunction: active.killTargetEffect(game, selector, selectionOnResolve), targetSelectors: selector };
     }
@@ -631,7 +660,7 @@ export function parseTheActivePlayerSyncEffect(s: string, game: Game, nr: Number
             return noTargetSyncEffect(room.otherPlayersAreAttackableEffect(game, nr.nextNumber()));
         case "the active player must attack the monster deck x times this turn":
             return noTargetSyncEffect(active.forceAttackMonsterDeckEffect(game, nr.nextNumber(), "total")); 
-        case "the active player must make an additional attack on the monster deck.":
+        case "the active player must make an additional attack on the monster deck":
             return noTargetSyncEffect(active.forceAttackMonsterDeckEffect(game, 1, "additional")); 
         case "the active player loots x during their loot step":
             const nb = nr.nextNumber();
@@ -769,7 +798,11 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
         case "deal x damage to another monster or player": 
             // It is used in "Each time you deal combat damage, deal x damage to another monster or player."
             // "another monster or player." is handled as "not engaged in combat monster or player, or yourself."
-            return noTargetEffect(active.dealDamageNotEngagedInCombatOrYourselfEffect(game, nr.nextNumber()));
+            return noTargetEffect(active.dealDamageNotEngagedInCombatEffect(game, nr.nextNumber(), "aPlayerOrMonster"));
+        case "deal x damage to each other monster":
+            // It is used in "Each time you deal combat damage, deal x damage to each other monster."
+            // "each other monster." is handled as "not engaged in combat monster or player, or yourself."
+            return noTargetEffect(active.dealDamageNotEngagedInCombatEffect(game, nr.nextNumber(), "eachMonster"));
         case "then put x card from your hand on top of the loot deck":
             return noTargetEffect(active.putXCardFromYourHandOnTopOfLootDeck(game, nr.nextNumber()));
         case "recharge up to x character":
@@ -896,6 +929,8 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
             return noTargetEffect(active.putTopMonsterInValidSlotEffect(game, false));
         case "put the top card of the loot discard into your hand":
             return noTargetEffect(active.getCardFromLootDiscardEffect("top", game, false));
+        case "cancel the ↷ or $ ability of an item or a loot card being played that targets an item or dice roll you control":
+            return { effectFunction: active.cancelStackElementEffect(game), targetSelectors: selectStackElementOrLootTargetingYourItemOrDice(game) };
         case "cancel the ↷ or $ ability of an item or loot being played":
         case "cancel the ↷ or $ ability of an item or a loot being played":
             return { effectFunction: active.cancelStackElementEffect(game), targetSelectors: selectStackElementOrLoot(game) };
@@ -964,8 +999,12 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
             return { effectFunction: active.lookAtHandAndStealLootEffect(game), targetSelectors: selectPlayer(game) };
         case "look at their hand and steal a loot card from them":
             return noTargetEffect(active.lookAtHandAndStealLootEffect(game));
+        case "look at the top x cards of the treasure deck":
+            return noTargetEffect(active.lookAtTopXDeck("treasure", game, nr.nextNumber()));
         case "search the treasure deck for a guppy item, gain it":
             return noTargetEffect(active.searchGuppyItemEffect(game));
+        case "reveal the top x cards of the monster deck. you may put an event card revealed this way in a monster slot not being attacked. put the rest on the bottom of the deck in a random order":
+            return noTargetEffect(active.revealMonsterCardsAndMayPlayEventCards(game, nr.nextNumber()))
         case "choose a player at random. that player destroys an item they control":
             return noTargetEffect(active.destroyItemOfRandomPlayerEffect(game));
         case "destroy an item or soul":
@@ -986,6 +1025,8 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
             return noTargetEffect(active.searchCurseInMonsterDeckEffect(game));
         case "choose a player":
             return {effectFunction: active.trueEffect(), targetSelectors: selectPlayer(game)};
+        case "recharge up to x items you control":
+            return noTargetEffect(active.rechargeUpToXItems(game, nr.nextNumber(), "youControl"));
     }
     return null;
 }
@@ -1047,7 +1088,10 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             return noTargetSyncEffect(active.conditionalLootBasedOnCountersEffect(game, nr.nextNumber()));
         case "each player gains x¢":
             return noTargetSyncEffect(active.eachPlayerGainsCoinsEffect(game, nr.nextNumber()));
-
+        case "double the amount of ¢ they have":
+            return noTargetSyncEffect(active.doubleCoinTarget(game));
+        case "that player loses all ¢":
+            return noTargetSyncEffect(active.loseAllCoinTarget(game));
         case "each player loots x":
             return noTargetSyncEffect(active.eachPlayerLootsEffect(game, nr.nextNumber()));
         case "prevent all damage you would take while it's not your turn":
@@ -1062,6 +1106,8 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             return noTargetSyncEffect(monster.thisHealsEffect(game, nr.nextNumber()));
         case "each player loses x¢":
             return noTargetSyncEffect(active.eachPlayerLosesCoinsEffect(game, nr.nextNumber()));
+        case "at the end of the turn, kill all players":
+            return noTargetSyncEffect(active.EndOfTurnKillAllPlayer(game));
         case "each player takes x damage":
         case "deal x damage to each player":
             return noTargetSyncEffect(active.dealDamageToEachPlayerEffect(game, nr.nextNumber()));
@@ -1146,6 +1192,8 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
                     false
                 ));
         }
+        case "you must make an additional attack on the monster deck":
+            return noTargetSyncEffect(active.forceAttackMonsterDeckEffect(game, 1, "additional")); 
         case "you gain x [atk] till the end of turn":
             return noTargetSyncEffect(passive.temporaryStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], nr.nextNumber(), game, "issuer"));
         case "prevent the next x damage you would take this turn. when you prevent damage this way, deal x damage to another player": {
@@ -1196,6 +1244,14 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             const preventAmount = nr.nextNumber();
             return noTargetSyncEffect(passive.preventDamageOnRollEffect([rollValue], preventAmount, game));
         }
+        case "the attacking player has -x to their next attack roll this turn":
+            return noTargetSyncEffect(passive.nextRollModifier(game, "attack", -nr.nextNumber(), "active"));
+        case "the attacking player has x to their next attack roll this turn":
+            return noTargetSyncEffect(passive.nextRollModifier(game, "attack", nr.nextNumber(), "active"));
+        case "the next attack roll this turn has -x":
+            return noTargetSyncEffect(passive.nextRollModifier(game, "attack", -nr.nextNumber(), "any"));
+        case "the attacking player also deals combat damage to this on attack rolls of x":
+            return noTargetSyncEffect(passive.attackingPlayerDealDamageOnRollOf(game, nr.nextNumber(), s));
         case "each player rolls-\nx-x: they skip their next turn":
             return noTargetSyncEffect(active.eachPlayerRollsSkipNextTurnEffect(game, nr.nextNumber(), nr.nextNumber()));
         case "each time you roll an attack roll of x, deal x damage to each other player": {
@@ -1281,6 +1337,8 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             return noTargetSyncEffect(passive.permanentStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], nr.nextNumber(), game));
         case "you may attack any number of times on your turn":
             return noTargetSyncEffect(passive.onYourTurnModifier([game.entityHandler.addAttackThisTurn.bind(game.entityHandler)], INFINITY, game));
+        case "you may attack up to x times during your turn":
+            return noTargetSyncEffect(passive.onYourTurnModifier([game.entityHandler.addAttackThisTurn.bind(game.entityHandler)], nr.nextNumber(), game));
         case "you may attack players who control more souls than you. they have x [dc] for the attack":
             return noTargetSyncEffect(room.otherPlayersAreAttackableEffect(game, nr.nextNumber(), true, (player: Player) => player.totalSouls > game.currentPlayer.totalSouls));
         case "subtract up to x from a roll":
@@ -1421,8 +1479,11 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             return noTargetSyncEffect(passive.enterPlayDeactivatedEffect(game));
         case "take x damage and put a counter on this. then, if this has x+ counters, it becomes a soul and loses all abilities":
             return noTargetSyncEffect(active.takeDamageAndAddCounterEffect(game, nr.nextNumber(), nr.nextNumber()));
+        case "cancel your attack":
         case "cancel your attack on a monster":
             return noTargetSyncEffect(active.cancelAttackOnMonsterEffect(game));
+        case "kill a monster named mom, mom's heart, or it lives":
+            return {effectFunction: active.killMonsterEffect(game), targetSelectors: selectMomMonster(game)}
         case "choose a non-active player. the next time the active player declares an attack this turn, the chosen player must make an attack roll after each attack roll the active player makes for the attack. if that monster dies this attack, the chosen player also gains the rewards":
             return { effectFunction: active.nonActivePlayerHelpFight(game), targetSelectors: selectAliveNonActivePlayer(game) };
         case "choose a player. each item they control gains eternal till end of turn":
@@ -1481,6 +1542,8 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             return noTargetSyncEffect(passive.onYourTurnModifier([game.entityHandler.addAttackThisTurn.bind(game.entityHandler)], 1, game));
         case "you may play an additional loot card on your turn":
             return noTargetSyncEffect(passive.onYourTurnModifier([game.entityHandler.addLootPlay.bind(game.entityHandler)], 1, game));
+        case "you may play up to x additional loot cards this turn":
+            return noTargetSyncEffect(passive.onYourTurnModifier([game.entityHandler.addLootPlay.bind(game.entityHandler)], nr.nextNumber(), game));
         case "put a gold counter on another non-eternal item you control":
             return noTargetSyncEffect(passive.giveCounterToAnotherItemOnEnterPlayEffect(game, "golden"));
         case "prevent death, heal to full [hp] , and cancel your attack":
@@ -1625,14 +1688,16 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             return noTargetSyncEffect(monster.dealDamageToKillerOnDeathEffect(game, nr.nextNumber()));
         case "put it in the monster deck x cards from the top":
             return noTargetSyncEffect(monster.putInMonsterDeckNFromTopEffect(game, nr.nextNumber()));
-        case "when this dies on an attack roll of x, double its rewards":
-            return noTargetSyncEffect(monster.doubleRewardsOnDeathRollEffect(game, [nr.nextNumber()]));
+        case "double its rewards":
+            return noTargetSyncEffect(monster.doubleRewardsOnDeathRollEffect(game));
         case "it deals x damage to each player":
             return noTargetSyncEffect(active.dealDamageToEachPlayerEffect(game, nr.nextNumber()));
         case "deal x damage to each monster and player":
             return noTargetSyncEffect(active.dealDamageToEachMonsterAndPlayerEffect(game, nr.nextNumber()));
         case "it deals x damage to each non-active player":
             return noTargetSyncEffect(active.dealDamageToEachPlayerEffect(game, nr.nextNumber(), false));
+        case "this gains x [dc] till end of turn":
+            return noTargetSyncEffect(passive.temporaryStatModifierEffect([game.entityHandler.addDC.bind(game.entityHandler)], nr.nextNumber(), game, "issuer"));
         case "this gains x [atk] till end of turn":
         case "it gains x [atk] till end of turn":
             return noTargetSyncEffect(passive.temporaryStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], nr.nextNumber(), game, "issuer"));

@@ -2,7 +2,7 @@ import { type Card, ItemCard, MonsterCard } from "./cards";
 import type { Entity } from "./entities/entity";
 import { Game } from "./game";
 import { Player } from "./entities/player";
-import { DiceRoll, DiceWillRoll } from "./stackElement";
+import { DiceRoll, DiceWillRoll, EffectOnStack, LootCardEffect } from "./stackElement";
 import type { StackElement } from "./stack";
 import { type TargetsSelector } from "./types/cardTypes";
 import { type VisualEffectBox } from "@/shared/api";
@@ -103,6 +103,26 @@ export function diceWillRollSelector(filter: (element: StackElement) => boolean 
 export function stackElementSelector(filter: (element: StackElement) => boolean = () => true, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
         return game.stack.elements.filter((element) => filter(element));
+    }
+}
+
+function containMyItemOrDice(arr: any[], issuer: Player)
+{
+    for(const el of arr)
+    {
+        if(el instanceof DiceRoll && el.issuer === issuer)
+            return true;
+        if(el instanceof ItemCard && issuer.inPlay.includes(el))
+            return true;
+    }
+}
+export function stackElementThatTargetMyItemOrDiceSelector(filter: (element: StackElement) => boolean = () => true, game: Game): (issuer: Player) => any[] {
+    return (issuer: Player) => {
+        return game.stack.elements.filter((element) => filter(element) && 
+            ((element instanceof EffectOnStack && ["active", "paid"].includes(element.type) && containMyItemOrDice(element.data.targets, issuer))
+            || 
+            ((element instanceof LootCardEffect && containMyItemOrDice(element.targets, issuer))))
+        );
     }
 }
 

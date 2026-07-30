@@ -15,7 +15,7 @@ import { Monster } from "@/models/entities/monster";
 import { Player } from "@/models/entities/player";
 import { Game } from "@/models/game";
 import { GameError } from "@/models/GameError";
-import { DamageOnStack, DeathOnStack, DiceRoll } from "@/models/stackElement";
+import { DamageOnStack, DeathOnStack, DiceRoll, EndOfTurnOnStack } from "@/models/stackElement";
 import { EffectData } from "@/models/types/cardTypes";
 import { toSerializedTranslation } from "@/utils/translation";
 import { AnimatedList } from "../entities/animated";
@@ -330,7 +330,7 @@ export class EntityHandler {
         source: source,
       });
       this.game.dispatch();
-      if(receiver instanceof Player && this.game.currentPlayer === receiver)
+      if(receiver instanceof Player && this.game.currentPlayer === receiver && this.game.stack.elements.find(e => e instanceof EndOfTurnOnStack) == undefined)
         await this.game.executeWhenStackEmpty(async () => {await this.game.endTurn();});
     }).catch((error) => {
       console.error("Failed to resolve death follow-up", error);

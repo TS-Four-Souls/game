@@ -14,7 +14,7 @@ async function characterAdd1LootPlay(player1: Player, game: Game) {
     expect(player1.remainingLootPlay).toBe(lootPlay + 1);
 }
 
-describe.skip("Gold Box 2 Eternal Items", () => {
+describe("Gold Box 2 Eternal Items", () => {
     let game: Game;
     let player1: Player;
     let player2: Player;
