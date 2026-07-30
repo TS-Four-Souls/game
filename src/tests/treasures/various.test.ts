@@ -53,6 +53,7 @@ describe("Treasure - Passive effects", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // p2 ends, p1's turn starts - loot step happens
         await game.actions.resolveStack(); // Resolve any stack effects
+        await game.actions.resolveStack(); // Resolve any stack effects
 
         // Player should loot 2 cards instead of 1 (1 base + 1 from item)
         expect(player1.hand.length).toBe(initialHandSize + 2);
@@ -71,6 +72,8 @@ describe("Treasure - Passive effects", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // p2 ends, p1's turn starts - loot step happens
+        await game.actions.resolveStack(); // Resolve any stack effects
+        await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
 
         // Player should loot 2 cards instead of 1
@@ -92,6 +95,8 @@ describe("Treasure - Passive effects", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // p2 ends, p1's turn starts - loot step happens
+        await game.actions.resolveStack(); // Resolve any stack effects
+        await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // Resolve any stack effects
 
         // Player should loot 3 cards total (1 base + 1 + 1 from both items)

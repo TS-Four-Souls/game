@@ -6,7 +6,7 @@ import type { Monster } from '../entities/monster';
 import type { Player } from '../entities/player';
 import { DeathPenaltyValues } from '../handlers/deathHandler';
 import type { DamageSource } from '../handlers/entityHandler';
-import type { DeathOnStack, DiceRoll } from '../stackElement';
+import type { DeathOnStack, DiceRoll, LootStepOnStack } from '../stackElement';
 // ============================================================================
 // Event Data Types
 // ============================================================================
@@ -245,7 +245,7 @@ export interface OnTurnEndData {
 /** Data emitted during the loot step */
 export interface OnLootStepData {
   eventIssuer: Player;
-  numberToLoot: number;
+  lootStep: LootStepOnStack;
 }
 
 /** Data emitted when a player would loot cards (can be modified) */

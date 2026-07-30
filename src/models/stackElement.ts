@@ -435,14 +435,14 @@ export class DeathOnStack extends StackElement {
 
 export class LootStepOnStack extends StackElement {
   
-  player: Player
-  nbLoots: number;
+  _player: Player
+  _nbLoots: number;
   game: Game;
   
   constructor(player: Player, nbLoots: number, game: Game) {
     super();
-    this.player = player;
-    this.nbLoots = nbLoots;
+    this._player = player;
+    this._nbLoots = nbLoots;
     this.game = game;
   }
   override get json(): LootStepJson {
@@ -459,6 +459,18 @@ export class LootStepOnStack extends StackElement {
   override async onResolve(): Promise<void> {
     this.game.lootStep(this.player, this.nbLoots);
     return new Promise(resolve => setTimeout(resolve, 0));
+  }
+  get nbLoots(){
+    return this._nbLoots;
+  }
+  set nbLoots(value: number){
+    this._nbLoots = value;
+  }
+  get player(){
+    return this._player;
+  }
+  set player(newPlayer: Player){
+    this._player = newPlayer;
   }
 }
 

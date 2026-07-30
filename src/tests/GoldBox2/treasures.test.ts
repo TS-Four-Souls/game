@@ -106,7 +106,7 @@ describe("Gold Box 2 Treasures", () => {
         const card2 = game.obtainCard("b2-a_dime") as LootCard;
         game.cardHandler.addCardToHand(player1, card2);
         game.actions.playCard(player1, 0, []);
-        expect(await game.activateItem(player1, card1, [game.stack.elements[0]], "tap")).toThrow();
+        expect(game.actions.canActivate(card1, player1)).not.toBe(true);
     });
  
     it("g2-ouija_board", async () => {

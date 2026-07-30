@@ -564,9 +564,9 @@ export class Game extends SelectionHandler {
       this.cardHandler.rechargeMultiple(player, "rechargeStep", eventData.itemsToRecharge);
       this.emit("on:turn:start", { eventIssuer: player });
       await this.executeWhenStackEmpty(async () => {
-        const eventData = { eventIssuer: this.currentPlayer, numberToLoot: 1 };
-        this.emit("on:loot:step", eventData);
-        this.addToStack(new LootStepOnStack(eventData.eventIssuer, eventData.numberToLoot, this));
+        const lootStep = new LootStepOnStack(this.currentPlayer, 1, this);
+        this.addToStack(lootStep);
+        this.emit("on:loot:step", { eventIssuer: lootStep.player, lootStep });
       });
     });
   }

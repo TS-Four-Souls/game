@@ -664,7 +664,7 @@ export function parseTheActivePlayerSyncEffect(s: string, game: Game, nr: Number
             return noTargetSyncEffect(active.forceAttackMonsterDeckEffect(game, 1, "additional")); 
         case "the active player loots x during their loot step":
             const nb = nr.nextNumber();
-            return noTargetSyncEffect(passive.onAnyEventEffect("on:loot:step", [], game, s, (effect: EffectData, event: OnLootStepData) => {event.numberToLoot += nb; return true;}));
+            return noTargetSyncEffect(passive.onAnyEventEffect("on:loot:step", [], game, s, (effect: EffectData, event: OnLootStepData) => {event.lootStep.nbLoots += nb; return true;}));
                 // passive.lootStepEffect([active.lootCardsEffect(game, nr.nextNumber())], game, true));
         case "the active player loots x":
             return noTargetSyncEffect(active.lootCardsEffect(game, nr.nextNumber(), "current"));
@@ -1009,6 +1009,8 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
             return noTargetEffect(active.destroyItemOfRandomPlayerEffect(game));
         case "destroy an item or soul":
             return { effectFunction: active.destroyOneEffect(game, selectNonEternalItemOrASoul(game)[0]!, "next"), targetSelectors: selectNonEternalItemOrASoul(game) };
+        case "look at the top card of a deck":
+            return { effectFunction: active.lookAtTopCardOfDeckEffect(game, "just_watch", selectionOnResolve, false), targetSelectors: selectDeck(game) };
         case "destroy another item":
             return { effectFunction: active.destroyOneEffect(game, selectAnotherNonEternalItemFromAnywhere(game)[0]!, "next"), targetSelectors: selectAnotherNonEternalItemFromAnywhere(game) };
         case "put a monster from under this in a monster slot not being attacked. the active player must make an additional attack on it this turn":
@@ -1026,7 +1028,7 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
         case "choose a player":
             return {effectFunction: active.trueEffect(), targetSelectors: selectPlayer(game)};
         case "recharge up to x items you control":
-            return noTargetEffect(active.rechargeUpToXItems(game, nr.nextNumber(), "youControl"));
+            return noTargetEffect(active.rechargeUpToXItems(game, nr.nextNumber(), "youControl", youMayEffectHanging));
     }
     return null;
 }
@@ -1152,7 +1154,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             };
         case "loot x during your loot step":
             const nb = nr.nextNumber();
-            return noTargetSyncEffect(passive.onYourEventEffect("on:loot:step", [], game, s, true, (effect: EffectData, event: OnLootStepData) => {event.numberToLoot += nb; return true;}));
+            return noTargetSyncEffect(passive.onYourEventEffect("on:loot:step", [(effect: EffectData, event: OnLootStepData) => {event.lootStep.nbLoots += nb; return true;}    ], game, s, true));
             // return noTargetSyncEffect(passive.lootStepEffect([active.lootCardsEffect(game, nr.nextNumber())], game));
         case "prevent the next x damage you would take this turn":
             return noTargetSyncEffect(passive.preventNextDamageUpToEffect(nr.nextNumber(), game));
@@ -1637,8 +1639,6 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
         case "recharge each item a player controls":
         case "choose a player. recharge each item they control":
             return { effectFunction: active.rechargeEachItemsOfTargetEffect(game, "next"), targetSelectors: selectPlayer(game) };
-        case "look at the top card of a deck":
-            return { effectFunction: active.lookAtTopCardOfDeckEffect(game, "just_watch", false, false), targetSelectors: selectDeck(game) };
         case "loot x, where x is the number of souls the player with the most souls controls minus the number of souls you control":
             return noTargetSyncEffect(active.lootBasedOnSoulsComparedToPlayerWithMostSoulsEffect(game));
         case "put the top card of each deck into discard":
