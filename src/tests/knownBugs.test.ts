@@ -26,14 +26,14 @@ describe("Known bugs that have be corrected", () => {
         const c1 = game.obtainCard("b2-the_poop") as ItemCard;
         const c2 = game.obtainCard("b2-dry_baby") as ItemCard;
         game.cardHandler.addInPlay(player1, c1);
-        game.entityHandler.dealDamage(player1, player1, c1, 1);
+        game.entityHandler.dealDamage(player1, player1, {card: c1, visualEffectBox: undefined}, 1);
         await game.resolveEntireStack();
         game.cardHandler.addInPlay(player1, c2);
         await game.activateItem(player1, c1, [], 0);
         await game.resolveEntireStack();
         game.entityHandler.addHealth(player1, 1, "other");
         game.entityHandler.heal(player1);
-        game.entityHandler.dealDamage(player1, player1, c1, 2);
+        game.entityHandler.dealDamage(player1, player1, {card: c1, visualEffectBox: undefined}, 2);
         await game.actions.resolveStack();
         game.insertStackElementBefore(player1, game.stack.elements[1]!.stackId, "start");
         await game.actions.resolveStack();
