@@ -664,7 +664,7 @@ export function parseTheActivePlayerSyncEffect(s: string, game: Game, nr: Number
             return noTargetSyncEffect(active.forceAttackMonsterDeckEffect(game, 1, "additional")); 
         case "the active player loots x during their loot step":
             const nb = nr.nextNumber();
-            return noTargetSyncEffect(passive.onAnyEventEffect("on:loot:step", [], game, s, (effect: EffectData, event: OnLootStepData) => {event.numberToLoot += nb; return true;}));
+            return noTargetSyncEffect(passive.onAnyEventEffect("on:loot:step", [], game, s, (effect: EffectData, event: OnLootStepData) => {event.lootStep.nbLoots += nb; return true;}));
                 // passive.lootStepEffect([active.lootCardsEffect(game, nr.nextNumber())], game, true));
         case "the active player loots x":
             return noTargetSyncEffect(active.lootCardsEffect(game, nr.nextNumber(), "current"));
@@ -1026,7 +1026,7 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
         case "choose a player":
             return {effectFunction: active.trueEffect(), targetSelectors: selectPlayer(game)};
         case "recharge up to x items you control":
-            return noTargetEffect(active.rechargeUpToXItems(game, nr.nextNumber(), "youControl"));
+            return noTargetEffect(active.rechargeUpToXItems(game, nr.nextNumber(), "youControl", youMayEffectHanging));
     }
     return null;
 }
@@ -1152,7 +1152,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             };
         case "loot x during your loot step":
             const nb = nr.nextNumber();
-            return noTargetSyncEffect(passive.onYourEventEffect("on:loot:step", [], game, s, true, (effect: EffectData, event: OnLootStepData) => {event.numberToLoot += nb; return true;}));
+            return noTargetSyncEffect(passive.onYourEventEffect("on:loot:step", [(effect: EffectData, event: OnLootStepData) => {event.lootStep.nbLoots += nb; return true;}    ], game, s, true));
             // return noTargetSyncEffect(passive.lootStepEffect([active.lootCardsEffect(game, nr.nextNumber())], game));
         case "prevent the next x damage you would take this turn":
             return noTargetSyncEffect(passive.preventNextDamageUpToEffect(nr.nextNumber(), game));

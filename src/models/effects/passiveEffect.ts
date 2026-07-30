@@ -1295,7 +1295,7 @@ Each time triggerEvent triggers, if you are the eventIssuer, call effectFunction
 */
 export function onYourEventEffect(
     triggerEvent: TriggerEvent,
-    effectFunctions: EffectFunction[],
+    effectFunctions: ((effectData: EffectData, eventData: any) => boolean | Promise<boolean>)[],
     game: Game,
     description: string,
     duringYourTurnOnly: boolean = false,
@@ -1314,7 +1314,7 @@ export function onYourEventEffect(
             // Add all effects as a single stack element
             const effect = async (effectData: EffectData): Promise<boolean> => {
                 for (const func of effectFunctions) {
-                    await func(effectData);
+                    await func(effectData, eventData);
                 }
                 return true;
             };
