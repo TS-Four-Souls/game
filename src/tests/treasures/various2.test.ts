@@ -116,6 +116,7 @@ describe("Tap/Paid effects 2", () => {
         // Now deal 3 damage to player2
         game.entityHandler.dealDamage(player1, player2, {card: guppysPaw, visualEffectBox: undefined}, 3);
         await game.actions.resolveStack(); // Resolve the damage
+        await game.actions.resolveStack(); // would damage 
         
         expect(player2.currentHealthPoints).toBe(initialHP - 1); // 3 - 2 prevented = 1 damage
     });
@@ -159,6 +160,7 @@ describe("Tap/Paid effects 2", () => {
         
         // Deal 5 damage to player2
         game.entityHandler.dealDamage(player1, player2, {card: guppysPaw, visualEffectBox: undefined}, 5);
+        await game.actions.resolveStack(); // would damage 
         await game.actions.resolveStack(); // Resolve the damage
         
         expect(player2.currentHealthPoints).toBe(initialHP - 3); // 5 - 2 prevented = 3 damage
@@ -179,11 +181,14 @@ describe("Tap/Paid effects 2", () => {
         // First damage instance - should be prevented
         game.entityHandler.dealDamage(player1, player2, {card: guppysPaw, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack(); // Resolve the damage
+        await game.actions.resolveStack(); // would damage 
+        await game.actions.resolveStack(); // would damage 
         expect(player2.currentHealthPoints).toBe(initialHP); // 1 - 1 prevented = 0 damage
         
         // Second damage instance - should NOT be prevented
         game.entityHandler.dealDamage(player1, player2, {card: guppysPaw, visualEffectBox: undefined}, 2);
         await game.actions.resolveStack(); // Resolve the damage
+        expect(game.stack.isEmpty()).toBe(true);
         expect(player2.currentHealthPoints).toBe(initialHP - 2); // Full damage
     });
 

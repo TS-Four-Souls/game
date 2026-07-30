@@ -83,6 +83,7 @@ export class GameEventEmitter {
     }
 
     if (subsetPositions.length !== orderedSubsetListenerIds.length) {
+      return; // Happens when a subscriber is removed upon entering the stack, such as with the poop prevent damage effect.
       throw new GameError("Cannot reorder listeners: some listener IDs are not subscribed to this event.",
         toSerializedTranslation("error.behaviorError", {error: "Cannot reorder listeners: some listener IDs are not subscribed to this event."})
       );
@@ -133,6 +134,6 @@ export class GameEventEmitter {
       this.currentEmittingEvent = previousEvent;
       this.currentListenerId = previousListenerId;
     }
-    return cbs.length;
+    return cbsCopy.length;
   }
 }

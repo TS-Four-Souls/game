@@ -1399,6 +1399,7 @@ describe("Requiem Loots ", () => {
         game.entityHandler.dealDamage(player1, mob, {card: item, visualEffectBox: undefined}, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
         expect(game.stack.isEmpty()).toBe(true);
         expect(mob.currentHealthPoints).toBe(mob.healthPoints - 1);
 

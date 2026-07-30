@@ -427,6 +427,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         game.entityHandler.dealDamage(player1, player1, {card: card1, visualEffectBox: undefined}, 3);
         await game.actions.resolveStack(); // damage    
         expect(player1.attackThisTurn).toBe(1);   
+        await game.actions.resolveStack(); // resolve on damage taken
         expect(player1.currentHealthPoints).toBe(player1.healthPoints - 1); 
     });
 

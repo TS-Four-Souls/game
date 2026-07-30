@@ -783,6 +783,7 @@ export class Game extends SelectionHandler {
       if (emissionContext) {
         item.reordering = {
           ...(item.reordering ?? { groupId: "" }),
+          ownerId: item.data.issuer.id,
           event: emissionContext.event,
           listenerId: emissionContext.listenerId,
         };

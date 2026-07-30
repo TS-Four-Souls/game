@@ -41,11 +41,13 @@ describe("Loot Card", () => {
         game.entityHandler.dealDamage(player2, player1, {card: loot, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
+        await game.actions.resolveStack(); // resolve on damage taken
         expect(player1.coins).toBe(initialCoins + 1);
         expect(player1.currentHealthPoints).toBe(initialHealth - 2);
 
         game.entityHandler.dealDamage(player1, player2, {card: loot, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
         await game.actions.resolveStack(); // resolve on damage taken
         expect(player1.coins).toBe(initialCoins + 1);
         expect(player1.currentHealthPoints).toBe(initialHealth - 2);
@@ -60,11 +62,13 @@ describe("Loot Card", () => {
         game.entityHandler.dealDamage(player2, player1, {card: loot, visualEffectBox: undefined}, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
+        await game.actions.resolveStack(); // resolve on damage taken
         expect(player1.coins).toBe(initialCoins + 2);
         expect(player1.currentHealthPoints).toBe(initialHealth - 2);
 
         game.entityHandler.dealDamage(player1, player2, {card: loot, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
         await game.actions.resolveStack(); // resolve on damage taken
         expect(player2.coins).toBe(initialCoins2); // No effect for other players
     });
@@ -88,11 +92,13 @@ describe("Loot Card", () => {
         game.entityHandler.dealDamage(player2, player1, {card: loot, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
+        await game.actions.resolveStack(); // resolve on damage taken
         expect(player1.coins).toBe(initialCoins + 1);
         expect(player1.currentHealthPoints).toBe(initialHealth - 2);
 
         game.entityHandler.dealDamage(player1, player2, {card: loot, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
         await game.actions.resolveStack(); // resolve on damage taken
         expect(player1.coins).toBe(initialCoins + 1);
         expect(player1.currentHealthPoints).toBe(initialHealth - 2);
@@ -103,11 +109,13 @@ describe("Loot Card", () => {
         game.entityHandler.dealDamage(player2, player1, {card: loot, visualEffectBox: undefined}, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
+        await game.actions.resolveStack(); // resolve on damage taken
         expect(player1.coins).toBe(initialCoins + 1);
         expect(player1.currentHealthPoints).toBe(initialHealth - 4);
 
         game.entityHandler.dealDamage(player1, player2, {card: loot, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve on damage taken
         await game.actions.resolveStack(); // resolve on damage taken
         expect(player2.coins).toBe(initialCoins2); // No effect for other players
     });

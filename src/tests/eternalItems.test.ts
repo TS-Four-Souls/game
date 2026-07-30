@@ -428,12 +428,17 @@ describe("Eternal Items", () => {
         await game.activateItem(player2, yumHeart);
         await game.actions.resolveStack();
         // simulate large amount of damage to maggy
+
         game.entityHandler.dealDamage(player2, player2, {card: dummyLoot, visualEffectBox: undefined}, 1000);
+        await game.actions.resolveStack(); // would damage 
+        await game.actions.resolveStack(); // would damage 
         await game.actions.resolveStack(); // resolve the damage prevention
         expect(player2.currentHealthPoints).toBe(2); // damage prevented
 
 
         game.entityHandler.dealDamage(player2, player2, {card: dummyLoot, visualEffectBox: undefined}, 1);
+        await game.actions.resolveStack(); // would damage 
+        await game.actions.resolveStack(); // would damage 
         await game.actions.resolveStack(); // resolve the damage prevention
         expect(player2.currentHealthPoints).toBe(1); // damage taken
 
