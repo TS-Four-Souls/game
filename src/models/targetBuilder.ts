@@ -646,7 +646,7 @@ export class TargetBuilder {
                 const prevChooseOneOption = targets[lastIndex];
                 targets = targets.slice(0, lastIndex);
                 options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
-                const prevChooseOneIdx = options.options.findIndex((opt: any) => opt.description === (prevChooseOneOption.payload as SerializedChooseOne).description);
+                const prevChooseOneIdx = options.options.findIndex((opt: any) => opt.payload.description === (prevChooseOneOption.payload as SerializedChooseOne).description);
                     if(prevChooseOneIdx === -1)
                         throw new GameError(`Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`, toSerializedTranslation("error.behaviorError", { error: `Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`}));
                     if(options.options.length <= prevChooseOneIdx + 1)

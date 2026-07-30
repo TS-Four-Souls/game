@@ -1009,6 +1009,8 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
             return noTargetEffect(active.destroyItemOfRandomPlayerEffect(game));
         case "destroy an item or soul":
             return { effectFunction: active.destroyOneEffect(game, selectNonEternalItemOrASoul(game)[0]!, "next"), targetSelectors: selectNonEternalItemOrASoul(game) };
+        case "look at the top card of a deck":
+            return { effectFunction: active.lookAtTopCardOfDeckEffect(game, "just_watch", selectionOnResolve, false), targetSelectors: selectDeck(game) };
         case "destroy another item":
             return { effectFunction: active.destroyOneEffect(game, selectAnotherNonEternalItemFromAnywhere(game)[0]!, "next"), targetSelectors: selectAnotherNonEternalItemFromAnywhere(game) };
         case "put a monster from under this in a monster slot not being attacked. the active player must make an additional attack on it this turn":
@@ -1637,8 +1639,6 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
         case "recharge each item a player controls":
         case "choose a player. recharge each item they control":
             return { effectFunction: active.rechargeEachItemsOfTargetEffect(game, "next"), targetSelectors: selectPlayer(game) };
-        case "look at the top card of a deck":
-            return { effectFunction: active.lookAtTopCardOfDeckEffect(game, "just_watch", false, false), targetSelectors: selectDeck(game) };
         case "loot x, where x is the number of souls the player with the most souls controls minus the number of souls you control":
             return noTargetSyncEffect(active.lootBasedOnSoulsComparedToPlayerWithMostSoulsEffect(game));
         case "put the top card of each deck into discard":
