@@ -383,7 +383,7 @@ export class EffectInterface {
             return { effectId };
         for(let i = 0; i < effect.range.length; i++) {
             if(effect.range[i]!.startIndex <= id && id <= effect.range[i]!.endIndex!){
-                return { effectId, choice: [{description: effect.range[i]!.description.toLowerCase(), visualEffectBox: effect.range[i]!, card: this.it}] };}
+                return { effectId, choice: [{description: effect.range[i]!.description.toLowerCase().replaceAll("!",""), visualEffectBox: effect.range[i]!, card: this.it}] };}
         }
         throw new GameError(`Separator ID ${effectId} does not fall within any effect range for card ${this.it.slug}.`,
             toSerializedTranslation("error.behaviorError", { error: `Separator ID ${effectId} does not fall within any effect range for card ${this.it.slug}.` })

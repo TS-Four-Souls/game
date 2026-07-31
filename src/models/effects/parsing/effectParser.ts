@@ -127,7 +127,7 @@ function prepareStringForParsing(s: string): string {
     s = s.replace("[Tap Effect] ", ""); 
     s = s.replace("[Paid Effect] ", ""); 
     s = s.replace("[Curse Effect] ", ""); // remove curse effect marker
-    s = s.replace("!", "");
+    s = s.replaceAll("!", "");
 
     s = s.toLowerCase();
     s = s.replace(/[❶➀]/g, "1")
