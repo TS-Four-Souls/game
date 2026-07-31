@@ -91,9 +91,9 @@ describe("Monster Rewards - Verification", () => {
             expect(currentTreasures).toBe(initialTreasures);
         }
 
-        if (expectedReward.targetableSouls !== undefined) {
+        if (expectedReward.souls !== undefined) {
             await game.resolveEntireStack(); // Ensure all soul gain effects are resolved
-            expect(player1.targetableSouls.length).toBe(initialSouls + expectedReward.targetableSouls);
+            expect(player1.targetableSouls.length).toBe(initialSouls + expectedReward.souls);
         } else {
             expect(player1.targetableSouls.length).toBe(initialSouls);
         }

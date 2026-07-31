@@ -300,14 +300,14 @@ describe("Eternal Items", () => {
         }
         expect(theBone.counters.value("normal")).toBe(4);
         
-        const initialSouls = player1.targetableSouls;
+        const initialSouls = [...player1.souls];
         
         // Attempt to use paid effect with insufficient counters
         await expect(async () => {
             await game.activateItem(player1, theBone, [], 2)}
         ).toThrow();
         expect(theBone.counters.value("normal")).toBe(4); // Counters should remain unchanged
-        expect(player1.targetableSouls).toBe(initialSouls); // Souls should remain unchanged
+        expect(player1.souls).toEqual(initialSouls); // Souls should remain unchanged
     });
 
     // "[Tap Effect] Add or subtract 1 from a roll."
