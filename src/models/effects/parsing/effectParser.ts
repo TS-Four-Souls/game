@@ -1931,7 +1931,7 @@ function parseSplittedEffect(s: string, game: Game, nr: NumberRobustString, sele
                 await secondParsed.effectFunction(data);
                 return true;
             },
-            targetSelectors: [...firstParsed.targetSelectors, ...secondParsed.targetSelectors]
+            targetSelectors: firstParsed.targetSelectors
         };
     }
     // multiple effects separated by ., try to parse them individually.
