@@ -509,18 +509,18 @@ describe("Four Souls+2 Treasures", () => {
         const g2 = game.obtainCard("b2-the_dead_cat")!;
         game.cardHandler.addInPlay(player1, g1 as ItemCard);
         game.cardHandler.addInPlay(player1, g2 as ItemCard);
-        expect(player1.souls.length).toBe(1);
+        expect(player1.targetableSouls.length).toBe(1);
 
         game.cardHandler.addCardToHand(player2, game.obtainCard("b2-lost_soul")! as LootCard);
         game.entityHandler.addLootPlay(player2, 1);
         game.actions.playCard(player2, player2.hand.length - 1);
         await game.actions.resolveStack();
-        expect(player2.souls.length).toBe(1);
+        expect(player2.targetableSouls.length).toBe(1);
 
         await game.activateItem(player1, card1, [], "tap");
         await game.actions.resolveStack();
-        expect(player1.souls.length).toBe(0);
-        expect(player2.souls.length).toBe(0);
+        expect(player1.targetableSouls.length).toBe(0);
+        expect(player2.targetableSouls.length).toBe(0);
     });
 
     it("daddy_long_legs", async () => {

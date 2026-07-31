@@ -326,7 +326,7 @@ describe("Treasure - Passive effects", () => {
         expect(player1.inPlay.map((c) => c.slug)).not.toContain(theChest.slug);
 
         // The chest should now be a soul
-        expect(player1.souls.map((c) => c.slug)).toContain(theChest.slug);
+        expect(player1.targetableSouls.map((c) => c.slug)).toContain(theChest.slug);
         expect(player1.totalSouls).toBe(initialSouls + 1);
     });
 

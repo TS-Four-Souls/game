@@ -131,7 +131,7 @@ describe("Discard", () => {
         
         // Monster should become a soul, not be discarded
         expect(player1.totalSouls).toBe(initialSouls + (monsterCard.rewards!.soul! as number));
-        expect(player1.souls).toContain(monsterCard);
+        expect(player1.targetableSouls).toContain(monsterCard);
         expect(game.decks['monster']!.discard.length).toBe(initialDiscardSize);
     });
 
@@ -154,7 +154,7 @@ describe("Discard", () => {
         // Monster should go to discard pile
         expect(game.decks['monster']!.discard.length).toBe(initialDiscardSize + 1);
         expect(game.decks['monster']!.discard).toContain(monsterCard);
-        expect(player1.souls).not.toContain(monsterCard);
+        expect(player1.targetableSouls).not.toContain(monsterCard);
     });
 
     it("discard monster puts it in monster discard pile", async () => {
@@ -221,7 +221,7 @@ describe("Discard", () => {
         // Card should be destroyed (not in discard)
         expect(game.decks['monster']!.discard.length).toBe(initialDiscardSize+1);
         expect(game.decks['monster']!.discard).toContain(monsterCard);
-        expect(player1.souls).not.toContain(monsterCard);
+        expect(player1.targetableSouls).not.toContain(monsterCard);
         expect(player1.totalSouls).toBe(initialSouls - monsterCard.soul);
     });
 });

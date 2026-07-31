@@ -157,8 +157,8 @@ describe("Requiem Monsters ", () => {
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.coins).toBe(0);
         expect(player2.coins).toBe(40);
-        expect(player1.souls.includes(mob)).toBe(true);
-        expect(player2.souls.includes(mob)).toBe(false);
+        expect(player1.targetableSouls.includes(mob)).toBe(true);
+        expect(player2.targetableSouls.includes(mob)).toBe(false);
     });
 
     it("ultra_greed", async () => {

@@ -787,7 +787,7 @@ describe("Loot Card", () => {
         
         expect(card!.soul).toBe(1);
         expect(player1.totalSouls).toBe(beforeSouls + 1);
-        expect(player1.souls.length).not.toBe(0);
+        expect(player1.targetableSouls.length).not.toBe(0);
         expect(player1.inPlay.length).toBe(initInPlay);
         
     });

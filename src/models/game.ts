@@ -161,13 +161,6 @@ export class Game extends SelectionHandler {
   get stack(): Stack {
     return this._stack;
   }
-  get soulsOwned(): Card[] {
-    const souls: Card[] = [];
-    for (const player of this.players) {
-      souls.push(...player.souls);
-    }
-    return souls;
-  }
   get playersAndMonsters(): Entity[] {
     return this.entityHandler.playersAndMonsters;
   }
@@ -405,7 +398,6 @@ export class Game extends SelectionHandler {
       shuffle(this.random, this.players);
     }
     this.turnHandler.initialize(this.players);
-    this.initializeTeams();
     this._historicHandler.recordInitialGameState(this);
     
     this.initializeWinningCondition();
@@ -460,22 +452,16 @@ export class Game extends SelectionHandler {
     if(false)
       return;
     
-    const card = this.obtainCard("b2-xiv_temperance") as LootCard;
-    this.cardHandler.addCardToHand(this.currentPlayer, card);
-  }
-
-  initializeTeams(): void{
-    for(const player of this.players)
-    {
-      const soulOwner = this.players.find(p => p.team === player.team);
-      player.soulsInCommonWith(soulOwner!);
-    }
+    const card = this.obtainCard("g2-the_bible") as ItemCard;
+    this.cardHandler.addInPlay(this.currentPlayer, card);
   }
 
   initializeWinningCondition(): void {
     let offSoulGained: (() => void) | null = null;
         offSoulGained = this.emitter.on("on:soul:gained", ({ eventIssuer }) => {
-          if(eventIssuer.totalSouls >= this.gameParameters.nbSoulsToWin.value)
+          let teamSouls = 0;
+          this.players.filter(p=>p.team === eventIssuer.team).forEach(p => teamSouls += p.totalSouls);
+          if(teamSouls >= this.gameParameters.nbSoulsToWin.value)
           {
               this.win(eventIssuer);
               offSoulGained!();

@@ -1236,7 +1236,7 @@ describe("Requiem Loots ", () => {
         const soul2 = game.decks.treasure.draw();
         soul2.soul = 1;
         game.cardHandler.addSoul(player2, soul2);
-        expect(game.soulsOwned.length).toBe(2);
+        expect(game.cardHandler.targetableSoulsOwned.length).toBe(2);
 
         const initialLootDiscard = game.decks.loot.discard.length;
 
@@ -1250,7 +1250,7 @@ describe("Requiem Loots ", () => {
         expect(player1.inPlay).not.toContain(item);
 
         // All souls destroyed
-        expect(game.soulsOwned.length).toBe(0);
+        expect(game.cardHandler.targetableSoulsOwned.length).toBe(0);
         expect(player1.totalSouls).toBe(0);
         expect(player2.totalSouls).toBe(0);
 

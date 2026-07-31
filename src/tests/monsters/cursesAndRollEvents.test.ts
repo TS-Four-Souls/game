@@ -669,7 +669,7 @@ describe("Event Monsters - Curse Effects", () => {
         const soulCard = game.obtainCard("b2-blank_card") as ItemCard;
         soulCard.soul = 2;
         game.cardHandler.addSoul(player1, soulCard);
-        const initialSouls = player1.souls.length;
+        const initialSouls = player1.targetableSouls.length;
         
         // Draw the curse
         game.encounters.discardTop(0);
@@ -683,7 +683,7 @@ describe("Event Monsters - Curse Effects", () => {
         effect.targets = [soulCard]; // Choose soul to destroy
         await game.actions.resolveStack(); // curse effect resolution
         
-        expect(player1.souls.length).toBe(initialSouls - 1);
+        expect(player1.targetableSouls.length).toBe(initialSouls - 1);
     });
 
     // b2-curse_of_pain: At the start of your turn, take 1 damage

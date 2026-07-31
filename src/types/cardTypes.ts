@@ -133,6 +133,7 @@ GuppyCard & {
   type: CardType.Character;
   eternalCard?: CardMeta;
   stats: PartialRequired<CardStats, "healthPoints" | "attackPoints">;
+  reward?: CardRewards;
 };
 
 export type EternalCardType = Card &
