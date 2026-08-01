@@ -459,8 +459,8 @@ describe("Monsters - On death effects", () => {
         await game.actions.resolveStack(); // resolve death
         await game.actions.resolveStack(); // resolve death effect - selection
         await game.actions.resolveStack(); // resolve damage from death effect
-        expect(player1.souls.map(s => s.id)).toContain(soul.id);
-        expect(player2.souls.map(s => s.id)).not.toContain(soul.id);
+        expect(player1.targetableSouls.map(s => s.id)).toContain(soul.id);
+        expect(player2.targetableSouls.map(s => s.id)).not.toContain(soul.id);
     });
 
     it("active player make a player destroy a soul they control when wizoob dies.", async () => {
@@ -486,8 +486,8 @@ describe("Monsters - On death effects", () => {
         await game.actions.resolveStack(); // resolve death effect - selection
         await game.actions.resolveStack(); // resolve damage from death effect
         expect(game.stack.isEmpty()).toBe(true);
-        expect(player1.souls.map(s => s.id)).not.toContain(soul.id);
-        expect(player2.souls.map(s => s.id)).not.toContain(soul.id);
+        expect(player1.targetableSouls.map(s => s.id)).not.toContain(soul.id);
+        expect(player2.targetableSouls.map(s => s.id)).not.toContain(soul.id);
     });
 
     // the active player rolls-\n1-3: Each player takes 1 damage.\n4-6: Each player takes 2 damage.
@@ -665,7 +665,7 @@ describe("Monsters - On death effects", () => {
         await game.actions.resolveStack(); // resolve dice roll
         expect(game.stack.size).toBe(0);
         expect(game.decks["monster"]!.cards[0]!.slug).toBe("b2-rag_man");
-        expect(game.currentPlayer.souls.length).toBe(0);
+        expect(game.currentPlayer.targetableSouls.length).toBe(0);
     });
 
     it("roll when rag_man dies. (6)", async () => {
@@ -686,7 +686,7 @@ describe("Monsters - On death effects", () => {
         await game.actions.resolveStack(); // resolve dice roll
         expect(game.stack.size).toBe(0);
         expect(game.decks["monster"]!.cards[0]!.slug).toBe("b2-rag_man");
-        expect(game.currentPlayer.souls.length).toBe(0);
+        expect(game.currentPlayer.targetableSouls.length).toBe(0);
     });
 
     it("roll when rag_man dies. (4)", async () => {
@@ -705,7 +705,7 @@ describe("Monsters - On death effects", () => {
         await game.actions.resolveStack(); // resolve dice roll
         expect(game.stack.size).toBe(0);
         expect(game.decks["monster"]!.cards[0]!.slug).not.toBe("b2-rag_man");
-        expect(game.currentPlayer.souls.length).toBe(1);
+        expect(game.currentPlayer.targetableSouls.length).toBe(1);
         expect(game.decks.monster.discard.includes(card)).toBe(false);
     });
     

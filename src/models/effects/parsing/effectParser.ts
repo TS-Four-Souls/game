@@ -127,7 +127,7 @@ function prepareStringForParsing(s: string): string {
     s = s.replace("[Tap Effect] ", ""); 
     s = s.replace("[Paid Effect] ", ""); 
     s = s.replace("[Curse Effect] ", ""); // remove curse effect marker
-    s = s.replace("!", "");
+    s = s.replaceAll("!", "");
 
     s = s.toLowerCase();
     s = s.replace(/[❶➀]/g, "1")
@@ -1931,7 +1931,7 @@ function parseSplittedEffect(s: string, game: Game, nr: NumberRobustString, sele
                 await secondParsed.effectFunction(data);
                 return true;
             },
-            targetSelectors: [...firstParsed.targetSelectors, ...secondParsed.targetSelectors]
+            targetSelectors: firstParsed.targetSelectors
         };
     }
     // multiple effects separated by ., try to parse them individually.

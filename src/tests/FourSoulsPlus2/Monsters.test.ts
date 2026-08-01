@@ -404,7 +404,7 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         await game.actions.resolveStack(); // effect    
         await game.actions.resolveStack(); // roll
         expect(player1.totalSouls).toBe(1);
-        expect(player1.souls.includes(card1)).toBe(true);
+        expect(player1.targetableSouls.includes(card1)).toBe(true);
     });
     it("fsp2-holy_chest - Roll- 3-5: Gain 7¢.", async () => {
        const card1 = game.obtainCard("fsp2-holy_chest") as MonsterCard;

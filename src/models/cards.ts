@@ -595,7 +595,13 @@ class CharacterCard extends ItemCard {
             this._healthPoints = json.stats.healthPoints || 0;
             this._attackPoints = json.stats.attackPoints || 0;
         }
-        this._charged = false;
+        if (json.rewards && json.rewards.soul) {
+            if(typeof json.rewards.soul === "number")
+            {
+                this._souls = json.rewards.soul;
+            }
+        }
+        this._charged = false;  
         this._eternal = true;
     }
     override onAddInPlay(issuerProvider: () => Entity): void {
@@ -603,9 +609,13 @@ class CharacterCard extends ItemCard {
         const owner = issuerProvider();
         owner.addHealthPoints(this._healthPoints);
         owner.addAttackPoints(this._attackPoints);
+        if(this.soul > 0)
+            (owner as Player).addSoul(this);
         this.cleaners.push(() => {
             owner.addHealthPoints(-this._healthPoints);
             owner.addAttackPoints(-this._attackPoints);
+            if(this.soul > 0)
+                (owner as Player).removeSoul(this);
         });
     }
     onRemoveFromPlay(): void {

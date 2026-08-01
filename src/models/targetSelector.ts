@@ -24,7 +24,7 @@ export function inplayItemSelector(filter: (player: Player, card: ItemCard) => b
 
 export function itemAndSoulSelector(filter: (player: Player, card: ItemCard) => boolean, game: Game): (issuer: Player) => Card[] {
     return (issuer: Player) => {
-        return [...game.shop.itemsInShop.filter(c=>c !== undefined), ...game.inPlayItems.filter(({ player, card }) => filter(player, card)).map(({ card }) => card), ...game.players.flatMap(p => p.souls)];
+        return [...game.shop.itemsInShop.filter(c=>c !== undefined), ...game.inPlayItems.filter(({ player, card }) => filter(player, card)).map(({ card }) => card), ...game.players.flatMap(p => p.targetableSouls)];
     };
 }
 

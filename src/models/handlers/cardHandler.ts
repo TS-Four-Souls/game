@@ -68,10 +68,10 @@ export class CardHandler {
   get cardMapping(): ReadonlyMap<number, Card> {
     return this._cardMapping;
   }
-  get soulsOwned(): Card[] {
+  get targetableSoulsOwned(): Card[] {
     const souls: Card[] = [];
     for (const player of this.game.players) {
-      souls.push(...player.souls);
+      souls.push(...player.targetableSouls);
     }
     return souls;
   }
@@ -147,7 +147,7 @@ export class CardHandler {
     }
     if(type === "soul" || type === "any") {
       for (const player of this.game.players) {
-        if (player.souls.includes(item)) {
+        if (player.targetableSouls.includes(item)) {
           return player;
         }
       }
@@ -313,7 +313,7 @@ export class CardHandler {
    * Transfers a card between players when legal.
    */
   give(from: Player, to: Player, card: Card): boolean {
-    if (from.souls.includes(card)) {
+    if (from.targetableSouls.includes(card)) {
       this.removeSoul(from, card);
       this.addSoul(to, card);
       return true;
@@ -951,7 +951,7 @@ export class CardHandler {
    * Transfers a soul card from a target player to another player.
    */
   stealSoul(player: Player, target: Player, soul: Card): void {
-    if (!target.souls.includes(soul)) {
+    if (!target.targetableSouls.includes(soul)) {
       throw new GameError("Target player does not have the specified soul.", toSerializedTranslation("error.targetPlayerDoesNotHaveSoul"));
     }
     this.removeSoul(target, soul);

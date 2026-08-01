@@ -294,7 +294,7 @@ describe("Gold Box 2 Treasures", () => {
         game.encounters.forceSetMonsterAtSlot(0, mom);
         const mob = game.monsters[0]!
         game.cardHandler.addInPlay(player1, card1);
-        await game.activateItem(player1, card1, ["kill a monster named mom, mom's heart!, or it lives!", mob]);
+        await game.activateItem(player1, card1, ["kill a monster named mom, mom's heart, or it lives", mob]);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(mob.isDead).toBe(true);

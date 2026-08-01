@@ -532,7 +532,7 @@ describe("Tap/Paid effects 1", () => {
         const pandorasBox = game.shop.obtainCard("b2-pandoras_box") as ItemCard;
         game.cardHandler.addInPlay(player1, pandorasBox);
 
-        const initialSouls = player1.souls.length;
+        const initialSouls = player1.targetableSouls.length;
 
         game.cardHandler.recharge(pandorasBox);
         await game.activateItem(player1, pandorasBox);
@@ -544,8 +544,8 @@ describe("Tap/Paid effects 1", () => {
         await game.actions.resolveStack();
 
         expect(player1.inPlay).not.toContain(pandorasBox);
-        expect(player1.souls.length).toBe(initialSouls + 1);
-        expect(player1.souls).toContain(pandorasBox);
+        expect(player1.targetableSouls.length).toBe(initialSouls + 1);
+        expect(player1.targetableSouls).toContain(pandorasBox);
     });
 
     it("the_shovel - put non-event monster from discard on top of monster deck", async () => {
@@ -684,8 +684,8 @@ describe("Tap/Paid effects 1", () => {
         game.cardHandler.addInPlay(player1, momsShovel);
         game.cardHandler.addSoul(player2, soul);
 
-        const player1InitialSouls = player1.souls.length;
-        const player2InitialSouls = player2.souls.length;
+        const player1InitialSouls = player1.targetableSouls.length;
+        const player2InitialSouls = player2.targetableSouls.length;
 
         // Mock game.select to choose the soul
         game.select = async (issuer, _min, _max, opts, optional) => {
@@ -704,10 +704,10 @@ describe("Tap/Paid effects 1", () => {
 
 
         // Soul should be stolen
-        expect(player1.souls.length).toBe(player1InitialSouls + 1);
-        expect(player2.souls.length).toBe(player2InitialSouls - 1);
-        expect(player1.souls).toContain(soul);
-        expect(player2.souls).not.toContain(soul);
+        expect(player1.targetableSouls.length).toBe(player1InitialSouls + 1);
+        expect(player2.targetableSouls.length).toBe(player2InitialSouls - 1);
+        expect(player1.targetableSouls).toContain(soul);
+        expect(player2.targetableSouls).not.toContain(soul);
     });
 
     it("moms_bra - reduce monster damage to 1", async () => {

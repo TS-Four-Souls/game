@@ -227,7 +227,7 @@ export function makeAPlayerWithMostSoulsDestroyASoulEffect(game: Game): AsyncEff
         if(!(target instanceof Player))
             throw new GameError("Target of makeAPlayerWithMostSoulsDestroyASoulEffect must be a Player.", toSerializedTranslation("error.behaviorError", { error: "Target of makeAPlayerWithMostSoulsDestroyASoulEffect must be a Player."}));
         if (game.playersWithMostSouls.includes(target) && target.totalSouls > 0) {
-            const card = (await data.selectAndRecord(game, target, 1, 1, target.souls, qq("pending.soulToDestroy"), true, true)).selected[0]!;
+            const card = (await data.selectAndRecord(game, target, 1, 1, target.targetableSouls, qq("pending.soulToDestroy"), true, true)).selected[0]!;
             return game.cardHandler.destroyCardsOrSouls([card]);
         }
         return false;
@@ -749,8 +749,8 @@ export function modifyCoinGainedEffect(game: Game, modifier: (original:number) =
 export function stealSoulEffect(game: Game): AsyncEffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        if(game.soulsOwned.length === 0) return false;
-        const soulToSteal = (await data.selectAndRecord(game, data.issuer, 1, 1, game.soulsOwned, qq("pending.soulToSteal"), true, true)).selected[0]!;
+        if(game.cardHandler.targetableSoulsOwned.length === 0) return false;
+        const soulToSteal = (await data.selectAndRecord(game, data.issuer, 1, 1, game.cardHandler.targetableSoulsOwned, qq("pending.soulToSteal"), true, true)).selected[0]!;
         const target = game.getOwner(soulToSteal, "soul");
         game.cardHandler.stealSoul(data.issuer, target!, soulToSteal);
         return true;
@@ -1609,7 +1609,7 @@ export function putRoomOrMonsterIntoDiscardEffect(game: Game, youMay: boolean): 
 
 export function destroyAllSoulsEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
-        game.cardHandler.destroyCardsOrSouls(game.soulsOwned);
+        game.cardHandler.destroyCardsOrSouls(game.cardHandler.targetableSoulsOwned);
         return true;
     };
 }
@@ -1998,19 +1998,19 @@ export function discardNLootCardsEffect(n: number, game: Game, selectionOnResolv
 export function destroyOneOfYourSoulEffect(game: Game): AsyncEffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const soulToDestroy = (await data.selectAndRecord(game, data.issuer, 1, 1, data.issuer.souls, qq("pending.soulToDestroy"), true, true)).selected[0]!;
+        const soulToDestroy = (await data.selectAndRecord(game, data.issuer, 1, 1, data.issuer.targetableSouls, qq("pending.soulToDestroy"), true, true)).selected[0]!;
         return game.cardHandler.destroyCardsOrSouls([soulToDestroy]);
     };
 }
 
 export function eachPlayerDestroysASoulEffect(game: Game): AsyncEffectFunction {
     return async (data: EffectData) => {
-        const playersWithSouls = game.players.filter(player => player.souls.filter(soul => soul.eternal === false).length > 0);
+        const playersWithSouls = game.players.filter(player => player.targetableSouls.filter(soul => soul.eternal === false).length > 0);
         const choices = playersWithSouls.map(player => ({
             player,
             min: 1,
             max: 1,
-            options: player.souls.filter(soul => soul.eternal === false),
+            options: player.targetableSouls.filter(soul => soul.eternal === false),
             description: qq("pending.soulToDestroy"),
             canUseOnBoardSelection: true,
         }));
@@ -2028,9 +2028,9 @@ export function giveSoulEffect(game: Game): AsyncEffectFunction {
         const targetPlayer = data.next as Player;
         if(!targetPlayer)
             throw new GameError("No target player to give soul to", toSerializedTranslation("error.noTargetPlayerToGiveSoulTo"));
-        if(data.issuer.souls.length === 0)
+        if(data.issuer.targetableSouls.length === 0)
             return false;
-        const soulToGive = (await data.selectAndRecord(game, data.issuer, 1, 1, data.issuer.souls, qq("pending.soulToGive"), true, true)).selected[0]!;
+        const soulToGive = (await data.selectAndRecord(game, data.issuer, 1, 1, data.issuer.targetableSouls, qq("pending.soulToGive"), true, true)).selected[0]!;
         game.cardHandler.give(data.issuer, targetPlayer, soulToGive);
         return true;
     };

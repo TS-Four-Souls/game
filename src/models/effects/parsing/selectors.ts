@@ -131,7 +131,7 @@ export const selectEternalItemYouControl = (game: Game, min: number = 1, max: nu
 export const selectAnotherItemYouControl = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.anotherItemYouControl"), YourItemSelector((player: Player, card: ItemCard) => card.eternal === false, true, game), min, max)];
 export const selectSoulYouControl = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
-    [createSelector(toSerializedTranslation("selector.destroySoulYouControl"), (issuer: Player) => issuer.souls, min, max)];
+    [createSelector(toSerializedTranslation("selector.destroySoulYouControl"), (issuer: Player) => issuer.targetableSouls, min, max)];
 export const selectNonEternalItemFromAnywhere = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.nonEternalItemFromPlayerOrShop"), visibleItemSelector((card: ItemCard, issuer: Player) => card.eternal === false, false, game), min, max)];
 export const selectAnotherNonEternalItemFromAnywhere = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
@@ -139,7 +139,7 @@ export const selectAnotherNonEternalItemFromAnywhere = (game: Game, min: number 
 export const selectAnotherItemFromAnywhere = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.nonEternalItemFromPlayerOrShop"), visibleItemSelector((card: ItemCard, issuer: Player) => true, true, game), min, max)];
 export const selectPlayerWithMostSouls = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
-    [createSelector(toSerializedTranslation("selector.playerWithMostSouls"), playerSelector((p) => p.souls.length === Math.max(...game.players.map(p => p.souls.length)), game), min, max)];
+    [createSelector(toSerializedTranslation("selector.playerWithMostSouls"), playerSelector((p) => p.targetableSouls.length === Math.max(...game.players.map(p => p.targetableSouls.length)), game), min, max)];
 export const selectRollAddOrSubtract = (game: Game, x: number): TargetsSelector[] => [
     createSelector(toSerializedTranslation("selector.diceRoll"), rollSelector(() => true, game)),
     createSelector(toSerializedTranslation("selector.addOrSubtract", { value: x }), (issuer: Player) => [x, -x])
