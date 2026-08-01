@@ -349,7 +349,7 @@ export class EntityHandler {
   }
 
   /** Adds or refreshes a forced-attack requirement for a player. */
-  playerMustAttack(player: Player, target: (Entity[] | "topDeck" | "any"), source: Card): void {
+  playerMustAttack(player: Player, target: (Entity[] | "topDeck" | "any"), source: Card, checkRemainingAttack: boolean): void {
     // Check if player is dead - constraint doesn't apply
     if (player.isDead) {
       player.clearAttackRequirement();
@@ -359,13 +359,13 @@ export class EntityHandler {
     const mustAttackEntity = player.mustAttackEntity;
 
     for (const req of mustAttackEntity) {
-      if (req.target === "topDeck") continue;
-      if (req.target === "any") continue;
-      if(req.target.every(m => !(this.game.attackableEntities.includes(m)) || m.attackable === false)) {
-        player.clearAttackRequirement(req.target[0]);
+      if (req.targets === "topDeck") continue;
+      if (req.targets === "any") continue;
+      if(req.targets.every(m => !(this.game.attackableEntities.includes(m)) || m.attackable === false)) {
+        player.clearAttackRequirement(req.targets[0]);
       }
     }
-    player.mustAttack(target, source);
+    player.mustAttack(target, source, checkRemainingAttack);
     this.game.dispatch();
   }
 
@@ -386,7 +386,7 @@ export class EntityHandler {
 
     // Filter monsters that are still in play
     const validMonsters = requirement.filter(
-      (req) => req.target === "topDeck" || req.target === "any" || req.target.some(target => this.game.attackableEntities.includes(target))
+      (req) => req.targets === "topDeck" || req.targets === "any" || req.targets.some(target => this.game.attackableEntities.includes(target))
     );
 
     if (validMonsters.length === 0) {

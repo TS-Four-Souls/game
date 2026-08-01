@@ -248,7 +248,7 @@ export function forceAttackMonsterEffect(game: Game): SyncEffectFunction {
         const targetMonster = data.next;
         if(!(targetMonster instanceof Monster))
             throw new GameError("Target of forceAttackMonsterEffect must be a Monster.", toSerializedTranslation("error.behaviorError", { error: "Target of forceAttackMonsterEffect must be a Monster."}));
-        game.entityHandler.playerMustAttack(game.currentPlayer, [targetMonster], data.it);
+        game.entityHandler.playerMustAttack(game.currentPlayer, [targetMonster], data.it, true);
         return true;
     };
 }
@@ -2402,7 +2402,7 @@ export function forceAttackMonsterDeckEffect(game: Game, times: number, type: "t
         if(data.issuer instanceof Player === false) return false;
         const additionalTimes = type === "additional" ? times : times - data.issuer.attackedIdsThisTurn.filter((id) => id === "topDeck").length;
         for (let i = 0; i < additionalTimes; i++) {
-            game.entityHandler.playerMustAttack(data.issuer as Player, "topDeck", data.it);
+            game.entityHandler.playerMustAttack(data.issuer as Player, "topDeck", data.it, false);
         }
         return true;
     };
@@ -3143,7 +3143,7 @@ export function putMonsterFromUnderThisIntoSlotEffect(game: Game): AsyncEffectFu
         const req = [game.monsters.find(m => m.card === monsterCard)!]
         if(req.length !== 1)
             throw new GameError("Invalid number of monsters found for putMonsterFromUnderThisIntoSlotEffect", toSerializedTranslation("error.behaviorError", { error: "Invalid number of monsters found for putMonsterFromUnderThisIntoSlotEffect"}));
-        game.entityHandler.playerMustAttack(game.currentPlayer, req, data.it);
+        game.entityHandler.playerMustAttack(game.currentPlayer, req, data.it, false);
         return true;
     };
 }

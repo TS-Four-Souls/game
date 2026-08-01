@@ -36,7 +36,7 @@ describe.skip("Gold Box 2 Monsters", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.size).toBe(0);
-        expect(player1.hasAttackRequirement).toBe(true);
+        expect(player1.hasMandatoryAttackRequirement).toBe(true);
     });
 
     it("g2-curse_of_fatigue", async () => {

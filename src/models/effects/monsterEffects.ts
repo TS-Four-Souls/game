@@ -60,7 +60,7 @@ export function activePlayerMayAttackMonsterDeckEffect(game: Game, numberOfTimes
 export function activePlayerMustMakeAdditionalAttackEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         const player = game.currentPlayer as Player;
-        game.entityHandler.playerMustAttack(player, "any", data.it);
+        game.entityHandler.playerMustAttack(player, "any", data.it, false);
         return true;
     };
 }
@@ -1041,14 +1041,14 @@ export function forceAttackThisEachTurnEffect(game: Game): SyncEffectFunction {
             throw new GameError("forceAttackThisEachTurnEffect can only be applied to monsters.",
                 toSerializedTranslation("error.behaviorError", { error: "forceAttackThisEachTurnEffect can only be applied to monsters." })
             );
-        game.entityHandler.playerMustAttack(game.currentPlayer, [data.issuer], data.it);
+        game.entityHandler.playerMustAttack(game.currentPlayer, [data.issuer], data.it, true);
         
         offTurnStart = game.emitter.on("on:turn:start", (eventData: OnTurnEndData) => {
             const { eventIssuer } = eventData;
             if(!data.issuer || !(data.issuer instanceof Monster)) return;
             if(!eventIssuer || !(eventIssuer instanceof Player)) return;
-            if(eventIssuer.mustAttackEntity.some(req => (req.target instanceof Array) && req.target.includes(data.issuer as Monster) && req.source === data.it)) return; // if the player already must attack this monster, do not add another requirement
-            game.entityHandler.playerMustAttack(eventIssuer, [data.issuer], data.it);
+            if(eventIssuer.mustAttackEntity.some(req => (req.targets instanceof Array) && req.targets.includes(data.issuer as Monster) && req.source === data.it)) return; // if the player already must attack this monster, do not add another requirement
+            game.entityHandler.playerMustAttack(eventIssuer, [data.issuer], data.it, true);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -1072,7 +1072,7 @@ export function attackRequirementEachTurnEffect(game: Game, whom: "any" | "topDe
         if(game.currentPlayer === data.issuer) {
             const additionalTimes = type === "additional" ? times : times - game.currentPlayer.attackedIdsThisTurn.filter((id) => id === "topDeck" || whom === "any").length;
             for (let i = 0; i < additionalTimes; i++) {
-                game.entityHandler.playerMustAttack(data.issuer as Player, whom, data.it);
+                game.entityHandler.playerMustAttack(data.issuer as Player, whom, data.it, true);
             }
         }
         offTurnStart = game.emitter.on("on:turn:start", (eventData: OnTurnEndData) => {
@@ -1081,7 +1081,7 @@ export function attackRequirementEachTurnEffect(game: Game, whom: "any" | "topDe
             if(eventIssuer !== data.issuer) return;
             const additionalTimes = type === "additional" ? times : times - data.issuer.attackedIdsThisTurn.filter((id) => id === "topDeck" || whom === "any").length;
             for (let i = 0; i < additionalTimes; i++) {
-                game.entityHandler.playerMustAttack(data.issuer as Player, whom, data.it);
+                game.entityHandler.playerMustAttack(data.issuer as Player, whom, data.it, true);
             }
         });
 
@@ -1176,7 +1176,7 @@ export function bossRushEffect(game: Game, bossCount: number): AsyncEffectFuncti
         const monsters = selectedIndices.map(idx => game.encounters.monsters[idx]!);
         game.encounters.removeCard(data.it);
         game.encounters._deck.addDiscardTop(data.it); 
-        game.entityHandler.playerMustAttack(game.currentPlayer, monsters, data.it);
+        game.entityHandler.playerMustAttack(game.currentPlayer, monsters, data.it, false);
         return true;
     };
 }

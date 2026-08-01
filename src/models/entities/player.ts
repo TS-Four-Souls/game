@@ -7,6 +7,18 @@ import { GameError } from "@/models/GameError";
 import { DiceRoll } from "../stackElement";
 import { toSerializedTranslation } from "@/utils/translation";
 
+class AttackRequirement {
+  readonly targets: Entity[] | "topDeck" | "any";
+  readonly source: Card;
+  readonly checkAttackRemaining: boolean;
+
+  constructor(targets: Entity[] | "topDeck" | "any", source: Card, checkAttackRemaining: boolean)
+  {
+    this.targets = targets;
+    this.source = source;
+    this.checkAttackRemaining = checkAttackRemaining;
+  }
+}
 /**
  * Represents a player in the Four Souls game.
  * 
@@ -64,7 +76,7 @@ export class Player extends Entity {
   private _canSeeTopOfTreasureDeck: number = 0;
   
   /** @private Entities or deck that this player must attack, with the card that gave the requirement */
-  private _mustAttackEntity: { target: Entity[] | "topDeck" | "any", source: Card }[] = [];
+  private _mustAttackEntity: AttackRequirement[] = [];
 
   /** @private List of entities or deck positions the player may attack additionally. Note that non-free attacks are consumed first.*/
   private _mayAttackForFree: { target: Entity | "topDeck", nb: number }[] = [];
@@ -130,7 +142,7 @@ export class Player extends Entity {
    * Gets the list of entities or deck positions this player must attack, with source cards.
    * @returns Array of required attack targets with their source cards
    */
-  get mustAttackEntity(): { target: Entity[] | "topDeck" | "any", source: Card }[] {
+  get mustAttackEntity(): AttackRequirement[] {
     return this._mustAttackEntity;
   }
 
@@ -138,12 +150,12 @@ export class Player extends Entity {
     if(this.mustAttackEntity.length === 0) return;
     for(const req of this.mustAttackEntity)
     {
-      if(req.target === "topDeck")
+      if(req.targets === "topDeck")
         console.log(`Must attack top of deck, source: ${req.source.name}`);
-      else if(req.target === "any")
+      else if(req.targets === "any")
         console.log(`Must attack any, source: ${req.source.name}`);
       else 
-        for(const entity of req.target as Entity[])
+        for(const entity of req.targets)
           console.log(`Must attack entity: ${entity.id}, source: ${req.source.name}`);
     }
     return;
@@ -156,12 +168,12 @@ export class Player extends Entity {
     let sourceAny = undefined;
     for(const req of this.mustAttackEntity)
     {
-      if(req.target === "topDeck")
+      if(req.targets === "topDeck")
         list.push({ target: "topDeck", source: req.source.jsonAPI });
-      else if(req.target === "any")
+      else if(req.targets === "any")
         sourceAny = req.source.jsonAPI;
       else 
-        for(const entity of req.target as Entity[])
+        for(const entity of req.targets)
       {
         if(entity instanceof Entity === false)
           continue;
@@ -202,9 +214,10 @@ export class Player extends Entity {
    * @param value - The entity or "topDeck" that must be attacked
    * @param source - The card that gave this requirement
    */
-  mustAttack(value: Entity[] | "topDeck" | "any", source: Card): void {
-    this._mustAttackEntity.push({ target: value, source });
-    this.attackThisTurn = Math.max(this.attackThisTurn, this._mustAttackEntity.length); // Ensure at least 1 attack this turn
+  mustAttack(value: Entity[] | "topDeck" | "any", source: Card, checkAttackRemaining: boolean): void {
+    this._mustAttackEntity.push(new AttackRequirement(value, source, checkAttackRemaining));
+    if(!checkAttackRemaining)
+      this.attackThisTurn = Math.max(this.attackThisTurn, this._mustAttackEntity.length); // Ensure at least 1 attack this turn
   }
   
   /**
@@ -215,10 +228,17 @@ export class Player extends Entity {
   }
   
   /**
+   * Returns true if the player has any attack requirement (must attack)
+   */
+  get hasMandatoryAttackRequirement(): boolean {
+    return this._mustAttackEntity.filter(req=> !req.checkAttackRemaining).length > 0;
+  }
+  
+  /**
    * Returns true if player must attack the top of the monster deck
    */
   mustAttackTopDeck(): boolean {
-    return this._mustAttackEntity.some(req => req.target === "topDeck");
+    return this._mustAttackEntity.some(req => req.targets === "topDeck");
   }
   
   /**
@@ -231,12 +251,12 @@ export class Player extends Entity {
     if (this._mustAttackEntity.length > 0)
     {
       const requirements = this._mustAttackEntity.some(
-          req => req.target === elem 
-          || (Array.isArray(req.target) && elem instanceof Entity && req.target.includes(elem))) 
-          || this._mustAttackEntity.every(req => req.target === "any"); // Must be in the list
+          req => req.targets === elem 
+          || (Array.isArray(req.targets) && elem instanceof Entity && req.targets.includes(elem))) 
+          || this._mustAttackEntity.every(req => req.targets === "any"); // Must be in the list
       if(requirements !== true){
         return toSerializedTranslation("capability.attackRequirements");
-        // + You must attack ${this._mustAttackEntity.map(req => req.target instanceof Array ? req.target[0]!.card.name : req.target).join(", ")}.`;
+        // + You must attack ${this._mustAttackEntity.map(req => req.targets instanceof Array ? req.targets[0]!.card.name : req.targets).join(", ")}.`;
       }
       return true;
     }
@@ -262,7 +282,7 @@ export class Player extends Entity {
    */
   clearOutdatedAttackRequirements(elems: Entity[]): boolean {
     this._mustAttackEntity = this._mustAttackEntity.filter(req => {
-      return !(req.target instanceof Array && req.target.every(t => !elems.includes(t)));
+      return !(req.targets instanceof Array && req.targets.every(t => !elems.includes(t)));
     });
     return (!this.hasAttackRequirement && !this.hasFreeAttackRemaining && this.attackThisTurn <= 0 && this.isEngagedInCombat)
   }
@@ -279,7 +299,7 @@ export class Player extends Entity {
     }
 
     // Otherwise, remove the specific entity from the list
-    const index = this._mustAttackEntity.findIndex(req => req.target === elem || (Array.isArray(req.target) && elem instanceof Entity && req.target.includes(elem)));
+    const index = this._mustAttackEntity.findIndex(req => req.targets === elem || (Array.isArray(req.targets) && elem instanceof Entity && req.targets.includes(elem)));
     if (index !== -1) {
       this._mustAttackEntity.splice(index, 1);
     }
@@ -299,11 +319,11 @@ export class Player extends Entity {
         return false;
       }
 
-      if (req.target === elem) {
+      if (req.targets === elem) {
         return false;
       }
 
-      if (Array.isArray(req.target) && elem instanceof Entity && req.target.includes(elem)) {
+      if (Array.isArray(req.targets) && elem instanceof Entity && req.targets.includes(elem)) {
         return false;
       }
 
