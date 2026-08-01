@@ -141,6 +141,8 @@ export class AssertHandler {
       throw new GameError(`You must wait ${this.game.gameParameters.timeBetweenActions.value} seconds between actions.`,
         toSerializedTranslation("error.waitBetweenActions", { seconds: this.game.gameParameters.timeBetweenActions.value })
       );
+  }
+  updateLastTimedAction(): void {
     this.lastTimedAction = new Date().getTime();
   }
 }

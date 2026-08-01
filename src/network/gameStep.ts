@@ -103,6 +103,7 @@ export const enterGameStep = (
     errorGuardedEndpoint(callback, () => {
       room.game.assert.canPlayNow();
       helper.executeDeclareAttackRequest(room.game, player);
+      room.game.assert.updateLastTimedAction();
       return callback({ status: 200 });
     }),
   );
@@ -116,6 +117,7 @@ export const enterGameStep = (
         async (payload) => {
           room.game.assert.canPlayNow();
           await helper.executeAttackMonsterRequest(room.game, payload, player);
+          room.game.assert.updateLastTimedAction();
           return callback({ status: 200 });
         },
       ),
@@ -126,6 +128,7 @@ export const enterGameStep = (
     errorGuardedEndpoint(callback, () => {
       room.game.assert.canPlayNow();
       helper.executeAttackRollRequest(room.game, player);
+      room.game.assert.updateLastTimedAction();
       return callback({ status: 200 });
     }),
   );
@@ -135,6 +138,7 @@ export const enterGameStep = (
       registerRoomActivity(room);
       room.game.assert.canPlayNow();
       await helper.executeResolveRequest(room.game, player);
+      room.game.assert.updateLastTimedAction();
       return callback({ status: 200 });
     }),
   );
@@ -180,6 +184,7 @@ export const enterGameStep = (
             payload,
             player,
           );
+          room.game.assert.updateLastTimedAction();
           return callback({ response: choices, status: 200 });
         },
       ),
@@ -199,6 +204,7 @@ export const enterGameStep = (
             payload,
             player,
           );
+          room.game.assert.updateLastTimedAction();
           return callback({ response: choices, status: 200 });
         },
       ),
@@ -209,6 +215,7 @@ export const enterGameStep = (
     errorGuardedEndpoint(callback, () => {
       room.game.assert.canPlayNow();
       helper.executeDeclarePurchaseRequest(room.game, player);
+      room.game.assert.updateLastTimedAction();
       return callback({ status: 200 });
     }),
   );
@@ -217,6 +224,7 @@ export const enterGameStep = (
     errorGuardedEndpoint(callback, () => {
       room.game.assert.canPlayNow();
       helper.executeCancelPurchaseRequest(room.game, player);
+      room.game.assert.updateLastTimedAction();
       return callback({ status: 200 });
     }),
   );
@@ -230,6 +238,7 @@ export const enterGameStep = (
         (payload) => {
           room.game.assert.canPlayNow();
           helper.executePurchaseRequest(room.game, payload, player);
+          room.game.assert.updateLastTimedAction();
           return callback({ status: 200 });
         },
       ),
@@ -240,6 +249,7 @@ export const enterGameStep = (
     errorGuardedEndpoint(callback, async () => {
       room.game.assert.canPlayNow();
       await helper.executeEndTurnRequest(room.game, player);
+      room.game.assert.updateLastTimedAction();
       return callback({ status: 200 });
     }),
   );
