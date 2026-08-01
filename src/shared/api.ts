@@ -454,6 +454,7 @@ const decksConfigSchema = z.object({
   useRooms: booleanGameParameterSchema.optional(),
   nbPlayerCardRestriction: booleanGameParameterSchema.optional(),
   useFSP2Cards: booleanGameParameterSchema.optional(),
+  useG2Cards: booleanGameParameterSchema.optional(),
   useRCards: booleanGameParameterSchema.optional(),
 
   character: characterDeckSchema,
@@ -471,6 +472,7 @@ const decksConfigPatchSchema = z.object({
   useRooms: booleanGameParameterSchema.optional(),
   nbPlayerCardRestriction: booleanGameParameterSchema.optional(),
   useFSP2Cards: booleanGameParameterSchema.optional(),
+  useG2Cards: booleanGameParameterSchema.optional(),
   useRCards: booleanGameParameterSchema.optional(),
 
   monster: deckConfigCardSchema.optional(),

@@ -272,6 +272,7 @@ class BooleanGameParameter {
 export class GameParameters {
   readonly miniDraft: BooleanGameParameter;
   readonly useFSP2Cards: BooleanGameParameter;
+  readonly useG2Cards: BooleanGameParameter;
   readonly useRCards: BooleanGameParameter;
   readonly nbSoulsToWin: NumericGameParameter;
   readonly nbItemsInShop: NumericGameParameter;
@@ -320,6 +321,8 @@ export class GameParameters {
       return false;
     // FSP2 filter
     if (!this.useFSP2Cards.value && card.slug.startsWith("fsp2-")) return false;
+    // G2 filter
+    if (!this.useG2Cards.value && card.slug.startsWith("g2-")) return false;
     // R filter
     if (!this.useRCards.value && card.slug.startsWith("r-")) return false;
     return true;
@@ -331,6 +334,7 @@ export class GameParameters {
     this.miniDraft = new BooleanGameParameter(false, onChange);
     this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
     this.useFSP2Cards = new BooleanGameParameter(true, onChange);
+    this.useG2Cards = new BooleanGameParameter(false, onChange);
     this.useRCards = new BooleanGameParameter(false, onChange);
     this.nbSoulsToWin = new NumericGameParameter(1, 4, 20, onChange);
     this.character = new CharacterDeckParameter(4, 100, onChange, this._filter);
@@ -419,6 +423,17 @@ export class GameParameters {
               value: this.useFSP2Cards.value,
               translationKey: toSerializedTranslation(
                 "startStep.gameParams.useFSP2Cards",
+              ),
+            },
+          }
+        : {}),
+      ...(this._deckMode === "standard"
+        ? {
+            useG2Cards: {
+              text: "Use gold box+ cards?",
+              value: this.useG2Cards.value,
+              translationKey: toSerializedTranslation(
+                "startStep.gameParams.useG2Cards",
               ),
             },
           }
@@ -587,6 +602,9 @@ export class GameParameters {
         if (decks.useFSP2Cards) {
           this.useFSP2Cards.value = decks.useFSP2Cards.value;
         }
+        if (decks.useG2Cards) {
+          this.useG2Cards.value = decks.useG2Cards.value;
+        }
         if (decks.useRCards) {
           this.useRCards.value = decks.useRCards.value;
         }
@@ -673,6 +691,22 @@ export class GameParameters {
         }
         this._onChange();
       }
+      if (decks.useG2Cards?.value !== undefined) {
+        this.useG2Cards.value = decks.useG2Cards.value;
+        this._deckMode = "standard"; // Switch back to standard mode when player card restriction is toggled, as it's the only flag that affects card counts in standard mode
+        for (const deck of [
+          this.character,
+          this.monster,
+          this.treasure,
+          this.loot,
+          this.bsoul,
+          this.room,
+        ]) {
+          deck.filter = this._filter;
+          deck.resetCardCounts(false);
+        }
+        this._onChange();
+      }
       if (decks.useRCards?.value !== undefined) {
         this.useRCards.value = decks.useRCards.value;
         this._deckMode = "standard"; // Switch back to standard mode when player card restriction is toggled, as it's the only flag that affects card counts in standard mode
@@ -708,6 +742,7 @@ export class GameParameters {
   reset() {
     this.miniDraft.reset();
     this.useFSP2Cards.reset();
+    this.useG2Cards.reset();
     this.useRCards.reset();
     this.nbSoulsToWin.reset();
     this.nbItemsInShop.reset();
