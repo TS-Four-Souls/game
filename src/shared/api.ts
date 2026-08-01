@@ -488,6 +488,7 @@ export type DeckConfigPatch = z.infer<typeof decksConfigPatchSchema>;
 const gameParametersSchema = z.object({
   miniDraft: booleanGameParameterSchema,
   nbSoulsToWin: numberGameParameterSchema,
+  timeBetweenActions: numberGameParameterSchema,
   timer: numberGameParameterSchema,
   nbItemsInShop: numberGameParameterSchema,
   nbEncounters: numberGameParameterSchema,
