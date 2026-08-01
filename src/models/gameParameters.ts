@@ -334,7 +334,7 @@ export class GameParameters {
     this.miniDraft = new BooleanGameParameter(false, onChange);
     this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
     this.useFSP2Cards = new BooleanGameParameter(true, onChange);
-    this.useG2Cards = new BooleanGameParameter(false, onChange);
+    this.useG2Cards = new BooleanGameParameter(true, onChange);
     this.useRCards = new BooleanGameParameter(false, onChange);
     this.nbSoulsToWin = new NumericGameParameter(1, 4, 20, onChange);
     this.character = new CharacterDeckParameter(4, 100, onChange, this._filter);
