@@ -38,7 +38,7 @@ export class ActionHandler {
         if (player.isEngagedInCombat) {
           throw new GameError("You are already engaged in combat.", toSerializedTranslation("capability.youAlreadyInCombat"));
         }
-        if (player.attackThisTurn <= 0 && !player.hasAttackRequirement && !player.hasFreeAttackRemaining)
+        if (player.attackThisTurn <= 0 && !player.hasMandatoryAttackRequirement && !player.hasFreeAttackRemaining)
           throw new GameError("You have no remaining attacks this turn.", toSerializedTranslation("capability.noAttacksRemainingForPlayer"));
         // if(player.hasAttackRequirement)
         //   console.log("Player has attack requirement.");

@@ -229,7 +229,7 @@ export function extraAttackAndDeathTriggerEffect(game: Game, dc: number): AsyncE
         const target = (await data.selectAndRecord(game, issuer as Player, 1, 1, game.players.filter(p => p !== issuer && !p.isDead), toSerializedTranslation("pending.playerToAttack"), true, true)).selected[0];
         if(!target) return false;
         game.entityHandler.makePlayerAttackable(target, dc);
-        game.entityHandler.playerMustAttack(issuer, [target], data.it);
+        game.entityHandler.playerMustAttack(issuer, [target], data.it, false);
         offDeath = game.emitter.on("on:death:penalty", (eventData: OnDeathPenaltyData) => {
             if(eventData.eventIssuer !== target) return;
             eventData.itemsLost.forEach(item => {

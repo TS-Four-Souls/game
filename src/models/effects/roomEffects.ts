@@ -236,14 +236,14 @@ export function doubleRewardsEffect(game: Game): SyncEffectFunction {
 export function activePlayerMustAttackTopDeck(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
-        game.entityHandler.playerMustAttack(game.currentPlayer, "topDeck", data.it);
+        game.entityHandler.playerMustAttack(game.currentPlayer, "topDeck", data.it, true);
         let init: Player | null = game.currentPlayer;
 
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
             if(init === eventData.eventIssuer)
                 return;
             init = null;
-            game.entityHandler.playerMustAttack(game.currentPlayer, "topDeck", data.it);
+            game.entityHandler.playerMustAttack(game.currentPlayer, "topDeck", data.it, true);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -260,14 +260,14 @@ export function activePlayerMustAttackTopDeck(game: Game): SyncEffectFunction {
 export function activePlayerMustAttackAdditionalTimeEffect(game: Game): SyncEffectFunction {
      return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
-        game.entityHandler.playerMustAttack(game.currentPlayer, "any", data.it);
+        game.entityHandler.playerMustAttack(game.currentPlayer, "any", data.it, false);
         let init: Player | null = game.currentPlayer;
 
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
             if(init === eventData.eventIssuer)
                 return;
             init = null;
-            game.entityHandler.playerMustAttack(game.currentPlayer, "any", data.it);
+            game.entityHandler.playerMustAttack(game.currentPlayer, "any", data.it, false);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed

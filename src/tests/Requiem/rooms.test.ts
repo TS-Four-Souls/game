@@ -967,7 +967,7 @@ describe("Requiem Rooms", () => {
         game.random = () => 0.9;
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(player1.hasAttackRequirement).toBe(true);
+        expect(player1.hasMandatoryAttackRequirement).toBe(true);
     });
     it("Bomb bum deal 3 damage", async () => {
         const room = game.obtainCard("r-bomb_bum") as RoomCard;
@@ -1106,19 +1106,19 @@ describe("Requiem Rooms", () => {
         const room = game.obtainCard("r-blood_lust") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         game.resetStack();
-        expect(player1.mustAttackEntity.map((m) => m.target)).toEqual(["any", "any"]);
+        expect(player1.mustAttackEntity.map((m) => m.targets)).toEqual(["any", "any"]);
     });
 
     it("Blood Lust cleanup on room replace", async () => {
         const bloodLust = game.obtainCard("r-blood_lust") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, bloodLust);
         game.resetStack();
-        expect(player1.mustAttackEntity.map((m) => m.target)).toEqual(["any", "any"]);
+        expect(player1.mustAttackEntity.map((m) => m.targets)).toEqual(["any", "any"]);
 
         const replacement = game.obtainCard("r-blessing_of_gluttony") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, replacement);
 
-        expect(player1.mustAttackEntity.map((m) => m.target)).toEqual([]);
+        expect(player1.mustAttackEntity.map((m) => m.targets)).toEqual([]);
     });
 
     it("Blood Donation", async () => {
@@ -1148,7 +1148,7 @@ describe("Requiem Rooms", () => {
         const replacement = game.obtainCard("r-blessing_of_gluttony") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, replacement);
 
-        expect(player1.mustAttackEntity.some((m) => m.target === "topDeck")).toBe(false);
+        expect(player1.mustAttackEntity.some((m) => m.targets === "topDeck")).toBe(false);
     });
 
     it("Blessing Of The Sack", async () => {

@@ -452,7 +452,7 @@ describe("Requiem Monsters ", () => {
 
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
-        expect(player1.hasAttackRequirement).toBe(true);
+        expect(player1.hasMandatoryAttackRequirement).toBe(true);
         game.actions.declareAttack(player1);
         expect(game.actions.canDeclareAttackOnEntity(player1, player2, false)).toBe(true);
         expect(game.actions.canDeclareAttackOnEntity(player1, game.monsters[1]!, false)).not.toBe(true);
@@ -462,7 +462,7 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
-        expect(player1.hasAttackRequirement).toBe(false);
+        expect(player1.hasMandatoryAttackRequirement).toBe(false);
         expect(player1.inPlay.length).toBe(2);
         expect(player2.inPlay.length).toBe(2);
         await game.endTurn();
@@ -1223,7 +1223,7 @@ describe("Requiem Monsters ", () => {
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(game.encounters._slots.length).toBe(3);
-        expect(player1.hasAttackRequirement).toBe(true);
+        expect(player1.hasMandatoryAttackRequirement).toBe(true);
     });
 
     it("holy_brain", async () => {
