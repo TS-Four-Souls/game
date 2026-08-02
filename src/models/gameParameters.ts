@@ -275,7 +275,7 @@ export class GameParameters {
   readonly useG2Cards: BooleanGameParameter;
   readonly useRCards: BooleanGameParameter;
   readonly nbSoulsToWin: NumericGameParameter;
-  readonly timeBetweenActions: NumericGameParameter;
+  readonly resolveCooldown: NumericGameParameter;
   readonly nbItemsInShop: NumericGameParameter;
   readonly timer: NumericGameParameter;
   readonly nbRooms: NumericGameParameter;
@@ -338,7 +338,7 @@ export class GameParameters {
     this.useG2Cards = new BooleanGameParameter(true, onChange);
     this.useRCards = new BooleanGameParameter(false, onChange);
     this.nbSoulsToWin = new NumericGameParameter(1, 4, 20, onChange);
-    this.timeBetweenActions = new NumericGameParameter(0, 0, 100, onChange);
+    this.resolveCooldown = new NumericGameParameter(0, 0, 100, onChange);
     this.character = new CharacterDeckParameter(4, 100, onChange, this._filter);
     this.monster = new DeckParameter(
       "monster",
@@ -466,11 +466,11 @@ export class GameParameters {
           "startStep.gameParams.nbSoulsToWin",
         ),
       },
-      timeBetweenActions: {
-        text: "Time between actions",
-        value: this.timeBetweenActions.value,
+      resolveCooldown: {
+        text: "Cooldown between Resolve",
+        value: this.resolveCooldown.value,
         translationKey: toSerializedTranslation(
-          "startStep.gameParams.timeBetweenActions",
+          "startStep.gameParams.resolveCooldown",
         ),
       },
       allowCheatOptions: {
@@ -754,7 +754,7 @@ export class GameParameters {
     this.useG2Cards.reset();
     this.useRCards.reset();
     this.nbSoulsToWin.reset();
-    this.timeBetweenActions.reset();
+    this.resolveCooldown.reset();
     this.nbItemsInShop.reset();
     this.timer.reset();
     this.nbRooms.reset();

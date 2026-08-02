@@ -136,10 +136,10 @@ export class AssertHandler {
     return this._lastTimedAction;
   }
 
-  canPlayNow(): void {
-    if(new Date().getTime() - this.lastTimedAction < 1000 * this.game.gameParameters.timeBetweenActions.value)
-      throw new GameError(`You must wait ${this.game.gameParameters.timeBetweenActions.value} seconds between actions.`,
-        toSerializedTranslation("error.waitBetweenActions", { seconds: this.game.gameParameters.timeBetweenActions.value })
+  canResolveNow(): void {
+    if(new Date().getTime() - this.lastTimedAction < 1000 * this.game.gameParameters.resolveCooldown.value)
+      throw new GameError(`You must wait ${this.game.gameParameters.resolveCooldown.value} seconds between actions.`,
+        toSerializedTranslation("error.waitBetweenActions", { seconds: this.game.gameParameters.resolveCooldown.value })
       );
   }
   updateLastTimedAction(): void {

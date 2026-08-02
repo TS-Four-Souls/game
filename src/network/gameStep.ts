@@ -101,9 +101,7 @@ export const enterGameStep = (
 
   socket.on("declareAttack", async (callback) =>
     errorGuardedEndpoint(callback, () => {
-      room.game.assert.canPlayNow();
       helper.executeDeclareAttackRequest(room.game, player);
-      room.game.assert.updateLastTimedAction();
       return callback({ status: 200 });
     }),
   );
@@ -115,9 +113,7 @@ export const enterGameStep = (
         schemas.attackMonsterRequest,
         callback,
         async (payload) => {
-          room.game.assert.canPlayNow();
           await helper.executeAttackMonsterRequest(room.game, payload, player);
-          room.game.assert.updateLastTimedAction();
           return callback({ status: 200 });
         },
       ),
@@ -126,9 +122,7 @@ export const enterGameStep = (
 
   socket.on("attackRoll", async (callback) =>
     errorGuardedEndpoint(callback, () => {
-      room.game.assert.canPlayNow();
       helper.executeAttackRollRequest(room.game, player);
-      room.game.assert.updateLastTimedAction();
       return callback({ status: 200 });
     }),
   );
@@ -136,9 +130,10 @@ export const enterGameStep = (
   socket.on("resolve", async (callback) =>
     errorGuardedEndpoint(callback, async () => {
       registerRoomActivity(room);
-      room.game.assert.canPlayNow();
+      room.game.assert.canResolveNow();
       await helper.executeResolveRequest(room.game, player);
-      room.game.assert.updateLastTimedAction();
+      if(room.game.stack.elements.length > 0)
+        room.game.assert.updateLastTimedAction();
       return callback({ status: 200 });
     }),
   );
@@ -178,13 +173,11 @@ export const enterGameStep = (
         schemas.activateWithIDRequest,
         callback,
         async (payload) => {
-          room.game.assert.canPlayNow();
           const choices = await helper.executeActivateWithIdRequest(
             room.game,
             payload,
             player,
           );
-          room.game.assert.updateLastTimedAction();
           return callback({ response: choices, status: 200 });
         },
       ),
@@ -198,13 +191,11 @@ export const enterGameStep = (
         schemas.activateRequest,
         callback,
         async (payload) => {
-          room.game.assert.canPlayNow();
           const choices = await helper.executeActivateRequest(
             room.game,
             payload,
             player,
           );
-          room.game.assert.updateLastTimedAction();
           return callback({ response: choices, status: 200 });
         },
       ),
@@ -213,18 +204,14 @@ export const enterGameStep = (
 
   socket.on("declarePurchase", async (callback) =>
     errorGuardedEndpoint(callback, () => {
-      room.game.assert.canPlayNow();
       helper.executeDeclarePurchaseRequest(room.game, player);
-      room.game.assert.updateLastTimedAction();
       return callback({ status: 200 });
     }),
   );
 
   socket.on("cancelPurchase", async (callback) =>
     errorGuardedEndpoint(callback, () => {
-      room.game.assert.canPlayNow();
       helper.executeCancelPurchaseRequest(room.game, player);
-      room.game.assert.updateLastTimedAction();
       return callback({ status: 200 });
     }),
   );
@@ -236,9 +223,7 @@ export const enterGameStep = (
         schemas.purchaseRequest,
         callback,
         (payload) => {
-          room.game.assert.canPlayNow();
           helper.executePurchaseRequest(room.game, payload, player);
-          room.game.assert.updateLastTimedAction();
           return callback({ status: 200 });
         },
       ),
@@ -247,9 +232,7 @@ export const enterGameStep = (
 
   socket.on("endTurn", async (callback) =>
     errorGuardedEndpoint(callback, async () => {
-      room.game.assert.canPlayNow();
       await helper.executeEndTurnRequest(room.game, player);
-      room.game.assert.updateLastTimedAction();
       return callback({ status: 200 });
     }),
   );

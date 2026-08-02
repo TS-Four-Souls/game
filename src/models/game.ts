@@ -777,6 +777,7 @@ export class Game extends SelectionHandler {
     }
 
     this.stack.push(item);
+    this.assert.updateLastTimedAction();
     this.dispatch();
     return item.stackId;
   }

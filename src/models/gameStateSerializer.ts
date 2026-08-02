@@ -42,7 +42,8 @@ export class GameStateSerializer {
       round: this.game.gameParameters.timer.value > 0 ? this.game.gameParameters.timer.value + 1 - this.game.turnHandler.round : this.game.turnHandler.round,
       history: this.game.history,
       stack: this.game.stack.elements.map((el) => el.json).toReversed(),
-      animations: player.animations(true)
+      animations: player.animations(true),
+      lastStackElementTimeStamp: this.game.assert.lastTimedAction
     };
   }
   /**
