@@ -11,6 +11,7 @@ import type {
 } from "@/shared/api";
 import { toSerializedTranslation } from "@/utils/translation";
 import type { Card, CharacterCard, DeckType } from "./cards";
+import { FORBIDDEN_PREFIXES } from "@/utils/loadCards";
 class NumericGameParameter {
   private _value: number;
   private _min: number;
@@ -407,35 +408,38 @@ export class GameParameters {
             },
           }
         : {}),
-      ...(this._deckMode === "standard" && this.room.cardsParam.length > 0
+      ...(this._deckMode === "standard" && !FORBIDDEN_PREFIXES.includes("r-")
         ? {
             useRCards: {
               text: "Use Requiem cards?",
               value: this.useRCards.value,
               translationKey: toSerializedTranslation(
-                "startStep.gameParams.useRCards",
+                "startStep.gameParams.useExpansionCards",
+                  {expansionName: "Requiem"},
               ),
             },
           }
         : {}),
-      ...(this._deckMode === "standard"
+      ...(this._deckMode === "standard" && !FORBIDDEN_PREFIXES.includes("fsp2-")
         ? {
             useFSP2Cards: {
               text: "Use four souls+ cards?",
               value: this.useFSP2Cards.value,
               translationKey: toSerializedTranslation(
-                "startStep.gameParams.useFSP2Cards",
+                "startStep.gameParams.useExpansionCards",
+                  {expansionName: "Four Souls+"},
               ),
             },
           }
         : {}),
-      ...(this._deckMode === "standard"
+      ...(this._deckMode === "standard" && !FORBIDDEN_PREFIXES.includes("g2-")
         ? {
             useG2Cards: {
               text: "Use gold box+ cards?",
               value: this.useG2Cards.value,
               translationKey: toSerializedTranslation(
-                "startStep.gameParams.useG2Cards",
+                "startStep.gameParams.useExpansionCards",
+                  {expansionName: "Gold Box V2"},
               ),
             },
           }
