@@ -16,7 +16,7 @@ import { DiceRoll, LootStepOnStack } from "@/models/stackElement";
 import type { DeckType, DecksCollection } from "@/models/types/cardTypes";
 import { EffectData } from "@/models/types/cardTypes";
 import { type LoseCoinsReason, type TriggerEvent } from '@/models/types/eventTypes';
-import type { Animation, DetailedState, StackElementJson, Team } from "@/shared/api";
+import type { Animation, DetailedState, SelectionItem, SerializedTranslation, StackElementJson, Team } from "@/shared/api";
 import { shuffle } from "@/utils/auxiliary";
 import { generateAnimationId } from "@/utils/random";
 import { Signal, type ReadableSignal } from "micro-signals";
@@ -44,7 +44,7 @@ import { GameError } from "@/models/GameError";
  * The Game class is the central hub of the game logic, managing the state of the game, players, monsters, decks, shop, encounters, stack, and more. 
  * It also handles all player actions such as declaring attacks, dealing damage, resolving deaths, and managing the game history. 
  */
-export class Game extends SelectionHandler {
+export class Game {
   private _turnHandler: TurnHandler = new TurnHandler();
   private _random: () => number = () => {throw new GameError("Random generator not initialized yet.", 
     toSerializedTranslation("error.behaviorError", {error: "Random generator not initialized yet."}))
@@ -64,6 +64,7 @@ export class Game extends SelectionHandler {
   readonly _assertHandler: AssertHandler = new AssertHandler(this);
   readonly _actionHandler = new ActionHandler(this);
   private _entityHandler = new EntityHandler(this);
+  private _selectionHandler = new SelectionHandler(this);
   private _cardHandler = new CardHandler(this);
   private _promises: Promise<boolean>[] = [];
 
@@ -77,7 +78,6 @@ export class Game extends SelectionHandler {
   onEndReached: ReadableSignal<void> = this._onEndReached.readOnly();
 
   constructor(seed: string = "", gameParameters?: GameParameters) {
-    super();
     this.seed = seed; // if seed is empty, it will be set to a random value.
     this._emitter = new GameEventEmitter();
     this._gameStateSerializer = new GameStateSerializer(this);
@@ -241,25 +241,84 @@ export class Game extends SelectionHandler {
   get bonusSouls(): BsoulCard[] | undefined {
     return this.cardHandler.bonusSouls;
   }
-  get pendingMultipleSelections(): Map<number, PendingSelection> {
-    return this._pendingMultipleSelections;
-  }
   getRollbackLog(player: Player): HistoricEntry[] {
     if(!this.gameParameters.allowCheatOptions.value && this._historicHandler.lastUserRequestIssuer === player.id)
       throw new GameError("Cheat options are not allowed in this game. You can only rollback other players' actions.",
-        toSerializedTranslation("error.cheatOptionsNotAllowed"));
+    toSerializedTranslation("error.cheatOptionsNotAllowed"));
     const logs = this._historicHandler.rollbackLog;
     return logs;
   }
   /**
    * Finds the owner of a soul or in-play item card.
-   */
-  getOwner(item: Card, type: "inplay" | "soul" | "any" = "any"): Player | null {
-    return this.cardHandler.getOwner(item, type);
+  */
+ getOwner(item: Card, type: "inplay" | "soul" | "any" = "any"): Player | null {
+   return this.cardHandler.getOwner(item, type);
   }
-
+  
   getCardByGlobalId(globalId: number): Card | undefined {
     return this.cardHandler.getCardByGlobalId(globalId);
+  }
+  ////////////////////////////////////// Selection Handler //////////////////////////////////////
+  get hasPendingSelections(): boolean {
+    return this._selectionHandler.hasPendingSelections;
+  }
+  
+  get pendingMultipleSelections(): Map<number, PendingSelection> {
+    return this._selectionHandler.pendingMultipleSelections;
+  }
+
+  setSelectionHandlerNextId(id: number){
+    this._selectionHandler.setSelectionHandlerNextId(id);
+  }
+
+  /** Select is used to obtain a selection from a single player
+   * If n=1 and only one option is available, it is automatically selected
+   * The player must select between min and max options.
+   * Returns a Promise that resolves to an object containing the selected and remaining options
+  */
+  async select<T>(
+      player: Player,
+      min: number,
+      max: number,
+      Options: T[],
+      description: SerializedTranslation,
+
+      skippable: boolean = true,
+      canUseOnBoardSelection: boolean = true,
+  ): Promise<{ selected: T[]; remaining: T[] }> {
+    return this._selectionHandler.select(player, min, max, Options, description, skippable, canUseOnBoardSelection);
+  }
+
+  // Select from multiple players in parallel (useful for voting)
+  // Method to submit a selection from the client
+  /**
+   * Submits a player's answer for a pending selection request.
+   */
+  submitSelection(
+    player: Player,
+    requestId: number,
+    selectedIdentifiers: SelectionItem[]
+  ): void {
+    this._selectionHandler.submitSelection(player, requestId, selectedIdentifiers);
+  }
+
+  /**
+   * Opens multiple simultaneous selection prompts and waits for all.
+   * @param skippable is not implemented yet.
+   */
+  async selectMultiple<T>(
+    selections: 
+    {
+      player: Player;
+      min: number;
+      max: number;
+      options: T[];
+      description: SerializedTranslation;
+      skippable?: boolean;
+      canUseOnBoardSelection: boolean;
+    }[]
+  ): Promise<{ playerId: string; selected: T[]; remaining: T[] }[]> {
+    return this._selectionHandler.selectMultiple(selections);
   }
 ////////////////////////////////////// Seeded random //////////////////////////////////////
 
@@ -393,7 +452,7 @@ export class Game extends SelectionHandler {
     this.cardHandler.assignCharactersToPlayers(chara);
 
     this.assert.minimumPlayerCount();
-    this._pendingMultipleSelections.clear();
+    this._selectionHandler.clearPendingSelections();
     if (shufflePlayerOrder) {
       shuffle(this.random, this.players);
     }
@@ -524,7 +583,7 @@ export class Game extends SelectionHandler {
     this.resetStack();
     this._promises = [];
     this._emitter = new GameEventEmitter();
-    this._pendingMultipleSelections = new Map();
+    this._selectionHandler.resetPendingSelections();
     this._stackSubsetCallbacks = [];
     this._isWon = false;
   }
