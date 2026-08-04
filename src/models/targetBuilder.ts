@@ -1,10 +1,10 @@
 import { shuffle } from "@/utils/auxiliary";
-import type { DeckName, SelectionItem, TargetSelectorResponse, SerializedTranslation, Capability } from "../shared/api";
+import { type DeckName, type SelectionItem, type TargetSelectorResponse, type SerializedTranslation, type Capability, serializedTranslationSchema } from "../shared/api";
 import { Card, ItemCard, LootCard, type TargetsSelector } from "./cards";
 import { Entity } from "./entities/entity";
 import { type Game } from "./game";
 import { GameError } from "@/models/GameError";
-import type { Player } from "./entities/player";
+import { Player } from "./entities/player";
 import { isStackElement } from "./stack";
 import { isChooseOneOptions, type ChooseOneOptions } from "./targetSelector";
 import { toSerializedTranslation } from "@/utils/translation";
@@ -341,11 +341,13 @@ export class TargetBuilder {
             }
             
             // { player: Player; hand: Hand }
-            if( typeof option === 'object' && 'player' in option && 'hand' in option)
-                return {type: "couplePlayerHand", payload: {player: {nameKey: (option.player as Player).character.nameKey, slug: (option.player as Player).slug, globalId: (option.player as Player).globalId}, hand: option.hand.cards.map((c: Card) => {return {nameKey: c.nameKey, slug: c.slug, globalId: c.globalId}})}};
+            if( typeof option === 'object' && 'player' in option && option.player instanceof Player && 'hand' in option)
+                return {type: "couplePlayerHand", payload: {player: {nameKey: option.player.character.nameKey, slug: option.player.slug, globalId: option.player.globalId}, hand: option.hand.cards.map((c: Card) => {return {nameKey: c.nameKey, slug: c.slug, globalId: c.globalId}})}};
             
-            if(typeof option === 'object' && option.key !== null)
-                return {type: "serializedTranslation", payload: option};
+            const serializedTranslationParsed = serializedTranslationSchema.safeParse(option);
+            if(serializedTranslationParsed.success) {
+                return {type: "serializedTranslation", payload: serializedTranslationParsed.data};
+            }
             if (Array.isArray(option) || typeof option === 'object') {
                 try {
                     return {type: "array", payload: TargetBuilder.convertToSelectionItems(option)};

@@ -7,7 +7,7 @@ export type BasicSerializedTranslation = z.infer<
   typeof basicSerializedTranslationSchema
 >;
 
-const serializedTranslationSchema = basicSerializedTranslationSchema.extend({
+export const serializedTranslationSchema = basicSerializedTranslationSchema.extend({
   interpolates: z
     .record(
       z.string(),
