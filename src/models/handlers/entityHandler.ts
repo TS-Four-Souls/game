@@ -388,7 +388,9 @@ export class EntityHandler {
 
     // Filter monsters that are still in play
     const validMonsters = requirement.filter(
-      (req) => req.targets === "topDeck" || req.targets === "any" || req.targets.some(target => this.game.attackableEntities.includes(target))
+      (req) => 
+        (req.checkAttackRemaining === false || player.attackThisTurn > 0) &&
+        (req.targets === "topDeck" || req.targets === "any" || req.targets.some(target => this.game.attackableEntities.includes(target)))
     );
 
     if (validMonsters.length === 0) {
