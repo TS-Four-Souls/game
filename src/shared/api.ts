@@ -200,7 +200,6 @@ const temporaryEffectSchema = z.object({
   card: identifierTypeSchema,
   issuer: z.string(),
   targets: z.array(selectionItemSchema),
-  description: z.string(),
   visualEffectBox: VisualEffectBoxSchema.optional(),
 });
 export type TemporaryEffect = z.infer<typeof temporaryEffectSchema>;

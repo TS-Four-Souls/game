@@ -44,12 +44,11 @@ import {selectPlayerOrMonster} from "@/models/effects/parsing/selectors.ts";
 import { noTargetEffect } from './parsing/logicParsers';
 import { toSerializedTranslation } from '@/utils/translation';
 
-function getTemporaryEffect(data: EffectData, description: string): TemporaryEffect {
+function getTemporaryEffect(data: EffectData): TemporaryEffect {
     return{
             card: data.it.jsonAPI,
             issuer: data.issuer.id,
             targets: TargetBuilder.convertToSelectionItems(data.targets),
-            description: description,
             visualEffectBox: data.visualEffectBox
         };
 }
@@ -75,7 +74,7 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): SyncEff
     return (data:EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
-        const temp: TemporaryEffect = getTemporaryEffect(data, `Prevent the next instance of up to ${amount} damage they would take this turn.`);
+        const temp: TemporaryEffect = getTemporaryEffect(data);
         let target = data.peek();
         if(data.targets.length == 0)
             target = data.issuer;
@@ -318,7 +317,7 @@ export function temporaryStatModifierEffect(
         }
         if(!target || !(target instanceof Entity))
             return false;
-        const temp: TemporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
+        const temp: TemporaryEffect = getTemporaryEffect(data);
         target.addTemporaryEffect(temp);
 
         for(const adder of adders)
@@ -778,7 +777,7 @@ export function setNextDamageToXEffect(setTo: number, game: Game): SyncEffectFun
     return (data:EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
-        const temp: TemporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
+        const temp: TemporaryEffect = getTemporaryEffect(data);
         const target = data.targets.length > 0 ? data.peek() : data.issuer;
         target.addTemporaryEffect(temp);
 
@@ -1994,7 +1993,7 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): SyncE
     return (data: EffectData) => {
         let offLoot: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
-        const temp: TemporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
+        const temp: TemporaryEffect = getTemporaryEffect(data);
         data.issuer.addTemporaryEffect(temp);
 
         // Listen for the next loot event on this player
@@ -2230,7 +2229,7 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
-        const temp: TemporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
+        const temp: TemporaryEffect = getTemporaryEffect(data);
         data.issuer.addTemporaryEffect(temp);
 
         const cleanup = (): void => {
@@ -3061,7 +3060,7 @@ export function lootDoubleThisTurnEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         let offEndTurn: (() => void) | null = null;
-        const temp: TemporaryEffect = getTemporaryEffect(data, `Temporary stats modifier.`);
+        const temp: TemporaryEffect = getTemporaryEffect(data);
         data.issuer.addTemporaryEffect(temp);
         const target = data.next;
         // Listen for the next damage event on this player
