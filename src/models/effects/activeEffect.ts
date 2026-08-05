@@ -259,7 +259,7 @@ export function lookAtTopXDeck(deckName: string, game: Game, nbCards: number): A
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const cards: Card[] = game.decks[deckName].cards.slice(0, nbCards);
-        const selectionResult = await data.selectAndRecord(game, data.issuer, 0, 0, cards, qq("pending.lookAtTopCardOfDeck", {deck: deckName}), true, false);
+        const selectionResult = await data.selectAndRecord(game, data.issuer, 0, 0, cards, qq("pending.lookAtTopCardOfDeck", {deck: game.decks[deckName].translatedType}), true, false);
         return true;
     };
 }
@@ -1256,7 +1256,7 @@ export function lookAtPlayerHandAndTopOfDeckEffect(game: Game): AsyncEffectFunct
         if(!(targetPlayer instanceof Player) || !!isDeckType(deck))
             throw new GameError("Invalid target for lookAtPlayerHandAndTopOfDeckEffect.", toSerializedTranslation("error.behaviorError", { error: "Invalid target for lookAtPlayerHandAndTopOfDeckEffect."}));
         await data.selectAndRecord(game, data.issuer, 0, 0, targetPlayer.hand.cards, qq("pending.lookAtPlayerHand", {name: targetPlayer.id}), false, false);
-        await data.selectAndRecord(game, data.issuer, 0, 0, [deck.cards[0]], qq("pending.lookAtTopCardOfDeck", {deck: deck._type}), false, false);
+        await data.selectAndRecord(game, data.issuer, 0, 0, [deck.cards[0]], qq("pending.lookAtTopCardOfDeck", {deck: deck.translatedType}), false, false);
         return true;
     };
 }
@@ -1275,7 +1275,7 @@ export function LookAndPutBottomEffect(
             throw new GameError(`Deck ${deckName} does not exist.`, toSerializedTranslation("error.behaviorError", { error: `Deck ${deckName} does not exist.`}));
         }
         const topCard = deck.draw();
-        const res = await data.selectAndRecord(game, data.issuer, 0, 1, [topCard], qq("pending.lookAtTopCardOfNamedDeck", {deck: deckName}), false, false);
+        const res = await data.selectAndRecord(game, data.issuer, 0, 1, [topCard], qq("pending.lookAtTopCardOfNamedDeck", {deck: game.decks[deckName].translatedType}), false, false);
         if (res.selected.length > 0) {
             game.cardHandler.addBottomPosition(deckName, topCard);
         } else {
@@ -1707,9 +1707,9 @@ export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestinati
         // getFirstCardsOfDeck(deckName, 1)[0];
         const justWatch = canPutWhere === "just_watch";
         const description = 
-            canPutWhere === "just_watch" ? qq("pending.lookAtTopCardOfDeck", {deck: deck._type}) 
-            : canPutWhere === "bottom" ? qq("pending.lookAtTopCardOfDeckAndPutOnBottom", {deck: deck._type}) 
-                : qq("pending.lookAtTopCardOfDeckAndDiscard", {deck: deck._type});
+            canPutWhere === "just_watch" ? qq("pending.lookAtTopCardOfDeck", {deck: deck.translatedType}) 
+            : canPutWhere === "bottom" ? qq("pending.lookAtTopCardOfDeckAndPutOnBottom", {deck: deck.translatedType}) 
+                : qq("pending.lookAtTopCardOfDeckAndDiscard", {deck: deck.translatedType});
         const selectionResult = reveal
          ? (await data.selectMultipleAndRecord(game, game.players.map(player => ({
                 player,

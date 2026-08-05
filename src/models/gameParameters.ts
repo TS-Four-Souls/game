@@ -181,7 +181,7 @@ class DeckParameter {
         `Card with slug ${slug} not found in deck ${this._type}`,
         toSerializedTranslation("error.cardWithSlugNotFound", {
           slug: slug,
-          deck: toSerializedTranslation(`startStep.gameParams.decks.${this._type as DeckName}s`),
+          deck: toSerializedTranslation(`startStep.gameParams.decks.${this._type as DeckName}`),
         }),
       );
     }
