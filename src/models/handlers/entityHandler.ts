@@ -214,9 +214,10 @@ export class EntityHandler {
     });
   }
   /** Cancels previous death entry for a player and stabilizes at 1 HP if needed. */
-  preventDeath(entity: Entity): void {
-    this.game.stack.cancelPreviousDeath(entity);
+  preventDeath(entity: Entity): boolean {
+    const cancelled = this.game.stack.cancelPreviousDeath(entity);
     if (entity.currentHealthPoints === 0) this.heal(entity, 1);
+    return cancelled;
   }
   /**
    * Grants coin/loot/treasure rewards when a monster dies to the current player.

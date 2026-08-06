@@ -616,12 +616,17 @@ export function endTurnOnAttackRollXEffect(game: Game, rollValue: number) {
 export function cancelNextDeathOfAPlayer(game: Game, description: string): SyncEffectFunction{
     return (data: EffectData) => {
         const target = data.next;
+
+        if(game.entityHandler.preventDeath(target))
+            return true;
         let offDeath: (() => void) | null = null;
         let offEndTurn: (() => void) | null = null;
-        
+        const temp: TemporaryEffect = getTemporaryEffect(data);
+        data.issuer.addTemporaryEffect(temp);
 
         const clean: ()=> void =()=>
         {
+            data.issuer.removeTemporaryEffect(temp);
             offDeath?.();
             offDeath = null;
             offEndTurn?.();

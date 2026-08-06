@@ -155,14 +155,15 @@ export class Stack {
         return {event: event as TriggerEvent, orderedListenerIds};
       }
 
-    cancelPreviousDeath(entity: Entity): void {
+    cancelPreviousDeath(entity: Entity): boolean {
         for (let i = this._stack.length - 1; i >= 0; i--) {
             const element = this._stack[i];
             if (element?.json.type === "death") {
                 this._stack.splice(i, 1);
-                return;
+                return true;
             }
         }
+        return false;
     }
 
     resolve(): StackElement | undefined {
