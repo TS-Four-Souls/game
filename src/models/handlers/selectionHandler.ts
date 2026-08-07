@@ -85,7 +85,7 @@ export class SelectionHandler {
     }
     if (Options.length === 0) return { selected: [], remaining: [] };
     
-    const results = await this.selectMultiple([
+    const results = await this.game.selectMultiple([
       {
         player,
         min: min,

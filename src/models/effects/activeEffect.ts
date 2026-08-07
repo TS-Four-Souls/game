@@ -3046,7 +3046,7 @@ export function rechargeUpToXChara(game: Game, x: number): AsyncEffectFunction {
         if(data.issuer instanceof Player === false)
             return false;
         const charas = game.players.map(p=>p.character);
-        const toRecharge = (await game.select(data.issuer, 0, x, charas, qq("pending.upToXCharacters", {value: x}), false, true)).selected;
+        const toRecharge = (await data.selectAndRecord(game, data.issuer, 0, x, charas, qq("pending.upToXCharacters", {value: x}), true, true, true)).selected;
         game.cardHandler.rechargeMultiple(data.issuer, data.it, toRecharge);
         return true;
     };
