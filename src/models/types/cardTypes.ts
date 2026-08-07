@@ -3,6 +3,7 @@ import type { Entity } from '../entities/entity';
 import type { Card, LootCard, TreasureCard, EternalCard, CharacterCard, MonsterCard, BsoulCard, RoomCard } from '../cards';
 import type { Game } from '../game';
 import type { VisualEffectBox, SerializedTranslation } from '@/shared/api';
+import type { CardAndBox } from '../handlers/entityHandler';
 
 /**
  * Type of effect execution - how the effect is triggered
@@ -52,7 +53,9 @@ export class EffectData {
     set issuerProvider(issuerProvider: () => Entity) {
         this._issuerProvider = issuerProvider;
     }
-
+    get cardAndBox(): CardAndBox{
+        return {card: this.it, visualEffectBox: this.visualEffectBox};
+    }
     get issuerProvider(): () => Entity {
         return this._issuerProvider;
     }

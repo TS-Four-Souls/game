@@ -7,6 +7,7 @@ import { Player } from "./entities/player";
 import { TargetBuilder } from "./targetBuilder";
 import { trueEffect } from "./effects/activeEffect";
 import { toSerializedTranslation } from "@/utils/translation";
+import type { DamageSource } from "./handlers/entityHandler";
 
 interface StackElementJsonBase {
   id: number;
@@ -156,6 +157,7 @@ export class DiceRoll extends StackElement {
     } else {
       this._attackRoll = false;
       this._card = data as Card;
+      this._visualEffectBox = data.visualEffectBoxFromDescription("roll-");
     }
     this._value = this.roll();
   }
@@ -267,7 +269,7 @@ export class DiceRoll extends StackElement {
       issuer: this.issuer.json, 
       card: !this._attackRoll ? this._card!.jsonAPI : undefined,
       visualEffectBox: this.obtainVisualBox(),
-      targets: !this._attackRoll ? TargetBuilder.convertToSelectionItems(this._targets) : undefined,
+      targets: !this._attackRoll ? TargetBuilder.convertToSelectionItems(this._targets.filter(s => typeof s !== "string")) : undefined,
       ...super.baseJson,
       modifier: (this._attackRoll ? this._issuer.attackDiceModifier : 0) + this._issuer.diceModifier,
     }
@@ -283,13 +285,13 @@ export class DiceRoll extends StackElement {
       return undefined;
     if(!this._visualEffectBox)
       return undefined;
-    if(this._effect[this.value - 1] == trueEffect())
+    if(this._effect[this.value - 1]!.name === "trueEffect")
       return undefined;
     const range = this._visualEffectBox.endIndex - this._visualEffectBox.startIndex + 1;
     if(range === 1)
       return this._visualEffectBox;
-    const step = 6 / range;
-    const boxIndex = Math.floor(this.value / step);
+    const step = this._effect.reduce((acc, cur, idx, arr) => acc + (arr[idx]!.name !== "trueEffect" ? 1 : 0), 0) / range;
+    const boxIndex = Math.floor((this.value - 1) / step);
     return {startIndex: this._visualEffectBox.startIndex + boxIndex, endIndex: this._visualEffectBox.startIndex + boxIndex};
   }
 
@@ -338,7 +340,7 @@ export class DamageOnStack extends StackElement {
   from: Entity;
   receiver: Entity;
   damage: number[];
-  _source: Card | DiceRoll;
+  _source: DamageSource;
   _targets: any[] = [];
   _effect: EffectFunction | null = null;
   game: Game;
@@ -347,7 +349,7 @@ export class DamageOnStack extends StackElement {
     from: Entity,
     receiver: Entity,
     damage: number[],
-    source: Card | DiceRoll,
+    source: DamageSource,
     game: Game
   ) {
     super();
@@ -357,7 +359,7 @@ export class DamageOnStack extends StackElement {
     this._source = source;
     this.game = game;
   }
-  attachEffect(effect: EffectFunction, source: Card | DiceRoll, targets: any[] = []): void {
+  attachEffect(effect: EffectFunction, source: DamageSource, targets: any[] = []): void {
     this._effect = effect;
     this._source = source;
     this._targets = targets;
@@ -365,25 +367,27 @@ export class DamageOnStack extends StackElement {
 
   async onResolve(): Promise<void> {
     if(this._effect) {
-      const card = this._source instanceof DiceRoll ? this._source.card! : this._source;
+      const card = this._source.card!;
       if(this.from instanceof Player === false)
         throw new GameError("Damage effect issuer is not a player", toSerializedTranslation("error.behaviorError", { error: "Damage effect issuer is not a player" }));
       await this._effect(new EffectData(card, () => this.from, [this, this._targets]));
     }
   }
   override get json(): DamageOnStackJson {
-    const sourceName = this._source instanceof DiceRoll ? this._source.json : this._source.jsonAPI;
+    const sourceName = this._source instanceof DiceRoll ? this._source.json : this._source.card.jsonAPI;
+    const box = this._source instanceof DiceRoll ? undefined : this._source.visualEffectBox;
     return {
       type: "damage",
       from: this.from.json, 
       receiver: this.receiver.json, 
       damage: this.damage[0]!, 
       source: sourceName,
+      visualEffectBox: box,
       ...super.baseJson,
     };
   }
   override get debugLogs(): string {
-    return `${this.from.id} deals ${this.damage[0]} damage to ${this.receiver.id} (${this.receiver.currentHealthPoints})HP with source ${this._source instanceof DiceRoll ? "Dice Roll" : this._source.name} (Targets: ${TargetBuilder.convertToSelectionItems(this._targets)})`;
+    return `${this.from.id} deals ${this.damage[0]} damage to ${this.receiver.id} (${this.receiver.currentHealthPoints})HP with source ${this._source instanceof DiceRoll ? "Dice Roll" : this._source.card.name} (Targets: ${TargetBuilder.convertToSelectionItems(this._targets)})`;
   }
 };
 
@@ -391,13 +395,13 @@ export class DeathOnStack extends StackElement {
 
   receiver: Entity;
   from: Entity;
-  source: Card | DiceRoll; 
+  source: DamageSource; 
   game: Game;
 
   constructor(
     receiver: Entity,
     from: Entity,
-    source: Card | DiceRoll,
+    source: DamageSource,
     game: Game
   ) {
     super();
@@ -411,32 +415,34 @@ export class DeathOnStack extends StackElement {
   }
 
   override get json(): DeathOnStackJson {
-    const sourceName = this.source instanceof DiceRoll ? this.source.json : this.source.jsonAPI;
+    const sourceName = this.source instanceof DiceRoll ? this.source.json : this.source.card.jsonAPI;
+    const box = this.source instanceof DiceRoll ? undefined : this.source.visualEffectBox;
     this.receiver.json;
     return {
       type: "death",
       receiver: this.receiver.json,
       from: this.from.json,
       source: sourceName,
+      visualEffectBox: box,
       ...super.baseJson,
     };
   }
   override get debugLogs(): string {
-    const sourceName = this.source instanceof DiceRoll ? "Dice Roll" : this.source.name;
+    const sourceName = this.source instanceof DiceRoll ? "Dice Roll" : this.source.card.name;
     return `${this.from.id} kills ${this.receiver.id} with source ${sourceName}`;
   }
 };
 
 export class LootStepOnStack extends StackElement {
   
-  player: Player
-  nbLoots: number;
+  _player: Player
+  _nbLoots: number;
   game: Game;
   
   constructor(player: Player, nbLoots: number, game: Game) {
     super();
-    this.player = player;
-    this.nbLoots = nbLoots;
+    this._player = player;
+    this._nbLoots = nbLoots;
     this.game = game;
   }
   override get json(): LootStepJson {
@@ -453,6 +459,18 @@ export class LootStepOnStack extends StackElement {
   override async onResolve(): Promise<void> {
     this.game.lootStep(this.player, this.nbLoots);
     return new Promise(resolve => setTimeout(resolve, 0));
+  }
+  get nbLoots(){
+    return this._nbLoots;
+  }
+  set nbLoots(value: number){
+    this._nbLoots = value;
+  }
+  get player(){
+    return this._player;
+  }
+  set player(newPlayer: Player){
+    this._player = newPlayer;
   }
 }
 
@@ -506,12 +524,18 @@ export class LootCardEffect extends StackElement {
     override onCancel(game: Game): void {
       game.decks.loot.addDiscardTop(this._card);
     }
+    get visualEffectBox(): VisualEffectBox | undefined{
+      if(typeof this.targets[0] === "string")
+        return this.card.visualEffectBoxFromDescription(this.targets[0]);
+      return this.card.getEffectRange(0)[0];
+    }
     override get json(): LootCardOnStackJson {
         return {
             type: "LootCardEffect",
             card: this.card.jsonAPI,
-            targets: TargetBuilder.convertToSelectionItems(this.targets),
+            targets: TargetBuilder.convertToSelectionItems(this.targets.filter(s => typeof s !== "string")),
             issuer: this.issuer.json,
+            visualEffectBox: this.visualEffectBox,
             ...super.baseJson,
         };
     }
@@ -567,7 +591,7 @@ export class EffectOnStack extends StackElement {
         return {
             type: "effect",
             issuer: this._data.issuer.json,
-            targets: TargetBuilder.convertToSelectionItems([...this._data.targets, ...this._data.selectedOnResolve]),
+            targets: TargetBuilder.convertToSelectionItems([...this._data.targets.filter(s => typeof s !== "string"), ...this._data.selectedOnResolve.filter(s => typeof s !== "string")]),
             card: this.data.it.jsonAPI,
             effect: this._description,
             visualEffectBox: this._visualEffectBox,

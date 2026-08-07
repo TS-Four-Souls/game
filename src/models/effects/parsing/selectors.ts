@@ -15,7 +15,8 @@ import {
     topAnyDiscardSelector,
     visibleItemSelector,
     YourItemSelector,
-    diceWillRollSelector
+    diceWillRollSelector,
+    stackElementThatTargetMyItemOrDiceSelector
 } from "@/models/targetSelector.ts";
 import {Card, ItemCard, MonsterCard} from "@/models/cards.ts";
 import { DiceWillRoll, EffectOnStack, LootCardEffect } from '@/models/stackElement';
@@ -63,6 +64,9 @@ export const selectMonsterNotAttackedOrShopItem = (game: Game, min: number = 1, 
     [createSelector(toSerializedTranslation("selector.monsterNotBeingAttackedOrShopItem"), (issuer: Player) => (game.monsters.filter(m => !m.isEngagedInCombat).map(e=>e.card) as Card[]).concat(game.shop.cardsOnTop.filter(c=>c!=undefined)), min, max)];
 export const selectMonster = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.monster"), (issuer: Player) => game.monsters, min, max)];
+export const selectMomMonster = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
+    [createSelector(toSerializedTranslation("selector.monster"), (issuer: Player) => game.monsters.filter(m => {
+        return ["Mom!", "Mom’s Heart!", "It Lives!"].includes(m.card.name);}), min, max)];
 export const selectAttackableMonster = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.monster"), (issuer: Player) => game.monsters.filter(m => m.attackable), min, max)];
 export const selectPassiveAbilityOrMonsterAbility = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
@@ -127,7 +131,7 @@ export const selectEternalItemYouControl = (game: Game, min: number = 1, max: nu
 export const selectAnotherItemYouControl = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.anotherItemYouControl"), YourItemSelector((player: Player, card: ItemCard) => card.eternal === false, true, game), min, max)];
 export const selectSoulYouControl = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
-    [createSelector(toSerializedTranslation("selector.destroySoulYouControl"), (issuer: Player) => issuer.souls, min, max)];
+    [createSelector(toSerializedTranslation("selector.destroySoulYouControl"), (issuer: Player) => issuer.targetableSouls, min, max)];
 export const selectNonEternalItemFromAnywhere = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.nonEternalItemFromPlayerOrShop"), visibleItemSelector((card: ItemCard, issuer: Player) => card.eternal === false, false, game), min, max)];
 export const selectAnotherNonEternalItemFromAnywhere = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
@@ -135,7 +139,7 @@ export const selectAnotherNonEternalItemFromAnywhere = (game: Game, min: number 
 export const selectAnotherItemFromAnywhere = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.nonEternalItemFromPlayerOrShop"), visibleItemSelector((card: ItemCard, issuer: Player) => true, true, game), min, max)];
 export const selectPlayerWithMostSouls = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
-    [createSelector(toSerializedTranslation("selector.playerWithMostSouls"), playerSelector((p) => p.souls.length === Math.max(...game.players.map(p => p.souls.length)), game), min, max)];
+    [createSelector(toSerializedTranslation("selector.playerWithMostSouls"), playerSelector((p) => p.targetableSouls.length === Math.max(...game.players.map(p => p.targetableSouls.length)), game), min, max)];
 export const selectRollAddOrSubtract = (game: Game, x: number): TargetsSelector[] => [
     createSelector(toSerializedTranslation("selector.diceRoll"), rollSelector(() => true, game)),
     createSelector(toSerializedTranslation("selector.addOrSubtract", { value: x }), (issuer: Player) => [x, -x])
@@ -147,6 +151,8 @@ export const selectUsableAbilityStackElement = (game: Game, min: number = 1, max
     [createSelector(toSerializedTranslation("selector.itemAbility"), stackElementSelector((element) => element instanceof EffectOnStack && element.data.it instanceof ItemCard && (element.type === "active" || element.type === "paid"), game), min, max)];
 export const selectStackElementOrLoot = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.itemOrLootAbility"), stackElementSelector((element) => element instanceof LootCardEffect || (element instanceof EffectOnStack && element.data.it instanceof ItemCard && (element.type === "active" || element.type === "paid")), game), min, max)];
+export const selectStackElementOrLootTargetingYourItemOrDice = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
+    [createSelector(toSerializedTranslation("selector.itemOrLootAbility"), stackElementThatTargetMyItemOrDiceSelector((element) => element instanceof LootCardEffect || (element instanceof EffectOnStack && element.data.it instanceof ItemCard && (element.type === "active" || element.type === "paid")), game), min, max)];
 export const selectLootOnStack = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.lootCardOnStack"), stackElementSelector((element) => element instanceof LootCardEffect, game), min, max)];
 export function selectDiceWillRoll(game: Game, min: number = 1, max: number = min): TargetsSelector[]{

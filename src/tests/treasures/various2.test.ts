@@ -114,7 +114,7 @@ describe("Tap/Paid effects 2", () => {
         expect(player1.currentHealthPoints).toBe(1); // Paid 1 HP
         
         // Now deal 3 damage to player2
-        game.entityHandler.dealDamage(player1, player2, guppysPaw, 3);
+        game.entityHandler.dealDamage(player1, player2, {card: guppysPaw, visualEffectBox: undefined}, 3);
         await game.actions.resolveStack(); // Resolve the damage
         await game.actions.resolveStack(); // would damage 
         
@@ -126,7 +126,7 @@ describe("Tap/Paid effects 2", () => {
         game.cardHandler.addInPlay(player1, guppysPaw);
         
         // Reduce player1's HP to 0
-        game.entityHandler.healthLoss(player1, player1, guppysPaw, player1.currentHealthPoints);
+        game.entityHandler.healthLoss(player1, player1, {card: guppysPaw, visualEffectBox: undefined}, player1.currentHealthPoints);
         expect(player1.currentHealthPoints).toBe(0);
         game.entityHandler.addHealth(player2, 10); // Ensure player2 has enough HP to test damage
         const initialHP2 = player2.currentHealthPoints;
@@ -140,7 +140,7 @@ describe("Tap/Paid effects 2", () => {
         expect(player1.currentHealthPoints).toBe(0); // No HP paid
         
         // Damage should not be prevented
-        game.entityHandler.dealDamage(player1, player2, guppysPaw, 3);
+        game.entityHandler.dealDamage(player1, player2, {card: guppysPaw, visualEffectBox: undefined}, 3);
         await game.actions.resolveStack(); // Resolve the damage
         await game.actions.resolveStack(); // Resolve the damage
         expect(player2.currentHealthPoints).toBe(initialHP2 - 3); // Full damage taken
@@ -159,7 +159,7 @@ describe("Tap/Paid effects 2", () => {
         await game.actions.resolveStack();
         
         // Deal 5 damage to player2
-        game.entityHandler.dealDamage(player1, player2, guppysPaw, 5);
+        game.entityHandler.dealDamage(player1, player2, {card: guppysPaw, visualEffectBox: undefined}, 5);
         await game.actions.resolveStack(); // would damage 
         await game.actions.resolveStack(); // Resolve the damage
         
@@ -179,14 +179,14 @@ describe("Tap/Paid effects 2", () => {
         await game.actions.resolveStack();
         
         // First damage instance - should be prevented
-        game.entityHandler.dealDamage(player1, player2, guppysPaw, 1);
+        game.entityHandler.dealDamage(player1, player2, {card: guppysPaw, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack(); // Resolve the damage
         await game.actions.resolveStack(); // would damage 
         await game.actions.resolveStack(); // would damage 
         expect(player2.currentHealthPoints).toBe(initialHP); // 1 - 1 prevented = 0 damage
         
         // Second damage instance - should NOT be prevented
-        game.entityHandler.dealDamage(player1, player2, guppysPaw, 2);
+        game.entityHandler.dealDamage(player1, player2, {card: guppysPaw, visualEffectBox: undefined}, 2);
         await game.actions.resolveStack(); // Resolve the damage
         expect(game.stack.isEmpty()).toBe(true);
         expect(player2.currentHealthPoints).toBe(initialHP - 2); // Full damage
@@ -207,7 +207,7 @@ describe("Tap/Paid effects 2", () => {
         expect(player1.currentHealthPoints).toBe(1); // Paid 1 HP
         
         // Deal damage to player1 - should be prevented
-        game.entityHandler.dealDamage(player2, player1, guppysPaw, 2);
+        game.entityHandler.dealDamage(player2, player1, {card: guppysPaw, visualEffectBox: undefined}, 2);
         await game.actions.resolveStack(); // Resolve the damage
         expect(player1.currentHealthPoints).toBe(1); // 2 - 2 prevented = 0 damage, still at 1 HP
     });
@@ -579,7 +579,7 @@ describe("Tap/Paid effects 2", () => {
         let selectCount = 0;
         
         // Kill player2
-        game.entityHandler.dealDamage(player1, player2, shadow, 999);
+        game.entityHandler.dealDamage(player1, player2, {card: shadow, visualEffectBox: undefined}, 999);
         await game.actions.resolveStack(); // Resolve the damage
         await game.actions.resolveStack(); // Resolve the death
         
@@ -607,7 +607,7 @@ describe("Tap/Paid effects 2", () => {
         const player1CoinsBeforeDeath = player1.coins;
         
         // Kill player1 (shadow owner)
-        game.entityHandler.dealDamage(player2, player1, shadow, 999);
+        game.entityHandler.dealDamage(player2, player1, {card: shadow, visualEffectBox: undefined}, 999);
         await game.actions.resolveStack(); // Resolve the damage
         await game.actions.resolveStack(); // Resolve the death
         
@@ -631,7 +631,7 @@ describe("Tap/Paid effects 2", () => {
         const player1HandBeforeDeath = player1.hand.length;
         
         // Kill player2
-        game.entityHandler.dealDamage(player1, player2, shadow, 999);
+        game.entityHandler.dealDamage(player1, player2, {card: shadow, visualEffectBox: undefined}, 999);
         await game.actions.resolveStack(); // Resolve damage
         await game.actions.resolveStack(); // Resolve death
         
@@ -656,7 +656,7 @@ describe("Tap/Paid effects 2", () => {
         const player1CoinsBeforeDeath = player1.coins;
         
         // Kill player2
-        game.entityHandler.dealDamage(player1, player2, shadow, 999);
+        game.entityHandler.dealDamage(player1, player2, {card: shadow, visualEffectBox: undefined}, 999);
         await game.actions.resolveStack(); // Resolve the damage and death
         await game.actions.resolveStack(); // Resolve the damage and death
         
@@ -682,7 +682,7 @@ describe("Tap/Paid effects 2", () => {
         const player1CoinsBeforeDeath = player1.coins;
 
         // Kill player2
-        game.entityHandler.dealDamage(player1, player2, shadow, 999);
+        game.entityHandler.dealDamage(player1, player2, {card: shadow, visualEffectBox: undefined}, 999);
         await game.actions.resolveStack(); // Resolve the damage
         await game.actions.resolveStack(); // Resolve the death
         
@@ -763,7 +763,7 @@ describe("Force Attack Monster", () => {
         game.currentPlayer.mustAttack([monster], monster.card, false);
 
         // Kill the monster
-        game.entityHandler.death(monster, game.currentPlayer, monster.card);
+        game.entityHandler.death(monster, game.currentPlayer, {card: monster.card, visualEffectBox: undefined});
         await game.actions.resolveStack();
 
         // Should be able to end turn (constraint lifted)
@@ -781,7 +781,7 @@ describe("Force Attack Monster", () => {
         game.entityHandler.addAttackThisTurn(game.currentPlayer, 1); // Ensure player can attack
 
         // Kill the player
-        game.entityHandler.dealDamage(player2, game.currentPlayer, monster.card, 999);
+        game.entityHandler.dealDamage(player2, game.currentPlayer, {card: monster.card, visualEffectBox: undefined}, 999);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
 
@@ -911,8 +911,8 @@ describe("Force Attack Monster", () => {
             game.actions.declareAttack(game.currentPlayer);
             await game.actions.declareAttackOnEntity(game.currentPlayer, targetMonster);
 
-            expect(game.currentPlayer.hasMandatoryAttackRequirement).toBe(false);
-            game.entityHandler.kill(targetMonster, targetMonster, monsterManual);
+            expect(game.currentPlayer.hasAttackRequirement).toBe(false);
+            game.entityHandler.kill(targetMonster, targetMonster, {card: monsterManual, visualEffectBox: undefined});
             await game.actions.resolveStack();
             // Should be able to end turn now
             expect(async () => {
@@ -935,7 +935,7 @@ describe("Force Attack Monster", () => {
                 game.actions.declareAttack(game.currentPlayer);
                 await game.actions.declareAttackOnEntity(game.currentPlayer, game.monsters[1]!);
             }
-            game.entityHandler.kill(game.currentPlayer, game.monsters[1]!, monsterManual);
+            game.entityHandler.kill(game.currentPlayer, game.monsters[1]!, {card: monsterManual, visualEffectBox: undefined});
             await game.actions.resolveStack();
             await game.actions.resolveStack();
             expect(game.currentPlayer.attackThisTurn).toBeLessThanOrEqual(0);
@@ -970,8 +970,8 @@ describe("Force Attack Monster", () => {
             // Attack the monster to satisfy constraint
             game.actions.declareAttack(game.currentPlayer);
             await game.actions.declareAttackOnEntity(game.currentPlayer, targetMonster);
-            expect(game.currentPlayer.hasMandatoryAttackRequirement).toBe(false);
-            game.entityHandler.kill(targetMonster, targetMonster, monsterManual);
+            expect(game.currentPlayer.hasAttackRequirement).toBe(false);
+            game.entityHandler.kill(targetMonster, targetMonster, {card: monsterManual, visualEffectBox: undefined});
             await game.actions.resolveStack();
             // End turn
             await game.endTurn();
@@ -1007,7 +1007,7 @@ describe("Force Attack Monster", () => {
             expect(game.currentPlayer.mustAttackEntity![0]!.targets[0]).toBe(targetMonster);
 
             // Kill the monster directly
-            game.entityHandler.kill(player1, targetMonster, monsterManual);
+            game.entityHandler.kill(player1, targetMonster, {card: monsterManual, visualEffectBox: undefined});
             await game.actions.resolveStack();
 
             // Constraint should be cleared
@@ -1061,7 +1061,7 @@ describe("Force Attack Monster", () => {
             );
 
             // Kill the player
-            game.entityHandler.kill(player1, player1, monsterManual);
+            game.entityHandler.kill(player1, player1, {card: monsterManual, visualEffectBox: undefined});
             await game.actions.resolveStack();
 
             // Constraint should be cleared (player dead)
@@ -1100,7 +1100,7 @@ describe("Force Attack Monster", () => {
             // Attack the forced monster first
             game.actions.declareAttack(game.currentPlayer);
             await game.actions.declareAttackOnEntity(game.currentPlayer, targetMonster);
-            game.entityHandler.kill(targetMonster, targetMonster, monsterManual);
+            game.entityHandler.kill(targetMonster, targetMonster, {card: monsterManual, visualEffectBox: undefined});
             await game.actions.resolveStack();
 
             expect(game.currentPlayer.hasMandatoryAttackRequirement).toBe(false);
@@ -1140,14 +1140,14 @@ describe("Force Attack Monster", () => {
     //         await game.actions.resolveStack();
     //         expect(game.currentPlayer.mustAttackEntity![0]).toBe(secondMonster);
 
-    //         game.entityHandler.kill(firstMonster, firstMonster, monsterManual);
+    //         game.entityHandler.kill(firstMonster, firstMonster, {card: monsterManual, visualEffectBox: undefined});
     //         await game.actions.resolveStack();
             
     //         game.actions.declareAttack(game.currentPlayer);
     //         await game.actions.resolveStack();
     //         await game.declareAttackOnMonster(game.currentPlayer, secondMonster);
     //         await game.actions.resolveStack();
-    //         game.entityHandler.kill(secondMonster, secondMonster, monsterManual);
+    //         game.entityHandler.kill(secondMonster, secondMonster, {card: monsterManual, visualEffectBox: undefined});
     //         await game.actions.resolveStack();
 
     //         // Must attack the second monster to clear constraint

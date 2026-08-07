@@ -45,7 +45,7 @@ describe("Four Souls+2 Eternal Items", () => {
             };
         return { selected: Options.slice(0, max), remaining: Options.slice(max) };
     };
-        game.entityHandler.dealDamage(player1, player1, player1.character!, 1);
+        game.entityHandler.dealDamage(player1, player1, {card: player1.character!, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -77,7 +77,7 @@ describe("Four Souls+2 Eternal Items", () => {
             };
         return { selected: Options.slice(0, max), remaining: Options.slice(max) };
     };
-        game.entityHandler.dealDamage(player1, player1, player1.character!, 1);
+        game.entityHandler.dealDamage(player1, player1, {card: player1.character!, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -101,14 +101,14 @@ describe("Four Souls+2 Eternal Items", () => {
         const atk = player1.attackPoints;
 
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
-        if(Options[2] === "gain +2 [atk] till end of turn.")
+        if(Options[2].description === "gain +2 [atk] till end of turn.")
             return {
                 selected: [Options[2]],
                 remaining: []
             };
         return { selected: Options.slice(0, max), remaining: Options.slice(max) };
     };
-        game.entityHandler.dealDamage(player1, player1, player1.character!, 1);
+        game.entityHandler.dealDamage(player1, player1, {card: player1.character!, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -135,12 +135,12 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.inPlay[0]!.slug).toBe("fsp2-dark_arts");
 
         const handSize = player1.hand.cards.length;
-        game.entityHandler.kill(player2, player2, player1.character!);
+        game.entityHandler.kill(player2, player2, {card: player1.character!, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.hand.cards.length).toBe(handSize + 1);
 
-        game.entityHandler.kill(player1, player1, player1.character!);
+        game.entityHandler.kill(player1, player1, {card: player1.character!, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();

@@ -281,7 +281,7 @@ describe("Eternal Items", () => {
         // The bone should lose its eternal status and abilities
         expect(theBone.eternal).toBe(false);
         expect(player1.inPlay.map(card => card.slug)).not.toContain(theBone.slug);
-        expect(player1.souls.map(card => card.slug)).toContain(theBone.slug);
+        expect(player1.targetableSouls.map(card => card.slug)).toContain(theBone.slug);
     });
 
     it("The Bone: paid effect 3 cannot be used with less than 5 counters", async () => {
@@ -300,14 +300,14 @@ describe("Eternal Items", () => {
         }
         expect(theBone.counters.value("normal")).toBe(4);
         
-        const initialSouls = player1.souls;
+        const initialSouls = [...player1.souls];
         
         // Attempt to use paid effect with insufficient counters
         await expect(async () => {
             await game.activateItem(player1, theBone, [], 2)}
         ).toThrow();
         expect(theBone.counters.value("normal")).toBe(4); // Counters should remain unchanged
-        expect(player1.souls).toBe(initialSouls); // Souls should remain unchanged
+        expect(player1.souls).toEqual(initialSouls); // Souls should remain unchanged
     });
 
     // "[Tap Effect] Add or subtract 1 from a roll."
@@ -428,14 +428,15 @@ describe("Eternal Items", () => {
         await game.activateItem(player2, yumHeart);
         await game.actions.resolveStack();
         // simulate large amount of damage to maggy
-        game.entityHandler.dealDamage(player2, player2, dummyLoot, 1000);
+
+        game.entityHandler.dealDamage(player2, player2, {card: dummyLoot, visualEffectBox: undefined}, 1000);
         await game.actions.resolveStack(); // would damage 
         await game.actions.resolveStack(); // would damage 
         await game.actions.resolveStack(); // resolve the damage prevention
         expect(player2.currentHealthPoints).toBe(2); // damage prevented
 
 
-        game.entityHandler.dealDamage(player2, player2, dummyLoot, 1);
+        game.entityHandler.dealDamage(player2, player2, {card: dummyLoot, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack(); // would damage 
         await game.actions.resolveStack(); // would damage 
         await game.actions.resolveStack(); // resolve the damage prevention
@@ -463,14 +464,14 @@ describe("Eternal Items", () => {
         expect(player2.inPlay[0]!.eternal).toBe(true);
 
         // Kill Isaac, verify no treasure gained
-        game.entityHandler.kill(player1, player1, dummyLoot);
+        game.entityHandler.kill(player1, player1, {card: dummyLoot, visualEffectBox: undefined});
         await game.actions.resolveStack(); // resolve death
         expect(player1.inPlay.length).toBe(1);
 
         const blankcard = game.obtainCard("b2-blank_card") as TreasureCard; 
         game.decks["treasure"]!.addTopPosition(blankcard); // ensure blank card is on top of treasure deck, to avoid random death prevention items.
         // Kill Lazarus, verify treasure gained
-        game.entityHandler.kill(player2, player2, dummyLoot);
+        game.entityHandler.kill(player2, player2, {card: dummyLoot, visualEffectBox: undefined});
         await game.actions.resolveStack(); // resolve death
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // resolve any additional async effects
@@ -483,7 +484,7 @@ describe("Eternal Items", () => {
         expect(firstItemGained!).toBe(blankcard);
 
         // Kill Lazarus, verify treasure gained
-        game.entityHandler.kill(player2, player2, dummyLoot);
+        game.entityHandler.kill(player2, player2, {card: dummyLoot, visualEffectBox: undefined});
         await game.actions.resolveStack(); // resolve death
         await game.actions.resolveStack(); // Resolve any stack effects
         await game.actions.resolveStack(); // resolve any additional async effects
@@ -658,7 +659,7 @@ describe("Eternal Items", () => {
         expect(foreverAlone.charged).toBe(false);
         
         // Deal damage to player2 (Blue Baby)
-        game.entityHandler.dealDamage(player1, player2, dummyLoot, 1);
+        game.entityHandler.dealDamage(player1, player2, {card: dummyLoot, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
 
@@ -681,7 +682,7 @@ describe("Eternal Items", () => {
         expect(foreverAlone.charged).toBe(false);
         
         // Deal damage
-        game.entityHandler.dealDamage(player1, player2, dummyLoot, 1);
+        game.entityHandler.dealDamage(player1, player2, {card: dummyLoot, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
         expect(foreverAlone.charged).toBe(true);
@@ -695,7 +696,7 @@ describe("Eternal Items", () => {
         expect(foreverAlone.charged).toBe(false);
         
         // Deal damage again
-        game.entityHandler.dealDamage(player1, player2, dummyLoot, 1);
+        game.entityHandler.dealDamage(player1, player2, {card: dummyLoot, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
         expect(foreverAlone.charged).toBe(true);

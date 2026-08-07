@@ -215,7 +215,7 @@ describe("Tap/Paid effects 1", () => {
         const initialHp = player1.currentHealthPoints;
 
         // Deal 2 damage to player1
-        game.entityHandler.dealDamage(player2, player1, daddyHaunt, 2);
+        game.entityHandler.dealDamage(player2, player1, {card: daddyHaunt, visualEffectBox: undefined}, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
 
@@ -231,7 +231,7 @@ describe("Tap/Paid effects 1", () => {
         const initialHp = player1.currentHealthPoints;
 
         // Deal 1 damage to player1
-        game.entityHandler.dealDamage(player2, player1, daddyHaunt, 1);
+        game.entityHandler.dealDamage(player2, player1, {card: daddyHaunt, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
 
@@ -532,7 +532,7 @@ describe("Tap/Paid effects 1", () => {
         const pandorasBox = game.shop.obtainCard("b2-pandoras_box") as ItemCard;
         game.cardHandler.addInPlay(player1, pandorasBox);
 
-        const initialSouls = player1.souls.length;
+        const initialSouls = player1.targetableSouls.length;
 
         game.cardHandler.recharge(pandorasBox);
         await game.activateItem(player1, pandorasBox);
@@ -544,8 +544,8 @@ describe("Tap/Paid effects 1", () => {
         await game.actions.resolveStack();
 
         expect(player1.inPlay).not.toContain(pandorasBox);
-        expect(player1.souls.length).toBe(initialSouls + 1);
-        expect(player1.souls).toContain(pandorasBox);
+        expect(player1.targetableSouls.length).toBe(initialSouls + 1);
+        expect(player1.targetableSouls).toContain(pandorasBox);
     });
 
     it("the_shovel - put non-event monster from discard on top of monster deck", async () => {
@@ -684,8 +684,8 @@ describe("Tap/Paid effects 1", () => {
         game.cardHandler.addInPlay(player1, momsShovel);
         game.cardHandler.addSoul(player2, soul);
 
-        const player1InitialSouls = player1.souls.length;
-        const player2InitialSouls = player2.souls.length;
+        const player1InitialSouls = player1.targetableSouls.length;
+        const player2InitialSouls = player2.targetableSouls.length;
 
         // Mock game.select to choose the soul
         game.select = async (issuer, _min, _max, opts, optional) => {
@@ -704,10 +704,10 @@ describe("Tap/Paid effects 1", () => {
 
 
         // Soul should be stolen
-        expect(player1.souls.length).toBe(player1InitialSouls + 1);
-        expect(player2.souls.length).toBe(player2InitialSouls - 1);
-        expect(player1.souls).toContain(soul);
-        expect(player2.souls).not.toContain(soul);
+        expect(player1.targetableSouls.length).toBe(player1InitialSouls + 1);
+        expect(player2.targetableSouls.length).toBe(player2InitialSouls - 1);
+        expect(player1.targetableSouls).toContain(soul);
+        expect(player2.targetableSouls).not.toContain(soul);
     });
 
     it("moms_bra - reduce monster damage to 1", async () => {
@@ -728,7 +728,7 @@ describe("Tap/Paid effects 1", () => {
         await game.actions.resolveStack();
 
         // Deal 5 damage to monster - should be reduced to 1
-        game.entityHandler.dealDamage(player1, monster, momsBra, 5);
+        game.entityHandler.dealDamage(player1, monster, {card: momsBra, visualEffectBox: undefined}, 5);
         await game.actions.resolveStack();
 
         await game.actions.resolveStack(); // resolve on damage taken
@@ -748,7 +748,7 @@ describe("Tap/Paid effects 1", () => {
         await game.actions.resolveStack();
 
         // Deal 5 damage to player2 - should be reduced to 1
-        game.entityHandler.dealDamage(player1, player2, momsBra, 5);
+        game.entityHandler.dealDamage(player1, player2, {card: momsBra, visualEffectBox: undefined}, 5);
         await game.actions.resolveStack();
 
         await game.actions.resolveStack(); // resolve on damage taken
@@ -914,7 +914,7 @@ describe("Tap/Paid effects 1", () => {
         await game.actions.resolveStack();
 
         // Deal 3 damage to player1 - should prevent 1 and deal 1 to player2
-        game.entityHandler.dealDamage(player1, player1, hostHat, 3);
+        game.entityHandler.dealDamage(player1, player1, {card: hostHat, visualEffectBox: undefined}, 3);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
@@ -939,7 +939,7 @@ describe("Tap/Paid effects 1", () => {
         const player2HpAfterActivation = player2.currentHealthPoints;
 
         // First damage - prevented
-        game.entityHandler.dealDamage(player1, player1, hostHat, 2);
+        game.entityHandler.dealDamage(player1, player1, {card: hostHat, visualEffectBox: undefined}, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
@@ -951,7 +951,7 @@ describe("Tap/Paid effects 1", () => {
         const player2HpAfterFirstDamage = player2.currentHealthPoints;
 
         // Second damage - not prevented (already used)
-        game.entityHandler.dealDamage(player1, player1, hostHat, 2);
+        game.entityHandler.dealDamage(player1, player1, {card: hostHat, visualEffectBox: undefined}, 2);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();

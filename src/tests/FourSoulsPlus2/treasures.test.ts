@@ -296,7 +296,7 @@ describe("Four Souls+2 Treasures", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 2);
-        game.entityHandler.kill(player1, game.encounters.monsterIn(1)!, player1.character!); // kill Fatty
+        game.entityHandler.kill(player1, game.encounters.monsterIn(1)!, {card: player1.character!, visualEffectBox: undefined}); // kill Fatty
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(initialCoins + 4);
@@ -308,7 +308,7 @@ describe("Four Souls+2 Treasures", () => {
         const hp = player1.currentHealthPoints;
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, game.encounters.monsterIn(0)!);
-        game.entityHandler.dealDamage(player2, player1, card1, hp);
+        game.entityHandler.dealDamage(player2, player1, {card: card1, visualEffectBox: undefined}, hp);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.currentHealthPoints).toBe(hp);
@@ -509,18 +509,18 @@ describe("Four Souls+2 Treasures", () => {
         const g2 = game.obtainCard("b2-the_dead_cat")!;
         game.cardHandler.addInPlay(player1, g1 as ItemCard);
         game.cardHandler.addInPlay(player1, g2 as ItemCard);
-        expect(player1.souls.length).toBe(1);
+        expect(player1.targetableSouls.length).toBe(1);
 
         game.cardHandler.addCardToHand(player2, game.obtainCard("b2-lost_soul")! as LootCard);
         game.entityHandler.addLootPlay(player2, 1);
         game.actions.playCard(player2, player2.hand.length - 1);
         await game.actions.resolveStack();
-        expect(player2.souls.length).toBe(1);
+        expect(player2.targetableSouls.length).toBe(1);
 
         await game.activateItem(player1, card1, [], "tap");
         await game.actions.resolveStack();
-        expect(player1.souls.length).toBe(0);
-        expect(player2.souls.length).toBe(0);
+        expect(player1.targetableSouls.length).toBe(0);
+        expect(player2.targetableSouls.length).toBe(0);
     });
 
     it("daddy_long_legs", async () => {
@@ -597,7 +597,7 @@ describe("Four Souls+2 Treasures", () => {
         expect(player1.attackPoints).toBe(1);
         game.cardHandler.addInPlay(player1, card1);
         expect(player1.attackPoints).toBe(4);
-        game.entityHandler.dealDamage(player2, player1, card1, 1);
+        game.entityHandler.dealDamage(player2, player1, {card: card1, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -611,7 +611,7 @@ describe("Four Souls+2 Treasures", () => {
         game.cardHandler.addInPlay(player1, card1);
         expect(player1.currentHealthPoints).toBe(hp+2);
         game.loot(player1, 2);
-        game.entityHandler.dealDamage(player2, player1, card1, 1);
+        game.entityHandler.dealDamage(player2, player1, {card: card1, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.currentHealthPoints).toBe(hp+1);

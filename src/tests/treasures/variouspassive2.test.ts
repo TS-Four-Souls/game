@@ -203,7 +203,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         game.cardHandler.addInPlay(player1, guppysCollar);
 
         // Kill player1
-        game.entityHandler.kill(player2, player1, guppysCollar);
+        game.entityHandler.kill(player2, player1, {card: guppysCollar, visualEffectBox: undefined});
         await game.actions.resolveStack(); // Resolve any stack effects
 
         // Get the dice roll and set it to 2
@@ -230,7 +230,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         game.cardHandler.addInPlay(player1, guppysCollar);
 
         // Kill player1
-        game.entityHandler.kill(player2, player1, guppysCollar);
+        game.entityHandler.kill(player2, player1, {card: guppysCollar, visualEffectBox: undefined});
         await game.actions.resolveStack(); // Resolve any stack effects
 
         // Get the dice roll and set it to 5
@@ -259,7 +259,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         expect(monster).toBeDefined();
 
         // Kill the monster
-        game.entityHandler.kill(player2, monster, midasTouch);
+        game.entityHandler.kill(player2, monster, {card: midasTouch, visualEffectBox: undefined});
         await game.actions.resolveStack(); // death on stack
         await game.actions.resolveStack(); // gain coins
 
@@ -267,7 +267,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         expect(player1.coins).toBe(initialCoins + 3 + 1);
 
         // Kill the player
-        game.entityHandler.kill(player2, player2, midasTouch);
+        game.entityHandler.kill(player2, player2, {card: midasTouch, visualEffectBox: undefined});
         await game.actions.resolveStack(); // death on stack
 
         // Player should gain 3¢
@@ -284,8 +284,8 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const monster1 = game.monsters[0]!;
         const monster2 = game.monsters[1]!;
 
-        game.entityHandler.kill(player2, monster1, midasTouch);
-        game.entityHandler.kill(player2, monster2, midasTouch);
+        game.entityHandler.kill(player2, monster1, {card: midasTouch, visualEffectBox: undefined});
+        game.entityHandler.kill(player2, monster2, {card: midasTouch, visualEffectBox: undefined});
         await game.actions.resolveStack(); // death on stack
         await game.actions.resolveStack(); // gain coins
         await game.actions.resolveStack(); // death on stack
@@ -302,7 +302,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const initialHandSize = player1.hand.length;
 
         // Take damage
-        game.entityHandler.dealDamage(player2, player1, fannyPack, 1);
+        game.entityHandler.dealDamage(player2, player1, {card: fannyPack, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
 
@@ -317,10 +317,10 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const initialHandSize = player1.hand.length;
 
         // Take damage twice
-        game.entityHandler.dealDamage(player2, player1, fannyPack, 1);
+        game.entityHandler.dealDamage(player2, player1, {card: fannyPack, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
-        game.entityHandler.dealDamage(player2, player1, fannyPack, 1);
+        game.entityHandler.dealDamage(player2, player1, {card: fannyPack, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
 
@@ -335,7 +335,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const initialHP = player2.currentHealthPoints;
 
         // Take damage to trigger the effect
-        game.entityHandler.dealDamage(player2, player1, curseOfTheTower, 1);
+        game.entityHandler.dealDamage(player2, player1, {card: curseOfTheTower, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
 
@@ -366,7 +366,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
 
 
         // Take damage to trigger the effect
-        game.entityHandler.dealDamage(player2, player1, curseOfTheTower, 1);
+        game.entityHandler.dealDamage(player2, player1, {card: curseOfTheTower, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve on damage taken
 
@@ -393,7 +393,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const initialCoins = player1.coins;
 
         // Kill the player
-        game.entityHandler.kill(player2, player1, greedsGullet);
+        game.entityHandler.kill(player2, player1, {card: greedsGullet, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
 
@@ -408,7 +408,7 @@ describe("Treasure - \"at the end of your turn\" effects", () => {
         const initialHandSize = player1.hand.length;
 
         // Kill the player
-        game.entityHandler.kill(player2, player1, suicideKing);
+        game.entityHandler.kill(player2, player1, {card: suicideKing, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // Resolve any stack effects
 

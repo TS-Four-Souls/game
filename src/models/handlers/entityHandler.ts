@@ -15,16 +15,18 @@ import { Monster } from "@/models/entities/monster";
 import { Player } from "@/models/entities/player";
 import { Game } from "@/models/game";
 import { GameError } from "@/models/GameError";
-import { DamageOnStack, DeathOnStack, DiceRoll } from "@/models/stackElement";
+import { DamageOnStack, DeathOnStack, DiceRoll, EndOfTurnOnStack } from "@/models/stackElement";
 import { EffectData } from "@/models/types/cardTypes";
 import { toSerializedTranslation } from "@/utils/translation";
 import { AnimatedList } from "../entities/animated";
 import { DeathPenaltyValues } from "../handlers/deathHandler";
+import type { VisualEffectBox } from "@/shared/api";
 
 /**
  *  Type representing sources of damage - either a card ability or a dice roll
  * */ 
-export type DamageSource = Card | DiceRoll;
+export type CardAndBox = {card: Card, visualEffectBox: VisualEffectBox | undefined}
+export type DamageSource = CardAndBox | DiceRoll;
 
 /**
  * EntityHandler is responsible for the entities of a game.
@@ -212,9 +214,10 @@ export class EntityHandler {
     });
   }
   /** Cancels previous death entry for a player and stabilizes at 1 HP if needed. */
-  preventDeath(entity: Entity): void {
-    this.game.stack.cancelPreviousDeath(entity);
+  preventDeath(entity: Entity): boolean {
+    const cancelled = this.game.stack.cancelPreviousDeath(entity);
     if (entity.currentHealthPoints === 0) this.heal(entity, 1);
+    return cancelled;
   }
   /**
    * Grants coin/loot/treasure rewards when a monster dies to the current player.
@@ -328,7 +331,7 @@ export class EntityHandler {
         source: source,
       });
       this.game.dispatch();
-      if(receiver instanceof Player && this.game.currentPlayer === receiver)
+      if(receiver instanceof Player && this.game.currentPlayer === receiver && this.game.stack.elements.find(e => e instanceof EndOfTurnOnStack) == undefined)
         await this.game.executeWhenStackEmpty(async () => {await this.game.endTurn();});
     }).catch((error) => {
       console.error("Failed to resolve death follow-up", error);
@@ -386,7 +389,9 @@ export class EntityHandler {
 
     // Filter monsters that are still in play
     const validMonsters = requirement.filter(
-      (req) => req.targets === "topDeck" || req.targets === "any" || req.targets.some(target => this.game.attackableEntities.includes(target))
+      (req) => 
+        (req.checkAttackRemaining === false || player.attackThisTurn > 0) &&
+        (req.targets === "topDeck" || req.targets === "any" || req.targets.some(target => this.game.attackableEntities.includes(target)))
     );
 
     if (validMonsters.length === 0) {

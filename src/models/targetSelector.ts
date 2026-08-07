@@ -2,9 +2,10 @@ import { type Card, ItemCard, MonsterCard } from "./cards";
 import type { Entity } from "./entities/entity";
 import { Game } from "./game";
 import { Player } from "./entities/player";
-import { DiceRoll, DiceWillRoll } from "./stackElement";
+import { DiceRoll, DiceWillRoll, EffectOnStack, LootCardEffect } from "./stackElement";
 import type { StackElement } from "./stack";
 import { type TargetsSelector } from "./types/cardTypes";
+import { type VisualEffectBox } from "@/shared/api";
 
 export function inplayUnchargedItemSelector(game: Game): (issuer: Player) => ItemCard[] {
     return (inplayItemSelector((player: Player, card: ItemCard) => card.isActiveItem(), game));
@@ -23,7 +24,7 @@ export function inplayItemSelector(filter: (player: Player, card: ItemCard) => b
 
 export function itemAndSoulSelector(filter: (player: Player, card: ItemCard) => boolean, game: Game): (issuer: Player) => Card[] {
     return (issuer: Player) => {
-        return [...game.shop.itemsInShop.filter(c=>c !== undefined), ...game.inPlayItems.filter(({ player, card }) => filter(player, card)).map(({ card }) => card), ...game.players.flatMap(p => p.souls)];
+        return [...game.shop.itemsInShop.filter(c=>c !== undefined), ...game.inPlayItems.filter(({ player, card }) => filter(player, card)).map(({ card }) => card), ...game.players.flatMap(p => p.targetableSouls)];
     };
 }
 
@@ -63,11 +64,13 @@ export function activeEntitySelector(filter: (player: Entity) => boolean = () =>
 }
 export interface ChooseOneOptions {
     description: string;
+    card: Card;
+    visualEffectBox: VisualEffectBox;
     admissibleTargets: TargetsSelector[];
 }
 
 export const isChooseOneOptions = (x: any): x is ChooseOneOptions => {
-    return typeof x === 'object' && x !== null && 'description' in x && 'admissibleTargets' in x;
+    return typeof x === 'object' && x !== null && 'description' in x && 'admissibleTargets' in x && 'visualEffectBox' in x && "card" in x;
 };
 
 export function deckSelector(filter: (name: string) => boolean = () => true, game: Game): (issuer: Player) => any[] {
@@ -100,6 +103,26 @@ export function diceWillRollSelector(filter: (element: StackElement) => boolean 
 export function stackElementSelector(filter: (element: StackElement) => boolean = () => true, game: Game): (issuer: Player) => any[] {
     return (issuer: Player) => {
         return game.stack.elements.filter((element) => filter(element));
+    }
+}
+
+function containMyItemOrDice(arr: any[], issuer: Player)
+{
+    for(const el of arr)
+    {
+        if(el instanceof DiceRoll && el.issuer === issuer)
+            return true;
+        if(el instanceof ItemCard && issuer.inPlay.includes(el))
+            return true;
+    }
+}
+export function stackElementThatTargetMyItemOrDiceSelector(filter: (element: StackElement) => boolean = () => true, game: Game): (issuer: Player) => any[] {
+    return (issuer: Player) => {
+        return game.stack.elements.filter((element) => filter(element) && 
+            ((element instanceof EffectOnStack && ["active", "paid"].includes(element.type) && containMyItemOrDice(element.data.targets, issuer))
+            || 
+            ((element instanceof LootCardEffect && containMyItemOrDice(element.targets, issuer))))
+        );
     }
 }
 

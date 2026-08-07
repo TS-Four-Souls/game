@@ -7,6 +7,7 @@ import { assertCardMatchesDeck, Card, type DeckType } from "@/models/cards";
 
 export class AssertHandler {
     private _game: Game;
+    private _lastTimedAction: number = 0;
 
     constructor(game: Game) {
         this._game = game;
@@ -122,4 +123,26 @@ export class AssertHandler {
       assertCardMatchesDeck(deckName, card);
   }
 
+
+  /**
+   * 
+   * @param time as returned by new Date().getTime().
+   */
+  set lastTimedAction(time: number) {
+    this._lastTimedAction = time;
+  }
+  
+  get lastTimedAction(): number {
+    return this._lastTimedAction;
+  }
+
+  canResolveNow(): void {
+    if(new Date().getTime() - this.lastTimedAction < 1000 * this.game.gameParameters.resolveCooldown.value)
+      throw new GameError(`You must wait ${this.game.gameParameters.resolveCooldown.value} seconds between actions.`,
+        toSerializedTranslation("error.waitBetweenActions", { seconds: this.game.gameParameters.resolveCooldown.value })
+      );
+  }
+  updateLastTimedAction(): void {
+    this.lastTimedAction = new Date().getTime();
+  }
 }

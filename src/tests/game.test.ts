@@ -89,7 +89,7 @@ describe("Player", () => {
   });
 
   it("should start with zero souls", async () => {
-    expect(player.souls.length).toBe(0);
+    expect(player.targetableSouls.length).toBe(0);
     expect(player.totalSouls).toBe(0);
   });
 
@@ -262,7 +262,7 @@ describe("Player - Souls", () => {
   });
 
   it("should start with zero souls", async () => {
-    expect(player.souls.length).toBe(0);
+    expect(player.targetableSouls.length).toBe(0);
     expect(player.totalSouls).toBe(0);
   });
 
@@ -270,8 +270,8 @@ describe("Player - Souls", () => {
     const soulCard = { id: "soul1", name: "Soul", soul: 1 } as any;
     player.addSoul(soulCard);
     
-    expect(player.souls.length).toBe(1);
-    expect(player.souls[0]).toBe(soulCard);
+    expect(player.targetableSouls.length).toBe(1);
+    expect(player.targetableSouls[0]).toBe(soulCard);
   });
 
   it("should calculate total souls correctly", async () => {
@@ -300,7 +300,7 @@ describe("Player - Souls", () => {
     
     player.addSoul(soul1);
     player.addSoul(soul2);
-    expect(player.souls.length).toBe(2);
+    expect(player.targetableSouls.length).toBe(2);
     
     const removed = player.removeSoul(soul1);
     expect(removed).toBe(true);
@@ -314,7 +314,7 @@ describe("Player - Souls", () => {
     const removed = player.removeSoul(soul2);
     
     expect(removed).toBe(false);
-    expect(player.souls.length).toBe(1);
+    expect(player.targetableSouls.length).toBe(1);
   });
 });
 
@@ -899,7 +899,7 @@ describe("Game - Damage System", () => {
     const initialHealth = player2.currentHealthPoints;
     const mockCard = { name: "Test Card" } as any;
     
-    game.entityHandler.dealDamage(player1, player2, mockCard, 1);
+    game.entityHandler.dealDamage(player1, player2, {card: mockCard, visualEffectBox: undefined}, 1);
     await game.actions.resolveStack();
     expect(player2.currentHealthPoints).toBe(initialHealth - 1);
   });
@@ -908,7 +908,7 @@ describe("Game - Damage System", () => {
     const initialHealth = player2.currentHealthPoints;
     const mockCard = { name: "Test Card" } as any;
     
-    game.entityHandler.dealDamage(player1, player2, mockCard, 0);
+    game.entityHandler.dealDamage(player1, player2, {card: mockCard, visualEffectBox: undefined}, 0);
     await game.actions.resolveStack();
     await game.actions.resolveStack();
     
@@ -918,7 +918,7 @@ describe("Game - Damage System", () => {
   it("should handle damage that kills entity", async () => {
     const mockCard = { name: "Test Card" } as any;
     
-    game.entityHandler.dealDamage(player1, player2, mockCard, 100);
+    game.entityHandler.dealDamage(player1, player2, {card: mockCard, visualEffectBox: undefined}, 100);
     await game.actions.resolveStack();
     await game.actions.resolveStack();
 
@@ -983,7 +983,7 @@ describe("Player - Edge Cases & Combinations", () => {
     
     // Should not throw since soul is 1
     player.addSoul(zeroSoulCard);
-    expect(player.souls.length).toBe(1);
+    expect(player.targetableSouls.length).toBe(1);
     expect(player.totalSouls).toBe(1);
   });
 
@@ -995,7 +995,7 @@ describe("Player - Edge Cases & Combinations", () => {
       player.addSoul(soul);
     }
     
-    expect(player.souls.length).toBe(10);
+    expect(player.targetableSouls.length).toBe(10);
     expect(player.totalSouls).toBe(55); // 1+2+3+...+10 = 55
   });
 

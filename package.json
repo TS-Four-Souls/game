@@ -7,11 +7,9 @@
     "ts": "tsc --noEmit",
     "lint": "eslint \"src/**/*.{js,ts}\"",
     "test": "bun test",
-    "test:watch": "bun test --watch",
-    "typegen": "i18n-typegen codegen"
+    "test:watch": "bun test --watch"
   },
   "devDependencies": {
-    "@betomorrow/i18n-typegen": "^2.2.1",
     "@eslint/js": "^10.0.1",
     "@types/bun": "latest",
     "@types/nodemailer": "^8.0.0",

@@ -542,6 +542,8 @@ export async function loadGameFromLogs(
 
     }
     game.seed = "";
+    if(game.stack.isEmpty())
+      game.assert.lastTimedAction = 0;
     return game;
   }catch (error) {
     throw error;

@@ -66,6 +66,7 @@ const deckNameSchema = z.union([
   z.literal("loot"),
   z.literal("treasure"),
   z.literal("monster"),
+  z.literal("room"),
 ]);
 export type DeckName = z.infer<typeof deckNameSchema>;
 
@@ -105,6 +106,12 @@ export interface SetCardCountRequest {
   slug: string;
   count: number;
 }
+const serializedChooseOneSchema = z.object({
+  description: z.string(),
+  card: cardSchema,
+  visualEffectBox: VisualEffectBoxSchema,
+});
+export type SerializedChooseOne = z.infer<typeof serializedChooseOneSchema>;
 
 // Forward declare types for circular references
 export type SelectionItem =
@@ -122,6 +129,7 @@ export type SelectionItem =
       type: "couplePlayerHand";
       payload: { player: IdentifierType; hand: Card[] };
     }
+  | { type: "chooseOne"; payload: SerializedChooseOne }
   | { type: "character"; payload: RoomCharacter }
   | { type: "array"; payload: SelectionItem[] }
   | { type: "serializedTranslation"; payload: SerializedTranslation }
@@ -150,7 +158,14 @@ const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
     z.object({ type: z.literal("number"), payload: z.number() }),
     z.object({ type: z.literal("boolean"), payload: z.boolean() }),
     z.object({ type: z.literal("string"), payload: z.string() }),
-    z.object({ type: z.literal("serializedTranslation"), payload: serializedTranslationSchema }),
+    z.object({
+      type: z.literal("serializedTranslation"),
+      payload: serializedTranslationSchema,
+    }),
+    z.object({
+      type: z.literal("chooseOne"),
+      payload: serializedChooseOneSchema,
+    }),
     z.object({
       type: z.literal("couplePlayerHand"),
       payload: z.object({
@@ -185,7 +200,6 @@ const temporaryEffectSchema = z.object({
   card: identifierTypeSchema,
   issuer: z.string(),
   targets: z.array(selectionItemSchema),
-  description: z.string(),
   visualEffectBox: VisualEffectBoxSchema.optional(),
 });
 export type TemporaryEffect = z.infer<typeof temporaryEffectSchema>;
@@ -289,7 +303,7 @@ export type DiceRollJson = z.infer<typeof diceRollJsonSchema>;
 const diceWillRollJsonSchema = z.object({
   type: z.literal("diceWillRoll"),
   issuer: entityTypeSchema,
-  card: identifierTypeSchema.optional(),
+  card: identifierTypeSchema,
   visualEffectBox: VisualEffectBoxSchema.optional(),
   attackRoll: z.boolean(),
   id: z.number(),
@@ -302,6 +316,7 @@ const deathOnStackJsonSchema = z.object({
   receiver: entityTypeSchema,
   from: entityTypeSchema,
   source: z.union([z.lazy(() => diceRollJsonSchema), identifierTypeSchema]),
+  visualEffectBox: VisualEffectBoxSchema.optional(),
   id: z.number(),
   reordering: stackReorderingInfoSchema.optional(),
 });
@@ -330,6 +345,7 @@ const damageOnStackJsonSchema = z.object({
   from: entityTypeSchema,
   damage: z.number(),
   source: z.union([z.lazy(() => diceRollJsonSchema), identifierTypeSchema]),
+  visualEffectBox: VisualEffectBoxSchema.optional(),
   id: z.number(),
   reordering: stackReorderingInfoSchema.optional(),
 });
@@ -443,6 +459,7 @@ const decksConfigSchema = z.object({
   useRooms: booleanGameParameterSchema.optional(),
   nbPlayerCardRestriction: booleanGameParameterSchema.optional(),
   useFSP2Cards: booleanGameParameterSchema.optional(),
+  useG2Cards: booleanGameParameterSchema.optional(),
   useRCards: booleanGameParameterSchema.optional(),
 
   character: characterDeckSchema,
@@ -460,6 +477,7 @@ const decksConfigPatchSchema = z.object({
   useRooms: booleanGameParameterSchema.optional(),
   nbPlayerCardRestriction: booleanGameParameterSchema.optional(),
   useFSP2Cards: booleanGameParameterSchema.optional(),
+  useG2Cards: booleanGameParameterSchema.optional(),
   useRCards: booleanGameParameterSchema.optional(),
 
   monster: deckConfigCardSchema.optional(),
@@ -475,6 +493,7 @@ export type DeckConfigPatch = z.infer<typeof decksConfigPatchSchema>;
 const gameParametersSchema = z.object({
   miniDraft: booleanGameParameterSchema,
   nbSoulsToWin: numberGameParameterSchema,
+  resolveCooldown: numberGameParameterSchema,
   timer: numberGameParameterSchema,
   nbItemsInShop: numberGameParameterSchema,
   nbEncounters: numberGameParameterSchema,
@@ -646,13 +665,23 @@ const attackRequirementSchema = z.object({
 
 export type AttackRequirement = z.infer<typeof attackRequirementSchema>;
 const cardActivationSchema = z.object({
-  type: z.union([z.literal("hand"), z.literal("inPlay"), z.literal("character"), z.literal("room")]),
+  type: z.union([
+    z.literal("hand"),
+    z.literal("inPlay"),
+    z.literal("character"),
+    z.literal("room"),
+  ]),
   index: z.number(),
   effectIndex: z.union([z.number(), z.literal("tap")]),
   targetChoices: z.array(selectionItemSchema).optional(),
 });
 const cardActivationWithIdSchema = z.object({
-  type: z.union([z.literal("hand"), z.literal("inPlay"), z.literal("character"), z.literal("room")]),
+  type: z.union([
+    z.literal("hand"),
+    z.literal("inPlay"),
+    z.literal("character"),
+    z.literal("room"),
+  ]),
   index: z.number(),
   effectIndex: z.number(),
   targetChoices: z.array(selectionItemSchema).optional(),
@@ -875,6 +904,7 @@ const detailedStateSchema = z.object({
   stack: z.array(z.lazy(() => stackElementSchema)),
   history: z.array(stackElementSchema),
   animations: z.array(animationSchema),
+  lastStackElementTimeStamp: z.number(),
 });
 export type DetailedState = z.infer<typeof detailedStateSchema>;
 
@@ -1188,6 +1218,7 @@ export interface ServerToClientEvents {
   "on:room:changed": (room: Room | null) => void;
   "on:user:assigned": (userId: string | null) => void;
   "on:room:broadcast": (broadcast: RoomBroadcast) => void;
+  "on:game:quit": (userId: string) => void;
   "on:admin:changed": (admin: AdminResponse) => void;
 }
 

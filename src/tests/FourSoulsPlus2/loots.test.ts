@@ -32,7 +32,7 @@ it("fsp2-gold_key - The active player may attack the monster deck any number of 
         for(let i = 0; i < 5; i++){
             game.actions.declareAttack(player1);
             await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
-            game.entityHandler.kill(player1, game.encounters.monsterIn(0)!, player1.character as ItemCard);
+            game.entityHandler.kill(player1, game.encounters.monsterIn(0)!, {card: player1.character as ItemCard, visualEffectBox: undefined});
             await game.actions.resolveStack();
         }
         game.actions.declareAttack(player1);
@@ -104,7 +104,7 @@ it("fsp2-tape_worm - Each time you miss an attack roll, deal 1 damage to another
                 };
             return { selected: Options.slice(0, max), remaining: Options.slice(max) };
         };
-        game.entityHandler.kill(player2, player2, player1.inPlay[0]!);
+        game.entityHandler.kill(player2, player2, {card: player1.inPlay[0]!, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.inPlay[0]!.charged).toBe(false);

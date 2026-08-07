@@ -115,13 +115,13 @@ describe("Monsters - Various 1", () => {
         game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
         const initAtk = monster.attackPoints;
-        game.entityHandler.dealDamage(player1, monster, card, 1);
+        game.entityHandler.dealDamage(player1, monster, {card: card, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack(); // resolve damage
         await game.actions.resolveStack(); // resolve effect
         expect(game.stack._stack.length).toBe(0);
         expect(monster.attackPoints).toBe(initAtk + 1);
         
-        game.entityHandler.dealDamage(player1, monster, card, 1);
+        game.entityHandler.dealDamage(player1, monster, {card: card, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack(); // resolve damage
         await game.actions.resolveStack(); // resolve effect
         expect(game.stack._stack.length).toBe(0);
@@ -173,7 +173,7 @@ describe("Monsters - Various 1", () => {
         expect(otherMonster.currentHealthPoints).toBe(otherMonster.card.healthPoints);
         expect(player1.currentHealthPoints).toBe(player1.healthPoints - 1); // took 1 damage for failed attack
 
-        game.entityHandler.kill(player1, monster, card);
+        game.entityHandler.kill(player1, monster, {card: card, visualEffectBox: undefined});
         await game.actions.resolveStack(); // resolve death
         await game.actions.resolveStack(); // resolve effect
         game.actions.attackRoll(player1);
@@ -228,7 +228,7 @@ describe("Monsters - Various 1", () => {
         expect(monster.card.slug).toBe("b2-stoney"); // sanity check
         expect(otherMonster.card.slug).toBe("b2-fatty"); // sanity check
 
-        game.entityHandler.kill(player1, monster, card);
+        game.entityHandler.kill(player1, monster, {card: card, visualEffectBox: undefined});
         
         await game.actions.resolveStack(); // resolve death
         await game.actions.resolveStack(); // resolve effect
@@ -267,7 +267,7 @@ describe("Monsters - Various 1", () => {
         const monster = game.monsters[0]!;
         expect(monster.isDead).toBe(false);
 
-        game.entityHandler.kill(player1, otherMonster, otherMonster.card);
+        game.entityHandler.kill(player1, otherMonster, {card: otherMonster.card, visualEffectBox: undefined});
         await game.actions.resolveStack(); // resolve death
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // resolve effect
@@ -393,7 +393,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // to player2
         await game.actions.resolveStack(); // resolve damage
-        game.entityHandler.dealDamage(monster, monster, card, 1);
+        game.entityHandler.dealDamage(monster, monster, {card: card, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack(); // resolve damage
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // resolve damage
@@ -462,7 +462,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // to player2
         await game.actions.resolveStack(); // resolve damage
-        game.entityHandler.dealDamage(monster, monster, card, 1);
+        game.entityHandler.dealDamage(monster, monster, {card: card, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack(); // resolve damage
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack(); // resolve damage
@@ -484,7 +484,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         const monster = game.monsters[0]!;
         expect(monster.attackPoints).toBe(card.attackPoints);
 
-        game.entityHandler.dealDamage(player1, monster, card, card.healthPoints -1);
+        game.entityHandler.dealDamage(player1, monster, {card: card, visualEffectBox: undefined}, card.healthPoints -1);
         await game.actions.resolveStack(); // resolve damage
         await game.actions.resolveStack(); // resolve effect
         
@@ -493,7 +493,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         expect(game.entityHandler.getAttack(monster)).toBe(card.attackPoints);
         expect(game.entityHandler.getAttack(monster)).toBe(card.attackPoints);
 
-        game.entityHandler.dealDamage(player1, monster, card, 1);
+        game.entityHandler.dealDamage(player1, monster, {card: card, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack(); // resolve damage
         await game.actions.resolveStack(); // resolve effect
         
@@ -521,7 +521,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         const monster = game.monsters[0]!;
         expect(game.entityHandler.getDC(monster)).toBe(card.evasion);
 
-        game.entityHandler.dealDamage(player1, monster, card, monster.currentHealthPoints -1);
+        game.entityHandler.dealDamage(player1, monster, {card: card, visualEffectBox: undefined}, monster.currentHealthPoints -1);
         await game.actions.resolveStack(); // resolve damage
         await game.actions.resolveStack(); // resolve effect
         
@@ -530,7 +530,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         expect(game.entityHandler.getDC(monster)).toBe(card.evasion);
         expect(game.entityHandler.getDC(monster)).toBe(card.evasion);
 
-        game.entityHandler.dealDamage(player1, monster, card, 1);
+        game.entityHandler.dealDamage(player1, monster, {card: card, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack(); // resolve damage
         await game.actions.resolveStack(); // resolve effect
         
@@ -558,14 +558,14 @@ describe("Monsters - Various 1 - 3 players", () => {
         const monster = game.monsters[0]!;
         expect(game.entityHandler.getDC(monster)).toBe(card.evasion);
 
-        game.entityHandler.dealDamage(player1, monster, card, card.healthPoints -2);
+        game.entityHandler.dealDamage(player1, monster, {card: card, visualEffectBox: undefined}, card.healthPoints -2);
         await game.actions.resolveStack(); // resolve damage
         await game.actions.resolveStack(); // resolve effect
         
         expect(game.entityHandler.getDC(monster)).toBe(card.evasion + 1);
         game.entityHandler.heal(monster, 1);
         expect(game.entityHandler.getDC(monster)).toBe(card.evasion);
-        game.entityHandler.dealDamage(player1, monster, card, card.healthPoints -2);
+        game.entityHandler.dealDamage(player1, monster, {card: card, visualEffectBox: undefined}, card.healthPoints -2);
         await game.actions.resolveStack(); // resolve damage
         await game.actions.resolveStack(); // resolve effect
         
@@ -575,7 +575,7 @@ describe("Monsters - Various 1 - 3 players", () => {
         expect(game.entityHandler.getDC(monster)).toBe(card.evasion);
         expect(game.entityHandler.getDC(monster)).toBe(card.evasion);
 
-        game.entityHandler.dealDamage(player1, monster, card, 1);
+        game.entityHandler.dealDamage(player1, monster, {card: card, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack(); // resolve damage
         await game.actions.resolveStack(); // resolve effect
         

@@ -510,16 +510,16 @@ export class Player extends Entity {
     return this._hand;
   }
 
+  get souls(): Card[]{
+    return this._souls;
+  }
+
   /**
    * Gets the player's collected soul cards.
    * @returns Array of cards that count as souls
    */
-  get souls(): Card[] {
-    return this._souls;
-  }
-
-  soulsInCommonWith(player: Player): void{
-    this._souls = player.souls;
+  get targetableSouls(): Card[] {
+    return this._souls.filter(s => !s.eternal);
   }
 
   /**
@@ -529,7 +529,7 @@ export class Player extends Entity {
    */
   get totalSouls(): number {
     let total = 0;
-    for (const soul of this._souls) {
+    for (const soul of this.souls) {
       total += soul.soul;
     }
     return total;

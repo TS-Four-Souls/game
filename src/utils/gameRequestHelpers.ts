@@ -87,7 +87,9 @@ export async function executeActivateWithIdRequest(
   if(choice !== undefined) {
     partialChoices = [...TargetBuilder.convertToSelectionItems(choice), ...partialChoices];
   }
-  
+  const payloadActivate: Requests.Activate = payload;
+  payloadActivate.effectIndex = effectId;
+  payloadActivate.targetChoices = partialChoices;
   return executeActivateRequest(game, payload, player);
 }
 

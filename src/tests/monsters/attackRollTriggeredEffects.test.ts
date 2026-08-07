@@ -138,7 +138,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             game.entityHandler.addHealth(player1, 10);
             
             // Reduce chub's health so it can heal
-            game.entityHandler.dealDamage(chubMonster, chubMonster, chubMonster.card, 3);
+            game.entityHandler.dealDamage(chubMonster, chubMonster, {card: chubMonster.card, visualEffectBox: undefined}, 3);
             await game.actions.resolveStack(); // resolve the dice roll and chub healing effect
 
             const initialMonsterHP = chubMonster.currentHealthPoints;
@@ -168,7 +168,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             game.encounters.forceSetMonsterAtSlot(0, chub);
             
             const chubMonster = game.monsters[0]!;
-            game.entityHandler.dealDamage(chubMonster, chubMonster, chubMonster.card, 2);
+            game.entityHandler.dealDamage(chubMonster, chubMonster, {card: chubMonster.card, visualEffectBox: undefined}, 2);
             await game.actions.resolveStack();
 
             const initialMonsterHP = chubMonster.currentHealthPoints;
@@ -196,7 +196,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             game.encounters.forceSetMonsterAtSlot(0, chub);
             
             const chubMonster = game.monsters[0]!;
-            game.entityHandler.dealDamage(chubMonster, chubMonster, chubMonster.card, 3);
+            game.entityHandler.dealDamage(chubMonster, chubMonster, {card: chubMonster.card, visualEffectBox: undefined}, 3);
             await game.actions.resolveStack();
 
             const initialMonsterHP = chubMonster.currentHealthPoints;
@@ -239,7 +239,7 @@ describe("Monsters - Attack Roll Triggered Effects", () => {
             const maxHP = chubMonster.healthPoints;
             
             // Set chub to 1 HP below max
-            game.entityHandler.dealDamage(chubMonster, chubMonster, chubMonster.card, 1);
+            game.entityHandler.dealDamage(chubMonster, chubMonster, {card: chubMonster.card, visualEffectBox: undefined}, 1);
             await game.actions.resolveStack();
 
             

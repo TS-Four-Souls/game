@@ -173,7 +173,7 @@ export function eachPlayerRollLowestOrTiedForLowestDiesEffect(game: Game): SyncE
             const lowestValue = Math.min(...dices.map(d => d.value));
             const playersToDie = dices.filter((dice) => dice.value === lowestValue).map(d => d.issuer);
             for(const player of playersToDie) {
-                game.entityHandler.kill(data.issuer, player, data.it);
+                game.entityHandler.kill(data.issuer, player, data.cardAndBox);
             }
             return true;
         }
@@ -280,7 +280,7 @@ export function targetTakeDamageEffect(game: Game, damage: number): SyncEffectFu
         if(!(target instanceof Entity))
             throw new GameError("targetTakeDamageEffect can only be applied to entity targets.",
                 toSerializedTranslation("error.behaviorError", { error: "targetTakeDamageEffect can only be applied to entity targets." }));
-        game.entityHandler.dealDamage(data.issuer as Entity, data.targets[0] as Entity, data.it, damage);
+        game.entityHandler.dealDamage(data.issuer as Entity, data.targets[0] as Entity, data.cardAndBox, damage);
         return true;
     };
 }
@@ -312,7 +312,7 @@ export function OnDamageByActivePlayerRollDealDamageEffect(game: Game, numbers: 
                         for(let i=0; i < ranges.length; i++) {
                             if(n >= ranges[i]![0]! && n <= ranges[i]![1]!) {
                                 for (const t of groups[i]!) {
-                                    game.entityHandler.dealDamage(data.issuer as Entity, t as Entity, data.it, dmgs[i]!);
+                                    game.entityHandler.dealDamage(data.issuer as Entity, t as Entity, data.cardAndBox, dmgs[i]!);
                                 }
                             }
                         }
@@ -344,7 +344,7 @@ return (data: EffectData) => {
             
             // Add all effects as a single stack element
             const effect = (effectData: EffectData): boolean => {
-                game.entityHandler.dealDamage(eventIssuer as Entity, target as Entity, data.it, damage);
+                game.entityHandler.dealDamage(eventIssuer as Entity, target as Entity, data.cardAndBox, damage);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `When ${data.it.name} dies, it deals ${damage} damage to the player who killed it.`);
@@ -368,7 +368,7 @@ export function dealDamageOnAttackDeclarationEffect(game: Game, minRoll: number,
                 const roll = game.rollDice(game.currentPlayer, data.it);
                 roll.attachEffect([1,2,3,4,5,6].map(n => (rollData: EffectData): boolean => {
                     if(roll.value >= minRoll && roll.value <= maxRoll) {
-                        game.entityHandler.dealDamage(data.issuer, eventIssuer, data.it, damage);
+                        game.entityHandler.dealDamage(data.issuer, eventIssuer, data.cardAndBox, damage);
                     }
                     return true;
                 }), data.it, []);
@@ -450,33 +450,11 @@ return (data: EffectData) => {
     };
 }
 
-export function doubleRewardsOnDeathRollEffect(game: Game, rollValues: number[]): SyncEffectFunction {
-
-    return (data: EffectData) => {
-        let offDeath: (() => void) | null = null;
-        
-        offDeath = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
-            const { eventIssuer, target, source } = eventData;
-            if (data.issuer !== eventIssuer) return;
-            if(source instanceof Card) return;
-            const roll = source as DiceRoll;
-            if(!rollValues.includes(roll.value)) return;
-            
-            // Add all effects as a single stack element
-            const effect = (effectData: EffectData): boolean => {
-                game.entityHandler.entityRewards(data.issuer as Monster);
-                return true;
-            };
-            addPassiveEffectToStack(game, effect, data, `When ${data.it.name} dies, if the killing roll was ${rollValues.join(" or ")}, it grants double rewards.`);
-        });
-
-        // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleaners.push(() => {
-            offDeath?.();
-            offDeath = null;
-        });
+export function doubleRewardsOnDeathRollEffect(game: Game): SyncEffectFunction {
+    return (data: EffectData): boolean => {
+        game.entityHandler.entityRewards(data.issuer as Monster);
         return true;
-    };
+    }
 }
 
 export function noCombatDamageOnAttackRollEffect(game: Game, rollValues: number[]): SyncEffectFunction {
@@ -809,7 +787,7 @@ export function onAttackingPlayerRollsEffect(game: Game, s: string): SyncEffectF
             if (!(eventIssuer instanceof Player)) return;
             if (!(eventIssuer.isEngagedInCombat)) return;
             if(attackRoll.attackRoll !== true) return;
-            if(data.it.entity?.isEngagedInCombat === false) return;
+            if(data.issuer.isEngagedInCombat === false) return;
             if(attackRoll?.value !== roll) return;
             const newData = new EffectData(data.it, () => eventIssuer as Player, [], data.visualEffectBox);
             addPassiveEffectToStack(game, effect.effectFunction, newData, `When the attacking player rolls an attack roll of ${roll} ${rest}`);
@@ -1111,7 +1089,7 @@ export function activePlayerChooseLivingPlayerTakeDamageEffect(game: Game, damag
                 toSerializedTranslation("error.behaviorError", { error: "No player selected for activePlayerChooseLivingPlayerTakeDamageEffect." })
             );
         }
-        game.entityHandler.dealDamage(data.issuer as Entity, targetPlayer as Entity, data.it, damage);
+        game.entityHandler.dealDamage(data.issuer as Entity, targetPlayer as Entity, data.cardAndBox, damage);
         return true;
     }
 };
@@ -1120,7 +1098,7 @@ export function dealDamageToEachOtherMonsterEffect(game: Game, damage: number): 
     return (data: EffectData) => {
         game.monsters.forEach(monster => {
             if(monster !== data.issuer) {
-                game.entityHandler.dealDamage(data.issuer as Entity, monster as Entity, data.it, damage);
+                game.entityHandler.dealDamage(data.issuer as Entity, monster as Entity, data.cardAndBox, damage);
             }
         });
         return true;
@@ -1129,7 +1107,7 @@ export function dealDamageToEachOtherMonsterEffect(game: Game, damage: number): 
 
 export function dealDamageToAttackingPlayerEffect(game: Game, damage: number): SyncEffectFunction {
     return (data: EffectData) => {
-        game.entityHandler.dealDamage(data.issuer as Entity, game.currentPlayer as Player, data.it, damage);
+        game.entityHandler.dealDamage(data.issuer as Entity, game.currentPlayer as Player, data.cardAndBox, damage);
         return true;
     };
 }
@@ -1291,7 +1269,7 @@ export function onEveryOtherDamageEffect(game: Game, effect: EffectFunction): Sy
 export function dealDamageToPlayerToTheEffect(game: Game, damage: number, direction: "left" | "right"): SyncEffectFunction {
     return (data: EffectData) => {
         const player = game.getPlayerToThe(direction);
-        game.entityHandler.dealDamage(data.issuer as Entity, player as Entity, data.it, damage);
+        game.entityHandler.dealDamage(data.issuer as Entity, player as Entity, data.cardAndBox, damage);
         return true;
     };
 }
@@ -1301,7 +1279,7 @@ export function playersWithMostItemsDieEffect(game: Game): SyncEffectFunction {
         const maxSouls = Math.max(...game.players.map(p => p.totalSouls));
         const playersToDie = game.players.filter(p => p.totalSouls === maxSouls && !p.isDead);
         for (const player of playersToDie) {
-            game.entityHandler.kill(player, player, data.it);
+            game.entityHandler.kill(player, player, data.cardAndBox);
         }
         return true;
     };

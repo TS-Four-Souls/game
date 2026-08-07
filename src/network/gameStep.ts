@@ -25,7 +25,12 @@ export const enterGameStep = (
 ): void => {
   const activeInstance = user.instances.find((instance) => instance.isActive);
   if (!activeInstance) {
-    throw new GameError("No active instance found", toSerializedTranslation("error.behaviorError", {error: "No active instance found"}));
+    throw new GameError(
+      "No active instance found",
+      toSerializedTranslation("error.behaviorError", {
+        error: "No active instance found",
+      }),
+    );
   }
   const player = room.game.entityHandler.getPlayerById(activeInstance.name);
 
@@ -58,7 +63,10 @@ export const enterGameStep = (
         console.error("Rollback failed while loading logs:", error);
         return callback({
           status: 400,
-          error: error instanceof Error ? error.message : "Failed to load game from logs.",
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to load game from logs.",
         });
       }
 
@@ -90,7 +98,9 @@ export const enterGameStep = (
         enterGameStep(user.socket, room, user);
         user.socket.emit("on:room:broadcast", {
           type: "info",
-          title: toSerializedTranslation("toast.rollback.title", { player: player.id }),
+          title: toSerializedTranslation("toast.rollback.title", {
+            player: player.id,
+          }),
           message: toSerializedTranslation("toast.rollback.message"),
         });
       }
@@ -130,7 +140,10 @@ export const enterGameStep = (
   socket.on("resolve", async (callback) =>
     errorGuardedEndpoint(callback, async () => {
       registerRoomActivity(room);
+      room.game.assert.canResolveNow();
       await helper.executeResolveRequest(room.game, player);
+      if (room.game.stack.elements.length > 0)
+        room.game.assert.updateLastTimedAction();
       return callback({ status: 200 });
     }),
   );
@@ -156,7 +169,11 @@ export const enterGameStep = (
         schemas.insertStackElementBeforeRequest,
         callback,
         (payload) => {
-          helper.executeInsertStackElementBeforeRequest(room.game, payload, player);
+          helper.executeInsertStackElementBeforeRequest(
+            room.game,
+            payload,
+            player,
+          );
           return callback({ status: 200 });
         },
       ),
@@ -287,11 +304,7 @@ export const enterGameStep = (
     errorGuardedEndpoint(callback, () => {
       for (const user of room.users) {
         const socket = user.socket;
-        socket.emit("on:room:broadcast", {
-          type: "info",
-          title: toSerializedTranslation("toast.exit.title", { player: player.id }),
-          message: toSerializedTranslation("toast.exit.message"),
-        });
+        socket.emit("on:game:quit", player.id);
       }
 
       roomManager.finalizeGameRecord(room);
@@ -470,7 +483,11 @@ export const enterGameStep = (
           schemas.debugPutMonsterCardInSlotRequest,
           callback,
           (payload) => {
-            helper.executeDebugPutMonsterCardInSlotRequest(room.game, payload, player);
+            helper.executeDebugPutMonsterCardInSlotRequest(
+              room.game,
+              payload,
+              player,
+            );
             return callback({ status: 200 });
           },
         ),

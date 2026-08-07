@@ -516,7 +516,7 @@ describe("Event Monsters - Expansion Effects", () => {
         const initialMonsterSlots = game.encounters._slots.length;
         
         // Kill the monster
-        game.entityHandler.kill(player1, monster, mom);
+        game.entityHandler.kill(player1, monster, {card: mom, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -532,7 +532,7 @@ describe("Event Monsters - Expansion Effects", () => {
         const initialMonsterSlots = game.encounters.slots.length;
         
         // Kill the monster
-        game.entityHandler.kill(player1, monster, mulligan);
+        game.entityHandler.kill(player1, monster, {card: mulligan, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -548,7 +548,7 @@ describe("Event Monsters - Expansion Effects", () => {
         const initialShopSlots = game.shop.itemsInShop.length;
         
         // Kill the monster
-        game.entityHandler.kill(player1, monster, hanger);
+        game.entityHandler.kill(player1, monster, {card: hanger, visualEffectBox: undefined});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         
@@ -669,7 +669,7 @@ describe("Event Monsters - Curse Effects", () => {
         const soulCard = game.obtainCard("b2-blank_card") as ItemCard;
         soulCard.soul = 2;
         game.cardHandler.addSoul(player1, soulCard);
-        const initialSouls = player1.souls.length;
+        const initialSouls = player1.targetableSouls.length;
         
         // Draw the curse
         game.encounters.discardTop(0);
@@ -677,13 +677,13 @@ describe("Event Monsters - Curse Effects", () => {
         await game.actions.resolveStack(); // resolve the event addition
         
         // Kill the player
-        game.entityHandler.kill(player1, player1, curseOfLoss);
+        game.entityHandler.kill(player1, player1, {card: curseOfLoss, visualEffectBox: undefined});
         await game.actions.resolveStack(); // death resolution
         const effect = game.stack._stack[0] as EffectOnStack ;
         effect.targets = [soulCard]; // Choose soul to destroy
         await game.actions.resolveStack(); // curse effect resolution
         
-        expect(player1.souls.length).toBe(initialSouls - 1);
+        expect(player1.targetableSouls.length).toBe(initialSouls - 1);
     });
 
     // b2-curse_of_pain: At the start of your turn, take 1 damage

@@ -7,7 +7,7 @@ import {
   type SerializedTranslation,
 } from "@/shared/api";
 import { GameError } from "@/models/GameError";
-import en from "@/shared/translation_en.json";
+import en from "../../data/translations/en.json";
 
 export function toSerializedTranslation<T extends TranslationKeys>(
   ...args: TranslationFunctionArgs<T>
@@ -20,12 +20,12 @@ export function toSerializedTranslation<T extends TranslationKeys>(
 export function translationKeyFromCardSlug(
   slug: string,
 ): BasicSerializedTranslation {
-  if (!Object.hasOwn(en.cardNames, slug))
-    throw new GameError(
-      `Key "${slug}" is not a valid translation key`,
-      toSerializedTranslation("error.parsingError", {
-        error: `Key "${slug}" is not a valid translation key`,
-      }),
-    );
+  // if (!Object.hasOwn(en.cardNames, slug))
+  //   throw new GameError(
+  //     `Key "${slug}" is not a valid translation key`,
+  //     toSerializedTranslation("error.parsingError", {
+  //       error: `Key "${slug}" is not a valid translation key`,
+  //     }),
+  //   );
   return { key: "cardNames." + slug };
 }

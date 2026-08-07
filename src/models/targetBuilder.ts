@@ -1,5 +1,5 @@
 import { shuffle } from "@/utils/auxiliary";
-import { type DeckName, type SelectionItem, type TargetSelectorResponse, type SerializedTranslation, type Capability, serializedTranslationSchema } from "../shared/api";
+import { type DeckName, type SelectionItem, type TargetSelectorResponse, type SerializedTranslation, type Capability, serializedTranslationSchema, type SerializedChooseOne } from "../shared/api";
 import { Card, ItemCard, LootCard, type TargetsSelector } from "./cards";
 import { Entity } from "./entities/entity";
 import { type Game } from "./game";
@@ -179,7 +179,7 @@ export class TargetBuilder {
             if (possibleTargets.length > 0 && isChooseOneOptions(possibleTargets[0])) {
                 // Choose-one: find the chosen option
                 const chosenOption = (possibleTargets as ChooseOneOptions[]).find(
-                    opt => opt.description === choice.payload
+                    opt => opt.description === (choice.payload as SerializedChooseOne).description
                 );
 
                 if (!chosenOption) {
@@ -234,12 +234,11 @@ export class TargetBuilder {
 
         if (isChooseOne) {
             // Return choose-one option descriptions
-            const options = (possibleTargets as ChooseOneOptions[]).map(opt => opt.description);
             return {
                 description: selector.description,
                 min: 1,
                 max: 1,
-                options: options,
+                options: possibleTargets,
                 complete: false,
                 isChooseOne: true
             };
@@ -312,10 +311,13 @@ export class TargetBuilder {
     static convertToSelectionItems(options: any[]): SelectionItem[] {
          return options.map(option => {
 
+
+            if (typeof option === 'object' && option !== null && isChooseOneOptions(option)) {
+                return {type: "chooseOne", payload: {description: option.description, card: option.card.jsonAPI, visualEffectBox: option.visualEffectBox}};
+            }
             if (typeof option === 'object' && option !== null && 'slug' in option && option instanceof Card) {
                 return { payload: {nameKey: option.nameKey, slug: option.slug, globalId: option.globalId}, type: "card" };
             }
-
             if (typeof option === 'object' && option !== null && 'id' in option && option instanceof Entity) {
                 const entity = option;
                 return {type: entity.json.type, payload: {nameKey: entity.json.nameKey, slug: entity.json.slug, globalId: entity.json.globalId, color: entity.color, type: entity.json.type}};
@@ -328,7 +330,10 @@ export class TargetBuilder {
             if (typeof option === 'number')
                 return {type: "number", payload: option};
             if (typeof option === 'string')
+            {
+                // console.warn("WARNING, string option: ", option);
                 return {type: "string", payload: option};
+            }
             if (typeof option === 'boolean')
                 return {type: "boolean", payload: option};
             if (option === null) {
@@ -380,13 +385,16 @@ export class TargetBuilder {
                     (identifier.payload.globalId === undefined || t.globalId === identifier.payload.globalId)
                 );
             case "player":
+            case "animated":
             case "monster":
                 return possibleTargets.find(t =>
-                    t && t.json.nameKey.key === identifier.payload.nameKey.key &&
+                    t && t instanceof Entity && t.json &&
                     t.json.globalId === identifier.payload.globalId
                 );
             case "deck":
                 return possibleTargets.find(t => t && t._type === identifier.payload);
+            case "chooseOne":
+                return (possibleTargets as SerializedChooseOne[]).find(t => t && t.description === identifier.payload.description)
             case "number":
             case "string":
             case "boolean":
@@ -473,7 +481,7 @@ export class TargetBuilder {
                 const choice = partialChoices[choiceIndex]!;
                 choiceIndex++; // Move past the option choice
                 const chosenOption = (possibleTargets as ChooseOneOptions[]).find(
-                    opt => opt.description === choice.payload
+                    opt => opt.description === (choice.payload as SerializedChooseOne).description
                 );
 
                 if (!chosenOption) {
@@ -640,7 +648,7 @@ export class TargetBuilder {
                 const prevChooseOneOption = targets[lastIndex];
                 targets = targets.slice(0, lastIndex);
                 options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
-                const prevChooseOneIdx = options.options.findIndex((opt: any) => opt.description === prevChooseOneOption.description);
+                const prevChooseOneIdx = options.options.findIndex((opt: any) => opt.payload.description === (prevChooseOneOption.payload as SerializedChooseOne).description);
                     if(prevChooseOneIdx === -1)
                         throw new GameError(`Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`, toSerializedTranslation("error.behaviorError", { error: `Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`}));
                     if(options.options.length <= prevChooseOneIdx + 1)
@@ -709,7 +717,7 @@ export class TargetBuilder {
                     const prevChooseOneOption = targets[lastIndex];
                     targets = targets.slice(0, lastIndex);
                     options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
-                    const prevChooseOneIdx = options.options.findIndex((opt: any) => opt.description === prevChooseOneOption.description);
+                    const prevChooseOneIdx = options.options.findIndex((opt: any) => opt.description === (prevChooseOneOption.payload as SerializedChooseOne).description);
                     if(prevChooseOneIdx === -1)
                         throw new GameError(`Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`, toSerializedTranslation("error.behaviorError", { error: `Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`}));
                     if(options.options.length <= prevChooseOneIdx + 1)

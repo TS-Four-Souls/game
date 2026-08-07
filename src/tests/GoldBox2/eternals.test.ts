@@ -14,7 +14,7 @@ async function characterAdd1LootPlay(player1: Player, game: Game) {
     expect(player1.remainingLootPlay).toBe(lootPlay + 1);
 }
 
-describe.skip("Gold Box 2 Eternal Items", () => {
+describe("Gold Box 2 Eternal Items", () => {
     let game: Game;
     let player1: Player;
     let player2: Player;
@@ -149,7 +149,7 @@ describe.skip("Gold Box 2 Eternal Items", () => {
         game.cardHandler.recharge(eternal);
         await game.activateItem(player1, eternal, [player2]);
         await game.actions.resolveStack();
-        game.entityHandler.kill(player2, player1, eternal);
+        game.entityHandler.kill(player2, player1, {card: eternal, visualEffectBox: undefined});
         await game.actions.resolveStack();
         expect(game.currentPlayer === player1).toBe(true);
     });
@@ -171,7 +171,7 @@ describe.skip("Gold Box 2 Eternal Items", () => {
         game.cardHandler.recharge(eternal);
         await game.activateItem(player1, eternal, [player1]);
         await game.actions.resolveStack();
-        game.entityHandler.kill(player1, player1, eternal);
+        game.entityHandler.kill(player1, player1, {card: eternal, visualEffectBox: undefined});
         await game.actions.resolveStack();
         expect(game.stack.size).toBe(3);
         expect(player1.isDead).toBe(false);

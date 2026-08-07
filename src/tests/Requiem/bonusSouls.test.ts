@@ -43,24 +43,24 @@ describe("Four Souls+2 Loot Cards", () => {
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();
         expect(player1.totalSouls).toBe(1);
-        expect(player1.souls.map(c => c.slug)).not.toContain("r-soul_of_envy");
+        expect(player1.targetableSouls.map(c => c.slug)).not.toContain("r-soul_of_envy");
         expect(player2.totalSouls).toBe(0);
-        expect(player2.souls.map(c => c.slug)).not.toContain("r-soul_of_envy");
+        expect(player2.targetableSouls.map(c => c.slug)).not.toContain("r-soul_of_envy");
 
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();
         expect(player1.totalSouls).toBe(2);
-        expect(player1.souls.map(c => c.slug)).not.toContain("r-soul_of_envy");
+        expect(player1.targetableSouls.map(c => c.slug)).not.toContain("r-soul_of_envy");
         expect(player2.totalSouls).toBe(0);
-        expect(player2.souls.map(c => c.slug)).not.toContain("r-soul_of_envy");
+        expect(player2.targetableSouls.map(c => c.slug)).not.toContain("r-soul_of_envy");
 
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();
         expect(player1.totalSouls).toBe(3);
-        expect(player1.souls.map(c => c.slug)).not.toContain("r-soul_of_envy");
+        expect(player1.targetableSouls.map(c => c.slug)).not.toContain("r-soul_of_envy");
         await game.actions.resolveStack(); // Resolve any stack effects
         expect(player2.totalSouls).toBe(1);
-        expect(player2.souls.map(c => c.slug)).toContain("r-soul_of_envy");
+        expect(player2.targetableSouls.map(c => c.slug)).toContain("r-soul_of_envy");
     });
 
 it("Soul of Lust - each time a player kills a monster, put a counter on this. - 6 counters", async () => {
@@ -69,7 +69,7 @@ it("Soul of Lust - each time a player kills a monster, put a counter on this. - 
             game.cardHandler.addTopPosition("monster", game.obtainCard(monster)!);
         }
         for(let i=0; i<6; i++) {
-            game.entityHandler.kill(player1, game.monsters[0]!, player1.character!);
+            game.entityHandler.kill(player1, game.monsters[0]!, {card: player1.character!, visualEffectBox: undefined});
             await game.actions.resolveStack();
             expect(game.currentPlayer.totalSouls).toBe((i === 5 ? 1 : 0));
             await game.endTurn();
@@ -79,7 +79,7 @@ it("Soul of Lust - each time a player kills a monster, put a counter on this. - 
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve effect
-        expect(game.currentPlayer.souls.map(c => c.slug)).toContain("r-soul_of_lust");
+        expect(game.currentPlayer.targetableSouls.map(c => c.slug)).toContain("r-soul_of_lust");
     });
 
     it("Soul of Pride - each time a player gains a treasure, put a counter on this. - 6 counters", async () => {
@@ -88,14 +88,14 @@ it("Soul of Lust - each time a player kills a monster, put a counter on this. - 
             game.gainTreasure(player1, 1);
             expect(game.currentPlayer.totalSouls).toBe((i === 5 ? 1 : 0));
         }
-        expect(game.currentPlayer.souls.map(c => c.slug)).toContain("r-soul_of_pride");
+        expect(game.currentPlayer.targetableSouls.map(c => c.slug)).toContain("r-soul_of_pride");
     });
 
 it("Soul of Wrath - each time a player dies, put a counter on this. - 6 counters", async () => {
         ({ game, player1, player2 } = await setupBonusSoulsTestGame("r-soul_of_wrath"));
 
         for(let i=0; i<6; i++) {
-            game.entityHandler.kill(player1, game.currentPlayer, player1.character!);
+            game.entityHandler.kill(player1, game.currentPlayer, {card: player1.character!, visualEffectBox: undefined});
             await game.actions.resolveStack();
             expect(game.currentPlayer.totalSouls).toBe((i === 5 ? 1 : 0));
             await game.actions.resolveStack();
@@ -103,7 +103,7 @@ it("Soul of Wrath - each time a player dies, put a counter on this. - 6 counters
         }
         await game.endTurn();
         await game.actions.resolveStack();
-        expect(game.currentPlayer.souls.map(c => c.slug)).toContain("r-soul_of_wrath");
+        expect(game.currentPlayer.targetableSouls.map(c => c.slug)).toContain("r-soul_of_wrath");
 
     });
 
@@ -118,7 +118,7 @@ it("Soul of Sloth - the first time a player controls 4 items, the active player 
             expect(player2.totalSouls).toBe((i === 2 ? 1 : 0));
         }
         
-        expect(player2.souls.map(c => c.slug)).toContain("r-soul_of_sloth");
+        expect(player2.targetableSouls.map(c => c.slug)).toContain("r-soul_of_sloth");
     });
 });
 
