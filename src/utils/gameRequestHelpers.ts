@@ -85,7 +85,7 @@ export async function executeActivateWithIdRequest(
 
   let partialChoices = payload.targetChoices === undefined ? [] : payload.targetChoices;
   if(choice !== undefined) {
-    partialChoices = [...TargetBuilder.convertToSelectionItems(choice), ...partialChoices];
+    partialChoices = [...choice.map(c=>{return {type: "chooseOne" as const, payload: c}}), ...partialChoices];
   }
   const payloadActivate: Requests.Activate = payload;
   payloadActivate.effectIndex = effectId;
