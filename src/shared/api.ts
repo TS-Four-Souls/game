@@ -13,6 +13,7 @@ export const serializedTranslationSchema = basicSerializedTranslationSchema.exte
       z.string(),
       z.union([
         z.string(),
+        z.number(),
         basicSerializedTranslationSchema,
         z.array(basicSerializedTranslationSchema),
       ]),
