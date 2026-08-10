@@ -891,7 +891,7 @@ const lootDeckSchema = z.object({
 });
 export type LootDeck = z.infer<typeof lootDeckSchema>;
 
-const detailedStateSchema = z.object({
+export const detailedStateSchema = z.object({
   me: playerMeSchema,
   players: z.array(playerSchema),
   monsters: encounterSchema,
