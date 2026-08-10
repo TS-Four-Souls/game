@@ -47,7 +47,11 @@ export class GameStateSerializer {
     };
     const serializedState = api.detailedStateSchema.safeParse(state);
     if(!serializedState.success)
-      throw new GameError("", toSerializedTranslation("error.behaviorError", {error: serializedState.error.message}))
+    {
+      console.log(serializedState.error.message);
+      return state;
+    } 
+    
     return serializedState.data;
   }
   /**
