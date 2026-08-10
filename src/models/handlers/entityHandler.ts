@@ -296,6 +296,7 @@ export class EntityHandler {
       }
       if (receiver instanceof Player) {
         receiver.clearAttackRequirement(); // clear any forced attack constraints on this.game player.
+        this.game.actions.cancelPurchase(receiver, true);
         await this.deathPenalty(receiver, values);
       } else if (receiver instanceof Monster) {
         // Clear any forced attack constraints on this.game monster
@@ -331,8 +332,11 @@ export class EntityHandler {
         source: source,
       });
       this.game.dispatch();
+      const turnId = this.game.turnHandler.numberOfRoundSinceBeginning;
       if(receiver instanceof Player && this.game.currentPlayer === receiver && this.game.stack.elements.find(e => e instanceof EndOfTurnOnStack) == undefined)
-        await this.game.executeWhenStackEmpty(async () => {await this.game.endTurn();});
+        await this.game.executeWhenStackEmpty(async () => {
+          if(this.game.turnHandler.numberOfRoundSinceBeginning === turnId )
+            await this.game.endTurn();});
     }).catch((error) => {
       console.error("Failed to resolve death follow-up", error);
     });
@@ -495,14 +499,13 @@ export class EntityHandler {
     const stackIds = this.game.stack.currentStackIds;
     if(receiver.isDead
       || (elem._source instanceof DiceRoll && (elem.receiver.isEngagedInCombat === false && elem.from.isEngagedInCombat === false))
+      || !this.entities.includes(receiver)
     ) 
       {
         this.game.stack.resolve();
         this.game.dispatch();
         return;
       }
-    if(!this.entities.includes(receiver))
-      return;
     this.game.emit("on:damage:would-take", {
       eventIssuer: elem.receiver,
       target: elem.from,
