@@ -2253,7 +2253,9 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
             if( current <= 0) return;
             if (!(data.issuer instanceof Player)) return;
             const effect = async (data: EffectData): Promise<boolean> => {
-                damageArray[0] = Math.max(0, current - prevent);
+                const current = damageArray[0] ?? 0;
+                if( current <= 0) return false;
+                damageArray[0] = Math.max(0, damageArray[0]! - prevent);
                 if (!(data.issuer instanceof Player)) return false;
                 
                 // Deal 1 damage to another player

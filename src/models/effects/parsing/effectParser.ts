@@ -953,7 +953,7 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
         case "you may put a shop item into discard":
             return noTargetEffect(active.discardAnyNumberOfShopItemsEffect(game, 0, 1, "onResolve"));
         case "put a shop item into discard":
-            return { effectFunction: active.discardAnyNumberOfShopItemsEffect(game, 1, 1, "next"), targetSelectors: selectShopItem(game) };
+            return { effectFunction: active.discardAnyNumberOfShopItemsEffect(game, 1, 1, selectionOnResolve ? "onResolve" : "next"), targetSelectors: selectShopItem(game) };
         case "you may put any number of shop items into discard":
             return noTargetEffect(active.discardAnyNumberOfShopItemsEffect(game, 0, "any", "onResolve"));
         case "put any number of non-event monster cards in discard on top of the monster deck":

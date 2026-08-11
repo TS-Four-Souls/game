@@ -8,6 +8,7 @@ import { TargetBuilder } from "@/models/targetBuilder";
 // import type { DetailedState, IdentifierType, InPlayCard, InPlayMeCard, PendingSelection } from "@/shared/api";
 import * as api from "@/shared/api";
 import { toSerializedTranslation } from "@/utils/translation";
+import { GameError } from "./GameError";
 
 export class GameStateSerializer {
   private game: Game;
@@ -29,8 +30,7 @@ export class GameStateSerializer {
     }
     
     const otherPlayers = players.slice(1);
-
-    return {
+    const state: api.DetailedState = {
       me: this.serializedMePlayer(player),
       players: this.serializedOtherPlayers(player, otherPlayers),
       monsters: this.serializeEncounter(player),
@@ -45,6 +45,14 @@ export class GameStateSerializer {
       animations: player.animations(true),
       lastStackElementTimeStamp: this.game.assert.lastTimedAction
     };
+    const serializedState = api.detailedStateSchema.safeParse(state);
+    if(!serializedState.success)
+    {
+      console.log(serializedState.error.message);
+      return state;
+    } 
+    
+    return serializedState.data;
   }
   /**
    * Computes the serialized state of a specific player, including their hand, in-play cards, capabilities, and pending selection.

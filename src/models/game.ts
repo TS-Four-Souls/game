@@ -868,8 +868,14 @@ export class Game {
    * Clears the full stack state.
    */
   resetStack(): void {
-    this.stack.clear();
-    this.resetCallbacks();
+    for(let i = 0; i <= 1000; i++)
+    {
+      this.stack.clear();
+      this.resetCallbacks();
+      if(this.stack.isEmpty())
+        return;
+    }
+    throw new GameError("", toSerializedTranslation("error.behaviorError", {error: "Expected stack to be empty."}))
   }
 
 ////////////////////////////////////// Coin handler //////////////////////////////////////
@@ -1069,7 +1075,7 @@ export class Game {
     }
     // Execute collected callbacks
     for (const cb of callbacksToExecute) {
-      if (this.hasPendingSelections) {
+      if (this.hasPendingSelections || !this.stack.elements.every((el) => cb.stackIds.includes(el.stackId))) {
         this._stackSubsetCallbacks.push(cb);
         continue;
       }

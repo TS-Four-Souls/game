@@ -7,12 +7,13 @@ export type BasicSerializedTranslation = z.infer<
   typeof basicSerializedTranslationSchema
 >;
 
-const serializedTranslationSchema = basicSerializedTranslationSchema.extend({
+export const serializedTranslationSchema = basicSerializedTranslationSchema.extend({
   interpolates: z
     .record(
       z.string(),
       z.union([
         z.string(),
+        z.number(),
         basicSerializedTranslationSchema,
         z.array(basicSerializedTranslationSchema),
       ]),
@@ -891,7 +892,7 @@ const lootDeckSchema = z.object({
 });
 export type LootDeck = z.infer<typeof lootDeckSchema>;
 
-const detailedStateSchema = z.object({
+export const detailedStateSchema = z.object({
   me: playerMeSchema,
   players: z.array(playerSchema),
   monsters: encounterSchema,
