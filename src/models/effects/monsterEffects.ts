@@ -602,7 +602,7 @@ export function damageDealtToActivePlayerAlsoToTheEffect(game: Game, direction: 
             // Add all effects as a single stack element
             const effect = (effectData: EffectData): boolean => {
                 const player = game.getPlayerToThe(direction);
-                game.entityHandler.dealDamage(eventIssuer as Entity, player as Entity, source, damage);
+                game.entityHandler.dealDamage(eventIssuer as Entity, player as Entity, data.cardAndBox, damage);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `Damage dealt to ${data.it.name} is also dealt to the player to the active player's ${direction}.`);
