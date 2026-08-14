@@ -3,6 +3,7 @@ import type { HistoricEntry } from "@/models/handlers/historyHandler";
 import { schemas } from "@/shared/api";
 import * as helper from "@/utils/gameRequestHelpers";
 import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
+import { serializeGameForSave } from "@/utils/saveGame";
 import { toSerializedTranslation } from "@/utils/translation";
 import { globalEndpoints } from "./global";
 import { rollbackCoordinator } from "./rollbackCoordinator";
@@ -41,7 +42,7 @@ export const enterGameStep = (
 
   socket.on("saveGame", async (callback) =>
     errorGuardedEndpoint(callback, () => {
-      const logs = JSON.stringify(room.game.log, null, 2);
+      const logs = serializeGameForSave(room.game);
       return callback({ status: 200, logs });
     }),
   );

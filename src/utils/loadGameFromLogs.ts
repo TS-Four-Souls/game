@@ -77,6 +77,10 @@ export function normalizeDetailedStateForComparison(state: DetailedStateForCompa
     lastRollbackTimeStamp: 0,
   };
 
+  // Cooldown timestamps are generated from wall-clock time and cannot be
+  // reproduced by replaying a save. They do not represent game state.
+  normalized.lastStackElementTimeStamp = 0;
+
   if (normalized.me.pendingSelection) {
     normalized.me.pendingSelection.requestId = 0;
   }
@@ -346,6 +350,34 @@ function isLastIndexUsedForReplay(index: number, logs: HistoricEntry[])
   return true;
 }
 
+async function waitForActionToCompleteOrRequestSelection(
+  game: Game,
+  action: Promise<unknown>,
+): Promise<void> {
+  if (game.hasPendingSelections) return;
+
+  let settled = false;
+  let stateChangeListener: (() => void) | undefined;
+  const selectionRequested = new Promise<void>((resolve) => {
+    stateChangeListener = () => {
+      if (!game.hasPendingSelections || settled) return;
+      settled = true;
+      game.onStateChange.remove(stateChangeListener);
+      resolve();
+    };
+    game.onStateChange.add(stateChangeListener);
+  });
+
+  try {
+    await Promise.race([action.then(() => undefined), selectionRequested]);
+  } finally {
+    settled = true;
+    if (stateChangeListener !== undefined) {
+      game.onStateChange.remove(stateChangeListener);
+    }
+  }
+}
+
 export async function loadGameFromLogs(
   logs: HistoricEntry[],
   verbose: number = 0,
@@ -412,7 +444,11 @@ export async function loadGameFromLogs(
           if(isLastIndexUsedForReplay(index, logs))
           {
             game.selectMultiple = normalMultipleSelection;
-            void game.start(entry.players);
+            await waitForActionToCompleteOrRequestSelection(
+              game,
+              game.start(entry.players),
+            );
+            verifyRecordedCharactersAfterStart(game, characterByPlayer);
           }
           else
           {

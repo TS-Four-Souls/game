@@ -1,10 +1,30 @@
 import { GameError } from "@/models/GameError";
+import { Game } from "@/models/game";
 import type { HistoricEntry } from "@/models/handlers/historyHandler";
-import type { DetailedState } from "@/shared/api";
+import { Team, type DetailedState } from "@/shared/api";
+import { executeResolveRequest } from "@/utils/gameRequestHelpers";
 import { loadGameFromLogs, normalizeDetailedStateForComparison, setupLoadingSubmitSelectionHandling } from "@/utils/loadGameFromLogs";
+import { serializeGameForSave } from "@/utils/saveGame";
 import { toSerializedTranslation } from "@/utils/translation";
 import { describe, expect, it } from "bun:test";
 import { setupStandardTestGame } from "../testHelpers";
+
+const replayPlayers = [
+  { issuer: "Player 1", character: "b2-isaac", team: Team.Team1 },
+  { issuer: "Player 2", character: "b2-judas", team: Team.Team2 },
+];
+
+async function setupReplayableGame(): Promise<Game> {
+  const game = new Game("save-round-trip-seed");
+  game.startOfGameSetup(replayPlayers);
+  game.addToHistory({
+    type: "Start",
+    players: replayPlayers,
+    params: game.gameParameters.toJson(),
+  });
+  await game.atGameStartDecisions();
+  return game;
+}
 
 function parseLog(path: string): HistoricEntry[] {
   const fs = require('fs');
@@ -46,15 +66,82 @@ async function compareGameStateFromFolder(folderPath: string) {
 
 describe("loadGameFromLogs", () => {
 
-  it("ignores rollback timestamps when comparing saved replay state", async () => {
+  it("ignores non-deterministic cooldown timestamps when comparing saved replay state", async () => {
     const { game, player1 } = await setupStandardTestGame();
     const currentState = structuredClone(game.detailedStateJSON(player1));
+    currentState.lastStackElementTimeStamp = Date.now();
     currentState.lastRollbackTimeStamp = Date.now();
     const { lastRollbackTimeStamp, ...oldSavedState } = structuredClone(currentState);
+    oldSavedState.lastStackElementTimeStamp = 0;
 
     expect(lastRollbackTimeStamp).toBeGreaterThan(0);
+    expect(normalizeDetailedStateForComparison(currentState).lastStackElementTimeStamp).toBe(0);
+    expect(normalizeDetailedStateForComparison(oldSavedState).lastStackElementTimeStamp).toBe(0);
     expect(normalizeDetailedStateForComparison(currentState).lastRollbackTimeStamp).toBe(0);
     expect(normalizeDetailedStateForComparison(oldSavedState).lastRollbackTimeStamp).toBe(0);
+  });
+
+  it("round-trips a save made before the first player action", async () => {
+    const game = await setupReplayableGame();
+    const savedLogs = JSON.parse(serializeGameForSave(game)) as HistoricEntry[];
+    const checkpoint = savedLogs.at(-1);
+    if (checkpoint?.type !== "GameState") throw new Error("Expected a saved GameState checkpoint.");
+
+    await Bun.sleep(2);
+    const loadedGame = await loadGameFromLogs(savedLogs);
+    const loadedState = loadedGame.detailedStateJSON(loadedGame.players[0]!);
+
+    expect(normalizeDetailedStateForComparison(loadedState))
+      .toEqual(normalizeDetailedStateForComparison(checkpoint.gameState));
+
+    const secondSave = JSON.parse(JSON.stringify(loadedGame.log)) as HistoricEntry[];
+    await expect(loadGameFromLogs(secondSave)).resolves.toBeInstanceOf(Game);
+  });
+
+  it("round-trips a save made immediately after rollback replay", async () => {
+    const game = await setupReplayableGame();
+    await executeResolveRequest(game, game.currentPlayer);
+    const rollbackRequester = game.players.find((player) => player !== game.currentPlayer);
+    if (rollbackRequester === undefined) throw new Error("Expected another player to request rollback.");
+
+    const rolledBackGame = await loadGameFromLogs(game.getRollbackLog(rollbackRequester));
+    const postRollbackSave = JSON.parse(serializeGameForSave(rolledBackGame)) as HistoricEntry[];
+
+    await expect(loadGameFromLogs(postRollbackSave)).resolves.toBeInstanceOf(Game);
+  });
+
+  it("restores a starting choice that was pending when the game was saved", async () => {
+    const game = new Game("pending-save-seed");
+    const players = [
+      { issuer: "Player 1", character: "b2-eden", team: Team.Team1 },
+      { issuer: "Player 2", character: "b2-judas", team: Team.Team2 },
+    ];
+    game.startOfGameSetup(players);
+    game.addToHistory({
+      type: "Start",
+      players,
+      params: game.gameParameters.toJson(),
+    });
+    const startPromise = game.atGameStartDecisions();
+    expect(game.hasPendingSelections).toBe(true);
+    expect(() => serializeGameForSave(game))
+      .toThrow("Finish the current selection before saving the game.");
+
+    const savedLogs = JSON.parse(JSON.stringify(game.log)) as HistoricEntry[];
+    const loadedGame = await loadGameFromLogs(savedLogs);
+    expect(loadedGame.hasPendingSelections).toBe(true);
+
+    for (const pendingGame of [game, loadedGame]) {
+      const pending = pendingGame.pendingMultipleSelections.values().next().value;
+      if (pending === undefined) throw new Error("Expected a pending starting choice.");
+      const pendingPlayer = pendingGame.entityHandler.getPlayerById(pending.playerId);
+      const pendingState = pendingGame.detailedStateJSON(pendingPlayer).me.pendingSelection;
+      if (pendingState === undefined) throw new Error("Expected a serialized pending starting choice.");
+      pendingGame.submitSelection(pendingPlayer, pending.requestId, [pendingState.options[0]!]);
+    }
+
+    await startPromise;
+    await Bun.sleep(0);
   });
 
   it("matches simultaneous selection responses to the player that received each prompt", async () => {
