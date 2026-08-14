@@ -8,6 +8,7 @@ import { assertCardMatchesDeck, Card, type DeckType } from "@/models/cards";
 export class AssertHandler {
     private _game: Game;
     private _lastTimedAction: number = 0;
+    private _lastRollbackAction: number = 0;
 
     constructor(game: Game) {
         this._game = game;
@@ -144,5 +145,20 @@ export class AssertHandler {
   }
   updateLastTimedAction(): void {
     this.lastTimedAction = new Date().getTime();
+  }
+
+  set lastRollbackAction(time: number) {
+    this._lastRollbackAction = time;
+  }
+
+  get lastRollbackAction(): number {
+    return this._lastRollbackAction;
+  }
+
+  canRollbackNow(): void {
+    if (Date.now() - this.lastRollbackAction < 1000 * this.game.gameParameters.resolveCooldown.value)
+      throw new GameError(`You must wait ${this.game.gameParameters.resolveCooldown.value} seconds between rollbacks.`,
+        toSerializedTranslation("error.waitBetweenActions", { seconds: this.game.gameParameters.resolveCooldown.value })
+      );
   }
 }
