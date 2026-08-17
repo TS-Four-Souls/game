@@ -3437,9 +3437,11 @@ export function rerollDiceByControllerEffect(game: Game): SyncEffectFunction {
 export function thisBecomeSoulGainItEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        if(data.it instanceof ItemCard === true)
+        if(data.it instanceof ItemCard === true || data.it instanceof MonsterCard === true)
             game.obtainCard(data.it.slug, data.it.globalId);
         data.it.soul = 1;
+        if(data.it instanceof MonsterCard)
+            data.it.afterEffect = "handled";
         game.cardHandler.addSoul(data.issuer, data.it);
         return true;
     };
