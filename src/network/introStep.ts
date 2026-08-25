@@ -21,6 +21,7 @@ import { enterGameStep } from "./gameStep";
 import { globalEndpoints } from "./global";
 import { roomManager } from "./roomManager";
 import { enterAdminStep } from "./adminStep";
+import { toSerializedTranslation } from "@/utils/translation";
 
 export const enterIntroStep = (socket: Socket): void => {
   globalEndpoints(socket);
@@ -36,7 +37,7 @@ export const enterIntroStep = (socket: Socket): void => {
             console.log(
               "[🔌 Socket] Admin login attempt with invalid password",
             );
-            return callback({ status: 400, error: "Invalid password" });
+            return callback({ status: 400, error: toSerializedTranslation("error.invalidPassword") });
           }
           console.log("[🔌 Socket] Admin login attempt with valid password");
           leaveCurrentStep(socket);
@@ -55,13 +56,13 @@ export const enterIntroStep = (socket: Socket): void => {
         callback,
         (payload) => {
           if (payload.name.length === 0) {
-            return callback({ status: 400, error: "A name is required" });
+            return callback({ status: 400, error: toSerializedTranslation("error.nameRequired") });
           }
 
           if (payload.name.length > 16) {
             return callback({
               status: 400,
-              error: "Your name needs to be less than 16 characters",
+              error: toSerializedTranslation("error.nameLength"),
             });
           }
 
@@ -69,7 +70,7 @@ export const enterIntroStep = (socket: Socket): void => {
             return callback({
               status: 400,
               error:
-                "Your name can only contain letters, numbers and underscores",
+                toSerializedTranslation("error.nameContent"),
             });
           }
 
@@ -112,7 +113,7 @@ export const enterIntroStep = (socket: Socket): void => {
           const room = roomManager.findRoom(payload.roomId);
 
           if (!room) {
-            return callback({ status: 400, error: "Room not found" });
+            return callback({ status: 400, error: toSerializedTranslation("error.roomNotFound") });
           }
 
           if (payload.type === "rejoin") {
@@ -120,7 +121,7 @@ export const enterIntroStep = (socket: Socket): void => {
               user.instances.some((instance) => instance.id === payload.userId),
             );
             if (!joinAsUser) {
-              return callback({ status: 400, error: "User not found" });
+              return callback({ status: 400, error: toSerializedTranslation("error.userNotFound") });
             }
             joinAsUser.socket = socket;
             leaveCurrentStep(socket);
@@ -131,32 +132,31 @@ export const enterIntroStep = (socket: Socket): void => {
             }
           } else {
             if (room.users.length >= 4) {
-              return callback({ status: 400, error: "Room is full" });
+              return callback({ status: 400, error: toSerializedTranslation("error.roomFull") });
             }
 
             if (room.game !== undefined) {
               return callback({
                 status: 400,
-                error: "Game is already started",
+                error: toSerializedTranslation("error.gameStarted"),
               });
             }
 
             if (payload.name.length === 0) {
-              return callback({ status: 400, error: "A name is required" });
+              return callback({ status: 400, error: toSerializedTranslation("error.nameRequired") });
             }
 
             if (payload.name.length > 16) {
               return callback({
                 status: 400,
-                error: "Your name needs to be less than 16 characters",
+                error: toSerializedTranslation("error.nameLength"),
               });
             }
 
             if (!/^[a-zA-Z0-9_]+$/.test(payload.name)) {
               return callback({
                 status: 400,
-                error:
-                  "Your name can only contain letters, numbers and underscores",
+                error: toSerializedTranslation("error.nameContent"),
               });
             }
 
@@ -169,7 +169,7 @@ export const enterIntroStep = (socket: Socket): void => {
             ) {
               return callback({
                 status: 400,
-                error: "That name is already taken",
+                error: toSerializedTranslation("error.nameAlreadyExists"),
               });
             }
 
