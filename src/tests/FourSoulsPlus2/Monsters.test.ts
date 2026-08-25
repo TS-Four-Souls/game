@@ -547,6 +547,13 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         await game.actions.resolveStack(); // effect
         await game.actions.resolveStack(); // damage p2
         expect(player2.currentHealthPoints).toBe(player2.healthPoints - 1);
+        game.entityHandler.dealDamage(player1, game.encounters.monsterIn(0)!, {card: card1, visualEffectBox: undefined}, 1);
+        await game.actions.resolveStack(); // damage monster
+        await game.actions.resolveStack(); // effect
+        await game.actions.resolveStack(); // damage p2
+        await game.actions.resolveStack(); // damage p2
+        await game.actions.resolveStack(); // damage p2
+        expect(player2.currentHealthPoints).toBe(player2.healthPoints - 2);
     });
     it("fsp2-brain - Each time the attacking player rolls an attack roll of 6, they take 1 damage.", async () => {
         const card1 = game.obtainCard("fsp2-brain") as MonsterCard;
