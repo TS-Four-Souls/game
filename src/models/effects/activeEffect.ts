@@ -2338,7 +2338,9 @@ export function healEachMonsterEffect(game: Game, amount: number): SyncEffectFun
     };
 }
 
-export function rerollItemTheyControlEffect(game: Game, youMayEffectHanging: boolean[] = [false]): AsyncEffectFunction {
+export function rerollItemTheyControlEffect(game: Game, youMayEffectHanging: boolean[]): AsyncEffectFunction {
+    const includeZero = youMayEffectHanging[0]!;
+    youMayEffectHanging[0] = false;
     return async (data: EffectData) => {
         let targetPlayer = data.next;
         if(targetPlayer instanceof DiceRoll)
@@ -2347,12 +2349,11 @@ export function rerollItemTheyControlEffect(game: Game, youMayEffectHanging: boo
             throw new GameError("Invalid target player for rerollItemTheyControlEffect", toSerializedTranslation("error.behaviorError", { error: "Invalid target player for rerollItemTheyControlEffect"}));
         if(!(data.issuer instanceof Player))
             throw new GameError("Issuer must be a player for rerollItemTheyControlEffect", toSerializedTranslation("error.behaviorError", { error: "Issuer must be a player for rerollItemTheyControlEffect"}));
-        const selectionResult = await data.selectAndRecord(game, data.issuer, (youMayEffectHanging[0] ? 0 : 1), 1, targetPlayer.inPlay.filter(c => c.eternal === false), 
-            youMayEffectHanging[0] ?
+        const selectionResult = await data.selectAndRecord(game, data.issuer, (includeZero ? 0 : 1), 1, targetPlayer.inPlay.filter(c => c.eternal === false), 
+            includeZero ?
             qq("pending.canItemToReroll") :
             qq("pending.itemToReroll")
         , true, true);
-        youMayEffectHanging[0] = false;
         if(selectionResult.selected.length === 0)
             return false;
         const card = selectionResult.selected[0]!;
