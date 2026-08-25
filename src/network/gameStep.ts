@@ -3,8 +3,10 @@ import type { HistoricEntry } from "@/models/handlers/historyHandler";
 import { schemas } from "@/shared/api";
 import * as helper from "@/utils/gameRequestHelpers";
 import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
+import { serializeGameForSave } from "@/utils/saveGame";
 import { toSerializedTranslation } from "@/utils/translation";
 import { globalEndpoints } from "./global";
+import { rollbackCoordinator } from "./rollbackCoordinator";
 import { roomManager } from "./roomManager";
 import { enterStartStep } from "./startStep";
 import type { RoomWithGame, Socket, User } from "./types";
@@ -40,7 +42,7 @@ export const enterGameStep = (
 
   socket.on("saveGame", async (callback) =>
     errorGuardedEndpoint(callback, () => {
-      const logs = JSON.stringify(room.game.log, null, 2);
+      const logs = serializeGameForSave(room.game);
       return callback({ status: 200, logs });
     }),
   );
@@ -56,9 +58,16 @@ export const enterGameStep = (
         });
       }
 
+      const resolveCooldownStartedAt = room.game.assert.lastTimedAction;
+      const rollbackStartedAt = Date.now();
       let newGame;
       try {
-        newGame = await loadGameFromLogs(logs);
+        newGame = await rollbackCoordinator.run(room, async () => {
+          room.game.assert.canRollbackNow();
+          room.game.assert.lastRollbackAction = rollbackStartedAt;
+          sendRoomChangedToAll(room);
+          return loadGameFromLogs(logs);
+        });
       } catch (error) {
         console.error("Rollback failed while loading logs:", error);
         return callback({
@@ -70,6 +79,8 @@ export const enterGameStep = (
         });
       }
 
+      newGame.assert.lastTimedAction = resolveCooldownStartedAt;
+      newGame.assert.lastRollbackAction = rollbackStartedAt;
       room.game = newGame;
 
       room.game.onStateChange.add(() => {

@@ -43,7 +43,8 @@ export class GameStateSerializer {
       history: this.game.history,
       stack: this.game.stack.elements.map((el) => el.json).toReversed(),
       animations: player.animations(true),
-      lastStackElementTimeStamp: this.game.assert.lastTimedAction
+      lastStackElementTimeStamp: this.game.assert.lastTimedAction,
+      lastRollbackTimeStamp: this.game.assert.lastRollbackAction,
     };
     const serializedState = api.detailedStateSchema.safeParse(state);
     if(!serializedState.success)

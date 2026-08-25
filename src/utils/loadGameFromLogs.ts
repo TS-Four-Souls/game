@@ -7,7 +7,7 @@ import {
   type UserRequest,
   isStackElementJson,
 } from "@/models/handlers/historyHandler";
-import { type DetailedState, type IdentifierType, type Issuer, type SerializedTranslation } from "@/shared/api";
+import { type DetailedState, type IdentifierType, type Issuer, type SelectionItem, type SerializedTranslation } from "@/shared/api";
 import { Player } from "../models/entities/player";
 import * as helper from "@/utils/gameRequestHelpers";
 import { toSerializedTranslation } from "./translation";
@@ -69,8 +69,17 @@ interface GameStateComparison {
   differences: string[];
 }
 
-function normalizeDetailedStateForComparison(state: DetailedState): DetailedState {
-  const normalized = structuredClone(state);
+type DetailedStateForComparison = DetailedState | Omit<DetailedState, "lastRollbackTimeStamp">;
+
+export function normalizeDetailedStateForComparison(state: DetailedStateForComparison): DetailedState {
+  const normalized: DetailedState = {
+    ...structuredClone(state),
+    lastRollbackTimeStamp: 0,
+  };
+
+  // Cooldown timestamps are generated from wall-clock time and cannot be
+  // reproduced by replaying a save. They do not represent game state.
+  normalized.lastStackElementTimeStamp = 0;
 
   if (normalized.me.pendingSelection) {
     normalized.me.pendingSelection.requestId = 0;
@@ -201,11 +210,30 @@ function compareGameState(original: DetailedState, loaded: DetailedState): GameS
   };
 }
 
-function setupLoadingSubmitSelectionHandling(game: Game, logs: HistoricEntry[]): void {
+interface ReplaySubmitSelectionEntry {
+  type: "SubmitSelection";
+  issuer: Issuer;
+  payload: {
+    requestId: number | string;
+    selections: SelectionItem[];
+  };
+}
+
+function isReplaySubmitSelectionEntry(entry: unknown): entry is ReplaySubmitSelectionEntry {
+  if (!isObject(entry) || entry.type !== "SubmitSelection" || typeof entry.issuer !== "string") {
+    return false;
+  }
+
+  const payload = entry.payload;
+  return isObject(payload)
+    && (typeof payload.requestId === "number" || typeof payload.requestId === "string")
+    && Array.isArray(payload.selections);
+}
+
+export function setupLoadingSubmitSelectionHandling(game: Game, logs: readonly unknown[]): void {
   const submitSelectionEntries = logs.filter(
-    (entry): entry is Extract<UserRequest, { type: "SubmitSelection" }> =>
-      isUserRequestEntry(entry) && entry.type === "SubmitSelection",
-  ).sort((a, b) => a.payload.requestId - b.payload.requestId);
+    isReplaySubmitSelectionEntry,
+  ).sort((a, b) => replayRequestOrder(a.payload.requestId) - replayRequestOrder(b.payload.requestId));
   game.setSelectionHandlerNextId(submitSelectionEntries.length);
   let i = 0;
 
@@ -221,17 +249,30 @@ function setupLoadingSubmitSelectionHandling(game: Game, logs: HistoricEntry[]):
     const results: { playerId: string; selected: T[]; remaining: T[] }[] = [];
 
     for (const selection of selections) {
-      for(let j = i; j < submitSelectionEntries.length; j++)
-      {
+      let matchingEntryIndex = -1;
+      for (let j = i; j < submitSelectionEntries.length; j++) {
         const entry = submitSelectionEntries[j];
-        if(entry !== undefined && selections.map(s=>s.player.id).includes(entry.issuer))
-        {
-          submitSelectionEntries.splice(j, 1);
-          submitSelectionEntries.splice(i, 0, entry);
-          break
+        if (entry !== undefined && entry.issuer === selection.player.id) {
+          matchingEntryIndex = j;
+          break;
         }
-        console.log("Weird That it happens.");
       }
+
+      if (matchingEntryIndex === -1) {
+        throw new GameError(
+          `No SubmitSelection entry in the logs matches player ${selection.player.id}.`,
+          toSerializedTranslation("error.behaviorError", { error: "No matching SubmitSelection entry found for the prompted player." }),
+        );
+      }
+
+      const [matchingEntry] = submitSelectionEntries.splice(matchingEntryIndex, 1);
+      if (matchingEntry === undefined) {
+        throw new GameError(
+          `SubmitSelection entry ${matchingEntryIndex} disappeared while preparing replay.`,
+          toSerializedTranslation("error.behaviorError", { error: "A matching SubmitSelection entry disappeared while preparing replay." }),
+        );
+      }
+      submitSelectionEntries.splice(i, 0, matchingEntry);
       const entry = submitSelectionEntries[i++];
       if (entry === undefined) {
         throw new GameError(
@@ -259,6 +300,15 @@ function setupLoadingSubmitSelectionHandling(game: Game, logs: HistoricEntry[]):
 
     return results;
   };
+}
+
+function replayRequestOrder(requestId: unknown): number {
+  if (typeof requestId === "number") return requestId;
+  if (typeof requestId === "string") {
+    const legacySequence = Number(requestId.split("_").at(-1));
+    if (Number.isFinite(legacySequence)) return legacySequence;
+  }
+  return 0;
 }
 
 function findInitialSeed(logs: unknown[]): string {
@@ -298,6 +348,34 @@ function isLastIndexUsedForReplay(index: number, logs: HistoricEntry[])
       }
   }
   return true;
+}
+
+async function waitForActionToCompleteOrRequestSelection(
+  game: Game,
+  action: Promise<unknown>,
+): Promise<void> {
+  if (game.hasPendingSelections) return;
+
+  let settled = false;
+  let stateChangeListener: (() => void) | undefined;
+  const selectionRequested = new Promise<void>((resolve) => {
+    stateChangeListener = () => {
+      if (!game.hasPendingSelections || settled) return;
+      settled = true;
+      game.onStateChange.remove(stateChangeListener);
+      resolve();
+    };
+    game.onStateChange.add(stateChangeListener);
+  });
+
+  try {
+    await Promise.race([action.then(() => undefined), selectionRequested]);
+  } finally {
+    settled = true;
+    if (stateChangeListener !== undefined) {
+      game.onStateChange.remove(stateChangeListener);
+    }
+  }
 }
 
 export async function loadGameFromLogs(
@@ -366,7 +444,11 @@ export async function loadGameFromLogs(
           if(isLastIndexUsedForReplay(index, logs))
           {
             game.selectMultiple = normalMultipleSelection;
-            void game.start(entry.players);
+            await waitForActionToCompleteOrRequestSelection(
+              game,
+              game.start(entry.players),
+            );
+            verifyRecordedCharactersAfterStart(game, characterByPlayer);
           }
           else
           {
