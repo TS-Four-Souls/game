@@ -6,6 +6,8 @@ import { Game } from "../models/game";
 import { DamageOnStack, DiceRoll } from "../models/stackElement";
 import { setupStandardTestGame, setupTestGame } from "./testHelpers";
 import { pl } from "zod/locales";
+import { TargetBuilder } from "@/models/targetBuilder";
+import { executeActivateWithIdRequest } from "@/utils/gameRequestHelpers";
 
 describe("Known bugs that have be corrected", () => {
     let game: Game;
@@ -21,6 +23,22 @@ describe("Known bugs that have be corrected", () => {
     
     // it("", async () => {
     // });
+    
+    it("serialize choose one options", async () => {
+        const c1 = game.obtainCard("fsp2-rainbow_baby") as ItemCard;
+        game.cardHandler.addInPlay(player1, c1);
+        const res = await executeActivateWithIdRequest(game, 
+            {
+                type: "inPlay",
+                index: 1,
+                effectIndex: 0,
+                targetChoices: []
+            },
+            player1
+        );
+        await game.resolveEntireStack();
+        expect(()=>JSON.stringify(game.log, null, 2)).not.toThrow();
+    });
     
     it("Poop and dry baby should cancel 2 damages", async () => {
         const c1 = game.obtainCard("b2-the_poop") as ItemCard;

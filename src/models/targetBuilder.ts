@@ -1,5 +1,5 @@
 import { shuffle } from "@/utils/auxiliary";
-import { type DeckName, type SelectionItem, type TargetSelectorResponse, type SerializedTranslation, type Capability, serializedTranslationSchema, type SerializedChooseOne, SerializedChooseOne } from "../shared/api";
+import { type DeckName, type SelectionItem, type TargetSelectorResponse, type SerializedTranslation, type Capability, serializedTranslationSchema, type SerializedChooseOne } from "../shared/api";
 import { Card, ItemCard, LootCard, type TargetsSelector } from "./cards";
 import { Entity } from "./entities/entity";
 import { type Game } from "./game";
