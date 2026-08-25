@@ -71,6 +71,7 @@ interface GameStateComparison {
 
 function normalizeDetailedStateForComparison(state: DetailedState): DetailedState {
   const normalized = structuredClone(state);
+  normalized.lastStackElementTimeStamp = 0;
 
   if (normalized.me.pendingSelection) {
     normalized.me.pendingSelection.requestId = 0;
