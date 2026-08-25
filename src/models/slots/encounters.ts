@@ -340,7 +340,7 @@ export class Encounters extends Slots<MonsterCard> {
      */
     async selectValidIndexAndDraw(game: Game, player: Player, data: EffectData, youMay: boolean = false): Promise<number>
     {
-        const selected = (await data.selectAndRecord(game, player, youMay ? 0 : 1, 1, this.coverableSlots, toSerializedTranslation("pending.whereToPutTheBloat"), true, true)).selected;
+        const selected = (await data.selectAndRecord(game, player, youMay ? 0 : 1, 1, this.coverableSlots, toSerializedTranslation("pending.slot"), true, true)).selected;
 
         if(selected.length === 0)
             return -1;
