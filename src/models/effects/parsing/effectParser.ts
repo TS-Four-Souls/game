@@ -102,7 +102,7 @@ import { toSerializedTranslation } from "@/utils/translation";
  * 4 - Write a test for each outcome of each effect.
  */
 
-const INFINITY = 999999;
+export const INFINITY = 999999;
 /**
  * Represents a parsed effect with both its execution function and target selectors.
  * This unified structure eliminates the need to parse effect strings twice.
@@ -959,9 +959,9 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
         case "put any number of non-event monster cards in discard on top of the monster deck":
             return noTargetEffect(active.putAnyNumberFromDiscardOnTopEffect("monster", game, (card) => card instanceof MonsterCard && card.encounterType !== MonsterType.EVENT));
         case "steal a soul they control":
-            return noTargetEffect(active.stealSoulEffect(game));
+            return noTargetEffect(active.stealSoulEffect(game, "next"));
         case "steal a soul from another player":
-            return { effectFunction: active.stealSoulEffect(game), targetSelectors: selectAnotherPlayer(game) };
+            return noTargetEffect(active.stealSoulEffect(game, "anotherPlayer"));
         case "steal a non-eternal item they control":
             return noTargetEffect(active.stealNonEternalItemFromTargetEffect(game));
         case "swap a non-eternal item you control with a non-eternal item they control":

@@ -18,7 +18,7 @@ import { TargetBuilder } from "../targetBuilder";
 import { deckSelector, inplayUnchargedItemSelector as inplayChargeableItemSelector, visibleItemSelector } from "../targetSelector";
 import { type DeckType, EffectData, type EffectFunction, type SyncEffectFunction, type AsyncEffectFunction, type TargetsSelector } from "../types/cardTypes";
 import type { OnTurnEndData } from "../types/eventTypes";
-import { effectParser, type ParsedEffect, type SyncParsedEffect } from "./parsing/effectParser";
+import { effectParser, INFINITY, type ParsedEffect, type SyncParsedEffect } from "./parsing/effectParser";
 import { addPassiveEffectToStack } from "./passiveEffect";
 import * as room from "./roomEffects";
 import { toSerializedTranslation } from "@/utils/translation";
@@ -746,11 +746,22 @@ export function modifyCoinGainedEffect(game: Game, modifier: (original:number) =
     };
 }
 
-export function stealSoulEffect(game: Game): AsyncEffectFunction {
+export function stealSoulEffect(game: Game, from: "next" | "anotherPlayer"): AsyncEffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        if(game.cardHandler.targetableSoulsOwned.length === 0) return false;
-        const soulToSteal = (await data.selectAndRecord(game, data.issuer, 1, 1, game.cardHandler.targetableSoulsOwned, qq("pending.soulToSteal"), true, true)).selected[0]!;
+        let souls: Card[] = [];
+        if( from === "next"){
+            const target = data.next;
+            if(target instanceof Player === false)
+                return false;
+            souls = target.souls;
+        }
+        else if(from === "anotherPlayer")
+        {
+            souls = game.players.filter(p => p !== data.issuer).flatMap(p => p.souls);
+        }
+        if(souls.length === 0) return false;
+        const soulToSteal = (await data.selectAndRecord(game, data.issuer, 1, 1, souls, qq("pending.soulToSteal"), true, true)).selected[0]!;
         const target = game.getOwner(soulToSteal, "soul");
         game.cardHandler.stealSoul(data.issuer, target!, soulToSteal);
         return true;
@@ -2075,7 +2086,7 @@ export function endTurnAndResetStackEffect(game: Game): AsyncEffectFunction {
     return async (data: EffectData) => {
         game.resetStack();
         game.resetCallbacks();
-        game.currentPlayer.clearAttackRequirement();``
+        game.currentPlayer.clearAttackRequirement();
         game.actions.cancelPurchase(game.currentPlayer, true);
         game.entityHandler.endCombat();
         await game.endTurn();
@@ -3354,7 +3365,7 @@ export function enterPlayBecomeSoulEffect(game: Game): SyncEffectFunction {
 export function playUnlimitedLootCardsThisTurnEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        game.entityHandler.addLootPlay(data.issuer, Infinity, data.it);
+        game.entityHandler.addLootPlay(data.issuer, INFINITY, data.it);
         return true;
     };
 }
@@ -3426,9 +3437,11 @@ export function rerollDiceByControllerEffect(game: Game): SyncEffectFunction {
 export function thisBecomeSoulGainItEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        if(data.it instanceof ItemCard === true)
+        if(data.it instanceof ItemCard === true || data.it instanceof MonsterCard === true)
             game.obtainCard(data.it.slug, data.it.globalId);
         data.it.soul = 1;
+        if(data.it instanceof MonsterCard)
+            data.it.afterEffect = "handled";
         game.cardHandler.addSoul(data.issuer, data.it);
         return true;
     };

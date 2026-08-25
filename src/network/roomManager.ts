@@ -164,18 +164,26 @@ class RoomManager {
 
     if (!bugReport && room.game.turnHandler.round < 4) return;
 
-    let logs = JSON.stringify(game.log, null, 2);
+    try {
+      let logs = JSON.stringify(game.log, null, 2);
 
-    // Anonymize player names
-    for (const [index, player] of game.players.entries()) {
-      logs = logs.replaceAll(`"${player.id}`, `"p${index}`);
+      // Anonymize player names
+      for (const [index, player] of game.players.entries()) {
+        logs = logs.replaceAll(`"${player.id}`, `"p${index}`);
+      }
+
+      // Save logs to file
+      const fileName = `${roomId}_${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+      const folder = bugReport ? "bug-logs" : "room-logs";
+      void bun.write(`db/${folder}/${fileName}`, logs);
+      return fileName;
+    } catch (error) {
+      console.error(
+        `[RoomManager] Skipping game log save for room ${roomId} (bugReport=${bugReport}):`,
+        error,
+      );
+      return;
     }
-
-    // Save logs to file
-    const fileName = `${roomId}_${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
-    const folder = bugReport ? "bug-logs" : "room-logs";
-    void bun.write(`db/${folder}/${fileName}`, logs);
-    return fileName;
   }
 
   async getGameLogs(filename: string): Promise<string | undefined> {
