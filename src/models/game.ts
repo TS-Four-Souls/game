@@ -422,6 +422,8 @@ export class Game {
         this.addToHistory(elem.json);
         this.dispatch();
         await this.resolveCallbacks();
+        if(elem.fizzled)
+          return;
         if(this.turnHandler.turnId !== turnId) // some dice roll may end the turn.
           return;
         this.emit("on:dice:resolved", { eventIssuer: elem.issuer, diceRoll: elem });
@@ -511,7 +513,7 @@ export class Game {
     if(false)
       return;
     
-    const card = this.obtainCard("g2-the_bible") as ItemCard;
+    const card = this.obtainCard("fsp2-rainbow_baby") as ItemCard;
     this.cardHandler.addInPlay(this.currentPlayer, card);
   }
 

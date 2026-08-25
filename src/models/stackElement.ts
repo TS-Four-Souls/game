@@ -138,7 +138,8 @@ export class DiceRoll extends StackElement {
   private _value: number;
   private _issuer: Player;
   private _effectIssuer: Entity | null = null;
-  private _attackRoll;
+  private _attackRoll: boolean;
+  private _fizzled: boolean = false;
   private _effect: EffectFunction[] | null = null;
   private _card: Card | null = null;
   private _visualEffectBox: VisualEffectBox | null = null;
@@ -226,6 +227,13 @@ export class DiceRoll extends StackElement {
   get attackRoll(): boolean {
     return this._attackRoll;
   }
+  get fizzled(): boolean {
+    return this._fizzled;
+  }
+  set fizzled(value: boolean){
+    this._fizzled = value;
+  }
+  
   get issuer(): Player {
     return this._issuer;
   }
@@ -324,7 +332,10 @@ export class DiceRoll extends StackElement {
   async onResolve(): Promise<void> {
     if(this.attackRoll)
       if(this._issuer.isDead || this._targets.length === 0 || this._targets[0].isDead)
+      {
+        this.fizzled = true;
         return; // No effect if attacker or target is dead
+      }
     this.value += (this._attackRoll ? this._issuer.attackDiceModifier : 0) + this._issuer.diceModifier;
     if (this._effect?.length === 6) {
       const effectIssuer = this._effectIssuer ?? this._issuer;
