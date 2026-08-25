@@ -678,7 +678,7 @@ export function chooseMonsterWhenAnotherPlayerAttacksMonsterEffect(game: Game): 
 }
 
 
-export function rollXChoose1Effect(game: Game, x: number, onlyOnce: boolean, chooserType: "issuer" | "left"): SyncEffectFunction {
+export function rollXChoose1Effect(game: Game, x: number, exactlyOnce: boolean, chooserType: "issuer" | "left"): SyncEffectFunction {
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         offRoll = game.emitter.on("on:dice:being-rolled", ({ eventIssuer, diceRoll }) => {
@@ -695,15 +695,18 @@ export function rollXChoose1Effect(game: Game, x: number, onlyOnce: boolean, cho
             }
 
             addPassiveEffectToStack(game, effect, data, "Choose the result of the next dice roll among four results.");
-            if(onlyOnce)
+            if(exactlyOnce)
             {
                 offRoll?.();
                 offRoll = null;
             }
         });
         data.it.cleaners.push(() => {
-            offRoll?.();
-            offRoll = null;
+            if(!exactlyOnce)
+            {
+                offRoll?.();
+                offRoll = null;
+            }
         });
         return true;
     };
