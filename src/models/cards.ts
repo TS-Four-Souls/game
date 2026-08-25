@@ -9,6 +9,7 @@ import { GameError } from "@/models/GameError";
 import type { GameParameters } from './gameParameters';
 import { EffectOnStack } from './stackElement';
 import { type CardSetsCollection, type DecksCollection, type DeckType, type DeckTypeToCardType, type TargetsSelector } from './types/cardTypes';
+import type { Game } from './game';
 
 export type EffectRange = DescriptiveVisualEffectBox[];
 export type CardEffectsRanges = EffectRange[];
@@ -894,9 +895,9 @@ class Deck<T extends Card> {
     _set: CardSet<T>
     _order: number[];
     _discard: number[];
-    _random: () => number;
+    _game: Game;
 
-    constructor(set: CardSet<T>, type: DeckType, order: number[], random: () => number) {
+    constructor(set: CardSet<T>, type: DeckType, order: number[], game: Game) {
         // Type of cards in the deck.
         this._type = type;
         // Set of all the cards that can belong to the deck.
@@ -906,7 +907,7 @@ class Deck<T extends Card> {
         this._nextId = order.length - 1;
         // Set of discarded cards of the deck.
         this._discard = [];
-        this._random = random;
+        this._game = game;
 
         order.forEach((id) => {
             const card = this._set.get(id);
@@ -922,7 +923,7 @@ class Deck<T extends Card> {
     }
 
     shuffle(): void {
-        shuffle<number>(this._random, this._order)
+        shuffle<number>(this._game.random, this._order)
     }
 
     get translatedType(): SerializedTranslation {
@@ -982,12 +983,14 @@ class Deck<T extends Card> {
         }
         const posFromEnd: number = this._order.length - 1 - positionFromTop;
         if (posFromEnd >= this._order.length) {
+            this._game.isGameOver = true;
             throw new GameError(`Cannot draw card at position ${positionFromTop} from top, deck of type ${this._type} has only ${this._order.length} cards.`,
                 toSerializedTranslation("error.cannotDrawCardAtPositionFromTop", {value: positionFromTop, type: this._type, count: this._order.length})
             );
         }
         if(posFromEnd < 0 || this._order.length === 0)
         {
+            this._game.isGameOver = true;
             throw new GameError(`Cannot draw card at position ${positionFromTop} from top even after resetting discard, deck of type ${this._type} has only ${this._order.length} cards.`,
                 toSerializedTranslation("error.cannotDrawCardAtPositionFromTopAfterReset", {value: positionFromTop, type: this._type, count: this._order.length})
             );
@@ -1027,7 +1030,7 @@ class Deck<T extends Card> {
     }
     addRandomPosition(card: T): void {
         assertCardMatchesDeck(this._type, card);
-        const randomIdx = Math.floor(this._random() * this._order.length);
+        const randomIdx = Math.floor(this._game.random() * this._order.length);
         this.addCardAtPosFromTop(card, randomIdx);
     }
 
@@ -1081,7 +1084,7 @@ class Deck<T extends Card> {
     }
 
     shuffleDiscard(): void {
-        shuffle<number>(this._random, this._discard);
+        shuffle<number>(this._game.random, this._discard);
     }
 
     resetDiscard(): void {
@@ -1205,7 +1208,7 @@ export function assertCardMatchesDeck<T extends DeckType>(
     }
 }
 
-function createEmptyDecksCollection(random: () => number): DecksCollection {
+function createEmptyDecksCollection(game: Game): DecksCollection {
     const emptyCardSets = {
         loot: new CardSet<LootCard>('loot'),
         treasure: new CardSet<TreasureCard>('treasure'),
@@ -1216,13 +1219,13 @@ function createEmptyDecksCollection(random: () => number): DecksCollection {
         room: new CardSet<RoomCard>('room')
     };
     return {
-        loot: new Deck(emptyCardSets.loot, 'loot', [], random),
-        treasure: new Deck(emptyCardSets.treasure, 'treasure', [], random),
-        eternal: new Deck(emptyCardSets.eternal, 'eternal', [], random),
-        character: new Deck(emptyCardSets.character, 'character', [], random),
-        monster: new Deck(emptyCardSets.monster, 'monster', [], random),
-        bsoul: new Deck(emptyCardSets.bsoul, 'bsoul', [], random),
-        room: new Deck(emptyCardSets.room, 'room', [], random)
+        loot: new Deck(emptyCardSets.loot, 'loot', [], game),
+        treasure: new Deck(emptyCardSets.treasure, 'treasure', [], game),
+        eternal: new Deck(emptyCardSets.eternal, 'eternal', [], game),
+        character: new Deck(emptyCardSets.character, 'character', [], game),
+        monster: new Deck(emptyCardSets.monster, 'monster', [], game),
+        bsoul: new Deck(emptyCardSets.bsoul, 'bsoul', [], game),
+        room: new Deck(emptyCardSets.room, 'room', [], game)
     };
 }
 
@@ -1248,7 +1251,7 @@ function getCardsByCopy<T extends Card>(set: CardSet<T>): T[][] {
     cardSetCopyCache.set(set, copies);
     return copies;
 }
-function LoadDecks(json_array: GenericCardType[], numPlayers: number, parameters: GameParameters, random: () => number) : DecksCollection {
+function LoadDecks(json_array: GenericCardType[], numPlayers: number, parameters: GameParameters, game: Game) : DecksCollection {
     // Create fresh CardSets from JSON to ensure independent card instances
     let {nextGlobalId, cardSets: decks_cardSets} = LoadsCardSets(json_array);
     
@@ -1301,8 +1304,8 @@ function LoadDecks(json_array: GenericCardType[], numPlayers: number, parameters
                 }
             }
         }
-        shuffle<number>(random, range);
-        (decks as any)[type] = new Deck(set, type, range, random);
+        shuffle<number>(game.random, range);
+        (decks as any)[type] = new Deck(set, type, range, game);
     }
     
     return decks;

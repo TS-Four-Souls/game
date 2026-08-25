@@ -325,7 +325,7 @@ export class ActionHandler {
      */
     canEndTurn(player: Player, shouldThrow: boolean = false): Capability {
       try {
-        this.game.assert.gameStarted();
+        this.game.assert.gameOngoing();
         this.game.assert.currentTurnIsPlayerTurn(player);
         this.game.assert.currentPlayerIsNotEngagedInPurchase();
         this.game.assert.currentPlayerIsNotEngagedInCombat();
@@ -350,7 +350,7 @@ export class ActionHandler {
      */
     canPlayCard(player: Player, shouldThrow: boolean = false): Capability {
       try {
-        this.game.assert.gameStarted();
+        this.game.assert.gameOngoing();
         this.game.assert.noPendingSelection();
         if (!player.canIUseLootThisTurn) {
           throw new GameError(`You cannot play loot cards during ${this.game.currentPlayer.id}'s turn.`, toSerializedTranslation("error.cannotPlayLootCardsDuringOtherPlayerTurn", { player: this.game.currentPlayer.id }));
@@ -373,7 +373,7 @@ export class ActionHandler {
      */
     canResolve(shouldThrow: boolean = false): Capability {
       try {
-        this.game.assert.gameStarted();
+        this.game.assert.gameOngoing();
         this.game.assert.stackNotEmpty();
         this.game.assert.noPendingSelection();
       } catch (e) {
@@ -496,7 +496,7 @@ export class ActionHandler {
   /** Validates whether current player can declare purchase mode. */
   canDeclarePurchase(player: Player, shouldThrow: boolean = false): Capability {
     try {
-      this.game.assert.gameStarted();
+      this.game.assert.gameOngoing();
       this.game.assert.currentTurnIsPlayerTurn(player);
       this.game.assert.isAlive(player);
       this.game.assert.currentPlayerIsNotEngagedInCombat();
@@ -548,7 +548,7 @@ export class ActionHandler {
    */
   canPurchase(player: Player, index: number | "top" = 0, shouldThrow: boolean = false): Capability {
     try {
-      this.game.assert.gameStarted();
+      this.game.assert.gameOngoing();
       this.game.assert.currentTurnIsPlayerTurn(player);
       this.game.assert.isAlive(player);
       this.game.assert.currentPlayerIsEngagedInPurchase();

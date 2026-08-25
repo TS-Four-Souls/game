@@ -49,7 +49,7 @@ export class CardHandler {
   
   constructor(game: Game) {
       this._game = game;
-      this._decks = createEmptyDecksCollection(this.game.random);
+      this._decks = createEmptyDecksCollection(this.game);
   }
 ////////////////////////////////////// Getters //////////////////////////////////////
 
@@ -426,7 +426,7 @@ export class CardHandler {
 
   /** Draws treasure cards and puts them directly in play for the player. */
   gainTreasure(player: Player, nb: number = 1): void {
-    this.game.assert.gameStarted();
+    this.game.assert.gameOngoing();
     this.game.assert.positiveNumber(nb);
     const eventData = { eventIssuer: player, amount: nb };
     this.game.emit("on:item:gained", eventData);
@@ -534,7 +534,7 @@ export class CardHandler {
 
 /** Attempts to steal an item from shop or another player's in-play area. */
   stealItemAnywhere(player: Player, target: ItemCard): boolean {
-    this.game.assert.gameStarted();
+    this.game.assert.gameOngoing();
 
     if (this.game.shop.removeCard(target)) {
       this.addInPlay(player, target);
@@ -590,7 +590,7 @@ export class CardHandler {
     this.game.dispatch();
   }
   flip(entity: Entity, card: Card): void {
-    this.game.assert.gameStarted();
+    this.game.assert.gameOngoing();
     if (entity instanceof Player && !(this.game.getOwner(card) === entity)) {
       return;
     }
@@ -615,7 +615,7 @@ export class CardHandler {
       ,
       this.game.players.length,
       this.game.gameParameters,
-      this.game.random
+      this.game
     );
     this.rebuildCardMapping();
     this.joinEffectsToCards();
@@ -758,7 +758,7 @@ export class CardHandler {
 
   /** Draws loot cards for a player and emits pre/post loot triggers. */
   loot(player: Player, number: number = 1, reason: "lootStep" | "other" = "other"): void {
-    this.game.assert.gameStarted();
+    this.game.assert.gameOngoing();
     this.game.assert.positiveNumber(number);
 
     const n = [number];
@@ -813,7 +813,7 @@ export class CardHandler {
 
   /** Removes and returns a specific loot card from issuer hand. */
   getCardFromHand(player: Player, card: LootCard): LootCard {
-    this.game.assert.gameStarted();
+    this.game.assert.gameOngoing();
     const lootCard = card;
     const position = player.hand.cards.indexOf(lootCard);
     this.game.assert.positiveNumber(position);
@@ -830,7 +830,7 @@ export class CardHandler {
    * @return true if the discard was successful.
   */
   discardFromHandAtIndex(player: Player, position: number, reason: "death" | "effect" | "overload" | "other"= "other"): boolean {
-    this.game.assert.gameStarted();
+    this.game.assert.gameOngoing();
     this.game.assert.positiveNumber(position);
     const hand = player.hand;
     const eventData = { eventIssuer: player, indice: [position], reason };
@@ -855,7 +855,7 @@ export class CardHandler {
   }
   /** Steals one specific loot card from target player's hand. */
   stealLootCard(player: Player, target: Player, card: LootCard): string {
-    this.game.assert.gameStarted();
+    this.game.assert.gameOngoing();
 
     const position = target.hand.cards.indexOf(card);
     this.game.assert.positiveNumber(position);

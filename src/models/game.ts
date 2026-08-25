@@ -58,6 +58,7 @@ export class Game {
   private _emitter: GameEventEmitter;
   private _stackSubsetCallbacks: {stackIds: number[], callback: () => void}[] = [];
   private _historicHandler: HistoricHandler = new HistoricHandler(this);
+  private _gameOver: boolean = false;
   private _isWon: boolean = false;
   private _gameStateSerializer: GameStateSerializer;
   readonly gameParameters = new GameParameters(() => this.dispatch());
@@ -163,6 +164,12 @@ export class Game {
   }
   get playersAndMonsters(): Entity[] {
     return this.entityHandler.playersAndMonsters;
+  }
+  set isGameOver(value: boolean){
+    this._gameOver = value;
+  }
+  get isGameOver(): boolean{
+    return this._gameOver;
   }
 
   get assert(): AssertHandler {
@@ -343,7 +350,7 @@ export class Game {
 ////////////////////////////////////// Dice Roll //////////////////////////////////////
 /** Creates a dice roll stack element and emits pre-roll triggers. */
   rollDice(player: Player, data: Card | AttackRollData): DiceRoll {
-    this.assert.gameStarted();
+    this.assert.gameOngoing();
     if (data instanceof AttackRollData) this.assert.isAlive(player);
 
     const diceRoll = player.rollDice(this.random, data);
@@ -693,7 +700,7 @@ export class Game {
 
   /** Discards the top monster card from an encounter slot. */
   discardMonster(player: Player, position: number): string {
-    this.assert.gameStarted();
+    this.assert.gameOngoing();
     this.assert.positiveNumber(position);
 
     if (position < 0 || position > this.encounters._slots.length - 1) {
@@ -709,7 +716,7 @@ export class Game {
 
   /** Draws a new monster into the chosen encounter slot during combat. */
   drawMonster(player: Player, position: number): string {
-    this.assert.gameStarted();
+    this.assert.gameOngoing();
     this.assert.isAlive(player);
     this.assert.positiveNumber(position);
     this.assert.currentTurnIsPlayerTurn(player);
@@ -734,7 +741,7 @@ export class Game {
   
   /** Builds a full player-scoped game state payload for API/UI clients. */
   detailedStateJSON(player: Player): DetailedState {
-    this.assert.gameStarted();
+    this.assert.gameOngoing();
     return this._gameStateSerializer.detailedStateJSON(player);
   }
 
@@ -885,7 +892,7 @@ export class Game {
    * debug source must only be used for testing purposes.
   */
   gainCoins(player: Player, coins: number, source: Card | "gift" | "debug"): string {
-    this.assert.gameStarted();
+    this.assert.gameOngoing();
     this.assert.positiveNumber(coins);
     if (coins > 0) {
       const amount = [coins];
@@ -908,7 +915,7 @@ export class Game {
 
   /** Removes coins from a player and emits coin lost trigger. */
   canLoseCoins(player: Player, coins: number, asMany: boolean, reason: LoseCoinsReason = "other"): boolean {
-    this.assert.gameStarted();
+    this.assert.gameOngoing();
     this.assert.positiveNumber(coins);
 
     const eventData = { eventIssuer: player, coinToLose: coins, reason };
@@ -918,7 +925,7 @@ export class Game {
   }
   /** Removes coins from a player and emits coin lost trigger. */
   loseCoins(player: Player, coins: number, asMany: boolean, reason: LoseCoinsReason = "other"): number {
-    this.assert.gameStarted();
+    this.assert.gameOngoing();
     this.assert.positiveNumber(coins);
 
     const eventData = { eventIssuer: player, coinToLose: coins, reason };
@@ -937,7 +944,7 @@ export class Game {
 
   /** Steals up to the requested number of coins from target player. */
   stealCoins(player: Player, target: Player, amount: number, source: Card): string {
-    this.assert.gameStarted();
+    this.assert.gameOngoing();
     this.assert.positiveNumber(amount);
 
     const stolenCoins = this.loseCoins(target, amount, true, "effect");
@@ -1003,7 +1010,7 @@ export class Game {
 
   /** Moves one stack element before another within the same reordering group. */
   insertStackElementBefore(player: Player, elementToMoveStackId: number, targetStackId: number | "start"): void {
-    this.assert.gameStarted();
+    this.assert.gameOngoing();
     const {event, orderedListenerIds} = this.stack.insertStackElement(player, elementToMoveStackId, targetStackId);
     if (orderedListenerIds.length > 1) {
       this.emitter.reorderListenersBySubset(event as TriggerEvent, orderedListenerIds);

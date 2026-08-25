@@ -133,7 +133,7 @@ export class EntityHandler {
   ////////////////////////////////////// Death Handler //////////////////////////////////////
   /** Shortcut to queue death for an entity from a given source. */
   kill(killer: Entity, entity: Entity, source: DamageSource): void {
-    this.game.assert.gameStarted();
+    this.game.assert.gameOngoing();
     try{
       this.game.assert.isAlive(entity);
       this.game.assert.entityIsInPlay(entity);
@@ -200,7 +200,7 @@ export class EntityHandler {
    * Queues a death resolution sequence for an entity.
    */
   death(receiver: Entity, from: Entity, source: DamageSource): void {
-    this.game.assert.gameStarted();
+    this.game.assert.gameOngoing();
     this.game.assert.entityIsInPlay(receiver);
     if (receiver.isDead) return;
 

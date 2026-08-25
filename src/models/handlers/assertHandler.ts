@@ -64,12 +64,21 @@ export class AssertHandler {
     if (!this.game.stack.isEmpty()) throw new GameError(`Stack is not empty.`, toSerializedTranslation("error.stackIsNotEmpty"));
   }
   
-    gameStarted(): number {
-      if (!this.game.turnHandler.isInitialized) {
-        throw new GameError("Game not started", toSerializedTranslation("error.gameNotStarted"));
-      }
-      return this.game.turnHandler.round;
+  /**
+   * Check is the game is started and not finished.
+   * @throws if the game is not started, or if the game is over.
+   * @returns the current number of rounds.
+   */
+  gameOngoing(): number {
+    if (!this.game.turnHandler.isInitialized) {
+      throw new GameError("Game not started", toSerializedTranslation("error.gameNotStarted"));
     }
+    if(this.game.isGameOver)
+    {
+      throw new GameError("Game is over. You must leave.", toSerializedTranslation("error.gameOver"))
+    }
+    return this.game.turnHandler.round;
+  }
 
   gameNotStarted(): void {
     if (this.game.turnHandler.isInitialized) {
