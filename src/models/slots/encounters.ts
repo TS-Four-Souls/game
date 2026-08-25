@@ -267,7 +267,7 @@ export class Encounters extends Slots<MonsterCard> {
             const toClean = this._monstersInPlay[index];
             if (toClean !== undefined) {
                 toClean.card.cleanup();
-                this._game.stack.clearEffectsFromEntity(toClean);
+                // this._game.stack.clearEffectsFromEntity(toClean);
             }
         }
         if (card.encounterType !== MonsterType.EVENT) {
