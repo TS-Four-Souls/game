@@ -1,6 +1,6 @@
 import { GameError } from "@/models/GameError";
 import type { HistoricEntry } from "@/models/handlers/historyHandler";
-import { schemas } from "@/shared/api";
+import { schemas, type DiceRollJson } from "@/shared/api";
 import * as helper from "@/utils/gameRequestHelpers";
 import { loadGameFromLogs } from "@/utils/loadGameFromLogs";
 import { toSerializedTranslation } from "@/utils/translation";
@@ -17,6 +17,7 @@ import {
   sendRoomChangedToAll,
   sendRoomChangedToUser,
 } from "./utils";
+import { DiceRoll } from "@/models/stackElement";
 
 export const enterGameStep = (
   socket: Socket,
@@ -492,6 +493,35 @@ export const enterGameStep = (
           },
         ),
       ),
+    );
+
+    socket.on("debugChangeDiceResult", async (payload, callback) =>
+      errorGuardedEndpoint(callback, async () =>
+        payloadGuardedEndpoint(
+          payload,
+          schemas.debugChangeDiceResultRequest,
+          callback,
+          (payload) => {
+            helper.executeDebugChangeDiceResultRequest(
+              room.game,
+              payload,
+              player,
+            );
+            return callback({ status: 200 });
+          },
+        ),
+      ),
+    );
+
+    socket.on("debugListAvailableDices", async (callback) =>
+      errorGuardedEndpoint(callback, () => {
+        room.game.addToHistory({
+          type: "DebugListDices",
+          issuer: player.id,
+        });
+        const dices = room.game.stack.elements.filter(e => e instanceof DiceRoll).map(e => e.json);
+        return callback({ status: 200, dices: dices });
+      }),
     );
   }
 };

@@ -334,6 +334,7 @@ export async function loadGameFromLogs(
         case "DebugListMonsterDeck":
         case "DebugListTreasure":
         case "DebugListLoot":
+        case "DebugListDices":
         case "Join": 
         // SubmitSelection is handled by the custom selectMultiple override, so we skip it here.
         break;
@@ -519,6 +520,12 @@ export async function loadGameFromLogs(
         case "DebugGainTreasure": {
           const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
           helper.executeDebugGainTreasureRequest(game, entry.payload, player);
+          break;
+        }
+
+        case "DebugChangeDiceResult": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          helper.executeDebugChangeDiceResultRequest(game, entry.payload, player);
           break;
         }
 

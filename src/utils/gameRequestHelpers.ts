@@ -5,6 +5,7 @@ import { GameError } from "@/models/GameError";
 import { TargetBuilder } from "@/models/targetBuilder";
 import type { Requests, TargetSelectorResponse } from "@/shared/api";
 import { toSerializedTranslation } from "./translation";
+import { DiceRoll } from "@/models/stackElement";
 
 export async function executeAttackMonsterRequest(
   game: Game,
@@ -353,4 +354,21 @@ export function executeDebugPutMonsterCardInSlotRequest(
     .map((slot) => slot[slot.length - 1]?.globalId)
     .indexOf(payload.toCover.globalId);
   game.actions.debugPutMonsterCardInSlot(player, card, index);
+}
+
+export function executeDebugChangeDiceResultRequest(
+  game: Game,
+  payload: Requests.DebugChangeDiceResult,
+  player: Player,
+): void {
+  const dice = game.stack.elements.find(e => e.stackId === payload.dice.id);
+  if( dice === undefined || dice instanceof DiceRoll === false)
+    return;
+  game.actions.debugChangeDiceResult(player, dice, payload.value);
+
+  game.addToHistory({
+    type: "DebugChangeDiceResult",
+    payload,
+    issuer: player.id,
+  });
 }

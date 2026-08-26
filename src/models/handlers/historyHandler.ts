@@ -50,6 +50,7 @@ export type UserRequest =
   | { type: "AttackRoll"; issuer: Issuer }
   | { type: "DebugLootTop"; issuer: Issuer }
   | { type: "DebugGainTreasureTop"; issuer: Issuer }
+  | { type: "DebugChangeDiceResult"; payload: Requests.DebugChangeDiceResult, issuer: Issuer }
   | { type: "DebugLoot"; payload: Requests.DebugLoot; issuer: Issuer }
   | { type: "DebugListLoot"; issuer: Issuer }
   | { type: "DebugListMonsterDeck"; issuer: Issuer }
@@ -60,6 +61,7 @@ export type UserRequest =
       issuer: Issuer;
     }
   | { type: "DebugListTreasure"; issuer: Issuer }
+  | { type: "DebugListDices"; issuer: Issuer }
   | {
       type: "DebugPutMonsterCardInSlot";
       payload: Requests.DebugPutMonsterCardInSlot;

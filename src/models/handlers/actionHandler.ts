@@ -751,4 +751,17 @@ export class ActionHandler {
       players: this.game.players.map((p) => p.id),
     });
   }
+
+  debugChangeDiceResult(player: Player, dice: DiceRoll, value: number): void {
+    const prev = dice.value;
+    dice.value = value;
+
+    this.game.dispatch();
+    this.game.toast({
+      type: "warning",
+      title: toSerializedTranslation("gameStep.cheats.changeDice.successToast.title", { player: player.id }),
+      message: toSerializedTranslation("gameStep.cheats.changeDice.successToast.message", { prev, new: value }),
+      players: this.game.players.map((p) => p.id),
+    });
+  }
 }

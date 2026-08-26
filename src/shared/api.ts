@@ -400,6 +400,10 @@ const issuerSchema = z.string();
 
 export type Issuer = z.infer<typeof issuerSchema>;
 
+const debugChangeDiceResultRequestSchema = z.object({
+  dice: diceRollJsonSchema,
+  value: z.number().min(1).max(6),
+})
 const debugLootRequestSchema = z.object({
   cards: z.array(identifierTypeSchema),
 });
@@ -629,6 +633,20 @@ const debugListTreasureResponseSchema = z.union([
 ]);
 export type DebugListTreasureResponse = z.infer<
   typeof debugListTreasureResponseSchema
+>;
+
+const debugListAvailableDicesSchema = z.union([
+  z.object({
+    status: z.literal(200),
+    dices: z.array(diceRollJsonSchema),
+  }),
+  z.object({
+    status: z.literal(400),
+    error: z.union([z.string(), serializedTranslationSchema]),
+  }),
+]);
+export type DebugListAvailableDicesResponse = z.infer<
+  typeof debugListAvailableDicesSchema
 >;
 
 const nextTargetSelectorResponseSchema = z.union([
@@ -1103,6 +1121,7 @@ export const schemas = {
   debugRemoveCardsRequest: debugRemoveCardsRequestSchema,
   debugGainTreasureRequest: debugGainTreasureRequestSchema,
   debugPutMonsterCardInSlotRequest: debugPutMonsterCardInSlotRequestSchema,
+  debugChangeDiceResultRequest: debugChangeDiceResultRequestSchema,
   debugGainCoinsRequest: debugGainCoinsRequestSchema,
   contactRequest: contactRequestSchema,
   submitSelectionRequest: submitSelectionSchema,
@@ -1143,6 +1162,12 @@ export namespace Requests {
   export type DebugGainCoins = z.infer<typeof debugGainCoinsRequestSchema>;
   export type DebugPutMonsterCardInSlot = z.infer<
     typeof debugPutMonsterCardInSlotRequestSchema
+  >;
+  export type KickFromRoomRequest = z.infer<
+    typeof kickFromRoomRequestSchema
+  >;
+  export type DebugChangeDiceResult = z.infer<
+    typeof debugChangeDiceResultRequestSchema
   >;
   export type DebugRemoveCards = z.infer<typeof debugRemoveCardsRequestSchema>;
   export type DebugGainTreasure = z.infer<
@@ -1193,6 +1218,8 @@ export namespace Responses {
   export type DebugRemoveCards = BasicResponse;
   export type DebugListTreasure = DebugListTreasureResponse;
   export type DebugPutMonsterCardInSlot = BasicResponse;
+  export type DebugListAvailableDices = DebugListAvailableDicesResponse;
+  export type DebugChangeDiceResult = BasicResponse;
   export type DebugGainTreasure = BasicResponse;
   export type DebugGainCoins = BasicResponse;
   export type Contact = BasicResponse;
@@ -1337,9 +1364,18 @@ export interface ClientToServerEvents {
     callback: (response: Responses.DebugListMonsterDeck) => void,
   ) => void;
 
+  debugListAvailableDices: (
+    callback: (response: Responses.DebugListAvailableDices) => void,
+  ) => void;
+
   debugPutMonsterCardInSlot: (
     request: Requests.DebugPutMonsterCardInSlot,
     callback: (response: Responses.DebugPutMonsterCardInSlot) => void,
+  ) => void;
+
+  debugChangeDiceResult: (
+    request: Requests.DebugChangeDiceResult,
+    callback: (response: Responses.DebugChangeDiceResult) => void,
   ) => void;
 
   debugGainCoins: (
