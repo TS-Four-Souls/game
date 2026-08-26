@@ -732,17 +732,22 @@ export class ActionHandler {
       players: this.game.players.map((p) => p.id),
     });
   }
-  debugPutMonsterCardInSlot(player: Player, card: MonsterCard, index: number): void {
+  debugPutMonsterCardInSlot(player: Player, card: MonsterCard, index: number | "top"): void {
     if (!card) {
       throw new GameError("Card not found in the game.", toSerializedTranslation("error.cardNotFoundInGame"));
     }
     this.game.cardHandler.addTopPosition("monster", card);
-    this.game.encounters.draw(index);
+    let message = toSerializedTranslation("gameStep.cheats.putMonsterCardInSlot.popup.successToast.messageTopDeck", { card: card.nameKey})
+    if(index !== "top")
+    {
+      this.game.encounters.draw(index);
+      message = toSerializedTranslation("gameStep.cheats.putMonsterCardInSlot.popup.successToast.message", { card: card.nameKey, value: index + 1 })
+    }
     this.game.dispatch();
     this.game.toast({
       type: "warning",
       title: toSerializedTranslation("gameStep.cheats.putMonsterCardInSlot.popup.successToast.title", { player: player.id }),
-      message: toSerializedTranslation("gameStep.cheats.putMonsterCardInSlot.popup.successToast.message", { card: card.nameKey, value: index + 1 }),
+      message: message,
       players: this.game.players.map((p) => p.id),
     });
   }

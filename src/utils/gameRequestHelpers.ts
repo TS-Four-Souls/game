@@ -346,7 +346,10 @@ export function executeDebugPutMonsterCardInSlotRequest(
       toSerializedTranslation("error.cardNotFoundInCardSet")
     );
   }
-  const index = game.encounters._slots
+  const index = 
+  payload.toCover === "top" 
+  ? "top" 
+  : game.encounters._slots
     .map((slot) => slot[slot.length - 1]?.globalId)
     .indexOf(payload.toCover.globalId);
   game.actions.debugPutMonsterCardInSlot(player, card, index);

@@ -408,7 +408,7 @@ const debugGainTreasureRequestSchema = z.object({
 });
 const debugPutMonsterCardInSlotRequestSchema = z.object({
   card: identifierTypeSchema,
-  toCover: cardSchema,
+  toCover: z.union([cardSchema, z.literal("top")]),
 });
 
 const debugGainCoinsRequestSchema = z.object({
