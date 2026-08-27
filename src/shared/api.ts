@@ -104,6 +104,7 @@ export type SerializedCardAndBox = z.infer<typeof serializedCardAndBoxSchema>;
 
 const cardEffectSchema = serializedCardAndBoxSchema.extend({
   index: z.union([z.literal("tap"), z.number()]),
+  visualEffectBox: VisualEffectBoxSchema
 });
 export type CardEffect = z.infer<typeof cardEffectSchema>;
 
@@ -113,6 +114,7 @@ export interface SetCardCountRequest {
 }
 const serializedChooseOneSchema = serializedCardAndBoxSchema.extend({
   description: z.string(),
+  visualEffectBox: VisualEffectBoxSchema
 });
 export type SerializedChooseOne = z.infer<typeof serializedChooseOneSchema>;
 
