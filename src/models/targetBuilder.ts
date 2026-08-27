@@ -563,7 +563,8 @@ export class TargetBuilder {
                 options.min,
                 options.max,
                 options.options,
-                toSerializedTranslation("pending.copyCardTargets")
+                toSerializedTranslation("pending.copyCardTargets"),
+                {card: item, },
             );
             const normalizedSelection = selection.selected.map((choice) =>choice);
             targets.push(...normalizedSelection);

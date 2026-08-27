@@ -128,7 +128,7 @@ function soulOfEnvyEffect(game: Game, card: Card): OffEffectFunction {
         const effect = async (data: EffectData) => {
             const fewestSouls = Math.min(...game.players.map(p => p.totalSouls));
             const playersWithFewestSouls = game.players.filter(p => p.totalSouls === fewestSouls);
-            const selected = (await game.select(eventIssuer, 1, 1, playersWithFewestSouls, toSerializedTranslation("pending.playerToGainSoulOfEnvy"), false)).selected[0];
+            const selected = (await game.select(eventIssuer, 1, 1, playersWithFewestSouls, toSerializedTranslation("pending.playerToGainSoulOfEnvy"), data.serializedCardAndBox, false)).selected[0];
             game.cardHandler.addSoul(selected as Player, card);
             return true;
         }
@@ -215,7 +215,7 @@ function soulOfSlothEffect(game: Game, card: Card): OffEffectFunction {
         const effect = async (data: EffectData) => {
             const fewestTreasure = Math.min(...game.players.map(p => p.inPlay.length));
             const playersWithFewestTreasures = game.players.filter(p => p.inPlay.length === fewestTreasure);
-            const selected = (await game.select(eventData.eventIssuer, 1, 1, playersWithFewestTreasures, toSerializedTranslation("pending.playerToGainSoulOfSloth"), false)).selected[0];
+            const selected = (await game.select(eventData.eventIssuer, 1, 1, playersWithFewestTreasures, toSerializedTranslation("pending.playerToGainSoulOfSloth"), data.serializedCardAndBox, false)).selected[0];
             game.cardHandler.addSoul(selected as Player, card);
             return true;
         };

@@ -160,7 +160,7 @@ export class EntityHandler {
       lootCardsToLose = (
         await this.game.select(player, values.nbLootCardsToLose, values.nbLootCardsToLose, player.hand.cards, values.nbLootCardsToLose > 1
             ? toSerializedTranslation("pending.chooseLootCardsToLose")
-            : toSerializedTranslation("pending.chooseLootCardToLose"), true)
+            : toSerializedTranslation("pending.chooseLootCardToLose"), "death", true)
       ).selected;
     }
     // discharge every items. 

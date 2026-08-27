@@ -218,7 +218,7 @@ export function activePlayerSelectAndCallEffect(game: Game, effectFunction: Effe
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
         
-        const targetSelection = await data.selectAndRecord(game, player, (may ? 0 : 1), 1, game.players.filter(p => !anotherPlayer || p !== player), toSerializedTranslation("selector.player"), true, true);
+        const targetSelection = await data.selectAndRecord(game, player, (may ? 0 : 1), 1, game.players.filter(p => !anotherPlayer || p !== player), toSerializedTranslation("selector.player"), data.serializedCardAndBox, true, true);
         const targetPlayer = targetSelection.selected[0] as Player;
         if(!targetPlayer){
             return false;
@@ -239,7 +239,7 @@ export function activePlayerIsTargetedByEffect(game: Game, effectFunction: Effec
 export function activePlayerSelectTargetEffect(game: Game, effectFunction: EffectFunction, ts: TargetsSelector, record: boolean = true): AsyncEffectFunction {
     return async (data: EffectData) => {
         const issuer = game.currentPlayer as Player;
-        const target = (await data.selectAndRecord(game, issuer as Player, ts.min, ts.max, ts.selector(issuer as Player, data.it), ts.description, true, record)).selected;
+        const target = (await data.selectAndRecord(game, issuer as Player, ts.min, ts.max, ts.selector(issuer as Player, data.it), ts.description, data.serializedCardAndBox, true, record)).selected;
         if(target.length > 0)
             await effectFunction(new EffectData(data.it, () => issuer, target, data.visualEffectBox));
         return true;
@@ -769,7 +769,7 @@ export function playerWithMostCoinsLosesAllEffect(game: Game): AsyncEffectFuncti
                 maxCoins = p.coins;
         });
         const playersToLoseCoins = game.players.filter(p => p.coins === maxCoins);
-        const selection = (await data.selectAndRecord(game, game.currentPlayer as Player, 1, 1, playersToLoseCoins, toSerializedTranslation("pending.playerWhoWillLoseAllTheirCoins"), true, true)).selected[0]!;
+        const selection = (await data.selectAndRecord(game, game.currentPlayer as Player, 1, 1, playersToLoseCoins, toSerializedTranslation("pending.playerWhoWillLoseAllTheirCoins"), data.serializedCardAndBox, true, true)).selected[0]!;
         game.loseCoins(selection as Player, selection.coins, true, "effect");
         return true;
     };
@@ -887,7 +887,7 @@ export function activePlayerChoosePlayerDiscardXEffect(game: Game, x: number): A
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
         
-        const targetSelection = await data.selectAndRecord(game, player, 1, 1, game.players, toSerializedTranslation("pending.playerWhoDiscardsLootCards", { value: x }), true, true);
+        const targetSelection = await data.selectAndRecord(game, player, 1, 1, game.players, toSerializedTranslation("pending.playerWhoDiscardsLootCards", { value: x }), data.serializedCardAndBox, true, true);
         const targetPlayer = targetSelection.selected[0] as Player;
         if(!targetPlayer){
             throw new GameError("No player selected for activePlayerChoosePlayerDiscardXEffect.",
@@ -1082,7 +1082,7 @@ export function activePlayerChooseLivingPlayerTakeDamageEffect(game: Game, damag
         const livingPlayers = game.players.filter(p => p.currentHealthPoints > 0);
         if(livingPlayers.length === 0)
             return false;
-        const targetSelection = await data.selectAndRecord(game, player, 1, 1, livingPlayers, toSerializedTranslation("pending.livingPlayerToTakeDamage"), true, true);
+        const targetSelection = await data.selectAndRecord(game, player, 1, 1, livingPlayers, toSerializedTranslation("pending.livingPlayerToTakeDamage"), data.serializedCardAndBox, true, true);
         const targetPlayer = targetSelection.selected[0] as Player;
         if(!targetPlayer){
             throw new GameError("No player selected for activePlayerChooseLivingPlayerTakeDamageEffect.",
@@ -1138,7 +1138,7 @@ export function bossRushEffect(game: Game, bossCount: number): AsyncEffectFuncti
             return false;
         const indices = new Map<string, number>();
         options.forEach(c => indices.set(c.name, game.encounters.slots.findIndex(s => s.includes(c))));
-        const selection = await data.selectAndRecord(game, game.currentPlayer, 1, bossCount, options, toSerializedTranslation("pending.slotsToPlaceBossesIn"), true, true);
+        const selection = await data.selectAndRecord(game, game.currentPlayer, 1, bossCount, options, toSerializedTranslation("pending.slotsToPlaceBossesIn"), data.serializedCardAndBox, true, true);
         const selectedMonsters = selection.selected;
         const selectedIndices = selectedMonsters.map(c => indices.get(c.name)!);
         
@@ -1173,7 +1173,7 @@ export function playerWithMostSoulsWinsEffect(game: Game): SyncEffectFunction {
                         maxSouls = p.totalSouls;
                 });
                 const playersWithMostSouls = game.players.filter(p => p.totalSouls === maxSouls);
-                const selectedPlayer = (await data.selectAndRecord(game, eventIssuer as Player, 1, 1, playersWithMostSouls, toSerializedTranslation("pending.playerWithMostSoulsToWinGame"), true, true)).selected[0];
+                const selectedPlayer = (await data.selectAndRecord(game, eventIssuer as Player, 1, 1, playersWithMostSouls, toSerializedTranslation("pending.playerWithMostSoulsToWinGame"), data.serializedCardAndBox, true, true)).selected[0];
                 game.win(selectedPlayer as Player);
                 offGainSoul?.();
                 offGainSoul = null;

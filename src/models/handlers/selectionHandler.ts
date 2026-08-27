@@ -1,4 +1,4 @@
-import type { SelectionItem, SerializedTranslation } from "@/shared/api";
+import type { PendingSelectionReason, SelectionItem, SerializedTranslation } from "@/shared/api";
 import { Player } from "../entities/player";
 import { TargetBuilder } from "../targetBuilder";
 import { GameError } from "@/models/GameError";
@@ -11,6 +11,7 @@ export interface PendingSelection {
           min: number;
           max: number;
           requestId: number;
+          reason: PendingSelectionReason;
           description: SerializedTranslation;
           canUseOnBoardSelection: boolean;
           resolve: (selection: any[]) => void;
@@ -68,7 +69,7 @@ export class SelectionHandler {
       max: number,
       Options: T[],
       description: SerializedTranslation,
-
+      reason: PendingSelectionReason,
       skippable: boolean = true,
       canUseOnBoardSelection: boolean = true,
   ): Promise<{ selected: T[]; remaining: T[] }> {
@@ -92,6 +93,7 @@ export class SelectionHandler {
         max: max,
         options: Options,
         description: description,
+        reason: reason,
         skippable,
         canUseOnBoardSelection,
       },
@@ -159,6 +161,7 @@ export class SelectionHandler {
       max: number;
       options: T[];
       description: SerializedTranslation;
+      reason: PendingSelectionReason;
       skippable?: boolean;
       canUseOnBoardSelection: boolean;
     }[]
@@ -178,6 +181,7 @@ export class SelectionHandler {
           min: sel.min,
           max: sel.max,
           description: sel.description,
+          reason: sel.reason,
           requestId,
           canUseOnBoardSelection: sel.canUseOnBoardSelection,
           resolve: (selection: any[]) => {

@@ -623,7 +623,7 @@ describe("Game - Guardrails", () => {
 
   it("should select the first n options", async () => {
     const options = [1, 2, 3, 4];
-    const result = await game.select(player1, 2, 2, options, {key:""});
+    const result = await game.select(player1, 2, 2, options, {key:""}, "death");
     expect(result.selected).toEqual([1, 2]);
     expect(result.remaining).toEqual([3, 4]);
   });

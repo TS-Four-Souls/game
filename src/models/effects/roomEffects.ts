@@ -46,7 +46,7 @@ export function cancelAttackOnTopOfMonsterDeckEffect(game: Game): SyncEffectFunc
             }
             // Create the effect that will execute when the stack resolves
             const effect = async (effectData: EffectData): Promise<boolean> => {
-                const selection = await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], toSerializedTranslation("pending.doYouWantToCancelAttack"), false, true, false);
+                const selection = await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], toSerializedTranslation("pending.doYouWantToCancelAttack"), data.serializedCardAndBox, false, true, false);
                 if (selection.selected.length > 0) {
                     game.entityHandler.endCombat();
                 }
@@ -190,7 +190,7 @@ export function lookAtTopNOnAttackEffect(game: Game, n: number): SyncEffectFunct
             }
             const effect = async (effectData: EffectData): Promise<boolean> => { 
                 const topN = game.decks.monster.drawSeveral(n);
-                const order = (await data.selectAndRecord(game, game.currentPlayer, n, n, topN, toSerializedTranslation("pending.lookAtTopCardsOfMonsterDeck", { value: n }), false, false)).selected as MonsterCard[];
+                const order = (await data.selectAndRecord(game, game.currentPlayer, n, n, topN, toSerializedTranslation("pending.lookAtTopCardsOfMonsterDeck", { value: n }), data.serializedCardAndBox, false, false)).selected as MonsterCard[];
                 for(let i = order.length - 1; i >= 0; i--) {
                     game.decks.monster.addTopPosition(order[i]!);
                 }
@@ -408,7 +408,7 @@ export function targetNextKillsAnotherPlayerEffect(game: Game): SyncEffectFuncti
                 return false;
             if(game.players.filter(p => p !== killer && p.isDead == false).length === 0)
                 return false; // No valid targets to kill
-            const selected = (await data.selectAndRecord(game, killer, 1, 1, game.players.filter(p => p !== killer && p.isDead == false), toSerializedTranslation("pending.playerToKill"), true, true)).selected[0]! as Player;
+            const selected = (await data.selectAndRecord(game, killer, 1, 1, game.players.filter(p => p !== killer && p.isDead == false), toSerializedTranslation("pending.playerToKill"), data.serializedCardAndBox, true, true)).selected[0]! as Player;
             game.entityHandler.kill(killer, selected, data.cardAndBox);
             return true;
         };
@@ -422,7 +422,7 @@ export function mayRerollItemAtStartOfTurnEffect(game: Game): SyncEffectFunction
         let offTurnStart: (() => void) | null = null;
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
             const effect: AsyncEffectFunction = async (effectData: EffectData) => {
-                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, game.cardHandler.inPlayTargetableCards(game.currentPlayer), toSerializedTranslation("pending.mayRerollItem"), false)).selected[0] as ItemCard | undefined;
+                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, game.cardHandler.inPlayTargetableCards(game.currentPlayer), toSerializedTranslation("pending.mayRerollItem"), data.serializedCardAndBox, false)).selected[0] as ItemCard | undefined;
                 if(selected) {
                     game.cardHandler.reroll(selected);
                     return true;
@@ -446,7 +446,7 @@ export function mayGainTreasureAtStartOfTurnEffect(game: Game, x: number): SyncE
         let offTurnStart: (() => void) | null = null;
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
             const effect: AsyncEffectFunction = async (effectData: EffectData) => {
-                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it],  toSerializedTranslation("pending.mayGainTreasure", { value: x }), false, true, false)).selected[0] as ItemCard | undefined;
+                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it],  toSerializedTranslation("pending.mayGainTreasure", { value: x }), data.serializedCardAndBox, false, true, false)).selected[0] as ItemCard | undefined;
                 if(selected !== undefined) {
                     game.gainTreasure(game.currentPlayer, x);
                     return true;
@@ -694,7 +694,7 @@ export function playerMustDestroyItemOnDeathEffect(game: Game): SyncEffectFuncti
             if(eventIssuer instanceof Player === false)
                 return;
             const effect: AsyncEffectFunction = async (effectData: EffectData) => {
-                const selected = (await effectData.selectAndRecord(game, eventIssuer as Player, 1, 1, game.cardHandler.inPlayTargetableCards(eventIssuer as Player), toSerializedTranslation("pending.destroyItem"), false)).selected[0] as ItemCard | undefined;
+                const selected = (await effectData.selectAndRecord(game, eventIssuer as Player, 1, 1, game.cardHandler.inPlayTargetableCards(eventIssuer as Player), toSerializedTranslation("pending.destroyItem"), data.serializedCardAndBox, false)).selected[0] as ItemCard | undefined;
                 if(selected) {
                     game.cardHandler.destroyCardsOrSouls([selected])
                 }
@@ -746,7 +746,7 @@ export function rerollOnXOrYEffect(game: Game, values: number[]): SyncEffectFunc
             const { eventIssuer, diceRoll } = eventData;
             if(values.includes(diceRoll.value)) {
                 const effect: AsyncEffectFunction = async (effectData: EffectData) => {
-                    const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], toSerializedTranslation("pending.doYouWantToReroll"), false, true, false)).selected[0] as Card | undefined;
+                    const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], toSerializedTranslation("pending.doYouWantToReroll"), data.serializedCardAndBox, false, true, false)).selected[0] as Card | undefined;
                     if(selected) {
                         diceRoll.roll();
                         return true;
@@ -798,7 +798,7 @@ export function payHpForTreasureBoostEffect(game: Game, hpAfterPay: number, trea
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
             const effect: AsyncEffectFunction = async (effectData: EffectData) => {
                 const difference = Math.max(0, game.currentPlayer.currentHealthPoints - hpAfterPay);
-                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], toSerializedTranslation("pending.hpToGainTreasure", { value: difference }), false, true, false)).selected[0] as Card | undefined;
+                const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], toSerializedTranslation("pending.hpToGainTreasure", { value: difference }), data.serializedCardAndBox, false, true, false)).selected[0] as Card | undefined;
                 if(selected !== undefined) {
                     game.entityHandler.dealDamage(game.currentPlayer, game.currentPlayer, data.cardAndBox, difference, (data: EffectData) => {
                         let offMonsterDeath: (() => void) | null = null;

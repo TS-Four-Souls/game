@@ -226,7 +226,7 @@ export class Encounters extends Slots<MonsterCard> {
                     throw new GameError("Event encounter effect issuer is not a player",
                         toSerializedTranslation("error.eventEncounterIssuerNotPlayer"));
                 if (event.isCurse) {
-                    const selection = await data.selectAndRecord(this._game, this._game.currentPlayer, 1, 1, this._game.players, toSerializedTranslation("pending.playerToReceiveEvent", { card: event.nameKey }), true, true);
+                    const selection = await data.selectAndRecord(this._game, this._game.currentPlayer, 1, 1, this._game.players, toSerializedTranslation("pending.playerToReceiveEvent", { card: event.nameKey }), data.serializedCardAndBox, true, true);
                     const owner = selection.selected[0];
                     if (!owner) return false;
                     await this._game.cardHandler.addCurse(owner, event);
@@ -340,7 +340,7 @@ export class Encounters extends Slots<MonsterCard> {
      */
     async selectValidIndexAndDraw(game: Game, player: Player, data: EffectData, youMay: boolean = false): Promise<number>
     {
-        const selected = (await data.selectAndRecord(game, player, youMay ? 0 : 1, 1, this.coverableSlots, toSerializedTranslation("pending.slot"), true, true)).selected;
+        const selected = (await data.selectAndRecord(game, player, youMay ? 0 : 1, 1, this.coverableSlots, toSerializedTranslation("pending.slot"), data.serializedCardAndBox, true, true)).selected;
 
         if(selected.length === 0)
             return -1;

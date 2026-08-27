@@ -1,5 +1,5 @@
 import { GameParameters } from "@/models/gameParameters";
-import { Team, type DeckConfigPatch, type SerializedTranslation } from "@/shared/api";
+import { Team, type DeckConfigPatch, type PendingSelectionReason, type SerializedTranslation } from "@/shared/api";
 import { shuffle } from "@/utils/auxiliary";
 import type { BsoulCard, MonsterCard, RoomCard, TreasureCard } from "../models/cards";
 import { Player } from "../models/entities/player";
@@ -30,6 +30,7 @@ export async function randomSelect<T>(
         max: number,
         Options: T[],
         description: SerializedTranslation,
+        reason: PendingSelectionReason,
         skippable: boolean = true,
         canUseOnBoardSelection: boolean = true,
     ): Promise<{ selected: T[]; remaining: T[] }> {
@@ -61,12 +62,13 @@ export async function randomSelectMultiple<T>(
           max: number;
           options: T[];
           description: SerializedTranslation;
+          reason: PendingSelectionReason,
           skippable?: boolean;
           canUseOnBoardSelection: boolean;
         }[]
       ): Promise<{ playerId: string; selected: T[]; remaining: T[] }[]> {
         return Promise.all(selections.map(async s => {
-            const res = await randomSelect(s.player, s.min, s.max, s.options, s.description, s.skippable, s.canUseOnBoardSelection);
+            const res = await randomSelect(s.player, s.min, s.max, s.options, s.description, s.reason, s.skippable, s.canUseOnBoardSelection);
             return {playerId: s.player.id, selected: res.selected, remaining: res.remaining};}));
       };
 

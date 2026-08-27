@@ -36,9 +36,9 @@ describe("Game.selectMultiple", () => {
 
     // Start multiple selections
     const selectionPromise = game.selectMultiple([
-      { player: player1, min: 1, max: 1, options: options1 , description: {key:""}, canUseOnBoardSelection: true,},
-      { player: player2, min: 1, max: 1, options: options2 , description: {key:""}, canUseOnBoardSelection: true,},
-      { player: player3, min: 1, max: 1, options: options3 , description: {key:""}, canUseOnBoardSelection: true,},
+      { player: player1, min: 1, max: 1, options: options1 , description: {key:""}, reason: "death", canUseOnBoardSelection: true,},
+      { player: player2, min: 1, max: 1, options: options2 , description: {key:""}, reason: "death", canUseOnBoardSelection: true,},
+      { player: player3, min: 1, max: 1, options: options3 , description: {key:""}, reason: "death", canUseOnBoardSelection: true,},
     ]);
 
     // Get state for each player
@@ -95,8 +95,8 @@ describe("Game.selectMultiple", () => {
     const options2 = [card3];
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, min: 0, max: 2, options: options1, description: {key:""}, canUseOnBoardSelection: true,},
-      { player: player2, min: 0, max: 1, options: options2, description: {key:""}, canUseOnBoardSelection: true,},
+      { player: player1, min: 0, max: 2, options: options1, description: {key:""}, reason: "death", canUseOnBoardSelection: true,},
+      { player: player2, min: 0, max: 1, options: options2, description: {key:""}, reason: "death", canUseOnBoardSelection: true,},
     ]);
 
     const state1 = game.detailedStateJSON(player1);
@@ -128,7 +128,7 @@ describe("Game.selectMultiple", () => {
     const card2 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, min: 2, max: 2, options: [card1, card2], description: {key:""}, canUseOnBoardSelection: true,},
+      { player: player1, min: 2, max: 2, options: [card1, card2], description: {key:""}, reason: "death", canUseOnBoardSelection: true,},
     ]);
 
     const state1 = game.detailedStateJSON(player1);
@@ -150,7 +150,7 @@ describe("Game.selectMultiple", () => {
     const card3 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, min: 0, max: 2, options: [card1, card2, card3], description: {key:""}, canUseOnBoardSelection: true,},
+      { player: player1, min: 0, max: 2, options: [card1, card2, card3], description: {key:""}, reason: "death", canUseOnBoardSelection: true,},
     ]);
 
     const state1 = game.detailedStateJSON(player1);
@@ -170,7 +170,7 @@ describe("Game.selectMultiple", () => {
     const card1 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, min: 1, max: 1, options: [card1] , description: {key:""}, canUseOnBoardSelection: true},
+      { player: player1, min: 1, max: 1, options: [card1] , description: {key:""}, reason: "death", canUseOnBoardSelection: true},
     ]);
 
     expect(() => {
@@ -187,7 +187,7 @@ describe("Game.selectMultiple", () => {
     const card1 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, min: 1, max: 1, options: [card1] , description: {key:""}, canUseOnBoardSelection: true}
+      { player: player1, min: 1, max: 1, options: [card1] , description: {key:""}, reason: "death", canUseOnBoardSelection: true}
     ]);
 
     const state1 = game.detailedStateJSON(player1);
@@ -209,9 +209,9 @@ describe("Game.selectMultiple", () => {
     const card3 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, min: 1, max: 1, options: [card1] , description: {key:""}, canUseOnBoardSelection: true},
-      { player: player2, min: 1, max: 1, options: [card2] , description: {key:""}, canUseOnBoardSelection: true},
-      { player: player3, min: 1, max: 1, options: [card3] , description: {key:""}, canUseOnBoardSelection: true},
+      { player: player1, min: 1, max: 1, options: [card1] , description: {key:""}, reason: "death", canUseOnBoardSelection: true},
+      { player: player2, min: 1, max: 1, options: [card2] , description: {key:""}, reason: "death", canUseOnBoardSelection: true},
+      { player: player3, min: 1, max: 1, options: [card3] , description: {key:""}, reason: "death", canUseOnBoardSelection: true},
     ]);
 
     const state1 = game.detailedStateJSON(player1);
@@ -238,7 +238,7 @@ describe("Game.selectMultiple", () => {
     const card1 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, min: 1, max: 1, options: [card1] , description: {key:""}, canUseOnBoardSelection: true},
+      { player: player1, min: 1, max: 1, options: [card1] , description: {key:""}, reason: "death", canUseOnBoardSelection: true},
     ]);
 
     const state1Before = game.detailedStateJSON(player1);
@@ -285,8 +285,8 @@ describe("Game.selectMultiple", () => {
     const card2 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, min: 1, max: 1, options: [card1] , description: {key:""}, canUseOnBoardSelection: true},
-      { player: player2, min: 1, max: 1, options: [card2] , description: {key:""}, canUseOnBoardSelection: true},
+      { player: player1, min: 1, max: 1, options: [card1] , description: {key:""}, reason: "death", canUseOnBoardSelection: true},
+      { player: player2, min: 1, max: 1, options: [card2] , description: {key:""}, reason: "death", canUseOnBoardSelection: true},
     ]);
 
     const state1 = game.detailedStateJSON(player1);
@@ -317,8 +317,8 @@ describe("Game.selectMultiple", () => {
     const card5 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, min: 1, max: 1, options: [card1, card2, card3] , description: {key:""}, canUseOnBoardSelection: true},
-      { player: player2, min: 2, max: 2, options: [card4, card5] , description: {key:""}, canUseOnBoardSelection: true},
+      { player: player1, min: 1, max: 1, options: [card1, card2, card3] , description: {key:""}, reason: "death", canUseOnBoardSelection: true},
+      { player: player2, min: 2, max: 2, options: [card4, card5] , description: {key:""}, reason: "death", canUseOnBoardSelection: true},
     ]);
 
     const state1 = game.detailedStateJSON(player1);
@@ -338,7 +338,7 @@ describe("Game.selectMultiple", () => {
 
   test("should handle empty options array", async () => {
     const selectionPromise = game.selectMultiple([
-      { player: player1, min: 0, max: 0, options: [], description: {key:""}, canUseOnBoardSelection: true},
+      { player: player1, min: 0, max: 0, options: [], description: {key:""}, reason: "death", canUseOnBoardSelection: true},
     ]);
 
     const state1 = game.detailedStateJSON(player1);
@@ -354,7 +354,7 @@ describe("Game.selectMultiple", () => {
     const card2 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, min: 2, max: 2, options: [card1, card2] , description: {key:""}, canUseOnBoardSelection: true},
+      { player: player1, min: 2, max: 2, options: [card1, card2] , description: {key:""}, reason: "death", canUseOnBoardSelection: true},
     ]);
 
     const state1 = game.detailedStateJSON(player1);
@@ -376,8 +376,8 @@ describe("Game.selectMultiple", () => {
     });
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, min: 1, max: 1, options: [card1] , description: {key:""}, canUseOnBoardSelection: true},
-      { player: player2, min: 1, max: 1, options: [card2] , description: {key:""}, canUseOnBoardSelection: true},
+      { player: player1, min: 1, max: 1, options: [card1] , description: {key:""}, reason: "death", canUseOnBoardSelection: true},
+      { player: player2, min: 1, max: 1, options: [card2] , description: {key:""}, reason: "death", canUseOnBoardSelection: true},
     ]);
     await setTimeout(10); // slight delay to ensure state is updated before clients fetch it
     expect(stateChangeTriggered).toBe(true);
@@ -396,9 +396,9 @@ describe("Game.selectMultiple", () => {
     const card3 = game.decks["loot"]!.draw()!;
 
     const selectionPromise = game.selectMultiple([
-      { player: player1, min: 1, max: 1, options: [card1] , description: {key:""}, canUseOnBoardSelection: true},
-      { player: player2, min: 1, max: 1, options: [card2] , description: {key:""}, canUseOnBoardSelection: true},
-      { player: player3, min: 1, max: 1, options: [card3] , description: {key:""}, canUseOnBoardSelection: true},
+      { player: player1, min: 1, max: 1, options: [card1] , description: {key:""}, reason: "death", canUseOnBoardSelection: true},
+      { player: player2, min: 1, max: 1, options: [card2] , description: {key:""}, reason: "death", canUseOnBoardSelection: true},
+      { player: player3, min: 1, max: 1, options: [card3] , description: {key:""}, reason: "death", canUseOnBoardSelection: true},
     ]);
 
     const state1 = game.detailedStateJSON(player1);

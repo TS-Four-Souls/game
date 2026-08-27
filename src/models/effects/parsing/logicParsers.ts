@@ -130,7 +130,7 @@ export function parseYouMayEffect(s: string, game: Game): ParsedEffect {
             if (data.issuer instanceof Player === false) return false;
             let choice = !shouldHandleYouMay[0];
             if (!choice) {
-                const selection = await data.selectAndRecord(game, data.issuer, 0, 1, [data.it], toSerializedTranslation("pending.useItemEffect", { card: data.it.nameKey }), false, true, false);
+                const selection = await data.selectAndRecord(game, data.issuer, 0, 1, [data.it], toSerializedTranslation("pending.useItemEffect", { card: data.it.nameKey }), data.serializedCardAndBox, false, true, false);
                 choice = selection.selected.length > 0;
             }
             if (choice) {

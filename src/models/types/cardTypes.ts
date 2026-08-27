@@ -2,7 +2,7 @@ import type { Player } from '../entities/player';
 import type { Entity } from '../entities/entity';
 import type { Card, LootCard, TreasureCard, EternalCard, CharacterCard, MonsterCard, BsoulCard, RoomCard } from '../cards';
 import type { Game } from '../game';
-import type { VisualEffectBox, SerializedTranslation } from '@/shared/api';
+import type { VisualEffectBox, SerializedTranslation, SerializedCardAndBox, PendingSelectionReason } from '@/shared/api';
 import type { CardAndBox } from '../handlers/entityHandler';
 
 /**
@@ -55,6 +55,9 @@ export class EffectData {
     }
     get cardAndBox(): CardAndBox{
         return {card: this.it, visualEffectBox: this.visualEffectBox};
+    }
+    get serializedCardAndBox(): SerializedCardAndBox{
+        return {card: this.it.jsonAPI, visualEffectBox: this.visualEffectBox};
     }
     get issuerProvider(): () => Entity {
         return this._issuerProvider;
@@ -109,11 +112,12 @@ export class EffectData {
         max: number,
         options: T[],
         description: SerializedTranslation,
+        reason: PendingSelectionReason,
         skippable: boolean = true,
         record: boolean = true,
         canUseOnBoardSelection: boolean = true
     ): Promise<{ selected: T[]; remaining: T[] }> {
-        const selection = await game.select(player, min, max, options, description, skippable, canUseOnBoardSelection);
+        const selection = await game.select(player, min, max, options, description, reason, skippable, canUseOnBoardSelection);
         if (record) {
             this.recordSelection(selection.selected as any[]);
         }
@@ -127,6 +131,7 @@ export class EffectData {
             min: number;
             max: number;
             options: T[];
+            reason: PendingSelectionReason;
             description: SerializedTranslation;
             canUseOnBoardSelection: boolean;
         }[]

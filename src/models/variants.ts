@@ -13,7 +13,7 @@ export function miniDraft(game: Game): void {
         for( const players of [game.players, game.players.toReversed()]) {
             const drawn: TreasureCard[] = game.decks.treasure.drawSeveral(game.players.length + 1);
             for(const player of players) {
-                const card = (await game.select(player, 1, 1, drawn, toSerializedTranslation("pending.obtainItem"))).selected[0]!;
+                const card = (await game.select(player, 1, 1, drawn, toSerializedTranslation("pending.obtainItem"), "miniDraft")).selected[0]!;
                 game.cardHandler.addInPlay(player, card);
                 drawn.splice(drawn.indexOf(card), 1);
             }

@@ -16,7 +16,7 @@ import { DiceRoll, LootStepOnStack } from "@/models/stackElement";
 import type { DeckType, DecksCollection } from "@/models/types/cardTypes";
 import { EffectData } from "@/models/types/cardTypes";
 import { type LoseCoinsReason, type TriggerEvent } from '@/models/types/eventTypes';
-import type { Animation, DetailedState, SelectionItem, SerializedTranslation, StackElementJson, Team } from "@/shared/api";
+import type { Animation, DetailedState, PendingSelectionReason, SelectionItem, SerializedTranslation, StackElementJson, Team } from "@/shared/api";
 import { shuffle } from "@/utils/auxiliary";
 import { generateAnimationId } from "@/utils/random";
 import { Signal, type ReadableSignal } from "micro-signals";
@@ -289,11 +289,11 @@ export class Game {
       max: number,
       Options: T[],
       description: SerializedTranslation,
-
+      reason: PendingSelectionReason,
       skippable: boolean = true,
       canUseOnBoardSelection: boolean = true,
   ): Promise<{ selected: T[]; remaining: T[] }> {
-    return this._selectionHandler.select(player, min, max, Options, description, skippable, canUseOnBoardSelection);
+    return this._selectionHandler.select(player, min, max, Options, description, reason, skippable, canUseOnBoardSelection);
   }
 
   // Select from multiple players in parallel (useful for voting)
@@ -321,6 +321,7 @@ export class Game {
       max: number;
       options: T[];
       description: SerializedTranslation;
+      reason: PendingSelectionReason;
       skippable?: boolean;
       canUseOnBoardSelection: boolean;
     }[]
@@ -670,7 +671,7 @@ export class Game {
   async verifyHandSize(player: Player): Promise<void> {
     const toDiscard = player.hand.cards.length - player.maxHandSize;
     if (toDiscard > 0){
-      const selection = await this.select(player, toDiscard, toDiscard, player.hand.cards, toSerializedTranslation("pending.maxHand", { value: toDiscard, count: player.maxHandSize }), true);
+      const selection = await this.select(player, toDiscard, toDiscard, player.hand.cards, toSerializedTranslation("pending.maxHand", { value: toDiscard, count: player.maxHandSize }), "maxHandSize", true);
       for (const card of selection.selected) {
         this.cardHandler.discardFromHandAtIndex(player, player.hand._hand.indexOf(card), "overload");
       }
@@ -967,7 +968,7 @@ export class Game {
     if(forcedBy === null) {
       const response = await this.select(to, 1, 1, [
         toSerializedTranslation("common.acceptButton"), toSerializedTranslation("common.declineButton")], 
-        toSerializedTranslation("pending.fromIdWantsToGiveYouCoins", { player: from.id, value: amount }), true);
+        toSerializedTranslation("pending.fromIdWantsToGiveYouCoins", { player: from.id, value: amount }), "coinGift", true);
       if (response.selected[0]?.key !== "common.acceptButton") {
         console.log("declined");
         return false;
@@ -1038,7 +1039,7 @@ export class Game {
       return (
         await this.select(player, numberOfItemsToLose, numberOfItemsToLose, setOfLosableItems, nbItemsToLose > 1
             ? toSerializedTranslation("pending.loseItems")
-            : toSerializedTranslation("pending.loseItem"), true)
+            : toSerializedTranslation("pending.loseItem"), "death", true)
       ).selected;
     }
     return [];

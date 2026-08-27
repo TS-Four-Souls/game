@@ -216,7 +216,7 @@ describe("Event Monsters - Other Events", () => {
             if (min === 0) {
                 return { selected: [] as T[], remaining: options };
             }
-            return originalSelect(player, min, max, options, {key:""});
+            return originalSelect(player, min, max, options, {key:""}, "death");
         };
         game.decks["monster"]!.addTopPosition(weNeedToGoDeeper);
         

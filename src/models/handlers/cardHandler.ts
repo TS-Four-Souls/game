@@ -1219,7 +1219,7 @@ export class CardHandler {
                 });
                 if(effectsWithValidTargets.length === 0)
                     return false;
-                const effectDescriptionId = (await effectData.selectAndRecord(this.game, effectIssuer, 1, 1, effectsWithValidTargets.map(e => e.description), toSerializedTranslation("pending.effect"), true)).selected[0]!;
+                const effectDescriptionId = (await effectData.selectAndRecord(this.game, effectIssuer, 1, 1, effectsWithValidTargets.map(e => e.description), toSerializedTranslation("pending.effect"), effectData.serializedCardAndBox, true)).selected[0]!;
                 const effectId = card.activeEffectList.find(e => e.description === effectDescriptionId)?.index;
                 if(effectId === undefined) {
                     throw new GameError(`Selected effect "${effectDescriptionId}" not found on the card ${card.name}.`, toSerializedTranslation("error.behaviorError", {error: `Selected effect "${effectDescriptionId}" not found on the card ${card.name}.`}));
