@@ -1545,7 +1545,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
         case "you may play an additional loot card on your turn":
             return noTargetSyncEffect(passive.onYourTurnModifier([game.entityHandler.addLootPlay.bind(game.entityHandler)], 1, game));
         case "you may play up to x additional loot cards this turn":
-            return noTargetSyncEffect(passive.onYourTurnModifier([game.entityHandler.addLootPlay.bind(game.entityHandler)], nr.nextNumber(), game));
+            return noTargetSyncEffect(passive.temporaryStatModifierEffect([game.entityHandler.addLootPlay.bind(game.entityHandler)], nr.nextNumber(), game, "issuer"));
         case "put a gold counter on another non-eternal item you control":
             return noTargetSyncEffect(passive.giveCounterToAnotherItemOnEnterPlayEffect(game, "golden"));
         case "prevent death, heal to full [hp] , and cancel your attack":
