@@ -622,11 +622,11 @@ export function cancelNextDeathOfAPlayer(game: Game, description: string): SyncE
         let offDeath: (() => void) | null = null;
         let offEndTurn: (() => void) | null = null;
         const temp: TemporaryEffect = getTemporaryEffect(data);
-        data.issuer.addTemporaryEffect(temp);
+        target.addTemporaryEffect(temp);
 
         const clean: ()=> void =()=>
         {
-            data.issuer.removeTemporaryEffect(temp);
+            target.removeTemporaryEffect(temp);
             offDeath?.();
             offDeath = null;
             offEndTurn?.();
