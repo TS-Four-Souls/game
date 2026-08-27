@@ -1049,8 +1049,8 @@ export function socialGoalsEffect(game: Game, numbers: number[]): SyncEffectFunc
         });
 
         offRoll = game.emitter.on("on:dice:resolved", (eventData) => {
-            const { diceRoll } = eventData;
-            if(diceRoll.value === goalsRoll) {
+            const { dice } = eventData;
+            if(dice.value === goalsRoll) {
                 sixesRolled++;
                 tryResolve();
             }

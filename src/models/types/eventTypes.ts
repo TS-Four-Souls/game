@@ -213,12 +213,6 @@ export interface OnDiceBeingRolledData {
   eventIssuer: Player;
 }
 
-/** Data emitted when a dice is resolved */
-export interface OnDiceResolvedData {
-  diceRoll: DiceRoll;
-  eventIssuer: Player;
-}
-
 /** Data emitted before a dice would be rolled (can be modified) */
 export interface OnDiceWouldRollData {
   eventIssuer: Player;
@@ -389,7 +383,7 @@ export interface TriggerEventDataMap {
   "on:coin:lost:after": OnCoinLostAfterData;
   "on:dice:being-rolled": OnDiceBeingRolledData;
   "on:dice:would-roll": OnDiceWouldRollData;
-  "on:dice:resolved": OnDiceResolvedData;
+  "on:dice:resolved": OnRollData;
   "on:turn:start": OnTurnStartData;
   "on:counter:modified": OnCounterModifiedData;
   "on:turn:start:before:recharge:step": OnBeforeRechargeStepData;

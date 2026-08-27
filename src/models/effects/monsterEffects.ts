@@ -18,7 +18,6 @@ import type {
     OnDeathMonsterData,
     OnDeathWouldDeathData,
     OnDiceBeingRolledData,
-    OnDiceResolvedData,
     OnGetMonsterAttackPointsData,
     OnGetMonsterEvasionData,
     OnItemActivatedData,
@@ -26,6 +25,7 @@ import type {
     OnTurnEndData,
     OnCardFlippedData,
     OnAttackDeclaredAnimatedData,
+    OnRollData,
 } from "../types/eventTypes";
 import * as active from "./activeEffect";
 import { addInPlayEffect } from "./activeEffect";
@@ -782,8 +782,8 @@ export function onAttackingPlayerRollsEffect(game: Game, s: string): SyncEffectF
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         
-        offRoll = game.emitter.on("on:dice:resolved", (eventData: OnDiceBeingRolledData) => {
-            const { eventIssuer, diceRoll: attackRoll } = eventData;
+        offRoll = game.emitter.on("on:dice:resolved", (eventData: OnRollData) => {
+            const { eventIssuer, dice: attackRoll } = eventData;
             if (!(eventIssuer instanceof Player)) return;
             if (!(eventIssuer.isEngagedInCombat)) return;
             if(attackRoll.attackRoll !== true) return;
@@ -841,17 +841,17 @@ export function cancelAttackAfterSecondAttackRollEffect(game: Game): SyncEffectF
         let offDamage: (() => void) | null = null;
         let offTurnEnd: (() => void) | null = null;
         let atkCount = 0;
-        offDamage = game.emitter.on("on:dice:resolved", (eventData: OnDiceResolvedData) => {
-            const { diceRoll, eventIssuer } = eventData;
+        offDamage = game.emitter.on("on:dice:resolved", (eventData: OnRollData) => {
+            const { dice, eventIssuer } = eventData;
             if (data.issuer.isEngagedInCombat !== true) return;
-            if(diceRoll.attackRoll !== true) return;
+            if(dice.attackRoll !== true) return;
             atkCount++;
             if(atkCount === 2) {
                 const effect = async (effectData: EffectData): Promise<boolean> => {
                     const elems = [];
                     for(let i = game.stack.elements.length - 1; i >= 0; i--) {
                         const stackElement = game.stack.elements[i];
-                        if(stackElement instanceof DamageOnStack && stackElement._source === diceRoll
+                        if(stackElement instanceof DamageOnStack && stackElement._source === dice
                             || stackElement === undefined
                         ) {
                             continue;

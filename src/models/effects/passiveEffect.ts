@@ -35,8 +35,7 @@ import type {
     OnTurnEndData,
     OnTurnStartData,
     OnDeathWouldDeathData,
-    OnAttackDeclaredMonsterData,
-    OnDiceResolvedData
+    OnAttackDeclaredMonsterData
 } from "../types/eventTypes";
 import * as active from "./activeEffect";
 import { type ParsedEffect, type SyncParsedEffect } from "./parsing/effectParser";
@@ -1243,8 +1242,8 @@ export function chosenumberDamageOnRollThisTurnEffect(game: Game, damageAmount: 
             throw new GameError("chosenumberDamageOnRollThisTurnEffect: nb must be a number between 1 and 6.", toSerializedTranslation("error.behaviorError", {error: "chosenumberDamageOnRollThisTurnEffect: nb must be a number between 1 and 6."}));
         }
         const previouslyRolledDices = game.stack.elements.filter(e => e instanceof DiceRoll);
-        offDamage = game.emitter.on("on:dice:resolved", (eventData: OnDiceBeingRolledData) => {
-            const { eventIssuer, diceRoll } = eventData;
+        offDamage = game.emitter.on("on:dice:resolved", (eventData: OnRollData) => {
+            const { eventIssuer, dice: diceRoll } = eventData;
             if(previouslyRolledDices.includes(diceRoll))
                 return;
             if (diceRoll.value !== nb) return;
@@ -1349,8 +1348,8 @@ export function aPlayerRollSameResTwiceInRow(effectFunctions: EffectFunction[],
             prevRoll = new Map(game.players.map(p=>[p, -1]));
         });
 
-        offRoll = game.emitter.on("on:dice:resolved", (eventData: OnDiceResolvedData) => {
-            const roll = eventData.diceRoll;
+        offRoll = game.emitter.on("on:dice:resolved", (eventData: OnRollData) => {
+            const roll = eventData.dice;
             const issuer = eventData.eventIssuer;
             if(prevRoll.get(issuer) === roll.value)
             {
@@ -1881,8 +1880,8 @@ export function lootOnNextRollEffect(game: Game, x: number): SyncEffectFunction 
         }
         // Listen for the next roll event on this player
         const previouslyRolledDices = game.stack.elements.filter(e => e instanceof DiceRoll);
-        offRoll = game.emitter.on("on:dice:resolved", (eventData: OnDiceBeingRolledData) => {
-            const { diceRoll } = eventData;
+        offRoll = game.emitter.on("on:dice:resolved", (eventData: OnRollData) => {
+            const { dice:diceRoll } = eventData;
             if(willRoll.diceRoll !== diceRoll)
                 return;
             
@@ -2730,8 +2729,8 @@ export function onAttackingPlayerRollEffect(
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         
-        offEffect = game.emitter.on("on:dice:resolved", (eventData: OnDiceBeingRolledData) => {
-            const { diceRoll } = eventData;
+        offEffect = game.emitter.on("on:dice:resolved", (eventData: OnRollData) => {
+            const { dice: diceRoll } = eventData;
             const dice = diceRoll;
             if( !dice.issuer.engageInCombat || !dice.attackRoll || !data.issuer.isEngagedInCombat)
                 return;
@@ -2801,8 +2800,8 @@ export function onRollEffect(
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         // Listen for the next damage event on this player
-        offEffect = game.emitter.on("on:dice:resolved", (eventData: OnDiceBeingRolledData) => {
-            const { diceRoll } = eventData;
+        offEffect = game.emitter.on("on:dice:resolved", (eventData: OnRollData) => {
+            const { dice:diceRoll } = eventData;
             // For monsters, only trigger if the monster is currently engaged in combat
             // if (data.issuer instanceof Monster && !data.issuer.isEngagedInCombat) {
             //     return;
@@ -2843,8 +2842,8 @@ export function onActivePlayerRollEffect(
     return (data: EffectData) => {
         let offEffect: (() => void) | null = null;
         
-        offEffect = game.emitter.on("on:dice:resolved", (eventData: OnDiceBeingRolledData) => {
-            const { diceRoll } = eventData;
+        offEffect = game.emitter.on("on:dice:resolved", (eventData: OnRollData) => {
+            const { dice:diceRoll } = eventData;
             // Only trigger if the roll issuer is the active player
             if (diceRoll.issuer !== game.currentPlayer) {
                 return;
@@ -3000,10 +2999,18 @@ export function eachOtherPlayerRevealsHandEffect(game: Game): SyncEffectFunction
 
 export function nextRollModifier(game: Game, type: "any" | "attack", amount: number, issuerType: "any" | "active"): SyncEffectFunction
 {
-    const event = type === "any" ? "on:roll:modifier" : "on:attack:roll:modifier";
+    const event:TriggerEvent = type === "any" ? "on:dice:resolved" : "on:attack:roll";
     return (data: EffectData) => {
         let offTurn: (() => void) | null = null;
         let offRoll: (() => void) | null = null;
+        const tempEffect = getTemporaryEffect(data);
+        game.currentPlayer.addTemporaryEffect(tempEffect);
+
+        let players = issuerType === "active" ? [game.currentPlayer] : game.players;
+        for(const player of players)
+            game.entityHandler.addAttackDiceModifier(player, amount, data.it);
+        
+
         offTurn = game.emitter.on("on:turn:end", (eventData: OnTurnStartData) => {
             clean();
         });
@@ -3011,15 +3018,14 @@ export function nextRollModifier(game: Game, type: "any" | "attack", amount: num
         offRoll = game.emitter.on(event, (eventData: OnRollData) => {
             if(type === "attack" && !eventData.dice.attackRoll) return;
             if(issuerType === "active" && eventData.eventIssuer !== game.currentPlayer) return;
-            if(amount < 0)
-                eventData.dice.subtract(-amount);
-            else
-                eventData.dice.add(amount);
             clean();
         });
 
         // Store cleanup function
         const clean = () => {
+            game.currentPlayer.removeTemporaryEffect(tempEffect);
+            for(const player of players)
+                game.entityHandler.addAttackDiceModifier(player, -amount, data.it);
             offTurn();
             offRoll();
         }
