@@ -433,7 +433,7 @@ export class Game {
           return;
         if(this.turnHandler.turnId !== turnId) // some dice roll may end the turn.
           return;
-        this.emit("on:dice:resolved", { eventIssuer: elem.issuer, diceRoll: elem });
+        this.emit("on:dice:resolved", { eventIssuer: elem.issuer, dice: elem });
         await this.resolveCallbacks();
     });
   }

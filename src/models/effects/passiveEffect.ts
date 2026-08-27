@@ -1243,10 +1243,10 @@ export function chosenumberDamageOnRollThisTurnEffect(game: Game, damageAmount: 
         }
         const previouslyRolledDices = game.stack.elements.filter(e => e instanceof DiceRoll);
         offDamage = game.emitter.on("on:dice:resolved", (eventData: OnRollData) => {
-            const { eventIssuer, dice: diceRoll } = eventData;
-            if(previouslyRolledDices.includes(diceRoll))
+            const { eventIssuer, dice } = eventData;
+            if(previouslyRolledDices.includes(dice))
                 return;
-            if (diceRoll.value !== nb) return;
+            if (dice.value !== nb) return;
             const effect = active.dealDamageToTargetEffect(game, damageAmount, true, selectPlayerOrMonster(game), "issuer");
             addPassiveEffectToStack(game, effect, data, `Deal ${damageAmount} damage to a target because a ${nb} was rolled.`);
         });
@@ -1881,11 +1881,11 @@ export function lootOnNextRollEffect(game: Game, x: number): SyncEffectFunction 
         // Listen for the next roll event on this player
         const previouslyRolledDices = game.stack.elements.filter(e => e instanceof DiceRoll);
         offRoll = game.emitter.on("on:dice:resolved", (eventData: OnRollData) => {
-            const { dice:diceRoll } = eventData;
-            if(willRoll.diceRoll !== diceRoll)
+            const { dice } = eventData;
+            if(willRoll.diceRoll !== dice)
                 return;
             
-            if(diceRoll.value === guess) {
+            if(dice.value === guess) {
                 // Create the effect that will execute when the stack resolves
                 const effect = (effectData: EffectData): boolean => {
                     if (!(effectData.issuer instanceof Player)) return false;
@@ -2730,8 +2730,7 @@ export function onAttackingPlayerRollEffect(
         let offEffect: (() => void) | null = null;
         
         offEffect = game.emitter.on("on:dice:resolved", (eventData: OnRollData) => {
-            const { dice: diceRoll } = eventData;
-            const dice = diceRoll;
+            const { dice } = eventData;
             if( !dice.issuer.engageInCombat || !dice.attackRoll || !data.issuer.isEngagedInCombat)
                 return;
             // Only trigger for attack rolls with specified values
@@ -2801,22 +2800,22 @@ export function onRollEffect(
         let offEffect: (() => void) | null = null;
         // Listen for the next damage event on this player
         offEffect = game.emitter.on("on:dice:resolved", (eventData: OnRollData) => {
-            const { dice:diceRoll } = eventData;
+            const { dice } = eventData;
             // For monsters, only trigger if the monster is currently engaged in combat
             // if (data.issuer instanceof Monster && !data.issuer.isEngagedInCombat) {
             //     return;
             // }
-            if (rollValues.includes(diceRoll.value))
+            if (rollValues.includes(dice.value))
             {
-                const newData:EffectData =  new EffectData(data.it, data.issuerProvider, [diceRoll], data.visualEffectBox);
+                const newData:EffectData =  new EffectData(data.it, data.issuerProvider, [dice], data.visualEffectBox);
                 
                 // Create the effect that will execute when the stack resolves
                 const stackEffect = async (effectData: EffectData): Promise<boolean> => {
                     return effect(effectData);
                 };
                 
-                if (diceIssuerIssueTheEvent && diceRoll.issuer !== undefined) {
-                    newData.issuerProvider = (): Entity => diceRoll.issuer;
+                if (diceIssuerIssueTheEvent && dice.issuer !== undefined) {
+                    newData.issuerProvider = (): Entity => dice.issuer;
                     newData.targets = [];
                 }
                 // Add to stack instead of executing immediately
@@ -2843,13 +2842,13 @@ export function onActivePlayerRollEffect(
         let offEffect: (() => void) | null = null;
         
         offEffect = game.emitter.on("on:dice:resolved", (eventData: OnRollData) => {
-            const { dice:diceRoll } = eventData;
+            const { dice } = eventData;
             // Only trigger if the roll issuer is the active player
-            if (diceRoll.issuer !== game.currentPlayer) {
+            if (dice.issuer !== game.currentPlayer) {
                 return;
             }
             
-            if (rollValues.includes(diceRoll.value)) {
+            if (rollValues.includes(dice.value)) {
                 // Create the effect that will execute when the stack resolves
                 const stackEffect = async (effectData: EffectData): Promise<boolean> => {
                     return effect(effectData);

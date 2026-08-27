@@ -240,7 +240,7 @@ export class GameStateSerializer {
       deckSize: this.game.decks["treasure"]!.cards.length,
       inPlay: this.game.shop.itemsInShop.flatMap((c) => c ? [{ ...c.jsonAPI, price: this.game.shop.shopPrice + player.priceModifier }] : []),
       topDeckPrice: this.game.shop.topTreasurePrice,
-      firstCardTreasureDeck: player.canSeeTopOfTreasureDeck && this.game.decks["treasure"]!.cards[0] !== undefined ? this.game.decks["treasure"]!.cards[0]!.jsonAPI : undefined,
+      firstCardTreasureDeck: player.canSeeTopOfTreasureDeck && this.game.decks["treasure"]?.cards[0] !== undefined ? this.game.decks["treasure"]?.cards[0]?.jsonAPI : undefined,
     };
   }
 
@@ -278,7 +278,10 @@ export class GameStateSerializer {
         capabilities: {
           targetableDeck: this.game.actions.canDeclareAttackOnEntity(player, "topDeck", false),
         },
-        inPlay: this.game.encounters._slots.map((m, index) => ({ card: m[m.length - 1]!, monster: this.game.encounters.monsterIn(index), covered: this.game.encounters._slots[index]!.slice(0, -1).map(c => c.jsonAPI) })).map((m) => ({
+        inPlay: this.game.encounters._slots.map((m, index) => (
+          { card: m[m.length - 1]!, 
+            monster: this.game.encounters.monsterIn(index), 
+            covered: this.game.encounters._slots[index]!.slice(0, -1).map(c => c.jsonAPI) })).map((m) => ({
 
           top: {
             slug: m.card?.slug,
