@@ -155,7 +155,12 @@ export class GameStateSerializer {
           isEngagedInCombat: p.isEngagedInCombat,
           isEngagedInPurchase: p.isEngagedInPurchase,
           attackRequirements: p.requirementListJSON(this.game),
-          pendingSelection: this.game.pendingMultipleSelections.values().find(sel => sel.playerId === p.id)?.reason,
+          pendingSelection: 
+          [this.game.pendingMultipleSelections.values().find(sel => sel.playerId === p.id)].map(e => 
+            e === undefined 
+            ? undefined
+            : {source: e.reason, description: e.description, requestId: e.requestId}
+          )[0]!,
           targetable: this.game.actions.canDeclareAttackOnEntity(me, p, false),
           capabilities: {
             canSwitchTo: this.game.actions.canSwitchTo(me, p),

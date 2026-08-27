@@ -189,8 +189,23 @@ const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
   ]),
 );
 
-const pendingSelectionReasonSchema = z.union([serializedCardAndBoxSchema, z.literal("death"), z.literal("maxHandSize"), z.literal("coinGift"), z.literal("miniDraft"), z.literal("activation")]);
+const pendingSelectionReasonSchema = 
+  z.union([
+    serializedCardAndBoxSchema, 
+    z.literal("death"), 
+    z.literal("maxHandSize"), 
+    z.literal("coinGift"), 
+    z.literal("miniDraft"), 
+    z.literal("activation")
+  ]);
 export type PendingSelectionReason = z.infer<typeof pendingSelectionReasonSchema>;
+
+const pendingSelectionDetailSchema = z.object({
+  requestId: z.number(),
+  source: pendingSelectionReasonSchema,
+  description: serializedTranslationSchema,
+})
+export type pendingSelectionDetail = z.infer<typeof pendingSelectionDetailSchema>;
 
 const pendingSelectionSchema = z.object({
   requestId: z.number(),
@@ -766,7 +781,7 @@ const playerSchema = z.object({
     canSwitchTo: capabilitySchema,
     canDonateCoinsTo: capabilitySchema,
   }),
-  pendingSelection: pendingSelectionReasonSchema.optional(),
+  pendingSelection: pendingSelectionDetailSchema.optional(),
 });
 export type Player = z.infer<typeof playerSchema>;
 
