@@ -202,16 +202,13 @@ export type PendingSelectionReason = z.infer<typeof pendingSelectionReasonSchema
 
 const pendingSelectionDetailSchema = z.object({
   requestId: z.number(),
-  source: pendingSelectionReasonSchema,
+  reason: pendingSelectionReasonSchema,
   description: serializedTranslationSchema,
 })
 export type pendingSelectionDetail = z.infer<typeof pendingSelectionDetailSchema>;
 
-const pendingSelectionSchema = z.object({
-  requestId: z.number(),
-  description: serializedTranslationSchema,
+const pendingSelectionSchema = pendingSelectionDetailSchema.extend({
   options: z.array(selectionItemSchema),
-  reason: pendingSelectionReasonSchema,
   min: z.number(),
   max: z.number(),
   canUseOnBoardSelection: z.boolean(),

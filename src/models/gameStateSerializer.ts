@@ -159,7 +159,7 @@ export class GameStateSerializer {
           [this.game.pendingMultipleSelections.values().find(sel => sel.playerId === p.id)].map(e => 
             e === undefined 
             ? undefined
-            : {source: e.reason, description: e.description, requestId: e.requestId}
+            : {reason: e.reason, description: e.description, requestId: e.requestId}
           )[0]!,
           targetable: this.game.actions.canDeclareAttackOnEntity(me, p, false),
           capabilities: {
