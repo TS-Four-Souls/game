@@ -1152,7 +1152,7 @@ export function flipThisItemEffect(game: Game): SyncEffectFunction {
 export function addCountersAndGainTreasureEffect(countersThreshold: number, toRemove:number, treasureToGain: number, game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const dmg = data.next as number;
+        const dmg = data.peek() as number;
         game.cardHandler.addToCounter(data.issuer, data.it, "normal", dmg);
         if (data.it.counters.value("normal") >= countersThreshold) {
             game.cardHandler.addToCounter(data.issuer, data.it, "normal", -toRemove);
