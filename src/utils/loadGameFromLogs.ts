@@ -72,6 +72,12 @@ interface GameStateComparison {
 function normalizeDetailedStateForComparison(state: DetailedState): DetailedState {
   const normalized = structuredClone(state);
   normalized.lastStackElementTimeStamp = 0;
+  
+  for(const array of [normalized.history, normalized.stack])
+    for( const index in array)
+      if("reordering" in array[index]!)
+        array[index]["reordering"]!.groupId = "";
+
 
   if (normalized.me.pendingSelection) {
     normalized.me.pendingSelection.requestId = 0;
@@ -100,6 +106,7 @@ function collectDifferences(
 ): void {
   if (differences.length >= maxDifferences) return;
   if (Object.is(left, right)) return;
+  if( left === right) return;
 
   const leftIsArray = Array.isArray(left);
   const rightIsArray = Array.isArray(right);
