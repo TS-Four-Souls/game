@@ -175,6 +175,13 @@ export class DiceRoll extends StackElement {
     return this._visualEffectBox;
   }
 
+  override onCancel(game: Game): void {
+    const card = this.card;
+    // If the dice is linked to a curse or an event, discard it.
+    if(card instanceof MonsterCard && (card.isEvent || card.isCurse))
+      game.cardHandler.discard(card);
+  }
+
   get additionalDamageDealt(): number {
     if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
     return this._attackRollData?.damageDealtAdditional ?? 0;
