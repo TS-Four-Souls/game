@@ -197,8 +197,7 @@ const pendingSelectionReasonSchema =
     z.literal("death"), 
     z.literal("maxHandSize"), 
     z.literal("coinGift"), 
-    z.literal("miniDraft"), 
-    z.literal("activation")
+    z.literal("miniDraft")
   ]);
 export type PendingSelectionReason = z.infer<typeof pendingSelectionReasonSchema>;
 
