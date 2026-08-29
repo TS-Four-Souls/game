@@ -146,6 +146,8 @@ export class TargetBuilder {
             game.assert.noPendingSelection();
         if(!item)
             throw new GameError(`Item not found.`, toSerializedTranslation("error.itemNotFound"));
+        if(item instanceof LootCard && item.trinket)
+            return this.completeResponse();
         if(throwIfNotCharged && effectId === "tap" && !item.charged)
             throw new GameError(`Item ${item.name} is not charged.`, toSerializedTranslation("capability.notCharged"));
         // console.log("TargetBuilder.getNextSelector for item:", item.name, "effectId:", effectId, "partialChoices:", partialChoices, item.activeEffectList);
@@ -451,6 +453,8 @@ export class TargetBuilder {
         game.assert.noPendingSelection();
         if(!item)
             throw new GameError(`Item not found.`, toSerializedTranslation("error.itemNotFound"));
+        if(item instanceof LootCard && item.trinket)
+            return [];
         const rootSelectors = [...item.getEffectTarget(effectId)];
         const result: any[] = [];
 
@@ -524,6 +528,8 @@ export class TargetBuilder {
     ): Promise<any[]> {
         if(!item)
             throw new GameError(`Item not found or has no active effect.`, toSerializedTranslation("error.itemNotFoundOrNoActiveEffect"));
+        if(item instanceof LootCard && item.trinket)
+            return [];
         if(effectId === "tap"){
             const activeEffect = item.getActiveEffect();
             if (!activeEffect)
@@ -626,6 +632,8 @@ export class TargetBuilder {
     ): Capability {
         if(!item)
             return toSerializedTranslation("error.itemNotFound");
+        if(item instanceof LootCard && item.trinket)
+            return true;
         // console.log(`Checking valid targets for item: ${item.name}, effectId: ${effectId} descr ${item.activeEffectList[effectId as number]?.description}`);
         if(effectId !== "tap")
             {
@@ -675,9 +683,8 @@ export class TargetBuilder {
         
         if(!item)
             return "Item not found.";
-
         const indices = [...item.activeEffectList]
-        if(where === "hand" && item.hasTapEffect() && indices.length === 0 && item instanceof LootCard && item.trinket)
+        if(where === "hand" && indices.length === 0 && item instanceof LootCard && item.trinket)
         {
             return {index: "tap", targets: []};
         }

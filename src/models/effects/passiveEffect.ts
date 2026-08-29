@@ -1774,25 +1774,13 @@ export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): SyncEffectF
     };
 }
 
-export function giveCounterToAnotherItemOnEnterPlayEffect(game: Game, counterType: CounterType): SyncEffectFunction {
-    return (data: EffectData) => {
-        let offEnterPlay: (() => void) | null = null;
-        offEnterPlay = game.emitter.on("on:enter:play", ({ eventIssuer, card }) => {
-            if (card !== data.it) return;
-            const effect = async (effectData: EffectData): Promise<boolean> => {
-                if (data.issuer instanceof Player === false) return false;
-                const itemToGiveCounter = (await data.selectAndRecord(game, data.issuer, 1, 1, data.issuer.inPlay.filter(item => item !== data.it && !item.eternal), toSerializedTranslation("pending.itemToGiveGoldCounterTo"), data.serializedCardAndBox, true)).selected[0]!;
-                if(!itemToGiveCounter)
-                    return false;
-                game.cardHandler.addToCounter(data.issuer, itemToGiveCounter, counterType, 1);
-                return true;
-            }
-            addPassiveEffectToStack(game, effect, data, `Give a ${counterType} counter to another item when this enters play.`);
-        });
-        data.it.cleaners.push(() => {
-            offEnterPlay?.();
-            offEnterPlay = null;
-        });
+export function giveCounterToAnotherItemOnEnterPlayEffect(game: Game, counterType: CounterType): AsyncEffectFunction {
+    return async (data: EffectData) => {
+        if (data.issuer instanceof Player === false) return false;
+        const itemToGiveCounter = (await data.selectAndRecord(game, data.issuer, 1, 1, data.issuer.inPlay.filter(item => item !== data.it && !item.eternal), toSerializedTranslation("pending.itemToGiveGoldCounterTo"), data.serializedCardAndBox, true)).selected[0]!;
+        if(!itemToGiveCounter)
+            return false;
+        game.cardHandler.addToCounter(data.issuer, itemToGiveCounter, counterType, 1);
         return true;
     };
 }

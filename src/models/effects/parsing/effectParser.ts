@@ -785,6 +785,8 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
             return noTargetEffect(active.lookAndReorderTopCardsEffect(game, nr.nextNumber(), "selectOnResolve", "dataIssuer"));
         case "give another player a loot card":
             return noTargetEffect(active.giveLootCardToAnotherPlayerEffect(game));
+        case "put a gold counter on another non-eternal item you control":
+            return noTargetEffect(passive.giveCounterToAnotherItemOnEnterPlayEffect(game, "golden"));
         case "then if this has x+ counters, remove all counters from this and deal x damage to a player or monster":
             return noTargetEffect(active.removeCounterAndDamageIfAboveX(game, nr.nextNumber(), nr.nextNumber()));
         case "change a number in the effect text of a card in play or loot being played by x till end of turn. the number can't go below x or above x":
@@ -1546,8 +1548,6 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             return noTargetSyncEffect(passive.onYourTurnModifier([game.entityHandler.addLootPlay.bind(game.entityHandler)], 1, game));
         case "you may play up to x additional loot cards this turn":
             return noTargetSyncEffect(passive.temporaryStatModifierEffect([game.entityHandler.addLootPlay.bind(game.entityHandler)], nr.nextNumber(), game, "issuer"));
-        case "put a gold counter on another non-eternal item you control":
-            return noTargetSyncEffect(passive.giveCounterToAnotherItemOnEnterPlayEffect(game, "golden"));
         case "prevent death, heal to full [hp] , and cancel your attack":
             return noTargetSyncEffect(active.preventDeathHealFullCancelAttackEffect(game));
         case "monster have -x [dc] on your turn, where x is the number of souls the player with the most souls controls minus the number of souls you control":

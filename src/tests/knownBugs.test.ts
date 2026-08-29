@@ -24,6 +24,68 @@ describe("Known bugs that have be corrected", () => {
     // it("", async () => {
     // });
     
+    it("swap item works with trinket", async () => {
+        const c1 = game.obtainCard("b2-decoy") as ItemCard;
+        const c2 = game.obtainCard("b2-counterfeit_penny") as LootCard;
+        game.cardHandler.addCardToHand(player1, c2);
+        game.cardHandler.addInPlay(player2, c1);
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
+        game.gainCoins(player1,1, "debug");
+        expect(player1.coins).toBe(2);
+        await game.activateItem(player2, c1, [c2], "tap");
+        await game.actions.resolveStack();
+        expect(player1.inPlay.includes(c1));
+        expect(player2.inPlay.includes(c2));
+        game.gainCoins(player1,1, "debug");
+        expect(player1.coins).toBe(3);
+        game.gainCoins(player2,1, "debug");
+        expect(player2.coins).toBe(2);
+    });
+    
+    it("copy trinket works", async () => {
+        const c1 = game.obtainCard("b2-modeling_clay") as ItemCard;
+        const c2 = game.obtainCard("b2-counterfeit_penny") as LootCard;
+        game.cardHandler.addCardToHand(player1, c2);
+        game.cardHandler.addInPlay(player2, c1);
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
+        game.gainCoins(player1,1, "debug");
+        expect(player1.coins).toBe(2);
+        await game.activateItem(player2, c1, [c2], "tap");
+        await game.actions.resolveStack();
+        expect(player1.inPlay.includes(c1));
+        expect(player2.inPlay.includes(c2));
+        game.gainCoins(player2,1, "debug");
+        expect(player2.coins).toBe(2);
+        game.cardHandler.removeInPlay(player2, c1);
+        game.gainCoins(player2,1, "debug");
+        expect(player2.coins).toBe(3);
+    });
+    
+    it("steal trinket works", async () => {
+        const c1 = game.obtainCard("b2-pay_to_play") as ItemCard;
+        const c2 = game.obtainCard("b2-counterfeit_penny") as LootCard;
+        game.cardHandler.addCardToHand(player1, c2);
+        game.cardHandler.addInPlay(player2, c1);
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
+        game.gainCoins(player1,1, "debug");
+        expect(player1.coins).toBe(2);
+        game.gainCoins(player2, 10, "debug");
+        await game.activateItem(player2, c1, [c2], 0);
+        await game.actions.resolveStack();
+        expect(player1.inPlay.includes(c1));
+        expect(player2.inPlay.includes(c2));
+        game.gainCoins(player2,1, "debug");
+        expect(player2.coins).toBe(2);
+        game.gainCoins(player1,1, "debug");
+        expect(player1.coins).toBe(3);
+        game.cardHandler.removeInPlay(player2, c2);
+        game.gainCoins(player2,1, "debug");
+        expect(player2.coins).toBe(3);
+    });
+    
     it("serialize choose one options", async () => {
         const c1 = game.obtainCard("fsp2-rainbow_baby") as ItemCard;
         game.cardHandler.addInPlay(player1, c1);

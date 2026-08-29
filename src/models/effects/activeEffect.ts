@@ -3362,7 +3362,7 @@ export function killMonsterEffect(game: Game): SyncEffectFunction {
 export function enterPlayBecomeSoulEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        data.it.cleanup();
+        game.cardHandler.removeInPlay(data.issuer, data.it as ItemCard);
         if(data.it instanceof LootCard === true)
             data.it.afterEffect = "nothing"; // card placement is handled by the effect itself.
         data.it.soul = 1;

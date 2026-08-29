@@ -1,4 +1,4 @@
-    import { type EffectFunction, type TargetsSelector, type EffectType, EffectData, Card, type EffectRange } from "../cards";
+    import { type EffectFunction, type TargetsSelector, type EffectType, EffectData, Card, type EffectRange, LootCard } from "../cards";
 import { EffectOnStack } from '../stackElement';
 import type { Entity } from "../entities/entity";
 import type { Player } from "../entities/player";
@@ -310,7 +310,6 @@ class ActiveEffectHandler extends EffectHandler {
     getTargetSelectors(index: number | "tap"): TargetsSelector[] {
         if (index === "tap")
             return this.getActiveEffect().targetsSelector || [];
-
         else
             return this._effects[index]?.targetsSelector || [];
     }
@@ -447,29 +446,37 @@ export class EffectInterface {
 
 
     // Get the first active effect (for cards that have a single effect)
-    getActiveEffect(index: number = 0): Effect | undefined {
+    getActiveEffect(index: number = 0): Effect {
         return this.activeEffects.getActiveEffect();
     }
 
     getTargetSelectors(index: number | "tap"): TargetsSelector[] {
         return this.activeEffects.getTargetSelectors(index);
     }
-    // Lifecycle methods for loot cards - onPlay takes targets as parameter and returns a resolve function
+    // Lifecycle methods for loot cards, events and curses - onPlay takes targets as parameter and returns a resolve function
     onPlay(issuer: Player, targets: any[]): (() => void | Promise<void>) {
         this._issuer = issuer;
-        const effect = this.activeEffects.getActiveEffect();
-        if (!effect) {
-            return () => { };
+        let effect:Effect;
+        if(this.it instanceof LootCard === false || this.it.trinket === false)
+        {
+            effect = this.activeEffects.getActiveEffect();
+            if (!effect) {
+                return () => { };
+            }
         }
+
 
         // Return a resolve function to be called later
         return async () => {
             if (this._issuer) {
                 // Validate targets before calling effect function
-                if (effect.targetStillValid(this._issuer!, targets)) {
-                    await effect.effectFunction(new EffectData(this.it, () => this._issuer!, targets, effect.getVisualEffectBoxFromTargets(targets)));
+                if(this.it instanceof LootCard === false || this.it.trinket === false)
+                {
+                    if (effect.targetStillValid(this._issuer!, targets)) {
+                        await effect.effectFunction(new EffectData(this.it, () => this._issuer!, targets, effect.getVisualEffectBoxFromTargets(targets)));
+                    }
+                    await this.subscribeAll(() => this._issuer!);
                 }
-                await this.subscribeAll(() => this._issuer!);
             }
         };
     }

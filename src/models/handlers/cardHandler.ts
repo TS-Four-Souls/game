@@ -175,7 +175,7 @@ export class CardHandler {
     let type: EffectType = "passive";
     if (
       normalizedOutcome.startsWith("[Tap Effect]") ||
-      card.type === "loot" ||
+      (card.type === "loot" && (card as LootCard).trinket === false) ||
       (card instanceof MonsterCard &&
         card.encounterType === MonsterType.EVENT &&
         outcome !==

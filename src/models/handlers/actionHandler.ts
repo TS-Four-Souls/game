@@ -398,7 +398,7 @@ export class ActionHandler {
       this.game.cardHandler.removeCardFromHand(player, card);
       const playedCard: LootCard = card;
   
-      if (targets.length === 0) {
+      if (targets.length === 0 && card.trinket === false) {
         if (playedCard.getTargetSelectors().length === 1)
           if (playedCard.getTargetSelectors()[0]?.selector(player, playedCard).length === 1)
             targets = playedCard.getTargetSelectors()[0]!.selector(player, playedCard)[0];
