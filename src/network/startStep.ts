@@ -8,7 +8,7 @@ import { toSerializedTranslation } from "@/utils/translation";
 import { enterGameStep } from "./gameStep";
 import { globalEndpoints } from "./global";
 import { enterIntroStep } from "./introStep";
-import { roomManager } from "./roomManager";
+import { MAX_PLAYER_COUNT, roomManager } from "./roomManager";
 import { type Room, type Socket, type User } from "./types";
 import {
   errorGuardedEndpoint,
@@ -211,7 +211,9 @@ export const enterStartStep = (
             if (!original) {
               return callback({ status: 400, error: "User not found" });
             }
-            if (room.users.flatMap((u) => u.instances).length >= 4) {
+            if (
+              room.users.flatMap((u) => u.instances).length >= MAX_PLAYER_COUNT
+            ) {
               return callback({ status: 400, error: "Room is full" });
             }
             if (original.instance.isCopy) {

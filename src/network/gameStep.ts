@@ -314,6 +314,8 @@ export const enterGameStep = (
       // @ts-ignore we are exiting the game, so we don't need to keep the game instance.
       delete room.game;
 
+      sendRoomChangedToAll(room);
+
       for (const user of room.users) {
         const socket = user.socket;
         leaveCurrentStep(socket);

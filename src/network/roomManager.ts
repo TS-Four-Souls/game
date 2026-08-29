@@ -1,5 +1,5 @@
 import { GameParameters } from "@/models/gameParameters";
-import type { Room, User } from "./types";
+import type { Room, Socket, User } from "./types";
 import {
   leaveCurrentStep,
   sendRoomChangedToAll,
@@ -18,6 +18,7 @@ import {
 import { toSerializedTranslation } from "@/utils/translation";
 
 const INACTIVE_ROOM_TIMEOUT = 3 * 60 * 60 * 1_000; // 3 hours
+export const MAX_PLAYER_COUNT = 4;
 
 class RoomManager {
   private rooms: Map<string, Room> = new Map();
@@ -69,6 +70,7 @@ class RoomManager {
     const room: Room = {
       id: roomId,
       users: [user],
+      spectators: [],
       lastActionTimestamp: new Date(),
       params: new GameParameters(() => {
         sendRoomChangedToAll(room);
@@ -193,6 +195,14 @@ class RoomManager {
 
   findRoom(roomId: string): Room | undefined {
     return this.rooms.get(roomId);
+  }
+
+  removeSpectator(socket: Socket): void {
+    this.rooms.forEach((room) => {
+      room.spectators = room.spectators.filter(
+        (spectator) => spectator.socket.id !== socket.id,
+      );
+    });
   }
 
   get adminRooms(): AdminRoom[] {
