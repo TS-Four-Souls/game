@@ -57,6 +57,17 @@ class RoomManager {
               message: toSerializedTranslation("toast.roomPurged.message"),
             });
           });
+          room.spectators.forEach((spectator) => {
+            leaveCurrentStep(spectator.socket);
+            enterIntroStep(spectator.socket);
+            spectator.socket.emit("on:room:changed", null);
+            spectator.socket.emit("on:room:broadcast", {
+              type: "error",
+              title: toSerializedTranslation("toast.roomPurged.title"),
+              message: toSerializedTranslation("toast.roomPurged.message"),
+            });
+          });
+          room.spectators = [];
         } catch (error) {
           console.error("[RoomManager] Error pruning inactive room", error);
         } finally {
@@ -199,9 +210,13 @@ class RoomManager {
 
   removeSpectator(socket: Socket): void {
     this.rooms.forEach((room) => {
+      const before = room.spectators.length;
       room.spectators = room.spectators.filter(
         (spectator) => spectator.socket.id !== socket.id,
       );
+      if (room.spectators.length !== before) {
+        sendRoomChangedToAll(room);
+      }
     });
   }
 

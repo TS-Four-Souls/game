@@ -11,6 +11,7 @@ import { enterIntroStep } from "./introStep";
 import { MAX_PLAYER_COUNT, roomManager } from "./roomManager";
 import { type Room, type Socket, type User } from "./types";
 import {
+  attachGameEventListeners,
   errorGuardedEndpoint,
   getUserByName,
   isRoomWithGame,
@@ -18,6 +19,7 @@ import {
   payloadGuardedEndpoint,
   registerRoomActivity,
   sendRoomChangedToAll,
+  sendRoomChangedToSpectator,
   sendRoomChangedToUser,
   sendUserAssigned,
   updatePlayerCount,
@@ -39,12 +41,19 @@ export const enterStartStep = (
   socket.on("leaveRoom", async (callback) =>
     errorGuardedEndpoint(callback, () => {
       if (user.isHost) {
+        const spectators = [...room.spectators];
         room.users.forEach((user) => {
           leaveCurrentStep(user.socket);
           enterIntroStep(user.socket);
           sendUserAssigned(user.socket, null);
           sendRoomChangedToUser(null, user);
         });
+        for (const spectator of spectators) {
+          leaveCurrentStep(spectator.socket);
+          enterIntroStep(spectator.socket);
+          sendRoomChangedToSpectator(null, spectator);
+        }
+        room.spectators = [];
         roomManager.deleteRoom(room.id);
       } else {
         room.users = room.users.filter((u) => u.socket.id !== user.socket.id);
@@ -318,24 +327,7 @@ export const enterStartStep = (
             room.game = await loadGameFromLogs(logs);
             room.gameCount++;
 
-            room.game.onStateChange.add(() => {
-              sendRoomChangedToAll(room);
-            });
-
-            room.game.onRoomBroadcast.add((broadcast) => {
-              room.users.forEach((user) => {
-                user.instances.forEach((instance) => {
-                  if (!instance.isActive) return;
-                  if (broadcast.players.includes(instance.name)) {
-                    user.socket.emit("on:room:broadcast", {
-                      type: broadcast.type,
-                      title: broadcast.title,
-                      message: broadcast.message,
-                    });
-                  }
-                });
-              });
-            });
+            attachGameEventListeners(room);
 
             if (!isRoomWithGame(room)) {
               return callback({ status: 400, error: "Game not found" });
@@ -362,6 +354,16 @@ export const enterStartStep = (
               });
             }
 
+            for (const spectator of room.spectators) {
+              spectator.socket.emit("on:room:broadcast", {
+                type: "info",
+                title: toSerializedTranslation("toast.gameLoaded.title", {
+                  player: spectator.viewingName,
+                }),
+                message: toSerializedTranslation("toast.gameLoaded.message"),
+              });
+            }
+
             return callback({ status: 200 });
           },
         ),
@@ -373,25 +375,6 @@ export const enterStartStep = (
         const params = room.params;
 
         const game = new Game("", params);
-
-        game.onStateChange.add(() => {
-          sendRoomChangedToAll(room);
-        });
-
-        game.onRoomBroadcast.add((broadcast) => {
-          room.users.forEach((user) => {
-            user.instances.forEach((instance) => {
-              if (!instance.isActive) return;
-              if (broadcast.players.includes(instance.name)) {
-                user.socket.emit("on:room:broadcast", {
-                  type: broadcast.type,
-                  title: broadcast.title,
-                  message: broadcast.message,
-                });
-              }
-            });
-          });
-        });
 
         const playersWithCharacters: {
           issuer: string;
@@ -417,8 +400,10 @@ export const enterStartStep = (
           params: room.params.toJson(),
         });
 
+        // Assign after setup so mid-setup state changes don't serialize an uninitialized game.
         room.game = game;
         room.gameCount++;
+        attachGameEventListeners(room);
 
         if (!isRoomWithGame(room)) {
           return callback({ status: 400, error: "Game not found" });
@@ -432,6 +417,7 @@ export const enterStartStep = (
           leaveCurrentStep(socket);
           enterGameStep(socket, room, user);
         }
+        sendRoomChangedToAll(room);
         await game.atGameStartDecisions();
 
         return callback({ status: 200 });
