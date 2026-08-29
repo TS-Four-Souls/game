@@ -25,18 +25,24 @@ export interface Instance {
 export interface User {
   socket: Socket;
   isHost: boolean;
-  instances: Instance[]
+  instances: Instance[];
+}
+
+export interface Spectator {
+  socket: Socket;
 }
 
 export interface Room {
   id: string;
   lastActionTimestamp: Date;
   users: User[];
+  spectators: Spectator[];
   params: GameParameters;
   characters: RoomCharacter[];
   game?: Game;
   gameCount: number;
   createdAt: Date;
+  isJoinAllowed: boolean;
 }
 
 export interface RoomWithGame extends Room {

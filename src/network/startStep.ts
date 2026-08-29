@@ -8,7 +8,7 @@ import { toSerializedTranslation } from "@/utils/translation";
 import { enterGameStep } from "./gameStep";
 import { globalEndpoints } from "./global";
 import { enterIntroStep } from "./introStep";
-import { roomManager } from "./roomManager";
+import { MAX_PLAYER_COUNT, roomManager } from "./roomManager";
 import { type Room, type Socket, type User } from "./types";
 import {
   errorGuardedEndpoint,
@@ -211,7 +211,9 @@ export const enterStartStep = (
             if (!original) {
               return callback({ status: 400, error: "User not found" });
             }
-            if (room.users.flatMap((u) => u.instances).length >= 4) {
+            if (
+              room.users.flatMap((u) => u.instances).length >= MAX_PLAYER_COUNT
+            ) {
               return callback({ status: 400, error: "Room is full" });
             }
             if (original.instance.isCopy) {
@@ -236,6 +238,21 @@ export const enterStartStep = (
               team: original.instance.team,
             });
             updatePlayerCount(room);
+            sendRoomChangedToAll(room);
+            return callback({ status: 200 });
+          },
+        ),
+      ),
+    );
+
+    socket.on("setJoinPermission", async (payload, callback) =>
+      errorGuardedEndpoint(callback, async () =>
+        payloadGuardedEndpoint(
+          payload,
+          schemas.setJoinPermission,
+          callback,
+          (payload) => {
+            room.isJoinAllowed = payload;
             sendRoomChangedToAll(room);
             return callback({ status: 200 });
           },
@@ -293,7 +310,10 @@ export const enterStartStep = (
             if (!logs)
               throw new GameError(
                 "Logs are not valid JSON or not in the expected format.",
-                toSerializedTranslation("error.parsingError", {error: "Logs are not valid JSON or not in the expected format."})
+                toSerializedTranslation("error.parsingError", {
+                  error:
+                    "Logs are not valid JSON or not in the expected format.",
+                }),
               );
             room.game = await loadGameFromLogs(logs);
             room.gameCount++;
@@ -335,11 +355,13 @@ export const enterStartStep = (
               enterGameStep(user.socket, room, user);
               user.socket.emit("on:room:broadcast", {
                 type: "info",
-                title: toSerializedTranslation("toast.gameLoaded.title", { player: activeInstance.name }),
+                title: toSerializedTranslation("toast.gameLoaded.title", {
+                  player: activeInstance.name,
+                }),
                 message: toSerializedTranslation("toast.gameLoaded.message"),
               });
             }
-            
+
             return callback({ status: 200 });
           },
         ),

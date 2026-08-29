@@ -1,13 +1,21 @@
 import type { z, ZodType } from "zod";
 import type { Instance, Room, RoomWithGame, Socket, User } from "./types";
-import type { Room as RoomPayload, SerializedTranslation } from "@/shared/api";
-import { roomManager } from "./roomManager";
+import type {
+  Room as RoomPayload,
+  RoomStatus,
+  SerializedTranslation,
+} from "@/shared/api";
+import { MAX_PLAYER_COUNT, roomManager } from "./roomManager";
 import { getAdminMessages, getHourlyGameStats } from "@/utils/db";
 import { Game } from "@/models/game";
 import { GameError } from "@/models/GameError";
+import { toSerializedTranslation } from "@/utils/translation";
 
 export const errorGuardedEndpoint = async (
-  callback: (response: { status: 400; error: string | SerializedTranslation }) => void,
+  callback: (response: {
+    status: 400;
+    error: string | SerializedTranslation;
+  }) => void,
   handler: () => void | Promise<void>,
 ): Promise<void> => {
   try {
@@ -15,7 +23,13 @@ export const errorGuardedEndpoint = async (
   } catch (error) {
     console.error("Error in errorGuardedEndpoint", error);
     if (error instanceof Error) {
-      return callback({ status: 400, error: error instanceof GameError && error.translation !== undefined ? error.translation : error.message });
+      return callback({
+        status: 400,
+        error:
+          error instanceof GameError && error.translation !== undefined
+            ? error.translation
+            : error.message,
+      });
     }
     return callback({ status: 400, error: "Unknown error" });
   }
@@ -38,6 +52,7 @@ export const sendRoomChangedToAll = (room: Room): void => {
   for (const user of room.users) {
     sendRoomChangedToUser(room, user);
   }
+  sendRoomStatusChangedToSpectators(room);
 };
 
 export const sendRoomChangedToUser = (room: Room | null, user: User): void => {
@@ -53,6 +68,42 @@ export const sendRoomChangedToUser = (room: Room | null, user: User): void => {
       );
     }
   }
+};
+
+export const generateRoomStatusPayload = (room: Room): RoomStatus => {
+  let canJoin: RoomStatus["canJoin"] = true;
+  if (!room.isJoinAllowed) {
+    canJoin = toSerializedTranslation("error.roomLocked");
+  } else if (room.game !== undefined) {
+    canJoin = toSerializedTranslation("error.gameStarted");
+  } else if (
+    room.users.flatMap((user) => user.instances).length >= MAX_PLAYER_COUNT
+  ) {
+    canJoin = toSerializedTranslation("error.roomFull");
+  }
+
+  return {
+    playerCount: room.users.length,
+    isGameOngoing: room.game !== undefined,
+    canJoin,
+  };
+};
+
+export const sendRoomStatusChangedToSpectators = (room: Room): void => {
+  room.spectators = room.spectators.filter(
+    (spectator) => spectator.socket.connected,
+  );
+  const payload = generateRoomStatusPayload(room);
+  for (const spectator of room.spectators) {
+    spectator.socket.emit("on:room-status:changed", payload);
+  }
+};
+
+export const sendRoomStatusChangedToSocket = (
+  socket: Socket,
+  room: Room,
+): void => {
+  socket.emit("on:room-status:changed", generateRoomStatusPayload(room));
 };
 
 export const sendAdminChanged = (socket: Socket): void => {
@@ -88,6 +139,7 @@ const generateRoomChangedPayload = (
     game: room.game?.detailedStateJSON(
       room.game.entityHandler.getPlayerById(recipient.name),
     ),
+    isJoinAllowed: room.isJoinAllowed,
   };
 };
 
@@ -105,7 +157,11 @@ export const updatePlayerCount = (room: Room): void => {
 };
 
 export const leaveCurrentStep = (socket: Socket): void => {
-  socket.removeAllListeners();
+  roomManager.removeSpectator(socket);
+  for (const event of socket.eventNames()) {
+    if (event === "disconnect") continue;
+    socket.removeAllListeners(event);
+  }
 };
 
 export const registerRoomActivity = (room: Room): void => {

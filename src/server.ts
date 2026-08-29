@@ -2,6 +2,7 @@ import { Server as Engine } from "@socket.io/bun-engine";
 import { Server } from "socket.io";
 import type { ClientToServerEvents, ServerToClientEvents } from "./shared/api";
 import { enterIntroStep } from "./network/introStep";
+import { roomManager } from "./network/roomManager";
 
 const PORT = process.env.PORT || 3000;
 const HOSTNAME = process.env.HOSTNAME || "localhost";
@@ -33,6 +34,9 @@ io.use((socket, next) => {
 
 io.on("connection", (socket) => {
   try {
+    socket.on("disconnect", () => {
+      roomManager.removeSpectator(socket);
+    });
     enterIntroStep(socket);
   } catch (error) {
     console.error("Error in connection handler", error);

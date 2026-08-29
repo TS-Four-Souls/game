@@ -12,6 +12,7 @@ import {
   leaveCurrentStep,
   payloadGuardedEndpoint,
   sendRoomChangedToAll,
+  sendRoomStatusChangedToSocket,
   sendUserAssigned,
   updatePlayerCount,
 } from "./utils";
@@ -19,7 +20,7 @@ import { enterStartStep } from "./startStep";
 import { schemas, Team } from "@/shared/api";
 import { enterGameStep } from "./gameStep";
 import { globalEndpoints } from "./global";
-import { roomManager } from "./roomManager";
+import { MAX_PLAYER_COUNT, roomManager } from "./roomManager";
 import { enterAdminStep } from "./adminStep";
 import { toSerializedTranslation } from "@/utils/translation";
 
@@ -103,6 +104,38 @@ export const enterIntroStep = (socket: Socket): void => {
     ),
   );
 
+  socket.on("subscribeRoomStatus", async (payload, callback) =>
+    errorGuardedEndpoint(callback, async () =>
+      payloadGuardedEndpoint(
+        payload,
+        schemas.subscribeRoomStatusRequest,
+        callback,
+        (payload) => {
+          const room = roomManager.findRoom(payload.roomId);
+
+          if (!room) {
+            return callback({
+              status: 400,
+              error: toSerializedTranslation("error.roomNotFound"),
+            });
+          }
+
+          roomManager.removeSpectator(socket);
+          room.spectators.push({ socket });
+          sendRoomStatusChangedToSocket(socket, room);
+          return callback({ status: 200 });
+        },
+      ),
+    ),
+  );
+
+  socket.on("unsubscribeRoomStatus", async (callback) =>
+    errorGuardedEndpoint(callback, () => {
+      roomManager.removeSpectator(socket);
+      return callback({ status: 200 });
+    }),
+  );
+
   socket.on("enterRoom", async (payload, callback) =>
     errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
@@ -131,7 +164,14 @@ export const enterIntroStep = (socket: Socket): void => {
               enterStartStep(socket, room, joinAsUser);
             }
           } else {
-            if (room.users.length >= 4) {
+            if (!room.isJoinAllowed) {
+              return callback({ status: 400, error: toSerializedTranslation("error.roomLocked") });
+            }
+
+            if (
+              room.users.flatMap((user) => user.instances).length >=
+              MAX_PLAYER_COUNT
+            ) {
               return callback({ status: 400, error: toSerializedTranslation("error.roomFull") });
             }
 
