@@ -131,6 +131,10 @@ export const enterIntroStep = (socket: Socket): void => {
               enterStartStep(socket, room, joinAsUser);
             }
           } else {
+            if (!room.isJoinAllowed) {
+              return callback({ status: 400, error: toSerializedTranslation("error.roomLocked") });
+            }
+
             if (room.users.length >= 4) {
               return callback({ status: 400, error: toSerializedTranslation("error.roomFull") });
             }

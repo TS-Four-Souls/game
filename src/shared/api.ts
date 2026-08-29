@@ -7,19 +7,20 @@ export type BasicSerializedTranslation = z.infer<
   typeof basicSerializedTranslationSchema
 >;
 
-export const serializedTranslationSchema = basicSerializedTranslationSchema.extend({
-  interpolates: z
-    .record(
-      z.string(),
-      z.union([
+export const serializedTranslationSchema =
+  basicSerializedTranslationSchema.extend({
+    interpolates: z
+      .record(
         z.string(),
-        z.number(),
-        basicSerializedTranslationSchema,
-        z.array(basicSerializedTranslationSchema),
-      ]),
-    )
-    .optional(),
-});
+        z.union([
+          z.string(),
+          z.number(),
+          basicSerializedTranslationSchema,
+          z.array(basicSerializedTranslationSchema),
+        ]),
+      )
+      .optional(),
+  });
 export type SerializedTranslation = z.infer<typeof serializedTranslationSchema>;
 
 export const identifierTypeSchema = z.object({
@@ -104,7 +105,7 @@ export type SerializedCardAndBox = z.infer<typeof serializedCardAndBoxSchema>;
 
 const cardEffectSchema = serializedCardAndBoxSchema.extend({
   index: z.union([z.literal("tap"), z.number()]),
-  visualEffectBox: VisualEffectBoxSchema
+  visualEffectBox: VisualEffectBoxSchema,
 });
 export type CardEffect = z.infer<typeof cardEffectSchema>;
 
@@ -114,7 +115,7 @@ export interface SetCardCountRequest {
 }
 const serializedChooseOneSchema = serializedCardAndBoxSchema.extend({
   description: z.string(),
-  visualEffectBox: VisualEffectBoxSchema
+  visualEffectBox: VisualEffectBoxSchema,
 });
 export type SerializedChooseOne = z.infer<typeof serializedChooseOneSchema>;
 
@@ -191,22 +192,25 @@ const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
   ]),
 );
 
-const pendingSelectionReasonSchema = 
-  z.union([
-    serializedCardAndBoxSchema, 
-    z.literal("death"), 
-    z.literal("maxHandSize"), 
-    z.literal("coinGift"), 
-    z.literal("miniDraft")
-  ]);
-export type PendingSelectionReason = z.infer<typeof pendingSelectionReasonSchema>;
+const pendingSelectionReasonSchema = z.union([
+  serializedCardAndBoxSchema,
+  z.literal("death"),
+  z.literal("maxHandSize"),
+  z.literal("coinGift"),
+  z.literal("miniDraft"),
+]);
+export type PendingSelectionReason = z.infer<
+  typeof pendingSelectionReasonSchema
+>;
 
 const pendingSelectionDetailSchema = z.object({
   requestId: z.number(),
   reason: pendingSelectionReasonSchema,
   description: serializedTranslationSchema,
-})
-export type pendingSelectionDetail = z.infer<typeof pendingSelectionDetailSchema>;
+});
+export type pendingSelectionDetail = z.infer<
+  typeof pendingSelectionDetailSchema
+>;
 
 const pendingSelectionSchema = pendingSelectionDetailSchema.extend({
   options: z.array(selectionItemSchema),
@@ -422,7 +426,7 @@ export type Issuer = z.infer<typeof issuerSchema>;
 const debugChangeDiceResultRequestSchema = z.object({
   dice: diceRollJsonSchema,
   value: z.number().min(1).max(6),
-})
+});
 const debugLootRequestSchema = z.object({
   cards: z.array(identifierTypeSchema),
 });
@@ -969,6 +973,7 @@ const roomSchema = z.object({
   characters: z.array(roomCharacterSchema),
   gameParameters: gameParametersSchema,
   game: detailedStateSchema.optional(),
+  isJoinAllowed: z.boolean(),
 });
 export type Room = z.infer<typeof roomSchema>;
 
@@ -1003,6 +1008,8 @@ const enterRoomRequestSchema = z.discriminatedUnion("type", [
     name: z.string(),
   }),
 ]);
+
+const setJoinPermissionSchema = z.boolean();
 
 const loadGameRequestSchema = z.string();
 
@@ -1150,6 +1157,7 @@ export const schemas = {
   purchaseRequest: purchaseSchema,
   giveCoinsRequest: giveCoinsSchema,
   enterRoomRequest: enterRoomRequestSchema,
+  setJoinPermission: setJoinPermissionSchema,
   loadGameRequest: loadGameRequestSchema,
   setGameParameterRequest: setGameParameterRequestSchema,
   loadGameParametersRequest: loadGameParametersRequestSchema,
@@ -1182,9 +1190,7 @@ export namespace Requests {
   export type DebugPutMonsterCardInSlot = z.infer<
     typeof debugPutMonsterCardInSlotRequestSchema
   >;
-  export type KickFromRoomRequest = z.infer<
-    typeof kickFromRoomRequestSchema
-  >;
+  export type KickFromRoomRequest = z.infer<typeof kickFromRoomRequestSchema>;
   export type DebugChangeDiceResult = z.infer<
     typeof debugChangeDiceResultRequestSchema
   >;
@@ -1194,6 +1200,7 @@ export namespace Requests {
   >;
   export type Contact = z.infer<typeof contactRequestSchema>;
   export type EnterRoom = z.infer<typeof enterRoomRequestSchema>;
+  export type SetJoinPermission = z.infer<typeof setJoinPermissionSchema>;
   export type LoadGame = z.infer<typeof loadGameRequestSchema>;
   export type LoadGameParameters = z.infer<
     typeof loadGameParametersRequestSchema
@@ -1245,6 +1252,7 @@ export namespace Responses {
   export type GiveCoins = BasicResponse;
   export type CreateRoom = BasicResponse;
   export type EnterRoom = BasicResponse;
+  export type SetJoinPermission = BasicResponse;
   export type LeaveRoom = BasicResponse;
   export type QuitGame = BasicResponse;
   export type KickFromRoom = BasicResponse;
@@ -1281,6 +1289,11 @@ export interface ClientToServerEvents {
   ) => void;
 
   leaveRoom: (callback: (response: Responses.LeaveRoom) => void) => void;
+
+  setJoinPermission: (
+    request: Requests.SetJoinPermission,
+    callback: (response: Responses.SetJoinPermission) => void,
+  ) => void;
 
   kickFromRoom: (
     request: Requests.KickFromRoom,

@@ -7,7 +7,10 @@ import { Game } from "@/models/game";
 import { GameError } from "@/models/GameError";
 
 export const errorGuardedEndpoint = async (
-  callback: (response: { status: 400; error: string | SerializedTranslation }) => void,
+  callback: (response: {
+    status: 400;
+    error: string | SerializedTranslation;
+  }) => void,
   handler: () => void | Promise<void>,
 ): Promise<void> => {
   try {
@@ -15,7 +18,13 @@ export const errorGuardedEndpoint = async (
   } catch (error) {
     console.error("Error in errorGuardedEndpoint", error);
     if (error instanceof Error) {
-      return callback({ status: 400, error: error instanceof GameError && error.translation !== undefined ? error.translation : error.message });
+      return callback({
+        status: 400,
+        error:
+          error instanceof GameError && error.translation !== undefined
+            ? error.translation
+            : error.message,
+      });
     }
     return callback({ status: 400, error: "Unknown error" });
   }
@@ -88,6 +97,7 @@ const generateRoomChangedPayload = (
     game: room.game?.detailedStateJSON(
       room.game.entityHandler.getPlayerById(recipient.name),
     ),
+    isJoinAllowed: room.isJoinAllowed,
   };
 };
 

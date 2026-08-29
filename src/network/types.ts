@@ -37,6 +37,7 @@ export interface Room {
   game?: Game;
   gameCount: number;
   createdAt: Date;
+  isJoinAllowed: boolean;
 }
 
 export interface RoomWithGame extends Room {
