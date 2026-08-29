@@ -82,15 +82,16 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): SyncEff
             if(game.stack.elements[i] instanceof DamageOnStack)
             {
                 const damageOnStack = game.stack.elements[i] as DamageOnStack;
+                if(damageOnStack.damage[0]! <= 0)
+                    continue;
                 if( damageOnStack.receiver === target)
                 {
                     const current = damageOnStack.damage[0] ?? 0;
                     const prevented = Math.min(current, amount);
                     damageOnStack.damage[0] = current - prevented;
                     amount -= prevented;
-                }
-                if(amount <= 0)
                     return true;
+                }
             }
 
         target.addTemporaryEffect(temp);
@@ -2223,6 +2224,37 @@ export function ConditionalStatModifierEffect(
 // Note: The prevention is a replacement effect, but the damage dealt afterward is a triggered effect.
 export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: number, game: Game): SyncEffectFunction {
     return (data: EffectData) => {
+        for(let i = game.stack.size - 1; i >= 0; i--)
+            if(game.stack.elements[i] instanceof DamageOnStack)
+            {
+                const damageOnStack = game.stack.elements[i] as DamageOnStack;
+                if(damageOnStack.damage[0]! <= 0)
+                    continue;
+                if( damageOnStack.receiver === data.issuer)
+                {
+                    const current = damageOnStack.damage[0] ?? 0;
+                    const prevented = Math.min(current, prevent);
+                    damageOnStack.damage[0] = current - prevented;
+                    prevent -= prevented;
+                    const effect = async (data: EffectData): Promise<boolean> => {
+                        if( prevented <= 0) return false;
+                        if (!(data.issuer instanceof Player)) return false;
+                        
+                        // Deal 1 damage to another player
+                        const otherPlayers = game.players.filter(p => p !== data.issuer);
+                        if (otherPlayers.length === 0) return false;
+                        const selection = await data.selectAndRecord(game, data.issuer, 1, 1, otherPlayers, toSerializedTranslation("pending.playerToDealDamageTo"), data.serializedCardAndBox, true, true);
+                        if (selection.selected.length > 0) {
+                            const chosenPlayer = selection.selected[0]!;
+                            game.entityHandler.dealDamage(data.issuer, chosenPlayer, data.cardAndBox, deal);
+                            return true;
+                        }
+                        return false;
+                    }
+                    addPassiveEffectToStack(game, effect, data, `Prevent ${prevent} damage and deal ${deal} damage to another player.`);
+                    return true;
+                }
+            }
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
         const temp: TemporaryEffect = getTemporaryEffect(data);
