@@ -235,6 +235,7 @@ const capabilitySchema = z.union([
 export type Capability = z.infer<typeof capabilitySchema>;
 
 const attackableCardSchema = cardSchema.extend({
+  counter: z.number().optional(),
   stats: z
     .object({
       healthPoints: z.number(),

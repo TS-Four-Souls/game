@@ -286,9 +286,8 @@ export class GameStateSerializer {
             covered: this.game.encounters._slots[index]!.slice(0, -1).map(c => c.jsonAPI) })).map((m) => ({
 
           top: {
-            slug: m.card?.slug,
-            nameKey: m.card?.nameKey,
-            globalId: m.card?.globalId,
+            ... (m.card.jsonAPI),
+            counter: m.card.counters.getIfDefined("normal"),
             ...(m.monster ? {
               stats: {
                 healthPoints: m.monster.currentHealthPoints,
