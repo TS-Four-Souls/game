@@ -178,9 +178,7 @@ export class GameStateSerializer {
    */
   public serializeOtherInPlay(me: Player, item: ItemCard, owner: Player): api.InPlayCard {
     return {
-      nameKey: item.nameKey,
-      slug: item.slug,
-      globalId: item.globalId,
+     ... (item.jsonAPI),
       charged: item.charged || !item.activeEffectList.some(e => e.index === "tap"),
       capabilities: {
         activate: this.game.actions.canActivate(item, owner),
@@ -211,9 +209,7 @@ export class GameStateSerializer {
    */
   public serializeCurse(me: Player, curse: MonsterCard, owner: Player): api.InPlayMeCard {
     return {
-      nameKey: curse.nameKey,
-      slug: curse.slug,
-      globalId: curse.globalId,
+      ... (curse.jsonAPI),
       charged: true,
       counter: undefined,
       eternal: false,
