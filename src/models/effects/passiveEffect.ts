@@ -2752,7 +2752,7 @@ export function onAttackingPlayerRollEffect(
         
         offEffect = game.emitter.on("on:dice:resolved", (eventData: OnRollData) => {
             const { dice } = eventData;
-            if( !dice.issuer.engageInCombat || !dice.attackRoll || !data.issuer.isEngagedInCombat)
+            if( !dice.issuer.isEngagedInCombat || !dice.attackRoll || data.it.entity === undefined || !data.it.entity.isEngagedInCombat)
                 return;
             // Only trigger for attack rolls with specified values
             if (rollValues.includes(dice.value)) {

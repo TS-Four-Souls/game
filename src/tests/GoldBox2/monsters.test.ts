@@ -214,6 +214,36 @@ describe("Gold Box 2 Monsters", () => {
         expect(game.currentPlayer === player2).toBe(true);
     });
 
+    it("g2-steven multiple cancel attack", async () => {
+        const card1 = game.obtainCard("g2-steven") as MonsterCard;
+        game.decks.monster.addTopPosition(card1);
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
+        game.entityHandler.addHealth(player1, 10);
+        game.random = () => 6/6-0.01;
+        game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(game.currentPlayer === player2).toBe(true);
+
+        game.actions.declareAttack(player2);
+        await game.actions.declareAttackOnEntity(player2, game.monsters[0]!);
+        game.entityHandler.addHealth(player2, 10);
+        game.random = () => 6/6-0.01;
+        game.actions.attackRoll(player2);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(game.currentPlayer === player1).toBe(true);
+    });
+
     it("g2-trap_door roll 6", async () => {
         const card1 = game.obtainCard("g2-trap_door") as MonsterCard;
         game.decks.monster.addTopPosition(card1);
