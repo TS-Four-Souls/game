@@ -871,11 +871,10 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
         case "choose a player or monster":
             return { effectFunction: active.chooseOneOfListEffect(game, selectPlayerOrMonster(game)[0]!, selectionOnResolve), targetSelectors: selectPlayerOrMonster(game) };
         case "prevent death. if it's your turn, cancel everything that hasn't resolved and end it":
+            case "prevent death. if it's your turn, cancel everything that hasn't resolved and end your turn":
             return noTargetEffect(active.preventDeathEndTurnEffect(game));
         case "remove x or more counters from this:\nloot x. if x+ counters were removed, deal x damage to a monster instead":
             return noTargetEffect(active.removeCountersAndLootOrDamageEffect(game, nr.nextNumber(), nr.nextNumber(), nr.nextNumber(), nr.nextNumber()));
-        case "prevent death. if it's your turn, cancel everything that hasn't resolved and end your turn":
-            return noTargetEffect(active.preventDeathEndTurnEffect(game));
         case "discard any number of loot cards":
             return noTargetEffect(active.discardAnyNumberOfLootCardsEffect(game, youMayEffectHanging));
         case "search the monster deck for a card named the bloat and put it in a monster slot not being attacked":
