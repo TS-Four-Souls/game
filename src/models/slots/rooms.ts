@@ -77,7 +77,7 @@ export class Rooms extends Slots<RoomCard> {
         this._deck.addTopPosition(roomCard);
         const previousCard = this.removeTop(index);
         if (previousCard) {
-            this._deck.addBottomPosition(previousCard);
+            this._deck.addDiscardTop(previousCard);
         }
     }
 }
