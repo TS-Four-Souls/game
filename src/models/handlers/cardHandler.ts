@@ -111,7 +111,8 @@ export class CardHandler {
     return target.inPlay.filter(
       (card) =>
         card.type !== "eternal" &&
-        card.type !== "character"
+        card.type !== "character" && 
+        card.eternal === false
     );
   }
 
@@ -131,6 +132,9 @@ export class CardHandler {
     cards.push(...this.game.shop.itemsInShop.filter((c) => c !== undefined));
     // events and monsters not in combat
     cards.push(...this.game.encounters.nonEngagedInCombat);
+    // rooms
+    if(this.game.rooms !== undefined)
+      cards.push(...this.game.rooms.activeRooms);
     return cards;
   }
   /**

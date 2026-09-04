@@ -190,7 +190,7 @@ describe("Target Builder Interface", () => {
     const cardIdentifiers = TargetBuilder["convertToSelectionItems"]([card]);
     expect(cardIdentifiers[0]).toEqual({
       type: "card",
-      payload: { nameKey: card.nameKey, slug: card.slug, globalId: card.globalId },
+      payload: { nameKey: card.nameKey, slug: card.slug, globalId: card.globalId, orientation: "portrait" },
     });
 
     // Test number conversion - should return string numbers
@@ -215,7 +215,7 @@ describe("Target Builder Interface", () => {
 
     // Resolve card - identifier includes slug + global id
     const resolvedCard = TargetBuilder["resolveIdentifier"](
-      { type: "card", payload: { nameKey: card.nameKey, slug: card.slug, globalId: card.globalId } },
+      { type: "card", payload: { nameKey: card.nameKey, slug: card.slug, globalId: card.globalId, orientation: "portrait" } },
       [card],
     );
     expect(resolvedCard?.slug).toBe(card.slug);

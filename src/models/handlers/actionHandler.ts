@@ -1,7 +1,7 @@
 import { Game } from "../game";
 import { GameError } from "@/models/GameError";
 import { Player } from "../entities/player";
-import type { Capability } from "@/shared/api";
+import type { Capability, IdentifierType } from "@/shared/api";
 import type { Entity } from "../entities/entity";
 import { Monster } from "../entities/monster";
 import { Animated } from "../entities/animated";
@@ -447,9 +447,13 @@ export class ActionHandler {
   canActivate(card: Card, owner: Player): Capability {
     // Ensure the owner actually has the item in-play (prevents bots/actions from trying to activate
     // items they no longer own because the game state changed between action selection and execution).
-    if (card instanceof ItemCard && !owner.inPlay.includes(card) && owner.character !== card) {
+    if (card instanceof ItemCard && !owner.inPlay.includes(card) && owner.character !== card && card instanceof RoomCard === false) {
       return toSerializedTranslation("capability.YouDoNotOwnThisItem");
     }
+    if (card instanceof RoomCard === true && this.game.currentPlayer !== owner)
+      return toSerializedTranslation("error.notYourTurn");
+
+
     if(card.type === "loot" && !card.canBeActivated)
       return toSerializedTranslation("capability.cannotActivate");
     if (card instanceof ItemCard && card.activeEffectList.length === 0) {
@@ -665,6 +669,24 @@ export class ActionHandler {
               this.game.cardHandler.discard(toDiscard);
           }
           break;
+        case "room":
+          const room = card as RoomCard;
+          if(this.game.rooms === undefined)
+            throw new GameError(`Room deck not found.`,
+              toSerializedTranslation("error.deckNotFound")
+            );
+          if(!room || room instanceof RoomCard === false)
+            throw new GameError(`Card ${card.name} is not a RoomCard.`,
+              toSerializedTranslation("error.invalidCardPosition")
+            );
+          if(this.game.rooms.activeRooms.includes(room) === false)
+            throw new GameError(`Card ${card.name} is not an active RoomCard.`,
+              toSerializedTranslation("error.invalidCardPosition")
+            );
+          const toDiscard = this.game.rooms.obtainCard(room.slug, room.globalId);
+          if(toDiscard)
+            this.game.cardHandler.discard(toDiscard);
+          break;
         default:
           throw new GameError(`Card ${card.name} is of type ${card.type} which cannot be removed with debugRemoveCards.`,
             toSerializedTranslation("error.cardTypeCannotBeRemovedWithDebug", { card: card.nameKey, cardType: card.type })
@@ -681,7 +703,7 @@ export class ActionHandler {
       });
   }
 
-  debugGainTreasures(player: Player, treasures: ItemCard[], fromTop: boolean = false): void {
+  debugGainTreasures(player: Player, treasures: IdentifierType[], fromTop: boolean = false): void {
     if(!this.game.gameParameters.allowCheatOptions.value)
       throw new GameError("Cheat options are not allowed in this game.", toSerializedTranslation("error.cheatOptionsNotAllowed"));
     for (const card of treasures) {
@@ -714,7 +736,7 @@ export class ActionHandler {
     });
   }
 
-  debugLoot(player: Player, lootCards: LootCard[], broadcastName: boolean = true): void {
+  debugLoot(player: Player, lootCards: IdentifierType[], broadcastName: boolean = true): void {
     if(!this.game.gameParameters.allowCheatOptions.value)
       throw new GameError("Cheat options are not allowed in this game.", toSerializedTranslation("error.cheatOptionsNotAllowed"));
     for (const card of lootCards) {

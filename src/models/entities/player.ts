@@ -827,6 +827,7 @@ export class Player extends Entity {
         nameKey: toSerializedTranslation("common.content",{content: this.id}),
         slug: this.character.slug,
         globalId: this.globalId,
+        orientation: this.card.type === "room" ? "landscape" : "portrait",
       }
     }
 }

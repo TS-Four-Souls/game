@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { type GenericCardType } from "../types/cardTypes.ts";
-export const FORBIDDEN_PREFIXES: string[] = ["r-"]
+export const FORBIDDEN_PREFIXES: string[] = []
 
 function prefixIsAccepted(slug:string){
   for(const prefix of FORBIDDEN_PREFIXES)

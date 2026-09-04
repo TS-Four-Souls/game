@@ -318,11 +318,11 @@ export class TargetBuilder {
                 return {type: "chooseOne", payload: {description: option.description, card: option.card.jsonAPI, visualEffectBox: option.visualEffectBox}};
             }
             if (typeof option === 'object' && option !== null && 'slug' in option && option instanceof Card) {
-                return { payload: {nameKey: option.nameKey, slug: option.slug, globalId: option.globalId}, type: "card" };
+                return { payload: option.jsonAPI, type: "card" };
             }
             if (typeof option === 'object' && option !== null && 'id' in option && option instanceof Entity) {
                 const entity = option;
-                return {type: entity.json.type, payload: {nameKey: entity.json.nameKey, slug: entity.json.slug, globalId: entity.json.globalId, color: entity.color, type: entity.json.type}};
+                return {type: entity.json.type, payload: entity.json};
             }
 
             if (isStackElement(option)) {
@@ -349,7 +349,7 @@ export class TargetBuilder {
             
             // { player: Player; hand: Hand }
             if( typeof option === 'object' && 'player' in option && option.player instanceof Player && 'hand' in option)
-                return {type: "couplePlayerHand", payload: {player: {nameKey: option.player.character.nameKey, slug: option.player.slug, globalId: option.player.globalId}, hand: option.hand.cards.map((c: Card) => {return {nameKey: c.nameKey, slug: c.slug, globalId: c.globalId}})}};
+                return {type: "couplePlayerHand", payload: {player: option.player.jsonAPI , hand: option.hand.cards.map((c: Card) => c.jsonAPI)}};
             
             const serializedTranslationParsed = serializedTranslationSchema.safeParse(option);
             if(serializedTranslationParsed.success) {
@@ -570,7 +570,7 @@ export class TargetBuilder {
                 options.max,
                 options.options,
                 toSerializedTranslation("pending.copyCardTargets"),
-                {card: item, },
+                {card: item.jsonAPI, },
             );
             const normalizedSelection = selection.selected.map((choice) =>choice);
             targets.push(...normalizedSelection);

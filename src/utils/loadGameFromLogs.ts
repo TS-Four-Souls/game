@@ -536,6 +536,12 @@ export async function loadGameFromLogs(
           break;
         }
 
+        case "DebugPutRoom": {
+          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+          helper.executeDebugPutRoomRequest(game, entry.payload, player);
+          break;
+        }
+
         case "DebugRemoveCards": {
           const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
           helper.executeDebugRemoveCardsRequest(game, entry.payload, player);

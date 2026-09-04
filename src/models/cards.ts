@@ -205,11 +205,13 @@ class Card {
             slug: this.flipData!.slug,
             nameKey: this.nameKey,
             globalId: this._globalId,
+            orientation: this._type === "room" ? "landscape" : "portrait",
         };
         return {
             slug: this._slug,
             nameKey: this.nameKey,
             globalId: this._globalId,
+            orientation: this._type === "room" ? "landscape" : "portrait",
         };
     }
     get subtype(): string {

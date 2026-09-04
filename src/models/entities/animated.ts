@@ -27,6 +27,7 @@ export class Animated extends Entity {
       nameKey: this._card.nameKey,
       slug: this._card.slug,
       globalId: this._card.globalId,
+      orientation: this.card.type === "room" ? "landscape" : "portrait",
       color: this.color,
       type: "animated",
     };

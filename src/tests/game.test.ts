@@ -17,9 +17,9 @@ class DummyStackElement extends StackElement {
   get json(): StackElementJson {
     return {
       type: "effect",
-      issuer: { type: "player", color:"#000000", nameKey:{key: "dummy"}, slug: "dummy", globalId: 0 },
+      issuer: { type: "player", color:"#000000", nameKey:{key: "dummy"}, slug: "dummy", globalId: 0 , orientation: "portrait"},
       targets: [],
-      card: { nameKey: {key: this.label}, slug: this.label, globalId: 0 },
+      card: { nameKey: {key: this.label}, slug: this.label, globalId: 0 , orientation: "portrait"},
       effect: this.label,
       id: this.stackId,
       visualEffectBox: { startIndex: 0, endIndex: 0 },

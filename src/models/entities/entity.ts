@@ -29,9 +29,9 @@ export abstract class Entity {
     return Math.max(0, Math.min(this._evasion, 6));
   }
   
-    set evasion(value: number) {
-      this._evasion = value; // Value can be set to anything, but getter will ensure it is between 0 and 6.
-    }
+  set evasion(value: number) {
+    this._evasion = value; // Value can be set to anything, but getter will ensure it is between 0 and 6.
+  }
 
   set baseAttackPoints(value: number) {
     this.addAttackPoints(value - this._baseAttackPoints);

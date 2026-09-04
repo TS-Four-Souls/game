@@ -483,7 +483,11 @@ export class EntityHandler {
     source: DamageSource,
     damage: number
   ): boolean {
-    return receiver.receiveDamage(damage, dealer, source);
+    const damageReceived = receiver.receiveDamage(damage, dealer, source);
+    if (receiver.currentHealthPoints <= 0) {
+      this.death(receiver, dealer, source);
+    }
+    return damageReceived;
   }
 
   /**

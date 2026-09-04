@@ -27,6 +27,7 @@ export const identifierTypeSchema = z.object({
   nameKey: serializedTranslationSchema,
   slug: z.string(),
   globalId: z.number(),
+  orientation: z.union([z.literal("portrait"), z.literal("landscape")])
 });
 export type IdentifierType = z.infer<typeof identifierTypeSchema>;
 
@@ -76,6 +77,7 @@ const deckConfigCardSchema = z.object({
   nameKey: basicSerializedTranslationSchema,
   slug: z.string(),
   count: z.number(),
+  orientation: z.union([z.literal("portrait"), z.literal("landscape")]),
 });
 
 const characterCardSchema = deckConfigCardSchema.extend({
@@ -234,20 +236,20 @@ const capabilitySchema = z.union([
 ]);
 export type Capability = z.infer<typeof capabilitySchema>;
 
+const statsSchema = z.object({
+  healthPoints: z.number(),
+  attackPoints: z.number(),
+  evasionPoints: z.number().optional(),
+  isEngagedInCombat: z.boolean(),
+  temporaryEffect: z.array(temporaryEffectSchema),
+  capabilities: z.object({
+    targetable: capabilitySchema,
+  })
+});
+
 const attackableCardSchema = cardSchema.extend({
   counter: z.number().optional(),
-  stats: z
-    .object({
-      healthPoints: z.number(),
-      attackPoints: z.number(),
-      evasionPoints: z.number(),
-      isEngagedInCombat: z.boolean(),
-      temporaryEffect: z.array(temporaryEffectSchema),
-      capabilities: z.object({
-        targetable: capabilitySchema,
-      }),
-    })
-    .optional(),
+  stats: statsSchema.optional(),
 });
 export type MonsterCard = z.infer<typeof attackableCardSchema>;
 
@@ -261,10 +263,20 @@ const inPlayCardSchema = attackableCardSchema.extend({
 });
 export type InPlayCard = z.infer<typeof inPlayCardSchema>;
 
+const inPlayWithStatsCardSchema = inPlayCardSchema.extend({
+    stats: statsSchema,
+  })
+export type InPlayWithStatsCard = z.infer<typeof inPlayWithStatsCardSchema>;
+
 const inPlayMeCardSchema = inPlayCardSchema.extend({
   effects: z.array(activeEffectEntrySchema).optional(),
 });
 export type InPlayMeCard = z.infer<typeof inPlayMeCardSchema>;
+
+const inPlayWithStatsMeCardSchema = inPlayMeCardSchema.extend({
+    stats: statsSchema,
+  })
+export type InPlayWithStatsMeCard = z.infer<typeof inPlayWithStatsMeCardSchema>;
 
 const bonusSoulCardSchema = cardSchema.extend({
   granted: z.boolean(),
@@ -447,6 +459,11 @@ const debugRemoveCardsRequestSchema = z.object({
   cards: z.array(identifierTypeSchema),
 });
 
+const debugPutRoomRequestSchema = z.object({
+  card: identifierTypeSchema,
+  toCover: cardSchema,
+});
+
 const contactTypeSchema = z.enum(["contact", "bug", "suggestion"]);
 export type ContactType = z.infer<typeof contactTypeSchema>;
 
@@ -463,11 +480,11 @@ const giveCoinsSchema = z.object({
 
 const attackMonsterSchema = z.union([
   z.object({
-    index: z.number(),
+    card: cardSchema,
   }),
   z.object({
-    index: z.literal("top"),
-    replaceIndex: z.number(),
+    card: z.literal("top"),
+    toCoverIndex: z.number(),
   }),
 ]);
 
@@ -616,6 +633,18 @@ const debugListLootResponseSchema = z.union([
 ]);
 export type DebugListLootResponse = z.infer<typeof debugListLootResponseSchema>;
 
+const debugListRoomsResponseSchema = z.union([
+  z.object({
+    status: z.literal(200),
+    cards: z.array(cardSchema),
+  }),
+  z.object({
+    status: z.literal(400),
+    error: z.union([z.string(), serializedTranslationSchema]),
+  }),
+]);
+export type DebugListRoomsResponse = z.infer<typeof debugListRoomsResponseSchema>;
+
 const DebugListMonsterDeckResponseSchema = z.union([
   z.object({
     status: z.literal(200),
@@ -643,6 +672,19 @@ const debugListCardsICanRemoveResponseSchema = z.union([
 ]);
 export type DebugListCardsICanRemoveResponse = z.infer<
   typeof debugListCardsICanRemoveResponseSchema
+>;
+
+const DebugPutRoomResponseSchema = z.union([
+  z.object({
+    status: z.literal(200),
+  }),
+  z.object({
+    status: z.literal(400),
+    error: z.union([z.string(), serializedTranslationSchema]),
+  }),
+]);
+export type DebugPutRoomResponse = z.infer<
+  typeof DebugPutRoomResponseSchema
 >;
 
 const debugListTreasureResponseSchema = z.union([
@@ -768,16 +810,12 @@ const playerSchema = z.object({
   team: z.enum(Team),
   handSize: z.number(),
   hand: z.array(cardSchema).optional(),
-  character: inPlayCardSchema,
+  character: inPlayWithStatsCardSchema,
   inPlay: z.array(inPlayCardSchema),
   souls: z.number(),
   soulCards: z.array(cardSchema),
   coins: z.number(),
-  currentHealthPoints: z.number(),
-  currentAttackPoints: z.number(),
-  temporaryEffect: z.array(temporaryEffectSchema),
   remainingLootPlay: z.number(),
-  isEngagedInCombat: z.boolean(),
   attackRequirements: z.array(attackRequirementSchema),
   isEngagedInPurchase: z.boolean(),
   capabilities: z.object({
@@ -790,7 +828,7 @@ export type Player = z.infer<typeof playerSchema>;
 
 const playerMeSchema = playerSchema.extend({
   hand: z.array(cardSchema),
-  character: inPlayMeCardSchema,
+  character: inPlayWithStatsMeCardSchema,
   inPlay: z.array(inPlayMeCardSchema),
   numberOfCardsOverMaxHandSize: z.number(),
   capabilities: z.object({
@@ -923,7 +961,7 @@ const roomSlotSchema = z
   .object({
     discard: z.array(cardSchema),
     deckSize: z.number(),
-    inPlay: z.array(cardSchema),
+    inPlay: z.array(inPlayMeCardSchema),
   })
   .optional();
 export type RoomSlot = z.infer<typeof roomSlotSchema>;
@@ -1156,6 +1194,7 @@ export const schemas = {
   attackMonsterRequest: attackMonsterSchema,
   debugLootRequest: debugLootRequestSchema,
   debugRemoveCardsRequest: debugRemoveCardsRequestSchema,
+  debugPutRoomRequest: debugPutRoomRequestSchema,
   debugGainTreasureRequest: debugGainTreasureRequestSchema,
   debugPutMonsterCardInSlotRequest: debugPutMonsterCardInSlotRequestSchema,
   debugChangeDiceResultRequest: debugChangeDiceResultRequestSchema,
@@ -1206,6 +1245,7 @@ export namespace Requests {
   export type DebugChangeDiceResult = z.infer<
     typeof debugChangeDiceResultRequestSchema
   >;
+  export type DebugPutRoom = z.infer<typeof debugPutRoomRequestSchema>;
   export type DebugRemoveCards = z.infer<typeof debugRemoveCardsRequestSchema>;
   export type DebugGainTreasure = z.infer<
     typeof debugGainTreasureRequestSchema
@@ -1254,8 +1294,10 @@ export namespace Responses {
   export type DebugLoot = BasicResponse;
   export type DebugLootTop = BasicResponse;
   export type DebugListLoot = DebugListLootResponse;
+  export type DebugListRooms = DebugListRoomsResponse;
   export type DebugListMonsterDeck = DebugListMonsterDeckResponse;
   export type DebugListCardsICanRemove = DebugListCardsICanRemoveResponse;
+  export type DebugPutRoom = DebugPutRoomResponse;
   export type DebugRemoveCards = BasicResponse;
   export type DebugListTreasure = DebugListTreasureResponse;
   export type DebugPutMonsterCardInSlot = BasicResponse;
@@ -1399,6 +1441,15 @@ export interface ClientToServerEvents {
 
   debugListLoot: (
     callback: (response: Responses.DebugListLoot) => void,
+  ) => void;
+
+  debugListRooms: (
+    callback: (response: Responses.DebugListRooms) => void,
+  ) => void;
+  
+  debugPutRoom: (
+    request: Requests.DebugPutRoom,
+    callback: (response: Responses.DebugPutRoom) => void,
   ) => void;
 
   debugListCardsICanRemove: (
