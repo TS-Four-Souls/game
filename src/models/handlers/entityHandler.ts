@@ -481,10 +481,11 @@ export class EntityHandler {
     dealer: Entity,
     receiver: Entity,
     source: DamageSource,
-    damage: number
+    damage: number,
+    checkDeath: boolean = true
   ): boolean {
     const damageReceived = receiver.receiveDamage(damage, dealer, source);
-    if (receiver.currentHealthPoints <= 0) {
+    if (checkDeath && receiver.currentHealthPoints <= 0) {
       this.death(receiver, dealer, source);
     }
     return damageReceived;
@@ -520,8 +521,8 @@ export class EntityHandler {
     await this.game.executeWhenStackSubset(stackIds, async () => {
       // console.log(`Executing damage resolution for ${elem.damage[0]} damage from ${dealer instanceof Player ? `Player ${dealer.id}` : dealer instanceof Monster ? `Monster ${dealer.card.name}` : "Animated"} to ${receiver instanceof Player ? `Player ${receiver.id}` : receiver instanceof Monster ? `Monster ${receiver.card.name}` : "Animated"}.`);
       const damage = elem.damage[0]!;
-      this.healthLoss(dealer, receiver, source, damage);
       this.game.stack.resolve();
+      this.healthLoss(dealer, receiver, source, damage, false);
       if(damage > 0){
           await elem.onResolve();
           // Add to history
