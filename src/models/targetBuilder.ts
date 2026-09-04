@@ -348,8 +348,9 @@ export class TargetBuilder {
             }
             
             // { player: Player; hand: Hand }
-            if( typeof option === 'object' && 'player' in option && option.player instanceof Player && 'hand' in option)
-                return {type: "couplePlayerHand", payload: {player: option.player.jsonAPI , hand: option.hand.cards.map((c: Card) => c.jsonAPI)}};
+            const player = option.player;
+            if( typeof option === 'object' && 'player' in option && player instanceof Player && 'hand' in option)
+                return {type: "couplePlayerHand", payload: {player: player.json , hand: option.hand.cards.map((c: Card) => c.jsonAPI)}};
             
             const serializedTranslationParsed = serializedTranslationSchema.safeParse(option);
             if(serializedTranslationParsed.success) {
