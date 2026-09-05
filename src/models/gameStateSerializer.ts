@@ -214,7 +214,7 @@ export class GameStateSerializer {
       capabilities: {
         activate: this.game.actions.canActivate(item, owner),
       },
-      counter: item.counters.getIfDefined("normal"),
+      counters: item.counters.json,
       eternal: item.eternal,
       ...(item.entity ? {
         stats: {
@@ -242,7 +242,7 @@ export class GameStateSerializer {
     return {
       ... (curse.jsonAPI),
       charged: true,
-      counter: undefined,
+      counters: undefined,
       eternal: false,
       effects: curse.activeEffectList,
       capabilities: {

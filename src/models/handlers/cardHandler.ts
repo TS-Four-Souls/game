@@ -14,7 +14,6 @@ import {
   createEmptyDecksCollection,
   isDeckType,
   isSameSlug,
-  type CounterType
 } from "@/models/cards";
 import {
   selectEternalAmongX
@@ -31,7 +30,7 @@ import { Effect, PassiveEffect } from '../effects/effects';
 import { Game } from '../game';
 import { GameError } from "@/models/GameError";
 import { LootCardEffect } from '../stackElement';
-
+import { type CounterType } from "@/shared/api"
 import { toSerializedTranslation } from "@/utils/translation";
 import { bSoulEffectParser } from "../effects/bonusSoulEffects";
 import { TargetBuilder } from "../targetBuilder";

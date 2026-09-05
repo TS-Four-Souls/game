@@ -1,4 +1,4 @@
-import { type ActiveEffectEntry, type BonusSoulCard, type DescriptiveVisualEffectBox, type IdentifierType, type VisualEffectBox, type DeckName, type SerializedChooseOne, type BasicSerializedTranslation, type SerializedTranslation } from '@/shared/api';
+import { type ActiveEffectEntry, type CounterType, type BonusSoulCard, type DescriptiveVisualEffectBox, type IdentifierType, type VisualEffectBox, type DeckName, type SerializedChooseOne, type BasicSerializedTranslation, type SerializedTranslation, type SerializedCounter } from '@/shared/api';
 import type { BonusSoulCardType, CardRewards, CharacterCardType, EternalCardType, FlipData, GenericCardType, InPlayCardType, LootCardType, MonsterCardType, RoomCardType, TreasureCardType } from '@/types/cardTypes';
 import { print, shuffle } from '@/utils/auxiliary';
 import { toSerializedTranslation, translationKeyFromCardSlug } from '@/utils/translation';
@@ -728,7 +728,7 @@ class BsoulCard extends Card {
             ...super.jsonAPI,
             globalId: this._globalId,
             granted: this.granted,
-            ...( this.counters.isDefined("normal") ? { counter: this.counters.value("normal") } : {} ),
+            counters: this.counters.json ,
         };
     }
     
@@ -1328,8 +1328,6 @@ function randomCardFromSet<T extends Card>(set: CardSet<T>, random: () => number
     }
     return card;
 }
-
-export type CounterType = "normal" | "golden";
 export class Counter
 {
     private _type: CounterType;
@@ -1383,7 +1381,7 @@ export class CounterHandler{
         return this.counters.get(type) !== undefined;
     }
     getIfDefined(type: CounterType): number | undefined{
-        return this.isDefined("normal") ? this.value("normal") : undefined;
+        return this.isDefined(type) ? this.value(type) : undefined;
     }
     addToCounter(toAdd: number, type: CounterType): void
     {
@@ -1395,6 +1393,17 @@ export class CounterHandler{
     }
     hasCounter(type: CounterType): boolean{
         return this.getCounter(type).hasCounter;
+    }
+
+    get json(): SerializedCounter[] | undefined{
+        const arr: SerializedCounter[] = this.counterOwned.map(t => {
+            return {
+                type: t,
+                value: this.getIfDefined(t)!,
+            }});
+        if(arr.length > 0)
+            return arr;
+        return undefined;
     }
 
 }

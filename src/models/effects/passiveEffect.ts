@@ -1,6 +1,6 @@
 import { type TriggerEvent } from '@/models/types/eventTypes';
-import type { SerializedTranslation, TemporaryEffect, VisualEffectBox } from "@/shared/api";
-import { Card, ItemCard, LootCard, MonsterCard, TreasureCard, type CounterType } from "../cards";
+import type { SerializedTranslation, TemporaryEffect, VisualEffectBox, CounterType } from "@/shared/api";
+import { Card, ItemCard, LootCard, MonsterCard, TreasureCard } from "../cards";
 import { DamageOnStack, DiceWillRoll, EffectOnStack, LootCardEffect } from '../stackElement';
 import { Entity } from "../entities/entity";
 import { Monster } from "../entities/monster";
