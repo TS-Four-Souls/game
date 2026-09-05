@@ -2681,7 +2681,10 @@ export function obtainRollResults(s: string): string[] {
         if (line.length > 0) {
             switch (line[1]) {
                 case '-':
-                    for (let i = Number(line[0]); i <= Number(line[2]); i++) {
+                    const minVal = Math.min(Number(line[0]), Number(line[2]));
+                    const maxVal = Math.max(Number(line[0]), Number(line[2]));
+
+                    for (let i = minVal; i <= maxVal; i++) {
                         results[i - 1] = results[i - 1] === "" ? line.substring(4).trim() : results[i - 1] + ", then " + line.substring(4).trim();
                     }
                     break;
