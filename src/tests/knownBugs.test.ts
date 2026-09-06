@@ -225,7 +225,9 @@ describe("Known bugs that have be corrected", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.isDead).toBe(true);
-        expect(game.stack.isEmpty()).toBe(true);
+        expect(game.stack.size).toBe(1);
+        expect(game.stack.elements[0]!.json.type).toBe("endOfTurn");
+
     });
 
     it("can not destroy an item in the discard.", async () => {

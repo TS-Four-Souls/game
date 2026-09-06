@@ -4,7 +4,7 @@ import { MonsterCard } from './cards';
 import type { Entity } from "./entities/entity";
 import type { Player } from "./entities/player";
 import type { Game } from './game';
-import { EffectOnStack, StackElement } from './stackElement';
+import { DamageOnStack, DiceRoll, EffectOnStack, StackElement } from './stackElement';
 import type { TriggerEvent } from "./types/eventTypes";
 
 export function isStackElement(obj: any): obj is StackElement {
@@ -197,6 +197,16 @@ export class Stack {
     clearEffectsFromEntity(entity: Entity): void {
         this._stack = this._stack.filter(element => {
             if (element instanceof EffectOnStack && element.data.it === entity.card) {
+                return false; // Remove this element
+            }
+            return true; // Keep this element
+        });
+    }
+
+    clearCombatEffects(): void {
+        this._stack = this._stack.filter(element => {
+            if ((element instanceof DamageOnStack && element._source instanceof DiceRoll) ||
+                 (element instanceof DiceRoll && element.attackRoll)) {
                 return false; // Remove this element
             }
             return true; // Keep this element

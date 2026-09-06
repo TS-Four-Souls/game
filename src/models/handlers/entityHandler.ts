@@ -582,6 +582,7 @@ export class EntityHandler {
       }
     }
     this._entitiesInCombat = [];
+    this.game.stack.clearCombatEffects();
     this.game.emit("on:combat:end", { eventIssuer: engagedEntities.filter(e => e instanceof Player)[0] });
     this.game.dispatch();
   }
