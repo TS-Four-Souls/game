@@ -614,9 +614,6 @@ export function canBeAttackedEffect(game: Game): SyncEffectFunction {
         const card = data.it;
         if(card.json.stats === undefined)
         {
-            console.log(card.effectOutcomes);
-            console.log(card.flipData?.effectOutcome);
-            console.log(card.flipped);
             throw new GameError("Expected card stats to be defined for canBeAttackedEffect.",
                 toSerializedTranslation("error.behaviorError", { error: "Expected card stats to be defined for canBeAttackedEffect." })
             );

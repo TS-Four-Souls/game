@@ -33,7 +33,7 @@ export class GameStateSerializer {
       me: this.serializedMePlayer(player),
       players: this.serializedOtherPlayers(player, otherPlayers),
       monsters: this.serializeEncounter(player),
-      ...(this.serializedRoom()),
+      ...(this.serializedRoom(player)),
       bonusSouls: this.game.bonusSouls !== undefined ? this.game.bonusSouls.map((c) => c.jsonAPI) : undefined,
       loot: this.serializeLootDeck(),
       treasure: this.serializeShop(player),
@@ -69,17 +69,13 @@ export class GameStateSerializer {
       name: player.id,
       color: player.color,
       team: player.team,
-      character: this.serializedMyInPlayItems(player.character, player),
+      character: this.serializeMeCharacter(player, player.character),
       handSize: player.hand.cards.length,
       souls: player.totalSouls,
       soulCards: player.souls.map((c) => c.jsonAPI),
       coins: player.coins,
       attackRequirements: player.requirementListJSON(this.game),
-      currentAttackPoints: player.attackPoints,
-      currentHealthPoints: player.currentHealthPoints,
       remainingLootPlay: player.remainingLootPlay,
-      isEngagedInCombat: player.isEngagedInCombat,
-      temporaryEffect: player.temporaryEffects,
       isEngagedInPurchase: player.isEngagedInPurchase,
       
       hand: player.hand.cards.map((c) => c.jsonAPI),
@@ -134,6 +130,45 @@ export class GameStateSerializer {
     return undefined;
   }
 
+  private serializeMeCharacter(
+    me: Player,
+    character: ItemCard
+  ): api.InPlayWithStatsMeCard {
+
+    return {
+      ...this.serializedMyInPlayItems(character, me),
+      stats: this.serializeEntityStats(me, me),
+    };
+  }
+
+  private serializeCharacter(
+    me: Player,
+    character: ItemCard,
+    owner: Player
+  ): api.InPlayWithStatsCard {
+
+    return {
+      ...this.serializeOtherInPlay(me, character, owner),
+      stats: this.serializeEntityStats(me, owner),
+    };
+  }
+
+  private serializeEntityStats(
+    me: Player,
+    entity: NonNullable<ItemCard["entity"]>,
+  ) {
+    return {
+      healthPoints: entity.currentHealthPoints,
+      attackPoints: this.game.entityHandler.getAttack(entity),
+      ...(this.game.attackableEntities.includes(entity) ? { evasionPoints: this.game.entityHandler.getDC(entity) }: {}),
+      isEngagedInCombat: entity.isEngagedInCombat,
+      capabilities: {
+        targetable: this.game.actions.canDeclareAttackOnEntity(me, entity, false),
+      },
+      temporaryEffect: entity.temporaryEffects,
+    };
+  }
+
   /**
    * Serializes the state of other players in the game, including the number of cards in their hands, in-play cards, and capabilities.
    * @param me player who will receive the serialized state
@@ -146,18 +181,14 @@ export class GameStateSerializer {
           name: p.id,
           color: p.color,
           team: p.team,
-          character: this.serializeOtherInPlay(me, p.character, p),
+          character: this.serializeCharacter(me, p.character, p),
           handSize: p.hand.cards.length,
           hand: p.handRevealed ? p.hand.cards.map((c) => c.jsonAPI) : undefined,
           inPlay: p.inPlay.map((c) => this.serializeOtherInPlay(me, c, p)).concat(p.curses.map((c) => this.serializeCurse(me, c, p))),
           souls: p.totalSouls,
           soulCards: p.souls.map((c) => c.jsonAPI),
           coins: p.coins,
-          currentAttackPoints: p.attackPoints,
-          currentHealthPoints: p.currentHealthPoints,
-          temporaryEffect: p.temporaryEffects,
           remainingLootPlay: p.remainingLootPlay,
-          isEngagedInCombat: p.isEngagedInCombat,
           isEngagedInPurchase: p.isEngagedInPurchase,
           attackRequirements: p.requirementListJSON(this.game),
           pendingSelection: 
@@ -183,14 +214,12 @@ export class GameStateSerializer {
    */
   public serializeOtherInPlay(me: Player, item: ItemCard, owner: Player): api.InPlayCard {
     return {
-      nameKey: item.nameKey,
-      slug: item.slug,
-      globalId: item.globalId,
+     ... (item.jsonAPI),
       charged: item.charged || !item.activeEffectList.some(e => e.index === "tap"),
       capabilities: {
         activate: this.game.actions.canActivate(item, owner),
       },
-      counter: item.counters.getIfDefined("normal"),
+      counters: item.counters.json,
       eternal: item.eternal,
       ...(item.entity ? {
         stats: {
@@ -216,11 +245,9 @@ export class GameStateSerializer {
    */
   public serializeCurse(me: Player, curse: MonsterCard, owner: Player): api.InPlayMeCard {
     return {
-      nameKey: curse.nameKey,
-      slug: curse.slug,
-      globalId: curse.globalId,
+      ... (curse.jsonAPI),
       charged: true,
-      counter: undefined,
+      counters: undefined,
       eternal: false,
       effects: curse.activeEffectList,
       capabilities: {
@@ -268,11 +295,11 @@ export class GameStateSerializer {
   /**
    * @returns Serializes the Room slots.
    */
-  public serializedRoom(): api.RoomSlot | {} {
+  public serializedRoom(player: Player): api.RoomSlot | {} {
   return this.game.rooms ? { room: {
       discard: this.game.decks["room"]!.discard.map((c) => c.jsonAPI).toReversed(),
       deckSize: this.game.decks["room"]!.cards.length,
-      inPlay: this.game.rooms!.activeRooms.map((c) => c!.jsonAPI),
+      inPlay: this.game.rooms!.activeRooms.map((c) => this.serializedMyInPlayItems(c, player)),
       }
     } : {}
   }
@@ -295,9 +322,8 @@ export class GameStateSerializer {
             covered: this.game.encounters._slots[index]!.slice(0, -1).map(c => c.jsonAPI) })).map((m) => ({
 
           top: {
-            slug: m.card?.slug,
-            nameKey: m.card?.nameKey,
-            globalId: m.card?.globalId,
+            ... (m.card.jsonAPI),
+            counter: m.card.counters.getIfDefined("normal"),
             ...(m.monster ? {
               stats: {
                 healthPoints: m.monster.currentHealthPoints,

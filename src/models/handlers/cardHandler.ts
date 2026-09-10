@@ -14,7 +14,6 @@ import {
   createEmptyDecksCollection,
   isDeckType,
   isSameSlug,
-  type CounterType
 } from "@/models/cards";
 import {
   selectEternalAmongX
@@ -31,7 +30,7 @@ import { Effect, PassiveEffect } from '../effects/effects';
 import { Game } from '../game';
 import { GameError } from "@/models/GameError";
 import { LootCardEffect } from '../stackElement';
-
+import { type CounterType } from "@/shared/api"
 import { toSerializedTranslation } from "@/utils/translation";
 import { bSoulEffectParser } from "../effects/bonusSoulEffects";
 import { TargetBuilder } from "../targetBuilder";
@@ -111,7 +110,8 @@ export class CardHandler {
     return target.inPlay.filter(
       (card) =>
         card.type !== "eternal" &&
-        card.type !== "character"
+        card.type !== "character" && 
+        card.eternal === false
     );
   }
 
@@ -131,6 +131,9 @@ export class CardHandler {
     cards.push(...this.game.shop.itemsInShop.filter((c) => c !== undefined));
     // events and monsters not in combat
     cards.push(...this.game.encounters.nonEngagedInCombat);
+    // rooms
+    if(this.game.rooms !== undefined)
+      cards.push(...this.game.rooms.activeRooms);
     return cards;
   }
   /**
@@ -175,7 +178,7 @@ export class CardHandler {
     let type: EffectType = "passive";
     if (
       normalizedOutcome.startsWith("[Tap Effect]") ||
-      card.type === "loot" ||
+      (card.type === "loot" && (card as LootCard).trinket === false) ||
       (card instanceof MonsterCard &&
         card.encounterType === MonsterType.EVENT &&
         outcome !==

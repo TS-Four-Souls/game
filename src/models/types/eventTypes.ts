@@ -1,5 +1,5 @@
-import type { SerializedTranslation } from '@/shared/api';
-import type { Card, CharacterCard, CounterType, ItemCard, LootCard } from '../cards';
+import type { SerializedTranslation, CounterType } from '@/shared/api';
+import type { Card, CharacterCard, ItemCard, LootCard } from '../cards';
 import { Animated } from "../entities/animated";
 import type { Entity } from '../entities/entity';
 import type { Monster } from '../entities/monster';

@@ -212,6 +212,7 @@ class DeckParameter {
         slug: card.card.slug,
         nameKey: card.card.nameKey,
         count: card.param.value,
+        orientation: card.card.type === "room" ? "landscape" : "portrait"
       });
     }
     return result;
@@ -235,6 +236,7 @@ class CharacterDeckParameter extends DeckParameter {
         nameKey: card.card.nameKey,
         count: card.param.value,
         eternal: (card.card as CharacterCard).eternalCard ?? "random",
+        orientation: card.card.type === "room" ? "landscape" : "portrait"
       });
     }
     return result;
@@ -337,7 +339,7 @@ export class GameParameters {
     this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
     this.useFSP2Cards = new BooleanGameParameter(true, onChange);
     this.useG2Cards = new BooleanGameParameter(true, onChange);
-    this.useRCards = new BooleanGameParameter(false, onChange);
+    this.useRCards = new BooleanGameParameter(true, onChange);
     this.nbSoulsToWin = new NumericGameParameter(1, 4, 20, onChange);
     this.resolveCooldown = new NumericGameParameter(0, 0, 100, onChange);
     this.character = new CharacterDeckParameter(4, 100, onChange, this._filter);
@@ -374,7 +376,7 @@ export class GameParameters {
     this.lootPlayPerTurn = new NumericGameParameter(1, 1, 10, onChange);
     this.allowCheatOptions = new BooleanGameParameter(true, onChange);
     this.playWithBonusSouls = new BooleanGameParameter(true, onChange);
-    this.playWithRooms = new BooleanGameParameter(false, onChange);
+    this.playWithRooms = new BooleanGameParameter(true, onChange);
   }
 
   toJson(): GameParametersJson {

@@ -1,6 +1,6 @@
 import { type TriggerEvent } from '@/models/types/eventTypes';
-import type { SerializedTranslation, TemporaryEffect, VisualEffectBox } from "@/shared/api";
-import { Card, ItemCard, LootCard, MonsterCard, TreasureCard, type CounterType } from "../cards";
+import type { SerializedTranslation, TemporaryEffect, VisualEffectBox, CounterType } from "@/shared/api";
+import { Card, ItemCard, LootCard, MonsterCard, TreasureCard } from "../cards";
 import { DamageOnStack, DiceWillRoll, EffectOnStack, LootCardEffect } from '../stackElement';
 import { Entity } from "../entities/entity";
 import { Monster } from "../entities/monster";
@@ -78,20 +78,21 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): SyncEff
         if(data.targets.length == 0)
             target = data.issuer;
 
-        // for(let i = game.stack.size - 1; i >= 0; i--)
-        //     if(game.stack.elements[i] instanceof DamageOnStack)
-        //     {
-        //         const damageOnStack = game.stack.elements[i] as DamageOnStack;
-        //         if( damageOnStack.receiver === target)
-        //         {
-        //             const current = damageOnStack.damage[0] ?? 0;
-        //             const prevented = Math.min(current, amount);
-        //             damageOnStack.damage[0] = current - prevented;
-        //             amount -= prevented;
-        //         }
-        //         if(amount <= 0)
-        //             return true;
-        //     }
+        for(let i = game.stack.size - 1; i >= 0; i--)
+            if(game.stack.elements[i] instanceof DamageOnStack)
+            {
+                const damageOnStack = game.stack.elements[i] as DamageOnStack;
+                if(damageOnStack.damage[0]! <= 0)
+                    continue;
+                if( damageOnStack.receiver === target)
+                {
+                    const current = damageOnStack.damage[0] ?? 0;
+                    const prevented = Math.min(current, amount);
+                    damageOnStack.damage[0] = current - prevented;
+                    amount -= prevented;
+                    return true;
+                }
+            }
 
         target.addTemporaryEffect(temp);
 
@@ -1774,25 +1775,13 @@ export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): SyncEffectF
     };
 }
 
-export function giveCounterToAnotherItemOnEnterPlayEffect(game: Game, counterType: CounterType): SyncEffectFunction {
-    return (data: EffectData) => {
-        let offEnterPlay: (() => void) | null = null;
-        offEnterPlay = game.emitter.on("on:enter:play", ({ eventIssuer, card }) => {
-            if (card !== data.it) return;
-            const effect = async (effectData: EffectData): Promise<boolean> => {
-                if (data.issuer instanceof Player === false) return false;
-                const itemToGiveCounter = (await data.selectAndRecord(game, data.issuer, 1, 1, data.issuer.inPlay.filter(item => item !== data.it && !item.eternal), toSerializedTranslation("pending.itemToGiveGoldCounterTo"), data.serializedCardAndBox, true)).selected[0]!;
-                if(!itemToGiveCounter)
-                    return false;
-                game.cardHandler.addToCounter(data.issuer, itemToGiveCounter, counterType, 1);
-                return true;
-            }
-            addPassiveEffectToStack(game, effect, data, `Give a ${counterType} counter to another item when this enters play.`);
-        });
-        data.it.cleaners.push(() => {
-            offEnterPlay?.();
-            offEnterPlay = null;
-        });
+export function giveCounterToAnotherItemOnEnterPlayEffect(game: Game, counterType: CounterType): AsyncEffectFunction {
+    return async (data: EffectData) => {
+        if (data.issuer instanceof Player === false) return false;
+        const itemToGiveCounter = (await data.selectAndRecord(game, data.issuer, 1, 1, data.issuer.inPlay.filter(item => item !== data.it && !item.eternal), toSerializedTranslation("pending.itemToGiveGoldCounterTo"), data.serializedCardAndBox, true)).selected[0]!;
+        if(!itemToGiveCounter)
+            return false;
+        game.cardHandler.addToCounter(data.issuer, itemToGiveCounter, counterType, 1);
         return true;
     };
 }
@@ -2235,6 +2224,37 @@ export function ConditionalStatModifierEffect(
 // Note: The prevention is a replacement effect, but the damage dealt afterward is a triggered effect.
 export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: number, game: Game): SyncEffectFunction {
     return (data: EffectData) => {
+        for(let i = game.stack.size - 1; i >= 0; i--)
+            if(game.stack.elements[i] instanceof DamageOnStack)
+            {
+                const damageOnStack = game.stack.elements[i] as DamageOnStack;
+                if(damageOnStack.damage[0]! <= 0)
+                    continue;
+                if( damageOnStack.receiver === data.issuer)
+                {
+                    const current = damageOnStack.damage[0] ?? 0;
+                    const prevented = Math.min(current, prevent);
+                    damageOnStack.damage[0] = current - prevented;
+                    prevent -= prevented;
+                    const effect = async (data: EffectData): Promise<boolean> => {
+                        if( prevented <= 0) return false;
+                        if (!(data.issuer instanceof Player)) return false;
+                        
+                        // Deal 1 damage to another player
+                        const otherPlayers = game.players.filter(p => p !== data.issuer);
+                        if (otherPlayers.length === 0) return false;
+                        const selection = await data.selectAndRecord(game, data.issuer, 1, 1, otherPlayers, toSerializedTranslation("pending.playerToDealDamageTo"), data.serializedCardAndBox, true, true);
+                        if (selection.selected.length > 0) {
+                            const chosenPlayer = selection.selected[0]!;
+                            game.entityHandler.dealDamage(data.issuer, chosenPlayer, data.cardAndBox, deal);
+                            return true;
+                        }
+                        return false;
+                    }
+                    addPassiveEffectToStack(game, effect, data, `Prevent ${prevent} damage and deal ${deal} damage to another player.`);
+                    return true;
+                }
+            }
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
         const temp: TemporaryEffect = getTemporaryEffect(data);
@@ -2732,7 +2752,7 @@ export function onAttackingPlayerRollEffect(
         
         offEffect = game.emitter.on("on:dice:resolved", (eventData: OnRollData) => {
             const { dice } = eventData;
-            if( !dice.issuer.engageInCombat || !dice.attackRoll || !data.issuer.isEngagedInCombat)
+            if( !dice.issuer.isEngagedInCombat || !dice.attackRoll || data.it.entity === undefined || !data.it.entity.isEngagedInCombat)
                 return;
             // Only trigger for attack rolls with specified values
             if (rollValues.includes(dice.value)) {

@@ -146,6 +146,8 @@ export class TargetBuilder {
             game.assert.noPendingSelection();
         if(!item)
             throw new GameError(`Item not found.`, toSerializedTranslation("error.itemNotFound"));
+        if(item instanceof LootCard && item.trinket)
+            return this.completeResponse();
         if(throwIfNotCharged && effectId === "tap" && !item.charged)
             throw new GameError(`Item ${item.name} is not charged.`, toSerializedTranslation("capability.notCharged"));
         // console.log("TargetBuilder.getNextSelector for item:", item.name, "effectId:", effectId, "partialChoices:", partialChoices, item.activeEffectList);
@@ -316,11 +318,11 @@ export class TargetBuilder {
                 return {type: "chooseOne", payload: {description: option.description, card: option.card.jsonAPI, visualEffectBox: option.visualEffectBox}};
             }
             if (typeof option === 'object' && option !== null && 'slug' in option && option instanceof Card) {
-                return { payload: {nameKey: option.nameKey, slug: option.slug, globalId: option.globalId}, type: "card" };
+                return { payload: option.jsonAPI, type: "card" };
             }
             if (typeof option === 'object' && option !== null && 'id' in option && option instanceof Entity) {
                 const entity = option;
-                return {type: entity.json.type, payload: {nameKey: entity.json.nameKey, slug: entity.json.slug, globalId: entity.json.globalId, color: entity.color, type: entity.json.type}};
+                return {type: entity.json.type, payload: entity.json};
             }
 
             if (isStackElement(option)) {
@@ -346,8 +348,9 @@ export class TargetBuilder {
             }
             
             // { player: Player; hand: Hand }
-            if( typeof option === 'object' && 'player' in option && option.player instanceof Player && 'hand' in option)
-                return {type: "couplePlayerHand", payload: {player: {nameKey: option.player.character.nameKey, slug: option.player.slug, globalId: option.player.globalId}, hand: option.hand.cards.map((c: Card) => {return {nameKey: c.nameKey, slug: c.slug, globalId: c.globalId}})}};
+            const player = option.player;
+            if( typeof option === 'object' && 'player' in option && player instanceof Player && 'hand' in option)
+                return {type: "couplePlayerHand", payload: {player: player.json , hand: option.hand.cards.map((c: Card) => c.jsonAPI)}};
             
             const serializedTranslationParsed = serializedTranslationSchema.safeParse(option);
             if(serializedTranslationParsed.success) {
@@ -451,6 +454,8 @@ export class TargetBuilder {
         game.assert.noPendingSelection();
         if(!item)
             throw new GameError(`Item not found.`, toSerializedTranslation("error.itemNotFound"));
+        if(item instanceof LootCard && item.trinket)
+            return [];
         const rootSelectors = [...item.getEffectTarget(effectId)];
         const result: any[] = [];
 
@@ -524,6 +529,8 @@ export class TargetBuilder {
     ): Promise<any[]> {
         if(!item)
             throw new GameError(`Item not found or has no active effect.`, toSerializedTranslation("error.itemNotFoundOrNoActiveEffect"));
+        if(item instanceof LootCard && item.trinket)
+            return [];
         if(effectId === "tap"){
             const activeEffect = item.getActiveEffect();
             if (!activeEffect)
@@ -564,7 +571,7 @@ export class TargetBuilder {
                 options.max,
                 options.options,
                 toSerializedTranslation("pending.copyCardTargets"),
-                {card: item, },
+                {card: item.jsonAPI, },
             );
             const normalizedSelection = selection.selected.map((choice) =>choice);
             targets.push(...normalizedSelection);
@@ -626,6 +633,8 @@ export class TargetBuilder {
     ): Capability {
         if(!item)
             return toSerializedTranslation("error.itemNotFound");
+        if(item instanceof LootCard && item.trinket)
+            return true;
         // console.log(`Checking valid targets for item: ${item.name}, effectId: ${effectId} descr ${item.activeEffectList[effectId as number]?.description}`);
         if(effectId !== "tap")
             {
@@ -675,9 +684,8 @@ export class TargetBuilder {
         
         if(!item)
             return "Item not found.";
-
         const indices = [...item.activeEffectList]
-        if(where === "hand" && item.hasTapEffect() && indices.length === 0 && item instanceof LootCard && item.trinket)
+        if(where === "hand" && indices.length === 0 && item instanceof LootCard && item.trinket)
         {
             return {index: "tap", targets: []};
         }

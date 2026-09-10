@@ -515,6 +515,7 @@ describe("Four Souls+2 Treasures", () => {
         game.entityHandler.addLootPlay(player2, 1);
         game.actions.playCard(player2, player2.hand.length - 1);
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player2.targetableSouls.length).toBe(1);
 
         await game.activateItem(player1, card1, [], "tap");

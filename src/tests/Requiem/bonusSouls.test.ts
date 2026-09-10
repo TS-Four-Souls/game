@@ -42,6 +42,7 @@ describe("Four Souls+2 Loot Cards", () => {
         game.cardHandler.addCardToHand(player1, soul3);
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.totalSouls).toBe(1);
         expect(player1.targetableSouls.map(c => c.slug)).not.toContain("r-soul_of_envy");
         expect(player2.totalSouls).toBe(0);
@@ -49,12 +50,14 @@ describe("Four Souls+2 Loot Cards", () => {
 
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.totalSouls).toBe(2);
         expect(player1.targetableSouls.map(c => c.slug)).not.toContain("r-soul_of_envy");
         expect(player2.totalSouls).toBe(0);
         expect(player2.targetableSouls.map(c => c.slug)).not.toContain("r-soul_of_envy");
 
         game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.totalSouls).toBe(3);
         expect(player1.targetableSouls.map(c => c.slug)).not.toContain("r-soul_of_envy");

@@ -785,6 +785,8 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
             return noTargetEffect(active.lookAndReorderTopCardsEffect(game, nr.nextNumber(), "selectOnResolve", "dataIssuer"));
         case "give another player a loot card":
             return noTargetEffect(active.giveLootCardToAnotherPlayerEffect(game));
+        case "put a gold counter on another non-eternal item you control":
+            return noTargetEffect(passive.giveCounterToAnotherItemOnEnterPlayEffect(game, "golden"));
         case "then if this has x+ counters, remove all counters from this and deal x damage to a player or monster":
             return noTargetEffect(active.removeCounterAndDamageIfAboveX(game, nr.nextNumber(), nr.nextNumber()));
         case "change a number in the effect text of a card in play or loot being played by x till end of turn. the number can't go below x or above x":
@@ -869,11 +871,10 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
         case "choose a player or monster":
             return { effectFunction: active.chooseOneOfListEffect(game, selectPlayerOrMonster(game)[0]!, selectionOnResolve), targetSelectors: selectPlayerOrMonster(game) };
         case "prevent death. if it's your turn, cancel everything that hasn't resolved and end it":
+            case "prevent death. if it's your turn, cancel everything that hasn't resolved and end your turn":
             return noTargetEffect(active.preventDeathEndTurnEffect(game));
         case "remove x or more counters from this:\nloot x. if x+ counters were removed, deal x damage to a monster instead":
             return noTargetEffect(active.removeCountersAndLootOrDamageEffect(game, nr.nextNumber(), nr.nextNumber(), nr.nextNumber(), nr.nextNumber()));
-        case "prevent death. if it's your turn, cancel everything that hasn't resolved and end your turn":
-            return noTargetEffect(active.preventDeathEndTurnEffect(game));
         case "discard any number of loot cards":
             return noTargetEffect(active.discardAnyNumberOfLootCardsEffect(game, youMayEffectHanging));
         case "search the monster deck for a card named the bloat and put it in a monster slot not being attacked":
@@ -1546,8 +1547,6 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             return noTargetSyncEffect(passive.onYourTurnModifier([game.entityHandler.addLootPlay.bind(game.entityHandler)], 1, game));
         case "you may play up to x additional loot cards this turn":
             return noTargetSyncEffect(passive.temporaryStatModifierEffect([game.entityHandler.addLootPlay.bind(game.entityHandler)], nr.nextNumber(), game, "issuer"));
-        case "put a gold counter on another non-eternal item you control":
-            return noTargetSyncEffect(passive.giveCounterToAnotherItemOnEnterPlayEffect(game, "golden"));
         case "prevent death, heal to full [hp] , and cancel your attack":
             return noTargetSyncEffect(active.preventDeathHealFullCancelAttackEffect(game));
         case "monster have -x [dc] on your turn, where x is the number of souls the player with the most souls controls minus the number of souls you control":

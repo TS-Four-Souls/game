@@ -784,6 +784,7 @@ describe("Loot Card", () => {
         const initInPlay = player1.inPlay.length;
         game.actions.playCard(player1, 0);
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         
         expect(card!.soul).toBe(1);
         expect(player1.totalSouls).toBe(beforeSouls + 1);

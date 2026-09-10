@@ -4,7 +4,7 @@
 
 import { type OnAttackDeclaredData, type OnDeathMonsterData } from "@/models/types/eventTypes";
 import { partialsEndingWithNumber1to6 } from "@/utils/auxiliary";
-import { assertCardMatchesDeck, type Card, CharacterCard, type CounterType, Deck, isDeckType, ItemCard, LootCard, MonsterCard, RoomCard, TreasureCard } from "../cards";
+import { assertCardMatchesDeck, type Card, CharacterCard, Deck, isDeckType, ItemCard, LootCard, MonsterCard, RoomCard, TreasureCard } from "../cards";
 import { LootCardEffect } from '../stackElement';
 import { Animated } from "../entities/animated";
 import { Entity } from "../entities/entity";
@@ -23,6 +23,7 @@ import { addPassiveEffectToStack } from "./passiveEffect";
 import * as room from "./roomEffects";
 import { toSerializedTranslation } from "@/utils/translation";
 import { shuffle } from "@/utils/auxiliary";
+import { type CounterType } from "@/shared/api"
 
 const qq = toSerializedTranslation;
 export function gainCoinsEffect(game: Game, amount: number, issuerType: "issuer" | "current", youMayHandling: [false]): SyncEffectFunction
@@ -2681,7 +2682,10 @@ export function obtainRollResults(s: string): string[] {
         if (line.length > 0) {
             switch (line[1]) {
                 case '-':
-                    for (let i = Number(line[0]); i <= Number(line[2]); i++) {
+                    const minVal = Math.min(Number(line[0]), Number(line[2]));
+                    const maxVal = Math.max(Number(line[0]), Number(line[2]));
+
+                    for (let i = minVal; i <= maxVal; i++) {
                         results[i - 1] = results[i - 1] === "" ? line.substring(4).trim() : results[i - 1] + ", then " + line.substring(4).trim();
                     }
                     break;
@@ -3362,7 +3366,7 @@ export function killMonsterEffect(game: Game): SyncEffectFunction {
 export function enterPlayBecomeSoulEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        data.it.cleanup();
+        game.cardHandler.removeInPlay(data.issuer, data.it as ItemCard);
         if(data.it instanceof LootCard === true)
             data.it.afterEffect = "nothing"; // card placement is handled by the effect itself.
         data.it.soul = 1;

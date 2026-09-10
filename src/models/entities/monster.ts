@@ -89,6 +89,7 @@ export class Monster extends Entity {
       color: this.color,
       slug: this.card.slug,
       globalId: this.card.globalId,
+      orientation: this.card.type === "room" ? "landscape" : "portrait",
     }
   }
 }

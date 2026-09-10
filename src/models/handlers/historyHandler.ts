@@ -61,6 +61,7 @@ export type UserRequest =
       issuer: Issuer;
     }
   | { type: "DebugListTreasure"; issuer: Issuer }
+  | { type: "DebugPutRoom"; issuer: Issuer; payload: Requests.DebugPutRoom }
   | { type: "DebugListDices"; issuer: Issuer }
   | {
       type: "DebugPutMonsterCardInSlot";

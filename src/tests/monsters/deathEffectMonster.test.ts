@@ -444,6 +444,7 @@ describe("Monsters - On death effects", () => {
         game.entityHandler.addLootPlay(player2, 1);
         game.actions.playCard(player2, 0);
         await game.actions.resolveStack(); // resolve playing lost soul
+        await game.actions.resolveStack(); // resolve playing lost soul
 
         const card = game.obtainCard("b2-the_lamb") as MonsterCard;
         expect(card).toBeInstanceOf(MonsterCard);
@@ -469,6 +470,7 @@ describe("Monsters - On death effects", () => {
         expect(player2.hand.length).toBe(1);
         game.entityHandler.addLootPlay(player2, 1);
         game.actions.playCard(player2, 0);
+        await game.actions.resolveStack(); // resolve playing lost soul
         await game.actions.resolveStack(); // resolve playing lost soul
 
         const card = game.obtainCard("b2-wizoob") as MonsterCard;

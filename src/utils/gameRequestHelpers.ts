@@ -1,4 +1,4 @@
-import type { ItemCard, LootCard, MonsterCard } from "@/models/cards";
+import { RoomCard, type ItemCard, type LootCard, type MonsterCard } from "@/models/cards";
 import { Player } from "@/models/entities/player";
 import type { Game } from "@/models/game";
 import { GameError } from "@/models/GameError";
@@ -13,20 +13,20 @@ export async function executeAttackMonsterRequest(
   player: Player,
 ): Promise<void> {
   const monster =
-    payload.index === "top" ? "topDeck" : game.encounters.monsterIn(payload.index);
+    payload.card === "top" ? "topDeck" : game.attackableEntities.find(e => e.card.globalId === payload.card.globalId);
 
   if (!monster) {
-    throw new GameError(`No monster at index ${payload.index}`,
-      toSerializedTranslation("error.noMonsterAtIndex", { value: payload.index })
+    throw new GameError(`No monster at index ${payload.card}`,
+      toSerializedTranslation("error.noMonsterAtIndex", { value: payload.card })
     );
   }
 
-  const drawInIndex = payload.index === "top" ? payload.replaceIndex : -1;
+  const drawInIndex = payload.card === "top" ? payload.toCoverIndex : -1;
   await game.actions.declareAttackOnEntity(player, monster, drawInIndex);
   game.addToHistory({
     type: "AttackMonster",
     payload,
-    issuer: player.id,
+    issuer: player.id,  
   });
 }
 
@@ -225,7 +225,7 @@ export function executeDebugLootTopRequest(
     type: "DebugLootTop",
     issuer: player.id,
   });
-  const topCard = game.decks.loot.cards[0];
+  const topCard = game.decks.loot.cards[0]?.jsonAPI;
   if (!topCard) {
     throw new GameError("Loot deck is empty",
       toSerializedTranslation("error.lootDeckIsEmpty")
@@ -242,7 +242,7 @@ export function executeDebugGainTreasureTopRequest(
     type: "DebugGainTreasureTop",
     issuer: player.id,
   });
-  const topCard = game.decks.treasure.cards[0];
+  const topCard = game.decks.treasure.cards[0]?.jsonAPI;
   if (!topCard) {
     throw new GameError("Treasure deck is empty",
       toSerializedTranslation("error.treasureDeckIsEmpty")
@@ -268,7 +268,7 @@ export function executeDebugLootRequest(
         toSerializedTranslation("error.lootDeckNotAvailable")
       );
     }
-    game.actions.debugLoot(player, cards as LootCard[]);
+    game.actions.debugLoot(player, cards);
   }
 }
 
@@ -311,7 +311,7 @@ export function executeDebugGainTreasureRequest(
         toSerializedTranslation("error.treasureDeckNotAvailable")
       );
     }
-    game.actions.debugGainTreasures(player, cards as ItemCard[], false);
+    game.actions.debugGainTreasures(player, cards, false);
   }
 }
 export function executeDebugGainCoinsRequest(
@@ -371,4 +371,30 @@ export function executeDebugChangeDiceResultRequest(
     payload,
     issuer: player.id,
   });
+}
+
+export function executeDebugPutRoomRequest(
+  game: Game,
+  payload: Requests.DebugPutRoom,
+  player: Player,
+): void {
+  if(game.rooms === undefined)
+    return;
+  const room = game.obtainCard(payload.card.slug, payload.card.globalId);
+  if(room === undefined || room instanceof RoomCard === false)
+    return;
+  const idx =  game.rooms.activeRooms
+    .map((slot) => slot.globalId)
+    .indexOf(payload.toCover.globalId);
+  if(idx < 0 || idx >= game.rooms.activeRooms.length)
+    throw new GameError("", toSerializedTranslation("error.invalidCardPosition"));
+
+  game.rooms?.forceRoomAtSlot(0, room);
+  game.addToHistory({
+    type: "DebugPutRoom",
+    payload,
+    issuer: player.id,
+  });
+
+  game.dispatch();
 }
