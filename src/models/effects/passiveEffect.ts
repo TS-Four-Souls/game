@@ -89,7 +89,6 @@ export function preventNextDamageUpToEffect(amount: number, game: Game): SyncEff
                     const current = damageOnStack.damage[0] ?? 0;
                     const prevented = Math.min(current, amount);
                     damageOnStack.damage[0] = current - prevented;
-                    amount -= prevented;
                     return true;
                 }
             }
