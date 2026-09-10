@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+export const extensionsAvailable = {
+  "b2-": "Base Game",
+  "fsp2-": "Four Souls 2+",
+  "r-": "Requiem",
+  "g2-": "Gold Box",
+};
+
 const basicSerializedTranslationSchema = z.object({
   key: z.string(),
 });
@@ -27,7 +34,7 @@ export const identifierTypeSchema = z.object({
   nameKey: serializedTranslationSchema,
   slug: z.string(),
   globalId: z.number(),
-  orientation: z.union([z.literal("portrait"), z.literal("landscape")])
+  orientation: z.union([z.literal("portrait"), z.literal("landscape")]),
 });
 export type IdentifierType = z.infer<typeof identifierTypeSchema>;
 
@@ -244,19 +251,16 @@ const statsSchema = z.object({
   temporaryEffect: z.array(temporaryEffectSchema),
   capabilities: z.object({
     targetable: capabilitySchema,
-  })
+  }),
 });
 
-const counterTypeSchema = z.union([
-  z.literal("normal"),
-  z.literal("golden"),
-])
+const counterTypeSchema = z.union([z.literal("normal"), z.literal("golden")]);
 export type CounterType = z.infer<typeof counterTypeSchema>;
 
 const serializedCounterSchema = z.object({
   type: counterTypeSchema,
   value: z.number(),
-})
+});
 export type SerializedCounter = z.infer<typeof serializedCounterSchema>;
 
 const attackableCardSchema = cardSchema.extend({
@@ -275,8 +279,8 @@ const inPlayCardSchema = attackableCardSchema.extend({
 export type InPlayCard = z.infer<typeof inPlayCardSchema>;
 
 const inPlayWithStatsCardSchema = inPlayCardSchema.extend({
-    stats: statsSchema,
-  })
+  stats: statsSchema,
+});
 export type InPlayWithStatsCard = z.infer<typeof inPlayWithStatsCardSchema>;
 
 const inPlayMeCardSchema = inPlayCardSchema.extend({
@@ -285,8 +289,8 @@ const inPlayMeCardSchema = inPlayCardSchema.extend({
 export type InPlayMeCard = z.infer<typeof inPlayMeCardSchema>;
 
 const inPlayWithStatsMeCardSchema = inPlayMeCardSchema.extend({
-    stats: statsSchema,
-  })
+  stats: statsSchema,
+});
 export type InPlayWithStatsMeCard = z.infer<typeof inPlayWithStatsMeCardSchema>;
 
 const bonusSoulCardSchema = cardSchema.extend({
@@ -517,6 +521,7 @@ const decksConfigSchema = z.object({
   nbPlayerCardRestriction: booleanGameParameterSchema.optional(),
   useFSP2Cards: booleanGameParameterSchema.optional(),
   useG2Cards: booleanGameParameterSchema.optional(),
+  useB2Cards: booleanGameParameterSchema.optional(),
   useRCards: booleanGameParameterSchema.optional(),
 
   character: characterDeckSchema,
@@ -535,14 +540,15 @@ const decksConfigPatchSchema = z.object({
   nbPlayerCardRestriction: booleanGameParameterSchema.optional(),
   useFSP2Cards: booleanGameParameterSchema.optional(),
   useG2Cards: booleanGameParameterSchema.optional(),
+  useB2Cards: booleanGameParameterSchema.optional(),
   useRCards: booleanGameParameterSchema.optional(),
 
-  monster: deckConfigCardSchema.optional(),
-  character: deckConfigCardSchema.optional(),
-  treasure: deckConfigCardSchema.optional(),
-  loot: deckConfigCardSchema.optional(),
-  bsoul: deckConfigCardSchema.optional(),
-  room: deckConfigCardSchema.optional(),
+  monster: z.array(deckConfigCardSchema).optional(),
+  character: z.array(deckConfigCardSchema).optional(),
+  treasure: z.array(deckConfigCardSchema).optional(),
+  loot: z.array(deckConfigCardSchema).optional(),
+  bsoul: z.array(deckConfigCardSchema).optional(),
+  room: z.array(deckConfigCardSchema).optional(),
 });
 
 export type DeckConfigPatch = z.infer<typeof decksConfigPatchSchema>;
@@ -654,7 +660,9 @@ const debugListRoomsResponseSchema = z.union([
     error: z.union([z.string(), serializedTranslationSchema]),
   }),
 ]);
-export type DebugListRoomsResponse = z.infer<typeof debugListRoomsResponseSchema>;
+export type DebugListRoomsResponse = z.infer<
+  typeof debugListRoomsResponseSchema
+>;
 
 const DebugListMonsterDeckResponseSchema = z.union([
   z.object({
@@ -694,9 +702,7 @@ const DebugPutRoomResponseSchema = z.union([
     error: z.union([z.string(), serializedTranslationSchema]),
   }),
 ]);
-export type DebugPutRoomResponse = z.infer<
-  typeof DebugPutRoomResponseSchema
->;
+export type DebugPutRoomResponse = z.infer<typeof DebugPutRoomResponseSchema>;
 
 const debugListTreasureResponseSchema = z.union([
   z.object({
@@ -1448,7 +1454,7 @@ export interface ClientToServerEvents {
   debugListRooms: (
     callback: (response: Responses.DebugListRooms) => void,
   ) => void;
-  
+
   debugPutRoom: (
     request: Requests.DebugPutRoom,
     callback: (response: Responses.DebugPutRoom) => void,

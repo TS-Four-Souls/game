@@ -106,6 +106,21 @@ class DeckParameter {
       this.onChange();
     }
   }
+
+  setExpansionEnabled(prefix: string, enabled: boolean): void {
+    for (const card of this._cards) {
+      if (!card.card.slug.startsWith(prefix)) continue;
+      if (enabled) {
+        card.param.reset(false);
+      } else {
+        card.param.value = 0;
+      }
+    }
+    this._currentCount = this._cards.reduce(
+      (total, card) => total + card.param.value,
+      0,
+    );
+  }
   createParamForUniqueCards(): void {
     const uniqueCards: { card: Card; count: number }[] = [];
     this._currentCount = 0;
@@ -276,6 +291,7 @@ class BooleanGameParameter {
 
 export class GameParameters {
   readonly miniDraft: BooleanGameParameter;
+  readonly useB2Cards: BooleanGameParameter;
   readonly useFSP2Cards: BooleanGameParameter;
   readonly useG2Cards: BooleanGameParameter;
   readonly useRCards: BooleanGameParameter;
@@ -317,7 +333,12 @@ export class GameParameters {
     return this._deckMode;
   }
   private _filter: (card: Card) => boolean = (card: Card) => {
-    // In custom mode, don't filter at all
+    // Expansion toggles always apply, including in custom mode.
+    if (!this.useB2Cards.value && card.slug.startsWith("b2-")) return false;
+    if (!this.useFSP2Cards.value && card.slug.startsWith("fsp2-")) return false;
+    if (!this.useG2Cards.value && card.slug.startsWith("g2-")) return false;
+    if (!this.useRCards.value && card.slug.startsWith("r-")) return false;
+    // In custom mode, don't apply the player-count filter.
     if (this._deckMode === "custom") return true;
     // cards meeting player minimum filter
     if (
@@ -325,46 +346,65 @@ export class GameParameters {
       card.minimumPlayers > this._getCurrentNbPlayers()
     )
       return false;
-    // FSP2 filter
-    if (!this.useFSP2Cards.value && card.slug.startsWith("fsp2-")) return false;
-    // G2 filter
-    if (!this.useG2Cards.value && card.slug.startsWith("g2-")) return false;
-    // R filter
-    if (!this.useRCards.value && card.slug.startsWith("r-")) return false;
     return true;
   };
+
+  private updateExpansionCards(prefix: string, enabled: boolean): void {
+    this._deckMode = "standard";
+    for (const deck of [
+      this.character,
+      this.monster,
+      this.treasure,
+      this.loot,
+      this.bsoul,
+      this.room,
+    ]) {
+      deck.setExpansionEnabled(prefix, enabled);
+    }
+    this._onChange();
+  }
 
   constructor(onChange: () => void) {
     this._onChange = onChange;
     this._currentNbPlayers = 0;
     this.miniDraft = new BooleanGameParameter(false, onChange);
     this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
-    this.useFSP2Cards = new BooleanGameParameter(true, onChange);
-    this.useG2Cards = new BooleanGameParameter(true, onChange);
+    this.useB2Cards = new BooleanGameParameter(
+      true,
+      () => this.updateExpansionCards("b2-", this.useB2Cards.value),
+    );
+    this.useFSP2Cards = new BooleanGameParameter(
+      true,
+      () => this.updateExpansionCards("fsp2-", this.useFSP2Cards.value),
+    );
+    this.useG2Cards = new BooleanGameParameter(
+      true,
+      () => this.updateExpansionCards("g2-", this.useG2Cards.value),
+    );
     this.useRCards = new BooleanGameParameter(
       process.env.USE_REQUIEM === "true",
-      onChange,
+      () => this.updateExpansionCards("r-", this.useRCards.value),
     );
     this.nbSoulsToWin = new NumericGameParameter(1, 4, 20, onChange);
     this.resolveCooldown = new NumericGameParameter(0, 0, 100, onChange);
     this.character = new CharacterDeckParameter(4, 100, onChange, this._filter);
     this.monster = new DeckParameter(
       "monster",
-      50,
+      0,
       1000,
       onChange,
       this._filter,
     );
     this.treasure = new DeckParameter(
       "treasure",
-      50,
+      0,
       1000,
       onChange,
       this._filter,
     );
-    this.loot = new DeckParameter("loot", 50, 1000, onChange, this._filter);
-    this.bsoul = new DeckParameter("bsoul", 3, 100, onChange, this._filter);
-    this.room = new DeckParameter("room", 10, 100, onChange, this._filter);
+    this.loot = new DeckParameter("loot", 0, 1000, onChange, this._filter);
+    this.bsoul = new DeckParameter("bsoul", 0, 100, onChange, this._filter);
+    this.room = new DeckParameter("room", 0, 100, onChange, this._filter);
     this.nbItemsInShop = new NumericGameParameter(0, 2, 6, onChange);
     this.nbRooms = new NumericGameParameter(1, 1, 1, onChange);
     this.nbEncounters = new NumericGameParameter(1, 2, 6, onChange);
@@ -407,7 +447,7 @@ export class GameParameters {
             },
           }
         : {}),
-      ...(this._deckMode === "standard" && this._currentNbPlayers < 3
+      ...(this._currentNbPlayers < 3
         ? {
             nbPlayerCardRestriction: {
               text: "Number player card restriction",
@@ -418,7 +458,19 @@ export class GameParameters {
             },
           }
         : {}),
-      ...(this._deckMode === "standard" && !FORBIDDEN_PREFIXES.includes("r-")
+      ...(!FORBIDDEN_PREFIXES.includes("b2-")
+        ? {
+            useB2Cards: {
+              text: "Use base game cards?",
+              value: this.useB2Cards.value,
+              translationKey: toSerializedTranslation(
+                "startStep.gameParams.useExpansionCards",
+                { expansionName: "Base Game" },
+              ),
+            },
+          }
+        : {}),
+      ...(!FORBIDDEN_PREFIXES.includes("r-")
         ? {
             useRCards: {
               text: "Use Requiem cards?",
@@ -430,7 +482,7 @@ export class GameParameters {
             },
           }
         : {}),
-      ...(this._deckMode === "standard" && !FORBIDDEN_PREFIXES.includes("fsp2-")
+      ...(!FORBIDDEN_PREFIXES.includes("fsp2-")
         ? {
             useFSP2Cards: {
               text: "Use four souls+ cards?",
@@ -442,7 +494,7 @@ export class GameParameters {
             },
           }
         : {}),
-      ...(this._deckMode === "standard" && !FORBIDDEN_PREFIXES.includes("g2-")
+      ...(!FORBIDDEN_PREFIXES.includes("g2-")
         ? {
             useG2Cards: {
               text: "Use gold box+ cards?",
@@ -622,6 +674,9 @@ export class GameParameters {
         if (decks.useRooms) {
           this.playWithRooms.value = decks.useRooms.value;
         }
+        if (decks.useB2Cards) {
+          this.useB2Cards.value = decks.useB2Cards.value;
+        }
         if (decks.useFSP2Cards) {
           this.useFSP2Cards.value = decks.useFSP2Cards.value;
         }
@@ -669,12 +724,12 @@ export class GameParameters {
         // If specific cards were provided, we assume the config is custom and switch to custom mode to avoid overwriting counts with standard config when toggling flags.
         this._deckMode = "custom";
       }
-      if (decks.monster) this.monster.applyDeckConfig([decks.monster]);
-      if (decks.treasure) this.treasure.applyDeckConfig([decks.treasure]);
-      if (decks.loot) this.loot.applyDeckConfig([decks.loot]);
-      if (decks.bsoul) this.bsoul.applyDeckConfig([decks.bsoul]);
-      if (decks.room) this.room.applyDeckConfig([decks.room]);
-      if (decks.character) this.character.applyDeckConfig([decks.character]);
+      if (decks.monster) this.monster.applyDeckConfig(decks.monster);
+      if (decks.treasure) this.treasure.applyDeckConfig(decks.treasure);
+      if (decks.loot) this.loot.applyDeckConfig(decks.loot);
+      if (decks.bsoul) this.bsoul.applyDeckConfig(decks.bsoul);
+      if (decks.room) this.room.applyDeckConfig(decks.room);
+      if (decks.character) this.character.applyDeckConfig(decks.character);
       if (decks.useBonusSouls?.value !== undefined) {
         this.playWithBonusSouls.value = decks.useBonusSouls.value;
       }
@@ -684,7 +739,6 @@ export class GameParameters {
       if (decks.nbPlayerCardRestriction?.value !== undefined) {
         this.nbPlayerCardRestriction.value =
           decks.nbPlayerCardRestriction.value;
-        this._deckMode = "standard"; // Switch back to standard mode when player card restriction is toggled, as it's the only flag that affects card counts in standard mode
         for (const deck of [
           this.character,
           this.monster,
@@ -697,54 +751,18 @@ export class GameParameters {
           deck.resetCardCounts(false);
         }
         this._onChange();
+      }
+      if (decks.useB2Cards?.value !== undefined) {
+        this.useB2Cards.value = decks.useB2Cards.value;
       }
       if (decks.useFSP2Cards?.value !== undefined) {
         this.useFSP2Cards.value = decks.useFSP2Cards.value;
-        this._deckMode = "standard"; // Switch back to standard mode when player card restriction is toggled, as it's the only flag that affects card counts in standard mode
-        for (const deck of [
-          this.character,
-          this.monster,
-          this.treasure,
-          this.loot,
-          this.bsoul,
-          this.room,
-        ]) {
-          deck.filter = this._filter;
-          deck.resetCardCounts(false);
-        }
-        this._onChange();
       }
       if (decks.useG2Cards?.value !== undefined) {
         this.useG2Cards.value = decks.useG2Cards.value;
-        this._deckMode = "standard"; // Switch back to standard mode when player card restriction is toggled, as it's the only flag that affects card counts in standard mode
-        for (const deck of [
-          this.character,
-          this.monster,
-          this.treasure,
-          this.loot,
-          this.bsoul,
-          this.room,
-        ]) {
-          deck.filter = this._filter;
-          deck.resetCardCounts(false);
-        }
-        this._onChange();
       }
       if (decks.useRCards?.value !== undefined) {
         this.useRCards.value = decks.useRCards.value;
-        this._deckMode = "standard"; // Switch back to standard mode when player card restriction is toggled, as it's the only flag that affects card counts in standard mode
-        for (const deck of [
-          this.character,
-          this.monster,
-          this.treasure,
-          this.loot,
-          this.bsoul,
-          this.room,
-        ]) {
-          deck.filter = this._filter;
-          deck.resetCardCounts(false);
-        }
-        this._onChange();
       }
       return;
     }
@@ -764,6 +782,7 @@ export class GameParameters {
 
   reset() {
     this.miniDraft.reset();
+    this.useB2Cards.reset();
     this.useFSP2Cards.reset();
     this.useG2Cards.reset();
     this.useRCards.reset();
@@ -798,7 +817,7 @@ export class GameParameters {
 
   setPlayerCount(count: number): void {
     this._currentNbPlayers = count;
-    if (this.nbPlayerCardRestriction.value && this._deckMode === "standard") {
+    if (this.nbPlayerCardRestriction.value) {
       for (const deck of [
         this.character,
         this.monster,
