@@ -607,6 +607,10 @@ export class Game {
     this.players.forEach((p) => {
       p.initializeTurnCounters(p === this.currentPlayer, this.gameParameters.lootPlayPerTurn.value);
     });
+    for(const room of this.rooms?.activeRooms ?? [])
+    {
+      room.owner = this.currentPlayer;
+    }
     this.entityHandler.monsterDiedThisTurn = false;
     const player = this.currentPlayer;
     const itemsToRecharge = [...player.unchargedItems];

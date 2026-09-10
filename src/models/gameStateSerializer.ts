@@ -8,7 +8,6 @@ import { TargetBuilder } from "@/models/targetBuilder";
 // import type { DetailedState, IdentifierType, InPlayCard, InPlayMeCard, PendingSelection } from "@/shared/api";
 import * as api from "@/shared/api";
 import { toSerializedTranslation } from "@/utils/translation";
-import { GameError } from "./GameError";
 
 export class GameStateSerializer {
   private game: Game;
@@ -43,7 +42,13 @@ export class GameStateSerializer {
       history: this.game.history,
       stack: this.game.stack.elements.map((el) => el.json).toReversed(),
       animations: player.animations(true),
-      lastStackElementTimeStamp: this.game.assert.lastTimedAction
+      lastStackElementTimeStamp: this.game.assert.lastTimedAction,
+      pendingSelections: Array.from(this.game.pendingMultipleSelections.values()).map(e => ({
+        player: { name: e.playerId, color: players.find(p => p.id === e.playerId)!.color },
+        reason: e.reason,
+        description: e.description,
+        requestId: e.requestId,
+      })),
     };
     const serializedState = api.detailedStateSchema.safeParse(state);
     if(!serializedState.success)

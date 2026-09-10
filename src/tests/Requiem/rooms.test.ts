@@ -1132,6 +1132,20 @@ describe("Requiem Rooms", () => {
         expect(player1.coins).toBe(3);
     });
 
+    it("Blood Donation works for next player", async () => {
+        const room = game.obtainCard("r-blood_donation") as RoomCard;
+        game.rooms?.forceRoomAtSlot(0, room);
+        game.resetStack();
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.activateRoom(game.currentPlayer, room, [], 0);
+        expect(game.currentPlayer.currentHealthPoints).toBe(1);
+        expect(game.currentPlayer.coins).toBe(0);
+        await game.actions.resolveStack();
+        expect(game.currentPlayer.coins).toBe(3);
+    });
+
     it("Blind Rage", async () => {
         const room = game.obtainCard("r-blind_rage") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);

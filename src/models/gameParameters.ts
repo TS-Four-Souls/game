@@ -7,7 +7,7 @@ import type {
   DeckConfigPatch,
   GameParametersJson,
   SetGameParameterRequest,
-  DeckName
+  DeckName,
 } from "@/shared/api";
 import { toSerializedTranslation } from "@/utils/translation";
 import type { Card, CharacterCard, DeckType } from "./cards";
@@ -181,7 +181,9 @@ class DeckParameter {
         `Card with slug ${slug} not found in deck ${this._type}`,
         toSerializedTranslation("error.cardWithSlugNotFound", {
           slug: slug,
-          deck: toSerializedTranslation(`startStep.gameParams.decks.${this._type as DeckName}`),
+          deck: toSerializedTranslation(
+            `startStep.gameParams.decks.${this._type as DeckName}`,
+          ),
         }),
       );
     }
@@ -212,7 +214,7 @@ class DeckParameter {
         slug: card.card.slug,
         nameKey: card.card.nameKey,
         count: card.param.value,
-        orientation: card.card.type === "room" ? "landscape" : "portrait"
+        orientation: card.card.type === "room" ? "landscape" : "portrait",
       });
     }
     return result;
@@ -236,7 +238,7 @@ class CharacterDeckParameter extends DeckParameter {
         nameKey: card.card.nameKey,
         count: card.param.value,
         eternal: (card.card as CharacterCard).eternalCard ?? "random",
-        orientation: card.card.type === "room" ? "landscape" : "portrait"
+        orientation: card.card.type === "room" ? "landscape" : "portrait",
       });
     }
     return result;
@@ -339,7 +341,10 @@ export class GameParameters {
     this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
     this.useFSP2Cards = new BooleanGameParameter(true, onChange);
     this.useG2Cards = new BooleanGameParameter(true, onChange);
-    this.useRCards = new BooleanGameParameter(false, onChange);
+    this.useRCards = new BooleanGameParameter(
+      process.env.USE_REQUIEM === "true",
+      onChange,
+    );
     this.nbSoulsToWin = new NumericGameParameter(1, 4, 20, onChange);
     this.resolveCooldown = new NumericGameParameter(0, 0, 100, onChange);
     this.character = new CharacterDeckParameter(4, 100, onChange, this._filter);
@@ -376,7 +381,10 @@ export class GameParameters {
     this.lootPlayPerTurn = new NumericGameParameter(1, 1, 10, onChange);
     this.allowCheatOptions = new BooleanGameParameter(true, onChange);
     this.playWithBonusSouls = new BooleanGameParameter(true, onChange);
-    this.playWithRooms = new BooleanGameParameter(false, onChange);
+    this.playWithRooms = new BooleanGameParameter(
+      process.env.USE_ROOMS === "true",
+      onChange,
+    );
   }
 
   toJson(): GameParametersJson {
@@ -417,7 +425,7 @@ export class GameParameters {
               value: this.useRCards.value,
               translationKey: toSerializedTranslation(
                 "startStep.gameParams.useExpansionCards",
-                  {expansionName: "Requiem"},
+                { expansionName: "Requiem" },
               ),
             },
           }
@@ -429,7 +437,7 @@ export class GameParameters {
               value: this.useFSP2Cards.value,
               translationKey: toSerializedTranslation(
                 "startStep.gameParams.useExpansionCards",
-                  {expansionName: "Four Souls+"},
+                { expansionName: "Four Souls+" },
               ),
             },
           }
@@ -441,7 +449,7 @@ export class GameParameters {
               value: this.useG2Cards.value,
               translationKey: toSerializedTranslation(
                 "startStep.gameParams.useExpansionCards",
-                  {expansionName: "Gold Box V2"},
+                { expansionName: "Gold Box V2" },
               ),
             },
           }
