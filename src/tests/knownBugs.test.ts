@@ -24,6 +24,24 @@ describe("Known bugs that have be corrected", () => {
     // it("", async () => {
     // });
     
+    it("The poop can remove damage on stack twice in a row", async () => {
+        const c1 = game.obtainCard("b2-the_poop") as ItemCard;
+        game.cardHandler.addInPlay(player1, c1);
+        game.cardHandler.addToCounter(player1, c1, "normal", 2);
+        game.entityHandler.dealDamage(player1,player1, {card: c1, visualEffectBox: undefined}, 1);
+        await game.activateItem(player1, c1, [], 0);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
+        game.entityHandler.dealDamage(player1,player1, {card: c1, visualEffectBox: undefined}, 1);
+        await game.activateItem(player1, c1, [], 0);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(player1.currentHealthPoints).toBe(2);
+    });
+    
     it("swap item works with trinket", async () => {
         const c1 = game.obtainCard("b2-decoy") as ItemCard;
         const c2 = game.obtainCard("b2-counterfeit_penny") as LootCard;

@@ -276,7 +276,7 @@ export class ActionHandler {
     // Some unit tests resolve stack elements before the game is formally started.
     // In that case, enforce only the safety invariants that still make sense.
     if (this.game.isStarted) {
-      this.canResolve(true);
+      this.canResolve(this.game.currentPlayer, true);
     } else {
       this.game.assert.stackNotEmpty();
       this.game.assert.noPendingSelection();
@@ -371,8 +371,10 @@ export class ActionHandler {
     /**
      * Validates whether stack resolution is currently allowed.
      */
-    canResolve(shouldThrow: boolean = false): Capability {
+    canResolve(player: Player, shouldThrow: boolean = false): Capability {
       try {
+        if(this.game.currentPlayer.user !== player.user)
+          throw new GameError("", toSerializedTranslation("error.onlyCurrentPlayerCanResolveStack"));
         this.game.assert.gameOngoing();
         this.game.assert.stackNotEmpty();
         this.game.assert.noPendingSelection();

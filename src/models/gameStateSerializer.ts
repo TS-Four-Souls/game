@@ -89,7 +89,7 @@ export class GameStateSerializer {
         rollDice: this.game.actions.canRollDice(player),
         buyTreasure: this.game.actions.canPurchase(player),
         useLoot: this.game.actions.canPlayCard(player),
-        resolve: this.game.actions.canResolve(),
+        resolve: this.game.actions.canResolve(player),
         canSwitchTo: this.game.actions.canSwitchTo(player, player),
         canDonateCoinsTo: toSerializedTranslation("capability.cannotGiveCoinToSelf"),
       }
