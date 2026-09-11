@@ -641,33 +641,16 @@ export class GameParameters {
     };
   }
 
-  loadFromJson(json: SetGameParameterRequest | GameParametersJson): void {
+  loadFromJson(
+    json: SetGameParameterRequest | GameParametersJson,
+    deckMode: "standard" | "custom" = "standard",
+  ): void {
     for (const key in json) {
       if (!json.hasOwnProperty(key)) continue;
       if (key === "decksConfig") {
         const decks = (json as any).decksConfig as DeckConfig;
-        // Apply deck card counts first, then update top-level flags that may trigger
-        // card removals/restore (nbPlayerCardRestriction). This prevents a config
-        // that contains both the flags and the full card list from re-adding
-        // cards immediately after they were removed by the restriction handler.
-        if (decks.monster) {
-          this.monster.applyDeckConfig(decks.monster.cards);
-        }
-        if (decks.treasure) {
-          this.treasure.applyDeckConfig(decks.treasure.cards);
-        }
-        if (decks.loot) {
-          this.loot.applyDeckConfig(decks.loot.cards);
-        }
-        if (decks.bsoul) {
-          this.bsoul.applyDeckConfig(decks.bsoul.cards);
-        }
-        if (decks.room) {
-          this.room.applyDeckConfig(decks.room.cards);
-        }
-        if (decks.character) {
-          this.character.applyDeckConfig(decks.character.cards);
-        }
+        // Apply flags first: expansion toggles restore that expansion's default
+        // counts, so applying card counts before them would overwrite custom decks.
         if (decks.useBonusSouls) {
           this.playWithBonusSouls.value = decks.useBonusSouls.value;
         }
@@ -690,6 +673,25 @@ export class GameParameters {
           this.nbPlayerCardRestriction.value =
             decks.nbPlayerCardRestriction.value;
         }
+        if (decks.monster) {
+          this.monster.applyDeckConfig(decks.monster.cards);
+        }
+        if (decks.treasure) {
+          this.treasure.applyDeckConfig(decks.treasure.cards);
+        }
+        if (decks.loot) {
+          this.loot.applyDeckConfig(decks.loot.cards);
+        }
+        if (decks.bsoul) {
+          this.bsoul.applyDeckConfig(decks.bsoul.cards);
+        }
+        if (decks.room) {
+          this.room.applyDeckConfig(decks.room.cards);
+        }
+        if (decks.character) {
+          this.character.applyDeckConfig(decks.character.cards);
+        }
+        this._deckMode = deckMode;
         continue;
       }
       if (this.hasOwnProperty(key)) {
