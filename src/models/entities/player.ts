@@ -615,6 +615,8 @@ export class Player extends Entity {
       //   throw new GameError("Character already defined", toSerializedTranslation("error.behaviorError", {error: "Character already defined"}))
       this.character = card;
     }
+    else if (card.eternal)
+      this._inPlay.splice(this.inPlay.findIndex(c => c.eternal === false),0, card);
     else
       this._inPlay.push(card);
   }
