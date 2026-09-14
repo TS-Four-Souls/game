@@ -30,13 +30,13 @@ export function gainCoinsEffect(game: Game, amount: number, issuerType: "issuer"
 export function gainCoinsEffect(game: Game, amount: number, issuerType: "issuer" | "current", youMayHandling: [true]): AsyncEffectFunction
 export function gainCoinsEffect(game: Game, amount: number, issuerType: "issuer" | "current" = "issuer", youMayHandling: boolean[] = [false]): EffectFunction {
     return async (data: EffectData) => {
+        const issuer = issuerType === "issuer" ? data.issuer : game.currentPlayer;
+        if(issuer instanceof Player === false) return false;
         if (youMayHandling[0]) {
-            const choice = (await data.selectAndRecord(game, data.issuer as Player, 0, 1, [data.it], qq("pending.gainCoins"), data.serializedCardAndBox, false, true)).selected;
+            const choice = (await data.selectAndRecord(game, issuer as Player, 0, 1, [data.it], qq("pending.gainCoins"), data.serializedCardAndBox, false, true)).selected;
             if(choice.length === 0) return false;
         }
         youMayHandling[0] = false;
-        const issuer = issuerType === "issuer" ? data.issuer : game.currentPlayer;
-        if(issuer instanceof Player === false) return false;
         game.gainCoins(issuer, amount, data.it);
         return true;
     };
