@@ -819,7 +819,7 @@ export class GameParameters {
 
   setPlayerCount(count: number): void {
     this._currentNbPlayers = count;
-    if (this.nbPlayerCardRestriction.value) {
+    if (this.nbPlayerCardRestriction.value && this._deckMode === "standard") {
       for (const deck of [
         this.character,
         this.monster,
