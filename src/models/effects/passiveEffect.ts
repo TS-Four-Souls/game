@@ -614,12 +614,15 @@ export function endTurnOnAttackRollXEffect(game: Game, rollValue: number) {
     };
 }
 
-export function cancelNextDeathOfAPlayer(game: Game, description: string): SyncEffectFunction{
-    return (data: EffectData) => {
+export function cancelNextDeathOfAPlayer(game: Game, description: string): AsyncEffectFunction{
+    return async (data: EffectData) => {
         const target = data.next;
 
         if(game.entityHandler.preventDeath(target))
+        {
+            await active.endTurnAndResetStackEffect(game)(data);
             return true;
+        }
         let offDeath: (() => void) | null = null;
         let offEndTurn: (() => void) | null = null;
         const temp: TemporaryEffect = getTemporaryEffect(data);
