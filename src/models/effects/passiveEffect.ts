@@ -2906,19 +2906,20 @@ export function attackingPlayerDealDamageOnRollOf(
     n: number,
     s: string
 ): SyncEffectFunction {
-    return onAnyEventEffect("on:damage:taken", [], game, s,
-            (data: EffectData, event: OnDamageTakenData) =>
+    return onAnyEventEffect("on:dice:resolved", [], game, s,
+            (data: EffectData, event: OnRollData) =>
             {
-                if(event.target !== data.issuer) return false;
-                const source = event.source;
-                if(source instanceof DiceRoll === false) return false;
-                if(event.eventIssuer.isEngagedInCombat === false || event.target.isEngagedInCombat === false) return false;
-                if(source.value !== n) return false
+                if(!event.dice.attackRoll) return false;
+                const target = event.dice.attackData?.target;
+                if(target !== data.issuer) return false;
+                if(event.dice.value !== n) return false;
+                if(event.eventIssuer.isEngagedInCombat === false || target.isEngagedInCombat === false) return false;
                 const effect: SyncEffectFunction = active.dealDamageToTargetEffect(game, game.entityHandler.getAttack(event.eventIssuer),false, [], "current");
-                const newData: EffectData = new EffectData(data.it, ()=>event.eventIssuer, [data.issuer], data.visualEffectBox);
+                const newData: EffectData = new EffectData(data.it, ()=>event.eventIssuer, [target], data.visualEffectBox);
                 addPassiveEffectToStack(game, effect, newData, s, data.visualEffectBox);
                 return true;
-            }
+            },
+            false
          );
 }
 
