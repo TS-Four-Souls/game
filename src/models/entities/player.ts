@@ -616,7 +616,11 @@ export class Player extends Entity {
       this.character = card;
     }
     else if (card.eternal)
-      this._inPlay.splice(this.inPlay.findIndex(c => c.eternal === false),0, card);
+    {
+      let idx = this.inPlay.findIndex(c => c.eternal === false);
+      idx = idx < 0 ? this._inPlay.length : idx;
+      this._inPlay.splice(idx ,0, card);
+    }
     else
       this._inPlay.push(card);
   }

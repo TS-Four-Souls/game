@@ -603,4 +603,40 @@ describe("Known bugs that have be corrected", () => {
 
         expect(player1.inPlay.length).toBe(3);
     });
+    
+    it("knight bug", async () => {
+        const setup = await setupTestGame({
+            characters: ["r-the_fettered", "b2-isaac"],
+            monsters: ["g2-knight", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter"],
+            treasureDeck: ["b2-blank_card", "b2-placebo", "b2-tech_x"],
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        const m = game.monsters[0]!
+        expect(game.monsters[0]!.id).toBe("g2-knight");
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, game.monsters[0]!);
+        game.random = () => 0.01;
+        await game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.currentHealthPoints).toBe(2);
+        expect(m.currentHealthPoints).toBe(1);
+        expect(game.stack.isEmpty()).toBe(true);
+
+        await game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.currentHealthPoints).toBe(2);
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(m.currentHealthPoints).toBe(0);
+    });
 });
