@@ -83,7 +83,10 @@ export class Game {
     this._emitter = new GameEventEmitter();
     this._gameStateSerializer = new GameStateSerializer(this);
     if(gameParameters !== undefined)
-      this.gameParameters.loadFromJson(gameParameters.toJson());
+      this.gameParameters.loadFromJson(
+        gameParameters.toJson(),
+        gameParameters.deckMode,
+      );
   }
 ////////////////////////////////////// Getters //////////////////////////////////////
 

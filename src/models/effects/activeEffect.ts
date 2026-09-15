@@ -30,13 +30,13 @@ export function gainCoinsEffect(game: Game, amount: number, issuerType: "issuer"
 export function gainCoinsEffect(game: Game, amount: number, issuerType: "issuer" | "current", youMayHandling: [true]): AsyncEffectFunction
 export function gainCoinsEffect(game: Game, amount: number, issuerType: "issuer" | "current" = "issuer", youMayHandling: boolean[] = [false]): EffectFunction {
     return async (data: EffectData) => {
+        const issuer = issuerType === "issuer" ? data.issuer : game.currentPlayer;
+        if(issuer instanceof Player === false) return false;
         if (youMayHandling[0]) {
-            const choice = (await data.selectAndRecord(game, data.issuer as Player, 0, 1, [data.it], qq("pending.gainCoins"), data.serializedCardAndBox, false, true)).selected;
+            const choice = (await data.selectAndRecord(game, issuer as Player, 0, 1, [data.it], qq("pending.gainCoins"), data.serializedCardAndBox, false, true)).selected;
             if(choice.length === 0) return false;
         }
         youMayHandling[0] = false;
-        const issuer = issuerType === "issuer" ? data.issuer : game.currentPlayer;
-        if(issuer instanceof Player === false) return false;
         game.gainCoins(issuer, amount, data.it);
         return true;
     };
@@ -3181,9 +3181,15 @@ export function dealDamageToTargetEffect(game: Game, amount: number, selectionOn
         if(selectionOnResolve){
             if(issuer instanceof Player === false) 
                 throw new GameError("Issuer should be a player to select target for dealDamageToTargetEffect.", toSerializedTranslation("error.behaviorError", { error: "Issuer should be a player to select target for dealDamageToTargetEffect."}));
-            if(selectors[0]!.selector(issuer, data.it).length === 0)
+            const targets = selectors[0]!.selector(issuer, data.it);
+            if(targets.length === 0)
                 return false;
-            const selectionResult = (await data.selectAndRecord(game, issuer, 1, 1, selectors[0]!.selector(issuer, data.it), qq("pending.anotherMobToDealDamageTo", { value: amount }), data.serializedCardAndBox, true, true));
+            let sentence = qq("pending.targetToDealDamageTo", { value: amount });
+            if(targets.every(e => e instanceof Monster) ) // all monsters
+                sentence = qq("pending.monsterToDealXDamageTo", { value: amount });
+            else if(targets.every(e => e instanceof Player)) // all players
+                sentence = qq("pending.playerToDealXDamageTo", { value: amount });
+            const selectionResult = (await data.selectAndRecord(game, issuer, 1, 1, targets, sentence, data.serializedCardAndBox, true, true));
             target = selectionResult.selected[0];
         }
         if(!(target instanceof Entity))

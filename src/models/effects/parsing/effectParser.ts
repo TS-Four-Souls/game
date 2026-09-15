@@ -1030,6 +1030,9 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
             return {effectFunction: active.trueEffect(), targetSelectors: selectPlayer(game)};
         case "recharge up to x items you control":
             return noTargetEffect(active.rechargeUpToXItems(game, nr.nextNumber(), "youControl", youMayEffectHanging));
+        case "choose a player. the next time that player would die this turn, prevent death. if it's their turn, cancel everything that hasn't resolved and end it":
+        case "choose a player. the next time that player would die this turn, prevent it. if it's their turn, cancel everything that hasn't resolved and end it":
+            return { effectFunction: passive.cancelNextDeathOfAPlayer(game, s), targetSelectors: selectAlivePlayer(game) };
     }
     return null;
 }
@@ -1417,9 +1420,6 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             return { effectFunction: passive.lootOnNextRollEffect(game, nr.nextNumber()), targetSelectors: [...selectDiceWillRoll(game),...selectNumber1to6()] };
         case "when you roll an attack roll of x, end your turn. cancel everything that hasn't resolved":
             return noTargetSyncEffect(passive.endTurnOnAttackRollXEffect(game, nr.nextNumber()));
-        case "choose a player. the next time that player would die this turn, prevent death. if it's their turn, cancel everything that hasn't resolved and end it":
-        case "choose a player. the next time that player would die this turn, prevent it. if it's their turn, cancel everything that hasn't resolved and end it":
-            return { effectFunction: passive.cancelNextDeathOfAPlayer(game, s), targetSelectors: selectAlivePlayer(game) };
         case "the next time a player would roll a dice, they instead roll x dice. you choose one of the rolls as the result":
             return noTargetSyncEffect(passive.rollXChoose1Effect(game, nr.nextNumber(), true, "issuer"));
         case "you gain x [hp] till the end of turn":

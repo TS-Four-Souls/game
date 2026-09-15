@@ -89,7 +89,7 @@ export class GameStateSerializer {
         rollDice: this.game.actions.canRollDice(player),
         buyTreasure: this.game.actions.canPurchase(player),
         useLoot: this.game.actions.canPlayCard(player),
-        resolve: this.game.actions.canResolve(),
+        resolve: this.game.actions.canResolve(player),
         canSwitchTo: this.game.actions.canSwitchTo(player, player),
         canDonateCoinsTo: toSerializedTranslation("capability.cannotGiveCoinToSelf"),
       }
@@ -316,7 +316,7 @@ export class GameStateSerializer {
         capabilities: {
           targetableDeck: this.game.actions.canDeclareAttackOnEntity(player, "topDeck", false),
         },
-        inPlay: this.game.encounters._slots.map((m, index) => (
+        inPlay: this.game.encounters._slots.filter(s => s.length > 0).map((m, index) => (
           { card: m[m.length - 1]!, 
             monster: this.game.encounters.monsterIn(index), 
             covered: this.game.encounters._slots[index]!.slice(0, -1).map(c => c.jsonAPI) })).map((m) => ({

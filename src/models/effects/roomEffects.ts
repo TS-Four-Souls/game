@@ -901,59 +901,109 @@ export function playersWithFewestSoulsAttackBoostEffect(game: Game, attackBoost:
     };
 }
 
-
-export function playersWithFewestSoulsShopItemPriceReductionEffect(game: Game, priceReduction: number): SyncEffectFunction {
+export function playersWithFewestSoulsShopItemPriceReductionEffect(
+    game: Game,
+    priceReduction: number,
+): SyncEffectFunction {
     return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
         let offPurchase: (() => void) | null = null;
         let offTurnEnd: (() => void) | null = null;
         let offSoulGained: (() => void) | null = null;
-        let playersWithFewestSouls: Player[] = [];
-        let pay0Next = true;
-        /**
-         * compute the players with least souls.
-         * If the current player is among them, reduce their price modifier.
-         */
-        function computeEffect(): void {
-            const minSouls = Math.min(...game.players.map(p => p.totalSouls));
-            playersWithFewestSouls = game.players.filter(p => p.totalSouls === minSouls);
-            if(playersWithFewestSouls.includes(game.currentPlayer) && pay0Next)
-                game.currentPlayer.priceModifier -= game.shop.shopPrice - priceReduction;
+        let offSoulRemoved: (() => void) | null = null;
+
+        let canUseFreePurchase = true;
+        let effectApplied = false;
+        let appliedReduction = 0;
+
+        function currentPlayerHasFewestSouls(): boolean {
+            const minSouls = Math.min(
+                ...game.players.map(player => player.totalSouls),
+            );
+
+            return game.currentPlayer.totalSouls === minSouls;
         }
-        /** When a shop item is purchase, if the current player has his cost reduced, remove the reduction.
-         */
-        offPurchase = game.emitter.on("on:purchase:success", (eventData) => {
-             const { eventIssuer, index } = eventData;
-             if(eventIssuer === game.currentPlayer && index !== "top" && playersWithFewestSouls.includes(game.currentPlayer) && pay0Next) {
-                removeEffect();
-                pay0Next = false;
-             }
-        });
+
         function removeEffect(): void {
-            if(playersWithFewestSouls.includes(game.currentPlayer) && pay0Next)
-            {
-                game.currentPlayer.priceModifier += game.shop.shopPrice - priceReduction;
+            if (!effectApplied) {
+                return;
             }
+
+            game.currentPlayer.priceModifier += appliedReduction;
+
+            effectApplied = false;
+            appliedReduction = 0;
         }
-        
-        computeEffect();
-        offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
-            computeEffect();
-            pay0Next = true;
+
+        function applyEffect(): void {
+            // Idempotent: safe after turn-start, soul-gain, or initialization.
+            removeEffect();
+
+            if (!canUseFreePurchase || !currentPlayerHasFewestSouls()) {
+                return;
+            }
+            appliedReduction = game.shop.shopPrice;
+
+            game.currentPlayer.priceModifier -= appliedReduction;
+            effectApplied = true;
+        }
+
+        offPurchase = game.emitter.on("on:purchase:success", eventData => {
+            const { eventIssuer, index } = eventData;
+
+            const isShopItemPurchase = index !== "top";
+
+            if (
+                eventIssuer === game.currentPlayer &&
+                isShopItemPurchase &&
+                effectApplied
+            ) {
+                // Consume the effect before later events can reapply it.
+                canUseFreePurchase = false;
+                removeEffect();
+            }
         });
-        offTurnEnd = game.emitter.on("on:turn:end", (eventData) => {
+
+        offTurnStart = game.emitter.on("on:turn:start", () => {
+            // The once-per-turn allowance becomes available only here.
+            canUseFreePurchase = true;
+            applyEffect();
+        });
+
+        offTurnEnd = game.emitter.on("on:turn:end", () => {
             removeEffect();
         });
-        offSoulGained = game.emitter.on("on:soul:gained", (eventData) => {
-            removeEffect();
-            computeEffect();
+
+        offSoulGained = game.emitter.on("on:soul:gained", () => {
+            applyEffect();
         });
-        // Store cleanup function on the card for when it's removed/destroyed
+
+        offSoulRemoved = game.emitter.on("on:soul:removed", () => {
+            applyEffect();
+        });
+
+        // Cover the case where the card becomes active mid-turn.
+        applyEffect();
+
         data.it.cleaners.push(() => {
+            removeEffect();
+
             offTurnStart?.();
             offTurnStart = null;
-            removeEffect();
+
+            offPurchase?.();
+            offPurchase = null;
+
+            offTurnEnd?.();
+            offTurnEnd = null;
+
+            offSoulGained?.();
+            offSoulGained = null;
+
+            offSoulRemoved?.();
+            offSoulRemoved = null;
         });
+
         return true;
     };
 }

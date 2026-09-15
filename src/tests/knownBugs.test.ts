@@ -24,6 +24,24 @@ describe("Known bugs that have be corrected", () => {
     // it("", async () => {
     // });
     
+    it("The poop can remove damage on stack twice in a row", async () => {
+        const c1 = game.obtainCard("b2-the_poop") as ItemCard;
+        game.cardHandler.addInPlay(player1, c1);
+        game.cardHandler.addToCounter(player1, c1, "normal", 2);
+        game.entityHandler.dealDamage(player1,player1, {card: c1, visualEffectBox: undefined}, 1);
+        await game.activateItem(player1, c1, [], 0);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
+        game.entityHandler.dealDamage(player1,player1, {card: c1, visualEffectBox: undefined}, 1);
+        await game.activateItem(player1, c1, [], 0);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(player1.currentHealthPoints).toBe(2);
+    });
+    
     it("swap item works with trinket", async () => {
         const c1 = game.obtainCard("b2-decoy") as ItemCard;
         const c2 = game.obtainCard("b2-counterfeit_penny") as LootCard;
@@ -586,5 +604,41 @@ describe("Known bugs that have be corrected", () => {
         player2 = setup.player2!;
 
         expect(player1.inPlay.length).toBe(3);
+    });
+    
+    it("knight bug", async () => {
+        const setup = await setupTestGame({
+            characters: ["r-the_fettered", "b2-isaac"],
+            monsters: ["g2-knight", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter"],
+            treasureDeck: ["b2-blank_card", "b2-placebo", "b2-tech_x"],
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        const m = game.monsters[0]!
+        expect(game.monsters[0]!.id).toBe("g2-knight");
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, game.monsters[0]!);
+        game.random = () => 0.01;
+        await game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.currentHealthPoints).toBe(2);
+        expect(m.currentHealthPoints).toBe(1);
+        expect(game.stack.isEmpty()).toBe(true);
+
+        await game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.currentHealthPoints).toBe(2);
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(m.currentHealthPoints).toBe(0);
     });
 });
