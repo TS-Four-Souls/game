@@ -9,6 +9,7 @@ import { roomManager } from "./roomManager";
 import { enterStartStep } from "./startStep";
 import type { RoomWithGame, Socket, User } from "./types";
 import {
+  attachGameEventListeners,
   errorGuardedEndpoint,
   getUserByName,
   leaveCurrentStep,
@@ -73,24 +74,7 @@ export const enterGameStep = (
 
       room.game = newGame;
 
-      room.game.onStateChange.add(() => {
-        sendRoomChangedToAll(room);
-      });
-
-      room.game.onRoomBroadcast.add((broadcast) => {
-        room.users.forEach((user) => {
-          user.instances.forEach((instance) => {
-            if (!instance.isActive) return;
-            if (broadcast.players.includes(instance.name)) {
-              user.socket.emit("on:room:broadcast", {
-                type: broadcast.type,
-                title: broadcast.title,
-                message: broadcast.message,
-              });
-            }
-          });
-        });
-      });
+      attachGameEventListeners(room);
 
       sendRoomChangedToAll(room);
 
@@ -98,6 +82,16 @@ export const enterGameStep = (
         leaveCurrentStep(user.socket);
         enterGameStep(user.socket, room, user);
         user.socket.emit("on:room:broadcast", {
+          type: "info",
+          title: toSerializedTranslation("toast.rollback.title", {
+            player: player.id,
+          }),
+          message: toSerializedTranslation("toast.rollback.message"),
+        });
+      }
+
+      for (const spectator of room.spectators) {
+        spectator.socket.emit("on:room:broadcast", {
           type: "info",
           title: toSerializedTranslation("toast.rollback.title", {
             player: player.id,
@@ -304,8 +298,10 @@ export const enterGameStep = (
   socket.on("quitGame", async (callback) =>
     errorGuardedEndpoint(callback, () => {
       for (const user of room.users) {
-        const socket = user.socket;
-        socket.emit("on:game:quit", player.id);
+        user.socket.emit("on:game:quit", player.id);
+      }
+      for (const spectator of room.spectators) {
+        spectator.socket.emit("on:game:quit", player.id);
       }
 
       roomManager.finalizeGameRecord(room);

@@ -997,6 +997,14 @@ export const detailedStateSchema = z.object({
   history: z.array(stackElementSchema),
   animations: z.array(animationSchema),
   lastStackElementTimeStamp: z.number(),
+  pendingSelections: z.array(
+    z.object({
+      player: z.object({ name: z.string(), color: z.string() }),
+      reason: pendingSelectionReasonSchema,
+      description: serializedTranslationSchema,
+      requestId: z.number(),
+    }),
+  ),
 });
 export type DetailedState = z.infer<typeof detailedStateSchema>;
 
@@ -1024,6 +1032,12 @@ const roomSchema = z.object({
   gameParameters: gameParametersSchema,
   game: detailedStateSchema.optional(),
   isJoinAllowed: z.boolean(),
+  isSpectator: z.boolean(),
+  spectatorCount: z.number(),
+  createdAt: z.date(),
+  capabilities: z.object({
+    join: capabilitySchema,
+  }),
 });
 export type Room = z.infer<typeof roomSchema>;
 
@@ -1033,13 +1047,6 @@ const roomBroadcastSchema = z.object({
   message: serializedTranslationSchema,
 });
 export type RoomBroadcast = z.infer<typeof roomBroadcastSchema>;
-
-const roomStatusSchema = z.object({
-  playerCount: z.number(),
-  isGameOngoing: z.boolean(),
-  canJoin: capabilitySchema,
-});
-export type RoomStatus = z.infer<typeof roomStatusSchema>;
 
 const saveGameResponseSchema = z.union([
   z.object({
@@ -1064,11 +1071,11 @@ const enterRoomRequestSchema = z.discriminatedUnion("type", [
     roomId: z.string(),
     name: z.string(),
   }),
+  z.object({
+    type: z.literal("spectate"),
+    roomId: z.string(),
+  }),
 ]);
-
-const subscribeRoomStatusRequestSchema = z.object({
-  roomId: z.string(),
-});
 const setJoinPermissionSchema = z.boolean();
 
 const loadGameRequestSchema = z.string();
@@ -1218,7 +1225,6 @@ export const schemas = {
   purchaseRequest: purchaseSchema,
   giveCoinsRequest: giveCoinsSchema,
   enterRoomRequest: enterRoomRequestSchema,
-  subscribeRoomStatusRequest: subscribeRoomStatusRequestSchema,
   setJoinPermission: setJoinPermissionSchema,
   loadGameRequest: loadGameRequestSchema,
   setGameParameterRequest: setGameParameterRequestSchema,
@@ -1263,9 +1269,6 @@ export namespace Requests {
   >;
   export type Contact = z.infer<typeof contactRequestSchema>;
   export type EnterRoom = z.infer<typeof enterRoomRequestSchema>;
-  export type SubscribeRoomStatus = z.infer<
-    typeof subscribeRoomStatusRequestSchema
-  >;
   export type SetJoinPermission = z.infer<typeof setJoinPermissionSchema>;
   export type LoadGame = z.infer<typeof loadGameRequestSchema>;
   export type LoadGameParameters = z.infer<
@@ -1320,8 +1323,6 @@ export namespace Responses {
   export type GiveCoins = BasicResponse;
   export type CreateRoom = BasicResponse;
   export type EnterRoom = BasicResponse;
-  export type SubscribeRoomStatus = BasicResponse;
-  export type UnsubscribeRoomStatus = BasicResponse;
   export type SetJoinPermission = BasicResponse;
   export type LeaveRoom = BasicResponse;
   export type QuitGame = BasicResponse;
@@ -1341,7 +1342,6 @@ export namespace Responses {
 
 export interface ServerToClientEvents {
   "on:room:changed": (room: Room | null) => void;
-  "on:room-status:changed": (status: RoomStatus) => void;
   "on:user:assigned": (userId: string | null) => void;
   "on:room:broadcast": (broadcast: RoomBroadcast) => void;
   "on:game:quit": (userId: string) => void;
@@ -1357,15 +1357,6 @@ export interface ClientToServerEvents {
   enterRoom: (
     request: Requests.EnterRoom,
     callback: (response: Responses.EnterRoom) => void,
-  ) => void;
-
-  subscribeRoomStatus: (
-    request: Requests.SubscribeRoomStatus,
-    callback: (response: Responses.SubscribeRoomStatus) => void,
-  ) => void;
-
-  unsubscribeRoomStatus: (
-    callback: (response: Responses.UnsubscribeRoomStatus) => void,
   ) => void;
 
   leaveRoom: (callback: (response: Responses.LeaveRoom) => void) => void;

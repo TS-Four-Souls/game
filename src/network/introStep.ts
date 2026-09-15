@@ -4,15 +4,16 @@ import {
   type Instance,
   type Room,
   type Socket,
+  type Spectator,
   type User,
 } from "./types";
 import {
   isRoomWithGame,
   errorGuardedEndpoint,
+  getFirstViewableInstance,
   leaveCurrentStep,
   payloadGuardedEndpoint,
   sendRoomChangedToAll,
-  sendRoomStatusChangedToSocket,
   sendUserAssigned,
   updatePlayerCount,
 } from "./utils";
@@ -20,9 +21,11 @@ import { enterStartStep } from "./startStep";
 import { schemas, Team } from "@/shared/api";
 import { enterGameStep } from "./gameStep";
 import { globalEndpoints } from "./global";
-import { MAX_PLAYER_COUNT, roomManager } from "./roomManager";
+import { roomManager } from "./roomManager";
 import { enterAdminStep } from "./adminStep";
 import { toSerializedTranslation } from "@/utils/translation";
+import { enterSpectatorStep } from "./spectatorStep";
+import { joinRoomAsPlayer } from "./joinRoom";
 
 export const enterIntroStep = (socket: Socket): void => {
   globalEndpoints(socket);
@@ -104,38 +107,6 @@ export const enterIntroStep = (socket: Socket): void => {
     ),
   );
 
-  socket.on("subscribeRoomStatus", async (payload, callback) =>
-    errorGuardedEndpoint(callback, async () =>
-      payloadGuardedEndpoint(
-        payload,
-        schemas.subscribeRoomStatusRequest,
-        callback,
-        (payload) => {
-          const room = roomManager.findRoom(payload.roomId);
-
-          if (!room) {
-            return callback({
-              status: 400,
-              error: toSerializedTranslation("error.roomNotFound"),
-            });
-          }
-
-          roomManager.removeSpectator(socket);
-          room.spectators.push({ socket });
-          sendRoomStatusChangedToSocket(socket, room);
-          return callback({ status: 200 });
-        },
-      ),
-    ),
-  );
-
-  socket.on("unsubscribeRoomStatus", async (callback) =>
-    errorGuardedEndpoint(callback, () => {
-      roomManager.removeSpectator(socket);
-      return callback({ status: 200 });
-    }),
-  );
-
   socket.on("enterRoom", async (payload, callback) =>
     errorGuardedEndpoint(callback, async () =>
       payloadGuardedEndpoint(
@@ -149,6 +120,28 @@ export const enterIntroStep = (socket: Socket): void => {
             return callback({ status: 400, error: toSerializedTranslation("error.roomNotFound") });
           }
 
+          if (payload.type === "spectate") {
+            const viewing = getFirstViewableInstance(room);
+            if (!viewing) {
+              return callback({
+                status: 400,
+                error: toSerializedTranslation("error.roomNotFound"),
+              });
+            }
+
+            roomManager.removeSpectator(socket);
+            leaveCurrentStep(socket);
+
+            const spectator: Spectator = {
+              socket,
+              viewingName: viewing.name,
+            };
+            room.spectators.push(spectator);
+            enterSpectatorStep(socket, room, spectator);
+            sendRoomChangedToAll(room);
+            return callback({ status: 200 });
+          }
+
           if (payload.type === "rejoin") {
             const joinAsUser = room.users.find((user) =>
               user.instances.some((instance) => instance.id === payload.userId),
@@ -156,6 +149,7 @@ export const enterIntroStep = (socket: Socket): void => {
             if (!joinAsUser) {
               return callback({ status: 400, error: toSerializedTranslation("error.userNotFound") });
             }
+            roomManager.removeSpectator(socket);
             joinAsUser.socket = socket;
             leaveCurrentStep(socket);
             if (isRoomWithGame(room)) {
@@ -164,84 +158,8 @@ export const enterIntroStep = (socket: Socket): void => {
               enterStartStep(socket, room, joinAsUser);
             }
           } else {
-            if (!room.isJoinAllowed) {
-              return callback({ status: 400, error: toSerializedTranslation("error.roomLocked") });
-            }
-
-            if (
-              room.users.flatMap((user) => user.instances).length >=
-              MAX_PLAYER_COUNT
-            ) {
-              return callback({ status: 400, error: toSerializedTranslation("error.roomFull") });
-            }
-
-            if (room.game !== undefined) {
-              return callback({
-                status: 400,
-                error: toSerializedTranslation("error.gameStarted"),
-              });
-            }
-
-            if (payload.name.length === 0) {
-              return callback({ status: 400, error: toSerializedTranslation("error.nameRequired") });
-            }
-
-            if (payload.name.length > 16) {
-              return callback({
-                status: 400,
-                error: toSerializedTranslation("error.nameLength"),
-              });
-            }
-
-            if (!/^[a-zA-Z0-9_]+$/.test(payload.name)) {
-              return callback({
-                status: 400,
-                error: toSerializedTranslation("error.nameContent"),
-              });
-            }
-
-            if (
-              room.users.some((user) =>
-                user.instances.some(
-                  (instance) => instance.name === payload.name,
-                ),
-              )
-            ) {
-              return callback({
-                status: 400,
-                error: toSerializedTranslation("error.nameAlreadyExists"),
-              });
-            }
-
-            const firstUnusedTeam =
-              [Team.Team1, Team.Team2, Team.Team3, Team.Team4].find(
-                (team) =>
-                  !room.users.some((user) =>
-                    user.instances.some((instance) => instance.team === team),
-                  ),
-              ) ?? Team.Team1;
-
-            const instance: Instance = {
-              id: generateUserId(),
-              name: payload.name,
-              isCopy: false,
-              isActive: true,
-              character: DEFAULT_CHARACTER,
-              team: firstUnusedTeam,
-            };
-            const user: User = {
-              instances: [instance],
-              socket,
-              isHost: false,
-            };
-            sendUserAssigned(socket, instance);
-
-            room.users.push(user);
-            updatePlayerCount(room);
-
-            leaveCurrentStep(socket);
-            enterStartStep(socket, room, user);
-            sendRoomChangedToAll(room);
+            joinRoomAsPlayer(socket, room, payload.name, callback);
+            return;
           }
           return callback({ status: 200 });
         },

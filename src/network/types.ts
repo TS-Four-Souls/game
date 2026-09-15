@@ -28,8 +28,10 @@ export interface User {
   instances: Instance[];
 }
 
+/** Inside the room — read-only view as a player. */
 export interface Spectator {
   socket: Socket;
+  viewingName: string;
 }
 
 export interface Room {
