@@ -30,10 +30,6 @@ import { toSerializedTranslation } from "@/utils/translation";
  * // Continue until complete
  * ```
  */
-
-function isTrinketBeingPlayed(item: Card): boolean{
-    return item instanceof LootCard && item.trinket && item.getActiveEffect() === undefined
-}
 export class TargetBuilder {
     private static shouldAutofillSelector(selector: TargetsSelector, possibleTargets: any[]): boolean {
         return selector.min === possibleTargets.length && selector.max === possibleTargets.length;
@@ -146,12 +142,11 @@ export class TargetBuilder {
                 complete: boolean,
                 isChooseOne: boolean,
             } {
-
         if(!bypassAsserPendingSelection)
             game.assert.noPendingSelection();
         if(!item)
             throw new GameError(`Item not found.`, toSerializedTranslation("error.itemNotFound"));
-        if(isTrinketBeingPlayed(item))
+        if(item instanceof LootCard && item.trinket)
             return this.completeResponse();
         if(throwIfNotCharged && effectId === "tap" && !item.charged)
             throw new GameError(`Item ${item.name} is not charged.`, toSerializedTranslation("capability.notCharged"));
@@ -164,6 +159,7 @@ export class TargetBuilder {
         if (!selector) {
             return TargetBuilder.completeResponse();
         }
+
         // Walk through choices using for loop
         let choicesProcessed = 0;
         for (let i = 0; i < partialChoices.length; i++) {
@@ -458,7 +454,7 @@ export class TargetBuilder {
         game.assert.noPendingSelection();
         if(!item)
             throw new GameError(`Item not found.`, toSerializedTranslation("error.itemNotFound"));
-        if(isTrinketBeingPlayed(item))
+        if(item instanceof LootCard && item.trinket)
             return [];
         const rootSelectors = [...item.getEffectTarget(effectId)];
         const result: any[] = [];
@@ -533,7 +529,7 @@ export class TargetBuilder {
     ): Promise<any[]> {
         if(!item)
             throw new GameError(`Item not found or has no active effect.`, toSerializedTranslation("error.itemNotFoundOrNoActiveEffect"));
-        if(isTrinketBeingPlayed(item))
+        if(item instanceof LootCard && item.trinket)
             return [];
         if(effectId === "tap"){
             const activeEffect = item.getActiveEffect();
@@ -637,7 +633,7 @@ export class TargetBuilder {
     ): Capability {
         if(!item)
             return toSerializedTranslation("error.itemNotFound");
-        if(isTrinketBeingPlayed(item))
+        if(item instanceof LootCard && item.trinket)
             return true;
         // console.log(`Checking valid targets for item: ${item.name}, effectId: ${effectId} descr ${item.activeEffectList[effectId as number]?.description}`);
         if(effectId !== "tap")
