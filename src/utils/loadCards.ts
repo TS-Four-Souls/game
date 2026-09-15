@@ -1,16 +1,20 @@
 import fs from "fs/promises";
 import path from "path";
 import { type GenericCardType } from "../types/cardTypes.ts";
-export const FORBIDDEN_PREFIXES: string[] = process.env.FORBIDDEN_PREFIXES?.split(",") ?? [];
+export const FORBIDDEN_PREFIXES: string[] =
+  !process.env.FORBIDDEN_PREFIXES || process.env.FORBIDDEN_PREFIXES === ""
+    ? []
+    : process.env.FORBIDDEN_PREFIXES.split(",");
 
-function prefixIsAccepted(slug:string){
-  for(const prefix of FORBIDDEN_PREFIXES)
-    if(slug.startsWith(prefix))
-      return false;
+function prefixIsAccepted(slug: string) {
+  for (const prefix of FORBIDDEN_PREFIXES)
+    if (slug.startsWith(prefix)) return false;
   return true;
 }
 
-export async function loadCards(dirPath: string | undefined): Promise<GenericCardType[]> {
+export async function loadCards(
+  dirPath: string | undefined,
+): Promise<GenericCardType[]> {
   const dir = dirPath
     ? path.resolve(dirPath)
     : path.resolve(process.cwd(), "/four-souls-game/data/cards");
@@ -30,7 +34,7 @@ export async function loadCards(dirPath: string | undefined): Promise<GenericCar
   for (const entry of entries.toSorted()) {
     // only consider .json files
     if (!entry.toLowerCase().endsWith(".json")) continue;
-    if(!prefixIsAccepted(entry)) continue;
+    if (!prefixIsAccepted(entry)) continue;
     const filePath = path.join(dir, entry);
     try {
       const stat = await fs.stat(filePath);
@@ -46,7 +50,7 @@ export async function loadCards(dirPath: string | undefined): Promise<GenericCar
       console.warn(`Skipping ${entry}: ${err?.message ?? err}`);
     }
   }
-  
+
   return cards;
 }
 
