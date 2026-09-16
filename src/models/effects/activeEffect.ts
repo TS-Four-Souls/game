@@ -781,14 +781,14 @@ export function stealCoinsEffect(game: Game, amount: number): SyncEffectFunction
     };
 }
 
-export function lookAtTop3Put1InSlotEffect(game: Game, x: number): AsyncEffectFunction {
+export function lookAtTopXPut1InSlotEffect(game: Game, x: number): AsyncEffectFunction {
     return async (data: EffectData) => {
         if(game.entitiesInCombat.length > 0)
             return false;
         if (data.issuer instanceof Player === false) return false;
         const deck = data.next;
         if(!isDeckType(deck._type) || !deck)
-            throw new GameError(`Target of lookAtTop3Put1InSlotEffect should be a deck type, got ${deck}`, toSerializedTranslation("error.behaviorError", { error: `Target of lookAtTop3Put1InSlotEffect should be a deck type, got ${deck}`}));
+            throw new GameError(`Target of lookAtTopXPut1InSlotEffect should be a deck type, got ${deck}`, toSerializedTranslation("error.behaviorError", { error: `Target of lookAtTopXPut1InSlotEffect should be a deck type, got ${deck}`}));
         const topCards = game.cardHandler.getFirstCardsOfDeck(deck._type, x);
         if (topCards.length === 0) return false;
         const selectedCard = (await data.selectAndRecord(game, data.issuer, 1, 1, topCards, qq("pending.cardToPutInSlot"), data.serializedCardAndBox, true, true)).selected[0]!;
@@ -1249,14 +1249,15 @@ export function lootEqualToCardsDiscardedEffect(game: Game): SyncEffectFunction 
 }
 
 export function discardTopOfDeckEffect(game: Game, youMayEffectHanging: boolean[] = [false]): AsyncEffectFunction {
+    const youMay: boolean = youMayEffectHanging[0]!;
+    youMayEffectHanging[0] = false;
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const selection = (await data.selectAndRecord(game, data.issuer, youMayEffectHanging[0] ? 0 : 1, 1, deckSelector(undefined, game)(data.issuer), qq("pending.deckToDiscardTopCardOf"), data.serializedCardAndBox, true, true)).selected;
+        const selection = (await data.selectAndRecord(game, data.issuer, youMay ? 0 : 1, 1, deckSelector(undefined, game)(data.issuer), qq("pending.deckToDiscardTopCardOf"), data.serializedCardAndBox, true, true)).selected;
         if(selection.length === 0) return true;
         const deck = selection[0];
         if(deck === undefined || !isDeckType(deck._type))
             throw new GameError(`Invalid deck type: ${deck._type}`, toSerializedTranslation("error.invalidDeckType", { deckType: deck._type }));
-        youMayEffectHanging[0] = false;
         const topCard = deck.draw();
         game.cardHandler.discard(topCard);
         return true;
@@ -3330,13 +3331,13 @@ export function addOrSubtractXFromRollEffect(game: Game): SyncEffectFunction {
     };
 }
 
-export function eachOtherPlayerLootsAndYouLootEffect(game: Game, amount: number): AsyncEffectFunction {
+export function eachOtherPlayerLootsGivesYouOneEffect(game: Game, amount: number): AsyncEffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         for (const player of game.players) {
             if (player !== data.issuer) {
-                const choice = (await data.selectAndRecord(game, data.issuer, 1, 1, ["Yes", "No"], qq("pending.doYouWantToLootCards", { value: amount, player: data.issuer.id }), data.serializedCardAndBox, true, true)).selected[0];
-                if(choice === "Yes")
+                const choice = (await data.selectAndRecord(game, data.issuer, 1, 1, [qq("common.yes"), qq("common.no")], qq("pending.doYouWantToLootCards", { value: amount, player: data.issuer.id }), data.serializedCardAndBox, true, true)).selected[0];
+                if(choice !== undefined && choice.key === "common.yes")
                 {
                     game.loot(player, amount);
                     const cardToGive = (await data.selectAndRecord(game, player, 1, 1, player.hand.cards, qq("pending.cardToGiveTo", { player: data.issuer.id }), data.serializedCardAndBox, true, false)).selected[0] as LootCard;

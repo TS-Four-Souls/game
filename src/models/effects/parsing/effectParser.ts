@@ -855,9 +855,9 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
         case "each non-active player discards a loot card":
             return noTargetEffect(active.eachNonActivePlayerDiscardsLootEffect(game));
         case "each other player may choose to loot x. each player that does gives you a loot card":
-            return noTargetEffect(active.eachOtherPlayerLootsAndYouLootEffect(game, nr.nextNumber()));
+            return noTargetEffect(active.eachOtherPlayerLootsGivesYouOneEffect(game, nr.nextNumber()));
         case "look at the top x cards of the room or monster deck. you may put one of those in a slot and the rest back. this can't be activated during an attack":
-            return { effectFunction: active.lookAtTop3Put1InSlotEffect(game, nr.nextNumber()), targetSelectors: selectDeck(game, 1, 1, (name) => ["room", "monster"].includes(name)) };
+            return { effectFunction: active.lookAtTopXPut1InSlotEffect(game, nr.nextNumber()), targetSelectors: selectDeck(game, 1, 1, (name) => ["room", "monster"].includes(name)) };
         case "put a non-event monster card in discard in a monster slot not being attacked":
             return { effectFunction: active.putMonstersFromDiscardIntoSlotsEffect(game, 1), targetSelectors: selectXCardsFromDiscard(game, "monster", 1, 1, (card) => card instanceof MonsterCard && !card.isEvent) };
         case "choose a shop item. this gains the abilities of that item till end of turn":
