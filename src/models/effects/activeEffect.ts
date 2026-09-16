@@ -1573,6 +1573,7 @@ export function healMonsterThenDamageAnotherEffect(game: Game): AsyncEffectFunct
         const monsterToHeal = data.next as Monster;
         if(monsterToHeal === undefined) throw new GameError("No monster selected to heal.", toSerializedTranslation("error.noMonsterSelected"));
         if(!monsterToHeal.isEngagedInCombat) return false;
+        if(monsterToHeal.currentHealthPoints === 0) return false;
 
         const healAmount = monsterToHeal.healthPoints - monsterToHeal.currentHealthPoints;
         game.entityHandler.heal(monsterToHeal, healAmount);
