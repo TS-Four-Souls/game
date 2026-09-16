@@ -325,6 +325,7 @@ export class GameStateSerializer {
             ... (m.card.jsonAPI),
             counter: m.card.counters.getIfDefined("normal"),
             ...(m.monster ? {
+              ...(m.monster.card.counters.json !== undefined ? {counters: m.monster.card.counters.json} : {}),
               stats: {
                 healthPoints: m.monster.currentHealthPoints,
                 attackPoints: this.game.entityHandler.getAttack(m.monster),
