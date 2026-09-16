@@ -812,7 +812,7 @@ export function lookAtTop3Put1InSlotEffect(game: Game, x: number): AsyncEffectFu
 
 export function getCardFromLootDiscardEffect(cardTxt: string | "top", game: Game, exactMatch: boolean): AsyncEffectFunction {
     return async (data: EffectData) => {
-        const possibilities = game.decks.loot.discard.filter(card => exactMatch ? card.name === cardTxt : card.name.includes(cardTxt));
+        const possibilities = game.decks.loot.discard.filter(card => exactMatch ? card.name.toLowerCase() === cardTxt : card.name.toLowerCase().includes(cardTxt));
         if(possibilities.length === 0 && cardTxt !== "top") return false;
         const card = cardTxt === "top" ? game.decks.loot.discard[0] :
             (await data.selectAndRecord(game, data.issuer as Player, 1, 1, possibilities, qq("pending.cardToGet"), data.serializedCardAndBox, true, true)).selected[0]!;
