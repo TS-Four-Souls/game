@@ -6,7 +6,7 @@ import type { Entity } from "../entities/entity";
 import { Monster } from "../entities/monster";
 import { Animated } from "../entities/animated";
 import { getAttackRollEffect } from "../effects/activeEffect";
-import { AttackRollData, DamageOnStack, DiceRoll } from "../stackElement";
+import { AttackRollData, DamageOnStack, DiceRoll, LootStepOnStack } from "../stackElement";
 import { Card, ItemCard, LootCard, MonsterCard, MonsterType, RoomCard, TreasureCard } from "../cards";
 import { LootCardEffect } from '../stackElement';
 import { TargetBuilder } from "../targetBuilder";
@@ -281,12 +281,14 @@ export class ActionHandler {
       this.game.assert.stackNotEmpty();
       this.game.assert.noPendingSelection();
     }
-    if(this.game.stack.peek() instanceof DiceRoll)
+    const elem = this.game.stack.peek();
+    if (elem === undefined) return;
+    if(elem instanceof DiceRoll)
       return this.game.resolveDiceRoll();
-    if(this.game.stack.peek() instanceof DamageOnStack)
+    if(elem instanceof DamageOnStack)
       return this.game.entityHandler.resolveDamageOnStack();
-    const elem = this.game.stack.resolve();
-    if (!elem) return;
+    if(elem instanceof LootStepOnStack === false) // loot step handle it's stack element on its own.
+     this.game.stack.resolve();
 
     await elem.onResolve();
     // Add to history

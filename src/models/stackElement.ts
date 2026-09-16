@@ -475,8 +475,13 @@ export class LootStepOnStack extends StackElement {
     return `LootStep: ${this.player.id} loots ${this.nbLoots} card(s)`;
   }
   override async onResolve(): Promise<void> {
-    this.game.lootStep(this.player, this.nbLoots);
-    return new Promise(resolve => setTimeout(resolve, 0));
+    const ids = this.game.stack.currentStackIds;
+    this.game.emit("on:loot:step", { eventIssuer: this.player, lootStep: this });
+    await this.game.executeWhenStackSubset(ids, async () => {
+      this.game.stack.resolve();
+      this.game.lootStep(this.player, this.nbLoots);
+      return new Promise(resolve => setTimeout(resolve, 0));
+    });
   }
   get nbLoots(){
     return this._nbLoots;

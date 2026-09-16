@@ -634,7 +634,6 @@ export class Game {
       await this.executeWhenStackEmpty(async () => {
         const lootStep = new LootStepOnStack(this.currentPlayer, 1, this);
         this.addToStack(lootStep);
-        this.emit("on:loot:step", { eventIssuer: lootStep.player, lootStep });
       });
     });
   }
