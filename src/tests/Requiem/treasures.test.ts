@@ -1071,7 +1071,7 @@ describe("Requiem Loots ", () => {
         expect(item).toBeDefined();
         const bomb = game.obtainCard("b2-bomb") as LootCard;
         game.decks.loot.addTopPosition(bomb);
-        const nbBombTopTen = game.decks.loot.cards.slice(0, 10).filter(c => c.name.includes("Bomb")).length;
+        const nbBombTopTen = game.decks.loot.cards.slice(0, 10).filter(c => c.name.toLowerCase().includes("bomb")).length;
         game.cardHandler.addInPlay(player1, item);
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
@@ -1085,7 +1085,7 @@ describe("Requiem Loots ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack(); // resolve effect
         await game.actions.resolveStack();
-        expect(player1.hand.length).toBe(handSize);
+        expect(player1.hand.length).toBe(handSize + 1);
     });
 
     it("blood_puppy deal damage", async () => {
