@@ -136,8 +136,9 @@ export function preventDamageToCurrentPlayerAndDealToRandomPlayerEffect(game: Ga
         let offDamage: (() => void) | null = null;
 
         offDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
-            const { eventIssuer, target } = eventData;
+            const { eventIssuer, target, source } = eventData;
             if (data.issuer !== target) return;
+            if( source instanceof DiceRoll === false) return;
             if(game.currentPlayer !== eventIssuer) return;
             const effect: EffectFunction = (effectData: EffectData) => {
                 eventData.damageArray[0] = 0;
