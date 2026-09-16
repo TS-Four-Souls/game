@@ -1208,7 +1208,6 @@ export class CardHandler {
                 if(effectIssuer.inPlay.includes(gainer) === false)
                   return false; // the card must be still in play to use its effect.
                 const card = effectData.next;
-                card.owner = effectIssuer;
                 if(!(card instanceof ItemCard)) {
                     throw new GameError("gainAbilitiesUntilEffect target must be an ItemCard.", toSerializedTranslation("error.behaviorError", {error: "gainAbilitiesUntilEffect target must be an ItemCard."}));
                 }
@@ -1216,6 +1215,7 @@ export class CardHandler {
                   return false;
                     throw new GameError("You can only choose cards granted by this effect.", toSerializedTranslation("error.canOnlyChooseCardsGrantedByGameEffect"));
                 }
+                card.owner = effectIssuer;
                 const effectsWithValidTargets = card.activeEffectList.filter(e => {
                     if(TargetBuilder.validTargetExists(this.game, effectIssuer, card, e.index) !== true) return false;
                     return (e.index === "tap" || TargetBuilder.verifyPaiementCanBeMade(this.game, effectIssuer, card, e.description) === true);

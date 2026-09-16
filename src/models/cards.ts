@@ -354,7 +354,12 @@ class Card {
     }
 
     getActiveEffect(): Effect | undefined {
-        return this._effectInterface.getActiveEffect();
+        try{
+            return this._effectInterface.getActiveEffect();
+        }
+        catch(err){
+            return undefined;
+        }
     }
 
     hasTapEffect(): boolean {
