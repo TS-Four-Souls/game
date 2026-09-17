@@ -555,7 +555,6 @@ export class TargetBuilder {
 
         // The next target is expected to be an array of targets for the copied effect
         const targets: any[] = partialTargets === undefined ? [] : partialTargets;
-        console.log(targets)
         let options = TargetBuilder.getNextSelectorRaw(game, player, item, targets, effectId, false);
         while(!options.complete)
             {
