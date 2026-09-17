@@ -1133,6 +1133,10 @@ export class CardHandler {
 
   /** Attach a card's effects once, at the point where it becomes usable. */
   ensureEffectsAttached(card: Card): void {
+    // Bonus souls use their own event-listener parser and must never be sent
+    // through the ordinary card effect parser.
+    if (card instanceof BsoulCard)
+      return;
     if (!this._effectsAttached.has(card))
       this.attachEffectsToCard(card);
   }
