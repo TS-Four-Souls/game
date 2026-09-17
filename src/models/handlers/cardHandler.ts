@@ -45,6 +45,7 @@ export class CardHandler {
   private _bonusSouls: BsoulCard[] | undefined = undefined;
   private _cardMapping: Map<number, Card> = new Map();
   private _nextCardGlobalId: number = 0;
+  private _effectsAttached = new WeakSet<Card>();
   
   constructor(game: Game) {
       this._game = game;
@@ -365,6 +366,7 @@ export class CardHandler {
    * Adds an item to play and emits enter-play trigger.
    */
   addInPlay(player: Player, card: ItemCard): void {
+    this.ensureEffectsAttached(card);
     this.game.emit("on:enter:play", { eventIssuer: player, card: card });
     // Ensure the card knows its current owner and its effects are subscribed to that owner.
     // Previously only certain card types had onAddInPlay called; that left some items with a stale owner
@@ -382,6 +384,7 @@ export class CardHandler {
    * Adds a curse card to a player.
    */
   async addCurse(player: Player, card: MonsterCard): Promise<void> {
+    this.ensureEffectsAttached(card);
     player.addCurse(card);
     await card.onPlay(player, []);
     this.game.dispatch();
@@ -621,7 +624,6 @@ export class CardHandler {
       this.game
     );
     this.rebuildCardMapping();
-    this.joinEffectsToCards();
     this.moveOutsideCards();
   }
   /**
@@ -795,6 +797,7 @@ export class CardHandler {
    * this.game is the centralized method for all hand additions.
    */
   addCardToHand(player: Player, card: LootCard): void {
+    this.ensureEffectsAttached(card);
     card.owner = player;
     player.hand.addToHand(card);
 
@@ -1048,7 +1051,10 @@ export class CardHandler {
    * @param card - The card to attach effects to
    * @param attachFlip - Whether to attach flip effects. Set to false only by parsing flipped cards.
    */
-  attachEffectsToCard(card: Card): void {
+  attachEffectsToCard(card: Card, force: boolean = false): void {
+    if (!force && this._effectsAttached.has(card))
+      return;
+
     const flipped = card.flipped;
     for (let idx = 0; idx < card.effectOutcomes.length; idx++) {
       let outcome = card.effectOutcomes[idx]!;
@@ -1121,27 +1127,14 @@ export class CardHandler {
     
     if(card.flipData !== undefined)
       this.attachFlipEffectsToCard(card);
+
+    this._effectsAttached.add(card);
   }
 
-  private joinEffectsToCards(): void {
-    for (const deckName of [
-      "loot",
-      // "bsoul",
-      "character",
-      "eternal",
-      "treasure",
-      "monster",
-      "room",
-    ]) {
-      if(!isDeckType(deckName))
-        throw new GameError(`Invalid deck type: ${deckName}`, toSerializedTranslation("error.invalidDeckType", {deckType: deckName}));
-      if(deckName === "room" && this.decks["room"] === undefined)
-        continue;
-      const deck = this.decks[deckName]!;
-      deck.cards.forEach((card: Card) => {
-        this.attachEffectsToCard(card);
-      });
-    }
+  /** Attach a card's effects once, at the point where it becomes usable. */
+  ensureEffectsAttached(card: Card): void {
+    if (!this._effectsAttached.has(card))
+      this.attachEffectsToCard(card);
   }
 
   async replaceCharacter(player: Player, newCharacter: CharacterCard): Promise<void> {

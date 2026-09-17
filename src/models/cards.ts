@@ -965,6 +965,7 @@ class Deck<T extends Card> {
                 );
             }
         }
+        this._game.cardHandler.ensureEffectsAttached(card);
     }
 
     draw(): T {
@@ -1016,6 +1017,7 @@ class Deck<T extends Card> {
         // console.log(`Drawing card id ${id} from deck of type ${this._type} at position from top ${positionFromTop}.`);
         const result = this._set.get(id);
         this._order.splice(posFromEnd, 1);
+        this._game.cardHandler.ensureEffectsAttached(result);
         return result;
     }
 
@@ -1075,7 +1077,9 @@ class Deck<T extends Card> {
                 toSerializedTranslation("error.drawnDiscardCardIdUndefined", {type: this._type})
             );
         }
-        return this._set.get(id);
+        const result = this._set.get(id);
+        this._game.cardHandler.ensureEffectsAttached(result);
+        return result;
     }
 
     get discard(): T[] {

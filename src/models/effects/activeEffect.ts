@@ -589,7 +589,7 @@ export function becomesCopyOfItemIndefinitelyEffect(game: Game): SyncEffectFunct
         
         // Transform this card to become the copy, with effect attachment
         thisItem.becomesCopyOf(itemToCopy, (card) => {
-            game.cardHandler.attachEffectsToCard(card);
+            game.cardHandler.attachEffectsToCard(card, true);
         });
         data.it.tags.restoreIndefinite = data.it.tags.restore;
         data.it.tags.restore = undefined;
@@ -614,7 +614,7 @@ export function becomesCopyOfItemUntilEndOfTurnEffect(game: Game): SyncEffectFun
         
         // Transform this card to become the copy and get the restore function
         const { restore } = thisItem.becomesCopyOf(itemToCopy, (card) => {
-            game.cardHandler.attachEffectsToCard(card);
+            game.cardHandler.attachEffectsToCard(card, true);
         });
         let restored = false;
         let unsubscribe = (): void => {};
@@ -656,7 +656,7 @@ export function becomesCopyOfItemUntilStartOfYourNextTurnAndRechargeEffect(game:
         game.cardHandler.recharge(thisItem, data.it);
         // Transform this card to become the copy and get the restore function
         const { restore } = thisItem.becomesCopyOf(itemToCopy, (card) => {
-            game.cardHandler.attachEffectsToCard(card);
+            game.cardHandler.attachEffectsToCard(card, true);
         });
         let restored = false;
         let unsubscribe = (): void => {};
@@ -1842,7 +1842,7 @@ export function changeNumberInEffectTextEffect(game: Game, val: number, min: num
         }else
             targetCard.cleanup();
         try {
-            const {originalState, restore} = targetCard.becomesCopyOf(targetCard, (card)=>game.cardHandler.attachEffectsToCard(card));
+            const {originalState, restore} = targetCard.becomesCopyOf(targetCard, (card)=>game.cardHandler.attachEffectsToCard(card, true));
             cleanTarget = (): void => {
                 originalState.effectOutcomes = oldOutcomes;
                 restore();
@@ -2145,7 +2145,7 @@ export function becomesCopyOfEternalItemLosesEternalEffect(game: Game): SyncEffe
         if(!game.getOwner(data.it))
             return false;
         data.it.becomesCopyOf(target, (card) => {
-            game.cardHandler.attachEffectsToCard(card);
+            game.cardHandler.attachEffectsToCard(card, true);
         });
         if(!data.it || !(data.it instanceof ItemCard))
             throw new GameError("Invalid source item for becomesCopyOfEternalItemLosesEternalEffect.", toSerializedTranslation("error.behaviorError", { error: "Invalid source item for becomesCopyOfEternalItemLosesEternalEffect."}));
