@@ -524,14 +524,14 @@ export class Game {
     if(false)
       return;
     
-    const card0 = this.obtainCard("fsp2-abaddon") as ItemCard;
-    this.cardHandler.addInPlay(this.currentPlayer, card0);
-    const card1 = this.obtainCard("b2-champion_belt") as ItemCard;
+    const card0 = this.obtainCard("r-golden_trinket") as LootCard;
+    this.cardHandler.addCardToHand(this.currentPlayer, card0);
+    const card1 = this.obtainCard("fsp2-rainbow_baby") as ItemCard;
     this.cardHandler.addInPlay(this.currentPlayer, card1);
-    const card = this.obtainCard("r-dogma") as MonsterCard;
-    // this.cardHandler.addInPlay(this.currentPlayer, card);
-    this.encounters.forceSetMonsterAtSlot(0, card);
-    this.entityHandler.kill(this.monsters[0]!, this.monsters[0]!, {card: card, visualEffectBox: {startIndex: 0, endIndex:0}}) 
+    // const card = this.obtainCard("r-dogma") as MonsterCard;
+    // // this.cardHandler.addInPlay(this.currentPlayer, card);
+    // this.encounters.forceSetMonsterAtSlot(0, card);
+    // this.entityHandler.kill(this.monsters[0]!, this.monsters[0]!, {card: card, visualEffectBox: {startIndex: 0, endIndex:0}}) 
   }
 
   initializeWinningCondition(): void {

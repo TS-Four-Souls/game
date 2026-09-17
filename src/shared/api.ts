@@ -162,7 +162,7 @@ export type StackElement =
   | EndOfTurnJson
   | EffectOnStackJson;
 
-const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
+export const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
   z.union([
     z.object({ type: z.literal("card"), payload: cardSchema }),
     z.object({ type: z.literal("cardEffect"), payload: cardEffectSchema }),

@@ -1222,12 +1222,18 @@ export class CardHandler {
                 });
                 if(effectsWithValidTargets.length === 0)
                     return false;
-                const effectDescriptionId = (await effectData.selectAndRecord(this.game, effectIssuer, 1, 1, effectsWithValidTargets.map(e => e.description), toSerializedTranslation("pending.effect"), effectData.serializedCardAndBox, true)).selected[0]!;
-                const effectId = card.activeEffectList.find(e => e.description === effectDescriptionId)?.index;
-                if(effectId === undefined) {
-                    throw new GameError(`Selected effect "${effectDescriptionId}" not found on the card ${card.name}.`, toSerializedTranslation("error.behaviorError", {error: `Selected effect "${effectDescriptionId}" not found on the card ${card.name}.`}));
+                const effect = (await effectData.selectAndRecord(this.game, effectIssuer, 1, 1, effectsWithValidTargets.map(e => {return {...(e), card: card}}), toSerializedTranslation("pending.effect"), effectData.serializedCardAndBox, true)).selected[0]!;
+                const effectType = effect?.index;
+                if(effectType === undefined) {
+                    throw new GameError(`Selected effect "${effect.description}" not found on the card ${card.name}.`, toSerializedTranslation("error.behaviorError", {error: `Selected effect "${effect.description}" not found on the card ${card.name}.`}));
                 }
-                const targets =  await TargetBuilder.buildTargetsOnResolve(this.game, effectIssuer, card, effectId);
+                const { effectId, choice } = card.getEffectIdAndChooseOneChoiceFromSeparatorId(effect.visualEffectBox.startIndex);
+
+                let partialChoices: any[] = [];
+                if(choice !== undefined) {
+                  partialChoices = [...choice.map(c=>{return {type: "chooseOne" as const, payload: c}})];
+                }
+                const targets =  await TargetBuilder.buildTargetsOnResolve(this.game, effectIssuer, card, effectId, partialChoices);
                 card.recharge();
                 const effectOnStack = await card.tryActivateEffect(targets, effectId);
                 this.game.addToStack(effectOnStack);

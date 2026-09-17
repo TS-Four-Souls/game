@@ -1781,7 +1781,7 @@ export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): SyncEffectF
 export function giveCounterToAnotherItemOnEnterPlayEffect(game: Game, counterType: CounterType): AsyncEffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const itemToGiveCounter = (await data.selectAndRecord(game, data.issuer, 1, 1, data.issuer.inPlay.filter(item => item !== data.it && !item.eternal), toSerializedTranslation("pending.itemToGiveGoldCounterTo"), data.serializedCardAndBox, true)).selected[0]!;
+        const itemToGiveCounter = (await data.selectAndRecord(game, data.issuer, 1, 1, data.issuer.inPlay.filter(item => item !== data.it && !item.eternal && item.slug !== "r-golden_trinket"), toSerializedTranslation("pending.itemToGiveGoldCounterTo"), data.serializedCardAndBox, true)).selected[0]!;
         if(!itemToGiveCounter)
             return false;
         game.cardHandler.addToCounter(data.issuer, itemToGiveCounter, counterType, 1);

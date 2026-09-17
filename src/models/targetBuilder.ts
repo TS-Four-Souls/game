@@ -1,12 +1,12 @@
 import { shuffle } from "@/utils/auxiliary";
-import { type DeckName, type SelectionItem, type TargetSelectorResponse, type SerializedTranslation, type Capability, serializedTranslationSchema, type SerializedChooseOne } from "../shared/api";
+import { type DeckName, type SelectionItem, type TargetSelectorResponse, type SerializedTranslation, type Capability, serializedTranslationSchema, type SerializedChooseOne, type CardEffect, selectionItemSchema } from "../shared/api";
 import { Card, ItemCard, LootCard, type TargetsSelector } from "./cards";
 import { Entity } from "./entities/entity";
 import { type Game } from "./game";
 import { GameError } from "@/models/GameError";
 import { Player } from "./entities/player";
 import { isStackElement } from "./stack";
-import { isChooseOneOptions, type ChooseOneOptions } from "./targetSelector";
+import { isCardEffectOptions, isChooseOneOptions, type ChooseOneOptions } from "./targetSelector";
 import { toSerializedTranslation } from "@/utils/translation";
 /**
  * Target Builder - Standalone utility for progressive target selection
@@ -316,10 +316,14 @@ export class TargetBuilder {
 
     static convertToSelectionItems(options: any[]): SelectionItem[] {
          return options.map(option => {
-
-
+            const wasAlreadySelectionItem = selectionItemSchema.safeParse(option).data;     
+            if(wasAlreadySelectionItem !== undefined)
+                return wasAlreadySelectionItem;
             if (typeof option === 'object' && option !== null && isChooseOneOptions(option)) {
                 return {type: "chooseOne", payload: {description: option.description, card: option.card.jsonAPI, visualEffectBox: option.visualEffectBox}};
+            }
+            if (typeof option === 'object' && option !== null && isCardEffectOptions(option)) {
+                return {type: "cardEffect", payload: {card: option.card.jsonAPI, visualEffectBox: option.visualEffectBox, index: option.index}};
             }
             if (typeof option === 'object' && option !== null && 'slug' in option && option instanceof Card) {
                 return { payload: option.jsonAPI, type: "card" };
@@ -367,6 +371,7 @@ export class TargetBuilder {
                     return {type: "unknown", payload: null};
                 }
             }
+            
             return {type: "unknown", payload: null};
             // throw new GameError("Not implemented yet", toSerializedTranslation("error.behaviorError", { error: "Not implemented yet"}));
         });
@@ -402,6 +407,8 @@ export class TargetBuilder {
                 return possibleTargets.find(t => t && t._type === identifier.payload);
             case "chooseOne":
                 return (possibleTargets as SerializedChooseOne[]).find(t => t && t.description === identifier.payload.description)
+            case "cardEffect":
+                return (possibleTargets as CardEffect[]).find(t => t && t.index === identifier.payload.index)
             case "number":
             case "string":
             case "boolean":
@@ -529,7 +536,8 @@ export class TargetBuilder {
         game: Game,
         player: Player,
         item: ItemCard,
-        effectId: number | "tap"
+        effectId: number | "tap",
+        partialTargets: any[] | undefined = undefined,
     ): Promise<any[]> {
         if(!item)
             throw new GameError(`Item not found or has no active effect.`, toSerializedTranslation("error.itemNotFoundOrNoActiveEffect"));
@@ -546,7 +554,8 @@ export class TargetBuilder {
             throw new GameError(`Effect issuer is not a player.`, toSerializedTranslation("error.effectIssuerNotPlayer"));
 
         // The next target is expected to be an array of targets for the copied effect
-        const targets: any[] = [];
+        const targets: any[] = partialTargets === undefined ? [] : partialTargets;
+        console.log(targets)
         let options = TargetBuilder.getNextSelectorRaw(game, player, item, targets, effectId, false);
         while(!options.complete)
             {
