@@ -140,6 +140,21 @@ describe("Known bugs that have be corrected", () => {
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.currentHealthPoints).toBe(3);
     });
+    
+    it("CrystalBall should not trigger on previously rolled dice", async () => {
+        const item = game.obtainCard("b2-crystal_ball") as ItemCard;
+        game.cardHandler.addInPlay(player1, item);
+
+        const dice = game.rollDice(player1, item);
+        const diceWillRoll = game.stack.elements.at(-1);
+        await game.activateItem(player1, item, [diceWillRoll, dice.value], "tap");
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(player1.hand.length).toBe(0);
+    });
+    
     it("modeling clay jawbone get 25 coins", async () => {
         const item1 = game.obtainCard("b2-jawbone") as ItemCard;
         const clay = game.obtainCard("b2-modeling_clay") as ItemCard;
