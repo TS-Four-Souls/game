@@ -479,6 +479,7 @@ export class LootStepOnStack extends StackElement {
     this.game.emit("on:loot:step", { eventIssuer: this.player, lootStep: this });
     await this.game.executeWhenStackSubset(ids, async () => {
       this.game.stack.resolve();
+      this.game.addToHistory(this.json);
       this.game.lootStep(this.player, this.nbLoots);
       return new Promise(resolve => setTimeout(resolve, 0));
     });

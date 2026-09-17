@@ -292,7 +292,8 @@ export class ActionHandler {
 
     await elem.onResolve();
     // Add to history
-    this.game.addToHistory(elem.json);
+    if(elem instanceof LootStepOnStack === false) // loot step handle it's history element on its own.
+      this.game.addToHistory(elem.json);
     if (elem instanceof LootCardEffect && elem.card instanceof LootCard)
       this.game.cardHandler.handleLootCardEffectResolution(elem);
     this.game.dispatch();
