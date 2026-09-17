@@ -1232,8 +1232,19 @@ export class CardHandler {
                 }
                 const targets =  await TargetBuilder.buildTargetsOnResolve(this.game, effectIssuer, card, effectId, partialChoices);
                 card.recharge();
-                const effectOnStack = await card.tryActivateEffect(targets, effectId);
+                const effectOnStack = await card.tryActivateEffect(targets, effectId, gainer);
                 this.game.addToStack(effectOnStack);
+
+                // triger all tap effects.
+                if(effect.index === "tap")
+                  for(const activeItem of copiedSelector.selector(issuer, gainer) as ItemCard[])
+                    if(card !== activeItem && activeItem.hasTapEffect())
+                    {
+                      const targets =  await TargetBuilder.buildTargetsOnResolve(this.game, effectIssuer, activeItem, effectId);
+                      activeItem.recharge();
+                      const effectOnStack = await activeItem.tryActivateEffect(targets, effectId, gainer);
+                      this.game.addToStack(effectOnStack);
+                    }
                 return true;
             }
         ,[copiedSelector], [{startIndex: 0, endIndex: 0, description: "Choose a card to use its effect."}]
@@ -1241,7 +1252,7 @@ export class CardHandler {
     }
     const copied = this.copyCard(toCopy, issuer) as ItemCard;
     gainer.tags.copiedCards.push(copied);
-    copied.onAddInPlay(() => issuer);
+    copied.onAddInPlay(() => issuer, gainer);
     gainer.cleaners.push(() => {
       // console.log("Cleaning up copied card: ", copied.name);
       copied.cleanup();

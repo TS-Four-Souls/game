@@ -526,8 +526,11 @@ export class Game {
     
     const card0 = this.obtainCard("r-golden_trinket") as LootCard;
     this.cardHandler.addCardToHand(this.currentPlayer, card0);
-    const card1 = this.obtainCard("fsp2-rainbow_baby") as ItemCard;
-    this.cardHandler.addInPlay(this.currentPlayer, card1);
+    for( const slug of ["fsp2-rainbow_baby", "b2-bum_friend", "b2-pandoras_box"])
+    {   
+        const card1 = this.obtainCard(slug) as ItemCard;
+        this.cardHandler.addInPlay(this.currentPlayer, card1);
+    }
     // const card = this.obtainCard("r-dogma") as MonsterCard;
     // // this.cardHandler.addInPlay(this.currentPlayer, card);
     // this.encounters.forceSetMonsterAtSlot(0, card);

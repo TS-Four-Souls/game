@@ -393,13 +393,13 @@ export class EffectInterface {
         return this.activeEffects.hasTapEffect();
     }
 
-    subscribeAll(issuerProvider: () => Entity): void {
-        this.passiveEffects.subscribeAll(issuerProvider, this.it);
+    subscribeAll(issuerProvider: () => Entity, differentSource: Card | undefined = undefined): void {
+        this.passiveEffects.subscribeAll(issuerProvider, differentSource === undefined ? this.it : differentSource);
     }
 
-    async paidEffect(issuer: Entity, targets: any[], effectId: number): Promise<EffectOnStack> {
+    async paidEffect(issuer: Entity, targets: any[], effectId: number, differentSource: Card | undefined): Promise<EffectOnStack> {
         const effect = this.activeEffects.getPaidEffect(effectId);
-        const data = new EffectData(this.it, () => issuer as Player, targets);
+        const data = new EffectData(differentSource === undefined ? this.it : differentSource, () => issuer as Player, targets);
         // Execute payment if it exists
         if (effect.hasPayment()) {
             if (!await effect.executePayment(data)) {
@@ -411,13 +411,13 @@ export class EffectInterface {
         return new EffectOnStack(effect.effectFunction, data, effect.description, effect.type, effect.getVisualEffectBoxFromTargets(targets));
     }
 
-    tapEffect(issuer: Entity, targets: any[]): EffectOnStack {
+    tapEffect(issuer: Entity, targets: any[], differentSource: Card | undefined): EffectOnStack {
         const effect = this.activeEffects.getActiveEffect();
         if (!issuer)
             throw new GameError("EffectInterface.tapEffect: issuer is undefined or null.",
                 toSerializedTranslation("error.behaviorError", { error: "EffectInterface.tapEffect: issuer is undefined or null." })
             );
-        const data = new EffectData(this.it, () => issuer as Player, targets, effect.getVisualEffectBoxFromTargets(targets));
+        const data = new EffectData(differentSource === undefined ? this.it : differentSource, () => issuer as Player, targets, effect.getVisualEffectBoxFromTargets(targets));
         return new EffectOnStack(effect.effectFunction, data, effect.description, effect.type, effect.getVisualEffectBoxFromTargets(targets));
     }
     

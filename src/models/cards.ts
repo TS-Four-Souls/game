@@ -345,9 +345,9 @@ class Card {
         }
     }
 
-    onAddInPlay(issuerProvider: () => Entity): void {
+    onAddInPlay(issuerProvider: () => Entity, differentSource: Card | undefined = undefined): void {
         this._owner = issuerProvider();
-        this._effectInterface.subscribeAll(issuerProvider);
+        this._effectInterface.subscribeAll(issuerProvider, differentSource);
     }
     addEffect(effect: Effect | PassiveEffect): void {
         this._effectInterface.addEffect(effect);
@@ -502,17 +502,18 @@ export class ItemCard extends Card {
   }
   async tryActivateEffect(
     targets: any[] = [],
-    effectId: number | "tap" = "tap"
+    effectId: number | "tap" = "tap",
+    differentSource: Card | undefined = undefined,
   ): Promise<EffectOnStack> {
     switch (effectId) {
       case "tap":
         if (this._charged === true) {
           this._charged = false;
-          return this._effectInterface.tapEffect(this.owner, targets);
+          return this._effectInterface.tapEffect(this.owner, targets, differentSource);
         }
         throw new GameError("Cannot activate uncharged item", toSerializedTranslation("error.cannotActivateUnchargedItem"));
       default:
-        return this._effectInterface.paidEffect(this.owner, targets, effectId);
+        return this._effectInterface.paidEffect(this.owner, targets, effectId, differentSource);
     }
   }
   targetStillValid(

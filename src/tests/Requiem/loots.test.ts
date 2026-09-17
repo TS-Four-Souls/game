@@ -108,6 +108,25 @@ describe("Requiem Loots ", () => {
         expect(roll.value).toBe(2);
     });
 
+    it("golden_trinket: it gets counters from copied cards", async () => {
+        let loot = game.obtainCard("r-golden_trinket") as LootCard;
+        game.cardHandler.addCardToHand(player1, loot);
+        let card = game.obtainCard("b2-the_dead_cat") as ItemCard;
+        game.cardHandler.addInPlay(player1, card);
+
+        const treas = player1.inPlay[1]!;
+        game.actions.playCard(player1, 0, []);
+        game.select = async (player: Player, min: number, max: number, Options: any[]) => { //monster 0
+            if(Options.includes(treas))
+                return {selected: [treas], remaining: []};
+            return {selected: [Options[0]], remaining: []};
+        }
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(treas.counters.value("golden")).toBe(1);
+        expect(loot.counters.getCounter("normal").value).toBe(9);
+    });
+
     it("pills_2 3", async () => {
         let loot = game.obtainCard("r-pills_2") as LootCard;
         game.cardHandler.addCardToHand(player1, loot);
