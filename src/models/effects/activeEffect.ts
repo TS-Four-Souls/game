@@ -16,7 +16,7 @@ import type { StackElement } from "../stack";
 import { DamageOnStack, DiceRoll, } from "../stackElement";
 import { TargetBuilder } from "../targetBuilder";
 import { deckSelector, inplayUnchargedItemSelector as inplayChargeableItemSelector, visibleItemSelector } from "../targetSelector";
-import { type DeckType, EffectData, type EffectFunction, type SyncEffectFunction, type AsyncEffectFunction, type TargetsSelector } from "../types/cardTypes";
+import { type DeckType, EffectData, type EffectFunction, type SyncEffectFunction, type AsyncEffectFunction, type TargetsSelector, type DecksCollection } from "../types/cardTypes";
 import type { OnTurnEndData } from "../types/eventTypes";
 import { effectParser, INFINITY, type ParsedEffect, type SyncParsedEffect } from "./parsing/effectParser";
 import { addPassiveEffectToStack } from "./passiveEffect";
@@ -789,9 +789,10 @@ export function lookAtTopXPut1InSlotEffect(game: Game, x: number): AsyncEffectFu
         const deck = data.next;
         if(!isDeckType(deck._type) || !deck)
             throw new GameError(`Target of lookAtTopXPut1InSlotEffect should be a deck type, got ${deck}`, toSerializedTranslation("error.behaviorError", { error: `Target of lookAtTopXPut1InSlotEffect should be a deck type, got ${deck}`}));
-        const topCards = game.cardHandler.getFirstCardsOfDeck(deck._type, x);
+        const topCards = game.decks[deck._type as keyof DecksCollection].cards.slice(0, x);
+        
         if (topCards.length === 0) return false;
-        const selectedCard = (await data.selectAndRecord(game, data.issuer, 1, 1, topCards, qq("pending.cardToPutInSlot"), data.serializedCardAndBox, true, true)).selected[0]!;
+        const selectedCard: Card = (await data.selectAndRecord<Card>(game, data.issuer, 1, 1, topCards, qq("pending.cardToPutInSlot"), data.serializedCardAndBox, true, true)).selected[0]!;
         if(!selectedCard)
             return false;
         const slot = deck._type === "monster" ?
@@ -799,10 +800,12 @@ export function lookAtTopXPut1InSlotEffect(game: Game, x: number): AsyncEffectFu
             : (await data.selectAndRecord(game, data.issuer, 1, 1, game.rooms?.activeRooms!, qq("pending.slotToPlaceCardIn"), data.serializedCardAndBox, true)).selected[0]!;
         if (!slot) return false;
         if(deck._type === "monster") {
+            game.encounters.obtainCard(selectedCard.slug, selectedCard.globalId);
             game.cardHandler.addTopPosition("monster", selectedCard);
             game.encounters.draw(game.encounters.visible.indexOf((slot as Monster).card));
         }
         else {
+            game.rooms?.obtainCard(selectedCard.slug, selectedCard.globalId);
             game.cardHandler.addTopPosition("room", selectedCard);
             game.rooms?.draw(game.rooms.activeRooms.indexOf(slot as RoomCard));
         }
