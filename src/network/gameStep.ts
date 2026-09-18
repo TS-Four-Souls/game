@@ -241,6 +241,7 @@ export const enterGameStep = (
 
   socket.on("endTurn", async (callback) =>
     errorGuardedEndpoint(callback, async () => {
+      room.game.actions.canEndTurn(player);
       await helper.executeEndTurnRequest(room.game, player);
       return callback({ status: 200 });
     }),
