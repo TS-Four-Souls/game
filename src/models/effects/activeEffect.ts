@@ -293,7 +293,7 @@ export function look1EachDeckEffect(game: Game): AsyncEffectFunction {
             const topCard = game.decks[deckName]?.draw();
             topCards.push(topCard!);
         }
-        const selectResult = await data.selectAndRecord(game, data.issuer, 0, 3, topCards, qq("pending.cardsToPutOnBottom"), data.serializedCardAndBox, false, false);
+        const selectResult = await data.selectAndRecord(game, data.issuer, 0, game.deckNames.length, topCards, qq("pending.cardsToPutOnBottom"), data.serializedCardAndBox, false, false);
         for (const card of topCards) {
             if(selectResult.selected.includes(card))
                 game.cardHandler.addBottomPosition(card.type, card);
