@@ -393,7 +393,7 @@ export class TargetBuilder {
         switch(identifier.type) {
             case "card":
                 return possibleTargets.find(t =>
-                    t && t.slug === identifier.payload.slug &&
+                    t && (t as Card).jsonAPI.slug === identifier.payload.slug &&
                     (identifier.payload.globalId === undefined || t.globalId === identifier.payload.globalId)
                 );
             case "player":
