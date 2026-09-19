@@ -903,7 +903,7 @@ export function playersWithFewestSoulsAttackBoostEffect(game: Game, attackBoost:
 
 export function playersWithFewestSoulsShopItemPriceReductionEffect(
     game: Game,
-    priceReduction: number,
+    finalPrice: number,
 ): SyncEffectFunction {
     return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
@@ -913,8 +913,9 @@ export function playersWithFewestSoulsShopItemPriceReductionEffect(
         let offSoulRemoved: (() => void) | null = null;
 
         let canUseFreePurchase = true;
-        let effectApplied = false;
+        // let effectApplied = false;
         let appliedReduction = 0;
+        let playerItIsAppliedTo: Player | null = null;
 
         function currentPlayerHasFewestSouls(): boolean {
             const minSouls = Math.min(
@@ -925,13 +926,14 @@ export function playersWithFewestSoulsShopItemPriceReductionEffect(
         }
 
         function removeEffect(): void {
-            if (!effectApplied) {
+            if (!playerItIsAppliedTo) {
                 return;
             }
+            
+            playerItIsAppliedTo.priceModifier += appliedReduction;
 
-            game.currentPlayer.priceModifier += appliedReduction;
-
-            effectApplied = false;
+            playerItIsAppliedTo = null;
+            // effectApplied = false;
             appliedReduction = 0;
         }
 
@@ -939,13 +941,13 @@ export function playersWithFewestSoulsShopItemPriceReductionEffect(
             // Idempotent: safe after turn-start, soul-gain, or initialization.
             removeEffect();
 
-            if (!canUseFreePurchase || !currentPlayerHasFewestSouls()) {
+            if (!canUseFreePurchase || playerItIsAppliedTo !== null || !currentPlayerHasFewestSouls()) {
                 return;
             }
-            appliedReduction = game.shop.shopPrice;
+            appliedReduction = game.shop.shopPrice - finalPrice;
 
-            game.currentPlayer.priceModifier -= appliedReduction;
-            effectApplied = true;
+            playerItIsAppliedTo = game.currentPlayer;
+            playerItIsAppliedTo.priceModifier -= appliedReduction;
         }
 
         offPurchase = game.emitter.on("on:purchase:success", eventData => {
@@ -956,7 +958,7 @@ export function playersWithFewestSoulsShopItemPriceReductionEffect(
             if (
                 eventIssuer === game.currentPlayer &&
                 isShopItemPurchase &&
-                effectApplied
+                playerItIsAppliedTo !== null
             ) {
                 // Consume the effect before later events can reapply it.
                 canUseFreePurchase = false;
