@@ -939,12 +939,6 @@ export class CardHandler {
   addSoul(player: Player, soulCard: Card): void {
     if (soulCard instanceof BsoulCard && soulCard.granted === false)
     {
-      this.game.addAnimation({
-        id: this.game.nextAnimationId,
-        type: "obtainBonusSoul",
-        card: soulCard.jsonAPI,
-        player: player.id,
-      });
       soulCard.granted = true;
     }
     soulCard.setEternal(false);
@@ -952,6 +946,15 @@ export class CardHandler {
     this.game.emit("on:soul:gained:before", eventData);
     if(eventData.soul === null)
       return;
+    if (soulCard instanceof BsoulCard && soulCard.granted === false)
+    {
+      this.game.addAnimation({
+        id: this.game.nextAnimationId,
+        type: "obtainBonusSoul",
+        card: soulCard.jsonAPI,
+        player: player.id,
+      });
+    }
     player.addSoul(soulCard);
     this.game.emit("on:soul:gained", eventData);
     this.game.dispatch();
