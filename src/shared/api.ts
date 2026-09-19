@@ -7,6 +7,13 @@ export const extensionsAvailable = {
   "g2-": "Gold Box",
 };
 
+enum EmoteType {
+  HurryUp = "hurryUp",
+  HappIsaac = "happIsaac",
+  SadIsaac = "sadIsaac",
+  Gamble = "gamble",
+}
+
 const basicSerializedTranslationSchema = z.object({
   key: z.string(),
 });
@@ -770,6 +777,12 @@ const attackRequirementSchema = z.object({
 });
 
 export type AttackRequirement = z.infer<typeof attackRequirementSchema>;
+
+const emoteSchema = z.object({
+  emote: z.enum(EmoteType),
+});
+export type Emote = z.infer<typeof emoteSchema>;
+
 const cardActivationSchema = z.object({
   type: z.union([
     z.literal("hand"),
@@ -1237,6 +1250,7 @@ export const schemas = {
   enterRoomRequest: enterRoomRequestSchema,
   setJoinPermission: setJoinPermissionSchema,
   loadGameRequest: loadGameRequestSchema,
+  emoteRequest: emoteSchema,
   setGameParameterRequest: setGameParameterRequestSchema,
   loadGameParametersRequest: loadGameParametersRequestSchema,
   selectCharacterRequest: selectCharacterRequestSchema,
@@ -1258,6 +1272,7 @@ export namespace Requests {
   export type InsertStackElementBefore = z.infer<
     typeof insertStackElementBeforeSchema
   >;
+  export type Emote = z.infer<typeof emoteSchema>;
   export type Activate = z.infer<typeof cardActivationSchema>;
   export type ActivateWithID = z.infer<typeof cardActivationWithIdSchema>;
   export type Purchase = z.infer<typeof purchaseSchema>;
@@ -1309,6 +1324,7 @@ export namespace Responses {
   export type SubmitSelection = BasicResponse;
   export type InsertStackElementBefore = BasicResponse;
   export type EndTurn = BasicResponse;
+  export type Emote = BasicResponse;
   export type Activate = NextTargetSelectorResponse;
   export type Purchase = BasicResponse;
   export type DeclarePurchase = BasicResponse;
@@ -1350,9 +1366,11 @@ export namespace Responses {
   export type AdminReplyToMessage = AdminReplyToMessageResponse;
 }
 
+
 export interface ServerToClientEvents {
   "on:room:changed": (room: Room | null) => void;
   "on:user:assigned": (userId: string | null) => void;
+  "on:player:emote": (emote: EmoteType, name: string) => void;
   "on:room:broadcast": (broadcast: RoomBroadcast) => void;
   "on:game:quit": (userId: string) => void;
   "on:admin:changed": (admin: AdminResponse) => void;
@@ -1528,6 +1546,11 @@ export interface ClientToServerEvents {
   loadGame: (
     request: Requests.LoadGame,
     callback: (response: Responses.LoadGame) => void,
+  ) => void;
+
+  emote: (
+    request: Requests.Emote,
+    callback: (response: Responses.Emote) => void,
   ) => void;
 
   setGameParameter: (
