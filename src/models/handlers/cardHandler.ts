@@ -1264,7 +1264,20 @@ export class CardHandler {
     copied.tags.copiedFrom = toCopy;
     gainer.tags.copiedCards.push(copied);
     copied.onAddInPlay(() => issuer);
+    gainer.entity = copied.entity;
+    for (const counterType of copied.counters.counterOwned) {
+      gainer.counters.addToCounter(copied.counters.value(counterType), counterType);
+    }
+    const offCopiedCounterChange = this.game.emitter.on("on:counter:modified", ({ card, counterName, newValue, previousValue }) => {
+      if (card !== copied) return;
+      this.addToCounter(issuer, gainer, counterName, newValue - previousValue);
+    });
     gainer.cleaners.push(() => {  
+      offCopiedCounterChange();
+      for (const counterType of copied.counters.counterOwned) {
+        this.addToCounter(issuer, gainer, counterType, -copied.counters.value(counterType));
+      }
+      if (gainer.entity === copied.entity) gainer.entity = undefined;
       copied.parentCard = "unknown";
       copied.cleanup();
       gainer.tags.copiedCards = (gainer.tags.copiedCards as ItemCard[]).filter(c => c !== copied);

@@ -537,6 +537,15 @@ export class ItemCard extends Card {
   ): boolean {
     return this._effectInterface.targetStillValid(player, effectId, targets);
   }
+
+  override get jsonAPI(): IdentifierType {
+      {
+        return {
+            ...super.jsonAPI,
+            ...(this.parentCard instanceof Card ? {parent: this.parentCard.slug} : {}),
+        };
+      }
+  }
 }
 // "discardNextTime" turns into "discard" after the first time the card is played.
 type AfterEffectType = "discard" | "addInPlay" | "nothing" | "discardNextTime";

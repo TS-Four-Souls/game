@@ -35,6 +35,7 @@ export const identifierTypeSchema = z.object({
   slug: z.string(),
   globalId: z.number(),
   orientation: z.union([z.literal("portrait"), z.literal("landscape")]),
+  parent: z.string().optional(),
 });
 export type IdentifierType = z.infer<typeof identifierTypeSchema>;
 
