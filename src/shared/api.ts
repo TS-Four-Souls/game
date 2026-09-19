@@ -7,7 +7,7 @@ export const extensionsAvailable = {
   "g2-": "Gold Box",
 };
 
-enum EmoteType {
+export enum EmoteType {
   HurryUp = "hurryUp",
   HappIsaac = "happIsaac",
   SadIsaac = "sadIsaac",
