@@ -381,7 +381,7 @@ export async function loadGameFromLogs(
           {
             await game.start(entry.players);
             await game.awaitPromises();
-            verifyRecordedCharactersAfterStart(game, characterByPlayer);
+            // verifyRecordedCharactersAfterStart(game, characterByPlayer); Can be wrong due to the mulligan thingy.
           }
           game.addToHistory(entry);
           break;

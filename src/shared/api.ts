@@ -208,6 +208,7 @@ const pendingSelectionReasonSchema = z.union([
   z.literal("maxHandSize"),
   z.literal("coinGift"),
   z.literal("miniDraft"),
+  z.literal("mulliganCharacters"),
 ]);
 export type PendingSelectionReason = z.infer<
   typeof pendingSelectionReasonSchema
@@ -561,6 +562,8 @@ const gameParametersSchema = z.object({
   timer: numberGameParameterSchema,
   nbItemsInShop: numberGameParameterSchema,
   nbEncounters: numberGameParameterSchema,
+  mulliganCharacterNbOptions: numberGameParameterSchema,
+  mulliganCharacterReroll: booleanGameParameterSchema,
   // nbRooms: numberGameParameterSchema,
   deathPenaltyCoins: numberGameParameterSchema,
   deathPenaltyItem: numberGameParameterSchema,

@@ -1,6 +1,7 @@
 import {
   BsoulCard,
   Card,
+  CharacterCard,
   ItemCard,
   LootCard,
   MonsterCard,
@@ -68,6 +69,7 @@ export class Game {
   private _selectionHandler = new SelectionHandler(this);
   private _cardHandler = new CardHandler(this);
   private _promises: Promise<boolean>[] = [];
+  private _playersWithRandomCharacter: Player[] = [];
 
   private _onStateChange: Signal<void> = new Signal();
   onStateChange: ReadableSignal<void> = this._onStateChange.readOnly();
@@ -461,6 +463,7 @@ export class Game {
     this.assert.gameNotStarted();
     for (const p of players) 
       this.entityHandler.addPlayer(new Player(p.issuer, p.team, p.user));
+    this._playersWithRandomCharacter = players.filter((p) => p.character === "random").map((p) => this.players.find((player) => player.id === p.issuer)!);
     const chara = this.cardHandler.getCharactersFromSlugs(players.map((p) => p.character));
     this.cardHandler.assignCharactersToPlayers(chara);
 
@@ -508,8 +511,47 @@ export class Game {
     this.assignColorsToPlayers();
     this.entityHandler.healEveryone();
   } 
-
+  /**
+   * At the start of the game, each player having "random character", draws a certain number of cards N from the character deck, they can pick one and have it as a character, or pick none an restart the process with N - 1 options.
+   * @param game 
+   */
+  mulliganCharacters(): void {
+      this.addPromise((async (): Promise<boolean> => {
+          let unresolvedPlayers = this._playersWithRandomCharacter.slice();
+          for(let nbOptions = this.gameParameters.mulliganCharacterNbOptions.value; nbOptions > 0 && unresolvedPlayers.length > 0; nbOptions--)
+              {
+                  const minVal = nbOptions === 1 || !this.gameParameters.mulliganCharacterReroll.value ? 1 : 0;
+                  let currentUnresolvedPlayers = [...unresolvedPlayers];
+                  let toPutBack: CharacterCard[] = [];
+                  const promises = [];
+                  for( const player of currentUnresolvedPlayers) {
+                      const availableCharacters = this.decks.character.length + this.decks.character.discard.length;
+                      const numberToDraw = Math.min(nbOptions, availableCharacters);
+                      if (numberToDraw === 0)
+                        continue;
+                      const drawn: CharacterCard[] = this.decks.character.drawSeveral(numberToDraw);
+                      promises.push({player: player, selection: this.select(player, minVal, 1, drawn, toSerializedTranslation("startStep.playerList.selectCharacterButton.popup.title"), "mulliganCharacters", true, false)});
+                  }
+                  const pairs = await Promise.all(promises.map(async (p) => ({player: p.player, selection: await p.selection})));
+                  for(const pair of pairs) {
+                      const player = pair.player;
+                      const card = pair.selection.selected[0];
+                      if(card !== undefined) {
+                          await this.cardHandler.replaceCharacter(player, card);
+                          unresolvedPlayers.splice(unresolvedPlayers.indexOf(player), 1);
+                      }
+                      toPutBack.push(...pair.selection.remaining);
+                  }
+                  for(const card of toPutBack) {
+                      this.decks.character.addBottomPosition(card);
+                  }
+                  this.decks.character.shuffle();
+              }
+          return true;
+      })());
+  }
   async atGameStartDecisions(): Promise<void> {
+    await this.mulliganCharacters();
     this.emit("on:game:start", {}); // Eden starting item choice
     if(this.gameParameters.miniDraft.value)
       miniDraft(this); // Add resolutions to game.promises.
@@ -526,8 +568,11 @@ export class Game {
     
     const card0 = this.obtainCard("r-golden_trinket") as LootCard;
     this.cardHandler.addCardToHand(this.currentPlayer, card0);
-    const card1 = this.obtainCard("fsp2-rainbow_baby") as ItemCard;
-    this.cardHandler.addInPlay(this.currentPlayer, card1);
+    for( const slug of ["fsp2-rainbow_baby", "b2-bum_friend", "b2-pandoras_box"])
+    {   
+        const card1 = this.obtainCard(slug) as ItemCard;
+        this.cardHandler.addInPlay(this.currentPlayer, card1);
+    }
     // const card = this.obtainCard("r-dogma") as MonsterCard;
     // // this.cardHandler.addInPlay(this.currentPlayer, card);
     // this.encounters.forceSetMonsterAtSlot(0, card);

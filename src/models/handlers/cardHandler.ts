@@ -658,20 +658,34 @@ export class CardHandler {
     this.setupDecks();
     const characters: CharacterCard[] = [];
     for (const slug of slugs) {
-      if(slug === "random")
+      const isRandomPlaceholder = slug === "random";
+      let cardFromSet: CharacterCard | undefined;
+      if(isRandomPlaceholder)
       {
-        characters.push(null as any);
-        continue;
+        // Use a valid in-set template while the mulligan is pending. The
+        // template must also have an eternal card available in this setup.
+        cardFromSet = this._decks.character._set.cards.find((candidate) =>
+          candidate.slug === "b2-isaac" &&
+          (!candidate.eternalCard || this._decks.eternal._set.cards.some((eternal) => eternal.slug === candidate.eternalCard))
+        ) ?? this._decks.character._set.cards.find((candidate) =>
+          !candidate.eternalCard || this._decks.eternal._set.cards.some((eternal) => eternal.slug === candidate.eternalCard)
+        );
+        if (!cardFromSet)
+          throw new GameError("No valid character is available for a random-character placeholder.", toSerializedTranslation("error.behaviorError", {error: "No valid character is available for a random-character placeholder."}));
       }
-      const cardFromSet = this._decks["character"]._set.cards.find(c => c.slug === slug);
+      else
+        cardFromSet = this._decks["character"]._set.cards.find(c => c.slug === slug);
       if(!cardFromSet)
         throw new GameError(`Card with slug ${slug} not found in deck.`, toSerializedTranslation("error.cardWithSlugNotFoundInDeck", {slug: slug}));
       const card = this.copyCard(cardFromSet) as CharacterCard;
       if (card) {
-        this.addBottomPosition("character", card);
+        if (!isRandomPlaceholder)
+          this.addBottomPosition("character", card);
         if(card.eternalCard !== null)
         {
           const eternalCardFromSet = this._decks["eternal"]._set.cards.find(c => c.slug === card.eternalCard) as ItemCard;
+          if (!eternalCardFromSet)
+            throw new GameError("No eternal card with slug " + card.eternalCard + " found", toSerializedTranslation("error.noEternalCardWithSlug", {card: card.eternalCard}));
           const eternalCard = this.copyCard(eternalCardFromSet) as ItemCard;
           this.addBottomPosition("eternal", eternalCard);
         }
@@ -1164,10 +1178,12 @@ export class CardHandler {
     player.character = copyNewChara;
     
     const newStartingItemSlug = newCharacter.eternalCard;
-    const newStartingItem =
-      newStartingItemSlug === null
-        ? undefined
-        : this.copyCard(this.decks.eternal.cards.find((card) => card.slug === newStartingItemSlug)!) as ItemCard;
+    const eternalTemplate = newStartingItemSlug === null
+      ? undefined
+      : this._decks.eternal._set.cards.find((card) => card.slug === newStartingItemSlug);
+    const newStartingItem = eternalTemplate === undefined
+      ? undefined
+      : this.copyCard(eternalTemplate) as ItemCard;
 
     if(newStartingItem === undefined)
     {
