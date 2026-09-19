@@ -250,8 +250,8 @@ export class DiceRoll extends StackElement {
   set value(v: number) {
     const prev = this._value;
     this._value = Math.max(1, Math.min(6, v));
-    if (prev !== this._value)
-      this.readyToResolve = false;
+    // if (prev !== this._value)
+    this.readyToResolve = false;
   }
   get card(): Card | null {
     return this._card;
