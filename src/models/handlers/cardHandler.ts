@@ -325,7 +325,7 @@ export class CardHandler {
     
     if (card instanceof ItemCard) 
       if (from.inPlay.includes(card) && !card.eternal) {
-        this.removeInPlay(from, card);
+        this.removeInPlay(from, card, false);
         this.addInPlay(to, card);
         return true;
       }
@@ -353,8 +353,8 @@ export class CardHandler {
     const owner1 = this.game.getOwner(item1);
     const owner2 = this.game.getOwner(item2);
     if (owner1 && owner2 && item1.eternal === false && item2.eternal === false) {
-      this.removeInPlay(owner1, item1);
-      this.removeInPlay(owner2, item2);
+      this.removeInPlay(owner1, item1, false);
+      this.removeInPlay(owner2, item2, false);
       this.addInPlay(owner1, item2);
       this.addInPlay(owner2, item1);
       return true;
@@ -509,6 +509,7 @@ export class CardHandler {
     
     cards.forEach((card) => {
       this.discard(card);
+      card.cleanup();
     });
 
     this.game.dispatch();
@@ -516,8 +517,11 @@ export class CardHandler {
   }
 
   /** Removes an in-play card from player and runs cleanup triggers. */
-  removeInPlay(player: Player, card: ItemCard): boolean {
+  removeInPlay(player: Player, card: ItemCard, removeCounter=true): boolean {
     card.cleanup();
+    if(removeCounter)
+      for(const counterType of card.counters.counterOwned)
+        this.addToCounter(this.game.currentPlayer, card, counterType, -(card.counters.getIfDefined(counterType) || 0));
     return player.removeInPlay(card);
   }
 
@@ -551,7 +555,7 @@ export class CardHandler {
         if (p.inPlay.includes(target)) {
           if(target.eternal)
             throw new GameError("Cannot steal eternal items.", toSerializedTranslation("error.cannotStealEternalItems"));
-          if(this.removeInPlay(p, target)) {
+          if(this.removeInPlay(p, target, false)) {
             this.addInPlay(player, target);
             return true;
           }
@@ -1184,6 +1188,8 @@ export class CardHandler {
     // Implementation for gaining abilities
     if(gainer.tags.copiedCards === undefined)
         gainer.tags.copiedCards = [];
+    if(toCopy.json.stats !== undefined)
+      gainer.json.stats = toCopy.json.stats;
     // console.log("Gaining abilities from ", toCopy.name, " to ", gainer.name);
     const copiedSelector: TargetsSelector = {
         description: toSerializedTranslation("selector.cardGranted"),
@@ -1234,16 +1240,29 @@ export class CardHandler {
                 card.recharge();
                 const effectOnStack = await card.tryActivateEffect(targets, effectId);
                 this.game.addToStack(effectOnStack);
+
+                // triger all tap effects.
+                if(effect.index === "tap")
+                  for(const activeItem of copiedSelector.selector(issuer, gainer) as ItemCard[])
+                    if(card !== activeItem && activeItem.hasTapEffect())
+                    {
+                      const targets =  await TargetBuilder.buildTargetsOnResolve(this.game, effectIssuer, activeItem, effectId);
+                      activeItem.recharge();
+                      const effectOnStack = await activeItem.tryActivateEffect(targets, effectId);
+                      this.game.addToStack(effectOnStack);
+                    }
                 return true;
             }
         ,[copiedSelector], [{startIndex: 0, endIndex: 0, description: "Choose a card to use its effect."}]
     ));
     }
     const copied = this.copyCard(toCopy, issuer) as ItemCard;
+    copied.parentCard = gainer;
+    copied.tags.copiedFrom = toCopy;
     gainer.tags.copiedCards.push(copied);
     copied.onAddInPlay(() => issuer);
-    gainer.cleaners.push(() => {
-      // console.log("Cleaning up copied card: ", copied.name);
+    gainer.cleaners.push(() => {  
+      copied.parentCard = "unknown";
       copied.cleanup();
       gainer.tags.copiedCards = (gainer.tags.copiedCards as ItemCard[]).filter(c => c !== copied);
     });
@@ -1268,6 +1287,7 @@ export class CardHandler {
     if(owner) {
       copiedCard.owner = owner;
     }
+    copiedCard.canBeDiscarded = false;
     return copiedCard;
   }
 

@@ -1745,27 +1745,41 @@ export function onAnyEventEffect(
 
 export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
-        // console.log("Activating copyAbilitiesFromGoldCounterItemsEffect", data.issuer.id);
         if(!(data.it instanceof ItemCard)) return false;
         if(!data.issuer || !(data.issuer instanceof Player)) return false;
-        const goldenItems = game.visibleItems.filter(item => item.counters.value("golden") > 0);
+        const issuer = data.issuer;
+        const goldenItems = issuer.inPlay.filter(item => item !== data.it && item.counters.value("golden") > 0);
         data.it.swapEffectInterfaces();
         for (const item of goldenItems) {
-            game.cardHandler.gainAbilities(data.issuer, data.it, item);
+            game.cardHandler.gainAbilities(issuer, data.it, item);
         }
         let offCounterChange: (() => void) | null = null;
+        let offSourceDestroyed: (() => void) | null = null;
         offCounterChange = game.emitter.on("on:counter:modified", ({ eventIssuer, card, counterName, previousValue, newValue }) => {
             if (counterName !== "golden") return;
             if(!(data.it instanceof ItemCard)) return;
-            if(!data.issuer || !(data.issuer instanceof Player)) return false;
             if(!(card instanceof ItemCard)) return;
+            if (card === data.it || !issuer.inPlay.includes(card)) return;
             if (card.counters.value("golden") > 0 && previousValue === 0) {
-                game.cardHandler.gainAbilities(data.issuer, data.it, card);
+                game.cardHandler.gainAbilities(issuer, data.it, card);
             }
             else if(newValue === 0 && previousValue > 0) {
-                const toRemove = (data.it.tags.copiedCards as ItemCard[]).find(c => c.slug === card.slug);
-                toRemove?.cleanup();
-                data.it.tags.copiedCards = (data.it.tags.copiedCards as ItemCard[]).filter(c => c !== toRemove);
+                const copiedCards = (data.it.tags.copiedCards as ItemCard[] | undefined) ?? [];
+                const toRemove = copiedCards.find(c => c.tags.copiedFrom === card);
+                if (toRemove) {
+                    toRemove.parentCard = "unknown";
+                    toRemove.cleanup();
+                    data.it.tags.copiedCards = copiedCards.filter(c => c !== toRemove);
+                }
+            }
+        });
+
+        // A copied source being destroyed also destroys Golden Trinket.
+        // Add it to the same event batch so normal destruction cleanup handles it.
+        offSourceDestroyed = game.emitter.on("on:item:destroyed", (eventData) => {
+            const copiedCards = (data.it.tags.copiedCards as ItemCard[] | undefined) ?? [];
+            if (copiedCards.some(c => eventData.cards.includes(c) || (c.tags.copiedFrom && eventData.cards.includes(c.tags.copiedFrom)))) {
+                if (!eventData.cards.includes(data.it)) eventData.cards.push(data.it);
             }
         });
         
@@ -1773,6 +1787,8 @@ export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): SyncEffectF
             data.it.swapEffectInterfaces();
             offCounterChange?.();
             offCounterChange = null;
+            offSourceDestroyed?.();
+            offSourceDestroyed = null;
         });
         return true;
     };

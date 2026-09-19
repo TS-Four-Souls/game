@@ -345,9 +345,9 @@ class Card {
         }
     }
 
-    onAddInPlay(issuerProvider: () => Entity): void {
+    onAddInPlay(issuerProvider: () => Entity, differentSource: Card | undefined = undefined): void {
         this._owner = issuerProvider();
-        this._effectInterface.subscribeAll(issuerProvider);
+        this._effectInterface.subscribeAll(issuerProvider, differentSource);
     }
     addEffect(effect: Effect | PassiveEffect): void {
         this._effectInterface.addEffect(effect);
@@ -455,6 +455,9 @@ enum InplayType { CHARGED, UNCHARGED, PASSIVE, PAID, PLAYABLE }
 export class ItemCard extends Card {
   protected _inplayType: InplayType;
   protected _guppy: boolean = false;
+//   Card that copies other card create child cards. 
+// Parent can be set to unkown when it should not be destroyed by destruction of this card.
+  protected _parentCard: Card | undefined | "unknown" = undefined; 
 
   protected _cost: string;
     constructor(id: number, globalId: number, json: InPlayCardType) {
@@ -469,6 +472,17 @@ export class ItemCard extends Card {
         this._inplayType = InplayType.PAID;
       }
     }
+  }
+
+/**
+ * @returns a the card that generated this card when it is copy of a card. Unknown when the parent is protected from destruction of the child.
+ */
+  get parentCard(): Card | undefined | "unknown"{
+    return this._parentCard
+  }
+
+  set parentCard(parent: Card | undefined | "unknown"){
+    this._parentCard = parent;
   }
 
   get inPlayType(): InplayType {
@@ -502,17 +516,18 @@ export class ItemCard extends Card {
   }
   async tryActivateEffect(
     targets: any[] = [],
-    effectId: number | "tap" = "tap"
+    effectId: number | "tap" = "tap",
+    differentSource: Card | undefined = undefined,
   ): Promise<EffectOnStack> {
     switch (effectId) {
       case "tap":
         if (this._charged === true) {
           this._charged = false;
-          return this._effectInterface.tapEffect(this.owner, targets);
+          return this._effectInterface.tapEffect(this.owner, targets, differentSource);
         }
         throw new GameError("Cannot activate uncharged item", toSerializedTranslation("error.cannotActivateUnchargedItem"));
       default:
-        return this._effectInterface.paidEffect(this.owner, targets, effectId);
+        return this._effectInterface.paidEffect(this.owner, targets, effectId, differentSource);
     }
   }
   targetStillValid(
