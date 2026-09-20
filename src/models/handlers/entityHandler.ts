@@ -286,6 +286,17 @@ export class EntityHandler {
     });
     
     receiver.die();
+    if(from instanceof Player)
+    {
+      if(from === receiver)
+        from.stats.nbSuicides++;
+      else if(receiver instanceof Player)
+        from.stats.nbPlayerKilled++;
+      else if(receiver instanceof Monster)
+        from.stats.nbMobKilled++;
+    }
+    if(receiver instanceof Player)
+      receiver.stats.nbDeaths++;
     await this.game.executeWhenStackSubset(stackIds, async () => {
       const stackIds = this.game.stack.currentStackIds;
       if (receiver.isEngagedInCombat) {
@@ -524,25 +535,29 @@ export class EntityHandler {
       this.game.stack.resolve();
       this.healthLoss(dealer, receiver, source, damage, false);
       if(damage > 0){
-          await elem.onResolve();
-          // Add to history
-          this.game.addToHistory(elem.json);
-          this.game.dispatch();
-          await this.game.resolveCallbacks();
-          if (receiver.damageTakenThisTurn.length === 1)
-            this.game.emit("on:damage:taken:first-time-each-turn", {
-          eventIssuer: receiver,
-            target: dealer,
-            source: source,
-            damage: damage,
-          });
-          
-          this.game.emit("on:damage:taken", {
+        await elem.onResolve();
+        // Add to history
+        this.game.addToHistory(elem.json);
+        this.game.dispatch();
+        await this.game.resolveCallbacks();
+        if (receiver.damageTakenThisTurn.length === 1)
+          this.game.emit("on:damage:taken:first-time-each-turn", {
+        eventIssuer: receiver,
+          target: dealer,
+          source: source,
+          damage: damage,
+        });
+        
+        this.game.emit("on:damage:taken", {
           eventIssuer: receiver,
           target: dealer,
           source: source,
           damage: damage,
         });
+        if(receiver instanceof Player)
+          receiver.stats.nbDamageTaken += damage;
+        if(dealer instanceof Player)
+          dealer.stats.nbDamageDealt += damage;
       }
 
       if (receiver.currentHealthPoints <= 0) {

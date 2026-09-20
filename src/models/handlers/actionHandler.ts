@@ -76,6 +76,7 @@ export class ActionHandler {
       player.engageInCombat();
       this.game.entityHandler.addEntityInCombat(player);
       this.game.emit("on:attack:declared", { eventIssuer: player });
+      player.stats.nbAttacksDeclared++;
       this.game.dispatch();
     }
   
@@ -179,7 +180,10 @@ export class ActionHandler {
             );
           
           if(attackTopDeck)
+          {
             this.game.emit("on:attack:declared:topdeck", { eventIssuer: player, drawInIndex });
+            player.stats.nbAttackTopDeck++;
+          }
           this.game.dispatch();
         });
       }
@@ -312,6 +316,7 @@ export class ActionHandler {
 
     const effectOnStack = await room.tryActivateEffect(targets, effectId);
     this.game.addToStack(effectOnStack);
+    player.stats.nbRoomActivated++;
     return true;
   }
 
@@ -423,6 +428,7 @@ export class ActionHandler {
         targets: targets,
         stackId: idx
       });
+      player.stats.nbLootPlayed++;
       return `You have played the card: ${playedCard.name} to your in-play area.\n`;
     }
   
@@ -443,7 +449,8 @@ export class ActionHandler {
     }
     if (!item.activeEffectList.map((e) => e.index).includes(effectId))
       throw new GameError("Item does not have the specified effect ID.", toSerializedTranslation("error.itemDoesNotHaveEffectId"));
-
+    if(effectId === "tap")
+      player.stats.nbItemActivated++;
     return this.game.activateItem(player, item, choices, effectId);
   }
 
@@ -544,6 +551,7 @@ export class ActionHandler {
     if(force || this.canPurchase(player) !== true)
       {
         player.purchaseEnded();
+        player.stats.nbPurchaseCancelled++;
         this.game.dispatch();
       }
     else 
@@ -608,6 +616,9 @@ export class ActionHandler {
       });
       player.purchaseEnded();
       this.game.dispatch();
+      player.stats.nbPurchases++;
+      if(index === "top")
+        player.stats.nbPurchaseTopDeck++;
       return `Purchase successful. You have now ${player.coins} coins.\n`;
     } else {
       throw new GameError(

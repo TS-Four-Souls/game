@@ -40,6 +40,7 @@ import { TurnHandler } from "./handlers/turnHandler";
 import { miniDraft } from "./variants";
 import { toSerializedTranslation } from "@/utils/translation";
 import { GameError } from "@/models/GameError";
+import { getTitles } from "./gameStats";
 
 /*
  * The Game class is the central hub of the game logic, managing the state of the game, players, monsters, decks, shop, encounters, stack, and more. 
@@ -440,6 +441,10 @@ export class Game {
         if(this.turnHandler.turnId !== turnId) // some dice roll may end the turn.
           return;
         this.emit("on:dice:resolved", { eventIssuer: elem.issuer, dice: elem });
+        if(elem.attackRoll)
+          elem.issuer.stats.nbAttackRolledValues[elem.value - 1]! += 1;
+        else
+          elem.issuer.stats.nbNonAttackRolledValues[elem.value - 1]! += 1;
         await this.resolveCallbacks();
     });
   }
@@ -609,6 +614,9 @@ export class Game {
       return;
     this._isWon = true;
     this._onEndReached.dispatch();
+    for(const p of this.players)
+      console.log(`player: ${p.id}, stats: ${JSON.stringify(p.stats)}`);
+    getTitles(this.players);
     if(player === null)
     {
       this._onRoomBroadcast.dispatch({
@@ -965,6 +973,7 @@ export class Game {
         coinGained: amount,
         source: source,
       });
+      player.stats.nbCoinsGained += amount[0]!;
     }
     this.dispatch();
     return `New amount of coins: ${player.coins} coins.\n`;
@@ -994,7 +1003,10 @@ export class Game {
     this.emit("on:coin:lost:after", { eventIssuer: player, coinLost });
     if(coinLost === 0 && reason === "paiement" && asMany === false && coins > 0)
       return -1; // signal that the player cannot pay the cost.
-    
+    if(reason === "gift")
+      player.stats.coinsGiven += coinLost;
+    if(reason === "paiement")
+      player.stats.coinsPaid += coinLost;
     return coinLost;
   }
 

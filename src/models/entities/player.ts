@@ -6,7 +6,7 @@ import { Game } from "../game";
 import { GameError } from "@/models/GameError";
 import { DiceRoll } from "../stackElement";
 import { toSerializedTranslation } from "@/utils/translation";
-
+import { PlayerStats } from "@/models/gameStats";
 class AttackRequirement {
   readonly targets: Entity[] | "topDeck" | "any";
   readonly source: Card;
@@ -99,6 +99,8 @@ export class Player extends Entity {
   private _team: Team;
 
   private _character: CharacterCard | undefined = undefined;
+
+  stats: PlayerStats = new PlayerStats();
   /**
    * Creates a new Player instance.
    * 

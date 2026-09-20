@@ -377,6 +377,7 @@ export class CardHandler {
       eventIssuer: player,
       card: card,
     });
+    player.stats.nbItemGained++;
     this.game.dispatch();
   }
 
@@ -818,6 +819,7 @@ export class CardHandler {
     this.ensureEffectsAttached(card);
     card.owner = player;
     player.hand.addToHand(card);
+    player.stats.nbLootGained++;
 
     this.game.dispatch();
     this.game.emit("on:loot:added:after", { eventIssuer: player, card });
