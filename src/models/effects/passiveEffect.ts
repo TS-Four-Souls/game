@@ -1767,7 +1767,7 @@ export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): SyncEffectF
                 const copiedCards = (data.it.tags.copiedCards as ItemCard[] | undefined) ?? [];
                 const toRemove = copiedCards.find(c => c.tags.copiedFrom === card);
                 if (toRemove) {
-                    toRemove.parentCard = "unknown";
+                    toRemove.parentCard = null;
                     toRemove.cleanup();
                     data.it.tags.copiedCards = copiedCards.filter(c => c !== toRemove);
                 }
@@ -2025,6 +2025,7 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): SyncE
                 try{
                     const newTargets = await TargetBuilder.buildTargetsOnResolve(game, eventIssuer, card, "tap");
                     const copy = game.cardHandler.copyCard(card, eventIssuer) as LootCard; 
+                    copy.parentCard = data.it.slug;
                     copy.afterEffect = "nothing";
                     const lootCardEffect = new LootCardEffect(eventIssuer, copy, newTargets);
                     game.addToStack(lootCardEffect);

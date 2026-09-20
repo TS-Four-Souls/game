@@ -1276,7 +1276,7 @@ export class CardHandler {
     ));
     }
     const copied = this.copyCard(toCopy, issuer) as ItemCard;
-    copied.parentCard = gainer;
+    copied.parentCard = gainer.slug;
     copied.tags.copiedFrom = toCopy;
     gainer.tags.copiedCards.push(copied);
     copied.onAddInPlay(() => issuer);
@@ -1294,7 +1294,7 @@ export class CardHandler {
         this.addToCounter(issuer, gainer, counterType, -copied.counters.value(counterType));
       }
       if (gainer.entity === copied.entity) gainer.entity = undefined;
-      copied.parentCard = "unknown";
+      copied.parentCard = null;
       copied.cleanup();
       gainer.tags.copiedCards = (gainer.tags.copiedCards as ItemCard[]).filter(c => c !== copied);
     });

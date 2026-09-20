@@ -408,7 +408,8 @@ class Card {
         this._subtype = otherCard._subtype;
         this._effectOutcomes = otherCard._effectOutcomes;
         this._flipData = originalFlipData;
-        
+        if(this instanceof ItemCard)
+            this.parentCard = originalState.slug;
         // Create a new effect interface
         this._effectInterface = new EffectInterface(this);
         
@@ -433,6 +434,8 @@ class Card {
             this._flipData = originalState.flipData;
             this._tags.lastCopiedRestoreOriginalStateIndex = prevIdx; // Restore the previous index for potential nested copies
             this._tags.restore = undefined;
+            if(this instanceof ItemCard)
+                this.parentCard = null;
         };
          this._cleanup.push(restoreOriginalState);
         this._tags.lastCopiedRestoreOriginalStateIndex = this._cleanup.length - 1; // Store the index of the restore function in tags for potential external access
@@ -457,7 +460,7 @@ export class ItemCard extends Card {
   protected _guppy: boolean = false;
 //   Card that copies other card create child cards. 
 // Parent can be set to unkown when it should not be destroyed by destruction of this card.
-  protected _parentCard: Card | undefined | "unknown" = undefined; 
+  protected _parentCard: string | undefined | null = undefined; 
 
   protected _cost: string;
     constructor(id: number, globalId: number, json: InPlayCardType) {
@@ -477,11 +480,11 @@ export class ItemCard extends Card {
 /**
  * @returns a the card that generated this card when it is copy of a card. Unknown when the parent is protected from destruction of the child.
  */
-  get parentCard(): Card | undefined | "unknown"{
+  get parentCard(): string | undefined | null{
     return this._parentCard
   }
 
-  set parentCard(parent: Card | undefined | "unknown"){
+  set parentCard(parent: string | undefined | null){
     this._parentCard = parent;
   }
 
@@ -542,7 +545,7 @@ export class ItemCard extends Card {
       {
         return {
             ...super.jsonAPI,
-            ...(this.parentCard instanceof Card ? {parent: this.parentCard.slug} : {}),
+            ...(typeof this.parentCard === "string" ? {parent: this.parentCard} : {}),
         };
       }
   }
