@@ -744,10 +744,20 @@ export class Game {
 
   async handleRoomChange(): Promise<void> {
     if(this.rooms === undefined) return;
-    if(!this.entityHandler.monsterDiedThisTurn) return;
-    if(this.rooms.activeRooms.every((room) => room.canBeDiscarded === false)) return;
-    const data:EffectData = new EffectData(this.rooms.activeRooms[0]!, () => this.currentPlayer, []);
-    await CurrentPlayerDecidesToChangeRoom(this)(data);
+    if(this.entityHandler.monsterDiedThisTurn){
+      if(this.rooms.activeRooms.every((room) => room.canBeDiscarded === false)) return;    
+      const data:EffectData = new EffectData(this.rooms.activeRooms[0]!, () => this.currentPlayer, []);
+      await CurrentPlayerDecidesToChangeRoom(this)(data);
+    }
+    
+    if(this.players.every((player) => player.team === this.currentPlayer.team)) {
+      // Discard any room whose top card hasn't changed since every player has had a turn.
+      const staleRooms = this.rooms.registerTurnEndForStability(this.currentPlayer.id, this.players.length);
+      for (const room of staleRooms) {
+        if (room.canBeDiscarded)
+          this.cardHandler.discard(room);
+      }
+    }
   }
 
 ////////////////////////////////////// Handlers shortcuts //////////////////////////////////////
