@@ -391,10 +391,6 @@ export const enterGameStep = (
 
     socket.on("debugListCardsICanRemove", async (callback) =>
       errorGuardedEndpoint(callback, () => {
-        room.game.addToHistory({
-          type: "DebugListCardsICanRemove",
-          issuer: player.id,
-        });
         const cards = room.game
           .playerCardsAndGameOwnedCards(player)
           .map((c) => c.jsonAPI);
