@@ -3293,7 +3293,7 @@ export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, de
 export function lookAndReorderTopCardsEffect(game: Game, numberCards: number, deckNameParam: string | undefined | "selectOnResolve" = undefined, issuerType: "currentPlayer" | "dataIssuer" | "diceOwner" = "dataIssuer"): EffectFunction {
     return async (data: EffectData) => {
         let issuer = data.issuer;
-        if(issuerType === "currentPlayer")
+        if(issuerType === "currentPlayer" || (issuerType === "dataIssuer" && data.issuer instanceof Player === false))
             issuer = game.currentPlayer;
         if(issuerType === "diceOwner") {
             const roll = data.next as DiceRoll;
