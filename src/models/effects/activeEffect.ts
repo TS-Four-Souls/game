@@ -796,13 +796,13 @@ export function lookAtTopXPut1InSlotEffect(game: Game, x: number): AsyncEffectFu
         if(!selectedCard)
             return false;
         const slot = deck._type === "monster" ?
-            (await data.selectAndRecord(game, data.issuer, 1, 1, game.monsters.filter(m => m.isEngagedInCombat === false), qq("pending.slotToPlaceCardIn"), data.serializedCardAndBox, true)).selected[0]!
+            (await data.selectAndRecord(game, data.issuer, 1, 1, game.encounters.coverableSlots, qq("pending.slotToPlaceCardIn"), data.serializedCardAndBox, true)).selected[0]!
             : (await data.selectAndRecord(game, data.issuer, 1, 1, game.rooms?.activeRooms!, qq("pending.slotToPlaceCardIn"), data.serializedCardAndBox, true)).selected[0]!;
         if (!slot) return false;
         if(deck._type === "monster") {
             game.encounters.obtainCard(selectedCard.slug, selectedCard.globalId);
             game.cardHandler.addTopPosition("monster", selectedCard);
-            game.encounters.draw(game.encounters.visible.indexOf((slot as Monster).card));
+            game.encounters.draw(game.encounters.visible.indexOf(slot as MonsterCard));
         }
         else {
             game.rooms?.obtainCard(selectedCard.slug, selectedCard.globalId);

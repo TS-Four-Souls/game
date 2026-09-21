@@ -335,8 +335,8 @@ export class GameStateSerializer {
                   targetable: this.game.actions.canDeclareAttackOnEntity(player, m.monster, false),
                 },
                 temporaryEffect: m.monster.temporaryEffects,
-              }
-
+              },
+              indomitable: m.card.indomitable,
             } : {})
           },
           covered: m.covered,

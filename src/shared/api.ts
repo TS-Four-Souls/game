@@ -275,6 +275,7 @@ export type SerializedCounter = z.infer<typeof serializedCounterSchema>;
 const attackableCardSchema = cardSchema.extend({
   counters: z.array(serializedCounterSchema).optional(),
   stats: statsSchema.optional(),
+  indomitable: z.boolean().optional(),
 });
 export type MonsterCard = z.infer<typeof attackableCardSchema>;
 
