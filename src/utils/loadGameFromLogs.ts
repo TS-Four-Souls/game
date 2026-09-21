@@ -556,12 +556,9 @@ export async function loadGameFromLogs(
     for (const player of game.players) {
       player.animations(true);
     }
-    if(game.log.at(-2)?.type === "randomSeed")
-    {
-      game.log.pop(); // Remove the last randomSeed entry if it was added during replay, as it is not part of the original game flow.
-      game.log.pop(); // Remove the last randomSeed entry if it was added during replay, as it is not part of the original game flow.
-
-    }
+    // The replay above may have re-applied a trailing "randomSeed" entry that is not part of the
+    // original game flow; drop it before appending the fresh post-load seed below.
+    game.removeTrailingRandomSeed();
     game.seed = "";
     if(game.stack.isEmpty())
       game.assert.lastTimedAction = 0;

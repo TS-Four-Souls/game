@@ -836,6 +836,11 @@ export class Game {
     this._historicHandler.addToHistory(entry);
   }
 
+  /** Drops a trailing "randomSeed" history entry, e.g. one left over from a replay reseed. */
+  removeTrailingRandomSeed(): void {
+    this._historicHandler.removeTrailingRandomSeed();
+  }
+
   dispatch(): void {
     this._onStateChange.dispatch();
   }
