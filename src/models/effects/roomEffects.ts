@@ -159,11 +159,17 @@ export function cheaperShopItemsEffect(game: Game, discount: number): SyncEffect
     return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
         let offEndTurn: (() => void) | null = null;
+        game.currentPlayer.priceModifier -= discount;
+        let active: boolean = true;
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
+            if(active) return;
+            active = true;
             game.currentPlayer.priceModifier -= discount;
         });
 
-        offEndTurn = game.emitter.on("on:turn:end", (eventData) => {
+        offEndTurn = game.emitter.on("till:turn:end", (eventData) => {
+            if(!active) return;
+            active = false;
             game.currentPlayer.priceModifier += discount;
         });
 
@@ -174,6 +180,7 @@ export function cheaperShopItemsEffect(game: Game, discount: number): SyncEffect
             offEndTurn?.();
             offEndTurn = null;
             game.currentPlayer.priceModifier += discount;
+            active = false;
 
         });
         return true;
