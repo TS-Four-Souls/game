@@ -668,6 +668,7 @@ describe("Requiem Loots ", () => {
         });
     
         it("handicapped_placard", async () => {
+            game.gameParameters.nbSoulsToWin.value = 10;
             const gurdy = game.obtainCard("b2-gurdy") as MonsterCard;
             game.encounters.forceSetMonsterAtSlot(0, gurdy);
             expect(game.entityHandler.getDC(game.monsters[0]!)).toBe(4);

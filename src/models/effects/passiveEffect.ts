@@ -1754,7 +1754,7 @@ export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): SyncEffectF
             game.cardHandler.gainAbilities(issuer, data.it, item);
         }
         let offCounterChange: (() => void) | null = null;
-        let offSourceDestroyed: (() => void) | null = null;
+
         offCounterChange = game.emitter.on("on:counter:modified", ({ eventIssuer, card, counterName, previousValue, newValue }) => {
             if (counterName !== "golden") return;
             if(!(data.it instanceof ItemCard)) return;
@@ -1774,21 +1774,10 @@ export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): SyncEffectF
             }
         });
 
-        // A copied source being destroyed also destroys Golden Trinket.
-        // Add it to the same event batch so normal destruction cleanup handles it.
-        offSourceDestroyed = game.emitter.on("on:item:destroyed", (eventData) => {
-            const copiedCards = (data.it.tags.copiedCards as ItemCard[] | undefined) ?? [];
-            if (copiedCards.some(c => eventData.cards.includes(c) || (c.tags.copiedFrom && eventData.cards.includes(c.tags.copiedFrom)))) {
-                if (!eventData.cards.includes(data.it)) eventData.cards.push(data.it);
-            }
-        });
-        
         data.it.cleaners.push(() => {
             data.it.swapEffectInterfaces();
             offCounterChange?.();
             offCounterChange = null;
-            offSourceDestroyed?.();
-            offSourceDestroyed = null;
         });
         return true;
     };

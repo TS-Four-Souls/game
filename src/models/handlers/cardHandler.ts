@@ -1292,7 +1292,13 @@ export class CardHandler {
       if (gainer.entity === copied.entity) gainer.entity = undefined;
       copied.parentCard = null;
       copied.cleanup();
+      copied.parentCard = gainer.slug;
       gainer.tags.copiedCards = (gainer.tags.copiedCards as ItemCard[]).filter(c => c !== copied);
+    });
+    
+    copied.cleaners.push(() => {
+        if(copied.parentCard === gainer.slug)
+          this.game.cardHandler.destroyCardsOrSouls([gainer]);
     });
     return copied;
   }
