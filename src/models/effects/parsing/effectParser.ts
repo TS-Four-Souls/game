@@ -1682,7 +1682,8 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             return noTargetSyncEffect(monster.putInMonsterDeckNFromTopEffect(game, nr.nextNumber()));
         case "each time this deals combat damage to the attacking player, it deals x damage to each other player":
             return noTargetSyncEffect(passive.onAnyEventEffect("on:damage:taken", [active.dealDamageToEachPlayerEffect(game, nr.nextNumber(), false)], game, s, 
-            (ef:EffectData, ev:OnDamageTakenData) => { return ef.issuer === ev.target && ev.eventIssuer === game.currentPlayer;}));
+            (ef:EffectData, ev:OnDamageTakenData) => { 
+                return ef.issuer === ev.target && ev.eventIssuer === game.currentPlayer && ev.source instanceof DiceRoll;}, false));
         case "when this dies, it deals x damage to the player who killed it":
             return noTargetSyncEffect(monster.dealDamageToKillerOnDeathEffect(game, nr.nextNumber()));
         case "put it in the monster deck x cards from the top":
