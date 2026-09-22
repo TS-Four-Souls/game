@@ -41,7 +41,7 @@ export class Rooms extends Slots<RoomCard> {
      * since the last call, records that this player has had a turn with it in place.
      * @returns Rooms whose top card has now remained unchanged through a whole round (every player had a turn).
      */
-    registerTurnEndForStability(playerId: string, totalPlayers: number): RoomCard[] {
+    registerTurnEndForStability(playerId: string | undefined, totalPlayers: number): RoomCard[] {
         const staleRooms: RoomCard[] = [];
         for (let i = 0; i < this._slots.length; i++) {
             const top = this.roomIn(i);
@@ -51,7 +51,9 @@ export class Rooms extends Slots<RoomCard> {
                 tracking.cardId = top.globalId;
                 tracking.playersSinceChange = new Set();
             }
-            tracking.playersSinceChange.add(playerId);
+            if (playerId !== undefined) {
+                tracking.playersSinceChange.add(playerId);
+            }
             if (tracking.playersSinceChange.size >= totalPlayers) {
                 staleRooms.push(top);
             }

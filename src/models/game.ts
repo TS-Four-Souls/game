@@ -47,7 +47,7 @@ import { getTitles } from "./gameStats";
  * It also handles all player actions such as declaring attacks, dealing damage, resolving deaths, and managing the game history. 
  */
 export class Game {
-  private _turnHandler: TurnHandler = new TurnHandler();
+  private _turnHandler: TurnHandler = new TurnHandler(this);
   private _random: () => number = () => {throw new GameError("Random generator not initialized yet.", 
     toSerializedTranslation("error.behaviorError", {error: "Random generator not initialized yet."}))
   };
@@ -511,7 +511,7 @@ export class Game {
         this
       );
     }
-    // No user interaction on this trigger, use on:game:stat. This is for cain.
+    // No user interaction on this trigger, use on:game:stat. This is for Cain.
     this.emit("on:game:start:before", {});
     this.assignColorsToPlayers();
     this.entityHandler.healEveryone();
@@ -645,7 +645,7 @@ export class Game {
    */
   reset(newSeed: boolean = true): void {
     this._historicHandler = new HistoricHandler(this);
-    this._turnHandler = new TurnHandler();
+    this._turnHandler = new TurnHandler(this);
     this._entityHandler = new EntityHandler(this);
     this._cardHandler = new CardHandler(this);
     this.seed = (newSeed ? "" : this.seed); // If newSeed is true, set to a random value in the setter.
@@ -742,22 +742,28 @@ export class Game {
     }
   }
 
+  removeStaleRooms(registerPlayer: Player | undefined): void {
+    if(this.rooms === undefined) return;
+    const staleRooms = this.rooms.registerTurnEndForStability(registerPlayer?.id, this.players.length);
+    if(this.players.every((player) => player.team === this.currentPlayer.team)) {
+      // Discard any room whose top card hasn't changed since every player has had a turn.
+      for (const room of staleRooms) {
+        if (room.canBeDiscarded)
+          this.cardHandler.discard(room);
+      }
+    }
+  }
+
   async handleRoomChange(): Promise<void> {
     if(this.rooms === undefined) return;
+    const staleRooms = this.rooms.registerTurnEndForStability(this.currentPlayer.id, this.players.length);
     if(this.entityHandler.monsterDiedThisTurn){
       if(this.rooms.activeRooms.every((room) => room.canBeDiscarded === false)) return;    
       const data:EffectData = new EffectData(this.rooms.activeRooms[0]!, () => this.currentPlayer, []);
       await CurrentPlayerDecidesToChangeRoom(this)(data);
     }
     
-    if(this.players.every((player) => player.team === this.currentPlayer.team)) {
-      // Discard any room whose top card hasn't changed since every player has had a turn.
-      const staleRooms = this.rooms.registerTurnEndForStability(this.currentPlayer.id, this.players.length);
-      for (const room of staleRooms) {
-        if (room.canBeDiscarded)
-          this.cardHandler.discard(room);
-      }
-    }
+    this.removeStaleRooms(undefined);
   }
 
 ////////////////////////////////////// Handlers shortcuts //////////////////////////////////////
