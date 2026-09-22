@@ -1158,7 +1158,7 @@ export class CardHandler {
       this.attachEffectsToCard(card);
   }
 
-  async replaceCharacter(player: Player, newCharacter: CharacterCard): Promise<void> {
+  async replaceCharacter(player: Player, newCharacter: CharacterCard, triggerFindNewEternalIfUndefined: boolean = true): Promise<void> {
      // Remove the current character + starting item (both are eternal, so we cannot use removeInPlay()).
     const oldCharacter = player.character;
     const oldStartingItem = player.inPlay[0]!;
@@ -1183,10 +1183,14 @@ export class CardHandler {
 
     if(newStartingItem === undefined)
     {
-      await selectEternalAmongX(this.game, 3)(new EffectData(newCharacter, () => player, []));
-      player.inPlay[0] = player.inPlay[player.inPlay.length - 1]!;
-      player.inPlay.pop();
-    } else{
+      if(triggerFindNewEternalIfUndefined)
+      {
+        await selectEternalAmongX(this.game, 3)(new EffectData(newCharacter, () => player, []));
+        player.inPlay[0] = player.inPlay[player.inPlay.length - 1]!;
+        player.inPlay.pop();
+      } 
+    }
+    else{
       newStartingItem.onAddInPlay(() => player);
       player.inPlay[0] = newStartingItem!;
     }

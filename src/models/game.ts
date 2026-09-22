@@ -513,7 +513,7 @@ export class Game {
     }
   } 
   /**
-   * Select character cards when eternal should also be displayed. This is used for the mulliganCharacters method, as well as for the remote effect.
+   * Select character cards when eternal should also be displayed. This is used for the mulliganCharacters method, as well as for the clicket effect.
    * @param game 
    */
   async selectRawCharacterAmong(characters: CharacterCard[], player: Player, min: number, max: number): Promise<{ selected: CharacterCard[]; remaining: CharacterCard[] }> {
@@ -546,7 +546,7 @@ export class Game {
                 const player = pair.player;
                 const card = pair.selection.selected[0];
                 if(card !== undefined) {
-                    await this.cardHandler.replaceCharacter(player, card);
+                    await this.cardHandler.replaceCharacter(player, card, false);
                     this._playersWithRandomCharacter.splice(this._playersWithRandomCharacter.indexOf(player), 1);
                 }
                 toPutBack.push(...pair.selection.remaining);
