@@ -83,7 +83,7 @@ export class GameStateSerializer {
       numberOfCardsOverMaxHandSize: Math.max(0, player.hand.cards.length - player.maxHandSize),
       pendingSelection: this.serializedPendingSelection(player.id),
       capabilities: {
-        endTurn: this.game.actions.canEndTurn(player),
+        endTurn: this.game.actions.canEndTurn(player, false),
         declareAttack: this.game.actions.canDeclareAttack(player),
         declarePurchase: this.game.actions.canDeclarePurchase(player),
         rollDice: this.game.actions.canRollDice(player),

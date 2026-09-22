@@ -316,7 +316,7 @@ export class TargetBuilder {
 
     static convertToSelectionItems(options: any[]): SelectionItem[] {
          return options.map(option => {
-            const wasAlreadySelectionItem = selectionItemSchema.safeParse(option).data;     
+            const wasAlreadySelectionItem = selectionItemSchema.safeParse(option).data;
             if(wasAlreadySelectionItem !== undefined)
                 return wasAlreadySelectionItem;
             if (typeof option === 'object' && option !== null && isChooseOneOptions(option)) {
@@ -435,6 +435,8 @@ export class TargetBuilder {
                 } catch {
                     return undefined;
                 }
+            case "character":
+                return identifier;
             default:
                 return undefined;
         }

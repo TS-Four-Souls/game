@@ -517,9 +517,16 @@ export class Game {
     this.entityHandler.healEveryone();
   } 
   /**
-   * At the start of the game, each player having "random character", draws a certain number of cards N from the character deck, they can pick one and have it as a character, or pick none an restart the process with N - 1 options.
+   * Select character cards when eternal should also be displayed. This is used for the mulliganCharacters method, as well as for the remote effect.
    * @param game 
    */
+  async selectRawCharacterAmong(characters: CharacterCard[], player: Player, min: number, max: number): Promise<{ selected: CharacterCard[]; remaining: CharacterCard[] }> {
+    const selectionItem: SelectionItem[] = characters.map((card) => ({type: "character", payload: { character: card.slug, eternal: card.eternalCard || "random" }}));
+    return this.select(player, min, max, selectionItem, toSerializedTranslation("startStep.playerList.selectCharacterButton.popup.title"), "mulliganCharacters", true, false).then((result) => {
+      return { selected: result.selected.map((item) => characters.find((card) => item.type === "character" && card.slug === item.payload.character)!),
+         remaining: result.remaining.map((item) => characters.find((card) => item.type === "character" && card.slug === item.payload.character)!)};
+    });
+  }
   mulliganCharacters(): void {
       this.addPromise((async (): Promise<boolean> => {
           let unresolvedPlayers = this._playersWithRandomCharacter.slice();
@@ -528,6 +535,7 @@ export class Game {
                   const minVal = nbOptions === 1 || !this.gameParameters.mulliganCharacterReroll.value ? 1 : 0;
                   let currentUnresolvedPlayers = [...unresolvedPlayers];
                   let toPutBack: CharacterCard[] = [];
+                  
                   const promises = [];
                   for( const player of currentUnresolvedPlayers) {
                       const availableCharacters = this.decks.character.length + this.decks.character.discard.length;
@@ -535,7 +543,7 @@ export class Game {
                       if (numberToDraw === 0)
                         continue;
                       const drawn: CharacterCard[] = this.decks.character.drawSeveral(numberToDraw);
-                      promises.push({player: player, selection: this.select(player, minVal, 1, drawn, toSerializedTranslation("startStep.playerList.selectCharacterButton.popup.title"), "mulliganCharacters", true, false)});
+                      promises.push({player: player, selection: this.selectRawCharacterAmong(drawn, player, minVal, 1)});
                   }
                   const pairs = await Promise.all(promises.map(async (p) => ({player: p.player, selection: await p.selection})));
                   for(const pair of pairs) {
