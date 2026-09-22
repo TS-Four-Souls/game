@@ -666,7 +666,7 @@ export class CardHandler {
         // Use a valid in-set template while the mulligan is pending. The
         // template must also have an eternal card available in this setup.
         cardFromSet = this._decks.character._set.cards.find((candidate) =>
-          candidate.slug === "b2-isaac" &&
+          candidate.slug === "b2-eden" &&
           (!candidate.eternalCard || this._decks.eternal._set.cards.some((eternal) => eternal.slug === candidate.eternalCard))
         ) ?? this._decks.character._set.cards.find((candidate) =>
           !candidate.eternalCard || this._decks.eternal._set.cards.some((eternal) => eternal.slug === candidate.eternalCard)

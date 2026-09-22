@@ -70,7 +70,7 @@ export class Game {
   private _selectionHandler = new SelectionHandler(this);
   private _cardHandler = new CardHandler(this);
   private _promises: Promise<boolean>[] = [];
-  private _playersWithRandomCharacter: Player[] = [];
+  _playersWithRandomCharacter: Player[] = [];
 
   private _onStateChange: Signal<void> = new Signal();
   onStateChange: ReadableSignal<void> = this._onStateChange.readOnly();
