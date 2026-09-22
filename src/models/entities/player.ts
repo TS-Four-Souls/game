@@ -112,6 +112,7 @@ export class Player extends Entity {
     user: string = crypto.randomUUID(),
   ) {
     super(id, 0, 0);
+    this._color = "#E6E420"; // Default player color
     this._team = team;
     this._hand = new Hand();
     this._inPlay = [];

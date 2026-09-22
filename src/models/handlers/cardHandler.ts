@@ -693,12 +693,6 @@ export class CardHandler {
         characters.push(card);
       }
     }
-    for (let index = 0; index < characters.length; index++) {
-      if (characters[index] === null) {
-        const randomCard = this._decks["character"].draw();
-        characters[index] = randomCard;
-      }
-    }
     return characters;
   }
 

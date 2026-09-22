@@ -3313,6 +3313,10 @@ export function startingItemEffect(game: Game, x: number): SyncEffectFunction {
             offEffect = null;
             return true;
         });
+        data.it.cleaners.push(() => {
+            offEffect?.();
+            offEffect = null;
+        });
         return true;
     };
 }

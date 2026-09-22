@@ -511,10 +511,6 @@ export class Game {
         this
       );
     }
-    // No user interaction on this trigger, use on:game:stat. This is for Cain.
-    this.emit("on:game:start:before", {});
-    this.assignColorsToPlayers();
-    this.entityHandler.healEveryone();
   } 
   /**
    * Select character cards when eternal should also be displayed. This is used for the mulliganCharacters method, as well as for the remote effect.
@@ -527,44 +523,50 @@ export class Game {
          remaining: result.remaining.map((item) => characters.find((card) => item.type === "character" && card.slug === item.payload.character)!)};
     });
   }
-  mulliganCharacters(): void {
-      this.addPromise((async (): Promise<boolean> => {
-          let unresolvedPlayers = this._playersWithRandomCharacter.slice();
-          for(let nbOptions = this.gameParameters.mulliganCharacterNbOptions.value; nbOptions > 0 && unresolvedPlayers.length > 0; nbOptions--)
-              {
-                  const minVal = nbOptions === 1 || !this.gameParameters.mulliganCharacterReroll.value ? 1 : 0;
-                  let currentUnresolvedPlayers = [...unresolvedPlayers];
-                  let toPutBack: CharacterCard[] = [];
-                  
-                  const promises = [];
-                  for( const player of currentUnresolvedPlayers) {
-                      const availableCharacters = this.decks.character.length + this.decks.character.discard.length;
-                      const numberToDraw = Math.min(nbOptions, availableCharacters);
-                      if (numberToDraw === 0)
-                        continue;
-                      const drawn: CharacterCard[] = this.decks.character.drawSeveral(numberToDraw);
-                      promises.push({player: player, selection: this.selectRawCharacterAmong(drawn, player, minVal, 1)});
-                  }
-                  const pairs = await Promise.all(promises.map(async (p) => ({player: p.player, selection: await p.selection})));
-                  for(const pair of pairs) {
-                      const player = pair.player;
-                      const card = pair.selection.selected[0];
-                      if(card !== undefined) {
-                          await this.cardHandler.replaceCharacter(player, card);
-                          unresolvedPlayers.splice(unresolvedPlayers.indexOf(player), 1);
-                      }
-                      toPutBack.push(...pair.selection.remaining);
-                  }
-                  for(const card of toPutBack) {
-                      this.decks.character.addBottomPosition(card);
-                  }
-                  this.decks.character.shuffle();
-              }
-          return true;
-      })());
+
+  async mulliganCharacters(): Promise<void> {
+    this._playersWithRandomCharacter;
+    for(let nbOptions = this.gameParameters.mulliganCharacterNbOptions.value; nbOptions > 0 && this._playersWithRandomCharacter.length > 0; nbOptions--)
+        {
+            const minVal = nbOptions === 1 || !this.gameParameters.mulliganCharacterReroll.value ? 1 : 0;
+            let currentUnresolvedPlayers = [...this._playersWithRandomCharacter];
+            let toPutBack: CharacterCard[] = [];
+            
+            const promises = [];
+            for( const player of currentUnresolvedPlayers) {
+                const availableCharacters = this.decks.character.length + this.decks.character.discard.length;
+                const numberToDraw = Math.min(nbOptions, availableCharacters);
+                if (numberToDraw === 0)
+                  continue;
+                const drawn: CharacterCard[] = this.decks.character.drawSeveral(numberToDraw);
+                promises.push({player: player, selection: this.selectRawCharacterAmong(drawn, player, minVal, 1)});
+            }
+            const pairs = await Promise.all(promises.map(async (p) => ({player: p.player, selection: await p.selection})));
+            for(const pair of pairs) {
+                const player = pair.player;
+                const card = pair.selection.selected[0];
+                if(card !== undefined) {
+                    await this.cardHandler.replaceCharacter(player, card);
+                    this._playersWithRandomCharacter.splice(this._playersWithRandomCharacter.indexOf(player), 1);
+                }
+                toPutBack.push(...pair.selection.remaining);
+            }
+            for(const card of toPutBack) {
+                this.decks.character.addBottomPosition(card);
+            }
+            this.decks.character.shuffle();
+            this.dispatch();
+        }
+    this.dispatch();
+    return;
   }
+
   async atGameStartDecisions(): Promise<void> {
     await this.mulliganCharacters();
+    // No user interaction on this trigger, use on:game:stat. This is for Cain.
+    this.emit("on:game:start:before", {});
+    this.assignColorsToPlayers();
+    this.entityHandler.healEveryone();
     this.emit("on:game:start", {}); // Eden starting item choice
     if(this.gameParameters.miniDraft.value)
       miniDraft(this); // Add resolutions to game.promises.
