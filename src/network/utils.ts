@@ -208,7 +208,7 @@ const generateRoomChangedPayload = (
     players: room.users
       .map((user) =>
         user.instances.flatMap((instance) => ({
-          isMe: instance.id === recipient.id,
+          isMe: user.instances.some((i) => i.id === recipient.id),
           isHost: user.isHost,
           isCopy: instance.isCopy,
           name: instance.name,
