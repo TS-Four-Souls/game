@@ -205,6 +205,7 @@ function combineEffects(effect1: Effect, effect2: Effect): Effect {
 // Effect handler manages multiple effects of the same type of a card.
 class EffectHandler {
     protected _effects: Effect[] = [];
+    protected _effectNames: string[] = [];
     protected cleaners: (() => void)[] = [];
 
     cleanupAll(): void {
@@ -213,6 +214,12 @@ class EffectHandler {
         }
         this.cleaners = [];
         this._effects = [];
+    }
+
+    get effectNames(): string[] {
+        if(this._effectNames.length !== this._effects.length)
+            this._effectNames = this._effects.map(e => e.description);
+        return this._effectNames;
     }
 }
 class PassiveEffectHandler extends EffectHandler {
@@ -312,10 +319,6 @@ class ActiveEffectHandler extends EffectHandler {
             return this.getActiveEffect().targetsSelector || [];
         else
             return this._effects[index]?.targetsSelector || [];
-    }
-
-    get effectNames(): string[] {
-        return this._effects.map(e => e.description);
     }
 
     getPaidEffectId(description: string): number {
