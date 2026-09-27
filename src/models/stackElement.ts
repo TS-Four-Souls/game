@@ -481,7 +481,7 @@ export class LootStepOnStack extends StackElement {
       this.game.stack.resolve();
       this.game.addToHistory(this.json);
       this.game.lootStep(this.player, this.nbLoots);
-      return new Promise(resolve => setTimeout(resolve, 0));
+      await this.game.resolveCallbacks();
     });
   }
   get nbLoots(){
@@ -519,6 +519,7 @@ export class EndOfTurnOnStack extends StackElement {
     return `EndOfTurn: ${this.player.id} ends their turn`;
   }
   override async onResolve(): Promise<void> {
+    await this.game.resolveCallbacks();
     await this.game.handleRoomChange();
   }
 }
@@ -631,6 +632,7 @@ export class EffectOnStack extends StackElement {
     }
 
     override get debugLogs(): string {
-        return `card effect ${this.data.it.name} ${this.data.it.globalId} ISSUER ${this._data.issuer.id} EFFECT "${this._description}" TARGETS: ${JSON.stringify(TargetBuilder.convertToSelectionItems(this._data.targets))}`;
+        return `card effect ${this.data.it.name} ${this.data.it.globalId} ISSUER ${this._data.issuer.id} EFFECT "${this._description}" `;
+        // TARGETS: ${JSON.stringify(TargetBuilder.convertToSelectionItems(this._data.targets))}
     }
 }
