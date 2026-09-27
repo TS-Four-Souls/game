@@ -758,11 +758,11 @@ export function stealSoulEffect(game: Game, from: "next" | "anotherPlayer"): Asy
             const target = data.next;
             if(target instanceof Player === false)
                 return false;
-            souls = target.souls;
+            souls = target.targetableSouls;
         }
         else if(from === "anotherPlayer")
         {
-            souls = game.players.filter(p => p !== data.issuer).flatMap(p => p.souls);
+            souls = game.players.filter(p => p !== data.issuer).flatMap(p => p.targetableSouls);
         }
         if(souls.length === 0) return false;
         const soulToSteal = (await data.selectAndRecord(game, data.issuer, 1, 1, souls, qq("pending.soulToSteal"), data.serializedCardAndBox, true, true)).selected[0]!;
@@ -1616,7 +1616,7 @@ export function putRoomOrMonsterIntoDiscardEffect(game: Game, youMay: boolean): 
             {
                 console.log("Failed to flush monster:", target.id);
                 console.log("Current monsters in slots:", game.monsters.map(m => m ? m.card.name : null));
-                console.log("Current monsters in slots:", game.encounters.cardsOnTop.map(m => m ? m.name : null));
+                console.log("Current monsters in encounters:", game.encounters.cardsOnTop.map(m => m ? m.name : null));
                 throw new GameError("Failed to flush monster.", toSerializedTranslation("error.failedToFlushMonster"));
             }
             return true;
