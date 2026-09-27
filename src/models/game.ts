@@ -876,6 +876,12 @@ export class Game {
   dispatch(): void {
     this._onStateChange.dispatch();
   }
+
+  /** Yields one event-loop tick so connected clients can observe the latest game state. */
+  async waitForNextTick(): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, 0));
+  }
+
   /**
    * Dispatch a message to specific players in the game.
    */
@@ -1172,6 +1178,10 @@ export class Game {
   ): Promise<void> {
     this._stackSubsetCallbacks.push({stackIds: ids, callback});
     await this.resolveCallbacks();
+  }
+
+  hasCallbacks(): boolean {
+    return this._stackSubsetCallbacks.length > 0;
   }
 
   /**
