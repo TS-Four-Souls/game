@@ -198,6 +198,7 @@ export async function executeEndTurnRequest(
   game: Game,
   player: Player,
 ): Promise<void> {
+  game.actions.canEndTurn(player, true);
   game.addToHistory({ type: "EndTurn", issuer: player.id });
   await game.actions.nextTurn(player);
 }
