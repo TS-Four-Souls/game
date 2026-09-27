@@ -645,9 +645,6 @@ export function canBeAttackedEffect(game: Game): SyncEffectFunction {
 
 export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
-        if(data.issuer.isEngagedInCombat === false || data.issuer.isDead) {
-            return false; // Not the current player, ignore
-        }
         let offAttackRolled: (() => void) | null = null;
         let offCombatEnd: (() => void) | null = null;
         // console.log("Registering makeAnAttackRollAfterEachAttackRollEffect for", data.it.name, " current player:", game.currentPlayer.id, " issuer:", data.issuer.id);
@@ -686,7 +683,6 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): SyncEffec
             offAttackRolled = null;
             offCombatEnd?.();
             offCombatEnd = null;
-            console.log("CLEANED");
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -695,7 +691,6 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): SyncEffec
             offAttackRolled = null;
             offCombatEnd?.();
             offCombatEnd = null;
-            console.log("CLEANED");
         });
         return true;
     };
