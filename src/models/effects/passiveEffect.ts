@@ -2973,31 +2973,43 @@ export function preventDamageAndDealOnDeathEffect(game: Game, damagePrevented: n
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         let offDeath: (() => void) | null = null;
+        let offEndTurn: (() => void) | null = null;
+        if(!(data.issuer instanceof Player)) return false;
+        const target = data.next;
+        const temp: TemporaryEffect = getTemporaryEffect(data);
 
         const cleanup = (): void => {
             offDamage?.();
             offDeath?.();
+            offEndTurn?.();
             offDamage = null;
             offDeath = null;
+            offEndTurn = null;
+            target.removeTemporaryEffect(temp);
         };
-        if(!(data.issuer instanceof Player)) return false;
-
-        const target = data.next;
         if(!target || !(target instanceof Player)) return false;
         const newData = new EffectData(data.it, () => target, [], data.visualEffectBox);
         preventNextDamageUpToEffect(damagePrevented, game)(newData); // Reuse the preventNextDamageUpToEffect to handle the prevention part
         // Listen for death of the player from this damage
+        
+        target.addTemporaryEffect(temp);
         offDeath = game.emitter.on("on:death:before-penalty", (deathEventData: OnDeathBeforePenaltyData) => {
             const { eventIssuer } = deathEventData;
             if (target !== eventIssuer) return;
-
-            for(const player of game.players) {
-                if(player !== data.issuer && !player.isDead && player !== eventIssuer) {
-                    game.entityHandler.dealDamage(data.issuer, player, data.cardAndBox, damageAmount);
+            const effect = () => {
+                for(const player of game.players) {
+                    if(player !== data.issuer && !player.isDead && player !== eventIssuer) {
+                        game.entityHandler.dealDamage(data.issuer, player, data.cardAndBox, damageAmount);
+                    }
                 }
+                return true;
             }
-
+            addPassiveEffectToStack(game, effect, data, "deal damage to all other players on death");
             cleanup(); // One-shot: remove listeners after triggering
+        });
+
+        offEndTurn = game.emitter.on("till:turn:end", () => {
+            cleanup();
         });
 
         // Store cleanup function on the card for when it's removed/destroyed

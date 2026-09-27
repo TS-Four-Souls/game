@@ -645,13 +645,22 @@ export function canBeAttackedEffect(game: Game): SyncEffectFunction {
 
 export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
+        if(data.issuer.isEngagedInCombat === false || data.issuer.isDead) {
+            return false; // Not the current player, ignore
+        }
         let offAttackRolled: (() => void) | null = null;
         let offCombatEnd: (() => void) | null = null;
         // console.log("Registering makeAnAttackRollAfterEachAttackRollEffect for", data.it.name, " current player:", game.currentPlayer.id, " issuer:", data.issuer.id);
         offAttackRolled = game.emitter.on("on:attack:roll", (eventData) => {
+            if(eventData.eventIssuer.isEngagedInCombat === false || eventData.eventIssuer.isDead) {
+                return; // Not the current player, ignore
+            }
             const target = eventData.dice.attackTarget;
             if(eventData.eventIssuer !== game.currentPlayer) {
                 return; // Not the current player, ignore
+            }
+            if(target.isEngagedInCombat === false || target.isDead) {
+                return; // Target is not engaged in combat or is dead, ignore
             }
             if(data.issuer === game.currentPlayer)
                 throw new GameError("Expected issuer to not be the active player for makeAnAttackRollAfterEachAttackRollEffect.",
@@ -677,6 +686,7 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): SyncEffec
             offAttackRolled = null;
             offCombatEnd?.();
             offCombatEnd = null;
+            console.log("CLEANED");
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -685,6 +695,7 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): SyncEffec
             offAttackRolled = null;
             offCombatEnd?.();
             offCombatEnd = null;
+            console.log("CLEANED");
         });
         return true;
     };
