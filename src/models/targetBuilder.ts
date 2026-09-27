@@ -316,9 +316,6 @@ export class TargetBuilder {
 
     static convertToSelectionItems(options: any[]): SelectionItem[] {
          return options.map(option => {
-            const wasAlreadySelectionItem = selectionItemSchema.safeParse(option).data;
-            if(wasAlreadySelectionItem !== undefined)
-                return wasAlreadySelectionItem;
             if (typeof option === 'object' && option !== null && isChooseOneOptions(option)) {
                 return {type: "chooseOne", payload: {description: option.description, card: option.card.jsonAPI, visualEffectBox: option.visualEffectBox}};
             }
@@ -364,6 +361,9 @@ export class TargetBuilder {
             if(serializedTranslationParsed.success) {
                 return {type: "serializedTranslation", payload: serializedTranslationParsed.data};
             }
+            const wasAlreadySelectionItem = selectionItemSchema.safeParse(option).data;
+            if(wasAlreadySelectionItem !== undefined)
+                return wasAlreadySelectionItem;
             if (Array.isArray(option) || typeof option === 'object') {
                 try {
                     return {type: "array", payload: TargetBuilder.convertToSelectionItems(option)};
