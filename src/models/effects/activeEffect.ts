@@ -2097,6 +2097,7 @@ export function lookAtHandAndStealLootEffect(game: Game): AsyncEffectFunction {
 
 export function endTurnAndResetStackEffect(game: Game): AsyncEffectFunction {
     return async (data: EffectData) => {
+        if(game.isEndPhase) return false;
         game.resetStack();
         game.resetCallbacks();
         game.currentPlayer.clearAttackRequirement();

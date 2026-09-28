@@ -186,6 +186,10 @@ export class Game {
     return this.entityHandler.entities;
   }
 
+  get isEndPhase(): boolean {
+    return this.stack.elements.some((e) => e instanceof EndOfTurnOnStack);
+  }
+
   get currentPlayer(): Player {
     return this.turnHandler.current;
   }
