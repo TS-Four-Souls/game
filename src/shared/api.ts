@@ -37,6 +37,12 @@ export const serializedTranslationSchema =
   });
 export type SerializedTranslation = z.infer<typeof serializedTranslationSchema>;
 
+const capabilitySchema = z.union([
+  z.literal(true),
+  serializedTranslationSchema,
+]);
+export type Capability = z.infer<typeof capabilitySchema>;
+
 export const identifierTypeSchema = z.object({
   nameKey: serializedTranslationSchema,
   slug: z.string(),
@@ -58,6 +64,11 @@ export type EntityType = z.infer<typeof entityTypeSchema>;
 
 const cardSchema = identifierTypeSchema;
 export type Card = z.infer<typeof cardSchema>;
+
+const playableCardSchema = cardSchema.extend({
+  canBePlayed: capabilitySchema,
+});
+export type PlayableCard = z.infer<typeof playableCardSchema>;
 
 const shopItemSchema = cardSchema.extend({ price: z.number() });
 const VisualEffectBoxSchema = z.object({
@@ -246,12 +257,6 @@ const temporaryEffectSchema = z.object({
   visualEffectBox: VisualEffectBoxSchema.optional(),
 });
 export type TemporaryEffect = z.infer<typeof temporaryEffectSchema>;
-
-const capabilitySchema = z.union([
-  z.literal(true),
-  serializedTranslationSchema,
-]);
-export type Capability = z.infer<typeof capabilitySchema>;
 
 const statsSchema = z.object({
   healthPoints: z.number(),
@@ -863,7 +868,7 @@ const playerSchema = z.object({
 export type Player = z.infer<typeof playerSchema>;
 
 const playerMeSchema = playerSchema.extend({
-  hand: z.array(cardSchema),
+  hand: z.array(playableCardSchema),
   character: inPlayWithStatsMeCardSchema.optional(),
   inPlay: z.array(inPlayMeCardSchema),
   numberOfCardsOverMaxHandSize: z.number(),
