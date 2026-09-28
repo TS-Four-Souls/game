@@ -104,7 +104,7 @@ export class GameStateSerializer {
   public serializedMyInPlayItems(item: ItemCard, owner: Player): api.InPlayMeCard {
     return {
       ...this.serializeOtherInPlay(owner, item, owner),
-      effects: item.activeEffectList,
+      effects: item.activeEffectList.filter(e => TargetBuilder.validTargetExists(this.game, owner, item, e.index, e.visualEffectBox.startIndex) === true),
     };
   }
 

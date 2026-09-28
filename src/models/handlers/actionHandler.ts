@@ -483,7 +483,7 @@ export class ActionHandler {
       !(card instanceof ItemCard) || !card.activeEffectList.some(e => 
           (e.index !== "tap" && 
             TargetBuilder.verifyPaiementCanBeMade(this.game, owner, card, e.description) === true) && 
-              TargetBuilder.validTargetExists(this.game, owner, card, e.index) === true)
+              TargetBuilder.validTargetExists(this.game, owner, card, e.index, e.visualEffectBox.startIndex) === true)
     )) {
       if(card.activeEffectList.length === 1 && card.activeEffectList[0]!.index === "tap" && !card.charged)
         return toSerializedTranslation("capability.notCharged");
@@ -494,7 +494,7 @@ export class ActionHandler {
         if(card.activeEffectList.length === 1){
           return TargetBuilder.validTargetExists(this.game, owner, card, card.activeEffectList[0]!.index);
         }
-        else if(!card.activeEffectList.some(e => TargetBuilder.validTargetExists(this.game, owner, card, e.index) === true && (card.charged || e.index !== "tap")))
+        else if(!card.activeEffectList.some(e => TargetBuilder.validTargetExists(this.game, owner, card, e.index, e.visualEffectBox.startIndex) === true && (card.charged || e.index !== "tap")))
           return toSerializedTranslation("capability.noValidTargets");
       }
     return true;

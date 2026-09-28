@@ -185,11 +185,12 @@ export class TargetBuilder {
             if (possibleTargets.length > 0 && isChooseOneOptions(possibleTargets[0])) {
                 // Choose-one: find the chosen option
                 const chosenOption = (possibleTargets as ChooseOneOptions[]).find(
-                    opt => opt.description === (choice.payload as SerializedChooseOne).description
+                    opt => opt.visualEffectBox.startIndex === (choice.payload as SerializedChooseOne).visualEffectBox.startIndex
+                    && opt.visualEffectBox.endIndex === (choice.payload as SerializedChooseOne).visualEffectBox.endIndex
                 );
 
                 if (!chosenOption) {
-                    throw new GameError(`Invalid choose-one option: ${choice}`, toSerializedTranslation("error.invalidChooseOneOption"));
+                    throw new GameError(`Invalid choose-one option: ${JSON.stringify(choice.payload, null, 2)}`, toSerializedTranslation("error.invalidChooseOneOption"));
                 }
                 rootSelectors.splice(selectorIndex + 1, 0, ...chosenOption.admissibleTargets);
                 selectorIndex++;
@@ -233,12 +234,18 @@ export class TargetBuilder {
         }
 
         // Get the next selector to display
-        const possibleTargets = selector.selector(player, item);
+        let possibleTargets = selector.selector(player, item);
         
         // Check if this is a choose-one selector
         const isChooseOne = possibleTargets.length > 0 && isChooseOneOptions(possibleTargets[0]);
 
         if (isChooseOne) {
+            // Filter possibleTargets to only include choose-one options with valid targets.
+            possibleTargets = (possibleTargets as ChooseOneOptions[]).filter(option => {
+                const nextSelector = this.getNextSelectorRaw(game, player, item, [...partialChoices, {type: "chooseOne", payload: {description: option.description, card: option.card.jsonAPI, visualEffectBox: option.visualEffectBox}}], effectId, throwIfNotCharged, true);
+                return nextSelector.complete
+                || (option.admissibleTargets && option.admissibleTargets.length > 0);
+            });
             // Return choose-one option descriptions
             return {
                 description: selector.description,
@@ -408,7 +415,7 @@ export class TargetBuilder {
             case "chooseOne":
                 return (possibleTargets as SerializedChooseOne[]).find(t => t && t.description === identifier.payload.description)
             case "cardEffect":
-                return (possibleTargets as CardEffect[]).find(t => t && t.index === identifier.payload.index)
+                return (possibleTargets as CardEffect[]).find(t => t && t.index === identifier.payload.index && t.visualEffectBox.startIndex === identifier.payload.visualEffectBox.startIndex && t.visualEffectBox.endIndex === identifier.payload.visualEffectBox.endIndex);
             case "number":
             case "string":
             case "boolean":
@@ -643,7 +650,8 @@ export class TargetBuilder {
         game: Game,
         player: Player,
         item: ItemCard,
-        effectId: number | "tap" = "tap"
+        effectId: number | "tap" = "tap",
+        visualEffectId?: number
     ): Capability {
         if(!item)
             return toSerializedTranslation("error.itemNotFound");
@@ -659,6 +667,12 @@ export class TargetBuilder {
             }
         // The next target is expected to be an array of targets for the copied effect
         let targets: any[] = [];
+        if (visualEffectId !== undefined) {
+            const selectedEffect = item.getEffectIdAndChooseOneChoiceFromSeparatorId(visualEffectId);
+            if (selectedEffect.effectId !== effectId)
+                return toSerializedTranslation("capability.noValidTargets");
+            targets = selectedEffect.choice?.map(payload => ({ type: "chooseOne", payload })) ?? [];
+        }
         let options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
         const backtrackingIndices: number[] = [];
         while(!options.complete)
@@ -722,46 +736,69 @@ export class TargetBuilder {
             // The next target is expected to be an array of targets for the copied effect
             let targets: any[] = [];
             let options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
-            const backtrackingIndices: number[] = [];
-            while(!options.complete)
-            {
-                // pick a number uniformly between options.min and Math.min(options.max, options.options.length)
-                const upper = Math.min(options.max, options.options.length);
-                const range = upper - options.min + 1;
-                const nbToSelect = options.min + (range > 0 ? Math.floor(Math.random() * range) : 0);
-                const shuffledOptions = [...options.options];
-                shuffle(Math.random, shuffledOptions);
-                const selection = shuffledOptions.slice(0, nbToSelect);
-                if(selection.length > options.max || selection.length < options.min)
-                {
-                    if(backtrackingIndices.length === 0)
-                        break;
-                    const lastIndex = backtrackingIndices.pop()!;
-                    const prevChooseOneOption = targets[lastIndex].description;
-                    targets = targets.slice(0, lastIndex);
+            const backtrackingFrames: { targetIndex: number; options: SelectionItem[]; nextOptionIndex: number }[] = [];
+            const tryBacktrack = (): boolean => {
+                while (backtrackingFrames.length > 0) {
+                    const frame = backtrackingFrames[backtrackingFrames.length - 1]!;
+                    if (frame.nextOptionIndex >= frame.options.length) {
+                        backtrackingFrames.pop();
+                        continue;
+                    }
+
+                    targets = targets.slice(0, frame.targetIndex);
+                    targets.push(frame.options[frame.nextOptionIndex++]!);
                     options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
-                    const prevChooseOneIdx = options.options.findIndex((opt: any) => opt.description === prevChooseOneOption);
-                    if(prevChooseOneIdx === -1)
-                        throw new GameError(`Could not find previous choose-one option "${prevChooseOneOption}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`, toSerializedTranslation("error.behaviorError", { error: `Could not find previous choose-one option "${prevChooseOneOption.description}" among options: ${options.options.map((opt: any) => opt.description).join(", ")}`}));
-                    if(options.options.length <= prevChooseOneIdx + 1)
-                        return "No valid targets. (No option to backtrack to)";
-                    targets.push(options.options[prevChooseOneIdx+1]);
-                    options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
-                    // continue;
+                    return true;
                 }
-                if(options.isChooseOne)
-                    backtrackingIndices.push(targets.length);
-                targets.push(...selection);
-                options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
-            }
-            try {
-                // Convert serialized selection items into resolved targets expected by game/player APIs
-                const resolved = TargetBuilder.buildTargets(game, player, item, targets, effectId);
-                return {index: effectId, targets: resolved};
-            } catch (e) {
-                // console.error(`Error building targets for item ${item.name}, effectId: ${effectId}:`, e);
-                // If conversion fails, try next effect
-                continue;
+                return false;
+            };
+
+            while (true) {
+                if (!options.complete) {
+                    if (options.options.length < options.min) {
+                        if (tryBacktrack()) continue;
+                        break;
+                    }
+
+                    // Pick a number uniformly between min and the available maximum.
+                    const upper = Math.min(options.max, options.options.length);
+                    const range = upper - options.min + 1;
+                    const nbToSelect = options.min + (range > 0 ? Math.floor(Math.random() * range) : 0);
+
+                    let selection: SelectionItem[];
+                    if (options.isChooseOne) {
+                        // Keep one randomized ordering for this decision, so retries
+                        // advance through the original order instead of reshuffling it.
+                        const candidates = [...options.options];
+                        shuffle(Math.random, candidates);
+                        backtrackingFrames.push({
+                            targetIndex: targets.length,
+                            options: candidates,
+                            nextOptionIndex: 1,
+                        });
+                        selection = candidates.slice(0, nbToSelect);
+                    } else {
+                        const shuffledOptions = [...options.options];
+                        shuffle(Math.random, shuffledOptions);
+                        selection = shuffledOptions.slice(0, nbToSelect);
+                    }
+
+                    targets.push(...selection);
+                    options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
+                    continue;
+                }
+
+                try {
+                    // console.log(JSON.stringify(TargetBuilder.convertToSelectionItems(targets), null, 2));
+                    // Convert serialized selection items into resolved targets expected by game/player APIs.
+                    const resolved = TargetBuilder.buildTargets(game, player, item, targets, effectId);
+                    return {index: effectId, targets: resolved};
+                } catch {
+                    // A selector can expose a target that fails final validation; try
+                    // the next unvisited choose-one branch before abandoning this effect.
+                    if (tryBacktrack()) continue;
+                    break;
+                }
             }
         }
         return "No valid targets found for any effect.";

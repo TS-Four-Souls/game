@@ -907,8 +907,6 @@ export class CardHandler {
 
     this.removeCardFromHand(from, card);
     this.addCardToHand(to, card);
-    if(to.hand.cards.some(c => this.decks.loot.cards.includes(c)))
-        throw new GameError("Card cannot be given to the player in eachOtherPlayerLootsAndYouLootEffect", toSerializedTranslation("error.behaviorError", {error: "Card cannot be given to the player in eachOtherPlayerLootsAndYouLootEffect"}));
     return true;
   }
 
@@ -1239,7 +1237,7 @@ export class CardHandler {
                 }
                 card.owner = effectIssuer;
                 const effectsWithValidTargets = card.activeEffectList.filter(e => {
-                    if(TargetBuilder.validTargetExists(this.game, effectIssuer, card, e.index) !== true) return false;
+                    if(TargetBuilder.validTargetExists(this.game, effectIssuer, card, e.index, e.visualEffectBox.startIndex) !== true) return false;
                     return (e.index === "tap" || TargetBuilder.verifyPaiementCanBeMade(this.game, effectIssuer, card, e.description) === true);
                 });
                 if(effectsWithValidTargets.length === 0)
@@ -1263,7 +1261,7 @@ export class CardHandler {
                 // triger all tap effects.
                 if(effect.index === "tap")
                   for(const activeItem of copiedSelector.selector(issuer, gainer) as ItemCard[])
-                    if(card !== activeItem && activeItem.hasTapEffect())
+                    if(card !== activeItem && activeItem.hasTapEffect() && TargetBuilder.validTargetExists(this.game, effectIssuer, activeItem, "tap") === true)
                     {
                       const targets =  await TargetBuilder.buildTargetsOnResolve(this.game, effectIssuer, activeItem, effectId);
                       activeItem.recharge();
