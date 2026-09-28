@@ -740,7 +740,7 @@ export function eachOtherPlayerDiscardsLootEffect(game: Game): AsyncEffectFuncti
 export function modifyCoinGainedEffect(game: Game, modifier: (original:number) => number): SyncEffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        const originalAmount = data.next;
+        const originalAmount = data.peek();
         if (!originalAmount || !(originalAmount instanceof Array) || originalAmount.length !== 1 || typeof originalAmount[0] !== "number") {
             throw new GameError(`Invalid original amount for ModifyCoinGainedEffect: ${originalAmount}`, toSerializedTranslation("error.behaviorError", { error: `Invalid original amount for ModifyCoinGainedEffect: ${originalAmount}`}));
         }
@@ -884,6 +884,9 @@ export function subtractUpToXFromRollEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         const chosenDiceRoll: DiceRoll = data.next as DiceRoll;
         const subtractValue = data.next as number;
+        if(typeof subtractValue !== "number") {
+            throw new GameError(`Invalid value for SubtractUpToXFromRollEffect: ${subtractValue}`, toSerializedTranslation("error.behaviorError", { error: `Invalid value for SubtractUpToXFromRollEffect: ${subtractValue}`}));
+        }
         chosenDiceRoll.subtract(subtractValue);
         return true;
     };
@@ -1172,10 +1175,6 @@ export function becomeSoulIfAboveXCountersEffect(countersThreshold: number, game
             const owner = game.getOwner(data.it);
             if(owner instanceof Player === false)
                 return false;
-            if(!game.cardHandler.removeInPlay(owner, data.it as ItemCard))
-                {
-                    return false;
-                };
             enterPlayBecomeSoulEffect(game)(new EffectData(data.it, () => owner, [], data.visualEffectBox));
         }
         return true;
@@ -3370,6 +3369,8 @@ export function putThisIntoDiscardEffect(game: Game): SyncEffectFunction {
 export function killMonsterEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         const targetMonster = data.next as Monster;
+        if(!targetMonster || !(targetMonster instanceof Monster) || targetMonster.isDead)
+            return false;
         game.entityHandler.kill(data.issuer, targetMonster, data.cardAndBox);
         return true;
     };
@@ -3378,7 +3379,8 @@ export function killMonsterEffect(game: Game): SyncEffectFunction {
 export function enterPlayBecomeSoulEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        game.cardHandler.removeInPlay(data.issuer, data.it as ItemCard);
+        if(!game.cardHandler.removeInPlay(data.issuer, data.it as ItemCard))
+            return false;
         if(data.it instanceof LootCard === true)
             data.it.afterEffect = "nothing"; // card placement is handled by the effect itself.
         data.it.soul = 1;
