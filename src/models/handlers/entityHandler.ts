@@ -20,7 +20,7 @@ import { EffectData } from "@/models/types/cardTypes";
 import { toSerializedTranslation } from "@/utils/translation";
 import { AnimatedList } from "../entities/animated";
 import { DeathPenaltyValues } from "../handlers/deathHandler";
-import type { VisualEffectBox } from "@/shared/api";
+import type { Capability, VisualEffectBox } from "@/shared/api";
 
 /**
  *  Type representing sources of damage - either a card ability or a dice roll
@@ -134,12 +134,10 @@ export class EntityHandler {
   /** Shortcut to queue death for an entity from a given source. */
   kill(killer: Entity, entity: Entity, source: DamageSource): void {
     this.game.assert.gameOngoing();
-    try{
-      this.game.assert.isAlive(entity);
-      this.game.assert.entityIsInPlay(entity);
-    }catch{
+    if(this.game.assert.isAlive(entity, false) !== true
+      || this.game.assert.entityIsInPlay(entity, false) !== true
+    )
       return; // if the receiver is not alive or not in play anymore, do nothing.
-    }
     this.death(entity, killer, source);
   }
   /**
@@ -201,7 +199,7 @@ export class EntityHandler {
    */
   death(receiver: Entity, from: Entity, source: DamageSource): void {
     this.game.assert.gameOngoing();
-    this.game.assert.entityIsInPlay(receiver);
+    if(this.game.assert.entityIsInPlay(receiver, false) !== true) return;
     if (receiver.isDead) return;
 
     const deathOnStack = new DeathOnStack(receiver, from, source, this.game);
@@ -264,12 +262,9 @@ export class EntityHandler {
    * Should only be called by DeathOnStack objects.
    */
   async resolveDeath(receiver: Entity, from: Entity, source: DamageSource): Promise<void> {
-    try{
-      this.game.assert.isAlive(receiver);
-      this.game.assert.entityIsInPlay(receiver);
-    }catch{
-      return; // if the receiver is not alive or not in play anymore, do nothing.
-    }
+    if(this.game.assert.isAlive(receiver, false) !== true
+      || this.game.assert.entityIsInPlay(receiver, false) !== true)
+      return;// if the receiver is not alive or not in play anymore, do nothing.
     if(this.game.timerIsUsed && receiver === this.game.currentPlayer)
     {
       this.game.gameParameters.timer.value -= 1; // reset timer if the current player dies.
@@ -387,17 +382,17 @@ export class EntityHandler {
     this.game.dispatch();
   }
 
-  forcedAttackSatisfied(player: Player): void {
+  forcedAttackSatisfied(player: Player, shouldThrow: boolean = true): Capability {
     this.game.actions.canDeclareAttack(player, false);
     // Check if there's a forced attack constraint
     if (!player.hasAttackRequirement) {
-      return; // No constraint, all good
+      return true; // No constraint, all good
     }
 
     // Check if player is dead - constraint doesn't apply
     if (player.isDead) {
       player.clearAttackRequirement();
-      return;
+      return true;
     }
 
     const requirement = player.mustAttackEntity!;
@@ -411,14 +406,17 @@ export class EntityHandler {
 
     if (validMonsters.length === 0) {
       player.clearAttackRequirement(); // All monsters gone, constraint lifted
-      return;
+      return true;
     }
 
     // At least one monster constraint remains - must be satisfied
-    throw new GameError(
-      "You must attack the required monster(s).",
-      toSerializedTranslation("error.mustAttackRequiredMonsters")
-    );
+    if (shouldThrow) {
+      throw new GameError(
+        "You must attack the required monster(s).",
+        toSerializedTranslation("error.mustAttackRequiredMonsters")
+      );
+    }
+    return toSerializedTranslation("error.mustAttackRequiredMonsters");
   }
 
   /** Adds an entity to the combat list (idempotent). */
@@ -520,6 +518,7 @@ export class EntityHandler {
       {
         this.game.stack.resolve();
         this.game.dispatch();
+        await this.game.resolveCallbacks();
         return;
       }
     this.game.emit("on:damage:would-take", {
@@ -616,9 +615,6 @@ export class EntityHandler {
   /** Adds a temporary/permanent attack modifier to an entity. */
   addAttack(e: Entity, value: number, source: Card | "flip" | "other" = "other"): void {
     // console.log(`Adding ${value} attack points to entity ${e.id}. Current attack points: ${e.attackPoints}. source is ${source instanceof Card ? source.jsonAPI.name : source}, id ${source instanceof Card ? source.jsonAPI.globalId : "N/A"}.`);
-    if(source instanceof Card && source.name === "Diplopia")
-      throw new GameError("Diplopia should not call addAttack, as it does not directly modify attack points.",
-        toSerializedTranslation("error.behaviorError", {error: "Diplopia should not call addAttack, as it does not directly modify attack points."}));
     if(e.attackPoints + value < 0)
       throw new GameError(`Cannot reduce attack points of entity ${e.id} below 0.`,
         toSerializedTranslation("error.cannotReduceAttackPointsBelow0", {card: e.card.nameKey}));
