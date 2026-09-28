@@ -96,17 +96,16 @@ class Card {
     }
 
     visualEffectBoxFromDescription(description: string): VisualEffectBox {
+        const processedDescription = description.toLowerCase().replaceAll("!", "").replaceAll("-", "");
         for(const effectRange of this._separatorIds) {
             for(const effect of effectRange) {
-                if(effect.description.toLowerCase().includes(description.toLowerCase())) {
+                if(effect.description.toLowerCase().replaceAll("!", "").replaceAll("-", "").includes(processedDescription)) {
                     return { startIndex: effect.startIndex, endIndex: effect.endIndex };
                 }
             }
         }
         // tmp
         return { startIndex:0, endIndex:0 };
-
-        // throw new GameError(`Effect description "${description}" not found for card ${this.name}`);
     }
     get counters(): CounterHandler {
         return this._counterHandler;
