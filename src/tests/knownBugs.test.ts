@@ -579,16 +579,17 @@ describe("Known bugs that have be corrected", () => {
     it("mini draft correctness", async () => {
         const setup = await setupTestGame({
             characters: ["b2-samson", "b2-isaac"],
-            monsters: ["b2-fly", "b2-fatty"],
-            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
-            treasureDeck: ["b2-blank_card", "b2-placebo", "b2-tech_x"],
             parameters: new Map<string, any> ([["miniDraft", true]])
         });
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
-
+        if(player1.inPlay.length !== 3)
+            console.log(player1.inPlay.length);
         expect(player1.inPlay.length).toBe(3);
+        if(player2.inPlay.length !== 3)
+            console.log(player2.inPlay.length);
+        expect(player2.inPlay.length).toBe(3);
     });
     
     it("knight bug", async () => {

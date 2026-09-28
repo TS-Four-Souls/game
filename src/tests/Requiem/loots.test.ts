@@ -676,6 +676,7 @@ describe("Requiem Loots (3p games) ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player1.currentHealthPoints).toBe(0);
         expect(player2.currentHealthPoints).toBe(0);
         expect(player3.currentHealthPoints).toBe(0);

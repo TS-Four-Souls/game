@@ -1,4 +1,4 @@
-import type { ItemCard, LootCard, MonsterCard, RoomCard } from "@/models/cards";
+import type { ItemCard, LootCard, MonsterCard, RoomCard, TreasureCard } from "@/models/cards";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../../models/entities/player";
 import { Game } from "../../models/game";
@@ -97,18 +97,21 @@ describe("Requiem Loots ", () => {
             let item = game.obtainCard("r-undefined") as ItemCard;
             expect(item).toBeDefined();
             game.cardHandler.addInPlay(player1, item);
-            game.obtainCard(game.shop.itemsInShop[0]!.slug);
-
+            const spoon = game.obtainCard("b2-spoon_bender") as TreasureCard;
+            game.shop._deck.addTopPosition(spoon);
+            game.shop.discardTop(0);
+            
             game.cardHandler.recharge(item);
+            expect(game.shop.itemsInShop[0]?.name.includes("Spoon Bender")).toBe(true);
             await game.activateItem(player1, item, [game.shop.itemsInShop[0]], "tap");
             await game.actions.resolveStack();
 
             expect(item.name).toBe(game.shop.itemsInShop[0]!.name);
             expect(item.charged).toBe(true);
-            game.random = () => 0.01;
+            game.random = () => 0.1;
             const dice = game.rollDice(player1, item);
             expect(dice.value).toBe(1);
-            await game.activateItem(player1, item, [dice], "tap");
+            await game.activateItem(player1, item, [dice, 1], "tap");
             await game.actions.resolveStack();
             expect(dice.value).toBe(2);
             expect(item.charged).toBe(false);
