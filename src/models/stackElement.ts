@@ -519,8 +519,8 @@ export class EndOfTurnOnStack extends StackElement {
     return `EndOfTurn: ${this.player.id} ends their turn`;
   }
   override async onResolve(): Promise<void> {
-    await this.game.resolveCallbacks();
     await this.game.handleRoomChange();
+    await this.game.resolveCallbacks();
   }
 }
 
