@@ -17,7 +17,7 @@ import { DiceRoll, LootStepOnStack } from "@/models/stackElement";
 import type { DeckType, DecksCollection } from "@/models/types/cardTypes";
 import { EffectData } from "@/models/types/cardTypes";
 import { type LoseCoinsReason, type TriggerEvent } from '@/models/types/eventTypes';
-import type { Animation, DetailedState, PendingSelectionReason, SelectionItem, SerializedTranslation, StackElementJson, Team } from "@/shared/api";
+import type { Animation, DetailedState, GameOverBroadcast, PendingSelectionReason, SelectionItem, SerializedTranslation, StackElementJson, Team } from "@/shared/api";
 import { shuffle } from "@/utils/auxiliary";
 import { generateAnimationId } from "@/utils/random";
 import { Signal, type ReadableSignal } from "micro-signals";
@@ -78,8 +78,8 @@ export class Game {
   private _onRoomBroadcast: Signal<ServerRoomBroadcast> = new Signal();
   onRoomBroadcast: ReadableSignal<ServerRoomBroadcast> = this._onRoomBroadcast.readOnly();
 
-  private _onEndReached: Signal<void> = new Signal();
-  onEndReached: ReadableSignal<void> = this._onEndReached.readOnly();
+  private _onEndReached: Signal<GameOverBroadcast> = new Signal();
+  onEndReached: ReadableSignal<GameOverBroadcast> = this._onEndReached.readOnly();
 
   constructor(seed: string = "", gameParameters?: GameParameters) {
     this.seed = seed; // if seed is empty, it will be set to a random value.
@@ -627,31 +627,12 @@ export class Game {
     if(this._isWon)
       return;
     this._isWon = true;
-    this._onEndReached.dispatch();
+    this._onEndReached.dispatch(
+      this._gameStateSerializer.serializeEndGame(player?.team ?? null)
+    );
     for(const p of this.players)
       console.log(`player: ${p.id}, stats: ${JSON.stringify(p.stats)}`);
     getTitles(this.players);
-    if(player === null)
-    {
-      this._onRoomBroadcast.dispatch({
-        type: "victory",
-        title: toSerializedTranslation("toast.timeUp.title"),
-        message: toSerializedTranslation("toast.timeUp.message"),
-        players: this.players.map(p => p.id),
-      });
-    }
-    else 
-      for(const p of this.players)
-      {
-        const isWinner = p.team === player.team;
-
-        this._onRoomBroadcast.dispatch({
-          type: "victory",
-          title: isWinner ? toSerializedTranslation("toast.winning.title") : toSerializedTranslation("toast.losing.title"),
-          message: isWinner ? toSerializedTranslation("toast.winning.message") : toSerializedTranslation("toast.losing.message"),
-          players: [p.id],
-        });
-      }
   }
 
   /**
@@ -772,7 +753,7 @@ export class Game {
     if(this.rooms === undefined) return;
     const staleRooms = this.rooms.registerTurnEndForStability(this.currentPlayer.id, this.players.length);
     if(this.entityHandler.monsterDiedThisTurn){
-      if(this.rooms.activeRooms.every((room) => room.canBeDiscarded === false)) return;    
+      if(this.rooms.activeRooms.every((room) => room.canBeDiscarded === false)) return;
       const data:EffectData = new EffectData(this.rooms.activeRooms[0]!, () => this.currentPlayer, []);
       await CurrentPlayerDecidesToChangeRoom(this)(data);
     }

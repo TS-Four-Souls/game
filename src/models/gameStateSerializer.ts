@@ -8,6 +8,7 @@ import { TargetBuilder } from "@/models/targetBuilder";
 // import type { DetailedState, IdentifierType, InPlayCard, InPlayMeCard, PendingSelection } from "@/shared/api";
 import * as api from "@/shared/api";
 import { toSerializedTranslation } from "@/utils/translation";
+import { getMainTitle } from "./gameStats";
 
 export class GameStateSerializer {
   private game: Game;
@@ -344,5 +345,16 @@ export class GameStateSerializer {
       };
     }
 
-
+    public serializeEndGame(winnerTeam: api.Team | null): api.GameOverBroadcast {
+      const titles = getMainTitle(this.game.players);
+      return {
+        type: "gameOver",
+        data: this.game.players.map((p) => ({
+          player: this.serializedOtherPlayers(p, [p])[0]!,
+          playerStats: p.stats,
+          type: p.team === winnerTeam ? "win" : "lose",
+          title: titles[p.id]!,
+        })),
+      };
+    }
 }

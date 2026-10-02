@@ -1,6 +1,7 @@
 import { toSerializedTranslation } from "@/utils/translation";
 import type { Player } from "./entities/player";
-import type { SerializedTranslation } from "@/shared/api";
+import type { SerializedPlayerStatsSchema, SerializedTranslation } from "@/shared/api";
+import { shuffle } from "@/utils/auxiliary";
 
 export class PlayerStats {
     nbAttacksDeclared: number = 0;
@@ -25,6 +26,32 @@ export class PlayerStats {
     nbNonAttackRolledValues = [0, 0, 0, 0, 0, 0];
     nbAttackRolledValues = [0, 0, 0, 0, 0, 0];
 
+
+    get json(): SerializedPlayerStatsSchema {
+        return {
+            nbAttacksDeclared: this.nbAttacksDeclared,
+            nbLootPlayed: this.nbLootPlayed,
+            nbPurchases: this.nbPurchases,
+            nbPurchaseTopDeck: this.nbPurchaseTopDeck,
+            nbPurchaseCancelled: this.nbPurchaseCancelled,
+            nbRoomActivated: this.nbRoomActivated,
+            nbItemActivated: this.nbItemActivated,
+            nbMobKilled: this.nbMobKilled,
+            nbPlayerKilled: this.nbPlayerKilled,
+            nbSuicides: this.nbSuicides,
+            nbDeaths: this.nbDeaths,
+            nbLootGained: this.nbLootGained,
+            nbAttackTopDeck: this.nbAttackTopDeck,
+            nbItemGained: this.nbItemGained,
+            nbCoinsGained: this.nbCoinsGained,
+            coinsGiven: this.coinsGiven,
+            coinsPaid: this.coinsPaid,
+            nbDamageTaken: this.nbDamageTaken,
+            nbDamageDealt: this.nbDamageDealt,
+            nbNonAttackRolledValues: this.nbNonAttackRolledValues,
+            nbAttackRolledValues: this.nbAttackRolledValues,
+        };
+    }
 }
 
 const Titles = {
@@ -107,7 +134,7 @@ export function getTitles(players: Player[]): Record<string, Title[]> {
         // if(maxExpectation === player)
         //     titles[player.id]!.push(Titles.diceRolled[1]!);
     for(const stat of Object.keys(players[0]!.stats) as (keyof PlayerStats)[]) {
-        if(stat === "nbNonAttackRolledValues" || stat === "nbAttackRolledValues") {
+        if(stat === "nbNonAttackRolledValues" || stat === "nbAttackRolledValues" || stat === "json") {
             continue;
         }
         let min: Player | null = null;
@@ -146,10 +173,11 @@ export function getTitles(players: Player[]): Record<string, Title[]> {
     return titles;
 }
 
-function getMainTitle(players: Player[]): Record<string, SerializedTranslation> {
+export function getMainTitle(players: Player[]): Record<string, SerializedTranslation> {
     const titles = getTitles(players);
     const res:Record<string, SerializedTranslation>  = {};
     for(const player of players) {
+        shuffle<Title>(Math.random, titles[player.id]!);
         titles[player.id] = titles[player.id]!.sort((a, b) => b.distanceWithNormalizedMean - a.distanceWithNormalizedMean);
         res[player.id] = titles[player.id]![0]!.name;
     }

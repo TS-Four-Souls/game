@@ -1078,6 +1078,45 @@ const roomBroadcastSchema = z.object({
 });
 export type RoomBroadcast = z.infer<typeof roomBroadcastSchema>;
 
+const playerStatsSchema = z.object({
+  nbAttacksDeclared: z.number(),
+  nbLootPlayed: z.number(),
+  nbPurchases: z.number(),
+  nbPurchaseTopDeck: z.number(),
+  nbPurchaseCancelled: z.number(),
+  nbRoomActivated: z.number(),
+  nbItemActivated: z.number(),
+  nbMobKilled: z.number(),
+  nbPlayerKilled: z.number(),
+  nbSuicides: z.number(),
+  nbDeaths: z.number(),
+  nbLootGained: z.number(),
+  nbAttackTopDeck: z.number(),
+  nbItemGained: z.number(),
+  nbCoinsGained: z.number(),
+  coinsGiven: z.number(),
+  coinsPaid: z.number(),
+  nbDamageTaken: z.number(),
+  nbDamageDealt: z.number(),
+  nbNonAttackRolledValues: z.array(z.number()).length(6),
+  nbAttackRolledValues: z.array(z.number()).length(6),
+});
+export type SerializedPlayerStatsSchema = z.infer<typeof playerStatsSchema>;
+
+const gameOverScreenPlayerDataSchema = z.object({
+  player: playerSchema,
+  playerStats: playerStatsSchema,
+  type: z.enum(["win", "lose"]),
+  title: serializedTranslationSchema,
+});
+export type GameOverScreenPlayerData = z.infer<typeof gameOverScreenPlayerDataSchema>;
+  
+const gameOverBroadcastSchema = z.object({
+  type: "gameOver",
+  data: z.array(gameOverScreenPlayerDataSchema),
+});
+export type GameOverBroadcast = z.infer<typeof gameOverBroadcastSchema>;
+
 const saveGameResponseSchema = z.union([
   z.object({
     status: z.literal(200),
@@ -1379,6 +1418,7 @@ export interface ServerToClientEvents {
   "on:user:assigned": (userId: string | null) => void;
   "on:player:emote": (emote: EmoteType, name: string) => void;
   "on:room:broadcast": (broadcast: RoomBroadcast) => void;
+  "on:room:gameover": (broadcast: GameOverBroadcast) => void;
   "on:game:quit": (userId: string) => void;
   "on:admin:changed": (admin: AdminResponse) => void;
 }
