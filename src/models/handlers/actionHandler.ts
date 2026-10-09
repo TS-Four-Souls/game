@@ -217,7 +217,7 @@ export class ActionHandler {
   }
 
   async useCard(
-          type: "hand" | "inPlay" | "character" | "room",
+          type: "hand" | "inPlay" | "character" | "room" | "topLootCard",
           player: Player,
           itemIndex: number,
           targets: any[],
@@ -238,7 +238,11 @@ export class ActionHandler {
               if(this._game.rooms === undefined || this._game.rooms.activeRooms[itemIndex] === undefined)
                 return
               await this.activateRoom(player, this._game.rooms.activeRooms[itemIndex], targets, effectId )
-
+              return;
+            case "topLootCard":
+              if(this._game.decks["loot"] === undefined || this._game.decks["loot"].cards[0] === undefined)
+                return;
+              this.playCard(player, "topLootCard", targets);
         }
       }
 
@@ -398,14 +402,19 @@ export class ActionHandler {
     /**
      * Plays one loot card from hand and pushes its effect on stack.
      */
-    playCard(player: Player, index: number, targets: any[] = []): string {
+    playCard(player: Player, index: number | "topLootCard", targets: any[] = []): string {
       this.canPlayCard(player, true);
-      this.game.assert.positiveNumber(index);
-      if (index < 0 || index > player.hand.cards.length) {
-        return "Invalid card position.";
+      if(player.canPlayTopOfLootDeck === false && index === "topLootCard")
+        throw new GameError("You cannot play the top card of the loot deck.", toSerializedTranslation("error.cannotPlayTopCardOfLootDeck"));
+      if(index !== "topLootCard" ){
+        this.game.assert.positiveNumber(index);
+        if (index < 0 || index > player.hand.cards.length) {
+          return "Invalid card position.";
+        }
       }
-      const card = player.hand.cards[index]!;
-      this.game.cardHandler.removeCardFromHand(player, card);
+      const card = index === "topLootCard" ? this.game.decks.loot.cards[0]! : player.hand.cards[index]!;
+      if(index !== "topLootCard" )
+        this.game.cardHandler.removeCardFromHand(player, card);
       const playedCard: LootCard = card;
   
       if (targets.length === 0 && card.trinket === false) {
@@ -414,12 +423,13 @@ export class ActionHandler {
             targets = playedCard.getTargetSelectors()[0]!.selector(player, playedCard)[0];
       }
       const lootCardEffect = new LootCardEffect(player, playedCard, targets);
-      this.game.addAnimation({
-        id: this.game.nextAnimationId,
-        type: "playLoot",
-        card: playedCard.jsonAPI,
-        player: player.id,
-      });
+      if(index !== "topLootCard" )
+        this.game.addAnimation({
+          id: this.game.nextAnimationId,
+          type: "playLoot",
+          card: playedCard.jsonAPI,
+          player: player.id,
+        });
       const idx = this.game.addToStack(lootCardEffect);
       player.remainingLootPlay -= 1;
       this.game.emit("on:loot:played", {
@@ -538,6 +548,7 @@ export class ActionHandler {
   declarePurchase(player: Player): void {
     this.canDeclarePurchase(player, true);
 
+    this.game.emit("on:purchase:declared", { eventIssuer: player });
     player.remainingPurchaseThisTurn -= 1;
     player.engageInPurchase();
     this.game.dispatch();

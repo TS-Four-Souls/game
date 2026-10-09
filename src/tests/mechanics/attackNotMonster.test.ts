@@ -22,8 +22,7 @@ describe("Four Souls+2 Attack Requirements", () => {
     });
 
     it("Attack a player.", async () => {
-        player2.attackable = true;
-        player2.evasion = 3;
+        player2.addAttackableReason({card: null as any, visualEffectBox: null as any}, 3);
         game.actions.declareAttack(player1);
         game.random = () => 0.6;
         game.actions.declareAttackOnEntity(player1, player2);
@@ -35,8 +34,7 @@ describe("Four Souls+2 Attack Requirements", () => {
     });
 
     it("Attack a player and take damage.", async () => {
-        player2.attackable = true;
-        player2.evasion = 3;
+        player2.addAttackableReason({card: null as any, visualEffectBox: null as any}, 3);
         game.actions.declareAttack(player1);
         game.random = () => 0.1;
         game.actions.declareAttackOnEntity(player1, player2);

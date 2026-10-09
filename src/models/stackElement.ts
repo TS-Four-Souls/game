@@ -63,6 +63,7 @@ export class AttackRollData {
   damageReceivedMultiplier: number;
   evasion: number;
   target: Entity;
+  missingValues: number[] = [];
   
   constructor(
     damageDealtAdditional: number,
@@ -78,6 +79,7 @@ export class AttackRollData {
     this.damageReceivedMultiplier = damageReceivedMultiplier;
     this.evasion = evasion;
     this.target = target;
+    this.missingValues = Array.from({ length: evasion-1 }, (_, i) => i + 1);
   }
 }
 

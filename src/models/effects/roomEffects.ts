@@ -65,35 +65,79 @@ export function cancelAttackOnTopOfMonsterDeckEffect(game: Game): SyncEffectFunc
     };
 }
 
-export function otherPlayersAreAttackableEffect(game: Game, evasion: number, onlyIssuer: boolean = false, condition: (player: Player) => boolean = ()=>true): SyncEffectFunction {
+export function IssuerIsAttackableEffect(game: Game, evasion: number, condition: (player: Player) => boolean = ()=>true, ): SyncEffectFunction {
     return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
         let offTurnEnd: (() => void) | null = null;
-        if(!onlyIssuer || game.currentPlayer === data.issuer)
-            for(const player of game.players) {
-                if(player !== game.currentPlayer && condition(player)) {
-                    game.entityHandler.makePlayerAttackable(player, evasion);
-                }
-            }
-        game.entityHandler.makePlayerUnattackable(game.currentPlayer);
+        if(data.issuer instanceof Player === false)
+            return false;
+        if(condition(data.issuer)) {
+            game.entityHandler.makePlayerAttackable(data.issuer, evasion, data.cardAndBox);
+        }
 
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
-            if(onlyIssuer && eventData.eventIssuer !== data.issuer) return;
+            if(data.issuer instanceof Player === false)
+                return false;
+            if(condition(data.issuer))
+                game.entityHandler.makePlayerAttackable(data.issuer, evasion, data.cardAndBox);
+        });
+        offTurnEnd = game.emitter.on("on:turn:end", (eventData) => {
+            if(data.issuer instanceof Player === false)
+                return false;
+            game.entityHandler.makePlayerUnattackable(data.issuer, data.cardAndBox);
+        });
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            offTurnStart?.();
+            offTurnStart = null;
+            offTurnEnd?.();
+            offTurnEnd = null;
+            if(data.issuer instanceof Player === false)
+                return;
+            game.entityHandler.makePlayerUnattackable(data.issuer, data.cardAndBox);
+        });
+        return true;
+    }
+}
+export function otherPlayersAreAttackableEffect(game: Game, evasion: number, onlyIssuerCanAttack: boolean = false, condition: (player: Player) => boolean = ()=>true, tillEndOfTurn: boolean = false ): SyncEffectFunction {
+    return (data: EffectData) => {
+        let offTurnStart: (() => void) | null = null;
+        let offTurnEnd: (() => void) | null = null;
+        if(!onlyIssuerCanAttack || game.currentPlayer === data.issuer)
             for(const player of game.players) {
                 if(player !== game.currentPlayer && condition(player)) {
-                    game.entityHandler.makePlayerAttackable(player, evasion);
+                    game.entityHandler.makePlayerAttackable(player, evasion, data.cardAndBox);
                 }
             }
-            game.entityHandler.makePlayerUnattackable(game.currentPlayer);
+        game.entityHandler.makePlayerUnattackable(game.currentPlayer, data.cardAndBox);
+
+        offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
+            if(onlyIssuerCanAttack && eventData.eventIssuer !== data.issuer) return;
+            for(const player of game.players) {
+                if(player !== game.currentPlayer && condition(player)) {
+                    game.entityHandler.makePlayerAttackable(player, evasion, data.cardAndBox);
+                }
+            }
+            game.entityHandler.makePlayerUnattackable(game.currentPlayer, data.cardAndBox);
         });
-        if(onlyIssuer)
+        if(onlyIssuerCanAttack)
         {
             offTurnEnd = game.emitter.on("on:turn:end", (eventData) => {
                 if(eventData.eventIssuer !== data.issuer) return;
                 for(const player of game.players)
-                    game.entityHandler.makePlayerUnattackable(player);
+                    game.entityHandler.makePlayerUnattackable(player, data.cardAndBox);
             });
         }
+        if(tillEndOfTurn)
+            offTurnEnd = game.emitter.on("till:turn:end", (eventData) => {
+                offTurnStart?.();
+                offTurnStart = null;
+                offTurnEnd?.();
+                offTurnEnd = null;
+                for(const player of game.players) {
+                    game.entityHandler.makePlayerUnattackable(player, data.cardAndBox);
+                }
+            });
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
             offTurnStart?.();
@@ -101,7 +145,7 @@ export function otherPlayersAreAttackableEffect(game: Game, evasion: number, onl
             offTurnEnd?.();
             offTurnEnd = null;
             for(const player of game.players) {
-                game.entityHandler.makePlayerUnattackable(player);
+                game.entityHandler.makePlayerUnattackable(player, data.cardAndBox);
             }
         });
         return true;

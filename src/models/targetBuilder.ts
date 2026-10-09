@@ -311,11 +311,13 @@ export class TargetBuilder {
     static getCard(game: Game,
     player: Player,
     itemId: number,
-    type : "inPlay" | "room" | "character" | "hand"): ItemCard {
+    type : "inPlay" | "room" | "character" | "hand" | "topLootCard" ): ItemCard {
+        if(type === "topLootCard" && game.decks["loot"] === undefined)
+            throw new GameError(`Item not found in player's ${type}.`, toSerializedTranslation("error.itemNotFoundInPlayerInventory", { type: type }));
         if(type === "room" && game.rooms === undefined)
             throw new GameError(`Item not found in player's ${type}.`, toSerializedTranslation("error.itemNotFoundInPlayerInventory", { type: type }));
         const set = type === "inPlay" ? player.inPlay : type === "room" ? game.rooms!.activeRooms : player.hand.cards;
-        const card = type === "character" ? player.character : set[itemId];
+        const card = type === "character" ? player.character : type === "topLootCard" ? game.decks["loot"]?.cards[0] : set[itemId];
         if(!card || !(card instanceof ItemCard))
             throw new GameError(`Item not found in player's ${type}.`, toSerializedTranslation("error.itemNotFoundInPlayerInventory", { type: type }));
         return card;

@@ -566,10 +566,10 @@ export class CardHandler {
     return false;
   }
 
-  addToCounter(issuer: Entity, item: Card, type: CounterType, value: number): void {
-    const oldValue = item.counters.value(type);
-    item.counters.addToCounter(value, type);
-    this.game.emit("on:counter:modified", { eventIssuer: issuer, card: item, counterName: type, previousValue: oldValue, newValue: item.counters.value(type) });
+  addToCounter(issuer: Entity, receiver: Card | Player, type: CounterType, value: number): void {
+    const oldValue = receiver.counters.value(type);
+    receiver.counters.addToCounter(value, type);
+    this.game.emit("on:counter:modified", { eventIssuer: issuer, receiver, counterName: type, previousValue: oldValue, newValue: receiver.counters.value(type) });
   }
 
   /**
@@ -1282,8 +1282,8 @@ export class CardHandler {
     for (const counterType of copied.counters.counterOwned) {
       gainer.counters.addToCounter(copied.counters.value(counterType), counterType);
     }
-    const offCopiedCounterChange = this.game.emitter.on("on:counter:modified", ({ card, counterName, newValue, previousValue }) => {
-      if (card !== copied) return;
+    const offCopiedCounterChange = this.game.emitter.on("on:counter:modified", ({ receiver, counterName, newValue, previousValue }) => {
+      if (receiver !== copied) return;
       this.addToCounter(issuer, gainer, counterName, newValue - previousValue);
     });
     gainer.cleaners.push(() => {  

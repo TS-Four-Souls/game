@@ -351,14 +351,12 @@ export class EntityHandler {
 
 ////////////////////////////////////// Combat and Health Handler //////////////////////////////////////
 
-  makePlayerAttackable(player: Player, evasion: number): void {
-    player.attackable = true;
-    player.evasion = evasion;
+  makePlayerAttackable(player: Player, evasion: number, reason: CardAndBox): void {
+    player.addAttackableReason(reason, evasion);
   }
 
-  makePlayerUnattackable(player: Player): void {
-    player.attackable = false;
-    player.evasion = 0;
+  makePlayerUnattackable(player: Player, reason: CardAndBox): void {
+    player.removeAttackableReason(reason);
   }
 
   /** Adds or refreshes a forced-attack requirement for a player. */
@@ -649,6 +647,11 @@ export class EntityHandler {
   /** Applies a global evasion/DC modifier to encounter monsters. */
   addDCToEachMonster(e: Entity, value: number, source: Card | "flip" | "other" = "other"): void {
     this.game.encounters.addDCModifier(value);
+  }
+
+  /** Applies a global evasion/DC modifier to encounter monsters. */
+  reduceDCOfEachMonster(e: Entity, value: number, source: Card | "flip" | "other" = "other"): void {
+    this.game.encounters.addDCModifier(-value);
   }
 
   /** Adds an evasion/DC modifier to a monster entity. */

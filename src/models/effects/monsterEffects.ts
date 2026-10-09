@@ -130,7 +130,7 @@ export function flipIfXCountersEffect(game: Game, x: number): SyncEffectFunction
     return (data: EffectData) => {
         let offCounterAdded: (() => void) | null = null;
         offCounterAdded = game.emitter.on("on:counter:modified", (eventData) => {
-            if (data.it !== eventData.card) return;
+            if (data.it !== eventData.receiver) return;
             if (eventData.newValue < x) return;
             game.cardHandler.flip(data.it.owner as Player, data.it);
         });

@@ -160,6 +160,11 @@ export interface OnPurchaseSuccessData {
   index: number | "top";
 }
 
+/** Data emitted when a purchase is declared */
+export interface OnPurchaseDeclaredData {
+  eventIssuer: Player;
+}
+
 /** Data emitted before an item is recharged. Note that eventIssuer is always null. */
 export interface OnRechargeData {
   eventIssuer: Player | null;
@@ -294,7 +299,7 @@ export interface OnItemActivatedData {
 /** Data emitted when a counter is added to an entity */
 export interface OnCounterModifiedData {
   eventIssuer: Entity;
-  card: Card;
+  receiver: Card | Player;
   counterName: CounterType;
   previousValue: number;
   newValue: number;
@@ -413,6 +418,7 @@ export interface TriggerEventDataMap {
   "on:soul:removed": OnSoulGainedOrRemovedData;
   "on:coin:given": OnCoinGivenData;
   "on:purchase:success": OnPurchaseSuccessData;
+  "on:purchase:declared": OnPurchaseDeclaredData;
   "on:recharge": OnRechargeData;
   "on:item:gained": OnItemGainedData;
   "on:card:discarded:before": OnCardDiscardBeforeData;

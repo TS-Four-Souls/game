@@ -12,6 +12,7 @@ import { addToStackEffect } from "@/models/effects/activeEffect.ts";
 import { toSerializedTranslation } from "@/utils/translation";
 import { GameError } from "@/models/GameError";
 import { DiceRoll } from "@/models/stackElement";
+import { LootCard } from "@/models/cards";
 
 export function eachTimeActivateItemEffect(s: string, game: Game): SyncParsedEffect {
     const restOfEffect = s.substring("each time a player activates an item, they".length).trim();
@@ -119,6 +120,26 @@ export function ParseWhenGainOrPurchaseThis(s: string, game: Game): SyncParsedEf
     const restOfEffect = s.substring("when you gain or purchase this, ".length).trim();
     const restParsed = effectParser(restOfEffect, game, true);
     return noTargetSyncEffect(passive.onYourEventEffect("on:enter:play:after", [restParsed.effectFunction], game, s, false, (effect: EffectData, event: OnEnterPlayData) => event.card === effect.it));
+}
+
+export function parseThisBecomesAnItemEffect(s: string, game: Game): ParsedEffect {
+    const restOfEffect = s.split("\"")[1];
+    if (!restOfEffect) throw new GameError(`Could not parse 'this becomes an item with' effect: ${s}`, toSerializedTranslation("error.parsingError", {error: `Could not parse 'this becomes an item with' effect: ${s}`}));
+    const restParsed = effectParser(restOfEffect, game, true);
+    return {
+        effectFunction: async (data: EffectData): Promise<boolean> => {
+            if (data.it instanceof LootCard === false) return false;
+            data.it.effectOutcomes = [restOfEffect];
+            game.decks.loot.getFromDiscard(data.it);
+            data.it.swapEffectInterfaces();
+            data.it.trinket = true;
+            data.it.afterEffect = "addInPlay";
+            game.cardHandler.attachEffectsToCard(data.it, true);
+            game.cardHandler.addInPlay(data.issuer as Player, data.it);
+            return true;
+        },
+        targetSelectors: restParsed.targetSelectors
+    };
 }
 
 export function parseYouMayEffect(s: string, game: Game): ParsedEffect {
@@ -340,5 +361,14 @@ export function tillEndTurnOnAttackRoll(game: Game, s: string, values: number[])
             offEndTurn = null;
         });
         return true;
+    };
+}
+
+export function parseWhileYouControlThisSoulEffect(s: string, game: Game): SyncParsedEffect {
+    const restOfEffect = s.replace("while you control this soul, ", "").trim();
+    const restParsed = effectParser(restOfEffect, game, true);
+    return {
+        effectFunction: passive.whileYouControlThisSoulEffect([restParsed.effectFunction], game),
+        targetSelectors: restParsed.targetSelectors
     };
 }

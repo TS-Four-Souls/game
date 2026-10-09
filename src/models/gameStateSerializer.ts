@@ -36,7 +36,7 @@ export class GameStateSerializer {
       monsters: this.serializeEncounter(player),
       ...(this.serializedRoom(player)),
       bonusSouls: this.game.bonusSouls !== undefined ? this.game.bonusSouls.map((c) => c.jsonAPI) : undefined,
-      loot: this.serializeLootDeck(),
+      loot: this.serializeLootDeck(player),
       treasure: this.serializeShop(player),
       turn: this.game.currentPlayer.id,
       round: this.game.gameParameters.timer.value > 0 ? this.game.gameParameters.timer.value + 1 - this.game.turnHandler.round : this.game.turnHandler.round,
@@ -138,6 +138,7 @@ export class GameStateSerializer {
 
     return {
       ...this.serializedMyInPlayItems(character, me),
+      counters: me.countersJson,
       stats: this.serializeEntityStats(me, me),
     };
   }
@@ -286,10 +287,12 @@ export class GameStateSerializer {
   /**
    * @returns Serializes the Loot deck.
    */
-  public serializeLootDeck(): api.LootDeck {
+  public serializeLootDeck(player: Player): api.LootDeck {
     return {
       discard: this.game.decks["loot"]!.discard.map((c) => c.jsonAPI).toReversed(),
       deckSize: this.game.decks["loot"]!.cards.length,
+      ...(player.canSeeTopOfLootDeck && this.game.decks["loot"]?.cards[0] !== undefined ? { firstCardLootDeck: this.game.decks["loot"]?.cards[0]?.jsonAPI } : {}),
+      ...(player.canPlayTopOfLootDeck && this.game.decks["loot"]?.cards[0] !== undefined ? { canPlayFirstCard: this.game.actions.canPlayCard(player) && TargetBuilder.validTargetExists(this.game, player, this.game.decks["loot"]?.cards[0], "tap") } : {}),
     };
   }
 

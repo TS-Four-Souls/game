@@ -269,7 +269,7 @@ const statsSchema = z.object({
   }),
 });
 
-const counterTypeSchema = z.union([z.literal("normal"), z.literal("golden")]);
+const counterTypeSchema = z.union([z.literal("normal"), z.literal("golden"), z.literal("spider"), z.literal("gut")]);
 export type CounterType = z.infer<typeof counterTypeSchema>;
 
 const serializedCounterSchema = z.object({
@@ -793,6 +793,7 @@ export type Emote = z.infer<typeof emoteSchema>;
 const cardActivationSchema = z.object({
   type: z.union([
     z.literal("hand"),
+    z.literal("topLootCard"),
     z.literal("inPlay"),
     z.literal("character"),
     z.literal("room"),
@@ -804,6 +805,7 @@ const cardActivationSchema = z.object({
 const cardActivationWithIdSchema = z.object({
   type: z.union([
     z.literal("hand"),
+    z.literal("topLootCard"),
     z.literal("inPlay"),
     z.literal("character"),
     z.literal("room"),
@@ -1010,6 +1012,8 @@ export type RoomSlot = z.infer<typeof roomSlotSchema>;
 const lootDeckSchema = z.object({
   discard: z.array(cardSchema),
   deckSize: z.number(),
+  firstCardLootDeck: cardSchema.optional(),
+  canPlayFirstCard: capabilitySchema.optional(),
 });
 export type LootDeck = z.infer<typeof lootDeckSchema>;
 

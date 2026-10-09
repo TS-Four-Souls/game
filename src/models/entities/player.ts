@@ -1,12 +1,13 @@
 import { Entity } from "@/models/entities/entity";
-import type { Animation, Capability, EntityType, IdentifierType, Team } from "@/shared/api";
-import { Card, CharacterCard, Hand, ItemCard, LootCard, MonsterCard } from "../cards";
+import type { Animation, Capability, EntityType, IdentifierType, SerializedCounter, Team } from "@/shared/api";
+import { Card, CharacterCard, CounterHandler, Hand, ItemCard, LootCard, MonsterCard } from "../cards";
 import { AttackRollData, EffectOnStack } from '../stackElement';
 import { Game } from "../game";
 import { GameError } from "@/models/GameError";
 import { DiceRoll } from "../stackElement";
 import { toSerializedTranslation } from "@/utils/translation";
 import { PlayerStats } from "@/models/gameStats";
+import type { CardAndBox } from "../handlers/entityHandler";
 class AttackRequirement {
   readonly targets: Entity[] | "topDeck" | "any";
   readonly source: Card;
@@ -75,6 +76,12 @@ export class Player extends Entity {
   /** @private Counter for effects that let player see top of treasure deck (0 or 1) */
   private _canSeeTopOfTreasureDeck: number = 0;
   
+  /** @private Counter for effects that let player see top of loot deck (0 or 1) */
+  private _canSeeTopOfLootDeck: number = 0;
+  
+  /** @private Counter for effects that let player play top of loot deck (0 or 1) */
+  private _canPlayTopOfLootDeck: number = 0;
+  
   /** @private Entities or deck that this player must attack, with the card that gave the requirement */
   private _mustAttackEntity: AttackRequirement[] = [];
 
@@ -100,6 +107,10 @@ export class Player extends Entity {
 
   private _character: CharacterCard | undefined = undefined;
 
+  private _counters: CounterHandler = new CounterHandler();
+
+  private _attackableHandler: attackableHandler = new attackableHandler();
+
   stats: PlayerStats = new PlayerStats();
   /**
    * Creates a new Player instance.
@@ -118,7 +129,6 @@ export class Player extends Entity {
     this._inPlay = [];
     this._souls = [];
     this._remainingLootPlay = 0;
-    this.attackable = false;
     this.user = user;
   }
 
@@ -147,6 +157,48 @@ export class Player extends Entity {
    */
   get mustAttackEntity(): AttackRequirement[] {
     return this._mustAttackEntity;
+  }
+
+  get counters(): CounterHandler {
+    return this._counters;
+  }
+
+  override get attackable(): boolean {
+    return this._attackableHandler.attackable;
+  }
+
+  override get evasion(): number {
+    return this._attackableHandler.evasion;
+  }
+
+  addAttackableReason(source: CardAndBox, evasion: number): void {
+    this._attackableHandler.addReason(source, evasion);
+  }
+
+  removeAttackableReason(source: CardAndBox): void {
+    this._attackableHandler.removeReason(source);
+  }
+
+  /**
+   * Returns the JSON representation of the player's counters and their character's card counters.
+   * @returns An array of serialized counters or undefined if no counters exist.
+   */
+  get countersJson(): SerializedCounter[] | undefined{
+    const countersPlayer = this.counters.json;
+    if(countersPlayer === undefined || countersPlayer.length === 0)
+      return this.character.counters.json;
+    const characterCounters = this.character.counters.json;
+    if(characterCounters === undefined || characterCounters.length === 0)
+      return countersPlayer;
+    for(const counter of characterCounters)
+    {
+      const existingCounter = countersPlayer.find(c => c.type === counter.type);
+      if(existingCounter === undefined)
+        countersPlayer.push({ ...counter });
+      existingCounter!.value += counter.value;
+
+    }
+    return countersPlayer;
   }
 
   requirementListPRINT(): void {
@@ -412,6 +464,20 @@ export class Player extends Entity {
   get canSeeTopOfTreasureDeck(): boolean {
     return this._canSeeTopOfTreasureDeck > 0;
   }
+  /**
+   * Checks if the player can see the top card of the loot deck.
+   * @returns true if the player has this ability active
+   */
+  get canSeeTopOfLootDeck(): boolean {
+    return this._canSeeTopOfLootDeck > 0;
+  }
+  /**
+   * Checks if the player can play the top card of the loot deck.
+   * @returns true if the player has this ability active
+   */
+  get canPlayTopOfLootDeck(): boolean {
+    return this._canPlayTopOfLootDeck > 0;
+  }
   
   addAnimation(animation: Animation): void {
     this._animations.push(animation);
@@ -482,6 +548,32 @@ export class Player extends Entity {
   
   set handRevealed(reveal: boolean) {
     this._handRevealed += reveal ? 1 : -1;
+  }
+
+  /**
+   * Modifies the player's ability to play the top of the loot deck.
+   * @param value - Modifier to add (+1 to enable, -1 to disable)
+   * @throws {Error} If the resulting value is not 0 or 1
+   */
+  addCanPlayTopOfLootDeck(value: number): void {
+    const sum = this._canPlayTopOfLootDeck + value;
+    if(sum < 0) { // can be set to more than 1 with modelling clay.
+      throw new GameError("canPlayTopOfLootDeck can not be set to a value less than 0", toSerializedTranslation("error.behaviorError", {error: "canPlayTopOfLootDeck can not be set to a value less than 0"}));
+    }
+    this._canPlayTopOfLootDeck = sum;
+  }
+
+  /**
+   * Modifies the player's ability to see the top of the loot deck.
+   * @param value - Modifier to add (+1 to enable, -1 to disable)
+   * @throws {Error} If the resulting value is not 0 or 1
+   */
+  addCanSeeTopOfLootDeck(value: number): void {
+    const sum = this._canSeeTopOfLootDeck + value;
+    if(sum < 0) { // can be set to more than 1 with modelling clay.
+      throw new GameError("canSeeTopOfLootDeck can not be set to a value less than 0", toSerializedTranslation("error.behaviorError", {error: "canSeeTopOfLootDeck can not be set to a value less than 0"}));
+    }
+    this._canSeeTopOfLootDeck = sum;
   }
 
   /**
@@ -839,4 +931,36 @@ export class Player extends Entity {
         orientation: this.card.type === "room" ? "landscape" : "portrait",
       }
     }
+}
+
+type AttackableReason = 
+{
+  source: CardAndBox,
+  evasion: number
+}
+class attackableHandler{
+  _reasons: AttackableReason[] = [];
+
+  addReason(source: CardAndBox, evasion: number): void {
+    this._reasons.push({ source, evasion });
+  }
+
+  get reasons(): AttackableReason[] {
+    return this._reasons;
+  }
+
+  removeReason(source: CardAndBox): void {
+    this._reasons = this._reasons.filter(reason => reason.source.card !== source.card);
+  }
+
+  get attackable(): boolean {
+    return this._reasons.length > 0;
+  }
+
+  get evasion(): number {
+    if (this._reasons.length === 0) {
+      return 0;
+    }
+    return this._reasons.reduce((total, reason) => total < reason.evasion ? total : reason.evasion, this._reasons[0]!.evasion);
+  }
 }

@@ -1336,6 +1336,7 @@ describe("Requiem Rooms", () => {
         const room2 = game.obtainCard("r-blessing_of_gluttony") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room2);
         const verif = player1.coins;
+        await game.actions.resolveStack(); // resolve effect
         await game.endTurn();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(verif);

@@ -225,6 +225,9 @@ class Card {
     get cleaners(): (() => void)[] {
         return this._cleanup;
     }
+    removeCleaner(cleaner: () => void): void {
+        this.cleaners.filter(c => c !== cleaner);
+    }
     get owner(): Entity {
         if(!this._owner)
             throw new GameError(`Card ${this.name} does not have an owner.`, toSerializedTranslation("error.noOwnerForCard", {card: this.name}));
@@ -579,6 +582,10 @@ class LootCard extends ItemCard {
 
     get trinket(): boolean {
         return this._trinket;
+    }
+
+    set trinket(value: boolean) {
+        this._trinket = value;
     }
 
     onPlay(issuer: Player, targets: any[] = []): (() => void | Promise<void>) {

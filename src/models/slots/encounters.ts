@@ -188,6 +188,13 @@ export class Encounters extends Slots<MonsterCard> {
         }
         this.fillEmptySpots(false);
     }
+    flushWithException(exceptions: MonsterCard[]): void {
+        for (let i = 0; i < this._slots.length; i++) {
+            if (this.canFlushIndex(i) && !exceptions.includes(this._slots[i]![this._slots[i]!.length - 1]!))
+                this.discardTop(i);
+        }
+        this.fillEmptySpots(false);
+    }
 
     /**
      * Moves all top cards from all slots to the bottom of the deck.
@@ -195,8 +202,11 @@ export class Encounters extends Slots<MonsterCard> {
      * EXCEPT IF THE MONSTER IS ENGAGED IN COMBAT, IN WHICH CASE IT IS LEFT IN PLACE AND NOT DISCARDED.
      */
     override flushToBottom(): void {
+        this.flushToBottomWithException([]);
+    }
+    flushToBottomWithException(exeptions: MonsterCard[]): void {
         for (let i = 0; i < this._slots.length; i++) {
-            if (this.canFlushIndex(i)) {
+            if (this.canFlushIndex(i) && !exeptions.includes(this._slots[i]![this._slots[i]!.length - 1]!)) {
                 this.moveToBottom(i);
             }
         }
@@ -334,9 +344,9 @@ export class Encounters extends Slots<MonsterCard> {
      * @param data - EffectData containing the selection context
      * @returns The index of the slot the card was drawn into 
      */
-    async selectValidIndexAndDraw(game: Game, player: Player, data: EffectData, youMay: boolean = false): Promise<number>
+    async selectValidIndexAndDraw(game: Game, player: Player, data: EffectData, youMay: boolean = false, forbiden: MonsterCard[] = []): Promise<number>
     {
-        const selected = (await data.selectAndRecord(game, player, youMay ? 0 : 1, 1, this.coverableSlots, toSerializedTranslation("pending.slot"), data.serializedCardAndBox, true, true)).selected;
+        const selected = (await data.selectAndRecord(game, player, youMay ? 0 : 1, 1, this.coverableSlots.filter(c => !forbiden.includes(c)), toSerializedTranslation("pending.slot"), data.serializedCardAndBox, true, true)).selected;
 
         if(selected.length === 0)
             return -1;
