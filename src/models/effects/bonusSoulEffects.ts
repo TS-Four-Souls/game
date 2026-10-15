@@ -8,6 +8,7 @@ import type {
     OnDeathMonsterData,
     OnEnterPlayAfterData,
     OnLootAddedAfterData,
+    OnRollData,
     OnSoulGainedOrRemovedData,
 } from "../types/eventTypes";
 import { addPassiveEffectToStack } from "./passiveEffect";
@@ -46,7 +47,8 @@ export function bSoulEffectParser(card: BsoulCard, game: Game): OffEffectFunctio
             return soulOfWrathEffect(game, card);
         case "The first time a player controls 4 items, the active player chooses a player who controls the fewest items or tied for fewest. That player gains this soul.":
             return soulOfSlothEffect(game, card);
-
+        case "The first active player to roll a 1 three times on the same turn gains this soul.":
+            return strawberrySoulEffect(game, card);
         default:
             throw new GameError("Unknown Bonus Soul effect: " + s, toSerializedTranslation("error.parsingError", {error: "Unknown Bonus Soul effect"}));
     }
@@ -224,4 +226,40 @@ function soulOfSlothEffect(game: Game, card: Card): OffEffectFunction {
     });
 
     return offDeath;
+}
+
+function strawberrySoulEffect(game: Game, card: Card): OffEffectFunction {
+    let offStartTurn: (() => void) | null = null;
+    let offDiceRolled: (() => void) | null = null;
+    let active = true;
+
+    const cleanup = (): void => {
+        offStartTurn?.();
+        offStartTurn = null;
+        offDiceRolled?.();
+        offDiceRolled = null;
+        active = false;
+    };
+
+    const playerRolls: Map<string, number> = new Map();
+    for(const p of game.players) {
+        playerRolls.set(p.id, 0);
+    }
+    
+    offStartTurn = game.emitter.on("on:turn:start", (eventData) => {
+        if(!active) return;
+        for(const p of game.players) {
+            playerRolls.set(p.id, 0);
+        }
+    });
+
+
+    offDiceRolled = game.emitter.on("on:dice:resolved", (eventData: OnRollData) => {
+        if(eventData.dice.value !== 1) return; // -2 to exclude character card and eternal.
+        playerRolls.set(eventData.eventIssuer.id, playerRolls.get(eventData.eventIssuer.id)! + 1);
+        if(playerRolls.get(eventData.eventIssuer.id)! >= 3)
+            game.cardHandler.addSoul(eventData.eventIssuer, card);
+    });
+
+    return cleanup;
 }

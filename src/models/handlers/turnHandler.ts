@@ -20,7 +20,7 @@ export class TurnHandler {
         this._remainingTurnsInRound = [...baseOrder];
     }
 
-    get numberOfRoundSinceBeginning(): number {
+    get numberOfTurnsSinceBeginning(): number {
         return this._turnId;
     }
     get turnId(): number {

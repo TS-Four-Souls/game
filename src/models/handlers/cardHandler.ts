@@ -11,6 +11,7 @@ import {
   MonsterCard,
   MonsterType,
   TreasureCard,
+  createCardFromJson,
   createEmptyDecksCollection,
   isDeckType,
   isSameSlug,
@@ -34,6 +35,7 @@ import { type CounterType } from "@/shared/api"
 import { toSerializedTranslation } from "@/utils/translation";
 import { bSoulEffectParser } from "../effects/bonusSoulEffects";
 import { TargetBuilder } from "../targetBuilder";
+import { CardType, MonsterCardSubtype, type MonsterCardType } from "@/types/cardTypes";
 
 const CARDS = await loadCards(process.cwd() + "/data/cards");
 export const {nextGlobalId, cardSets: CARD_SETS} = LoadsCardSets(CARDS);
@@ -908,6 +910,20 @@ export class CardHandler {
     this.removeCardFromHand(from, card);
     this.addCardToHand(to, card);
     return true;
+  }
+
+  ambush(issuer: Entity, slot: MonsterCard, loot: LootCard): void {
+    const index = this.game.encounters.cardsOnTop.indexOf(slot);
+    if(!slot || !(slot instanceof MonsterCard) || this.game.encounters.coverableSlots.includes(slot) === false || index === -1)
+        throw new GameError("No target monster for ambushEffect", toSerializedTranslation("error.behaviorError", { error: "No target monster for ambushEffect"}));
+    // parse a copy of the loot card as a monster card and add it to the encounter slot.
+    const monsterCard = loot.json as MonsterCardType;
+    monsterCard.type = CardType.Monster;
+    monsterCard.subtype = MonsterCardSubtype.BasicMonster;
+    const monsterTMP = createCardFromJson(this.decks.monster._set.length, this.allocateCardGlobalId(), monsterCard) as MonsterCard;
+    const monster = this.copyCard(monsterTMP) as MonsterCard;
+    this.game.decks.monster.addTopPosition(monster);
+    this.game.encounters.draw(index);
   }
 
   handleLootCardEffectResolution(elem: LootCardEffect): void {

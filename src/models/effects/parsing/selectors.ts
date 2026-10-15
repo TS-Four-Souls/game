@@ -60,6 +60,8 @@ export const selectMonsterBeingAttacked = (game: Game, min: number = 1, max: num
     [createSelector(toSerializedTranslation("selector.monsterBeingAttacked"), (issuer: Player) => game.monsters.filter(m => m.isEngagedInCombat && m.currentHealthPoints > 0), min, max)];
 export const selectMonsterNotBeingAttacked = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.monsterNotBeingAttacked"), (issuer: Player) => game.monsters.filter(m => !m.isEngagedInCombat && m.currentHealthPoints > 0), min, max)];
+export const selectCoverableMonster = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
+    [createSelector(toSerializedTranslation("selector.monster"), (issuer: Player) => game.encounters.coverableSlots, min, max)];
 export const selectMonsterNotAttackedOrShopItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.monsterNotBeingAttackedOrShopItem"), (issuer: Player) => (game.monsters.filter(m => !m.isEngagedInCombat && m.currentHealthPoints > 0).map(e=>e.card) as Card[]).concat(game.shop.cardsOnTop.filter(c=>c!=undefined)), min, max)];
 export const selectMonster = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
@@ -149,8 +151,8 @@ export const selectLootInYourHand = (game: Game, min: number = 1, max: number = 
         [createSelector(toSerializedTranslation("selector.lootCardInHand"), (issuer: Player) => issuer.hand.cards, min, max)];
 export const selectUsableAbilityStackElement = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.itemAbility"), stackElementSelector((element) => element instanceof EffectOnStack && element.data.it instanceof ItemCard && (element.type === "active" || element.type === "paid"), game), min, max)];
-export const selectStackElementOrLoot = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
-    [createSelector(toSerializedTranslation("selector.itemOrLootAbility"), stackElementSelector((element) => element instanceof LootCardEffect || (element instanceof EffectOnStack && element.data.it instanceof ItemCard && (element.type === "active" || element.type === "paid")), game), min, max)];
+export const selectStackElementOrLoot = (game: Game, min: number = 1, max: number = min, accepetPaidEffect: boolean = true): TargetsSelector[] =>
+    [createSelector(toSerializedTranslation("selector.itemOrLootAbility"), stackElementSelector((element) => element instanceof LootCardEffect || (element instanceof EffectOnStack && element.data.it instanceof ItemCard && (element.type === "active" || (accepetPaidEffect && element.type === "paid"))), game), min, max)];
 export const selectStackElementOrLootTargetingYourItemOrDice = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.itemOrLootAbility"), stackElementThatTargetMyItemOrDiceSelector((element) => element instanceof LootCardEffect || (element instanceof EffectOnStack && element.data.it instanceof ItemCard && (element.type === "active" || element.type === "paid")), game), min, max)];
 export const selectLootOnStack = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>

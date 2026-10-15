@@ -19,7 +19,7 @@ import { deckSelector, inplayUnchargedItemSelector as inplayChargeableItemSelect
 import { type DeckType, EffectData, type EffectFunction, type SyncEffectFunction, type AsyncEffectFunction, type TargetsSelector, type DecksCollection } from "../types/cardTypes";
 import type { OnTurnEndData } from "../types/eventTypes";
 import { effectParser, INFINITY, type ParsedEffect, type SyncParsedEffect } from "./parsing/effectParser";
-import { addPassiveEffectToStack } from "./passiveEffect";
+import * as passive from "./passiveEffect";
 import * as room from "./roomEffects";
 import { toSerializedTranslation } from "@/utils/translation";
 import { shuffle } from "@/utils/auxiliary";
@@ -430,7 +430,7 @@ export function chooseOneEffect(s: string, game: Game, selectionOnResolve: boole
 
 export function addToStackEffect(game: Game, effect: EffectFunction, s: string): SyncEffectFunction {
     return (data: EffectData) => {
-        addPassiveEffectToStack(game, effect, data, s, data.visualEffectBox);
+        passive.addPassiveEffectToStack(game, effect, data, s, data.visualEffectBox);
         return true;
     };
 }
@@ -1763,7 +1763,7 @@ export function destroyYourItemOnYourNextTurnEndEffect(game: Game): SyncEffectFu
                     offEndTurn = null;
                     return removed;
                 };
-                addPassiveEffectToStack(game, effect, data, `Destroy an item at the next end of your turn effect.`);
+                passive.addPassiveEffectToStack(game, effect, data, `Destroy an item at the next end of your turn effect.`);
                 
             }
         });
@@ -2685,11 +2685,12 @@ export function lootCardsEffect(game: Game, nbCards: number, issuerType: "issuer
     };
 }
 
-export function combineEffectFunctions(effects: EffectFunction[]): AsyncEffectFunction {
+export function combineEffectFunctions(effects: EffectFunction[], stopAfterFalse: boolean=false): AsyncEffectFunction {
     return async (data: EffectData) => {
         let result = true;
         for (const effect of effects) {
-            result = result && await effect(data);
+            result = await effect(data) && result;
+            if (stopAfterFalse && !result) break;
         }
         return result;
     };
@@ -3058,7 +3059,7 @@ export function nonActivePlayerHelpFight(game: Game): SyncEffectFunction {
                     game.entityHandler.entityRewards(eventIssuer, helper)
                     return true;
                 };
-                addPassiveEffectToStack(game, effect, data, `${helper.id} also gains rewards from killing ${target.id}.`);
+                passive.addPassiveEffectToStack(game, effect, data, `${helper.id} also gains rewards from killing ${target.id}.`);
                 offDeath?.();
                 offDeath = null;
             });
@@ -3459,6 +3460,45 @@ export function addOrSubtractXFromRollEffect(game: Game): SyncEffectFunction {
         else if (value === -1)
             chosenDiceRoll.subtract(1);
         return true;
+    };
+}
+
+export function ambushEffect(game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
+
+        if(data.it instanceof LootCard === false && data.it instanceof MonsterCard === false) return false;
+        data.it.afterEffect = "nothing"; // card placement is handled by the effect itself.
+        const slot = data.next as MonsterCard;
+        if(data.it instanceof LootCard){
+            const idx = game.encounters.cardsOnTop.findIndex(c => c === slot);
+            if(idx === -1)
+                throw new GameError("Invalid slot for ambushEffect", toSerializedTranslation("error.behaviorError", { error: "Invalid slot for ambushEffect"}));
+            game.cardHandler.ambush(data.issuer, slot, data.it);
+            const monsterCard = game.encounters.cardsOnTop[idx]!;
+            // add the on death of the monster, the loot card is discarded.
+            passive.onAnyEventEffect("on:death:monster", [() => {
+                if(data.it instanceof LootCard === false) return false;
+                game.decks.loot.addDiscardTop(data.it);
+                data.it.cleanup();
+                return true;
+            }], game, "ambush", 
+                (ef: EffectData, ev: OnDeathMonsterData) => {return ev.eventIssuer instanceof Monster && ev.eventIssuer.card === monsterCard;})(new EffectData(data.it, () => data.issuer, [], data.visualEffectBox));
+        }
+        return true;
+    };
+}
+
+export function returnThisLootToHand(game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
+        if(data.issuer instanceof Player === false) return false;
+        if(data.it instanceof LootCard === false) return false;
+        const card = game.decks.loot.getFromDiscard(data.it);
+        if(card !== undefined)
+        {
+            game.cardHandler.addCardToHand(data.issuer, data.it);
+            return true;
+        }
+        return false;
     };
 }
 

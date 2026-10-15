@@ -146,7 +146,7 @@ class RoomManager {
       room.users.length,
       room.game.players.length,
       teamCount,
-      room.game.turnHandler.numberOfRoundSinceBeginning,
+      room.game.turnHandler.numberOfTurnsSinceBeginning,
       {
         miniDraft: params.miniDraft.value,
         useFsp2Cards: params.useFSP2Cards.value,
@@ -166,7 +166,7 @@ class RoomManager {
     dbFinalizeGameRecord(
       room.id,
       room.game.reachedEnd,
-      room.game.turnHandler.numberOfRoundSinceBeginning,
+      room.game.turnHandler.numberOfTurnsSinceBeginning,
       room.lastActionTimestamp.toISOString(),
     );
   }

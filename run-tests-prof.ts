@@ -51,7 +51,7 @@ for(let i = 0; i < 1000; i++){
         let currentRound = 0;
         let seen = false;
         // console.log(game.getCardByGlobalId(282)!.name);
-        while(game.turnHandler.round < 50 && game.turnHandler.numberOfRoundSinceBeginning < 500 && !shouldStop) {
+        while(game.turnHandler.round < 50 && game.turnHandler.numberOfTurnsSinceBeginning < 500 && !shouldStop) {
             uniqueIdCounter++;
             if(uniqueIdCounter > Math.min(100000, 100000))
                 throw new Error("Unique ID counter exceeded 100000, there is likely an infinite loop in the test.");

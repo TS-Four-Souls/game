@@ -7,12 +7,13 @@ import type {OnDeathMonsterData, OnEnterPlayData, OnRollData} from "@/models/typ
 import {Monster} from "@/models/entities/monster.ts";
 import {Player} from "@/models/entities/player.ts";
 import {noTargets} from "@/models/effects/parsing/selectors.ts";
-import {effectParser, syncEffectParser, type ParsedEffect, type SyncParsedEffect} from "@/models/effects/parsing/effectParser.ts";
+import {effectParser, syncEffectParser, type AsyncParsedEffect, type ParsedEffect, type SyncParsedEffect} from "@/models/effects/parsing/effectParser.ts";
 import { addToStackEffect } from "@/models/effects/activeEffect.ts";
 import { toSerializedTranslation } from "@/utils/translation";
 import { GameError } from "@/models/GameError";
 import { DiceRoll } from "@/models/stackElement";
-import { LootCard } from "@/models/cards";
+import { LootCard, MonsterCard } from "@/models/cards";
+import { addPassiveEffectToStack } from "@/models/effects/passiveEffect.ts";
 
 export function eachTimeActivateItemEffect(s: string, game: Game): SyncParsedEffect {
     const restOfEffect = s.substring("each time a player activates an item, they".length).trim();
@@ -158,6 +159,70 @@ export function parseYouMayEffect(s: string, game: Game): ParsedEffect {
                 return restParsed.effectFunction(data);
             }
             return false;
+        },
+        targetSelectors: restParsed.targetSelectors
+    };
+}
+
+export function parseAtTheEndOfTheTurnItWasPlayedEffect(s: string, game: Game): SyncParsedEffect {
+    const restOfEffect = s.substring("At the end of the turn this was played, ".length).trim();
+    const restParsed = effectParser(restOfEffect, game, true);
+    return {
+        effectFunction: (data: EffectData) => {
+                let offEvent: (() => void) | null = null;
+                let turn = game.turnHandler.numberOfTurnsSinceBeginning;
+        
+                offEvent = game.emitter.on("on:turn:end", (eventData) => {
+                    const eventIssuer = eventData.eventIssuer;
+                    data.targets = [];
+                    data.clearSelectionRecord();
+                    // Add all effects as a single stack element
+                    const effect = async (effectData: EffectData): Promise<boolean> => {
+                        if (game.turnHandler.numberOfTurnsSinceBeginning !== turn) return false;
+                        await restParsed.effectFunction(effectData);
+                        return true;
+                    };
+                    offEvent?.();
+                    offEvent = null;
+                    addPassiveEffectToStack(game, effect, data, s);
+                });
+        
+                // Store cleanup function on the card for when it's removed/destroyed
+                data.it.cleaners.push(() => {
+                    offEvent?.();
+                    offEvent = null;
+                });
+                return true;
+            },
+        targetSelectors: restParsed.targetSelectors
+    };
+}
+
+export function parseIfAPlayerDiedThisTUrnEffect(s: string, game: Game, includingCurrent: boolean): AsyncParsedEffect {
+    const restOfEffect = s.substring(s.indexOf(",") + 1).trim();
+    const restParsed = effectParser(restOfEffect, game, true);
+    return {
+        effectFunction: async (data: EffectData): Promise<boolean> => {
+            const playersWhoDied = game.players.filter(p => p.isDead && (includingCurrent || p !== game.currentPlayer));
+            if (playersWhoDied.length === 0) return false;
+            await restParsed.effectFunction(data);
+            return true;
+        },
+        targetSelectors: restParsed.targetSelectors
+    }
+}
+
+export function parseWhenThisEntersMonsterSlotEffect(s: string, game: Game): SyncParsedEffect {
+    const restOfEffect = s.substring("When this is put into a monster slot, ".length).trim();
+    const restParsed = effectParser(restOfEffect, game);
+    if(restParsed === null) 
+        throw new GameError(`Could not parse 'When this is put into a monster slot, ' effect: ${s}`, toSerializedTranslation("error.parsingError", {error: `Could not parse 'When this is put into a monster slot, ' effect: ${s}`}));
+    return {
+        effectFunction: (data: EffectData): boolean => {
+            if(data.it instanceof MonsterCard === false) return false;
+            if(game.encounters.cardsOnTop.includes(data.it) === false) return false;
+            addPassiveEffectToStack(game, restParsed.effectFunction, data, s);
+            return true;
         },
         targetSelectors: restParsed.targetSelectors
     };

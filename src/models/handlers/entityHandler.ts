@@ -338,10 +338,10 @@ export class EntityHandler {
         source: source,
       });
       this.game.dispatch();
-      const turnId = this.game.turnHandler.numberOfRoundSinceBeginning;
+      const turnId = this.game.turnHandler.numberOfTurnsSinceBeginning;
       if(receiver instanceof Player && this.game.currentPlayer === receiver && this.game.stack.elements.find(e => e instanceof EndOfTurnOnStack) == undefined)
         await this.game.executeWhenStackEmpty(async () => {
-          if(this.game.turnHandler.numberOfRoundSinceBeginning === turnId )
+          if(this.game.turnHandler.numberOfTurnsSinceBeginning === turnId )
             await this.game.endTurn();});
     }).catch((error) => {
       console.error("Failed to resolve death follow-up", error);

@@ -2403,6 +2403,7 @@ export function copyNextNonTrinketNonAmbushLootThisTurnEffect(game: Game): SyncE
             card = card;
             if (data.issuer !== eventIssuer) return;
             if( card.trinket) return;
+            if(card.effectOutcomes.includes("Ambush")) return;
             
             // Create the effect that will execute when the stack resolves
             const effect = async (effectData: EffectData): Promise<boolean> => {
@@ -2743,15 +2744,17 @@ export function ConditionalEffect(
 // REPLACEMENT EFFECT: Uses "prevent" - does not use the stack.
 // Card text: "Prevent the next X damage you would take this turn. When you prevent damage this way, deal Y damage to another player."
 // Note: The prevention is a replacement effect, but the damage dealt afterward is a triggered effect.
-export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: number | "prevented", game: Game): SyncEffectFunction {
+export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: number | "prevented", protect: "issuer" | "next", game: Game): SyncEffectFunction {
     return (data: EffectData) => {
+        const protectedPlayer: Player = protect === "issuer" ? data.issuer : data.next;
+        if(!(protectedPlayer instanceof Player)) return false;
         for(let i = game.stack.size - 1; i >= 0; i--)
             if(game.stack.elements[i] instanceof DamageOnStack)
             {
                 const damageOnStack = game.stack.elements[i] as DamageOnStack;
                 if(damageOnStack.damage[0]! <= 0)
                     continue;
-                if( damageOnStack.receiver === data.issuer)
+                if( damageOnStack.receiver === protectedPlayer)
                 {
                     const current = damageOnStack.damage[0] ?? 0;
                     const prevented = Math.min(current, prevent);
@@ -2762,7 +2765,7 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
                         if (!(data.issuer instanceof Player)) return false;
                         
                         // Deal 1 damage to another player
-                        const otherPlayers = game.players.filter(p => p !== data.issuer);
+                        const otherPlayers = game.players.filter(p => p !== protectedPlayer && p.isDead === false);
                         if (otherPlayers.length === 0) return false;
                         const selection = await data.selectAndRecord(game, data.issuer, 1, 1, otherPlayers, toSerializedTranslation("pending.playerToDealDamageTo"), data.serializedCardAndBox, true, true);
                         if (selection.selected.length > 0) {
@@ -2779,10 +2782,10 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
         const temp: TemporaryEffect = getTemporaryEffect(data);
-        data.issuer.addTemporaryEffect(temp);
+        protectedPlayer.addTemporaryEffect(temp);
 
         const cleanup = (): void => {
-            data.issuer.removeTemporaryEffect(temp);
+            protectedPlayer.removeTemporaryEffect(temp);
             offDamage?.();
             offTurn?.();
             offDamage = null;
@@ -2791,7 +2794,7 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
 
         // Listen for the next damage event on this player
         offDamage = game.emitter.on("on:damage:would-take", ({ eventIssuer, damageArray }) => {
-            const target = data.issuer;
+            const target = protectedPlayer;
             if (target !== eventIssuer) return;
             const current = damageArray[0] ?? 0;
             if( current <= 0) return;
@@ -2804,7 +2807,7 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
                 if (!(data.issuer instanceof Player)) return false;
                 
                 // Deal 1 damage to another player
-                const otherPlayers = game.players.filter(p => p !== data.issuer);
+                const otherPlayers = game.players.filter(p => p !== protectedPlayer && p.isDead === false);
                 if (otherPlayers.length === 0) return false;
                 const selection = await data.selectAndRecord(game, data.issuer, 1, 1, otherPlayers, toSerializedTranslation("pending.playerToDealDamageTo"), data.serializedCardAndBox, true, true);
                 if (selection.selected.length > 0) {
