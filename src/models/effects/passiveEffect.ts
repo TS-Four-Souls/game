@@ -991,6 +991,69 @@ export function noPriorityPassesTillEndOfTurnEffect(game: Game): SyncEffectFunct
     };
 }
 
+export function isaacEffect(game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
+        let offAddInPlay: (() => void) | null = null;
+        const restores: { originalState: any, restore: () => void }[] = []
+        // make a copy of b2-the_d6 card, even if it is not in the game.
+        const d6 = game.decks.eternal._set.cards.find(c => c.slug === "b2-the_d6");
+        if( d6 === undefined)
+            return false;
+        
+        for (const player of game.players) {
+            player.changeName(toSerializedTranslation( "common.content", { content: "Isaac" }), data.it);
+            for(const item of player.inPlay)
+            {
+                restores.push(item.becomesCopyOf(d6));
+            }
+        }
+
+        offAddInPlay = game.emitter.on("on:enter:play", ({ eventIssuer, card }) => {
+            if (card.slug === d6.slug) return;
+            restores.push(card.becomesCopyOf(d6));
+        });
+        
+        // Store cleanup function on the card for when it's removed/destroyed
+        data.it.cleaners.push(() => {
+            for (const player of game.players)
+                player.removeName(data.it);
+            for(const item of restores)
+                item.restore();
+            offAddInPlay?.();
+            offAddInPlay = null;
+        });
+        return true;
+    };
+}
+
+export function chickenEffect(game: Game, evasion: number): SyncEffectFunction {
+    return (data: EffectData) => {
+        let offStartTurn: (() => void) | null = null;
+        
+        const target = data.next as Player;
+        if(!(target instanceof Player))
+            throw new GameError("chickenEffect can only be applied to Players.", toSerializedTranslation("error.behaviorError", {error: "chickenEffect can only be applied to Players."}));
+
+        target.changeName(toSerializedTranslation( "name.chicken"), data.it);
+        game.entityHandler.makePlayerAttackable(target, evasion, data.cardAndBox);
+        if(target !== game.currentPlayer)
+            game.entityHandler.playerMustAttack(game.currentPlayer, [target], data.it, true);
+        
+        offStartTurn = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
+            if (eventIssuer !== target){
+                game.entityHandler.playerMustAttack(eventIssuer, [target], data.it, true);
+
+            }else{
+                game.entityHandler.makePlayerUnattackable(target, data.cardAndBox);
+                target.removeName(data.it);
+                offStartTurn?.();
+                offStartTurn = null;
+            }
+        });
+        return true;
+    };
+}
+
 // REPLACEMENT EFFECT: Modifies damage before it's taken - does not use the stack.
 // Replaces damage amount with a specific value.
 export function setNextDamageToXEffect(setTo: number, game: Game): SyncEffectFunction {

@@ -1,4 +1,4 @@
-import type { ItemCard, LootCard } from "@/models/cards";
+import type { ItemCard, LootCard, RoomCard } from "@/models/cards";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../../models/entities/player";
 import { Game } from "../../models/game";
@@ -37,6 +37,51 @@ describe("Warp Zone Loots ", () => {
     //     await game.actions.resolveStack();
     // });
 
+    it("rwz-cheep_cheep_cheep", async () => {
+        const bs = game.obtainCard("rwz-cheep_cheep_cheep") as LootCard;
+        game.cardHandler.addCardToHand(player1, bs);
+        game.actions.playCard(player1, 0, [player2]);
+        await game.actions.resolveStack();
+        expect(player2.name.key).toBe("name.chicken");
+        expect(game.actions.canEndTurn(player1, false)).not.toBe(true);
+        expect(player2.evasion).toBe(3);
+        game.actions.declareAttack(player1);
+        game.random = () =>0.999;
+        await game.actions.declareAttackOnEntity(player1, player2);
+        game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player2.currentHealthPoints).toBe(1);
+        game.entityHandler.endCombat();
+        await game.endTurn();
+        await game.actions.resolveStack();
+        expect(player2.name.key).not.toBe("name.chicken");
+        expect(player2.attackable).toBe(false);
+    });
+
+    it("rwz-the_isaac_of_isaac_re_isaac", async () => {
+        const bs = game.obtainCard("rwz-the_isaac_of_isaac_re_isaac") as RoomCard;
+        game.gainTreasure(player1, 1);
+        game.gainTreasure(player2, 1);
+        for(const player of game.players)
+            expect(player.name.interpolates!["content"]).toBe(player.id);
+        game.decks.room.addTopPosition(bs);
+        game.rooms?.discardTop(0);
+        await game.actions.resolveStack();
+        for(const player of game.players)
+            expect(player.name.interpolates!["content"]).toBe("Isaac");
+        game.gainTreasure(player2, 1);
+        for(const player of game.players)
+            for( const item of player.inPlay)
+                expect(item.slug).toBe("b2-the_d6")
+        game.rooms?.discardTop(0);
+        for(const player of game.players)
+            expect(player.name.interpolates!["content"]).toBe(player.id);
+        game.gainTreasure(player2, 1);
+        for(const player of game.players)
+            for( const item of player.inPlay)
+                expect(item.slug).not.toBe("b2-the_d6")
+    });
 
     it("rwz-greed_butt", async () => {
         const bs = game.obtainCard("rwz-greed_butt") as LootCard;

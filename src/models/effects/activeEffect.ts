@@ -852,6 +852,22 @@ export function lookAtTopXPut1InSlotEffect(game: Game, x: number): AsyncEffectFu
         return true;
     };
 }
+export function makePlayersLootXEffect(game: Game, x: number, selectionOnResolve: boolean): AsyncEffectFunction {
+    return async (data: EffectData) => {
+        let players: Player[] = [];
+        if(selectionOnResolve) {
+            players = (await data.selectAndRecord(game, data.issuer as Player, 0, game.players.length, game.players, qq("pending.anyPlayers"), data.serializedCardAndBox, true, true)).selected as Player[];
+        } else {
+            while(data.peek() instanceof Player) {
+                players.push(data.next as Player);
+            }
+        }
+        for(const player of players) {
+            game.loot(player, x);
+        }
+        return true;
+    };
+}
 
 export function getCardFromLootDiscardEffect(cardTxt: string | "top", game: Game, exactMatch: boolean): AsyncEffectFunction {
     return async (data: EffectData) => {
@@ -1182,14 +1198,16 @@ export function swapNonEternalItemsEffect(game: Game, youMayEffectHanging: boole
         return game.cardHandler.swapItems(itemToSwapFromIssuer, itemToSwapFromOtherPlayer);
     }
 }
-export function flushOneMonsterSlotEffect(game: Game, min: number): AsyncEffectFunction {
+export function flushOneMonsterSlotEffect(game: Game, min: number, selectionOnResolve: boolean = true, where: "discard" | "bottom" = "discard"): AsyncEffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         if(game.monsters.filter((m) => m !== null && !m.isEngagedInCombat).length === 0) return false;
-        const monsterToFlush = (await data.selectAndRecord(game, data.issuer, min, 1, game.monsters.filter((m) => m !== null && !m.isEngagedInCombat), qq("pending.monsterToFlush"), data.serializedCardAndBox, true, true)).selected[0] as Monster;
+        const monsterToFlush = 
+            selectionOnResolve ? (await data.selectAndRecord(game, data.issuer, min, 1, game.monsters.filter((m) => m !== null && !m.isEngagedInCombat), qq("pending.monsterToFlush"), data.serializedCardAndBox, true, true)).selected[0] as Monster:
+            data.next as Monster;
         if(monsterToFlush === undefined) return false;
         if(game.encounters._slots.findIndex(slot => slot.includes(monsterToFlush.card)) === -1) return false;
-        game.encounters.flushMonster(monsterToFlush, "discard");
+        game.encounters.flushMonster(monsterToFlush, where);
         return true;
     };
 }
@@ -2180,6 +2198,18 @@ export function lookAtHandAndStealLootEffect(game: Game): AsyncEffectFunction {
     };
 }
 
+export function cancelStackEffect(game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
+        if(game.isEndPhase) return false;
+        game.resetStack();
+        game.resetCallbacks();
+        game.currentPlayer.clearAttackRequirement();
+        game.actions.cancelPurchase(game.currentPlayer, true);
+        game.entityHandler.endCombat();
+        return true;
+    };
+}
+
 export function endTurnAndResetStackEffect(game: Game): AsyncEffectFunction {
     return async (data: EffectData) => {
         if(game.isEndPhase) return false;
@@ -2497,6 +2527,21 @@ export function flushShopEffect(game: Game, where: "bottom" | "discard" = "botto
                 break;
             case "discard":
                 game.shop.flush();
+                break;
+        }
+        return true;
+    };
+}
+export function flushRoomEffect(game: Game, where: "bottom" | "discard" = "bottom"): SyncEffectFunction {
+    return (data: EffectData) => {
+        if(game.rooms === undefined)
+            return true;
+        switch(where) {
+            case "bottom":
+                game.rooms.flushToBottom();
+                break;
+            case "discard":
+                game.rooms.flush();
                 break;
         }
         return true;
@@ -3591,10 +3636,10 @@ export function putThisOnBottomOfLootDeckEffect(game: Game): SyncEffectFunction 
     };
 }
 
-export function takeExtraTurnEffect(game: Game): SyncEffectFunction {
+export function takeExtraTurnEffect(game: Game, onlyIfItsYourTurn: boolean = true): SyncEffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
-        if (game.currentPlayer === data.issuer) {
+        if (game.currentPlayer === data.issuer || !onlyIfItsYourTurn) {
             game.addExtraTurn(data.issuer);
             return true;
         }

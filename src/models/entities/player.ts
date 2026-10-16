@@ -1,5 +1,5 @@
 import { Entity } from "@/models/entities/entity";
-import type { Animation, Capability, EntityType, IdentifierType, SerializedCounter, Team } from "@/shared/api";
+import type { Animation, Capability, EntityType, IdentifierType, SerializedCounter, SerializedTranslation, Team } from "@/shared/api";
 import { Card, CharacterCard, CounterHandler, Hand, ItemCard, LootCard, MonsterCard } from "../cards";
 import { AttackRollData, EffectOnStack } from '../stackElement';
 import { Game } from "../game";
@@ -8,6 +8,7 @@ import { DiceRoll } from "../stackElement";
 import { toSerializedTranslation } from "@/utils/translation";
 import { PlayerStats } from "@/models/gameStats";
 import type { CardAndBox } from "../handlers/entityHandler";
+import { NamedPileHandler } from "../handlers/pileHandler";
 class AttackRequirement {
   readonly targets: Entity[] | "topDeck" | "any";
   readonly source: Card;
@@ -111,6 +112,8 @@ export class Player extends Entity {
 
   private _attackableHandler: attackableHandler = new attackableHandler();
 
+  private _nameHandler: NamedPileHandler;
+
   stats: PlayerStats = new PlayerStats();
   /**
    * Creates a new Player instance.
@@ -130,6 +133,7 @@ export class Player extends Entity {
     this._souls = [];
     this._remainingLootPlay = 0;
     this.user = user;
+    this._nameHandler = new NamedPileHandler(toSerializedTranslation("common.content", {content: id})); // Default name is the player ID
   }
 
   get team(): Team {
@@ -150,6 +154,18 @@ export class Player extends Entity {
 
   set maxHandSize(x: number) {
     this._maxHandSize = x;
+  }
+
+  get name(): SerializedTranslation {
+    return this._nameHandler.topName;
+  }
+
+  changeName(newName: SerializedTranslation, origin: Card): void {
+    this._nameHandler.addNamed(newName, origin);
+  }
+
+  removeName(origin: Card): void {
+    this._nameHandler.removeName(origin);
   }
   /**
    * Gets the list of entities or deck positions this player must attack, with source cards.
