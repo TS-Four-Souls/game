@@ -28,6 +28,7 @@ import type {
     OnRollData,
 } from "../types/eventTypes";
 import * as active from "./activeEffect";
+import * as passive from "./passiveEffect";
 import { addInPlayEffect } from "./activeEffect";
 import { effectParser } from "./parsing/effectParser";
 import { addPassiveEffectToStack } from "./passiveEffect";
@@ -141,6 +142,13 @@ export function flipIfXCountersEffect(game: Game, x: number): SyncEffectFunction
         return true;
     };
 }
+export function dieIfXCountersEffect(game: Game, x: number): SyncEffectFunction {
+    return (data: EffectData) => {
+        if (data.it.counters.value("normal") < x) return false;
+        game.entityHandler.kill(data.issuer, data.issuer, data.cardAndBox );
+        return true;
+    };
+}
 
 export function preventDeathGainTreasureCancelAttackAndHealEffect(game: Game, x: number): SyncEffectFunction {
     return (data: EffectData) => {
@@ -210,6 +218,30 @@ export function onFlipOrAttackedRollLowestDieEffect(game: Game): SyncEffectFunct
             offAttacked?.();
             offAttacked = null;
         });
+        return true;
+    };
+}
+
+export function putInMonsterSlotAtEndOfTurnIfDealtCombatDamageEffect(game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
+        let shouldSkip = true;
+        for(const player of game.players)
+            if(player.damageTakenThisTurn.find(d => d.dealer === data.issuer))
+                shouldSkip = false;
+        if(shouldSkip) return false;
+        let offTurn: (() => void) | null = null;
+        if(data.it instanceof MonsterCard === false)
+            return false;
+        data.it.afterEffect = "handled"; // Card placement is handled by this effect
+        offTurn = game.emitter.on("on:turn:end", async (eventData: OnTurnEndData) => {
+            if(data.it instanceof MonsterCard === false)
+            return false;
+            game.decks.monster.addTopPosition(data.it);
+            await game.encounters.selectValidIndexAndDraw(game, game.currentPlayer as Player, data);
+            offTurn?.();
+            offTurn = null;
+        });
+
         return true;
     };
 }
@@ -404,17 +436,16 @@ export function putInMonsterDeckNFromTopEffect(game: Game, n: number): SyncEffec
     };
 }
 
-export function searchForBloatEffect(game: Game): AsyncEffectFunction {
+export function searchForAnyNumberBloatEffect(game: Game, onlyOne: boolean): AsyncEffectFunction {
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
-        const indexBloat = game.decks["monster"]!.cards.findIndex(c => c.slug === "b2-the_bloat") ;
-        if(indexBloat === -1)
-            return false;
-        const theBloat = game.decks["monster"]!.drawCardAt(indexBloat);
-        if(!theBloat)
-            return false;
-        game.encounters._deck.addTopPosition(theBloat);
-        await game.encounters.selectValidIndexAndDraw(game, player, data);
+        const bloats = game.decks["monster"]!.cards.filter(c => c.name === "The Bloat");
+        const selectedBloat = await data.selectAndRecord(game, player, 0, onlyOne ? 1 : bloats.length, bloats, toSerializedTranslation("selector.monster"), data.serializedCardAndBox, true, true);
+        for(const bloat of selectedBloat.selected.toReversed()) {
+            game.decks.monster.getCardFromSlug(bloat.slug, bloat.globalId);
+            game.encounters._deck.addTopPosition(bloat);
+            await game.encounters.selectValidIndexAndDraw(game, player, data);
+        }
         return true;
     };
 }
@@ -617,6 +648,37 @@ export function damageDealtToActivePlayerAlsoToTheEffect(game: Game, direction: 
         return true;
     };
 }
+
+export function cancelAttackAgainstThis(game: Game): SyncEffectFunction
+{
+    return (data: EffectData) => {
+        if(!data.it.entity || !data.it.entity.isEngagedInCombat) return false;
+        game.entityHandler.endCombat();
+        return true;
+    }
+}
+
+export function putAcounterAndInSlot(game: Game): AsyncEffectFunction
+{
+    return async (data: EffectData) => {
+        if(data.it instanceof MonsterCard === false) return false;
+        if(data.it.counters.counterOwned.length > 0) return true;
+        data.it.afterEffect = "handled";
+        game.decks.monster.addTopPosition(data.it);
+        const idx = data.it.cleaners.length;
+        const slot = await game.encounters.selectValidIndexAndDraw(game, game.currentPlayer, data, false);
+        const remainingCleaners = data.it.cleaners.slice(idx);
+        data.it.cleaners.splice(idx);
+        data.it.cleaners.push(() => {
+            data.it.cleaners.push(...remainingCleaners);
+        })
+        if( data.it.entity === undefined)
+            return false;
+        game.cardHandler.addToCounter(data.it.entity, data.it, "normal", 1);
+        return true;
+    }
+}
+
 
 export function statModifierWhileAtHealthEffect(game: Game, s: string): SyncEffectFunction
 {
@@ -925,6 +987,29 @@ export function onAttackDeclaredEffect(game: Game, s: string): SyncEffectFunctio
             offAttackDeclared?.();
             offAttackDeclared = null;
         });
+        return true;
+    };
+}
+
+export function onDeathChoosePlayerToDieEffect(game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
+        passive.onYourEventEffect("on:death:monster",[async (ef:EffectData, eventData: OnDeathMonsterData) => {
+            const { eventIssuer, target, source } = eventData;
+            const effect= async (effectData: EffectData): Promise<boolean> => {
+                const player = game.currentPlayer as Player;
+                const targetSelection = await data.selectAndRecord(game, player, 1, 1, game.players, toSerializedTranslation("pending.playerToKill"), data.serializedCardAndBox, true, true);
+                const targetPlayer = targetSelection.selected[0] as Player;
+                if(!targetPlayer){
+                    throw new GameError("No player selected for onDeathChoosePlayerToDieEffect.",
+                        toSerializedTranslation("error.behaviorError", { error: "No player selected for onDeathChoosePlayerToDieEffect." })
+                    );
+                }
+                game.entityHandler.kill(eventIssuer as Entity, targetPlayer as Entity, source);
+                return true;
+            };
+            addPassiveEffectToStack(game, effect, data, `When ${data.it.name} dies, the active player chooses a player to die.`);
+            return true;
+        }], game, "", false)(data);
         return true;
     };
 }

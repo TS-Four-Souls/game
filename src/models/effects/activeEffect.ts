@@ -530,6 +530,21 @@ export function destroyCurseEffect(game: Game, selectionOnResolve: boolean=false
     };
 }
 
+export function rerollAShopItemEffect(game: Game): AsyncEffectFunction {
+    return async (data: EffectData) => {
+        const player = game.currentPlayer;
+        const selectedItem = (await data.selectAndRecord(game, player, 1, 1, game.shop.cardsOnTop, qq("pending.itemsToDiscardFromShop"), data.serializedCardAndBox, true, true)).selected[0] as ItemCard;
+        if(!selectedItem)
+            return false;
+        const idx = game.shop.cardsOnTop.indexOf(selectedItem);
+        if(idx === -1)
+            return false;
+        game.shop.discardTop(idx);
+        return true;
+    }
+}
+
+
 export function destroyOneEffect(game: Game, selector: TargetsSelector, type: "selectionOnResolve" | "next"): AsyncEffectFunction {
     return async (data: EffectData) => {
         let toDestroy = data.next as Card;
@@ -1050,12 +1065,13 @@ export function lootAndGainAsPlayerEffect(game: Game): SyncEffectFunction {
     };
 }
 
-export function dealDamageToRandomPlayerEffect(game: Game, damage: number, type: "any" | "non-active"): SyncEffectFunction {
+export function dealDamageToRandomPlayerEffect(game: Game, damage: number, type: "any" | "non-active", issuerType: "current" | "issuer" = "issuer"): SyncEffectFunction {
     return (data: EffectData) => {
+        const issuer = issuerType === "current" ? game.currentPlayer : data.issuer;
         const validPlayers = type === "non-active" ? game.players.filter(player => player !== game.currentPlayer) : game.players;
         if (validPlayers.length === 0) return false;
         const targetPlayer = validPlayers[Math.floor(game.random() * validPlayers.length)]!;
-        game.entityHandler.dealDamage(data.issuer, targetPlayer, data.cardAndBox, damage);
+        game.entityHandler.dealDamage(issuer, targetPlayer, data.cardAndBox, damage);
         return true;
     };
 }
@@ -2432,21 +2448,46 @@ export function killAllXEffect(game: Game, x: "player" | "monster", excludeSelf:
                 game.entityHandler.kill(data.issuer, entity, data.cardAndBox);
         }
         return true;
-    }
-
+    };
 }
 
-export function EndOfTurnKillAllPlayer(game: Game): SyncEffectFunction {
+export function eachPlayerRollsXTimesEffect(game: Game, nbRolls: number, nbTreasure: number, nbCoins: number): SyncEffectFunction {
     return (data: EffectData) => {
-        let offTurnStart: (() => void) | null = null;
-        offTurnStart = game.emitter.on("on:turn:end", (eventData) => {
-            for(const player of game.players)
-                if(!player.isDead)
+        const rolls:DiceRoll[] = [];
+
+        const effect = (data: EffectData) => {
+            const res = new Map<Player, number>();
+            for (const roll of rolls) {
+                const player = roll.issuer;
+                if(!res.has(player))
+                    res.set(player, 0);
+                res.set(player, res.get(player)! + roll.value);
+            }
+            const maxRoll = Math.max(...res.values());
+            const minRoll = Math.min(...res.values());
+
+            for (const [player, total] of res.entries()) {
+                if(total === maxRoll)
+                    game.gainTreasure(player, nbTreasure);
+                if(total === minRoll)
                     game.entityHandler.kill(data.issuer, player, data.cardAndBox);
-            offTurnStart?.();
-            offTurnStart = null;
+                game.gainCoins(player, nbCoins, data.it);
+            }
             return true;
-        });
+        };
+        passive.addPassiveEffectToStack(game, effect, data, "", data.visualEffectBox);
+        for (const player of game.players)
+            for (let i = 0; i < nbRolls; i++)
+                rolls.push(game.rollDice(player, data.it));
+        return true;
+    };
+}
+
+export function killAllPlayer(game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
+        for(const player of game.players)
+            if(!player.isDead)
+                game.entityHandler.kill(data.issuer, player, data.cardAndBox);
         return true;
     };
 }
@@ -2657,6 +2698,48 @@ export function cancelAtIndexEffect(game: Game): SyncEffectFunction {
     };
 }
 
+export function voteOnFirstDeath(game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
+        passive.onAnyEventEffect("on:death:after-penalty", [voteToKillPlayers(game, 1)], game, "", (ef: EffectData, eventData: any) => {
+            return game.players.every(p=>!p.isDead || p === eventData.eventIssuer);
+        })(data);
+        return true;
+    };
+}
+
+export function voteToKillPlayers(game: Game, nbVotes: number): AsyncEffectFunction {
+    return async (data: EffectData) => {
+        const choices = await data.selectMultipleAndRecord(
+        game,
+        game.players.filter(p => p.isDead == false).map(p => ({ 
+                player: p,
+                min: nbVotes,
+                max: nbVotes,
+                options: game.players.filter(p2 => !p2.isDead),
+                reason: data.serializedCardAndBox,
+                description: qq("pending.whoIsImpostor"),
+                canUseOnBoardSelection: true,
+            })),
+        );
+        const res = new Map<Player, number>();
+        for (const choice of choices) {
+            for (const selectedPlayer of choice.selected)
+            {
+                if(!res.has(selectedPlayer))
+                    res.set(selectedPlayer, 0);
+                res.set(selectedPlayer, res.get(selectedPlayer)! + 1);
+            }
+        }
+        const maxVotes = Math.max(...res.values());
+        for (const [player, votes] of res.entries()) {
+            if(votes === maxVotes) {
+                game.entityHandler.kill(data.issuer, player, data.cardAndBox);
+            }
+        }
+        return true;
+    };
+}
+
 // deal 1 damage to each other player.
 export function dealDamageToEachOtherPlayerEffect(game: Game, dmg: number): SyncEffectFunction {
     return (data: EffectData) => {
@@ -2738,6 +2821,40 @@ export function combineEffectFunctions(effects: EffectFunction[], stopAfterFalse
             if (stopAfterFalse && !result) break;
         }
         return result;
+    };
+}
+
+export function activePlayerChoosePlayerIfThisWouldDieEffect(game: Game, lootCards: number): AsyncEffectFunction {
+    return async (data: EffectData) => {
+        const issuer = game.currentPlayer;
+        const replacementPlayer = (await data.selectAndRecord(game, issuer, 1, 1, game.players.filter(p => p !== issuer), qq("selector.player"), data.serializedCardAndBox, true, true)).selected[0] as Player;
+        if(replacementPlayer instanceof Player === false) return false;
+        let onWouldDeath: (() => void) | null = null;
+        let onTurnEnd: (() => void) | null = null;
+        
+        onWouldDeath = game.emitter.on("on:death:would-death", (eventData) => {
+            if(eventData.eventIssuer !== data.it.entity) return false;
+            game.entityHandler.preventDeath(data.issuer);
+            if(data.issuer.isEngagedInCombat)
+                game.entityHandler.endCombat();
+            game.entityHandler.kill(data.issuer, replacementPlayer, data.cardAndBox);
+            game.entityHandler.heal(data.issuer, "full");
+            game.loot(issuer, lootCards);
+            return true;
+        });
+
+        onTurnEnd = game.emitter.on("on:turn:end", (eventData) => {
+            onWouldDeath?.();
+            onWouldDeath = null;
+            return true;
+        });
+        data.it.cleaners.push(() => {
+            onWouldDeath?.();
+            onTurnEnd?.();
+            onWouldDeath = null;
+            onTurnEnd = null;
+        });
+        return true;
     };
 }
 
@@ -3132,6 +3249,32 @@ export function issuerSkipNextTurnEffect(game: Game, issuerIsCurrentPlayer: bool
         if(issuer instanceof Player === false) 
             return false;
         game.playerSkipNextTurn(issuer);
+        return true;
+    };
+}
+
+export function eachPlayerMayDiscardOrTakeDamageEffect(game: Game, damage: number, repeatUntil: number): AsyncEffectFunction {
+
+    return async (data: EffectData) => {
+        if(game.players.filter(p => !p.isDead).length > repeatUntil)
+            passive.addPassiveEffectToStack(game, eachPlayerMayDiscardOrTakeDamageEffect(game, damage, repeatUntil), data, `Each player may discard a card or take ${damage} damage until there are ${repeatUntil} players left alive.`);
+        let choices = [];
+        for (const player of game.players) {
+            if (player.isDead) continue;
+            choices.push(
+                {
+                    player: player,
+                    promise: data.selectAndRecord(game, player, 0, 1, player.hand.cards, qq("pending.lootCardToDiscard"), data.serializedCardAndBox, true, true)
+                });
+        }
+        await Promise.all(choices.map(async (c) => c.promise));
+        for (const { player, promise } of choices) {
+            if ((await promise).selected.length === 0) {
+                game.entityHandler.dealDamage(player, player, {card: data.cardAndBox.card, visualEffectBox: null as any}, damage);
+            }else{
+                game.cardHandler.discardFromHandAtIndex(player, player.hand.cards.indexOf((await promise).selected[0] as LootCard));
+            }
+        }
         return true;
     };
 }

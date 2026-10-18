@@ -395,38 +395,21 @@ export function takeDamageOnLootEffect(game: Game, amount: number): SyncEffectFu
     };
 }
 
-export function deactivateCharacterAtEndOfTurnEffect(game: Game): SyncEffectFunction {
+export function deactivateCharacterEffect(game: Game): SyncEffectFunction {
      return (data: EffectData) => {
-        let offTurnStart: (() => void) | null = null;
-        offTurnStart = game.emitter.on("on:turn:end", (eventData) => {
-            const effect: SyncEffectFunction = (effectData: EffectData) => {
-                game.cardHandler.deactivateItem(game.currentPlayer.character);
-                return true;
-            }
-            addPassiveEffectToStack(game, effect, data, `Deactivate your character at the end of the turn.`);
-        });
-
-        // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleaners.push(() => {
-            offTurnStart?.();
-            offTurnStart = null;
-        });
+        const effect: SyncEffectFunction = (effectData: EffectData) => {
+            game.cardHandler.deactivateItem(game.currentPlayer.character);
+            return true;
+        }
+        addPassiveEffectToStack(game, effect, data, `Deactivate your character at the end of the turn.`);
+    
         return true;
     };
 }
 
-export function loseCoinsAtEndOfTurnEffect(game: Game, amount: number): SyncEffectFunction {
+export function activePlayerLoseCoinsEffect(game: Game, amount: number): SyncEffectFunction {
      return (data: EffectData) => {
-        let offTurnStart: (() => void) | null = null;
-        offTurnStart = game.emitter.on("on:turn:end", (eventData) => {
-            game.loseCoins(game.currentPlayer, amount, true, "effect");
-        });
-
-        // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleaners.push(() => {
-            offTurnStart?.();
-            offTurnStart = null;
-        });
+        game.loseCoins(game.currentPlayer, amount, true, "effect");
         return true;
     };
 }
@@ -516,39 +499,10 @@ export function mayGainTreasureAtStartOfTurnEffect(game: Game, x: number): SyncE
     };
 }
 
-export function damageIfLowLootAtEndOfTurnEffect(game: Game, lootThreshold: number, amount: number): SyncEffectFunction {
+export function damageIfLowLootEffect(game: Game, lootThreshold: number, amount: number): SyncEffectFunction {
      return (data: EffectData) => {
-        let offTurnStart: (() => void) | null = null;
-        offTurnStart = game.emitter.on("on:turn:end", (eventData) => {
-            const effect: SyncEffectFunction = (effectData: EffectData) => {
-                if(game.currentPlayer.hand.length > lootThreshold) return false;
-                game.entityHandler.dealDamage(game.currentPlayer, game.currentPlayer, data.cardAndBox, amount);
-                return false;
-            };
-            addPassiveEffectToStack(game, effect, data, "You may gain a treasure.");
-        });
-
-        // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleaners.push(() => {
-            offTurnStart?.();
-            offTurnStart = null;
-        });
-        return true;
-    };
-}
-
-export function putThisIntoDiscardAtEndOfTurnEffect(game: Game): SyncEffectFunction {
-     return (data: EffectData) => {
-        let offTurnStart: (() => void) | null = null;
-        offTurnStart = game.emitter.on("on:turn:end", (eventData) => {
-            game.cardHandler.discard(data.it);
-        });
-
-        // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleaners.push(() => {
-            offTurnStart?.();
-            offTurnStart = null;
-        });
+        if(game.currentPlayer.hand.length > lootThreshold) return false;
+        game.entityHandler.dealDamage(game.currentPlayer, game.currentPlayer, data.cardAndBox, amount);       
         return true;
     };
 }
@@ -606,38 +560,12 @@ export function eachPlayerGainsCoinsEffect(game: Game): SyncEffectFunction {
 
 export function discardHandIfNoShopPurchaseAtEndOfTurnEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
-        let offEndTurn: (() => void) | null = null;
-        let offPurchase: (() => void) | null = null;
-        let purchaseMade = false;
-
-        offEndTurn = game.emitter.on("on:turn:end", (eventData) => {
-            const { eventIssuer } = eventData;
-            if(eventIssuer !== game.currentPlayer) {
-                return; // Not the current player, ignore
+        if(game.currentPlayer.purchasedThisTurn.filter(p => p.source === "shop").length === 0) {
+            const handSize = game.currentPlayer.hand.length;
+            for(let i = 0; i < handSize; i++) {
+                game.cardHandler.discardFromHandAtIndex(game.currentPlayer, 0, "effect");
             }
-            if(!purchaseMade) {
-                const handSize = game.currentPlayer.hand.length;
-                for(let i = 0; i < handSize; i++) {
-                    game.cardHandler.discardFromHandAtIndex(game.currentPlayer, 0, "effect");
-                }
-            }
-            purchaseMade = false; // Reset for next turn
-        });
-
-        offPurchase = game.emitter.on("on:purchase:success", (eventData) => {
-             const { eventIssuer, index } = eventData;
-             if(eventIssuer === game.currentPlayer && index !== "top") {
-                purchaseMade = true;
-             }
-        });
-
-        // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleaners.push(() => {
-            offEndTurn?.();
-            offEndTurn = null;
-            offPurchase?.();
-            offPurchase = null;
-        });
+        }
         return true;
     };
 }

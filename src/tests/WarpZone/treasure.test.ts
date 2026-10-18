@@ -33,6 +33,59 @@ describe("Warp Zone Treasures", () => {
     //     game.cardHandler.addInPlay(player1, card1);
     // });
  
+    it("rwz-hitops 2", async () => {
+        const card1 = game.obtainCard("rwz-hitops") as TreasureCard;
+        game.cardHandler.addInPlay(player1, card1);
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        game.actions.declareAttack(player2);
+        game.entityHandler.addDC(game.monsters[0]!, 6, card1);
+        await game.actions.declareAttackOnEntity(player2, game.monsters[0]!);
+        game.random = () => 4/6-0.01;
+        await game.actions.attackRoll(player2);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player2.currentHealthPoints).toBe(player2.healthPoints);
+        expect(player2.currentHealthPoints).toBe(player2.healthPoints);
+         game.random = () => 5/6-0.01;
+        await game.actions.attackRoll(player2);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player2.currentHealthPoints).toBe(player2.healthPoints);
+        expect(player2.currentHealthPoints).toBe(player2.healthPoints);
+    });
+ 
+    it("rwz-hitops", async () => {
+        const card1 = game.obtainCard("rwz-hitops") as TreasureCard;
+        game.cardHandler.addInPlay(player1, card1);
+        game.actions.declareAttack(player1);
+        game.entityHandler.addDC(game.monsters[0]!, 6, card1);
+        await game.actions.declareAttackOnEntity(player1, game.monsters[0]!);
+        game.random = () => 4/6-0.01;
+        await game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.currentHealthPoints).toBe(player1.healthPoints);
+        expect(player1.currentHealthPoints).toBe(player1.healthPoints);
+         game.random = () => 5/6-0.01;
+        await game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.currentHealthPoints).toBe(player1.healthPoints);
+        expect(player1.currentHealthPoints).toBe(player1.healthPoints);
+    });
+ 
     it("rwz-tony", async () => {
         const card1 = game.obtainCard("rwz-tony") as TreasureCard;
         game.cardHandler.addInPlay(player1, card1);
@@ -104,10 +157,10 @@ describe("Warp Zone Treasures", () => {
         const card1 = game.obtainCard("rwz-george") as TreasureCard;
         game.cardHandler.addInPlay(player1, card1);
         game.select = async (player: Player, min: number, max: number, Options: any[]) => {
-                return {
-                    selected: Options.splice(max),
-                    remaining: []
-                };
+            return {
+                selected: Options.toReversed(),
+                remaining: []
+            };
         };
 
         const monsterCards = game.decks.monster.cards.slice(0, 5).toReversed().map(c => c.slug);

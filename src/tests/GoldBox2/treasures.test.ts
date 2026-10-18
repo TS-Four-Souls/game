@@ -165,6 +165,7 @@ describe("Gold Box 2 Treasures", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         for(const player of game.players)
             expect(player.isDead).toBe(true);
         await game.actions.resolveStack();
@@ -173,7 +174,8 @@ describe("Gold Box 2 Treasures", () => {
         await game.actions.resolveStack();
         expect(game.currentPlayer === player2).toBe(true);
         await game.endTurn();
-        expect(game.stack.size).toBe(2);
+        await game.actions.resolveStack();
+        expect(game.stack.size).toBe(4);
 
     });
  

@@ -164,8 +164,8 @@ export function parseYouMayEffect(s: string, game: Game): ParsedEffect {
     };
 }
 
-export function parseAtTheEndOfTheTurnItWasPlayedEffect(s: string, game: Game): SyncParsedEffect {
-    const restOfEffect = s.substring("At the end of the turn this was played, ".length).trim();
+export function parseAtTheEndOfTheTurnItWasPlayedEffect(s: string, game: Game, onlyOneTurn: boolean): SyncParsedEffect {
+    const restOfEffect = s.substring(s.indexOf(",") + 1).trim();
     const restParsed = effectParser(restOfEffect, game, true);
     return {
         effectFunction: (data: EffectData) => {
@@ -178,12 +178,15 @@ export function parseAtTheEndOfTheTurnItWasPlayedEffect(s: string, game: Game): 
                     data.clearSelectionRecord();
                     // Add all effects as a single stack element
                     const effect = async (effectData: EffectData): Promise<boolean> => {
-                        if (game.turnHandler.numberOfTurnsSinceBeginning !== turn) return false;
+                        if (game.turnHandler.numberOfTurnsSinceBeginning !== turn && onlyOneTurn) return false;
                         await restParsed.effectFunction(effectData);
                         return true;
                     };
-                    offEvent?.();
-                    offEvent = null;
+                    if(onlyOneTurn)
+                    {
+                        offEvent?.();
+                        offEvent = null;
+                    }
                     addPassiveEffectToStack(game, effect, data, s);
                 });
         

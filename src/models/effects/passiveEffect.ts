@@ -39,6 +39,7 @@ import type {
     OnSoulGainedOrRemovedData
 } from "../types/eventTypes";
 import * as active from "./activeEffect";
+import * as monster from "./monsterEffects";
 import { type ParsedEffect, type SyncParsedEffect } from "./parsing/effectParser";
 import {selectPlayerOrMonster} from "@/models/effects/parsing/selectors.ts";
 import { noTargetEffect } from './parsing/logicParsers';
@@ -1571,6 +1572,35 @@ export function afterDeathPenaltyEffect(
     };
 }
 
+export function offerHighFiveEffect(game: Game, rolls: number[]): SyncEffectFunction {
+    return (data: EffectData) => {
+        let offTurnStart: (() => void) | null = null;
+        const issuer = data.issuer;
+        if(!(issuer instanceof Player))
+            throw new GameError("offerHighFiveEffect can only be applied to Players.", toSerializedTranslation("error.behaviorError", {error: "offerHighFiveEffect can only be applied to Players."}));
+
+        offTurnStart = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
+            if (data.issuer === eventData.eventIssuer) return;
+            const effect:EffectFunction = async (effectData: EffectData): Promise<boolean> => {
+                const choice = await data.selectAndRecord(game, issuer, 1, 1, [toSerializedTranslation("common.highfive"), toSerializedTranslation("common.no")], toSerializedTranslation("pending.highFiveOffer", {player: eventData.eventIssuer.id}), data.serializedCardAndBox, true, true);
+                if(choice.selected[0]?.key === "common.highfive")
+                {
+                     const choice2 = await data.selectAndRecord(game, eventData.eventIssuer, 1, 1, [toSerializedTranslation("common.highfive"), toSerializedTranslation("common.no")], toSerializedTranslation("pending.highFiveOffer", {player: issuer.id}), data.serializedCardAndBox, true, true);
+                    if(choice2.selected[0]?.key === "common.highfive")
+                    {
+                        const newData = new EffectData(data.it, () => eventData.eventIssuer, [], data.visualEffectBox);
+                        monster.noCombatDamageOnAttackRollEffect(game, rolls)(newData);
+                    }
+                }
+                return true;
+            }
+            addPassiveEffectToStack(game, effect, data, "High-five offer effect");
+        });
+
+        return true;
+    };
+}
+
 export function gainTreasureOnDestroyEffect(game: Game, amount: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offDestroy: (() => void) | null = null;
@@ -1761,7 +1791,7 @@ export function onYourEventEffect(
     return (data: EffectData) => {
         let offEvent: (() => void) | null = null;
         
-        if(andNow && condition(data, null)) {
+        if(andNow && condition(data, null) && effectFunctions.length > 0) {
             data.targets = [];
             data.clearSelectionRecord();
             // Add all effects as a single stack element
@@ -1779,6 +1809,7 @@ export function onYourEventEffect(
             if (data.issuer !== eventIssuer) return;
             if (duringYourTurnOnly && game.currentPlayer !== data.issuer) return;
             if(!condition(data, eventData)) return;
+            if(effectFunctions.length === 0) return;
             data.targets = [];
             data.clearSelectionRecord();
             // Add all effects as a single stack element
@@ -2032,8 +2063,8 @@ export function statModifierBasedOnCountersEffect(game: Game,
     modifier: number): SyncEffectFunction {
     return (data: EffectData) => {
         const issuer = data.issuer;
-        if(!(issuer instanceof Player))
-            throw new GameError("statModifierBasedOnCountersEffect can only be applied to Players.", toSerializedTranslation("error.behaviorError", {error: "statModifierBasedOnCountersEffect can only be applied to Players."}));
+        // if(!(issuer instanceof Player))
+        //     throw new GameError("statModifierBasedOnCountersEffect can only be applied to Players.", toSerializedTranslation("error.behaviorError", {error: "statModifierBasedOnCountersEffect can only be applied to Players."}));
         const toAdd = Math.floor((data.it.counters.value("normal") ?? 0) / countersPerModifier);
         for (const adder of adders) {
             adder(issuer, toAdd * modifier, data.it);
@@ -2585,22 +2616,22 @@ export function putCounterInsteadOfDestructionEffect(game: Game): SyncEffectFunc
 // HYBRID EFFECT: Can be either a replacement effect or triggered effect depending on useStack parameter.
 // Modifies stats based on a condition (e.g., "while you have 0¢").
 export function ConditionalStatModifierEffect(
-    adders: ((player: Player, value: number, source: Card) => void)[],
+    adders: ((entity: Entity, value: number, source: Card) => void)[],
     amount: number,
-    condition: (player: Player, card: Card) => boolean,
+    condition: (entity: Entity, card: Card) => boolean,
     triggerEvents: TriggerEvent[],
     game: Game,
     useStack: boolean = true
 ): SyncEffectFunction {
     return (data: EffectData) => {
-        if (!(data.issuer instanceof Player)) return false;
+        if (!(data.issuer instanceof Entity)) return false;
         let offEvents: (() => void)[] = [];
         
         let currentlyActive = false;
         let adderStackId: number | null = null;
         let removerStackId: number | null = null;
-        const applyModifierIfConditionMet = (player: Player): void => {
-            const shouldBeActive = condition(player, data.it);
+        const applyModifierIfConditionMet = (entity: Entity): void => {
+            const shouldBeActive = condition(entity, data.it);
             
             if (shouldBeActive && !currentlyActive) {
                 if (useStack) {
@@ -2609,14 +2640,14 @@ export function ConditionalStatModifierEffect(
                         if(currentlyActive === true) return true; // Already applied by another trigger
                         currentlyActive = true;
                         for (const adder of adders)
-                            adder(player, amount, data.it);
+                            adder(entity, amount, data.it);
                         return true;
                     };
                     adderStackId = addPassiveEffectToStack(game, effect, data, "Apply conditional stat modifier");
                 } else {
                     currentlyActive = true;
                     for (const adder of adders)
-                        adder(player, amount, data.it);
+                        adder(entity, amount, data.it);
                 }
             } else if (!shouldBeActive && currentlyActive) {
                 if (useStack && removerStackId === null) {
@@ -2634,7 +2665,7 @@ export function ConditionalStatModifierEffect(
                         else
                         {
                             for (const adder of adders)
-                                adder(player, -amount, data.it);
+                                adder(entity, -amount, data.it);
                         }
                         return true;
                     };
@@ -2642,7 +2673,7 @@ export function ConditionalStatModifierEffect(
                 } else {
                     currentlyActive = false;
                     for (const adder of adders)
-                        adder(player, -amount, data.it);
+                        adder(entity, -amount, data.it);
                 }
             }
         };
@@ -2652,8 +2683,8 @@ export function ConditionalStatModifierEffect(
         for (const triggerEvent of triggerEvents) {
             const offEvent = game.emitter.on(triggerEvent, ({ eventIssuer }) => {
                 if (data.issuer !== eventIssuer) return;
-                if(!(data.issuer instanceof Player)) 
-                    throw new GameError("ConditionalStatModifierEffect can only be applied to Players.", toSerializedTranslation("error.behaviorError", {error: "ConditionalStatModifierEffect can only be applied to Players."}));
+                // if(!(data.issuer instanceof Player)) 
+                //     throw new GameError("ConditionalStatModifierEffect can only be applied to Players.", toSerializedTranslation("error.behaviorError", {error: "ConditionalStatModifierEffect can only be applied to Players."}));
                 applyModifierIfConditionMet(data.issuer);
             });
             offEvents.push(offEvent);
@@ -2673,8 +2704,8 @@ export function ConditionalStatModifierEffect(
                 else 
                     for (const adder of adders)
                         {
-                            if(!(data.issuer instanceof Player)) 
-                                throw new GameError("ConditionalStatModifierEffect can only be removed from Players.", toSerializedTranslation("error.behaviorError", {error: "ConditionalStatModifierEffect can only be removed from Players."}));
+                            // if(!(data.issuer instanceof Player)) 
+                            //     throw new GameError("ConditionalStatModifierEffect can only be removed from Players.", toSerializedTranslation("error.behaviorError", {error: "ConditionalStatModifierEffect can only be removed from Players."}));
                             adder(data.issuer, -amount, data.it);
                         }
             }

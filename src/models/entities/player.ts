@@ -114,6 +114,8 @@ export class Player extends Entity {
 
   private _nameHandler: NamedPileHandler;
 
+  private _purchasedThisTurn: {Card: Card, source: "shop" | "topDeck"}[] = [];
+
   stats: PlayerStats = new PlayerStats();
   /**
    * Creates a new Player instance.
@@ -311,7 +313,20 @@ export class Player extends Entity {
   mustAttackTopDeck(): boolean {
     return this._mustAttackEntity.some(req => req.targets === "topDeck");
   }
+
+  /**
+   * Simply registers that the player has purchased a card this turn. This is used to track the number of purchases made in a turn and enforce any game rules related to purchasing.
+   * @param card purchased
+   * @param source - The source of the purchase, either "shop" or "topDeck"
+   */
+  purchase(card: Card, source: "shop" | "topDeck"): void {
+    this._purchasedThisTurn.push({Card: card, source});
+  }
   
+  get purchasedThisTurn(): {Card: Card, source: "shop" | "topDeck"}[] {
+    return this._purchasedThisTurn;
+  }
+
   /**
    * Returns true if attacking this element satisfies the requirement
    */
@@ -859,6 +874,7 @@ export class Player extends Entity {
     this._remainingPurchaseThisTurn = 0;
     this.resetCanIActivateThisTurn();
     this.resetCanIUseLootThisTurn();
+    this._purchasedThisTurn = [];
     this._attackedIdsThisTurn = [];
     this._mustAttackEntity = [];
     this._mayAttackForFree = [];

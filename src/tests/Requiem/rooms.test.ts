@@ -631,6 +631,7 @@ describe("Requiem Rooms", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(player2.hand.length).toBe(3);
         game.gainCoins(player1, 10, ("debug"));
         game.actions.declarePurchase(player1);
@@ -638,6 +639,7 @@ describe("Requiem Rooms", () => {
         game.cardHandler.removeInPlay(player1, player1.inPlay[1]!);
         game.resetStack();
         await game.endTurn();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.hand.length).toBe(0);

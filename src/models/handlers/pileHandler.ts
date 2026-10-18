@@ -55,3 +55,13 @@ export class NamedPileHandler extends PileHandler<{ name: SerializedTranslation,
         }
     }
 }
+
+export class Attribute extends PileHandler<{ value: number, origin: Card | "default" }>{
+
+    get value(): number{
+        return this._default.value + this._pile.map(p => p.value).reduce((prev, curr) => prev + curr, 0);
+    }
+    get hasAny(): boolean{
+        return this.value > 0;
+    }
+}

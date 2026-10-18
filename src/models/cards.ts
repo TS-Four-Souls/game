@@ -272,7 +272,7 @@ class Card {
                         id++;
                     }
                     effectRange.push(arr);
-                }else if( effect.includes("-\n") &&  effect.includes("whiff-\n") === false)
+                }else if( effect.includes("-\n") &&  effect.includes("whiff-\n") === false && effect.includes("rolls 3 times-\n") === false) 
                     {
                         const err = `Effect outcome "${effect}" has a newline but is not a roll or choose one effect.`;
                         throw new GameError(err, toSerializedTranslation("error.parsingError", {error: err}));
