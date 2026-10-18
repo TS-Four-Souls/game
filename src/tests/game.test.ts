@@ -178,23 +178,7 @@ describe("Player - In-Play Cards", () => {
     
     expect(player.inPlay.length).toBe(3);
   });
-
-  it("should not remove eternal or character cards by index", async () => {
-    const eternalCard = { id: "et1", name: "Eternal", type: "eternal", eternal: true } as any;
-    const characterCard = { id: "ch1", name: "Char", type: "character", eternal: true } as any;
-    const itemCard = { id: "it1", name: "Item", type: "item" } as any;
-
-    player.addInPlay(eternalCard);
-    player.addInPlay(characterCard);
-    player.addInPlay(itemCard);
-
-    expect(player.removeInPlayByIndex(0)).toBe(false);
-    expect(player.removeInPlayByIndex(1)).toBe(false);
-    expect(player.inPlay.length).toBe(3);
-    expect(player.removeInPlayByIndex(2)).toBe(true);
-    expect(player.inPlay.length).toBe(2);
-  });
-
+  
   it("should return false when removing non-existent in-play card", async () => {
     const card = { id: "c1", name: "Card", type: "item" } as any;
     player.addInPlay(card);

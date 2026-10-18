@@ -83,6 +83,7 @@ describe("Unboxing Loots ", () => {
         expect(game.currentPlayer).toBe(player1);
         game.decks.loot.getFromDiscard(bs);
         game.cardHandler.addCardToHand(player1, bs);
+        game.entityHandler.addLootPlay(player1, 1, bs);
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
