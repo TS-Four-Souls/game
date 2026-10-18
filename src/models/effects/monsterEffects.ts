@@ -440,7 +440,7 @@ export function searchForAnyNumberBloatEffect(game: Game, onlyOne: boolean): Asy
     return async (data: EffectData) => {
         const player = game.currentPlayer as Player;
         const bloats = game.decks["monster"]!.cards.filter(c => c.name === "The Bloat");
-        const selectedBloat = await data.selectAndRecord(game, player, 0, onlyOne ? 1 : bloats.length, bloats, toSerializedTranslation("selector.monster"), data.serializedCardAndBox, true, true);
+        const selectedBloat = await data.selectAndRecord(game, player, onlyOne ? 1 : 0, onlyOne ? 1 : bloats.length, bloats, toSerializedTranslation("selector.monster"), data.serializedCardAndBox, true, true);
         for(const bloat of selectedBloat.selected.toReversed()) {
             game.decks.monster.getCardFromSlug(bloat.slug, bloat.globalId);
             game.encounters._deck.addTopPosition(bloat);

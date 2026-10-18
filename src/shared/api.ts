@@ -269,7 +269,7 @@ const statsSchema = z.object({
   }),
 });
 
-const counterTypeSchema = z.union([z.literal("normal"), z.literal("golden"), z.literal("spider"), z.literal("gut")]);
+const counterTypeSchema = z.union([z.literal("normal"), z.literal("golden"), z.literal("spider"), z.literal("gut"), z.literal("bounty")]);
 export type CounterType = z.infer<typeof counterTypeSchema>;
 
 const serializedCounterSchema = z.object({

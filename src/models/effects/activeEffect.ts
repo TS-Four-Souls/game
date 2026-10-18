@@ -1573,6 +1573,52 @@ export function putCountersOnItemEffect(amount: number, type: CounterType, game:
         return true;
     };
 }
+export function flipDiceRollEffect(game: Game): SyncEffectFunction {   
+    return (data: EffectData) => {
+        const diceRoll = data.next as DiceRoll;
+        if(!(diceRoll instanceof DiceRoll)) return false;
+        diceRoll.value = 7 - diceRoll.value;
+        return true;
+    };
+}
+
+export function copyNonTrinketNonAmbushLootOnStackEffect(game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
+        const ef = data.next as LootCardEffect;
+        const card = ef.card;
+        if(!(card instanceof LootCard)) return false;
+        if( card.trinket) return false;
+        const newTargets = [...ef.targets];
+        // await TargetBuilder.buildTargetsOnResolve(game, eventIssuer, card, "tap");
+        
+        // Create the effect that will execute when the stack resolves
+        // const effect = async (effectData: EffectData): Promise<boolean> => {
+            // if (!(effectData.issuer instanceof Player)) return false;
+            try{
+                const copy = game.cardHandler.copyCard(card, ef.issuer) as LootCard; 
+                copy.parentCard = data.it.slug;
+                copy.afterEffect = "nothing";
+                const lootCardEffect = new LootCardEffect(ef.issuer, copy, newTargets);
+                game.addToStack(lootCardEffect);
+                return true;
+            } catch (error) {
+                return false;
+            }
+        // };
+        
+        // // Add to stack instead of executing immediately
+        // addPassiveEffectToStack(game, effect, data, "Copy loot card effect");
+        return true;
+    };
+}
+export function putCountersOnMonsterEffect(amount: number, type: CounterType, game: Game): SyncEffectFunction {   
+    return (data: EffectData) => {
+        const monster = data.next as Monster;
+        if(!(monster instanceof Monster)) return false;
+        game.cardHandler.addToCounter(data.issuer, monster.card, type, amount);
+        return true;
+    };
+}
 export function putCountersOnPlayerEffect(amount: number, type: CounterType, playerType: "current" | "issuer", game: Game): SyncEffectFunction {   
     return (data: EffectData) => {
         const targetPlayer = playerType === "current" ? game.currentPlayer : data.issuer;
@@ -1633,16 +1679,16 @@ export function gainCoinsBasedOnCountersEffect(game: Game): SyncEffectFunction {
         return true;
     };
 }
-export function giveThisToAnotherPlayerEffect(game: Game): AsyncEffectFunction {
+export function giveThisToAnotherPlayerEffect(game: Game, selectionOnResolve: boolean): AsyncEffectFunction {
     return async (effectData: EffectData) => {
         if (!(effectData.issuer instanceof Player)) return false;
         if(game.getOwner(effectData.it, "inplay") !== effectData.issuer)
             return false;
         const otherPlayers = game.players.filter(p => p !== effectData.issuer);
         if (otherPlayers.length === 0) return true;
-        const selection = await effectData.selectAndRecord(game, effectData.issuer, 1, 1, otherPlayers, qq("pending.playerToGiveItemTo"), effectData.serializedCardAndBox, true, true);
-        if (selection.selected.length > 0) {
-            const chosenPlayer = selection.selected[0]!;
+        const chosenPlayer = selectionOnResolve ? (await effectData.selectAndRecord(game, effectData.issuer, 1, 1, otherPlayers, qq("pending.playerToGiveItemTo"), effectData.serializedCardAndBox, true, true)).selected[0]!
+        : effectData.next;
+        if (chosenPlayer !== undefined ) {
             game.cardHandler.give(effectData.issuer, chosenPlayer, effectData.it);
             effectData.issuerProvider = (): Player => chosenPlayer;
         }
@@ -2698,6 +2744,15 @@ export function cancelAtIndexEffect(game: Game): SyncEffectFunction {
     };
 }
 
+export function playerWithCharaNamedLootX(game: Game, name: string, nbLoots: number): SyncEffectFunction {
+    return (data: EffectData) => {
+        for(const player of game.players)
+            if(player.character.name === name)
+                game.loot(player, nbLoots, "other");
+        return true;
+    };
+}
+
 export function voteOnFirstDeath(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         passive.onAnyEventEffect("on:death:after-penalty", [voteToKillPlayers(game, 1)], game, "", (ef: EffectData, eventData: any) => {
@@ -3363,10 +3418,11 @@ export function eachPlayerGainsCoinsEffect(game: Game, amount: number): SyncEffe
     };
 }
 
-export function eachPlayerLootsEffect(game: Game, amount: number): SyncEffectFunction {
+export function eachPlayerLootsEffect(game: Game, amount: number, includeIssuer: boolean = true): SyncEffectFunction {
     return (data: EffectData) => {
         for (const player of game.players) {
-            game.loot(player, amount);
+            if(includeIssuer || player !== data.issuer)
+                game.loot(player, amount);
         }
         return true;
     };
@@ -3779,15 +3835,24 @@ export function putThisOnBottomOfLootDeckEffect(game: Game): SyncEffectFunction 
     };
 }
 
-export function takeExtraTurnEffect(game: Game, onlyIfItsYourTurn: boolean = true): SyncEffectFunction {
+export function takeExtraTurnEffect(game: Game, onlyIfItsYourTurn: boolean = true, targetType: "issuer" | "current"= "issuer"): SyncEffectFunction {
     return (data: EffectData) => {
-        if (data.issuer instanceof Player === false) return false;
-        if (game.currentPlayer === data.issuer || !onlyIfItsYourTurn) {
-            game.addExtraTurn(data.issuer);
+        const target = targetType === "current" ? game.currentPlayer : data.issuer;
+        if (target instanceof Player === false) return false;
+        if (game.currentPlayer === target || !onlyIfItsYourTurn) {
+            game.addExtraTurn(target);
             return true;
         }
         return false;
     };
+}
+
+export function gaineLootPlayPerSoul(game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
+        if(data.issuer instanceof Player === false) return false;
+        game.entityHandler.addLootPlay(data.issuer, data.issuer.totalSouls, data.it);
+        return true;
+    }
 }
 
 export function giveThisToPlayerOnLeftEffect(game: Game): SyncEffectFunction {

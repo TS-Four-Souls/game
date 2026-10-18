@@ -2621,7 +2621,8 @@ export function ConditionalStatModifierEffect(
     condition: (entity: Entity, card: Card) => boolean,
     triggerEvents: TriggerEvent[],
     game: Game,
-    useStack: boolean = true
+    useStack: boolean = true,
+    onYourEventOnly: boolean = true
 ): SyncEffectFunction {
     return (data: EffectData) => {
         if (!(data.issuer instanceof Entity)) return false;
@@ -2682,7 +2683,7 @@ export function ConditionalStatModifierEffect(
         // Listen for the trigger events
         for (const triggerEvent of triggerEvents) {
             const offEvent = game.emitter.on(triggerEvent, ({ eventIssuer }) => {
-                if (data.issuer !== eventIssuer) return;
+                if (onYourEventOnly && data.issuer !== eventIssuer) return;
                 // if(!(data.issuer instanceof Player)) 
                 //     throw new GameError("ConditionalStatModifierEffect can only be applied to Players.", toSerializedTranslation("error.behaviorError", {error: "ConditionalStatModifierEffect can only be applied to Players."}));
                 applyModifierIfConditionMet(data.issuer);
