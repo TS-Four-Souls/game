@@ -58,6 +58,19 @@ export function activePlayerMayAttackMonsterDeckEffect(game: Game, numberOfTimes
     };
 }
 
+export function attackRollsAgainstThisCountAsHitAndCombatDamageDoubledEffect(game: Game, rolls: number[]): SyncEffectFunction {
+    return passive.onAnyEventEffect("on:attack:roll:modifier",[] , game, "attackRollsAgainstThisCountAsHitAndCombatDamageDoubledEffect",
+        (data: EffectData, event: OnRollData) => {
+            if(event.dice.attackRoll === false) return false;
+            if(event.dice.attackData === null) return false;
+            if(event.dice.attackData.target !== data.issuer) return false;
+            event.dice.attackData.missingValues = event.dice.attackData.missingValues.filter(v => !rolls.includes(v)) || [];
+            if(rolls.includes(event.dice.value) )
+                event.dice.attackData.damageDealtMultiplier += 1;
+            return true;
+        });
+}
+
 export function activePlayerMustMakeAdditionalAttackEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         const player = game.currentPlayer as Player;
@@ -1246,8 +1259,7 @@ export function bossRushEffect(game: Game, bossCount: number): AsyncEffectFuncti
         return true;
     };
 }
-
-export function playerWithMostSoulsWinsEffect(game: Game): SyncEffectFunction {
+export function whenThisSoulIsGainedEffect(game: Game, effects: EffectFunction[]): SyncEffectFunction {
     return (data: EffectData) => {
         let offGainSoul: (() => void) | null = null;
 
@@ -1255,14 +1267,9 @@ export function playerWithMostSoulsWinsEffect(game: Game): SyncEffectFunction {
             const { eventIssuer, soul } = eventData;
             if(soul !== data.it) return;
             const effect = async (effectData: EffectData): Promise<boolean> => {
-                let maxSouls = -1;
-                game.players.forEach(p => {
-                    if(p.totalSouls > maxSouls)
-                        maxSouls = p.totalSouls;
-                });
-                const playersWithMostSouls = game.players.filter(p => p.totalSouls === maxSouls);
-                const selectedPlayer = (await data.selectAndRecord(game, eventIssuer as Player, 1, 1, playersWithMostSouls, toSerializedTranslation("pending.playerWithMostSoulsToWinGame"), data.serializedCardAndBox, true, true)).selected[0];
-                game.win(selectedPlayer as Player);
+                for(const eff of effects) {
+                    await eff(effectData);
+                }
                 offGainSoul?.();
                 offGainSoul = null;
                 return true;
@@ -1275,6 +1282,23 @@ export function playerWithMostSoulsWinsEffect(game: Game): SyncEffectFunction {
             offGainSoul?.();
             offGainSoul = null;
         });
+
+        return true;
+    };
+}
+export function playerWithMostSoulsWinsEffect(game: Game, issuerType: "issuer" | "current"): AsyncEffectFunction {
+    return async (data: EffectData) => {
+        let maxSouls = -1;
+        game.players.forEach(p => {
+            if(p.totalSouls > maxSouls)
+                maxSouls = p.totalSouls;
+        });
+        const playersWithMostSouls = game.players.filter(p => p.totalSouls === maxSouls);
+        const issuer = issuerType === "issuer" ? data.issuer as Player : game.currentPlayer as Player;
+        if(issuer !== data.issuer && issuer !== game.currentPlayer)
+            return false;
+        const selectedPlayer = (await data.selectAndRecord(game, issuer, 1, 1, playersWithMostSouls, toSerializedTranslation("pending.playerWithMostSoulsToWinGame"), data.serializedCardAndBox, true, true)).selected[0];
+        game.win(selectedPlayer as Player);
 
         return true;
     };
@@ -1350,6 +1374,14 @@ export function onEveryOtherDamageEffect(game: Game, effect: EffectFunction): Sy
             offDamage?.();
             offDamage = null;
         });
+        return true;
+    };
+}
+
+export function killPlayerToTheEffect(game: Game, direction: "left" | "right"): SyncEffectFunction {
+    return (data: EffectData) => {
+        const player = game.getPlayerToThe(direction);
+        game.entityHandler.kill(data.issuer as Entity, player as Entity, data.cardAndBox);
         return true;
     };
 }

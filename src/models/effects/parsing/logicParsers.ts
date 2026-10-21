@@ -129,8 +129,15 @@ export function parseThisBecomesAnItemEffect(s: string, game: Game): ParsedEffec
     const restParsed = effectParser(restOfEffect, game, true);
     return {
         effectFunction: async (data: EffectData): Promise<boolean> => {
+            // s is lowercased by the parser: retrieve the original text so that markers such as "[Tap Effect]" are kept.
+            const itemEffect = data.it.effectOutcomes.find(o => o.toLowerCase().includes("becomes an item with"))?.split("\"")[1] ?? restOfEffect;
+            if (data.it instanceof MonsterCard) {
+                const owner = data.issuer instanceof Player ? data.issuer : game.currentPlayer;
+                game.cardHandler.turnMonsterIntoItem(owner, data.it, [itemEffect]);
+                return true;
+            }
             if (data.it instanceof LootCard === false) return false;
-            data.it.effectOutcomes = [restOfEffect];
+            data.it.effectOutcomes = [itemEffect];
             game.decks.loot.getFromDiscard(data.it);
             data.it.swapEffectInterfaces();
             data.it.trinket = true;
@@ -269,6 +276,28 @@ export function parseAtTheStartOfYourTurnEffect(s: string, game: Game): SyncPars
         effectFunction: passive.onYourEventEffect("on:turn:start", [restParsed.effectFunction], game, s),
         targetSelectors: restParsed.targetSelectors
     };
+}
+
+export function parseEachTimeRollSameResXInRowEffect(s: string, x: number, game: Game): SyncParsedEffect {
+    const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, true);
+    let val: number = 0;
+    let inRow: number = 0;
+    let currentTurn: number = game.turnHandler.numberOfTurnsSinceBeginning;
+    return noTargetSyncEffect( passive.onYourEventEffect("on:dice:resolved", [restParsed.effectFunction], game, s, true, (
+        effectData: EffectData, event: OnRollData) => {
+            if(currentTurn !== game.turnHandler.numberOfTurnsSinceBeginning) inRow = 0;
+            if(event.eventIssuer !== effectData.issuer) return false;
+            if(event.dice instanceof DiceRoll === false) return false;
+            const roll = event.dice as DiceRoll;
+            if(roll.value === val) {
+                inRow++;
+            } else {
+                val = roll.value;
+                inRow = 1;
+            }
+            return inRow >= x;
+        }, false
+    ));
 }
 
 export function parseOnDamageTakenEffect(s: string, game: Game): SyncParsedEffect {

@@ -35,7 +35,7 @@ import { type CounterType } from "@/shared/api"
 import { toSerializedTranslation } from "@/utils/translation";
 import { bSoulEffectParser } from "../effects/bonusSoulEffects";
 import { TargetBuilder } from "../targetBuilder";
-import { CardType, MonsterCardSubtype, type MonsterCardType } from "@/types/cardTypes";
+import { CardType, MonsterCardSubtype, type MonsterCardType, type TreasureCardType } from "@/types/cardTypes";
 
 const CARDS = await loadCards(process.cwd() + "/data/cards");
 export const {nextGlobalId, cardSets: CARD_SETS} = LoadsCardSets(CARDS);
@@ -179,8 +179,10 @@ export class CardHandler {
     const normalizedOutcome = outcome.trim();
     const lowerOutcome = normalizedOutcome.toLowerCase();
     let type: EffectType = "passive";
-    if (
-      normalizedOutcome.startsWith("[Tap Effect]") ||
+    // Explicit markers must be checked first: event monsters treat every other effect as active.
+    if (normalizedOutcome.startsWith("[Paid Effect]") || lowerOutcome.startsWith("[paid effect]")) type = "paid";
+    else if (
+      lowerOutcome.startsWith("[tap effect]") ||
       (card.type === "loot" && (card as LootCard).trinket === false) ||
       (card instanceof MonsterCard &&
         card.encounterType === MonsterType.EVENT &&
@@ -188,7 +190,6 @@ export class CardHandler {
         "The active player may attack an additional time this.game turn.")
     )
       type = "active";
-    else if (normalizedOutcome.startsWith("[Paid Effect]") || lowerOutcome.startsWith("[paid effect]")) type = "paid";
     return type;
   }
 
@@ -264,7 +265,7 @@ export class CardHandler {
           c.slug === slug && (globalId === undefined || c.globalId === globalId)
         );
         if (handCard) {
-          player.hand.removeCard(handCard);
+          this.removeCardFromHand(player, handCard);
           return handCard;
         }
       }
@@ -362,6 +363,18 @@ export class CardHandler {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Turns a monster card into an item with the given effects and adds it in play.
+   * Similarly to ambush, a copy of the monster card is parsed as a treasure card; the monster card itself is left untouched.
+   */
+  turnMonsterIntoItem(player: Player, monster: MonsterCard, effectOutcomes: string[]): ItemCard {
+    const itemJson = { ...monster.json, type: CardType.Treasure, effectOutcome: effectOutcomes } as TreasureCardType;
+    const itemTMP = createCardFromJson(this.decks.treasure._set.length, this.allocateCardGlobalId(), itemJson);
+    const item = this.copyCard(itemTMP, player) as ItemCard;
+    this.addInPlay(player, item);
+    return item;
   }
 
   /**
@@ -824,8 +837,8 @@ export class CardHandler {
    * Remove a card from a player's hand and emit the appropriate event.
    * this.game is the centralized method for all hand removals.
    */
-  removeCardFromHand(player: Player, card: LootCard): void {
-    player.hand.removeCard(card);
+  removeCardFromHand(player: Player, card: LootCard, playIt: boolean=false): void {
+    player.hand.removeCard(card, playIt);
     this.game.dispatch();
     this.game.emit("on:loot:removed:after", { eventIssuer: player, card });
     this.game.dispatch();
@@ -1083,10 +1096,13 @@ export class CardHandler {
   attachEffectsToCard(card: Card, force: boolean = false): void {
     if (!force && this._effectsAttached.has(card))
       return;
-
     const flipped = card.flipped;
+    // Events that become an item: other abilities belong to the item, not to the event.
+    const becomesItem = card instanceof MonsterCard && card.isEvent && card.effectOutcomes.some(o => o.includes("becomes an item"));
     for (let idx = 0; idx < card.effectOutcomes.length; idx++) {
       let outcome = card.effectOutcomes[idx]!;
+      if (becomesItem && !outcome.includes("becomes an item"))
+        continue;
       if(card.subtype === "curse" && !outcome.startsWith("[Curse]") && idx === 0)
         outcome = "[Curse] " + outcome;
       const effectType = this.getEffectTypeFromOutcome(outcome, card);

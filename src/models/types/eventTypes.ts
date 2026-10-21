@@ -179,6 +179,14 @@ export interface OnCardDiscardBeforeData {
   card: Card | null;
 }
 
+/** Data emitted when a player gains rewards for a death */
+export interface OnDeathRewardsData {
+  entity: Entity,
+  eventIssuer: Player,
+  half: boolean,
+  reason: "kill" | "other"
+}
+
 /** Data emitted when a player gains items */
 export interface OnItemGainedData {
   eventIssuer: Player;
@@ -422,6 +430,7 @@ export interface TriggerEventDataMap {
   "on:recharge": OnRechargeData;
   "on:item:gained": OnItemGainedData;
   "on:card:discarded:before": OnCardDiscardBeforeData;
+  "on:death:rewards": OnDeathRewardsData;
 }
 
 export type TriggerEvent = keyof TriggerEventDataMap;

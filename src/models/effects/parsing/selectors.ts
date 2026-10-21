@@ -91,6 +91,10 @@ export const selectTopAnyDiscard = (game: Game, min: number = 1, max: number = m
     [createSelector(toSerializedTranslation("selector.topAnyDiscard"), topAnyDiscardSelector(() => true, game), min, max)];
 export const selectRoll = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.diceRoll"), rollSelector(() => true, game), min, max)];
+export const selectNbCountersOnCard = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
+    [createSelector(toSerializedTranslation("selector.anyNumberOfCounters"), (issuer: Player, card: Card) => {
+        return [...Array(card.counters.getCounter("normal").value).keys()].map(i => i + 1);
+    }, min, max)];
 export const selectRollAndNumber = (game: Game, numbers: number[], min: number = 1, max: number = min, rollType: "attack" | "non-attack" | "any" = "any"): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.diceRoll"), rollSelector((roll: DiceRoll) => {
         if (roll.attackRoll && rollType === "non-attack" ||

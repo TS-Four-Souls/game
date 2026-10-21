@@ -859,6 +859,10 @@ export class Player extends Entity {
     this._remainingPurchaseThisTurn = value;
   }
 
+  get cardsPlayedThisTurn(): LootCard[]{
+    return this.hand._cardPlayedThisTurn;
+  }
+
   /**
    * Resets all turn-based flags and counters.
    * Called at the start of each player's turn.
@@ -875,6 +879,7 @@ export class Player extends Entity {
     this._attackedIdsThisTurn = [];
     this._mustAttackEntity = [];
     this._mayAttackForFree = [];
+    this.hand.newTurn();
     this.resetEntityFlags();
   }
   /**

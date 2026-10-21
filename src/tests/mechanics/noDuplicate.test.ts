@@ -1,4 +1,7 @@
 import type { ItemCard, LootCard, RoomCard } from "@/models/cards";
+import { BsoulCard, createCardFromJson } from "@/models/cards";
+import { CARD_SETS } from "@/models/handlers/cardHandler";
+import { bSoulEffectParser } from "@/models/effects/bonusSoulEffects";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../../models/entities/player";
 import { Game } from "../../models/game";
@@ -50,5 +53,44 @@ describe("Requiem Rooms", () => {
                 console.log(card.slug, idx, game.decks.loot.cards.map(c => c.slug).indexOf(card.slug));
             expect(game.decks.loot.cards.findIndex(c => c.slug === card.slug) !== idx).toBe(false);
         }
+    });
+
+    it("All cards can have their effects attached.", async () => {
+        const failures: { slug: string, error: string }[] = [];
+        let globalId = 1_000_000;
+        const originalLog = console.log;
+        let lastParsingFailure = "";
+        // attachEffectsToCard logs every card it parses: silence it, but keep the passive parsing failure message.
+        console.log = (...args: unknown[]) => {
+            const msg = args.map(String).join(" ");
+            if (msg.startsWith("Effect parsing failed"))
+                lastParsingFailure = msg;
+        };
+        try {
+            for (const set of Object.values(CARD_SETS)) {
+                for (const template of set.cards) {
+                    // Fresh copy so the shared card sets are not mutated.
+                    const card = createCardFromJson(0, globalId++, template.json);
+                    lastParsingFailure = "";
+                    try {
+                        if (card instanceof BsoulCard)
+                            bSoulEffectParser(card, game)();
+                        else {
+                            game.cardHandler.attachEffectsToCard(card, true);
+                            // A passive effect that fails to parse returns early without marking the card.
+                            if (!game.cardHandler["_effectsAttached"].has(card))
+                                failures.push({ slug: card.slug, error: lastParsingFailure || "passive effect could not be parsed" });
+                        }
+                    } catch (err) {
+                        failures.push({ slug: card.slug, error: err instanceof Error ? err.message : String(err) });
+                    }
+                }
+            }
+        } finally {
+            console.log = originalLog;
+        }
+        if (failures.length > 0)
+            console.log(`${failures.length} card(s) failed to attach their effects:\n` + failures.map(f => `${f.slug}: ${f.error}`).join("\n"));
+        expect(failures.map(f => f.slug)).toEqual([]);
     });
 });

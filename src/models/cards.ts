@@ -489,7 +489,6 @@ export class ItemCard extends Card {
   set parentCard(parent: string | undefined | null){
     this._parentCard = parent;
   }
-
   get inPlayType(): InplayType {
     return this._inplayType;
   }
@@ -558,6 +557,7 @@ class LootCard extends ItemCard {
     protected _reward: CardRewards | undefined;
     protected _trinket: boolean = false;
     protected _afterEffect: AfterEffectType = "discard";
+    protected _freeToPlay: boolean = false;
 
     constructor(id: number, globalId: number, json: LootCardType) {
         super(id, globalId, json);
@@ -570,6 +570,14 @@ class LootCard extends ItemCard {
             this._inplayType = InplayType.PASSIVE;
             this._afterEffect = "addInPlay";
         }
+    }
+
+    get freeToPlay(): boolean {
+        return this._freeToPlay;
+    }
+
+    set freeToPlay(value: boolean) {
+        this._freeToPlay = value;
     }
 
     get afterEffect(): AfterEffectType {
@@ -1193,8 +1201,13 @@ class Deck<T extends Card> {
     }
 }
 
+export type FreeLootCard = { card: LootCard; source: Card };
+
 class Hand {
+    _cardPlayedThisTurn: LootCard[] = [];
     _hand: LootCard[];
+    // Cards outside the hand that can be played without using a loot play (e.g. Rusty Spoons).
+    _freeCards: FreeLootCard[] = [];
     constructor() {
         this._hand = []
     }
@@ -1203,6 +1216,30 @@ class Hand {
     }
     get cards(): LootCard[] {
         return this._hand;
+    }
+    get freeCards(): FreeLootCard[] {
+        return this._freeCards;
+    }
+    /** Hand cards followed by free cards; indices >= length are free cards. */
+    get playableCards(): LootCard[] {
+        return [...this._hand, ...this._freeCards.map(f => f.card)];
+    }
+    isFree(card: LootCard): boolean {
+        return this._freeCards.some(f => f.card === card);
+    }
+    /** Grants a free play of a card; returns a cleanup that revokes it. */
+    addFreeCard(card: LootCard, source: Card): () => void {
+        this._freeCards.push({ card, source });
+        return () => { this.removeFreeCard(card); };
+    }
+    removeFreeCard(card: LootCard, playIt: boolean = false): boolean {
+        const index = this._freeCards.findIndex(f => f.card === card);
+        if(index < 0)
+            return false;
+        this._freeCards.splice(index, 1);
+        if(playIt)
+            this._cardPlayedThisTurn.push(card);
+        return true;
     }
     addToHand(card: LootCard): void {
         if (card.type !== "loot") {
@@ -1223,17 +1260,24 @@ class Hand {
         this._hand.splice(pos, 1);
         return card;
     }
-    removeCard(target: LootCard): boolean{
+    removeCard(target: LootCard, playIt: boolean): boolean{
         const index = this._hand.indexOf(target);
         if(index >= 0)
         {
-            this.removeFromHandByPos(index);
+            const card = this.removeFromHandByPos(index);
+            if(playIt)
+                this._cardPlayedThisTurn.push(card);
             return true;
         }
         return false;
     }
-    playCard(index: number) : LootCard {
-        return this.removeFromHandByPos(index);
+
+    newTurn(){
+        this._cardPlayedThisTurn = [];
+    }
+    
+    playedThisTurn(): Card[]{
+        return this._cardPlayedThisTurn;
     }
 }
 

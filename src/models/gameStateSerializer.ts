@@ -79,7 +79,11 @@ export class GameStateSerializer {
       remainingLootPlay: player.remainingLootPlay,
       isEngagedInPurchase: player.isEngagedInPurchase,
       
-      hand: player.hand.cards.map((c) => {return {...(c.jsonAPI), canBePlayed: TargetBuilder.validTargetExists(this.game, player, c, "tap")}}),
+      hand: player.hand.cards.map((c) => {return {...(c.jsonAPI), canBePlayed: TargetBuilder.validTargetExists(this.game, player, c, "tap")}})
+        .concat(player.hand.freeCards.map(({ card: c, source }) => {
+          const canPlay = this.game.actions.canPlayCard(player, false, c);
+          return {...(c.jsonAPI), free: source.jsonAPI, canBePlayed: canPlay === true ? TargetBuilder.validTargetExists(this.game, player, c, "tap") : canPlay};
+        })),
       inPlay: player.inPlay.map((c) => this.serializedMyInPlayItems(c, player)).concat(player.curses.map((c) => this.serializeCurse(player, c, player))),
       numberOfCardsOverMaxHandSize: Math.max(0, player.hand.cards.length - player.maxHandSize),
       pendingSelection: this.serializedPendingSelection(player.id),

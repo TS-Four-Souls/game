@@ -101,9 +101,9 @@ export class PlayLootAction extends Action {
 
     isFeasible(game: Game): boolean {
         const me = this.me;
-        if (game.actions.canPlayCard(me, false) !== true) return false;
-        const loot = me.hand.cards[this._index];
+        const loot = me.hand.playableCards[this._index];
         if (!loot) return false;
+        if (game.actions.canPlayCard(me, false, loot) !== true) return false;
         return TargetBuilder.validTargetExists(game, me, loot, "tap") === true;
     }
 }
@@ -211,7 +211,7 @@ export class Bot {
             new EndTurnAction(this._me),
             new RollAction(this._me),
             new ResolveStackAction(this._me),
-            ...this._me.hand.cards.map((card, index) => new PlayLootAction(this._me, index)),
+            ...this._me.hand.playableCards.map((card, index) => new PlayLootAction(this._me, index)),
             ...this._me.inPlay.filter(card => card.activeEffectList.length > 0).map(card => new UseItemAction(this._me, card as ItemCard)),
             ...(this._me.isEngagedInCombat ? [new DeclareAttackOnEntityAction(this._me, "topDeck"), ...this.game.attackableEntities.map(e => new DeclareAttackOnEntityAction(this._me, e))] : []),
             new PurchaseAction(this._me),

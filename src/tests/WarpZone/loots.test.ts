@@ -73,7 +73,10 @@ describe("Warp Zone Loots ", () => {
         game.gainTreasure(player2, 1);
         for(const player of game.players)
             for( const item of player.inPlay)
-                expect(item.slug).toBe("b2-the_d6")
+            {
+                expect(item.slug).toBe("b2-the_d6");
+                // expect(item.eternal).toBe(true);
+            }
         game.rooms?.discardTop(0);
         for(const player of game.players)
             expect(player.name.interpolates!["content"]).toBe(player.id);

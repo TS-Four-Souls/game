@@ -26,12 +26,311 @@ describe("Warp Zone Treasures", () => {
         player2 = setup.player2!;
     });
 
+    it("rwz-grubfather", async () => {
+        const card1 = game.obtainCard("rwz-grubfather") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters[0]!
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        const evasions = game.monsters.map(m => m.evasion);
+        game.gainTreasure(player1, 1);
+        expect(game.monsters.map(m => m.evasion - 1)).toEqual(evasions);
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.monsters.map(m => m.evasion)).toEqual(evasions);
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.monsters.map(m => m.evasion - 1)).toEqual(evasions);
+
+        await game.activateItem(player1, player1.inPlay[1]!, [player1.inPlay[2], player2], 0 );
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.inPlay.length).toBe(1);
+        expect(player2.inPlay.length).toBe(2);
+    });
+
+    it("rwz-golden_idol", async () => {
+        const card1 = game.obtainCard("rwz-golden_idol") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters[0]!
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.inPlay.length).toBe(2);
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.coins).toBe(10);
+        game.actions.declareAttack(player2);
+        expect(game.actions.canDeclareAttackOnEntity(player2, player1)).toBe(true);
+        game.entityHandler.kill(player2, player1, {card: card1, visualEffectBox: null as any});
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.inPlay.length).toBe(2);
+        expect(player2.inPlay.length).toBe(1);
+    });
+
+    it("rwz-peeper 2", async () => {
+        const card1 = game.obtainCard("rwz-peeper") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters[0]!
+        game.random = () => 1/6-0.01;
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, mob);
+        game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.entitiesInCombat.length).toBe(0);
+    });
+    it("rwz-peeper", async () => {
+        const card1 = game.obtainCard("rwz-peeper") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters[0]!
+        game.entityHandler.kill(player1, mob, {card: card1, visualEffectBox: null as any});
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.inPlay.length).toBe(2);
+        expect(player1.currentHealthPoints).toBe(3);
+    });
+    it("rwz-nightmare_tick 2", async () => {
+        const card1 = game.obtainCard("rwz-nightmare_tick") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters[0]!
+        game.random = () => 0.99;
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.inPlay.length).toBe(2);
+        game.random = () => 0.01;
+        const dice = game.rollDice(player1, card1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(dice.value).toBe(2);
+    });
+    it("rwz-nightmare_tick", async () => {
+        const card1 = game.obtainCard("rwz-nightmare_tick") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters[0]!
+        game.random = () => 0.01;
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.isDead).toBe(true);
+    });
+    it("rwz-brea_in_distress 2", async () => {
+        const card1 = game.obtainCard("rwz-brea_in_distress") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters[0]!
+        game.random = () => 0.99;
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.inPlay.length).toBe(2);
+        expect(player1.currentHealthPoints).toBe(3);
+    });
+
+    it("rwz-brea_in_distress 1", async () => {
+        const card1 = game.obtainCard("rwz-brea_in_distress") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters[0]!
+        game.random = () => 0.01;
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.resolveEntireStack();
+        expect(game.currentPlayer).toBe(player2);
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.resolveEntireStack();
+        expect(game.currentPlayer).toBe(player2);
+    });
+
+    it("rwz-balrog", async () => {
+        const card1 = game.obtainCard("rwz-balrog") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters[0]!
+        game.entityHandler.kill(player1, mob, {card: card1, visualEffectBox: null as any});
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.inPlay.length).toBe(2);
+        await game.activateItem(player1, player1.inPlay[1]!, [player2], "tap" );
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player2.isDead).toBe(true);
+    });
+
+    it("rwz-the_gorm 2", async () => {
+        const card1 = game.obtainCard("rwz-the_gorm") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters[0]!
+        game.random = () => 1/6-0.01;
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, mob);
+        game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(mob.currentHealthPoints).toBe(mob.healthPoints-2);
+        game.random = () => 6/6-0.01;
+        game.actions.attackRoll(player1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(mob.currentHealthPoints).toBe(mob.healthPoints-3);
+    });
  
-    // it("rwz-lil_hunter", async () => {
-    //     const card1 = game.obtainCard("rwz-lil_hunter") as MonsterCard;
-    //     game.encounters.forceSetMonsterAtSlot(0, card1);
-    //     const mob = game.monsters[0]!
-    // });
+    it("rwz-the_gorm", async () => {
+        const card1 = game.obtainCard("rwz-the_gorm") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters[0]!
+        game.loot(player1, 1);
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.hand.length).toBe(0);
+        expect(player2.hand.length).toBe(1);
+    });
+ 
+    it("rwz-the_butcher", async () => {
+        const card1 = game.obtainCard("rwz-the_butcher") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters[0]!
+        game.entityHandler.kill(mob, player2, {card: card1, visualEffectBox: null as any});
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(mob.attackPoints).toBe(3);
+        game.entityHandler.kill(mob, player1, {card: card1, visualEffectBox: null as any});
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(mob.attackPoints).toBe(4);
+        game.random = () => 1/6-0.01;
+        game.actions.declareAttack(player2);
+        game.entityHandler.addHealth(player2, 9, "other");
+        await game.actions.declareAttackOnEntity(player2, mob);
+        game.actions.attackRoll(player2);
+        await game.actions.resolveStack();
+        game.random = () => 5/6-0.01;
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player2.currentHealthPoints).toBe(2);
+    });
+ 
+    it("rwz-time_eater 2", async () => {
+        const card1 = game.obtainCard("rwz-time_eater") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters[0]!
+        game.cardHandler.addToCounter(player1, mob.card, "normal", 11);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.won).toBe(true);
+    });
+    it("rwz-time_eater", async () => {
+        const card1 = game.obtainCard("rwz-time_eater") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters[0]!
+        game.entityHandler.kill(player1, mob, {card: card1, visualEffectBox: null as any});
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.currentPlayer).toBe(player1);
+    });
+ 
+    it("rwz-the_purple_shirted_eye_stabber", async () => {
+        const card1 = game.obtainCard("rwz-the_purple_shirted_eye_stabber") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters[0]!
+        const loot = game.obtainCard("b2-a_dime") as LootCard;
+        game.cardHandler.addCardToHand(player1, loot);
+        await game.actions.playCard(player1, 0);
+        await game.resolveEntireStack();
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.currentHealthPoints).toBe(1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.currentHealthPoints).toBe(2);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.currentHealthPoints).toBe(2);
+        await game.actions.resolveStack();
+    });
+ 
+    it("rwz-shopkeeper 2", async () => {
+        const card1 = game.obtainCard("rwz-shopkeeper") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters[0]!
+        game.random = () => 0.9;
+        game.actions.declarePurchase(player1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.actions.canPurchase(player1, 0, false)).toBe(true);
+    });
+ 
+    it("rwz-shopkeeper", async () => {
+        const card1 = game.obtainCard("rwz-shopkeeper") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters[0]!
+        game.random = () => 0.4;
+        game.actions.declarePurchase(player1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.hasAttackRequirement).toBe(true);
+    });
+ 
+    it("rwz-zombie_jesus", async () => {
+        const card1 = game.obtainCard("rwz-zombie_jesus") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters[0]!
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.isDead).toBe(true);
+        game.entityHandler.kill(mob, mob, {card: card1, visualEffectBox: null as any});
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player2.isDead).toBe(true);
+    });
  
     
  

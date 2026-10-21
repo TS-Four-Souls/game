@@ -67,6 +67,8 @@ export type Card = z.infer<typeof cardSchema>;
 
 const playableCardSchema = cardSchema.extend({
   canBePlayed: capabilitySchema,
+  // Source card granting a free play (no loot play used); absent for regular hand cards.
+  free: cardSchema.optional(),
 });
 export type PlayableCard = z.infer<typeof playableCardSchema>;
 

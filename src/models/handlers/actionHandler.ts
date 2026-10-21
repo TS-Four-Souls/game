@@ -359,15 +359,17 @@ export class ActionHandler {
   
     /**
      * Validates whether issuer can play a loot card.
+     * If card is a free card, no loot play is required.
      */
-    canPlayCard(player: Player, shouldThrow: boolean = false): Capability {
+    canPlayCard(player: Player, shouldThrow: boolean = false, card?: LootCard): Capability {
       try {
         this.game.assert.gameOngoing();
         this.game.assert.noPendingSelection();
         if (!player.canIUseLootThisTurn) {
           throw new GameError(`You cannot play loot cards during ${this.game.currentPlayer.id}'s turn.`, toSerializedTranslation("error.cannotPlayLootCardsDuringOtherPlayerTurn", { player: this.game.currentPlayer.id }));
         }
-        if (player.remainingLootPlay <= 0) {
+        const isFree = card !== undefined && player.hand.isFree(card);
+        if (!isFree && player.remainingLootPlay <= 0) {
           throw new GameError("You have no remaining loot play this turn.", toSerializedTranslation("error.noRemainingLootPlayThisTurn")  );
         }
       } catch (e) {
@@ -401,20 +403,24 @@ export class ActionHandler {
     }
     /**
      * Plays one loot card from hand and pushes its effect on stack.
+     * Indices >= hand size play a free card (see Hand.playableCards), which does not use a loot play.
      */
     playCard(player: Player, index: number | "topLootCard", targets: any[] = []): string {
-      this.canPlayCard(player, true);
       if(player.canPlayTopOfLootDeck === false && index === "topLootCard")
         throw new GameError("You cannot play the top card of the loot deck.", toSerializedTranslation("error.cannotPlayTopCardOfLootDeck"));
       if(index !== "topLootCard" ){
         this.game.assert.positiveNumber(index);
-        if (index < 0 || index > player.hand.cards.length) {
+        if (index < 0 || index >= player.hand.playableCards.length) {
           return "Invalid card position.";
         }
       }
-      const card = index === "topLootCard" ? this.game.decks.loot.cards[0]! : player.hand.cards[index]!;
-      if(index !== "topLootCard" )
-        this.game.cardHandler.removeCardFromHand(player, card);
+      const card = index === "topLootCard" ? this.game.decks.loot.cards[0]! : player.hand.playableCards[index]!;
+      const isFree = player.hand.isFree(card);
+      this.canPlayCard(player, true, card);
+      if(isFree)
+        player.hand.removeFreeCard(card, true);
+      else if(index !== "topLootCard" )
+        this.game.cardHandler.removeCardFromHand(player, card, true);
       const playedCard: LootCard = card;
   
       if (targets.length === 0 && card.trinket === false) {
@@ -431,7 +437,8 @@ export class ActionHandler {
           player: player.id,
         });
       const idx = this.game.addToStack(lootCardEffect);
-      player.remainingLootPlay -= 1;
+      if(!isFree)
+        player.remainingLootPlay -= 1;
       this.game.emit("on:loot:played", {
         eventIssuer: player,
         card: playedCard,

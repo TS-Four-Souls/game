@@ -36,7 +36,9 @@ import type {
     OnTurnStartData,
     OnDeathWouldDeathData,
     OnAttackDeclaredMonsterData,
-    OnSoulGainedOrRemovedData
+    OnSoulGainedOrRemovedData,
+    OnDeathRewardsData,
+    OnItemActivatedData
 } from "../types/eventTypes";
 import * as active from "./activeEffect";
 import * as monster from "./monsterEffects";
@@ -431,6 +433,26 @@ export function temporaryStatModifierEffect(
     };
 }
 
+export function rechargeCharacterOnFirstActivationEachRoundEffect(game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
+        let lastRoundIdx = -1;
+        let offUseChara: (() => void) | null = null;
+        offUseChara = game.emitter.on("on:card:activated", (eventData: OnItemActivatedData) => {
+            if(eventData.eventIssuer !== data.issuer) return;
+            if(data.issuer instanceof Player === false) return;
+            if(eventData.item !== data.issuer.character) return;
+            if(game.turnHandler.round === lastRoundIdx) return;
+            lastRoundIdx = game.turnHandler.round;
+            game.cardHandler.recharge(data.issuer.character);
+        });
+        data.it.cleaners.push(() => {
+            offUseChara?.();
+            offUseChara = null;
+        });
+        return true;
+    }
+}            
+
 export function randomDeathPenaltyItemEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offDeath: (() => void) | null = null;
@@ -686,31 +708,61 @@ export function lvlXaddListenerEffect(
     game: Game): SyncEffectFunction {
 
     return (data: EffectData) => {
-        if (data.it.counters.value("normal") >= lvl)
-        {
+        let active = false;
+        let pendingStackId: number | null = null;
+        // Cleaners registered by the level effects themselves, owned here so they can be run when the level drops.
+        let levelCleaners: (() => void)[] = [];
+
+        const activate = (): void => {
+            if (active) return;
+            const before = data.it.cleaners.length;
             for (const func of functions)
                 func(data);
-        }
-        else
-            {
+            levelCleaners = data.it.cleaners.splice(before);
+            active = true;
+        };
 
-            const offTurn = game.emitter.on("on:counter:modified", (eventData: OnCounterModifiedData) => {
-                const { eventIssuer } = eventData;
-                if (data.issuer !== eventIssuer) return;
-                if (data.it.counters.value("normal") < lvl) return;
-                const effect: EffectFunction = async (effectData: EffectData) => {
-                    for (const func of functions)
-                        func(data);
+        const deactivate = (): void => {
+            if (!active) return;
+            for (const cleaner of levelCleaners.toReversed())
+                cleaner();
+            levelCleaners = [];
+            active = false;
+        };
+
+        const removePending = (): void => {
+            if (pendingStackId === null) return;
+            const index = game.stack.elements.findIndex(element => element.stackId === pendingStackId);
+            if (index !== -1)
+                game.stack.removeAt(index);
+            pendingStackId = null;
+        };
+
+        if (data.it.counters.value("normal") >= lvl)
+            activate();
+
+        const offCounter = game.emitter.on("on:counter:modified", (eventData: OnCounterModifiedData) => {
+            if (data.issuer !== eventData.eventIssuer && data.it !== eventData.receiver) return;
+            const reached = data.it.counters.value("normal") >= lvl;
+            if (reached && !active && pendingStackId === null) {
+                const effect: EffectFunction = async () => {
+                    pendingStackId = null;
+                    if (data.it.counters.value("normal") >= lvl)
+                        activate();
                     return true;
                 };
-                addPassiveEffectToStack(game, effect, data, `Level ${lvl} effect`);
-                offTurn();
-            });
+                pendingStackId = addPassiveEffectToStack(game, effect, data, `Level ${lvl} effect`);
+            } else if (!reached) {
+                removePending();
+                deactivate();
+            }
+        });
 
-            data.it.cleaners.push(() => {
-                offTurn?.();
-            });
-        }
+        data.it.cleaners.push(() => {
+            offCounter();
+            removePending();
+            deactivate();
+        });
         return true;
     };
 }
@@ -1542,42 +1594,6 @@ export function gainEternalTillEndOfTurnEffect(game: Game): SyncEffectFunction {
     };
 }
 
-// TRIGGERED EFFECT: Uses the stack.
-// Executes effects after death penalty is applied.
-export function afterDeathPenaltyEffect(
-    // callbacks: ((player: Player, dmg: number) => void)[],
-    effectFunctions: EffectFunction[],
-    // amount: number,
-    game: Game
-): SyncEffectFunction {
-    return (data: EffectData) => {
-        // if (amount < 0)
-        //     throw new GameError("permanentStatModifierEffect amount must be non-negative.", toSerializedTranslation("error.behaviorError", {error: "permanentStatModifierEffect amount must be non-negative."}));
-        let offDamage: (() => void) | null = null;
-
-        offDamage = game.emitter.on("on:death:after-penalty", (eventData: OnDeathAfterPenaltyData) => {
-            const { eventIssuer, target: dealer, source } = eventData;
-            if (data.issuer !== eventIssuer) return;
-            
-            // Add all effects as a single stack element
-            const effect = async (effectData: EffectData): Promise<boolean> => {
-                for (const func of effectFunctions) {
-                    await func(effectData);
-                }
-                return true;
-            };
-            addPassiveEffectToStack(game, effect, data, "After death penalty effect");
-        });
-
-        // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleaners.push(() => {
-            offDamage?.();
-            offDamage = null;
-        });
-        return true;
-    };
-}
-
 export function offerHighFiveEffect(game: Game, rolls: number[]): SyncEffectFunction {
     return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
@@ -1835,6 +1851,36 @@ export function onYourEventEffect(
         });
         return true;
     };
+}
+
+export function OnMyKillShare(game: Game){
+    return onAnyEventEffect("on:death:rewards", [], game, "OnOtherPlayersKillGetHalf", (ef, ev:OnDeathRewardsData) => {
+        if( ev.eventIssuer !== ef.issuer) return false;
+        if(ev.reason !== "kill") return false;
+        if(ev.entity instanceof Monster === false) return false;
+        const effect: EffectFunction = async (data: EffectData) =>
+        {
+            if(ev.entity instanceof Monster === false) return false;
+            if(ef.issuer instanceof Player === false) return false;
+            const target = (await data.selectAndRecord(game, ef.issuer, 1, 1, game.players.filter(p => p !== ef.issuer), toSerializedTranslation("selector.anotherPlayer"), ef.serializedCardAndBox, true, true)).selected[0]!;
+            if(target instanceof Player === false) return false;
+            game.entityHandler.entityRewards(ev.entity, target, false, "other");
+            return true;
+        }
+        addPassiveEffectToStack(game, effect, ef, "OnOtherPlayersKillGetHalf", ef.visualEffectBox);
+    return true;
+    }, false);
+}
+
+export function OnOtherPlayersKillGetHalf(game: Game){
+    return onAnyEventEffect("on:death:rewards", [], game, "OnMyKillShare", (ef, ev:OnDeathRewardsData) => {
+        if( ev.eventIssuer === ef.issuer) return false;
+        if(ev.reason !== "kill") return false;
+        if(ev.entity instanceof Monster === false) return false;
+        if(ef.issuer instanceof Player === false) return false;
+        game.entityHandler.entityRewards(ev.entity, ef.issuer, true, "other");
+        return true;
+    }, false);
 }
 
 export function aPlayerRollSameResTwiceInRow(effectFunctions: EffectFunction[],
@@ -2950,7 +2996,7 @@ export function lootPlusXExceptLootStepEffect(game: Game, x: number): SyncEffect
 }
 
 
-export function changeRollXToYEffect(game: Game, x: number, y: number): SyncEffectFunction {
+export function changeRollXToYEffect(game: Game, x: number, y: number[]): SyncEffectFunction {
     return (data: EffectData) => {
         let offRoll: (() => void) | null = null;
         // Listen for the next would roll event on this player
@@ -2960,7 +3006,7 @@ export function changeRollXToYEffect(game: Game, x: number, y: number): SyncEffe
                 // Create the effect that will execute when the stack resolves
                 const effect = async (effectData: EffectData): Promise<boolean> => {
                     if (!(effectData.issuer instanceof Player)) return false;
-                    const value = (await effectData.selectAndRecord(game, effectData.issuer, 0, 1, [y], toSerializedTranslation("pending.resultOfDiceRoll"), data.serializedCardAndBox, true, true)).selected[0]!;
+                    const value = (await effectData.selectAndRecord(game, effectData.issuer, 0, 1, [...y], toSerializedTranslation("pending.resultOfDiceRoll"), data.serializedCardAndBox, true, true)).selected[0]!;
                     if(!value) return false; // Player chose not to change the roll
                     diceRoll.value = value;
                     return true;
@@ -3132,6 +3178,18 @@ export function shopItemsCostLessEffect(discount: number, game: Game): SyncEffec
     };
 }
 
+export function giveThisToKillerEffect(game: Game): SyncEffectFunction {
+    return onYourEventEffect("on:death:after-penalty", [], game, "giveThisToKillerEffect", false,
+        (data: EffectData, eventData: OnDeathAfterPenaltyData) => {
+            if(!(data.issuer instanceof Player)) return false;
+            const { eventIssuer, target } = eventData;
+            if (data.issuer !== eventIssuer) return false;
+            if(!(target instanceof Player)) return false;
+            game.cardHandler.give(data.issuer, target, data.it);
+            return true;
+        }, false);
+}
+
 
 export function monstersYouAttackModifiers(game: Game, modifier: number): SyncEffectFunction{
     return (data: EffectData) => {
@@ -3232,6 +3290,23 @@ export function lootStepEffect(
         });
         return true;
     };
+}
+export function levelDownInsteadOfDeathPenaltyEffect(
+    game: Game,
+    minLvl: number 
+): SyncEffectFunction {
+    return onYourEventEffect("on:death:before-penalty", [], game, "levelDownInsteadOfDeathPenaltyEffect", false, 
+        (data: EffectData, eventData: OnDeathBeforePenaltyData) => {
+            if(!(data.issuer instanceof Player)) return false;
+            const { eventIssuer } = eventData;
+            if (data.issuer !== eventIssuer) return false;
+            if(data.it.counters.getCounter("normal").value <= minLvl) return false;
+            game.cardHandler.addToCounter(data.issuer, data.it, "normal", -1);
+            eventData.values.nbCoinsToLose = 0;
+            eventData.values.nbItemsToLose = 0;
+            eventData.values.nbLootCardsToLose = 0;
+            return true;
+        }, false);
 }
 
 // "Each time a player dies, before paying penalties, loot 1."
@@ -3656,18 +3731,27 @@ export function eachOtherPlayerRevealsHandEffect(game: Game): SyncEffectFunction
 }
 
 
-export function nextRollModifier(game: Game, type: "any" | "attack", amount: number, issuerType: "any" | "active"): SyncEffectFunction
+export function nextRollModifier(game: Game, type: "any" | "attack", amount: number, issuerType: "any" | "active" | "issuer"): SyncEffectFunction
 {
     const event:TriggerEvent = type === "any" ? "on:dice:resolved" : "on:attack:roll";
     return (data: EffectData) => {
         let offTurn: (() => void) | null = null;
         let offRoll: (() => void) | null = null;
+        if(issuerType === "issuer" && data.issuer instanceof Player === false)
+            return false;
         const tempEffect = getTemporaryEffect(data);
         game.currentPlayer.addTemporaryEffect(tempEffect);
 
-        let players = issuerType === "active" ? [game.currentPlayer] : game.players;
+        let players = issuerType === "active" ? [game.currentPlayer] 
+                : issuerType === "issuer" ? [data.issuer] 
+                : game.players;
         for(const player of players)
-            game.entityHandler.addAttackDiceModifier(player, amount, data.it);
+        {
+            if(type === "attack")
+                game.entityHandler.addAttackDiceModifier(player, amount, data.it);
+            else
+                game.entityHandler.addDiceModifier(player, amount, data.it);
+        }
         
 
         offTurn = game.emitter.on("on:turn:end", (eventData: OnTurnStartData) => {
@@ -3684,7 +3768,12 @@ export function nextRollModifier(game: Game, type: "any" | "attack", amount: num
         const clean = () => {
             game.currentPlayer.removeTemporaryEffect(tempEffect);
             for(const player of players)
-                game.entityHandler.addAttackDiceModifier(player, -amount, data.it);
+            {
+                if(type === "attack")
+                    game.entityHandler.addAttackDiceModifier(player, -amount, data.it);
+                else
+                    game.entityHandler.addDiceModifier(player, -amount, data.it);
+            }
             offTurn();
             offRoll();
         }
@@ -3723,6 +3812,37 @@ export function takeDamagePlusEffect(
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
             cleanup();
+        });
+
+        return true;
+    };
+}
+
+export function addAttackToYourNextAttackRollEffect(game: Game, amount: number): SyncEffectFunction {
+    return (data: EffectData) => {
+        let offEffect: (() => void) | null = null;
+        let offEndTurn: (() => void) | null = null;
+        const temp: TemporaryEffect = getTemporaryEffect(data);
+        data.issuer.addTemporaryEffect(temp);
+        let active = true;
+        // Listen for the next damage event on this player
+        offEffect = game.emitter.on("on:attack:roll:modifier", (eventData: OnRollData) => {
+            const { eventIssuer, dice } = eventData;
+            if (data.issuer !== eventIssuer) return;
+            if(!active) return;
+            active = false;
+            dice.additionalDamageDealt += amount;
+            offEffect?.();
+            offEffect = null;
+        });
+
+        offEndTurn = game.emitter.on("till:turn:end", (eventData: OnTurnEndData) => {
+            const { eventIssuer } = eventData;
+            data.issuer.removeTemporaryEffect(temp);
+            offEffect?.();
+            offEffect = null;
+            offEndTurn?.();
+            offEndTurn = null;
         });
 
         return true;

@@ -58,7 +58,7 @@
 //         let currentRound = 0;
 //         let seen = false;
 //         // console.log(game.getCardByGlobalId(282)!.name);
-//         while(game.turnHandler.round < 50 && game.turnHandler.numberOfRoundSinceBeginning < 500 && !shouldStop && !game.isGameOver) {
+//         while(game.turnHandler.round < 50 && game.turnHandler.numberOfTurnsSinceBeginning < 500 && !shouldStop && !game.isGameOver) {
 //             uniqueIdCounter++;
 //             // printVerbose(uniqueIdCounter);
 //             if(uniqueIdCounter > Math.min(100000, 100000))

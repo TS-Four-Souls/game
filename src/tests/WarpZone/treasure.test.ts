@@ -33,6 +33,39 @@ describe("Warp Zone Treasures", () => {
     //     game.cardHandler.addInPlay(player1, card1);
     // });
  
+    it("rwz-water_bottle", async () => {
+        const card1 = game.obtainCard("rwz-water_bottle") as TreasureCard;
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+
+        game.cardHandler.addInPlay(player2, card1);
+        await game.activateItem(player2, card1, [], "tap");
+        game.random = () => 0.1;
+        for (let i = 0; i < 4; i++) {
+            await game.actions.resolveStack();
+        }
+        expect(game.stack.size).toBe(1);
+        game.random = () => 0.6;
+        for (let i = 0; i < 2; i++) {
+            await game.actions.resolveStack();
+            await game.actions.resolveStack();
+        }
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.size).toBe(1);
+        expect(player1.isDead).toBe(true);
+        game.random = () => 0.99;
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.size).toBe(0);
+        expect(game.currentPlayer === player1).toBe(true);
+    });
+ 
     it("rwz-hitops 2", async () => {
         const card1 = game.obtainCard("rwz-hitops") as TreasureCard;
         game.cardHandler.addInPlay(player1, card1);

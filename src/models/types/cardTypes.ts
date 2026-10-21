@@ -4,6 +4,7 @@ import type { Card, LootCard, TreasureCard, EternalCard, CharacterCard, MonsterC
 import type { Game } from '../game';
 import type { VisualEffectBox, SerializedTranslation, SerializedCardAndBox, PendingSelectionReason } from '@/shared/api';
 import type { CardAndBox } from '../handlers/entityHandler';
+import type { DiceRoll } from '../stackElement';
 
 /**
  * Type of effect execution - how the effect is triggered
@@ -33,12 +34,14 @@ export class EffectData {
     private _selectedOnResolve: any[] = [];
     private _nextIndex: number = 0;
     private _VisualEffectBoxes: VisualEffectBox | undefined;
+    private _dice: DiceRoll | undefined;
 
-    constructor(it: Card, issuerProvider: () => Entity, targets: any[], visualEffectBox: VisualEffectBox | undefined = undefined) {
+    constructor(it: Card, issuerProvider: () => Entity, targets: any[], visualEffectBox: VisualEffectBox | undefined = undefined, dice: DiceRoll | undefined = undefined) {
         this.it = it;
         this._issuerProvider = issuerProvider;
         this._targets = targets;
         this._VisualEffectBoxes = visualEffectBox;
+        this._dice = dice;
     }
 
     get issuer(): Entity {
@@ -103,6 +106,14 @@ export class EffectData {
 
     clearSelectionRecord(): void {
         this._selectedOnResolve = [];
+    }
+
+    get dice(): DiceRoll | undefined {
+        return this._dice;
+    }
+
+    attachDice(dice: DiceRoll): void {
+        this._dice = dice;
     }
 
     async selectAndRecord<T>(

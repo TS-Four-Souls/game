@@ -326,6 +326,9 @@ export class DiceRoll extends StackElement {
   override toString(): string {
     return JSON.stringify(this.json);
   }
+  get effect(): EffectFunction[] | EffectFunction | null {
+    return this._effect;
+  }
   /**
    * Modify the random function used for this dice roll (for testing purposes only)
    */
@@ -353,7 +356,7 @@ export class DiceRoll extends StackElement {
       // For attack rolls, prepend the dice roll itself to targets so effects can use it as the damage source
       const targetsWithDiceRoll = this._attackRoll ? [this, ...this._targets] : this._targets;
       const effect = this._effect instanceof Array ? this._effect[this._value - 1]! : this._effect;
-      await effect(new EffectData(this._card!, () => effectIssuer, targetsWithDiceRoll));
+      await effect(new EffectData(this._card!, () => effectIssuer, targetsWithDiceRoll, this._visualEffectBox === null ? undefined : this._visualEffectBox, this));
     }
   }
 }

@@ -220,7 +220,7 @@ export class EntityHandler {
   /**
    * Grants coin/loot/treasure rewards when a monster dies to the current player.
    */
-  entityRewards(entity: Monster | Animated, player: Player | null = null): void {
+  entityRewards(entity: Monster | Animated, player: Player | null = null, half: boolean = false, reason: "kill" | "other" = "kill"): void {
     if(player === null)
       player = this.game.currentPlayer;
     const rewards = entity.rewards;
@@ -233,9 +233,9 @@ export class EntityHandler {
       "treasure": (player: Player, amount: number): void => this.game.gainTreasure(player, amount),
     }
     const onDice = {
-      "coin": targetGetCoinRollEffect(this.game),
-      "loot": targetGetLootRollEffect(this.game),
-      "treasure": targetGetTreasureRollEffect(this.game),
+      "coin": targetGetCoinRollEffect(this.game, half),
+      "loot": targetGetLootRollEffect(this.game, half),
+      "treasure": targetGetTreasureRollEffect(this.game, half),
     }
     for(const rewardType of ["coin", "loot", "treasure"] as const)
       if(rewards[rewardType] !== undefined)
@@ -251,10 +251,16 @@ export class EntityHandler {
               receiver,
             ]);
           } else if (typeof amount === "number") {
-            adders[rewardType](receiver, amount);
+            adders[rewardType](receiver, half ? Math.floor(amount / 2) : amount);
           }
         }
       }
+      this.game.emit("on:death:rewards", {
+        entity: entity,
+        eventIssuer: player,
+        half: half,
+        reason: reason
+      });
   }
 
   /**

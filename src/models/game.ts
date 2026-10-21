@@ -623,6 +623,10 @@ export class Game {
     }
   }
 
+  get won() {
+    return this._isWon;
+  }
+
   win(player: Player | null): void {
     if(this._isWon)
       return;
@@ -630,9 +634,9 @@ export class Game {
     this._onEndReached.dispatch(
       this._gameStateSerializer.serializeEndGame(player?.team ?? null)
     );
-    for(const p of this.players)
-      console.log(`player: ${p.id}, stats: ${JSON.stringify(p.stats)}`);
-    getTitles(this.players);
+    // for(const p of this.players)
+    //   console.log(`player: ${p.id}, stats: ${JSON.stringify(p.stats)}`);
+    // getTitles(this.players);
   }
 
   /**
