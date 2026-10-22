@@ -935,7 +935,6 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
         }
         case "reveal the top x cards of the monster deck. give any curse cards revealed to the player or players of your choosing. put the rest on the bottom of the deck in any order":
             return logic.noTargetEffect(active.revealTopCardsOfMonsterDeckEffect(game, nr.nextNumber()));
-        
         case "look at the top x cards of a deck. put them back in any order":
         case "look at the top x cards of a deck and put them back in any order":
             return logic.noTargetEffect(active.lookAndReorderTopCardsEffect(game, nr.nextNumber(), "selectOnResolve", "dataIssuer"));
@@ -1069,7 +1068,8 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
         case "end the turn. cancel everything that hasn't resolved":
         case "cancel everything that hasn't resolved and end the turn":
             return logic.noTargetEffect(active.endTurnAndResetStackEffect(game));
-        
+        case "choose an eternal item another player controls. this gains all of that item's abilities till the start of your next turn":
+            return logic.noTargetEffect(active.chooseAndCopyEternalItemAbilitiesEffect(game));
         case "choose the player with the most souls or tied for the most. that player destroys a soul they control":
             return { effectFunction: active.makeAPlayerWithMostSoulsDestroyASoulEffect(game), targetSelectors: selectPlayerWithMostSouls(game) };
         case "look at the top card of each deck. you may put any of those cards on the bottom of their deck":
@@ -1202,6 +1202,8 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
             return logic.noTargetEffect(active.makePlayerGiveLootCardEffect(game, "diceRoll"));
         case "put the top card of the monster deck in another monster slot":
             return logic.noTargetEffect(active.putTopMonsterInAnotherSlotEffect(game));
+        case "choose another player. they reveal their hand. choose a non-trinket, non-ambush loot card in their hand. till end of turn, you may play a copy of it without using a loot play":
+            return { effectFunction: active.choosePlayerRevealHandAndPlayCopyEffect(game), targetSelectors: selectAnotherPlayer(game) };
         case "choose a living player. that player dies":
             return { effectFunction: active.deathTargetEffect(game, [["player"]]), targetSelectors: selectAlivePlayer(game) };
         case "they give you half of their ¢ and loot cards rounded down, then gives you an item":
@@ -1235,6 +1237,8 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
             return logic.noTargetEffect(active.killTargetEffect(game, [], true, false));
         case "choose the player who controls the most souls or is tied for the most. that player wins":
             return logic.noTargetEffect(monster.playerWithMostSoulsWinsEffect(game, "current"));
+        case "reveal the top card of the loot deck. if it's a non-trinket, non-ambush card, each player may play a copy of it without using a loot play":
+            return logic.noTargetEffect(active.revealTopLootDeckAndEachPlayerMayPlayFreeCopyEffect(game));
     }
     if(s.startsWith("if a non-active player died, "))
         return logic.parseIfAPlayerDiedThisTUrnEffect(s, game, false);
@@ -2311,6 +2315,8 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             return logic.noTargetSyncEffect(room.playersCanOnlyActivateOnceATurn(game));
         case "players can't play more than one loot card each turn":
             return logic.noTargetSyncEffect(room.playersCanOnlyPlayLootOnceATurn(game));
+        case "choose a player. they put a random loot card from their hand under this. till end of turn, you may play that loot card without using a loot play":
+            return { effectFunction: active.makePlayerPutRandomLootUnderThisEffect(game), targetSelectors: selectPlayer(game) };
         default:
             return null; // No match found
         }

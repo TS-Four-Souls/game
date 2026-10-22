@@ -38,9 +38,29 @@ describe("Four Souls+2 Eternal Items", () => {
         // const eternal = player1.inPlay[0]! as ItemCard;
         // game.cardHandler.recharge(eternal, "other");
     // });
-    // "At the start of your turn each player loots 1.",
-    // "[Tap Effect] Choose a player. They put a random loot card from their hand under this. Till end of turn, you may play that loot card without using a loot play.",
-    // "At the end of your turn, recharge this."
+    
+    it("rwz-bum_bo_the_weird", async () => {
+        const setup = await setupTestGame({
+            characters: ["rwz-bum_bo_the_weird", "b2-lilith"],
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card"],
+            playerCount: 2
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        const eternal = player1.inPlay[0]! as ItemCard;
+        game.cardHandler.recharge(eternal, "other");
+        const loot = game.obtainCard("b2-a_dime") as LootCard;
+        game.decks.loot.addTopPosition(loot);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.coins).toBe(10);
+        expect(player2.coins).toBe(10);
+    });
+
     it("rwz-salad_fingers", async () => {
         const setup = await setupTestGame({
             characters: ["rwz-salad_fingers", "b2-lilith"],
@@ -54,6 +74,34 @@ describe("Four Souls+2 Eternal Items", () => {
         player2 = setup.player2!;
         const eternal = player1.inPlay[0]! as ItemCard;
         game.cardHandler.recharge(eternal, "other");
+        const loot = game.obtainCard("b2-a_dime") as LootCard;
+        game.cardHandler.addCardToHand(player2, loot);
+        await game.activateItem(player1, eternal, [player2], "tap");
+        await game.actions.resolveStack();
+        expect(player1.hand.freeCards.length).toBe(1);
+        expect(player2.hand.length).toBe(0);
+        const initPlay = player1.remainingLootPlay;
+        game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
+        expect(player1.hand.freeCards.length).toBe(0);
+        expect(player1.remainingLootPlay).toBe(initPlay);
+        expect(player1.coins).toBe(10);
+
+        await game.actions.resolveStack();
+        expect(player1.hand.length).toBe(1);
+        expect(player2.hand.length).toBe(1);
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(eternal.charged).toBe(true);
+        await game.activateItem(player1, eternal, [player2], "tap");
+        await game.actions.resolveStack();
+        expect(player1.hand.freeCards.length).toBe(1);
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.hand.freeCards.length).toBe(0);
     });
     
     it("rwz-ash all lvl 1", async () => {

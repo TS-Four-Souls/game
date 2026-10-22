@@ -339,6 +339,18 @@ export class CardHandler {
     return false;
   }
 
+  putXUnderY(Y: Card, X: Card): void {
+    this.putOutsideGame(X);
+    if(Y.tags.underThis === undefined)
+      Y.tags.underThis = [];
+    Y.tags.underThis.push(X);
+  }
+
+  addFreeCard(player: Player, card: LootCard, source: Card): () => void {
+    return player.hand.addFreeCard(card, source);
+  }
+    
+
 
   private registerCard(card: Card): void {
     if (this._cardMapping.has(card.globalId)) {

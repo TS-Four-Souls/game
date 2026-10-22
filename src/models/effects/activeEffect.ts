@@ -17,11 +17,11 @@ import { DamageOnStack, DiceRoll, } from "../stackElement";
 import { TargetBuilder } from "../targetBuilder";
 import { deckSelector, inplayUnchargedItemSelector as inplayChargeableItemSelector, visibleItemSelector } from "../targetSelector";
 import { type DeckType, EffectData, type EffectFunction, type SyncEffectFunction, type AsyncEffectFunction, type TargetsSelector, type DecksCollection } from "../types/cardTypes";
-import type { OnTurnEndData } from "../types/eventTypes";
+import type { OnTurnEndData, OnTurnStartData } from "../types/eventTypes";
 import { effectParser, INFINITY, type ParsedEffect, type SyncParsedEffect } from "./parsing/effectParser";
 import * as passive from "./passiveEffect";
 import * as room from "./roomEffects";
-import { toSerializedTranslation } from "@/utils/translation";
+import { toSerializedTranslation, translationKeyFromCardSlug } from "@/utils/translation";
 import { shuffle } from "@/utils/auxiliary";
 import { type CounterType } from "@/shared/api"
 
@@ -2352,6 +2352,30 @@ export function endTurnAndResetStackEffect(game: Game, onlyIfYourTurn: boolean =
     };
 }
 
+export function chooseAndCopyEternalItemAbilitiesEffect(game: Game): AsyncEffectFunction {
+    return async (data: EffectData) => {
+        const issuer = data.issuer;
+        if(issuer instanceof Player === false) return false;
+        const eternals = game.players.filter((p) => p !== issuer).flatMap((p) => p.inPlay.filter((card) => card instanceof ItemCard && card.eternal)) as ItemCard[];
+        if(eternals.length === 0) return false;
+        const selection = await data.selectAndRecord(game, issuer, 1, 1, eternals, qq("selector.eternalItemAnotherPlayerControls"), data.serializedCardAndBox, true, true);
+        const target = selection.selected[0] as ItemCard;
+        if(!target) return false;
+        const reverse = data.it.becomesCopyOf(target, (card) => {
+            game.cardHandler.attachEffectsToCard(card, true);
+        });
+        let offNextTurnStart : null | (() => void) = null;
+        offNextTurnStart = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
+            if(eventData.eventIssuer === issuer) {
+                reverse.restore();
+                if(offNextTurnStart) offNextTurnStart();
+                offNextTurnStart = null;
+            }
+        });
+        return true;
+    };
+}
+
 export function putTopCardOfEachDeckIntoDiscardEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         for (const deckName of game.deckNames) {
@@ -3333,6 +3357,55 @@ export function killTargetEffect(game: Game, selectors: TargetsSelector[] = [], 
     };
 }
 
+export function makePlayerPutRandomLootUnderThisEffect(game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
+        if(data.issuer instanceof Player === false) return false;
+        const target = data.next as Player;
+        if(target instanceof Player === false) return false;
+        if(target.hand.length === 0) return false;
+        const randomIndex = Math.floor(Math.random() * target.hand.length);
+        const lootToPutUnder = target.hand.cards[randomIndex] as LootCard;
+        game.cardHandler.removeCardFromHand(target, lootToPutUnder);
+        game.cardHandler.putXUnderY(data.it, lootToPutUnder);
+        const copy = game.cardHandler.copyCard(lootToPutUnder) as LootCard;
+        const removeFunction = game.cardHandler.addFreeCard(data.issuer, copy, data.it);
+        let offEndTurn: (() => void) | null = null;
+        offEndTurn = game.emitter.on("till:turn:end", () => {
+            removeFunction();
+            offEndTurn?.();
+            offEndTurn = null;
+        });
+        return true;
+    };
+}
+
+export function revealTopLootDeckAndEachPlayerMayPlayFreeCopyEffect(game: Game): AsyncEffectFunction {
+    return async (data: EffectData) => {
+        const target = game.decks.loot.cards[0] as LootCard;
+        if(target === undefined) return false;
+        
+        await data.selectMultipleAndRecord(game, game.players.filter(p => p !== data.issuer).map(p => ({
+            player: p,
+            min: 0,
+            max: 0,
+            options: [target],
+            reason: data.serializedCardAndBox,
+            description: qq("pending.cardRevealedFromDeck", {deck: qq("startStep.gameParams.decks.loot")}),
+            canUseOnBoardSelection: false,
+        })));
+        if(target.trinket || target.effectOutcomes.some(outcome => outcome.includes("Ambush")))
+            return false;
+        for(const player of game.players) {
+            const playCopy = await data.selectAndRecord(game, player, 0, 1, [target], qq("pending.playFreeCopyOfCard", {card: translationKeyFromCardSlug(target.slug)}), data.serializedCardAndBox, true, true);
+            const copy = game.cardHandler.copyCard(target) as LootCard;
+            const targetTargets = await TargetBuilder.buildTargetsOnResolve(game, player, copy, "tap");
+            game.cardHandler.addFreeCard(player, copy, data.it);
+            game.actions.playCard(player, player.hand.playableCards.length - 1, targetTargets);
+        }
+        return true;
+    };
+}
+
 /**
  * choose a non-active player. 
  * the next time the active player declares an attack this turn, 
@@ -3390,6 +3463,17 @@ export function nonActivePlayerHelpFight(game: Game): SyncEffectFunction {
 
 export function issuerSkipNextTurnEffect(game: Game, issuerIsCurrentPlayer: boolean = false): SyncEffectFunction {
     return (data: EffectData) => {
+        const issuer = issuerIsCurrentPlayer ? game.currentPlayer : data.issuer;
+        if(issuer instanceof Player === false) 
+            return false;
+        game.playerSkipNextTurn(issuer);
+        return true;
+    };
+}
+
+export function choosePlayerRevealHandAndPlayCopyEffect(game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
+        const target = data.next as Player;
         const issuer = issuerIsCurrentPlayer ? game.currentPlayer : data.issuer;
         if(issuer instanceof Player === false) 
             return false;

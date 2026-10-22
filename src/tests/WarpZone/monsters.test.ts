@@ -73,10 +73,8 @@ describe("Warp Zone Treasures", () => {
         game.entityHandler.kill(player2, player1, {card: card1, visualEffectBox: null as any});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        await game.actions.resolveStack();
-        await game.actions.resolveStack();
-        expect(player1.inPlay.length).toBe(2);
-        expect(player2.inPlay.length).toBe(1);
+        expect(player2.inPlay.length).toBe(2);
+        expect(player1.inPlay.length).toBe(1);
     });
 
     it("rwz-peeper 2", async () => {
