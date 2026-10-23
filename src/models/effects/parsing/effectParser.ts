@@ -927,6 +927,8 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
             return { effectFunction: active.discardNLootCardsEffect(nr.nextNumber(), game, true, "next"), targetSelectors: selectPlayer(game) };
         case "discard a loot card":
             return logic.noTargetEffect(active.discardNLootCardsEffect(1, game, true));
+        case "deal x damage divided as you choose to any number of monsters or players, where x is the number of loot cards discarded to play this":
+            return logic.noTargetEffect(active.dealPaidXDamageDividedAsYouChooseEffect(game));
         case "discard x loot card":
         case "you discard x loot cards":
         case "discard x loot cards": {

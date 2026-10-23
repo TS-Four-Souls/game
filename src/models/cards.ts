@@ -608,6 +608,11 @@ class LootCard extends ItemCard {
     getTargetSelectors(): TargetsSelector[] {
         return this._effectInterface.getTargetSelectors("tap");
     }
+
+    /** Pays the cost to play this card, if any. Returns the targets completed by the payment. */
+    payPlayCost(issuer: Player, targets: any[]): any[] | Promise<any[]> {
+        return this._effectInterface.payPlayCost(issuer, targets);
+    }
 }
 
 export class RoomCard extends ItemCard {

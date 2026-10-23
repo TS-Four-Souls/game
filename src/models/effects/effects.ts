@@ -74,11 +74,15 @@ export class Effect {
         return this._type;
     }
 
+    get paymentFunction(): EffectFunction | undefined {
+        return this._paymentFunction;
+    }
+
     hasPayment(): boolean {
         return this._paymentFunction !== undefined;
     }
 
-    async executePayment(data: EffectData): Promise<boolean> {
+    executePayment(data: EffectData): boolean | Promise<boolean> {
         if (!this._paymentFunction) {
             throw new GameError("Cannot execute payment: no payment function defined",
                 toSerializedTranslation("error.cannotExecutePaymentNoFunction")
@@ -199,7 +203,7 @@ function combineEffects(effect1: Effect, effect2: Effect): Effect {
     }
     const descr = `${effect1.description} ${effect2.description}`;
     const effect = combineEffectFunctions([effect1.effectFunction, effect2.effectFunction]);
-    return new Effect(descr, "active", effect1.card, effect, effect1.targetsSelector.concat(effect2.targetsSelector), effect1.range.concat(effect2.range));
+    return new Effect(descr, "active", effect1.card, effect, effect1.targetsSelector.concat(effect2.targetsSelector), effect1.range.concat(effect2.range), effect1.paymentFunction ?? effect2.paymentFunction);
 
 }
 // Effect handler manages multiple effects of the same type of a card.
@@ -412,6 +416,29 @@ export class EffectInterface {
             }
         }
         return new EffectOnStack(effect.effectFunction, data, effect.description, effect.type, effect.getVisualEffectBoxFromTargets(targets));
+    }
+
+    /**
+     * Pays the cost of a loot card written as "[Paid Effect] cost: effect", when it is played.
+     * Values recorded by the payment (e.g. the number of discarded cards) are appended to the targets.
+     * Stays synchronous when the payment is synchronous.
+     */
+    payPlayCost(issuer: Player, targets: any[]): any[] | Promise<any[]> {
+        if (!this.activeEffects.hasTapEffect())
+            return targets;
+        const effect = this.activeEffects.getActiveEffect();
+        if (!effect.hasPayment())
+            return targets;
+        const data = new EffectData(this.it, () => issuer, [...targets]);
+        const checkPayment = (paid: boolean): any[] => {
+            if (!paid)
+                throw new GameError(`Payment denied for ${this.it.slug}, with targets: "${JSON.stringify(TargetBuilder.convertToSelectionItems(targets))}".`,
+                    toSerializedTranslation("error.paymentDenied", { card: this.it.nameKey })
+                );
+            return data.targets;
+        };
+        const paid = effect.executePayment(data);
+        return paid instanceof Promise ? paid.then(checkPayment) : checkPayment(paid);
     }
 
     tapEffect(issuer: Entity, targets: any[], differentSource: Card | undefined): EffectOnStack {

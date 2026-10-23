@@ -226,7 +226,7 @@ export class ActionHandler {
       {
         switch(type) {
             case "hand":
-              this.playCard(player, itemIndex, targets);
+              await this.playCard(player, itemIndex, targets);
               return;
             case "character":
               await this.activateItemAtIndex(player, "character", targets, effectId);
@@ -242,7 +242,7 @@ export class ActionHandler {
             case "topLootCard":
               if(this._game.decks["loot"] === undefined || this._game.decks["loot"].cards[0] === undefined)
                 return;
-              this.playCard(player, "topLootCard", targets);
+              await this.playCard(player, "topLootCard", targets);
         }
       }
 
@@ -405,7 +405,7 @@ export class ActionHandler {
      * Plays one loot card from hand and pushes its effect on stack.
      * Indices >= hand size play a free card (see Hand.playableCards), which does not use a loot play.
      */
-    playCard(player: Player, index: number | "topLootCard", targets: any[] = []): string {
+    playCard(player: Player, index: number | "topLootCard", targets: any[] = []): string | Promise<string> {
       if(player.canPlayTopOfLootDeck === false && index === "topLootCard")
         throw new GameError("You cannot play the top card of the loot deck.", toSerializedTranslation("error.cannotPlayTopCardOfLootDeck"));
       if(index !== "topLootCard" ){
@@ -428,6 +428,14 @@ export class ActionHandler {
           if (playedCard.getTargetSelectors()[0]?.selector(player, playedCard).length === 1)
             targets = playedCard.getTargetSelectors()[0]!.selector(player, playedCard)[0];
       }
+      // The cost to play the card is paid before it goes on the stack, and stays paid if it is cancelled.
+      const paidTargets = playedCard.payPlayCost(player, targets);
+      if (paidTargets instanceof Promise)
+        return paidTargets.then(t => this.putPlayedLootOnStack(player, playedCard, index, isFree, t));
+      return this.putPlayedLootOnStack(player, playedCard, index, isFree, paidTargets);
+    }
+
+    private putPlayedLootOnStack(player: Player, playedCard: LootCard, index: number | "topLootCard", isFree: boolean, targets: any[]): string {
       const lootCardEffect = new LootCardEffect(player, playedCard, targets);
       if(index !== "topLootCard" )
         this.game.addAnimation({

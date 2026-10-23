@@ -1205,23 +1205,38 @@ export function dealXDamageDividedAsYouChooseEffect(game: Game, damage: number):
     };
 }
 
+// player divides damageToDistribute as they choose among the targets returned by candidates.
+async function dealDamageDividedAsTheyChoose(game: Game, data: EffectData, player: Player, damageToDistribute: number, candidates: () => Entity[]): Promise<boolean> {
+    while(damageToDistribute > 0) {
+        const target = (await data.selectAndRecord(game, player, 1, 1, candidates(), qq("pending.targetToDealDamageTo", { value: damageToDistribute }), data.serializedCardAndBox, true, true)).selected[0] as Entity;
+        if(!target)
+            return false;
+        const damage = (await data.selectAndRecord(game, player, 1, 1, Array.from({length: damageToDistribute}, (_, i) => i + 1), qq("selector.number"), data.serializedCardAndBox, true, true)).selected[0] as number;
+        if(!damage)
+            return false;
+        game.entityHandler.dealDamage(player, target, data.cardAndBox, damage);
+        damageToDistribute -= damage;
+    }
+    return true;
+}
+
 export function dealDamageDividedAsTheyChooseForEachCounterEffect(game: Game, counterType: CounterType): AsyncEffectFunction {
     return async (data: EffectData) => {
-        let damageToDistribute = data.it.counters.value(counterType);
+        const damageToDistribute = data.it.counters.value(counterType);
         if(damageToDistribute <= 0)
             return false;
-        const player = game.currentPlayer
-        while(damageToDistribute > 0) {
-            const target = (await data.selectAndRecord(game, player, 1, 1, game.players.filter(p => p.isDead === false), qq("pending.playerToDealDamageTo"), data.serializedCardAndBox, true, true)).selected[0] as Player;
-            if(!target)
-                return false;
-            const damage = (await data.selectAndRecord(game, player, 1, 1, Array.from({length: damageToDistribute}, (_, i) => i + 1), qq("selector.number"), data.serializedCardAndBox, true, true)).selected[0] as number;
-            if(!damage)
-                return false;
-            game.entityHandler.dealDamage(player, target, data.cardAndBox, damage);
-            damageToDistribute -= damage;
-        }
-        return true;
+        return dealDamageDividedAsTheyChoose(game, data, game.currentPlayer, damageToDistribute, () => game.players.filter(p => p.isDead === false));
+    }
+}
+
+// x is recorded in the targets by the payment (e.g. "discard your hand").
+export function dealPaidXDamageDividedAsYouChooseEffect(game: Game): AsyncEffectFunction {
+    return async (data: EffectData) => {
+        if (data.issuer instanceof Player === false) return false;
+        const damageToDistribute = data.next as number;
+        if(!damageToDistribute || damageToDistribute <= 0)
+            return true;
+        return dealDamageDividedAsTheyChoose(game, data, data.issuer, damageToDistribute, () => game.playersAndMonsters.filter(e => !(e instanceof Player) || e.isDead === false));
     }
 }
 
@@ -2034,7 +2049,7 @@ export function playForFreeTargetEffect(game: Game): AsyncEffectFunction {
         if(TargetBuilder.validTargetExists(game, data.issuer as Player, card, "tap") === true && game.actions.canPlayCard(data.issuer as Player, false) === true) {
             const index = data.issuer.hand.cards.indexOf(card);
             const targets = await TargetBuilder.buildTargetsOnResolve(game, data.issuer as Player, card, "tap");
-            game.actions.playCard(data.issuer as Player, index, targets);
+            await game.actions.playCard(data.issuer as Player, index, targets);
         }
         data.issuer.remainingLootPlay = previousLootPlay;
         return true;
@@ -3400,7 +3415,7 @@ export function revealTopLootDeckAndEachPlayerMayPlayFreeCopyEffect(game: Game):
             const copy = game.cardHandler.copyCard(target) as LootCard;
             const targetTargets = await TargetBuilder.buildTargetsOnResolve(game, player, copy, "tap");
             game.cardHandler.addFreeCard(player, copy, data.it);
-            game.actions.playCard(player, player.hand.playableCards.length - 1, targetTargets);
+            await game.actions.playCard(player, player.hand.playableCards.length - 1, targetTargets);
         }
         return true;
     };
@@ -3471,7 +3486,7 @@ export function issuerSkipNextTurnEffect(game: Game, issuerIsCurrentPlayer: bool
     };
 }
 
-export function choosePlayerRevealHandAndPlayCopyEffect(game: Game): SyncEffectFunction {
+export function choosePlayerRevealHandAndPlayCopyEffect(game: Game, issuerIsCurrentPlayer: boolean = false): SyncEffectFunction {
     return (data: EffectData) => {
         const target = data.next as Player;
         const issuer = issuerIsCurrentPlayer ? game.currentPlayer : data.issuer;

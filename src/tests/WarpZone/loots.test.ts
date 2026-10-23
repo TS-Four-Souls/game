@@ -37,6 +37,43 @@ describe("Warp Zone Loots ", () => {
     //     await game.actions.resolveStack();
     // });
 
+    it("rwz-fiend_fire", async () => {
+        const ff = game.obtainCard("rwz-fiend_fire") as LootCard;
+        while (player1.hand.length > 0)
+            game.cardHandler.discardFromHandAtIndex(player1, 0, "effect");
+        game.cardHandler.addCardToHand(player1, ff);
+        game.loot(player1, 3);
+        const targets: any[] = [player2, game.monsters[1]!, game.monsters[1]!];
+        game.select = async (player: Player, min: number, max: number, Options: any[]) => {
+            if (typeof Options[0] === "number")
+                return { selected: [1], remaining: Options.slice(1) };
+            const target = targets.shift();
+            return { selected: [target], remaining: Options.filter(o => o !== target) };
+        };
+        const p2Health = player2.currentHealthPoints;
+        const monster = game.monsters[1]!;
+        const monsterHealth = monster.currentHealthPoints;
+
+        game.actions.playCard(player1, 0, []);
+        // The cost is paid when the card is played, before it resolves.
+        expect(player1.hand.length).toBe(0);
+        while (!game.stack.isEmpty())
+            await game.actions.resolveStack();
+        expect(player2.currentHealthPoints).toBe(p2Health - 1);
+        expect(monster.currentHealthPoints).toBe(monsterHealth - 2);
+        expect(game.decks.loot.discard.includes(ff)).toBe(true);
+    });
+
+    it("rwz-fiend_fire - cost stays paid when cancelled", async () => {
+        const ff = game.obtainCard("rwz-fiend_fire") as LootCard;
+        game.cardHandler.addCardToHand(player1, ff);
+        game.loot(player1, 2);
+        game.actions.playCard(player1, player1.hand.cards.indexOf(ff), []);
+        expect(player1.hand.length).toBe(0);
+        game.stack.elements.at(-1)!.onCancel(game);
+        expect(game.decks.loot.discard.includes(ff)).toBe(true);
+    });
+
     it("rwz-cheep_cheep_cheep", async () => {
         const bs = game.obtainCard("rwz-cheep_cheep_cheep") as LootCard;
         game.cardHandler.addCardToHand(player1, bs);

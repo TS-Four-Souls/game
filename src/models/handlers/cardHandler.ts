@@ -1139,9 +1139,11 @@ export class CardHandler {
         const paymentParsed = effectParser(paymentString, this.game);
         const effectParsed = effectParser(effectString, this.game);
 
+        // Loot cards with a cost to play are written as paid effects, but they are played as their active effect.
+        const isPlayableLoot = card instanceof LootCard && card.trinket === false;
         const effect: Effect = new Effect(
           outcome,
-          effectType,
+          isPlayableLoot ? "active" : effectType,
           card,
           effectParsed.effectFunction,
           [...paymentParsed.targetSelectors, ...effectParsed.targetSelectors],
