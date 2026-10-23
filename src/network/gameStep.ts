@@ -17,6 +17,8 @@ import {
   registerRoomActivity,
   sendRoomChangedToAll,
   sendRoomChangedToUser,
+  startRoomBots,
+  stopRoomBots,
 } from "./utils";
 import { DiceRoll } from "@/models/stackElement";
 
@@ -58,6 +60,7 @@ export const enterGameStep = (
         });
       }
 
+      stopRoomBots(room);
       let newGame;
       try {
         newGame = await loadGameFromLogs(logs);
@@ -80,6 +83,7 @@ export const enterGameStep = (
       room.game = newGame;
 
       attachGameEventListeners(room);
+      startRoomBots(room);
 
       sendRoomChangedToAll(room);
 
@@ -325,6 +329,7 @@ export const enterGameStep = (
         spectator.socket.emit("on:game:quit", player.id);
       }
 
+      stopRoomBots(room);
       roomManager.finalizeGameRecord(room);
       roomManager.saveGameLogs(room.id, false);
 
