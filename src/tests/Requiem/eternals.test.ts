@@ -214,6 +214,34 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(game.entityHandler.getAttack(player1)).toBe(4);
     });
 
+    it("r-the_capricious (eternal) copy destroy this item", async () => {
+        const setup = await setupTestGame({
+                    characters: ["r-the_capricious", "b2-samson"],
+                    monsters: ["b2-fly", "b2-fatty"],
+                    monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+                    treasureDeck: ["b2-flush", "b2-pandoras_box"],
+                    playerCount: 2
+                });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        game.obtainCard(game.shop.itemsInShop[0]!.slug);
+        game.select = async (_issuer, _min, _max, _opts, _optional) => ({
+            selected: [_opts[0]!],
+            remaining: []
+        });
+        expect(player1.character!.slug).toBe("r-the_capricious");
+        const eternal = player1.inPlay[0]!;
+        expect(eternal.slug).toBe("r-glitch");
+        await game.actions.resolveStack();
+        game.cardHandler.recharge(eternal);
+        expect((eternal.tags.copiedCards as ItemCard[]).map((c) => c.slug).includes("b2-pandoras_box")).toBe(true);
+        await game.activateItem(player1, eternal, [eternal.tags.copiedCards[0]!], "tap");
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
+    });
+
     it("r-the_capricious (character)", async () => {
         const setup = await setupTestGame({
                     characters: ["r-the_capricious", "b2-samson"],

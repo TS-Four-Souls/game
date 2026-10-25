@@ -1273,6 +1273,7 @@ export class CardHandler {
     }
     const copied = this.copyCard(toCopy, issuer) as ItemCard;
     copied.parentCard = gainer.slug;
+    copied.setEternal(gainer.eternal);
     copied.tags.copiedFrom = toCopy;
     gainer.tags.copiedCards.push(copied);
     copied.onAddInPlay(() => issuer);
