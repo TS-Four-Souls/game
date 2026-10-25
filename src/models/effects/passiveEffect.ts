@@ -624,7 +624,7 @@ export function cancelNextDeathOfAPlayer(game: Game, description: string): Async
     return async (data: EffectData) => {
         const target = data.next;
 
-        if(game.entityHandler.preventDeath(target))
+        if(game.entityHandler.preventDeath(target) && game.currentPlayer === target)
         {
             await active.endTurnAndResetStackEffect(game)(data);
             return true;
