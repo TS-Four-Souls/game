@@ -110,7 +110,7 @@ export function eachNonActivePlayerDiscardsLootEffect(game: Game): AsyncEffectFu
     return async (data: EffectData) => {
         const choices = await data.selectMultipleAndRecord(
             game,
-            game.players.filter(p => p !== game.currentPlayer).map(p => ({ 
+            game.players.filter(p => p !== game.currentPlayer && p.hand.length > 0).map(p => ({ 
                 player: p,
                 min: 1,
                 max: 1,
