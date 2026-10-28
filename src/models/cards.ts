@@ -1397,7 +1397,10 @@ function LoadDecks(json_array: GenericCardType[], numPlayers: number, parameters
             }
         else
         {
-            const copies = getCardsByCopy<Card>(decks_cardSets[type] as CardSet<Card>);
+            // Characters are not grouped by copy, to match their parameters (one per visual).
+            const copies = type === 'character'
+                ? (decks_cardSets[type] as CardSet<Card>).cards.map(card => [card])
+                : getCardsByCopy<Card>(decks_cardSets[type] as CardSet<Card>);
             const paramType = type as 'character' | 'loot' | 'treasure' | 'monster' | 'bsoul' | 'room';
             const paramCards = parameters[paramType].json(); // Cache to avoid repeated calls
             

@@ -125,7 +125,7 @@ class DeckParameter {
     const uniqueCards: { card: Card; count: number }[] = [];
     this._currentCount = 0;
     for (const card of CARD_SETS[this._type].cards) {
-      let existing = uniqueCards.find((c) => c.card.isSameCard(card));
+      let existing = this._type === "character" ? undefined : uniqueCards.find((c) => c.card.isSameCard(card));
       if (!existing) {
         uniqueCards.push({ card, count: 0 });
         existing = uniqueCards[uniqueCards.length - 1]!;
