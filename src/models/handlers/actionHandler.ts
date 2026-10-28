@@ -221,7 +221,8 @@ export class ActionHandler {
           player: Player,
           itemIndex: number,
           targets: any[],
-          effectId: number | "tap" = "tap"
+          effectId: number | "tap" = "tap",
+          owner: Player = player
       )
       {
         switch(type) {
@@ -232,7 +233,7 @@ export class ActionHandler {
               await this.activateItemAtIndex(player, "character", targets, effectId);
               return;
             case "inPlay":
-              await this.activateItemAtIndex(player, itemIndex, targets, effectId);
+              await this.activateItemAtIndex(player, itemIndex, targets, effectId, owner);
               return;
             case "room":
               if(this._game.rooms === undefined || this._game.rooms.activeRooms[itemIndex] === undefined)
@@ -459,16 +460,17 @@ export class ActionHandler {
   
 
   /**
-   * Activates a player item by in-play index.
+   * Activates an item by its index in the in-play area of owner (the activating player by default).
    */
   async activateItemAtIndex(
     player: Player,
     index: number | "character",
     choices: any[] = [],
-    effectId: number | "tap" = "tap"
+    effectId: number | "tap" = "tap",
+    owner: Player = player
   ): Promise<boolean> {
     this.game.assert.noPendingSelection();
-    const item = index === "character" ? player.character : player.inPlay[index];
+    const item = index === "character" ? player.character : owner.inPlay[index];
     if (!item || !(item instanceof ItemCard)) {
       throw new GameError("Player does not own the specified item.", toSerializedTranslation("error.playerDoesNotOwnItem"));
     }
@@ -480,13 +482,18 @@ export class ActionHandler {
   }
 
 
-  /** Validates whether a card can currently be activated by its owner. */
-  canActivate(card: Card, owner: Player): Capability {
+  /**
+   * Validates whether a card can currently be activated by its owner, or by activator
+   * when activator may activate the owner's items as though they controlled them.
+   */
+  canActivate(card: Card, owner: Player, activator: Player = owner): Capability {
     // Ensure the owner actually has the item in-play (prevents bots/actions from trying to activate
     // items they no longer own because the game state changed between action selection and execution).
     if (card instanceof ItemCard && !owner.inPlay.includes(card) && owner.character !== card && card instanceof RoomCard === false) {
       return toSerializedTranslation("capability.YouDoNotOwnThisItem");
     }
+    if (activator !== owner && (!activator.canActivateItemsOf(owner) || owner.character === card))
+      return toSerializedTranslation("capability.YouDoNotOwnThisItem");
     if (card instanceof RoomCard === true && this.game.currentPlayer !== owner)
       return toSerializedTranslation("error.notYourTurn");
 
@@ -499,7 +506,7 @@ export class ActionHandler {
     if(card instanceof MonsterCard && card.encounterType === MonsterType.EVENT) {
       return toSerializedTranslation("capability.cannotActivateMonsterCard");
     }
-    if (!owner.canIActivateThisTurn) {
+    if (!activator.canIActivateThisTurn) {
       return toSerializedTranslation("capability.cannotActivateThisTurn");
     }
     // Either card is not charged and has a tap effect, or card does not have a tap effect,
@@ -507,8 +514,8 @@ export class ActionHandler {
       // And all paid effect are not valid
       !(card instanceof ItemCard) || !card.activeEffectList.some(e => 
           (e.index !== "tap" && 
-            TargetBuilder.verifyPaiementCanBeMade(this.game, owner, card, e.description) === true) && 
-              TargetBuilder.validTargetExists(this.game, owner, card, e.index, e.visualEffectBox.startIndex) === true)
+            TargetBuilder.verifyPaiementCanBeMade(this.game, activator, card, e.description) === true) && 
+              TargetBuilder.validTargetExists(this.game, activator, card, e.index, e.visualEffectBox.startIndex) === true)
     )) {
       if(card.activeEffectList.length === 1 && card.activeEffectList[0]!.index === "tap" && !card.charged)
         return toSerializedTranslation("capability.notCharged");
@@ -517,9 +524,9 @@ export class ActionHandler {
     if(card instanceof ItemCard)
       {
         if(card.activeEffectList.length === 1){
-          return TargetBuilder.validTargetExists(this.game, owner, card, card.activeEffectList[0]!.index);
+          return TargetBuilder.validTargetExists(this.game, activator, card, card.activeEffectList[0]!.index);
         }
-        else if(!card.activeEffectList.some(e => TargetBuilder.validTargetExists(this.game, owner, card, e.index, e.visualEffectBox.startIndex) === true && (card.charged || e.index !== "tap")))
+        else if(!card.activeEffectList.some(e => TargetBuilder.validTargetExists(this.game, activator, card, e.index, e.visualEffectBox.startIndex) === true && (card.charged || e.index !== "tap")))
           return toSerializedTranslation("capability.noValidTargets");
       }
     return true;

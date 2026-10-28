@@ -37,6 +37,15 @@ describe("Warp Zone Loots ", () => {
     //     await game.actions.resolveStack();
     // });
 
+    it("rwz-cow_on_a_trash_farm", async () => {
+        const bs = game.obtainCard("rwz-cow_on_a_trash_farm") as LootCard;
+        game.cardHandler.addCardToHand(player1, bs);
+        game.actions.playCard(player1, 0, [player2]);
+        await game.actions.resolveStack();
+        game.cardHandler.recharge(player2.inPlay[0]!);
+        expect(game.actions.canActivate(player2.inPlay[0]!, player2)).not.toBe(true);
+    });
+
     it("rwz-fiend_fire", async () => {
         const ff = game.obtainCard("rwz-fiend_fire") as LootCard;
         while (player1.hand.length > 0)

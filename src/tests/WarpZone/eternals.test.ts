@@ -5,6 +5,7 @@ import { Game } from "../../models/game";
 import { Player } from "../../models/entities/player";
 import { setupTestGame } from "../testHelpers";
 import { AttackRollData, DiceRoll } from "@/models/stackElement";
+import { executeActivateRequest } from "@/utils/gameRequestHelpers";
 
 async function characterAdd1LootPlay(player1: Player, game: Game) {
     // verify character card works.
@@ -38,6 +39,49 @@ describe("Four Souls+2 Eternal Items", () => {
         // const eternal = player1.inPlay[0]! as ItemCard;
         // game.cardHandler.recharge(eternal, "other");
     // });
+    
+    it("rwz-crewmate", async () => {
+        const setup = await setupTestGame({
+            characters: ["rwz-crewmate", "b2-lilith"],
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card"],
+            playerCount: 2
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        const eternal = player1.inPlay[0]! as ItemCard;
+        game.cardHandler.recharge(eternal, "other");
+        let p1 = 0;
+        let p2 = 0;
+        game.selectMultiple = async (selections: {
+            player: Player;
+            min: number;
+            max: number;
+            options: any[];
+            asMany?: boolean;
+        }[]): Promise<{ playerId: string; selected: any[]; remaining: any[] }[]> => {
+            selections.forEach(sel => {
+                if(sel.player === player1)
+                    p1 += 1;
+                if(sel.player === player2)
+                    p2 += 1;
+            });
+            return selections.map(sel => ({
+                playerId: sel.player.id,
+                selected: sel.options.slice(0, sel.max),
+                remaining: sel.options.slice(sel.max)
+            }));
+        };
+        game.entityHandler.addHealth(game.monsters[0]!, 10);
+        await game.activateItem(player1, eternal, [], "tap");
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.monsters[0]!.currentHealthPoints).toBe(game.monsters[0]!.healthPoints - 1);
+        expect(p1).toBe(2);
+        expect(p2).toBe(1);
+    });
     
     it("rwz-baba", async () => {
         const setup = await setupTestGame({
@@ -902,6 +946,108 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(1);
+    });
+
+    describe("rwz-possession", () => {
+        let sack: ItemCard;
+
+        async function setupPossession(): Promise<void> {
+            const setup = await setupTestGame({
+                characters: ["rwz-abe", "b2-lilith"],
+                monsters: ["b2-fly", "b2-fatty"],
+                monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+                treasureDeck: ["b2-blank_card"],
+                playerCount: 2
+            });
+            game = setup.game;
+            player1 = setup.player1;
+            player2 = setup.player2!;
+            expect(player1.inPlay[0]!.slug).toBe("rwz-possession");
+            sack = game.obtainCard("b2-sack_of_pennies") as ItemCard;
+            game.cardHandler.addInPlay(player2, sack);
+            game.cardHandler.deactivateItem(sack);
+            game.cardHandler.deactivateItem(player2.inPlay[0]!);
+            // Possession triggered at the start of player1's first turn and waits on the stack.
+            expect(game.stack.isEmpty()).toBe(false);
+        }
+
+        async function resolveWholeStack(): Promise<void> {
+            for (let i = 0; i < 10 && !game.stack.isEmpty(); i++)
+                await game.actions.resolveStack();
+            expect(game.stack.isEmpty()).toBe(true);
+        }
+
+        /** The sack as player1's client sees it in player2's in-play area. */
+        function sackSeenByPlayer1() {
+            const other = game.detailedStateJSON(player1).players.find((p) => p.name === player2.id)!;
+            return other.inPlay.find((c) => c.globalId === sack.globalId)!;
+        }
+
+        it("recharges another player's items, which you may activate till end of turn", async () => {
+            await setupPossession();
+            expect(game.actions.canActivate(sack, player2, player1)).not.toBe(true);
+            expect(game.activateItem(player1, sack)).rejects.toThrow();
+            expect(sackSeenByPlayer1().effects).toBeUndefined();
+
+            await resolveWholeStack();
+            expect(sack.charged).toBe(true);
+            expect(player2.inPlay[0]!.charged).toBe(true); // Lilith's eternal
+            expect(game.actions.canActivate(sack, player2, player1)).toBe(true);
+            expect(sackSeenByPlayer1().capabilities.activate).toBe(true);
+            expect(sackSeenByPlayer1().effects!.length).toBeGreaterThan(0);
+            // Only items: the character card of the other player stays theirs.
+            expect(game.actions.canActivate(player2.character, player2, player1)).not.toBe(true);
+
+            const coins1 = player1.coins;
+            const coins2 = player2.coins;
+            await game.activateItem(player1, sack, [], "tap");
+            await game.actions.resolveStack();
+            expect(player1.coins).toBe(coins1 + 1);
+            expect(player2.coins).toBe(coins2);
+            expect(sack.charged).toBe(false);
+        });
+
+        it("activates another player's item through an activation request with ownerId", async () => {
+            await setupPossession();
+            const index = player2.inPlay.indexOf(sack);
+            const request = { type: "inPlay" as const, index, effectIndex: "tap" as const, ownerId: player2.id };
+            expect(executeActivateRequest(game, request, player1)).rejects.toThrow();
+
+            await resolveWholeStack();
+            const coins1 = player1.coins;
+            const response = await executeActivateRequest(game, request, player1);
+            expect(response.complete).toBe(true);
+            await game.actions.resolveStack();
+            expect(player1.coins).toBe(coins1 + 1);
+        });
+
+        it("makes that player loot 2 at the end of your turn, then stops", async () => {
+            await setupPossession();
+            await resolveWholeStack();
+            const hand2 = player2.hand.length;
+            await game.endTurn();
+            // The loot is the first thing resolving at the end of the turn, before the next turn starts.
+            await game.actions.resolveStack();
+            expect(player2.hand.length).toBe(hand2 + 2);
+            for (let i = 0; i < 5 && !game.stack.isEmpty(); i++)
+                await game.actions.resolveStack();
+            expect(game.currentPlayer).toBe(player2);
+            expect(player1.canActivateItemsOf(player2)).toBe(false);
+            game.cardHandler.recharge(sack);
+            expect(game.actions.canActivate(sack, player2, player1)).not.toBe(true);
+        });
+
+        it("does nothing when you choose no player", async () => {
+            await setupPossession();
+            game.select = async (_player: Player, _min: number, _max: number, options: any[]) => ({ selected: [], remaining: options });
+            await resolveWholeStack();
+            expect(sack.charged).toBe(false);
+            expect(player1.canActivateItemsOf(player2)).toBe(false);
+            const hand2 = player2.hand.length;
+            await game.endTurn();
+            await game.actions.resolveStack();
+            expect(player2.hand.length).toBe(hand2);
+        });
     });
 
 });

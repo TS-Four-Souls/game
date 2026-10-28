@@ -219,12 +219,19 @@ export class GameStateSerializer {
    * @returns 
    */
   public serializeOtherInPlay(me: Player, item: ItemCard, owner: Player): api.InPlayCard {
+    // While me may activate owner's items (e.g. Possession), describe the item from my point of view.
+    const borrowed = me !== owner && me.canActivateItemsOf(owner) && owner.inPlay.includes(item);
     return {
      ... (item.jsonAPI),
       charged: item.charged || !item.activeEffectList.some(e => e.index === "tap"),
       capabilities: {
-        activate: this.game.actions.canActivate(item, owner),
+        activate: borrowed
+          ? this.game.actions.canActivate(item, owner, me)
+          : this.game.actions.canActivate(item, owner),
       },
+      ...(borrowed ? {
+        effects: item.activeEffectList.filter(e => TargetBuilder.validTargetExists(this.game, me, item, e.index, e.visualEffectBox.startIndex) === true),
+      } : {}),
       counters: item.counters.json,
       eternal: item.eternal,
       ...(item.entity ? {

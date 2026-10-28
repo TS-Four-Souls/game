@@ -23,6 +23,7 @@ import * as passive from "./passiveEffect";
 import * as room from "./roomEffects";
 import { toSerializedTranslation, translationKeyFromCardSlug } from "@/utils/translation";
 import { shuffle } from "@/utils/auxiliary";
+import { vote } from "./vote";
 import { type CounterType } from "@/shared/api"
 
 const qq = toSerializedTranslation;
@@ -1923,6 +1924,36 @@ export function destroyYourItemOnYourNextTurnEndEffect(game: Game): SyncEffectFu
     };
 }
 
+/**
+ * Possession: choose another player and recharge each item they control. Till end of turn, the issuer may
+ * activate those items as though they controlled them. At the end of the issuer's turn, that player loots.
+ * @param allowZero the player may choose no player, which handles the "you may" of the effect.
+ */
+export function possessAnotherPlayerItemsEffect(game: Game, lootAmount: number, allowZero: boolean): AsyncEffectFunction {
+    return async (data: EffectData) => {
+        if (data.issuer instanceof Player === false) return false;
+        const issuer = data.issuer;
+        const target = (await data.selectAndRecord(game, issuer, allowZero ? 0 : 1, 1, game.players.filter((p) => p !== issuer), qq("pending.playerToPossess"), data.serializedCardAndBox, true, true)).selected[0] as Player | undefined;
+        if (target === undefined) return false;
+        game.cardHandler.rechargeMultiple(target, data.it);
+
+        const stopActivatingItems = issuer.allowActivatingItemsOf(target);
+        const offTillTurnEnd = game.emitter.on("till:turn:end", () => {
+            stopActivatingItems();
+            offTillTurnEnd();
+        });
+        const offTurnEnd = game.emitter.on("on:turn:end", (eventData: OnTurnEndData) => {
+            if (eventData.eventIssuer !== issuer) return;
+            offTurnEnd();
+            passive.addPassiveEffectToStack(game, () => {
+                game.loot(target, lootAmount);
+                return true;
+            }, data, `${target.id} loots ${lootAmount} (Possession).`);
+        });
+        return true;
+    };
+}
+
 export function chooseAnotherPlayerAndLootXEffect(game: Game, lootAmount: number): SyncEffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
@@ -2131,42 +2162,34 @@ export function changeNumberInEffectTextEffect(game: Game, val: number, min: num
     };
 }
 
+export function voteToDamagePlayersOrMonstersEffect(game: Game, damage: number): AsyncEffectFunction {
+    return async (data: EffectData) => {
+        if (data.issuer instanceof Player === false) return false;
+        const options = [...game.monsters.filter((m) => !m.isDead), ...game.players.filter((p) => !p.isDead)];
+        const { winners } = await vote(game, data, {
+            voters: game.players,
+            options: options,
+            description: qq("pending.voteItemToDestroy"),
+        });
+        for(const winner of winners)
+        {
+            game.entityHandler.dealDamage(data.issuer, winner, data.cardAndBox, damage);
+        }
+        return true;
+    };
+}
+
 export function eachPlayersVoteToDestroyItemEffect(game: Game): AsyncEffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const ListOfItems = visibleItemSelector((card, issuer) => card.eternal === false, false, game)(data.issuer, data.it);
-
-        // Request votes from all players in parallel
-        const voteRequests = game.players.map(player => ({
-            player,
-            min: 1,
-            max: 1,
+        const { winner } = await vote(game, data, {
+            voters: game.players,
             options: ListOfItems,
-            reason: data.serializedCardAndBox,
             description: qq("pending.voteItemToDestroy"),
-            canUseOnBoardSelection: true,
-        }));
-        const voteResults = await data.selectMultipleAndRecord(game, voteRequests);
-
-        // Count the votes
-        const votes: Record<number, number> = {};
-        for (const result of voteResults) {
-            const vote = result.selected[0]!.globalId;
-            votes[vote] = (votes[vote] || 0) + 1;
-        }
-
-        // Find the item with most votes
-        let itemToDestroy: ItemCard | null = null;
-        let votesToDestroy = 0;
-        for (const [itemGlobalId, voteCount] of Object.entries(votes)) {
-            if(voteCount === votesToDestroy) itemToDestroy = null;
-            if (voteCount > votesToDestroy) {
-                votesToDestroy = voteCount;
-                itemToDestroy = ListOfItems.find((item) => item.globalId === Number(itemGlobalId))!;
-            }
-        }
-        if (itemToDestroy !== null && itemToDestroy !== undefined) {
-            game.cardHandler.destroyCardsOrSouls([itemToDestroy]);
+        });
+        if (winner !== null) {
+            game.cardHandler.destroyCardsOrSouls([winner]);
         }
         return true;
     };
@@ -2872,41 +2895,23 @@ export function playerWithCharaNamedLootX(game: Game, name: string, nbLoots: num
 
 export function voteOnFirstDeath(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
-        passive.onAnyEventEffect("on:death:after-penalty", [voteToKillPlayers(game, 1)], game, "", (ef: EffectData, eventData: any) => {
+        passive.onAnyEventEffect("on:death:after-penalty", [voteToKillPlayers(game, 1, true)], game, "", (ef: EffectData, eventData: any) => {
             return game.players.every(p=>!p.isDead || p === eventData.eventIssuer);
         })(data);
         return true;
     };
 }
 
-export function voteToKillPlayers(game: Game, nbVotes: number): AsyncEffectFunction {
+export function voteToKillPlayers(game: Game, nbVotes: number, onlyLivingPlayersVote: boolean): AsyncEffectFunction {
     return async (data: EffectData) => {
-        const choices = await data.selectMultipleAndRecord(
-        game,
-        game.players.filter(p => p.isDead == false).map(p => ({ 
-                player: p,
-                min: nbVotes,
-                max: nbVotes,
-                options: game.players.filter(p2 => !p2.isDead),
-                reason: data.serializedCardAndBox,
-                description: qq("pending.whoIsImpostor"),
-                canUseOnBoardSelection: true,
-            })),
-        );
-        const res = new Map<Player, number>();
-        for (const choice of choices) {
-            for (const selectedPlayer of choice.selected)
-            {
-                if(!res.has(selectedPlayer))
-                    res.set(selectedPlayer, 0);
-                res.set(selectedPlayer, res.get(selectedPlayer)! + 1);
-            }
-        }
-        const maxVotes = Math.max(...res.values());
-        for (const [player, votes] of res.entries()) {
-            if(votes === maxVotes) {
-                game.entityHandler.kill(data.issuer, player, data.cardAndBox);
-            }
+        const { winners } = await vote(game, data, {
+            voters: game.players.filter(p => !p.isDead || !onlyLivingPlayersVote),
+            options: game.players.filter(p => !p.isDead),
+            votesPerVoter: nbVotes,
+            description: qq("pending.whoIsImpostor"),
+        });
+        for (const player of winners) {
+            game.entityHandler.kill(data.issuer, player, data.cardAndBox);
         }
         return true;
     };
@@ -3389,6 +3394,43 @@ export function makePlayerPutRandomLootUnderThisEffect(game: Game): SyncEffectFu
             removeFunction();
             offEndTurn?.();
             offEndTurn = null;
+        });
+        return true;
+    };
+}
+
+export function makePlayerLoseAllAbilitiesExceptEternalEffect(game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
+        const target = data.next as Player;
+        if(!(target instanceof Player))
+            throw new GameError("makePlayerLoseAllAbilitiesExceptEternalEffect can only be applied to Players.", toSerializedTranslation("error.behaviorError", {error: "makePlayerLoseAllAbilitiesExceptEternalEffect can only be applied to Players."}));
+
+        const regains: (() => void)[] = [];
+        target.changeName(qq("name.cow"), data.it);
+        regains.push(target.character.loseAllAbilities());
+
+        // "except eternal": eternal items are trash too, but keep being eternal.
+        const trash = (item: ItemCard): void => {
+            regains.push(item.loseAllAbilities());
+            item.changeName("Trash", data.it);
+            // Also called when the item leaves play: it is no longer controlled by the target.
+            item.cleaners.push(() => item.removeName(data.it));
+        };
+        for(const item of target.inPlay)
+            trash(item);
+
+        // Items gained during the effect are controlled by the target too.
+        const offEnterPlay = game.emitter.on("on:enter:play:after", ({ eventIssuer, card }) => {
+            if(eventIssuer === target && card instanceof ItemCard)
+                trash(card);
+        });
+        const offStartTurn = game.emitter.on("on:turn:start", ({ eventIssuer }) => {
+            if(eventIssuer !== target) return;
+            offEnterPlay();
+            offStartTurn();
+            target.removeName(data.it);
+            for(const regain of regains)
+                regain();
         });
         return true;
     };

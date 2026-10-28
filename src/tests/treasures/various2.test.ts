@@ -98,6 +98,43 @@ describe("Tap/Paid effects 2", () => {
         expect(nbVisible).toBe(game.visibleItems.length);
     });
 
+    it("remote_detonator - an additional vote breaks the tie", async () => {
+        const remoteDetonator = game.shop.obtainCard("b2-remote_detonator") as ItemCard;
+        const breakfast = game.shop.obtainCard("b2-breakfast") as ItemCard;
+        const dinner = game.shop.obtainCard("b2-dinner") as ItemCard;
+        const brimstone = game.shop.obtainCard("b2-brimstone") as ItemCard;
+
+        game.cardHandler.addInPlay(player1, remoteDetonator);
+        game.cardHandler.addInPlay(player1, breakfast);
+        game.cardHandler.addInPlay(player2, dinner);
+        game.cardHandler.addInPlay(player3, brimstone);
+        game.cardHandler.recharge(remoteDetonator);
+
+        // "While voting, you may vote an additional time."
+        player2.addAdditionalVotes(1);
+
+        const calls: any[][] = [];
+        const firstVotes = new Map([[player1.id, breakfast], [player2.id, dinner], [player3.id, brimstone]]);
+        game.selectMultiple = async (selections: any[]) => {
+            calls.push(selections);
+            // First ballot: a 3-way tie. Additional ballot: player2 votes for dinner again.
+            return selections.map(sel => {
+                const choice = calls.length === 1 ? firstVotes.get(sel.player.id)! : dinner;
+                return { playerId: sel.player.id, selected: [choice], remaining: sel.options.filter((i: any) => i !== choice) };
+            }) as any;
+        };
+
+        await game.activateItem(player1, remoteDetonator);
+        await game.actions.resolveStack();
+
+        expect(calls.length).toBe(2);
+        expect(calls[1]!.map(sel => sel.player)).toEqual([player2]);
+        expect(calls[1]![0].min).toBe(0);
+        expect(player2.inPlay).not.toContain(dinner);
+        expect(player1.inPlay).toContain(breakfast);
+        expect(player3.inPlay).toContain(brimstone);
+    });
+
     // b2-guppys_paw: "[Tap Effect] Pay 1 [HP]. If you do, choose a player. Prevent the next instance of up to 2 damage they would take this turn."
     it("guppys_paw - prevents up to 2 damage when HP paid", async () => {
         const guppysPaw = game.shop.obtainCard("b2-guppys_paw") as ItemCard;

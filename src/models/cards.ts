@@ -48,6 +48,7 @@ class Card {
     protected _flipData: FlipData | undefined = undefined;
     protected _counterHandler = new CounterHandler
     protected _separatorIds: CardEffectsRanges;
+    protected _nameOverrides: { name: string, origin: Card }[] = [];
 
     constructor(id: number,
         globalId: number,
@@ -178,7 +179,14 @@ class Card {
         return this._globalId;
     }
     get name(): string {
-        return this._name;
+        return this._nameOverrides.at(-1)?.name ?? this._name;
+    }
+    /** Temporarily renames this card (e.g. "named Trash") until removeName is called with the same origin. */
+    changeName(name: string, origin: Card): void {
+        this._nameOverrides.push({ name, origin });
+    }
+    removeName(origin: Card): void {
+        this._nameOverrides = this._nameOverrides.filter(n => n.origin !== origin);
     }
     get minimumPlayers(): number {
         return this._minimumPlayers;
@@ -351,6 +359,29 @@ class Card {
         this._owner = issuerProvider();
         this._effectInterface.subscribeAll(issuerProvider, differentSource);
     }
+    /**
+     * Makes this in-play card lose all its abilities, until the returned function is called
+     * or the card leaves play (whichever comes first).
+     * Non-ability state set by onAddInPlay (e.g. character stats) is kept.
+     */
+    loseAllAbilities(): () => void {
+        const owner = this.owner;
+        const effectInterface = this._effectInterface;
+        let lost = true;
+        this.cleanup();
+        this._effectInterface = new EffectInterface(this);
+        this.onAddInPlay(() => owner);
+        // Leaving play runs the cleaners: the card gets its abilities back for its next controller.
+        this._cleanup.push(() => {
+            lost = false;
+            this._effectInterface = effectInterface;
+        });
+        return () => {
+            if (!lost) return;
+            this.cleanup();
+            this.onAddInPlay(() => owner);
+        };
+    }
     addEffect(effect: Effect | PassiveEffect): void {
         this._effectInterface.addEffect(effect);
     }
@@ -522,16 +553,19 @@ export class ItemCard extends Card {
     targets: any[] = [],
     effectId: number | "tap" = "tap",
     differentSource: Card | undefined = undefined,
+    // Player activating an item they do not control, as though they controlled it.
+    activator: Entity | undefined = undefined,
   ): Promise<EffectOnStack> {
+    const issuer = activator ?? this.owner;
     switch (effectId) {
       case "tap":
         if (this._charged === true) {
           this._charged = false;
-          return this._effectInterface.tapEffect(this.owner, targets, differentSource);
+          return this._effectInterface.tapEffect(issuer, targets, differentSource);
         }
         throw new GameError("Cannot activate uncharged item", toSerializedTranslation("error.cannotActivateUnchargedItem"));
       default:
-        return this._effectInterface.paidEffect(this.owner, targets, effectId, differentSource);
+        return this._effectInterface.paidEffect(issuer, targets, effectId, differentSource);
     }
   }
   targetStillValid(

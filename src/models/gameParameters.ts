@@ -295,6 +295,8 @@ export class GameParameters {
   readonly useFSP2Cards: BooleanGameParameter;
   readonly useG2Cards: BooleanGameParameter;
   readonly useRCards: BooleanGameParameter;
+  readonly useBOXCards: BooleanGameParameter;
+  readonly useRWZCards: BooleanGameParameter;
   readonly nbSoulsToWin: NumericGameParameter;
   readonly resolveCooldown: NumericGameParameter;
   readonly nbItemsInShop: NumericGameParameter;
@@ -340,6 +342,8 @@ export class GameParameters {
     if (!this.useFSP2Cards.value && card.slug.startsWith("fsp2-")) return false;
     if (!this.useG2Cards.value && card.slug.startsWith("g2-")) return false;
     if (!this.useRCards.value && card.slug.startsWith("r-")) return false;
+    if (!this.useBOXCards.value && card.slug.startsWith("box-")) return false;
+    if (!this.useRWZCards.value && card.slug.startsWith("rwz-")) return false;
     // In custom mode, don't apply the player-count filter.
     if (this._deckMode === "custom") return true;
     // cards meeting player minimum filter
@@ -384,8 +388,16 @@ export class GameParameters {
       () => this.updateExpansionCards("g2-", this.useG2Cards.value),
     );
     this.useRCards = new BooleanGameParameter(
-      process.env.USE_REQUIEM === "true",
+      true,
       () => this.updateExpansionCards("r-", this.useRCards.value),
+    );
+    this.useBOXCards = new BooleanGameParameter(
+      process.env.USE_REQUIEM === "true",
+      () => this.updateExpansionCards("box-", this.useBOXCards.value),
+    );
+    this.useRWZCards = new BooleanGameParameter(
+      process.env.USE_REQUIEM === "true",
+      () => this.updateExpansionCards("rwz-", this.useRWZCards.value),
     );
     this.nbSoulsToWin = new NumericGameParameter(1, 4, 20, onChange);
     this.resolveCooldown = new NumericGameParameter(0, 0, 100, onChange);
@@ -482,6 +494,30 @@ export class GameParameters {
               translationKey: toSerializedTranslation(
                 "startStep.gameParams.useExpansionCards",
                 { expansionName: "Requiem" },
+              ),
+            },
+          }
+        : {}),
+      ...(!FORBIDDEN_PREFIXES.includes("box-")
+        ? {
+            useBOXCards: {
+              text: "Use Box cards?",
+              value: this.useBOXCards.value,
+              translationKey: toSerializedTranslation(
+                "startStep.gameParams.useExpansionCards",
+                { expansionName: "The Unboxing of Isaac" },
+              ),
+            },
+          }
+        : {}),
+      ...(!FORBIDDEN_PREFIXES.includes("rwz-")
+        ? {
+            useRWZCards: {
+              text: "Use Requiem cards?",
+              value: this.useRWZCards.value,
+              translationKey: toSerializedTranslation(
+                "startStep.gameParams.useExpansionCards",
+                { expansionName: "Requiem Warp Zone" },
               ),
             },
           }
@@ -687,6 +723,12 @@ export class GameParameters {
         if (decks.useRCards) {
           this.useRCards.value = decks.useRCards.value;
         }
+        if (decks.useBOXCards) {
+          this.useBOXCards.value = decks.useBOXCards.value;
+        }
+        if (decks.useRWZCards) {
+          this.useRWZCards.value = decks.useRWZCards.value;
+        }
         if (decks.nbPlayerCardRestriction) {
           this.nbPlayerCardRestriction.value =
             decks.nbPlayerCardRestriction.value;
@@ -784,6 +826,12 @@ export class GameParameters {
       if (decks.useRCards?.value !== undefined) {
         this.useRCards.value = decks.useRCards.value;
       }
+      if (decks.useBOXCards?.value !== undefined) {
+        this.useBOXCards.value = decks.useBOXCards.value;
+      }
+      if (decks.useRWZCards?.value !== undefined) {
+        this.useRWZCards.value = decks.useRWZCards.value;
+      }
       return;
     }
 
@@ -806,6 +854,8 @@ export class GameParameters {
     this.useFSP2Cards.reset();
     this.useG2Cards.reset();
     this.useRCards.reset();
+    this.useBOXCards.reset();
+    this.useRWZCards.reset();
     this.nbSoulsToWin.reset();
     this.resolveCooldown.reset();
     this.nbItemsInShop.reset();

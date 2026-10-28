@@ -102,6 +102,9 @@ export class Player extends Entity {
 
   private _priceModifier: number = 0;
 
+  /** @private Number of additional votes the player may cast when voting */
+  private _additionalVotes: number = 0;
+
   private _animations: Animation[] = [];
 
   private _team: Team;
@@ -115,6 +118,9 @@ export class Player extends Entity {
   private _nameHandler: NamedPileHandler;
 
   private _purchasedThisTurn: {Card: Card, source: "shop" | "topDeck"}[] = [];
+
+  /** Players whose items this player may activate as though they controlled them (e.g. Possession). */
+  private _canActivateItemsOf: Player[] = [];
 
   stats: PlayerStats = new PlayerStats();
   /**
@@ -553,6 +559,23 @@ export class Player extends Entity {
     this._canIActivateThisTurn = 0;
   }
 
+  /** Whether this player may activate items in owner's in-play area. */
+  canActivateItemsOf(owner: Player): boolean {
+    return owner === this || this._canActivateItemsOf.includes(owner);
+  }
+
+  /**
+   * Lets this player activate the items of owner as though they controlled them,
+   * until the returned function is called.
+   */
+  allowActivatingItemsOf(owner: Player): () => void {
+    this._canActivateItemsOf.push(owner);
+    return () => {
+      const index = this._canActivateItemsOf.indexOf(owner);
+      if (index !== -1) this._canActivateItemsOf.splice(index, 1);
+    };
+  }
+
   get isEngagedInPurchase(): boolean {
     return this._engagedInPurchase > 0;
   }
@@ -908,15 +931,23 @@ export class Player extends Entity {
     this._souls.splice(idx, 1);
     return true;
   }
+  /**
+   * Activates an item this player controls, or an item of another player whose items this player
+   * may activate (see allowActivatingItemsOf). In that case, this player controls the effect.
+   */
   async activateItem(item: ItemCard, targets: any[] = [], effectId: number | "tap" = "tap"): Promise<EffectOnStack> {
-    const index = this._inPlay.indexOf(item);
-    if (index === -1 && this.character !== item) {
-      throw new GameError("Item is not in play.", toSerializedTranslation("error.itemNotInPlay"));
+    const borrowed = !this._inPlay.includes(item) && this.character !== item;
+    if (borrowed) {
+      const owner = item.owner;
+      if (!(owner instanceof Player) || !owner._inPlay.includes(item))
+        throw new GameError("Item is not in play.", toSerializedTranslation("error.itemNotInPlay"));
+      if (!this.canActivateItemsOf(owner))
+        throw new GameError("Player does not own the specified item.", toSerializedTranslation("error.playerDoesNotOwnItem"));
     }
     if (!item.targetStillValid(this, effectId, targets))
       throw new GameError("Targets are not valid for this effect.", toSerializedTranslation("error.targetsNotValidForEffect"));
 
-    return item.tryActivateEffect(targets, effectId);
+    return item.tryActivateEffect(targets, effectId, undefined, borrowed ? this : undefined);
   }
   gainCoins(coins: number): void {
     this._coin += coins;
@@ -938,6 +969,15 @@ export class Player extends Entity {
 
   get priceModifier(): number {
     return this._priceModifier;
+  }
+
+  /** Number of additional votes the player may cast when voting. */
+  get additionalVotes(): number {
+    return this._additionalVotes;
+  }
+
+  addAdditionalVotes(value: number): void {
+    this._additionalVotes += value;
   }
 
   /* This methods tries to remove n coins to the player and return true if it does.

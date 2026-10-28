@@ -30,12 +30,26 @@ export async function executeAttackMonsterRequest(
   });
 }
 
+/**
+ * Player whose in-play area the activation index refers to: the requester, or another player
+ * whose items the requester may activate (e.g. Possession).
+ */
+function activationOwner(game: Game, payload: Requests.Activate | Requests.ActivateWithID, player: Player): Player {
+  if (payload.ownerId === undefined || payload.ownerId === player.id)
+    return player;
+  const owner = game.entityHandler.getPlayerById(payload.ownerId);
+  if (payload.type !== "inPlay" || !player.canActivateItemsOf(owner))
+    throw new GameError("Player does not own the specified item.", toSerializedTranslation("error.playerDoesNotOwnItem"));
+  return owner;
+}
+
 export async function executeActivateRequest(
   game: Game,
   payload: Requests.Activate,
   player: Player,
 ): Promise<TargetSelectorResponse> {
-  const card = TargetBuilder.getCard(game, player, payload.index, payload.type);
+  const owner = activationOwner(game, payload, player);
+  const card = TargetBuilder.getCard(game, owner, payload.index, payload.type);
   // const { effectId, choice } = card.getEffectIdAndChooseOneChoiceFromSeparatorId(payload.effectIndex);
 
   let partialChoices = payload.targetChoices === undefined ? [] : payload.targetChoices;
@@ -64,6 +78,7 @@ export async function executeActivateRequest(
       payload.index,
       targets,
       payload.effectIndex,
+      owner,
     );
   }
   if (choices.complete) {
@@ -81,7 +96,7 @@ export async function executeActivateWithIdRequest(
   payload: Requests.ActivateWithID,
   player: Player,
 ): Promise<TargetSelectorResponse> {
-  const card = TargetBuilder.getCard(game, player, payload.index, payload.type);
+  const card = TargetBuilder.getCard(game, activationOwner(game, payload, player), payload.index, payload.type);
   const { effectId, choice } = card.getEffectIdAndChooseOneChoiceFromSeparatorId(payload.effectIndex);
 
   let partialChoices = payload.targetChoices === undefined ? [] : payload.targetChoices;

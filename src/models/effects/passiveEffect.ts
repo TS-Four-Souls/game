@@ -48,6 +48,7 @@ import { noTargetEffect } from './parsing/logicParsers';
 import { toSerializedTranslation } from '@/utils/translation';
 import { Animated } from '../entities/animated';
 import { shuffle } from '@/utils/auxiliary';
+import { vote } from './vote';
 
 function getTemporaryEffect(data: EffectData): TemporaryEffect {
     return{
@@ -270,32 +271,15 @@ export function voteOnWhipOrWhiffEffect(game: Game, damageIfWhipWins: number, lo
 
         offWouldTakeDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
             if(eventData.eventIssuer !== data.it.entity) return false;
-                     // Request votes from all players in parallel
             const effect: EffectFunction = async (data: EffectData) => {
-                const voteRequests = game.players.filter(p => !p.isDead).map(player => ({
-                    player,
-                    min: 1,
-                    max: 1,
-                    options: [`WHIP! (prevent the damage this would take and each non-active player takes ${damageIfWhipWins} damage)`, 
-                            `WHIFF! (the active player loots ${lootIfWhiffWins})`],
+                const whip = `WHIP! (prevent the damage this would take and each non-active player takes ${damageIfWhipWins} damage)`;
+                const whiff = `WHIFF! (the active player loots ${lootIfWhiffWins})`;
+                const { winner } = await vote(game, data, {
+                    voters: game.players.filter(p => !p.isDead),
+                    options: [whip, whiff],
                     description: toSerializedTranslation("pending.voteOne"),
-                    reason: data.serializedCardAndBox,
-                    canUseOnBoardSelection: true,
-                }));
-                const voteResults = await data.selectMultipleAndRecord(game, voteRequests);
-
-                // Count the votes
-                const votes = {"WHIP": 0, "WHIFF": 0};
-                for (const result of voteResults) {
-                    const vote = result.selected[0]!;
-                    if(vote.startsWith("WHIP"))
-                        votes["WHIP"]++;
-                    else if(vote.startsWith("WHIFF"))
-                        votes["WHIFF"]++;
-                    else 
-                        throw new GameError(`Invalid vote option: ${vote}`, toSerializedTranslation("error.invalidVoteOption", {vote: vote}));
-                }
-                if(votes["WHIP"] > votes["WHIFF"]) {
+                });
+                if(winner === whip) {
                     eventData.damageArray[0] = 0; // prevent the damage this would take
                     for(const player of game.players) {
                         if(player !== game.currentPlayer && !player.isDead) {
@@ -3173,6 +3157,20 @@ export function shopItemsCostLessEffect(discount: number, game: Game): SyncEffec
         issuer.priceModifier -= discount;
         data.it.cleaners.push(() => {
             issuer.priceModifier += discount;
+        });
+        return true;
+    };
+}
+
+// REPLACEMENT EFFECT: "While voting, you may vote an additional time." - does not use the stack.
+export function voteAdditionalTimeEffect(nb: number, game: Game): SyncEffectFunction {
+    return (data: EffectData) => {
+        const issuer = data.issuer;
+        if(!(issuer instanceof Player))
+            throw new GameError("voteAdditionalTimeEffect can only be applied to Players.", toSerializedTranslation("error.behaviorError", {error: "voteAdditionalTimeEffect can only be applied to Players."}));
+        issuer.addAdditionalVotes(nb);
+        data.it.cleaners.push(() => {
+            issuer.addAdditionalVotes(-nb);
         });
         return true;
     };

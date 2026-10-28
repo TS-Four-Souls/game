@@ -293,6 +293,8 @@ const inPlayCardSchema = attackableCardSchema.extend({
   capabilities: z.object({
     activate: capabilitySchema,
   }),
+  // Effects you may activate on another player's item, while you may activate their items (e.g. Possession).
+  effects: z.array(activeEffectEntrySchema).optional(),
 });
 export type InPlayCard = z.infer<typeof inPlayCardSchema>;
 
@@ -541,6 +543,8 @@ const decksConfigSchema = z.object({
   useG2Cards: booleanGameParameterSchema.optional(),
   useB2Cards: booleanGameParameterSchema.optional(),
   useRCards: booleanGameParameterSchema.optional(),
+  useBOXCards: booleanGameParameterSchema.optional(),
+  useRWZCards: booleanGameParameterSchema.optional(),
 
   character: characterDeckSchema,
   monster: deckSchema,
@@ -560,6 +564,8 @@ const decksConfigPatchSchema = z.object({
   useG2Cards: booleanGameParameterSchema.optional(),
   useB2Cards: booleanGameParameterSchema.optional(),
   useRCards: booleanGameParameterSchema.optional(),
+  useBOXCards: booleanGameParameterSchema.optional(),
+  useRWZCards: booleanGameParameterSchema.optional(),
 
   monster: z.array(deckConfigCardSchema).optional(),
   character: z.array(deckConfigCardSchema).optional(),
@@ -803,6 +809,8 @@ const cardActivationSchema = z.object({
   index: z.number(),
   effectIndex: z.union([z.number(), z.literal("tap")]),
   targetChoices: z.array(selectionItemSchema).optional(),
+  // In-play area of another player whose items the requester may activate (e.g. Possession).
+  ownerId: z.string().optional(),
 });
 const cardActivationWithIdSchema = z.object({
   type: z.union([
@@ -815,6 +823,8 @@ const cardActivationWithIdSchema = z.object({
   index: z.number(),
   effectIndex: z.number(),
   targetChoices: z.array(selectionItemSchema).optional(),
+  // In-play area of another player whose items the requester may activate (e.g. Possession).
+  ownerId: z.string().optional(),
 });
 
 const setGameParameterRequestSchema = z.discriminatedUnion("parameter", [

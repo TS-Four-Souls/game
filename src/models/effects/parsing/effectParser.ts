@@ -1072,6 +1072,12 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
             return logic.noTargetEffect(active.endTurnAndResetStackEffect(game));
         case "choose an eternal item another player controls. this gains all of that item's abilities till the start of your next turn":
             return logic.noTargetEffect(active.chooseAndCopyEternalItemAbilitiesEffect(game));
+        case "recharge each item another player controls. till end of turn you may activate their items as though you control them. at the end of your turn, that player loots x": {
+            // Choosing no player declines the "you may" of Possession.
+            const allowZero = youMayEffectHanging[0]!;
+            youMayEffectHanging[0] = false;
+            return logic.noTargetEffect(active.possessAnotherPlayerItemsEffect(game, nr.nextNumber(), allowZero));
+        }
         case "choose the player with the most souls or tied for the most. that player destroys a soul they control":
             return { effectFunction: active.makeAPlayerWithMostSoulsDestroyASoulEffect(game), targetSelectors: selectPlayerWithMostSouls(game) };
         case "look at the top card of each deck. you may put any of those cards on the bottom of their deck":
@@ -1230,7 +1236,7 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
         case "each player may discard a loot card. if they don’t, they take x damage. repeat this process till there are x or fewer living players":
             return logic.noTargetEffect(active.eachPlayerMayDiscardOrTakeDamageEffect(game, nr.nextNumber(), nr.nextNumber()));
         case "each player votes for x different players. each player with the most votes or tied for the most die":
-            return logic.noTargetEffect(active.voteToKillPlayers(game, nr.nextNumber()));
+            return logic.noTargetEffect(active.voteToKillPlayers(game, nr.nextNumber(), false));
         case "remove any number of counters from this. gain x [atk] for your next attack roll this turn for each counter removed this way":
             return { effectFunction: active.removeCountersAndAddToNextAttackRollEffect(game, nr.nextNumber()), targetSelectors: selectNbCountersOnCard(game) };
         case "remove any number of counters from this. add x to a roll for each counter removed in this way":
@@ -1241,6 +1247,8 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
             return logic.noTargetEffect(monster.playerWithMostSoulsWinsEffect(game, "current"));
         case "reveal the top card of the loot deck. if it's a non-trinket, non-ambush card, each player may play a copy of it without using a loot play":
             return logic.noTargetEffect(active.revealTopLootDeckAndEachPlayerMayPlayFreeCopyEffect(game));
+        case "each player votes on a monster or player. each monster or player with the most votes or tied for the most takes x damage":
+            return logic.noTargetEffect(active.voteToDamagePlayersOrMonstersEffect(game, nr.nextNumber()));
     }
     if(s.startsWith("if a non-active player died, "))
         return logic.parseIfAPlayerDiedThisTUrnEffect(s, game, false);
@@ -2321,6 +2329,8 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             return logic.noTargetSyncEffect(room.playersCanOnlyPlayLootOnceATurn(game));
         case "choose a player. they put a random loot card from their hand under this. till end of turn, you may play that loot card without using a loot play":
             return { effectFunction: active.makePlayerPutRandomLootUnderThisEffect(game), targetSelectors: selectPlayer(game) };
+        case "choose a player. until the start of their next turn, their character is named cow and loses all abilities, and each item they control is named trash and loses all abilities, except eternal":
+            return { effectFunction: active.makePlayerLoseAllAbilitiesExceptEternalEffect(game), targetSelectors: selectPlayer(game) };
         default:
             return null; // No match found
         }
