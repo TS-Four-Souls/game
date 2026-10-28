@@ -1204,8 +1204,8 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
             return logic.noTargetEffect(active.makePlayerGiveLootCardEffect(game, "diceRoll"));
         case "put the top card of the monster deck in another monster slot":
             return logic.noTargetEffect(active.putTopMonsterInAnotherSlotEffect(game));
-        case "choose another player. they reveal their hand. choose a non-trinket, non-ambush loot card in their hand. till end of turn, you may play a copy of it without using a loot play":
-            return { effectFunction: active.choosePlayerRevealHandAndPlayCopyEffect(game), targetSelectors: selectAnotherPlayer(game) };
+        case "they reveal their hand. choose a non-trinket, non-ambush loot card in their hand. till end of turn, you may play a copy of it without using a loot play":
+            return logic.noTargetEffect(active.revealHandAndAddFreeCopyEffect(game));
         case "choose a living player. that player dies":
             return { effectFunction: active.deathTargetEffect(game, [["player"]]), targetSelectors: selectAlivePlayer(game) };
         case "they give you half of their ¢ and loot cards rounded down, then gives you an item":
@@ -1361,6 +1361,8 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
         case "each monster takes x damage":
         case "deal x damage to each monster":
             return logic.noTargetSyncEffect(active.dealDamageToEachMonsterEffect(game, nr.nextNumber()));
+        case "while voting, you may vote an additional time":
+            return logic.noTargetSyncEffect(passive.voteAdditionalTimeEffect(1, game));
         case "shop items you purchase cost x¢ less":
             return logic.noTargetSyncEffect(passive.shopItemsCostLessEffect(nr.nextNumber(), game));
         case "you take x damage":

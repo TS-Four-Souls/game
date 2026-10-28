@@ -3486,13 +3486,20 @@ export function issuerSkipNextTurnEffect(game: Game, issuerIsCurrentPlayer: bool
     };
 }
 
-export function choosePlayerRevealHandAndPlayCopyEffect(game: Game, issuerIsCurrentPlayer: boolean = false): SyncEffectFunction {
-    return (data: EffectData) => {
+
+export function revealHandAndAddFreeCopyEffect(game: Game, issuerIsCurrentPlayer: boolean = false): AsyncEffectFunction {
+    return async (data: EffectData) => {
         const target = data.next as Player;
         const issuer = issuerIsCurrentPlayer ? game.currentPlayer : data.issuer;
         if(issuer instanceof Player === false) 
             return false;
-        game.playerSkipNextTurn(issuer);
+        await data.selectAndRecord(game, issuer, 0, 0, target.hand.cards, qq("pending.lookAtPlayerHand", {name: target.name}), data.serializedCardAndBox, false, false);
+        const possibleCards = target.hand.cards.filter(c => c instanceof LootCard && !c.trinket && !c.effectOutcomes.some(outcome => outcome.includes("Ambush")));
+        if(possibleCards.length === 0) return false;
+        const selectedCard = (await data.selectAndRecord(game, issuer, 1, 1, possibleCards, qq("pending.freeCopyOfCard"), data.serializedCardAndBox, true, true)).selected[0] as LootCard;
+        if(!selectedCard) return false;
+        const copy = game.cardHandler.copyCard(selectedCard) as LootCard;
+        game.cardHandler.addFreeCard(issuer, copy, data.it);
         return true;
     };
 }

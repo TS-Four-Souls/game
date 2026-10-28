@@ -39,6 +39,39 @@ describe("Four Souls+2 Eternal Items", () => {
         // game.cardHandler.recharge(eternal, "other");
     // });
     
+    it("rwz-baba", async () => {
+        const setup = await setupTestGame({
+            characters: ["rwz-baba", "b2-lilith"],
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card"],
+            playerCount: 2
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        const eternal = player1.inPlay[0]! as ItemCard;
+        game.cardHandler.recharge(eternal, "other");
+        const loot = game.obtainCard("b2-a_dime") as LootCard;
+        game.cardHandler.addCardToHand(player2, loot);
+        await game.activateItem(player1, player1.character, [player2], "tap");
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.hand.freeCards.length).toBe(1);
+        await game.actions.playCard(player1, 0);
+        await game.actions.resolveStack();
+        expect(player1.hand.freeCards.length).toBe(0);
+        expect(player1.coins).toBe(10);
+        game.cardHandler.loot(player1, 1);
+        // is_you test
+        await game.activateItem(player1,
+            eternal, ["Look at a player's hand. You may swap a card from your hand with one of theirs.", player2]);
+        await game.actions.resolveStack();
+        expect(player1.hand.length).toBe(1);
+        expect(player1.hand.cards[0]!.slug).toBe("b2-a_dime");
+
+    });
+    
     it("rwz-bum_bo_the_weird", async () => {
         const setup = await setupTestGame({
             characters: ["rwz-bum_bo_the_weird", "b2-lilith"],
