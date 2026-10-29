@@ -1808,7 +1808,7 @@ export function playForFreeTargetEffect(game: Game): AsyncEffectFunction {
         if(TargetBuilder.validTargetExists(game, data.issuer as Player, card, "tap") === true && game.actions.canPlayCard(data.issuer as Player, false) === true) {
             const index = data.issuer.hand.cards.indexOf(card);
             const targets = await TargetBuilder.buildTargetsOnResolve(game, data.issuer as Player, card, "tap");
-            game.actions.playCard(data.issuer as Player, index, targets);
+            await game.actions.playCard(data.issuer as Player, index, targets);
         }
         data.issuer.remainingLootPlay = previousLootPlay;
         return true;

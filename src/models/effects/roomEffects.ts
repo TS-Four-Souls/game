@@ -315,6 +315,7 @@ export function lootOnPlayerDeathEffect(game: Game, amount: number): SyncEffectF
         let offDeath: (() => void) | null = null;
         offDeath = game.emitter.on("on:death:before-penalty", (eventData) => {
             const { eventIssuer } = eventData;
+            if(eventIssuer instanceof Player === false) return;
             for(const player of game.players) {
                 if(player !== eventIssuer) {
                     game.loot(player, amount);
