@@ -1550,13 +1550,16 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
                     "issuer",
                 ));
         case "prevent the first instance of combat damage you would take each turn":
-            return logic.noTargetSyncEffect(passive.onYourEventEffect("on:turn:start", [passive.preventNextDamageUpToEffect(INFINITY, game, "combat")], game, s, false, (effect: EffectData) => {
-                return effect.issuer.damageTakenThisTurn.filter((damage) => damage.with instanceof DiceRoll).length === 0;  
-        }, true));
+            return logic.noTargetSyncEffect(passive.onAnyEventEffect("on:turn:start", [], game, s, (effect: EffectData) => {
+                if (effect.issuer.damageTakenThisTurn.filter((damage) => damage.with instanceof DiceRoll).length === 0){
+                    passive.preventNextDamageUpToEffect(INFINITY, game, "combat")(effect);
+                }
+                return false;
+        }, false));
         case "prevent the first instance of damage you would take each turn":
-            return logic.noTargetSyncEffect(passive.onYourEventEffect("on:turn:start", [passive.preventNextDamageUpToEffect(INFINITY, game, "any")], game, s, false, (effect: EffectData) => {
+            return logic.noTargetSyncEffect(passive.onAnyEventEffect("on:turn:start", [passive.preventNextDamageUpToEffect(INFINITY, game, "any")], game, s, (effect: EffectData) => {
                 return effect.issuer.damageTakenThisTurn.filter((damage) => damage.with instanceof DiceRoll).length === 0;  
-        }, true));
+        }, false));
         case "at the start of each turn or each time this deals combat damage, the active player deals x damage to a player chosen at random":
             return logic.noTargetSyncEffect(passive.atStartAndDamageGivenDealDamageToRandomPlayerEffect(nr.nextNumber(), game));
         case "put all cards in another monster slot into discard":

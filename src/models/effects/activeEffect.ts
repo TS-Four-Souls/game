@@ -1474,7 +1474,9 @@ export function destroyOrGiveItemOfRandomPlayerEffect(game: Game, type: "destroy
         const randomIndex = Math.floor(game.random() * players.length);
         const targetPlayer = players[randomIndex]!;
         if(targetPlayer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false).length === 0) return false;
-        const item = (await data.selectAndRecord(game, targetPlayer, 1, 1, targetPlayer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false), qq("pending.itemToDestroy"), data.serializedCardAndBox, true, true)).selected[0]!;
+        const item = (await data.selectAndRecord(game, targetPlayer, 1, 1, targetPlayer.inPlay.filter((card) => card instanceof ItemCard && card.eternal === false), 
+        type === "destroy" ? qq("pending.itemToDestroy") : qq("pending.itemToGive")
+        , data.serializedCardAndBox, true, true)).selected[0]!;
         if (type === "destroy") {
             return game.cardHandler.destroyCardsOrSouls([item]);
         } else {
