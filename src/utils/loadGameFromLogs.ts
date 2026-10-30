@@ -317,6 +317,7 @@ export async function loadGameFromLogs(
 
   const game = new Game(findInitialSeed(logs));
   const characterByPlayer = new Map<string, string>();
+  let seedAppliedDuringStartIndex = -1;
 
   const normalMultipleSelection = game.selectMultiple;
   setupLoadingSubmitSelectionHandling(game, logs);
@@ -355,7 +356,8 @@ export async function loadGameFromLogs(
         }
 
         case "randomSeed": {
-          game.seed = entry.seed;
+          if (index !== seedAppliedDuringStartIndex)
+            game.seed = entry.seed;
           break;
         }
 
@@ -379,9 +381,20 @@ export async function loadGameFromLogs(
           }
           else
           {
-            await game.start(entry.players);
+            const startPromise = game.start(entry.players);
+            game.addToHistory(entry);
+            // A randomSeed right after Start means the original game was reloaded with Start as its last
+            // request: it reseeded while start() was still pending (see the "void game.start" branch above).
+            // Apply the seed at the same point so the rest of start() consumes the same random values.
+            const next = logs[index + 1];
+            if (next !== undefined && isPrivateEntry(next) && next.type === "randomSeed") {
+              game.seed = next.seed;
+              seedAppliedDuringStartIndex = index + 1;
+            }
+            await startPromise;
             await game.awaitPromises();
             // verifyRecordedCharactersAfterStart(game, characterByPlayer); Can be wrong due to the mulligan thingy.
+            break;
           }
           game.addToHistory(entry);
           break;

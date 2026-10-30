@@ -1555,11 +1555,11 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
                     passive.preventNextDamageUpToEffect(INFINITY, game, "combat")(effect);
                 }
                 return false;
-        }, false));
+        }, false, true));
         case "prevent the first instance of damage you would take each turn":
             return logic.noTargetSyncEffect(passive.onAnyEventEffect("on:turn:start", [passive.preventNextDamageUpToEffect(INFINITY, game, "any")], game, s, (effect: EffectData) => {
                 return effect.issuer.damageTakenThisTurn.filter((damage) => damage.with instanceof DiceRoll).length === 0;  
-        }, false));
+        }, false, true));
         case "at the start of each turn or each time this deals combat damage, the active player deals x damage to a player chosen at random":
             return logic.noTargetSyncEffect(passive.atStartAndDamageGivenDealDamageToRandomPlayerEffect(nr.nextNumber(), game));
         case "put all cards in another monster slot into discard":
@@ -1834,7 +1834,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
         case "monsters have x [dc] on your turn":
             return logic.noTargetSyncEffect(passive.onYourTurnModifier([game.entityHandler.addDCToEachMonster.bind(game.entityHandler)], nr.nextNumber(), game));
         case "monsters have -x [dc] on your turn":
-            return logic.noTargetSyncEffect(passive.onYourTurnModifier([game.entityHandler.reduceDCOfEachMonster.bind(game.entityHandler)], -nr.nextNumber(), game));
+            return logic.noTargetSyncEffect(passive.onYourTurnModifier([game.entityHandler.reduceDCOfEachMonster.bind(game.entityHandler)], nr.nextNumber(), game));
         case "your attack rolls of x or x count as misses":
             return logic.noTargetSyncEffect(passive.attackRollCountsAsMissEffect(game, [nr.nextNumber(), nr.nextNumber()]));
         case "you have x to the xst, xrd and xth attack roll you make each turn":

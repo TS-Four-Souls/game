@@ -2,6 +2,7 @@ import {
   ItemCard,
   MonsterCard
 } from "@/models/cards";
+import type { LootCard } from "@/models/cards";
 import { Player } from "@/models/entities/player";
 import { Game } from "@/models/game";
 import { TargetBuilder } from "@/models/targetBuilder";
@@ -299,12 +300,20 @@ export class GameStateSerializer {
    * @returns Serializes the Loot deck.
    */
   public serializeLootDeck(player: Player): api.LootDeck {
+    const topCard = this.game.decks["loot"]?.cards[0];
     return {
       discard: this.game.decks["loot"]!.discard.map((c) => c.jsonAPI).toReversed(),
       deckSize: this.game.decks["loot"]!.cards.length,
-      ...(player.canSeeTopOfLootDeck && this.game.decks["loot"]?.cards[0] !== undefined ? { firstCardLootDeck: this.game.decks["loot"]?.cards[0]?.jsonAPI } : {}),
-      ...(player.canPlayTopOfLootDeck && this.game.decks["loot"]?.cards[0] !== undefined ? { canPlayFirstCard: this.game.actions.canPlayCard(player) && TargetBuilder.validTargetExists(this.game, player, this.game.decks["loot"]?.cards[0], "tap") } : {}),
+      ...(player.canSeeTopOfLootDeck && topCard !== undefined ? { firstCardLootDeck: { ...topCard.jsonAPI, canBePlayed: this.canPlayTopLootCard(player, topCard) } } : {}),
     };
+  }
+
+  private canPlayTopLootCard(player: Player, card: LootCard): api.Capability {
+    if (!player.canPlayTopOfLootDeck) return toSerializedTranslation("error.cannotPlayTopCardOfLootDeck");
+    // The top card hasn't been drawn, so its effects may not be attached yet.
+    this.game.cardHandler.ensureEffectsAttached(card);
+    const canPlay = this.game.actions.canPlayCard(player);
+    return canPlay === true ? TargetBuilder.validTargetExists(this.game, player, card, "tap") : canPlay;
   }
 
   /**

@@ -415,7 +415,9 @@ export class ActionHandler {
           return "Invalid card position.";
         }
       }
-      const card = index === "topLootCard" ? this.game.decks.loot.cards[0]! : player.hand.playableCards[index]!;
+      const card = index === "topLootCard" ? this.game.decks.loot.draw() : player.hand.playableCards[index]!;
+      if(index === "topLootCard")
+        this.game.cardHandler.ensureEffectsAttached(card);
       const isFree = player.hand.isFree(card);
       this.canPlayCard(player, true, card);
       if(isFree)

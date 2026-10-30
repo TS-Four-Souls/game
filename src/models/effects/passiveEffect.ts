@@ -1227,6 +1227,7 @@ export function preventAllDamageAndEndTurnOnRollEffect(game: Game, rollValues: n
 export function firstAttackRollsModifierEffect(game: Game, modifier: number, rollNumbers: number[]): SyncEffectFunction {
     return (data: EffectData) => {
         let offAttackRoll: (() => void) | null = null;
+        let offTurnStart: (() => void) | null = null;
         let active = false;
         const issuer = data.issuer;
         if(!(issuer instanceof Player))
@@ -1248,7 +1249,7 @@ export function firstAttackRollsModifierEffect(game: Game, modifier: number, rol
         if(rollNumbers.includes(1))
             activate()
 
-        offAttackRoll = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
+        offTurnStart = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
             const { eventIssuer } = eventData;
             activate();
             if (eventIssuer !== data.issuer) return;
@@ -1267,6 +1268,8 @@ export function firstAttackRollsModifierEffect(game: Game, modifier: number, rol
             deactivate();
             offAttackRoll?.();
             offAttackRoll = null;
+            offTurnStart?.();
+            offTurnStart = null;
         });
         return true;
     };
@@ -2237,11 +2240,24 @@ export function onAnyEventEffect(
     game: Game,
     description: string,
     condition: (effectData: EffectData, eventData: any) => boolean = () => true,
-    issuerIsEventIssuer: boolean = true
+    issuerIsEventIssuer: boolean = true,
+    andNow: boolean = false
 ): SyncEffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
-        
+        if(andNow)
+        {
+            // Add all effects as a single stack element
+            const effect = async (effectData: EffectData): Promise<boolean> => {
+                for (const func of effectFunctions) {
+                    await func(effectData);
+                }
+                return true;
+            };
+            if(condition(data, null))
+                if(effectFunctions.length > 0)
+                    addPassiveEffectToStack(game, effect, data, description);   
+        }
         offDamage = game.emitter.on(triggerEvent, (eventData) => {
             const eventIssuer = eventData.eventIssuer;
             if(!condition(data, eventData)) return;

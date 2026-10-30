@@ -1024,8 +1024,7 @@ export type RoomSlot = z.infer<typeof roomSlotSchema>;
 const lootDeckSchema = z.object({
   discard: z.array(cardSchema),
   deckSize: z.number(),
-  firstCardLootDeck: cardSchema.optional(),
-  canPlayFirstCard: capabilitySchema.optional(),
+  firstCardLootDeck: playableCardSchema.optional(),
 });
 export type LootDeck = z.infer<typeof lootDeckSchema>;
 

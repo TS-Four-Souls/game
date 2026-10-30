@@ -376,19 +376,19 @@ export class GameParameters {
     this.miniDraft = new BooleanGameParameter(false, onChange);
     this.nbPlayerCardRestriction = new BooleanGameParameter(true, onChange);
     this.useB2Cards = new BooleanGameParameter(
-      true,
+      false,
       () => this.updateExpansionCards("b2-", this.useB2Cards.value),
     );
     this.useFSP2Cards = new BooleanGameParameter(
-      true,
+      false,
       () => this.updateExpansionCards("fsp2-", this.useFSP2Cards.value),
     );
     this.useG2Cards = new BooleanGameParameter(
-      true,
+      false,
       () => this.updateExpansionCards("g2-", this.useG2Cards.value),
     );
     this.useRCards = new BooleanGameParameter(
-      true,
+      false,
       () => this.updateExpansionCards("r-", this.useRCards.value),
     );
     this.useBOXCards = new BooleanGameParameter(
@@ -396,7 +396,8 @@ export class GameParameters {
       () => this.updateExpansionCards("box-", this.useBOXCards.value),
     );
     this.useRWZCards = new BooleanGameParameter(
-      process.env.USE_REQUIEM === "true",
+      // process.env.USE_REQUIEM === "true" ,
+      false,
       () => this.updateExpansionCards("rwz-", this.useRWZCards.value),
     );
     this.nbSoulsToWin = new NumericGameParameter(1, 4, 20, onChange);
