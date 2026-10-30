@@ -603,18 +603,19 @@ export class Game {
   }
 
   initializeWinningCondition(): void {
-    let offSoulGained: (() => void) | null = null;
-        offSoulGained = this.emitter.on("on:soul:gained", ({ eventIssuer }) => {
-          let teamSouls = 0;
-          this.players.filter(p=>p.team === eventIssuer.team).forEach(p => teamSouls += p.totalSouls);
-          if(teamSouls >= this.gameParameters.nbSoulsToWin.value)
-          {
-              this.win(eventIssuer);
-              offSoulGained!();
-              offSoulGained = null;
-          }
-      });
-    }
+    // Character souls (e.g. The Lost) are not gained, but still count toward the win.
+    this.emitter.on("on:soul:gained", ({ eventIssuer }) => this.checkWinCondition(eventIssuer));
+    this.emitter.on("on:character:set", ({ eventIssuer }) => this.checkWinCondition(eventIssuer));
+  }
+
+  checkWinCondition(player: Player): void {
+    if(this._isWon)
+      return;
+    let teamSouls = 0;
+    this.players.filter(p => p.team === player.team).forEach(p => teamSouls += p.totalSouls);
+    if(teamSouls >= this.gameParameters.nbSoulsToWin.value)
+      this.win(player);
+  }
 
   assignColorsToPlayers(): void {
     const colors = [

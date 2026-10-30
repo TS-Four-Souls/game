@@ -723,7 +723,7 @@ export class CardHandler {
     }
     this.game.players.forEach((player, index) => {
       const character = characters[index]!;
-      this.addInPlay(player, character);
+      this.setCharacter(player, character);
       const eternalDeck = this.decks["eternal"];
       if (!eternalDeck) {
         throw new GameError("No eternal deck found", toSerializedTranslation("error.behaviorError", {error: "No eternal deck found"}));
@@ -1154,21 +1154,32 @@ export class CardHandler {
       this.attachEffectsToCard(card);
   }
 
+  /**
+   * Single entry point to put a character in play for a player (game start or replacement).
+   * Cleans up the previous character, if any, and emits "on:character:set".
+   * Character souls are not "gained": they only change the soul count.
+   */
+  setCharacter(player: Player, character: CharacterCard): void {
+    const previousCharacter = player.hasCharacter ? player.character : null;
+    this.ensureEffectsAttached(character);
+    // Add the new character before cleaning the old one, so health never drops to 0 in between.
+    character.onAddInPlay(() => player);
+    previousCharacter?.cleanup();
+    player.character = character;
+    this.game.emit("on:character:set", { eventIssuer: player, previousCharacter });
+    this.game.dispatch();
+  }
+
   async replaceCharacter(player: Player, newCharacter: CharacterCard, triggerFindNewEternalIfUndefined: boolean = true): Promise<void> {
-     // Remove the current character + starting item (both are eternal, so we cannot use removeInPlay()).
-    const oldCharacter = player.character;
+     // Remove the starting item (eternal, so we cannot use removeInPlay()). The character is handled by setCharacter().
     const oldStartingItem = player.inPlay[0]!;
-    
-    const copyNewChara = this.copyCard(newCharacter) as CharacterCard;
-    copyNewChara.onAddInPlay(() => player);
-    
-    oldCharacter.cleanup();
+
+    this.setCharacter(player, this.copyCard(newCharacter) as CharacterCard);
     if(oldStartingItem !== undefined && oldStartingItem.eternal === true)
     {
       oldStartingItem.cleanup();
     }
-    player.character = copyNewChara;
-    
+
     const newStartingItemSlug = newCharacter.eternalCard;
     const eternalTemplate = newStartingItemSlug === null
       ? undefined

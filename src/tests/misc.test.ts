@@ -191,3 +191,42 @@ describe("Bonus Soul effects", () => {
         expect(player1.totalSouls).toBe(initSoul + 1);
     });
 });
+describe("Character souls", () => {
+    let game: Game;
+    let player1: Player;
+
+    beforeEach(async() => {
+        const setup = await setupGameWithCharacters(["b2-isaac", "b2-judas"]);
+        game = setup.game;
+        player1 = setup.player1;
+    });
+
+    it("replacing character with The Lost counts its soul without gaining it", async () => {
+        let soulsGained = 0;
+        game.emitter.on("on:soul:gained", () => soulsGained++);
+        const before = player1.totalSouls;
+        const theLost = game.cardHandler.getCharactersFromSlugs(["g2-the_lost"])[0]!;
+        await game.cardHandler.replaceCharacter(player1, theLost, false);
+        expect(player1.character.slug).toBe("g2-the_lost");
+        expect(player1.totalSouls).toBe(before + player1.character.soul);
+        expect(player1.targetableSouls).not.toContain(player1.character);
+        expect(soulsGained).toBe(0);
+        expect(game.reachedEnd).toBe(false);
+    });
+
+    it("replacing character with The Lost can trigger the win condition", async () => {
+        const theLost = game.cardHandler.getCharactersFromSlugs(["g2-the_lost"])[0]!;
+        game.gameParameters.nbSoulsToWin.value = player1.totalSouls + theLost.soul;
+        await game.cardHandler.replaceCharacter(player1, theLost, false);
+        expect(game.reachedEnd).toBe(true);
+    });
+
+    it("replacing The Lost removes its soul", async () => {
+        const theLost = game.cardHandler.getCharactersFromSlugs(["g2-the_lost"])[0]!;
+        await game.cardHandler.replaceCharacter(player1, theLost, false);
+        const withLost = player1.totalSouls;
+        const isaac = game.cardHandler.getCharactersFromSlugs(["b2-isaac"])[0]!;
+        await game.cardHandler.replaceCharacter(player1, isaac, false);
+        expect(player1.totalSouls).toBe(withLost - theLost.soul);
+    });
+});

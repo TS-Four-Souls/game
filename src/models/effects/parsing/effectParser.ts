@@ -1359,19 +1359,19 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             const nbSouls1 = nr.nextNumber();
             const nbSouls2 = nr.nextNumber();
             const atkBonus = nr.nextNumber();
-            return noTargetSyncEffect(passive.ConditionalStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], atkBonus, (player: Player) => [nbSouls1, nbSouls2].includes(player.totalSouls), ["on:soul:gained", "on:soul:removed"], game, true));
+            return noTargetSyncEffect(passive.ConditionalStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], atkBonus, (player: Player) => [nbSouls1, nbSouls2].includes(player.totalSouls), ["on:soul:gained", "on:soul:removed", "on:character:set"], game, true));
         case "if you control x+ souls, you have x [atk] instead":
             const nbSouls = nr.nextNumber();
             const atk = nr.nextNumber();
-            return noTargetSyncEffect(passive.ConditionalStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], atk, (player: Player) => player.totalSouls >= nbSouls, ["on:soul:gained", "on:soul:removed"], game, true));
+            return noTargetSyncEffect(passive.ConditionalStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], atk, (player: Player) => player.totalSouls >= nbSouls, ["on:soul:gained", "on:soul:removed", "on:character:set"], game, true));
         case "when you control x or x souls, you have x [atk] . if you control x+ souls, you have x [atk] instead":
             const _nbSouls1 = nr.nextNumber();
             const _nbSouls2 = nr.nextNumber();
             const _atkBonus = nr.nextNumber();
             const _nbSouls = nr.nextNumber();
             const _atk = nr.nextNumber();
-            const eff1 =  passive.ConditionalStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], _atkBonus, (player: Player) => [_nbSouls1, _nbSouls2].includes(player.totalSouls), ["on:soul:gained", "on:soul:removed"], game, true);
-            const eff2 =  passive.ConditionalStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], _atk, (player: Player) => player.totalSouls >= _nbSouls, ["on:soul:gained", "on:soul:removed"], game, true);
+            const eff1 =  passive.ConditionalStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], _atkBonus, (player: Player) => [_nbSouls1, _nbSouls2].includes(player.totalSouls), ["on:soul:gained", "on:soul:removed", "on:character:set"], game, true);
+            const eff2 =  passive.ConditionalStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], _atk, (player: Player) => player.totalSouls >= _nbSouls, ["on:soul:gained", "on:soul:removed", "on:character:set"], game, true);
             return noTargetSyncEffect(active.combineSyncEffectFunctions([eff1, eff2]));
         case "when this would deal combat damage to the active player, prevent it, then this deals x damage to a player chosen at random":
             return noTargetSyncEffect(passive.preventDamageToCurrentPlayerAndDealToRandomPlayerEffect(game, nr.nextNumber()));

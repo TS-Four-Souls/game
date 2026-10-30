@@ -153,6 +153,12 @@ export interface OnSoulGainedOrRemovedData {
   soul: Card | null;
 }
 
+/** Data emitted when a character is set */
+export interface OnCharacterSetData {
+  eventIssuer: Player;
+  previousCharacter: Card | null;
+}
+
 /** Data emitted when a purchase is successful */
 export interface OnPurchaseSuccessData {
   eventIssuer: Player;
@@ -408,6 +414,7 @@ export interface TriggerEventDataMap {
   "on:loot:played": OnLootPlayedData;
   "on:game:start:before": OnGameStartBeforeData;
   "on:game:start": OnGameStartData;
+  "on:character:set": OnCharacterSetData;
   "on:soul:gained": OnSoulGainedOrRemovedData;
   "on:soul:gained:before": OnSoulGainedOrRemovedData;
   "on:soul:removed": OnSoulGainedOrRemovedData;

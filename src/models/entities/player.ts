@@ -569,6 +569,10 @@ export class Player extends Entity {
     this._character = card;
   }
 
+  get hasCharacter(): boolean {
+    return this._character !== undefined;
+  }
+
   override get card(): CharacterCard{
     return this.character;
   }
