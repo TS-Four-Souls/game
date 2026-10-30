@@ -811,21 +811,20 @@ export function payHpForTreasureBoostEffect(game: Game, hpAfterPay: number, trea
                 const difference = Math.max(0, game.currentPlayer.currentHealthPoints - hpAfterPay);
                 const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], toSerializedTranslation("pending.hpToGainTreasure", { value: difference }), data.serializedCardAndBox, false, true, false)).selected[0] as Card | undefined;
                 if(selected !== undefined) {
-                    game.entityHandler.dealDamage(game.currentPlayer, game.currentPlayer, data.cardAndBox, difference, (data: EffectData) => {
-                        let offMonsterDeath: (() => void) | null = null;
-                        offMonsterDeath = game.emitter.on("on:death:monster", (eventData) => {
-                             const { eventIssuer } = eventData;
-                             if(eventIssuer instanceof Monster) {
-                                 game.gainTreasure(game.currentPlayer, treasureAmount);
-                             }
-                        });
-                        data.it.cleaners.push(() => {
-                            offMonsterDeath?.();
-                            offMonsterDeath = null;
-                        });
-                        return true
-                    }); 
-                    return true;
+                    const HPPaid = game.entityHandler.healthLoss(game.currentPlayer, game.currentPlayer, data.cardAndBox, difference);
+                
+                    let offMonsterDeath: (() => void) | null = null;
+                    offMonsterDeath = game.emitter.on("on:death:monster", (eventData) => {
+                            const { eventIssuer } = eventData;
+                            if(eventIssuer instanceof Monster) {
+                                game.gainTreasure(game.currentPlayer, treasureAmount);
+                            }
+                    });
+                    data.it.cleaners.push(() => {
+                        offMonsterDeath?.();
+                        offMonsterDeath = null;
+                    });
+                    return true
                 }
                 return false;
             };

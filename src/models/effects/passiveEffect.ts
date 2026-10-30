@@ -556,15 +556,19 @@ export function rollAndMayChangeNextRollForThis(game: Game): SyncParsedEffect {
                     }
                     addPassiveEffectToStack(game, effect, data, "Choose the result of this dice roll.");
                     offRoll!();
+                    offRoll = null;
                     offEndTurn!();
+                    offEndTurn = null;
                 });
                 return true;
             };
             savedRoll.attachEffect(effect, data.it, data.targets, data.issuer);
 
             offEndTurn = game.emitter.on("on:turn:end", ({ eventIssuer }) => {
-                offRoll!();
-                offEndTurn!();
+                offRoll?.();
+                offRoll = null;
+                offEndTurn?.();
+                offEndTurn = null;
             });
             return true;
         }, targetSelectors: []

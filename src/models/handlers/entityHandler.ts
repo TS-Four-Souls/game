@@ -535,6 +535,10 @@ export class EntityHandler {
       const damage = elem.damage[0]!;
       this.game.stack.resolve();
       this.healthLoss(dealer, receiver, source, damage, false);
+
+      if (receiver.currentHealthPoints <= 0) {
+        this.death(receiver, dealer, source);
+      }
       if(damage > 0){
         await elem.onResolve();
         // Add to history
@@ -561,9 +565,6 @@ export class EntityHandler {
           dealer.stats.nbDamageDealt += damage;
       }
 
-      if (receiver.currentHealthPoints <= 0) {
-        this.death(receiver, dealer, source);
-      }
       await this.game.resolveCallbacks();
     });
     await this.game.resolveCallbacks();
