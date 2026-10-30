@@ -388,6 +388,28 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         expect(player2.inPlay.length).toBe(2);
     });
+    it("the_mirror 3", async () => {
+        const room = game.obtainCard("r-the_mirror") as RoomCard;
+        expect(room).toBeDefined();
+        game.rooms?.forceRoomAtSlot(0, room);
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player2.currentHealthPoints).toBe(1);
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        game.entityHandler.kill(player2, game.monsters[0]!, {card: room, visualEffectBox: undefined});
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player2.inPlay.length).toBe(2);
+    });
     it("spider_webs", async () => {
         const room = game.obtainCard("r-spider_webs") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);

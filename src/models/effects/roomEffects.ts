@@ -812,7 +812,8 @@ export function payHpForTreasureBoostEffect(game: Game, hpAfterPay: number, trea
                 const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], toSerializedTranslation("pending.hpToGainTreasure", { value: difference }), data.serializedCardAndBox, false, true, false)).selected[0] as Card | undefined;
                 if(selected !== undefined) {
                     const HPPaid = game.entityHandler.healthLoss(game.currentPlayer, game.currentPlayer, data.cardAndBox, difference);
-                
+                    
+                    let offTurnEnd: (() => void) | null = null;
                     let offMonsterDeath: (() => void) | null = null;
                     offMonsterDeath = game.emitter.on("on:death:monster", (eventData) => {
                             const { eventIssuer } = eventData;
@@ -820,9 +821,12 @@ export function payHpForTreasureBoostEffect(game: Game, hpAfterPay: number, trea
                                 game.gainTreasure(game.currentPlayer, treasureAmount);
                             }
                     });
-                    data.it.cleaners.push(() => {
+
+                    offTurnEnd = game.emitter.on("on:turn:end", (eventData) => {
                         offMonsterDeath?.();
                         offMonsterDeath = null;
+                        offTurnEnd?.();
+                        offTurnEnd = null;
                     });
                     return true
                 }
