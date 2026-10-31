@@ -1601,7 +1601,7 @@ export function healMonsterThenDamageAnotherEffect(game: Game): AsyncEffectFunct
 export function putRoomOrMonsterIntoDiscardEffect(game: Game, youMay: boolean): AsyncEffectFunction {
     return async (data: EffectData) => {
 
-        const targets = game.monsters.filter((m) => !m.isEngagedInCombat) as any[];
+        const targets: Card[] = game.monsters.filter((m) => !m.isEngagedInCombat).map(m => m.card);
         if(game.rooms !== undefined) {
             targets.push(...game.rooms.activeRooms);
         }
@@ -1613,11 +1613,13 @@ export function putRoomOrMonsterIntoDiscardEffect(game: Game, youMay: boolean): 
             game.cardHandler.discard(target);
             return true;
         }
-        else if(target instanceof Monster) {
-            const index = game.monsters.indexOf(target);
+        else if(target instanceof MonsterCard) {
+            const ent = target.entity as Monster;
+            if(!ent) throw new GameError("Monster card has no associated entity.", toSerializedTranslation("error.monsterNotFoundInGame"));
+            const index = game.monsters.indexOf(ent);
             if(index === -1) throw new GameError("Monster not found in game.", toSerializedTranslation("error.monsterNotFoundInGame"));
 
-            if(!game.encounters.flushMonster(target, "discard"))
+            if(!game.encounters.flushMonster(ent, "discard"))
             {
                 console.log("Failed to flush monster:", target.id);
                 console.log("Current monsters in slots:", game.monsters.map(m => m ? m.card.name : null));
