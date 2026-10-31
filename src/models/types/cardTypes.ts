@@ -33,6 +33,8 @@ export class EffectData {
     private _selectedOnResolve: any[] = [];
     private _nextIndex: number = 0;
     private _VisualEffectBoxes: VisualEffectBox | undefined;
+    /** True while the payment part of a paid effect is executed. */
+    isPayment: boolean = false;
 
     constructor(it: Card, issuerProvider: () => Entity, targets: any[], visualEffectBox: VisualEffectBox | undefined = undefined) {
         this.it = it;
@@ -61,6 +63,13 @@ export class EffectData {
     }
     get issuerProvider(): () => Entity {
         return this._issuerProvider;
+    }
+
+    /** Returns a copy of this data with a different issuer, leaving this one untouched. */
+    withIssuer(issuerProvider: () => Entity): EffectData {
+        const copy = new EffectData(this.it, issuerProvider, [...this._targets], this._VisualEffectBoxes);
+        copy._nextIndex = this._nextIndex;
+        return copy;
     }
 
     get targets(): any[] {

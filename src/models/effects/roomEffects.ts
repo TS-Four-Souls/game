@@ -13,7 +13,7 @@ import { visibleItemSelector } from "../targetSelector";
 import { Monster } from "../entities/monster";
 import { Entity } from "../entities/entity";
 import { Animated } from "../entities/animated";
-import type { DiceRoll } from "../stackElement";
+import { DiceWillRoll, type DiceRoll } from "../stackElement";
 import { toSerializedTranslation } from "@/utils/translation";
 
 export function preventGainSoulsEffect(game: Game, issuerType: "all" | "issuer"): SyncEffectFunction {
@@ -293,6 +293,7 @@ export function gainCoinsOnPlayerDeathEffect(game: Game, amount: number): SyncEf
         let offDeath: (() => void) | null = null;
         offDeath = game.emitter.on("on:death:before-penalty", (eventData) => {
             const { eventIssuer } = eventData;
+            if(eventIssuer instanceof Player === false) return;
             for(const player of game.players) {
                 if(player !== eventIssuer) {
                     game.gainCoins(player, amount, data.it);
@@ -392,12 +393,12 @@ export function monstersGainAttackEffect(game: Game, amount: number, includeSelf
     return (data: EffectData) => {
         game.entityHandler.addAttackToEachMonster(data.issuer as Entity, amount, data.it);
         if(!includeSelf) {
-            (data.issuer as Monster).addEvasion(-amount);
+            (data.issuer as Monster).addAttackPoints(-amount);
         }
         data.it.cleaners.push(() => {
             game.entityHandler.addAttackToEachMonster(data.issuer as Entity, -amount, data.it);
             if(!includeSelf) {
-            (data.issuer as Monster).addEvasion(amount);
+            (data.issuer as Monster).addAttackPoints(amount);
         }
         });
         return true;
@@ -482,7 +483,7 @@ export function damageIfLowLootAtEndOfTurnEffect(game: Game, lootThreshold: numb
                 game.entityHandler.dealDamage(game.currentPlayer, game.currentPlayer, data.cardAndBox, amount);
                 return false;
             };
-            addPassiveEffectToStack(game, effect, data, "You may gain a treasure.");
+            addPassiveEffectToStack(game, effect, data, `If the active player has ${lootThreshold} or fewer loot cards in hand, they take ${amount} damage.`);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -648,6 +649,15 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): SyncEffec
     return (data: EffectData) => {
         let offAttackRolled: (() => void) | null = null;
         let offCombatEnd: (() => void) | null = null;
+        // The roll may resolve after the combat it was made for has ended (e.g. delayed by a DiceWillRoll).
+        if(data.issuer === game.currentPlayer || game.currentPlayer.isEngagedInCombat !== true || game.currentPlayer.isDead)
+            return false;
+        const unsubscribe = (): void => {
+            offAttackRolled?.();
+            offAttackRolled = null;
+            offCombatEnd?.();
+            offCombatEnd = null;
+        };
         // console.log("Registering makeAnAttackRollAfterEachAttackRollEffect for", data.it.name, " current player:", game.currentPlayer.id, " issuer:", data.issuer.id);
         offAttackRolled = game.emitter.on("on:attack:roll", (eventData) => {
             if(eventData.eventIssuer.isEngagedInCombat === false || eventData.eventIssuer.isDead) {
@@ -660,10 +670,10 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): SyncEffec
             if(target.isEngagedInCombat === false || target.isDead) {
                 return; // Target is not engaged in combat or is dead, ignore
             }
-            if(data.issuer === game.currentPlayer)
-                throw new GameError("Expected issuer to not be the active player for makeAnAttackRollAfterEachAttackRollEffect.",
-                    toSerializedTranslation("error.behaviorError", { error: "Expected issuer to not be the active player for makeAnAttackRollAfterEachAttackRollEffect." })
-                );
+            if(data.issuer === game.currentPlayer) {
+                unsubscribe(); // Stale listener from a previous combat, it should have been removed on combat end.
+                return;
+            }
             if(data.issuer.isDead)
                 return; // Dead, ignore
             const effect: SyncEffectFunction = (effectData: EffectData) => {
@@ -680,19 +690,11 @@ export function makeAnAttackRollAfterEachAttackRollEffect(game: Game): SyncEffec
         });
 
         offCombatEnd = game.emitter.on("on:combat:end", (eventData) => {
-            offAttackRolled?.();
-            offAttackRolled = null;
-            offCombatEnd?.();
-            offCombatEnd = null;
+            unsubscribe();
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
-        data.it.cleaners.push(() => {
-            offAttackRolled?.();
-            offAttackRolled = null;
-            offCombatEnd?.();
-            offCombatEnd = null;
-        });
+        data.it.cleaners.push(unsubscribe);
         return true;
     };
 }
@@ -731,7 +733,8 @@ export function onAttackDeclaredNonActivePlayersRollToJoinEffect(game: Game, min
                 const roll = game.rollDice(player, data.it);
                 roll.attachEffect(
                     [1,2,3,4,5,6].map(value => 
-                        (value >= minRoll && value <= maxRoll && data.issuer.isEngagedInCombat) ?
+                        // Combat state is checked when the roll resolves, inside makeAnAttackRollAfterEachAttackRollEffect.
+                        (value >= minRoll && value <= maxRoll) ?
                             makeAnAttackRollAfterEachAttackRollEffect(game) : ((): boolean => true)
                     )
                     , data.it, [], player);
@@ -740,7 +743,13 @@ export function onAttackDeclaredNonActivePlayersRollToJoinEffect(game: Game, min
         }
         let offCombatEnd: (() => void) | null = null;
         offCombatEnd = game.emitter.on("on:combat:end", (eventData) => {
-            rolls.forEach(roll => game.stack.cancelElement(roll));
+            rolls.forEach(roll => {
+                game.stack.cancelElement(roll);
+                // The roll may still be waiting behind a DiceWillRoll (e.g. Crystal Ball).
+                const willRoll = game.stack.elements.find(element => element instanceof DiceWillRoll && element.diceRoll === roll);
+                if(willRoll)
+                    game.stack.cancelElement(willRoll);
+            });
             offCombatEnd?.();
             offCombatEnd = null;
         });
@@ -757,7 +766,7 @@ export function rerollOnXOrYEffect(game: Game, values: number[]): SyncEffectFunc
             const { eventIssuer, diceRoll } = eventData;
             if(values.includes(diceRoll.value)) {
                 const effect: AsyncEffectFunction = async (effectData: EffectData) => {
-                    const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], toSerializedTranslation("pending.doYouWantToReroll"), data.serializedCardAndBox, false, true, false)).selected[0] as Card | undefined;
+                    const selected = (await effectData.selectAndRecord(game, eventIssuer, 0, 1, [data.it], toSerializedTranslation("pending.doYouWantToReroll"), data.serializedCardAndBox, false, true, false)).selected[0] as Card | undefined;
                     if(selected) {
                         diceRoll.roll();
                         return true;
@@ -811,7 +820,7 @@ export function payHpForTreasureBoostEffect(game: Game, hpAfterPay: number, trea
                 const difference = Math.max(0, game.currentPlayer.currentHealthPoints - hpAfterPay);
                 const selected = (await effectData.selectAndRecord(game, game.currentPlayer, 0, 1, [data.it], toSerializedTranslation("pending.hpToGainTreasure", { value: difference }), data.serializedCardAndBox, false, true, false)).selected[0] as Card | undefined;
                 if(selected !== undefined) {
-                    const HPPaid = game.entityHandler.healthLoss(game.currentPlayer, game.currentPlayer, data.cardAndBox, difference);
+                    const HPPaid = game.entityHandler.healthLoss(game.currentPlayer, game.currentPlayer, data.cardAndBox, difference, true, false);
                     
                     let offTurnEnd: (() => void) | null = null;
                     let offMonsterDeath: (() => void) | null = null;
@@ -869,6 +878,7 @@ export function playersWithFewestSoulsAttackBoostEffect(game: Game, attackBoost:
     return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
         let offSoulGained: (() => void) | null = null;
+        let offSoulRemoved: (() => void) | null = null;
         let playersWithFewestSouls: Player[] = [];
         let shouldAddAttackThisTurn = true;
         function computeEffect(): void {
@@ -906,12 +916,18 @@ export function playersWithFewestSoulsAttackBoostEffect(game: Game, attackBoost:
             removeEffect();
             computeEffect();
         });
+        offSoulRemoved = game.emitter.on("on:soul:removed", (eventData) => {
+            removeEffect();
+            computeEffect();
+        });
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
             offTurnStart?.();
             offTurnStart = null;
             offSoulGained?.();
             offSoulGained = null;
+            offSoulRemoved?.();
+            offSoulRemoved = null;
             removeEffect();
         });
         return true;
@@ -1099,7 +1115,7 @@ export function socialGoalsEffect(game: Game, numbers: number[]): SyncEffectFunc
         let offRoll: (() => void) | null = null;
         let offDonation: (() => void) | null = null;
 
-        offLootPlayed = game.emitter.on("on:loot:added:after", (eventData) => {
+        offLootPlayed = game.emitter.on("on:loot:played", (eventData) => {
             lootPlayed++;
             tryResolve();
         });

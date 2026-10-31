@@ -210,7 +210,7 @@ export class CardHandler {
   /**
    * Applies post-death monster card destination (soul or discard).
    */
-  obtainMonsterSoulOrDiscard(monster: Monster): void {
+  obtainMonsterSoulOrDiscard(monster: Monster, player: Player = this.game.currentPlayer): void {
     const card = monster.card;
     if(card.afterEffect === "handled" || card.afterEffect === "nothing")
       return; // Card is already handled by its afterEffect, so do nothing here.
@@ -222,9 +222,9 @@ export class CardHandler {
         id: this.game.nextAnimationId,
         type: "obtainMonsterSoul",
         card: card.jsonAPI,
-        player: this.game.currentPlayer.id,
+        player: player.id,
       });
-      this.addSoul(this.game.currentPlayer, card);
+      this.addSoul(player, card);
     } else this.discard(card);
     this.game.dispatch();
   }
@@ -440,18 +440,8 @@ export class CardHandler {
 
     for (let i = 0; i < eventData.amount; i++) {
       const treasureDeck = this.decks["treasure"]!;
-      try {
-        const drawnCard: TreasureCard = treasureDeck.draw()!;
-        this.addInPlay(player, drawnCard);
-      } catch (err: any) {
-        // Treat empty-deck as a recoverable condition during randomized tests
-        // Log for diagnostics and stop attempting further treasure draws.
-        if (err && typeof err.message === 'string' && err.message.includes('has only 0 cards')) {
-          // console.warn('gainTreasure: treasure deck empty, skipping remaining treasure draws.');
-          return;
-        }
-        throw err;
-      }
+      const drawnCard: TreasureCard = treasureDeck.draw()!;
+      this.addInPlay(player, drawnCard);
     }
   }
 
@@ -467,7 +457,7 @@ export class CardHandler {
   /** Removes curse cards from players and marks them destroyed. */
   destroyCurse(cards: MonsterCard[]): boolean {
     this.game.players.forEach((player) => {
-      player.curses.forEach((card) => {
+      player.curses.slice().forEach((card) => {
         if (cards.includes(card)) {
           this.removeCurse(player, card);
           this.discard(card);
@@ -847,13 +837,13 @@ export class CardHandler {
   /** Discards one hand card by index to the loot discard pile. 
    * @return true if the discard was successful.
   */
-  discardFromHandAtIndex(player: Player, position: number, reason: "death" | "effect" | "overload" | "other"= "other"): boolean {
+  discardFromHandAtIndex(player: Player, position: number, reason: "death" | "effect" | "paiement" | "overload" | "other"= "other"): boolean {
     this.game.assert.gameOngoing();
     this.game.assert.positiveNumber(position);
     const hand = player.hand;
     const eventData = { eventIssuer: player, indice: [position], reason };
-    position = eventData.indice[0]!;
     this.game.emit("on:loot:discard:before", eventData);
+    position = eventData.indice[0]!;
     if (position < 0 || position > hand.cards.length - 1) {
       return false;
     }
@@ -1205,6 +1195,7 @@ export class CardHandler {
 
   /**
    * Returns a reference to the copied card.
+   * Use removeGainedAbilities(copied) to remove a single copy before the gainer leaves play.
    * @param issuer 
    * @param gainer 
    * @param toCopy 
@@ -1214,8 +1205,16 @@ export class CardHandler {
     // Implementation for gaining abilities
     if(gainer.tags.copiedCards === undefined)
         gainer.tags.copiedCards = [];
-    if(toCopy.json.stats !== undefined)
+    // Stats gained from copies: the last gained copy still present wins; the gainer's own stats come back once all are removed.
+    if(gainer.tags.gainedStats === undefined)
+        gainer.tags.gainedStats = [];
+    const gainedStats = gainer.tags.gainedStats as { toCopy: ItemCard, stats: NonNullable<ItemCard["json"]["stats"]> }[];
+    if(toCopy.json.stats !== undefined) {
+      if(gainedStats.length === 0)
+        gainer.tags.statsBeforeGain = gainer.json.stats;
+      gainedStats.push({ toCopy, stats: toCopy.json.stats });
       gainer.json.stats = toCopy.json.stats;
+    }
     // console.log("Gaining abilities from ", toCopy.name, " to ", gainer.name);
     const copiedSelector: TargetsSelector = {
         description: toSerializedTranslation("selector.cardGranted"),
@@ -1296,23 +1295,51 @@ export class CardHandler {
       if (card !== copied) return;
       this.addToCounter(issuer, gainer, counterName, newValue - previousValue);
     });
-    gainer.cleaners.push(() => {  
+    let removed = false;
+    const teardown = (): void => {
+      if (removed) return;
+      removed = true;
       offCopiedCounterChange();
       for (const counterType of copied.counters.counterOwned) {
         this.addToCounter(issuer, gainer, counterType, -copied.counters.value(counterType));
       }
       if (gainer.entity === copied.entity) gainer.entity = undefined;
+      // parentCard is nulled so the copy's own cleaner doesn't destroy the gainer.
       copied.parentCard = null;
       copied.cleanup();
       copied.parentCard = gainer.slug;
       gainer.tags.copiedCards = (gainer.tags.copiedCards as ItemCard[]).filter(c => c !== copied);
-    });
+      const statsIdx = gainedStats.findIndex(e => e.toCopy === toCopy);
+      if (statsIdx >= 0) {
+        gainedStats.splice(statsIdx, 1);
+        const stats = gainedStats.length > 0 ? gainedStats[gainedStats.length - 1]!.stats : gainer.tags.statsBeforeGain;
+        if (stats === undefined) delete gainer.json.stats;
+        else gainer.json.stats = stats;
+      }
+    };
+    gainer.cleaners.push(teardown);
+    copied.tags.removeGainedAbilities = (): void => {
+      teardown();
+      const idx = gainer.cleaners.indexOf(teardown);
+      if (idx < 0) return;
+      // Cleaners before the last becomesCopyOf restore point are addressed by index: keep their positions.
+      const lastRestoreIdx = gainer.tags.lastCopiedRestoreOriginalStateIndex as number | undefined;
+      if (lastRestoreIdx === undefined || idx > lastRestoreIdx) gainer.cleaners.splice(idx, 1);
+      else gainer.cleaners[idx] = () => {};
+    };
     
     copied.cleaners.push(() => {
         if(copied.parentCard === gainer.slug)
           this.game.cardHandler.destroyCardsOrSouls([gainer]);
     });
     return copied;
+  }
+
+  /**
+   * Removes one copy created by gainAbilities: cleans the copy and the gainer-side state (counters, listeners, stats).
+   */
+  removeGainedAbilities(copied: ItemCard): void {
+    (copied.tags.removeGainedAbilities as (() => void) | undefined)?.();
   }
 
   /**

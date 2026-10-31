@@ -84,7 +84,12 @@ export class Effect {
                 toSerializedTranslation("error.cannotExecutePaymentNoFunction")
             );
         }
-        return this._paymentFunction(data);
+        data.isPayment = true;
+        try {
+            return await this._paymentFunction(data);
+        } finally {
+            data.isPayment = false;
+        }
     }
 
     async execute(data: EffectData): Promise<boolean> {

@@ -602,7 +602,7 @@ export function damageDealtToActivePlayerAlsoToTheEffect(game: Game, direction: 
             // Add all effects as a single stack element
             const effect = (effectData: EffectData): boolean => {
                 const player = game.getPlayerToThe(direction);
-                game.entityHandler.dealDamage(eventIssuer as Entity, player as Entity, data.cardAndBox, damage);
+                game.entityHandler.dealDamage(data.issuer as Entity, player as Entity, data.cardAndBox, damage);
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `Damage dealt to ${data.it.name} is also dealt to the player to the active player's ${direction}.`);
@@ -664,6 +664,7 @@ export function OnDealsCombatDamageEffect(game: Game, s: string): SyncEffectFunc
             const { eventIssuer, target, source, damage } = eventData;
             if (data.issuer !== target) return;
             if (!(eventIssuer instanceof Player)) return;
+            if (!(source instanceof DiceRoll)) return;
             const newData = new EffectData(data.it, () => eventIssuer as Player, [], data.visualEffectBox);
             addPassiveEffectToStack(game, effect.effectFunction, newData, `Each time ${data.it.name} deals combat damage to a player, they ${rest}`);
         });
@@ -680,6 +681,7 @@ export function OnDealsCombatDamageEffect(game: Game, s: string): SyncEffectFunc
 export function OnDealsDamageEffect(game: Game, s: string): SyncEffectFunction {
     const rest = s.substring(s.indexOf(",")+1).trim();
     const effect = effectParser(rest, game, false);
+    const combatOnly = s.startsWith("each time this deals combat damage");
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
         
@@ -687,9 +689,9 @@ export function OnDealsDamageEffect(game: Game, s: string): SyncEffectFunction {
             const { eventIssuer, target, source, damage } = eventData;
             if (data.issuer !== target) return;
             if(!(eventIssuer instanceof Player)) return;
-            if(!(source instanceof DiceRoll)) return;
+            if(combatOnly && !(source instanceof DiceRoll)) return;
             const newData = new EffectData(data.it, () => target as Player, [], data.visualEffectBox);
-            addPassiveEffectToStack(game, effect.effectFunction, newData, `Each time ${data.it.name} deals combat damage to a player, they ${rest}`);
+            addPassiveEffectToStack(game, effect.effectFunction, newData, `Each time ${data.it.name} deals ${combatOnly ? "combat " : ""}damage, ${rest}`);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -991,8 +993,8 @@ export function preventDeathFirstTimeEachTurnHealAndStatModifierEffect(game: Gam
         offTurnStart = game.emitter.on("on:turn:start", (eventData: OnTurnEndData) => {
             if (!hasPreventedDeathThisTurn) return;
             // reset stats
-            game.entityHandler.addDC(data.issuer, -1, data.it);
-            game.entityHandler.addAttack(data.issuer, +1, data.it);
+            game.entityHandler.addDC(data.issuer, -dc, data.it);
+            game.entityHandler.addAttack(data.issuer, -atk, data.it);
             hasPreventedDeathThisTurn = false;
         });
 
@@ -1000,8 +1002,8 @@ export function preventDeathFirstTimeEachTurnHealAndStatModifierEffect(game: Gam
         data.it.cleaners.push(() => {
             if(hasPreventedDeathThisTurn) {
                 // reset stats if needed
-                game.entityHandler.addDC(data.issuer, -1, data.it);
-                game.entityHandler.addAttack(data.issuer, +1, data.it);
+                game.entityHandler.addDC(data.issuer, -dc, data.it);
+                game.entityHandler.addAttack(data.issuer, -atk, data.it);
             }
             offDamage?.();
             offDamage = null;
@@ -1067,11 +1069,9 @@ export function attackRequirementEachTurnEffect(game: Game, whom: "any" | "topDe
         data.it.cleaners.push(() => {
             offTurnStart?.();
             offTurnStart = null;
+            if(data.issuer instanceof Player)
+                data.issuer.clearAttackRequirementsFromSource(data.it, whom);
         });
-            if(data.issuer instanceof Player) {
-                data.issuer.clearAttackRequirement("topDeck");
-                data.issuer.clearAttackRequirement("any");
-            }
         return true;
     };
 }
@@ -1279,8 +1279,8 @@ export function dealDamageToPlayerToTheEffect(game: Game, damage: number, direct
 
 export function playersWithMostItemsDieEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
-        const maxSouls = Math.max(...game.players.map(p => p.totalSouls));
-        const playersToDie = game.players.filter(p => p.totalSouls === maxSouls && !p.isDead);
+        const maxItems = Math.max(...game.players.map(p => p.inPlay.length));
+        const playersToDie = game.players.filter(p => p.inPlay.length === maxItems && !p.isDead);
         for (const player of playersToDie) {
             game.entityHandler.kill(player, player, data.cardAndBox);
         }
