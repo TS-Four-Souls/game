@@ -73,6 +73,103 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player2.attackThisTurn).toBe(1);
     });
 
+    it("The Revenant rewards the player attacking it, even if they are not the active player", async () => {
+        const setup = await setupTestGame({
+                    characters: ["r-the_deserter", "b2-samson"],
+                    monsters: ["b2-fly", "b2-fatty"],
+                    monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+                    treasureDeck: ["b2-blank_card"],
+                    playerCount: 2
+                });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        const eternal = player1.inPlay[0]!;
+        game.cardHandler.recharge(eternal);
+        await game.activateItem(player1, eternal, [], "tap");
+        await game.actions.resolveStack();
+        expect(eternal.flipped).toBe(true);
+        expect(game.currentPlayer).toBe(player1);
+        const revenant = eternal.entity!;
+        const hand1 = player1.hand.length;
+        const hand2 = player2.hand.length;
+        game.actions.declareAttack(player1);
+        game.actions.declareAttackOnEntity(player1, revenant);
+        const attacks1 = player1.attackThisTurn;
+        const attacks2 = player2.attackThisTurn;
+
+        // A non-active player makes an attack roll against The Revenant (e.g. forced by a room).
+        const dice = player2.rollDice(() => 0.99, new AttackRollData(0, 1, 0, 1, revenant.evasion, revenant));
+        game.entityHandler.dealCombatDamage(player2, revenant, dice, revenant.currentHealthPoints);
+        for (let i = 0; i < 5 && !game.stack.isEmpty(); i++)
+            await game.actions.resolveStack();
+
+        expect(eternal.flipped).toBe(false);
+        expect(player2.hand.length).toBe(hand2 + 2);
+        expect(player1.hand.length).toBe(hand1 + 1); // Anima Sola: "When this is flipped to this side, loot 1."
+        expect(player2.attackThisTurn).toBe(attacks2 + 1);
+        expect(player1.attackThisTurn).toBe(attacks1);
+    });
+
+    it("The Revenant does not die when its owner dies while it is attacked", async () => {
+        const setup = await setupTestGame({
+                    characters: ["r-the_deserter", "b2-samson"],
+                    monsters: ["b2-fly", "b2-fatty"],
+                    monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+                    treasureDeck: ["b2-blank_card"],
+                    playerCount: 2
+                });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        const eternal = player1.inPlay[0]!;
+        game.cardHandler.recharge(eternal);
+        await game.activateItem(player1, eternal, [], "tap");
+        await game.actions.resolveStack();
+        expect(eternal.flipped).toBe(true);
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        game.actions.declareAttack(player2);
+        game.actions.declareAttackOnEntity(player2, eternal.entity!);
+        const revenant = eternal.entity!;
+        const hand2 = player2.hand.length;
+
+        game.entityHandler.dealDamage(player1, player1, {card: eternal, visualEffectBox: undefined}, player1.currentHealthPoints);
+        for (let i = 0; i < 5 && !game.stack.isEmpty(); i++)
+            await game.actions.resolveStack();
+
+        expect(player1.isDead).toBe(true);
+        expect(eternal.flipped).toBe(true);
+        expect(eternal.entity).toBe(revenant);
+        expect(revenant.isDead).toBe(false);
+        expect(revenant.isEngagedInCombat).toBe(true);
+        expect(player2.hand.length).toBe(hand2);
+    });
+
+  it("can flip Anima Sola twice without adding monster DC to a player", async () => {
+    const setup = await setupTestGame({
+                    characters: ["r-the_deserter", "b2-samson"],
+                    monsters: ["b2-fly", "b2-fatty"],
+                    monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+                    treasureDeck: ["b2-blank_card"],
+                    playerCount: 2
+                });
+    game = setup.game;
+    player1 = setup.player1;
+    player2 = setup.player2!;
+    
+    expect(player1.character!.slug).toBe("r-the_deserter");
+    const eternal = player1.inPlay[0]!;
+    expect(eternal.slug).toBe("r-anima_sola");
+
+
+    expect(() => game.cardHandler.flip(player1, eternal)).not.toThrow();
+    expect(eternal.flipped).toBe(true);
+    expect(() => game.cardHandler.flip(player1, eternal)).not.toThrow();
+    expect(eternal.flipped).toBe(false);
+  });
+  
   it("can flip Anima Sola twice without adding monster DC to a player", async () => {
     const setup = await setupTestGame({
                     characters: ["r-the_deserter", "b2-samson"],

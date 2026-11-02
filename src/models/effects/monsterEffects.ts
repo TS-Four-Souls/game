@@ -251,7 +251,7 @@ export function whenThisReachesXHP(game: Game, x: number, effectFunctions: Effec
         let offDamage: (() => void) | null = null;
         offDamage = game.emitter.on("on:damage:taken", (eventData: OnDamageTakenData) => {
             const { eventIssuer, target, source, damage } = eventData;
-            if (data.issuer !== eventIssuer && data.it.entity !== eventIssuer) return;
+            if (data.it.entity !== eventIssuer) return;
             const currentHP = eventIssuer.currentHealthPoints;
             if (currentHP === x) {
 
