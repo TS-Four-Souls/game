@@ -59,6 +59,8 @@ export class Game {
   private _stack: Stack = new Stack(this);
   private _emitter: GameEventEmitter;
   private _stackSubsetCallbacks: {stackIds: number[], callback: () => void}[] = [];
+  /** One collector per emit in progress (innermost last): the stack elements pushed by its listeners. */
+  private _emissionCollectors: StackElement[][] = [];
   private _historicHandler: HistoricHandler = new HistoricHandler(this);
   private _gameOver: boolean = false;
   private _isWon: boolean = false;
@@ -961,6 +963,7 @@ export class Game {
     }
 
     this.stack.push(item);
+    this._emissionCollectors.at(-1)?.push(item);
     this.assert.updateLastTimedAction();
     this.dispatch();
     return item.stackId;
@@ -1089,7 +1092,6 @@ export class Game {
         toSerializedTranslation("common.acceptButton"), toSerializedTranslation("common.declineButton")], 
         toSerializedTranslation("pending.fromIdWantsToGiveYouCoins", { player: from.id, value: amount }), "coinGift", true);
       if (response.selected[0]?.key !== "common.acceptButton") {
-        console.log("declined");
         return false;
       }
     }
@@ -1117,15 +1119,25 @@ export class Game {
 
   /** Emits a game trigger event and schedules stack reordering if needed. */
   emit(event: TriggerEvent, data: any = {}, dispatch: boolean = true): void {
-    const count = this.emitter.emit(event, data);
+    // Collects the elements pushed directly by the listeners of this event:
+    // elements pushed by nested emits go to their own collector and are grouped separately.
+    const pushedByThisEvent: StackElement[] = [];
+    this._emissionCollectors.push(pushedByThisEvent);
+    let count: number;
+    try {
+      count = this.emitter.emit(event, data);
+    } finally {
+      this._emissionCollectors.pop();
+    }
     if (count > 0 && dispatch)
       this.dispatch();
-    // If count > 1 calls stack reordering. 
-    // Players can reorder their own effects if they have multiple. 
+    // If more than one element was pushed by this event, calls stack reordering.
+    // Players can reorder their own effects if they have multiple.
     // Current player can also reorder game effects if multiple are triggered at the same time.
     // Game effects are always resolved before player effects, and player effects are resolved in turn order starting from the current player.
-    if(count > 1)
-      this.stack.reorderStack(this.currentPlayer, count);
+    const pushed = pushedByThisEvent.filter((el) => this.stack.elements.includes(el));
+    if(pushed.length > 1)
+      this.stack.reorderStack(this.currentPlayer, pushed);
   }
 
   /** Moves one stack element before another within the same reordering group. */

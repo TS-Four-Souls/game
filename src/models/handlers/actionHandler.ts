@@ -401,7 +401,7 @@ export class ActionHandler {
     playCard(player: Player, index: number, targets: any[] = []): string {
       this.canPlayCard(player, true);
       this.game.assert.positiveNumber(index);
-      if (index < 0 || index > player.hand.cards.length) {
+      if (index < 0 || index >= player.hand.cards.length) {
         return "Invalid card position.";
       }
       const card = player.hand.cards[index]!;

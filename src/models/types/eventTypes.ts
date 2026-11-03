@@ -190,7 +190,7 @@ export interface OnItemGainedData {
 export interface OnLootWouldDiscardData {
   eventIssuer: Player;
   indice: number[];
-  reason: "death" | "effect" | "overload" | "other";
+  reason: "death" | "effect" | "paiement" | "overload" | "other";
 }
 
 /** Data emitted when a player gains coins */

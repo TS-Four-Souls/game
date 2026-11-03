@@ -538,31 +538,31 @@ export const enterGameStep = (
         return callback({ status: 200, dices: dices });
       }),
     );
-  }
 
-  socket.on("debugPutRoom", async (payload, callback) =>
-    errorGuardedEndpoint(callback, async () =>
-      payloadGuardedEndpoint(
-        payload,
-        schemas.debugPutRoomRequest,
-        callback,
-        (payload) => {
-          helper.executeDebugPutRoomRequest(
-            room.game,
-            payload,
-            player,
-          );
-          return callback({ status: 200 });
-        },
+    socket.on("debugPutRoom", async (payload, callback) =>
+      errorGuardedEndpoint(callback, async () =>
+        payloadGuardedEndpoint(
+          payload,
+          schemas.debugPutRoomRequest,
+          callback,
+          (payload) => {
+            helper.executeDebugPutRoomRequest(
+              room.game,
+              payload,
+              player,
+            );
+            return callback({ status: 200 });
+          },
+        ),
       ),
-    ),
-  );
+    );
 
-  socket.on("debugListRooms", async (callback) =>
-    errorGuardedEndpoint(callback, () => {
-      const cards = room.game.rooms?._deck.cards.toSorted((a, b) => (a.name + a.slug).localeCompare(b.name + b.slug))
-          .map((c) => c.jsonAPI) || [];
-      return callback({ status: 200, cards });
-    }),
-  );
+    socket.on("debugListRooms", async (callback) =>
+      errorGuardedEndpoint(callback, () => {
+        const cards = room.game.rooms?._deck.cards.toSorted((a, b) => (a.name + a.slug).localeCompare(b.name + b.slug))
+            .map((c) => c.jsonAPI) || [];
+        return callback({ status: 200, cards });
+      }),
+    );
+  }
 };

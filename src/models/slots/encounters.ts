@@ -70,7 +70,8 @@ export class Encounters extends Slots<MonsterCard> {
      */
     override fillEmptySpots(eventsBottom = false): void {
         for (let i = 0; i < this._slots.length; i++) {
-            if (this._slots[i]!.length == 0) {
+            // An indomitable card goes to a new slot instead, so keep drawing until this slot is filled.
+            while (this._slots[i]!.length == 0) {
                 let card = this._deck.draw();
                 if (eventsBottom) {
                     for (let i = 0; i < this._deck.length; i++) {
@@ -92,10 +93,26 @@ export class Encounters extends Slots<MonsterCard> {
                         );
                     }
                 }
-                this._slots[i]!.push(card!);
-                this.createMonsterAtSlot(i);
+                this.placeInSlot(i, card!);
             }
         }
+    }
+
+    /**
+     * Places a card on top of a slot and creates its monster.
+     * An indomitable card is placed in a new slot instead.
+     *
+     * @returns Whether the card was placed in the given slot.
+     */
+    private placeInSlot(index: number, card: MonsterCard): boolean {
+        if (card.indomitable) {
+            this._slots.push([card]);
+            this.createMonsterAtSlot(this._slots.length - 1);
+            return false;
+        }
+        this._slots[index]!.push(card);
+        this.createMonsterAtSlot(index);
+        return true;
     }
 
 
@@ -128,10 +145,12 @@ export class Encounters extends Slots<MonsterCard> {
     /**
      * Draws a card from the monster deck and places it on top of a specific slot.
      * Creates a new Monster entity for the drawn card.
+     * An indomitable card is placed in a new slot instead, leaving the given slot unchanged.
      *
      * @param position - The slot index to draw to
+     * @returns Whether the drawn card was placed in the given slot.
      */
-    override draw(position: number): void {
+    override draw(position: number): boolean {
         if (position < 0 || position >= this._slots.length)
             throw new GameError("Invalid slot position to draw to. Position: " + position + ", Slots length: " + this._slots.length,
                 toSerializedTranslation("error.behaviorError", { error: "Invalid slot position to draw to. Position: " + position + ", Slots length: " + this._slots.length }));
@@ -139,8 +158,7 @@ export class Encounters extends Slots<MonsterCard> {
         if (card === undefined)
             throw new GameError(`Cannot draw card from deck for slot ${position}. The deck has ${this._deck.cards.length} cards left.`,
                 toSerializedTranslation("error.behaviorError", { error: `Cannot draw card from deck for slot ${position}. The deck has ${this._deck.cards.length} cards left.` }));
-        this._slots[position]!.push(card);
-        this.createMonsterAtSlot(position);
+        return this.placeInSlot(position, card);
     }
 
     /**
@@ -155,12 +173,19 @@ export class Encounters extends Slots<MonsterCard> {
             return undefined;
         }
         const card = this._slots[index]!.pop();
+        this.revealOrRefill(index);
+        return card;
+    }
+
+    /**
+     * Updates a slot whose top card just left: reveals the covered card, or refills the slot if it is empty.
+     */
+    private revealOrRefill(index: number): void {
         if (this._slots[index]!.length === 0) {
             this.fillEmptySpots(false);
         } else {
             this.createMonsterAtSlot(index);
         }
-        return card;
     }
 
     /**
@@ -204,13 +229,22 @@ export class Encounters extends Slots<MonsterCard> {
     }
 
     /**
-     * Flushes all top cards from all slots and refills, then draws a new card on top of each non refilled slot.
+     * Puts each monster not being attacked into discard and replaces each with the top card of the monster deck.
+     * The replacement is drawn directly on the slot, so a covered card under the discarded one stays covered.
      */
     override flushAndDraw(): void {
-        this.flush();
-        for (let i = 0; i < this._slots.length; i++) {
-            if (this._slots[i]!.length > 1 && (this.coverableSlots.includes(this._slots[i]![this._slots[i]!.length - 1]!)))
-                this.draw(i);
+        // Slots can be added while drawing (indomitable monsters), only the existing ones are flushed.
+        const nbSlots = this._slots.length;
+        for (let i = 0; i < nbSlots; i++) {
+            if (!this.canFlushIndex(i))
+                continue;
+            const card = this._slots[i]!.pop();
+            if (card !== undefined)
+                this._deck.addDiscardTop(card);
+            // draw() cleans up the discarded monster before creating the new one.
+            // An indomitable replacement goes to its own slot: this slot then reveals its covered card or is refilled.
+            if (!this.draw(i))
+                this.revealOrRefill(i);
         }
     }
 
@@ -252,19 +286,10 @@ export class Encounters extends Slots<MonsterCard> {
      */
     createMonsterAtSlot(index: number): void {
         const card = this._slots[index]![this._slots[index]!.length - 1]!;
-        if(card.indomitable)
-        {
-            const currentSlotSize = this._slots.length;
-            this._slots[index]!.pop();
-            this.expand(1, [card]);
-            index = currentSlotSize;
-        } else
-        {
-            const toClean = this._monstersInPlay[index];
-            if (toClean !== undefined) {
-                toClean.card.cleanup();
-                // this._game.stack.clearEffectsFromEntity(toClean);
-            }
+        const toClean = this._monstersInPlay[index];
+        if (toClean !== undefined) {
+            toClean.card.cleanup();
+            // this._game.stack.clearEffectsFromEntity(toClean);
         }
         if (card.encounterType !== MonsterType.EVENT) {
             const monster = new Monster(card, this);
@@ -358,6 +383,11 @@ export class Encounters extends Slots<MonsterCard> {
      * @param monsterCard - The monster card to place in the slot
      */
     forceSetMonsterAtSlot(index: number, monsterCard: MonsterCard): void {
+        // An indomitable card gets its own slot and does not replace anything.
+        if (monsterCard.indomitable) {
+            this.placeInSlot(index, monsterCard);
+            return;
+        }
         const previousCard = this._slots[index]![0]!;
         this._slots[index] = [monsterCard];
         this.createMonsterAtSlot(index);

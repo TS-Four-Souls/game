@@ -137,6 +137,12 @@ export class SelectionHandler {
         }
         return option;
       });
+      // The same card/entity/effect cannot be selected twice.
+      const selectedObjects = selected.filter((option) => typeof option === "object" && option !== null);
+      if (new Set(selectedObjects).size !== selectedObjects.length) {
+        throw new GameError("Duplicate selection identifier",
+          toSerializedTranslation("error.invalidSelectionIdentifier"));
+      }
 
       // Resolve the pending promise
       pending.resolve(selected);

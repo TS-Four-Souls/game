@@ -35,7 +35,13 @@ class NumericGameParameter {
   }
 
   set value(value: number) {
-    this._value = NumericGameParameter.clamp(value, this._min, this._max);
+    // Values may come from untrusted JSON (saved settings, client patches).
+    if (typeof value !== "number" || !Number.isFinite(value)) return;
+    this._value = NumericGameParameter.clamp(
+      Math.round(value),
+      this._min,
+      this._max,
+    );
     this.onChange();
   }
 
@@ -174,6 +180,8 @@ class DeckParameter {
     value: number,
     callOnChange: boolean = true,
   ): void {
+    if (typeof value !== "number" || !Number.isFinite(value)) return;
+    value = Math.round(value);
     const card = this._cards.find((x) => x.card.slug === slug);
     if (card) {
       // set without using setCardParameter to avoid per-card total checks while applying
@@ -273,6 +281,7 @@ class BooleanGameParameter {
   }
 
   set value(value: boolean) {
+    if (typeof value !== "boolean") return;
     this._value = value;
     this.onChange();
   }

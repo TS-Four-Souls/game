@@ -121,6 +121,16 @@ export async function executeResolveRequest(
       toSerializedTranslation("error.onlyCurrentPlayerCanResolveStack")
     );
   }
+  // Validate before recording: a rejected Resolve (e.g. a selection is pending) must not reach the logs,
+  // otherwise the replay (where prompts are auto-answered) would resolve an extra element.
+  // The entry is still recorded before resolving, so SubmitSelection entries awaited during the resolution come after it.
+  if (!game.stack.isEmpty()) {
+    if (game.isStarted) {
+      game.actions.canResolve(player, true);
+    } else {
+      game.assert.noPendingSelection();
+    }
+  }
   game.addToHistory({ type: "Resolve", issuer: player.id });
   await game.actions.resolveStack();
 }
@@ -204,6 +214,13 @@ export async function executeGiveCoinsRequest(
 ): Promise<void> {
   game.assert.noPendingSelection();
   const target = game.entityHandler.getPlayerById(payload.target);
+  if (target === player) {
+    throw new GameError("A player cannot give coins to themselves",
+      toSerializedTranslation("error.behaviorError", {
+        error: "A player cannot give coins to themselves",
+      })
+    );
+  }
   const amount = payload.coins;
   // The recipient is asked to accept: their answer must come after this entry in history,
   // and a declined gift must still be recorded, otherwise the answer is an orphan that desyncs replays.
@@ -216,10 +233,6 @@ export function executeDebugLootTopRequest(
   game: Game,
   player: Player,
 ): void {
-  game.addToHistory({
-    type: "DebugLootTop",
-    issuer: player.id,
-  });
   const topCard = game.decks.loot.cards[0]?.jsonAPI;
   if (!topCard) {
     throw new GameError("Loot deck is empty",
@@ -227,16 +240,16 @@ export function executeDebugLootTopRequest(
     );
   }
   game.actions.debugLoot(player, [topCard], false);
+  game.addToHistory({
+    type: "DebugLootTop",
+    issuer: player.id,
+  });
 }
 
 export function executeDebugGainTreasureTopRequest(
   game: Game,
   player: Player,
 ): void {
-  game.addToHistory({
-    type: "DebugGainTreasureTop",
-    issuer: player.id,
-  });
   const topCard = game.decks.treasure.cards[0]?.jsonAPI;
   if (!topCard) {
     throw new GameError("Treasure deck is empty",
@@ -244,17 +257,16 @@ export function executeDebugGainTreasureTopRequest(
     );
   }
   game.actions.debugGainTreasures(player, [topCard], true);
+  game.addToHistory({
+    type: "DebugGainTreasureTop",
+    issuer: player.id,
+  });
 }
 export function executeDebugLootRequest(
   game: Game,
   payload: Requests.DebugLoot,
   player: Player,
 ): void {
-  game.addToHistory({
-    type: "DebugLoot",
-    payload,
-    issuer: player.id,
-  });
   const cards = payload.cards;
   if (cards && cards.length > 0) {
     const lootDeck = game.decks["loot"];
@@ -265,6 +277,11 @@ export function executeDebugLootRequest(
     }
     game.actions.debugLoot(player, cards);
   }
+  game.addToHistory({
+    type: "DebugLoot",
+    payload,
+    issuer: player.id,
+  });
 }
 
 export function executeDebugRemoveCardsRequest(
@@ -272,11 +289,6 @@ export function executeDebugRemoveCardsRequest(
   payload: Requests.DebugRemoveCards,
   player: Player,
 ): void {
-game.addToHistory({
-  type: "DebugRemoveCards",
-  payload,
-  issuer: player.id,
-});
 if (payload.cards !== undefined) {
   const cardsToRemove = game
     .playerCardsAndGameOwnedCards(player)
@@ -287,17 +299,17 @@ if (payload.cards !== undefined) {
     );
   game.actions.debugRemoveCards(player, cardsToRemove);
 }
+game.addToHistory({
+  type: "DebugRemoveCards",
+  payload,
+  issuer: player.id,
+});
 }
 export function executeDebugGainTreasureRequest(
   game: Game,
   payload: Requests.DebugGainTreasure,
   player: Player,
 ): void {
-  game.addToHistory({
-    type: "DebugGainTreasure",
-    payload,
-    issuer: player.id,
-  });
   const cards = payload.cards;
   if (cards && cards.length > 0) {
     const treasureDeck = game.decks["treasure"];
@@ -308,18 +320,23 @@ export function executeDebugGainTreasureRequest(
     }
     game.actions.debugGainTreasures(player, cards, false);
   }
+  game.addToHistory({
+    type: "DebugGainTreasure",
+    payload,
+    issuer: player.id,
+  });
 }
 export function executeDebugGainCoinsRequest(
   game: Game,
   payload: Requests.DebugGainCoins,
   player: Player,
 ): void {
+  game.actions.debugGainCoins(player, payload.coins);
   game.addToHistory({
     type: "DebugGainCoins",
     payload,
     issuer: player.id,
   });
-  game.actions.debugGainCoins(player, payload.coins);
 }
 
 export function executeDebugPutMonsterCardInSlotRequest(
@@ -327,11 +344,19 @@ export function executeDebugPutMonsterCardInSlotRequest(
   payload: Requests.DebugPutMonsterCardInSlot,
   player: Player,
 ): void {
-  game.addToHistory({
-    type: "DebugPutMonsterCardInSlot",
-    payload,
-    issuer: player.id,
-  });
+  // Resolve the slot before obtainCard, which removes the card from its zone.
+  const index = 
+  payload.toCover === "top" 
+  ? "top" 
+  : game.encounters._slots
+    .map((slot) => slot[slot.length - 1]?.globalId)
+    .indexOf(payload.toCover.globalId);
+  if (index === -1) {
+    throw new GameError(
+      "Monster to cover not found in any slot.",
+      toSerializedTranslation("error.invalidMonsterPosition")
+    );
+  }
   const card = game.obtainCard(
     payload.card.slug,
     payload.card.globalId,
@@ -342,13 +367,12 @@ export function executeDebugPutMonsterCardInSlotRequest(
       toSerializedTranslation("error.cardNotFoundInCardSet")
     );
   }
-  const index = 
-  payload.toCover === "top" 
-  ? "top" 
-  : game.encounters._slots
-    .map((slot) => slot[slot.length - 1]?.globalId)
-    .indexOf(payload.toCover.globalId);
   game.actions.debugPutMonsterCardInSlot(player, card, index);
+  game.addToHistory({
+    type: "DebugPutMonsterCardInSlot",
+    payload,
+    issuer: player.id,
+  });
 }
 
 export function executeDebugChangeDiceResultRequest(
@@ -375,20 +399,21 @@ export function executeDebugPutRoomRequest(
 ): void {
   if(game.rooms === undefined)
     return;
-  const room = game.obtainCard(payload.card.slug, payload.card.globalId);
-  if(room === undefined || room instanceof RoomCard === false)
-    return;
+  // Validate the slot before obtainCard, which removes the card from its zone.
   const idx =  game.rooms.activeRooms
     .map((slot) => slot.globalId)
     .indexOf(payload.toCover.globalId);
   if(idx < 0 || idx >= game.rooms.activeRooms.length)
     throw new GameError("", toSerializedTranslation("error.invalidCardPosition"));
+  const room = game.obtainCard(payload.card.slug, payload.card.globalId);
+  if(room === undefined || room instanceof RoomCard === false)
+    return;
 
   game.addToHistory({
     type: "DebugPutRoom",
     payload,
     issuer: player.id,
   });
-  game.rooms?.forceRoomAtSlot(0, room);
+  game.rooms?.forceRoomAtSlot(idx, room);
   game.dispatch();
 }

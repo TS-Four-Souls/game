@@ -4,7 +4,7 @@ import { MonsterCard } from './cards';
 import type { Entity } from "./entities/entity";
 import type { Player } from "./entities/player";
 import type { Game } from './game';
-import { DamageOnStack, DiceRoll, EffectOnStack, StackElement } from './stackElement';
+import { DamageOnStack, DeathOnStack, DiceRoll, EffectOnStack, StackElement } from './stackElement';
 import type { TriggerEvent } from "./types/eventTypes";
 
 export function isStackElement(obj: any): obj is StackElement {
@@ -87,22 +87,15 @@ export class Stack {
             );
         }
 
-        // Swap-based insertion to keep operation explicit and predictable.
-        if (fromIndex < toIndex) {
-            // If already directly before target, no move is needed.
-            for (let i = fromIndex; i < toIndex - 1; i++) {
-                const tmp = this._stack[i]!;
-                this._stack[i] = this._stack[i + 1]!;
-                this._stack[i + 1] = tmp;
-            }
-            return;
-        }
-
-        for (let i = fromIndex; i > toIndex; i--) {
-            const tmp = this._stack[i]!;
-            this._stack[i] = this._stack[i - 1]!;
-            this._stack[i - 1] = tmp;
-        }
+        // Reorder the group among the stack positions it already occupies, so that elements
+        // of other groups interleaved with it (e.g. triggers of a nested event) do not move.
+        const group = this._stack.filter((el) => el.reordering?.groupId === sourceGroup);
+        const positions = group.map((el) => this._stack.indexOf(el));
+        const reordered = group.filter((el) => el !== elementToMove);
+        reordered.splice(reordered.indexOf(targetElement), 0, elementToMove);
+        positions.forEach((position, idx) => {
+            this._stack[position] = reordered[idx]!;
+        });
     }
 
     /** Moves one stack element before another within the same reordering group, or at the start of the group. 
@@ -159,7 +152,7 @@ export class Stack {
     cancelPreviousDeath(entity: Entity): boolean {
         for (let i = this._stack.length - 1; i >= 0; i--) {
             const element = this._stack[i];
-            if (element?.json.type === "death") {
+            if (element?.json.type === "death" && (element as DeathOnStack).receiver === entity) {
                 this._stack.splice(i, 1);
                 return true;
             }
@@ -214,8 +207,11 @@ export class Stack {
         });
     }
 
-    reorderStack(currentPlayer: Player, count: number): void {
-        const topElements = this.elements.slice(-count);
+    /**
+     * Groups by issuer the elements triggered together by one event so their owners can reorder them.
+     * @param topElements the elements pushed by the listeners of that event (not by nested events).
+     */
+    reorderStack(currentPlayer: Player, topElements: StackElement[]): void {
         if(topElements.some(el => el.json.type !== "effect")) // Only effects can be reordered.
           return;
         // Group by issuer

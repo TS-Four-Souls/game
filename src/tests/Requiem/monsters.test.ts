@@ -1,5 +1,5 @@
 import { MonsterCard } from "@/models/cards";
-import type { DiceRoll } from "@/models/stackElement";
+import { DiceRoll } from "@/models/stackElement";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../../models/entities/player";
 import { Game } from "../../models/game";
@@ -434,9 +434,11 @@ describe("Requiem Monsters ", () => {
     it("mothers_shadow 2", async () => {
         const mob = game.obtainCard("r-mothers_shadow") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
+        // Most souls must not matter, only most items.
         const card = game.decks.monster.draw();
         card.soul = 2;
-        game.cardHandler.addSoul(player1, card);
+        game.gainTreasure(player1, 1);
+        expect(player1.inPlay.length).toBeGreaterThan(player2.inPlay.length);
 
         game.encounters.forceSetMonsterAtSlot(0, mob);
         await game.actions.resolveStack();
@@ -831,10 +833,21 @@ describe("Requiem Monsters ", () => {
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
         game.gainCoins(player1, 5, "gift");
-        game.entityHandler.dealCombatDamage(ent, player1, {card: mob, visualEffectBox: undefined}, 1);
-        await game.actions.resolveStack();
+        // Non-combat damage must not trigger it.
+        game.entityHandler.dealDamage(ent, player1, {card: mob, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
+        expect(player1.coins).toBe(5);
+        player1.addHealthPoints(5); // Survive the combat damage.
+
+        // Missed attack roll: combat damage.
+        game.random = () => 0.01;
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, ent);
+        await game.actions.resolveStack();
+        await game.actions.attackRoll(player1);
+        while(!game.stack.isEmpty())
+            await game.actions.resolveStack();
         expect(player1.coins).toBe(3);
 
         game.random = () => 0.99;
@@ -853,18 +866,20 @@ describe("Requiem Monsters ", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
-        game.entityHandler.dealDamage(ent, player1, {card: mob, visualEffectBox: undefined}, 1);
+        game.entityHandler.dealDamage(player1, ent, {card: mob, visualEffectBox: undefined}, 1);
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
-        
+        expect(ent.currentHealthPoints).toBe(ent.healthPoints - 1);
+        const playerHp = player1.currentHealthPoints;
+
         game.actions.declareAttack(player1);
         game.actions.declareAttackOnEntity(player1, ent);
         game.random = () => 0.01;
         game.actions.attackRoll(player1);
-        await game.actions.resolveStack();
-        await game.actions.resolveStack();
-        await game.actions.resolveStack();
+        await game.resolveEntireStack();
+        // The miss heals the monster, not the attacking player.
         expect(ent.currentHealthPoints).toBe(ent.healthPoints);
+        expect(player1.currentHealthPoints).toBeLessThan(playerHp);
 
         game.entityHandler.kill(player1, ent, {card: mob, visualEffectBox: undefined});
         await game.actions.resolveStack();

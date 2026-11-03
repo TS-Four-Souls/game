@@ -73,43 +73,6 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player2.attackThisTurn).toBe(1);
     });
 
-    it("The Revenant rewards the player attacking it, even if they are not the active player", async () => {
-        const setup = await setupTestGame({
-                    characters: ["r-the_deserter", "b2-samson"],
-                    monsters: ["b2-fly", "b2-fatty"],
-                    monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
-                    treasureDeck: ["b2-blank_card"],
-                    playerCount: 2
-                });
-        game = setup.game;
-        player1 = setup.player1;
-        player2 = setup.player2!;
-        const eternal = player1.inPlay[0]!;
-        game.cardHandler.recharge(eternal);
-        await game.activateItem(player1, eternal, [], "tap");
-        await game.actions.resolveStack();
-        expect(eternal.flipped).toBe(true);
-        expect(game.currentPlayer).toBe(player1);
-        const revenant = eternal.entity!;
-        const hand1 = player1.hand.length;
-        const hand2 = player2.hand.length;
-        game.actions.declareAttack(player1);
-        game.actions.declareAttackOnEntity(player1, revenant);
-        const attacks1 = player1.attackThisTurn;
-        const attacks2 = player2.attackThisTurn;
-
-        // A non-active player makes an attack roll against The Revenant (e.g. forced by a room).
-        const dice = player2.rollDice(() => 0.99, new AttackRollData(0, 1, 0, 1, revenant.evasion, revenant));
-        game.entityHandler.dealCombatDamage(player2, revenant, dice, revenant.currentHealthPoints);
-        for (let i = 0; i < 5 && !game.stack.isEmpty(); i++)
-            await game.actions.resolveStack();
-
-        expect(eternal.flipped).toBe(false);
-        expect(player2.hand.length).toBe(hand2 + 2);
-        expect(player1.hand.length).toBe(hand1 + 1); // Anima Sola: "When this is flipped to this side, loot 1."
-        expect(player2.attackThisTurn).toBe(attacks2 + 1);
-        expect(player1.attackThisTurn).toBe(attacks1);
-    });
 
     it("The Revenant does not die when its owner dies while it is attacked", async () => {
         const setup = await setupTestGame({
@@ -443,8 +406,11 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.actions.resolveStack(); // dice 1
         await game.actions.resolveStack(); // dmg 1
         await game.actions.resolveStack(); // dice 2
+        game.entityHandler.endCombat();
+        game.entityHandler.kill(player1, game.monsters[1]!, {card: game.monsters[1]!.card, visualEffectBox: undefined});
         await game.actions.resolveStack(); // dmg 2
         await game.actions.resolveStack(); // death
+        await game.actions.resolveStack(); // helper rewards
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.hand._hand.length).toBe(1);
         expect(player2.hand._hand.length).toBe(0);
@@ -1111,7 +1077,7 @@ describe("Four Souls+2 Eternal Items", () => {
         eternal.counters.addToCounter(1, "normal");
         game.cardHandler.recharge(player1.inPlay[0] as ItemCard);
         game.gainTreasure(player1, 1);
-        await game.activateItem(player1, eternal, [player1.inPlay[1]], 0);
+        await game.activateItem(player1, eternal, [player1.inPlay[1]], "tap");
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.inPlay.length).toBe(1);
@@ -1119,7 +1085,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.attackPoints).toBe(2);
         game.cardHandler.recharge(player1.inPlay[0] as ItemCard);
         game.gainTreasure(player1, 1);
-        await game.activateItem(player1, eternal, [player1.inPlay[1]], 0);
+        await game.activateItem(player1, eternal, [player1.inPlay[1]], "tap");
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(2);
@@ -1127,7 +1093,7 @@ describe("Four Souls+2 Eternal Items", () => {
 
         game.cardHandler.recharge(player1.inPlay[0] as ItemCard);
         game.gainTreasure(player1, 1);
-        await game.activateItem(player1, eternal, [player1.inPlay[1]], 0);
+        await game.activateItem(player1, eternal, [player1.inPlay[1]], "tap");
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(3);

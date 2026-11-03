@@ -890,7 +890,6 @@ export class CardHandler {
       type: "transferLoot",
       sender: from.id,
       recipient: to.id,
-      card: card.jsonAPI,
     });
 
     this.removeCardFromHand(from, card);

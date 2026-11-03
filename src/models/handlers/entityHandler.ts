@@ -201,6 +201,8 @@ export class EntityHandler {
     this.game.assert.gameOngoing();
     if(this.game.assert.entityIsInPlay(receiver, false) !== true) return;
     if (receiver.isDead) return;
+    // An entity can only have one pending death; a cancelled death is removed from the stack, so it can die again later.
+    if (this.game.stack.elements.some(e => e instanceof DeathOnStack && e.receiver === receiver)) return;
 
     const deathOnStack = new DeathOnStack(receiver, from, source, this.game);
     this.game.addToStack(deathOnStack);
@@ -371,11 +373,11 @@ export class EntityHandler {
 
     const mustAttackEntity = player.mustAttackEntity;
 
-    for (const req of mustAttackEntity) {
+    for (const req of [...mustAttackEntity]) {
       if (req.targets === "topDeck") continue;
       if (req.targets === "any") continue;
       if(req.targets.every(m => !(this.game.attackableEntities.includes(m)) || m.attackable === false)) {
-        player.clearAttackRequirement(req.targets[0]);
+        player.removeAttackRequirement(req);
       }
     }
     player.mustAttack(target, source, checkRemainingAttack);
@@ -494,9 +496,10 @@ export class EntityHandler {
     receiver: Entity,
     source: DamageSource,
     damage: number,
-    checkDeath: boolean = true
+    checkDeath: boolean = true,
+    isDamage: boolean = true
   ): boolean {
-    const damageReceived = receiver.receiveDamage(damage, dealer, source);
+    const damageReceived = receiver.receiveDamage(damage, dealer, source, isDamage);
     if (checkDeath && receiver.currentHealthPoints <= 0) {
       this.death(receiver, dealer, source);
     }

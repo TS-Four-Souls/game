@@ -822,7 +822,7 @@ export function lookAtTopXPut1InSlotEffect(game: Game, x: number): AsyncEffectFu
 
 export function getCardFromLootDiscardEffect(cardTxt: string | "top", game: Game, exactMatch: boolean): AsyncEffectFunction {
     return async (data: EffectData) => {
-        const possibilities = game.decks.loot.discard.filter(card => exactMatch ? card.name.toLowerCase() === cardTxt : card.name.toLowerCase().includes(cardTxt));
+        const possibilities = game.decks.loot.discard.filter(card => exactMatch ? card.name.toLowerCase().replaceAll("!", "") === cardTxt : card.name.toLowerCase().includes(cardTxt));
         if(possibilities.length === 0 && cardTxt !== "top") return false;
         const card = cardTxt === "top" ? game.decks.loot.discard[0] :
             (await data.selectAndRecord(game, data.issuer as Player, 1, 1, possibilities, qq("pending.cardToGet"), data.serializedCardAndBox, true, true)).selected[0]!;
@@ -2982,22 +2982,37 @@ export function nonActivePlayerHelpFight(game: Game): SyncEffectFunction {
         let offDeclareAttack: (() => void) | null = null;
         let offEndTurn: (() => void) | null = null;
         let offDeath: (() => void) | null = null;
+        let offAttackRoll: (() => void) | null = null;
+        let offCombatEnd: (() => void) | null = null;
+        let attackedEntity: Entity | null = null;
+        const cleanup = (): void => {
+            offDeclareAttack?.();
+            offDeclareAttack = null;
+            offEndTurn?.();
+            offEndTurn = null;
+            offDeath?.();
+            offDeath = null;
+            offAttackRoll?.();
+            offAttackRoll = null;
+            offCombatEnd?.();
+            offCombatEnd = null;
+        };
         offDeclareAttack = game.emitter.on("on:attack:declared", (eventData: OnAttackDeclaredData) => {
             const helper = data.next as Player;
             if(!helper || !(helper instanceof Player))
                 throw new GameError("Player invalid for nonActivePlayerHelpFight", toSerializedTranslation("error.behaviorError", { error: "Player invalid for nonActivePlayerHelpFight"}));
             const newData = new EffectData(data.it, () => helper, [], data.visualEffectBox);
             room.makeAnAttackRollAfterEachAttackRollEffect(game)(newData);
-                    
+
+            // Record the monster attacked by the active player (also covers top-deck attacks).
+            offAttackRoll = game.emitter.on("on:attack:roll", (rollData: OnRollData) => {
+                if (attackedEntity !== null || rollData.eventIssuer !== game.currentPlayer) return;
+                attackedEntity = rollData.dice.attackTarget;
+            });
+            // If that monster dies this attack, regardless of whose roll killed it, the helper also gains the rewards.
             offDeath = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
-                const { eventIssuer, target, source } = eventData;
-                if(game.entitiesInCombat.length === 0)
-                    {
-                        offDeath?.();
-                        offDeath = null;
-                    }
-                if (!(eventIssuer instanceof Monster)) return;
-                if(source instanceof DiceRoll === false || (source as DiceRoll).issuer !== helper) return;
+                const { eventIssuer, target } = eventData;
+                if (!(eventIssuer instanceof Monster) || attackedEntity === null || eventIssuer !== attackedEntity) return;
                 
                 // Add all effects as a single stack element
                 const effect = (effectData: EffectData): boolean => {
@@ -3005,22 +3020,20 @@ export function nonActivePlayerHelpFight(game: Game): SyncEffectFunction {
                     return true;
                 };
                 addPassiveEffectToStack(game, effect, data, `${helper.id} also gains rewards from killing ${target.id}.`);
-                offDeath?.();
-                offDeath = null;
+                cleanup();
+            });
+            // resolveDeath marks the monster dead before ending combat, so a dead monster is handled by offDeath.
+            offCombatEnd = game.emitter.on("on:combat:end", () => {
+                if (attackedEntity !== null && attackedEntity.isDead) return;
+                cleanup();
             });
             offDeclareAttack?.();
             offDeclareAttack = null;
-            offEndTurn?.();
-            offEndTurn = null;
             return true;
         });
+        // Backstop: never outlive the turn.
         offEndTurn = game.emitter.on("on:turn:start", () => {
-            offDeclareAttack?.();
-            offDeclareAttack = null;
-            offEndTurn?.();
-            offEndTurn = null;
-            offDeath?.();
-            offDeath = null;
+            cleanup();
         });
         return true;
     };

@@ -8,7 +8,7 @@ import * as room from "../roomEffects";
 import {Player} from "../../entities/player";
 import {DiceRoll} from "../../stackElement";
 import {EffectData, type AsyncEffectFunction, type EffectFunction, type SyncEffectFunction, type TargetsSelector} from "../../types/cardTypes";
-import type {OnCounterModifiedData, OnDamageTakenData, OnDeathBeforePenaltyData, OnLootStepData} from "../../types/eventTypes";
+import type {OnCounterModifiedData, OnDamageTakenData, OnDeathBeforePenaltyData, OnLootStepData, OnRollData} from "../../types/eventTypes";
 import {Monster} from "../../entities/monster";
 import {NumberRobustString} from "./numberRobustString";
 import {
@@ -426,14 +426,10 @@ if (s.startsWith("when you die, ")) {
     if(nr.masked.startsWith("each time the attacking player misses an attack roll,"))
     {
         const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, true);
-        return noTargetSyncEffect(passive.onAnyEventEffect("on:damage:taken", [restParsed.effectFunction], game, s, 
-            (ef: EffectData, ev: OnDamageTakenData) => {
-                if(ev.source instanceof DiceRoll === false) return false;
-                if(ev.target instanceof Player === false) return false;
-                if(ev.target.isEngagedInCombat) return false;
-                if(ev.source.card !== ef.it) return false;
-                return true;
-            }));
+        // The issuer stays the monster so that "this" refers to it, not to the attacking player.
+        return noTargetSyncEffect(passive.onAnyEventEffect("on:attack:roll:failed", [restParsed.effectFunction], game, s,
+            (ef: EffectData, ev: OnRollData) => ev.dice.attackTarget === ef.issuer,
+            false));
     }
     if(nr.masked.startsWith("[lvx effect]"))
         return parseLvXEffect(s, game, nr);
@@ -1214,10 +1210,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             };
         case "gain x [atk] till end of turn":
         case "you gain x [atk] till end of turn":
-            return {
-                effectFunction: passive.temporaryStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], nr.nextNumber(), game, "issuer"),
-                targetSelectors: selectPlayerOrMonster(game),
-            };
+            return noTargetSyncEffect(passive.temporaryStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], nr.nextNumber(), game, "issuer"));
         case "each monster gains x [atk] till end of turn":
             return noTargetSyncEffect(passive.temporaryStatModifierEffect(
                     [game.entityHandler.addAttackToEachMonster.bind(game.entityHandler)],
@@ -1290,7 +1283,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             const maxTargets = nr.nextNumber();
             return {
                 effectFunction: active.dealDamageToUpToXMonstersOrPlayersEffect(game, maxTargets, damage),
-                targetSelectors: selectPlayerOrMonster(game, 1, maxTargets),
+                targetSelectors: selectPlayerOrMonster(game, 0, maxTargets),
             };
         }
         case "combat damage you take is doubled on attack rolls of x":
@@ -1329,7 +1322,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             return noTargetSyncEffect(passive.nextShopItemThisTurnCosts(game, nr.nextNumber()));
         case "recharge up to x other items in play":
             const upTo = nr.nextNumber();
-            return { effectFunction: active.rechargeUpToXOtherItemsEffect(game, upTo), targetSelectors: selectTapItem(game, 1, upTo) };
+            return { effectFunction: active.rechargeUpToXOtherItemsEffect(game, upTo), targetSelectors: selectTapItem(game, 0, upTo, false) };
         case "if a player would roll a dice, they instead roll x dice. the player to their left chooses one of the rolls as the result":
             return noTargetSyncEffect(passive.rollXChoose1Effect(game, nr.nextNumber(), false, "left"));
         case "you have x to your first dice roll each turn":
@@ -1631,7 +1624,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
         case "you may play any number of additional loot cards till end of turn":
             return noTargetSyncEffect(active.playUnlimitedLootCardsThisTurnEffect(game));
         case "recharge each item you control":
-            return { effectFunction: active.rechargeEachItemsOfTargetEffect(game, "issuer"), targetSelectors: selectPlayer(game) };
+            return noTargetSyncEffect(active.rechargeEachItemsOfTargetEffect(game, "issuer"));
         case "recharge each item a player controls":
         case "choose a player. recharge each item they control":
             return { effectFunction: active.rechargeEachItemsOfTargetEffect(game, "next"), targetSelectors: selectPlayer(game) };
@@ -1851,7 +1844,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
         case "this room can be attacked":
             return noTargetSyncEffect(room.canBeAttackedEffect(game));
         case "players who control the most items or tied for the most may only recharge one item during their recharge step":
-            return noTargetSyncEffect(passive.rechargeOneDuringRechargeStepEffect(game, 1, "mostsouls"));
+            return noTargetSyncEffect(passive.rechargeOneDuringRechargeStepEffect(game, 1, "mostitems"));
         case "you can't recharge more than x item during your recharge step":
             return noTargetSyncEffect(passive.rechargeOneDuringRechargeStepEffect(game, nr.nextNumber(), "issuer"));
         case "your max hand size is x":

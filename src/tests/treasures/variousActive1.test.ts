@@ -1,4 +1,4 @@
-import { ItemCard, MonsterCard } from "@/models/cards";
+import { ItemCard, LootCard, MonsterCard } from "@/models/cards";
 import { Monster } from "@/models/entities/monster";
 import { setupTestGame } from "@/tests/testHelpers";
 import { beforeEach, describe, expect, it } from "bun:test";
@@ -618,6 +618,26 @@ describe("Tap/Paid effects 1", () => {
         expect(player1.coins).toBe(initialCoins + 3);
         expect(player1.hand.length).toBe(initialHandSize - 1);
         expect(game.decks["loot"]!.discard).toContain(lootCard);
+    });
+
+    it("smelter - paying the cost is not prevented by rib_of_greed", async () => {
+        const rib = game.obtainCard("r-rib_of_greed") as LootCard;
+        game.cardHandler.addCardToHand(player1, rib);
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
+
+        const smelter = game.shop.obtainCard("b2-smelter") as ItemCard;
+        game.cardHandler.addInPlay(player1, smelter);
+        const lootCard = game.decks["loot"]!.cards[0]!;
+        player1.hand.addToHand(lootCard);
+        const initialHandSize = player1.hand.length;
+        const initialCoins = player1.coins;
+
+        await game.activateItem(player1, smelter, [lootCard], 0);
+        await game.actions.resolveStack();
+
+        expect(player1.coins).toBe(initialCoins + 3);
+        expect(player1.hand.length).toBe(initialHandSize - 1);
     });
 
     it("the_d100 - roll 1 to loot 1", async () => {

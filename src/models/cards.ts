@@ -333,10 +333,12 @@ class Card {
         this._flippedEffectInterface.reset();
     }
     cleanup(): void {
-        for (const cleaner of this._cleanup.toReversed()) {
+        // Swap the list out first so a cleaner re-entering cleanup() doesn't run the same cleaners twice.
+        const list = this._cleanup;
+        this._cleanup = [];
+        for (const cleaner of list.toReversed()) {
             cleaner();
         }
-        this._cleanup = [];
     }
 
     recharge(): boolean {
@@ -405,7 +407,8 @@ class Card {
         
         // Copy properties from the other card
         const originalFlipData = this._flipData; // Preserve the flip data of the original card
-        this._json = otherCard._json;
+        this._json = structuredClone(otherCard._json); // Own copy: the source card's json must not be mutated.
+        const restoreSubclassState = this.copySubclassStateFrom(otherCard);
         this._separatorIds = otherCard._separatorIds;
         this._json.flip = originalFlipData; // Restore original flip data
         // this._tags = otherCard._tags;
@@ -440,6 +443,7 @@ class Card {
             this._effectOutcomes = originalState.effectOutcomes;
             this._effectInterface = originalState.effectInterface;
             this._flipData = originalState.flipData;
+            restoreSubclassState();
             this._tags.lastCopiedRestoreOriginalStateIndex = prevIdx; // Restore the previous index for potential nested copies
             this._tags.restore = undefined;
             if(this instanceof ItemCard)
@@ -459,6 +463,14 @@ class Card {
         this._tags.restore = restore;
         
         return { originalState, restore };
+    }
+
+    /**
+     * Copies subclass-specific identity fields from another card (used by becomesCopyOf).
+     * @returns a function restoring the previous values.
+     */
+    protected copySubclassStateFrom(otherCard: Card): () => void {
+        return () => {};
     }
 }
 
@@ -494,6 +506,21 @@ export class ItemCard extends Card {
 
   set parentCard(parent: string | undefined | null){
     this._parentCard = parent;
+  }
+
+  protected override copySubclassStateFrom(otherCard: Card): () => void {
+    const restoreParent = super.copySubclassStateFrom(otherCard);
+    const inplayType = this._inplayType;
+    const guppy = this._guppy;
+    if (otherCard instanceof ItemCard) {
+      this._inplayType = otherCard._inplayType;
+      this._guppy = otherCard._guppy;
+    }
+    return () => {
+      this._inplayType = inplayType;
+      this._guppy = guppy;
+      restoreParent();
+    };
   }
 
   get inPlayType(): InplayType {

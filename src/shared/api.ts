@@ -524,7 +524,7 @@ const contactRequestSchema = z.object({
 
 const giveCoinsSchema = z.object({
   target: z.string(),
-  coins: z.number(),
+  coins: z.number().int().positive(),
 });
 
 const attackMonsterSchema = z.union([
@@ -841,7 +841,7 @@ const setGameParameterRequestSchema = z.discriminatedUnion("parameter", [
           ] === numberGameParameterSchema,
       ) as [NumberParameterKeys, ...NumberParameterKeys[]],
     ),
-    value: z.number(),
+    value: z.number().int(),
   }),
   z.object({
     parameter: z.enum(
@@ -930,7 +930,6 @@ const diceRollAnimationSchema = genericAnimationSchema.extend({
 
 const transferLootAnimationSchema = genericAnimationSchema.extend({
   type: z.literal("transferLoot"),
-  card: identifierTypeSchema,
   sender: z.string(),
   recipient: z.string(),
 });

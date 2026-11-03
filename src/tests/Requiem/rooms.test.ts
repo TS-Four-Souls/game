@@ -120,6 +120,17 @@ describe("Requiem Rooms", () => {
         expect(room.counters.value("normal")).toBe(1);
     });
 
+    it("social_goals - drawing loot cards does not count as playing them", async () => {
+        const room = game.obtainCard("r-social_goals") as RoomCard;
+        game.rooms?.forceRoomAtSlot(0, room);
+        const loot = game.obtainCard("b2-a_penny")! as LootCard;
+        for(let i = 0; i < 5; i++)
+            game.cardHandler.addCardToHand(player1, game.cardHandler.copyCard(loot) as LootCard);
+        game.loot(player1, 5);
+        await game.actions.resolveStack();
+        expect(room.counters.value("normal")).toBe(0);
+    });
+
     it("social_goals can not be discarded", async () => {
         const room = game.obtainCard("r-social_goals") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);

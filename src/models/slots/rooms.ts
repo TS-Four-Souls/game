@@ -31,6 +31,8 @@ export class Rooms extends Slots<RoomCard> {
         if (card === undefined)
             throw new GameError(`Cannot draw card from deck for slot ${position}.`,
                 toSerializedTranslation("error.behaviorError", {error: `Cannot draw card from deck for slot ${position}.`}));
+        // The covered room is no longer active: its effects stop until it is revealed again.
+        this.roomIn(position)?.cleanup();
         this._slots[position]!.push(card);
         card.onAddInPlay(() => this._game.currentPlayer);
         this._stability[position] = { cardId: card.globalId, playersSinceChange: new Set() };
@@ -80,6 +82,8 @@ export class Rooms extends Slots<RoomCard> {
         card?.cleanup();
         if (this._slots[index]!.length === 0) {
             this.fillEmptySpots();
+        } else if (card !== undefined) {
+            this.reactivateTop(index);
         }
         this._stability[index] = { cardId: this.roomIn(index)?.globalId, playersSinceChange: new Set() };
         return card;
@@ -96,21 +100,40 @@ export class Rooms extends Slots<RoomCard> {
             return undefined;
         }
         const card = this._slots[i]![j]!;
+        const wasTop = j === this._slots[i]!.length - 1;
         this._slots[i]!.splice(j, 1);
         card.cleanup();
+        if (wasTop && this._slots[i]!.length > 0) {
+            this.reactivateTop(i);
+        }
         this.fillEmptySpots();
-        if( this._slots[i]!.length - 1 === j) {
+        if (this._stability[i]!.cardId !== this.roomIn(i)?.globalId) {
             this._stability[i] = { cardId: this.roomIn(i)?.globalId, playersSinceChange: new Set() };
         }
         return card;
     }
 
+    /**
+     * Re-activates the top room of a slot after the card covering it has been removed.
+     */
+    private reactivateTop(index: number): void {
+        const top = this.roomIn(index);
+        if (top === undefined) return;
+        top.onAddInPlay(() => this._game.currentPlayer);
+    }
+
+    /**
+     * Replaces the top room of a slot with a specific room card (debug helper).
+     * The previous top card is discarded; any covered cards stay covered.
+     */
     forceRoomAtSlot(index: number, roomCard: RoomCard): void {
-        this._deck.addTopPosition(roomCard);
-        const previousCard = this.removeTop(index);
+        const previousCard = this._slots[index]!.pop();
         if (previousCard) {
+            previousCard.cleanup();
             this._deck.addDiscardTop(previousCard);
         }
+        this._deck.addTopPosition(roomCard);
+        this.draw(index);
     }
 }
 
