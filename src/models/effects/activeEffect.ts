@@ -1896,6 +1896,7 @@ export function changeNumberInEffectTextEffect(game: Game, val: number, min: num
             const {originalState, restore} = targetCard.becomesCopyOf(targetCard, (card)=>game.cardHandler.attachEffectsToCard(card, true));
             cleanTarget = (): void => {
                 originalState.effectOutcomes = oldOutcomes;
+                targetCard.removeEffectTextNumber(newEffectNumber);
                 restore();
                 const owner = game.getOwner(targetCard);
                 if(owner !== null)
@@ -1911,6 +1912,7 @@ export function changeNumberInEffectTextEffect(game: Game, val: number, min: num
                 players: [data.issuer.id],
                 });
             game.gainCoins(data.issuer as Player, 15, data.it);
+            targetCard.removeEffectTextNumber(newEffectNumber);
             cleanTarget();
             return true;
         }

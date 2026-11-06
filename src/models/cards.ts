@@ -199,6 +199,9 @@ class Card {
     addEffectTextNumber(effectTextNumber: EffectTextNumber): void {
         this._effectTextNumbers.push(effectTextNumber);
     }
+    removeEffectTextNumber(effectTextNumber: EffectTextNumber): void {
+        this._effectTextNumbers = this._effectTextNumbers.filter((e) => e !== effectTextNumber);
+    }
     get tags(): { [key: string]: any } {
         return this._tags;
     }
