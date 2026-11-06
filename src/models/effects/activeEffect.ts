@@ -2161,6 +2161,7 @@ export function endTurnAndResetStackEffect(game: Game): AsyncEffectFunction {
         if(game.isEndPhase) return false;
         game.resetStack();
         game.resetCallbacks();
+        await game.resolveCallbacks(); // finish what already resolved (e.g. a dead monster leaving play) before the turn ends.
         game.currentPlayer.clearAttackRequirement();
         game.actions.cancelPurchase(game.currentPlayer, true);
         game.entityHandler.endCombat();

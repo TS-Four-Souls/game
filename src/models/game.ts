@@ -58,7 +58,7 @@ export class Game {
   private _timerIsUsed = false; // true if the timer option is active.
   private _stack: Stack = new Stack(this);
   private _emitter: GameEventEmitter;
-  private _stackSubsetCallbacks: {stackIds: number[], callback: () => void}[] = [];
+  private _stackSubsetCallbacks: {stackIds: number[], callback: () => void | Promise<void>, cancellable: boolean}[] = [];
   /** One collector per emit in progress (innermost last): the stack elements pushed by its listeners. */
   private _emissionCollectors: StackElement[][] = [];
   private _historicHandler: HistoricHandler = new HistoricHandler(this);
@@ -1191,12 +1191,14 @@ export class Game {
    * It is used to "wait" for additional effects to resolve before executing the callback, without needing to know exactly what those effects are.
    * Example: A monster dies, it has an on death effect. To trigger, the monster must be dead, and when a monster dies, its card is dicarded (usually).
    * But we want to keep the card in the slot while its death effect is not resolved. It is possible to do so with this function.
+   * A non-cancellable callback finishes something that already resolved: it survives resetCallbacks (e.g. Pitfall!).
    */
   async executeWhenStackSubset(
     ids: number[],
-    callback: () => void | Promise<void>
+    callback: () => void | Promise<void>,
+    cancellable: boolean = true
   ): Promise<void> {
-    this._stackSubsetCallbacks.push({stackIds: ids, callback});
+    this._stackSubsetCallbacks.push({stackIds: ids, callback, cancellable});
     await this.resolveCallbacks();
   }
 
@@ -1210,7 +1212,7 @@ export class Game {
   async resolveCallbacks(): Promise<void> {
     if (this.hasPendingSelections)
       return;
-    const callbacksToExecute: {stackIds: number[], callback: () => void | Promise<void>}[] = [];
+    const callbacksToExecute: typeof this._stackSubsetCallbacks = [];
     for(let i = this._stackSubsetCallbacks.length - 1; i >= 0; i--){
       const e = this._stackSubsetCallbacks[i]!;
       if (this.stack.elements.every((el) => e.stackIds.includes(el.stackId))) {
@@ -1228,7 +1230,10 @@ export class Game {
       this.dispatch();
     }
   }
+  /**
+   * Cancels the pending callbacks, except the non-cancellable ones.
+   */
   resetCallbacks(): void {
-    this._stackSubsetCallbacks = [];
+    this._stackSubsetCallbacks = this._stackSubsetCallbacks.filter((e) => !e.cancellable);
   }
 }

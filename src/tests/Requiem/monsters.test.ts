@@ -660,6 +660,23 @@ describe("Requiem Monsters ", () => {
         expect(game.encounters._slots.length).toBe(4);
     });
 
+    it("mother: pitfall drawn by the expansion does not leave mother in play", async () => {
+        const mob = game.obtainCard("r-mother") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, mob);
+        const ent = game.monsters[0]!;
+        game.cardHandler.addTopPosition("monster", game.obtainCard("r-pitfall")!);
+
+        game.entityHandler.kill(player1, ent, {card: mob, visualEffectBox: undefined});
+        for (let i = 0; i < 6 && !game.stack.isEmpty(); i++)
+            await game.actions.resolveStack();
+
+        expect(game.encounters._slots.length).toBe(4);
+        expect(game.encounters._slots.flat()).not.toContain(mob);
+        expect(game.monsters.map(m => m.card)).not.toContain(mob);
+        expect(player1.souls).toContain(mob);
+        expect(game.currentPlayer).toBe(player2);
+    });
+
     it("holy_psy_horf", async () => {
         const mob = game.obtainCard("r-holy_psy_horf") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);

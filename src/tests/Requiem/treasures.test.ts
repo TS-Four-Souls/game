@@ -402,8 +402,8 @@ describe("Requiem Loots ", () => {
             await game.endTurn();
             await game.actions.resolveStack();
             await game.actions.resolveStack(); // resolve effect
-            await game.actions.resolveStack();
             expect(player1.hand.length).toBe(handSize);
+            await game.actions.resolveStack();
         });
 
         it("marbles on gold counter", async () => {

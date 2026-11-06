@@ -321,7 +321,7 @@ export class EntityHandler {
           this.game.encounters.kill(receiver); // should only kill once its effects are resolved: should be moved in the resolvewhenstackempty
           this.game.cardHandler.obtainMonsterSoulOrDiscard(receiver);
           await this.game.resolveCallbacks();
-        }).catch((error) => {
+        }, false).catch((error) => { // the monster is already dead: cancelling the stack (e.g. Pitfall!) must not leave it in play.
           console.error("Failed to finish monster death resolution", error);
         });
       }else if (receiver instanceof Animated) {
