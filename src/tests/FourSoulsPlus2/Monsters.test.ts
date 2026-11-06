@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { Game } from "../../models/game";
 import { Player } from "../../models/entities/player";
 import { setupTestGame } from "../testHelpers";
+import { toSerializedTranslation } from "@/utils/translation";
 
 describe("Four Souls+2 Monsters", () => {
     let game: Game;
@@ -394,6 +395,26 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
         expect(player1.canAttackThisEntity("topDeck")).not.toBe(true);
         expect(player1.canAttackThisEntity(game.monsters[0]!)).toBe(true);
         expect(player1.canAttackThisEntity(game.monsters[1]!)).not.toBe(true);
+    });
+
+    it("fsp2-krampus - the turn can end when the player is not able to attack", async () => {
+        const card1 = game.obtainCard("fsp2-krampus") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        expect(game.actions.canEndTurn(player1, false)).not.toBe(true);
+        game.emitter.on("on:can:declare:attack", (eventData) => {
+            eventData.canDeclare[0] = false;
+            eventData.reason[0] = toSerializedTranslation("capability.unknownReason");
+        });
+        expect(game.actions.canDeclareAttack(player1, false)).not.toBe(true);
+        expect(game.actions.canEndTurn(player1, false)).toBe(true);
+    });
+
+    it("fsp2-krampus - the turn can end when krampus cannot be attacked", async () => {
+        const card1 = game.obtainCard("fsp2-krampus") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        expect(game.actions.canEndTurn(player1, false)).not.toBe(true);
+        game.monsters[0]!.attackable = false;
+        expect(game.actions.canEndTurn(player1, false)).toBe(true);
     });
 
     it("fsp2-krampus - The active player must attack this once each turn if able. + holly mulligan", async () => {

@@ -385,7 +385,7 @@ export class EntityHandler {
   }
 
   forcedAttackSatisfied(player: Player, shouldThrow: boolean = true): Capability {
-    this.game.actions.canDeclareAttack(player, false);
+    const canDeclareAttack = this.game.actions.canDeclareAttack(player, false);
     // Check if there's a forced attack constraint
     if (!player.hasAttackRequirement) {
       return true; // No constraint, all good
@@ -412,6 +412,12 @@ export class EntityHandler {
     }
 
     if (validMonsters.every(req => (req.checkAttackRemaining === true && player.attackThisTurn <= 0)))
+      return true;
+
+    // Forced attacks only apply "if able": a player who cannot attack any required target must not be stuck (e.g. Krampus).
+    if (canDeclareAttack !== true)
+      return true;
+    if (!validMonsters.some(req => req.targets === "topDeck" || req.targets === "any" || req.targets.some(target => player.canAttackThisEntity(target) === true)))
       return true;
 
     // At least one monster constraint remains - must be satisfied
