@@ -269,7 +269,7 @@ export class Encounters extends Slots<MonsterCard> {
                         if (event.afterEffect === "discard")
                             this._deck.addDiscardTop(event); // remove the card once the effect is resolved.
                     }
-                });
+                }, false); // the event resolved: cancelling the stack (e.g. Broken Ankh, Pitfall!) must not leave it in its slot.
                 return true;
             },
             new EffectData(event, () => this._game.currentPlayer, []),

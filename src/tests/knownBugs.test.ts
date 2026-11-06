@@ -537,6 +537,23 @@ describe("Known bugs that have be corrected", () => {
         expect(game.encounters.visible[0]?.slug).not.toBe(monster.card.slug);
     });
     
+    it("event that ends the turn through broken ankh is discarded, not left in its slot", async () => {
+        const ankh = game.obtainCard("b2-broken_ankh") as LootCard;
+        game.cardHandler.addCardToHand(player1, ankh);
+        game.actions.playCard(player1, player1.hand.length - 1);
+        await game.resolveEntireStack();
+        expect(player1.inPlay).toContain(ankh);
+
+        game.random = () => 0.99; // every roll is a 6: dark chest deals 2 damage, broken ankh prevents death and ends the turn.
+        const darkChest = game.obtainCard("b2-dark_chest_2") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, darkChest);
+        await game.resolveEntireStack();
+
+        expect(game.currentPlayer).toBe(player2);
+        expect(game.decks.monster.discard).toContain(darkChest);
+        expect(game.encounters.slots.flat()).not.toContain(darkChest);
+    });
+
     it("start of the turn resolve after loot", async () => {
 
         const loot = game.obtainCard("b2-cains_eye") as LootCard;
