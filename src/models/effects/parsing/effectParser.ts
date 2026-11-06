@@ -530,14 +530,12 @@ if (s.startsWith("you may") &&
         const restTxt = "roll-" + s.substring(`roll. if the discarded card had \"${word}\" in its name, roll 3x instead-`.length);
         const restEffect = parseRollEffect(restTxt, nr, game);
         const effect: EffectFunction = async (data:EffectData) => {
-            const discardedLoot = data.targets[0];
-            data.targets = []; // clear targets to avoid confusion for the restEffect, which shouldn't care about the discarded loot
+            const discardedLoot = data.discardedAsPayment[0];
             if(!(discardedLoot instanceof LootCard))
                 throw new GameError("Expected a loot card to be discarded.", toSerializedTranslation("error.expectedLootCardToBeDiscarded"));
             for(let i = 0; i < (discardedLoot.slug.includes(word) ? 3 : 1); i++){
                 await restEffect.effectFunction(data);
             }
-            data.targets = [discardedLoot];
             return true;
         }
         return noTargetEffect(effect);

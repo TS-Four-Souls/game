@@ -990,6 +990,34 @@ describe("Requiem Rooms", () => {
         expect(player1.inPlay.length).toBe(4);
     });
 
+    it("Key Master rolls when the discarded loot is chosen while paying", async () => {
+        const room = game.obtainCard("r-key_master") as RoomCard;
+        game.rooms?.forceRoomAtSlot(0, room);
+        game.resetStack();
+        const loot = game.obtainCard("fsp2-gold_key")! as LootCard;
+        game.cardHandler.addCardToHand(player1, loot);
+        const nbItems = player1.inPlay.length;
+        game.random = () => 0.99;
+        // As in a real game: no target is given, the loot to discard is selected during the payment.
+        await game.actions.activateRoom(player1, room, [], 0);
+        expect(player1.hand.cards).not.toContain(loot);
+        await game.resolveEntireStack();
+        expect(player1.inPlay.length).toBe(nbItems + 3);
+    });
+
+    it("Bomb Bum rolls when the discarded loot is chosen while paying", async () => {
+        const room = game.obtainCard("r-bomb_bum") as RoomCard;
+        game.rooms?.forceRoomAtSlot(0, room);
+        game.resetStack();
+        const loot = game.obtainCard("b2-a_penny")! as LootCard;
+        game.cardHandler.addCardToHand(player1, loot);
+        game.random = () => 0.9;
+        await game.actions.activateRoom(player1, room, [], 0);
+        expect(player1.hand.cards).not.toContain(loot);
+        await game.resolveEntireStack();
+        expect(player1.currentHealthPoints).toBe(1);
+    });
+
     it("Challenge Room", async () => {
         const room = game.obtainCard("r-challenge_room") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);

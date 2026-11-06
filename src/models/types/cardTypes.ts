@@ -35,6 +35,8 @@ export class EffectData {
     private _VisualEffectBoxes: VisualEffectBox | undefined;
     /** True while the payment part of a paid effect is executed. */
     isPayment: boolean = false;
+    /** Loot cards discarded to pay this effect, for effects that depend on them (e.g. Bomb Bum, Key Master). */
+    discardedAsPayment: LootCard[] = [];
 
     constructor(it: Card, issuerProvider: () => Entity, targets: any[], visualEffectBox: VisualEffectBox | undefined = undefined) {
         this.it = it;

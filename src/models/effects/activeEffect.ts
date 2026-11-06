@@ -2068,6 +2068,8 @@ export function discardNLootCardsEffect(n: number, game: Game, selectionOnResolv
                 toDiscard.push(data.next as LootCard);
             }
         // Get indices and sort them in descending order to avoid index shifting
+        if (data.isPayment)
+            data.discardedAsPayment.push(...toDiscard);
         const indices = toDiscard.map(card => subject.hand.cards.indexOf(card)).sort((a, b) => b - a);
         let success = true;
         for (const index of indices) {
