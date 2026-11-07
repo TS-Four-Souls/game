@@ -259,37 +259,21 @@ export class HistoricHandler {
     return this._history.slice(0, startIndex + 1);
   }
 
+  /** Issuer of the request a rollback would undo. */
   get lastUserRequestIssuer(): string | null {
-    const lastUserRequestIndex = this._history.findLastIndex((entry, index) => {
-      return isGameAction(entry);
-    });
-    if (
-      this._history[lastUserRequestIndex] &&
-      "issuer" in this._history[lastUserRequestIndex] &&
-      this._history[lastUserRequestIndex].issuer !== undefined &&
-      !isStackElementJson(this._history[lastUserRequestIndex]) // Already verified by lastUserRequest being a game action.
-    )
-      return this._history[lastUserRequestIndex].issuer;
+    const entry = this._history[this._lastSettledLength];
+    if (entry !== undefined && "issuer" in entry && entry.issuer !== undefined && !isStackElementJson(entry))
+      return entry.issuer;
     return null;
   }
-  /** Returns the history entries until the last user request (exluded).
-   * If no user request is found, returns the entire history.
+  /**
+   * History before the last request recorded while no selection was pending, i.e. the cut used by saveLog:
+   * the request is dropped with every answer and request made while its selections were open.
+   * If no such request exists, returns the entire history.
    */
   get rollbackLog(): HistoricEntry[] {
-    let lastUserRequestIndex = -1;
-    // We look for the second last user request in the history.
-    // If there is only one user request, we use it instead.
-    for(let index = this._history.length - 1; index >= 0; index--) {
-      const entry = this._history[index]!;
-      if (isGameAction(entry)) {
-        if (lastUserRequestIndex === -1 || this._history[lastUserRequestIndex]!.type === "SubmitSelection") 
-          lastUserRequestIndex = index;
-        else 
-          break;
-      }
-    }
-    if (lastUserRequestIndex !== -1)
-      return this._history.slice(0, lastUserRequestIndex);
+    if (this._lastSettledLength !== -1)
+      return this._history.slice(0, this._lastSettledLength);
     return this._history;
   }
 
