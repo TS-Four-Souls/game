@@ -7,7 +7,7 @@ import { DamageOnStack, DiceRoll } from "../models/stackElement";
 import { setupStandardTestGame, setupTestGame } from "./testHelpers";
 import { pl } from "zod/locales";
 import { TargetBuilder } from "@/models/targetBuilder";
-import { executeActivateWithIdRequest } from "@/utils/gameRequestHelpers";
+import { executeActivateWithIdRequest, executeResolveRequest } from "@/utils/gameRequestHelpers";
 
 describe("Known bugs that have be corrected", () => {
     let game: Game;
@@ -23,6 +23,14 @@ describe("Known bugs that have be corrected", () => {
     
     // it("", async () => {
     // });
+
+    it("a resolve on an empty stack is not recorded (it would resolve something else on replay)", async () => {
+        expect(game.stack.isEmpty()).toBe(true);
+        const nbResolves = () => game.log.filter((e) => e.type === "Resolve").length;
+        const before = nbResolves();
+        await executeResolveRequest(game, game.currentPlayer);
+        expect(nbResolves()).toBe(before);
+    });
     
     it("The poop can remove damage on stack twice in a row", async () => {
         const c1 = game.obtainCard("b2-the_poop") as ItemCard;

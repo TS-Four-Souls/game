@@ -124,12 +124,12 @@ export async function executeResolveRequest(
   // Validate before recording: a rejected Resolve (e.g. a selection is pending) must not reach the logs,
   // otherwise the replay (where prompts are auto-answered) would resolve an extra element.
   // The entry is still recorded before resolving, so SubmitSelection entries awaited during the resolution come after it.
-  if (!game.stack.isEmpty()) {
-    if (game.isStarted) {
-      game.actions.canResolve(player, true);
-    } else {
-      game.assert.noPendingSelection();
-    }
+  if (game.stack.isEmpty())
+    return;
+  if (game.isStarted) {
+    game.actions.canResolve(player, true);
+  } else {
+    game.assert.noPendingSelection();
   }
   game.addToHistory({ type: "Resolve", issuer: player.id });
   await game.actions.resolveStack();
