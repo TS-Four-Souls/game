@@ -1039,7 +1039,8 @@ export class Game {
     this.assert.positiveNumber(coins);
 
     const eventData = { eventIssuer: player, coinToLose: coins, reason };
-    this.emit("on:coin:lost:before", eventData);
+    // No dispatch: this check runs while serializing the state, dispatching would serialize again forever.
+    this.emit("on:coin:lost:before", eventData, false);
     coins = eventData.coinToLose;
     return coins <= player.coins || asMany;
   }

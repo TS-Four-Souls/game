@@ -24,6 +24,17 @@ describe("Known bugs that have be corrected", () => {
     // it("", async () => {
     // });
 
+    it("rib of greed with a pay-coins item does not loop between dispatch and state serialization", async () => {
+        game.cardHandler.addInPlay(player1, game.obtainCard("b2-battery_bum") as ItemCard);
+        // The server serializes the state on each dispatch; serializing checks if paid effects can be paid.
+        game.onStateChange.add(() => { game.detailedStateJSON(player1); });
+        const rib = game.obtainCard("r-rib_of_greed") as LootCard;
+        game.cardHandler.addCardToHand(player1, rib);
+        game.actions.playCard(player1, player1.hand.cards.indexOf(rib), []);
+        await game.actions.resolveStack();
+        expect(player1.inPlay.includes(rib)).toBe(true);
+    });
+
     it("a resolve on an empty stack is not recorded (it would resolve something else on replay)", async () => {
         expect(game.stack.isEmpty()).toBe(true);
         const nbResolves = () => game.log.filter((e) => e.type === "Resolve").length;
