@@ -236,7 +236,7 @@ describe("Known bugs that have be corrected", () => {
         expect(game.decks.monster.discard.length).toBe(1);
     });
     
-    it("taking damages when dead should not softlock", async () => {
+    it("taking damages when dead should not softlock (end combat cancel damage)", async () => {
         const mob = game.monsters[0]!;
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, mob);
@@ -244,6 +244,19 @@ describe("Known bugs that have be corrected", () => {
         game.actions.attackRoll(player1);
         await game.actions.resolveStack();
         game.entityHandler.kill(player1, player1, {card: player1.character!, visualEffectBox: undefined});
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.isDead).toBe(true);
+        expect(game.stack.size).toBe(1);
+        expect(game.stack.elements[0]!.json.type).toBe("endOfTurn");
+
+    });
+    
+    it("taking damages when dead should not softlock", async () => {
+        const mob = game.monsters[0]!;
+        game.entityHandler.dealDamage(player1, player1, {card: player1.character!, visualEffectBox: undefined}, 1);
+        game.entityHandler.kill(player1, player1, {card: player1.character!, visualEffectBox: undefined});
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.isDead).toBe(true);

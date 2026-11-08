@@ -15,7 +15,7 @@ import { Monster } from "@/models/entities/monster";
 import { Player } from "@/models/entities/player";
 import { Game } from "@/models/game";
 import { GameError } from "@/models/GameError";
-import { DamageOnStack, DeathOnStack, DiceRoll, EndOfTurnOnStack } from "@/models/stackElement";
+import { DamageOnStack, DeathOnStack, DiceRoll } from "@/models/stackElement";
 import { EffectData } from "@/models/types/cardTypes";
 import { toSerializedTranslation } from "@/utils/translation";
 import { AnimatedList } from "../entities/animated";
@@ -341,7 +341,7 @@ export class EntityHandler {
       });
       this.game.dispatch();
       const turnId = this.game.turnHandler.numberOfRoundSinceBeginning;
-      if(receiver instanceof Player && this.game.currentPlayer === receiver && this.game.stack.elements.find(e => e instanceof EndOfTurnOnStack) == undefined)
+      if(receiver instanceof Player && this.game.currentPlayer === receiver && !this.game.isEndPhase)
         await this.game.executeWhenStackEmpty(async () => {
           if(this.game.turnHandler.numberOfRoundSinceBeginning === turnId )
             await this.game.endTurn();});

@@ -142,11 +142,14 @@ export function parseYouMayEffect(s: string, game: Game): ParsedEffect {
     };
 }
 
+/** "As your turn ends" triggers before "at the end of your turn" ones, so their effects apply to them. */
 export function parseAtTheEndOfYourTurnEffect(s: string, game: Game): SyncParsedEffect {
-    const restOfEffect = s.substring("at the end of your turn, ".length).trim();
+    const prefix = s.startsWith("as your turn ends, ") ? "as your turn ends, " : "at the end of your turn, ";
+    const restOfEffect = s.substring(prefix.length).trim();
     const restParsed = effectParser(restOfEffect, game, true);
+    const event = prefix === "as your turn ends, " ? "as:turn:end" : "on:turn:end";
     return {
-        effectFunction: passive.onYourEventEffect("on:turn:end", [restParsed.effectFunction], game, s),
+        effectFunction: passive.onYourEventEffect(event, [restParsed.effectFunction], game, s),
         targetSelectors: restParsed.targetSelectors
     };
 }
@@ -173,11 +176,14 @@ export function parseWhenThisDiesEffect(s: string, game: Game): SyncParsedEffect
     };
 }
 
+/** "As your turn starts" triggers before "at the start of your turn" ones, so their effects apply to them. */
 export function parseAtTheStartOfYourTurnEffect(s: string, game: Game): SyncParsedEffect {
-    const restOfEffect = s.substring("at the start of your turn ".length).trim();
+    const prefix = s.startsWith("as your turn starts, ") ? "as your turn starts, " : "at the start of your turn ";
+    const restOfEffect = s.substring(prefix.length).trim();
     const restParsed = effectParser(restOfEffect, game, true);
+    const event = prefix === "as your turn starts, " ? "as:turn:start" : "on:turn:start";
     return {
-        effectFunction: passive.onYourEventEffect("on:turn:start", [restParsed.effectFunction], game, s),
+        effectFunction: passive.onYourEventEffect(event, [restParsed.effectFunction], game, s),
         targetSelectors: restParsed.targetSelectors
     };
 }

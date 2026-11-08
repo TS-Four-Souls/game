@@ -390,9 +390,11 @@ export interface TriggerEventDataMap {
   "on:dice:being-rolled": OnDiceBeingRolledData;
   "on:dice:would-roll": OnDiceWouldRollData;
   "on:dice:resolved": OnRollData;
+  "as:turn:start": OnTurnStartData; // on turn start but before.
   "on:turn:start": OnTurnStartData;
   "on:counter:modified": OnCounterModifiedData;
   "on:turn:start:before:recharge:step": OnBeforeRechargeStepData;
+  "as:turn:end": OnTurnEndData; // on turn end but before.
   "on:turn:end": OnTurnEndData;
   "till:turn:end": OnTurnEndData;
   "on:loot:step": OnLootStepData;

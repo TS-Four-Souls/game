@@ -341,6 +341,44 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(game.stack.isEmpty()).toBe(true);
     });
 
+    it("r-the_capricious (eternal) copied start and end of turn abilities trigger", async () => {
+        const setup = await setupTestGame({
+                    characters: ["r-the_capricious", "b2-samson"],
+                    monsters: ["b2-fly", "b2-fatty"],
+                    monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+                    playerCount: 2
+                });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        const eternal = player1.inPlay[0]!;
+        expect(eternal.slug).toBe("r-glitch");
+        await game.resolveEntireStack();
+        // Resolves the stack one element at a time, recording the cards of the stacked effects.
+        const resolveUntilTurnOf = async (player: Player): Promise<string[]> => {
+            const stacked: string[] = [];
+            for (let i = 0; i < 20 && (game.currentPlayer !== player || !game.stack.isEmpty()); i++) {
+                stacked.push(...game.stack.elements.map((e) => e.json.type === "effect" ? e.json.card.slug : e.json.type));
+                await game.actions.resolveStack();
+            }
+            return stacked;
+        };
+
+        // As the turn ends, Glitch copies The Map, whose end of turn ability must trigger.
+        const map = game.obtainCard("b2-the_map") as TreasureCard;
+        game.shop._slots = [[map]];
+        await game.endTurn();
+        expect(await resolveUntilTurnOf(player2)).toContain("b2-the_map");
+        expect((eternal.tags.copiedCards as ItemCard[]).map((c) => c.slug)).toEqual(["b2-the_map"]);
+
+        // As the next turn starts, Glitch copies Dark Bum, whose start of turn ability must trigger.
+        const darkBum = game.obtainCard("b2-dark_bum") as TreasureCard;
+        game.shop._slots = [[darkBum]];
+        await game.endTurn();
+        expect(await resolveUntilTurnOf(player1)).toContain("b2-dark_bum");
+        expect((eternal.tags.copiedCards as ItemCard[]).map((c) => c.slug)).toEqual(["b2-dark_bum"]);
+    });
+
     it("r-the_capricious (character)", async () => {
         const setup = await setupTestGame({
                     characters: ["r-the_capricious", "b2-samson"],

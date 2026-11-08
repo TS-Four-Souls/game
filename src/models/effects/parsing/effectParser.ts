@@ -326,9 +326,7 @@ if (s.startsWith("when you die, ")) {
             targetSelectors: restParsed.targetSelectors
         };
     }
-    if(s.startsWith("as your turn starts, "))
-        s = "at the start of your turn " + s.substring("as your turn starts, ".length).trim();
-    if (s.startsWith("at the start of your turn"))
+    if (s.startsWith("at the start of your turn") || s.startsWith("as your turn starts, "))
         return parseAtTheStartOfYourTurnEffect(s, game);
     if (s.startsWith("each time you activate an item, ")) {
         const restParsed = effectParser(s.substring(s.indexOf(",") + 1).trim(), game, true);
@@ -389,9 +387,7 @@ if (s.startsWith("when you die, ")) {
         return parseEachTimeYouKillSpecificTypeEffect(s, game, "player");
     if (s.startsWith("each time a player would roll a ") && !s.includes(" or "))
         return parseEachTimeWouldRollEffect(s, game);
-    if(s.startsWith("as your turn ends, "))
-        s = "at the end of your turn, " + s.substring("as your turn ends, ".length).trim();
-    if (s.startsWith("at the end of your turn, "))
+    if (s.startsWith("at the end of your turn, ") || s.startsWith("as your turn ends, "))
         return parseAtTheEndOfYourTurnEffect(s, game);
     if (s.startsWith("at the end of each turn, "))
         return parseAtTheEndOfEachTurnEffect(s, game);

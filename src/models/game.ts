@@ -42,6 +42,20 @@ import { toSerializedTranslation } from "@/utils/translation";
 import { GameError } from "@/models/GameError";
 import { getTitles } from "./gameStats";
 
+/** Events marking the steps of a turn, in order. The game is in the step of the last one emitted. */
+export const TURN_STEPS = [
+  "on:turn:start:before:recharge:step",
+  "as:turn:start",
+  "on:turn:start",
+  "on:loot:step",
+  "on:your:turn", // action phase
+  "as:turn:end",
+  "on:turn:end",
+  "till:turn:end",
+] as const satisfies readonly TriggerEvent[];
+export type TurnStep = (typeof TURN_STEPS)[number];
+const END_PHASE_STEPS: readonly TurnStep[] = ["as:turn:end", "on:turn:end", "till:turn:end"];
+
 /*
  * The Game class is the central hub of the game logic, managing the state of the game, players, monsters, decks, shop, encounters, stack, and more. 
  * It also handles all player actions such as declaring attacks, dealing damage, resolving deaths, and managing the game history. 
@@ -64,6 +78,7 @@ export class Game {
   private _historicHandler: HistoricHandler = new HistoricHandler(this);
   private _gameOver: boolean = false;
   private _isWon: boolean = false;
+  private _turnStep: TurnStep = TURN_STEPS[0];
   private _gameStateSerializer: GameStateSerializer;
   readonly gameParameters = new GameParameters(() => this.dispatch());
   readonly _assertHandler: AssertHandler = new AssertHandler(this);
@@ -188,8 +203,14 @@ export class Game {
     return this.entityHandler.entities;
   }
 
+  /** Step of the turn the game is in: the last turn step event emitted. */
+  get turnStep(): TurnStep {
+    return this._turnStep;
+  }
+
+  /** From endTurn until the next turn starts. */
   get isEndPhase(): boolean {
-    return this.stack.elements.some((e) => e instanceof EndOfTurnOnStack);
+    return END_PHASE_STEPS.includes(this._turnStep);
   }
 
   get currentPlayer(): Player {
@@ -660,6 +681,7 @@ export class Game {
     this._selectionHandler.resetPendingSelections();
     this._stackSubsetCallbacks = [];
     this._isWon = false;
+    this._turnStep = TURN_STEPS[0];
   }
 
 ////////////////////////////////////// Turn Structure //////////////////////////////////////
@@ -685,10 +707,14 @@ export class Game {
     await this.executeWhenStackEmpty(async () => {
       this.cardHandler.rechargeMultiple(player, "rechargeStep", eventData.charactersToRecharge);
       this.cardHandler.rechargeMultiple(player, "rechargeStep", eventData.itemsToRecharge);
-      this.emit("on:turn:start", { eventIssuer: player });
-      await this.executeWhenStackEmpty(async () => {
-        const lootStep = new LootStepOnStack(this.currentPlayer, 1, this);
-        this.addToStack(lootStep);
+      const stackIds = this.stack.currentStackIds;
+      this.emit("as:turn:start", { eventIssuer: player });
+      await this.executeWhenStackSubset(stackIds, async () => {
+        this.emit("on:turn:start", { eventIssuer: player });
+        await this.executeWhenStackEmpty(async () => {
+          const lootStep = new LootStepOnStack(this.currentPlayer, 1, this);
+          this.addToStack(lootStep);
+        });
       });
     });
   }
@@ -709,21 +735,25 @@ export class Game {
     const player = this.currentPlayer;
     this.actions.canEndTurn(player, true);
     this.stack.push(new EndOfTurnOnStack(player, this));
-    this.emit("on:turn:end", { eventIssuer: player });
-    await this.executeWhenStackEmpty(async () => {
-      this.emit("till:turn:end", { eventIssuer: player });
-      await this.verifyHandSize(player);
-      this.entityHandler.healEveryone();
-      for (const player of this.players) {
-        player.resetTurnFlags();
-      }
-      for (const monster of this.monsters) {
-        monster.resetEntityFlags();
-      }
-      this.turnHandler.endTurn();
-      this.verifyTimerLosingCondition();
-      this.dispatch();
-      await this.startTurn();
+    const stackIds = this.stack.currentStackIds;
+    this.emit("as:turn:end", { eventIssuer: player });
+    await this.executeWhenStackSubset(stackIds, async () => {
+      this.emit("on:turn:end", { eventIssuer: player });
+      await this.executeWhenStackEmpty(async () => {
+        this.emit("till:turn:end", { eventIssuer: player });
+        await this.verifyHandSize(player);
+        this.entityHandler.healEveryone();
+        for (const player of this.players) {
+          player.resetTurnFlags();
+        }
+        for (const monster of this.monsters) {
+          monster.resetEntityFlags();
+        }
+        this.turnHandler.endTurn();
+        this.verifyTimerLosingCondition();
+        this.dispatch();
+        await this.startTurn();
+      });
     });
     this.dispatch();
   }
@@ -1120,6 +1150,8 @@ export class Game {
 
   /** Emits a game trigger event and schedules stack reordering if needed. */
   emit(event: TriggerEvent, data: any = {}, dispatch: boolean = true): void {
+    if ((TURN_STEPS as readonly TriggerEvent[]).includes(event))
+      this._turnStep = event as TurnStep;
     // Collects the elements pushed directly by the listeners of this event:
     // elements pushed by nested emits go to their own collector and are grouped separately.
     const pushedByThisEvent: StackElement[] = [];

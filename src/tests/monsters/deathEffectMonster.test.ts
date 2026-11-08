@@ -643,6 +643,8 @@ describe("Monsters - On death effects", () => {
         
         game.entityHandler.kill(monster, monster, {card: card, visualEffectBox: undefined});
         await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death
+        await game.actions.resolveStack(); // resolve death effect 
         await game.actions.resolveStack(); // resolve death effect 
         expect(game.stack.size).toBe(0);
         
