@@ -442,6 +442,7 @@ export class CardHandler {
       const treasureDeck = this.decks["treasure"]!;
       const drawnCard: TreasureCard = treasureDeck.draw()!;
       this.addInPlay(player, drawnCard);
+      this.game.emit("on:item:gained:after", { eventIssuer: player, card: drawnCard });
     }
   }
 

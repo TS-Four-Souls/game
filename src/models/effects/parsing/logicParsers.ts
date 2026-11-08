@@ -3,7 +3,7 @@ import * as active from "@/models/effects/activeEffect.ts";
 import * as passive from "@/models/effects/passiveEffect.ts";
 import {NumberRobustString} from "@/models/effects/parsing/numberRobustString.ts";
 import {EffectData, type EffectFunction, type SyncEffectFunction} from "@/models/types/cardTypes.ts";
-import type {OnDeathMonsterData, OnEnterPlayData, OnRollData} from "@/models/types/eventTypes.ts";
+import type {OnDeathMonsterData, OnItemGainedAfterData, OnPurchaseSuccessData, OnRollData} from "@/models/types/eventTypes.ts";
 import {Monster} from "@/models/entities/monster.ts";
 import {Player} from "@/models/entities/player.ts";
 import {noTargets} from "@/models/effects/parsing/selectors.ts";
@@ -118,7 +118,11 @@ export function parseWhenActivePlayerRollsEffect(s: string, game: Game, nr?: Num
 export function ParseWhenGainOrPurchaseThis(s: string, game: Game): SyncParsedEffect {
     const restOfEffect = s.substring("when you gain or purchase this, ".length).trim();
     const restParsed = effectParser(restOfEffect, game, true);
-    return noTargetSyncEffect(passive.onYourEventEffect("on:enter:play:after", [restParsed.effectFunction], game, s, false, (effect: EffectData, event: OnEnterPlayData) => event.card === effect.it));
+    // Only drawing it from the treasure deck or purchasing it counts: being given or stealing it does not.
+    const isThis = (effect: EffectData, event: OnItemGainedAfterData | OnPurchaseSuccessData) => event.card === effect.it;
+    const onGain = passive.onYourEventEffect("on:item:gained:after", [restParsed.effectFunction], game, s, false, isThis);
+    const onPurchase = passive.onYourEventEffect("on:purchase:success", [restParsed.effectFunction], game, s, false, isThis);
+    return noTargetSyncEffect((data: EffectData) => onGain(data) && onPurchase(data));
 }
 
 export function parseYouMayEffect(s: string, game: Game): ParsedEffect {

@@ -613,6 +613,7 @@ export class ActionHandler {
         eventIssuer: player,
         price: price,
         index: index,
+        card: purchasedCard,
       });
       player.purchaseEnded();
       this.game.dispatch();

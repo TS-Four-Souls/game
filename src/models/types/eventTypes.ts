@@ -164,6 +164,7 @@ export interface OnPurchaseSuccessData {
   eventIssuer: Player;
   price: number;
   index: number | "top";
+  card: Card;
 }
 
 /** Data emitted before an item is recharged. Note that eventIssuer is always null. */
@@ -184,6 +185,12 @@ export interface OnCardDiscardBeforeData {
 export interface OnItemGainedData {
   eventIssuer: Player;
   amount: number;
+}
+
+/** Data emitted after an item drawn from the treasure deck entered play (given or stolen items are not gained). */
+export interface OnItemGainedAfterData {
+  eventIssuer: Player;
+  card: Card;
 }
 
 /** Data emitted when a player would have to discard loot cards (can be modified) */
@@ -424,6 +431,7 @@ export interface TriggerEventDataMap {
   "on:purchase:success": OnPurchaseSuccessData;
   "on:recharge": OnRechargeData;
   "on:item:gained": OnItemGainedData;
+  "on:item:gained:after": OnItemGainedAfterData;
   "on:card:discarded:before": OnCardDiscardBeforeData;
 }
 
