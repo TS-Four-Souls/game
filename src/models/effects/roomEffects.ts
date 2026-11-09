@@ -336,7 +336,7 @@ export function lootOnPlayerDeathEffect(game: Game, amount: number): SyncEffectF
 export function takeDamageOnLootEffect(game: Game, amount: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offLoot: (() => void) | null = null;
-        offLoot = game.emitter.on("on:loot:added:after", (eventData) => {
+        offLoot = game.emitter.on("on:loot:after", (eventData) => {
             const effect: SyncEffectFunction = (effectData: EffectData) => {
                 game.entityHandler.dealDamage(eventData.eventIssuer, eventData.eventIssuer, data.cardAndBox, amount);
                 return true;
