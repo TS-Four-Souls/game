@@ -4,7 +4,7 @@ import { setTimeout } from "timers/promises";
 import { Game } from "../../models/game";
 import { Player } from "../../models/entities/player";
 import { setupTestGame } from "../testHelpers";
-import { AttackRollData, DiceWillRoll } from "@/models/stackElement";
+import { AttackRollData, DiceRoll, DiceWillRoll } from "@/models/stackElement";
 
 async function characterAdd1LootPlay(player1: Player, game: Game) {
     // verify character card works.
@@ -743,6 +743,48 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         expect(game.monsters[0]!.evasion).toBe(2);
+    });
+
+    it("r-the_curdled - lowering Death's DC to 1 in response to an attack roll of 1 hits", async () => {
+        const setup = await setupTestGame({
+                    characters: ["r-the_curdled", "b2-samson"],
+                    monsters: ["b2-fly", "b2-fatty"],
+                    monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+                    treasureDeck: ["b2-blank_card"],
+                    playerCount: 2
+                });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+
+        const eternal = player1.inPlay[0]!;
+        expect(eternal.slug).toBe("r-sumptorium");
+        game.cardHandler.addToCounter(player1, eternal, "normal", 6);
+
+        game.encounters.forceSetMonsterAtSlot(0, game.obtainCard("b2-death") as MonsterCard);
+        const death = game.monsters[0]!;
+        expect(death.evasion).toBe(4);
+
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, death);
+        game.random = () => 0.01; // roll a 1
+        game.actions.attackRoll(player1);
+        expect((game.stack.peek() as DiceRoll).attackRoll).toBe(true);
+
+        // respond to the roll: 3 × (-1 DC) brings Death's DC from 4 down to 1
+        for (let i = 0; i < 3; i++) {
+            await game.activateItem(player1, eternal, [death], 0);
+            await game.actions.resolveStack();
+        }
+        expect(eternal.counters.value("normal")).toBe(0);
+        expect(death.evasion).toBe(1);
+        expect((game.stack.peek() as DiceRoll).value).toBe(1);
+
+        await game.actions.resolveStack(); // attack roll of 1 >= DC 1: hit
+        await game.actions.resolveStack(); // combat damage
+        expect(player1.isDead).toBe(false);
+        expect(player1.currentHealthPoints).toBe(player1.healthPoints);
+        expect(death.currentHealthPoints).toBe(death.healthPoints - player1.attackPoints);
     });
 
     it("r-the_fettered (no damage on roll of 1)", async () => {

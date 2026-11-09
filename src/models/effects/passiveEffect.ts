@@ -1037,7 +1037,7 @@ export function firstAttackRollStatModifierEffect(
             if (data.issuer !== eventIssuer) return;
             dice.additionalDamageDealt += damageDealtModifier;
             dice.additionalDamageReceived += damageReceivedModifier;
-            dice.evasion += evasionModifier;
+            dice.additionalEvasionModifier(evasionModifier);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed

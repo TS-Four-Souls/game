@@ -61,7 +61,10 @@ export class AttackRollData {
   damageDealtMultiplier: number;
   damageReceivedAdditional: number;
   damageReceivedMultiplier: number;
-  evasion: number;
+  /** Points to the target's current DC, so DC changes made in response to the roll apply. */
+  private readonly _dc: () => number;
+  /** Modifiers applying to this roll only (e.g. "your first attack roll gets -1 DC"). */
+  evasionModifier: number = 0;
   target: Entity;
   
   constructor(
@@ -69,15 +72,19 @@ export class AttackRollData {
     damageDealtMultiplier: number,
     damageReceivedAdditional: number,
     damageReceivedMultiplier: number,
-    evasion: number,
+    dc: number | (() => number),
     target: Entity
   ) {
     this.damageDealtAdditional = damageDealtAdditional;
     this.damageDealtMultiplier = damageDealtMultiplier;
     this.damageReceivedAdditional = damageReceivedAdditional;
     this.damageReceivedMultiplier = damageReceivedMultiplier;
-    this.evasion = evasion;
+    this._dc = typeof dc === "number" ? () => dc : dc;
     this.target = target;
+  }
+
+  get evasion(): number {
+    return this._dc() + this.evasionModifier;
   }
 }
 
@@ -218,9 +225,13 @@ export class DiceRoll extends StackElement {
     if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
     return this._attackRollData!.evasion;
   }
-  set evasion(value: number) {
+  // set evasion(value: number) {
+  //   if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
+  //   this._attackRollData!.evasionModifier += value - this._attackRollData!.evasion;
+  // }
+  additionalEvasionModifier(value: number) {
     if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
-    this._attackRollData!.evasion = value;
+    this._attackRollData!.evasionModifier += value;
   }
   get attackTarget(): Entity {
     if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));

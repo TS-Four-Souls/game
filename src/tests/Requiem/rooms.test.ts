@@ -568,12 +568,24 @@ describe("Requiem Rooms", () => {
             expect(player1.inPlay[i]!.charged).toBe(false);
     });
 
-    it("laser_eye", async () => {
+    it("laser_eye  don't work on add to hand", async () => {
         game.resetStack();
         const room = game.obtainCard("r-laser_eye") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         const loot = game.obtainCard("b2-a_penny")! as LootCard;
         game.cardHandler.addCardToHand(player1, loot);
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.currentHealthPoints).toBe(2);
+    });
+
+    it("laser_eye works on loot", async () => {
+        game.resetStack();
+        const room = game.obtainCard("r-laser_eye") as RoomCard;
+        game.rooms?.forceRoomAtSlot(0, room);
+        game.loot(player1, 1);
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
