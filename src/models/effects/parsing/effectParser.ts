@@ -1003,6 +1003,14 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
             return { effectFunction: active.destroyOneEffect(game, selectNonEternalItemOrASoul(game)[0]!, "next"), targetSelectors: selectNonEternalItemOrASoul(game) };
         case "look at the top card of a deck":
             return { effectFunction: active.lookAtTopCardOfDeckEffect(game, "just_watch", selectionOnResolve, false), targetSelectors: selectDeck(game) };
+        case "look at the top card of a deck. you may put that card on the bottom of that deck":
+            return { effectFunction: active.lookAtTopCardOfDeckEffect(game, "bottom", false, false), targetSelectors: selectDeck(game) };
+        case "look at the top card of a deck. you may put it into discard or put it back on top":
+            return { effectFunction: active.lookAtTopCardOfDeckEffect(game, "discard", false, false), targetSelectors: selectDeck(game) };
+        case "reveal the top x cards of the loot deck. put each card with \"bomb\" in its name in your hand and the rest on the bottom of the loot deck":
+            return noTargetEffect(active.bombInLootDeckEffect(game, nr.nextNumber()));
+        case "reveal the top x cards of the loot deck. put each card named pills in your hand and the rest on the bottom of the deck":
+            return noTargetEffect(active.pillsInLootDeckEffect(game, nr.nextNumber()));
         case "destroy another item":
             return { effectFunction: active.destroyOneEffect(game, selectAnotherNonEternalItemFromAnywhere(game)[0]!, "next"), targetSelectors: selectAnotherNonEternalItemFromAnywhere(game) };
         case "put a monster from under this in a monster slot not being attacked. the active player must make an additional attack on it this turn":
@@ -1371,10 +1379,6 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             return noTargetSyncEffect(passive.ConditionalStatModifierEffect([game.entityHandler.addAttack.bind(game.entityHandler)], atkBonus2, (player: Player, card: Card) => card.counters.value("normal") === counters, ["on:counter:modified"], game, false));
         case "each time the active player deals damage to this, they roll-\nx-x: they take x damage.\nx-x: each player takes x damage.\nx-x: this takes x damage":
             return noTargetSyncEffect(monster.OnDamageByActivePlayerRollDealDamageEffect(game, nr.numbers));
-        case "reveal the top x cards of the loot deck. put each card with \"bomb\" in its name in your hand and the rest on the bottom of the loot deck":
-            return noTargetSyncEffect(active.bombInLootDeckEffect(game, nr.nextNumber()));
-        case "reveal the top x cards of the loot deck. put each card named pills in your hand and the rest on the bottom of the deck":
-            return noTargetSyncEffect(active.pillsInLootDeckEffect(game, nr.nextNumber()));
         case "gain ¢ equal to the number of counters on this":
             return noTargetSyncEffect(active.gainCoinsBasedOnCountersEffect(game));
         case "you and that player each loot x":
@@ -1606,10 +1610,6 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             return noTargetSyncEffect(active.dealDamageToRandomPlayerEffect(game, nr.nextNumber(), "any"));
         case "deal x damage to a non-active player chosen at random":
             return noTargetSyncEffect(active.dealDamageToRandomPlayerEffect(game, nr.nextNumber(), "non-active"));
-        case "look at the top card of a deck. you may put that card on the bottom of that deck":
-            return { effectFunction: active.lookAtTopCardOfDeckEffect(game, "bottom", false, false), targetSelectors: selectDeck(game) };
-        case "look at the top card of a deck. you may put it into discard or put it back on top":
-            return { effectFunction: active.lookAtTopCardOfDeckEffect(game, "discard", false, false), targetSelectors: selectDeck(game) };
         case "choose a player. they reroll each item they control":
             return { effectFunction: active.rerollEachItemEffect(game), targetSelectors: selectPlayer(game) };
         case "steal a loot card from them at random":

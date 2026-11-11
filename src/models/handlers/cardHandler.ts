@@ -30,7 +30,7 @@ import { Effect, PassiveEffect } from '../effects/effects';
 import { Game } from '../game';
 import { GameError } from "@/models/GameError";
 import { LootCardEffect } from '../stackElement';
-import { type CounterType } from "@/shared/api"
+import { type CounterType, type PendingSelectionReason, type SerializedTranslation } from "@/shared/api"
 import { toSerializedTranslation } from "@/utils/translation";
 import { bSoulEffectParser } from "../effects/bonusSoulEffects";
 import { TargetBuilder } from "../targetBuilder";
@@ -106,6 +106,31 @@ export class CardHandler {
       ...this.game.monsters.map(m => m.card),
       ...(this.game.rooms?.activeRooms ?? []),
     ];
+  }
+
+  /**
+   * Reveals cards to players: each of them gets a selection with nothing to pick, only to see the cards.
+   * Returns one promise per player, resolved once that player has seen the cards.
+   * The promises must be awaited, but the caller may do other things first (e.g. let the issuer choose while the others look at the cards).
+   */
+  reveal(
+    cards: Card[],
+    reason: PendingSelectionReason,
+    players: Player[] = this.game.players,
+    description: SerializedTranslation = toSerializedTranslation("pending.cardsRevealed"),
+  ): Promise<void>[] {
+    if (cards.length === 0) return [];
+    return players.map(async player => {
+      await this.game.selectMultiple([{
+        player,
+        min: 0,
+        max: 0,
+        options: [...cards],
+        description,
+        reason,
+        canUseOnBoardSelection: false,
+      }]);
+    });
   }
 
   get deckNames(): DeckType[] {

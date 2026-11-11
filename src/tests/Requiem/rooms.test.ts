@@ -585,6 +585,8 @@ describe("Requiem Rooms", () => {
         game.resetStack();
         const room = game.obtainCard("r-laser_eye") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
+        const loot = game.obtainCard("b2-a_penny")! as LootCard;
+        game.decks.loot.addTopPosition(loot);
         game.loot(player1, 1);
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();

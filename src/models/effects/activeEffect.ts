@@ -438,15 +438,7 @@ export function revealMonsterCardsAndMayPlayEventCards(game: Game, nbCards: numb
         const monsterCards = game.decks.monster.drawSeveral(nbCards);
         data.recordSelection(monsterCards);
         const events = monsterCards.filter(c => c.isEvent);
-        const revealPromises = data.selectMultipleAndRecord(game, game.players.map(p => ({
-            player: p,
-            min: 0,
-            max: 0,
-            options: monsterCards,
-            reason: data.serializedCardAndBox,
-            description: qq("pending.topMonsterDeckRevealed", {value: nbCards}),
-            canUseOnBoardSelection: false,
-        })));
+        const revealPromises = game.cardHandler.reveal(monsterCards, data.serializedCardAndBox, game.players, qq("pending.topMonsterDeckRevealed", {value: nbCards}));
 
         const eventsToPlay = (await data.selectAndRecord(game, data.issuer, 0, Math.min(nbCards, game.encounters.slots.length), events, toSerializedTranslation("pending.cardsToPutInSlot"), data.serializedCardAndBox)).selected;
         for(const event of eventsToPlay)
@@ -460,7 +452,7 @@ export function revealMonsterCardsAndMayPlayEventCards(game: Game, nbCards: numb
         for (let i = 0; i < remaining.length; i++) {
             game.cardHandler.addBottomPosition("monster", remaining[i]!);
         }
-        await revealPromises;
+        await Promise.all(revealPromises);
         return true;
     };
 }
@@ -1488,26 +1480,30 @@ export function rerollDiceRollXEffect(game: Game, numberOfDice: number): AsyncEf
     };
 }
 
-export function bombInLootDeckEffect(game: Game, numberOfCards: number): SyncEffectFunction {
-    return (data: EffectData) => {
+export function bombInLootDeckEffect(game: Game, numberOfCards: number): AsyncEffectFunction {
+    return async (data: EffectData) => {
         if(data.issuer instanceof Player === false) return false;
         const cards = game.decks.loot.drawSeveral(numberOfCards);
+        const revealPromises = game.cardHandler.reveal(cards, data.serializedCardAndBox);
         const bombCards = cards.filter((card) => card.name.includes("Bomb"));
         const otherCards = cards.filter((card) => !card.name.includes("Bomb"));
         bombCards.forEach((card) => game.cardHandler.addCardToHand(data.issuer as Player, card));
         otherCards.forEach((card) => game.decks.loot.addBottomPosition(card));
+        await Promise.all(revealPromises);
         return true;
     };
 }
 
-export function pillsInLootDeckEffect(game: Game, numberOfCards: number): SyncEffectFunction {
-    return (data: EffectData) => {
+export function pillsInLootDeckEffect(game: Game, numberOfCards: number): AsyncEffectFunction {
+    return async (data: EffectData) => {
         if(data.issuer instanceof Player === false) return false;
         const cards = game.decks.loot.drawSeveral(numberOfCards);
+        const revealPromises = game.cardHandler.reveal(cards, data.serializedCardAndBox);
         const pillsCards = cards.filter((card) => card.name === "Pills!");
         const otherCards = cards.filter((card) => card.name !== "Pills!");
         pillsCards.forEach((card) => game.cardHandler.addCardToHand(data.issuer as Player, card));
         otherCards.forEach((card) => game.decks.loot.addBottomPosition(card));
+        await Promise.all(revealPromises);
         return true;
     };
 }
@@ -1719,9 +1715,7 @@ export type cardDestination =
     | "bottom"
     | "discard";
 
-export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestination, selectionOnResolve:false, reveal: boolean): SyncEffectFunction
-export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestination, selectionOnResolve:boolean, reveal: boolean): AsyncEffectFunction
-export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestination, selectionOnResolve:boolean = false, reveal: boolean = false): EffectFunction {
+export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestination, selectionOnResolve:boolean = false, reveal: boolean = false): AsyncEffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const deck = selectionOnResolve 
@@ -1739,17 +1733,12 @@ export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestinati
             canPutWhere === "just_watch" ? qq("pending.lookAtTopCardOfDeck", {deck: deck.translatedType}) 
             : canPutWhere === "bottom" ? qq("pending.lookAtTopCardOfDeckAndPutOnBottom", {deck: deck.translatedType}) 
                 : qq("pending.lookAtTopCardOfDeckAndDiscard", {deck: deck.translatedType});
-        const selectionResult = reveal
-         ? (await data.selectMultipleAndRecord(game, game.players.map(player => ({
-                player,
-                min: 0,
-                max: (justWatch || player !== data.issuer) ? 0 : 1,
-                options: [topCard!],
-                    reason: data.serializedCardAndBox,
-                description: description,
-                canUseOnBoardSelection: true,
-            })))).find(p => p.playerId === data.issuer.id)!
-        : await data.selectAndRecord(game, data.issuer, 0, justWatch ? 0 : 1, [topCard!], description, data.serializedCardAndBox, false, false);
+        const issuer = data.issuer;
+        const revealPromises = reveal
+            ? game.cardHandler.reveal([topCard!], data.serializedCardAndBox, game.players.filter(p => p !== issuer), qq("pending.cardRevealedFromDeck", {deck: deck.translatedType}))
+            : [];
+        const selectionResult = await data.selectAndRecord(game, issuer, 0, justWatch ? 0 : 1, [topCard!], description, data.serializedCardAndBox, false, reveal);
+        await Promise.all(revealPromises);
         if (selectionResult.selected[0] === topCard) {
         switch (canPutWhere) {
             case "just_watch":
@@ -2480,6 +2469,8 @@ export function playerGivesLootCardEffect(game: Game, reveal: boolean = false, a
             game.cardHandler.stealLootCard(data.issuer, targetPlayer, cardToSteal);
             if(addCardToTarget)
                 data.addTarget(cardToSteal);
+            if(reveal)
+                await Promise.all(game.cardHandler.reveal([cardToSteal], data.serializedCardAndBox, game.players.filter(p => p !== targetPlayer)));
         }
         return true;
     };
@@ -2495,27 +2486,22 @@ export function revealTopCardsOfMonsterDeckEffect(
         const monsterCards = game.decks.monster.drawSeveral(n);
         data.recordSelection(monsterCards);
         const curses = monsterCards.filter(c => c.isCurse);
-        const revealPromises = data.selectMultipleAndRecord(game, game.players.filter(p => p !== data.issuer).map(p => ({
-            player: p,
-            min: 0,
-            max: 0,
-            options: monsterCards,
-            reason: data.serializedCardAndBox,
-            description: qq("pending.topMonsterDeckRevealed", {value: n}),
-            canUseOnBoardSelection: false,
-        })));
+        const revealPromises = game.cardHandler.reveal(monsterCards, data.serializedCardAndBox, game.players, qq("pending.topMonsterDeckRevealed", {value: n}));
 
         for (const curse of curses) {
             const target = (await data.selectAndRecord(game, data.issuer, 1, 1, game.players, qq("pending.playerToGiveCurse", { card: curse.nameKey }), data.serializedCardAndBox, true, true)).selected[0] as Player;
             await game.cardHandler.addCurse(target, curse);
         }
         const nonCurseCards = monsterCards.filter(c => !c.isCurse);
-        if(nonCurseCards.length === 0) return true;
+        if(nonCurseCards.length === 0) {
+            await Promise.all(revealPromises);
+            return true;
+        }
         const target = (await data.selectAndRecord(game, data.issuer, nonCurseCards.length, nonCurseCards.length, nonCurseCards, qq("pending.orderRestBottom"), data.serializedCardAndBox, false , false)).selected as MonsterCard[];
         for (let i = 0; i < target.length; i++) {
             game.cardHandler.addBottomPosition("monster", target[i]!);
         }
-        await revealPromises;
+        await Promise.all(revealPromises);
         return true;
     };
 }

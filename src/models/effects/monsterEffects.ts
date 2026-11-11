@@ -1115,6 +1115,7 @@ export function dealDamageToAttackingPlayerEffect(game: Game, damage: number): S
 export function bossRushEffect(game: Game, bossCount: number): AsyncEffectFunction {
     return async (data: EffectData) => {
         const bosses = [];
+        const revealed: Card[] = [];
         if(!(data.it instanceof MonsterCard))
             return false;
         data.it.afterEffect = "handled"; 
@@ -1122,6 +1123,7 @@ export function bossRushEffect(game: Game, bossCount: number): AsyncEffectFuncti
         const nbMonsterCards = game.decks.monster.discard.length + game.decks.monster.cards.length;
         for(let i = 0; i < nbMonsterCards; i++) {
             const card = game.decks.monster.draw();
+            revealed.push(card);
             if(card instanceof MonsterCard && (card.subtype === "boss" )) {
                 bosses.push(card);
             } else {
@@ -1132,6 +1134,7 @@ export function bossRushEffect(game: Game, bossCount: number): AsyncEffectFuncti
         }
         for(const card of bosses)
             game.cardHandler.addTopPosition("monster", card);
+        const revealPromises = game.cardHandler.reveal(revealed, data.serializedCardAndBox);
         
         const options = [...game.encounters.coverableSlots];
 
@@ -1158,6 +1161,7 @@ export function bossRushEffect(game: Game, bossCount: number): AsyncEffectFuncti
         game.encounters.removeCard(data.it);
         game.encounters._deck.addDiscardTop(data.it); 
         game.entityHandler.playerMustAttack(game.currentPlayer, monsters, data.it, false);
+        await Promise.all(revealPromises);
         return true;
     };
 }
