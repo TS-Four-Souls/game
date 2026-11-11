@@ -42,6 +42,30 @@ describe("Four Souls+2 Treasures", () => {
         expect(player2.isEngagedInCombat).toBe(true);
     });
 
+    it("fsp2-moms_eye_shadow - cannot redirect an attack the player must make on a specific monster", async () => {
+        const card1 = game.obtainCard("fsp2-moms_eye_shadow") as TreasureCard;
+        game.cardHandler.addInPlay(player1, card1);
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack(); // resolve effect
+        const fly = game.encounters.monsterIn(0)!;
+        const fatty = game.encounters.monsterIn(1)!;
+        game.entityHandler.playerMustAttack(player2, [fly], fly.card, false);
+        let offered: any[] = [];
+        game.select = (async (_issuer: Player, _min: number, _max: number, opts: any[]) => {
+            offered = opts;
+            return { selected: opts.filter(o => o === fatty), remaining: [] };
+        }) as any;
+        game.actions.declareAttack(player2);
+        await game.actions.declareAttackOnEntity(player2, fly);
+        await game.actions.resolveStack();
+        // Player 2 must attack the fly: the fatty is not a valid choice.
+        expect(offered.includes(fatty)).toBe(false);
+        expect(fly.isEngagedInCombat).toBe(true);
+        expect(fatty.isEngagedInCombat).toBe(false);
+        expect(player2.hasAttackRequirement).toBe(false);
+    });
+
     it("fsp2-mutant_spider - [Tap Effect] The next time a player would roll a dice, they instead roll 4 dice. You choose one of the rolls as the result.", async () => {
         const card1 = game.obtainCard("fsp2-mutant_spider") as TreasureCard;
         game.cardHandler.addInPlay(player1, card1);

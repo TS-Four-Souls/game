@@ -682,7 +682,7 @@ export function chooseMonsterWhenAnotherPlayerAttacksMonsterEffect(game: Game): 
         offAttack = game.emitter.on("on:attack:declared:monster", ({ eventIssuer, monster }) => {
             if (eventIssuer === data.issuer) return;
             const effect: EffectFunction = async (effectData: EffectData) => {
-                const monsters = game.encounters.monsters.filter(m => game.actions.canDeclareAttackOnEntity(eventIssuer, m, false));
+                const monsters = game.encounters.monsters.filter(m => game.actions.canDeclareAttackOnEntity(eventIssuer, m, false) === true);
                 if(monsters.length === 0) return false;
                 if(!data.issuer || !(data.issuer instanceof Player))
                     throw new GameError("chooseMonsterWhenAnotherPlayerAttacksMonsterEffect issuer should be a player.", toSerializedTranslation("error.behaviorError", {error: "chooseMonsterWhenAnotherPlayerAttacksMonsterEffect issuer should be a player."}));
