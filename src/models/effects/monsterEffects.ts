@@ -1295,10 +1295,17 @@ export function playersWithMostItemsDieEffect(game: Game): SyncEffectFunction {
 export function noCombatDamageEveryOtherAttackRollEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offAttackRoll: (() => void) | null = null;
+        let offDamageWouldTake: (() => void) | null = null;
         let offEndTurn: (() => void) | null = null;
-        let prevent = false;
+        let prevent = true;
         
-        offAttackRoll = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
+        offAttackRoll = game.emitter.on("on:attack:roll", (eventData: OnRollData) => {
+            const { eventIssuer, dice } = eventData;
+            if(dice.attackRoll !== true) return;
+            if (dice.attackData === null || data.issuer !== dice.attackData.target) return;
+            prevent = !prevent; // toggle prevent on each attack roll
+        });
+        offDamageWouldTake = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
             const { eventIssuer, source } = eventData;
             if (data.issuer !== eventIssuer) return;
             if(!(source instanceof DiceRoll)) return;
@@ -1307,19 +1314,20 @@ export function noCombatDamageEveryOtherAttackRollEffect(game: Game): SyncEffect
                 if(prevent) {
                     eventData.damageArray[0] = 0; // prevent all damage
                 }
-                prevent = !prevent; // toggle prevent on each attack roll
                 return true;
-            }
+            };
             addPassiveEffectToStack(game, effect, data, "", data.visualEffectBox);
         });
+
+
 
         offEndTurn = game.emitter.on("on:turn:end", (eventData: OnTurnEndData) => {
             prevent = false; // reset at end of turn
         });
 
         data.it.cleaners.push(() => {
-            offAttackRoll?.();
-            offAttackRoll = null;
+            offDamageWouldTake?.();
+            offDamageWouldTake = null;
             offEndTurn?.();
             offEndTurn = null;
         });
