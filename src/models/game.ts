@@ -270,6 +270,12 @@ export class Game {
   get visibleItems(): ItemCard[] {
     return this.cardHandler.visibleItems;
   }
+  /**
+   * @returns every card on the table: items, characters, shop items, curses, monsters in slots and active rooms.
+   */
+  get cardsInPlay(): Card[] {
+    return this.cardHandler.cardsInPlay;
+  }
   get nextAnimationId(): string {
     return generateAnimationId();
   }

@@ -37,6 +37,7 @@ import {
     selectMonsterBeingAttacked,
     selectMonsterNotBeingAttacked,
     selectNonEternalItem,
+    selectNonEternalCardInPlay,
     selectNonEternalItemFromAnywhere,
     selectNonEternalItemOrASoul,
     selectNonEternalItemYouControl,
@@ -802,7 +803,7 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
         case "choose a non-eternal item. put a counter on that item or remove one from it":
             return { effectFunction: active.addOrRemoveCounterOnCardEffect(game, 1, "any", "selectionOnResolve", youMayEffectHanging, selectNonEternalItemFromAnywhere(game)), targetSelectors: selectNonEternalItemFromAnywhere(game) };
         case "choose a non-eternal card in play. put a counter on it of a type already on it or remove a counter from it":
-            return { effectFunction: active.addOrRemoveCounterOnCardEffect(game, 1, "alreadyOnIt", "next", youMayEffectHanging), targetSelectors: selectNonEternalItem(game) };
+            return { effectFunction: active.addOrRemoveCounterOnCardEffect(game, 1, "alreadyOnIt", "next", youMayEffectHanging), targetSelectors: selectNonEternalCardInPlay(game) };
         case "put a card from your hand on top of the loot deck":
         case "put a loot card from your hand on top of the loot deck":
             return noTargetEffect(active.putXCardFromYourHandOnTopOfLootDeck(game, 1));

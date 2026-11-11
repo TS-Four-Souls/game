@@ -447,7 +447,29 @@ describe("Requiem Loots ", () => {
             await game.actions.resolveStack();
             expect(treas.counters.value("normal")).toBe(2);
         });
-    
+
+        it("marbles on a monster or a room", async () => {
+            let item = game.obtainCard("r-marbles") as ItemCard;
+            game.cardHandler.addInPlay(player1, item);
+            const monster = game.monsters[0]!.card;
+            const room = game.rooms!.activeRooms[0]!;
+
+            game.cardHandler.addToCounter(player1, monster, "normal", 1);
+            game.select = async (player: Player, min: number, max: number, Options: any[]) => {
+                return {selected: [Options[Options.length - 1]], remaining: Options};
+            };
+            game.cardHandler.recharge(item);
+            await game.activateItem(player1, item, [monster], "tap");
+            await game.actions.resolveStack();
+            expect(monster.counters.value("normal")).toBe(2);
+
+            game.cardHandler.addToCounter(player1, room, "normal", 1);
+            game.cardHandler.recharge(item);
+            await game.activateItem(player1, item, [room], "tap");
+            await game.actions.resolveStack();
+            expect(room.counters.value("normal")).toBe(2);
+        });
+
         it("magic_skin", async () => {
             let item = game.obtainCard("r-magic_skin") as ItemCard;
             expect(item).toBeDefined();

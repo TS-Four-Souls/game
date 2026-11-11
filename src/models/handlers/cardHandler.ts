@@ -95,6 +95,19 @@ export class CardHandler {
     return result;
   }
 
+  /**
+   * Returns every card on the table: visible items (players' items, characters and shop items), curses, monsters in slots and active rooms.
+   */
+  get cardsInPlay(): Card[] {
+    return [
+      ...this.game.players.map(p => p.character),
+      ...this.visibleItems,
+      ...this.game.inPlayCurses.map(({ card }) => card),
+      ...this.game.monsters.map(m => m.card),
+      ...(this.game.rooms?.activeRooms ?? []),
+    ];
+  }
+
   get deckNames(): DeckType[] {
     const names = ["loot", "treasure", "monster"] as DeckType[];
     if(this.game.rooms !== undefined)
