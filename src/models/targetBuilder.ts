@@ -610,6 +610,9 @@ export class TargetBuilder {
                 {card: item.jsonAPI, },
             );
             const normalizedSelection = selection.selected.map((choice) =>choice);
+            // Choosing nothing on an optional selector can't advance the selector walk, it would prompt again forever.
+            if(normalizedSelection.length === 0)
+                break;
             targets.push(...normalizedSelection);
             options = TargetBuilder.getNextSelectorRaw(game, player, item, TargetBuilder.convertToSelectionItems(targets), effectId, false);
             if(!options.complete && options.options.length === 0)
@@ -710,6 +713,10 @@ export class TargetBuilder {
                 options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
                 continue;
             }
+            // Choosing nothing satisfies an optional selector, but it can't advance the selector walk:
+            // without this the same selector comes back forever and the loop never ends.
+            if(selection.length === 0)
+                return true;
             if(options.isChooseOne)
                 backtrackingIndices.push(targets.length);
             targets.push(...selection);
@@ -798,9 +805,12 @@ export class TargetBuilder {
                         selection = shuffledOptions.slice(0, nbToSelect);
                     }
 
-                    targets.push(...selection);
-                    options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
-                    continue;
+                    // An empty selection can't advance the selector walk, so build with the targets chosen so far.
+                    if (selection.length > 0) {
+                        targets.push(...selection);
+                        options = TargetBuilder.getNextSelector(game, player, item, targets, effectId, false, true);
+                        continue;
+                    }
                 }
 
                 try {

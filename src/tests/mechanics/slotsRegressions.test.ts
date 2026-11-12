@@ -7,6 +7,7 @@ import { EffectData } from "../../models/types/cardTypes";
 import { makeAnAttackRollAfterEachAttackRollEffect } from "../../models/effects/roomEffects";
 import { effectParser } from "../../models/effects/parsing/effectParser";
 import { setupTestGame } from "../testHelpers";
+import { TargetBuilder } from "../../models/targetBuilder";
 
 
 describe("Slots regressions", () => {
@@ -197,6 +198,41 @@ describe("Slots regressions", () => {
         await game.actions.resolveStack();
         expect(battery.charged).toBe(false);
         expect(other.charged).toBe(false);
+    });
+
+    it("car_battery - no other tap item in play doesn't loop forever when checking targets", async () => {
+        // Neither eternal (lazarus_rags, berserk) has a tap effect, so the "up to 3" selector has no option.
+        const setup = await setupTestGame({
+                    characters: ["b2-lazarus", "r-the_savage"],
+                    monsters: ["b2-fly", "b2-fatty"],
+                    monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+                    treasureDeck: ["b2-blank_card"],
+                    playerCount: 2
+                });
+        game = setup.game;
+        player1 = setup.player1;
+        const battery = game.obtainCard("r-car_battery") as ItemCard;
+        game.cardHandler.addInPlay(player1, battery);
+        expect(battery.getActiveEffect()!.targetsSelector[0]!.selector(player1, battery)).toHaveLength(0);
+
+        expect(TargetBuilder.validTargetExists(game, player1, battery, "tap")).toBe(true);
+        const random = TargetBuilder.buildRandomValidTargets(game, player1, battery, "inPlay");
+        expect(random).toEqual({ index: "tap", targets: [] });
+        game.detailedStateJSON(player1);
+    });
+
+    it("car_battery - choosing nothing when its targets are built on resolve doesn't prompt again", async () => {
+        const battery = game.obtainCard("r-car_battery") as ItemCard;
+        game.cardHandler.addInPlay(player1, battery);
+        const other = game.obtainCard("b2-tech_x") as ItemCard;
+        game.cardHandler.addInPlay(player1, other);
+        other.charged = false;
+
+        let prompts = 0;
+        game.select = (async () => { prompts++; return { selected: [], remaining: [] }; }) as any;
+        const targets = await TargetBuilder.buildTargetsOnResolve(game, player1, battery, "tap");
+        expect(prompts).toBe(1);
+        expect(targets).toEqual([]);
     });
 
     it("fsp2-gimpy - choosing +2 [ATK] doesn't prompt for an extra target", async () => {
