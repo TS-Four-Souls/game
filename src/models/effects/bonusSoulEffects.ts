@@ -255,14 +255,15 @@ function strawberrySoulEffect(game: Game, card: Card): OffEffectFunction {
 
 
     offDiceRolled = game.emitter.on("on:dice:resolved", (eventData: OnRollData) => {
-        if(eventData.dice.value !== 1) 
-        {
-            playerRolls.set(eventData.eventIssuer.id, 0);
-            return; 
-        }
-        playerRolls.set(eventData.eventIssuer.id, playerRolls.get(eventData.eventIssuer.id)! + 1);
-        if(playerRolls.get(eventData.eventIssuer.id)! >= 3)
+        if(!active) return;
+        // Only the active player's rolls count, and the count resets only at turn start.
+        if(eventData.eventIssuer !== game.currentPlayer) return;
+        if(eventData.dice.value !== 1) return;
+        playerRolls.set(eventData.eventIssuer.id, (playerRolls.get(eventData.eventIssuer.id) ?? 0) + 1);
+        if(playerRolls.get(eventData.eventIssuer.id)! >= 3) {
             game.cardHandler.addSoul(eventData.eventIssuer, card);
+            cleanup();
+        }
     });
 
     return cleanup;
