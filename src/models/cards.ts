@@ -245,8 +245,15 @@ class Card {
     get cleaners(): (() => void)[] {
         return this._cleanup;
     }
-    removeCleaner(cleaner: () => void): void {
-        this.cleaners.filter(c => c !== cleaner);
+    /**
+     * Removes a cleaner so cleanup() will not run it.
+     * @returns True if the cleaner was still registered. False during cleanup(), which runs it itself.
+     */
+    removeCleaner(cleaner: () => void): boolean {
+        const idx = this._cleanup.indexOf(cleaner);
+        if (idx === -1) return false;
+        this._cleanup[idx] = () => {};
+        return true;
     }
     get owner(): Entity {
         if(!this._owner)
