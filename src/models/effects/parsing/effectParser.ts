@@ -310,6 +310,7 @@ function parseTriggeredEffect(s: string, game: Game, nr: NumberRobustString, sel
         return {
             effectFunction: passive.onAnyEventEffect("on:death:after-penalty", [restParsed.effectFunction], game, s, (ef: EffectData, ev: OnDeathBeforePenaltyData) => {
                 if(ev.eventIssuer instanceof Player === false) return false;
+                if(!(ev.target instanceof Player) || ev.target === ev.eventIssuer) return false; // the killer must be another player
                 if(ev.source instanceof DiceRoll && ev.source.attackTarget instanceof Player === false) return false;
                 return true;
             }, false),
@@ -483,9 +484,9 @@ function parseTriggeredEffect(s: string, game: Game, nr: NumberRobustString, sel
         if(restOfEffect === null)
             throw new Error(`Failed to parse effect after "while you control another item or soul named cube of meat or ultra flesh kid," in string: ${s}`);
         return logic.noTargetSyncEffect(passive.ConditionalEffect([restOfEffect.effectFunction], 
-            (player: Player) => {
-                return player.inPlay.filter(item => item.name === "Cube Of Meat" || item.name === "Ultra Flesh Kid!").length >= 2
-            }, ["on:enter:play:after", "on:item:destroyed"], game, false));
+            (player: Player, card: Card) => {
+                return [...player.inPlay, ...player.souls].some(other => other !== card && (other.name === "Cube Of Meat" || other.name === "Ultra Flesh Kid!"))
+            }, ["on:enter:play:after", "on:item:destroyed", "on:item:removed:after", "on:soul:gained", "on:soul:removed"], game, false));
     }    
     if (s.startsWith("when this dies, ") && !s.includes("killed")) // effects that include "killed" refers to the killer and need to be handled differently.
         return logic.parseWhenThisDiesEffect(s, game);
@@ -543,7 +544,9 @@ function parseTriggeredEffect(s: string, game: Game, nr: NumberRobustString, sel
         {
             const nbCounters = nr.nextNumber();
             const restString = s.substring("when the xnd counter is put on this, ".length).trim();
-            return logic.noTargetSyncEffect(passive.onAnyEventEffect("on:counter:modified", [effectParser(restString, game, true).effectFunction], game, s, (effect: EffectData, event: OnCounterModifiedData) => { return effect.it === event.receiver && event.newValue === nbCounters && event.previousValue < nbCounters }));
+            // "this dies" (Grandparent): keep the card's own issuer (the monster) instead of whoever put the counter.
+            const issuerIsEventIssuer = !restString.startsWith("this dies");
+            return logic.noTargetSyncEffect(passive.onAnyEventEffect("on:counter:modified", [effectParser(restString, game, true).effectFunction], game, s, (effect: EffectData, event: OnCounterModifiedData) => { return effect.it === event.receiver && event.newValue === nbCounters && event.previousValue < nbCounters }, issuerIsEventIssuer));
         }
     if(s.startsWith("this takes no combat damage on attack rolls of") || s.startsWith("you take no combat damage on attack rolls of"))
     {
@@ -610,6 +613,14 @@ if (s.startsWith("you may") &&
         return {effectFunction: active.combineEffectFunctions(
                 [active.chooseOneOfListEffect(game, selectAnotherPlayer(game)[0]!, selectionOnResolve), restParsed.effectFunction]),
                  targetSelectors: [...selectAnotherPlayer(game), ...restParsed.targetSelectors]};
+    }
+    // rwz-football: the player to give this to is chosen on activation, then this is given and the roll is made.
+    if (s.startsWith("give this to another player and roll-")){
+        const rollText = s.substring("give this to another player and ".length);
+        const rollParsed = parseRollEffect(rollText, new NumberRobustString(rollText), game);
+        return {effectFunction: active.combineEffectFunctions(
+                [active.giveThisToAnotherPlayerEffect(game, selectionOnResolve), rollParsed.effectFunction], true),
+                 targetSelectors: selectAnotherPlayer(game)};
     }
     if(s.startsWith("[curse] "))
         return logic.parseCurseEffect(s.substring(8).trim(), game);
@@ -1209,10 +1220,12 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
             return logic.noTargetEffect(active.makePlayerGiveLootCardEffect(game, "diceRoll"));
         case "put the top card of the monster deck in another monster slot":
             return logic.noTargetEffect(active.putTopMonsterInAnotherSlotEffect(game));
+        case "put all cards in another monster slot into discard":
+            return logic.noTargetEffect(active.discardAnotherMonsterSlotEffect(game));
         case "they reveal their hand. choose a non-trinket, non-ambush loot card in their hand. till end of turn, you may play a copy of it without using a loot play":
             return logic.noTargetEffect(active.revealHandAndAddFreeCopyEffect(game));
         case "choose a living player. that player dies":
-            return { effectFunction: active.deathTargetEffect(game, [["player"]]), targetSelectors: selectAlivePlayer(game) };
+            return { effectFunction: active.deathTargetEffect(game, [["player"]], true), targetSelectors: selectAlivePlayer(game) };
         case "they give you half of their ¢ and loot cards rounded down, then gives you an item":
             return logic.noTargetEffect(active.halfLootAndCoinsAndGiveItemEffect(game));
         case "search the monster deck for a curse card and put it in a monster slot not being attacked":
@@ -1227,7 +1240,7 @@ function parseStandardASyncEffect(s: string, game: Game, nr: NumberRobustString,
         case "choose a player. the next time that player would die this turn, prevent it. if it's their turn, cancel everything that hasn't resolved and end it":
             return { effectFunction: passive.cancelNextDeathOfAPlayer(game, s), targetSelectors: selectAlivePlayer(game) };
         case "choose another monster and player. they die":
-            return logic.noTargetEffect(active.deathTargetEffect(game, [["monster"], ["player"]]));
+            return logic.noTargetEffect(active.deathTargetEffect(game, [["monster"], ["player"]], true));
         case "put a monster not being attacked on the bottom of the monster deck":
             return { effectFunction: active.flushOneMonsterSlotEffect(game, 1, false, "bottom"), targetSelectors: selectMonsterNotBeingAttacked(game) };
         case "if it had no counters on it, put a counter on it, and put it in a monster slot not being attacked":
@@ -1404,7 +1417,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
                     [game.entityHandler.addAttack.bind(game.entityHandler)],
                     nr.nextNumber(),
                     (entity: Entity, card: Card) => entity instanceof Player && entity.inPlay.filter((item) => !item.isEternal() && item !== card).length === 0,
-                    ["on:enter:play:after", "on:item:destroyed"],
+                    ["on:enter:play:after", "on:item:destroyed", "on:item:removed:after"],
                     game,
                     false
                 ));
@@ -1416,7 +1429,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
                         [game.entityHandler.addDCToEachMonster.bind(game.entityHandler)],
                         dcMod,
                         (entity: Entity, card: Card) => entity instanceof Player && entity === game.currentPlayer && entity.inPlay.filter((item) => !item.isEternal() && item !== card).length >= minItems,
-                        ["on:enter:play:after", "on:item:destroyed", "on:turn:start", "till:turn:end"],
+                        ["on:enter:play:after", "on:item:destroyed", "on:item:removed:after", "on:turn:start", "till:turn:end"],
                         game,
                         false,
                         false // re-evaluate on other players' turns too, so the modifier is removed when it's not your turn.
@@ -1520,8 +1533,8 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             return logic.noTargetSyncEffect(passive.preventFirstDamageEachTurnEffect(nr.nextNumber(), game));
         case "choose a player. prevent the next instance of damage they would take this turn. when that damage is prevented, deal that much damage to a monster or another player":
             return {
-                effectFunction: passive.preventDamageAndDealDmgOnPreventEffect(INFINITY, "prevented", "next", game),
-                targetSelectors: selectAnotherPlayer(game),
+                effectFunction: passive.preventDamageAndDealDmgOnPreventEffect(INFINITY, "prevented", "next", game, true),
+                targetSelectors: selectPlayer(game),
             };
         case "cancel everything that hasn't resolved":
             return logic.noTargetSyncEffect(active.cancelStackEffect(game));
@@ -1548,7 +1561,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
         case "prevent the first instance of combat damage you would take each turn":
             return logic.noTargetSyncEffect(passive.onAnyEventEffect("on:turn:start", [], game, s, (effect: EffectData) => {
                 if (effect.issuer.damageTakenThisTurn.filter((damage) => damage.with instanceof DiceRoll).length === 0){
-                    passive.preventNextDamageUpToEffect(INFINITY, game, "combat")(effect);
+                    passive.preventNextDamageUpToEffect(INFINITY, game, "combat", true)(effect);
                 }
                 return false;
         }, false, true));
@@ -1558,8 +1571,6 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
         }, false, true));
         case "at the start of each turn or each time this deals combat damage, the active player deals x damage to a player chosen at random":
             return logic.noTargetSyncEffect(passive.atStartAndDamageGivenDealDamageToRandomPlayerEffect(nr.nextNumber(), game));
-        case "put all cards in another monster slot into discard":
-            return logic.noTargetSyncEffect(active.flushMonsterSlotsEffect(game, "discard", true));
         case "your death penalty item is chosen at random":
             return logic.noTargetSyncEffect(passive.randomDeathPenaltyItemEffect(game));
         case "the first time you activate your character each round, recharge it":
@@ -1998,24 +2009,26 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
             const dcRed = nr.nextNumber();
             return logic.noTargetSyncEffect(passive.onAnyEventEffect("on:counter:modified", [], game, s, (ef: EffectData, ev: OnCounterModifiedData) => {
                 if(ev.counterName !== "bounty") return false;
-                if(ev.previousValue > 0) return false;
-                if(ev.newValue < 0) return false;
                 if(ev.receiver instanceof MonsterCard === false || ev.receiver.entity === undefined) return false;
-                if(ev.newValue > 0)
+                // Only the first bounty counter lowers the DC, and removing the last one restores it.
+                if(ev.previousValue <= 0 && ev.newValue > 0)
                     game.entityHandler.addDC(ev.receiver.entity, -dcRed);
-                if(ev.newValue === 0)
+                else if(ev.previousValue > 0 && ev.newValue <= 0)
                     game.entityHandler.addDC(ev.receiver.entity, dcRed);
+                else
+                    return false;
                 return true;
             }    
             ));
         case "flip a dice roll":
             return { effectFunction: active.flipDiceRollEffect(game), targetSelectors: selectRoll(game) };
         case "each time a monster with a bounty counter on it dies, gain x¢":
+            const bountyCoins = nr.nextNumber();
             return logic.noTargetSyncEffect(passive.onAnyEventEffect("on:death:monster", [], game, s, (ef: EffectData, ev: OnDeathMonsterData) => {
                 if(ev.eventIssuer instanceof Monster === false) return false;
                 if(ef.issuer instanceof Player === false) return false;
                 if(ev.eventIssuer.card.counters.value("bounty") <= 0) return false;
-                game.gainCoins(ef.issuer, nr.nextNumber(), ef.it);
+                game.gainCoins(ef.issuer, bountyCoins, ef.it);
                 return true;
             }    
             ));

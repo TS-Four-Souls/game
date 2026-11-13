@@ -206,6 +206,12 @@ export interface OnItemGainedAfterData {
   card: Card;
 }
 
+/** Data emitted after an item has left a player's control (destroyed, stolen, given, swapped...) */
+export interface OnItemRemovedAfterData {
+  eventIssuer: Player;
+  card: Card;
+}
+
 /** Data emitted when a player would have to discard loot cards (can be modified) */
 export interface OnLootWouldDiscardData {
   eventIssuer: Player;
@@ -446,6 +452,7 @@ export interface TriggerEventDataMap {
   "on:recharge": OnRechargeData;
   "on:item:gained": OnItemGainedData;
   "on:item:gained:after": OnItemGainedAfterData;
+  "on:item:removed:after": OnItemRemovedAfterData;
   "on:card:discarded:before": OnCardDiscardBeforeData;
   "on:death:rewards": OnDeathRewardsData;
 }

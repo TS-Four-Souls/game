@@ -579,7 +579,10 @@ export class CardHandler {
     if(removeCounter)
       for(const counterType of card.counters.counterOwned)
         this.addToCounter(this.game.currentPlayer, card, counterType, -(card.counters.getIfDefined(counterType) || 0));
-    return player.removeInPlay(card);
+    const removed = player.removeInPlay(card);
+    if (removed)
+      this.game.emit("on:item:removed:after", { eventIssuer: player, card }, false);
+    return removed;
   }
 
   /** Destroys an owned item and replaces it by gaining treasure. */

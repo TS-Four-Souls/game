@@ -76,6 +76,19 @@ describe("Unboxing Monsters ", () => {
         
     });
 
+    it("evis players stay attackable only while evis is in play", async () => {
+        game.cardHandler.addToCounter(player1, player2, "gut", 1);
+        const mob = game.obtainCard("box-evis") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, mob);
+        const ent = game.monsters[0]!;
+        // A gut counter put before Evis came into play still counts.
+        expect(player2.attackable).toBe(true);
+        expect(player2.evasion).toBe(3);
+        game.encounters.flushMonster(ent, "discard");
+        await game.actions.resolveStack();
+        expect(player2.attackable).toBe(false);
+    });
+
     it("teratoma", async () => {
         const mob = game.obtainCard("box-teratoma") as MonsterCard;
         expect(mob).toBeInstanceOf(MonsterCard);
@@ -239,18 +252,25 @@ describe("Unboxing Monsters ", () => {
         expect(mob).toBeInstanceOf(MonsterCard);
         
         game.encounters.forceSetMonsterAtSlot(0, mob);
-        const ent = game.monsters[0]!;
+        // Slot 1 has a covered card, and a third slot is added so only one other slot gets discarded.
+        const top = game.encounters.visible[1]!;
+        const covered = game.obtainCard("b2-red_host") as MonsterCard;
+        game.encounters.slots[1]!.unshift(covered);
+        const third = game.obtainCard("b2-dip") as MonsterCard;
+        game.encounters.slots.push([third]);
+        game.encounters.createMonsterAtSlot(2);
         await game.endTurn();
         game.random = () => 1/6-0.01;
         await game.actions.resolveStack();
-        const slugs = game.encounters.cardsOnTop.filter(c => c != ent.card).map(m => m!.slug);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        const slugs2 = game.encounters.cardsOnTop.filter(c => c != ent.card).map(m => m!.slug);
-        for (const slug of slugs2) {
-            expect(slugs.includes(slug)).toBe(false);
-        }
+        expect(game.decks["monster"]!.discard).toContain(top);
+        expect(game.decks["monster"]!.discard).toContain(covered);
+        expect(game.encounters.slots[1]!.length).toBe(1);
+        expect(game.encounters.slots[1]).not.toContain(top);
+        expect(game.encounters.visible[0]).toBe(mob);
+        expect(game.encounters.visible[2]).toBe(third);
     });
 
     it("big_horn", async () => {
@@ -370,6 +390,24 @@ describe("Unboxing Monsters ", () => {
         expect(game.stack.elements[1]!.json.type).toBe("death");
         expect((game.stack.elements[1]! as DeathOnStack).json.receiver.type).toBe("player");
 
+    });
+
+    it("christian_broadcasts does not offer dead players", async () => {
+        const mob = game.obtainCard("box-christian_broadcasts") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, mob);
+        const ent = game.monsters[0]!;
+        player1.die();
+        let offeredPlayers: Player[] = [];
+        game.select = async (player: Player, min: number, max: number, Options: any[]) => {
+            if(Options.some(o => o instanceof Player))
+                offeredPlayers = Options.filter(o => o instanceof Player);
+            return { selected: Options.slice(0, max), remaining: Options.slice(max) };
+        };
+        game.entityHandler.kill(player2, ent, {card: mob, visualEffectBox: undefined});
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(offeredPlayers).toEqual([player2]);
     });
 
     it("tv_static", async () => {

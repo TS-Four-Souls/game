@@ -57,13 +57,28 @@ describe("Warp Zone Treasures", () => {
         expect(game.stack.size).toBe(1);
         expect(player1.isDead).toBe(true);
         game.random = () => 0.99;
-        await game.actions.resolveStack();
-        await game.actions.resolveStack();
-        await game.actions.resolveStack();
-        await game.actions.resolveStack();
-        await game.actions.resolveStack();
+        // Samson's end-of-turn trigger (b2-blood_lust) also goes on the stack: resolve until it is empty.
+        while (!game.stack.isEmpty()) await game.actions.resolveStack();
         expect(game.stack.size).toBe(0);
         expect(game.currentPlayer === player1).toBe(true);
+    });
+
+    it("rwz-water_bottle 6 on another player's turn cancels everything without ending the turn", async () => {
+        const card1 = game.obtainCard("rwz-water_bottle") as TreasureCard;
+        game.cardHandler.addInPlay(player2, card1);
+        // Player1 starts an attack on their turn, then player2 uses Water Bottle in response to the roll.
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, game.monsters[0]!);
+        game.random = () => 0.1;
+        await game.actions.attackRoll(player1);
+        expect(game.stack.isEmpty()).toBe(false);
+        await game.activateItem(player2, card1, [], "tap");
+        game.random = () => 0.99;
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
+        expect(game.currentPlayer).toBe(player1);
+        expect(game.monsters[0]!.currentHealthPoints).toBe(game.monsters[0]!.healthPoints);
     });
  
     it("rwz-hitops 2", async () => {
@@ -94,7 +109,65 @@ describe("Warp Zone Treasures", () => {
         expect(player2.currentHealthPoints).toBe(player2.healthPoints);
         expect(player2.currentHealthPoints).toBe(player2.healthPoints);
     });
- 
+
+    const resolveAll = async () => {
+        while (!game.stack.isEmpty()) await game.actions.resolveStack();
+    };
+
+    // Player2 attacks a 6 DC monster and rolls a 4: a miss, so player2 takes combat damage unless protected.
+    const missAttackRollOf4 = async (attacker: Player) => {
+        game.actions.declareAttack(attacker);
+        game.entityHandler.addDC(game.monsters[0]!, 6, game.monsters[0]!.card);
+        await game.actions.declareAttackOnEntity(attacker, game.monsters[0]!);
+        game.random = () => 4/6-0.01;
+        await game.actions.attackRoll(attacker);
+        await resolveAll();
+    };
+
+    it("rwz-hitops high-five protection ends at end of turn", async () => {
+        const card1 = game.obtainCard("rwz-hitops") as TreasureCard;
+        game.cardHandler.addInPlay(player1, card1);
+        let acceptHighFive = true;
+        const select = game.select.bind(game);
+        game.select = async (player: Player, min: number, max: number, options: any[], ...rest: any[]) => {
+            if (options[0]?.key === "common.highfive" && !acceptHighFive)
+                return { selected: [options[1]], remaining: [options[0]] };
+            return (select as any)(player, min, max, options, ...rest);
+        };
+        await game.endTurn();
+        await resolveAll();
+        expect(game.currentPlayer).toBe(player2);
+        // Player2 accepts the high-five for this turn only.
+        acceptHighFive = false;
+        await game.endTurn();
+        await resolveAll();
+        expect(game.currentPlayer).toBe(player1);
+        await game.endTurn();
+        await resolveAll();
+        expect(game.currentPlayer).toBe(player2);
+        await missAttackRollOf4(player2);
+        expect(player2.currentHealthPoints).toBeLessThan(player2.healthPoints);
+    });
+
+    it("rwz-hitops stops offering high-fives once destroyed", async () => {
+        const card1 = game.obtainCard("rwz-hitops") as TreasureCard;
+        game.cardHandler.addInPlay(player1, card1);
+        game.cardHandler.destroyCardsOrSouls([card1]);
+        let offers = 0;
+        const select = game.select.bind(game);
+        game.select = async (player: Player, min: number, max: number, options: any[], ...rest: any[]) => {
+            if (rest[0]?.key === "pending.highFiveOffer")
+                offers++;
+            return (select as any)(player, min, max, options, ...rest);
+        };
+        await game.endTurn();
+        await resolveAll();
+        expect(game.currentPlayer).toBe(player2);
+        expect(offers).toBe(0);
+        await missAttackRollOf4(player2);
+        expect(player2.currentHealthPoints).toBeLessThan(player2.healthPoints);
+    });
+
     it("rwz-hitops", async () => {
         const card1 = game.obtainCard("rwz-hitops") as TreasureCard;
         game.cardHandler.addInPlay(player1, card1);
@@ -125,6 +198,17 @@ describe("Warp Zone Treasures", () => {
         expect(player1.attackPoints).toBe(3);
         game.gainTreasure(player1, 1);
         expect(player1.attackPoints).toBe(2);
+    });
+
+    it("rwz-tony: other item leaves play", async () => {
+        const card1 = game.obtainCard("rwz-tony") as TreasureCard;
+        game.cardHandler.addInPlay(player1, card1);
+        expect(player1.attackPoints).toBe(3);
+        const blank = game.obtainCard("b2-blank_card") as TreasureCard;
+        game.cardHandler.addInPlay(player1, blank);
+        expect(player1.attackPoints).toBe(2);
+        game.cardHandler.destroyCardsOrSouls([blank]);
+        expect(player1.attackPoints).toBe(3);
     });
  
     it("rwz-the_crowdfunder", async () => {

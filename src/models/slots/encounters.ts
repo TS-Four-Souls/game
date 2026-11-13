@@ -357,6 +357,20 @@ export class Encounters extends Slots<MonsterCard> {
         this.attackModifier += value;
     }
 
+    /**
+     * Puts every card of a slot into discard, covered cards included, then refills the slot.
+     *
+     * @param index - The slot index to discard
+     */
+    discardSlot(index: number): void {
+        if (!this.canFlushIndex(index))
+            return;
+        const slot = this._slots[index]!;
+        while (slot.length > 0)
+            this._deck.addDiscardTop(slot.pop()!);
+        this.fillEmptySpots(false);
+    }
+
     get coverableSlots(): MonsterCard[] {
         return this.nonEngagedInCombat.filter(card => !card.indomitable);
     }

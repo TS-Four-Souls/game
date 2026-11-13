@@ -234,6 +234,18 @@ export function putTopMonsterInAnotherSlotEffect(game: Game): AsyncEffectFunctio
     }
 }
 
+export function discardAnotherMonsterSlotEffect(game: Game): AsyncEffectFunction {
+    return async (data: EffectData) => {
+        const choices = game.encounters.visible.filter((card, index) => card !== data.it && game.encounters.canFlushIndex(index));
+        if(choices.length === 0) return false;
+        const selected = (await data.selectAndRecord(game, game.currentPlayer, 1, 1, choices, toSerializedTranslation("pending.slot"), data.serializedCardAndBox, true, true)).selected[0];
+        const index = game.encounters.visible.indexOf(selected as MonsterCard);
+        if(index < 0) return false;
+        game.encounters.discardSlot(index);
+        return true;
+    }
+}
+
 export function makePlayerGiveLootCardEffect(game: Game, type: "diceRoll" | "player"): AsyncEffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
@@ -2436,10 +2448,10 @@ export function cancelStackEffect(game: Game): SyncEffectFunction {
 export function endTurnAndResetStackEffect(game: Game, onlyIfYourTurn: boolean = false): AsyncEffectFunction {
     return async (data: EffectData) => {
         if(game.isEndPhase) return false;
-        if(onlyIfYourTurn && game.currentPlayer !== data.issuer) return false;
         game.resetStack();
         game.resetCallbacks();
         await game.resolveCallbacks(); // finish what already resolved (e.g. a dead monster leaving play) before the turn ends.
+        if(onlyIfYourTurn && game.currentPlayer !== data.issuer) return true;
         game.currentPlayer.clearAttackRequirement();
         game.actions.cancelPurchase(game.currentPlayer, true);
         game.entityHandler.endCombat();
@@ -2461,7 +2473,7 @@ export function chooseAndCopyEternalItemAbilitiesEffect(game: Game): AsyncEffect
             game.cardHandler.attachEffectsToCard(card, true);
         });
         let offNextTurnStart : null | (() => void) = null;
-        offNextTurnStart = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
+        offNextTurnStart = game.emitter.on("as:turn:start", (eventData: OnTurnStartData) => {
             if(eventData.eventIssuer === issuer) {
                 reverse.restore();
                 if(offNextTurnStart) offNextTurnStart();
@@ -2706,7 +2718,7 @@ export function eachPlayerRollsXTimesEffect(game: Game, nbRolls: number, nbTreas
                 if(total === maxRoll)
                     game.gainTreasure(player, nbTreasure);
                 if(total === minRoll)
-                    game.entityHandler.kill(data.issuer, player, data.cardAndBox);
+                    game.entityHandler.kill(data.it.entity ?? player, player, data.cardAndBox);
                 game.gainCoins(player, nbCoins, data.it);
             }
             return true;
@@ -2953,8 +2965,19 @@ export function playerWithCharaNamedLootX(game: Game, name: string, nbLoots: num
 
 export function voteOnFirstDeath(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
+        let triggeredThisTurn = false;
+        let offTurnStart: (() => void) | null = game.emitter.on("on:turn:start", () => {
+            triggeredThisTurn = false;
+        });
+        data.it.cleaners.push(() => {
+            offTurnStart?.();
+            offTurnStart = null;
+        });
         passive.onAnyEventEffect("on:death:after-penalty", [voteToKillPlayers(game, 1, true)], game, "", (ef: EffectData, eventData: any) => {
-            return game.players.every(p=>!p.isDead || p === eventData.eventIssuer);
+            // Only player deaths count (monsters emit this event too), and only the first one each turn.
+            if (!(eventData.eventIssuer instanceof Player) || triggeredThisTurn) return false;
+            triggeredThisTurn = true;
+            return true;
         })(data);
         return true;
     };
@@ -2969,7 +2992,8 @@ export function voteToKillPlayers(game: Game, nbVotes: number, onlyLivingPlayers
             description: qq("pending.whoIsImpostor"),
         });
         for (const player of winners) {
-            game.entityHandler.kill(data.issuer, player, data.cardAndBox);
+            // The kill comes from the monster (or, for an event without an entity, from no other player).
+            game.entityHandler.kill(data.it.entity ?? player, player, data.cardAndBox);
         }
         return true;
     };
@@ -3078,12 +3102,14 @@ export function activePlayerChoosePlayerIfThisWouldDieEffect(game: Game, lootCar
         let onTurnEnd: (() => void) | null = null;
         
         onWouldDeath = game.emitter.on("on:death:would-death", (eventData) => {
-            if(eventData.eventIssuer !== data.it.entity) return false;
-            game.entityHandler.preventDeath(data.issuer);
-            if(data.issuer.isEngagedInCombat)
+            // "this" is the monster, not the trigger's issuer (the active player).
+            const self = data.it.entity;
+            if(!self || eventData.eventIssuer !== self) return false;
+            game.entityHandler.preventDeath(self);
+            if(self.isEngagedInCombat)
                 game.entityHandler.endCombat();
-            game.entityHandler.kill(data.issuer, replacementPlayer, data.cardAndBox);
-            game.entityHandler.heal(data.issuer, "full");
+            game.entityHandler.kill(self, replacementPlayer, data.cardAndBox);
+            game.entityHandler.heal(self, "full");
             game.loot(issuer, lootCards);
             return true;
         });
@@ -3091,6 +3117,8 @@ export function activePlayerChoosePlayerIfThisWouldDieEffect(game: Game, lootCar
         onTurnEnd = game.emitter.on("on:turn:end", (eventData) => {
             onWouldDeath?.();
             onWouldDeath = null;
+            onTurnEnd?.();
+            onTurnEnd = null;
             return true;
         });
         data.it.cleaners.push(() => {
@@ -3442,7 +3470,7 @@ export function makePlayerPutRandomLootUnderThisEffect(game: Game): SyncEffectFu
         const target = data.next as Player;
         if(target instanceof Player === false) return false;
         if(target.hand.length === 0) return false;
-        const randomIndex = Math.floor(Math.random() * target.hand.length);
+        const randomIndex = Math.floor(game.random() * target.hand.length);
         const lootToPutUnder = target.hand.cards[randomIndex] as LootCard;
         game.cardHandler.removeCardFromHand(target, lootToPutUnder);
         game.cardHandler.putXUnderY(data.it, lootToPutUnder);
@@ -3512,8 +3540,11 @@ export function revealTopLootDeckAndEachPlayerMayPlayFreeCopyEffect(game: Game):
         if(target.trinket || target.effectOutcomes.some(outcome => outcome.includes("Ambush")))
             return false;
         for(const player of game.players) {
-            const playCopy = await data.selectAndRecord(game, player, 0, 1, [target], qq("pending.playFreeCopyOfCard", {card: translationKeyFromCardSlug(target.slug)}), data.serializedCardAndBox, true, true);
             const copy = game.cardHandler.copyCard(target) as LootCard;
+            // A player who can't play it (no legal target) or declines doesn't play the copy.
+            if(TargetBuilder.validTargetExists(game, player, copy, "tap") !== true) continue;
+            const playCopy = await data.selectAndRecord(game, player, 0, 1, [target], qq("pending.playFreeCopyOfCard", {card: translationKeyFromCardSlug(target.slug)}), data.serializedCardAndBox, true, true);
+            if(playCopy.selected.length === 0) continue;
             const targetTargets = await TargetBuilder.buildTargetsOnResolve(game, player, copy, "tap");
             game.cardHandler.addFreeCard(player, copy, data.it);
             await game.actions.playCard(player, player.hand.playableCards.length - 1, targetTargets);
@@ -3607,13 +3638,24 @@ export function revealHandAndAddFreeCopyEffect(game: Game, issuerIsCurrentPlayer
         const issuer = issuerIsCurrentPlayer ? game.currentPlayer : data.issuer;
         if(issuer instanceof Player === false) 
             return false;
-        await data.selectAndRecord(game, issuer, 0, 0, target.hand.cards, qq("pending.lookAtPlayerHand", {name: target.name}), data.serializedCardAndBox, false, false);
+        // The hand is revealed to every other player; the issuer chooses once they have seen it, while the others may still look at it.
+        const viewers = game.players.filter(p => p !== target);
+        const revealPromises = game.cardHandler.reveal(target.hand.cards, data.serializedCardAndBox, viewers);
+        if(viewers.includes(issuer))
+            await revealPromises[viewers.indexOf(issuer)];
         const possibleCards = target.hand.cards.filter(c => c instanceof LootCard && !c.trinket && !c.effectOutcomes.some(outcome => outcome.includes("Ambush")));
-        if(possibleCards.length === 0) return false;
-        const selectedCard = (await data.selectAndRecord(game, issuer, 1, 1, possibleCards, qq("pending.freeCopyOfCard"), data.serializedCardAndBox, true, true)).selected[0] as LootCard;
+        const selectedCard = possibleCards.length === 0 ? undefined
+            : (await data.selectAndRecord(game, issuer, 1, 1, possibleCards, qq("pending.freeCopyOfCard"), data.serializedCardAndBox, true, true)).selected[0] as LootCard;
+        await Promise.all(revealPromises);
         if(!selectedCard) return false;
         const copy = game.cardHandler.copyCard(selectedCard) as LootCard;
-        game.cardHandler.addFreeCard(issuer, copy, data.it);
+        const removeFunction = game.cardHandler.addFreeCard(issuer, copy, data.it);
+        let offEndTurn: (() => void) | null = null;
+        offEndTurn = game.emitter.on("till:turn:end", () => {
+            removeFunction();
+            offEndTurn?.();
+            offEndTurn = null;
+        });
         return true;
     };
 }
@@ -3621,8 +3663,10 @@ export function revealHandAndAddFreeCopyEffect(game: Game, issuerIsCurrentPlayer
 export function eachPlayerMayDiscardOrTakeDamageEffect(game: Game, damage: number, repeatUntil: number): AsyncEffectFunction {
 
     return async (data: EffectData) => {
-        if(game.players.filter(p => !p.isDead).length > repeatUntil)
-            passive.addPassiveEffectToStack(game, eachPlayerMayDiscardOrTakeDamageEffect(game, damage, repeatUntil), data, `Each player may discard a card or take ${damage} damage until there are ${repeatUntil} players left alive.`);
+        // Check before each round (the previous round's damage has resolved by now), so no round runs with too few players left.
+        if(game.players.filter(p => !p.isDead).length <= repeatUntil)
+            return true;
+        passive.addPassiveEffectToStack(game, eachPlayerMayDiscardOrTakeDamageEffect(game, damage, repeatUntil), data, `Each player may discard a card or take ${damage} damage until there are ${repeatUntil} players left alive.`);
         let choices = [];
         for (const player of game.players) {
             if (player.isDead) continue;
@@ -3644,7 +3688,7 @@ export function eachPlayerMayDiscardOrTakeDamageEffect(game: Game, damage: numbe
     };
 }
 
-export function deathTargetEffect(game: Game, sets: ("player" | "monster")[][] = []): AsyncEffectFunction {
+export function deathTargetEffect(game: Game, sets: ("player" | "monster")[][] = [], alivePlayersOnly: boolean = false): AsyncEffectFunction {
     return async (data: EffectData) => {
         const selectionOnResolve = sets.length > 0;
         if(selectionOnResolve === false){    
@@ -3657,7 +3701,7 @@ export function deathTargetEffect(game: Game, sets: ("player" | "monster")[][] =
             const issuer = data.issuer instanceof Player ? data.issuer : game.currentPlayer;
             for (const setText of sets){
                 const set = [];
-                if(setText.includes("player")) set.push(...game.players);
+                if(setText.includes("player")) set.push(...game.players.filter((p) => !alivePlayersOnly || p.isDead === false));
                 if(setText.includes("monster")) set.push(...game.monsters.filter((m) => m.isDead === false));
                 const target = await data.selectAndRecord(game, issuer as Player, 1, 1, set, qq("pending.targetToKill"), data.serializedCardAndBox, true, true);
                 if(target.selected.length === 0) return false;
@@ -3849,7 +3893,8 @@ export function takeDamageEffect(game: Game, amount: number, CurrentPlayerIfIssu
 export function ifActivePlayedLootCardDealDmg(game: Game, amount: number): SyncEffectFunction {
     return (data: EffectData) => {
         if(game.currentPlayer.cardsPlayedThisTurn.length === 0) return false;
-        game.entityHandler.dealDamage(data.issuer, game.currentPlayer, data.cardAndBox, amount);
+        // "this deals": the monster is the source, not the trigger's issuer (the active player).
+        game.entityHandler.dealDamage(data.it.entity ?? data.issuer, game.currentPlayer, data.cardAndBox, amount);
         return true;
     };
 }
@@ -4057,8 +4102,14 @@ export function returnThisLootToHand(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         if(data.issuer instanceof Player === false) return false;
         if(data.it instanceof LootCard === false) return false;
-        const card = game.decks.loot.getFromDiscard(data.it);
-        if(card !== undefined)
+        // A trinket in play leaves play first, so its cleaners (end-of-turn listeners...) run.
+        if(data.issuer.inPlay.includes(data.it))
+        {
+            game.cardHandler.removeInPlay(data.issuer, data.it);
+            game.cardHandler.addCardToHand(data.issuer, data.it);
+            return true;
+        }
+        if(game.decks.loot.getFromDiscard(data.it))
         {
             game.cardHandler.addCardToHand(data.issuer, data.it);
             return true;

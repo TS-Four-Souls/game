@@ -6,6 +6,7 @@ import { Player } from "../../models/entities/player";
 import { setupTestGame } from "../testHelpers";
 import { AttackRollData, DiceRoll } from "@/models/stackElement";
 import { executeActivateRequest } from "@/utils/gameRequestHelpers";
+import { TargetBuilder } from "@/models/targetBuilder";
 
 async function characterAdd1LootPlay(player1: Player, game: Game) {
     // verify character card works.
@@ -580,6 +581,7 @@ describe("Four Souls+2 Eternal Items", () => {
         game = setup.game;
         player1 = setup.player1;
         player2 = setup.player2!;
+        await characterAdd1LootPlay(player1, game);
         const eternal = player1.inPlay[0]! as ItemCard;
         game.cardHandler.recharge(eternal, "other");
         expect(eternal.counters.getCounter("normal").value).toBe(3);
@@ -946,6 +948,231 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(1);
+    });
+
+    describe("Warp Zone eternals over several turns", () => {
+        async function setupCharacters(characters: string[]): Promise<void> {
+            const setup = await setupTestGame({
+                characters,
+                monsters: ["b2-fly", "b2-fatty"],
+                monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+                treasureDeck: ["b2-blank_card"],
+                playerCount: characters.length
+            });
+            game = setup.game;
+            player1 = setup.player1;
+            player2 = setup.player2!;
+        }
+
+        async function resolveWholeStack(): Promise<void> {
+            for (let i = 0; i < 20 && !game.stack.isEmpty(); i++)
+                await game.actions.resolveStack();
+            expect(game.stack.isEmpty()).toBe(true);
+        }
+
+        /** Ends the current turn and resolves everything until the next player's turn has started. */
+        async function nextTurn(): Promise<void> {
+            await resolveWholeStack();
+            await game.endTurn();
+            await resolveWholeStack();
+        }
+
+        it("rwz-is_you copies an eternal item again at the start of each of your turns", async () => {
+            await setupCharacters(["rwz-baba", "b2-lilith"]);
+            const isYou = player1.inPlay[0]! as ItemCard;
+            const incubus = player2.inPlay[0]! as ItemCard;
+            let choices = 0;
+            const select = game.select.bind(game);
+            game.select = (async (player: Player, min: number, max: number, options: any[], ...rest: any[]) => {
+                if(options.includes(incubus))
+                    choices++;
+                return (select as any)(player, min, max, options, ...rest);
+            }) as any;
+            for(let turn = 1; turn <= 3; turn++) {
+                if(game.currentPlayer !== player1)
+                    await nextTurn();
+                await resolveWholeStack();
+                expect(game.currentPlayer).toBe(player1);
+                expect(choices).toBe(turn);
+                expect(isYou.name).toBe(incubus.name);
+                expect(isYou.hasTapEffect()).toBe(true);
+                await nextTurn();
+                expect(game.currentPlayer).toBe(player2);
+                // Till the start of your next turn.
+                expect(isYou.name).toBe(incubus.name);
+            }
+        });
+
+        it("rwz-baba reveals the hand to the other players, and the free copy expires at the end of the turn", async () => {
+            const setup = await setupTestGame({
+                characters: ["rwz-baba", "b2-lilith", "b2-isaac"],
+                monsters: ["b2-fly", "b2-fatty"],
+                monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+                treasureDeck: ["b2-blank_card"],
+                playerCount: 3
+            });
+            game = setup.game;
+            player1 = setup.player1;
+            player2 = setup.player2!;
+            const player3 = setup.player3!;
+            await resolveWholeStack();
+            const loot = game.obtainCard("b2-a_dime") as LootCard;
+            game.cardHandler.addCardToHand(player2, loot);
+            const revealedTo: Player[] = [];
+            const selectMultiple = game.selectMultiple.bind(game);
+            game.selectMultiple = (async (selections: any[]) => {
+                for (const sel of selections)
+                    if (sel.max === 0 && sel.options.includes(loot))
+                        revealedTo.push(sel.player);
+                return selectMultiple(selections);
+            }) as any;
+            game.cardHandler.recharge(player1.character, "other");
+            await game.activateItem(player1, player1.character, [player2], "tap");
+            await resolveWholeStack();
+            expect(revealedTo).toEqual([player1, player3]);
+            expect(player1.hand.freeCards.length).toBe(1);
+
+            // Not played this turn: the copy is gone at the end of the turn.
+            await nextTurn();
+            expect(player1.hand.freeCards.length).toBe(0);
+            expect(player1.hand.length).toBe(0);
+        });
+
+        it("rwz-bow_and_arrow gives 3¢ for each monster with a bounty counter that dies", async () => {
+            await setupCharacters(["rwz-blue_archer", "b2-lilith"]);
+            await resolveWholeStack();
+            const eternal = player1.inPlay[0]! as ItemCard;
+            const fly = game.monsters[0]!;
+            const fatty = game.monsters[1]!;
+            const coins = player1.coins;
+            game.cardHandler.recharge(eternal, "other");
+            await game.activateItem(player1, eternal, [fly], "tap");
+            await resolveWholeStack();
+            game.entityHandler.kill(player1, fly, {card: eternal, visualEffectBox: null as any});
+            await resolveWholeStack();
+            expect(player1.coins).toBe(coins + 1 + 3);
+
+            game.cardHandler.recharge(eternal, "other");
+            await game.activateItem(player1, eternal, [fatty], "tap");
+            await resolveWholeStack();
+            game.entityHandler.kill(player1, fatty, {card: eternal, visualEffectBox: null as any});
+            await resolveWholeStack();
+            expect(player1.coins).toBe(coins + 1 + 3 + 3);
+        });
+
+        it("rwz-bow_and_arrow restores the [DC] when the bounty counter is removed", async () => {
+            await setupCharacters(["rwz-blue_archer", "b2-lilith"]);
+            await resolveWholeStack();
+            const eternal = player1.inPlay[0]! as ItemCard;
+            const mob = game.monsters[0]!;
+            const initDc = mob.evasion;
+            game.cardHandler.recharge(eternal, "other");
+            await game.activateItem(player1, eternal, [mob], "tap");
+            await resolveWholeStack();
+            expect(mob.evasion).toBe(initDc - 1);
+            // A second counter doesn't lower it again.
+            game.cardHandler.addToCounter(player1, mob.card, "bounty", 1);
+            expect(mob.evasion).toBe(initDc - 1);
+            game.cardHandler.addToCounter(player1, mob.card, "bounty", -1);
+            expect(mob.evasion).toBe(initDc - 1);
+            game.cardHandler.addToCounter(player1, mob.card, "bounty", -1);
+            expect(mob.evasion).toBe(initDc);
+        });
+
+        it("rwz-football asks for the player to give it to when activated", async () => {
+            await setupCharacters(["rwz-johnny", "b2-lilith", "b2-isaac"]);
+            await resolveWholeStack();
+            const eternal = player1.inPlay[0]! as ItemCard;
+            game.cardHandler.recharge(eternal, "other");
+            const step = TargetBuilder.getNextSelector(game, player1, eternal, [], "tap");
+            expect(step.complete).toBe(false);
+            expect(step.options.length).toBe(2);
+            // Targets built as the client would, choosing the first other player.
+            const targets = await TargetBuilder.buildTargetsOnResolve(game, player1, eternal, "tap");
+            expect(targets).toEqual([player2]);
+            game.random = () => 1/6-0.01;
+            await game.activateItem(player1, eternal, targets, "tap");
+            await resolveWholeStack();
+            expect(player1.inPlay.includes(eternal)).toBe(false);
+            expect(player2.inPlay.includes(eternal)).toBe(true);
+        });
+
+        it("rwz-girlfriend counts the same result twice in a row on each of your turns only", async () => {
+            await setupCharacters(["rwz-boyfriend", "b2-lilith"]);
+            await resolveWholeStack();
+            const eternal = player1.inPlay[0]! as ItemCard;
+            const rollTwice = async (player: Player, value: number): Promise<void> => {
+                game.random = () => value/6-0.01;
+                game.rollDice(player, eternal);
+                await resolveWholeStack();
+                game.rollDice(player, eternal);
+                await resolveWholeStack();
+            };
+            await rollTwice(player1, 3);
+            expect(eternal.counters.getCounter("normal").value).toBe(1);
+            await nextTurn();
+            expect(game.currentPlayer).toBe(player2);
+            // Not your turn.
+            await rollTwice(player1, 4);
+            expect(eternal.counters.getCounter("normal").value).toBe(1);
+            await nextTurn();
+            expect(game.currentPlayer).toBe(player1);
+            // A streak doesn't carry over from a previous turn.
+            game.random = () => 4/6-0.01;
+            game.rollDice(player1, eternal);
+            await resolveWholeStack();
+            expect(eternal.counters.getCounter("normal").value).toBe(1);
+            await rollTwice(player1, 5);
+            expect(eternal.counters.getCounter("normal").value).toBe(2);
+        });
+
+        it("rwz-strange_marble: a player who declines doesn't play the copy", async () => {
+            await setupCharacters(["rwz-bum_bo_the_weird", "b2-lilith"]);
+            const loot = game.obtainCard("b2-a_dime") as LootCard;
+            game.decks.loot.addTopPosition(loot);
+            const select = game.select.bind(game);
+            game.select = (async (player: Player, min: number, max: number, options: any[], description: any, ...rest: any[]) => {
+                if (player === player2 && description?.key === "pending.playFreeCopyOfCard")
+                    return { selected: [], remaining: options };
+                return (select as any)(player, min, max, options, description, ...rest);
+            }) as any;
+            await resolveWholeStack();
+            expect(player1.coins).toBe(10);
+            expect(player2.coins).toBe(0);
+        });
+
+        it("rwz-strange_marble: a player who can't play the revealed card is skipped", async () => {
+            await setupCharacters(["rwz-bum_bo_the_weird", "b2-lilith"]);
+            const loot = game.obtainCard("r-emergency_contact") as LootCard;
+            game.decks.loot.addTopPosition(loot);
+            await resolveWholeStack();
+            expect(player1.hand.freeCards.length).toBe(0);
+            expect(player2.hand.freeCards.length).toBe(0);
+        });
+
+        it("rwz-rusty_spoons uses the game's seeded random", async () => {
+            await setupCharacters(["rwz-salad_fingers", "b2-lilith"]);
+            await resolveWholeStack();
+            const eternal = player1.inPlay[0]! as ItemCard;
+            game.cardHandler.recharge(eternal, "other");
+            const first = game.obtainCard("b2-a_penny") as LootCard;
+            const second = game.obtainCard("b2-a_dime") as LootCard;
+            player2.hand.cards.slice().forEach(c => game.cardHandler.removeCardFromHand(player2, c));
+            game.cardHandler.addCardToHand(player2, first);
+            game.cardHandler.addCardToHand(player2, second);
+            const mathRandom = Math.random;
+            Math.random = () => 0;
+            try {
+                game.random = () => 0.99;
+                await game.activateItem(player1, eternal, [player2], "tap");
+                await resolveWholeStack();
+            } finally {
+                Math.random = mathRandom;
+            }
+            expect(player2.hand.cards).toEqual([first]);
+            expect(player1.hand.freeCards.length).toBe(1);
+            expect(player1.hand.freeCards[0]!.card.slug).toBe("b2-a_dime");
+        });
     });
 
     describe("rwz-possession", () => {

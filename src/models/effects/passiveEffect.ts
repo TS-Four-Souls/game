@@ -137,7 +137,8 @@ export function preventFirstDamageEachTurnEffect(amount: number, game: Game): Sy
 
 // REPLACEMENT EFFECT: Uses "prevent" - does not use the stack.
 // Card text: "Prevent the next instance of up to X damage they would take this turn."
-export function preventNextDamageUpToEffect(amount: number, game: Game, type: "combat" | "any" = "any"): SyncEffectFunction {
+// cleanupWithCard: the prevention also ends when the card leaves play (static abilities such as Mom's Heels).
+export function preventNextDamageUpToEffect(amount: number, game: Game, type: "combat" | "any" = "any", cleanupWithCard: boolean = false): SyncEffectFunction {
     return (data:EffectData) => {
         let offDamage: (() => void) | null = null;
         let offTurn: (() => void) | null = null;
@@ -172,6 +173,8 @@ export function preventNextDamageUpToEffect(amount: number, game: Game, type: "c
             offDamage = null;
             offTurn = null;
         };
+        if (cleanupWithCard)
+            data.it.cleaners.push(cleanup);
 
         // Listen for the next damage event on this player
         offDamage = game.emitter.on("on:damage:would-take", (eventData: OnDamageWouldTakeData) => {
@@ -470,7 +473,9 @@ export function whileYouControlThisSoulEffect(effectFunctions: EffectFunction[],
                 for (const func of effectFunctions)
                     await func(newData);
                 const cleanup = () => {
-                    data.it.cleaners.splice(currentLast + 1, data.it.cleaners.length - currentLast);
+                    const removed = data.it.cleaners.splice(currentLast, data.it.cleaners.length - currentLast);
+                    for (const cleaner of removed.toReversed())
+                        cleaner();
                 };
                 offRemoved = game.emitter.on("on:soul:removed", (eventData: OnSoulGainedOrRemovedData) => {
                     if(eventData.eventIssuer !== data.issuer) return;
@@ -540,14 +545,33 @@ export function atStartAndDamageGivenDealDamageToRandomPlayerEffect(damage: numb
 export function playersWithGutCountersHaveDCAndCanBeAttackedEffect(game: Game, dc: number): SyncEffectFunction {
     return (data: EffectData) => {
         let offCounterModified: (() => void) | null = null;
+        const attackablePlayers: Set<Player> = new Set();
+
+        for(const p of game.players) {
+            if((p.counters.getIfDefined("gut") ?? 0) <= 0) continue;
+            game.entityHandler.makePlayerAttackable(p, dc, data.cardAndBox);
+            attackablePlayers.add(p);
+        }
 
         offCounterModified = game.emitter.on("on:counter:modified", (eventData: OnCounterModifiedData) => {
             if(eventData.counterName !== "gut") return;
             if(eventData.receiver instanceof Player === false) return;
-            if(eventData.newValue > 0 && eventData.previousValue <= 0)
+            if(eventData.newValue > 0 && eventData.previousValue <= 0) {
                 game.entityHandler.makePlayerAttackable(eventData.receiver, dc, data.cardAndBox);
-           if(eventData.newValue <= 0 && eventData.previousValue > 0)
+                attackablePlayers.add(eventData.receiver);
+            }
+           if(eventData.newValue <= 0 && eventData.previousValue > 0) {
                 game.entityHandler.makePlayerUnattackable(eventData.receiver, data.cardAndBox);
+                attackablePlayers.delete(eventData.receiver);
+           }
+        });
+
+        data.it.cleaners.push(() => {
+            offCounterModified?.();
+            offCounterModified = null;
+            for(const p of attackablePlayers)
+                game.entityHandler.makePlayerUnattackable(p, data.cardAndBox);
+            attackablePlayers.clear();
         });
         return true;
     }
@@ -1052,33 +1076,65 @@ export function noPriorityPassesTillEndOfTurnEffect(game: Game): SyncEffectFunct
 export function isaacEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offAddInPlay: (() => void) | null = null;
-        const restores: { originalState: any, restore: () => void }[] = []
+        // done is set when the item leaves play (its cleaners ran): nothing is left to restore then.
+        const restores: { item: ItemCard, restore: () => void, done: boolean }[] = []
         // make a copy of b2-the_d6 card, even if it is not in the game.
         const d6 = game.decks.eternal._set.cards.find(c => c.slug === "b2-the_d6");
         if( d6 === undefined)
             return false;
-        
+        // Only the reroll ability, not "At the end of your turn, recharge this."
+        const rerollOutcome = d6.effectOutcomes.find(o => o.includes("[Tap Effect]"));
+        if (rerollOutcome === undefined)
+            return false;
+
+        // Turns the item into a D6 with only the reroll ability, and makes it eternal.
+        // The item's own effects must already be unsubscribed; the caller subscribes the new ones.
+        const transform = (item: ItemCard): void => {
+            const { restore } = item.becomesCopyOf(d6, (card) => {
+                card.effectOutcomes = [rerollOutcome];
+                game.cardHandler.attachEffectsToCard(card, true);
+            });
+            const wasEternal = item.eternal;
+            item.setEternal(true);
+            const entry = { item, restore, done: false };
+            item.cleaners.push(() => {
+                item.setEternal(wasEternal);
+                entry.done = true;
+            });
+            restores.push(entry);
+        };
+
         for (const player of game.players) {
             player.changeName(toSerializedTranslation( "common.content", { content: "Isaac" }), data.it);
             for(const item of player.inPlay)
             {
-                restores.push(item.becomesCopyOf(d6));
+                // Unsubscribe the item's own abilities, like loseAllAbilities does.
+                item.cleanup();
+                transform(item);
+                item.onAddInPlay(() => player);
             }
         }
 
-        offAddInPlay = game.emitter.on("on:enter:play", ({ eventIssuer, card }) => {
-            if (card.slug === d6.slug) return;
-            restores.push(card.becomesCopyOf(d6));
+        // Entering items are subscribed by addInPlay right after this event.
+        offAddInPlay = game.emitter.on("on:enter:play", ({ card }) => {
+            if (!(card instanceof ItemCard)) return;
+            transform(card);
         });
         
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
             for (const player of game.players)
                 player.removeName(data.it);
-            for(const item of restores)
-                item.restore();
             offAddInPlay?.();
             offAddInPlay = null;
+            for(const entry of restores)
+            {
+                if (entry.done) continue;
+                entry.restore();
+                const owner = game.getOwner(entry.item, "inplay");
+                if (owner !== null)
+                    entry.item.onAddInPlay(() => owner);
+            }
         });
         return true;
     };
@@ -1261,7 +1317,7 @@ export function firstAttackRollsModifierEffect(game: Game, modifier: number, rol
             active = false;
             issuer.addAttackDiceModifier(-modifier);
         }
-        if(rollNumbers.includes(1))
+        if(rollNumbers.includes(issuer.attackRollThisTurn + 1)) // may enter play after some attack rolls this turn
             activate()
 
         offTurnStart = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
@@ -1609,7 +1665,15 @@ export function offerHighFiveEffect(game: Game, rolls: number[]): SyncEffectFunc
                     if(choice2.selected[0]?.key === "common.highfive")
                     {
                         const newData = new EffectData(data.it, () => eventData.eventIssuer, [], data.visualEffectBox);
+                        // The protection only lasts till end of turn: take its cleaners back and run them then.
+                        const before = data.it.cleaners.length;
                         monster.noCombatDamageOnAttackRollEffect(game, rolls)(newData);
+                        const highFiveCleaners = data.it.cleaners.splice(before);
+                        const offTurnEnd = game.emitter.on("till:turn:end", () => {
+                            for(const cleaner of highFiveCleaners.toReversed())
+                                cleaner();
+                            offTurnEnd();
+                        });
                     }
                 }
                 return true;
@@ -1617,6 +1681,10 @@ export function offerHighFiveEffect(game: Game, rolls: number[]): SyncEffectFunc
             addPassiveEffectToStack(game, effect, data, "High-five offer effect");
         });
 
+        data.it.cleaners.push(() => {
+            offTurnStart?.();
+            offTurnStart = null;
+        });
         return true;
     };
 }
@@ -2844,8 +2912,8 @@ export function ConditionalEffect(
                         {
                             for (const remover of removers)
                             {
-                                data.it.removeCleaner(remover);
-                                remover();
+                                if (data.it.removeCleaner(remover)) // false during cleanup(), which runs it itself
+                                    remover();
                             }
                         }
                         return true;
@@ -2855,8 +2923,8 @@ export function ConditionalEffect(
                     currentlyActive = false;
                     for (const remover of removers)
                         {
-                            data.it.removeCleaner(remover);
-                            remover();
+                            if (data.it.removeCleaner(remover)) // false during cleanup(), which runs it itself
+                                remover();
                         }
                 }
             }
@@ -2888,8 +2956,8 @@ export function ConditionalEffect(
                 else 
                     for (const remover of removers)
                     {
-                        data.it.removeCleaner(remover);
-                        remover();
+                        if (data.it.removeCleaner(remover)) // false during cleanup(), which runs it itself
+                            remover();
                     }
             }
             // Remove event listeners
@@ -2905,10 +2973,18 @@ export function ConditionalEffect(
 // REPLACEMENT EFFECT: Uses "prevent" - does not use the stack.
 // Card text: "Prevent the next X damage you would take this turn. When you prevent damage this way, deal Y damage to another player."
 // Note: The prevention is a replacement effect, but the damage dealt afterward is a triggered effect.
-export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: number | "prevented", protect: "issuer" | "next", game: Game): SyncEffectFunction {
+export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: number | "prevented", protect: "issuer" | "next", game: Game, canTargetMonsters: boolean = false): SyncEffectFunction {
     return (data: EffectData) => {
         const protectedPlayer: Player = protect === "issuer" ? data.issuer : data.next;
         if(!(protectedPlayer instanceof Player)) return false;
+        // Who can receive the damage: other living players, plus living monsters when canTargetMonsters.
+        const retaliationTargets = (): Entity[] => [
+            ...game.players.filter(p => p !== protectedPlayer && p.isDead === false),
+            ...(canTargetMonsters ? game.monsters.filter(m => m.isDead === false) : []),
+        ];
+        const retaliationPrompt = (amount: number): SerializedTranslation => canTargetMonsters
+            ? toSerializedTranslation("pending.targetToDealDamageTo", { value: amount })
+            : toSerializedTranslation("pending.playerToDealDamageTo");
         for(let i = game.stack.size - 1; i >= 0; i--)
             if(game.stack.elements[i] instanceof DamageOnStack)
             {
@@ -2925,9 +3001,9 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
                         if (!(data.issuer instanceof Player)) return false;
                         
                         // Deal 1 damage to another player
-                        const otherPlayers = game.players.filter(p => p !== protectedPlayer && p.isDead === false);
+                        const otherPlayers = retaliationTargets();
                         if (otherPlayers.length === 0) return false;
-                        const selection = await data.selectAndRecord(game, data.issuer, 1, 1, otherPlayers, toSerializedTranslation("pending.playerToDealDamageTo"), data.serializedCardAndBox, true, true);
+                        const selection = await data.selectAndRecord(game, data.issuer, 1, 1, otherPlayers, retaliationPrompt(deal === "prevented" ? prevented : deal), data.serializedCardAndBox, true, true);
                         if (selection.selected.length > 0) {
                             const chosenPlayer = selection.selected[0]!;
                             game.entityHandler.dealDamage(data.issuer, chosenPlayer, data.cardAndBox, deal === "prevented" ? prevented : deal);
@@ -2967,9 +3043,9 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
                 if (!(data.issuer instanceof Player)) return false;
                 
                 // Deal 1 damage to another player
-                const otherPlayers = game.players.filter(p => p !== protectedPlayer && p.isDead === false);
+                const otherPlayers = retaliationTargets();
                 if (otherPlayers.length === 0) return false;
-                const selection = await data.selectAndRecord(game, data.issuer, 1, 1, otherPlayers, toSerializedTranslation("pending.playerToDealDamageTo"), data.serializedCardAndBox, true, true);
+                const selection = await data.selectAndRecord(game, data.issuer, 1, 1, otherPlayers, retaliationPrompt(deal === "prevented" ? prevented : deal), data.serializedCardAndBox, true, true);
                 if (selection.selected.length > 0) {
                     const chosenPlayer = selection.selected[0]!;
                     game.entityHandler.dealDamage(data.issuer, chosenPlayer, data.cardAndBox, deal === "prevented" ? prevented : deal);
@@ -4066,6 +4142,10 @@ export function goFirstInTurnOrderEffect(game: Game): SyncEffectFunction {
         let offEffect: (() => void) | null = game.emitter.on("on:game:start:before", () => {
             if (!(data.issuer instanceof Player)) return;
             game.turnHandler.setFirstPlayer(data.issuer);
+            offEffect?.();
+            offEffect = null;
+        });
+        data.it.cleaners.push(() => {
             offEffect?.();
             offEffect = null;
         });

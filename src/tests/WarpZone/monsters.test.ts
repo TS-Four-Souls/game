@@ -56,6 +56,20 @@ describe("Warp Zone Treasures", () => {
         expect(player2.inPlay.length).toBe(2);
     });
 
+    it("rwz-grubfather loses its DC bonus when the last non-eternal item leaves", async () => {
+        const card1 = game.obtainCard("rwz-grubfather") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        const evasions = game.monsters.map(m => m.evasion);
+        game.gainTreasure(player1, 1);
+        expect(game.monsters.map(m => m.evasion - 1)).toEqual(evasions);
+        const treasure = player1.inPlay.find(c => !c.isEternal() && c.slug !== "rwz-grubfather")!;
+        game.cardHandler.destroyCardsOrSouls([treasure]);
+        await game.actions.resolveStack();
+        expect(game.monsters.map(m => m.evasion)).toEqual(evasions);
+    });
+
     it("rwz-golden_idol", async () => {
         const card1 = game.obtainCard("rwz-golden_idol") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
@@ -268,10 +282,13 @@ describe("Warp Zone Treasures", () => {
         game.cardHandler.addCardToHand(player1, loot);
         await game.actions.playCard(player1, 0);
         await game.resolveEntireStack();
+        let damageSource: unknown = null;
+        game.emitter.on("on:damage:taken", (e: any) => { if (e.eventIssuer === player1) damageSource = e.target; });
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.currentHealthPoints).toBe(1);
+        expect(damageSource).toBe(mob);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.endTurn();
@@ -354,6 +371,8 @@ describe("Warp Zone Treasures", () => {
         expect(player2.inPlay.length).toBe(1);
         expect(player2.coins).toBe(0); // p2 dies
         expect(player1.coins).toBe(1);
+        // the kill is not credited to the active player
+        expect(player1.stats.nbPlayerKilled).toBe(0);
     });
  
     it("rwz-lil_hunter", async () => {
@@ -417,17 +436,17 @@ describe("Warp Zone Treasures", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        expect(player1.isDead).toBe(true);
-        await game.actions.resolveStack();
-        await game.actions.resolveStack();
-        expect(game.monsters.map(m => m.card.slug)).toContain("rwz-hubert_cumberdale");
-        game.entityHandler.kill(mob, game.monsters[1]!, {card: card1, visualEffectBox: null as any});
-        await game.actions.resolveStack();
-        await game.actions.resolveStack();
+        // the active player chooses ANOTHER player
+        expect(player1.isDead).toBe(false);
+        expect(player2.isDead).toBe(true);
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
-        await game.actions.resolveStack();
+        expect(game.monsters.map(m => m.card.slug)).toContain("rwz-hubert_cumberdale");
+        game.entityHandler.kill(mob, game.monsters.find(m => m.card === card1)!, {card: card1, visualEffectBox: null as any});
+        await game.resolveEntireStack();
+        await game.endTurn();
+        await game.resolveEntireStack();
         expect(game.monsters.map(m => m.card.slug)).not.toContain("rwz-hubert_cumberdale");
     });
  
@@ -551,7 +570,13 @@ describe("Warp Zone Treasures", () => {
         expect(game.stack.peek() instanceof DamageOnStack).toBe(true);
         const damage = game.stack.peek() as DamageOnStack;
         expect(damage.damage[0]!).toBe(3);
-        
+        expect(damage.from).toBe(mob);
+        game.entityHandler.addHealth(player1, 10, "other");
+        game.entityHandler.addHealth(player2, 10, "other");
+        await game.resolveEntireStack();
+        expect(mob.isDead).toBe(true);
+        expect(player1.isDead).toBe(false);
+
     });
  
     it("rwz-fuck_bloat", async () => {
@@ -575,6 +600,22 @@ describe("Warp Zone Treasures", () => {
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(game.currentPlayer).toBe(player2);
+    });
+
+    it("rwz-dont_starve stops once only one player is alive", async () => {
+        game.entityHandler.addHealth(player2, 5, "other");
+        const p1Health = player1.currentHealthPoints;
+        const p2Health = player2.currentHealthPoints;
+        const card1 = game.obtainCard("rwz-dont_starve") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        let player2DamageTaken = 0;
+        game.emitter.on("on:damage:taken", (e: any) => { if (e.eventIssuer === player2) player2DamageTaken += 1; });
+        await game.resolveEntireStack();
+        expect(player1.stats.nbDeaths).toBe(1);
+        expect(player2.isDead).toBe(false);
+        // player2 takes damage only in the rounds where player1 was still alive
+        expect(player2DamageTaken).toBe(p1Health);
+        expect(p2Health).toBeGreaterThan(p1Health);
     });
  
     it("rwz-death_trapper", async () => {
@@ -690,6 +731,8 @@ describe("Monster Cards RWZ - 3 players tests", () => {
         expect(player2.isDead).toBe(true);
         expect(player1.isDead).toBe(true);
         expect(player3.isDead).toBe(false);
+        // the kills are not credited to the active player
+        expect(player1.stats.nbPlayerKilled).toBe(0);
     });
 
     it("rwz-the_impostor", async () => {
@@ -706,5 +749,17 @@ describe("Monster Cards RWZ - 3 players tests", () => {
         expect(player2.isDead).toBe(true);
         expect(player1.isDead).toBe(true);
         expect(player3.isDead).toBe(false);
+        // the vote kill comes from the Impostor, not from the player who died first
+        expect(player2.stats.nbPlayerKilled).toBe(0);
+    });
+
+    it("rwz-the_impostor monster death does not trigger the vote", async () => {
+        const card1 = game.obtainCard("rwz-the_impostor") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        let value = 6;
+        game.random = () => value-- / 6 - 0.01;
+        game.entityHandler.kill(player1, game.monsters[1]!, {card: card1, visualEffectBox: null as any});
+        await game.resolveEntireStack();
+        expect(game.players.map(p => p.stats.nbDeaths)).toEqual([0, 0, 0]);
     });
 });

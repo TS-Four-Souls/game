@@ -415,11 +415,13 @@ export class ActionHandler {
           return "Invalid card position.";
         }
       }
-      const card = index === "topLootCard" ? this.game.decks.loot.draw() : player.hand.playableCards[index]!;
+      const handCard = index === "topLootCard" ? this.game.decks.loot.cards[0] : player.hand.playableCards[index]!;
+      // Checked before drawing, so a refused play doesn't take the top card off the loot deck (it is never free).
+      this.canPlayCard(player, true, handCard);
+      const card = handCard ?? this.game.decks.loot.draw();
       if(index === "topLootCard")
         this.game.cardHandler.ensureEffectsAttached(card);
       const isFree = player.hand.isFree(card);
-      this.canPlayCard(player, true, card);
       if(isFree)
         player.hand.removeFreeCard(card, true);
       else if(index !== "topLootCard" )

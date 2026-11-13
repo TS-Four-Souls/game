@@ -1,4 +1,4 @@
-import type { ItemCard, LootCard, MonsterCard, RoomCard, TreasureCard } from "@/models/cards";
+import type { CharacterCard, ItemCard, LootCard, MonsterCard, RoomCard, TreasureCard } from "@/models/cards";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../../models/entities/player";
 import { Game } from "../../models/game";
@@ -28,6 +28,23 @@ describe("Unboxing Treasure ", () => {
         game.resetCallbacks();
     });
     
+        it("box-cain replaced before the game starts does not go first", async () => {
+            const cain = game.obtainCard("box-cain") as CharacterCard;
+            await game.cardHandler.replaceCharacter(player2, cain, false);
+            const other = game.obtainCard("b2-maggy") as CharacterCard;
+            await game.cardHandler.replaceCharacter(player2, other, false);
+            expect(game.turnHandler.current).toBe(player1);
+            game.emit("on:game:start:before", {});
+            expect(game.turnHandler.current).toBe(player1);
+        });
+
+        it("box-cain goes first", async () => {
+            const cain = game.obtainCard("box-cain") as CharacterCard;
+            await game.cardHandler.replaceCharacter(player2, cain, false);
+            game.emit("on:game:start:before", {});
+            expect(game.turnHandler.current).toBe(player2);
+        });
+
         it("box-three_dollar_bill dammage complex", async () => {
             let item = game.obtainCard("box-three_dollar_bill") as ItemCard;
             expect(item).toBeDefined();
@@ -104,6 +121,25 @@ describe("Unboxing Treasure ", () => {
             expect(game.actions.canDeclareAttackOnEntity(player1, player2, false)).toBe(true);
         });
     
+
+        it("box-the_nail no loot on a suicide", async () => {
+            let item = game.obtainCard("box-the_nail") as ItemCard;
+            game.cardHandler.addInPlay(player1, item);
+            game.entityHandler.dealDamage(player2, player2, {card: item, visualEffectBox: undefined}, 2);
+            await game.resolveEntireStack();
+            expect(player2.stats.nbDeaths).toBe(1);
+            expect(player1.hand.length).toBe(0);
+        });
+
+        it("box-the_nail no loot when a monster kills a player", async () => {
+            let item = game.obtainCard("box-the_nail") as ItemCard;
+            game.cardHandler.addInPlay(player1, item);
+            game.entityHandler.dealDamage(game.monsters[0]!, player2, {card: item, visualEffectBox: undefined}, 2);
+            await game.resolveEntireStack();
+            expect(player2.stats.nbDeaths).toBe(1);
+            expect(player1.hand.length).toBe(0);
+        });
+
         it("box-the_mark", async () => {
             let item = game.obtainCard("box-the_mark") as ItemCard;
             expect(item).toBeDefined();
@@ -150,6 +186,25 @@ describe("Unboxing Treasure ", () => {
             }
         });
     
+
+        it("box-seraphim gained after the first attack roll", async () => {
+            let item = game.obtainCard("box-seraphim") as ItemCard;
+            game.actions.declareAttack(player1);
+            await game.actions.declareAttackOnEntity(player1, game.monsters[0]!);
+            game.entityHandler.addHealth(game.monsters[0]!, 100, "other");
+            game.entityHandler.addHealth(player1, 100, "other");
+            game.random = () => (game.monsters[0]!.evasion -1)/6-0.01;
+            let expectedHealth = game.monsters[0]!.healthPoints;
+            for (let i = 0; i < 4; i++) {
+                if (i === 1)
+                    game.cardHandler.addInPlay(player1, item); // gained after the 1st roll: only the 3rd roll gets +1
+                expectedHealth -= (i + 1 === 3 ? 1 : 0);
+                game.actions.attackRoll(player1);
+                await game.resolveEntireStack();
+                expect(game.monsters[0]!.currentHealthPoints).toBe(expectedHealth);
+            }
+        });
+
         it("box-my_little_unicorn", async () => {
             let item = game.obtainCard("box-my_little_unicorn") as ItemCard;
             expect(item).toBeDefined();
@@ -180,7 +235,7 @@ describe("Unboxing Treasure ", () => {
         it("box-number_one", async () => {
             let item = game.obtainCard("box-number_one") as ItemCard;
             expect(item).toBeDefined();
-            const evasions = game.monsters.map(m => game.entityHandler.getDC(m) + 1);
+            const evasions = game.monsters.map(m => game.entityHandler.getDC(m) - 1);
             game.entityHandler.addHealth(game.monsters[0]!, 10, "other");
             game.cardHandler.addInPlay(player1, item);
             expect(game.monsters.map(m => game.entityHandler.getDC(m))).toEqual(evasions.map(e => e));
@@ -335,6 +390,21 @@ describe("Unboxing Treasure ", () => {
             expect(player1.currentHealthPoints).toBe(0);
         });
     
+
+        it("box-moms_heels shield leaves with the card", async () => {
+            let item = game.obtainCard("box-moms_heels") as ItemCard;
+            game.cardHandler.addInPlay(player1, item);
+            await game.resolveEntireStack();
+            game.cardHandler.stealItemAnywhere(player2, item);
+            await game.resolveEntireStack();
+            game.actions.declareAttack(player1);
+            await game.actions.declareAttackOnEntity(player1, game.monsters[0]!);
+            game.random = () => 0.01;
+            game.actions.attackRoll(player1);
+            await game.resolveEntireStack();
+            expect(player1.currentHealthPoints).toBe(player1.healthPoints - 1);
+        });
+
         it("box-lil_delirium", async () => {
             let item = game.obtainCard("box-lil_delirium") as ItemCard;
             const b = game.obtainCard("b2-moms_purse" ) as TreasureCard;
@@ -379,6 +449,20 @@ describe("Unboxing Treasure ", () => {
             expect(() => game.actions.playCard(player1, "topLootCard",[])).toThrow();
         });
     
+
+        it("box-glitter_bombs keeps the top loot card when it can not be played", async () => {
+            let item = game.obtainCard("box-glitter_bombs") as ItemCard;
+            game.cardHandler.addInPlay(player1, item);
+            await game.activateItem(player1, item, [], "tap");
+            await game.actions.resolveStack();
+            game.entityHandler.addLootPlay(player1, -player1.remainingLootPlay, "other");
+            const top = game.decks.loot.cards[0];
+            const deckSize = game.decks.loot.cards.length;
+            expect(() => game.actions.playCard(player1, "topLootCard",[])).toThrow();
+            expect(game.decks.loot.cards[0]).toBe(top);
+            expect(game.decks.loot.cards.length).toBe(deckSize);
+        });
+
         it("box-cube_of_meat_3", async () => {
             let item = game.obtainCard("box-cube_of_meat_3") as ItemCard;
             expect(item).toBeDefined();
@@ -405,7 +489,8 @@ describe("Unboxing Treasure ", () => {
             expect(game.stack.isEmpty()).toBe(true);
             expect(player1.currentHealthPoints).toBe(player1.healthPoints-1);
 
-            game.cardHandler.addInPlay(player1, item);
+            // Another cube (not the same card added twice) enables "no combat damage on attack rolls of 4".
+            game.cardHandler.addInPlay(player1, game.obtainCard("box-cube_of_meat") as ItemCard);
             game.random = () => 4/6-0.01;
             game.actions.attackRoll(player1);
             await game.actions.resolveStack();
@@ -441,8 +526,8 @@ describe("Unboxing Treasure ", () => {
             expect(game.stack.isEmpty()).toBe(true);
             expect(player1.currentHealthPoints).toBe(player1.healthPoints-1);
 
-            game.cardHandler.addInPlay(player1, item);
-            expect(player1.healthPoints).toBe(4);
+            game.cardHandler.addInPlay(player1, game.obtainCard("box-cube_of_meat") as ItemCard);
+            expect(player1.healthPoints).toBe(3);
         });
     
         it("box-cube_of_meat", async () => {
@@ -470,10 +555,51 @@ describe("Unboxing Treasure ", () => {
             expect(game.stack.isEmpty()).toBe(true);
             expect(player1.currentHealthPoints).toBe(player1.healthPoints-1);
 
-            game.cardHandler.addInPlay(player1, item);
-            expect(game.entityHandler.getAttack(player1)).toBe(3);
+            game.cardHandler.addInPlay(player1, game.obtainCard("box-cube_of_meat_3") as ItemCard);
+            expect(game.entityHandler.getAttack(player1)).toBe(2);
         });
     
+
+        it("box-cube_of_meat bonus follows the other cube", async () => {
+            const cube = game.obtainCard("box-cube_of_meat") as ItemCard;
+            const cube3 = game.obtainCard("box-cube_of_meat_3") as ItemCard;
+            game.cardHandler.addInPlay(player1, cube);
+            game.cardHandler.addInPlay(player1, cube3);
+            expect(game.entityHandler.getAttack(player1)).toBe(2);
+            game.cardHandler.stealItemAnywhere(player2, cube3);
+            expect(game.entityHandler.getAttack(player1)).toBe(1);
+            game.cardHandler.give(player2, player1, cube3);
+            expect(game.entityHandler.getAttack(player1)).toBe(2);
+            game.cardHandler.destroyCardsOrSouls([cube3]);
+            expect(game.entityHandler.getAttack(player1)).toBe(1);
+        });
+
+        it("box-cube_of_meat destroyed while active", async () => {
+            const cube = game.obtainCard("box-cube_of_meat") as ItemCard;
+            const cube3 = game.obtainCard("box-cube_of_meat_3") as ItemCard;
+            game.cardHandler.addInPlay(player1, cube);
+            game.cardHandler.addInPlay(player1, cube3);
+            expect(game.entityHandler.getAttack(player1)).toBe(2);
+            game.cardHandler.destroyCardsOrSouls([cube]);
+            expect(game.entityHandler.getAttack(player1)).toBe(1);
+        });
+
+        it("box-cube_of_meat counts Ultra Flesh Kid! held as a soul", async () => {
+            const cube = game.obtainCard("box-cube_of_meat") as ItemCard;
+            const kid = game.obtainCard("r-ultra_flesh_kid") as ItemCard;
+            game.cardHandler.addInPlay(player1, cube);
+            expect(game.entityHandler.getAttack(player1)).toBe(1);
+            game.cardHandler.addInPlay(player1, kid);
+            expect(game.entityHandler.getAttack(player1)).toBe(2);
+            // Ultra Flesh Kid! becomes a soul: still counted.
+            game.cardHandler.removeInPlay(player1, kid);
+            kid.soul = 1;
+            game.cardHandler.addSoul(player1, kid);
+            expect(game.entityHandler.getAttack(player1)).toBe(2);
+            game.cardHandler.removeSoul(player1, kid);
+            expect(game.entityHandler.getAttack(player1)).toBe(1);
+        });
+
         it("box-number_two", async () => {
             let item = game.obtainCard("box-number_two") as ItemCard;
             expect(item).toBeDefined();
@@ -532,6 +658,8 @@ describe("Unboxing Treasure ", () => {
             let item = game.obtainCard("box-a_dollar") as ItemCard;
             expect(item).toBeDefined();
             game.cardHandler.addInPlay(player1, item);
+            // Refill the shop from the known top of the treasure deck: a random shop item with an enters-play trigger would leave it on the stack.
+            game.shop.flush();
             const slugs = game.shop.cardsOnTop.map(card => card?.slug!);
             game.cardHandler.addInPlay(player1, item);
             await game.activateItem(player1, item, [], 0);

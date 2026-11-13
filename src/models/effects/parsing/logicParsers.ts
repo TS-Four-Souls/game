@@ -295,8 +295,14 @@ export function parseEachTimeRollSameResXInRowEffect(s: string, x: number, game:
     let currentTurn: number = game.turnHandler.numberOfTurnsSinceBeginning;
     return noTargetSyncEffect( passive.onYourEventEffect("on:dice:resolved", [restParsed.effectFunction], game, s, true, (
         effectData: EffectData, event: OnRollData) => {
-            if(currentTurn !== game.turnHandler.numberOfTurnsSinceBeginning) inRow = 0;
+            // A new turn starts a new streak.
+            if(currentTurn !== game.turnHandler.numberOfTurnsSinceBeginning) {
+                currentTurn = game.turnHandler.numberOfTurnsSinceBeginning;
+                inRow = 0;
+            }
             if(event.eventIssuer !== effectData.issuer) return false;
+            // Only rolls made on your own turn count.
+            if(game.currentPlayer !== effectData.issuer) return false;
             if(event.dice instanceof DiceRoll === false) return false;
             const roll = event.dice as DiceRoll;
             if(roll.value === val) {
