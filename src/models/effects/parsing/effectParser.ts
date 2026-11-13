@@ -671,14 +671,12 @@ if (s.startsWith("you may") &&
         const restTxt = "roll-" + s.substring(`roll.\nif the discarded card was named pills, roll 3x instead-`.length);
         const restEffect = parseRollEffect(restTxt, nr, game);
         const effect: EffectFunction = async (data:EffectData) => {
-            const discardedLoot = data.targets[0];
-            data.targets = []; // clear targets to avoid confusion for the restEffect, which shouldn't care about the discarded loot
+            const discardedLoot = data.discardedAsPayment[0];
             if(!(discardedLoot instanceof LootCard))
                 throw new GameError("Expected a loot card to be discarded.", toSerializedTranslation("error.expectedLootCardToBeDiscarded"));
             for(let i = 0; i < (discardedLoot.slug.includes("pills") ? 3 : 1); i++){
                 await restEffect.effectFunction(data);
             }
-            data.targets = [discardedLoot];
             return true;
         }
         return logic.noTargetEffect(effect);
@@ -1567,7 +1565,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
         }, false, true));
         case "prevent the first instance of damage you would take each turn":
             return logic.noTargetSyncEffect(passive.onAnyEventEffect("on:turn:start", [passive.preventNextDamageUpToEffect(INFINITY, game, "any")], game, s, (effect: EffectData) => {
-                return effect.issuer.damageTakenThisTurn.filter((damage) => damage.with instanceof DiceRoll).length === 0;  
+                return effect.issuer.damageTakenThisTurn.length === 0;
         }, false, true));
         case "at the start of each turn or each time this deals combat damage, the active player deals x damage to a player chosen at random":
             return logic.noTargetSyncEffect(passive.atStartAndDamageGivenDealDamageToRandomPlayerEffect(nr.nextNumber(), game));

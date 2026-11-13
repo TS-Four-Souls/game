@@ -29,7 +29,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-grubfather", async () => {
         const card1 = game.obtainCard("rwz-grubfather") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         const evasions = game.monsters.map(m => m.evasion);
@@ -73,7 +73,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-golden_idol", async () => {
         const card1 = game.obtainCard("rwz-golden_idol") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.inPlay.length).toBe(2);
@@ -94,7 +94,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-peeper 2", async () => {
         const card1 = game.obtainCard("rwz-peeper") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.random = () => 1/6-0.01;
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, mob);
@@ -107,7 +107,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-peeper", async () => {
         const card1 = game.obtainCard("rwz-peeper") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.entityHandler.kill(player1, mob, {card: card1, visualEffectBox: null as any});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -117,7 +117,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-nightmare_tick 2", async () => {
         const card1 = game.obtainCard("rwz-nightmare_tick") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.random = () => 0.99;
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -132,7 +132,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-nightmare_tick", async () => {
         const card1 = game.obtainCard("rwz-nightmare_tick") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.random = () => 0.01;
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -142,7 +142,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-brea_in_distress 2", async () => {
         const card1 = game.obtainCard("rwz-brea_in_distress") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.random = () => 0.99;
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -153,7 +153,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-brea_in_distress 1", async () => {
         const card1 = game.obtainCard("rwz-brea_in_distress") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.random = () => 0.01;
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -170,7 +170,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-balrog", async () => {
         const card1 = game.obtainCard("rwz-balrog") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.entityHandler.kill(player1, mob, {card: card1, visualEffectBox: null as any});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -184,7 +184,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-the_gorm 2", async () => {
         const card1 = game.obtainCard("rwz-the_gorm") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.random = () => 1/6-0.01;
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, mob);
@@ -206,7 +206,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-the_gorm", async () => {
         const card1 = game.obtainCard("rwz-the_gorm") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.loot(player1, 1);
         await game.endTurn();
         await game.actions.resolveStack();
@@ -219,7 +219,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-the_butcher", async () => {
         const card1 = game.obtainCard("rwz-the_butcher") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.entityHandler.kill(mob, player2, {card: card1, visualEffectBox: null as any});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -250,7 +250,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-time_eater 2", async () => {
         const card1 = game.obtainCard("rwz-time_eater") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.cardHandler.addToCounter(player1, mob.card, "normal", 11);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -263,7 +263,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-time_eater", async () => {
         const card1 = game.obtainCard("rwz-time_eater") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.entityHandler.kill(player1, mob, {card: card1, visualEffectBox: null as any});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -277,7 +277,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-the_purple_shirted_eye_stabber", async () => {
         const card1 = game.obtainCard("rwz-the_purple_shirted_eye_stabber") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         const loot = game.obtainCard("b2-a_dime") as LootCard;
         game.cardHandler.addCardToHand(player1, loot);
         await game.actions.playCard(player1, 0);
@@ -308,7 +308,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-shopkeeper 2", async () => {
         const card1 = game.obtainCard("rwz-shopkeeper") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.random = () => 0.9;
         game.actions.declarePurchase(player1);
         await game.actions.resolveStack();
@@ -321,7 +321,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-shopkeeper", async () => {
         const card1 = game.obtainCard("rwz-shopkeeper") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.random = () => 0.4;
         game.actions.declarePurchase(player1);
         await game.actions.resolveStack();
@@ -332,7 +332,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-zombie_jesus", async () => {
         const card1 = game.obtainCard("rwz-zombie_jesus") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -352,7 +352,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-qwop", async () => {
         const card1 = game.obtainCard("rwz-qwop") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         let value = 6;
         game.random = () => value-- / 6 - 0.01;
         await game.actions.resolveStack();
@@ -378,7 +378,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-lil_hunter", async () => {
         const card1 = game.obtainCard("rwz-lil_hunter") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         await game.actions.resolveStack();
         expect(game.encounters.cardsOnTop.length).toBe(3);
         expect(player1.hasAttackRequirement).toBe(true);
@@ -393,7 +393,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-keke_is_you", async () => {
         const card1 = game.obtainCard("rwz-keke_is_you") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -412,7 +412,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-javon", async () => {
         const card1 = game.obtainCard("rwz-javon") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         await game.endTurn();
         game.random = () => 0.99;
         const slugs = game.shop.cardsOnTop.map(c => c!.slug);
@@ -426,7 +426,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-hubert_cumberdale", async () => {
         const card1 = game.obtainCard("rwz-hubert_cumberdale") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.entityHandler.dealCombatDamage(mob, player1, {card: card1, visualEffectBox: null as any}, 1);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -453,13 +453,13 @@ describe("Warp Zone Treasures", () => {
     it("rwz-exposito", async () => {
         const card1 = game.obtainCard("rwz-exposito") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.cardHandler.addToCounter(mob, card1, "normal", 4);
-        game.entityHandler.kill(player1, game.monsters[1]!, {card: card1, visualEffectBox: null as any});
+        game.entityHandler.kill(player1, game.monsters.find(m => m.card !== card1)!, {card: card1, visualEffectBox: null as any});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(card1.counters.value("normal")).toBe(5);
-        game.entityHandler.kill(player1, game.monsters[1]!, {card: card1, visualEffectBox: null as any});
+        game.entityHandler.kill(player1, game.monsters.find(m => m.card !== card1)!, {card: card1, visualEffectBox: null as any});
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(card1.counters.value("normal")).toBe(6);
@@ -473,7 +473,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-the_radiance", async () => {
         const card1 = game.obtainCard("rwz-the_radiance") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         const initDc = mob.evasion;
         game.entityHandler.kill(player2, player2, {card: card1, visualEffectBox: null as any});
         await game.actions.resolveStack();
@@ -492,7 +492,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-the_collector", async () => {
         const card1 = game.obtainCard("rwz-the_collector") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         const initHealth = mob.healthPoints;
         game.entityHandler.kill(player2, player2, {card: card1, visualEffectBox: null as any});
         await game.actions.resolveStack();
@@ -507,10 +507,44 @@ describe("Warp Zone Treasures", () => {
         expect(mob.healthPoints).toBe(initHealth + 2);
     });
  
+    it("rwz-the_collector rewards", async () => {
+        const card1 = game.obtainCard("rwz-the_collector") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters.find(m => m.card === card1)!
+        game.cardHandler.addToCounter(player1, card1, "normal", 2);
+        const items = player1.inPlay.length;
+        game.entityHandler.kill(player1, mob, {card: card1, visualEffectBox: null as any});
+        while (!game.stack.isEmpty()) await game.actions.resolveStack();
+        expect(player1.inPlay.length).toBe(items + 2); // +1 treasure per counter
+        expect(player1.souls.includes(card1)).toBe(true);
+    });
+
+    for (const slug of ["rwz-javon", "rwz-shopkeeper"]) {
+        it(`${slug} steals a shop item`, async () => {
+            const card1 = game.obtainCard(slug) as MonsterCard;
+            game.encounters.forceSetMonsterAtSlot(0, card1);
+            const mob = game.monsters[0]!
+            const shopItem = game.shop.cardsOnTop[0]!;
+            const coins = player1.coins;
+            game.entityHandler.kill(player1, mob, {card: card1, visualEffectBox: null as any});
+            while (!game.stack.isEmpty()) await game.actions.resolveStack();
+            expect(player1.inPlay.includes(shopItem as ItemCard)).toBe(true);
+            expect(game.shop.cardsOnTop.includes(shopItem)).toBe(false);
+            expect(player1.coins).toBe(coins);
+        });
+    }
+
+    it("rwz-javon stats", async () => {
+        const card1 = game.obtainCard("rwz-javon") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, card1);
+        const mob = game.monsters.find(m => m.card === card1)!
+        expect([mob.healthPoints, mob.evasion, mob.attackPoints]).toEqual([4, 3, 2]);
+    });
+
     it("rwz-melquiades", async () => {
         const card1 = game.obtainCard("rwz-melquiades") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.entityHandler.addHealth(mob, 1, "other");
         const initEvasion = mob.evasion;
         for( let i=0; i<4; i++) {
@@ -530,7 +564,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-leatherneck", async () => {
         const card1 = game.obtainCard("rwz-leatherneck") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.random = () => 0.1;
         game.entityHandler.dealDamage(mob, mob, {card: card1, visualEffectBox: null as any}, 1);
         await game.actions.resolveStack();
@@ -542,7 +576,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-grandparent", async () => {
         const card1 = game.obtainCard("rwz-grandparent") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
 
         game.actions.declareAttack(player1);
         const initAtk = mob.attackPoints;
@@ -622,7 +656,7 @@ describe("Warp Zone Treasures", () => {
         const card1 = game.obtainCard("rwz-death_trapper") as MonsterCard;
         game.encounters.expand(1);
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         const evasions = game.monsters.map(m => game.entityHandler.getDC(m));
         game.entityHandler.dealDamage(mob, mob, {card: card1, visualEffectBox: null as any}, 1);
         await game.actions.resolveStack();
@@ -652,7 +686,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-ballos", async () => {
         const card1 = game.obtainCard("rwz-ballos") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         const initAtk = mob.attackPoints;
         game.entityHandler.kill(mob, mob, {card: card1, visualEffectBox: null as any})
         await game.actions.resolveStack();
@@ -672,7 +706,7 @@ describe("Warp Zone Treasures", () => {
     it("rwz-a_dead_horse", async () => {
         const card1 = game.obtainCard("rwz-a_dead_horse") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, mob);
         game.random = () => 3/6-0.01;
@@ -721,7 +755,7 @@ describe("Monster Cards RWZ - 3 players tests", () => {
     it("rwz-trial_by_trolley", async () => {
         const card1 = game.obtainCard("rwz-trial_by_trolley") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         let value = 6;
         game.random = () => value-- / 6 - 0.01;
         await game.actions.resolveStack();
@@ -738,7 +772,7 @@ describe("Monster Cards RWZ - 3 players tests", () => {
     it("rwz-the_impostor", async () => {
         const card1 = game.obtainCard("rwz-the_impostor") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
-        const mob = game.monsters[0]!
+        const mob = game.monsters.find(m => m.card === card1)!
         let value = 6;
         game.random = () => value-- / 6 - 0.01;
         game.entityHandler.kill(player1, player2, {card: card1, visualEffectBox: null as any});
@@ -758,7 +792,7 @@ describe("Monster Cards RWZ - 3 players tests", () => {
         game.encounters.forceSetMonsterAtSlot(0, card1);
         let value = 6;
         game.random = () => value-- / 6 - 0.01;
-        game.entityHandler.kill(player1, game.monsters[1]!, {card: card1, visualEffectBox: null as any});
+        game.entityHandler.kill(player1, game.monsters.find(m => m.card !== card1)!, {card: card1, visualEffectBox: null as any});
         await game.resolveEntireStack();
         expect(game.players.map(p => p.stats.nbDeaths)).toEqual([0, 0, 0]);
     });

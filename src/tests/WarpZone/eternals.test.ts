@@ -271,6 +271,24 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.inPlay.length).toBe(2);
         expect(eternal.counters.getCounter("normal").value).toBe(5);
     });
+
+    it("rwz-ash level down instead of death penalty doesn't deactivate", async () => {
+        const setup = await setupTestGame({
+            characters: ["rwz-ash", "b2-lilith"],
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card"],
+            playerCount: 2
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        const eternal = player1.inPlay[0]! as ItemCard;
+        game.cardHandler.recharge(player1.character as ItemCard, "other");
+        game.entityHandler.kill(player1, player1, {card: eternal, visualEffectBox: null as any});
+        while (!game.stack.isEmpty()) await game.actions.resolveStack();
+        expect(eternal.counters.getCounter("normal").value).toBe(5);
+        expect(player1.character.charged).toBe(true);
+    });
     
     it("rwz-boyfriend your turn when double dice", async () => {
         const setup = await setupTestGame({
@@ -389,6 +407,34 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.currentHealthPoints).toBe(2);
     });
     
+    it("rwz-the_knight LV3 reached after non-combat damage this turn doesn't prevent", async () => {
+        const setup = await setupTestGame({
+            characters: ["rwz-the_knight", "b2-lilith"],
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card"],
+            playerCount: 2
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        const eternal = player1.inPlay[0]! as ItemCard;
+        game.entityHandler.addHealth(player1, 5, "other");
+        const hp = player1.currentHealthPoints;
+        game.entityHandler.dealDamage(player2, player1, {card: eternal, visualEffectBox: null as any}, 1);
+        while (!game.stack.isEmpty()) await game.actions.resolveStack();
+        expect(player1.currentHealthPoints).toBe(hp - 1);
+        for(let i = 0; i < 3; i++) {
+            const card = game.decks.loot.draw();
+            card.soul = 1;
+            game.cardHandler.addSoul(player1, card);
+            while (!game.stack.isEmpty()) await game.actions.resolveStack();
+        }
+        game.entityHandler.dealDamage(player2, player1, {card: eternal, visualEffectBox: null as any}, 1);
+        while (!game.stack.isEmpty()) await game.actions.resolveStack();
+        expect(player1.currentHealthPoints).toBe(hp - 2);
+    });
+
     it("rwz-the_knight 2 counter", async () => {
         const setup = await setupTestGame({
             characters: ["rwz-the_knight", "b2-lilith"],
@@ -659,6 +705,28 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player2.coins).toBe(10);
     });
     
+    for (const killer of ["my", "their"] as const) {
+        it(`rwz-pink_knight ${killer} kill of an each-player reward doesn't give it again`, async () => {
+            const setup = await setupTestGame({
+                characters: ["rwz-pink_knight", "b2-lilith"],
+                monsters: ["b2-fly", "b2-fatty"],
+                monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+                treasureDeck: ["b2-blank_card"],
+                playerCount: 2
+            });
+            game = setup.game;
+            player1 = setup.player1;
+            player2 = setup.player2!;
+            const eternal = player1.inPlay[0]! as ItemCard;
+            game.cardHandler.recharge(eternal, "other");
+            game.monsters[0]!.card.json.rewards = {coin: {all: true, count: 2}}
+            game.entityHandler.kill(killer === "my" ? player1 : player2, game.monsters[0]!, {card: eternal, visualEffectBox: null as any});
+            while (!game.stack.isEmpty()) await game.actions.resolveStack();
+            expect(player1.coins).toBe(2);
+            expect(player2.coins).toBe(2);
+        });
+    }
+
     it("rwz-johnny", async () => {
         const setup = await setupTestGame({
             characters: ["rwz-johnny", "b2-lilith"],

@@ -219,6 +219,26 @@ describe("Warp Zone Treasures", () => {
     it("rwz-spewer", async () => {
         const card1 = game.obtainCard("rwz-spewer") as TreasureCard;
         game.cardHandler.addInPlay(player1, card1);
+        const loot = game.obtainCard("b2-a_penny") as LootCard;
+        game.cardHandler.addCardToHand(player1, loot);
+        const atk = player1.attackPoints;
+        game.random = () => 0.4; // rolls 3
+        await game.activateItem(player1, card1, [], 0); // the loot to discard is chosen on resolve
+        while (!game.stack.isEmpty()) await game.actions.resolveStack();
+        expect(player1.hand.cards.includes(loot)).toBe(false);
+        expect(player1.attackPoints).toBe(atk + 1);
+    });
+
+    it("rwz-spewer pills", async () => {
+        const card1 = game.obtainCard("rwz-spewer") as TreasureCard;
+        game.cardHandler.addInPlay(player1, card1);
+        const loot = game.obtainCard("box-pills") as LootCard;
+        game.cardHandler.addCardToHand(player1, loot);
+        const atk = player1.attackPoints;
+        game.random = () => 0.4; // rolls 3, three times
+        await game.activateItem(player1, card1, [], 0); // the loot to discard is chosen on resolve
+        while (!game.stack.isEmpty()) await game.actions.resolveStack();
+        expect(player1.attackPoints).toBe(atk + 3);
     });
  
     it("rwz-ser_junkan", async () => {

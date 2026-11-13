@@ -59,13 +59,16 @@ export const isAttackableMonsterSubtype = (
 };
 
 /* Parts */
-export type Reward =  number | "roll" | { all: true; count: number | "roll" };
+/** "counters": one per counter on the card (e.g. The Collector). */
+export type Reward =  number | "roll" | "counters" | { all: true; count: number | "roll" };
 
 export interface CardRewards {
   soul?: Reward;
   coin?: Reward;
   loot?: Reward;
   treasure?: Reward;
+  /** Number of shop items the receiver steals (e.g. "Steal a shop item"). */
+  shopItem?: number;
 }
 
 interface GuppyCard {

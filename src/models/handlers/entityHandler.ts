@@ -5,10 +5,12 @@ import {
   LootCard
 } from "@/models/cards";
 import {
+  stealShopItemRewardEffect,
   targetGetCoinRollEffect,
   targetGetLootRollEffect,
   targetGetTreasureRollEffect
 } from "@/models/effects/activeEffect";
+import { addPassiveEffectToStack } from "@/models/effects/passiveEffect";
 import { Animated } from "@/models/entities/animated";
 import { Entity } from "@/models/entities/entity";
 import { Monster } from "@/models/entities/monster";
@@ -243,7 +245,12 @@ export class EntityHandler {
       if(rewards[rewardType] !== undefined)
       {
         const allPlayers = rewards[rewardType] instanceof Object && "all" in rewards[rewardType] && rewards[rewardType].all
-        const amount = (rewards[rewardType] instanceof Object && "all" in rewards[rewardType]) ? rewards[rewardType].count : rewards[rewardType] as number | "roll";
+        let amount = (rewards[rewardType] instanceof Object && "all" in rewards[rewardType]) ? rewards[rewardType].count : rewards[rewardType] as number | "roll" | "counters";
+        if (amount === "counters")
+          amount = entity.card.counters.value("normal");
+        // Each player already gained an "each player gains" reward: sharing it (e.g. Lollypop) must not grant it again.
+        if (allPlayers && reason === "other")
+          continue;
         const receivers = allPlayers ? this.players : [player];
         for(const receiver of receivers)
         {
@@ -257,6 +264,9 @@ export class EntityHandler {
           }
         }
       }
+      const shopItems = half ? Math.floor((rewards.shopItem ?? 0) / 2) : rewards.shopItem ?? 0;
+      if (shopItems > 0)
+        addPassiveEffectToStack(this.game, stealShopItemRewardEffect(this.game, shopItems), new EffectData(entity.card, () => player, []), "stealShopItemReward");
       this.game.emit("on:death:rewards", {
         entity: entity,
         eventIssuer: player,
@@ -311,7 +321,8 @@ export class EntityHandler {
       if (receiver instanceof Player) {
         receiver.clearAttackRequirement(); // clear any forced attack constraints on this.game player.
         this.game.actions.cancelPurchase(receiver, true);
-        await this.deathPenalty(receiver, values);
+        if (values.paysPenalty)
+          await this.deathPenalty(receiver, values);
       } else if (receiver instanceof Monster) {
         // Clear any forced attack constraints on this.game monster
         const eventData = {

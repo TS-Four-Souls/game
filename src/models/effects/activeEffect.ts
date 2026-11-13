@@ -968,6 +968,21 @@ export function stealAllShopItemsEffect(game: Game): SyncEffectFunction {
     };
 }
 
+/** Reward "steal a shop item": the issuer chooses a shop item and steals it, `amount` times. */
+export function stealShopItemRewardEffect(game: Game, amount: number): AsyncEffectFunction {
+    return async (data: EffectData) => {
+        if (data.issuer instanceof Player === false) return false;
+        for (let i = 0; i < amount; i++) {
+            const options = game.shop.itemsInShop.filter(card => card !== undefined) as TreasureCard[];
+            if (options.length === 0) break;
+            const item = (await data.selectAndRecord(game, data.issuer, 1, 1, options, qq("pending.itemToSteal"), data.serializedCardAndBox, true, true)).selected[0];
+            if (item instanceof ItemCard)
+                game.cardHandler.stealItemAnywhere(data.issuer, item);
+        }
+        return true;
+    };
+}
+
 export function stealNonEternalItemFromAnywhereEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
@@ -2236,7 +2251,7 @@ export function voteToDamagePlayersOrMonstersEffect(game: Game, damage: number):
         const { winners } = await vote(game, data, {
             voters: game.players,
             options: options,
-            description: qq("pending.voteItemToDestroy"),
+            description: qq("pending.voteToDamage"),
         });
         for(const winner of winners)
         {

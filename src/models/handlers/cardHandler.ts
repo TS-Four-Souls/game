@@ -225,7 +225,7 @@ export class CardHandler {
       (card instanceof MonsterCard &&
         card.encounterType === MonsterType.EVENT &&
         outcome !==
-        "The active player may attack an additional time this.game turn.")
+        "The active player may attack an additional time this turn.")
     )
       type = "active";
     return type;

@@ -3405,9 +3405,7 @@ export function levelDownInsteadOfDeathPenaltyEffect(
             if (data.issuer !== eventIssuer) return false;
             if(data.it.counters.getCounter("normal").value <= minLvl) return false;
             game.cardHandler.addToCounter(data.issuer, data.it, "normal", -1);
-            eventData.values.nbCoinsToLose = 0;
-            eventData.values.nbItemsToLose = 0;
-            eventData.values.nbLootCardsToLose = 0;
+            eventData.values.paysPenalty = false;
             return true;
         }, false);
 }
