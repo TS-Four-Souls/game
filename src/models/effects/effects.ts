@@ -88,7 +88,19 @@ export class Effect {
                 toSerializedTranslation("error.cannotExecutePaymentNoFunction")
             );
         }
-        return this._paymentFunction(data);
+        data.isPayment = true;
+        let paid: boolean | Promise<boolean>;
+        try {
+            paid = this._paymentFunction(data);
+        } catch (error) {
+            data.isPayment = false;
+            throw error;
+        }
+        // Stays synchronous when the payment is synchronous.
+        if (paid instanceof Promise)
+            return paid.finally(() => { data.isPayment = false; });
+        data.isPayment = false;
+        return paid;
     }
 
     async execute(data: EffectData): Promise<boolean> {
@@ -107,18 +119,28 @@ export class Effect {
         if (targetsList.length > 0) {
             for (const admissibleTarget of this._targetsSelector[0]!.selector(issuer, this.card)) {
                 if (admissibleTarget.description.toLowerCase() === descr.toLowerCase()) {
+                    const selectors = admissibleTarget.admissibleTargets as TargetsSelector[];
                     let admisibleTargetsIndex = 0;
                     let nbTargetsForSelector = 0;
                     for (const t of targetsList) {
-                        if (((admissibleTarget.admissibleTargets[admisibleTargetsIndex]) as TargetsSelector).selector(issuer, this.card).includes(t)) {
-                            nbTargetsForSelector++;
-                        } else if (nbTargetsForSelector >= ((admissibleTarget.admissibleTargets[admisibleTargetsIndex]) as TargetsSelector).min) {
+                        // Move to the next selector while the current one is full or doesn't accept this target
+                        while (admisibleTargetsIndex < selectors.length) {
+                            const sel = selectors[admisibleTargetsIndex]!;
+                            if (nbTargetsForSelector < sel.max && sel.selector(issuer, this.card).includes(t))
+                                break;
+                            if (nbTargetsForSelector < sel.min)
+                                return false;
                             admisibleTargetsIndex++;
-                        } else {
-                            return false;
+                            nbTargetsForSelector = 0;
                         }
+                        if (admisibleTargetsIndex >= selectors.length)
+                            return false;
+                        nbTargetsForSelector++;
                     }
-                    return true;
+                    // The current selector and every remaining one must have reached their minimum
+                    if (nbTargetsForSelector < selectors[admisibleTargetsIndex]!.min)
+                        return false;
+                    return selectors.slice(admisibleTargetsIndex + 1).every(sel => sel.min <= 0);
                 }
             }
         }

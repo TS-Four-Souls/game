@@ -80,6 +80,30 @@ let game: Game;
         expect(game.entityHandler.getAttack(player1)).toBe(2);
     });
 
+    it("magic_marker on lazarus rags: the changed number is cleared at end of turn", async () => {
+        const setup = await setupTestGame({
+            characters: ["b2-lazarus", "b2-isaac"],
+            monsters: ["b2-fly", "b2-fatty"],
+            monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+            treasureDeck: ["b2-blank_card"],
+            playerCount: 2,
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        const rags = player1.inPlay.find(c => c.slug === "b2-lazarus_rags")!;
+        const marker = game.obtainCard("r-magic_marker") as LootCard;
+        game.cardHandler.addCardToHand(player1, marker);
+        await game.actions.playCard(player1, player1.hand.cards.indexOf(marker), [rags]);
+        await game.actions.resolveStack();
+        expect(rags.effectOutcomes[0]).toContain("+2 treasure");
+        expect(rags.effectTextNumbers.length).toBe(1);
+        await game.endTurn();
+        await game.actions.resolveStack();
+        expect(rags.effectOutcomes[0]).toContain("+1 treasure");
+        expect(rags.effectTextNumbers).toEqual([]);
+        expect(rags.jsonAPI.effectTextNumbers).toEqual([]);
+    });
+
     it("Diplopia copies, recharge, copies. Should end up only with copy 2 active.", async () => {
         const diplo = game.obtainCard("b2-diplopia") as ItemCard;
         const a = game.obtainCard("b2-dinner") as ItemCard;

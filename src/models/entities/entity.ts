@@ -57,9 +57,10 @@ export abstract class Entity {
     this._baseAttackPoints = _attackPoints;
   }
 
-  receiveDamage(damage: number, dealer: Entity | null = null, abilityCard: DamageSource | null = null): boolean {
+  receiveDamage(damage: number, dealer: Entity | null = null, abilityCard: DamageSource | null = null, isDamage: boolean = true): boolean {
     if(damage <= 0) return true;
-    this._damageTakenThisTurn.push({dealer: dealer!, with: abilityCard!, damage: damage});
+    if(isDamage) // paying HP is not damage
+      this._damageTakenThisTurn.push({dealer: dealer!, with: abilityCard!, damage: damage});
     this._currentHealthPoints -= damage;
     if (this._currentHealthPoints < 0) {
       this._currentHealthPoints = 0;

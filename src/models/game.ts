@@ -42,6 +42,20 @@ import { toSerializedTranslation } from "@/utils/translation";
 import { GameError } from "@/models/GameError";
 import { getTitles } from "./gameStats";
 
+/** Events marking the steps of a turn, in order. The game is in the step of the last one emitted. */
+export const TURN_STEPS = [
+  "on:turn:start:before:recharge:step",
+  "as:turn:start",
+  "on:turn:start",
+  "on:loot:step",
+  "on:your:turn", // action phase
+  "as:turn:end",
+  "on:turn:end",
+  "till:turn:end",
+] as const satisfies readonly TriggerEvent[];
+export type TurnStep = (typeof TURN_STEPS)[number];
+const END_PHASE_STEPS: readonly TurnStep[] = ["as:turn:end", "on:turn:end", "till:turn:end"];
+
 /*
  * The Game class is the central hub of the game logic, managing the state of the game, players, monsters, decks, shop, encounters, stack, and more. 
  * It also handles all player actions such as declaring attacks, dealing damage, resolving deaths, and managing the game history. 
@@ -58,10 +72,13 @@ export class Game {
   private _timerIsUsed = false; // true if the timer option is active.
   private _stack: Stack = new Stack(this);
   private _emitter: GameEventEmitter;
-  private _stackSubsetCallbacks: {stackIds: number[], callback: () => void}[] = [];
+  private _stackSubsetCallbacks: {stackIds: number[], callback: () => void | Promise<void>, cancellable: boolean}[] = [];
+  /** One collector per emit in progress (innermost last): the stack elements pushed by its listeners. */
+  private _emissionCollectors: StackElement[][] = [];
   private _historicHandler: HistoricHandler = new HistoricHandler(this);
   private _gameOver: boolean = false;
   private _isWon: boolean = false;
+  private _turnStep: TurnStep = TURN_STEPS[0];
   private _gameStateSerializer: GameStateSerializer;
   readonly gameParameters = new GameParameters(() => this.dispatch());
   readonly _assertHandler: AssertHandler = new AssertHandler(this);
@@ -186,8 +203,14 @@ export class Game {
     return this.entityHandler.entities;
   }
 
+  /** Step of the turn the game is in: the last turn step event emitted. */
+  get turnStep(): TurnStep {
+    return this._turnStep;
+  }
+
+  /** From endTurn until the next turn starts. */
   get isEndPhase(): boolean {
-    return this.stack.elements.some((e) => e instanceof EndOfTurnOnStack);
+    return END_PHASE_STEPS.includes(this._turnStep);
   }
 
   get currentPlayer(): Player {
@@ -211,6 +234,10 @@ export class Game {
    */
   get log(): HistoricEntry[] {
     return this._historicHandler.log(this);
+  }
+  /** History to save for a later load: never stops in the middle of a pending selection. */
+  get saveLog(): HistoricEntry[] {
+    return this._historicHandler.saveLog(this);
   }
   /**
    * @returns the active RNG seed used to initialize the current game generator.
@@ -242,6 +269,12 @@ export class Game {
    */
   get visibleItems(): ItemCard[] {
     return this.cardHandler.visibleItems;
+  }
+  /**
+   * @returns every card on the table: items, characters, shop items, curses, monsters in slots and active rooms.
+   */
+  get cardsInPlay(): Card[] {
+    return this.cardHandler.cardsInPlay;
   }
   get nextAnimationId(): string {
     return generateAnimationId();
@@ -599,18 +632,19 @@ export class Game {
   }
 
   initializeWinningCondition(): void {
-    let offSoulGained: (() => void) | null = null;
-        offSoulGained = this.emitter.on("on:soul:gained", ({ eventIssuer }) => {
-          let teamSouls = 0;
-          this.players.filter(p=>p.team === eventIssuer.team).forEach(p => teamSouls += p.totalSouls);
-          if(teamSouls >= this.gameParameters.nbSoulsToWin.value)
-          {
-              this.win(eventIssuer);
-              offSoulGained!();
-              offSoulGained = null;
-          }
-      });
-    }
+    // Character souls (e.g. The Lost) are not gained, but still count toward the win.
+    this.emitter.on("on:soul:gained", ({ eventIssuer }) => this.checkWinCondition(eventIssuer));
+    this.emitter.on("on:character:set", ({ eventIssuer }) => this.checkWinCondition(eventIssuer));
+  }
+
+  checkWinCondition(player: Player): void {
+    if(this._isWon)
+      return;
+    let teamSouls = 0;
+    this.players.filter(p => p.team === player.team).forEach(p => teamSouls += p.totalSouls);
+    if(teamSouls >= this.gameParameters.nbSoulsToWin.value)
+      this.win(player);
+  }
 
   assignColorsToPlayers(): void {
     const colors = [
@@ -657,6 +691,7 @@ export class Game {
     this._selectionHandler.resetPendingSelections();
     this._stackSubsetCallbacks = [];
     this._isWon = false;
+    this._turnStep = TURN_STEPS[0];
   }
 
 ////////////////////////////////////// Turn Structure //////////////////////////////////////
@@ -682,10 +717,14 @@ export class Game {
     await this.executeWhenStackEmpty(async () => {
       this.cardHandler.rechargeMultiple(player, "rechargeStep", eventData.charactersToRecharge);
       this.cardHandler.rechargeMultiple(player, "rechargeStep", eventData.itemsToRecharge);
-      this.emit("on:turn:start", { eventIssuer: player });
-      await this.executeWhenStackEmpty(async () => {
-        const lootStep = new LootStepOnStack(this.currentPlayer, 1, this);
-        this.addToStack(lootStep);
+      const stackIds = this.stack.currentStackIds;
+      this.emit("as:turn:start", { eventIssuer: player });
+      await this.executeWhenStackSubset(stackIds, async () => {
+        this.emit("on:turn:start", { eventIssuer: player });
+        await this.executeWhenStackEmpty(async () => {
+          const lootStep = new LootStepOnStack(this.currentPlayer, 1, this);
+          this.addToStack(lootStep);
+        });
       });
     });
   }
@@ -706,21 +745,25 @@ export class Game {
     const player = this.currentPlayer;
     this.actions.canEndTurn(player, true);
     this.stack.push(new EndOfTurnOnStack(player, this));
-    this.emit("on:turn:end", { eventIssuer: player });
-    await this.executeWhenStackEmpty(async () => {
-      this.emit("till:turn:end", { eventIssuer: player });
-      await this.verifyHandSize(player);
-      this.entityHandler.healEveryone();
-      for (const player of this.players) {
-        player.resetTurnFlags();
-      }
-      for (const monster of this.monsters) {
-        monster.resetEntityFlags();
-      }
-      this.turnHandler.endTurn();
-      this.verifyTimerLosingCondition();
-      this.dispatch();
-      await this.startTurn();
+    const stackIds = this.stack.currentStackIds;
+    this.emit("as:turn:end", { eventIssuer: player });
+    await this.executeWhenStackSubset(stackIds, async () => {
+      this.emit("on:turn:end", { eventIssuer: player });
+      await this.executeWhenStackEmpty(async () => {
+        this.emit("till:turn:end", { eventIssuer: player });
+        await this.verifyHandSize(player);
+        this.entityHandler.healEveryone();
+        for (const player of this.players) {
+          player.resetTurnFlags();
+        }
+        for (const monster of this.monsters) {
+          monster.resetEntityFlags();
+        }
+        this.turnHandler.endTurn();
+        this.verifyTimerLosingCondition();
+        this.dispatch();
+        await this.startTurn();
+      });
     });
     this.dispatch();
   }
@@ -858,9 +901,26 @@ export class Game {
     this._historicHandler.addToHistory(entry);
   }
 
-  /** Drops a trailing "randomSeed" history entry, e.g. one left over from a replay reseed. */
-  removeTrailingRandomSeed(): void {
-    this._historicHandler.removeTrailingRandomSeed();
+  /**
+   * Runs a user request and records its entry only if it has an effect on the game.
+   * The entry is recorded as soon as the request opens a selection (so the answers come after it in history,
+   * e.g. a paid effect cost), or when the request completes. Nothing is recorded if it throws before either.
+   */
+  async runRecordedRequest<T>(entry: HistoricEntry, request: () => Promise<T>): Promise<T> {
+    this._historicHandler.deferEntry(entry);
+    try {
+      const result = await request();
+      this._historicHandler.commitDeferredEntries();
+      return result;
+    } catch (e) {
+      this._historicHandler.discardDeferredEntry(entry);
+      throw e;
+    }
+  }
+
+  /** Records the entries of requests that are about to wait for a selection. */
+  commitDeferredHistoryEntries(): void {
+    this._historicHandler.commitDeferredEntries();
   }
 
   dispatch(): void {
@@ -943,6 +1003,7 @@ export class Game {
     }
 
     this.stack.push(item);
+    this._emissionCollectors.at(-1)?.push(item);
     this.assert.updateLastTimedAction();
     this.dispatch();
     return item.stackId;
@@ -1018,7 +1079,8 @@ export class Game {
     this.assert.positiveNumber(coins);
 
     const eventData = { eventIssuer: player, coinToLose: coins, reason };
-    this.emit("on:coin:lost:before", eventData);
+    // No dispatch: this check runs while serializing the state, dispatching would serialize again forever.
+    this.emit("on:coin:lost:before", eventData, false);
     coins = eventData.coinToLose;
     return coins <= player.coins || asMany;
   }
@@ -1071,7 +1133,6 @@ export class Game {
         toSerializedTranslation("common.acceptButton"), toSerializedTranslation("common.declineButton")], 
         toSerializedTranslation("pending.fromIdWantsToGiveYouCoins", { player: from.id, value: amount }), "coinGift", true);
       if (response.selected[0]?.key !== "common.acceptButton") {
-        console.log("declined");
         return false;
       }
     }
@@ -1099,15 +1160,27 @@ export class Game {
 
   /** Emits a game trigger event and schedules stack reordering if needed. */
   emit(event: TriggerEvent, data: any = {}, dispatch: boolean = true): void {
-    const count = this.emitter.emit(event, data);
+    if ((TURN_STEPS as readonly TriggerEvent[]).includes(event))
+      this._turnStep = event as TurnStep;
+    // Collects the elements pushed directly by the listeners of this event:
+    // elements pushed by nested emits go to their own collector and are grouped separately.
+    const pushedByThisEvent: StackElement[] = [];
+    this._emissionCollectors.push(pushedByThisEvent);
+    let count: number;
+    try {
+      count = this.emitter.emit(event, data);
+    } finally {
+      this._emissionCollectors.pop();
+    }
     if (count > 0 && dispatch)
       this.dispatch();
-    // If count > 1 calls stack reordering. 
-    // Players can reorder their own effects if they have multiple. 
+    // If more than one element was pushed by this event, calls stack reordering.
+    // Players can reorder their own effects if they have multiple.
     // Current player can also reorder game effects if multiple are triggered at the same time.
     // Game effects are always resolved before player effects, and player effects are resolved in turn order starting from the current player.
-    if(count > 1)
-      this.stack.reorderStack(this.currentPlayer, count);
+    const pushed = pushedByThisEvent.filter((el) => this.stack.elements.includes(el));
+    if(pushed.length > 1)
+      this.stack.reorderStack(this.currentPlayer, pushed);
   }
 
   /** Moves one stack element before another within the same reordering group. */
@@ -1161,12 +1234,14 @@ export class Game {
    * It is used to "wait" for additional effects to resolve before executing the callback, without needing to know exactly what those effects are.
    * Example: A monster dies, it has an on death effect. To trigger, the monster must be dead, and when a monster dies, its card is dicarded (usually).
    * But we want to keep the card in the slot while its death effect is not resolved. It is possible to do so with this function.
+   * A non-cancellable callback finishes something that already resolved: it survives resetCallbacks (e.g. Pitfall!).
    */
   async executeWhenStackSubset(
     ids: number[],
-    callback: () => void | Promise<void>
+    callback: () => void | Promise<void>,
+    cancellable: boolean = true
   ): Promise<void> {
-    this._stackSubsetCallbacks.push({stackIds: ids, callback});
+    this._stackSubsetCallbacks.push({stackIds: ids, callback, cancellable});
     await this.resolveCallbacks();
   }
 
@@ -1180,7 +1255,7 @@ export class Game {
   async resolveCallbacks(): Promise<void> {
     if (this.hasPendingSelections)
       return;
-    const callbacksToExecute: {stackIds: number[], callback: () => void | Promise<void>}[] = [];
+    const callbacksToExecute: typeof this._stackSubsetCallbacks = [];
     for(let i = this._stackSubsetCallbacks.length - 1; i >= 0; i--){
       const e = this._stackSubsetCallbacks[i]!;
       if (this.stack.elements.every((el) => e.stackIds.includes(el.stackId))) {
@@ -1198,7 +1273,10 @@ export class Game {
       this.dispatch();
     }
   }
+  /**
+   * Cancels the pending callbacks, except the non-cancellable ones.
+   */
   resetCallbacks(): void {
-    this._stackSubsetCallbacks = [];
+    this._stackSubsetCallbacks = this._stackSubsetCallbacks.filter((e) => !e.cancellable);
   }
 }

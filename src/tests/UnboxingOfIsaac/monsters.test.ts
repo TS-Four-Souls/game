@@ -93,6 +93,7 @@ describe("Unboxing Monsters ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.size).toBe(5);
     });
 

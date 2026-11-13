@@ -46,8 +46,8 @@ export const selectXCardsFromDiscard = (game: Game, type: DeckType, min: number 
                 toSerializedTranslation("selector.aCardFromDiscard", { type: type }) 
                 : toSerializedTranslation("selector.nCardFromDiscard", { type: type, max: max }) 
         :   max > 1 ? 
-                toSerializedTranslation("selector.upTo1CardFromDiscard", { type: type }) 
-                : toSerializedTranslation("selector.upToNCardsFromDiscard", { type: type, max: max }) , (issuer: Player) => {
+                toSerializedTranslation("selector.upToNCardsFromDiscard", { type: type, max: max }) 
+                : toSerializedTranslation("selector.upTo1CardFromDiscard", { type: type }) , (issuer: Player) => {
         return game.decks[type].discard.filter(card => filter ? filter(card) : true);
     })];
 export const selectAliveNonActivePlayer = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
@@ -112,14 +112,17 @@ export const selectCurse = (game: Game, min: number = 1, max: number = min): Tar
     [createSelector(toSerializedTranslation("selector.curse"), inplayCurseSelector((player, card) => true, game), min, max)];
 export const selectNonEternalItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.nonEternalItem"), inplayItemSelector((player: Player, card: ItemCard) => card.eternal === false, game), min, max)];
-export const selectTapItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
-    [createSelector(toSerializedTranslation("selector.tapItem"), inplayItemSelector((player: Player, card: ItemCard) => card.hasTapEffect(), game), min, max)];
+export const selectTapItem = (game: Game, min: number = 1, max: number = min, allowSelf: boolean = true): TargetsSelector[] =>
+    [createSelector(toSerializedTranslation("selector.tapItem"), (issuer: Player, source: Card) =>
+        inplayItemSelector((player: Player, card: ItemCard) => card.hasTapEffect(), game)(issuer).filter(card => allowSelf || card !== source), min, max)];
 export const selectCharacterCardFromOutside = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.characterCard"), () => game.decks.character.cards, min, max)];
 export const selectShopItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.shopItem"), (issuer: Player) => game.shop.itemsInShop.filter((slot) => slot !== undefined) as ItemCard[], min, max)];
 export const selectNonEternalItemOrASoul = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.nonEternalItemOrSoul"), itemAndSoulSelector((player: Player, card: ItemCard) => card.eternal === false, game), min, max)];
+export const selectNonEternalCardInPlay = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
+    [createSelector(toSerializedTranslation("selector.nonEternalCardInPlay"), (issuer: Player) => game.cardsInPlay.filter(card => card.eternal === false), min, max)];
 export const selectNonEternalTapItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>
     [createSelector(toSerializedTranslation("selector.nonEternalItem"), visibleItemSelector((card: ItemCard, issuer: Player) => card.eternal === false && card.activeEffectList.length > 0 && card.hasTapEffect() && card.slug != "b2-placebo", false, game), min, max)];
 export const selectEternalTapItem = (game: Game, min: number = 1, max: number = min): TargetsSelector[] =>

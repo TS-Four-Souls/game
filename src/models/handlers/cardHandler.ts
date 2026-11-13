@@ -31,7 +31,7 @@ import { Effect, PassiveEffect } from '../effects/effects';
 import { Game } from '../game';
 import { GameError } from "@/models/GameError";
 import { LootCardEffect } from '../stackElement';
-import { type CounterType } from "@/shared/api"
+import { type CounterType, type PendingSelectionReason, type SerializedTranslation } from "@/shared/api"
 import { toSerializedTranslation } from "@/utils/translation";
 import { bSoulEffectParser } from "../effects/bonusSoulEffects";
 import { TargetBuilder } from "../targetBuilder";
@@ -95,6 +95,44 @@ export class CardHandler {
       ...this.game.shop.itemsInShop.filter((c): c is ItemCard => c instanceof ItemCard)
     );
     return result;
+  }
+
+  /**
+   * Returns every card on the table: visible items (players' items, characters and shop items), curses, monsters in slots and active rooms.
+   */
+  get cardsInPlay(): Card[] {
+    return [
+      ...this.game.players.map(p => p.character),
+      ...this.visibleItems,
+      ...this.game.inPlayCurses.map(({ card }) => card),
+      ...this.game.monsters.map(m => m.card),
+      ...(this.game.rooms?.activeRooms ?? []),
+    ];
+  }
+
+  /**
+   * Reveals cards to players: each of them gets a selection with nothing to pick, only to see the cards.
+   * Returns one promise per player, resolved once that player has seen the cards.
+   * The promises must be awaited, but the caller may do other things first (e.g. let the issuer choose while the others look at the cards).
+   */
+  reveal(
+    cards: Card[],
+    reason: PendingSelectionReason,
+    players: Player[] = this.game.players,
+    description: SerializedTranslation = toSerializedTranslation("pending.cardsRevealed"),
+  ): Promise<void>[] {
+    if (cards.length === 0) return [];
+    return players.map(async player => {
+      await this.game.selectMultiple([{
+        player,
+        min: 0,
+        max: 0,
+        options: [...cards],
+        description,
+        reason,
+        canUseOnBoardSelection: false,
+      }]);
+    });
   }
 
   get deckNames(): DeckType[] {
@@ -213,7 +251,7 @@ export class CardHandler {
   /**
    * Applies post-death monster card destination (soul or discard).
    */
-  obtainMonsterSoulOrDiscard(monster: Monster): void {
+  obtainMonsterSoulOrDiscard(monster: Monster, player: Player = this.game.currentPlayer): void {
     const card = monster.card;
     if(card.afterEffect === "handled" || card.afterEffect === "nothing")
       return; // Card is already handled by its afterEffect, so do nothing here.
@@ -225,9 +263,9 @@ export class CardHandler {
         id: this.game.nextAnimationId,
         type: "obtainMonsterSoul",
         card: card.jsonAPI,
-        player: this.game.currentPlayer.id,
+        player: player.id,
       });
-      this.addSoul(this.game.currentPlayer, card);
+      this.addSoul(player, card);
     } else this.discard(card);
     this.game.dispatch();
   }
@@ -367,7 +405,7 @@ export class CardHandler {
   swapItems(item1: ItemCard, item2: ItemCard): boolean {
     const owner1 = this.game.getOwner(item1);
     const owner2 = this.game.getOwner(item2);
-    if (owner1 && owner2 && item1.eternal === false && item2.eternal === false) {
+    if (owner1 && owner2) {
       this.removeInPlay(owner1, item1, false);
       this.removeInPlay(owner2, item2, false);
       this.addInPlay(owner1, item2);
@@ -467,18 +505,9 @@ export class CardHandler {
 
     for (let i = 0; i < eventData.amount; i++) {
       const treasureDeck = this.decks["treasure"]!;
-      try {
-        const drawnCard: TreasureCard = treasureDeck.draw()!;
-        this.addInPlay(player, drawnCard);
-      } catch (err: any) {
-        // Treat empty-deck as a recoverable condition during randomized tests
-        // Log for diagnostics and stop attempting further treasure draws.
-        if (err && typeof err.message === 'string' && err.message.includes('has only 0 cards')) {
-          // console.warn('gainTreasure: treasure deck empty, skipping remaining treasure draws.');
-          return;
-        }
-        throw err;
-      }
+      const drawnCard: TreasureCard = treasureDeck.draw()!;
+      this.addInPlay(player, drawnCard);
+      this.game.emit("on:item:gained:after", { eventIssuer: player, card: drawnCard });
     }
   }
 
@@ -494,7 +523,7 @@ export class CardHandler {
   /** Removes curse cards from players and marks them destroyed. */
   destroyCurse(cards: MonsterCard[]): boolean {
     this.game.players.forEach((player) => {
-      player.curses.forEach((card) => {
+      player.curses.slice().forEach((card) => {
         if (cards.includes(card)) {
           this.removeCurse(player, card);
           this.discard(card);
@@ -750,7 +779,7 @@ export class CardHandler {
     }
     this.game.players.forEach((player, index) => {
       const character = characters[index]!;
-      this.addInPlay(player, character);
+      this.setCharacter(player, character);
       const eternalDeck = this.decks["eternal"];
       if (!eternalDeck) {
         throw new GameError("No eternal deck found", toSerializedTranslation("error.behaviorError", {error: "No eternal deck found"}));
@@ -874,13 +903,13 @@ export class CardHandler {
   /** Discards one hand card by index to the loot discard pile. 
    * @return true if the discard was successful.
   */
-  discardFromHandAtIndex(player: Player, position: number, reason: "death" | "effect" | "overload" | "other"= "other"): boolean {
+  discardFromHandAtIndex(player: Player, position: number, reason: "death" | "effect" | "paiement" | "overload" | "other"= "other"): boolean {
     this.game.assert.gameOngoing();
     this.game.assert.positiveNumber(position);
     const hand = player.hand;
     const eventData = { eventIssuer: player, indice: [position], reason };
-    position = eventData.indice[0]!;
     this.game.emit("on:loot:discard:before", eventData);
+    position = eventData.indice[0]!;
     if (position < 0 || position > hand.cards.length - 1) {
       return false;
     }
@@ -927,7 +956,6 @@ export class CardHandler {
       type: "transferLoot",
       sender: from.id,
       recipient: to.id,
-      card: card.jsonAPI,
     });
 
     this.removeCardFromHand(from, card);
@@ -1200,21 +1228,32 @@ export class CardHandler {
       this.attachEffectsToCard(card);
   }
 
+  /**
+   * Single entry point to put a character in play for a player (game start or replacement).
+   * Cleans up the previous character, if any, and emits "on:character:set".
+   * Character souls are not "gained": they only change the soul count.
+   */
+  setCharacter(player: Player, character: CharacterCard): void {
+    const previousCharacter = player.hasCharacter ? player.character : null;
+    this.ensureEffectsAttached(character);
+    // Add the new character before cleaning the old one, so health never drops to 0 in between.
+    character.onAddInPlay(() => player);
+    previousCharacter?.cleanup();
+    player.character = character;
+    this.game.emit("on:character:set", { eventIssuer: player, previousCharacter });
+    this.game.dispatch();
+  }
+
   async replaceCharacter(player: Player, newCharacter: CharacterCard, triggerFindNewEternalIfUndefined: boolean = true): Promise<void> {
-     // Remove the current character + starting item (both are eternal, so we cannot use removeInPlay()).
-    const oldCharacter = player.character;
+     // Remove the starting item (eternal, so we cannot use removeInPlay()). The character is handled by setCharacter().
     const oldStartingItem = player.inPlay[0]!;
-    
-    const copyNewChara = this.copyCard(newCharacter) as CharacterCard;
-    copyNewChara.onAddInPlay(() => player);
-    
-    oldCharacter.cleanup();
+
+    this.setCharacter(player, this.copyCard(newCharacter) as CharacterCard);
     if(oldStartingItem !== undefined && oldStartingItem.eternal === true)
     {
       oldStartingItem.cleanup();
     }
-    player.character = copyNewChara;
-    
+
     const newStartingItemSlug = newCharacter.eternalCard;
     const eternalTemplate = newStartingItemSlug === null
       ? undefined
@@ -1240,6 +1279,7 @@ export class CardHandler {
 
   /**
    * Returns a reference to the copied card.
+   * Use removeGainedAbilities(copied) to remove a single copy before the gainer leaves play.
    * @param issuer 
    * @param gainer 
    * @param toCopy 
@@ -1249,8 +1289,16 @@ export class CardHandler {
     // Implementation for gaining abilities
     if(gainer.tags.copiedCards === undefined)
         gainer.tags.copiedCards = [];
-    if(toCopy.json.stats !== undefined)
+    // Stats gained from copies: the last gained copy still present wins; the gainer's own stats come back once all are removed.
+    if(gainer.tags.gainedStats === undefined)
+        gainer.tags.gainedStats = [];
+    const gainedStats = gainer.tags.gainedStats as { toCopy: ItemCard, stats: NonNullable<ItemCard["json"]["stats"]> }[];
+    if(toCopy.json.stats !== undefined) {
+      if(gainedStats.length === 0)
+        gainer.tags.statsBeforeGain = gainer.json.stats;
+      gainedStats.push({ toCopy, stats: toCopy.json.stats });
       gainer.json.stats = toCopy.json.stats;
+    }
     // console.log("Gaining abilities from ", toCopy.name, " to ", gainer.name);
     const copiedSelector: TargetsSelector = {
         description: toSerializedTranslation("selector.cardGranted"),
@@ -1319,6 +1367,7 @@ export class CardHandler {
     }
     const copied = this.copyCard(toCopy, issuer) as ItemCard;
     copied.parentCard = gainer.slug;
+    copied.setEternal(gainer.eternal);
     copied.tags.copiedFrom = toCopy;
     gainer.tags.copiedCards.push(copied);
     copied.onAddInPlay(() => issuer);
@@ -1330,23 +1379,51 @@ export class CardHandler {
       if (receiver !== copied) return;
       this.addToCounter(issuer, gainer, counterName, newValue - previousValue);
     });
-    gainer.cleaners.push(() => {  
+    let removed = false;
+    const teardown = (): void => {
+      if (removed) return;
+      removed = true;
       offCopiedCounterChange();
       for (const counterType of copied.counters.counterOwned) {
         this.addToCounter(issuer, gainer, counterType, -copied.counters.value(counterType));
       }
       if (gainer.entity === copied.entity) gainer.entity = undefined;
+      // parentCard is nulled so the copy's own cleaner doesn't destroy the gainer.
       copied.parentCard = null;
       copied.cleanup();
       copied.parentCard = gainer.slug;
       gainer.tags.copiedCards = (gainer.tags.copiedCards as ItemCard[]).filter(c => c !== copied);
-    });
+      const statsIdx = gainedStats.findIndex(e => e.toCopy === toCopy);
+      if (statsIdx >= 0) {
+        gainedStats.splice(statsIdx, 1);
+        const stats = gainedStats.length > 0 ? gainedStats[gainedStats.length - 1]!.stats : gainer.tags.statsBeforeGain;
+        if (stats === undefined) delete gainer.json.stats;
+        else gainer.json.stats = stats;
+      }
+    };
+    gainer.cleaners.push(teardown);
+    copied.tags.removeGainedAbilities = (): void => {
+      teardown();
+      const idx = gainer.cleaners.indexOf(teardown);
+      if (idx < 0) return;
+      // Cleaners before the last becomesCopyOf restore point are addressed by index: keep their positions.
+      const lastRestoreIdx = gainer.tags.lastCopiedRestoreOriginalStateIndex as number | undefined;
+      if (lastRestoreIdx === undefined || idx > lastRestoreIdx) gainer.cleaners.splice(idx, 1);
+      else gainer.cleaners[idx] = () => {};
+    };
     
     copied.cleaners.push(() => {
         if(copied.parentCard === gainer.slug)
           this.game.cardHandler.destroyCardsOrSouls([gainer]);
     });
     return copied;
+  }
+
+  /**
+   * Removes one copy created by gainAbilities: cleans the copy and the gainer-side state (counters, listeners, stats).
+   */
+  removeGainedAbilities(copied: ItemCard): void {
+    (copied.tags.removeGainedAbilities as (() => void) | undefined)?.();
   }
 
   /**

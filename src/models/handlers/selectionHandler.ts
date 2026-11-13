@@ -137,6 +137,12 @@ export class SelectionHandler {
         }
         return option;
       });
+      // The same card/entity/effect cannot be selected twice.
+      const selectedObjects = selected.filter((option) => typeof option === "object" && option !== null);
+      if (new Set(selectedObjects).size !== selectedObjects.length) {
+        throw new GameError("Duplicate selection identifier",
+          toSerializedTranslation("error.invalidSelectionIdentifier"));
+      }
 
       // Resolve the pending promise
       pending.resolve(selected);
@@ -166,6 +172,8 @@ export class SelectionHandler {
       canUseOnBoardSelection: boolean;
     }[]
   ): Promise<{ playerId: string; selected: T[]; remaining: T[] }[]> {
+    // The request that opens this selection must appear in history before its answers.
+    this.game.commitDeferredHistoryEntries();
     // In multiplayer mode: create promises for all players
     const promises = selections.map(async (sel) => {
       return new Promise<{

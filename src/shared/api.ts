@@ -36,6 +36,12 @@ export const serializedTranslationSchema =
       .optional(),
   });
 export type SerializedTranslation = z.infer<typeof serializedTranslationSchema>;
+const effectTextNumberSchema = z.object({
+  description: z.string(),
+  occurrenceIndex: z.number().int().nonnegative(),
+  value: z.number().int().nonnegative(),
+});
+export type EffectTextNumber = z.infer<typeof effectTextNumberSchema>;
 
 const capabilitySchema = z.union([
   z.literal(true),
@@ -48,6 +54,7 @@ export const identifierTypeSchema = z.object({
   slug: z.string(),
   globalId: z.number(),
   orientation: z.union([z.literal("portrait"), z.literal("landscape")]),
+  effectTextNumbers: z.array(effectTextNumberSchema).optional(),
   parent: z.string().optional(),
 });
 export type IdentifierType = z.infer<typeof identifierTypeSchema>;
@@ -65,6 +72,12 @@ export type EntityType = z.infer<typeof entityTypeSchema>;
 const cardSchema = identifierTypeSchema;
 export type Card = z.infer<typeof cardSchema>;
 
+const cardAndEffectTextNumberSchema = effectTextNumberSchema.extend({
+  card: cardSchema,
+});
+export type CardAndEffectTextNumber = z.infer<
+  typeof cardAndEffectTextNumberSchema
+>;
 const playableCardSchema = cardSchema.extend({
   canBePlayed: capabilitySchema,
   // Source card granting a free play (no loot play used); absent for regular hand cards.
@@ -159,6 +172,7 @@ export type SelectionItem =
   | { type: "animated"; payload: EntityType }
   | { type: "deck"; payload: DeckName }
   | { type: "number"; payload: number }
+  | { type: "effectTextNumber"; payload: CardAndEffectTextNumber }
   | { type: "boolean"; payload: boolean }
   | { type: "string"; payload: string }
   | {
@@ -193,6 +207,10 @@ export const selectionItemSchema: z.ZodType<SelectionItem> = z.lazy(() =>
     z.object({ type: z.literal("deck"), payload: deckNameSchema }),
     z.object({ type: z.literal("character"), payload: roomCharacterSchema }),
     z.object({ type: z.literal("number"), payload: z.number() }),
+    z.object({
+      type: z.literal("effectTextNumber"),
+      payload: cardAndEffectTextNumberSchema,
+    }),
     z.object({ type: z.literal("boolean"), payload: z.boolean() }),
     z.object({ type: z.literal("string"), payload: z.string() }),
     z.object({
@@ -510,7 +528,7 @@ const contactRequestSchema = z.object({
 
 const giveCoinsSchema = z.object({
   target: z.string(),
-  coins: z.number(),
+  coins: z.number().int().positive(),
 });
 
 const attackMonsterSchema = z.union([
@@ -837,7 +855,7 @@ const setGameParameterRequestSchema = z.discriminatedUnion("parameter", [
           ] === numberGameParameterSchema,
       ) as [NumberParameterKeys, ...NumberParameterKeys[]],
     ),
-    value: z.number(),
+    value: z.number().int(),
   }),
   z.object({
     parameter: z.enum(
@@ -926,7 +944,6 @@ const diceRollAnimationSchema = genericAnimationSchema.extend({
 
 const transferLootAnimationSchema = genericAnimationSchema.extend({
   type: z.literal("transferLoot"),
-  card: identifierTypeSchema,
   sender: z.string(),
   recipient: z.string(),
 });
@@ -1124,8 +1141,10 @@ const gameOverScreenPlayerDataSchema = z.object({
   type: z.enum(["win", "lose"]),
   title: serializedTranslationSchema,
 });
-export type GameOverScreenPlayerData = z.infer<typeof gameOverScreenPlayerDataSchema>;
-  
+export type GameOverScreenPlayerData = z.infer<
+  typeof gameOverScreenPlayerDataSchema
+>;
+
 const gameOverBroadcastSchema = z.object({
   type: "gameOver",
   data: z.array(gameOverScreenPlayerDataSchema),
@@ -1426,7 +1445,6 @@ export namespace Responses {
   export type AdminChangeMessageStatus = BasicResponse;
   export type AdminReplyToMessage = AdminReplyToMessageResponse;
 }
-
 
 export interface ServerToClientEvents {
   "on:room:changed": (room: Room | null) => void;

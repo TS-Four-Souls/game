@@ -15,7 +15,7 @@ import { Monster } from "@/models/entities/monster";
 import { Player } from "@/models/entities/player";
 import { Game } from "@/models/game";
 import { GameError } from "@/models/GameError";
-import { DamageOnStack, DeathOnStack, DiceRoll, EndOfTurnOnStack } from "@/models/stackElement";
+import { DamageOnStack, DeathOnStack, DiceRoll } from "@/models/stackElement";
 import { EffectData } from "@/models/types/cardTypes";
 import { toSerializedTranslation } from "@/utils/translation";
 import { AnimatedList } from "../entities/animated";
@@ -201,6 +201,8 @@ export class EntityHandler {
     this.game.assert.gameOngoing();
     if(this.game.assert.entityIsInPlay(receiver, false) !== true) return;
     if (receiver.isDead) return;
+    // An entity can only have one pending death; a cancelled death is removed from the stack, so it can die again later.
+    if (this.game.stack.elements.some(e => e instanceof DeathOnStack && e.receiver === receiver)) return;
 
     const deathOnStack = new DeathOnStack(receiver, from, source, this.game);
     this.game.addToStack(deathOnStack);
@@ -325,7 +327,7 @@ export class EntityHandler {
           this.game.encounters.kill(receiver); // should only kill once its effects are resolved: should be moved in the resolvewhenstackempty
           this.game.cardHandler.obtainMonsterSoulOrDiscard(receiver);
           await this.game.resolveCallbacks();
-        }).catch((error) => {
+        }, false).catch((error) => { // the monster is already dead: cancelling the stack (e.g. Pitfall!) must not leave it in play.
           console.error("Failed to finish monster death resolution", error);
         });
       }else if (receiver instanceof Animated) {
@@ -345,7 +347,7 @@ export class EntityHandler {
       });
       this.game.dispatch();
       const turnId = this.game.turnHandler.numberOfTurnsSinceBeginning;
-      if(receiver instanceof Player && this.game.currentPlayer === receiver && this.game.stack.elements.find(e => e instanceof EndOfTurnOnStack) == undefined)
+      if(receiver instanceof Player && this.game.currentPlayer === receiver && !this.game.isEndPhase)
         await this.game.executeWhenStackEmpty(async () => {
           if(this.game.turnHandler.numberOfTurnsSinceBeginning === turnId )
             await this.game.endTurn();});
@@ -375,11 +377,11 @@ export class EntityHandler {
 
     const mustAttackEntity = player.mustAttackEntity;
 
-    for (const req of mustAttackEntity) {
+    for (const req of [...mustAttackEntity]) {
       if (req.targets === "topDeck") continue;
       if (req.targets === "any") continue;
       if(req.targets.every(m => !(this.game.attackableEntities.includes(m)) || m.attackable === false)) {
-        player.clearAttackRequirement(req.targets[0]);
+        player.removeAttackRequirement(req);
       }
     }
     player.mustAttack(target, source, checkRemainingAttack);
@@ -387,7 +389,7 @@ export class EntityHandler {
   }
 
   forcedAttackSatisfied(player: Player, shouldThrow: boolean = true): Capability {
-    this.game.actions.canDeclareAttack(player, false);
+    const canDeclareAttack = this.game.actions.canDeclareAttack(player, false);
     // Check if there's a forced attack constraint
     if (!player.hasAttackRequirement) {
       return true; // No constraint, all good
@@ -414,6 +416,12 @@ export class EntityHandler {
     }
 
     if (validMonsters.every(req => (req.checkAttackRemaining === true && player.attackThisTurn <= 0)))
+      return true;
+
+    // Forced attacks only apply "if able": a player who cannot attack any required target must not be stuck (e.g. Krampus).
+    if (canDeclareAttack !== true)
+      return true;
+    if (!validMonsters.some(req => req.targets === "topDeck" || req.targets === "any" || req.targets.some(target => player.canAttackThisEntity(target) === true)))
       return true;
 
     // At least one monster constraint remains - must be satisfied
@@ -472,7 +480,7 @@ export class EntityHandler {
     callback?: (data: EffectData) => boolean,
     callbackTargets: any[] = []
   ): void {
-    if (damage <= 0 || receiver.isDead) return;
+    if (damage <= 0) return;
 
     const damageArray = [damage];
 
@@ -498,9 +506,10 @@ export class EntityHandler {
     receiver: Entity,
     source: DamageSource,
     damage: number,
-    checkDeath: boolean = true
+    checkDeath: boolean = true,
+    isDamage: boolean = true
   ): boolean {
-    const damageReceived = receiver.receiveDamage(damage, dealer, source);
+    const damageReceived = receiver.receiveDamage(damage, dealer, source, isDamage);
     if (checkDeath && receiver.currentHealthPoints <= 0) {
       this.death(receiver, dealer, source);
     }
@@ -518,8 +527,7 @@ export class EntityHandler {
     const receiver: Entity = elem.receiver;
     const source: DamageSource = elem._source;
     const stackIds = this.game.stack.currentStackIds;
-    if(receiver.isDead
-      || (elem._source instanceof DiceRoll && (elem.receiver.isEngagedInCombat === false && elem.from.isEngagedInCombat === false))
+    if ((elem._source instanceof DiceRoll && (elem.receiver.isEngagedInCombat === false && elem.from.isEngagedInCombat === false))
       || !this.entities.includes(receiver)
     ) 
       {
@@ -540,6 +548,10 @@ export class EntityHandler {
       const damage = elem.damage[0]!;
       this.game.stack.resolve();
       this.healthLoss(dealer, receiver, source, damage, false);
+
+      if (receiver.currentHealthPoints <= 0) {
+        this.death(receiver, dealer, source);
+      }
       if(damage > 0){
         await elem.onResolve();
         // Add to history
@@ -566,9 +578,6 @@ export class EntityHandler {
           dealer.stats.nbDamageDealt += damage;
       }
 
-      if (receiver.currentHealthPoints <= 0) {
-        this.death(receiver, dealer, source);
-      }
       await this.game.resolveCallbacks();
     });
     await this.game.resolveCallbacks();

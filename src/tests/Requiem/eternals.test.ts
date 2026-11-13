@@ -1,10 +1,10 @@
-import type { ItemCard, MonsterCard } from "@/models/cards";
+import type { ItemCard, MonsterCard, TreasureCard } from "@/models/cards";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { setTimeout } from "timers/promises";
 import { Game } from "../../models/game";
 import { Player } from "../../models/entities/player";
 import { setupTestGame } from "../testHelpers";
-import { AttackRollData } from "@/models/stackElement";
+import { AttackRollData, DiceRoll, DiceWillRoll } from "@/models/stackElement";
 
 async function characterAdd1LootPlay(player1: Player, game: Game) {
     // verify character card works.
@@ -73,6 +73,66 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player2.attackThisTurn).toBe(1);
     });
 
+
+    it("The Revenant does not die when its owner dies while it is attacked", async () => {
+        const setup = await setupTestGame({
+                    characters: ["r-the_deserter", "b2-samson"],
+                    monsters: ["b2-fly", "b2-fatty"],
+                    monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+                    treasureDeck: ["b2-blank_card"],
+                    playerCount: 2
+                });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        const eternal = player1.inPlay[0]!;
+        game.cardHandler.recharge(eternal);
+        await game.activateItem(player1, eternal, [], "tap");
+        await game.actions.resolveStack();
+        expect(eternal.flipped).toBe(true);
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        game.actions.declareAttack(player2);
+        game.actions.declareAttackOnEntity(player2, eternal.entity!);
+        const revenant = eternal.entity!;
+        const hand2 = player2.hand.length;
+
+        game.entityHandler.dealDamage(player1, player1, {card: eternal, visualEffectBox: undefined}, player1.currentHealthPoints);
+        for (let i = 0; i < 5 && !game.stack.isEmpty(); i++)
+            await game.actions.resolveStack();
+
+        expect(player1.isDead).toBe(true);
+        expect(eternal.flipped).toBe(true);
+        expect(eternal.entity).toBe(revenant);
+        expect(revenant.isDead).toBe(false);
+        expect(revenant.isEngagedInCombat).toBe(true);
+        expect(player2.hand.length).toBe(hand2);
+    });
+
+  it("can flip Anima Sola twice without adding monster DC to a player", async () => {
+    const setup = await setupTestGame({
+                    characters: ["r-the_deserter", "b2-samson"],
+                    monsters: ["b2-fly", "b2-fatty"],
+                    monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+                    treasureDeck: ["b2-blank_card"],
+                    playerCount: 2
+                });
+    game = setup.game;
+    player1 = setup.player1;
+    player2 = setup.player2!;
+    
+    expect(player1.character!.slug).toBe("r-the_deserter");
+    const eternal = player1.inPlay[0]!;
+    expect(eternal.slug).toBe("r-anima_sola");
+
+
+    expect(() => game.cardHandler.flip(player1, eternal)).not.toThrow();
+    expect(eternal.flipped).toBe(true);
+    expect(() => game.cardHandler.flip(player1, eternal)).not.toThrow();
+    expect(eternal.flipped).toBe(false);
+  });
+  
   it("can flip Anima Sola twice without adding monster DC to a player", async () => {
     const setup = await setupTestGame({
                     characters: ["r-the_deserter", "b2-samson"],
@@ -179,6 +239,45 @@ describe("Four Souls+2 Eternal Items", () => {
             expect(game.monsters.map(m => m.card.slug).includes(mob)).toBe(false);
     });
 
+    it("r-the_capricious (eternal) red candle before roll", async () => {
+        const setup = await setupTestGame({
+            characters: ["r-the_capricious", "b2-isaac"],
+            monsters: ["b2-fly", "b2-fatty"],
+            randomSeed: "glitch-red-candle",
+        });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        const candle = game.obtainCard("fsp2-red_candle") as TreasureCard;
+        game.shop._slots = [[candle]];
+        await game.resolveEntireStack();
+        const eternal = player1.inPlay[0]!;
+        const copied = (eternal.tags.copiedCards as ItemCard[])[0]!;
+        expect(copied.slug).toBe(candle.slug);
+        expect(eternal.tags.copiedCards.length).toBe(1);
+
+        game.random = () => 0; // roll a 1, the first number selected by the test helper
+        game.rollDice(player1, eternal);
+        expect(game.stack.peek() instanceof DiceWillRoll).toBe(true);
+        game.cardHandler.recharge(eternal);
+        const hp = player1.currentHealthPoints;
+        await game.activateItem(player1, eternal, [copied], "tap");
+        await game.resolveEntireStack();
+        expect(player1.currentHealthPoints).toBe(hp - 1);
+        expect(eternal.eternal).toBe(true);
+        expect(game.shop.itemsInShop).toContain(candle);
+
+        const breakfast = game.obtainCard("b2-breakfast") as TreasureCard;
+        game.shop._slots = [[breakfast]];
+        await game.endTurn();
+        await game.resolveEntireStack();
+        expect(eternal.tags.copiedCards.length).toBe(1);
+        expect(eternal.requiresDiceWillRoll).toBe(false);
+        game.rollDice(player2, eternal);
+        expect(game.stack.peek() instanceof DiceWillRoll).toBe(false);
+        await game.resolveEntireStack();
+    });
+
     it("r-the_capricious (eternal) remove previous passive", async () => {
         const setup = await setupTestGame({
                     characters: ["r-the_capricious", "b2-samson"],
@@ -212,6 +311,72 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(game.entityHandler.getAttack(player1)).toBe(4);
+    });
+
+    it("r-the_capricious (eternal) copy destroy this item", async () => {
+        const setup = await setupTestGame({
+                    characters: ["r-the_capricious", "b2-samson"],
+                    monsters: ["b2-fly", "b2-fatty"],
+                    monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+                    treasureDeck: ["b2-flush", "b2-pandoras_box"],
+                    playerCount: 2
+                });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        game.obtainCard(game.shop.itemsInShop[0]!.slug);
+        game.select = async (_issuer, _min, _max, _opts, _optional) => ({
+            selected: [_opts[0]!],
+            remaining: []
+        });
+        expect(player1.character!.slug).toBe("r-the_capricious");
+        const eternal = player1.inPlay[0]!;
+        expect(eternal.slug).toBe("r-glitch");
+        await game.actions.resolveStack();
+        game.cardHandler.recharge(eternal);
+        expect((eternal.tags.copiedCards as ItemCard[]).map((c) => c.slug).includes("b2-pandoras_box")).toBe(true);
+        await game.activateItem(player1, eternal, [eternal.tags.copiedCards[0]!], "tap");
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.stack.isEmpty()).toBe(true);
+    });
+
+    it("r-the_capricious (eternal) copied start and end of turn abilities trigger", async () => {
+        const setup = await setupTestGame({
+                    characters: ["r-the_capricious", "b2-samson"],
+                    monsters: ["b2-fly", "b2-fatty"],
+                    monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+                    playerCount: 2
+                });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        const eternal = player1.inPlay[0]!;
+        expect(eternal.slug).toBe("r-glitch");
+        await game.resolveEntireStack();
+        // Resolves the stack one element at a time, recording the cards of the stacked effects.
+        const resolveUntilTurnOf = async (player: Player): Promise<string[]> => {
+            const stacked: string[] = [];
+            for (let i = 0; i < 20 && (game.currentPlayer !== player || !game.stack.isEmpty()); i++) {
+                stacked.push(...game.stack.elements.map((e) => e.json.type === "effect" ? e.json.card.slug : e.json.type));
+                await game.actions.resolveStack();
+            }
+            return stacked;
+        };
+
+        // As the turn ends, Glitch copies The Map, whose end of turn ability must trigger.
+        const map = game.obtainCard("b2-the_map") as TreasureCard;
+        game.shop._slots = [[map]];
+        await game.endTurn();
+        expect(await resolveUntilTurnOf(player2)).toContain("b2-the_map");
+        expect((eternal.tags.copiedCards as ItemCard[]).map((c) => c.slug)).toEqual(["b2-the_map"]);
+
+        // As the next turn starts, Glitch copies Dark Bum, whose start of turn ability must trigger.
+        const darkBum = game.obtainCard("b2-dark_bum") as TreasureCard;
+        game.shop._slots = [[darkBum]];
+        await game.endTurn();
+        expect(await resolveUntilTurnOf(player1)).toContain("b2-dark_bum");
+        expect((eternal.tags.copiedCards as ItemCard[]).map((c) => c.slug)).toEqual(["b2-dark_bum"]);
     });
 
     it("r-the_capricious (character)", async () => {
@@ -279,8 +444,11 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.actions.resolveStack(); // dice 1
         await game.actions.resolveStack(); // dmg 1
         await game.actions.resolveStack(); // dice 2
+        game.entityHandler.endCombat();
+        game.entityHandler.kill(player1, game.monsters[1]!, {card: game.monsters[1]!.card, visualEffectBox: undefined});
         await game.actions.resolveStack(); // dmg 2
         await game.actions.resolveStack(); // death
+        await game.actions.resolveStack(); // helper rewards
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.hand._hand.length).toBe(1);
         expect(player2.hand._hand.length).toBe(0);
@@ -575,6 +743,48 @@ describe("Four Souls+2 Eternal Items", () => {
         await game.endTurn();
         await game.actions.resolveStack();
         expect(game.monsters[0]!.evasion).toBe(2);
+    });
+
+    it("r-the_curdled - lowering Death's DC to 1 in response to an attack roll of 1 hits", async () => {
+        const setup = await setupTestGame({
+                    characters: ["r-the_curdled", "b2-samson"],
+                    monsters: ["b2-fly", "b2-fatty"],
+                    monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+                    treasureDeck: ["b2-blank_card"],
+                    playerCount: 2
+                });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+
+        const eternal = player1.inPlay[0]!;
+        expect(eternal.slug).toBe("r-sumptorium");
+        game.cardHandler.addToCounter(player1, eternal, "normal", 6);
+
+        game.encounters.forceSetMonsterAtSlot(0, game.obtainCard("b2-death") as MonsterCard);
+        const death = game.monsters[0]!;
+        expect(death.evasion).toBe(4);
+
+        game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, death);
+        game.random = () => 0.01; // roll a 1
+        game.actions.attackRoll(player1);
+        expect((game.stack.peek() as DiceRoll).attackRoll).toBe(true);
+
+        // respond to the roll: 3 × (-1 DC) brings Death's DC from 4 down to 1
+        for (let i = 0; i < 3; i++) {
+            await game.activateItem(player1, eternal, [death], 0);
+            await game.actions.resolveStack();
+        }
+        expect(eternal.counters.value("normal")).toBe(0);
+        expect(death.evasion).toBe(1);
+        expect((game.stack.peek() as DiceRoll).value).toBe(1);
+
+        await game.actions.resolveStack(); // attack roll of 1 >= DC 1: hit
+        await game.actions.resolveStack(); // combat damage
+        expect(player1.isDead).toBe(false);
+        expect(player1.currentHealthPoints).toBe(player1.healthPoints);
+        expect(death.currentHealthPoints).toBe(death.healthPoints - player1.attackPoints);
     });
 
     it("r-the_fettered (no damage on roll of 1)", async () => {
@@ -947,7 +1157,7 @@ describe("Four Souls+2 Eternal Items", () => {
         eternal.counters.addToCounter(1, "normal");
         game.cardHandler.recharge(player1.inPlay[0] as ItemCard);
         game.gainTreasure(player1, 1);
-        await game.activateItem(player1, eternal, [player1.inPlay[1]], 0);
+        await game.activateItem(player1, eternal, [player1.inPlay[1]], "tap");
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.inPlay.length).toBe(1);
@@ -955,7 +1165,7 @@ describe("Four Souls+2 Eternal Items", () => {
         expect(player1.attackPoints).toBe(2);
         game.cardHandler.recharge(player1.inPlay[0] as ItemCard);
         game.gainTreasure(player1, 1);
-        await game.activateItem(player1, eternal, [player1.inPlay[1]], 0);
+        await game.activateItem(player1, eternal, [player1.inPlay[1]], "tap");
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(2);
@@ -963,7 +1173,7 @@ describe("Four Souls+2 Eternal Items", () => {
 
         game.cardHandler.recharge(player1.inPlay[0] as ItemCard);
         game.gainTreasure(player1, 1);
-        await game.activateItem(player1, eternal, [player1.inPlay[1]], 0);
+        await game.activateItem(player1, eternal, [player1.inPlay[1]], "tap");
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.attackPoints).toBe(3);

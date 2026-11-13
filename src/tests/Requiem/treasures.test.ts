@@ -166,7 +166,8 @@ describe("Requiem Loots ", () => {
             let item = game.obtainCard("r-rock_bottom") as ItemCard;
             expect(item).toBeDefined();
             game.loot(player1, 2);
-            game.cardHandler.addInPlay(player1, item);
+            game.decks.treasure.addTopPosition(item as TreasureCard);
+            game.gainTreasure(player1, 1);
             await game.actions.resolveStack();
             await game.endTurn();
             await game.actions.resolveStack();
@@ -390,7 +391,8 @@ describe("Requiem Loots ", () => {
             game.decks.loot.addTopPosition(pill);
             const nbPillsTopTen = game.decks.loot.cards.slice(0, 10).filter(c => c.name === "Pills!").length;
             await game.actions.resolveStack();
-            game.cardHandler.addInPlay(player1, item);
+            game.decks.treasure.addTopPosition(item as TreasureCard);
+            game.gainTreasure(player1, 1);
             await game.actions.resolveStack();
             expect(game.stack.isEmpty()).toBe(true);
             expect(player1.hand.length).toBe(nbPillsTopTen);
@@ -402,8 +404,8 @@ describe("Requiem Loots ", () => {
             await game.endTurn();
             await game.actions.resolveStack();
             await game.actions.resolveStack(); // resolve effect
-            await game.actions.resolveStack();
             expect(player1.hand.length).toBe(handSize);
+            await game.actions.resolveStack();
         });
 
         it("marbles on gold counter", async () => {
@@ -445,7 +447,29 @@ describe("Requiem Loots ", () => {
             await game.actions.resolveStack();
             expect(treas.counters.value("normal")).toBe(2);
         });
-    
+
+        it("marbles on a monster or a room", async () => {
+            let item = game.obtainCard("r-marbles") as ItemCard;
+            game.cardHandler.addInPlay(player1, item);
+            const monster = game.monsters[0]!.card;
+            const room = game.rooms!.activeRooms[0]!;
+
+            game.cardHandler.addToCounter(player1, monster, "normal", 1);
+            game.select = async (player: Player, min: number, max: number, Options: any[]) => {
+                return {selected: [Options[Options.length - 1]], remaining: Options};
+            };
+            game.cardHandler.recharge(item);
+            await game.activateItem(player1, item, [monster], "tap");
+            await game.actions.resolveStack();
+            expect(monster.counters.value("normal")).toBe(2);
+
+            game.cardHandler.addToCounter(player1, room, "normal", 1);
+            game.cardHandler.recharge(item);
+            await game.activateItem(player1, item, [room], "tap");
+            await game.actions.resolveStack();
+            expect(room.counters.value("normal")).toBe(2);
+        });
+
         it("magic_skin", async () => {
             let item = game.obtainCard("r-magic_skin") as ItemCard;
             expect(item).toBeDefined();
@@ -568,7 +592,8 @@ describe("Requiem Loots ", () => {
         it("keepers_sack", async () => {
             let item = game.obtainCard("r-keepers_sack") as ItemCard;
             expect(item).toBeDefined();
-            game.cardHandler.addInPlay(player1, item);
+            game.decks.treasure.addTopPosition(item as TreasureCard);
+            game.gainTreasure(player1, 1);
             game.entityHandler.addHealth(player1, 5, item);
             await game.actions.resolveStack();
 
@@ -581,11 +606,11 @@ describe("Requiem Loots ", () => {
             await game.activateItem(player1, item, [player2], 0);
             await game.actions.resolveStack();
             await game.actions.resolveStack();
-            await game.actions.resolveStack(); // resolve effect
+            await game.actions.resolveStack(); // resolve player2's loot step
             expect(player1.inPlay.includes(item)).toBe(false);
             expect(player2.inPlay.includes(item)).toBe(true);
             expect(player1.coins).toBe(10);
-            expect(player2.coins).toBe(14);
+            expect(player2.coins).toBe(0); // being given it is not gaining it
             game.loot(player2, 1);
             await game.actions.resolveStack();
             await game.endTurn();
@@ -615,7 +640,8 @@ describe("Requiem Loots ", () => {
         it("keepers_penny", async () => {
             let item = game.obtainCard("r-keepers_penny") as ItemCard;
             expect(item).toBeDefined();
-            game.cardHandler.addInPlay(player1, item);
+            game.decks.treasure.addTopPosition(item as TreasureCard);
+            game.gainTreasure(player1, 1);
             await game.actions.resolveStack();
             expect(player1.coins).toBe(9);
             game.cardHandler.recharge(item);
@@ -624,12 +650,32 @@ describe("Requiem Loots ", () => {
             expect(player1.coins).toBe(10);
             expect(player1.inPlay.includes(item)).toBe(false);
             expect(player2.inPlay.includes(item)).toBe(true);
-            await game.actions.resolveStack();
-            expect(player2.coins).toBe(9);
+            // Being given it is not gaining it: no 9¢.
+            expect(game.stack.isEmpty()).toBe(true);
+            expect(player2.coins).toBe(0);
             game.cardHandler.recharge(item);
             await game.activateItem(player2, item, [], "tap");
             await game.actions.resolveStack();
-            expect(player2.coins).toBe(11);
+            expect(player2.coins).toBe(2);
+            expect(player1.inPlay.includes(item)).toBe(true);
+            expect(game.stack.isEmpty()).toBe(true);
+            expect(player1.coins).toBe(10);
+        });
+
+        it("keepers_penny - purchasing it gives 9¢, stealing it does not", async () => {
+            let item = game.obtainCard("r-keepers_penny") as TreasureCard;
+            game.shop._slots = [[item]];
+            game.gainCoins(player1, game.shop.priceAt(0, player1), ("debug"));
+            game.actions.declarePurchase(player1);
+            game.actions.purchase(player1, 0);
+            await game.actions.resolveStack();
+            expect(player1.inPlay.includes(item)).toBe(true);
+            expect(player1.coins).toBe(9);
+
+            game.cardHandler.stealItemAnywhere(player2, item);
+            await game.actions.resolveStack();
+            expect(player2.inPlay.includes(item)).toBe(true);
+            expect(player2.coins).toBe(0);
         });
     
         it("judas_shadow", async () => {
@@ -1076,7 +1122,8 @@ describe("Requiem Loots ", () => {
         const bomb = game.obtainCard("b2-bomb") as LootCard;
         game.decks.loot.addTopPosition(bomb);
         const nbBombTopTen = game.decks.loot.cards.slice(0, 10).filter(c => c.name.toLowerCase().includes("bomb")).length;
-        game.cardHandler.addInPlay(player1, item);
+        game.decks.treasure.addTopPosition(item as TreasureCard);
+        game.gainTreasure(player1, 1);
         await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(player1.hand.length).toBe(nbBombTopTen);

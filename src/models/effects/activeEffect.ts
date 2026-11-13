@@ -2,8 +2,13 @@
 // as opposed to a passive effect which is triggered by a game event.
 
 
-import { type OnAttackDeclaredData, type OnDeathMonsterData } from "@/models/types/eventTypes";
-import { partialsEndingWithNumber1to6 } from "@/utils/auxiliary";
+import { type OnAttackDeclaredData, type OnDeathMonsterData, type OnRollData } from "@/models/types/eventTypes";
+import {
+    findEffectTextNumbers,
+    findValidEffectTextNumberReplacements,
+    formatEffectTextNumber,
+    replaceEffectTextNumber,
+} from "@/utils/effectTextNumbers";
 import { assertCardMatchesDeck, type Card, CharacterCard, Deck, isDeckType, ItemCard, LootCard, MonsterCard, RoomCard, TreasureCard } from "../cards";
 import { LootCardEffect } from '../stackElement';
 import { Animated } from "../entities/animated";
@@ -25,19 +30,21 @@ import { toSerializedTranslation, translationKeyFromCardSlug } from "@/utils/tra
 import { shuffle } from "@/utils/auxiliary";
 import { vote } from "./vote";
 import { type CounterType } from "@/shared/api"
+import { EffectTextNumber } from "../effectTextNumber";
 
 const qq = toSerializedTranslation;
 export function gainCoinsEffect(game: Game, amount: number, issuerType: "issuer" | "current", youMayHandling: [false]): SyncEffectFunction
 export function gainCoinsEffect(game: Game, amount: number, issuerType: "issuer" | "current", youMayHandling: [true]): AsyncEffectFunction
 export function gainCoinsEffect(game: Game, amount: number, issuerType: "issuer" | "current" = "issuer", youMayHandling: boolean[] = [false]): EffectFunction {
+    const youMay = youMayHandling[0];
+    youMayHandling[0] = false;
     return async (data: EffectData) => {
         const issuer = issuerType === "issuer" ? data.issuer : game.currentPlayer;
         if(issuer instanceof Player === false) return false;
-        if (youMayHandling[0]) {
+        if (youMay) {
             const choice = (await data.selectAndRecord(game, issuer as Player, 0, 1, [data.it], qq("pending.gainCoins"), data.serializedCardAndBox, false, true)).selected;
             if(choice.length === 0) return false;
         }
-        youMayHandling[0] = false;
         game.gainCoins(issuer, amount, data.it);
         return true;
     };
@@ -105,7 +112,7 @@ export function eachNonActivePlayerDiscardsLootEffect(game: Game): AsyncEffectFu
     return async (data: EffectData) => {
         const choices = await data.selectMultipleAndRecord(
             game,
-            game.players.filter(p => p !== game.currentPlayer).map(p => ({ 
+            game.players.filter(p => p !== game.currentPlayer && p.hand.length > 0).map(p => ({ 
                 player: p,
                 min: 1,
                 max: 1,
@@ -472,15 +479,7 @@ export function revealMonsterCardsAndMayPlayEventCards(game: Game, nbCards: numb
         const monsterCards = game.decks.monster.drawSeveral(nbCards);
         data.recordSelection(monsterCards);
         const events = monsterCards.filter(c => c.isEvent);
-        const revealPromises = data.selectMultipleAndRecord(game, game.players.map(p => ({
-            player: p,
-            min: 0,
-            max: 0,
-            options: monsterCards,
-            reason: data.serializedCardAndBox,
-            description: qq("pending.topMonsterDeckRevealed", {value: nbCards}),
-            canUseOnBoardSelection: false,
-        })));
+        const revealPromises = game.cardHandler.reveal(monsterCards, data.serializedCardAndBox, game.players, qq("pending.topMonsterDeckRevealed", {value: nbCards}));
 
         const eventsToPlay = (await data.selectAndRecord(game, data.issuer, 0, Math.min(nbCards, game.encounters.slots.length), events, toSerializedTranslation("pending.cardsToPutInSlot"), data.serializedCardAndBox)).selected;
         for(const event of eventsToPlay)
@@ -494,7 +493,7 @@ export function revealMonsterCardsAndMayPlayEventCards(game: Game, nbCards: numb
         for (let i = 0; i < remaining.length; i++) {
             game.cardHandler.addBottomPosition("monster", remaining[i]!);
         }
-        await revealPromises;
+        await Promise.all(revealPromises);
         return true;
     };
 }
@@ -845,7 +844,7 @@ export function lookAtTopXPut1InSlotEffect(game: Game, x: number): AsyncEffectFu
             return false;
         if (data.issuer instanceof Player === false) return false;
         const deck = data.next;
-        if(!isDeckType(deck._type) || !deck)
+        if(!deck || !isDeckType(deck._type))
             throw new GameError(`Target of lookAtTopXPut1InSlotEffect should be a deck type, got ${deck}`, toSerializedTranslation("error.behaviorError", { error: `Target of lookAtTopXPut1InSlotEffect should be a deck type, got ${deck}`}));
         const topCards = game.decks[deck._type as keyof DecksCollection].cards.slice(0, x);
         
@@ -889,7 +888,7 @@ export function makePlayersLootXEffect(game: Game, x: number, selectionOnResolve
 
 export function getCardFromLootDiscardEffect(cardTxt: string | "top", game: Game, exactMatch: boolean): AsyncEffectFunction {
     return async (data: EffectData) => {
-        const possibilities = game.decks.loot.discard.filter(card => exactMatch ? card.name.toLowerCase() === cardTxt : card.name.toLowerCase().includes(cardTxt));
+        const possibilities = game.decks.loot.discard.filter(card => exactMatch ? card.name.toLowerCase().replaceAll("!", "") === cardTxt : card.name.toLowerCase().includes(cardTxt));
         if(possibilities.length === 0 && cardTxt !== "top") return false;
         const card = cardTxt === "top" ? game.decks.loot.discard[0] :
             (await data.selectAndRecord(game, data.issuer as Player, 1, 1, possibilities, qq("pending.cardToGet"), data.serializedCardAndBox, true, true)).selected[0]!;
@@ -906,7 +905,7 @@ export function lookAtTopXPut1InYourHandRestInAnotherPlayerHandEffect(game: Game
         if (data.issuer instanceof Player === false) return false;
         const topCards = game.cardHandler.getFirstCardsOfDeck("loot", x);
         if (topCards.length === 0) return false;
-        const selectedCard = (await data.selectAndRecord(game, data.issuer, 1, 1, topCards, qq("pending.cardToPutInHand"), data.serializedCardAndBox, true, true)).selected[0]!;
+        const selectedCard = (await data.selectAndRecord(game, data.issuer, 1, 1, topCards, qq("pending.cardToPutInHand"), data.serializedCardAndBox, true, false)).selected[0]!;
         if(!(selectedCard instanceof LootCard))
             throw new GameError("Selected card is not an instance of LootCard.", toSerializedTranslation("error.behaviorError", { error: "Selected card is not an instance of LootCard."}));
         const otherCards = topCards.filter(c => c !== selectedCard);
@@ -1706,26 +1705,30 @@ export function rerollDiceRollXEffect(game: Game, numberOfDice: number): AsyncEf
     };
 }
 
-export function bombInLootDeckEffect(game: Game, numberOfCards: number): SyncEffectFunction {
-    return (data: EffectData) => {
+export function bombInLootDeckEffect(game: Game, numberOfCards: number): AsyncEffectFunction {
+    return async (data: EffectData) => {
         if(data.issuer instanceof Player === false) return false;
         const cards = game.decks.loot.drawSeveral(numberOfCards);
+        const revealPromises = game.cardHandler.reveal(cards, data.serializedCardAndBox);
         const bombCards = cards.filter((card) => card.name.includes("Bomb"));
         const otherCards = cards.filter((card) => !card.name.includes("Bomb"));
         bombCards.forEach((card) => game.cardHandler.addCardToHand(data.issuer as Player, card));
         otherCards.forEach((card) => game.decks.loot.addBottomPosition(card));
+        await Promise.all(revealPromises);
         return true;
     };
 }
 
-export function pillsInLootDeckEffect(game: Game, numberOfCards: number): SyncEffectFunction {
-    return (data: EffectData) => {
+export function pillsInLootDeckEffect(game: Game, numberOfCards: number): AsyncEffectFunction {
+    return async (data: EffectData) => {
         if(data.issuer instanceof Player === false) return false;
         const cards = game.decks.loot.drawSeveral(numberOfCards);
+        const revealPromises = game.cardHandler.reveal(cards, data.serializedCardAndBox);
         const pillsCards = cards.filter((card) => card.name === "Pills!");
         const otherCards = cards.filter((card) => card.name !== "Pills!");
         pillsCards.forEach((card) => game.cardHandler.addCardToHand(data.issuer as Player, card));
         otherCards.forEach((card) => game.decks.loot.addBottomPosition(card));
+        await Promise.all(revealPromises);
         return true;
     };
 }
@@ -1836,7 +1839,7 @@ export function healMonsterThenDamageAnotherEffect(game: Game): AsyncEffectFunct
 export function putRoomOrMonsterIntoDiscardEffect(game: Game, youMay: boolean): AsyncEffectFunction {
     return async (data: EffectData) => {
 
-        const targets = game.monsters.filter((m) => !m.isEngagedInCombat) as any[];
+        const targets: Card[] = game.monsters.filter((m) => !m.isEngagedInCombat).map(m => m.card);
         if(game.rooms !== undefined) {
             targets.push(...game.rooms.activeRooms);
         }
@@ -1848,11 +1851,13 @@ export function putRoomOrMonsterIntoDiscardEffect(game: Game, youMay: boolean): 
             game.cardHandler.discard(target);
             return true;
         }
-        else if(target instanceof Monster) {
-            const index = game.monsters.indexOf(target);
+        else if(target instanceof MonsterCard) {
+            const ent = target.entity as Monster;
+            if(!ent) throw new GameError("Monster card has no associated entity.", toSerializedTranslation("error.monsterNotFoundInGame"));
+            const index = game.monsters.indexOf(ent);
             if(index === -1) throw new GameError("Monster not found in game.", toSerializedTranslation("error.monsterNotFoundInGame"));
 
-            if(!game.encounters.flushMonster(target, "discard"))
+            if(!game.encounters.flushMonster(ent, "discard"))
             {
                 console.log("Failed to flush monster:", target.id);
                 console.log("Current monsters in slots:", game.monsters.map(m => m ? m.card.name : null));
@@ -1910,13 +1915,13 @@ export function destroyYourItemOnYourNextTurnEndEffect(game: Game): SyncEffectFu
         
         offEndTurn = game.emitter.on("on:turn:end", (eventData: OnTurnEndData) => {
             if (eventData.eventIssuer === data.issuer) {
+                offEndTurn?.();
+                offEndTurn = null;
                 const effect: EffectFunction = async (data: EffectData) => {
                     if (data.issuer instanceof Player === false) return false;
                     const item = (await data.selectAndRecord(game, data.issuer as Player, 1, 1, data.issuer.inPlay.filter((card) => card.eternal === false), qq("pending.itemToDestroyAtEndOfTurn"), data.serializedCardAndBox, true, true)).selected[0]!;
-                    const removed = game.cardHandler.destroyCardsOrSouls([item]);
-                    if (offEndTurn) offEndTurn();
-                    offEndTurn = null;
-                    return removed;
+                    if (!item) return false;
+                    return game.cardHandler.destroyCardsOrSouls([item]);
                 };
                 passive.addPassiveEffectToStack(game, effect, data, `Destroy an item at the next end of your turn effect.`);
                 
@@ -1981,9 +1986,7 @@ export type cardDestination =
     | "bottom"
     | "discard";
 
-export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestination, selectionOnResolve:false, reveal: boolean): SyncEffectFunction
-export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestination, selectionOnResolve:boolean, reveal: boolean): AsyncEffectFunction
-export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestination, selectionOnResolve:boolean = false, reveal: boolean = false): EffectFunction {
+export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestination, selectionOnResolve:boolean = false, reveal: boolean = false): AsyncEffectFunction {
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         const deck = selectionOnResolve 
@@ -2001,17 +2004,12 @@ export function lookAtTopCardOfDeckEffect(game: Game, canPutWhere: cardDestinati
             canPutWhere === "just_watch" ? qq("pending.lookAtTopCardOfDeck", {deck: deck.translatedType}) 
             : canPutWhere === "bottom" ? qq("pending.lookAtTopCardOfDeckAndPutOnBottom", {deck: deck.translatedType}) 
                 : qq("pending.lookAtTopCardOfDeckAndDiscard", {deck: deck.translatedType});
-        const selectionResult = reveal
-         ? (await data.selectMultipleAndRecord(game, game.players.map(player => ({
-                player,
-                min: 0,
-                max: (justWatch || player !== data.issuer) ? 0 : 1,
-                options: [topCard!],
-                    reason: data.serializedCardAndBox,
-                description: description,
-                canUseOnBoardSelection: true,
-            })))).find(p => p.playerId === data.issuer.id)!
-        : await data.selectAndRecord(game, data.issuer, 0, justWatch ? 0 : 1, [topCard!], description, data.serializedCardAndBox, false, false);
+        const issuer = data.issuer;
+        const revealPromises = reveal
+            ? game.cardHandler.reveal([topCard!], data.serializedCardAndBox, game.players.filter(p => p !== issuer), qq("pending.cardRevealedFromDeck", {deck: deck.translatedType}))
+            : [];
+        const selectionResult = await data.selectAndRecord(game, issuer, 0, justWatch ? 0 : 1, [topCard!], description, data.serializedCardAndBox, false, reveal);
+        await Promise.all(revealPromises);
         if (selectionResult.selected[0] === topCard) {
         switch (canPutWhere) {
             case "just_watch":
@@ -2097,22 +2095,65 @@ export function changeNumberInEffectTextEffect(game: Game, val: number, min: num
         if(!target || !(target instanceof ItemCard || target instanceof LootCardEffect))
             return false;
         const targetCard = target instanceof ItemCard ? target : target.card;
-        const partialTexts = targetCard.effectOutcomes.flatMap((outcome) => partialsEndingWithNumber1to6(outcome));
-        const selection = (await data.selectAndRecord(game, data.issuer as Player, 1, 1, partialTexts, qq("pending.numberToChange"), data.serializedCardAndBox, true, true)).selected[0];
-        if(!selection || selection.length === 0)
+        const numberChoices = findEffectTextNumbers(targetCard.effectOutcomes)
+            .filter(
+                ({ value }) =>
+                    findValidEffectTextNumberReplacements(
+                        value,
+                        val,
+                        min,
+                        max,
+                    ).length > 0,
+            )
+            .map((occurrence) => new EffectTextNumber(targetCard, occurrence));
+        if(numberChoices.length === 0)
             return false;
-        const num = parseInt(selection.at(-1)!);
-        const possibilities = [...(num > min + val - 1 ? [num - val] : []), ...(num < max + val - 1 ? [num + val] : [])];
-        const newNumber = (await data.selectAndRecord(game, data.issuer as Player, 1, 1, possibilities, qq("pending.newNumber"), data.serializedCardAndBox, true, true)).selected[0] as number;
+        const selectionResult = await data.selectAndRecord(
+            game,
+            data.issuer as Player,
+            1,
+            1,
+            numberChoices,
+            qq("pending.numberToChange"),
+            data.serializedCardAndBox,
+            true,
+            true,
+        );
+        const selection = selectionResult.selected[0];
+        if(!selection)
+            return false;
+        const selectionText = selection.textThroughNumber;
+        const currentValue = selection.value;
+        const possibilities = findValidEffectTextNumberReplacements(
+            currentValue,
+            val,
+            min,
+            max,
+        );
+        const newNumberResult = await data.selectAndRecord(
+            game,
+            data.issuer as Player,
+            1,
+            1,
+            possibilities,
+            qq("pending.newNumber"),
+            data.serializedCardAndBox,
+            true,
+            true,
+        );
+        const newNumber = newNumberResult.selected[0];
+        if(newNumber === undefined)
+            return false;
 
-        const newOutcomes = targetCard.effectOutcomes.map((outcome) => {
-            if(outcome.startsWith(selection)) {
-                return outcome.replace(selection, selection.slice(0, -1) + newNumber.toString());
-            }
-            return outcome;
-        });
+        const newOutcomes = replaceEffectTextNumber(
+            targetCard.effectOutcomes,
+            selection.occurrenceIndex,
+            newNumber,
+        );
         const oldOutcomes = targetCard.effectOutcomes;
         targetCard.effectOutcomes = newOutcomes;
+        const newEffectNumber = {description: selection.textThroughNumber, value: newNumber, occurrenceIndex: selection.occurrenceIndex};
+        targetCard.addEffectTextNumber(newEffectNumber);
         if(targetCard.tags.lastCopiedRestoreOriginalStateIndex !== undefined) {
             for(let i=targetCard.tags.lastCopiedRestoreOriginalStateIndex + 1; i<targetCard.cleaners.length; i++) {
                 targetCard.cleaners[i]!();
@@ -2124,6 +2165,7 @@ export function changeNumberInEffectTextEffect(game: Game, val: number, min: num
             const {originalState, restore} = targetCard.becomesCopyOf(targetCard, (card)=>game.cardHandler.attachEffectsToCard(card, true));
             cleanTarget = (): void => {
                 originalState.effectOutcomes = oldOutcomes;
+                targetCard.removeEffectTextNumber(newEffectNumber);
                 restore();
                 const owner = game.getOwner(targetCard);
                 if(owner !== null)
@@ -2139,17 +2181,26 @@ export function changeNumberInEffectTextEffect(game: Game, val: number, min: num
                 players: [data.issuer.id],
                 });
             game.gainCoins(data.issuer as Player, 15, data.it);
+            targetCard.removeEffectTextNumber(newEffectNumber);
             cleanTarget();
             return true;
         }
         targetCard.onAddInPlay(() => targetCard.owner);
         if(target instanceof LootCardEffect)
         {   
-            const lastSelectionLine = selection.split("\n").at(-1)!.toLowerCase();
+            const lastSelectionLine = selectionText.split("\n").at(-1)!.toLowerCase();
+            const formattedNumber = formatEffectTextNumber(newNumber, selection.format);
+            const updatedSelectionLine = lastSelectionLine.slice(
+                0,
+                -selection.sourceText.length,
+            ) + formattedNumber;
             // Replace target string with updated text when necessary.
-            const newTargets = target.targets.map((t) => (typeof target.targets[0] === "string" && String(t).startsWith(lastSelectionLine)) 
-                ? String(t).replace(lastSelectionLine, lastSelectionLine.slice(0, -1) + newNumber.toString()) 
-                : t);
+            const newTargets = target.targets.map((targetValue) =>
+                typeof targetValue === "string"
+                && targetValue.startsWith(lastSelectionLine)
+                    ? targetValue.replace(lastSelectionLine, updatedSelectionLine)
+                    : targetValue,
+            );
             game.addToStack(new LootCardEffect(target.issuer, target.card, newTargets));
             const oldIndex = game.stack._stack.findIndex((e) => e === target);
             game.stack._stack.at(-1)!.stackId = target.stackId;
@@ -2157,6 +2208,8 @@ export function changeNumberInEffectTextEffect(game: Game, val: number, min: num
             game.stack._stack.pop();
         }
         offEndTurn = game.emitter.on("on:turn:end", () => {
+            offEndTurn?.();
+            offEndTurn = null;
             cleanTarget()
         });
         
@@ -2271,18 +2324,20 @@ export function discardNLootCardsEffect(n: number, game: Game, selectionOnResolv
         if (selectionOnResolve || !toDiscard) 
             toDiscard = (await data.selectAndRecord(game, subject, n, n, subject.hand.cards, 
                 n > 1 ?
-                qq("pending.oneLootToDiscard") :
-                qq("pending.manyLootToDiscard", { lootToDiscard: n }), data.serializedCardAndBox, true, true)).selected as LootCard[];
+                qq("pending.manyLootToDiscard", { lootToDiscard: n }) :
+                qq("pending.oneLootToDiscard"), data.serializedCardAndBox, true, true)).selected as LootCard[];
         else 
             for (let i = 0; i < n; i++) {
                 toDiscard.push(data.next as LootCard);
             }
         // Get indices and sort them in descending order to avoid index shifting
+        if (data.isPayment)
+            data.discardedAsPayment.push(...toDiscard);
         const indices = toDiscard.map(card => subject.hand.cards.indexOf(card)).sort((a, b) => b - a);
         let success = true;
         for (const index of indices) {
             if (index >= 0) {
-                success = success && game.cardHandler.discardFromHandAtIndex(subject, index, "effect");
+                success = success && game.cardHandler.discardFromHandAtIndex(subject, index, data.isPayment ? "paiement" : "effect");
             }
         }
         return success;
@@ -2384,6 +2439,7 @@ export function endTurnAndResetStackEffect(game: Game, onlyIfYourTurn: boolean =
         if(onlyIfYourTurn && game.currentPlayer !== data.issuer) return false;
         game.resetStack();
         game.resetCallbacks();
+        await game.resolveCallbacks(); // finish what already resolved (e.g. a dead monster leaving play) before the turn ends.
         game.currentPlayer.clearAttackRequirement();
         game.actions.cancelPurchase(game.currentPlayer, true);
         game.entityHandler.endCombat();
@@ -2451,7 +2507,8 @@ export function becomesCopyOfEternalItemLosesEternalEffect(game: Game): SyncEffe
         const target = data.next as ItemCard;
         if(!target || !(target instanceof ItemCard))
             throw new GameError("Invalid target for becomesCopyOfEternalItemLosesEternalEffect.", toSerializedTranslation("error.behaviorError", { error: "Invalid target for becomesCopyOfEternalItemLosesEternalEffect."}));
-        if(!game.getOwner(data.it))
+        const owner = game.getOwner(data.it);
+        if(!owner)
             return false;
         data.it.becomesCopyOf(target, (card) => {
             game.cardHandler.attachEffectsToCard(card, true);
@@ -2459,6 +2516,8 @@ export function becomesCopyOfEternalItemLosesEternalEffect(game: Game): SyncEffe
         if(!data.it || !(data.it instanceof ItemCard))
             throw new GameError("Invalid source item for becomesCopyOfEternalItemLosesEternalEffect.", toSerializedTranslation("error.behaviorError", { error: "Invalid source item for becomesCopyOfEternalItemLosesEternalEffect."}));
         data.it.setEternal(false);
+        // Subscribe the copied effects with the current owner
+        data.it.onAddInPlay(() => owner);
         return true;
     };
 }
@@ -2522,8 +2581,8 @@ export function getAttackRollEffect(dice: DiceRoll, game: Game): SyncEffectFunct
             if (!dice.attackData?.missingValues.includes(i + 1)) {
                 game.entityHandler.dealCombatDamage(data.issuer, target, diceRoll, damageDealtMultiplier * (damageDealtAdditional + game.entityHandler.getAttack(data.issuer)));
             } else {
-                    game.entityHandler.dealCombatDamage(target, data.issuer, diceRoll, damageReceivedMultiplier * (damageReceivedAdditional + game.entityHandler.getAttack(target)));
-                    game.emit("on:attack:roll:failed", { eventIssuer: data.issuer, dice: diceRoll });
+                game.entityHandler.dealCombatDamage(target, data.issuer, diceRoll, damageReceivedMultiplier * (damageReceivedAdditional + game.entityHandler.getAttack(target)));
+                game.emit("on:attack:roll:failed", { eventIssuer: data.issuer, dice: diceRoll });
             }
             return true;
         });
@@ -2775,6 +2834,8 @@ export function playerGivesLootCardEffect(game: Game, reveal: boolean = false, a
             game.cardHandler.stealLootCard(data.issuer, targetPlayer, cardToSteal);
             if(addCardToTarget)
                 data.addTarget(cardToSteal);
+            if(reveal)
+                await Promise.all(game.cardHandler.reveal([cardToSteal], data.serializedCardAndBox, game.players.filter(p => p !== targetPlayer)));
         }
         return true;
     };
@@ -2790,27 +2851,22 @@ export function revealTopCardsOfMonsterDeckEffect(
         const monsterCards = game.decks.monster.drawSeveral(n);
         data.recordSelection(monsterCards);
         const curses = monsterCards.filter(c => c.isCurse);
-        const revealPromises = data.selectMultipleAndRecord(game, game.players.filter(p => p !== data.issuer).map(p => ({
-            player: p,
-            min: 0,
-            max: 0,
-            options: monsterCards,
-            reason: data.serializedCardAndBox,
-            description: qq("pending.topMonsterDeckRevealed", {value: n}),
-            canUseOnBoardSelection: false,
-        })));
+        const revealPromises = game.cardHandler.reveal(monsterCards, data.serializedCardAndBox, game.players, qq("pending.topMonsterDeckRevealed", {value: n}));
 
         for (const curse of curses) {
             const target = (await data.selectAndRecord(game, data.issuer, 1, 1, game.players, qq("pending.playerToGiveCurse", { card: curse.nameKey }), data.serializedCardAndBox, true, true)).selected[0] as Player;
             await game.cardHandler.addCurse(target, curse);
         }
         const nonCurseCards = monsterCards.filter(c => !c.isCurse);
-        if(nonCurseCards.length === 0) return true;
+        if(nonCurseCards.length === 0) {
+            await Promise.all(revealPromises);
+            return true;
+        }
         const target = (await data.selectAndRecord(game, data.issuer, nonCurseCards.length, nonCurseCards.length, nonCurseCards, qq("pending.orderRestBottom"), data.serializedCardAndBox, false , false)).selected as MonsterCard[];
         for (let i = 0; i < target.length; i++) {
             game.cardHandler.addBottomPosition("monster", target[i]!);
         }
-        await revealPromises;
+        await Promise.all(revealPromises);
         return true;
     };
 }
@@ -3060,16 +3116,17 @@ export function combineSyncEffectFunctions(effects: SyncEffectFunction[]): SyncE
 export function rechargeCharaEffect(game: Game, youMayEffectHanging: [false]): SyncEffectFunction
 export function rechargeCharaEffect(game: Game, youMayEffectHanging: boolean[]): SyncEffectFunction
 export function rechargeCharaEffect(game: Game, youMayEffectHanging: boolean[]): EffectFunction {
+    const youMay = youMayEffectHanging[0];
+    youMayEffectHanging[0] = false;
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         if (data.issuer.character.charged === false) {
-            const shouldRecharge = !youMayEffectHanging[0] ||
+            const shouldRecharge = !youMay ||
                 (await data.selectAndRecord(game, data.issuer, 0, 1, [data.issuer.character], qq("pending.canRechargeChara"), data.serializedCardAndBox, true, true, false)).selected.length > 0
                 
             if (shouldRecharge)
                 game.cardHandler.recharge(data.issuer.character, data.it);
         }
-        youMayEffectHanging[0] = false;
         return true;
     };
 }
@@ -3140,7 +3197,7 @@ export function rechargeUpToXOtherItemsEffect(game: Game, x: number): SyncEffect
         for(let i = 0; i < x; i++) {
             const next = data.next;
             if(!next || !(next instanceof ItemCard) || !game.visibleItems.includes(next) || next === data.it)
-                break;
+                continue;
             itemsToRecharge.push(next as ItemCard);
         }
         for (const item of itemsToRecharge) {
@@ -3476,22 +3533,37 @@ export function nonActivePlayerHelpFight(game: Game): SyncEffectFunction {
         let offDeclareAttack: (() => void) | null = null;
         let offEndTurn: (() => void) | null = null;
         let offDeath: (() => void) | null = null;
+        let offAttackRoll: (() => void) | null = null;
+        let offCombatEnd: (() => void) | null = null;
+        let attackedEntity: Entity | null = null;
+        const cleanup = (): void => {
+            offDeclareAttack?.();
+            offDeclareAttack = null;
+            offEndTurn?.();
+            offEndTurn = null;
+            offDeath?.();
+            offDeath = null;
+            offAttackRoll?.();
+            offAttackRoll = null;
+            offCombatEnd?.();
+            offCombatEnd = null;
+        };
         offDeclareAttack = game.emitter.on("on:attack:declared", (eventData: OnAttackDeclaredData) => {
             const helper = data.next as Player;
             if(!helper || !(helper instanceof Player))
                 throw new GameError("Player invalid for nonActivePlayerHelpFight", toSerializedTranslation("error.behaviorError", { error: "Player invalid for nonActivePlayerHelpFight"}));
             const newData = new EffectData(data.it, () => helper, [], data.visualEffectBox);
             room.makeAnAttackRollAfterEachAttackRollEffect(game)(newData);
-                    
+
+            // Record the monster attacked by the active player (also covers top-deck attacks).
+            offAttackRoll = game.emitter.on("on:attack:roll", (rollData: OnRollData) => {
+                if (attackedEntity !== null || rollData.eventIssuer !== game.currentPlayer) return;
+                attackedEntity = rollData.dice.attackTarget;
+            });
+            // If that monster dies this attack, regardless of whose roll killed it, the helper also gains the rewards.
             offDeath = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
-                const { eventIssuer, target, source } = eventData;
-                if(game.entitiesInCombat.length === 0)
-                    {
-                        offDeath?.();
-                        offDeath = null;
-                    }
-                if (!(eventIssuer instanceof Monster)) return;
-                if(source instanceof DiceRoll === false || (source as DiceRoll).issuer !== helper) return;
+                const { eventIssuer, target } = eventData;
+                if (!(eventIssuer instanceof Monster) || attackedEntity === null || eventIssuer !== attackedEntity) return;
                 
                 // Add all effects as a single stack element
                 const effect = (effectData: EffectData): boolean => {
@@ -3499,22 +3571,20 @@ export function nonActivePlayerHelpFight(game: Game): SyncEffectFunction {
                     return true;
                 };
                 passive.addPassiveEffectToStack(game, effect, data, `${helper.id} also gains rewards from killing ${target.id}.`);
-                offDeath?.();
-                offDeath = null;
+                cleanup();
+            });
+            // resolveDeath marks the monster dead before ending combat, so a dead monster is handled by offDeath.
+            offCombatEnd = game.emitter.on("on:combat:end", () => {
+                if (attackedEntity !== null && attackedEntity.isDead) return;
+                cleanup();
             });
             offDeclareAttack?.();
             offDeclareAttack = null;
-            offEndTurn?.();
-            offEndTurn = null;
             return true;
         });
+        // Backstop: never outlive the turn.
         offEndTurn = game.emitter.on("on:turn:start", () => {
-            offDeclareAttack?.();
-            offDeclareAttack = null;
-            offEndTurn?.();
-            offEndTurn = null;
-            offDeath?.();
-            offDeath = null;
+            cleanup();
         });
         return true;
     };
@@ -3618,7 +3688,8 @@ export function gainTreasuresEffect(game: Game, amount: number, issuerType: "iss
 
 export function payHealthEffect(game: Game, amount: number): SyncEffectFunction {
     return (data: EffectData) => {
-        return game.entityHandler.healthLoss(data.issuer, data.issuer,data.cardAndBox, amount);
+        if (data.issuer.currentHealthPoints < amount) return false;
+        return game.entityHandler.healthLoss(data.issuer, data.issuer,data.cardAndBox, amount, true, false);
     };
 }
 
@@ -3695,11 +3766,13 @@ export function rechargeUpToXChara(game: Game, x: number): AsyncEffectFunction {
 }
 
 export function addOrRemoveCounterOnCardEffect(game: Game, amount: number, type: "any" | "alreadyOnIt", target: "next" | "selectionOnResolve", youMayEffectHanging: boolean[], targetSelector: TargetsSelector[]=[]): AsyncEffectFunction {
+    const youMay = youMayEffectHanging[0];
+    youMayEffectHanging[0] = false;
     return async (data: EffectData) => {
         if (data.issuer instanceof Player === false) return false;
         if(target === "selectionOnResolve" && targetSelector.length === 0)
             return false;
-        const card = target === "next" ? data.next as Card : (await data.selectAndRecord(game, data.issuer, youMayEffectHanging[0] ? 1 : 0, 1, targetSelector[0]!.selector(data.issuer, data.it), 
+        const card = target === "next" ? data.next as Card : (await data.selectAndRecord(game, data.issuer, youMay ? 0 : 1, 1, targetSelector[0]!.selector(data.issuer, data.it), 
             qq("pending.cardToAddOrRemoveCountersFrom"), data.serializedCardAndBox, true, true)).selected[0] as Card;
         youMayEffectHanging[0] = false;
         if(!card)
@@ -3902,10 +3975,10 @@ export function putMonsterFromUnderThisIntoSlotEffect(game: Game): AsyncEffectFu
         game.decks.monster.addTopPosition(monsterCard);
         await game.encounters.selectValidIndexAndDraw(game, data.issuer, data);
         data.it.tags.underThis = data.it.tags.underThis.filter((c: Card) => c !== monsterCard);
-        const req = [game.monsters.find(m => m.card === monsterCard)!]
-        if(req.length !== 1)
+        const placed = game.monsters.find(m => m.card === monsterCard);
+        if(!placed)
             throw new GameError("Invalid number of monsters found for putMonsterFromUnderThisIntoSlotEffect", toSerializedTranslation("error.behaviorError", { error: "Invalid number of monsters found for putMonsterFromUnderThisIntoSlotEffect"}));
-        game.entityHandler.playerMustAttack(game.currentPlayer, req, data.it, false);
+        game.entityHandler.playerMustAttack(game.currentPlayer, [placed], data.it, false);
         return true;
     };
 }
@@ -3947,10 +4020,10 @@ export function addOrSubtractXFromRollEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         const chosenDiceRoll: DiceRoll = data.next as DiceRoll;
         const value = data.next as number;
-        if (value === 1) 
-            chosenDiceRoll.add(1);
-        else if (value === -1)
-            chosenDiceRoll.subtract(1);
+        if (value > 0) 
+            chosenDiceRoll.add(value);
+        else if (value < 0)
+            chosenDiceRoll.subtract(Math.abs(value));
         return true;
     };
 }
@@ -3999,7 +4072,7 @@ export function eachOtherPlayerLootsGivesYouOneEffect(game: Game, amount: number
         if (data.issuer instanceof Player === false) return false;
         for (const player of game.players) {
             if (player !== data.issuer) {
-                const choice = (await data.selectAndRecord(game, data.issuer, 1, 1, [qq("common.yes"), qq("common.no")], qq("pending.doYouWantToLootCards", { value: amount, player: data.issuer.id }), data.serializedCardAndBox, true, true)).selected[0];
+                const choice = (await data.selectAndRecord(game, player, 1, 1, [qq("common.yes"), qq("common.no")], qq("pending.doYouWantToLootCards", { value: amount, player: data.issuer.id }), data.serializedCardAndBox, true, true)).selected[0];
                 if(choice !== undefined && choice.key === "common.yes")
                 {
                     game.loot(player, amount);
@@ -4142,4 +4215,3 @@ export function thisBecomeSoulGainItEffect(game: Game): SyncEffectFunction {
         return true;
     };
 }
-

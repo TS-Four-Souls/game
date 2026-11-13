@@ -120,6 +120,17 @@ describe("Requiem Rooms", () => {
         expect(room.counters.value("normal")).toBe(1);
     });
 
+    it("social_goals - drawing loot cards does not count as playing them", async () => {
+        const room = game.obtainCard("r-social_goals") as RoomCard;
+        game.rooms?.forceRoomAtSlot(0, room);
+        const loot = game.obtainCard("b2-a_penny")! as LootCard;
+        for(let i = 0; i < 5; i++)
+            game.cardHandler.addCardToHand(player1, game.cardHandler.copyCard(loot) as LootCard);
+        game.loot(player1, 5);
+        await game.actions.resolveStack();
+        expect(room.counters.value("normal")).toBe(0);
+    });
+
     it("social_goals can not be discarded", async () => {
         const room = game.obtainCard("r-social_goals") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
@@ -388,6 +399,28 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         expect(player2.inPlay.length).toBe(2);
     });
+    it("the_mirror 3", async () => {
+        const room = game.obtainCard("r-the_mirror") as RoomCard;
+        expect(room).toBeDefined();
+        game.rooms?.forceRoomAtSlot(0, room);
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player2.currentHealthPoints).toBe(1);
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.endTurn();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        game.entityHandler.kill(player2, game.monsters[0]!, {card: room, visualEffectBox: undefined});
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player2.inPlay.length).toBe(2);
+    });
     it("spider_webs", async () => {
         const room = game.obtainCard("r-spider_webs") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
@@ -535,12 +568,26 @@ describe("Requiem Rooms", () => {
             expect(player1.inPlay[i]!.charged).toBe(false);
     });
 
-    it("laser_eye", async () => {
+    it("laser_eye  don't work on add to hand", async () => {
         game.resetStack();
         const room = game.obtainCard("r-laser_eye") as RoomCard;
         game.rooms?.forceRoomAtSlot(0, room);
         const loot = game.obtainCard("b2-a_penny")! as LootCard;
         game.cardHandler.addCardToHand(player1, loot);
+        game.actions.playCard(player1, 0, []);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.currentHealthPoints).toBe(2);
+    });
+
+    it("laser_eye works on loot", async () => {
+        game.resetStack();
+        const room = game.obtainCard("r-laser_eye") as RoomCard;
+        game.rooms?.forceRoomAtSlot(0, room);
+        const loot = game.obtainCard("b2-a_penny")! as LootCard;
+        game.decks.loot.addTopPosition(loot);
+        game.loot(player1, 1);
         game.actions.playCard(player1, 0, []);
         await game.actions.resolveStack();
         await game.actions.resolveStack();
@@ -957,6 +1004,34 @@ describe("Requiem Rooms", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.inPlay.length).toBe(4);
+    });
+
+    it("Key Master rolls when the discarded loot is chosen while paying", async () => {
+        const room = game.obtainCard("r-key_master") as RoomCard;
+        game.rooms?.forceRoomAtSlot(0, room);
+        game.resetStack();
+        const loot = game.obtainCard("fsp2-gold_key")! as LootCard;
+        game.cardHandler.addCardToHand(player1, loot);
+        const nbItems = player1.inPlay.length;
+        game.random = () => 0.99;
+        // As in a real game: no target is given, the loot to discard is selected during the payment.
+        await game.actions.activateRoom(player1, room, [], 0);
+        expect(player1.hand.cards).not.toContain(loot);
+        await game.resolveEntireStack();
+        expect(player1.inPlay.length).toBe(nbItems + 3);
+    });
+
+    it("Bomb Bum rolls when the discarded loot is chosen while paying", async () => {
+        const room = game.obtainCard("r-bomb_bum") as RoomCard;
+        game.rooms?.forceRoomAtSlot(0, room);
+        game.resetStack();
+        const loot = game.obtainCard("b2-a_penny")! as LootCard;
+        game.cardHandler.addCardToHand(player1, loot);
+        game.random = () => 0.9;
+        await game.actions.activateRoom(player1, room, [], 0);
+        expect(player1.hand.cards).not.toContain(loot);
+        await game.resolveEntireStack();
+        expect(player1.currentHealthPoints).toBe(1);
     });
 
     it("Challenge Room", async () => {

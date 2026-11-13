@@ -7,7 +7,7 @@ import { DamageOnStack, DiceRoll } from "../models/stackElement";
 import { setupStandardTestGame, setupTestGame } from "./testHelpers";
 import { pl } from "zod/locales";
 import { TargetBuilder } from "@/models/targetBuilder";
-import { executeActivateWithIdRequest } from "@/utils/gameRequestHelpers";
+import { executeActivateWithIdRequest, executeResolveRequest } from "@/utils/gameRequestHelpers";
 
 describe("Known bugs that have be corrected", () => {
     let game: Game;
@@ -23,6 +23,25 @@ describe("Known bugs that have be corrected", () => {
     
     // it("", async () => {
     // });
+
+    it("rib of greed with a pay-coins item does not loop between dispatch and state serialization", async () => {
+        game.cardHandler.addInPlay(player1, game.obtainCard("b2-battery_bum") as ItemCard);
+        // The server serializes the state on each dispatch; serializing checks if paid effects can be paid.
+        game.onStateChange.add(() => { game.detailedStateJSON(player1); });
+        const rib = game.obtainCard("r-rib_of_greed") as LootCard;
+        game.cardHandler.addCardToHand(player1, rib);
+        game.actions.playCard(player1, player1.hand.cards.indexOf(rib), []);
+        await game.actions.resolveStack();
+        expect(player1.inPlay.includes(rib)).toBe(true);
+    });
+
+    it("a resolve on an empty stack is not recorded (it would resolve something else on replay)", async () => {
+        expect(game.stack.isEmpty()).toBe(true);
+        const nbResolves = () => game.log.filter((e) => e.type === "Resolve").length;
+        const before = nbResolves();
+        await executeResolveRequest(game, game.currentPlayer);
+        expect(nbResolves()).toBe(before);
+    });
     
     it("The poop can remove damage on stack twice in a row", async () => {
         const c1 = game.obtainCard("b2-the_poop") as ItemCard;
@@ -217,7 +236,7 @@ describe("Known bugs that have be corrected", () => {
         expect(game.decks.monster.discard.length).toBe(1);
     });
     
-    it("taking damages when dead should not softlock", async () => {
+    it("taking damages when dead should not softlock (end combat cancel damage)", async () => {
         const mob = game.monsters[0]!;
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, mob);
@@ -231,6 +250,66 @@ describe("Known bugs that have be corrected", () => {
         expect(game.stack.size).toBe(1);
         expect(game.stack.elements[0]!.json.type).toBe("endOfTurn");
 
+    });
+    
+    it("taking damages when dead should not softlock", async () => {
+        const mob = game.monsters[0]!;
+        game.entityHandler.dealDamage(player1, player1, {card: player1.character!, visualEffectBox: undefined}, 1);
+        game.entityHandler.kill(player1, player1, {card: player1.character!, visualEffectBox: undefined});
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(player1.isDead).toBe(true);
+        expect(game.stack.size).toBe(1);
+        expect(game.stack.elements[0]!.json.type).toBe("endOfTurn");
+
+    });
+
+    it("taking damage after death still triggers fanny pack", async () => {
+        await game.resolveEntireStack();
+        const breakfast = game.obtainCard("b2-breakfast") as ItemCard;
+        const pack = game.obtainCard("b2-fanny_pack") as ItemCard;
+        game.cardHandler.addInPlay(player2, breakfast);
+        game.cardHandler.addInPlay(player2, pack);
+        const source = {card: pack, visualEffectBox: undefined};
+        game.entityHandler.kill(player1, player2, source);
+        await game.actions.resolveStack();
+        expect(player2.isDead).toBe(true);
+        expect(player2.inPlay).toContain(pack);
+        expect(game.decks.treasure.discard).toContain(breakfast);
+
+        const hand = player2.hand.length;
+        game.entityHandler.dealDamage(player1, player2, source, 1);
+        await game.resolveEntireStack();
+        expect(player2.hand.length).toBe(hand + 1);
+        expect(player2.currentHealthPoints).toBe(0);
+        expect(player2.isDead).toBe(true);
+        expect(game.stack.isEmpty()).toBe(true);
+
+        game.entityHandler.dealDamage(player1, player2, source, 0);
+        await game.resolveEntireStack();
+        expect(player2.hand.length).toBe(hand + 1);
+    });
+
+    it("damage already on the stack still resolves after death", async () => {
+        await game.resolveEntireStack();
+        const breakfast = game.obtainCard("b2-breakfast") as ItemCard;
+        const pack = game.obtainCard("b2-fanny_pack") as ItemCard;
+        game.cardHandler.addInPlay(player2, breakfast);
+        game.cardHandler.addInPlay(player2, pack);
+        const source = {card: pack, visualEffectBox: undefined};
+        game.entityHandler.dealDamage(player1, player2, source, 1);
+        game.entityHandler.kill(player1, player2, source);
+        await game.actions.resolveStack();
+        expect(player2.isDead).toBe(true);
+        expect(player2.inPlay).toContain(pack);
+        expect(game.decks.treasure.discard).toContain(breakfast);
+        const hand = player2.hand.length;
+        await game.resolveEntireStack();
+        expect(player2.hand.length).toBe(hand + 1);
+        expect(player2.currentHealthPoints).toBe(0);
+        expect(player2.isDead).toBe(true);
+        expect(game.stack.isEmpty()).toBe(true);
     });
 
     it("can not destroy an item in the discard.", async () => {
@@ -490,6 +569,23 @@ describe("Known bugs that have be corrected", () => {
         expect(game.encounters.visible[0]?.slug).not.toBe(monster.card.slug);
     });
     
+    it("event that ends the turn through broken ankh is discarded, not left in its slot", async () => {
+        const ankh = game.obtainCard("b2-broken_ankh") as LootCard;
+        game.cardHandler.addCardToHand(player1, ankh);
+        game.actions.playCard(player1, player1.hand.length - 1);
+        await game.resolveEntireStack();
+        expect(player1.inPlay).toContain(ankh);
+
+        game.random = () => 0.99; // every roll is a 6: dark chest deals 2 damage, broken ankh prevents death and ends the turn.
+        const darkChest = game.obtainCard("b2-dark_chest_2") as MonsterCard;
+        game.encounters.forceSetMonsterAtSlot(0, darkChest);
+        await game.resolveEntireStack();
+
+        expect(game.currentPlayer).toBe(player2);
+        expect(game.decks.monster.discard).toContain(darkChest);
+        expect(game.encounters.slots.flat()).not.toContain(darkChest);
+    });
+
     it("start of the turn resolve after loot", async () => {
 
         const loot = game.obtainCard("b2-cains_eye") as LootCard;

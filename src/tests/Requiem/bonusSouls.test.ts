@@ -94,6 +94,15 @@ it("Soul of Lust - each time a player kills a monster, put a counter on this. - 
         expect(game.currentPlayer.targetableSouls.map(c => c.slug)).toContain("r-soul_of_pride");
     });
 
+    it("Soul of Pride - the active player gains this soul, even if another player gained the 6th treasure", async () => {
+        ({ game, player1, player2 } = await setupBonusSoulsTestGame("r-soul_of_pride"));
+        expect(game.currentPlayer).toBe(player1);
+        for(let i=0; i<6; i++)
+            game.gainTreasure(player2, 1);
+        expect(player1.targetableSouls.map(c => c.slug)).toContain("r-soul_of_pride");
+        expect(player2.targetableSouls.map(c => c.slug)).not.toContain("r-soul_of_pride");
+    });
+
 it("Soul of Wrath - each time a player dies, put a counter on this. - 6 counters", async () => {
         ({ game, player1, player2 } = await setupBonusSoulsTestGame("r-soul_of_wrath"));
 
@@ -122,6 +131,22 @@ it("Soul of Sloth - the first time a player controls 4 items, the active player 
         }
         
         expect(player2.targetableSouls.map(c => c.slug)).toContain("r-soul_of_sloth");
+    });
+
+    it("Soul of Sloth - the active player chooses, even if another player reached 4 items", async () => {
+        ({ game, player1, player2 } = await setupBonusSoulsTestGame("r-soul_of_sloth"));
+        expect(game.currentPlayer).toBe(player1);
+        const choosers: Player[] = [];
+        game.select = async (player: Player, min: number, max: number, Options: any[]) => {
+            choosers.push(player);
+            return { selected: [Options[0]], remaining: [] } as any;
+        };
+        for(let i=0; i<3; i++) {
+            game.gainTreasure(player2, 1);
+            await game.actions.resolveStack();
+        }
+        expect(choosers).toEqual([player1]);
+        expect(player1.targetableSouls.map(c => c.slug)).toContain("r-soul_of_sloth");
     });
 });
 

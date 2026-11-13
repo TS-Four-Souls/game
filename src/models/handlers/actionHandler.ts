@@ -271,7 +271,7 @@ export class ActionHandler {
     }
     // damageDealt and damageReceived will be increased by the attack
     // of the dealer and receiver respectively in getAttackRollEffect.
-    const attackRollData = new AttackRollData(0, 1, 0, 1, this.game.entityHandler.getDC(target), target);
+    const attackRollData = new AttackRollData(0, 1, 0, 1, () => this.game.entityHandler.getDC(target), target);
     const dice = this.game.rollDice(player, attackRollData);
   }
 
@@ -648,6 +648,7 @@ export class ActionHandler {
         eventIssuer: player,
         price: price,
         index: index,
+        card: purchasedCard,
       });
       player.purchaseEnded();
       this.game.dispatch();

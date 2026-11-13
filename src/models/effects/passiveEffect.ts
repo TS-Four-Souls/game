@@ -624,14 +624,24 @@ export function cancelLootCardThatTargetsYouEffect(game: Game): SyncEffectFuncti
             if (data.issuer === eventIssuer) return;
             if (asBeenUsedThisTurn) return;
             if (!targets.some(target => target.id === data.issuer?.id || (target instanceof Card && game.getOwner(target) === data.issuer))) return;
-            const effect: EffectFunction = (effectData: EffectData) => {
+            const effect = async (effectData: EffectData): Promise<boolean> => {
                 const element = game.stack.elements.find(el => el.stackId === stackId);
                 if(element === undefined) return false;
+                if (!(effectData.issuer instanceof Player)) return false;
+                // "you may cancel it"
+                const selection = await effectData.selectAndRecord(game, effectData.issuer, 0, 1, [data.it], toSerializedTranslation("pending.useItemEffect", { card: data.it.nameKey }), data.serializedCardAndBox, false, true, false);
+                if (selection.selected.length === 0) return false;
                 game.cancelStackElement(element);
                 return true;
             }
             addPassiveEffectToStack(game, effect, data, "Cancel the first loot card that targets you each turn.");
             asBeenUsedThisTurn = true;
+        });
+        data.it.cleaners.push(() => {
+            offLoot?.();
+            offLoot = null;
+            offTurnEnd?.();
+            offTurnEnd = null;
         });
         return true;
     };
@@ -653,6 +663,7 @@ export function interceptFirstGainCoinYourTurnEffect(effectFunctions: EffectFunc
         let active = true;
         offDamage = game.emitter.on("on:coin:gained", ({ eventIssuer, coinGained }) => {
             if (data.issuer !== eventIssuer) return;
+            if (game.currentPlayer !== data.issuer) return;
             if(!active) return;
             if(coinGained[0]! <= 0) return;
             active = false;
@@ -801,15 +812,19 @@ export function rollAndMayChangeNextRollForThis(game: Game): SyncParsedEffect {
                     }
                     addPassiveEffectToStack(game, effect, data, "Choose the result of this dice roll.");
                     offRoll!();
+                    offRoll = null;
                     offEndTurn!();
+                    offEndTurn = null;
                 });
                 return true;
             };
             savedRoll.attachEffect(effect, data.it, data.targets, data.issuer);
 
             offEndTurn = game.emitter.on("on:turn:end", ({ eventIssuer }) => {
-                offRoll!();
-                offEndTurn!();
+                offRoll?.();
+                offRoll = null;
+                offEndTurn?.();
+                offEndTurn = null;
             });
             return true;
         }, targetSelectors: []
@@ -869,7 +884,7 @@ export function cancelNextDeathOfAPlayer(game: Game, description: string): Async
     return async (data: EffectData) => {
         const target = data.next;
 
-        if(game.entityHandler.preventDeath(target))
+        if(game.entityHandler.preventDeath(target) && game.currentPlayer === target)
         {
             await active.endTurnAndResetStackEffect(game)(data);
             return true;
@@ -912,7 +927,7 @@ export function chooseMonsterWhenAnotherPlayerAttacksMonsterEffect(game: Game): 
         offAttack = game.emitter.on("on:attack:declared:monster", ({ eventIssuer, monster }) => {
             if (eventIssuer === data.issuer) return;
             const effect: EffectFunction = async (effectData: EffectData) => {
-                const monsters = game.encounters.monsters.filter(m => game.actions.canDeclareAttackOnEntity(eventIssuer, m, false));
+                const monsters = game.encounters.monsters.filter(m => game.actions.canDeclareAttackOnEntity(eventIssuer, m, false) === true);
                 if(monsters.length === 0) return false;
                 if(!data.issuer || !(data.issuer instanceof Player))
                     throw new GameError("chooseMonsterWhenAnotherPlayerAttacksMonsterEffect issuer should be a player.", toSerializedTranslation("error.behaviorError", {error: "chooseMonsterWhenAnotherPlayerAttacksMonsterEffect issuer should be a player."}));
@@ -1283,12 +1298,8 @@ export function attackRollCountsAsMissEffect(game: Game, rollValues: number[]): 
             const { eventIssuer, dice } = eventData;
             if (eventIssuer !== data.issuer) return;
             if(dice.attackData === null) return;
-            for (const value of rollValues) {
-                if(!dice.attackData.missingValues.includes(value))
-                {
-                    dice.attackData.missingValues.push(value);
-                }
-            }
+            for (const value of rollValues)
+                dice.attackData.forcedMisses.add(value);
         });
         data.it.cleaners.push(() => {
             offAttackRoll?.();
@@ -1460,7 +1471,7 @@ export function firstAttackRollStatModifierEffect(
             if (data.issuer !== eventIssuer) return;
             dice.additionalDamageDealt += damageDealtModifier;
             dice.additionalDamageReceived += damageReceivedModifier;
-            dice.evasion += evasionModifier;
+            dice.additionalEvasionModifier(evasionModifier);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -2111,6 +2122,7 @@ export function statModifierBasedOnCountersEffect(game: Game,
         let offCounterModifier: (() => void) | null = null;
         offCounterModifier = game.emitter.on("on:counter:modified", ({ eventIssuer, receiver, counterName, previousValue, newValue }) => {
             if(receiver !== data.it) return;
+            if(counterName !== "normal") return;
             const toAdd = Math.floor(newValue / countersPerModifier) - Math.floor(previousValue / countersPerModifier);
             if(toAdd === 0) return;
             for (const adder of adders) {
@@ -2162,7 +2174,7 @@ export function maxHandSizeEffect(game: Game, newMaxHandSize:number): SyncEffect
     }
 }
 
-export function rechargeOneDuringRechargeStepEffect(game: Game, nb: number, target: "mostsouls" | "issuer"): SyncEffectFunction {
+export function rechargeOneDuringRechargeStepEffect(game: Game, nb: number, target: "mostitems" | "issuer"): SyncEffectFunction {
     return (data: EffectData) => {
         let offBeforeRechargeStep: (() => void) | null = null;
         offBeforeRechargeStep = game.emitter.on("on:turn:start:before:recharge:step", ({ eventIssuer, itemsToRecharge }) => {
@@ -2171,14 +2183,15 @@ export function rechargeOneDuringRechargeStepEffect(game: Game, nb: number, targ
                 throw new GameError("rechargeOneDuringRechargeStepEffect can only be applied to Players.", toSerializedTranslation("error.behaviorError", {error: "rechargeOneDuringRechargeStepEffect can only be applied to Players."}));
             }
             if(target === "issuer" && issuer !== data.issuer) return;
+            if(target === "mostitems" && issuer.inPlay.length !== Math.max(...game.players.map(p => p.inPlay.length))) return;
             if (itemsToRecharge.length === 0) return;
 
             const currentOptions = [...itemsToRecharge];
             const effect = async (effectData: EffectData): Promise<boolean> => {
-                const selected = (await data.selectAndRecord(game, issuer, 0, nb, currentOptions, toSerializedTranslation("pending.itemToRecharge"), data.serializedCardAndBox, true, true)).selected[0]!;
-                if (selected) {
-                    itemsToRecharge.splice(0, itemsToRecharge.length, selected);
-                }
+                // The limit always applies: exactly min(nb, options) items are recharged.
+                const toPick = Math.min(nb, currentOptions.length);
+                const selected = (await data.selectAndRecord(game, issuer, 0, toPick, currentOptions, toSerializedTranslation("pending.itemToRecharge"), data.serializedCardAndBox, false, true)).selected;
+                itemsToRecharge.splice(0, itemsToRecharge.length, ...selected.slice(0, toPick));
                 return true;
             }
             addPassiveEffectToStack(game, effect, data, `Recharge only one of your items during the recharge step.`);
@@ -2261,9 +2274,10 @@ export function onAnyEventEffect(
         offDamage = game.emitter.on(triggerEvent, (eventData) => {
             const eventIssuer = eventData.eventIssuer;
             if(!condition(data, eventData)) return;
-            if (issuerIsEventIssuer && eventIssuer && eventIssuer instanceof Entity) {
-                data.issuerProvider = (): Entity => eventIssuer;
-            }
+            // Each trigger gets its own data so the card's issuer is not overwritten.
+            const triggerData = issuerIsEventIssuer && eventIssuer instanceof Entity
+                ? data.withIssuer((): Entity => eventIssuer)
+                : data;
             
             // Add all effects as a single stack element
             const effect = async (effectData: EffectData): Promise<boolean> => {
@@ -2273,7 +2287,7 @@ export function onAnyEventEffect(
                 return true;
             };
             if(effectFunctions.length > 0)
-                addPassiveEffectToStack(game, effect, data, description);
+                addPassiveEffectToStack(game, effect, triggerData, description);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -2308,11 +2322,8 @@ export function copyAbilitiesFromGoldCounterItemsEffect(game: Game): SyncEffectF
             else if(newValue === 0 && previousValue > 0) {
                 const copiedCards = (data.it.tags.copiedCards as ItemCard[] | undefined) ?? [];
                 const toRemove = copiedCards.find(c => c.tags.copiedFrom === receiver);
-                if (toRemove) {
-                    toRemove.parentCard = null;
-                    toRemove.cleanup();
-                    data.it.tags.copiedCards = copiedCards.filter(c => c !== toRemove);
-                }
+                if (toRemove)
+                    game.cardHandler.removeGainedAbilities(toRemove);
             }
         });
 
@@ -2474,6 +2485,7 @@ export function soulDiffDCModifierOnYourTurnEffect(game: Game): SyncEffectFuncti
 
         offGainSoul = game.emitter.on("on:soul:gained", ({ eventIssuer }) => {
             if(!(data.issuer instanceof Player)) return;
+            if(game.currentPlayer !== data.issuer) return;
             const newDiff = Math.max(...game.players.map((p) => p.totalSouls)) - data.issuer.totalSouls;
             if(newDiff !== diff) {
                 game.entityHandler.addDCToEachMonster(data.issuer, - newDiff + diff, data.it);
@@ -2492,6 +2504,9 @@ export function soulDiffDCModifierOnYourTurnEffect(game: Game): SyncEffectFuncti
             diff = 0;
         });
         data.it.cleaners.push(() => {
+            // Revert the active DC modifier, if any
+            if(diff !== 0) game.entityHandler.addDCToEachMonster(data.issuer, diff, data.it);
+            diff = 0;
             offTurn?.();
             offTurn = null;
             offEndTurn?.();
@@ -2526,8 +2541,7 @@ export function gainAbilitiesUntilEffect(game: Game, triggerEvent: TriggerEvent,
         offTrigger = game.emitter.on(triggerEvent, (eventData: any) => {
             if (data.issuer !== eventData.eventIssuer) return;
             // console.log("Cleaning up gainAbilitiesUntilEffect for", data.it.name);
-            data.it.tags.copiedCards  = (data.it.tags.copiedCards as ItemCard[]).filter((c) => c !== copiedRef && c.activeEffectList.length > 0);
-            copiedRef.cleanup();
+            game.cardHandler.removeGainedAbilities(copiedRef);
             offTrigger?.();
             offTrigger = null;
         });
@@ -2906,7 +2920,6 @@ export function preventDamageAndDealDmgOnPreventEffect(prevent: number, deal: nu
                     const current = damageOnStack.damage[0] ?? 0;
                     const prevented = Math.min(current, prevent);
                     damageOnStack.damage[0] = current - prevented;
-                    prevent -= prevented;
                     const effect = async (data: EffectData): Promise<boolean> => {
                         if( prevented <= 0) return false;
                         if (!(data.issuer instanceof Player)) return false;
@@ -3210,6 +3223,7 @@ export function monstersYouAttackModifiers(game: Game, modifier: number): SyncEf
         let offDeclareAttack: (() => void) | null = null;
         let offEndTurn: (() => void) | null = null;
         offDeclareAttack = game.emitter.on("on:attack:declared:monster", (eventData: OnAttackDeclaredMonsterData) => {
+            if (eventData.eventIssuer !== data.issuer) return;
             const newData = new EffectData(data.it, data.issuerProvider, [eventData.monster[0]]);
             temporaryStatModifierEffect([game.entityHandler.addDC.bind(game)], modifier, game, "next")(newData);
         });
@@ -3291,10 +3305,9 @@ export function lootStepEffect(
         offDamage = game.emitter.on("on:loot:step", (eventData: OnLootStepData) => {
             const { eventIssuer } = eventData;
             if (!anyPlayer && data.issuer !== eventIssuer) return;
-            if(anyPlayer)
-                data.issuerProvider = (): Entity => eventIssuer;
+            const triggerData = anyPlayer ? data.withIssuer((): Entity => eventIssuer) : data;
             for (const func of effectFunctions)
-                func(data);
+                func(triggerData);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -3472,9 +3485,9 @@ export function onAttackingPlayerRollEffect(
             // Only trigger for attack rolls with specified values
             if (rollValues.includes(dice.value)) {
                 // Create the effect that will execute when the stack resolves
-                const copyData = data;
-                if(diceIssuerIssueTheEvent && dice.issuer !== undefined)
-                    copyData.issuerProvider = (): Entity => dice.issuer;
+                const copyData = diceIssuerIssueTheEvent && dice.issuer !== undefined
+                    ? data.withIssuer((): Entity => dice.issuer)
+                    : data;
                 const stackEffect = async (effectData: EffectData): Promise<boolean> => {
                     return effect(effectData);
                 };

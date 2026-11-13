@@ -153,11 +153,18 @@ export interface OnSoulGainedOrRemovedData {
   soul: Card | null;
 }
 
+/** Data emitted when a character is set */
+export interface OnCharacterSetData {
+  eventIssuer: Player;
+  previousCharacter: Card | null;
+}
+
 /** Data emitted when a purchase is successful */
 export interface OnPurchaseSuccessData {
   eventIssuer: Player;
   price: number;
   index: number | "top";
+  card: Card;
 }
 
 /** Data emitted when a purchase is declared */
@@ -193,11 +200,17 @@ export interface OnItemGainedData {
   amount: number;
 }
 
+/** Data emitted after an item drawn from the treasure deck entered play (given or stolen items are not gained). */
+export interface OnItemGainedAfterData {
+  eventIssuer: Player;
+  card: Card;
+}
+
 /** Data emitted when a player would have to discard loot cards (can be modified) */
 export interface OnLootWouldDiscardData {
   eventIssuer: Player;
   indice: number[];
-  reason: "death" | "effect" | "overload" | "other";
+  reason: "death" | "effect" | "paiement" | "overload" | "other";
 }
 
 /** Data emitted when a player gains coins */
@@ -397,9 +410,11 @@ export interface TriggerEventDataMap {
   "on:dice:being-rolled": OnDiceBeingRolledData;
   "on:dice:would-roll": OnDiceWouldRollData;
   "on:dice:resolved": OnRollData;
+  "as:turn:start": OnTurnStartData; // on turn start but before.
   "on:turn:start": OnTurnStartData;
   "on:counter:modified": OnCounterModifiedData;
   "on:turn:start:before:recharge:step": OnBeforeRechargeStepData;
+  "as:turn:end": OnTurnEndData; // on turn end but before.
   "on:turn:end": OnTurnEndData;
   "till:turn:end": OnTurnEndData;
   "on:loot:step": OnLootStepData;
@@ -421,6 +436,7 @@ export interface TriggerEventDataMap {
   "on:loot:played": OnLootPlayedData;
   "on:game:start:before": OnGameStartBeforeData;
   "on:game:start": OnGameStartData;
+  "on:character:set": OnCharacterSetData;
   "on:soul:gained": OnSoulGainedOrRemovedData;
   "on:soul:gained:before": OnSoulGainedOrRemovedData;
   "on:soul:removed": OnSoulGainedOrRemovedData;
@@ -429,6 +445,7 @@ export interface TriggerEventDataMap {
   "on:purchase:declared": OnPurchaseDeclaredData;
   "on:recharge": OnRechargeData;
   "on:item:gained": OnItemGainedData;
+  "on:item:gained:after": OnItemGainedAfterData;
   "on:card:discarded:before": OnCardDiscardBeforeData;
   "on:death:rewards": OnDeathRewardsData;
 }

@@ -61,25 +61,39 @@ export class AttackRollData {
   damageDealtMultiplier: number;
   damageReceivedAdditional: number;
   damageReceivedMultiplier: number;
-  evasion: number;
+  /** Points to the target's current DC, so DC changes made in response to the roll apply. */
+  private readonly _dc: () => number;
+  /** Modifiers applying to this roll only (e.g. "your first attack roll gets -1 DC"). */
+  evasionModifier: number = 0;
   target: Entity;
-  missingValues: number[] = [];
+  /** Roll values that miss regardless of the DC (e.g. "attack rolls of 1 count as a miss"). */
+  forcedMisses: Set<number> = new Set();
+  /** Roll values that hit regardless of the DC (e.g. "attack rolls of 1 against this count as a hit"). */
+  forcedHits: Set<number> = new Set();
   
   constructor(
     damageDealtAdditional: number,
     damageDealtMultiplier: number,
     damageReceivedAdditional: number,
     damageReceivedMultiplier: number,
-    evasion: number,
+    dc: number | (() => number),
     target: Entity
   ) {
     this.damageDealtAdditional = damageDealtAdditional;
     this.damageDealtMultiplier = damageDealtMultiplier;
     this.damageReceivedAdditional = damageReceivedAdditional;
     this.damageReceivedMultiplier = damageReceivedMultiplier;
-    this.evasion = evasion;
+    this._dc = typeof dc === "number" ? () => dc : dc;
     this.target = target;
-    this.missingValues = Array.from({ length: evasion-1 }, (_, i) => i + 1);
+  }
+
+  get evasion(): number {
+    return this._dc() + this.evasionModifier;
+  }
+
+  /** Roll values that miss, computed from the current DC so DC changes made in response to the roll apply. */
+  get missingValues(): number[] {
+    return [1, 2, 3, 4, 5, 6].filter(v => this.forcedMisses.has(v) || (!this.forcedHits.has(v) && v < this.evasion));
   }
 }
 
@@ -220,9 +234,13 @@ export class DiceRoll extends StackElement {
     if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
     return this._attackRollData!.evasion;
   }
-  set evasion(value: number) {
+  // set evasion(value: number) {
+  //   if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
+  //   this._attackRollData!.evasionModifier += value - this._attackRollData!.evasion;
+  // }
+  additionalEvasionModifier(value: number) {
     if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
-    this._attackRollData!.evasion = value;
+    this._attackRollData!.evasionModifier += value;
   }
   get attackTarget(): Entity {
     if(!this._attackRollData) throw new GameError("No attack roll data available.", toSerializedTranslation("error.behaviorError", { error: "No attack roll data available." }));
@@ -274,7 +292,7 @@ export class DiceRoll extends StackElement {
     this.value = this.value + modifier;
   }
   subtract(modifier: number): void {
-    if (modifier < 0) {
+    if (modifier < 0 || typeof modifier !== "number") {
       throw new GameError("Modifier must be positive", toSerializedTranslation("error.modifierMustBePositive"));
     }
     this.value = this.value - modifier;

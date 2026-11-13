@@ -134,9 +134,9 @@ export abstract class Slots<T extends Card> {
      */
     draw(position: number) : void {
         const card = this._deck.draw();
-        card.owner = undefined;
         if(card === undefined)
             throw new GameError(`Cannot draw card from deck for slot ${position}.`, toSerializedTranslation("error.behaviorError", {error: `Cannot draw card from deck for slot ${position}.`}));
+        card.owner = undefined;
         this._slots[position]!.push(card);
     }
 
@@ -183,7 +183,8 @@ export abstract class Slots<T extends Card> {
     discardTop(index: number) : void {
         if (index >= 0) {
             const card = this.removeTop(index);
-            this._deck.addDiscardTop(card!);
+            if (card !== undefined)
+                this._deck.addDiscardTop(card);
         }
     }
     
@@ -210,12 +211,15 @@ export abstract class Slots<T extends Card> {
         this.fillEmptySpots();
     }
     /**
-     * Flushes all top cards from all slots and refills, then draws a new card on top of each non refilled slot.
+     * Discards the top card of each slot and replaces it with the top card of the deck.
+     * Empty slots are refilled by discardTop; slots that revealed a covered card get a new card drawn on top.
      */
     flushAndDraw(): void {
-        this.flush();
-        for (let i = 0; i < this._slots.length; i++) {
-            if(this._slots[i]!.length > 1)
+        const nbSlots = this._slots.length;
+        for (let i = 0; i < nbSlots; i++) {
+            const covered = this._slots[i]!.length > 1;
+            this.discardTop(i);
+            if (covered)
                 this.draw(i);
         }
     }

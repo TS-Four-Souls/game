@@ -88,13 +88,16 @@ export class Shop extends Slots<TreasureCard> {
     purchase(player: Player, index: number | "top", price: number, game: Game): boolean {
         if (index === "top")
             return this.purchaseTopDeck(player, price, game);
+        const card = this.itemsInShop[index];
+        if (card === undefined)
+            throw new GameError(`Cannot purchase from shop slot ${index}, it is empty. The deck has ${this._deck.cards.length} cards left.`
+            , toSerializedTranslation("error.behaviorError", {error: `Cannot purchase from shop slot ${index}, it is empty. The deck has ${this._deck.cards.length} cards left.`}));
         if (game.loseCoins(player, price, false, "purchase") === price) {
-            if (this.itemsInShop[index] === undefined)
-                throw new GameError(`Cannot purchase from shop slot ${index}, it is empty. The deck has ${this._deck.cards.length} cards left.`
-                , toSerializedTranslation("error.behaviorError", {error: `Cannot purchase from shop slot ${index}, it is empty. The deck has ${this._deck.cards.length} cards left.`}));
-            game.cardHandler.addInPlay(player, this.itemsInShop[index]);
-            player.purchase( this.itemsInShop[index], "shop");
-            this._slots[index]?.pop();
+            // Take the card out of the shop before it enters play, so enter-play listeners see a consistent shop.
+            const slot = this._slots[index]!;
+            slot.splice(slot.lastIndexOf(card), 1);
+            game.cardHandler.addInPlay(player, card);
+            player.purchase(card, "shop");
             this.fillEmptySpots();
             return true;
         }

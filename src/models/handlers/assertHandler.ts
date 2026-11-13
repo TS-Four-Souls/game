@@ -104,7 +104,7 @@ export class AssertHandler {
   }
 
   emptyStack(shouldThrow: boolean = true): Capability {
-    if (!this.game.stack.isEmpty()) {
+    if (!this.game.stack.isEmpty() || this.game.hasPendingSelections) {
       if (shouldThrow) {
         throw new GameError(`Stack is not empty.`, toSerializedTranslation("error.stackIsNotEmpty"));
       }

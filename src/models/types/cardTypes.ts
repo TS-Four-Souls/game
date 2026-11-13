@@ -35,6 +35,10 @@ export class EffectData {
     private _nextIndex: number = 0;
     private _VisualEffectBoxes: VisualEffectBox | undefined;
     private _dice: DiceRoll | undefined;
+    /** True while the payment part of a paid effect is executed. */
+    isPayment: boolean = false;
+    /** Loot cards discarded to pay this effect, for effects that depend on them (e.g. Bomb Bum, Key Master). */
+    discardedAsPayment: LootCard[] = [];
 
     constructor(it: Card, issuerProvider: () => Entity, targets: any[], visualEffectBox: VisualEffectBox | undefined = undefined, dice: DiceRoll | undefined = undefined) {
         this.it = it;
@@ -64,6 +68,13 @@ export class EffectData {
     }
     get issuerProvider(): () => Entity {
         return this._issuerProvider;
+    }
+
+    /** Returns a copy of this data with a different issuer, leaving this one untouched. */
+    withIssuer(issuerProvider: () => Entity): EffectData {
+        const copy = new EffectData(this.it, issuerProvider, [...this._targets], this._VisualEffectBoxes);
+        copy._nextIndex = this._nextIndex;
+        return copy;
     }
 
     get targets(): any[] {

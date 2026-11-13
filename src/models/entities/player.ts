@@ -340,12 +340,14 @@ export class Player extends Entity {
     if(elem === this)
       return toSerializedTranslation("capability.cannotAttackSelf");
     if(elem !== "topDeck" && !elem.attackable) return toSerializedTranslation("capability.unattackable");
-    if (this._mustAttackEntity.length > 0)
+    // Requirements with checkAttackRemaining only apply while the player still has attacks left.
+    const activeRequirements = this._mustAttackEntity.filter(req => req.checkAttackRemaining === false || this.attackThisTurn > 0);
+    if (activeRequirements.length > 0)
     {
-      const requirements = this._mustAttackEntity.some(
-          req => req.targets === elem 
-          || (Array.isArray(req.targets) && elem instanceof Entity && req.targets.includes(elem))) 
-          || this._mustAttackEntity.every(req => req.targets === "any"); // Must be in the list
+      const requirements = activeRequirements.some(
+          req => req.targets === elem
+          || (Array.isArray(req.targets) && elem instanceof Entity && req.targets.includes(elem)))
+          || activeRequirements.every(req => req.targets === "any"); // Must be in the list
       if(requirements !== true){
         return toSerializedTranslation("capability.attackRequirements");
         // + You must attack ${this._mustAttackEntity.map(req => req.targets instanceof Array ? req.targets[0]!.card.name : req.targets).join(", ")}.`;
@@ -360,7 +362,7 @@ export class Player extends Entity {
     if (freeAttack === false)
     {
       if(this.mayAttackForFree.length > 0)
-        return toSerializedTranslation("capability.freeAttackOnlyFor", { cardArray: this.mayAttackForFree.map(e => e instanceof Entity ? e.card.nameKey : {key: "common.theTopDeck"}).join(", ") });
+        return toSerializedTranslation("capability.freeAttackOnlyFor", { cardArray: this.mayAttackForFree.map(e => e.target instanceof Entity ? e.target.card.nameKey : {key: "common.theTopDeck"}) });
       
       return toSerializedTranslation("capability.noAttacksRemainingForPlayer");
     }
@@ -395,6 +397,11 @@ export class Player extends Entity {
     if (index !== -1) {
       this._mustAttackEntity.splice(index, 1);
     }
+  }
+
+  /** Remove one exact requirement object from the must-attack list. */
+  removeAttackRequirement(requirement: AttackRequirement): void {
+    this._mustAttackEntity = this._mustAttackEntity.filter(req => req !== requirement);
   }
 
   /**
@@ -526,7 +533,7 @@ export class Player extends Entity {
       this._animations = [];
       return animations;
     }
-    return this._animations;
+    return [...this._animations];
   }
 
   get canIUseLootThisTurn(): boolean {
@@ -713,6 +720,10 @@ export class Player extends Entity {
 
   set character(card: CharacterCard){
     this._character = card;
+  }
+
+  get hasCharacter(): boolean {
+    return this._character !== undefined;
   }
 
   override get card(): CharacterCard{

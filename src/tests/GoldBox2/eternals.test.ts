@@ -149,9 +149,41 @@ describe("Gold Box 2 Eternal Items", () => {
         game.cardHandler.recharge(eternal);
         await game.activateItem(player1, eternal, [player2]);
         await game.actions.resolveStack();
-        game.entityHandler.kill(player2, player1, {card: eternal, visualEffectBox: undefined});
+        game.entityHandler.kill(player2, player2, {card: eternal, visualEffectBox: undefined});
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(game.currentPlayer === player1).toBe(true);
+    });
+    
+    it("g2-holy_mantle dont skip turn if not current player activation after death", async () => {
+        const setup = await setupTestGame({
+                    characters: ["g2-the_lost", "b2-lilith"],
+                    monsters: ["b2-fly", "b2-fatty"],
+                    monsterDeck: ["b2-red_host", "b2-pooter", "b2-gurdy"],
+                    treasureDeck: ["b2-blank_card"],
+                    playerCount: 2
+                });
+        game = setup.game;
+        player1 = setup.player1;
+        player2 = setup.player2!;
+        const eternal = player1.inPlay[0]!;
+        expect(player1.character!.slug).toBe("g2-the_lost");
+        expect(eternal.slug).toBe("g2-holy_mantle");
+
+        await game.endTurn();
+        await game.resolveEntireStack();
+        expect(game.currentPlayer === player2).toBe(true);
+        game.cardHandler.recharge(eternal);
+        game.entityHandler.kill(player2, player1, {card: eternal, visualEffectBox: undefined});
+        await game.activateItem(player1, eternal, [player1]);
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        expect(game.currentPlayer === player2).toBe(true);
     });
     
     it("g2-holy_mantle", async () => {
