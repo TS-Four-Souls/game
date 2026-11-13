@@ -1013,7 +1013,10 @@ export function onDeathChoosePlayerToDieEffect(game: Game): SyncEffectFunction {
             const { eventIssuer, target, source } = eventData;
             const effect= async (effectData: EffectData): Promise<boolean> => {
                 const player = game.currentPlayer as Player;
-                const targetSelection = await data.selectAndRecord(game, player, 1, 1, game.players, toSerializedTranslation("pending.playerToKill"), data.serializedCardAndBox, true, true);
+                // "another player": only living players other than the chooser.
+                const candidates = game.players.filter(p => p !== player && !p.isDead);
+                if(candidates.length === 0) return true;
+                const targetSelection = await data.selectAndRecord(game, player, 1, 1, candidates, toSerializedTranslation("pending.playerToKill"), data.serializedCardAndBox, true, true);
                 const targetPlayer = targetSelection.selected[0] as Player;
                 if(!targetPlayer){
                     throw new GameError("No player selected for onDeathChoosePlayerToDieEffect.",
