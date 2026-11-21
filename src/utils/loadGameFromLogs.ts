@@ -1,328 +1,143 @@
-import { ItemCard, LootCard, MonsterCard } from "@/models/cards";
-import { TargetBuilder } from "@/models/targetBuilder";
 import { Game } from "@/models/game";
 import { GameError } from "@/models/GameError";
 import {
   type HistoricEntry,
+  type PrivateData,
   type UserRequest,
   isStackElementJson,
 } from "@/models/handlers/historyHandler";
-import { type DetailedState, type IdentifierType, type Issuer, type SerializedTranslation } from "@/shared/api";
-import { Player } from "../models/entities/player";
+import { TargetBuilder } from "@/models/targetBuilder";
+import type { DetailedState } from "@/shared/api";
 import * as helper from "@/utils/gameRequestHelpers";
 import { toSerializedTranslation } from "./translation";
+
+type SubmitSelectionEntry = Extract<UserRequest, { type: "SubmitSelection" }>;
+type RandomSeedEntry = Extract<PrivateData, { type: "randomSeed" }>;
+
+/** Recorded requests that don't change the game: the replay skips them. */
+const IGNORED_REQUESTS: ReadonlySet<string> = new Set<string>([
+  "CreateRoom", "JoinRoom", "LeaveRoom", "Join", "Rejoin", "IsGameOngoing", "LoadGame",
+  "DebugListCardsICanRemove", "DebugListMonsterDeck", "DebugListTreasure", "DebugListLoot", "DebugListDices",
+] satisfies UserRequest["type"][]);
+
+const MAX_REPORTED_DIFFERENCES = 25;
 
 function isObject(value: unknown): value is Record<string, any> {
   return typeof value === "object" && value !== null;
 }
 
-function isPrivateEntry(
-  entry: unknown,
-): entry is Extract<HistoricEntry, { private: true }> {
+function isPrivateEntry(entry: unknown): entry is PrivateData {
   return isObject(entry) && entry.private === true && typeof entry.type === "string";
 }
 
 function isUserRequestEntry(entry: HistoricEntry): entry is UserRequest {
-  return (
-    isObject(entry) &&
-    !isPrivateEntry(entry) &&
-    typeof entry.type === "string" &&
-    isStackElementJson(entry) === false
-  );
+  return isObject(entry) && !isPrivateEntry(entry) && typeof entry.type === "string" && !isStackElementJson(entry);
 }
 
-function remapIssuer(game: Game, issuer: Issuer): Issuer {
-  const player = game.entityHandler.getPlayerById(issuer);
-  return player.id;
+function isRandomSeed(entry: HistoricEntry): entry is RandomSeedEntry {
+  return isPrivateEntry(entry) && entry.type === "randomSeed" && typeof entry.seed === "string";
 }
 
-function applySetGameParameter(
-  game: Game,
-  payload: HistoricEntry & { type: "GameParameters" },
-): void {
-  game.gameParameters.loadFromJson(payload.gameParameters as any);
+/** Whether a request (or an answer) that changes the game was recorded after the given index. */
+function hasRequestAfter(logs: HistoricEntry[], index: number): boolean {
+  return logs.slice(index + 1).some((entry) => isUserRequestEntry(entry) && !IGNORED_REQUESTS.has(entry.type));
 }
 
-function verifyRecordedCharactersAfterStart(
-  game: Game,
-  characterByPlayer: Map<string, string>,
-): void {
-  if (characterByPlayer.size === 0 || characterByPlayer.size !== game.players.length) {
-    return;
-  }
-
-  for (const player of game.players) {
-    const expectedSlug = characterByPlayer.get(player.id);
-    if (!expectedSlug) continue;
-
-    if (player.character.slug !== expectedSlug) {
-      throw new GameError(
-        `Character mismatch after replay start for player ${player.id}: expected ${expectedSlug}, got ${player.character.slug}`,
-        toSerializedTranslation("error.characterMismatchAfterReplayStart", { player: player.id, slug: expectedSlug, slug2: player.character.slug }),
-      );
-    }
-  }
+function replayError(message: string): GameError {
+  return new GameError(message, toSerializedTranslation("error.behaviorError", { error: message }));
 }
 
-interface GameStateComparison {
-  equal: boolean;
-  differences: string[];
+function findInitialSeed(logs: HistoricEntry[]): string {
+  const seed = logs.find(isRandomSeed)?.seed;
+  if (!seed) throw replayError("No valid randomSeed entry found in logs for game initialization.");
+  return seed;
 }
 
-function normalizeDetailedStateForComparison(state: DetailedState): DetailedState {
+/** Clears what legitimately differs between a game and its replay. */
+function normalizeState(state: DetailedState): DetailedState {
   const normalized = structuredClone(state);
   normalized.lastStackElementTimeStamp = 0;
-  
-  for(const array of [normalized.history, normalized.stack])
-    for( const index in array)
-      if("reordering" in array[index]!)
-        array[index]["reordering"]!.groupId = "";
-
-
-  if (normalized.me.pendingSelection) {
-    normalized.me.pendingSelection.requestId = 0;
-  }
-
   normalized.animations = [];
+  for (const element of [...normalized.history, ...normalized.stack])
+    if (element.reordering) element.reordering.groupId = "";
+  if (normalized.me.pendingSelection) normalized.me.pendingSelection.requestId = 0;
   return normalized;
 }
 
-function formatDiffValue(value: unknown): string {
-  if (value === undefined) return "undefined";
+const kindOf = (value: unknown): string => (value === null ? "null" : Array.isArray(value) ? "array" : typeof value);
 
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
+/** Yields, path by path, how two JSON values differ. */
+function* differences(left: unknown, right: unknown, path: string): Generator<string> {
+  if (left === right || Object.is(left, right)) return;
+  const [leftKind, rightKind] = [kindOf(left), kindOf(right)];
+  if (leftKind !== rightKind && (isObject(left) || isObject(right))) {
+    yield `${path}: type mismatch (left=${leftKind}, right=${rightKind})`;
+  } else if (Array.isArray(left) && Array.isArray(right)) {
+    if (left.length !== right.length) yield `${path}: array length mismatch (left=${left.length}, right=${right.length})`;
+    for (let i = 0; i < Math.min(left.length, right.length); i++) yield* differences(left[i], right[i], `${path}[${i}]`);
+  } else if (isObject(left) && isObject(right)) {
+    for (const key of [...new Set([...Object.keys(left), ...Object.keys(right)])].sort())
+      yield* differences(left[key], right[key], `${path}.${key}`);
+  } else {
+    yield `${path}: value mismatch (left=${JSON.stringify(left)}, right=${JSON.stringify(right)})`;
   }
 }
 
-function collectDifferences(
-  left: unknown,
-  right: unknown,
-  path: string,
-  differences: string[],
-  maxDifferences: number,
-): void {
-  if (differences.length >= maxDifferences) return;
-  if (Object.is(left, right)) return;
-  if( left === right) return;
-
-  const leftIsArray = Array.isArray(left);
-  const rightIsArray = Array.isArray(right);
-
-  if (leftIsArray || rightIsArray) {
-    if (!leftIsArray || !rightIsArray) {
-      differences.push(
-        `${path}: type mismatch (left=${leftIsArray ? "array" : typeof left}, right=${rightIsArray ? "array" : typeof right})`,
-      );
-      return;
-    }
-
-    const leftArray = left as unknown[];
-    const rightArray = right as unknown[];
-
-    if (leftArray.length !== rightArray.length) {
-      differences.push(
-        `${path}: array length mismatch (left=${leftArray.length}, right=${rightArray.length})`,
-      );
-      if (differences.length >= maxDifferences) return;
-    }
-
-    const minLength = Math.min(leftArray.length, rightArray.length);
-    for (let index = 0; index < minLength; index++) {
-      collectDifferences(
-        leftArray[index],
-        rightArray[index],
-        `${path}[${index}]`,
-        differences,
-        maxDifferences,
-      );
-      if (differences.length >= maxDifferences) return;
-    }
-
-    return;
-  }
-
-  const leftIsObject = isObject(left);
-  const rightIsObject = isObject(right);
-
-  if (leftIsObject || rightIsObject) {
-    if (!leftIsObject || !rightIsObject) {
-      differences.push(
-        `${path}: type mismatch (left=${leftIsObject ? "object" : typeof left}, right=${rightIsObject ? "object" : typeof right})`,
-      );
-      return;
-    }
-
-    const leftRecord = left as Record<string, unknown>;
-    const rightRecord = right as Record<string, unknown>;
-    const keys = new Set([...Object.keys(leftRecord), ...Object.keys(rightRecord)]);
-
-    for (const key of Array.from(keys).sort()) {
-      const leftHasKey = Object.prototype.hasOwnProperty.call(leftRecord, key);
-      const rightHasKey = Object.prototype.hasOwnProperty.call(rightRecord, key);
-      const leftValue = leftRecord[key];
-      const rightValue = rightRecord[key];
-
-      if (!leftHasKey || !rightHasKey) {
-        if ((!leftHasKey && rightValue === undefined) || (!rightHasKey && leftValue === undefined)) {
-          continue;
-        }
-
-        differences.push(
-          `${path}.${key}: ${leftHasKey ? "missing on right" : "missing on left"} (left=${formatDiffValue(leftValue)}, right=${formatDiffValue(rightValue)})`,
-        );
-        if (differences.length >= maxDifferences) return;
-        continue;
-      }
-
-      collectDifferences(
-        leftValue,
-        rightValue,
-        `${path}.${key}`,
-        differences,
-        maxDifferences,
-      );
-      if (differences.length >= maxDifferences) return;
-    }
-
-    return;
-  }
-
-  differences.push(
-    `${path}: value mismatch (left=${formatDiffValue(left)}, right=${formatDiffValue(right)})`,
-  );
+function assertStateMatches(game: Game, recorded: DetailedState | undefined): void {
+  if (!recorded) throw replayError("GameState entry is missing gameState payload");
+  const viewer = game.players[0];
+  if (viewer === undefined) throw replayError("GameState entry is missing player data");
+  const found = differences(normalizeState(game.detailedStateJSON(viewer)), normalizeState(recorded), "gameState")
+    .take(MAX_REPORTED_DIFFERENCES)
+    .toArray();
+  if (found.length > 0)
+    throw replayError(`Current game state does not match GameState entry from logs. Differences:\n${found.map((difference, i) => `${i + 1}. ${difference}`).join("\n")}`);
 }
 
-function compareGameState(original: DetailedState, loaded: DetailedState): GameStateComparison {
-  const normalizedOriginal = normalizeDetailedStateForComparison(original);
-  const normalizedLoaded = normalizeDetailedStateForComparison(loaded);
-  const differences: string[] = [];
-  const maxDifferences = 25;
-
-  collectDifferences(normalizedOriginal, normalizedLoaded, "gameState", differences, maxDifferences);
-
-  return {
-    equal: differences.length === 0,
-    differences,
-  };
-}
-
-function setupLoadingSubmitSelectionHandling(game: Game, logs: HistoricEntry[]): void {
-  const submitSelectionEntries = logs.filter(
-    (entry): entry is Extract<UserRequest, { type: "SubmitSelection" }> =>
-      isUserRequestEntry(entry) && entry.type === "SubmitSelection",
-  ).sort((a, b) => a.payload.requestId - b.payload.requestId);
-  game.setSelectionHandlerNextId(submitSelectionEntries.length);
-  let i = 0;
+/** Answers the game's prompts with the SubmitSelection entries of the logs instead of waiting for the players. */
+function answerPromptsFromLogs(game: Game, logs: HistoricEntry[]): void {
+  // Prompts open in requestId order: each one takes the first remaining answer of its player.
+  const answers = logs
+    .filter((entry): entry is SubmitSelectionEntry => isUserRequestEntry(entry) && entry.type === "SubmitSelection")
+    .sort((a, b) => a.payload.requestId - b.payload.requestId);
+  game.setSelectionHandlerNextId(answers.length);
   // Prompts open at the same time (e.g. each player chooses) resolve in the order they were answered (log order),
   // not in the order they were opened: the order can matter (cards put on the bottom of a deck, history).
   const logPosition = new Map(logs.map((entry, index) => [entry, index]));
-  const pending: { position: number; release: () => void }[] = [];
+  const waiting: { position: number; release: () => void }[] = [];
   const releaseNext = (): void => {
-    pending.sort((a, b) => a.position - b.position);
-    pending.shift()?.release();
+    waiting.sort((a, b) => a.position - b.position);
+    waiting.shift()?.release();
   };
 
-  game.selectMultiple = async <T>(selections: {
-    player: Player;
-    min: number;
-    max: number;
-    options: T[];
-    description: SerializedTranslation;
-    skippable?: boolean;
-    canUseOnBoardSelection: boolean;
-  }[]): Promise<{ playerId: string; selected: T[]; remaining: T[] }[]> => {
-    const results: { playerId: string; selected: T[]; remaining: T[] }[] = [];
-
+  game.selectMultiple = async (selections) => {
+    const results = [];
     for (const selection of selections) {
-      for(let j = i; j < submitSelectionEntries.length; j++)
-      {
-        const entry = submitSelectionEntries[j];
-        if(entry !== undefined && selections.map(s=>s.player.id).includes(entry.issuer))
-        {
-          submitSelectionEntries.splice(j, 1);
-          submitSelectionEntries.splice(i, 0, entry);
-          break
-        }
-        console.log("Weird That it happens.");
-      }
-      const entry = submitSelectionEntries[i++];
-      if (entry === undefined) {
-        throw new GameError(
-          "No more SubmitSelection entries in logs to match the game's selectMultiple call. This may indicate a mismatch between the game state and the logs, or an issue with log formatting.",
-          toSerializedTranslation("error.behaviorError", { error: "No more SubmitSelection entries in logs to match the game's selectMultiple call." }),
-        );
-      }
-      // Let the prompts opened at the same time claim their entry, then resolve them in log order.
-      const turn = new Promise<void>((release) => pending.push({ position: logPosition.get(entry) ?? 0, release }));
-      if (pending.length === 1)
+      const index = answers.findIndex((answer) => answer.issuer === selection.player.id);
+      if (index === -1)
+        throw replayError(`No SubmitSelection entry left in logs to answer a selection of player ${selection.player.id}.`);
+      const answer = answers.splice(index, 1)[0]!;
+      // Let the prompts opened at the same time claim their answer, then resolve them in log order.
+      const turn = new Promise<void>((release) => waiting.push({ position: logPosition.get(answer)!, release }));
+      if (waiting.length === 1)
         queueMicrotask(releaseNext);
       await turn;
 
-      const resolvedOptions = entry.payload.selections.map((id) => {
-        const option = TargetBuilder["resolveIdentifier"](id, selection.options);
-        if (option === undefined) {
-          throw new GameError(`Invalid selection identifier: ${id.payload}`,
-            toSerializedTranslation("error.invalidSelectionIdentifier")
-          );
-        }
-        return option as T;
+      const selected = answer.payload.selections.map((id) => {
+        const option = TargetBuilder.resolveIdentifier(id, selection.options);
+        if (option === undefined)
+          throw new GameError(`Invalid selection identifier: ${JSON.stringify(id)}`, toSerializedTranslation("error.invalidSelectionIdentifier"));
+        return option;
       });
-
-      results.push({
-        playerId: entry.issuer,
-        selected: resolvedOptions,
-        remaining: selection.options.filter((option) => !resolvedOptions.includes(option)),
-      });
-      if (pending.length > 0)
+      results.push({ playerId: answer.issuer, selected, remaining: selection.options.filter((option) => !selected.includes(option)) });
+      if (waiting.length > 0)
         queueMicrotask(releaseNext);
     }
-
     return results;
   };
 }
 
-function findInitialSeed(logs: unknown[]): string {
-  const entry = logs.find(
-    (log): log is Extract<HistoricEntry, { type: "randomSeed" }> =>
-      isPrivateEntry(log) && log.type === "randomSeed" && typeof log.seed === "string",
-  );
-
-  if (!entry || !entry.seed || entry.seed === "") {
-    throw new GameError("No valid randomSeed entry found in logs for game initialization.",
-      toSerializedTranslation("error.behaviorError", { error: "No valid randomSeed entry found in logs for game initialization." })
-    );
-  }
-
-  return entry.seed;
-}
-
-function isLastIndexUsedForReplay(index: number, logs: HistoricEntry[])
-{
-  for(let i=index+1; i<logs.length; i++)
-  {
-    if(isUserRequestEntry(logs[i]!) && ![
-        "CreateRoom",
-        "JoinRoom",
-        "LeaveRoom",
-        "Rejoin",
-        "IsGameOngoing",
-        "LoadGame",
-        "DebugListCardsICanRemove",
-        "DebugListMonsterDeck",
-        "DebugListTreasure",
-        "DebugListLoot",
-        "Join",
-      ].includes(logs[i]!.type))
-      {
-        return false;
-      }
-  }
-  return true;
-}
-
+/** Rebuilds a game by replaying the requests of its logs; the prompts they open get the recorded answers. */
 export async function loadGameFromLogs(
   logs: HistoricEntry[],
   verbose: number = 0,
@@ -331,267 +146,143 @@ export async function loadGameFromLogs(
     console.log(`Loading game from logs with ${logs.length} entries...`);
 
   const game = new Game(findInitialSeed(logs));
-  const characterByPlayer = new Map<string, string>();
-  let seedAppliedDuringStartIndex = -1;
-
-  const normalMultipleSelection = game.selectMultiple;
-  setupLoadingSubmitSelectionHandling(game, logs);
+  const liveSelectMultiple = game.selectMultiple;
+  answerPromptsFromLogs(game, logs);
+  const playerOf = (request: { issuer: string }) => game.entityHandler.getPlayerById(request.issuer);
+  const seedsAppliedDuringStart = new Set<HistoricEntry>();
+  let startNotAwaited = false;
 
   try {
     for (const [index, entry] of logs.entries()) {
-      if (!isUserRequestEntry(entry) && !isPrivateEntry(entry)) {
+      if ((!isUserRequestEntry(entry) && !isPrivateEntry(entry)) || IGNORED_REQUESTS.has(entry.type))
         continue;
-      }
-
       if (verbose >= 1)
         console.log(`Replaying log entry ${index}\n`);
 
       switch (entry.type) {
-        case "CreateRoom":
-        case "JoinRoom":
-        case "LeaveRoom":
-        case "Rejoin":
-        case "IsGameOngoing":
-        case "LoadGame":
-        case "DebugListCardsICanRemove":
-        case "DebugListMonsterDeck":
-        case "DebugListTreasure":
-        case "DebugListLoot":
-        case "DebugListDices":
-        case "Join": 
-        // SubmitSelection is handled by the custom selectMultiple override, so we skip it here.
-        break;
-        case "SubmitSelection": 
+        case "character": // Recorded again by start().
+          break;
+        case "SubmitSelection": // Given to its prompt by answerPromptsFromLogs.
           game.addToHistory(entry);
           break;
-
-        case "character": {
-          characterByPlayer.set(entry.playerId, entry.slug);
-          break;
-        }
-
-        case "randomSeed": {
-          if (index !== seedAppliedDuringStartIndex)
+        case "randomSeed":
+          if (!seedsAppliedDuringStart.has(entry))
             game.seed = entry.seed;
           break;
-        }
-
-        case "GameParameters": {
-          applySetGameParameter(game, entry as HistoricEntry & { type: "GameParameters" });
+        case "GameParameters":
+          game.gameParameters.loadFromJson(entry.gameParameters);
           break;
-        }
-
-        case "SetGameParameter": {
-          const payload = entry.payload;
-          game.gameParameters.setParameterByKey(payload.parameter, payload.value);
+        case "SetGameParameter":
+          game.gameParameters.setParameterByKey(entry.payload.parameter, entry.payload.value);
           game.addToHistory(entry);
           break;
-        }
-
         case "Start": {
-          if(isLastIndexUsedForReplay(index, logs))
-          {
-            game.selectMultiple = normalMultipleSelection;
+          if (!hasRequestAfter(logs, index)) {
+            // Saved during a start-of-game prompt: start() waits for the players' live answers.
+            game.selectMultiple = liveSelectMultiple;
             void game.start(entry.players);
-          }
-          else
-          {
-            const startPromise = game.start(entry.players);
             game.addToHistory(entry);
-            // A randomSeed right after Start means the original game was reloaded with Start as its last
-            // request: it reseeded while start() was still pending (see the "void game.start" branch above).
-            // Apply the seed at the same point so the rest of start() consumes the same random values.
-            const next = logs[index + 1];
-            if (next !== undefined && isPrivateEntry(next) && next.type === "randomSeed") {
-              game.seed = next.seed;
-              seedAppliedDuringStartIndex = index + 1;
-            }
-            await startPromise;
-            await game.awaitPromises();
-            // verifyRecordedCharactersAfterStart(game, characterByPlayer); Can be wrong due to the mulligan thingy.
+            startNotAwaited = true;
             break;
           }
+          const started = game.start(entry.players);
           game.addToHistory(entry);
-          break;
-        }
-
-        case "Reset": {
-          throw new GameError(
-            "Reset are supposed to be handled by creating a new game instance, but a Reset entry was found in logs. This may indicate an issue with log formatting or replay logic.",
-            toSerializedTranslation("error.behaviorError", { error: "Reset are supposed to be handled by creating a new game instance, but a Reset entry was found in logs." }),
-          );
-        }
-        case "GameState": {
-          const state = entry.gameState;
-          if (!state) {
-            throw new GameError("GameState entry is missing gameState payload", toSerializedTranslation("error.behaviorError", { error: "GameState entry is missing gameState payload" }));
+          // Seeds right after Start come from loads that reseeded (see the end of this function) without awaiting
+          // start() (branch above): apply them at the same point so the rest of start() consumes the same random values.
+          for (const next of logs.slice(index + 1)) {
+            if (!isRandomSeed(next)) break;
+            game.seed = next.seed;
+            seedsAppliedDuringStart.add(next);
           }
-
-          if (game.players[0] === undefined)
-            throw new GameError("GameState entry is missing player data", toSerializedTranslation("error.behaviorError", { error: "GameState entry is missing player data" }));
-
-          const comparison = compareGameState(game.detailedStateJSON(game.players[0]), state);
-          if (!comparison.equal) {
-            const differencesMessage = comparison.differences
-              .map((difference, index) => `${index + 1}. ${difference}`)
-              .join("\n");
-
-            throw new GameError(
-              `Current game state does not match GameState entry from logs. Differences:\n${differencesMessage}`,
-              toSerializedTranslation("error.behaviorError", { error: `Current game state does not match GameState entry from logs. Differences:\n${differencesMessage}` })
-            );
-          }
-
+          await started;
+          await game.awaitPromises();
           break;
         }
-        case "DeclareAttack": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          helper.executeDeclareAttackRequest(game, player);
+        case "Reset":
+          throw replayError("Reset are supposed to be handled by creating a new game instance, but a Reset entry was found in logs.");
+        case "GameState":
+          // The state was recorded after start() completed: not reached yet if start() was not awaited.
+          if (!startNotAwaited)
+            assertStateMatches(game, entry.gameState);
           break;
-        }
-
-        case "AttackMonster": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          await helper.executeAttackMonsterRequest(game, entry.payload, player);
+        case "DeclareAttack":
+          helper.executeDeclareAttackRequest(game, playerOf(entry));
           break;
-        }
-
-        case "AttackRoll": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          helper.executeAttackRollRequest(game, player);
+        case "AttackMonster":
+          await helper.executeAttackMonsterRequest(game, entry.payload, playerOf(entry));
           break;
-        }
-
-        case "Resolve": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          await Promise.resolve();
-          await Promise.resolve();
-          await Promise.resolve();
-          await Promise.resolve();
-          await Promise.resolve();
-          await helper.executeResolveRequest(game, player);
+        case "AttackRoll":
+          helper.executeAttackRollRequest(game, playerOf(entry));
           break;
-        }
-
-        case "InsertStackElementBefore": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          helper.executeInsertStackElementBeforeRequest(game, entry.payload, player);
+        case "Resolve":
+          // Let the effects of the previous requests settle before Resolve checks that it is allowed.
+          for (let tick = 0; tick < 5; tick++)
+            await Promise.resolve();
+          await helper.executeResolveRequest(game, playerOf(entry));
           break;
-        }
-
-        case "Activate": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
+        case "InsertStackElementBefore":
+          helper.executeInsertStackElementBeforeRequest(game, entry.payload, playerOf(entry));
+          break;
+        case "Activate":
           try {
-            await helper.executeActivateRequest(game, entry.payload, player);
+            await helper.executeActivateRequest(game, entry.payload, playerOf(entry));
           } catch (error) {
-            throw new GameError(
-              `Failed to replay Activate request from logs: ${error instanceof Error ? error.message : error}`,
-              toSerializedTranslation("error.behaviorError", { error: `Failed to replay Activate request from logs: ${error instanceof Error ? error.message : error}` })
-            );
+            throw replayError(`Failed to replay Activate request from logs: ${error instanceof Error ? error.message : error}`);
           }
           break;
-        }
-
-        case "DeclarePurchase": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          helper.executeDeclarePurchaseRequest(game, player);
+        case "DeclarePurchase":
+          helper.executeDeclarePurchaseRequest(game, playerOf(entry));
           break;
-        }
-
-        case "CancelPurchase": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          helper.executeCancelPurchaseRequest(game, player);
+        case "CancelPurchase":
+          helper.executeCancelPurchaseRequest(game, playerOf(entry));
           break;
-        }
-
-        case "Purchase": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          helper.executePurchaseRequest(game, entry.payload, player);
+        case "Purchase":
+          helper.executePurchaseRequest(game, entry.payload, playerOf(entry));
           break;
-        }
-
-        case "EndTurn": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          await helper.executeEndTurnRequest(game, player);
+        case "EndTurn":
+          await helper.executeEndTurnRequest(game, playerOf(entry));
           break;
-        }
-
-        case "GiveCoins": {
-          const from = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          await helper.executeGiveCoinsRequest(game, entry.payload, from);
+        case "GiveCoins":
+          await helper.executeGiveCoinsRequest(game, entry.payload, playerOf(entry));
           break;
-        }
-
-        case "DebugLootTop": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          helper.executeDebugLootTopRequest(game, player);
+        case "DebugLootTop":
+          helper.executeDebugLootTopRequest(game, playerOf(entry));
           break;
-        }
-
-        case "DebugGainTreasureTop": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          helper.executeDebugGainTreasureTopRequest(game, player);
+        case "DebugGainTreasureTop":
+          helper.executeDebugGainTreasureTopRequest(game, playerOf(entry));
           break;
-        }
-
-        case "DebugLoot": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          helper.executeDebugLootRequest(game, entry.payload, player);
+        case "DebugLoot":
+          helper.executeDebugLootRequest(game, entry.payload, playerOf(entry));
           break;
-        }
-
-        case "DebugGainCoins": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          helper.executeDebugGainCoinsRequest(game, entry.payload, player);
+        case "DebugGainCoins":
+          helper.executeDebugGainCoinsRequest(game, entry.payload, playerOf(entry));
           break;
-        }
-
-        case "DebugPutMonsterCardInSlot": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          helper.executeDebugPutMonsterCardInSlotRequest(game, entry.payload, player);
+        case "DebugPutMonsterCardInSlot":
+          helper.executeDebugPutMonsterCardInSlotRequest(game, entry.payload, playerOf(entry));
           break;
-        }
-
-        case "DebugGainTreasure": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          helper.executeDebugGainTreasureRequest(game, entry.payload, player);
+        case "DebugGainTreasure":
+          helper.executeDebugGainTreasureRequest(game, entry.payload, playerOf(entry));
           break;
-        }
-
-        case "DebugChangeDiceResult": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          helper.executeDebugChangeDiceResultRequest(game, entry.payload, player);
+        case "DebugChangeDiceResult":
+          helper.executeDebugChangeDiceResultRequest(game, entry.payload, playerOf(entry));
           break;
-        }
-
-        case "DebugPutRoom": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          helper.executeDebugPutRoomRequest(game, entry.payload, player);
+        case "DebugPutRoom":
+          helper.executeDebugPutRoomRequest(game, entry.payload, playerOf(entry));
           break;
-        }
-
-        case "DebugRemoveCards": {
-          const player = game.entityHandler.getPlayerById(remapIssuer(game, entry.issuer));
-          helper.executeDebugRemoveCardsRequest(game, entry.payload, player);
+        case "DebugRemoveCards":
+          helper.executeDebugRemoveCardsRequest(game, entry.payload, playerOf(entry));
           break;
-        }
-
         default:
-          throw new GameError(`Unsupported log entry type for replay: ${(entry as HistoricEntry).type}`,
-            toSerializedTranslation("error.behaviorError", { error: `Unsupported log entry type for replay: ${(entry as HistoricEntry).type}` }));
+          throw replayError(`Unsupported log entry type for replay: ${(entry as HistoricEntry).type}`);
       }
     }
-    for (const player of game.players) {
+    for (const player of game.players)
       player.animations(true);
-    }
     game.seed = "";
-    if(game.stack.isEmpty())
+    if (game.stack.isEmpty())
       game.assert.lastTimedAction = 0;
     return game;
-  }catch (error) {
-    throw error;
-  }
-   finally {
-    game.selectMultiple = normalMultipleSelection;
+  } finally {
+    game.selectMultiple = liveSelectMultiple;
   }
 }

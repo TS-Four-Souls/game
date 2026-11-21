@@ -254,11 +254,7 @@ export class HistoricHandler {
    * so a save taken while a selection is pending stops at the last point where none was.
    */
   saveLog(game: Game): HistoricEntry[] {
-    if (!game.hasPendingSelections) return this.log(game);
-    if (this._lastSettledLength !== -1) return this._history.slice(0, this._lastSettledLength);
-    // Pending since the start of the game (e.g. Eden's starting item): replaying up to Start asks again.
-    const startIndex = this._history.findIndex((entry) => entry.type === "Start");
-    return this._history.slice(0, startIndex + 1);
+    return game.hasPendingSelections ? this.rollbackLog : this.log(game);
   }
 
   /** Issuer of the request a rollback would undo. */
@@ -271,11 +267,14 @@ export class HistoricHandler {
   /**
    * History before the last request recorded while no selection was pending, i.e. the cut used by saveLog:
    * the request is dropped with every answer and request made while its selections were open.
-   * If no such request exists, returns the entire history.
+   * If no such request exists, returns the history up to Start while a selection is pending, else the entire history.
    */
   get rollbackLog(): HistoricEntry[] {
     if (this._lastSettledLength !== -1)
       return this._history.slice(0, this._lastSettledLength);
+    // Pending since the start of the game (e.g. Eden's starting item): replaying up to Start asks again.
+    if (this._game.hasPendingSelections)
+      return this._history.slice(0, this._history.findIndex((entry) => entry.type === "Start") + 1);
     return this._history;
   }
 
